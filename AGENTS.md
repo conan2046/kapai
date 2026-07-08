@@ -1,0 +1,97 @@
+# Codex Project Notes
+
+## Agent 命令执行环境规范
+- 执行命令时，请始终优先选择 **PowerShell 7 (pwsh.exe)**，而不是旧版的 **powershell.exe**
+- 这样能保证命令执行全部采用 UTF-8 编码，避免中文乱码问题及 BOM 错误
+
+## 项目定位
+- 这是 Cocos2d-x 2.17 + Lua 前端、C++ 后端的联网卡牌游戏。
+- 当前仓库没有独立登录服源码；本地测试服采用最小改动的“无登录服直连游戏服”模式。
+
+## 分析与修改范围
+- 分析业务代码时优先看 `client/ProjectX/src/`、`client/ProjectX/res/`、`server/src/`、`server/script/`、`server/config/`、`server/sql/`、`tools/local/`。
+- 默认忽略生成物和第三方依赖：`build/`、`.local/`、`tools/local/vcpkg/`、客户端/服务端日志、MySQL data 目录。
+- `tools/local/vcpkg/` 是外部依赖副本，不要为了统一规则或格式去批量修改。
+
+## 任务类型到源码入口
+- 登录/进服/创角：`server/src/pack_deal.cpp` 的 `UserLogin/CreateRole/SelectRole`，客户端 `client/ProjectX/src/core/AppDef.lua`。
+- 协议功能：先查 `server/src/protocol.h` 协议号，再查 `server/src/pack_deal.cpp` 的 `cmdFun.push_back` 和对应 `*Option` 函数。
+- 服务端 Lua 报错：先查 `server/script/*.lua` 调用点，再在 `server/src/lua_j_stub.cpp` 补最小绑定或本地测试旁路。
+- 数据库缺表/缺字段：优先补 `server/sql/local_min_schema.sql` 或 `local_test=1` 启动 bootstrap；不要用正式库猜测大面积结构。
+- Windows 编译/运行兼容：优先查 `server/src/win_compat.h`、`server/src/gyu/`、POSIX shim 头文件。
+- 客户端本地启动：`tools/local/Start-Client.ps1` 同步 Lua/res 后启动 `client/ProjectX/simulator/win32/ProjectX.exe`。
+
+## 标准调试与验收流程
+- 遇到错误先定位根因：复现协议/操作、看服务端日志、看客户端日志、查对应源码，不做无证据猜修。
+- 常见错误诊断表见 `LOCAL_DEBUG.md`。
+- 协议覆盖矩阵见 `PROTOCOL_COVERAGE.md`，可用 `tools/local/Export-ProtocolCoverage.ps1` 刷新。
+- 一键本地验证用 `tools/local/Run-LocalVerification.ps1`；它会串联环境检查、可选构建/启动、协议 smoke 和日志扫描。
+- 验收分级：
+  - L1：`kapai.exe` 启动并监听 `8711`。
+  - L2：`ProjectX.exe` 可进入本地主流程。
+  - L3：基础 smoke 无 SQL/Lua/assert/crash。
+  - L4：`-Extended -Actions -Mutations -Positive` 组合 smoke 无错误。
+  - L5：定时器/保存线程长跑后无新增错误。
+  - L6：客户端人工点击所有主要 UI 功能点无错误。
+
+## 本地测试服规则
+- 客户端本地直连开关在 `client/ProjectX/src/core/AppDef.lua`：
+  - `AppDef.LOCAL_TEST = true` 时跳过登录服。
+  - 本地游戏服默认 `127.0.0.1:8711`。
+- 服务端本地测试开关在 `server/config/config`：
+  - `[server] local_test=1` 时跳过登录库中的 `server_list/db_config/sig_log` 校验。
+  - `local_user_id=0` 表示使用客户端/烟测传入的 userId；默认客户端仍是 userId=1。
+  - 游戏库仍使用 `[database]` 配置。
+  - `[long_server].port=0`、`[queue].port=0` 表示本地测试时不注册长连接服/匹配服。
+- 不要删除原登录服/线上逻辑；本地测试只能通过开关旁路。
+- 本地运行步骤见 `LOCAL_RUN.md`。
+- 常用脚本在 `tools/local/`：
+  - `Check-LocalEnv.ps1`：检查客户端、服务端配置、MySQL、编译器、基础 schema。
+  - `Init-LocalDb.ps1`：拿到基础 schema 后创建并导入 `fxl_game_local`。
+  - `New-MinSchema.ps1`：从现有 SQL/源码生成 `server/sql/local_min_schema.sql`，用于缺正式基础库时本地兜底。
+  - `Install-LocalDeps.ps1`：通过 winget 安装 CMake、VS Build Tools，可选 MySQL/Boost。
+  - `Build-Server.ps1`：用 CMake 构建 Windows 服务端。
+  - `Start-Server.ps1`：以 `server/config` 为工作目录启动服务端。
+  - `Start-Client.ps1`：同步 Lua/res 并启动 Win 模拟器。
+  - `Start-LocalAll.ps1`：依赖齐全后串联检查、可选初始化数据库、启动服务端和客户端。
+  - `Invoke-ProtocolSmoke.ps1`：连接已启动的本地游戏服，执行登录/选角和一组无消耗查询协议冒烟；加 `-AutoCreateRole` 可用一次性 userId 创建隔离测试角色，加 `-Extended` 可覆盖更多界面查询入口，加 `-Actions` 覆盖低风险错误分支/空状态操作，加 `-Mutations` 覆盖可控本地改档操作，加 `-Positive` 覆盖部分正向消耗/领奖/战斗入口，加 `-InvalidRisky` 覆盖无效参数/异常分支。
+  - `Export-ProtocolCoverage.ps1`：从 `protocol.h`、`pack_deal.cpp`、`Invoke-ProtocolSmoke.ps1` 生成协议覆盖矩阵。
+  - `Run-LocalVerification.ps1`：串联环境检查、可选构建/启动、协议 smoke、日志扫描，用于本地验证收口。
+
+## 编译与运行约束
+- 服务端已补 `server/src/gyu/*.cpp` 兼容实现，构建时优先使用仓库内源码，不再强依赖外部 `/usr/local/gyu/lib/libgyu`。
+- Linux 可继续用 `server/src/makefile`；Windows 优先用 `server/CMakeLists.txt` 生成 VS/MSVC 工程。
+- Windows 原生构建仍需要本机安装 C++ 编译器、Boost thread/system、Lua、MySQL client；Zlib/OpenSSL 为可选增强依赖。
+- `server/CMakeLists.txt` 预留了 `BOOST_ROOT/MYSQL_INCLUDE_DIR/MYSQL_LIBRARY/LUA_INCLUDE_DIR/LUA_LIBRARY`。
+- 为保留最小改动，业务代码里的 POSIX socket include 通过 `server/src/sys/socket.h`、`server/src/netinet/in.h`、`server/src/arpa/inet.h` 做 Windows 兼容。
+- 服务端本地启动工作目录必须是 `server/config`，因为程序读取当前目录的 `config`、`xml/`、`dat/`；`script_dir` 应指向 `../script/`。
+- 客户端 Win 模拟器入口为 `client/ProjectX/simulator/win32/ProjectX.exe`。
+
+## 修改原则
+- 优先做最小改动，保留线上路径默认可恢复。
+- 涉及中文文件时使用 UTF-8。
+- 不要凭空补登录服协议；若需要账号登录流程，单独实现本地假登录服或拿原登录服源码。
+
+## Windows local-run additions
+- `tools/local/Start-LocalMySql.ps1` starts a workspace-local MySQL 8.4 instance with data under `.local/mysql-data`; it does not install or modify a Windows service.
+- `server/src/win_compat.h` is force-included by MSVC builds and centralizes Windows compatibility for `access/R_OK`, `bzero`, `strtok_r`, `gettimeofday`, and legacy `auto_ptr` usage.
+- `server/src/boost/*.hpp`, `server/src/swigluarun.h`, and POSIX shim headers are local compatibility shims for the missing private/Linux toolchain pieces; keep them scoped to local Windows test-server work.
+- Windows/MSVC build now produces `build/server-win/Debug/kapai.exe`.
+- The MySQL client DLL dependency chain must sit beside the exe or in `server/config`: `libmysql.dll`, `libssl-3-x64.dll`, `libcrypto-3-x64.dll`.
+- `local_test=1` is allowed to degrade non-login-critical optional systems such as shop/activity/rank/recharge initialization so the local game server can listen without the full production database dump.
+- Windows protocol compatibility in `server/src/gyu/` must match the legacy Cocos simulator: strings use UTF-16LE when `MET_Unicode` is set, the 4-byte length field is body length excluding the 6-byte header, and zero-payload command packets are valid.
+- `server/src/gyu/g_socket_server.cpp` keeps a per-socket send queue on Windows; do not replace it with a single pending message, or rapid init responses such as `MSG_CLIENT_GET_SAVE_VAL/146` can be dropped or crash under MSVC Debug.
+- Local-test-only degradations now include red-point responses (`PRO_Func_HotPoint/65`) returning hidden state instead of querying incomplete production tables.
+- Local-test-only degradations also skip login-server online-state writeback (`server_list.onlineState`) because `local_test=1` intentionally does not connect `g_LoginDB`.
+- Local Lua compatibility is partial but enough for login/main-init validation: `server/src/swigluarun.h`, `server/src/call_script.cpp`, and `server/src/lua_j_stub.cpp` register `CUser *`, selected `j.*` helpers such as `GetFuncOpenLevel`, and the legacy `bit._*` API expected by shipped scripts. Extend this stub from concrete `call:` log errors instead of restoring broad private SWIG output.
+- `server/script/75.lua` is a local placeholder for an optional popup script referenced by this checkout but not shipped.
+- Fixed local Windows crash points are kept as regression rules: `CUser::MakeNewShenQiBaseInfo()` must not iterate past `shenqiList.size()`, `server/src/gyu/g_socket_server.cpp` must not clear valid coalesced packets when body length is zero, and send queue handling must preserve multiple pending responses per socket.
+- MSVC/Boost local build treats `boost::format("%2%")` placeholders as consumed in occurrence order in existing code paths. Keep local save SQL argument order aligned with SQL occurrence order.
+- Local role creation is supported for disposable protocol tests: default userId 1 still auto-binds `Test01`, other local userIds can create a role through `PRO_CREATE_ROLE/1003`; local `CreateRole` fills the nullable minimal-schema fields that `CUser::ReadData()` expects, and disposable roles start at level 60 with local test currency so positive protocol gates can be exercised.
+- Local guild creation is covered by positive smoke: local disposable roles get enough `TongBao` for `PRO_BANGPAI/54` op 1, `CBangPaiManager::CreateBangPai` inserts non-null local defaults for guild text/blob fields, and `CBangPaiManager::Init()` repairs older local NULL guild rows before reading them. `local_test=1` also suppresses the optional guild-copy chapter config warning when the local resource pack lacks `EBMT_BangPaiCopy` map data.
+- Local bootstrap repairs the minimal `notice_login` table by adding `title/msg/showType/jumpType/beginTime/endTime` when missing; this is required for `PRO_GONGGAO/88` in local smoke.
+- Local bootstrap repairs the minimal `question` table by adding `question/answer1/answer2/answer3/answer4`, filling empty fields, and ensuring at least 21 rows because `CUser::GetQuestionId()` rejects smaller question pools.
+- Local Lua compatibility now includes the concrete bindings required by extended smoke: `j.GetQuestion`, `j.GetDailyBossExp`, `j.MakeDailyBossInfo`, `CUser:GetVal`, `CUser:SetVal`, and `CUser:GetBossMissionStarInfo`. Keep future additions driven by concrete `call:` log errors.
+- `local_test=1` makes help-title/content requests return empty/error packets without querying the absent login DB `help` table.
+- Historical verification evidence belongs in `LOCAL_HISTORY.md`; do not append long dated smoke records to this file.
+- Current runbook is `LOCAL_RUN.md`; diagnosis table is `LOCAL_DEBUG.md`; generated coverage matrix is `PROTOCOL_COVERAGE.md`.

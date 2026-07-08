@@ -1,0 +1,112 @@
+﻿帮派相关：
+void CPackageDeal::BangPai(CNetMessage *pMsg,int sock)
+帮派领地相关：(帮派掠夺,帮战)
+void CPackageDeal::BangPaiZhongZhi(CNetMessage *pMsg,int sock)
+
+装备相关：
+void CPackageDeal::EquipmentOption(CNetMessage *pMsg,int sock)
+
+坐骑相关：
+void CPackageDeal::MountOption(CNetMessage *pMsg,int sock)
+
+神将相关:
+void CPackageDeal::PetOption(CNetMessage *pMsg,int sock)
+
+阵法相关:
+void CPackageDeal::ZhenFaOption(CNetMessage *pMsg,int sock)
+
+商城抽卡：
+void CPackageDeal::PetDraw(CNetMessage *pMsg,int sock)
+
+翅膀相关：
+void CPackageDeal::WingOption(CNetMessage *pMsg,int sock)
+
+神器相关：
+void CPackageDeal::ServerNewShenQi(CNetMessage *pMsg,int sock)
+
+商城相关：
+void CPackageDeal::ShopOption(CNetMessage *pMsg,int sock)
+
+活动相关：(灵气捐献,昆仑山,百花仙子,摇钱树)
+void CPackageDeal::HuoDongOption(CNetMessage *pMsg,int sock)
+限时活动相关：
+void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
+
+副本相关：
+void CPackageDeal::FuBenOption(CNetMessage *pMsg,int sock)
+宠物副本战斗结束：
+void CFight::RiChangChongWuFuBenEnd()
+
+
+
+竞技场相关：
+void CPackageDeal::ArenaOption(CNetMessage *pMsg,int sock)
+
+组队相关：
+void CPackageDeal::UserTeamOption(CNetMessage *pMsg,int sock)
+
+vip相关：
+void CPackageDeal::UserVIPOption(CNetMessage *pMsg,int sock)
+
+日常boss：
+void CPackageDeal::DailyBossOption(CNetMessage *pMsg,int sock)
+void CFight::DailyBossFightEnd()
+
+闯关相关：
+void CPackageDeal::ChuangGuanOption(CNetMessage *pMsg,int sock)
+
+钓鱼相关：
+void CPackageDeal::FishOption(CNetMessage *pMsg,int sock)
+
+通天塔相关：
+void CPackageDeal::TongTianTa(CNetMessage *pMsg,int sock)
+void CFight::TongTianTaFightEnd()	// 通天塔战斗结束
+
+护送相关：
+void CPackageDeal::HuSongShenShouOption(CNetMessage *pMsg,int sock)
+
+挑战灵魔：
+杀敌夺宝：
+师门任务：
+丹园任务：
+捉鬼相关：
+六界使者:
+找对应npc脚本
+
+藏宝图相关：
+void CPackageDeal::TreasureMapOption(CNetMessage *pMsg,int sock)
+
+试炼相关：
+void CPackageDeal::ShiLianOption(CNetMessage *pMsg,int sock)
+
+飞仙战场相关：
+void CPackageDeal::FeiXianOption(CNetMessage *pMsg,int sock)
+
+修仙历练相关：
+void CPackageDeal::XiuXianLiLianOption(CNetMessage *pMsg,int sock)
+
+角色技能升级：
+void CPackageDeal::LearnSkill(CNetMessage *pMsg,int sock)
+
+聊天：
+void CPackageDeal::UserChat(CNetMessage *pMsg,int sock)
+
+添加好友：
+void CPackageDeal::AddHot(CNetMessage *pMsg,int sock)
+
+
+
+===================================================================
+
+引导接口：
+
+npc寻路：
+int SendYinDaoNPCPos(CUser *pUser,int mapId,int x,int y,int npcId)
+
+寻野怪：
+int SendYinDaoMonsterPos(CUser *pUser,int mapId,int x,int y,int monsterId)
+
+设置客户端野外挂机状态：
+void ChangeClientGuaJiState(CUser *pUser,uint8 state);
+
+

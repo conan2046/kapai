@@ -1,0 +1,501 @@
+﻿-- 2020/4/16 ssj
+CREATE TABLE `fight_playback` (
+  `id` int(11) NOT NULL,
+  `type` int(11) NOT NULL DEFAULT '0',
+  `role_id` int(11) NOT NULL DEFAULT '0',
+  `tar_role_id` int(11) NOT NULL DEFAULT '0',
+  `fightMsg` mediumtext NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ALTER TABLE `fight_playback` ADD PRIMARY KEY (`id`), ADD KEY `type` (`type`), ADD KEY `role_id` (`role_id`), ADD KEY `tar_role_id` (`tar_role_id`);
+ALTER TABLE `fight_playback`  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE `fight_playback` ADD `notice` VARCHAR(256) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '' AFTER `fightMsg`;
+
+ALTER TABLE `fight_playback` ADD `time` INT NOT NULL DEFAULT '0' AFTER `notice`;
+ALTER TABLE `arena_log`	ADD COLUMN `role1_head` TINYINT NOT NULL DEFAULT '0' AFTER `role1_name`;
+ALTER TABLE `arena_log`	ADD COLUMN `role1_zhiye` TINYINT NOT NULL DEFAULT '0' AFTER `role1_head`;
+ALTER TABLE `arena_log`	ADD COLUMN `role1_vip` TINYINT NOT NULL DEFAULT '0' AFTER `role1_zhiye`;
+ALTER TABLE `arena_log`	ADD COLUMN `role1_power` INT NOT NULL DEFAULT '0' AFTER `role1_vip`;
+ALTER TABLE `arena_log`	ADD COLUMN `role2_head` TINYINT NOT NULL DEFAULT '0' AFTER `role2_name`;
+ALTER TABLE `arena_log`	ADD COLUMN `role2_zhiye` TINYINT NOT NULL DEFAULT '0' AFTER `role2_head`;
+ALTER TABLE `arena_log`	ADD COLUMN `role2_vip` TINYINT NOT NULL DEFAULT '0' AFTER `role2_zhiye`;
+ALTER TABLE `arena_log`	ADD COLUMN `role2_power` INT NOT NULL DEFAULT '0' AFTER `role2_vip`;
+ALTER TABLE `arena_log`	ADD COLUMN `role1_lv` INT NOT NULL DEFAULT '0' AFTER `role1_head`;
+ALTER TABLE `arena_log`	ADD COLUMN `role2_lv` INT NOT NULL DEFAULT '0' AFTER `role2_head`;
+
+-- 20200429 zqx
+ALTER TABLE `role_info` CHANGE `mysteryShop` `mysteryShop` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '商店';
+ALTER TABLE `arena_log` CHANGE `fightdata` `fightdata` INT( 11 ) NOT NULL DEFAULT '0';
+
+
+-- 2020/05/09 ssj
+DROP TABLE IF EXISTS `arena_paihang_save`;
+CREATE TABLE `arena_paihang_save` (
+  `rank` int(11) NOT NULL,
+  `robot` smallint(6) NOT NULL DEFAULT '0' COMMENT '0人1机器人',
+  `role_id` int(11) NOT NULL DEFAULT '0',
+  `win_num` int(11) NOT NULL DEFAULT '0',
+  `up_down` int(11) NOT NULL DEFAULT '0' COMMENT '0- 1上2下',
+  `jiangli` int(11) NOT NULL DEFAULT '0' COMMENT '0无奖励1可领取',
+  `name` varchar(32) NOT NULL,
+  `level` int(11) NOT NULL DEFAULT '0',
+  `vip_lv` smallint(6) NOT NULL DEFAULT '0',
+  `xiang` int(11) NOT NULL DEFAULT '0',
+  `mount_id` int(11) NOT NULL DEFAULT '0',
+  `wing_id` int(11) NOT NULL DEFAULT '0',
+  `wuqi` int(11) NOT NULL DEFAULT '0',
+  `lighteffect` int(11) NOT NULL DEFAULT '0',
+  `shenqi` int(11) NOT NULL DEFAULT '0',
+  `bow_count` int(11) NOT NULL DEFAULT '0',
+  `egg_count` int(11) NOT NULL DEFAULT '0',
+  `act_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+ALTER TABLE `arena_paihang_save`
+  ADD UNIQUE KEY `rank_2` (`rank`),
+  ADD KEY `jiangli` (`jiangli`),
+  ADD KEY `robot` (`robot`),
+  ADD KEY `role_id` (`role_id`);
+
+ALTER TABLE `arena_paihang_save` MODIFY `rank` int(11) NOT NULL AUTO_INCREMENT;
+
+
+
+DROP TABLE IF EXISTS `arena_paihang`;
+CREATE TABLE `arena_paihang` (
+  `rank` int(11) NOT NULL,
+  `robot` smallint(6) NOT NULL DEFAULT '0' COMMENT '0人1机器人',
+  `role_id` int(11) NOT NULL,
+  `win_num` int(11) NOT NULL DEFAULT '0',
+  `up_down` int(11) NOT NULL DEFAULT '0' COMMENT '0- 1上2下',
+  `jiangli` int(11) NOT NULL DEFAULT '0' COMMENT '0无奖励1可领取',
+  `name` varchar(32) NOT NULL,
+  `level` int(11) NOT NULL,
+  `vip_lv` smallint(6) NOT NULL DEFAULT '0',
+  `xiang` int(11) NOT NULL,
+  `mount_id` int(11) NOT NULL DEFAULT '0',
+  `wing_id` int(11) NOT NULL DEFAULT '0',
+  `wuqi` int(11) NOT NULL DEFAULT '0',
+  `lighteffect` int(11) NOT NULL DEFAULT '0',
+  `shenqi` int(11) NOT NULL DEFAULT '0',
+  `bow_count` int(11) NOT NULL DEFAULT '0',
+  `egg_count` int(11) NOT NULL DEFAULT '0',
+  `act_time` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC;
+
+ALTER TABLE `arena_paihang`
+  ADD UNIQUE KEY `rank_2` (`rank`),
+  ADD KEY `jiangli` (`jiangli`),
+  ADD KEY `robot` (`robot`),
+  ADD KEY `role_id` (`role_id`);
+
+ALTER TABLE `arena_paihang`
+  MODIFY `rank` int(11) NOT NULL AUTO_INCREMENT;
+
+
+
+ALTER TABLE `arena_paihang` DROP INDEX `role_id`;
+
+ALTER TABLE `arena_paihang` ADD INDEX(`role_id`);
+
+ALTER TABLE `arena_paihang` ADD UNIQUE(`rank`);
+
+-- 20200514 zqx
+ALTER TABLE `item`	ADD COLUMN `use_jump` INT NOT NULL DEFAULT '0' AFTER `script`;
+
+
+-- 2020/05/15 ssj
+
+ALTER TABLE `bang_pai` ADD `copy` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '副本信息' AFTER `info`;
+
+
+CREATE TABLE `role_simple_list` (
+  `id` int(11) NOT NULL COMMENT '角色id',
+  `name` varchar(32) NOT NULL DEFAULT '',
+  `level` smallint(6) NOT NULL DEFAULT '0',
+  `power` int(11) NOT NULL DEFAULT '0',
+  `sex` tinyint(4) NOT NULL DEFAULT '0',
+  `head` smallint(6) NOT NULL DEFAULT '0',
+  `vipLv` tinyint(4) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ALTER TABLE `role_simple_list`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `name` (`name`);
+
+CREATE TABLE `role_simple_list_save` (
+  `id` int(11) NOT NULL COMMENT '角色id',
+  `name` varchar(32) NOT NULL DEFAULT '',
+  `level` smallint(6) NOT NULL DEFAULT '0',
+  `power` int(11) NOT NULL DEFAULT '0',
+  `sex` tinyint(4) NOT NULL DEFAULT '0',
+  `head` smallint(6) NOT NULL DEFAULT '0',
+  `vipLv` tinyint(4) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+ALTER TABLE `role_simple_list_save`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `name` (`name`);
+
+
+
+-- 2020/05/21 ssj
+
+ALTER TABLE `bang_pai_role`
+  DROP `name`,
+  DROP `level`,
+  DROP `xiang`,
+  DROP `sex`,
+  DROP `vipLv`,
+  DROP `zhandouli`,
+  DROP `bangGong`,
+  DROP `plantNum`,
+  DROP `lastOnlineTime`;
+
+ALTER TABLE `role_simple_list` ADD `lastLoginTime` INT NOT NULL DEFAULT '0' AFTER `vipLv`;
+ALTER TABLE `role_simple_list_save` ADD `lastLoginTime` INT NOT NULL DEFAULT '0' AFTER `vipLv`;
+
+ALTER TABLE `role_simple_list` ADD `huoyue_day` INT NOT NULL DEFAULT '0' COMMENT '日活跃度' AFTER `vipLv`, 
+	ADD `huoyue_week` INT NOT NULL DEFAULT '0' COMMENT '周活跃度' AFTER `huoyue_day`;
+ALTER TABLE `role_simple_list_save` ADD `huoyue_day` INT NOT NULL DEFAULT '0' COMMENT '日活跃度' AFTER `vipLv`, 
+	ADD `huoyue_week` INT NOT NULL DEFAULT '0' COMMENT '周活跃度' AFTER `huoyue_day`;
+
+ALTER TABLE `role_info` ADD `copyData` TEXT NOT NULL DEFAULT '' COMMENT '帮派副本相关信息' AFTER `petKaiJia`;
+
+
+
+-- 2020/05/26 ssj
+
+ALTER TABLE `role_info` DROP `jianyu_time`;
+ALTER TABLE `role_info` DROP `script_double`;
+
+
+drop table fight_log;
+
+
+-- 2020/05/27 ssj
+
+ALTER TABLE  `role_simple_list` ADD  `model` TINYINT NOT NULL DEFAULT  '0' COMMENT  '模型' AFTER  `head` ;
+ALTER TABLE  `role_simple_list_save` ADD  `model` TINYINT NOT NULL DEFAULT  '0' COMMENT  '模型' AFTER  `head` ;
+
+ALTER TABLE  `role_simple_list` ADD  `bangId` INT NOT NULL DEFAULT  '0' COMMENT  '帮派id' AFTER  `vipLv` ;
+ALTER TABLE  `role_simple_list_save` ADD  `bangId` INT NOT NULL DEFAULT  '0' COMMENT  '帮派id' AFTER  `vipLv` ;
+
+
+ALTER TABLE `role_info`
+  DROP `position`,
+  DROP `xiang`,
+  DROP `map_id`,
+  DROP `x_pos`,
+  DROP `y_pos`,
+  DROP `petZhanDouLi`,
+  DROP `newmarriage`,
+  DROP `qunxian`,
+  DROP `hp`,
+  DROP `mp`,
+  DROP `currency`,
+  DROP `pk_val`,
+  DROP `daohang`,
+  DROP `menpai`,
+  DROP `mp_gongxian`,
+  DROP `use_double_end`,
+  DROP `use_double_type`,
+  DROP `script_timer`,
+  DROP `equipment`,
+  DROP `petKaiJia`,
+  DROP `wing_zhandouli`,
+  DROP `yaoshiShop`,
+  DROP `drop_touchitem`,
+  DROP `save_npc`,
+  DROP `save_monster`,
+  DROP `collect_npc`,
+  DROP `skills`,
+  DROP `bank_money`,
+  DROP `pk_time`,
+  DROP `open_pack`,
+  DROP `lingshou`,
+  DROP `nextOpenTime`;
+
+ALTER TABLE  `role_info` ADD  `model` TINYINT NOT NULL DEFAULT  '0' COMMENT  '模型' AFTER  `head` ;
+
+drop table mp_award;
+drop table new_marriage;
+
+
+-- 2020/06/01 ssj
+drop table if exists friend_list;
+CREATE TABLE IF NOT EXISTS `friend_list` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_id` int(11) NOT NULL,
+  `friend_info` text NOT NULL COMMENT '好友列表',
+  `apply_list` text NOT NULL COMMENT '申请列表',
+  `black_list` text NOT NULL COMMENT '黑名单',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `role_id` (`role_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+drop table if exists friend_list_save;
+CREATE TABLE IF NOT EXISTS `friend_list_save` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_id` int(11) NOT NULL,
+  `friend_info` text NOT NULL COMMENT '好友列表',
+  `apply_list` text NOT NULL COMMENT '申请列表',
+  `black_list` text NOT NULL COMMENT '黑名单',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `role_id` (`role_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+
+DROP TABLE human_npc;
+DROP TABLE master;
+DROP TABLE master_prentice;
+DROP TABLE mine_putout_config;
+
+
+ALTER TABLE `arena_paihang`
+  DROP `jiangli`,
+  DROP `name`,
+  DROP `level`,
+  DROP `vip_lv`,
+  DROP `xiang`,
+  DROP `mount_id`,
+  DROP `wing_id`,
+  DROP `wuqi`,
+  DROP `lighteffect`,
+  DROP `shenqi`,
+  DROP `act_time`;
+
+ALTER TABLE `arena_paihang_save`
+  DROP `jiangli`,
+  DROP `name`,
+  DROP `level`,
+  DROP `vip_lv`,
+  DROP `xiang`,
+  DROP `mount_id`,
+  DROP `wing_id`,
+  DROP `wuqi`,
+  DROP `lighteffect`,
+  DROP `shenqi`,
+  DROP `act_time`;
+
+
+ALTER TABLE  `arena_log` ADD  `type1` TINYINT NOT NULL DEFAULT  '0' COMMENT  '0人1机器人' AFTER  `role1_id` ;
+ALTER TABLE  `arena_log` ADD  `type2` TINYINT NOT NULL DEFAULT  '0' COMMENT  '0人1机器人' AFTER  `role2_id` ;
+ALTER TABLE  `arena_log` DROP  `role1_zhiye` ;
+ALTER TABLE  `arena_log` DROP  `role2_zhiye` ;
+ALTER TABLE `arena_log` DROP `hero`;
+
+ALTER TABLE  `arena_log` CHANGE  `rank2`  `rank2` INT( 11 ) NOT NULL DEFAULT  '0' COMMENT  '挑战之前排名';
+
+
+-- 2020/06/09 ssj
+
+DROP TABLE IF EXISTS `rank_list`;
+CREATE TABLE IF NOT EXISTS `rank_list` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` int(11) NOT NULL COMMENT '1等级榜2神将榜3总战力榜',
+  `rank` int(11) NOT NULL COMMENT '名次',
+  `role_id` int(11) NOT NULL,
+  `data1` bigint(20) NOT NULL DEFAULT '0' COMMENT '排序值1',
+  `data2` bigint(20) NOT NULL DEFAULT '0' COMMENT '排序值2',
+  `value1` int(11) NOT NULL DEFAULT '0' COMMENT '保存值1',
+  `time` int(11) NOT NULL DEFAULT '0' COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `type` (`type`),
+  KEY `rank` (`rank`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+
+
+
+ALTER TABLE  `role_simple_list` CHANGE  `power`  `power` BIGINT NOT NULL DEFAULT  '0';
+ALTER TABLE  `role_simple_list_save` CHANGE  `power`  `power` BIGINT NOT NULL DEFAULT  '0';
+ALTER TABLE  `role_info` CHANGE  `zhanDouLi`  `zhanDouLi` BIGINT NOT NULL DEFAULT  '0';
+ALTER TABLE  `arena_log` CHANGE  `role1_power`  `role1_power` BIGINT NOT NULL DEFAULT  '0';
+ALTER TABLE  `arena_log` CHANGE  `role2_power`  `role2_power` BIGINT NOT NULL DEFAULT  '0';
+
+-- 2020/06/11 ssj
+
+DROP TABLE IF EXISTS `rank_list_save`;
+CREATE TABLE IF NOT EXISTS `rank_list_save` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` int(11) NOT NULL COMMENT '1等级榜2神将榜3总战力榜',
+  `rank` int(11) NOT NULL COMMENT '名次',
+  `role_id` int(11) NOT NULL,
+  `data1` bigint(20) NOT NULL DEFAULT '0' COMMENT '排序值1',
+  `data2` bigint(20) NOT NULL DEFAULT '0' COMMENT '排序值2',
+  `value1` int(11) NOT NULL DEFAULT '0' COMMENT '保存值1',
+  `time` int(11) NOT NULL DEFAULT '0' COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `type` (`type`),
+  KEY `rank` (`rank`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+
+-- 2020/06/30 ssj
+
+DROP TABLE role_mission;
+DROP TABLE cg_fight_config;
+DROP TABLE mission;
+
+DROP TABLE IF EXISTS `user_record_log`;
+CREATE TABLE IF NOT EXISTS `user_record_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_id` int(11) NOT NULL,
+  `type` int(11) NOT NULL COMMENT '类型 1关卡挑战 2七日任务',
+  `type_id` int(11) NOT NULL COMMENT '类型 id',
+  `type_value` int(11) NOT NULL COMMENT '类型 值',
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `role_id` (`role_id`),
+  KEY `type` (`type`),
+  KEY `type_id` (`type_id`),
+  KEY `time` (`time`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1 ;
+
+
+-- 2020/07/06 ssj
+CREATE TABLE IF NOT EXISTS `fight_cg` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `fightMsg` mediumtext NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+delete from fight_cg where id=1;
+INSERT INTO `fight_cg` (`id`, `fightMsg`) VALUES
+(1, '78da8d567d685357143fe7252faf495ed3bc6aba5a4a59fd5814b36afee8ca3054878c6dc85e94a694d7ae6d4893456941b7cebaa01d2dfb80ae73e8fec83e194a0b7ea11b8a0e61201b38b60963151d1de8b60e3fb016c5bf36f64176ee4b5f927b5f9bf908dc77cff99ddf39e7776f4e72d10df018389d30850001a806003f484bb1815e5c800e703861e2b5f1c10ae8c94c678e0d9eebf200bee300489a8099914fda3fea4cc23fa10fc80685955ce0047034116b2fb0f7d3c683ee24eccbe624e6b6568693e993823c633e591222afde3079ac751ea7b4105f3b6d2b20f6714f6632d1df46d8eec7f3d8f9751eeb7e78ace4d10af9b7a74389381c9cde87cc6dad005a90904a95e4f517a0b3b1ea581f848eec3521d65a84aad560e9f44756797f6b571fc04b937990b516c0beda02ef9c31d5d607b9d18c09b1d622545b52e0bd666ced325eee835f37ee3141d65a009f23256a0035c583b5e6199c37ce1b6a4e4bcce9a9f4b6543cfa962ead57645c0a41e39b11d781c8fe46d0a2a3633323a97423283eba08fe4472e0af8e3afdabfe7775d06fa5d45c3cfa4a5ba53e3b7a730fc5225d9aa0313ec84853e9ebd1c9443c4a910e5cd0ac490d903586bbd4dcdddedef49644f885cb493537f4613c3aa757ea7bfb31e7923ba80594817bd073826e2322e0b2cefb9ca3c6b1905126e32ad1c8533a100422612f0b7bc41944874a61ddf72245fbc6fa1da530978f00cf9e6ae682bd64cbfe1481451f625779830bbd8781f25123134fac2dad55aaa91382f9cac9cfc8109908af0f6c2e2702c56e419434e21fbad4c179581f670f85f8a26c897c62d53e9699fac5f08527a1cc83723b75c78439fadda39c8729dcf975d186477e334afd1e22ff25182ea1426c0ab72c2e2da0b21f249935b4bca7c57630ce7561cec6c4383e3b60abe9cdef5b8ba4dae7db849a40fbb195ab29c4d564a67ff178c096fed30d8a2dfdaeb555b6f4ca7bb545f65dff3e254aa2d6af2babb776813467dfa0cd5f9cb47f8304231dad9bacad6f1fe348143b12e48528c5e4ee6528c94ca4bf373573229d996ae67bc7aae7c3b67b58fba0c9a6c733916224de9bde20eafac3095e4333fdcf5794f2e941dee917d3e3d35f7a6de9579730e1b5b12631fdedab4ab9e360274613877496e985a0f443eca14822a79c540a408364ce6e95c6733dac3146c70eeb5a82cdd34abd2e3a393e1c7b63485a9f4a07638a17fda0258663e1ddcc19debdc668046b8e1eb8dacd8d198fd93765bf937daefc99b17064a2fda95494b9d862d822630b45a0cb3b51c4b3823e7b68bc84ec726ebab8a214842b4deba1df0fc2e22ce8e6b72bf3748a7dca62c0b43664be2d47c79f31c59874b2ad1b3ae88069fe1f3e5918b0010f29436252285543fd097784e11f31ffb6e17f72aff383');
+
+-- 2020/07/10 zqx
+ALTER TABLE `buy_shop_item_1`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_2`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_3`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_4`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_5`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_6`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_7`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_8`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_9`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_10`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_11`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+ALTER TABLE `buy_shop_item_12`
+	CHANGE COLUMN `item_level` `money_type` INT(11) NOT NULL AFTER `num`,
+	CHANGE COLUMN `use_tongbao` `use_money` INT(11) NOT NULL AFTER `role_id`,
+	CHANGE COLUMN `left_tongbao` `left_money` INT(11) NOT NULL AFTER `use_money`,
+	CHANGE COLUMN `num` `num` INT NOT NULL AFTER `item_id`;
+
+-- 2020/07/20 
+ALTER TABLE `role_info`
+	ENGINE=MyISAM;
+	
+-- 2020/07/21
+ALTER TABLE `role_simple_list` ADD COLUMN `jingJie` SMALLINT(6) NOT NULL DEFAULT '0' AFTER `head`;
+ALTER TABLE `role_simple_list_save` ADD COLUMN `jingJie` SMALLINT(6) NOT NULL DEFAULT '0' AFTER `head`;
+
+-- 2020/07/27
+ALTER TABLE `buy_shop_item_1`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_2`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_3`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_4`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_5`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_6`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_7`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_8`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_9`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_10`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_11`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+ALTER TABLE `buy_shop_item_12`
+	ADD COLUMN `item_type` INT(11) NOT NULL AFTER `id`;
+
+-- 2020/07/27 ssj
+DROP TABLE IF EXISTS `fabao`;
+CREATE TABLE IF NOT EXISTS `fabao` (
+  `id` int(11) NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `quality` int(11) NOT NULL DEFAULT '0',
+  `pic` int(11) NOT NULL DEFAULT '0',
+  `attr` varchar(128) NOT NULL DEFAULT '',
+  `atrr_qianghua` varchar(128) NOT NULL DEFAULT '',
+  `attr_jinglian` varchar(128) NOT NULL DEFAULT '',
+  `equip` tinyint(4) NOT NULL DEFAULT '0',
+  `exp` int(11) NOT NULL DEFAULT '0',
+  `item_from` varchar(128) NOT NULL DEFAULT '',
+  `item_source` varchar(128) NOT NULL DEFAULT '',
+  `des` varchar(128) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `equip`;
+CREATE TABLE IF NOT EXISTS `equip` (
+  `id` int(11) NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `part` tinyint(4) NOT NULL DEFAULT '0',
+  `suit` tinyint(4) NOT NULL DEFAULT '0',
+  `quality` tinyint(4) NOT NULL DEFAULT '0',
+  `pic` varchar(128) NOT NULL DEFAULT '',
+  `attr` varchar(128) NOT NULL DEFAULT '',
+  `atrr_qianghua` varchar(128) NOT NULL DEFAULT '',
+  `attr_jinglian` varchar(128) NOT NULL DEFAULT '',
+  `attr_juexing` varchar(128) NOT NULL DEFAULT '',
+  `attr_shenzhu` varchar(128) NOT NULL DEFAULT '',
+  `shenzhu_cost` int(11) NOT NULL DEFAULT '0',
+  `item_from` varchar(128) NOT NULL DEFAULT '',
+  `item_source` varchar(128) NOT NULL DEFAULT '',
+  `des` varchar(128) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;

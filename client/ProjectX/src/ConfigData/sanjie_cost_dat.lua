@@ -1,0 +1,22 @@
+sanjie_cost_dat = {
+	{
+		id = 1,
+		name = 0,
+		interval = 30,
+		cost = {{60026,0,10}}
+	},
+	{
+		id = 2,
+		name = 0,
+		interval = 20,
+		cost = {{60001,0,60}}
+	},
+	{
+		id = 3,
+		name = 0,
+		interval = 10,
+		cost = {{60001,0,120}}
+	}
+}
+
+return sanjie_cost_dat

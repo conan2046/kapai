@@ -1,0 +1,142 @@
+config_dat = {
+	{
+		id = 1,
+		name = "refreshcost",
+		type = "arrays",
+		value = "[50,50,100,100,200]"
+	},
+	{
+		id = 2,
+		name = "blood_star",
+		type = "arrays",
+		value = "[3,6,9]"
+	},
+	{
+		id = 3,
+		name = "blood_buff",
+		type = "int",
+		value = "3"
+	},
+	{
+		id = 4,
+		name = "xianyao_times",
+		type = "int",
+		value = "5"
+	},
+	{
+		id = 5,
+		name = "kunlun_buy",
+		type = "arrays",
+		value = "[50,50,100,100,200]"
+	},
+	{
+		id = 6,
+		name = "stamina",
+		type = "arrays",
+		value = "[100,1000,360]"
+	},
+	{
+		id = 7,
+		name = "mingzhong_1",
+		type = "int",
+		value = "300"
+	},
+	{
+		id = 8,
+		name = "mingzhong_2",
+		type = "int",
+		value = "10000"
+	},
+	{
+		id = 9,
+		name = "shanbi_1",
+		type = "int",
+		value = "300"
+	},
+	{
+		id = 10,
+		name = "shanbi_2",
+		type = "int",
+		value = "10000"
+	},
+	{
+		id = 11,
+		name = "baoji_1",
+		type = "int",
+		value = "300"
+	},
+	{
+		id = 12,
+		name = "baoji_2",
+		type = "int",
+		value = "10000"
+	},
+	{
+		id = 13,
+		name = "kangbao_1",
+		type = "int",
+		value = "300"
+	},
+	{
+		id = 14,
+		name = "kangbao_2",
+		type = "int",
+		value = "10000"
+	},
+	{
+		id = 15,
+		name = "fabao_cost",
+		type = "int",
+		value = "1"
+	},
+	{
+		id = 16,
+		name = "arena_counts",
+		type = "arrays",
+		value = "[20,15]"
+	},
+	{
+		id = 17,
+		name = "fabao_counts",
+		type = "arrays",
+		value = "[20,30,30]"
+	},
+	{
+		id = 18,
+		name = "recovery_cost",
+		type = "arrays",
+		value = "[60001,0,50]"
+	},
+	{
+		id = 19,
+		name = "level_section",
+		type = "int",
+		value = "6"
+	},
+	{
+		id = 20,
+		name = "change_name_cost",
+		type = "arrays",
+		value = "[60001,0,500]"
+	},
+	{
+		id = 21,
+		name = "kunlun_counts",
+		type = "int",
+		value = "12"
+	},
+	{
+		id = 22,
+		name = "change_name_gangs",
+		type = "arrays",
+		value = "[60001,0,1000]"
+	},
+	{
+		id = 23,
+		name = "xiulian_attr",
+		type = "arrays",
+		value = "[1,2],[2,1],[3,1],[4,40]"
+	}
+}
+
+return config_dat

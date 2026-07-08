@@ -1,0 +1,18 @@
+﻿使用cocos2.17和VS2015，UI使用cocosStudio 3.10版本。
+新项目的UI功能全部使用lua开发，具体逻辑参考老项目的实现
+老项目和新项目主要的类名变动如下：
+			老（C++）		新（Lua）
+道具常用方法管理类：	ItemMgr-------->    LItemMgr
+技能常用方法管理类:	SkillMgr------->    LSkillMgr
+玩家数据管理类：	DATA_MGR------->    LRoleDataMgr
+本地数据表管理类：	DataConst------>	LDataConstMgr
+用户数据存储类：	UserConfig----->	LUserConfigMgr
+C++枚举定义和宏定义 转移到lua的AppDef.lua实现
+常用的数据结构比如道具、技能、坐骑等全部移到lua里面实现，目录在ProjectX\src\Data文件夹下面
+网络通信在lua的ProjectX\src\NetWork文件夹下面
+UI开发在ProjectX\src\View文件夹下面
+
+UI页签枚举定义在AppDef里面的AppDef.UITab里面，如需要新增在AppDef.UITab里面加
+
+
+注意事项：lua数组下标默认是1，服务器是从0开始

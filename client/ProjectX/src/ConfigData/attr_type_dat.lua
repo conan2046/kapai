@@ -1,0 +1,209 @@
+attr_type_dat = {
+	{
+		attrType = 1,
+		attrName = "攻击",
+		powerRatio = 20
+	},
+	{
+		attrType = 2,
+		attrName = "物防",
+		powerRatio = 40
+	},
+	{
+		attrType = 3,
+		attrName = "法防",
+		powerRatio = 40
+	},
+	{
+		attrType = 4,
+		attrName = "生命",
+		powerRatio = 1
+	},
+	{
+		attrType = 5,
+		attrName = "速度",
+		powerRatio = 0
+	},
+	{
+		attrType = 6,
+		attrName = "命中",
+		powerRatio = 50
+	},
+	{
+		attrType = 7,
+		attrName = "闪避",
+		powerRatio = 50
+	},
+	{
+		attrType = 8,
+		attrName = "暴击",
+		powerRatio = 50
+	},
+	{
+		attrType = 9,
+		attrName = "抗暴",
+		powerRatio = 50
+	},
+	{
+		attrType = 10,
+		attrName = "攻击加成",
+		powerRatio = 0
+	},
+	{
+		attrType = 11,
+		attrName = "物防加成",
+		powerRatio = 0
+	},
+	{
+		attrType = 12,
+		attrName = "法防加成",
+		powerRatio = 0
+	},
+	{
+		attrType = 13,
+		attrName = "生命加成",
+		powerRatio = 0
+	},
+	{
+		attrType = 14,
+		attrName = "速度加成",
+		powerRatio = 0
+	},
+	{
+		attrType = 15,
+		attrName = "命中率",
+		powerRatio = 200
+	},
+	{
+		attrType = 16,
+		attrName = "闪避率",
+		powerRatio = 200
+	},
+	{
+		attrType = 17,
+		attrName = "暴击率",
+		powerRatio = 200
+	},
+	{
+		attrType = 18,
+		attrName = "抗暴率",
+		powerRatio = 200
+	},
+	{
+		attrType = 19,
+		attrName = "增伤率",
+		powerRatio = 200
+	},
+	{
+		attrType = 20,
+		attrName = "物免率",
+		powerRatio = 200
+	},
+	{
+		attrType = 21,
+		attrName = "法免率",
+		powerRatio = 200
+	},
+	{
+		attrType = 22,
+		attrName = "暴击伤害",
+		powerRatio = 100
+	},
+	{
+		attrType = 23,
+		attrName = "反击率",
+		powerRatio = 200
+	},
+	{
+		attrType = 24,
+		attrName = "抗反率",
+		powerRatio = 200
+	},
+	{
+		attrType = 25,
+		attrName = "反击伤害",
+		powerRatio = 100
+	},
+	{
+		attrType = 26,
+		attrName = "连击率",
+		powerRatio = 200
+	},
+	{
+		attrType = 27,
+		attrName = "抗连率",
+		powerRatio = 200
+	},
+	{
+		attrType = 28,
+		attrName = "连击伤害",
+		powerRatio = 100
+	},
+	{
+		attrType = 29,
+		attrName = "反震率",
+		powerRatio = 200
+	},
+	{
+		attrType = 30,
+		attrName = "抗震率",
+		powerRatio = 200
+	},
+	{
+		attrType = 31,
+		attrName = "反震伤害",
+		powerRatio = 100
+	},
+	{
+		attrType = 32,
+		attrName = "负面强化",
+		powerRatio = 200
+	},
+	{
+		attrType = 33,
+		attrName = "负面抵抗",
+		powerRatio = 200
+	},
+	{
+		attrType = 51,
+		attrName = "受攻击加成的攻击力",
+		powerRatio = 0
+	},
+	{
+		attrType = 52,
+		attrName = "受物防加成的物防",
+		powerRatio = 0
+	},
+	{
+		attrType = 53,
+		attrName = "受法防加成的法防",
+		powerRatio = 0
+	},
+	{
+		attrType = 54,
+		attrName = "受生命加成的生命值",
+		powerRatio = 0
+	},
+	{
+		attrType = 55,
+		attrName = "不受攻击加成的攻击力",
+		powerRatio = 0
+	},
+	{
+		attrType = 56,
+		attrName = "不受物防加成的物防",
+		powerRatio = 0
+	},
+	{
+		attrType = 57,
+		attrName = "不受法防加成的法防",
+		powerRatio = 0
+	},
+	{
+		attrType = 58,
+		attrName = "不受生命加成的生命值",
+		powerRatio = 0
+	}
+}
+
+return attr_type_dat

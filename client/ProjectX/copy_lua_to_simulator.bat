@@ -1,0 +1,1 @@
+xcopy src\*  simulator\win32\src /D /E /I /F /Y

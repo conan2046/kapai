@@ -1,0 +1,87 @@
+﻿任务相关接口:
+
+获取可接任务列表：
+void CMissionManager::SendAvailableCMissionList(CUser *pUser)
+
+发送任务面板信息：
+void CMissionManager::SendCMissionTrackMsg(CUser *pUser,int missId)
+
+npc交互检测任务入口：
+bool CMissionManager::CheckCMissionNpcInteract(CUser *pUser,int npcId,int index,int missId)
+
+打野怪计数回调入口：
+void CMissionManager::AddKillMonsterNum(CUser *pUser,int monsterId,int num)
+
+
+是否有任务：
+bool CUser::HaveCMission(int id)  
+
+获取任务信息:
+const char *GetCMissionInts(CUser *pUser,int id)  获取任务存储信息，纯数字
+bool CUser::GetCMissionInts(int id,vector<int> &ints)    
+const char *GetCMissionStrs(CUser *pUser,int id)  获取任务存储信息，字符串
+bool CUser::GetCMissionStrs(int id,vector<string> &strs)
+
+更新任务信息：
+bool CUser::UpdateCMission(int id,const char *pInts,const char *pStrs)  
+
+接取任务：
+bool CUser::AcceptCMission(int id,const char *pInts,const char *pStrs)  
+bool CUser::AcceptCMission(int id,vector<int> &var,vector<string> &str)
+
+删除任务:
+bool CUser::DelCMission(int id)
+
+更新任务状态：
+void CUser::UpdateCMissionState(int missId,int state)
+
+任务是否完成：
+bool CUser::IsCMissionFinished(int missId)
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+添加宠物接口：
+bool AddPet(CUser *pUser,int petId,int level,int star,bool isShow,uint8 *pType)
+bool CUser::AddPet(SharePetPtr &pPet,uint16 *toItemId,uint16 *toItemNum)
+
+获得物品数量
+int CUser::GetItemNum(int id, int level)
+
+删除物品
+bool CUser::DelPackageById(int id,int num)
+
+添加物品
+bool CUser::AddBangDingPackage(int itemId,int num,const char *name,const char *mailMsg)     
+
+是否有宠物
+bool CUser::HavePet(uint16 petId)    
+
+
+
+
+文件说明：
+language_transform.h  所有字符串配置，每个人使用独立的区间段，防止相互干扰
+
+bangpai.h/.cpp     帮派相关
+fight.h/.cpp       战斗相关
+huo_dong.h/.cpp    活动相关
+huo_dong_mgr.h/.cpp  活动相关
+init.h/.cpp     基础配置
+item.h/.cpp     物品相关
+main.cpp        程序入口
+mission_manager.cpp  任务相关
+monster.cpp     怪物相关
+npc_manager.cpp  npc相关
+pack_deal.cpp         客户端交互协议处理
+pet.cpp      宠物相关
+protocol.h   协议号定义
+scene_manager.cpp  场景,战斗配置相关
+script_call.cpp    导出脚本函数,  使用方法： j.函数名
+script_user.h      导出角色函数,  使用方法： pUser:函数名
+user.cpp  user.h      角色信息类
+utility.cpp      全局接口

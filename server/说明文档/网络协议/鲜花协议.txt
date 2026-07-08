@@ -1,0 +1,24 @@
+鲜花协议
+
+协议号 314
+1 B // op = 7
+if(op=7){
+	//=============================
+	// 获取玩家自己的鲜花和商店的鲜花
+	4 B // flowernmu 家鲜花数量
+	if(flowernmu>0){
+		4 B //id
+		4 B //buy_type
+		4 B // price
+	}
+
+	4 B //  shopflowernum 商店鲜花数量
+	if(shopflowernum >0){
+		4 B //itemId
+		4 B //itemNum
+		4 B // meili
+		4 B // qinmi
+	}
+
+}
+ 

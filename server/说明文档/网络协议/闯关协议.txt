@@ -1,0 +1,135 @@
+	enum ECGOp {
+		ECGOp_Join = 1, // 加入
+		ECGOp_Sync, // 同步数据
+		ECGOp_Roll, // roll点
+		ECGOp_MoveEnd, // 移动完成
+		ECGOp_Msg, // 提示消息
+		ECGOp_Hand, // 手头剪刀布协议消息
+		ECGOp_Goal, // 获得元宝 与原协议一样
+		ECGOp_Reset, // 重置闯关数据
+		ECGOp_ResetRollCd, // 重置roll点cd时间
+		ECGOp_FightReport, // 前端发起战斗
+		ECGOp_Box,     // 获得宝箱 与原协议一样ECGOp_End
+		ECGOp_Robber, // 小贼战斗
+		ECGOp_SyncCD, // 第一次进房间同步cd时间
+		ECGOp_EnableCount, // 剩余有效进入次数
+		ECGOp_QueryInfo, // 查询地图数据 15
+		ECGOp_RandomEvent, // 随机事件 前进或者后退
+		ECGOp_EmptyEvent,  // 走到没有事件的格子
+		ECGOp_Coin,        //    获得金币
+		ECGOp_End,         //    通关
+		ECGOp_QueryEnemy,  //    获取敌人数据 名字 等级 战斗力 奖励等
+	};
+	// --------------------------------
+	// 地图数据的解析
+	op      1Byte
+	timediff 4字节 倒计时
+	exp   4Byte 经验
+	coin  4Byte 金币 
+	gold  4Byte 元宝
+
+	roll_max   1Byte 
+	roll_use   1Byte
+
+	monster_num   1Byte
+	kill_monster  1Byte
+		
+	cellnum 1Byte  格子数
+	currcell 4Byte 当前所在格子
+	
+	for(i = 0; i < cellnum ; i++){
+		cellid 1Byte
+		eventid 1Byte
+		eventnum 1Byte
+		if(eventid==2){
+			userid 4Byte
+			career 1Byte
+			weapon 1Byte
+			effect 1Byte
+			name   string
+		}
+	}	
+	
+	
+	// ==============================
+	// 掷筛子协议解析
+	op 1 Byte  3
+	errcode 1 Byte  // errcode = 1时有后续数据 =0时没有后续数据
+	destcell 4 Byte // 要去的格子
+	destcell 4 Byte // 要经过几个格子
+	destcell 4 Byte // 本次筛子数
+	roll_max 4 Byte // 筛子最大使用次数
+	roll_use 4 Byte // 当前剩余筛子次数
+
+	// ==============================
+	// 移动结束协议解析
+	1 Byte  // ECGOp_MoveEnd
+	1 Byte  // CellEvent_Empty CellEvent_Box CellEvent_Hand CellEvent_End CellEvent_Goal CellEvent_Coin CellEvent_Random
+	if(CellEvent_Empty){
+		// 走到空格子 没有后续数据
+		1 Byte // CellEvent_Empty
+	}
+	
+	if(CellEvent_Box){
+		//宝箱
+		1 Byte // 2
+	}
+	
+	if(CellEvent_Hand){
+		1 Byte  // ECGHand_Start
+		1 Byte  // errcode 
+	}
+	
+	if(CellEvent_Goal){
+		1 Byte  // ECGGoal_Ret
+		1 Byte  // errcode 
+		string  // 
+	}
+	
+	if(CellEvent_Coin){
+		1 Byte  // errcode 
+		string  // 
+	}
+	
+	if(CellEvent_End){
+		1 Byte  // errcode   
+		string  // 
+	}
+	
+	if(CellEvent_Random){
+		4 Byte  // 目标格子
+		4 Byte  // int 
+	}
+	
+	// ==============================
+	// 获取敌方数据协议解析
+	op 1 Byte  //ECGOp_QueryEnemy
+	4 Byte // 敌方id
+	4 Byte // 敌方战斗力
+	4 Byte // 奖励类型
+	4 Byte  // 奖励数量
+	string  // 敌方名字
+	
+	// ==============================
+	// 问号
+	op 1 Byte  //ECGOp_RandomEvent
+	4 Byte // 目标格子
+	4 Byte // 当前格子与目标格子的距离
+	
+	// ==============================
+	// 购买筛子次数
+	1 B // op = 21
+	1 B // errcode 1 成功 0 失败
+	if(errcode==1){
+		4 B // 当前总的次数
+		4 B // 当前的剩余次数
+		
+	}
+	
+	
+	
+	
+
+	
+	
+	

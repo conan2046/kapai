@@ -1,0 +1,667 @@
+ALTER TABLE `role_info`	ADD COLUMN `user_chuangguanmap` TEXT NOT NULL AFTER `sg_bitset`;
+ALTER TABLE `role_info`	ADD COLUMN `user_currentcell` INT  AFTER `user_chuangguanmap`;
+ALTER TABLE `role_info`	ADD COLUMN `user_chuangguanfight` TEXT NOT NULL AFTER `user_currentcell`;
+ALTER TABLE `role_info`	ADD COLUMN `user_chuangguanaward` TEXT NOT NULL AFTER `user_chuangguanfight`;
+ALTER TABLE `role_info`	ADD COLUMN `user_rolldata` INT AFTER `user_chuangguanaward`;
+ALTER TABLE `role_info`	ADD COLUMN `user_chuangguankiller` TEXT NOT NULL AFTER `user_rolldata`;
+
+
+ALTER TABLE `role_info` ADD `zhenfa` VARCHAR(256) NOT NULL AFTER `pet`;
+
+
+ALTER TABLE `item_template` DROP `add_fali`, DROP `add_xueliang`;
+
+ALTER TABLE  `item_template` ADD  `fafang` INT NOT NULL DEFAULT  '0' AFTER  `gongji` ,
+ADD  `mingzhong` INT NOT NULL DEFAULT  '0' AFTER  `fafang` ,
+ADD  `shanbi` INT NOT NULL DEFAULT  '0' AFTER  `mingzhong` ,
+ADD  `baoji` INT NOT NULL DEFAULT  '0' AFTER  `shanbi` ,
+ADD  `kangbao` INT NOT NULL DEFAULT  '0' AFTER  `baoji` ;
+
+
+ALTER TABLE  `item_template` ADD  `equip_pos` INT NOT NULL DEFAULT  '0' AFTER  `mod` ,
+ADD  `quality` INT NOT NULL DEFAULT  '0' AFTER  `equip_pos` ;
+
+
+ALTER TABLE  `monster_distribution` ADD  `min_fightId` INT NOT NULL DEFAULT  '0' AFTER  `monster_id` ,
+ADD  `max_fightId` INT NOT NULL DEFAULT  '0' AFTER  `min_fightId` ;
+
+ALTER TABLE `role_info` ADD COLUMN `clientstring` TEXT NOT NULL AFTER `login_time`;
+
+ALTER TABLE `arena_paihang` ADD COLUMN `shenqi` INT(11) NOT NULL DEFAULT '0' AFTER `lighteffect`;
+ALTER TABLE `role_info` ADD COLUMN `shenhunShop` TEXT NULL AFTER `clientstring`;
+
+
+
+-- login
+ALTER TABLE `notice_login` CHANGE `msg` `msg` VARCHAR(2048) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL;
+
+ALTER TABLE `role_info`	ADD COLUMN `questIds`  VARCHAR( 256 ) NULL DEFAULT  '' AFTER `shenhunShop`;
+
+
+
+
+ALTER TABLE  `item_template` ADD  `item_source` VARCHAR( 64 ) NOT NULL DEFAULT  '' COMMENT  '来源跳转，前端用';
+
+
+
+ALTER TABLE  `game_scene` ADD  `world_trans` SMALLINT NOT NULL DEFAULT  '0' COMMENT  '0不可世界传送1可世界传送' AFTER  `id` ;
+
+ALTER TABLE  `fuben_richang` ADD  `sceneId` INT NOT NULL DEFAULT  '0' AFTER  `fuben_index` ;
+
+
+-- login
+CREATE TABLE IF NOT EXISTS `black_ip` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ip` varchar(64) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ip` (`ip`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
+
+
+
+ALTER TABLE  `role_info` ADD  `find_res` TEXT NOT NULL COMMENT  '资源找回' AFTER  `wing_zhandouli` ;
+
+
+
+
+ALTER TABLE  `role_info` CHANGE  `xiuxian`  `xiuxian` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+ALTER TABLE  `role_info` CHANGE  `xianyuan`  `xianyuan` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+ALTER TABLE  `role_info` CHANGE  `bitset`  `bitset` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+ALTER TABLE  `role_info` CHANGE  `collect_npc`  `collect_npc` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+ALTER TABLE  `role_info` CHANGE  `hots`  `hots` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+ALTER TABLE  `role_info` CHANGE  `kuafu_1vs1`  `kuafu_1vs1` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL ;
+ALTER TABLE  `role_info` CHANGE  `transform`  `transform` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+ALTER TABLE  `role_info` CHANGE  `save_monster`  `save_monster` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ;
+
+
+-- 2019/2/28  zqx
+ALTER TABLE `vip_def` ADD COLUMN `sweep_copy` TEXT NOT NULL AFTER `yaoqianshu2`;
+
+
+-- 2019/2/28  ssj
+DROP TABLE fuben_list;
+
+-- 2019/3/1  ssj
+CREATE TABLE IF NOT EXISTS `rank_list` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` int(11) NOT NULL COMMENT '1历练塔2修仙历练',
+  `rank` int(11) NOT NULL COMMENT '名次',
+  `role_id` int(11) NOT NULL,
+  `role_name` varchar(256) NOT NULL,
+  `xiang` int(11) NOT NULL,
+  `data` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `type` (`type`),
+  KEY `rank` (`rank`)
+) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+DROP TABLE xiuxian_rank;
+
+-- 2019/3/4 zqx
+ALTER TABLE `role_info` ALTER `questIds` DROP DEFAULT;
+ALTER TABLE `role_info` 
+CHANGE COLUMN `shenhunShop` `shenhunShop` TEXT NOT NULL DEFAULT '' AFTER `clientstring`,
+CHANGE COLUMN `questIds` `questIds` VARCHAR(256) NOT NULL AFTER `shenhunShop`,
+ADD COLUMN `xunbao` TEXT NOT NULL DEFAULT '' AFTER `questIds`;
+
+-- 2019/3/5 ssj
+ALTER TABLE `role_info`  DROP `user_chuangguanmap`,  DROP `user_currentcell`,  DROP `user_chuangguanfight`,  DROP `user_chuangguanaward`,  DROP `user_rolldata`,  DROP `user_chuangguankiller`;
+ALTER TABLE  `vip_def` ADD  `fengshen_shilian` SMALLINT NOT NULL DEFAULT  '0' AFTER  `sweep_copy` ;
+ALTER TABLE  `cz_complete` ADD  `orderId` VARCHAR( 256 ) NOT NULL COMMENT  '平台订单号' AFTER  `IDFA` ;
+
+
+-- 2019/3/13 zqx  神将折扣  等级基金
+delete from hd_peizhi_info where type=83 or type=84;
+delete from huodong_info where type=83 or type=84;
+delete from huodong_award where type=83 or type=84;
+
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `price`) VALUES (83, 3, 7, 68);
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `price`) VALUES (84, 8, 7, 168);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`) VALUES ('成长基金', 83, 1, 1, '2019-03-13 16:58:39', '2019-03-23 16:58:41');
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`) VALUES ('神将折扣', 84, 1, 103, '2019-03-13 16:58:39', '2019-03-23 16:58:41');
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 1, 1, 10, 0, 60003, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 2, 1, 20, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 3, 1, 30, 0, 60003, 300, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 4, 1, 40, 0, 60003, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 5, 1, 50, 0, 60003, 500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 6, 1, 60, 0, 60003, 600, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 7, 1, 70, 0, 60003, 700, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 8, 2, 10, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 9, 2, 20, 0, 60003, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 10, 2, 30, 0, 60003, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 11, 2, 40, 0, 60003, 4000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 12, 2, 50, 0, 60003, 5000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 13, 2, 60, 0, 60003, 6000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (83, 14, 2, 70, 0, 60003, 7000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 1, 1, 600, 300, 60002, 11, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 2, 1, 1000, 500, 60002, 12, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 3, 1, 2160, 1080, 60002, 13, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 4, 1, 4160, 2080, 60002, 14, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 5, 1, 9920, 4960, 60002, 15, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 6, 1, 19960, 9980, 60002, 16, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (84, 7, 1, 39960, 19980, 60002, 17, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+
+-- 2019/3/15 zqx 充值返利 增加show_idx
+ALTER TABLE `chong_fanli` ADD COLUMN `show_idx` INT NOT NULL AFTER `id`;
+
+
+-- 2019/3/22 ssj
+ALTER TABLE  `xin_shi` ADD  `shenhun` INT NOT NULL DEFAULT  '0' COMMENT  '神魂' AFTER  `bdYB` ;
+
+
+-------------------------------------------------------------------------------------------------------------------------
+
+
+-- 2019/03/27 ssj
+ALTER TABLE  `level_rank` ADD  `vip_value` INT NOT NULL DEFAULT  '0' COMMENT  'vip值，需要换算成等级' AFTER  `vip` ;
+ALTER TABLE  `rank_list` ADD  `vipLv` INT NOT NULL DEFAULT  '0' AFTER  `xiang` ;
+
+
+-- 2019/04/02 zqx
+CREATE TABLE `mei_li_history` (
+	`rank` SMALLINT(6) NOT NULL COMMENT '排名',
+	`round` SMALLINT(6) NOT NULL COMMENT '第几届',
+	`role_id` INT(11) NOT NULL,
+	`name` VARCHAR(50) NOT NULL,
+	`mei_li` INT(11) NOT NULL,
+	`title` SMALLINT(6) NOT NULL DEFAULT '0' COMMENT '获取的称号',
+	PRIMARY KEY (`rank`, `round`)
+)
+COMMENT='历届魅力排行'
+COLLATE='utf8_general_ci'
+ENGINE=InnoDB;
+
+-- 排行奖励数据 第一届 1-30名称号id都是74
+delete from huodong_award where type=85;
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (85, 1, 1, 1, 0, 60008, 58, 0, 0, 2466, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (85, 1, 2, 2, 0, 60008, 59, 0, 0, 2426, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (85, 1, 3, 3, 0, 60008, 60, 0, 0, 2426, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (85, 1, 4, 10, 0, 60001, 4000, 0, 0, 502, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+delete from huodong_info where type=85;
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`) VALUES ('百花争艳', 85, 1, 1, '2019-04-03 00:00:00', '2019-04-06 00:00:00');
+
+-- 2019/04/09 zqx
+ALTER TABLE `shop` CHANGE COLUMN `type` `type` TINYINT(2) NOT NULL DEFAULT '1' COMMENT '类型（页数）6神秘商店 10 积分' AFTER `offprice`;
+
+
+-- 2019/04/11 ssj
+ALTER TABLE  `role_info` CHANGE  `open_pack`  `open_pack` SMALLINT( 6 ) NOT NULL DEFAULT  '40';
+
+UPDATE `hd_peizhi_info` SET `price`=40 WHERE  `type`=30;
+
+
+
+-- 2019/04/19 ssj
+ALTER TABLE  `npc_instance` ADD  `show_type` TINYINT NOT NULL DEFAULT  '0' COMMENT  '0不显示 1游戏服显示 2跨服显示 3全部可见' AFTER  `template_id` ;
+ALTER TABLE  `game_scene` ADD  `show_type` TINYINT NOT NULL DEFAULT  '0' COMMENT  '0不显示 1游戏服显示 2跨服显示 3全部可见' AFTER  `group_id` ;
+
+--2019/04/23 zqx
+ALTER TABLE `role_info` ADD COLUMN `pet_equip` TEXT NOT NULL AFTER `xunbao`;
+
+--2019/05/07 zqx
+delete from hd_peizhi_info where type in(86,87,88);
+delete from huodong_award where type in(86,87,88);
+delete from huodong_info where type in(86,87,88);
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES
+(86, 2000, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', ''),
+(87, 25000, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (88, 10000, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '');
+
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES
+(86, 1, 1, 0, 200, 2386, 20, 0, 0, 852, 20, 0, 0, 802, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+(87, 1, 1, 0, 2500, 4406, 2, 0, 0, 4405, 5, 0, 0, 4404, 20, 0, 0, 2386, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (88, 1, 1, 0, 5000, 502, 30, 0, 0, 2516, 10, 0, 0, 507, 12, 0, 0, 1802, 1, 0, 0, 2516, 15, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('折扣礼包1', 86, 5, 1, '2019-05-06 00:00:00', '2019-05-10 23:59:59', 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('折扣礼包2', 87, 6, 1, '2019-05-06 00:00:00', '2019-05-11 23:59:59', 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('折扣礼包3', 88, 7, 1, '2019-05-06 00:00:00', '2019-05-12 23:59:59', 0, 0, 0, 0);
+
+ALTER TABLE `shop` ADD COLUMN `value` INT(11) NOT NULL AFTER `item`, ADD COLUMN `exvalue` INT(11) NOT NULL AFTER `value`;
+ALTER TABLE `shop_mystery` ADD COLUMN `exvalue` INT(11) NOT NULL AFTER `num`;
+ALTER TABLE `shop_mystery` CHANGE COLUMN `num` `num` INT NOT NULL AFTER `exvalue`;
+
+--2019/05/08 zqx
+ALTER TABLE `dailysign` CHANGE COLUMN `award_type` `award_type` INT(11) NOT NULL COMMENT '60000金币60001绑元宝60003元宝60007潜能60024神将装备' AFTER `day_idx`, ADD COLUMN `award_value` INT(11) NOT NULL AFTER `award_num`;
+ALTER TABLE `dengjilibao` ADD COLUMN `value1` INT(11) NOT NULL DEFAULT '0' AFTER `num1`, ADD COLUMN `value2` INT(11) NOT NULL DEFAULT '0' AFTER `num2`, ADD COLUMN `value3` INT(11) NOT NULL DEFAULT '0' AFTER `num3`;
+ALTER TABLE `hd_7ridenglu` ADD COLUMN `value1` INT(11) NOT NULL AFTER `num1`, ADD COLUMN `value2` INT(11) NOT NULL AFTER `num2`, ADD COLUMN `value3` INT(11) NOT NULL AFTER `num3`;
+ALTER TABLE `path_config` ADD COLUMN `apply_type` SMALLINT(6) NOT NULL AFTER `face`;
+
+--20190515 zqx 跨服
+ALTER TABLE `mijing_boss_ratio`	ADD COLUMN `state` INT(11) NOT NULL DEFAULT '0' COMMENT '0,1,2 击败,3 逃跑' AFTER `ratio`;
+
+
+-- 2019/05/24 ssj
+
+CREATE TABLE IF NOT EXISTS `chat_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `channel` smallint(6) NOT NULL COMMENT '1世界2附近3队伍4帮派7私聊11跨服20跨服铃铛',
+  `role_id` int(11) NOT NULL,
+  `name` varchar(64) NOT NULL,
+  `vip` smallint(6) NOT NULL DEFAULT '0',
+  `msg` varchar(512) NOT NULL,
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `role_id` (`role_id`,`name`),
+  KEY `channel` (`channel`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+--20190610 zqx 跨服
+ALTER TABLE `mijing_boss_ratio` ADD COLUMN `refresh_day` INT(11) NOT NULL DEFAULT '0' AFTER `state`;
+
+
+--2019/06/20 ssj
+
+ALTER TABLE  `login_log_1` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_2` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_3` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_4` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_5` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_6` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_7` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_8` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_9` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_10` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_11` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+ALTER TABLE  `login_log_12` ADD  `ad` INT NOT NULL DEFAULT  '0' AFTER  `level` ,ADD INDEX (  `ad` ) ;
+
+
+-- 2019/07/02 ssj
+ALTER TABLE  `bang_pai_role` ADD  `vipLv` TINYINT NOT NULL DEFAULT  '0' AFTER  `sex` ;
+
+-- 2019/07/08 zqx
+delete from hd_peizhi_info where type in(89,90,91);
+delete from huodong_award where type in(89,90,91);
+delete from huodong_info where type in(89,90,91);
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (89, 4100, 1, 0, 1, 0, 388, 2, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (89, 4500, 1, 0, 2, 0, 408, 2, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (89, 5100, 1, 0, 3, 0, 428, 2, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (89, 5400, 1, 0, 4, 0, 448, 2, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (89, 5500, 1, 0, 5, 0, 468, 2, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (90, 4150, 1, 0, 1, 0, 388, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (90, 4500, 1, 0, 2, 0, 408, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (90, 5100, 1, 0, 3, 0, 428, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (90, 5400, 1, 0, 4, 0, 448, 2, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (90, 5500, 1, 0, 5, 0, 468, 2, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (91, 10000, 1, 0, 1, 0, 3000, 1, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (91, 10000, 1, 0, 2, 0, 3000, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (91, 10000, 1, 0, 3, 0, 3000, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (91, 10000, 1, 0, 4, 0, 3000, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (91, 10000, 1, 0, 5, 0, 3000, 1, 1, 0, 0, 0, 0, '', '');
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (89, 1, 1, 0, 0, 1112, 3, 0, 0, 836, 30, 0, 0, 2386, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (89, 2, 1, 0, 0, 502, 10, 0, 0, 853, 30, 0, 0, 852, 40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (89, 3, 1, 0, 0, 1112, 4, 0, 0, 836, 30, 0, 0, 2386, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (89, 4, 1, 0, 0, 2540, 40, 0, 0, 2539, 40, 0, 0, 2539, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (89, 5, 1, 0, 0, 613, 250, 0, 0, 614, 250, 0, 0, 2386, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (90, 1, 1, 0, 0, 2516, 23, 0, 0, 611, 10, 0, 0, 2386, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (90, 2, 1, 0, 0, 4406, 5, 0, 0, 4405, 10, 0, 0, 4404, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (90, 3, 1, 0, 0, 4406, 5, 0, 0, 4405, 12, 0, 0, 4404, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (90, 4, 1, 0, 0, 803, 10, 0, 0, 802, 20, 0, 0, 801, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (90, 5, 1, 0, 0, 2252, 50, 0, 0, 2819, 50, 0, 0, 2539, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (91, 1, 1, 0, 0, 1113, 5, 0, 0, 4406, 5, 0, 0, 2386, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (91, 2, 1, 0, 0, 1113, 5, 0, 0, 4406, 5, 0, 0, 2386, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (91, 3, 1, 0, 0, 1113, 5, 0, 0, 4406, 5, 0, 0, 2386, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (91, 4, 1, 0, 0, 1113, 5, 0, 0, 4406, 5, 0, 0, 2386, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (91, 5, 1, 0, 0, 1113, 5, 0, 0, 4406, 5, 0, 0, 2386, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('每日折扣1', 89, 5, 1, '2019-07-05 00:00:00', '2019-07-6 23:59:59', 0, 1, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('每日折扣2', 90, 6, 1, '2019-07-05 00:00:00', '2019-07-6 23:59:59', 0, 1, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('每日折扣3', 91, 7, 1, '2019-07-05 00:00:00', '2019-07-6 23:59:59', 0, 1, 0, 0);
+
+-- 2019/07/09 zqx
+delete from hd_peizhi_info where type = 92;
+delete from huodong_info where type = 92;
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (92, 40, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('砸蛋2', 92, 12, 1, '2019-07-05 00:00:00', '2019-07-05 23:59:59', 0, 0, 0, 0);
+
+-- 2019/07/09 cc
+ALTER TABLE  `level_rank` ADD  `pet_id` smallint NOT NULL DEFAULT  '0' AFTER  `festival_num2` ;
+ALTER TABLE  `level_rank` ADD  `data1` int NOT NULL DEFAULT  '0' AFTER  `pet_id` ;
+
+-- 2019/07/17 zqx
+ALTER TABLE `chong_fanli` ADD COLUMN `pic_idx` INT(11) NOT NULL AFTER `show_idx`;
+
+-- 2019/07/23 cc
+ALTER TABLE `bang_pai` ADD COLUMN `auto_limit_lv` SMALLINT(6) NOT NULL DEFAULT  '0' AFTER `create_time`;
+
+-- 2019/07/30 cc
+ALTER TABLE `bang_pai` ADD COLUMN `huoyue` INT(11) NOT NULL DEFAULT  '0' AFTER `auto_limit_lv`;
+ALTER TABLE `bang_pai_role` ADD COLUMN `huoyue` SMALLINT(6) NOT NULL DEFAULT  '0' AFTER `join_time`;
+
+-- 2019/08/02 cc
+ALTER TABLE `bang_pai` ADD COLUMN `lianqi_lv` varchar(128) NOT NULL DEFAULT  "" AFTER `huoyue`;
+
+-- 2019/08/08 cc
+ALTER TABLE `bang_pai` ADD COLUMN `skills` varchar(256) NOT NULL DEFAULT  "" AFTER `lianqi_lv`;
+ALTER TABLE `role_info` ADD COLUMN `bang_skills` varchar(256) NOT NULL DEFAULT  "" AFTER `pet_equip`;
+
+-- 2019/09/03 cc
+ALTER TABLE  `item_template` ADD  `sell` INT(11) NOT NULL DEFAULT  '0' AFTER `item_source`;
+
+-- 2019/09/04 ssj
+ALTER TABLE  `cz_complete` ADD INDEX (  `role_id` ) ;
+
+-- 2019/09/16 zqx
+CREATE TABLE `fanli_jihuoma` (
+  `jihuoma` varchar(64) CHARACTER SET latin1 NOT NULL,
+  `state` smallint(6) NOT NULL COMMENT '0未使用,1已经使用',
+  `type` smallint(6) NOT NULL COMMENT '1反利模式 2 导角模式',
+  `uid` int(11) NOT NULL,
+  `role_id` int(11) NOT NULL,
+  `role_name` varchar(64) NOT NULL,
+  `level` smallint(6) NOT NULL,
+  `money` int(11) NOT NULL,
+  `server_id` int(11) NOT NULL,
+  `flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '0未导出1已导出',
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+ALTER TABLE `fanli_jihuoma` ADD UNIQUE KEY `jihuoma` (`jihuoma`), ADD UNIQUE KEY `role_id` (`role_id`);
+
+
+drop table IF EXISTS role_info_transfer;
+CREATE TABLE IF NOT EXISTS `role_info_transfer` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `position` smallint(6) NOT NULL,
+  `name` varchar(32) NOT NULL,
+  `sex` smallint(6) NOT NULL DEFAULT '0',
+  `head` smallint(6) NOT NULL DEFAULT '0',
+  `xiang` smallint(6) NOT NULL,
+  `map_id` smallint(6) NOT NULL DEFAULT '1' COMMENT '场景ID',
+  `x_pos` smallint(6) NOT NULL DEFAULT '432',
+  `y_pos` smallint(6) NOT NULL DEFAULT '142',
+  `level` smallint(6) NOT NULL DEFAULT '1',
+  `exp` bigint(12) NOT NULL DEFAULT '0',
+  `zhanDouLi` int(11) NOT NULL DEFAULT '0',
+  `petZhanDouLi` int(11) NOT NULL DEFAULT '0',
+  `mission` text NOT NULL,
+  `bossFightStar` varchar(64) NOT NULL,
+  `xiuxian` text NOT NULL,
+  `newmarriage` varchar(128) DEFAULT NULL,
+  `petPosJewel` varchar(512) DEFAULT NULL,
+  `xianyuan` text NOT NULL,
+  `shenqi` varchar(512) DEFAULT NULL,
+  `kuafu_1vs1` text,
+  `qunxian` varchar(64) NOT NULL,
+  `transform` text NOT NULL,
+  `korea_money_gift` varchar(512) DEFAULT NULL,
+  `hp` int(11) NOT NULL DEFAULT '9999',
+  `mp` int(11) NOT NULL DEFAULT '9999',
+  `tili` int(11) NOT NULL DEFAULT '5',
+  `money` bigint(20) NOT NULL DEFAULT '0',
+  `currency` bigint(20) NOT NULL DEFAULT '0',
+  `pk_val` int(11) NOT NULL DEFAULT '0',
+  `daohang` int(11) NOT NULL DEFAULT '0',
+  `qianneng` int(11) NOT NULL DEFAULT '0',
+  `title` varchar(512) NOT NULL DEFAULT '0',
+  `menpai` smallint(6) NOT NULL DEFAULT '0',
+  `mp_gongxian` smallint(6) NOT NULL DEFAULT '0' COMMENT '门派贡献',
+  `bangpai` int(11) NOT NULL DEFAULT '0',
+  `use_double_end` int(11) NOT NULL DEFAULT '0',
+  `use_double_type` smallint(6) NOT NULL DEFAULT '0' COMMENT '0正常1两倍经验2五倍经验',
+  `script_timer` varchar(64) NOT NULL,
+  `equipment` text NOT NULL,
+  `package` text NOT NULL,
+  `pet` text NOT NULL,
+  `zhenfa` varchar(256) NOT NULL,
+  `petKaiJia` varchar(128) NOT NULL,
+  `mount` text NOT NULL,
+  `wing` text NOT NULL,
+  `wing_zhandouli` int(11) NOT NULL DEFAULT '0',
+  `find_res` text NOT NULL COMMENT '资源找回',
+  `bitset` text NOT NULL,
+  `hots` text NOT NULL,
+  `shop` text NOT NULL,
+  `mysteryShop` varchar(256) NOT NULL COMMENT '神秘商店',
+  `yaoshiShop` varchar(512) NOT NULL COMMENT '妖石商店',
+  `drop_touchitem` varchar(128) NOT NULL,
+  `save_val` varchar(64) NOT NULL,
+  `save_npc` varchar(256) NOT NULL,
+  `save_monster` text NOT NULL,
+  `collect_npc` text NOT NULL,
+  `skills` varchar(128) NOT NULL,
+  `chat_channel` smallint(6) NOT NULL DEFAULT '255',
+  `bank_money` int(11) NOT NULL,
+  `bank_item` text NOT NULL,
+  `jianyu_time` int(11) NOT NULL DEFAULT '0',
+  `chat_time` int(11) NOT NULL,
+  `state` smallint(6) NOT NULL,
+  `kuafu_state` smallint(6) NOT NULL DEFAULT '0' COMMENT '0正常1在跨服中',
+  `admin` smallint(6) NOT NULL DEFAULT '0',
+  `pk_time` int(11) NOT NULL,
+  `open_pack` smallint(6) NOT NULL DEFAULT '40',
+  `lingshou` varchar(512) NOT NULL,
+  `nextOpenTime` int(11) NOT NULL DEFAULT '0',
+  `script_double` int(11) NOT NULL DEFAULT '0',
+  `save_data` varchar(256) NOT NULL,
+  `sg_bitset` varchar(256) NOT NULL COMMENT '阶段目标位变量',
+  `reg_time` int(11) NOT NULL,
+  `login_time` int(11) NOT NULL,
+  `clientstring` text NOT NULL,
+  `shenhunShop` text NOT NULL,
+  `questIds` varchar(256) NOT NULL,
+  `xunbao` text NOT NULL,
+  `pet_equip` text NOT NULL,
+  `bang_skills` varchar(256) NOT NULL DEFAULT '',
+  UNIQUE KEY `id` (`id`),
+  UNIQUE KEY `name` (`name`),
+  KEY `state` (`state`),
+  KEY `reg_time` (`reg_time`),
+  KEY `login_time` (`login_time`),
+  KEY `level` (`level`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 ROW_FORMAT=DYNAMIC AUTO_INCREMENT=1;
+
+-- 2019/09/26 添加到login
+ALTER TABLE `fanli_jihuoma`
+	ADD COLUMN `tran_uid` INT(11) NOT NULL DEFAULT '0' AFTER `bd_yb`,
+	ADD COLUMN `tran_role_id` INT(11) NOT NULL DEFAULT '0' AFTER `tran_uid`,
+	ADD COLUMN `tran_server_id` INT(11) NOT NULL DEFAULT '0' AFTER `tran_role_id`,
+	ADD COLUMN `tran_time` INT(11) NOT NULL DEFAULT '0' AFTER `tran_server_id`;
+	
+
+-- 2019/09/26 cc
+ALTER TABLE `huodong_exchange` ADD COLUMN `material_5` INT(11) NOT NULL DEFAULT  '0' AFTER `material_4_num`;
+ALTER TABLE `huodong_exchange` ADD COLUMN `material_5_num` INT(11) NOT NULL DEFAULT  '0' AFTER `material_5`;
+ALTER TABLE `huodong_exchange` ADD COLUMN `material_is_or` TINYINT(2) NOT NULL DEFAULT  '0' AFTER `idx`;
+
+ALTER TABLE `huan_haoli_drop` modify column `item_id` INT(11);
+ALTER TABLE `mei_li_send_log` ADD COLUMN `send_type` TINYINT(2) NOT NULL DEFAULT  '0' AFTER `time`;
+
+DELETE from huan_haoli_drop where id = 1;
+INSERT INTO `huan_haoli_drop` (`id`, `name`, `item_id`,`ext8_idx`, `limit_num`, `type`) VALUES (1,'野怪战斗',38000, 448, 100, '38');
+
+DELETE from hd_bang_goods where pic = 5;
+INSERT INTO `hd_bang_goods` (`pic`, `award1`, `score1_give`,`score1_get`) VALUES (5, 2997, 10, 10);
+
+DELETE from huodong_exchange where type = 38;
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`)  VALUES ('0', '438', '38', '1', '1', '1', '2992', '1', '2993', '1', '2994', '1', '2995', '1', '2996', '1', '60000', '5000', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '439', '38', '1', '2', '0', '2992', '1', '2993', '1', '0', '0', '0', '0', '0', '0', '1100', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '440', '38', '1', '3', '0', '2995', '1', '2996', '1', '0', '0', '0', '0', '0', '0', '1105', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '441', '38', '1', '4', '0', '2992', '1', '2993', '1', '2994', '1', '0', '0', '0', '0', '1101', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('2', '442', '38', '1', '5', '0', '2992', '1', '2993', '1', '2994', '1', '2995', '1', '2996', '1', '1818', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+
+DELETE from huodong_info where type = 21;
+DELETE from huodong_info where type = 38;
+DELETE from huodong_info where type = 41;
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`,`isShow`,`startTime`, `endTime`, `pic`,`day`, `startHour`,`endHour`) VALUES ('国庆送彩带', '21', '88', '1', '2019-09-21 00:00:00', '2019-09-27 23:59:00', '5', '6', '0', '0');
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`,`isShow`,`startTime`, `endTime`, `pic`,`day`, `startHour`,`endHour`) VALUES ('国庆集字', '38', '86', '1', '2019-09-21 00:00:00', '2019-09-27 23:59:00', '0', '6', '0', '0');
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`,`isShow`,`startTime`, `endTime`, `pic`,`day`, `startHour`,`endHour`) VALUES ('国庆集字宝箱', '41', '87', '0', '2019-09-21 00:00:00', '2019-09-26 23:59:00', '226', '0', '0', '0');
+
+DELETE from huodong_award where type = 21;
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '1', '0', '1', '0', '60003', '500', '0', '0', '1818', '3', '0', '0', '613', '250', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '2', '0', '2', '0', '60003', '300', '0', '0', '1818', '2', '0', '0', '613', '200', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '3', '0', '3', '0', '60003', '200', '0', '0', '1818', '1', '0', '0', '613', '150', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '4', '0', '4', '0', '60003', '150', '0', '0', '613', '100', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '5', '0', '5', '0', '60003', '75', '0', '0', '613', '50', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '6', '1', '1', '0', '60003', '500', '0', '0', '2517', '6', '0', '0', '614', '250', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '7', '1', '2', '0', '60003', '300', '0', '0', '2517', '4', '0', '0', '614', '200', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '8', '1', '3', '0', '60003', '200', '0', '0', '2517', '2', '0', '0', '614', '150', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '9', '1', '4', '0', '60003', '150', '0', '0', '614', '100', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_award` (`type`, `idx`,`idx2`,`idx3`, `YB`,`award1`, `num1`,`petQt1`,`petQtLv1`, `award2`, `num2`,`petQt2`,`petQtLv2`,`award3`, `num3`,`petQt3`,`petQtLv3`,`award4`, `num4`,`petQt4`,`petQtLv4`,`award5`, `num5`,`petQt5`,`petQtLv5`,`award6`, `num6`,`petQt6`,`petQtLv6`) VALUES ('21', '10', '1', '5', '0', '60003', '75', '0', '0', '614', '50', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+
+delete from hd_peizhi_info where type=94;
+
+DELETE from hd_peizhi_info where type = 94;
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (94, 3, 7, 0, 1, 0, 69, 2080, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (94, 5, 7, 0, 2, 0, 169, 8680, 0, 0, 0, 0, 0, '', '');
+DELETE from huodong_award where type=94;
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 1, 1, 1, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 2, 1, 2, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 3, 1, 3, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 4, 1, 4, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 5, 1, 5, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 6, 1, 6, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 7, 1, 7, 0, 60003, 200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 8, 2, 1, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 9, 2, 2, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 10, 2, 3, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 11, 2, 4, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 12, 2, 5, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 13, 2, 6, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (94, 14, 2, 7, 0, 60003, 1000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+DELETE from huodong_info where type = 94;
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('活动基金', 94, 85, 1, '2019-11-06 16:58:00', '2019-11-19 16:58:00', 0, 0, 0, 0);
+
+DELETE from huodong_info where type = 95;
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('每日消费反利', 95, 85, 1, '2019-01-01 00:00:00', '2029-12-31 23:59:59', 0, 0, 0, 0);
+DELETE from hd_peizhi_info where type = 95;
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 2000, 0, 0, 0, 0, 100, 500, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 5000, 0, 0, 0, 0, 501, 1000, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 8000, 0, 0, 0, 0, 1001, 3000, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 10000, 0, 0, 0, 0, 3001, 5000, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 15000, 0, 0, 0, 0, 5001, 10000, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 18000, 0, 0, 0, 0, 10001, 20000, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 24000, 0, 0, 0, 0, 20001, 50000, 0, 0, 0, 0, 0, '', '');
+INSERT INTO `hd_peizhi_info` (`type`, `yb`, `count`, `lv`, `idx`, `cdTime`, `price`, `water_cz`, `bug_cz`, `step1_cz`, `step2_cz`, `count_ext8`, `lastTime_ext32`, `zhenying1_name`, `zhenying2_name`) VALUES (95, 30000, 0, 0, 0, 0, 50001, 999999999, 0, 0, 0, 0, 0, '', '');
+
+-- 2019-12-5 cc 
+DELETE from huodong_exchange where type = 38;
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`)  VALUES ('0', '438', '38', '1', '1', '1', '3300', '1', '3301', '1', '3302', '1', '3303', '1', '3304', '1', '60000', '5000', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '439', '38', '1', '2', '0', '3300', '1', '3301', '1', '0', '0', '0', '0', '0', '0', '1100', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '440', '38', '1', '3', '0', '3303', '1', '3304', '1', '0', '0', '0', '0', '0', '0', '1105', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '441', '38', '1', '4', '0', '3300', '1', '3301', '1', '3302', '1', '0', '0', '0', '0', '1101', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('2', '442', '38', '1', '5', '0', '3300', '1', '3301', '1', '3302', '1', '3303', '1', '3304', '1', '1818', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+
+-- 2019-12-24 cc 
+DELETE from huodong_exchange where type = 38;
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`)  VALUES ('0', '438', '38', '1', '1', '1', '3305', '1', '3306', '1', '3307', '1', '3308', '1', '3309', '1', '60000', '5000', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '439', '38', '1', '2', '0', '3305', '1', '3306', '1', '0', '0', '0', '0', '0', '0', '1100', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '440', '38', '1', '3', '0', '3308', '1', '3309', '1', '0', '0', '0', '0', '0', '0', '1105', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('10', '441', '38', '1', '4', '0', '3305', '1', '3306', '1', '3307', '1', '0', '0', '0', '0', '1101', '2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+INSERT INTO `huodong_exchange` (`exchange_num_limit`, `saveExt8`, `type`,`isShow`,`idx`, `material_is_or`, `material_1`,`material_1_num`, `material_2`,`material_2_num`, `material_3`,`material_3_num`, `material_4`,`material_4_num`, `material_5`,`material_5_num`, `award1`,`num1`, `petQt1`,`petQtLv1`, `award2`,`num2`, `petQt2`,`petQtLv2`, `award3`,`num3`, `petQt3`,`petQtLv3`, `award4`,`num4`, `petQt4`,`petQtLv4`, `award5`,`num5`, `petQt5`,`petQtLv5`,`award6`,`num6`, `petQt6`,`petQtLv6`) VALUES ('2', '442', '38', '1', '5', '0', '3305', '1', '3306', '1', '3307', '1', '3308', '1', '3309', '1', '1818', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+
+delete from huodong_award where type in(100,101,102,103,104,105,106,107,111,112,113,114)
+delete from huodong_info where type in(100,101,102,103,104,105,106,107,111,112,113,114)
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 1, 1, 1, 6000, 60014, 3000, 0, 0, 2251, 20, 0, 0, 4001, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 2, 1, 2, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4002, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 3, 1, 3, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4003, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 4, 1, 4, 6000, 502, 6, 0, 0, 2251, 20, 0, 0, 4004, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 5, 1, 5, 6000, 802, 10, 0, 0, 2251, 20, 0, 0, 4005, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 6, 1, 6, 6000, 2517, 2, 0, 0, 2251, 20, 0, 0, 4006, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 7, 1, 7, 6000, 1818, 1, 0, 0, 2467, 60, 0, 0, 4007, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 8, 2, 3, 0, 60014, 5000, 0, 0, 2251, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 9, 2, 5, 0, 60014, 10000, 0, 0, 2251, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (111, 10, 2, 7, 0, 60014, 15000, 1, 1, 2251, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 1, 1, 1, 6000, 60014, 3000, 0, 0, 2251, 20, 0, 0, 4001, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 2, 1, 2, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4002, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 3, 1, 3, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4003, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 4, 1, 4, 6000, 502, 6, 0, 0, 2251, 20, 0, 0, 4004, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 5, 1, 5, 6000, 802, 10, 0, 0, 2251, 20, 0, 0, 4005, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 6, 1, 6, 6000, 2517, 2, 0, 0, 2251, 20, 0, 0, 4006, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 7, 1, 7, 6000, 1818, 1, 0, 0, 2467, 60, 0, 0, 4007, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 8, 2, 3, 0, 60014, 5000, 0, 0, 2251, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 9, 2, 5, 0, 60014, 10000, 0, 0, 2251, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (112, 10, 2, 7, 0, 60014, 15000, 1, 1, 2251, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 1, 1, 1, 6000, 60014, 3000, 0, 0, 2251, 20, 0, 0, 4001, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 2, 1, 2, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4002, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 3, 1, 3, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4003, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 4, 1, 4, 6000, 502, 6, 0, 0, 2251, 20, 0, 0, 4004, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 5, 1, 5, 6000, 802, 10, 0, 0, 2251, 20, 0, 0, 4005, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 6, 1, 6, 6000, 2517, 2, 0, 0, 2251, 20, 0, 0, 4006, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 7, 1, 7, 6000, 1818, 1, 0, 0, 2467, 60, 0, 0, 4007, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 8, 2, 3, 0, 60014, 5000, 0, 0, 2251, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 9, 2, 5, 0, 60014, 10000, 0, 0, 2251, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (113, 10, 2, 7, 0, 60014, 15000, 1, 1, 2251, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 1, 1, 1, 6000, 60014, 3000, 0, 0, 2251, 20, 0, 0, 4001, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 2, 1, 2, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4002, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 3, 1, 3, 6000, 2378, 1, 0, 0, 2251, 20, 0, 0, 4003, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 4, 1, 4, 6000, 502, 6, 0, 0, 2251, 20, 0, 0, 4004, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 5, 1, 5, 6000, 802, 10, 0, 0, 2251, 20, 0, 0, 4005, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 6, 1, 6, 6000, 2517, 2, 0, 0, 2251, 20, 0, 0, 4006, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 7, 1, 7, 6000, 1818, 1, 0, 0, 2467, 60, 0, 0, 4007, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 8, 2, 3, 0, 60014, 5000, 0, 0, 2251, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 9, 2, 5, 0, 60014, 10000, 0, 0, 2251, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (114, 10, 2, 7, 0, 60014, 15000, 1, 1, 2251, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 3, 1, 0, 20000, 4405, 1, 0, 0, 2562, 25, 0, 0, 60014, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 4, 1, 0, 40000, 60014, 5000, 0, 0, 4405, 2, 0, 0, 1817, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 5, 1, 0, 60000, 2378, 1, 0, 0, 4406, 1, 0, 0, 2574, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 6, 1, 0, 100000, 1818, 1, 0, 0, 4406, 2, 0, 0, 2574, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 1, 1, 0, 6000, 60014, 1000, 0, 0, 851, 10, 0, 0, 2562, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 2, 1, 0, 10000, 60014, 1000, 0, 0, 2881, 15, 0, 0, 2251, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 7, 1, 0, 400000, 2402, 10, 0, 0, 2575, 50, 0, 0, 1112, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 8, 1, 0, 600000, 2402, 20, 0, 0, 4501, 50, 0, 0, 854, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 9, 1, 0, 1000000, 805, 2, 0, 0, 504, 5, 0, 0, 2402, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 10, 1, 0, 2000000, 0, 0, 0, 0, 855, 5, 0, 0, 2887, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (105, 11, 1, 0, 4000000, 60008, 83, 0, 0, 505, 2, 0, 0, 1818, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 3, 1, 0, 20000, 4405, 1, 0, 0, 2562, 25, 0, 0, 60014, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 4, 1, 0, 40000, 60014, 5000, 0, 0, 4405, 2, 0, 0, 1817, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 5, 1, 0, 60000, 2378, 1, 0, 0, 4406, 1, 0, 0, 2574, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 6, 1, 0, 100000, 1818, 1, 0, 0, 4406, 2, 0, 0, 2574, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 1, 1, 0, 6000, 60014, 1000, 0, 0, 851, 10, 0, 0, 2562, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 2, 1, 0, 10000, 60014, 1000, 0, 0, 2881, 15, 0, 0, 2251, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 7, 1, 0, 400000, 2402, 10, 0, 0, 2575, 50, 0, 0, 1112, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 8, 1, 0, 600000, 2402, 20, 0, 0, 4501, 50, 0, 0, 854, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 9, 1, 0, 1000000, 805, 2, 0, 0, 504, 5, 0, 0, 2402, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 10, 1, 0, 2000000, 0, 0, 0, 0, 855, 5, 0, 0, 2887, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (106, 11, 1, 0, 4000000, 60008, 83, 0, 0, 505, 2, 0, 0, 1818, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 3, 1, 0, 20000, 4405, 1, 0, 0, 2562, 25, 0, 0, 60014, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 4, 1, 0, 40000, 60014, 5000, 0, 0, 4405, 2, 0, 0, 1817, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 5, 1, 0, 60000, 2378, 1, 0, 0, 4406, 1, 0, 0, 2574, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 6, 1, 0, 100000, 1818, 1, 0, 0, 4406, 2, 0, 0, 2574, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 1, 1, 0, 6000, 60014, 1000, 0, 0, 851, 10, 0, 0, 2562, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 2, 1, 0, 10000, 60014, 1000, 0, 0, 2881, 15, 0, 0, 2251, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 7, 1, 0, 400000, 2402, 10, 0, 0, 2575, 50, 0, 0, 1112, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 8, 1, 0, 600000, 2402, 20, 0, 0, 4501, 50, 0, 0, 854, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 9, 1, 0, 1000000, 805, 2, 0, 0, 504, 5, 0, 0, 2402, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 10, 1, 0, 2000000, 0, 0, 0, 0, 855, 5, 0, 0, 2887, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_award` (`type`, `idx`, `idx2`, `idx3`, `YB`, `award1`, `num1`, `petQt1`, `petQtLv1`, `award2`, `num2`, `petQt2`, `petQtLv2`, `award3`, `num3`, `petQt3`, `petQtLv3`, `award4`, `num4`, `petQt4`, `petQtLv4`, `award5`, `num5`, `petQt5`, `petQtLv5`, `award6`, `num6`, `petQt6`, `petQtLv6`) VALUES (107, 11, 1, 0, 4000000, 60008, 83, 0, 0, 505, 2, 0, 0, 1818, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服砸蛋 第一周', 101, 20, 1, '2019-07-09 00:00:00', '2019-07-09 23:59:59', 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服砸蛋 第二周', 102, 20, 1, '2019-07-09 00:00:00', '2019-07-09 23:59:59', 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服砸蛋 第三周', 103, 20, 1, '2019-07-09 00:00:00', '2019-07-09 23:59:59', 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服砸蛋 第四周', 104, 20, 1, '2019-07-09 00:00:00', '2019-07-09 23:59:59', 0, 0, 0, 0);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服累计充值 第一周', 105, 14, 1, '2019-07-08 00:00:00', '2019-07-14 23:59:00', 0, 0, 7, 14);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服累计充值 第二周', 106, 14, 1, '2019-07-08 00:00:00', '2019-07-14 23:59:00', 0, 0, 7, 14);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服累计充值 第三周', 107, 14, 1, '2019-07-08 00:00:00', '2019-07-14 23:59:00', 0, 0, 7, 14);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服连续充值 第一周', 111, 12, 1, '2019-11-16 00:00:00', '2019-11-22 23:59:00', 0, 7, 7, 7);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服连续充值 第二周', 112, 12, 1, '2019-11-16 00:00:00', '2019-11-22 23:59:00', 0, 7, 7, 7);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服连续充值 第三周', 113, 12, 1, '2019-11-16 00:00:00', '2019-11-22 23:59:00', 0, 7, 7, 7);
+INSERT INTO `huodong_info` (`name`, `type`, `showIdx`, `isShow`, `startTime`, `endTime`, `pic`, `day`, `startHour`, `endHour`) VALUES ('开服连续充值 第四周', 114, 12, 1, '2019-11-16 00:00:00', '2019-11-22 23:59:00', 0, 7, 7, 7);
+
+
+DROP TABLE IF EXISTS `item`;
+CREATE TABLE `item` (
+  `id` int(11) NOT NULL,
+  `name` varchar(32) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `des` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `pic` int(11) NOT NULL,
+  `quality` int(11) NOT NULL DEFAULT '0',
+  `type` int(11) NOT NULL,
+  `use_type` int(11) NOT NULL,
+  `sub_value` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `limit_lv` int(11) NOT NULL,
+  `limit_time` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `sell` int(11) NOT NULL,
+  `sort_priority` int(11) NOT NULL DEFAULT '1',
+  `jiage` int(11) NOT NULL,
+  `item_from` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `item_source` varchar(256) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `script` int(11) NOT NULL,
+  `use_jump` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ROW_FORMAT=DYNAMIC;
+ALTER TABLE `item`  ADD PRIMARY KEY (`id`),  ADD KEY `sort_priority` (`sort_priority`);
+ALTER TABLE `item`  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+
+ALTER TABLE `role_info`	ADD COLUMN `guan_qia` TEXT NOT NULL AFTER `bang_skills`;
+ALTER TABLE `role_info`	ADD COLUMN `user_spirit` TEXT NOT NULL AFTER `guan_qia`;
+ALTER TABLE `role_info`	ADD COLUMN `user_book` TEXT NOT NULL AFTER `user_spirit`;
+ALTER TABLE `role_info`	ADD COLUMN `chou_ka` TEXT NOT NULL AFTER `user_book`;
+ALTER TABLE `role_info`	ADD COLUMN `blood_fight` TEXT NOT NULL AFTER `chou_ka`;
+ALTER TABLE `role_info` CHANGE `mysteryShop` `mysteryShop` TEXT CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '商店';
