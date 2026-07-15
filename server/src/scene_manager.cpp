@@ -1030,17 +1030,20 @@ CScene::CScene(uint16 id, uint16 mapId, const char *name, char *monsters,int map
 			VMonster.max_fightId = atoi(row[5]);
 			VMonster.meetDistance = (uint16)atoi(row[3]);
 			monsterList.AddMonster(VMonster);
-			//check monster postion	
+			// A monster may legitimately stand beside blocked terrain. Movement path
+			// generation already skips blocked directions, so only report positions
+			// whose center is invalid or that have no walkable adjacent direction.
+			uint8 walkableNeighborCount = 0;
 			for(uint8 k = 0;k < 8;k++)
 			{
-				if((int)VMonster.center_x + Monster_Pos_x[k] < 0 || (int)VMonster.center_y + Monster_Pos_y[k] < 0)
-				{
-					cout<<"error monster pos:"<<VMonster.id<<","<<m_id<<","<<VMonster.center_x<<","<<VMonster.center_y<<endl;
-				}
-				if(!CanWalkPos(VMonster.center_x + Monster_Pos_x[k],VMonster.center_y + Monster_Pos_y[k]))
-				{
-					cout<<"error monster pos:"<<VMonster.id<<","<<m_id<<","<<VMonster.center_x<<","<<VMonster.center_y<<endl;
-				}
+				int nextX = (int)VMonster.center_x + Monster_Pos_x[k];
+				int nextY = (int)VMonster.center_y + Monster_Pos_y[k];
+				if(nextX > 0 && nextY > 0 && CanWalkPos((uint16)nextX,(uint16)nextY))
+					walkableNeighborCount++;
+			}
+			if(!CanWalkPos(VMonster.center_x,VMonster.center_y) || walkableNeighborCount == 0)
+			{
+				cout<<"error monster pos:"<<VMonster.id<<","<<m_id<<","<<VMonster.center_x<<","<<VMonster.center_y<<endl;
 			}
 //			m_visibleMonsters.push_back(VMonster);
 		}
@@ -12137,4 +12140,3 @@ void CScene::AddShenJieMiJingWildMonsterToFight(ShareFightPtr &pFight, uint8 num
 }
 
 #endif
-

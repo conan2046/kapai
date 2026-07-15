@@ -5,7 +5,8 @@ param(
     [string]$MySqlLibrary = "",
     [string]$LuaIncludeDir = "",
     [string]$LuaLibrary = "",
-    [string]$VcpkgRoot = ""
+    [string]$VcpkgRoot = "",
+    [switch]$SkipAppLocal
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,6 +47,7 @@ if ($MySqlLibrary) { $configure += "-DMYSQL_LIBRARY=$MySqlLibrary" }
 if ($LuaIncludeDir) { $configure += "-DLUA_INCLUDE_DIR=$LuaIncludeDir" }
 if ($LuaLibrary) { $configure += "-DLUA_LIBRARY=$LuaLibrary" }
 if ($VcpkgRoot) { $configure += "-DCMAKE_TOOLCHAIN_FILE=$(Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake')" }
+if ($SkipAppLocal) { $configure += "-DVCPKG_APPLOCAL_DEPS=OFF" }
 
 & $Cmake @configure
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

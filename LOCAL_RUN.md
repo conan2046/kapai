@@ -140,6 +140,19 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Run-LocalVerification.ps1 -Build 
 pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1
 ```
 
+低于 30 秒的分组验证：
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -Consumption
+pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -Battle
+pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueries
+```
+
+- `-Consumption`：改名、背包扩展、充值/支付回调等消费入口。
+- `-Battle`：竞技场列表、动态机器人实战、观战/退出观战入口。
+- `-UiQueries`：充值面板、封神列表、技能/物品描述、活动、挂机、历练、角色详情、闯关次数、仙缘等只读或 no-op UI 入口。
+- 当前覆盖：服务端注册协议 143 个，smoke 已覆盖 128 个；剩余 14 个为服务端内部/跨服协议，`MSG_PLAY_ANIMATION/211` 在当前客户端未找到发送入口且依赖缺失的 `CgCallBack`，保留人工/原始脚本源码验证。
+
 调试诊断表见 `LOCAL_DEBUG.md`，协议覆盖矩阵见 `PROTOCOL_COVERAGE.md`。
 ## Windows local MySQL
 
@@ -240,4 +253,3 @@ Get-NetTCPConnection -LocalPort 8711 -State Listen
 - `server/config/config` 中 `local_user_id=0` 表示使用登录包传入的 userId；客户端默认仍是 userId=1，会自动绑定 `Test01`，烟测可传入新 `-UserId` 并用 `-AutoCreateRole` 创建隔离角色。本地一次性角色会补齐 `ReadData()` 需要的空字段，并以 60 级和测试货币创建，用于穿过部分正向功能门槛，包括有效创建帮派。
 - 后续手动点击更多功能时，如出现新的 `call:` 脚本错误，优先按日志补 `lua_j_stub.cpp` 的最小绑定或本地测试旁路，不要恢复整套缺失私有 SWIG/登录服链路。
 - 已补本地兜底表字段：`huodong_time`、`qin_mi_log`、`mei_li_history`、`mei_li_paihang`、`cz_to_other_reward`、`zha_dan_info`、`zha_dan_log`、`festival_award`、`hd_bang_goods`、`taohuageng_config`、`hd_paihang_info`、`hd_rand_award`、`item_score_exchange`、`hd_paihang_record`、`money_giftbag_huodong`、`hd_chou_record`、`money_giftbag_pay`、`hd_save_data`、`qiang_hongbao_record`、`notice_login`、`question`、`user_info1`、`role_info`。
-

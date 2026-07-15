@@ -3160,7 +3160,11 @@ bool CMissionManager::PlayNpcAct(CUser *pUser,bool skipDialog)
 	
 	SNPC_ActData *act = (skipDialog ? npc_act.GetActSkipDialog() : npc_act.GetAct());
 	if(act == NULL)
-		return PlayNpcAct(pUser);
+	{
+		// Falling back from "skip dialog" to the normal action is valid once.
+		// When the normal list is also empty, recursing forever overflows the stack.
+		return skipDialog ? PlayNpcAct(pUser, false) : false;
+	}
 	if(act->act_type == EMISS_ACT_NOR_DIALOG || act->act_type == EMISS_ACT_WIN_DIALOG || act->act_type == EMISS_ACT_FAIL_DIALOG)
 	{
 		SMissionDialog *pDialog = GetDialogString(act->act_id,act->dialogIdx);

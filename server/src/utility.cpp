@@ -1217,6 +1217,77 @@ bool ReadItem()
 
 			SingletonItemManager::instance().AddItem(pItem);
 		}
+
+		// The local minimal database can contain an older, incomplete item table.
+		// Fill only missing templates from the shipped JSON so shop rewards are
+		// actually added and their acquisition tips never show "(nil)".
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+		{
+			const char* fields[] = { "id", "name", "des", "pic", "quality", "type", "use_type", "sub_value", "limit_lv", "limit_time", "sell", "sort_priority", "jiage", "item_from", "script" };
+			const int types[] = { EJPT_INT, EJPT_STRING, EJPT_STRING, EJPT_INT, EJPT_INT, EJPT_INT, EJPT_INT, EJPT_ARRAY, EJPT_INT, EJPT_ARRAY, EJPT_INT, EJPT_INT, EJPT_INT, EJPT_STRING, EJPT_INT };
+			rapidjson::Document d;
+			rapidjson::Value items;
+			if(LoadJosnValue("item.json", fields, types, sizeof(types) / sizeof(types[0]), d, items))
+			{
+				uint32 addCount = 0;
+				for(rapidjson::SizeType i = 0; i < items.Size(); ++i)
+				{
+					const rapidjson::Value& data = items[i];
+					uint16 itemId = (uint16)data["id"].GetInt();
+					if(SingletonItemManager::instance().GetItem(itemId) != NULL)
+						continue;
+
+					SItemTemplate *pItem = new SItemTemplate;
+					pItem->id = itemId;
+					pItem->name = data["name"].GetString();
+					pItem->describe = data["des"].GetString();
+					pItem->pic = data["pic"].GetInt();
+					pItem->quality = data["quality"].GetInt();
+					pItem->type = data["type"].GetInt();
+					pItem->useType = data["use_type"].GetInt();
+					pItem->level = data["limit_lv"].GetInt();
+					pItem->sortPriority = data["sort_priority"].GetInt();
+					pItem->jiage = data["jiage"].GetInt();
+
+					const rapidjson::Value& subValues = data["sub_value"];
+					for(rapidjson::SizeType si = 0; si < subValues.Size(); ++si)
+					{
+						if(!subValues[si].IsArray())
+							continue;
+						if(pItem->type == 6 && subValues[si].Size() >= 3)
+						{
+							SAwardData ad;
+							ad.type = subValues[si][0].GetInt();
+							ad.typeId = subValues[si][1].GetInt();
+							ad.num = subValues[si][2].GetInt();
+							pItem->subAward.push_back(ad);
+						}
+						else if(subValues[si].Size() >= 2)
+						{
+							uint32 subType = subValues[si][0].GetInt();
+							uint32 subNum = subValues[si][1].GetInt();
+							pItem->subVec.push_back(make_pair(subType, subNum));
+							if(pItem->type == 3 || pItem->type == 4)
+								pItem->subValue = subNum;
+						}
+					}
+
+					const rapidjson::Value& limitTime = data["limit_time"];
+					if(limitTime.Size() >= 2)
+					{
+						pItem->activityId = limitTime[0].GetInt();
+						pItem->limitTime = limitTime[1].GetInt();
+					}
+					uint16 script = data["script"].GetInt();
+					if(script != 0)
+						pItem->pScript = new CCallScript(script);
+
+					SingletonItemManager::instance().AddItem(pItem);
+					++addCount;
+				}
+				cout << "[local] ReadItem: filled " << addCount << " missing templates from item.json" << endl;
+			}
+		}
 		return true;
 	}
 	return false;

@@ -49,6 +49,20 @@ static int lua_user_GetRoleId(lua_State *L)
 	return 1;
 }
 
+static int lua_user_GetAd(lua_State *L)
+{
+	CUser *user = check_user(L, 1);
+	lua_pushinteger(L, user == 0 ? 0 : user->GetAd());
+	return 1;
+}
+
+static int lua_user_GetServerId(lua_State *L)
+{
+	CUser *user = check_user(L, 1);
+	lua_pushinteger(L, user == 0 ? 0 : user->GetServerId());
+	return 1;
+}
+
 static int lua_user_GetName(lua_State *L)
 {
 	CUser *user = check_user(L, 1);
@@ -165,6 +179,39 @@ static int lua_j_GetServerType(lua_State *L)
 	return 1;
 }
 
+static int lua_j_GetNpcName(lua_State *L)
+{
+	int npcId = (int)luaL_checkinteger(L, 1);
+	const char *name = GetNpcName(npcId);
+	lua_pushstring(L, name == 0 ? "" : name);
+	return 1;
+}
+
+static int lua_j_Dialog(lua_State *L)
+{
+	CUser *user = check_user(L, 1);
+	const char *name = luaL_checkstring(L, 2);
+	const char *text = luaL_checkstring(L, 3);
+	lua_pushinteger(L, Dialog(user, name, text));
+	return 1;
+}
+
+static int lua_j_Option(lua_State *L)
+{
+	CUser *user = check_user(L, 1);
+	const char *name = luaL_checkstring(L, 2);
+	const char *text = luaL_checkstring(L, 3);
+	const char *options = luaL_checkstring(L, 4);
+	lua_pushinteger(L, Option(user, name, text, options));
+	return 1;
+}
+
+static int lua_j_CloseInteract(lua_State *L)
+{
+	CloseInteract(check_user(L, 1));
+	return 0;
+}
+
 static int lua_j_GetSecond(lua_State *L) { lua_pushinteger(L, GetSecond()); return 1; }
 static int lua_j_GetMinute(lua_State *L) { lua_pushinteger(L, GetMinute()); return 1; }
 static int lua_j_GetHour(lua_State *L) { lua_pushinteger(L, GetHour()); return 1; }
@@ -252,6 +299,8 @@ static void register_user(lua_State *L)
 		{"ClearBitSet", lua_user_ClearBitSet},
 		{"GetLevel", lua_user_GetLevel},
 		{"GetRoleId", lua_user_GetRoleId},
+		{"GetAd", lua_user_GetAd},
+		{"GetServerId", lua_user_GetServerId},
 		{"GetName", lua_user_GetName},
 		{"GetExtData8", lua_user_GetExtData8},
 		{"SetExtData8", lua_user_SetExtData8},
@@ -341,6 +390,14 @@ extern "C" int luaopen_j(lua_State *L)
 	lua_setfield(L, -2, "PlayFightCG");
 	lua_pushcfunction(L, lua_j_GetServerType);
 	lua_setfield(L, -2, "GetServerType");
+	lua_pushcfunction(L, lua_j_GetNpcName);
+	lua_setfield(L, -2, "GetNpcName");
+	lua_pushcfunction(L, lua_j_Dialog);
+	lua_setfield(L, -2, "Dialog");
+	lua_pushcfunction(L, lua_j_Option);
+	lua_setfield(L, -2, "Option");
+	lua_pushcfunction(L, lua_j_CloseInteract);
+	lua_setfield(L, -2, "CloseInteract");
 	lua_pushcfunction(L, lua_j_GetSecond);
 	lua_setfield(L, -2, "GetSecond");
 	lua_pushcfunction(L, lua_j_GetMinute);

@@ -1518,4 +1518,3 @@ inline uint8 CFight::GetTarget(uint8 pos)
 
 #endif
 
-

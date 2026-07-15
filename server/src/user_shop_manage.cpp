@@ -255,6 +255,20 @@ void UserShopManager::LoadData(CUser* pUser, const char * str)
 			grids.RefreshGrids(it->first, pUser);
 			m_shops[it->first] = grids;
 		}
+		else
+		{
+			bool hasInvalidItem = false;
+			for (UserShopGridMapIt gridIt = tmp->items.begin(); gridIt != tmp->items.end(); ++gridIt)
+			{
+				if (sShopCfgManager.GetShopItemCfg(gridIt->second.tid) == NULL)
+				{
+					hasInvalidItem = true;
+					break;
+				}
+			}
+			if (hasInvalidItem)
+				tmp->RefreshGrids(it->first, pUser);
+		}
 	}
 }
 

@@ -214,7 +214,10 @@ void CChouKaManager::LoadData(const char * str)
 	uint8 data[1024 * 10];
 	int pos = 0;
 	if (!UnCompress(str, data, len))
+	{
+		InitChouKa();
 		return;
+	}
 
 	// ÌôÕ½´ÎÊý
 	uint8 nSize = data[pos++];
@@ -225,6 +228,18 @@ void CChouKaManager::LoadData(const char * str)
 		pos = ReadDataFromBuf((char *)data, &ck.allCnt, sizeof(ck.allCnt), pos);
 		pos = ReadDataFromBuf((char *)data, &ck.freeCd, sizeof(ck.freeCd), pos);
 		ck.freeTimes = data[pos++];
+		m_chouKa[type] = ck;
+	}
+
+	for (uint8 type = 1; type <= 3; ++type)
+	{
+		if (m_chouKa.find(type) != m_chouKa.end())
+			continue;
+		ChouKaBase* base = sCChouKaCfgManager.GetChouKaBase(type);
+		if (base == NULL)
+			continue;
+		ChouKaJiLu ck;
+		ck.freeTimes = base->freeCnt;
 		m_chouKa[type] = ck;
 	}
 }

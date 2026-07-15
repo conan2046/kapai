@@ -353,8 +353,13 @@ void CNetMessage::ReadString(std::string &str)
 
 void CNetMessage::add_NetMsg(CNetMessage &val)
 {
+	// A nested network message already contains its own 4-byte body length and
+	// 2-byte command header.  NetMsgBase::ReadNetMsg() expects that packet
+	// directly at the current cursor.  Prefixing it with another total-length
+	// field shifts the header and makes the client read six bytes past every
+	// embedded battle packet, eventually crashing in VCRUNTIME140D.dll.
+	val.SetDataLen();
 	unsigned int len = val.GetDataLen();
-	WriteData(&len, sizeof(len));
 	if(len > 0)
 		WriteData((void*)val.GetMsgData()->data(), len);
 }

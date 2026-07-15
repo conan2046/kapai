@@ -537,6 +537,29 @@ void CUserGuanQia::LoadData(const char *str)
 			sl.isOpen = true;
 		m_slGuanQia[nodeId] = sl;
 	}
+	CMapIdVec* trialMaps = sCGuanQiaCfgMgr.GetTypeMapIds(3);
+	if (trialMaps != NULL)
+	{
+		for (size_t i = 0; i < trialMaps->size(); ++i)
+		{
+			uint32 mapId = (*trialMaps)[i];
+			if (m_slGuanQia.find(mapId) != m_slGuanQia.end())
+				continue;
+			SingleZhangJieCfg* mapCfg = sCGuanQiaCfgMgr.GetZhangJieCfg(mapId);
+			if (mapCfg == NULL || mapCfg->nodes.empty())
+				continue;
+			ShiLianGuanQia sl;
+			sl.tzNodeId = mapCfg->nodes.begin()->first;
+			if (mapCfg->openWeek.find(week) != mapCfg->openWeek.end())
+			{
+				sl.isOpen = true;
+				MapNodeCfg* nodeCfg = sCGuanQiaCfgMgr.GetMapNodeCfg(mapId, sl.tzNodeId);
+				if (nodeCfg != NULL)
+					sl.cnt = nodeCfg->maxTimes;
+			}
+			m_slGuanQia[mapId] = sl;
+		}
+	}
 	m_lzGuanQia.cnt = data[pos++];
 	pos = ReadDataFromBuf((char *)data, &m_lzGuanQia.curMapIdx, sizeof(m_lzGuanQia.curMapIdx), pos);
 	pos = ReadDataFromBuf((char *)data, &m_lzGuanQia.curNodeId, sizeof(m_lzGuanQia.curNodeId), pos);

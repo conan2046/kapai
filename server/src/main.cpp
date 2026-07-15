@@ -406,7 +406,7 @@ static bool ConfigInit()
 		return false;
 	string localTest = gyu::util::CIniFile::GetValue("local_test","server",gConfigFile);
 	if(localTest == "1")
-		return true;
+		cout << "[local] ConfigInit: loading complete gameplay configuration" << endl;
 	if(!InitXMLConfig())
 		return false;
 	return true;
@@ -870,6 +870,31 @@ bool CMainClass::Init(const SServerBasicCfg &cfg)
 					pDb->Query(sql);
 				}
 			}
+
+			pDb->Query("CREATE TABLE IF NOT EXISTS `fight_playback` (`id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+			const SLocalColumn fightPlaybackColumns[] = {
+				{"type", "`type` int NOT NULL DEFAULT 0"},
+				{"role_id", "`role_id` int NOT NULL DEFAULT 0"},
+				{"tar_role_id", "`tar_role_id` int NOT NULL DEFAULT 0"},
+				{"fightMsg", "`fightMsg` mediumtext NOT NULL"},
+				{"notice", "`notice` varchar(256) NOT NULL DEFAULT ''"},
+				{"time", "`time` int NOT NULL DEFAULT 0"},
+			};
+			for(size_t i = 0; i < sizeof(fightPlaybackColumns) / sizeof(fightPlaybackColumns[0]); ++i)
+			{
+				snprintf(sql, sizeof(sql), "SHOW COLUMNS FROM `fight_playback` LIKE '%s'", fightPlaybackColumns[i].name);
+				if(pDb->Query(sql) && pDb->GetRow() == NULL)
+				{
+					snprintf(sql, sizeof(sql), "ALTER TABLE `fight_playback` ADD COLUMN %s", fightPlaybackColumns[i].define);
+					pDb->Query(sql);
+				}
+			}
+
+			// The production activity tables are not part of the minimal local dump.
+			// Seed only the missing first-charge rows so the shipped UI receives a
+			// structurally valid five-item reward list.
+			pDb->Query("insert into hd_peizhi_info (type,yb,count,lv,idx,cdTime,price,count_ext8,lastTime_ext32,zhenying1_name,zhenying2_name,water_cz,bug_cz,step1_cz,step2_cz) select 29,60,1,0,1,0,6,0,0,'','',0,0,0,0 from dual where not exists (select 1 from hd_peizhi_info where type=29)");
+			pDb->Query("insert into huodong_award (type,idx,YB,award1,num1,petQt1,petQtLv1,award2,num2,petQt2,petQtLv2,award3,num3,petQt3,petQtLv3,award4,num4,petQt4,petQtLv4,award5,num5,petQt5,petQtLv5,award6,num6,petQt6,petQtLv6,idx2,idx3) select 29,1,0,60002,19,5,1,1001,10,0,0,837,10,0,0,60000,100000,0,0,60001,500,0,0,0,0,0,0,0,0 from dual where not exists (select 1 from huodong_award where type=29 and idx=1)");
 		}
 
 		if(pDb->Query("select count(id) from role_info"))

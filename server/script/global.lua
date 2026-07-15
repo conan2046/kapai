@@ -1338,5 +1338,15 @@ function DodayCanHuSongShenJiangMission(pUser)
 
 end
 
+-- NPC state callbacks are optional in the shipped scripts.  The server queries
+-- both callbacks for every visible NPC, so provide neutral defaults that an
+-- individual NPC script can override.
+function GetState(pUser)
+	return 0
+end
+
+function GetHeadTitle(pUser,index)
+	return 0
+end
 
 

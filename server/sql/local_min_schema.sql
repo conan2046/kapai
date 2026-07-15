@@ -320,7 +320,16 @@ CREATE TABLE IF NOT EXISTS `fight_cg` (
 
 CREATE TABLE IF NOT EXISTS `fight_playback` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  PRIMARY KEY (`id`)
+  `type` INT NOT NULL DEFAULT 0,
+  `role_id` INT NOT NULL DEFAULT 0,
+  `tar_role_id` INT NOT NULL DEFAULT 0,
+  `fightMsg` MEDIUMTEXT NOT NULL,
+  `notice` VARCHAR(256) NOT NULL DEFAULT '',
+  `time` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `type` (`type`),
+  KEY `role_id` (`role_id`),
+  KEY `tar_role_id` (`tar_role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `flower_config` (
@@ -1142,6 +1151,16 @@ CREATE TABLE IF NOT EXISTS `question` (
   `answer4` VARCHAR(255) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `hd_peizhi_info`
+  (`type`,`yb`,`count`,`lv`,`idx`,`cdTime`,`price`,`count_ext8`,`lastTime_ext32`,`zhenying1_name`,`zhenying2_name`,`water_cz`,`bug_cz`,`step1_cz`,`step2_cz`)
+SELECT 29,60,1,0,1,0,6,0,0,'','',0,0,0,0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `hd_peizhi_info` WHERE `type`=29);
+
+INSERT INTO `huodong_award`
+  (`type`,`idx`,`YB`,`award1`,`num1`,`petQt1`,`petQtLv1`,`award2`,`num2`,`petQt2`,`petQtLv2`,`award3`,`num3`,`petQt3`,`petQtLv3`,`award4`,`num4`,`petQt4`,`petQtLv4`,`award5`,`num5`,`petQt5`,`petQtLv5`,`award6`,`num6`,`petQt6`,`petQtLv6`,`idx2`,`idx3`)
+SELECT 29,1,0,60002,19,5,1,1001,10,0,0,837,10,0,0,60000,100000,0,0,60001,500,0,0,0,0,0,0,0,0 FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM `huodong_award` WHERE `type`=29 AND `idx`=1);
 
 CREATE TABLE IF NOT EXISTS `qunxian_paihang` (
   `id` INT NOT NULL AUTO_INCREMENT,

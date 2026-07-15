@@ -17,6 +17,16 @@ function Read-Text($Path) {
 }
 
 function Get-ProtocolLayer($Name) {
+    $overrides = @{
+        "PRO_SYSTEM_INFO" = "服务端内部/跨服"
+        "PRO_SPEC_CHAT" = "服务端内部/跨服"
+        "MSG_BANGPAI_ZHONGZHI" = "人工 UI"
+        "MSG_WORLD_MAP_TRANSPORT" = "可控改档"
+        "MSG_USER_MSG_TO_WORLD" = "低风险动作"
+    }
+    if ($overrides.ContainsKey($Name)) {
+        return $overrides[$Name]
+    }
     if ($Name -match "SERVER_|KF_|KUA_FU|MGR|FORWARD|QUERY_SQL") {
         return "服务端内部/跨服"
     }
@@ -61,6 +71,14 @@ $registered = @()
         Value = $value
     }
 }
+$localBuildExcluded = @(
+    "MSG_KUN_LUN_SHAN_TEAM",
+    "MSG_KF_LOGIN",
+    "MSG_KUA_FU_1V1",
+    "MSG_SERVER_KF_BANGZHAN_INFO",
+    "MSG_QUNXIANZHENGBA"
+)
+$registered = $registered | Where-Object { $localBuildExcluded -notcontains $_.Name }
 $registered = $registered | Sort-Object Value,Name -Unique
 
 $coveredByValue = @{}

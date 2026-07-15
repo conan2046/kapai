@@ -11559,6 +11559,9 @@ void CUser::Set_InScriptCall(bool flag)
 
 SNpcInstance *CUser::GetInteractNpc(int npcId, int npcIdx)
 {
+	if (m_pScene == NULL)
+		return NULL;
+
 	//场景固定NPC
 	if (m_pScene->HaveNpc(npcId))
 	{

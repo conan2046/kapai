@@ -54,6 +54,11 @@ try {
         Invoke-Step "Initialize local DB" (Join-Path $Root "tools\local\Init-LocalDb.ps1") $dbArgs
     }
 
+    if ($Build -and $RestartServer) {
+        Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force
+        Start-Sleep -Seconds 1
+    }
+
     if ($Build) {
         $luaInclude = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\include\luajit"
         $luaLib = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\lib\lua51.lib"
@@ -92,6 +97,9 @@ try {
     Show-ProcessState
 
     if (-not $SkipSmoke) {
+        if (-not (Test-GameServerListening)) {
+            throw "Protocol smoke cannot start because no game server is listening on port 8711"
+        }
         $uid = 730000 + (Get-Random -Minimum 100 -Maximum 999)
         Write-Host "== Protocol smoke userId=$uid =="
         & pwsh -ExecutionPolicy Bypass -File (Join-Path $Root "tools\local\Invoke-ProtocolSmoke.ps1") `

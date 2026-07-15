@@ -8,6 +8,9 @@
 #include "item.h"
 #include "singleton.h"
 #include "mission_manager.h"
+#include <fstream>
+
+extern const char *gConfigFile;
 
 uint16 CItemCfgManager::CfgFBMaxCnt = 0;
 uint16 CItemCfgManager::CfgFBStartCnt = 0;
@@ -249,6 +252,15 @@ bool CItemCfgManager::InitComposeCfg()
 
 	{
 		const string file = "fabao_looting.json";
+		std::ifstream lootingFile(("./json/" + file).c_str());
+		if (!lootingFile.good()
+			&& gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+		{
+			cout << "[local] CItemCfgManager::InitComposeCfg: " << file
+				<< " is unavailable; fabao looting is disabled until its source table is supplied" << endl;
+			return true;
+		}
+		lootingFile.close();
 		//                            0     1       2
 		const char* titleArrs[] = { "id", "item", "ratio" };
 		const int typeArrs[] = { 0, 0, 0 };  // 0-int 1-string 2-array

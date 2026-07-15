@@ -835,6 +835,26 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 		}
 	}
 
+	if(localTest == "1" && roleId > 0)
+	{
+		const uint32 localTestMoney = 1000000;
+		const uint32 localTestTongBao = 100000;
+		const uint32 localTestBdTongBao = 100000;
+		snprintf(sql, sizeof(sql),
+			"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+			localTestMoney, roleId);
+		pDb->Query(sql);
+		string userTab = GetUserInfoTab(serverId);
+		snprintf(sql, sizeof(sql),
+			"update %s set money=greatest(money,%u),bd_money=greatest(bd_money,%u) where id=%u",
+			userTab.c_str(), localTestTongBao, localTestBdTongBao, userId);
+		pDb->Query(sql);
+		YB = localTestTongBao;
+		bangYB = localTestBdTongBao;
+		pUser->SetTongBao(YB,0);
+		pUser->SetTongBao(bangYB,1);
+	}
+
 	msg<<PRO_SUCCESS;
 	msg<<(uint8)0;	// not in kuafu
 	msg<<userId;
@@ -1335,6 +1355,24 @@ void CPackageDeal::SelectRole(CNetMessage *pMsg,int sock)
 	{
 		if(localTestLog)
 			cout << "[local] SelectRole: after ReadData roleId=" << roleId << endl;
+		// The production login server normally restores the role's scene before the
+		// game-server flow continues.  The local direct-connect path has no login
+		// server, so bind a valid scene here when the loaded role has none.
+		if(localTestLog && pUser->GetScene() == NULL)
+		{
+			uint32 sceneId = pUser->GetData32(3);
+			CScene *pScene = sceneId == 0 ? NULL : m_sceneManager.FindScene(sceneId);
+			if(pScene == NULL)
+				pScene = m_sceneManager.FindScene(1);
+			if(pScene != NULL)
+			{
+				pUser->SetPos(pScene->GetX(), pScene->GetY());
+				pUser->EnterScene(pScene);
+				cout << "[local] SelectRole: bound scene roleId=" << roleId
+					<< " sceneId=" << pScene->GetId()
+					<< " x=" << pScene->GetX() << " y=" << pScene->GetY() << endl;
+			}
+		}
 		if(!useSrcInfo)
 		{
 			m_onlineUser.SetRoleId(sock,roleId);
@@ -1859,7 +1897,25 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 	uint8 op = 0;
 	uint8 num = 0;
 	uint8 type;
-	msg>>op>>num;//>>input;
+	msg>>op;
+
+	// The shipped client still exposes a local debug packet on PRO_INTERACT:
+	// op=50, uint32 itemId, uint16 itemNum. Never parse it as NPC arguments.
+	if(op == 50)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint32 itemId = 0;
+		uint16 itemNum = 0;
+		msg>>itemId>>itemNum;
+		if(itemId == 0 || itemId > 0xffff || itemNum == 0 || itemNum > 100)
+			return;
+		if(!pUser->AddPackage((int)itemId,itemNum))
+			cout<<"[local] NpcInteract add-item rejected itemId="<<itemId<<" num="<<itemNum<<endl;
+		return;
+	}
+
+	msg>>num;//>>input;
 
 	if(op == 0)
 	{
@@ -6538,29 +6594,29 @@ void CPackageDeal::UseSpecialItem(CNetMessage *pMsg,int sock)
 
 		do
 		{
+#ifdef KUA_FU
+			msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_SSJ_0014,TIPS_FAILURE_COLOR);
+			break;
+#endif
+			if(name == pUser->GetName())
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1098,TIPS_FAILURE_COLOR);
+				break;
+			}
+			int nameLen = GetCharacterNum(name);
+			if((nameLen < 1) || (nameLen > 6) || IllegalStr(name) || IsIllegalMsg(name.c_str()))
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1099,TIPS_FAILURE_COLOR);
+				break;
+			}
+
+			CGetDbConnect getDb;
+			CDatabaseSql *pDb = getDb.GetDbConnect();
+			if(pDb == NULL)
+				return;
 			if(pUser->SubMaterial(mgr.m_gaiMing.type, mgr.m_gaiMing.num))
 			{
 				ItemCurrencyLog(pUser->GetRoleId(), MUT_GaiMing, 1, mgr.m_gaiMing.type, mgr.m_gaiMing.num, pUser->GetMaterial(mgr.m_gaiMing.type), MUT_GaiMing);
-#ifdef KUA_FU
-				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_SSJ_0014,TIPS_FAILURE_COLOR);
-				break;
-#endif
-				if(name == pUser->GetName())
-				{
-					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1098,TIPS_FAILURE_COLOR);
-					break;
-				}
-				int nameLen = GetCharacterNum(name);
-				if((nameLen < 1) || (nameLen > 6) || IllegalStr(name) || IsIllegalMsg(name.c_str()))
-				{
-					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1099,TIPS_FAILURE_COLOR);
-					break;
-				}
-
-				CGetDbConnect getDb;
-				CDatabaseSql *pDb = getDb.GetDbConnect();
-				if(pDb == NULL)
-					return;
 				char sql[128];
 				int roleId = pUser->GetRoleId();
 				snprintf(sql,sizeof(sql)-1,"update role_info set name='%s' where id=%d",name.c_str(),roleId);
@@ -6583,7 +6639,10 @@ void CPackageDeal::UseSpecialItem(CNetMessage *pMsg,int sock)
 					}
 				}
 				else
+				{
+					pUser->AddMaterial(mgr.m_gaiMing.type, mgr.m_gaiMing.num, false, false);
 					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1102,TIPS_FAILURE_COLOR);
+				}
 			}
 			else
 				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_2123,TIPS_FAILURE_COLOR);
@@ -6596,77 +6655,67 @@ void CPackageDeal::UseSpecialItem(CNetMessage *pMsg,int sock)
 		msg>>name;
 
 		do
-		{		
-			if (pUser->SubMaterial(mgr.m_bangGaiMing.type, mgr.m_bangGaiMing.num))
-			{
-				ItemCurrencyLog(pUser->GetRoleId(), MUT_BGaiMing, 1, mgr.m_bangGaiMing.type, mgr.m_bangGaiMing.num, pUser->GetMaterial(mgr.m_bangGaiMing.type), MUT_BGaiMing);
+		{
 #ifdef KUA_FU
-				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_SSJ_0014,TIPS_FAILURE_COLOR);
-				break;
+			msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_SSJ_0014,TIPS_FAILURE_COLOR);
+			break;
 #endif
+			int roleId = pUser->GetRoleId();
+			int bangpai = pUser->GetBangPai();
+			if(bangpai == 0)
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1104,TIPS_FAILURE_COLOR);
+				break;
+			}
+			CBangPai *pBangPai = SingletonCBangPaiManager::instance().FindBangPai(bangpai);
+			if(pBangPai == NULL)
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1111,TIPS_FAILURE_COLOR);
+				break;
+			}
+			if(pBangPai->GetMemberRank(roleId) != EBRBangZhu)
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1110,TIPS_FAILURE_COLOR);
+				break;
+			}
+			if(name == pBangPai->GetName())
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1109,TIPS_FAILURE_COLOR);
+				break;
+			}
+			int nameLen = GetCharacterNum(name);
+			if((nameLen < 1) || (nameLen > 6) || IllegalStr(name) || IsIllegalMsg(name.c_str()))
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1105,TIPS_FAILURE_COLOR);
+				break;
+			}
 
-				int roleId = pUser->GetRoleId();
-				int bangpai = pUser->GetBangPai();
-				if(bangpai == 0)
-				{
-					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1104,TIPS_FAILURE_COLOR);
-					break;
-				}
-				CBangPai *pBangPai = SingletonCBangPaiManager::instance().FindBangPai(bangpai);
-				if(pBangPai != NULL)
-				{
-					if(pBangPai->GetMemberRank(roleId) == EBRBangZhu)
-					{
-						if(name != pBangPai->GetName())
-						{
-							int nameLen = GetCharacterNum(name);
-							if((nameLen < 1) || (nameLen > 6) || IllegalStr(name) || IsIllegalMsg(name.c_str()))
-							{
-								msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1105,TIPS_FAILURE_COLOR);
-								break;
-							}
-							
-							CGetDbConnect getDb;
-							CDatabaseSql *pDb = getDb.GetDbConnect();
-							if(pDb == NULL)
-								return;
-							char sql[128];
-							snprintf(sql,sizeof(sql)-1,"update bang_pai set name='%s' where id=%u",name.c_str(),pBangPai->GetId());
-							if(pDb->Query(sql))
-							{
-								pBangPai->SetName(name.c_str());
-								pUser->SetBangPaiName(name);								
-								msg<<PRO_SUCCESS<<MakeStringColor(LANGUAGE_TRANSFORM_1107,TIPS_WARNING_COLOR);
-								pBangPai->UpdateBangName2Member();
+			CGetDbConnect getDb;
+			CDatabaseSql *pDb = getDb.GetDbConnect();
+			if(pDb == NULL)
+				return;
+			if(!pUser->SubMaterial(mgr.m_bangGaiMing.type, mgr.m_bangGaiMing.num))
+			{
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_2123,TIPS_FAILURE_COLOR);
+				break;
+			}
+			ItemCurrencyLog(pUser->GetRoleId(), MUT_BGaiMing, 1, mgr.m_bangGaiMing.type, mgr.m_bangGaiMing.num, pUser->GetMaterial(mgr.m_bangGaiMing.type), MUT_BGaiMing);
 
-								SingletonCSimpleRoleDataMgr::instance().UpdateRoleData(pUser);
-							}
-							else
-							{
-								msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1108,TIPS_FAILURE_COLOR);
-								break;
-							}
-						}
-						else
-						{
-							msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1109,TIPS_FAILURE_COLOR);
-							break;
-						}
-					}
-					else
-					{
-						msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1110,TIPS_FAILURE_COLOR);
-						break;
-					}
-				}
-				else
-				{
-					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1111,TIPS_FAILURE_COLOR);
-					break;
-				}
+			char sql[128];
+			snprintf(sql,sizeof(sql)-1,"update bang_pai set name='%s' where id=%u",name.c_str(),pBangPai->GetId());
+			if(pDb->Query(sql))
+			{
+				pBangPai->SetName(name.c_str());
+				pUser->SetBangPaiName(name);
+				msg<<PRO_SUCCESS<<MakeStringColor(LANGUAGE_TRANSFORM_1107,TIPS_WARNING_COLOR);
+				pBangPai->UpdateBangName2Member();
+				SingletonCSimpleRoleDataMgr::instance().UpdateRoleData(pUser);
 			}
 			else
-				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_2123,TIPS_FAILURE_COLOR);
+			{
+				pUser->AddMaterial(mgr.m_bangGaiMing.type, mgr.m_bangGaiMing.num, false, false);
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1108,TIPS_FAILURE_COLOR);
+			}
 		}while(0);
 		m_socketServer.SendMsg(sock,msg);
 	}
@@ -10376,10 +10425,20 @@ void CPackageDeal::NPCYinDao(CNetMessage *pMsg,int sock)
 	GET_USER
 
 	CSocketServer &sock1 = SingletonSocket::instance();
+	bool localTestLog = (gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1");
+	if(localTestLog)
+		cout << "[local] NPCYinDao: begin roleId=" << pUser->GetRoleId() << endl;
+	uint16 guide19 = pUser->GetExtData16(19);
+	uint16 guide112 = pUser->GetExtData16(112);
+	uint16 guide113 = pUser->GetExtData16(113);
+	if(localTestLog)
+		cout << "[local] NPCYinDao: values=" << guide19 << "," << guide112 << "," << guide113 << endl;
 	msg.ReWrite();
 	msg.SetType(MSG_YINDAO);
-	msg<<(uint8)0<<pUser->GetExtData16(19)<<pUser->GetExtData16(112)<<pUser->GetExtData16(113);
+	msg<<(uint8)0<<guide19<<guide112<<guide113;
 	sock1.SendMsg(sock,msg);
+	if(localTestLog)
+		cout << "[local] NPCYinDao: sent roleId=" << pUser->GetRoleId() << endl;
 }
 
 void CPackageDeal::XinShouYinDao(CNetMessage *pMsg,int sock)
@@ -10549,7 +10608,13 @@ void CPackageDeal::QueryScene(CNetMessage *pMsg,int sock)
 	char name[32];
 	snprintf(name,sizeof(name),"dat/%d.map",sceneId);
 	if(access(name,R_OK) != 0)
-		return;
+	{
+		// This checkout stores local map data as dat/map<ID>.map.
+		// Keep the legacy production path first and use the repository naming as fallback.
+		snprintf(name,sizeof(name),"dat/map%d.map",sceneId);
+		if(access(name,R_OK) != 0)
+			return;
+	}
 	FILE *file = fopen(name,"r");
 	if(file == NULL)
 		return;

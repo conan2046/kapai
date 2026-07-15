@@ -620,7 +620,7 @@ function SevenDay:SetActivityItemInfo(cellChild, idx, curListData, dayIdx)
                 end
             else
                 BtnAward:setVisible(false)
-                GetBtn:setVisible(true)
+                GetBtn:setVisible(cellInfo.jump > 0)
                 alGet:setVisible(false)
             end
             
@@ -1009,6 +1009,9 @@ function SevenDay:GoToEvent( sender )
     -- body
     local tag = sender:getTag()
     local info = sender.userObject
+	if info == nil or info.jump == nil or info.jump <= 0 then
+		return
+	end
 
     self:CloseUI()
     if info.jump == AppDef.EModuleID.EMID_KAPAI_EQUIPSRENGTH then

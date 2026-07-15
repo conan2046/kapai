@@ -19,13 +19,13 @@ namespace boost {
 
 		any &operator=(const any &other)
 		{
-			std::any::operator=(other);
+			std::any::operator=(static_cast<const std::any &>(other));
 			return *this;
 		}
 
 		any &operator=(any &&other) noexcept
 		{
-			std::any::operator=(std::move(other));
+			std::any::operator=(static_cast<std::any &&>(other));
 			return *this;
 		}
 
