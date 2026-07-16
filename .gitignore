@@ -23,6 +23,8 @@ client/ProjectX/frameworks/
 client/ProjectX/simulator/
 # vcpkg 依赖（1.6G）：通过子模块或 Setup-Deps 脚本引入，不入库
 tools/local/vcpkg/
+# Cocos Studio 编辑器源工程（资源已转换进 unityclient，避免重复入库）
+UI_Editor/
 
 # Unity 本机缓存/生成工程（unityclient 的 Assets、Packages、ProjectSettings 保留）
 unityclient/[Ll]ibrary/
@@ -39,6 +41,7 @@ unityclient/.vs/
 # 智能体工作记忆（非项目源码，避免泄露内部备注）
 # ============================================================
 .workbuddy/
+.codex/
 
 # ============================================================
 # 系统 / 编辑器临时文件
