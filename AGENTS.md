@@ -48,15 +48,18 @@
 - 常用脚本在 `tools/local/`：
   - `Check-LocalEnv.ps1`：检查客户端、服务端配置、MySQL、编译器、基础 schema。
   - `Init-LocalDb.ps1`：拿到基础 schema 后创建并导入 `fxl_game_local`。
-  - `New-MinSchema.ps1`：从现有 SQL/源码生成 `server/sql/local_min_schema.sql`，用于缺正式基础库时本地兜底。
-  - `Install-LocalDeps.ps1`：通过 winget 安装 CMake、VS Build Tools，可选 MySQL/Boost。
-  - `Build-Server.ps1`：用 CMake 构建 Windows 服务端。
+  - `New-MinSchema.ps1`：从现有 SQL/源码生成应急 schema，默认写入 `.local/generated_min_schema.sql`，不覆盖仓库基准。
+  - `Export-LocalSchema.ps1`：从已验证本地库导出纯结构 `local_min_schema.sql` 并附加本地启动必需种子，不包含账号、角色和业务流水。
+  - `Install-LocalDeps.ps1`：通过 winget 安装 CMake、VS Build Tools、可选 MySQL，并用固定 vcpkg 提交安装 Boost、LuaJIT、Zlib。
+  - `Build-Server.ps1`：用 CMake 构建 Windows 服务端，并默认把运行 DLL 部署到 `kapai.exe` 同目录；可用 `-BuildDir` 做独立干净构建。
   - `Start-Server.ps1`：以 `server/config` 为工作目录启动服务端。
   - `Start-Client.ps1`：同步 Lua/res 并启动 Win 模拟器。
   - `Start-LocalAll.ps1`：依赖齐全后串联检查、可选初始化数据库、启动服务端和客户端。
   - `Invoke-ProtocolSmoke.ps1`：连接已启动的本地游戏服，执行登录/选角和一组无消耗查询协议冒烟；加 `-AutoCreateRole` 可用一次性 userId 创建隔离测试角色，加 `-Extended` 可覆盖更多界面查询入口，加 `-Actions` 覆盖低风险错误分支/空状态操作，加 `-Mutations` 覆盖可控本地改档操作，加 `-Positive` 覆盖部分正向消耗/领奖/战斗入口，加 `-InvalidRisky` 覆盖无效参数/异常分支。
   - `Export-ProtocolCoverage.ps1`：从 `protocol.h`、`pack_deal.cpp`、`Invoke-ProtocolSmoke.ps1` 生成协议覆盖矩阵。
   - `Run-LocalVerification.ps1`：串联环境检查、可选构建/启动、协议 smoke、日志扫描，用于本地验证收口。
+  - `Test-FreshLocalSetup.ps1`：创建隔离数据库和临时端口，用指定干净 EXE 验证登录、创角与基础协议，不修改正式本地库。
+  - `Invoke-ClientWindow.ps1`：按 `ProjectX.MainWindowHandle` 后台截图或发送窗口相对坐标消息，不截桌面、不移动真实鼠标、不抢焦点。
 
 ## 编译与运行约束
 - 服务端已补 `server/src/gyu/*.cpp` 兼容实现，构建时优先使用仓库内源码，不再强依赖外部 `/usr/local/gyu/lib/libgyu`。
@@ -71,6 +74,13 @@
 - 优先做最小改动，保留线上路径默认可恢复。
 - 涉及中文文件时使用 UTF-8。
 - 不要凭空补登录服协议；若需要账号登录流程，单独实现本地假登录服或拿原登录服源码。
+
+## Git 提交规则
+- 只有用户明确要求后才执行暂存、提交或推送。
+- 每次提交必须写详细提交说明，禁止只有一句标题。
+- 标题应简明概括目标；正文至少写清：修改模块/文件、问题根因、具体修复、SQL 或配置变化、验证命令与结果、已知限制或外部依赖。
+- 多模块提交使用分点正文，确保另一台电脑仅查看提交记录也能判断需要重新编译、重建数据库或补外部依赖。
+- 已推送提交不为补写说明而强制改写历史；后续提交严格执行详细说明。
 
 ## Windows local-run additions
 - `tools/local/Start-LocalMySql.ps1` starts a workspace-local MySQL 8.4 instance with data under `.local/mysql-data`; it does not install or modify a Windows service.

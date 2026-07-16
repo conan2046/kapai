@@ -25,6 +25,7 @@
 - 不要静默长时间等待。
 - 用户已明确跳过一次预计超过 30 秒的“大组合 smoke”；后续优先使用独立分组命令，每组控制在 30 秒内。
 - 客户端截图和自动点击必须基于 `ProjectX.MainWindowHandle`：后台截图使用 `PrintWindow(hwnd)`，后台点击使用窗口相对坐标的 `PostMessage`，不得置前、移动真实鼠标或截整张桌面，以免打断用户写文档；仅当 Cocos 控件明确不响应后台消息时再告知用户。
+- 每次 Git 提交必须包含详细正文：修改模块/文件、根因、修复内容、SQL/配置变化、验证结果、限制与外部依赖；禁止只写一句标题。只有用户明确授权后才提交或推送。
 
 ## 3. 当前运行状态（2026-07-16 交接时快照）
 
@@ -33,8 +34,10 @@
 - 客户端 `ProjectX.exe` 当前未运行。
 - `server/config/config`：`local_test=1`、`local_user_id=0`。
 - 最新服务端二进制：`build/server-win/Debug/kapai.exe`。
-- 本轮连续调试成果已提交，提交为 `ee23220 fix: stabilize local test server and client flows`，但本地 `main` 仍比 `origin/main` 超前 1 个提交，尚未推送。
-- 2026-07-16 新增的跨电脑可迁移性修复尚未提交，实际文件以 `git status --short` 为准。
+- 本轮连续调试成果提交为 `ee23220 fix: stabilize local test server and client flows`。
+- 跨电脑可迁移性修复提交为 `d88cf0b fix: make fresh local server setup reproducible`。
+- 两个提交均已推送；本地 `HEAD`、`origin/main`、远端 `main` 已核验一致为 `d88cf0ba503631f030fea09510cf2f234b578f72`。
+- 推送完成后的工作区为干净状态；后续实际状态仍以 `git status --short --branch` 为准。
 - 不要 reset、checkout 或覆盖后续会话中出现的用户改动。
 
 运行状态会漂移，接手后先执行：
@@ -203,7 +206,7 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 
 ### 4.11 全新克隆与空数据库验证
 
-- 已确认 `ee23220` 尚未推送，这是另一台电脑拉取后缺少上一轮 40 个文件修复的直接原因。
+- 已确认另一台电脑此前缺修复的直接原因是 `ee23220` 当时尚未推送；现已连同 `d88cf0b` 一并推送到 `origin/main`。
 - `server/sql/local_min_schema.sql` 已改为从当前可运行本地库导出的 173 张表纯结构快照，不包含账号、角色或业务流水数据。
 - 新增三组本地启动必需种子：首充 UI 两表、交易行基准汇率、功能开关默认行。
 - 新增 `tools/local/Export-LocalSchema.ps1`，用于结构无数据导出；新增 `Test-FreshLocalSetup.ps1`，用于隔离数据库、临时端口和登录/创角 smoke。
@@ -251,21 +254,18 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 
 按以下顺序继续：
 
-1. **先启动客户端复验首充**：
-   - 用 `tools/local/Start-Client.ps1` 启动客户端。
-   - 打开首充，确认五项奖励图标、数量和姜子牙名称均显示。
-   - 同时观察客户端日志与 `.local/kapai-current.out/.err`。
-2. **继续人工 UI/L6**：
+1. **继续人工 UI/L6（当前第一优先级）**：
    - 用 `tools/local/Start-Client.ps1` 启动客户端。
    - 验证进入主流程后逐页点击充值、封神、背包、活动、挂机、历练、仙缘、竞技场。
+   - 截图只用窗口句柄 `PrintWindow`；后台点击先用 `PostMessage`。若 Cocos 控件不响应，不得抢焦点，等待用户空闲或明确允许前台操作。
    - 同时观察客户端日志和 `.local/kapai-current.out/.err`。
    - 发现新的 SQL/Lua/assert/crash，按具体日志最小修复。
-3. **若做 L5 长跑**：保持服务端和客户端运行，至少跨过保存线程和定时器周期；每 30 秒向用户汇报，不静默等待。
-4. **若产生新修复再收口代码**：
+2. **完成 L5 长跑**：保持服务端和客户端运行至少 7 分钟，跨过保存线程和定时器周期；每 30 秒向用户汇报，不静默等待。
+3. **若产生新修复再收口代码**：
    - 逐文件审查当前脏工作树，区分用户修改和新会话修改。
    - 再跑 `git diff --check`、JSON/XML 解析和三个独立 smoke。
-   - 只有用户明确要求时才 stage/commit。
-5. **协议 211**：除非找到真实客户端发送路径或原始 `CgCallBack`，保持未覆盖并写明原因。
+   - 只有用户明确要求时才 stage/commit/push；提交正文必须完整记录修改、根因、验证和限制。
+4. **协议 211**：除非找到真实客户端发送路径或原始 `CgCallBack`，保持未覆盖并写明原因。
 
 ## 7. 常用命令
 
@@ -356,7 +356,7 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1
 
 - 上述连续修复已统一提交到 `ee23220`。
 - 该提交共涉及 40 个文件，包含本地配置恢复、数据库 bootstrap、Lua/C++ 兼容、战斗回放修复和 smoke 工具。
-- `ee23220` 尚未推送到 `origin/main`；远端仍停在 `1a503ac`。
-- 2026-07-16 新增可迁移性修复当前也尚未提交，包含完整本地结构 schema、依赖/构建/建库改进、隔离验证脚本与文档更新。
-- 在提交前先检查 `git diff --check` 和 `git status --short`；只有用户明确要求后才 stage、commit、push。
+- `ee23220` 与跨电脑可迁移性提交 `d88cf0b` 已全部推送到 `origin/main`；远端 `main` 当前为 `d88cf0ba503631f030fea09510cf2f234b578f72`。
+- `d88cf0b` 包含完整本地结构 schema、依赖/构建/建库改进、隔离验证脚本、窗口句柄操作工具与文档更新。
+- 在提交前先检查 `git diff --check` 和 `git status --short`；只有用户明确要求后才 stage、commit、push，且提交必须有详细正文。
 - 不需要重做 `ee23220` 已完成的修复，也不要为了“清理”而回退该提交。
