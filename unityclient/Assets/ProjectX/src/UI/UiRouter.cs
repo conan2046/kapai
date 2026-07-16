@@ -1,0 +1,21 @@
+using System;
+using System.Linq;
+using ProjectX.UI.Migration;
+using UnityEngine;
+
+namespace ProjectX.UI
+{
+    public sealed class UiRouter
+    {
+        public CocosUiView FindBySource(string sourceToken, bool excludeBackup = false)
+        {
+            CocosUiBinding binding = Resources.FindObjectsOfTypeAll<CocosUiBinding>()
+                .FirstOrDefault(item => item != null
+                    && item.gameObject.scene.IsValid()
+                    && !string.IsNullOrEmpty(item.Source)
+                    && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0
+                    && (!excludeBackup || item.Source.IndexOf("backup", StringComparison.OrdinalIgnoreCase) < 0));
+            return binding == null ? null : new CocosUiView(binding);
+        }
+    }
+}

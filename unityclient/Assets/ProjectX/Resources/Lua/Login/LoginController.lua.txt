@@ -1,0 +1,70 @@
+local Protocol = require("Protocol")
+local LoginProtocol = require("Login.LoginProtocol")
+local LoginView = require("Login.LoginView")
+local PlayerController = require("Player.PlayerController")
+local ServerTimeController = require("Time.ServerTimeController")
+local M = { roleId = 0 }
+
+function M.begin() LoginView.show(Bridge:IsAutomation()) end
+function M.onLoginClicked() Bridge:Connect("127.0.0.1", 8711) end
+function M.onConnected() LoginProtocol.sendLogin() end
+
+function M.onPacket(command, message)
+    if command == Protocol.USER_LOGIN then
+        if message:ReadByte() ~= 1 then Bridge:Fail("PRO_USER_LOGIN/1001 returned failure."); return true end
+        message:ReadByte()
+        message:ReadUInt()
+        M.roleId = message:ReadUInt()
+        if M.roleId == 0 then LoginProtocol.sendCreateRole(); Bridge:SetStatus("No role found. Lua sent PRO_CREATE_ROLE/1003.")
+        else LoginProtocol.sendSelectRole(M.roleId); Bridge:SetStatus("Lua sent PRO_SELECT_ROLE/1004 for role " .. tostring(M.roleId) .. ".") end
+        return true
+    end
+    if command == Protocol.CREATE_ROLE then
+        if message:ReadByte() ~= 1 then Bridge:Fail("PRO_CREATE_ROLE/1003 returned failure."); return true end
+        M.roleId = message:ReadUInt()
+        LoginProtocol.sendSelectRole(M.roleId)
+        return true
+    end
+    if command == Protocol.SELECT_ROLE then
+        if message:ReadByte() ~= 1 then Bridge:Fail("PRO_SELECT_ROLE/1004 returned failure."); return true end
+        local roleId = message:ReadUInt()
+        local name = message:ReadString()
+        local sex = message:ReadByte()
+        local model = message:ReadByte()
+        local head = message:ReadByte()
+        local level = message:ReadWord()
+        local experience = message:ReadULongInt()
+        local power = message:ReadULongInt()
+        local money = message:ReadInt()
+        local premium = message:ReadInt()
+        local boundPremium = message:ReadInt()
+        local potential = message:ReadUInt()
+        local soul = message:ReadUInt()
+        local packageCapacity = message:ReadWord()
+        message:ReadUInt() -- guild id
+        message:ReadByte() -- guild rank
+        message:ReadString() -- guild name
+        message:ReadByte() -- show guild name
+        local guildContribution = message:ReadUInt()
+        message:ReadByte() -- recharge open
+        message:ReadUInt() -- transform id
+        message:ReadByte() -- transform state
+        message:ReadUInt() -- charm
+        message:ReadUInt() -- registration time
+        message:ReadUInt() -- server id
+        if message.Remaining ~= 0 then
+            Bridge:Fail("PRO_SELECT_ROLE/1004 has " .. tostring(message.Remaining) .. " unread bytes.")
+            return true
+        end
+        Bridge:InitializePlayer(roleId, name, sex, model, head, level, experience, power,
+            money, premium, boundPremium, potential, soul, packageCapacity, guildContribution)
+        LoginView.showMain(Bridge:IsAutomation())
+        ServerTimeController.request()
+        PlayerController.requestStamina()
+        if Bridge:HasCommandLineFlag("-projectXPlayerHudValidation") then PlayerController.beginValidation() end
+        return true
+    end
+    return false
+end
+
+return M

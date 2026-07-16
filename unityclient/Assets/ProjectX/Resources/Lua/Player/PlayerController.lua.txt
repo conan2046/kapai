@@ -1,0 +1,113 @@
+local Protocol = require("Protocol")
+
+local GOLD = 60000
+local PREMIUM = 60003
+local STAMINA = 60026
+local M = { validationStage = nil, expectedGold = 0, expectedPremium = 0, staminaLoaded = false, currencyValidated = false }
+
+local function tryCompleteValidation()
+    if M.currencyValidated and M.staminaLoaded then
+        M.validationStage = nil
+        Bridge:CompletePlayerHudValidation(M.expectedGold, M.expectedPremium)
+    end
+end
+
+function M.requestStamina()
+    local message = Protocol.newMessage(Protocol.STAMINA)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+local function sendCurrencyMutation(currency, amount)
+    local message = Protocol.newMessage(Protocol.INTERACT)
+    message:WriteByte(52)
+    message:WriteWord(currency)
+    message:WriteUInt(amount)
+    Bridge:Send(message)
+end
+
+function M.beginValidation()
+    M.expectedGold = Bridge:GetCurrency(GOLD) + 123
+    M.expectedPremium = Bridge:GetCurrency(PREMIUM) + 7
+    M.validationStage = "gold"
+    M.currencyValidated = false
+    sendCurrencyMutation(GOLD, 123)
+    Bridge:SetStatus("Player HUD validation: waiting for /18 gold increment.")
+end
+
+local function validateIncrement(id, value)
+    if M.validationStage == "gold" and id == GOLD then
+        if value ~= M.expectedGold then Bridge:Fail("Gold increment mismatch: " .. tostring(value)); return end
+        M.validationStage = "premium"
+        sendCurrencyMutation(PREMIUM, 7)
+    elseif M.validationStage == "premium" and id == PREMIUM then
+        if value ~= M.expectedPremium then Bridge:Fail("Premium increment mismatch: " .. tostring(value)); return end
+        M.currencyValidated = true
+        tryCompleteValidation()
+    end
+end
+
+
+local function readStamina(message)
+    local op = message:ReadByte()
+    if op ~= 1 then return end
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        Bridge:Fail("Stamina/321 failed: " .. tostring(reason))
+        return
+    end
+    local value = message:ReadWord()
+    message:ReadUInt()
+    Bridge:SetCurrency(STAMINA, value)
+    M.staminaLoaded = true
+    tryCompleteValidation()
+end
+
+local function readCharacterUpdate(message)
+    local updateType = message:ReadByte()
+    if updateType == 1 then
+        local count = message:ReadWord()
+        for _ = 1, count do
+            local kind = message:ReadUInt()
+            local value = (kind == 507 or kind == 513) and message:ReadULongInt() or message:ReadUInt()
+            if kind == 501 then Bridge:SetPlayerPotential(value)
+            elseif kind == 502 then Bridge:AddPlayerExperience(value)
+            elseif kind == 504 then Bridge:SetCurrency(GOLD, value); validateIncrement(GOLD, value)
+            elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value); validateIncrement(PREMIUM, value)
+            elseif kind == 513 then Bridge:SetPlayerPower(value)
+            elseif kind == 514 then Bridge:SetPlayerSoul(value) end
+        end
+    elseif updateType == 2 then
+        local id = message:ReadWord()
+        local value = message:ReadUInt()
+        Bridge:SetCurrency(id, value)
+        if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end
+        validateIncrement(id == 60001 and PREMIUM or id, value)
+    elseif updateType == 3 then
+        local count = message:ReadByte()
+        for _ = 1, count do message:ReadWord(); message:ReadUInt() end
+    end
+end
+
+local function readLevelUp(message)
+    message:ReadByte()
+    message:ReadULongInt()
+    message:ReadULongInt()
+    local level = message:ReadByte()
+    local power = message:ReadULongInt()
+    message:ReadULongInt()
+    Bridge:SetPlayerLevelAndPower(level, power)
+    local count = message:ReadByte()
+    for _ = 1, count do message:ReadWord(); message:ReadByte() end
+    if message.Remaining > 0 then message:ReadByte() end
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.UPDATE_CHAR then readCharacterUpdate(message); return true end
+    if command == Protocol.LEVEL_UP then readLevelUp(message); return true end
+    if command == Protocol.STAMINA then readStamina(message); return true end
+    return false
+end
+
+return M

@@ -1,5 +1,17 @@
 # Codex Project Notes
 
+## Codex 性能与运行时生命周期
+- 本项目只有一套本地服务端：workspace-local MySQL + `kapai.exe`；有两套客户端：Cocos `ProjectX.exe` 与 Unity Editor/Player。
+- 每个任务开始先判断目标是服务端、Cocos 客户端还是 Unity 客户端；只启动当前操作必需的进程，不继承上个任务的运行状态。
+- 文档、代码阅读和静态修改默认不启动 MySQL、`kapai.exe`、Cocos 客户端、Unity 或 Unity MCP。
+- 服务端/协议任务按需启动 MySQL 和 `kapai.exe`；Cocos 联调只加 Cocos 客户端；Unity 联调只加 Unity，禁止两套客户端同时常驻。
+- Unity 纯 C#/Lua 文件修改先静态完成，只在编译、场景、Prefab、Console 或 PlayMode 验收阶段启动 Unity/MCP。
+- 功能阶段验收完成后，关闭本阶段启动的 Unity、Unity Hub、Cocos Simulator、`kapai.exe` 和 workspace-local MySQL；需要长跑 L5 或用户明确要求持续运行时除外。
+- 一个重任务同时只运行一个；16 GB 本机可用内存低于 4 GB 时停止新增任务，低于 2 GB 时停止重任务。
+- 单次终端输出不超过 200 行，日志默认只读尾部 100 行；大输出落盘到 `.local/`，不灌入对话。
+- 单任务文件达到 15 MB 预警，达到 20 MB 时更新 HANDOFF 并新开任务。
+- 根目录 `.svn/`、Unity `Library/Temp/Logs`、`build/`、`.local/` 和 `tools/local/vcpkg/` 默认不扫描、不统计内容，除非当前问题明确指向它们。
+
 ## Agent 命令执行环境规范
 - 执行命令时，请始终优先选择 **PowerShell 7 (pwsh.exe)**，而不是旧版的 **powershell.exe**
 - 这样能保证命令执行全部采用 UTF-8 编码，避免中文乱码问题及 BOM 错误

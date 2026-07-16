@@ -1,0 +1,16 @@
+local M = {}
+function M.show(autoInvoke) Bridge:ShowLoginUi(); Bridge:BindLoginClick(autoInvoke) end
+function M.showMain(autoInvokeBag)
+    Bridge:ShowMainUi()
+    local taskValidation = Bridge:HasCommandLineFlag("-projectXTaskValidation")
+        or Bridge:HasCommandLineFlag("-projectXTaskMutationValidation")
+    local playerValidation = Bridge:HasCommandLineFlag("-projectXPlayerHudValidation")
+    local heroValidation = Bridge:HasCommandLineFlag("-projectXHeroValidation")
+        or Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
+        or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
+    Bridge:BindBagClick(autoInvokeBag and not taskValidation and not playerValidation and not heroValidation)
+    Bridge:BindSettingsClick()
+    Bridge:BindTaskClick(autoInvokeBag and taskValidation)
+    Bridge:BindHeroClick(autoInvokeBag and heroValidation)
+end
+return M

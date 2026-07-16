@@ -2125,7 +2125,8 @@ void CEquipManeger::WearPetEquip(CUser* user, CNetMessage& msg)
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_TRANSFORM_1318, TIPS_FAILURE_COLOR);
 		return;
 	}
-	if (!sSystemOpenCfgMananger.CheckSystemOpen(user, SOT_1045 + equip->wpos - 1))
+	if (!sSystemOpenCfgMananger.CheckSystemOpen(user, SOT_1045 + equip->wpos - 1)
+		&& gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
 		return;
 	if (fpos == 0 || fpos > 5)
 	{

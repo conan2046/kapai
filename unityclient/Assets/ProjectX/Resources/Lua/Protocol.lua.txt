@@ -1,0 +1,28 @@
+local Message = CS.ProjectX.Network.LegacyTcpMessage
+
+local M = {
+    ROLE_PACKAGE = 8,
+    INTERACT = 13,
+    PACKAGE_UPDATE = 15,
+    UPDATE_CHAR = 18,
+    HERO = 24,
+    TASK_LIST = 37,
+    TASK_UPDATE = 39,
+    FORMATION = 48,
+    FUNC_HOT_POINT = 65,
+    SERVER_TIME = 206,
+    PET_EQUIP_OPERATE = 319,
+    LEVEL_UP = 226,
+    STAMINA = 321,
+    USER_LOGIN = 1001,
+    CREATE_ROLE = 1003,
+    SELECT_ROLE = 1004,
+}
+
+function M.newMessage(command)
+    local message = Message.New()
+    message:WriteUShort(command)
+    return message
+end
+
+return M

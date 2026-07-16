@@ -1914,6 +1914,55 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 			cout<<"[local] NpcInteract add-item rejected itemId="<<itemId<<" num="<<itemNum<<endl;
 		return;
 	}
+	// Local isolated-role task validation: op=51, uint16 condition, uint16 amount.
+	// This is deliberately unavailable outside local_test and only drives the
+	// normal mission manager path so production task behaviour remains unchanged.
+	if(op == 51)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint16 condition = 0;
+		uint16 amount = 0;
+		msg>>condition>>amount;
+		if(condition == 0 || amount == 0 || amount > 100)
+			return;
+		SingletonCMissionManager::instance().UpdateQuestState(pUser, condition, amount);
+		return;
+	}
+	// Local isolated-role currency validation: op=52, uint16 awardType,
+	// int32 delta. Restrict it to the two main HUD currencies.
+	if(op == 52)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint16 awardType = 0;
+		int delta = 0;
+		msg>>awardType>>delta;
+		if((awardType != HDAT_MONEY && awardType != HDAT_YB) || delta <= 0 || delta > 10000)
+			return;
+		pUser->AddMaterial(awardType, delta, false, false);
+		return;
+	}
+	// Local isolated-role hero equipment validation: op=53, uint8 kind,
+	// uint16 templateId. kind=1 adds equipment, kind=2 adds FaBao. The normal
+	// manager path emits the authoritative /319 op=6/op=22 update packet.
+	if(op == 53)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint8 kind = 0;
+		uint16 templateId = 0;
+		msg>>kind>>templateId;
+		if(templateId == 0)
+			return;
+		CEquipManeger& equipMgr = pUser->GetPetEquipMgr();
+		bool added = kind == 1 ? equipMgr.AddEquip(pUser, templateId)
+			: kind == 2 ? equipMgr.AddFaBao(pUser, templateId) : false;
+		if(!added)
+			cout<<"[local] NpcInteract add hero equipment rejected kind="<<(int)kind
+				<<" templateId="<<templateId<<endl;
+		return;
+	}
 
 	msg>>num;//>>input;
 
@@ -25108,6 +25157,7 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 	uint8 op;
 	msg >> op;
 	CEquipManeger& equipMgr = pUser->GetPetEquipMgr();
+	const bool localTest = gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1";
 	switch (op)
 	{
 	case 1: // 拉取整个列表
@@ -25120,7 +25170,7 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 		equipMgr.TakeOffPetEquip(pUser, msg);
 		break;
 	case 4: // 强化
-		CHECK_SYSTEM_OPEN(SOT_1120)
+		if(!localTest) { CHECK_SYSTEM_OPEN(SOT_1120) }
 		equipMgr.StrongEquip(pUser, msg);
 		break;
 	case 5: // 分解
@@ -25153,7 +25203,7 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 		equipMgr.SendFaBaoList(pUser, msg);
 		return;
 	case 18: // 穿
-		CHECK_SYSTEM_OPEN(SOT_1180)
+		if(!localTest) { CHECK_SYSTEM_OPEN(SOT_1180) }
 		equipMgr.WearFaBao(pUser, msg);
 		break;
 	case 19: // 脱

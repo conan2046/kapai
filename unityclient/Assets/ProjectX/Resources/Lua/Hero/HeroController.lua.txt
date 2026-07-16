@@ -1,0 +1,154 @@
+local Protocol = require("Protocol")
+local EquipmentController = require("Hero.EquipmentController")
+
+local M = { requested = false, mutationStage = nil, mutationHero = nil, originalPosition = nil, targetPosition = nil }
+
+local function requestFormation()
+    local message = Protocol.newMessage(Protocol.FORMATION)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+function M.onClick()
+    M.requested = true
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(1)
+    Bridge:Send(message)
+    Bridge:SetStatus("Hero/24 list request sent.")
+end
+
+local function sendPosition(heroId, position)
+    local message = Protocol.newMessage(Protocol.FORMATION)
+    message:WriteByte(4)
+    message:WriteWord(heroId)
+    message:WriteByte(position)
+    Bridge:Send(message)
+end
+
+local function readHero(message)
+    local id = message:ReadWord()
+    local fightPosition = message:ReadByte()
+    local name = message:ReadString()
+    local star = message:ReadByte()
+    local breakLevel = message:ReadByte()
+    local level = message:ReadWord()
+    local experience = message:ReadUInt()
+    local maxExperience = message:ReadUInt()
+    local power = message:ReadULongInt()
+    local attack = message:ReadUInt()
+    local physicalDefense = message:ReadUInt()
+    local magicDefense = message:ReadUInt()
+    local health = message:ReadULongInt()
+    local speed = message:ReadUInt()
+    for _ = 1, 23 do message:ReadUInt() end
+    message:ReadByte()
+    local trainingCount = message:ReadByte()
+    for _ = 1, trainingCount do message:ReadByte(); message:ReadWord() end
+    local skillCount = message:ReadByte()
+    for _ = 1, skillCount do message:ReadByte(); message:ReadWord(); message:ReadWord() end
+    Bridge:AddHeroRecord(id, fightPosition, name, star, breakLevel, level, experience,
+        maxExperience, power, attack, physicalDefense, magicDefense, health, speed)
+end
+
+local function readHeroList(message)
+    local followId = message:ReadWord()
+    local count = message:ReadByte()
+    Bridge:BeginHeroUpdate(followId, count)
+    for _ = 1, count do readHero(message) end
+    if message.Remaining ~= 0 then Bridge:Fail("Hero/24 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndHeroUpdate()
+    requestFormation()
+end
+
+local function readFormation(message)
+    local activeId = message:ReadWord()
+    local count = message:ReadByte()
+    Bridge:BeginFormationUpdate(activeId, count)
+    for _ = 1, count do Bridge:AddFormationRecord(message:ReadWord(), message:ReadByte()) end
+    local displayCount = message:ReadByte()
+    for index = 1, displayCount do Bridge:AddFormationDisplayHero(index, message:ReadWord()) end
+    local combatCount = message:ReadByte()
+    for index = 1, combatCount do Bridge:AddFormationCombatHero(index, message:ReadWord()) end
+    if message.Remaining ~= 0 then Bridge:Fail("Formation/48 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndFormationUpdate()
+    if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
+        or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation") then
+        M.requested = false
+        EquipmentController.onHeroReady()
+        return
+    end
+    if M.mutationStage == "await_move_snapshot" then
+        if Bridge:GetFormationHeroAt(M.targetPosition) ~= M.mutationHero then
+            Bridge:Fail("Formation move snapshot did not place hero at target position.")
+            M.mutationStage = nil
+            return
+        end
+        M.mutationStage = "await_restore_response"
+        sendPosition(M.mutationHero, M.originalPosition)
+        return
+    elseif M.mutationStage == "await_restore_snapshot" then
+        if Bridge:GetFormationHeroAt(M.originalPosition) ~= M.mutationHero then
+            Bridge:Fail("Formation restore snapshot did not restore hero to original position.")
+            M.mutationStage = nil
+            return
+        end
+        M.mutationStage = nil
+        Bridge:CompleteFormationMutationValidation(M.mutationHero, M.originalPosition, M.targetPosition)
+        return
+    end
+    if M.requested then
+        M.requested = false
+        if Bridge:HasCommandLineFlag("-projectXFormationMutationValidation") then
+            local combatCount = Bridge:GetFormationCombatCount()
+            local original = 0
+            local heroId = 0
+            local target = 0
+            for position = 1, combatCount do
+                local id = Bridge:GetFormationHeroAt(position)
+                if id > 0 and original == 0 then original = position; heroId = id end
+                if id == 0 and target == 0 then target = position end
+            end
+            if heroId == 0 or target == 0 then Bridge:Fail("Formation mutation requires one occupied and one empty position."); return end
+            M.mutationHero = heroId
+            M.originalPosition = original
+            M.targetPosition = target
+            M.mutationStage = "await_move_response"
+            sendPosition(heroId, target)
+        else
+            Bridge:CompleteHeroReadValidation()
+        end
+    end
+end
+
+local function readPositionResponse(message)
+    local heroId = message:ReadWord()
+    local position = message:ReadByte()
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        M.mutationStage = nil
+        Bridge:Fail("Formation position change failed: " .. tostring(reason))
+        return
+    end
+    if heroId ~= M.mutationHero then Bridge:Fail("Formation response hero mismatch."); M.mutationStage = nil; return end
+    if M.mutationStage == "await_move_response" and position == M.targetPosition then
+        M.mutationStage = "await_move_snapshot"
+    elseif M.mutationStage == "await_restore_response" and position == M.originalPosition then
+        M.mutationStage = "await_restore_snapshot"
+    end
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.HERO then
+        local op = message:ReadByte()
+        if op == 1 then readHeroList(message) else return false end
+        return true
+    end
+    if command ~= Protocol.FORMATION then return false end
+    local op = message:ReadByte()
+    if op == 1 then readFormation(message); return true end
+    if op == 4 then readPositionResponse(message); return true end
+    return false
+end
+
+return M

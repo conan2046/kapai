@@ -1,0 +1,161 @@
+local Protocol = require("Protocol")
+local catalog = require("Data.ItemCatalog")
+local byId = {}
+for _, value in ipairs(catalog) do byId[value.id] = value end
+
+local USE_VALIDATION_ITEM_ID = 3201
+local M = {
+    requested = false,
+    awaitingSort = false,
+    validationStage = nil,
+    validationSlot = nil,
+    validationQuantity = nil
+}
+
+local function addOrUpdate(slot, id, num, replace)
+    local cfg = byId[id] or {}
+    if replace then
+        Bridge:AddBagItem(slot, id, num, cfg.name or "", cfg.des or "", cfg.pic or 0,
+            cfg.quality or 0, cfg.use_type or 0, cfg.use_jump or 0, cfg.sort_priority or 999999)
+    else
+        Bridge:UpsertBagItem(slot, id, num, cfg.name or "", cfg.des or "", cfg.pic or 0,
+            cfg.quality or 0, cfg.use_type or 0, cfg.use_jump or 0, cfg.sort_priority or 999999)
+    end
+end
+
+local function readFullPackage(message, hasTailFlags)
+    local count = message:ReadWord()
+    Bridge:BeginBagUpdate(count)
+    for _ = 1, count do
+        local slot = message:ReadWord() + 1
+        local id = message:ReadWord()
+        local num = message:ReadWord()
+        addOrUpdate(slot, id, num, true)
+    end
+    if hasTailFlags and message.Remaining > 0 then message:ReadByte() end
+    if hasTailFlags and message.Remaining > 0 then message:ReadByte() end
+    Bridge:EndBagUpdate()
+    return count
+end
+
+function M.onClick()
+    M.requested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
+function M.onUse(slot, quantity)
+    local currentQuantity = Bridge:GetBagQuantity(slot)
+    if currentQuantity <= 0 then
+        Bridge:SetStatus("Selected bag slot is empty.")
+        return
+    end
+    local message = Protocol.newMessage(Protocol.PACKAGE_UPDATE)
+    message:WriteByte(1)
+    message:WriteWord(slot - 1)
+    message:WriteByte(1)
+    message:WriteByte(0)
+    Bridge:Send(message)
+    Bridge:SetStatus("Use-item request sent for slot " .. tostring(slot) .. ".")
+end
+
+local function beginUseValidation()
+    local message = Protocol.newMessage(Protocol.INTERACT)
+    message:WriteByte(50)
+    message:WriteUInt(USE_VALIDATION_ITEM_ID)
+    message:WriteWord(1)
+    M.validationStage = "await_add"
+    Bridge:Send(message)
+    Bridge:SetStatus("Use-item validation: waiting for local item injection update.")
+end
+
+local function validateIncrementalUpdate(slot, itemId, quantity)
+    if M.validationStage == "await_add" and itemId == USE_VALIDATION_ITEM_ID then
+        if quantity < 1 then
+            Bridge:Fail("Use-item validation received an empty injected stack.")
+            M.validationStage = nil
+            return
+        end
+        M.validationSlot = slot
+        M.validationQuantity = quantity
+        M.validationStage = "await_consume"
+        M.onUse(slot, quantity)
+        return
+    end
+
+    if M.validationStage ~= "await_consume" or slot ~= M.validationSlot then return end
+    local remaining = itemId == USE_VALIDATION_ITEM_ID and quantity or 0
+    if remaining ~= M.validationQuantity - 1 then
+        Bridge:Fail("Use-item validation quantity mismatch: expected "
+            .. tostring(M.validationQuantity - 1) .. ", got " .. tostring(remaining) .. ".")
+        M.validationStage = nil
+        return
+    end
+    M.validationStage = nil
+    Bridge:Complete("COMPLETE: package/8 -> update/15 sort -> local add 3201 -> use-item request -> "
+        .. "fixed reward 60015 x10 -> update/15 consume")
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.ROLE_PACKAGE and M.requested then
+        local serverCount = readFullPackage(message, true)
+        local renderedCount = Bridge:GetBagCount()
+        M.requested = false
+        if Bridge:IsAutomation() then
+            local sortMessage = Protocol.newMessage(Protocol.PACKAGE_UPDATE)
+            sortMessage:WriteByte(6)
+            M.awaitingSort = true
+            Bridge:Send(sortMessage)
+            Bridge:SetStatus("Package/8 rendered; waiting for safe package-update/15 sort refresh.")
+            return true
+        end
+        Bridge:Complete("COMPLETE: ProjectXApp -> parsed package/8 -> rendered real bag UI ("
+            .. tostring(renderedCount) .. " stacks, server=" .. tostring(serverCount) .. ")")
+        return true
+    end
+
+    if command ~= Protocol.PACKAGE_UPDATE then return false end
+    local op = message:ReadByte()
+    if op == 6 then
+        local success = message:ReadByte()
+        if success == 1 then
+            readFullPackage(message, false)
+            local renderedCount = Bridge:GetBagCount()
+            if M.awaitingSort then
+                M.awaitingSort = false
+                if Bridge:HasCommandLineFlag("-projectXUseItemValidation") then
+                    beginUseValidation()
+                else
+                    Bridge:Complete("COMPLETE: package/8 + package-update/15 sort -> rendered bag UI ("
+                        .. tostring(renderedCount) .. " stacks)")
+                end
+            end
+        elseif M.awaitingSort then
+            M.awaitingSort = false
+            Bridge:Fail("Package-update/15 sort refresh failed.")
+        end
+        return true
+    end
+    if op == 0 or op == 7 then
+        message:ReadWord()
+        message:ReadWord()
+        local success = message:ReadByte()
+        if success == 0 and message.Remaining > 0 then Bridge:SetStatus(message:ReadString()) end
+        return true
+    end
+
+    local slot = message:ReadWord() + 1
+    message:ReadWord()
+    message:ReadWord()
+    local itemId = message:ReadWord()
+    if itemId == 0 then
+        Bridge:RemoveBagItem(slot)
+    else
+        local quantity = message:ReadWord()
+        if message.Remaining >= 2 then message:ReadWord() end
+        addOrUpdate(slot, itemId, quantity, false)
+    end
+    validateIncrementalUpdate(slot, itemId, itemId == 0 and 0 or Bridge:GetBagQuantity(slot))
+    return true
+end
+
+return M

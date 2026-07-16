@@ -6847,7 +6847,7 @@ CBangPai *CBangPaiManager::CreateBangPai(CUser *pUser,const char *name,int pic,u
 	if(pDb == NULL)
 		return NULL;
 	int rank = m_bangPaiList.NodeNum()+1;
-	boost::format fmt("INSERT INTO bang_pai (id,name,`rank`,pic,info,gonggao,copy,memberReward,shangxian_info,mission,juanxian_rank,lianqi_lv,skills) VALUES (%1%,\"%2%\",%3%,%4%,\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\")");
+	boost::format fmt("INSERT INTO bang_pai (id,name,`rank`,pic,state,info,gonggao,copy,memberReward,shangxian_info,mission,juanxian_rank,lianqi_lv,skills) VALUES (%1%,\"%2%\",%3%,%4%,1,\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\")");
 	fmt % m_curId % bpName % rank % pic;
 	if(pDb->Query(fmt.str().c_str()))
 	{
