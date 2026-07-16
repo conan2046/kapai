@@ -415,7 +415,14 @@ function StageInfoUI:challengeEvent()
         end
         LuaNetSendMsg:QueryBangPaiFubenFight(mapId, self._data.copyData.id)
     else
-        
+        -- 每次副本挑战都建立独立的结算数据。失败时服务端不会发送
+        -- GuanQiaWin 的星级奖励包，若沿用上一场数据会把旧的三星结果
+        -- 显示到本场失败结算中。
+        LRoleDataMgr.m_fightResultData = {
+            wanFaId = 0,
+            starNum = 0,
+            itemList = {}
+        }
         LuaNetSendMsg:QueryFightSatge(5, 1, mapId, self._data.stageId)
     end
     self:closeUI()

@@ -7461,24 +7461,23 @@ bool CFight::FastFightEnd(SFastFightResult &result)
 		}
 		else	// 正常结束
 		{
-			winGroup = CalculateWinGroup();
-			for(uint8 i=0; i < m_groupUser[winGroup].size(); i++)
-			{
-				ShareUserPtr pU = m_groupUser[winGroup][i];
-				if(pU.get() != NULL && pU->GetSock() > 0)
-				{
-					result.win = true;
-					break;
-				}
-			}
+			// Fast-fight callers always place the initiating player in group 1.
+			// A result is therefore a win only when group 2 is completely dead.
+			// The old code treated any winning group containing an online user as
+			// the caller's win, so a surviving group-2 player/robot could make the
+			// defeated initiator receive a victory result.  Mutual destruction is
+			// also a loss for the initiating side.
+			winGroup = (type == 2) ? EGT_GROUP1 : EGT_GROUP2;
+			result.win = (winGroup == EGT_GROUP1);
 		}
 
 		// 特殊战斗，直接胜利
 		if(m_type == EFT_BangPaiCopy)
 		{
+			winGroup = EGT_GROUP1;
 			result.win = true;
 		}
-		
+
 		// result data
 		CZhenFaCfgMgr &zfMgr = SingletonCZhenFaCfgMgr::instance();
 		for(uint16 g=EGT_GROUP1; g <= EGT_GROUP2; g++)
@@ -7525,7 +7524,7 @@ bool CFight::FastFightEnd(SFastFightResult &result)
 		{
 			for(uint16 j=0; j < m_groupUser[i].size(); j++)
 			{
-				UserFightEnd(m_groupUser[i][j], i, result.win, true);
+				UserFightEnd(m_groupUser[i][j], i, i == winGroup, true);
 			}
 		}
 

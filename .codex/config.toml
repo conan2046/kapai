@@ -1,0 +1,13 @@
+# Project-only Codex performance overrides.
+# This Cocos2d-x + Lua repository does not require the Godot or Unity MCP servers.
+
+[mcp_servers.funplay]
+enabled = false
+
+[mcp_servers.unityMCP]
+enabled = false
+
+# The global Lua LSP watches ./scripts, which does not match this repository's
+# server/script and client/ProjectX/src layout.
+[mcp_servers."maker-lua-lsp"]
+enabled = false

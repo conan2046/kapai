@@ -4355,4 +4355,4 @@ function LBattleLogic:DealUpdateFightHP(msg)
 end
 
 
-LBattleLogic:Init() 
+LBattleLogic:Init()
