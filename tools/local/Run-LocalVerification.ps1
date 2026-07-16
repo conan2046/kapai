@@ -4,6 +4,7 @@ param(
     [switch]$RestartServer,
     [switch]$InitDb,
     [switch]$ImportData,
+    [switch]$ResetDatabase,
     [switch]$SkipClient,
     [switch]$SkipSmoke,
     [int]$WaitSeconds = 3,
@@ -42,7 +43,9 @@ function Test-ClientRunning {
 
 Push-Location $Root
 try {
-    Invoke-Step "Check local environment" (Join-Path $Root "tools\local\Check-LocalEnv.ps1")
+    $checkArgs = @()
+    if ($SkipClient) { $checkArgs += "-SkipClient" }
+    Invoke-Step "Check local environment" (Join-Path $Root "tools\local\Check-LocalEnv.ps1") $checkArgs
 
     if ($Start -or $InitDb) {
         Invoke-Step "Start local MySQL" (Join-Path $Root "tools\local\Start-LocalMySql.ps1")
@@ -51,6 +54,7 @@ try {
     if ($InitDb) {
         $dbArgs = @()
         if ($ImportData) { $dbArgs += "-ImportData" }
+        if ($ResetDatabase) { $dbArgs += "-ResetDatabase" }
         Invoke-Step "Initialize local DB" (Join-Path $Root "tools\local\Init-LocalDb.ps1") $dbArgs
     }
 

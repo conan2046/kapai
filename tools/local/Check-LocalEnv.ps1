@@ -1,7 +1,8 @@
 param(
     [string]$MySqlUser = "root",
     [string]$MySqlPassword = "123456",
-    [string]$Database = "fxl_game_local"
+    [string]$Database = "fxl_game_local",
+    [switch]$SkipClient
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,14 +44,16 @@ $serverScript = Join-Path $Root "server\script"
 $cmakeFile = Join-Path $Root "server\CMakeLists.txt"
 $allSql = Join-Path $Root "server\sql\_all_sql.sql"
 $itemSql = Join-Path $Root "server\sql\item_template.sql"
-$luaInclude = Join-Path $Root "client\ProjectX\frameworks\cocos2d-x\external\lua\luajit\include\lua.h"
-$luaLib = Join-Path $Root "client\ProjectX\frameworks\cocos2d-x\external\lua\luajit\prebuilt\win32\lua51.lib"
+$luaInclude = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\include\luajit\lua.h"
+$luaLib = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\lib\lua51.lib"
 
 Write-Host "Local run environment check"
 Write-Host "Root: $Root"
 Write-Host ""
 
-Write-Check "Client simulator" (Test-Path $clientExe) $clientExe
+if (-not $SkipClient) {
+    Write-Check "Client simulator" (Test-Path $clientExe) $clientExe
+}
 Write-Check "Server config" (Test-Path $serverConfig) $serverConfig
 Write-Check "Server xml" (Test-Path $serverXml) $serverXml
 Write-Check "Server dat" (Test-Path $serverDat) $serverDat
@@ -58,8 +61,8 @@ Write-Check "Server script" (Test-Path $serverScript) $serverScript
 Write-Check "Server CMake" (Test-Path $cmakeFile) $cmakeFile
 Write-Check "Data SQL" (Test-Path $allSql) $allSql
 Write-Check "Item SQL" (Test-Path $itemSql) $itemSql
-Write-Check "LuaJIT headers" (Test-Path $luaInclude) $luaInclude
-Write-Check "LuaJIT library" (Test-Path $luaLib) $luaLib
+Write-Check "Server LuaJIT headers" (Test-Path $luaInclude) $luaInclude
+Write-Check "Server LuaJIT library" (Test-Path $luaLib) $luaLib
 
 $roleInfoPattern = "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+``?role_info``?\s*\("
 $hasBaseSchema = Get-ChildItem (Join-Path $Root "server\sql") -File |
@@ -70,7 +73,6 @@ Write-Check "Base DB schema" ([bool]$hasBaseSchema) ($(if($hasBaseSchema){$hasBa
 $fallbackSchema = Join-Path $Root "server\sql\local_min_schema.sql"
 Write-Check "Fallback DB schema" (Test-Path $fallbackSchema) $fallbackSchema
 
-Write-Check "mysql client" (Has-Command "mysql") "mysql"
 $cmakeKnown = Find-KnownFile @("C:\Program Files\CMake\bin\cmake.exe")
 $cmakePath = Get-Command cmake -ErrorAction SilentlyContinue
 $vsCmake = Find-VsTool "cmake.exe"
@@ -79,15 +81,12 @@ Write-Check "cmake" ([bool]$cmakePath -or [bool]$cmakeKnown -or [bool]$vsCmake) 
 $clPath = Get-Command cl -ErrorAction SilentlyContinue
 $vsCl = Find-VsTool "cl.exe"
 Write-Check "MSVC cl" ([bool]$clPath -or [bool]$vsCl) ($(if($clPath){$clPath.Source}elseif($vsCl){$vsCl}else{"cl"}))
-Write-Check "g++" (Has-Command "g++") "g++"
-
 $mysqlKnown = Find-KnownFile @(
     "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe",
     "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
 )
-if (-not (Has-Command "mysql") -and $mysqlKnown) {
-    Write-Check "mysql client path" $true $mysqlKnown
-}
+$mysqlCommand = Get-Command mysql -ErrorAction SilentlyContinue
+Write-Check "mysql client" ([bool]$mysqlCommand -or [bool]$mysqlKnown) ($(if($mysqlCommand){$mysqlCommand.Source}elseif($mysqlKnown){$mysqlKnown}else{"mysql.exe"}  ))
 
 $vcpkgExe = Join-Path $Root "tools\local\vcpkg\vcpkg.exe"
 $boostLibDir = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\lib"

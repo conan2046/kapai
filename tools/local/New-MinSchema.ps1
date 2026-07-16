@@ -5,11 +5,42 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 if (-not $OutFile) {
-    $OutFile = Join-Path $Root "server\sql\local_min_schema.sql"
+    $OutFile = Join-Path $Root ".local\generated_min_schema.sql"
 }
 
 $tables = @{}
 $badTables = @{}
+$columnDefinitions = @{
+    "item" = @{
+        "name" = "VARCHAR(32) NOT NULL DEFAULT ''"
+        "des" = "VARCHAR(256) NOT NULL DEFAULT ''"
+        "pic" = "INT NOT NULL DEFAULT 0"
+        "quality" = "INT NOT NULL DEFAULT 0"
+        "type" = "INT NOT NULL DEFAULT 0"
+        "use_type" = "INT NOT NULL DEFAULT 0"
+        "sub_value" = "VARCHAR(256) NOT NULL DEFAULT ''"
+        "limit_lv" = "INT NOT NULL DEFAULT 0"
+        "limit_time" = "VARCHAR(256) NOT NULL DEFAULT ''"
+        "sell" = "INT NOT NULL DEFAULT 0"
+        "sort_priority" = "INT NOT NULL DEFAULT 1"
+        "jiage" = "INT NOT NULL DEFAULT 0"
+        "item_from" = "VARCHAR(256) NOT NULL DEFAULT ''"
+        "item_source" = "VARCHAR(256) NOT NULL DEFAULT ''"
+        "script" = "INT NOT NULL DEFAULT 0"
+        "use_jump" = "INT NOT NULL DEFAULT 0"
+    }
+    "randombox_cfg" = @{
+        "seq" = "INT NOT NULL DEFAULT 0"
+        "box_id" = "INT NOT NULL DEFAULT 0"
+        "item_id" = "INT NOT NULL DEFAULT 0"
+        "odds" = "INT NOT NULL DEFAULT 0"
+        "num" = "INT NOT NULL DEFAULT 0"
+        "quality" = "INT NOT NULL DEFAULT 0"
+        "quality_level" = "INT NOT NULL DEFAULT 0"
+        "isnotice" = "INT NOT NULL DEFAULT 0"
+        "day_limit" = "INT NOT NULL DEFAULT 0"
+    }
+}
 @(
     "a","an","all","and","any","are","as","be","by","const","do","else","false","for","from",
     "if","in","int","is","it","join","limit","long","not","null","on","or","order","return",
@@ -159,7 +190,11 @@ foreach ($table in ($tables.Keys | Sort-Object)) {
     }
     foreach ($col in $tableCols) {
         if ($col -eq "id") { continue }
-        $cols.Add("  ``$col`` MEDIUMTEXT NULL")
+        $definition = "MEDIUMTEXT NULL"
+        if ($columnDefinitions.ContainsKey($table) -and $columnDefinitions[$table].ContainsKey($col)) {
+            $definition = $columnDefinitions[$table][$col]
+        }
+        $cols.Add("  ``$col`` $definition")
     }
     $cols.Add("  PRIMARY KEY (``id``)")
     $lines.Add("")

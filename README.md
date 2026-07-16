@@ -20,9 +20,11 @@ git lfs pull
 | 依赖 | 路径 | 体积 | 获取方式 |
 | --- | --- | --- | --- |
 | Cocos2d-x 引擎 | `client/ProjectX/frameworks/` | 约 3.3G | 内部 2.17 快照，请从团队内部源获取并解压到该目录 |
-| vcpkg | `tools/local/vcpkg/` | 约 1.6G | `git clone https://github.com/microsoft/vcpkg.git` 后切到 commit `a7bd303`（2026-07-05） |
+| vcpkg | `tools/local/vcpkg/` | 约 1.6G | 运行 `tools/local/Install-LocalDeps.ps1 -IncludeBoost`，脚本固定到 commit `a7bd30319eeac16afbe18d64a855303a0a425e84` |
 
 > 引擎与依赖体积大、含第三方代码，按团队约定不入库；克隆后需自行补齐上述目录才能编译运行。
+
+服务端无需手工复制 SQL 或旧数据库。全新克隆的自动安装、建库、构建、启动命令见 `LOCAL_RUN.md` 的“全新克隆：服务端最短流程”。
 
 ## 本地运行
 详见 `LOCAL_RUN.md` 与 `AGENTS.md`（登录服旁路、本地测试开关 `local_test=1`、`AppDef.LOCAL_TEST` 等）。

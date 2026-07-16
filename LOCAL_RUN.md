@@ -22,6 +22,33 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Start-Client.ps1
 pwsh -ExecutionPolicy Bypass -File tools/local/Check-LocalEnv.ps1
 ```
 
+## 全新克隆：服务端最短流程
+
+以下流程不依赖本机旧数据库或旧构建目录；SQL 结构与本地兜底数据均来自仓库：
+
+```powershell
+git lfs install
+git lfs pull
+pwsh -ExecutionPolicy Bypass -File tools/local/Install-LocalDeps.ps1 -IncludeMySql -IncludeBoost
+pwsh -ExecutionPolicy Bypass -File tools/local/Run-LocalVerification.ps1 -Build -Start -RestartServer -InitDb -ImportData -SkipClient
+```
+
+说明：
+
+- `Install-LocalDeps.ps1` 会固定 vcpkg 到仓库验证过的提交，并安装 Boost、LuaJIT、Zlib。
+- `Init-LocalDb.ps1` 会自动使用已追踪的 `server/sql/local_min_schema.sql`，不要求从其他电脑复制数据库。
+- 服务端启动所需 `libmysql.dll`、`libssl-3-x64.dll`、`libcrypto-3-x64.dll` 已随仓库放在 `server/config/`。
+- 客户端完整编译仍需团队内部的 Cocos2d-x 2.17 引擎快照。该 3.3G 第三方目录未入库；放入 `client/ProjectX/frameworks/` 后再构建模拟器。
+- 如果另一台电脑已经建过不完整的本地库，可在确认不需要保留其中测试角色后，给上面的命令增加 `-ResetDatabase`；该参数会删除并重建 `fxl_game_local`。
+
+要证明当前仓库不依赖本机旧库，可执行隔离验证：
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File tools/local/Test-FreshLocalSetup.ps1 -ImportData
+```
+
+脚本会创建一个新的 `fxl_game_clonecheck_<时间>` 数据库，在 `18711` 启动临时服务端，执行登录/创角 smoke，完成后停止临时服务端；不会修改正在使用的 `fxl_game_local`。
+
 ## 服务端运行目录
 
 服务端硬编码读取当前目录下的 `config`，XML 路径为 `./xml/`，地图路径为 `dat/*.map`。
@@ -61,14 +88,13 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Init-LocalDb.ps1 `
 
 没有基础 schema 时不要直接导入 `_all_sql.sql`，因为它大量使用 `truncate/insert`，依赖已存在的表。
 
-没有正式基础库时，可使用兜底 schema 尝试启动：
+没有正式基础库时，直接使用仓库已追踪并经过隔离启动验证的本地兜底 schema：
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File tools/local/New-MinSchema.ps1
 pwsh -ExecutionPolicy Bypass -File tools/local/Init-LocalDb.ps1 -ImportData
 ```
 
-兜底 schema 只用于本地跑通链路，不等价于正式库结构；如果服务端启动后报缺字段，再按报错补 `New-MinSchema.ps1` 的手工字段列表。
+`server/sql/local_min_schema.sql` 只用于本地跑通链路，不等价于正式生产库结构。`New-MinSchema.ps1` 是缺少已追踪 schema 时的应急生成器，默认生成到 `.local/generated_min_schema.sql`，不会覆盖仓库基准。
 
 ## 构建服务端
 
@@ -78,7 +104,7 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Init-LocalDb.ps1 -ImportData
 pwsh -ExecutionPolicy Bypass -File tools/local/Install-LocalDeps.ps1 -IncludeMySql -IncludeBoost
 ```
 
-Lua 默认复用客户端自带的 LuaJIT：`client/ProjectX/frameworks/cocos2d-x/external/lua/luajit`。
+服务端 LuaJIT 默认由 vcpkg 安装到 `tools/local/vcpkg/installed/x64-windows/`，不依赖客户端 Cocos 引擎目录。
 MySQL 默认识别 `C:\Program Files\MySQL\MySQL Server 8.4`。
 Boost 默认通过 `tools/local/vcpkg` 安装并由 CMake toolchain 发现。
 
@@ -98,6 +124,14 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1 `
 ```powershell
 pwsh -ExecutionPolicy Bypass -File tools/local/Start-Server.ps1
 ```
+
+需要排除旧 CMake 缓存做干净构建时，可指定新的构建目录：
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1 -BuildDir .local/server-win-clean
+```
+
+默认构建会把 Boost、LuaJIT、Zlib、MySQL/OpenSSL 运行 DLL 自动部署到 `kapai.exe` 同目录。仅在排查 DLL 文件锁、且不准备直接运行该输出目录时使用 `-SkipAppLocal`。
 
 ## 启动顺序
 

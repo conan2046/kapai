@@ -1,6 +1,7 @@
 param(
     [switch]$IncludeMySql,
-    [switch]$IncludeBoost
+    [switch]$IncludeBoost,
+    [string]$VcpkgRef = "a7bd30319eeac16afbe18d64a855303a0a425e84"
 )
 
 $ErrorActionPreference = "Stop"
@@ -44,6 +45,16 @@ function Find-ClExe($VsPath) {
     return ""
 }
 
+function Find-GitExe {
+    $git = Get-Command git -ErrorAction SilentlyContinue
+    if ($git) { return $git.Source }
+
+    $known = "C:\Program Files\Git\cmd\git.exe"
+    if (Test-Path $known) { return $known }
+
+    return ""
+}
+
 Install-Winget "Kitware.CMake" "CMake"
 
 $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
@@ -75,19 +86,41 @@ if ($IncludeMySql) {
 }
 
 if ($IncludeBoost) {
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    $gitExe = Find-GitExe
+    if (-not $gitExe) {
         throw "git not found. Cannot bootstrap vcpkg for Boost."
     }
     $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
     $vcpkg = Join-Path $Root "tools\local\vcpkg"
     if (-not (Test-Path $vcpkg)) {
-        git clone https://github.com/microsoft/vcpkg.git $vcpkg
+        & $gitExe clone https://github.com/microsoft/vcpkg.git $vcpkg
         if ($LASTEXITCODE -ne 0) { throw "git clone vcpkg failed" }
     }
+
+    if (-not (Test-Path (Join-Path $vcpkg ".git"))) {
+        throw "Existing vcpkg directory is not a git checkout: $vcpkg"
+    }
+
+    $dirty = & $gitExe -C $vcpkg status --porcelain
+    if ($LASTEXITCODE -ne 0) { throw "Cannot inspect vcpkg checkout: $vcpkg" }
+    if ($dirty) {
+        throw "vcpkg checkout has local changes; refusing to switch revisions: $vcpkg"
+    }
+
+    & $gitExe -C $vcpkg fetch --depth 1 origin $VcpkgRef
+    if ($LASTEXITCODE -ne 0) { throw "vcpkg fetch failed: $VcpkgRef" }
+    & $gitExe -C $vcpkg checkout --detach $VcpkgRef
+    if ($LASTEXITCODE -ne 0) { throw "vcpkg checkout failed: $VcpkgRef" }
+
     & (Join-Path $vcpkg "bootstrap-vcpkg.bat")
     if ($LASTEXITCODE -ne 0) { throw "bootstrap vcpkg failed" }
-    & (Join-Path $vcpkg "vcpkg.exe") install boost-thread:x64-windows boost-system:x64-windows boost-serialization:x64-windows
-    if ($LASTEXITCODE -ne 0) { throw "vcpkg boost install failed" }
+    & (Join-Path $vcpkg "vcpkg.exe") install `
+        boost-thread:x64-windows `
+        boost-system:x64-windows `
+        boost-serialization:x64-windows `
+        luajit:x64-windows `
+        zlib:x64-windows
+    if ($LASTEXITCODE -ne 0) { throw "vcpkg dependency install failed" }
 }
 
 Write-Host ""

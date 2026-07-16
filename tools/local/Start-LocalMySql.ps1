@@ -36,6 +36,10 @@ if (-not $mysqld -or -not $mysql) {
     throw "MySQL server binaries not found. Run tools/local/Install-LocalDeps.ps1 -IncludeMySql first."
 }
 
+# A fallback discovery may select 8.0 even though the parameter default is 8.4.
+# Always derive basedir from the binary that will actually be launched.
+$MySqlRoot = Split-Path (Split-Path $mysqld -Parent) -Parent
+
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 

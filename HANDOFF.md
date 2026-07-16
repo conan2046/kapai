@@ -1,6 +1,6 @@
 # 本地卡牌项目调试交接
 
-> 更新时间：2026-07-15
+> 更新时间：2026-07-16
 > 工作区：`E:\neiwang_kapai\Game`
 > 项目：Cocos2d-x 2.17 + Lua 客户端、C++ 服务端的联网卡牌游戏
 
@@ -24,16 +24,18 @@
 - 其他环境或命令若卡住 30 秒，立即告诉用户，并确认是继续等待、跳过、杀进程还是采取其他操作。
 - 不要静默长时间等待。
 - 用户已明确跳过一次预计超过 30 秒的“大组合 smoke”；后续优先使用独立分组命令，每组控制在 30 秒内。
+- 客户端截图和自动点击必须基于 `ProjectX.MainWindowHandle`：后台截图使用 `PrintWindow(hwnd)`，后台点击使用窗口相对坐标的 `PostMessage`，不得置前、移动真实鼠标或截整张桌面，以免打断用户写文档；仅当 Cocos 控件明确不响应后台消息时再告知用户。
 
-## 3. 当前运行状态（2026-07-15 交接时快照）
+## 3. 当前运行状态（2026-07-16 交接时快照）
 
-- 服务端正在运行并监听 `8711`，PID：`25200`。
+- 服务端正在运行并监听 `8711`，PID：`28616`。
 - 工作区本地 MySQL 8.4 正在运行，进程 PID：`3856`、`7872`。
 - 客户端 `ProjectX.exe` 当前未运行。
 - `server/config/config`：`local_test=1`、`local_user_id=0`。
 - 最新服务端二进制：`build/server-win/Debug/kapai.exe`。
-- 工作树很脏，包含本轮和此前未提交修改；**不要 reset、checkout 或覆盖用户改动**。
-- 尚未 commit，也未要求 commit。
+- 本轮连续调试成果已提交，提交为 `ee23220 fix: stabilize local test server and client flows`，但本地 `main` 仍比 `origin/main` 超前 1 个提交，尚未推送。
+- 2026-07-16 新增的跨电脑可迁移性修复尚未提交，实际文件以 `git status --short` 为准。
+- 不要 reset、checkout 或覆盖后续会话中出现的用户改动。
 
 运行状态会漂移，接手后先执行：
 
@@ -121,7 +123,7 @@ std::any::operator=(static_cast<std::any &&>(other));
 ### 4.6 其他代码修复
 
 - `server/src/scene_manager.cpp` 的怪物坐标检查已修正：只有中心不可走或周围无任何可走邻居才报警。此前只要八邻域有一个阻挡就报错，属于假阳性。
-- `tools/local/Build-Server.ps1` 新增可选 `-SkipAppLocal`，通过 `-DVCPKG_APPLOCAL_DEPS=OFF` 避免已有 `zd.dll` 被 vcpkg applocal 锁住导致构建失败；默认行为未改变。
+- `tools/local/Build-Server.ps1` 支持 `-BuildDir` 和可选 `-SkipAppLocal`；默认构建会显式部署 Boost、LuaJIT、Zlib、MySQL/OpenSSL 运行 DLL，保证干净输出目录可直接启动。
 - 本地地图查询先兼容旧路径 `dat/<id>.map`，再回退当前仓库实际命名 `dat/map<id>.map`。
 - Windows socket 零 payload、UTF-16LE、body length、每 socket 多消息发送队列等兼容修复已保留。
 
@@ -160,6 +162,59 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 - `.local/kapai-current.out/.err` 未发现 fatal、assert、stack overflow、crash、Lua `call:` error。
 - `PROTOCOL_COVERAGE.md` 已重新生成，统计为 128/143。
 
+### 4.9 客户端 nil、空数据与崩溃修复
+
+本轮人工点击继续发现并处理了以下问题：
+
+1. **普通商店 `configData=nil`**
+   - 报错入口：`View/Shop/NormalShop.lua:56`。
+   - 已从同版本客户端数据补齐 `server/config/json/shop.json`、`shop_config.json`。
+   - `server/src/user_shop_manage.cpp` 增加旧存档兼容，避免本地测试角色的商店数据与新配置错位。
+2. **欢乐抽奖回调 `data=nil`**
+   - 报错入口：`View/HappyDraw/HappyDrawUI.lua:469/487`。
+   - 修复抽卡配置与旧存档迁移，相关代码在 `server/src/chou_ka_manager.cpp`。
+3. **副本红点 `data=nil`**
+   - 报错入口：`View/ImproveUI/LRedDotCheckMgr.lua:2224`。
+   - 本地测试路径对不完整红点数据返回隐藏状态，避免客户端解空数据。
+4. **七日活动打开 `AppDef.FuncUI[0] not exist`**
+   - 修复 `client/ProjectX/src/View/OperationalActivity/SevenDay.lua`，无效功能 ID 不再调用 `OpenFunction(0)`。
+5. **购买体力丹提示 `获得(nil)*5`**
+   - 根因不是 UI，而是本地 `item` 表缺少模板，服务端下发的物品名为空。
+   - `server/src/utility.cpp` 在 `local_test=1` 时只从 `server/config/json/item.json` 补数据库缺失模板，不覆盖已有正式数据。
+   - 启动日志曾验证：`[local] ReadItem: filled 287 missing templates from item.json`。
+6. **封神试炼点击挑战后客户端原生闪退**
+   - Windows 事件显示 `ProjectX.exe` 在 `VCRUNTIME140D.dll` 以 `0xc0000005` 崩溃。
+   - 根因在 `server/src/gyu/g_net_msg.cpp::add_NetMsg`：嵌套战斗回放前多写了一层长度，客户端把长度当消息包解析并越界。
+   - 现直接追加已经成帧的 `[bodyLen][type][body]`，不再额外包长度。
+   - `-Battle` 已动态挑战封神试炼并验证嵌套回放，曾得到 `fengshen_trial_id=3001`、`fengshen_replay_packets=5`。
+7. **首充界面五个奖励槽全空**
+   - 根因：本地最小库 `hd_peizhi_info`、`huodong_award` 是空表；服务端返回错误包，客户端仍按奖励结构读取。
+   - `server/src/main.cpp` 与 `server/sql/local_min_schema.sql` 已在 `local_test=1` 下按“仅缺失时”补首充类型 29 的配置和五项奖励。
+   - 当前本地兜底为：姜子牙（神将 19）、高级招募券、特级神将内丹、金币、绑元；这是本地联调用数据，不应当作正式商业化配置。
+
+### 4.10 额外协议与数据回归
+
+- `server/src/user_guanqia.cpp` 已补齐封神试炼缺失条目，列表由异常空/不完整恢复到 4 条。
+- `server/sql/local_min_schema.sql`、`server/src/main.cpp` 已补 `fight_playback` 缺列兼容。
+- `server/src/pack_deal.cpp` 修复调试协议 13 中 `ADDItem` 名称碰撞导致的栈溢出，并加入 smoke 回归。
+- `tools/local/Start-Client.ps1` 支持可选客户端输出日志。
+- 最新一次重新编译后 `kapai.exe` 时间为 2026-07-15 17:29:48；服务端重启成功。
+- 最新 `-UiQueries`：`recv_count=51`，封神试炼 `fengshen_trial_count=4`，执行成功。
+
+### 4.11 全新克隆与空数据库验证
+
+- 已确认 `ee23220` 尚未推送，这是另一台电脑拉取后缺少上一轮 40 个文件修复的直接原因。
+- `server/sql/local_min_schema.sql` 已改为从当前可运行本地库导出的 173 张表纯结构快照，不包含账号、角色或业务流水数据。
+- 新增三组本地启动必需种子：首充 UI 两表、交易行基准汇率、功能开关默认行。
+- 新增 `tools/local/Export-LocalSchema.ps1`，用于结构无数据导出；新增 `Test-FreshLocalSetup.ps1`，用于隔离数据库、临时端口和登录/创角 smoke。
+- 独立数据库 `fxl_game_clonecheck_20260716102635` 已从仓库 schema 与全部 4 个数据文件初始化成功；干净构建 EXE 在 `18713` 启动，创建角色 `1000001`，收到 59 个回包后正常停止。
+- 完整编译成功，新 `kapai.exe` 时间为 2026-07-16 09:35:26；随后在 `.local/server-win-clean` 完成独立干净构建。
+- 主服恢复后 `-Consumption`、`-Battle`、`-UiQueries` 分别通过；15 个 PowerShell、62 个 JSON、76 个 XML 解析通过，主服日志扫描无 SQL/Lua/assert/crash。
+- 依赖脚本现固定 vcpkg 到 `a7bd30319eeac16afbe18d64a855303a0a425e84`，自动安装 Boost、LuaJIT、Zlib；构建脚本会自动识别 vcpkg LuaJIT。
+- 构建脚本现会把运行 DLL 自动部署到 EXE 同目录；干净 EXE 使用独立数据库 `fxl_game_clonecheck_20260716102149` 和端口 `18712` 通过登录/创角 smoke，收到 59 个回包。
+- 当前 `fxl_game_local` 重新导出的 173 表结构与待提交 `server/sql/local_min_schema.sql` SHA-256 完全一致，未发现后来修过但遗漏导出的字段。
+- 客户端的 3.3G Cocos2d-x 2.17 内部引擎快照仍未入库，完整客户端编译仍需团队内部源提供，这是当前明确的外部依赖边界。
+
 ## 5. 当前卡点和明确边界
 
 ### 5.1 唯一剩余客户端协议：211
@@ -186,20 +241,28 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 - 用户已跳过一次大组合 smoke；不要擅自重新跑长组合。
 - 协议 smoke 只证明服务端入口有响应或安全返回，不代表 UI 显示、动画、交互、真实奖励、真实付费全部正确。
 
+### 5.4 首充客户端目视复验已完成
+
+- 2026-07-16 已通过游戏窗口句柄截图确认五项奖励全部显示：姜子牙、高级招募券 10、特级神将内丹 10、金币 100000、绑元 500。
+- 点击“立即充值”后，再从主界面充值入口复验，充值档位页面正常打开并显示 6/25/128/30/50/98/198/328 等档位及首充双倍标识。
+- 未点击任何具体充值档位，也未触发或伪造真实支付。
+
 ## 6. 建议下一步计划
 
 按以下顺序继续：
 
-1. **先确认范围**：询问用户是要收口提交，还是继续做客户端人工 UI/L5 长跑。
-2. **若做人工 UI**：
+1. **先启动客户端复验首充**：
+   - 用 `tools/local/Start-Client.ps1` 启动客户端。
+   - 打开首充，确认五项奖励图标、数量和姜子牙名称均显示。
+   - 同时观察客户端日志与 `.local/kapai-current.out/.err`。
+2. **继续人工 UI/L6**：
    - 用 `tools/local/Start-Client.ps1` 启动客户端。
    - 验证进入主流程后逐页点击充值、封神、背包、活动、挂机、历练、仙缘、竞技场。
    - 同时观察客户端日志和 `.local/kapai-current.out/.err`。
    - 发现新的 SQL/Lua/assert/crash，按具体日志最小修复。
 3. **若做 L5 长跑**：保持服务端和客户端运行，至少跨过保存线程和定时器周期；每 30 秒向用户汇报，不静默等待。
-4. **若要收口代码**：
-   - 逐文件审查当前脏工作树，区分此前修改和本轮修改。
-   - `server/src/fight.h` 当前只有文件尾少一个空行的无功能差异，可在收口时清掉。
+4. **若产生新修复再收口代码**：
+   - 逐文件审查当前脏工作树，区分用户修改和新会话修改。
    - 再跑 `git diff --check`、JSON/XML 解析和三个独立 smoke。
    - 只有用户明确要求时才 stage/commit。
 5. **协议 211**：除非找到真实客户端发送路径或原始 `CgCallBack`，保持未覆盖并写明原因。
@@ -209,7 +272,7 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 ### 构建
 
 ```powershell
-pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1 -SkipAppLocal
+pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1
 ```
 
 头文件改动会触发约 2～3 分钟全量编译。必须每 30 秒检查并汇报。
@@ -271,8 +334,14 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1
 14. **不要执行 `git reset --hard`、`git checkout --` 或批量覆盖**：当前大量修改属于连续调试成果，且可能混有用户已有改动。
 15. **不要默认使用旧 Windows PowerShell**：优先 `pwsh.exe` 和 UTF-8；中文文件显式 `-Encoding UTF8`。
 16. **不要把历史长结果继续堆进项目总规**：当前操作说明写 `LOCAL_RUN.md`，历史证据应写 `LOCAL_HISTORY.md`。
+17. **不要给已经成帧的嵌套 `CNetMessage` 再加一层长度**：客户端 `ReadNetMsg()` 直接期待 `[bodyLen][type][body]`；多包一层会在战斗回放处造成客户端原生崩溃。
+18. **不要把物品名 `(nil)` 当纯客户端文案问题**：先检查服务端 `item` 模板是否存在，以及协议里下发的 item ID/名称；本次体力丹就是本地数据库缺模板。
+19. **不要让客户端把服务端错误包当成功结构解析**：首充 op=9/op1=2 没有独立成功字节；缺配置时返回错误字符串会被 UI 当奖励数组。首先保证本地配置存在，或同步修改协议两端。
+20. **不要把本地首充兜底奖励当正式数值**：正式奖励必须恢复生产 `hd_peizhi_info`、`huodong_award` 数据源；当前五项只用于本地 UI/协议联调。
+21. **不要在服务端运行时直接链接覆盖同一个 `kapai.exe`**：重编正式输出目录前先停对应服务端，完成后重启并查 8711；编译到独立 `-BuildDir` 时无需关闭正式服。
+22. **不要用普通 `mysql.exe -e` 命令判断 SQL 已执行**：本会话即使使用注释替代空格仍出现命令挂起。优先用 `Start-Process` 参数数组和重定向，或直接以启动日志/协议响应验证。
 
-## 9. 当前改动文件概览
+## 9. 已提交成果与当前改动
 
 核心本轮改动：
 
@@ -280,9 +349,14 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1
 - `server/src/pack_deal.cpp`：本地登录/场景、消费校验退款、地图路径等。
 - `server/src/scene_manager.cpp`：怪物坐标误报修复。
 - `server/config/json/config.json`：补齐缺失运行参数。
-- `tools/local/Build-Server.ps1`：新增 `-SkipAppLocal`。
+- `tools/local/Build-Server.ps1`：新增 `-BuildDir`、依赖自动发现和运行 DLL 部署；保留诊断用 `-SkipAppLocal`。
 - `tools/local/Invoke-ProtocolSmoke.ps1`：新增 `-Consumption`、`-Battle`、`-BattleListOnly`、`-UiQueries`。
 - `tools/local/Export-ProtocolCoverage.ps1`、`PROTOCOL_COVERAGE.md`：覆盖统计。
 - `LOCAL_RUN.md`：当前运行和分组验证说明。
 
-工作树中还有此前连续修复产生的配置、Lua、数据库 bootstrap、任务、装备、用户数据等修改。接手后以 `git diff` 为准，不要假设所有改动都来自最后一轮。
+- 上述连续修复已统一提交到 `ee23220`。
+- 该提交共涉及 40 个文件，包含本地配置恢复、数据库 bootstrap、Lua/C++ 兼容、战斗回放修复和 smoke 工具。
+- `ee23220` 尚未推送到 `origin/main`；远端仍停在 `1a503ac`。
+- 2026-07-16 新增可迁移性修复当前也尚未提交，包含完整本地结构 schema、依赖/构建/建库改进、隔离验证脚本与文档更新。
+- 在提交前先检查 `git diff --check` 和 `git status --short`；只有用户明确要求后才 stage、commit、push。
+- 不需要重做 `ee23220` 已完成的修复，也不要为了“清理”而回退该提交。
