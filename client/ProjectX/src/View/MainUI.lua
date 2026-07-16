@@ -181,6 +181,9 @@ end
 
 function MainUI:QueryDataEnterGame( ... )
     -- body
+    -- 体力是主界面基础资源，进入主界面后立即向服务端同步。
+    -- 不依赖延迟执行的红点批量查询，避免批量流程中断时一直显示默认值 0。
+    LuaNetSendMsg:QueryTiLiInfo(1)
     --折扣商店图标
     -- LuaNetSendMsg:QueryMarketInfo(4,0);
     --七天开服活动换Icon

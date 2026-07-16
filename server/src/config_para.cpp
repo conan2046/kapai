@@ -107,11 +107,24 @@ void CParaMgr::ReadSpirit(string & val)
 {
 	rapidjson::Document d;
 	rapidjson::Value& arrt = (rapidjson::Value&)d.Parse(val.c_str());
-	if (!arrt.IsArray() || arrt.Size() != 3)
+	int fullSpirit = 0;
+	int maxSpirit = 0;
+	int freeSpirit = 0;
+	if (arrt.IsArray() && arrt.Size() == 3)
+	{
+		fullSpirit = arrt[0].GetInt();
+		maxSpirit = arrt[1].GetInt();
+		freeSpirit = arrt[2].GetInt();
+	}
+	else if (sscanf(val.c_str(), "%d,%d,%d", &fullSpirit, &maxSpirit, &freeSpirit) != 3)
+	{
 		return;
-	CUserSpirit::FULL_SPIRIT = arrt[0].GetInt();
-	CUserSpirit::MAX_SPIRIT = arrt[1].GetInt();
-	CUserSpirit::FREE_SPIRIT = arrt[2].GetInt();
+	}
+	if (fullSpirit <= 0 || maxSpirit < fullSpirit || freeSpirit <= 0)
+		return;
+	CUserSpirit::FULL_SPIRIT = (uint16)fullSpirit;
+	CUserSpirit::MAX_SPIRIT = (uint16)maxSpirit;
+	CUserSpirit::FREE_SPIRIT = (uint16)freeSpirit;
 }
 
 void CParaMgr::ReadFaBaoSouSuo(string& val)

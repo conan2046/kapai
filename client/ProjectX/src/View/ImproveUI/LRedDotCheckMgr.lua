@@ -479,9 +479,6 @@ function LRedDotCheckMgr:CheckAll()
     LRechargeDataMgr.m_isInitWelfareACData = true
     LuaNetSendMsg:QueryWelFareInfo(0xff, 0)
 
-    --体力
-    LuaNetSendMsg:QueryTiLiInfo(1)
-
     LuaNetSendMsg:QueryHeroBook()
 
     --抽卡红点检测
@@ -2635,4 +2632,4 @@ function LRedDotCheckMgr:FaBaoChangeRedDotCheck(fightpos, uid)
 	return false
 end
 
-LRedDotCheckMgr:Init() 
+LRedDotCheckMgr:Init()

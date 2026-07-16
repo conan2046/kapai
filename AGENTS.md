@@ -59,7 +59,7 @@
   - `Export-ProtocolCoverage.ps1`：从 `protocol.h`、`pack_deal.cpp`、`Invoke-ProtocolSmoke.ps1` 生成协议覆盖矩阵。
   - `Run-LocalVerification.ps1`：串联环境检查、可选构建/启动、协议 smoke、日志扫描，用于本地验证收口。
   - `Test-FreshLocalSetup.ps1`：创建隔离数据库和临时端口，用指定干净 EXE 验证登录、创角与基础协议，不修改正式本地库。
-  - `Invoke-ClientWindow.ps1`：按 `ProjectX.MainWindowHandle` 后台截图或发送窗口相对坐标消息，不截桌面、不移动真实鼠标、不抢焦点。
+  - `Invoke-ClientWindow.ps1`：枚举 `ProjectX` 顶层窗口并优先选择 `Cocos Simulator` 游戏窗（不要误用调试控制台句柄），按游戏窗口句柄截图或发送窗口相对坐标消息；截图禁止截桌面。默认后台操作；只有用户明确允许时才能使用 `-ActivateForeground -RealClick` 临时置前和真实点击，并用 `-RestoreForegroundAfter` 恢复原窗口。主界面控件不响应后台消息时不得伪造 L6 通过。
 
 ## 编译与运行约束
 - 服务端已补 `server/src/gyu/*.cpp` 兼容实现，构建时优先使用仓库内源码，不再强依赖外部 `/usr/local/gyu/lib/libgyu`。

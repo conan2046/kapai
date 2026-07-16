@@ -743,7 +743,6 @@ function FuBenDetailUI:ModelMove( ... )
     -- body
     -- --print("ModelMove ==", self._fightPosition.x, self._fightPosition.y)
     local targetPos = cc.p(self._fightPosition.x, self._fightPosition.y)
-    print("targetPos:"..targetPos)
     self._pMyRoleModel:PlayRun(self:getRoldDir(self._lastPostion, targetPos))
     local moveAc = cc.MoveTo:create(2, targetPos)
     local moveEnd = cc.CallFunc:create(function( ... )
@@ -752,7 +751,7 @@ function FuBenDetailUI:ModelMove( ... )
         --人物移动完再移动镜头
         self:scrollToAimPos()
     end)
-    self._myNode:runAction(cc.Sequence:create(dealy, moveAc, moveEnd))
+    self._myNode:runAction(cc.Sequence:create(moveAc, moveEnd))
 end
 
 function FuBenDetailUI:getRoldDir(pos, targetPos)

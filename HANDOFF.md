@@ -15,6 +15,12 @@
 - 保留线上逻辑，只增加本地测试开关、最小兼容层、最小数据库兜底和可重复烟测。
 - 用分组协议 smoke 验证消费、战斗、NPC、UI 查询等入口，不把协议 smoke 冒充完整人工 UI 验收。
 
+本会话结束时正在按用户要求执行“**一个功能一个功能过**”的客户端 L6 验收：
+
+1. 体力显示 `0/100`、体力丹提示已满的根因已经修复，体力查询和 `100/100` 显示已验证；实际消耗 1 个体力丹变为 `125/100` 仍待人工确认。
+2. 随后人工副本流程触发 `FuBenDetailUI.lua` 的战后移动报错；代码已修复、Lua 语法已验证，但用户尚未重新打同一副本完成人工复验。
+3. 下一会话先收口这个副本移动功能，不要直接恢复大范围乱点 UI。
+
 ## 2. 用户的强制执行规则
 
 这是后续会话必须遵守的规则：
@@ -24,20 +30,22 @@
 - 其他环境或命令若卡住 30 秒，立即告诉用户，并确认是继续等待、跳过、杀进程还是采取其他操作。
 - 不要静默长时间等待。
 - 用户已明确跳过一次预计超过 30 秒的“大组合 smoke”；后续优先使用独立分组命令，每组控制在 30 秒内。
-- 客户端截图和自动点击必须基于 `ProjectX.MainWindowHandle`：后台截图使用 `PrintWindow(hwnd)`，后台点击使用窗口相对坐标的 `PostMessage`，不得置前、移动真实鼠标或截整张桌面，以免打断用户写文档；仅当 Cocos 控件明确不响应后台消息时再告知用户。
+- 客户端截图必须基于 `ProjectX` 所属的 `Cocos Simulator` 游戏窗口句柄：进程同时存在游戏窗和调试控制台，不能盲信会漂移的 `MainWindowHandle`。后台截图使用 `PrintWindow(hwnd, flags=0)`，禁止截整张桌面。
+- 后台 `PostMessage`、前台 `SendMessage` 和鼠标注入均已出现“不触发 Cocos 控件”的情况，不能把自动点击当可靠验收。用户已明确允许启动弹窗抢焦点和前台操作；必要时请用户手动点击，Codex 只负责按窗口句柄截图、读日志和修复。
 - 每次 Git 提交必须包含详细正文：修改模块/文件、根因、修复内容、SQL/配置变化、验证结果、限制与外部依赖；禁止只写一句标题。只有用户明确授权后才提交或推送。
 
 ## 3. 当前运行状态（2026-07-16 交接时快照）
 
-- 服务端正在运行并监听 `8711`，PID：`28616`。
+- 服务端正在运行并监听 `8711`，2026-07-16 体力修复重编后的 PID：`22748`。
 - 工作区本地 MySQL 8.4 正在运行，进程 PID：`3856`、`7872`。
-- 客户端 `ProjectX.exe` 当前未运行。
+- 客户端 `ProjectX.exe` **当前未运行**；上一轮已同步最新 Lua 后成功启动并截图验证，随后被用户/会话关闭。下一会话用 `tools/local/Start-Client.ps1` 重启即可。
 - `server/config/config`：`local_test=1`、`local_user_id=0`。
 - 最新服务端二进制：`build/server-win/Debug/kapai.exe`。
 - 本轮连续调试成果提交为 `ee23220 fix: stabilize local test server and client flows`。
 - 跨电脑可迁移性修复提交为 `d88cf0b fix: make fresh local server setup reproducible`。
-- 两个提交均已推送；本地 `HEAD`、`origin/main`、远端 `main` 已核验一致为 `d88cf0ba503631f030fea09510cf2f234b578f72`。
-- 推送完成后的工作区为干净状态；后续实际状态仍以 `git status --short --branch` 为准。
+- 提交规范与交接同步提交为 `3a57ca0 docs: synchronize handoff and commit requirements`，包含详细提交正文。
+- 上述提交均已推送；`3a57ca0` 推送后本地 `HEAD`、`origin/main`、远端 `main` 已核验一致。
+- 当前有窗口句柄工具、体力配置解析、副本移动 Lua 和本交接文档修改尚未提交；实际状态以 `git status --short --branch` 为准。
 - 不要 reset、checkout 或覆盖后续会话中出现的用户改动。
 
 运行状态会漂移，接手后先执行：
@@ -227,6 +235,9 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 - 当前客户端源码中未找到该协议的发送入口。
 - 服务端 `AnimationOption` 会调用 `script/10000.lua` 的 `CgCallBack`。
 - 当前仓库脚本没有 `CgCallBack` 定义。
+- 客户端 `LuaNetCmd.lua` 在 210 后直接进入 212，没有定义 211；`LuaNetRecvdMsg.lua` 没有 211 接收注册，完整 `frameworks/` 引擎快照也未找到 211/CgCallBack 处理器。
+- 服务端 211 同时承担 `SendCgInfo()` 下发 CG 描述与客户端回传动画 ID；`global.lua::GetCgInfo()` 定义了 CG 描述格式，但当前仓库没有调用点。
+- `10000.lua::Logon()` 调用的是数据库战斗回放 `j.PlayFightCG()`，不是协议 211，因此不能把登录首战当作 211 的真实触发证据。
 - 不要直接补一个空函数来刷覆盖率，这会掩盖未知线上语义。
 - 只有拿到原始脚本/旧版本客户端调用证据，或人工复现真实动画回调流程后，才应实现。
 
@@ -239,12 +250,30 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 ### 5.3 仍未完成的验收等级
 
 - 尚未完成客户端人工点击所有主要 UI 的 L6 验收。
-- 客户端当前未运行。
-- 没有在本轮修复后重新执行 7 分钟以上 L5 长跑。
+- 客户端当前未运行；重启后可继续连接 `127.0.0.1:8711`。后台句柄截图已验证可用，但 Win32 注入点击不可靠，L6 需要用户实际点击配合。
+- 2026-07-16 已完成 429 秒 L5 长跑：14 次 30 秒检查中服务端、客户端、8711 监听和进程响应均正常；新增服务端日志 100 行，未命中 SQL/Lua/assert/crash/config-error。
+- L5 后的三个独立回归均通过：`-Consumption` 18.1 秒、`-Battle` 14.9 秒（`fengshen_replay_packets=3`）、`-UiQueries` 16.9 秒（`recv_count=51`、`fengshen_trial_count=4`）。
+- `PRO_GONGGAO/88` 当前返回零条配置，客户端显示空白“游戏公告”页；用户已确认这是未配置公告时的正常表现，不应为此修改公告业务逻辑。
+- 不要让默认 userId/roleId 的 smoke 与 L6 客户端并发：smoke 会接管同一角色会话，导致客户端弹出“无法连接服务器”。需要并发时使用一次性 userId；否则 smoke 后重启客户端。
 - 用户已跳过一次大组合 smoke；不要擅自重新跑长组合。
 - 协议 smoke 只证明服务端入口有响应或安全返回，不代表 UI 显示、动画、交互、真实奖励、真实付费全部正确。
 
-### 5.4 首充客户端目视复验已完成
+### 5.4 体力显示/体力丹不一致已修复
+
+- 现象：主界面显示 `0/100`，使用体力丹却提示体力已满。
+- 根因：`server/config/json/config.json` 的 `stamina` 使用 `array` 类型逗号值 `100,500,360`，`CParaMgr::ReadSpirit()` 却只接受 JSON 数组，导致 `FULL_SPIRIT/MAX_SPIRIT/FREE_SPIRIT` 全部保留为 0。
+- 修复：`ReadSpirit()` 同时兼容 JSON 数组和三段逗号值并校验参数；`CUserSpirit` 构造时初始化 `m_lastSpiritTime=0`；客户端把 321 体力查询从延迟红点批处理提前到主界面基础数据初始化。
+- 验证：修复前一次性角色的 321 响应体力为 0；重编重启后新角色及当前角色均响应 100，窗口句柄截图确认主界面显示 `100/100`。`Invoke-ProtocolSmoke.ps1` 会输出 `response_321` 作为后续证据。
+- 体力配置语义：自然恢复上限 100、道具允许堆叠上限 500、恢复间隔 360 秒；因此 100 点时使用 25 点体力丹应允许增长到 125，而不是提示已满。
+
+### 5.5 副本战后移动 Lua 错误已修复，待人工复现确认
+
+- 错误：`FuBenDetailUI.lua:746 attempt to concatenate local 'targetPos' (a table value)`。
+- 根因：调试打印把 `cc.p()` 返回的 table 直接与字符串拼接；紧邻的动作序列还引用了从未定义的 `dealy`。
+- 修复：删除错误调试打印，并把动作序列改为 `moveAc, moveEnd`。三个相关 Lua 文件已通过 LuaJIT 字节码语法检查，客户端曾重启并加载成功。
+- **当前唯一直接卡点**：还没有人工完成一次同副本战斗，无法证明战后角色移动、站立动作和镜头滚动全部正常。下一会话先让用户复现这一条；若仍报错，立即保存完整 Lua 堆栈并只修该功能。
+
+### 5.6 首充客户端目视复验已完成
 
 - 2026-07-16 已通过游戏窗口句柄截图确认五项奖励全部显示：姜子牙、高级招募券 10、特级神将内丹 10、金币 100000、绑元 500。
 - 点击“立即充值”后，再从主界面充值入口复验，充值档位页面正常打开并显示 6/25/128/30/50/98/198/328 等档位及首充双倍标识。
@@ -254,18 +283,23 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Invoke-ProtocolSmoke.ps1 -UiQueri
 
 按以下顺序继续：
 
-1. **继续人工 UI/L6（当前第一优先级）**：
-   - 用 `tools/local/Start-Client.ps1` 启动客户端。
-   - 验证进入主流程后逐页点击充值、封神、背包、活动、挂机、历练、仙缘、竞技场。
-   - 截图只用窗口句柄 `PrintWindow`；后台点击先用 `PostMessage`。若 Cocos 控件不响应，不得抢焦点，等待用户空闲或明确允许前台操作。
-   - 同时观察客户端日志和 `.local/kapai-current.out/.err`。
-   - 发现新的 SQL/Lua/assert/crash，按具体日志最小修复。
-2. **完成 L5 长跑**：保持服务端和客户端运行至少 7 分钟，跨过保存线程和定时器周期；每 30 秒向用户汇报，不静默等待。
-3. **若产生新修复再收口代码**：
+1. **先复验副本战后移动（当前第一优先级）**：
+   - 确认 8711 仍由当前 `kapai.exe` 监听；执行 `tools/local/Start-Client.ps1`，启动抢焦点已获用户允许。
+   - 请用户重新进入刚才的副本并完成一场战斗，观察角色从旧节点移动到新节点、切回站立动作、镜头滚动是否正常。
+   - 同时观察客户端控制台和 `.local/kapai-current.out/.err`；出现错误时保留完整堆栈，不要跳去测试别的功能。
+2. **再复验体力丹完整正向分支**：
+   - 历史截图已证明主界面能正确显示服务端值；2026-07-16 提交前基础 smoke 的最新 321 响应为 `01015c00fb5b586a`，其中体力为 `0x005c=92`。角色状态会变化，测试前必须重新查询，不能写死为 100。
+   - 用户手动使用 1 个体力丹；预期体力在使用前数值基础上增加 25、道具数量减 1，不再错误提示体力已满。该消耗动作尚未做最终人工验证，执行前让用户知情。
+3. **继续逐功能 L6**：
+   - 一次只验一个入口，建议顺序：副本 → 背包 → 封神 → 活动 → 挂机 → 历练 → 仙缘 → 竞技场 → 充值。
+   - 每个功能都记录：进入是否成功、关键操作、截图、客户端/服务端错误；发现问题先修复并复验，再进入下一个。
+   - 截图只用窗口句柄 `PrintWindow`；交互以用户手动前台操作为准，不要因注入脚本返回成功就判定 UI 通过。
+4. **最后收口当前未提交改动**：
    - 逐文件审查当前脏工作树，区分用户修改和新会话修改。
-   - 再跑 `git diff --check`、JSON/XML 解析和三个独立 smoke。
+   - 至少跑 `git diff --check`、三个修改 Lua 的语法检查、服务端增量构建和基础 smoke；321 响应应满足 op=1、success=1，并正确携带服务端当前体力，不能要求动态体力恒为 100。
+   - 体力或网络/保存线程若继续修改，再补跑 429 秒标准 L5；否则不必无理由重跑已通过的长跑。
    - 只有用户明确要求时才 stage/commit/push；提交正文必须完整记录修改、根因、验证和限制。
-4. **协议 211**：除非找到真实客户端发送路径或原始 `CgCallBack`，保持未覆盖并写明原因。
+5. **协议边界保持不变**：211 及 14 个内部/跨服协议继续作为证据性未覆盖；没有真实调用证据时不要补空回调或伪造覆盖。
 
 ## 7. 常用命令
 
@@ -340,6 +374,10 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1
 20. **不要把本地首充兜底奖励当正式数值**：正式奖励必须恢复生产 `hd_peizhi_info`、`huodong_award` 数据源；当前五项只用于本地 UI/协议联调。
 21. **不要在服务端运行时直接链接覆盖同一个 `kapai.exe`**：重编正式输出目录前先停对应服务端，完成后重启并查 8711；编译到独立 `-BuildDir` 时无需关闭正式服。
 22. **不要用普通 `mysql.exe -e` 命令判断 SQL 已执行**：本会话即使使用注释替代空格仍出现命令挂起。优先用 `Start-Process` 参数数组和重定向，或直接以启动日志/协议响应验证。
+23. **不要把 `config.json` 的 `array` 当成 JSON 数组**：当前 `stamina` 是 `100,500,360` 逗号值；旧解析器因此把体力三个参数留为 0。解析时必须兼容字段实际格式并校验正数/上下限关系。
+24. **不要只修报错行就停止检查紧邻路径**：`targetPos` 拼接报错下一行之后还有未定义的 `dealy`；这类确定性连续错误应在同一功能内一起排除，但不要借机大范围重构。
+25. **不要把客户端默认值当服务端真实状态**：体力显示曾默认 0；必须用 321 响应或服务端状态证明。基础资源查询应独立于可能中断的红点批处理。
+26. **不要声称体力丹正向使用已通过**：目前已证明服务端/客户端体力同步正常，尚未人工消耗 1 个体力丹证明体力增加 25 并扣除道具。
 
 ## 9. 已提交成果与当前改动
 
@@ -356,7 +394,10 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1
 
 - 上述连续修复已统一提交到 `ee23220`。
 - 该提交共涉及 40 个文件，包含本地配置恢复、数据库 bootstrap、Lua/C++ 兼容、战斗回放修复和 smoke 工具。
-- `ee23220` 与跨电脑可迁移性提交 `d88cf0b` 已全部推送到 `origin/main`；远端 `main` 当前为 `d88cf0ba503631f030fea09510cf2f234b578f72`。
+- `ee23220`、`d88cf0b` 与文档规则提交 `3a57ca0` 已全部推送到 `origin/main`；`3a57ca0` 推送后远端与本地已核验一致。
 - `d88cf0b` 包含完整本地结构 schema、依赖/构建/建库改进、隔离验证脚本、窗口句柄操作工具与文档更新。
+- `3a57ca0` 只提交并推送了当时的 `AGENTS.md`、`HANDOFF.md` 规则同步；此后产生的体力、副本移动、窗口工具和新交接更新仍在工作树中，**尚未提交、尚未推送**。
+- 当前未提交文件共 9 个：`AGENTS.md`、`HANDOFF.md`、`client/ProjectX/src/View/FuBenMap/FuBenDetailUI.lua`、`client/ProjectX/src/View/ImproveUI/LRedDotCheckMgr.lua`、`client/ProjectX/src/View/MainUI.lua`、`server/src/config_para.cpp`、`server/src/user_spirit.cpp`、`tools/local/Invoke-ClientWindow.ps1`、`tools/local/Invoke-ProtocolSmoke.ps1`。
+- 当前未提交改动的核心内容：正确枚举游戏窗口句柄和后台截图；体力配置兼容/计时初始化/主界面提前查询/321 smoke 证据；副本战后移动的 table 拼接与未定义动作修复；交接规则同步。
 - 在提交前先检查 `git diff --check` 和 `git status --short`；只有用户明确要求后才 stage、commit、push，且提交必须有详细正文。
 - 不需要重做 `ee23220` 已完成的修复，也不要为了“清理”而回退该提交。

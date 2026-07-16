@@ -450,6 +450,9 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
 
 print('recv_count=' + str(len(recv_types)))
 print('recv_types=' + ','.join(map(str, recv_types[:200])))
+for response_type in (321,):
+    bodies = recv_bodies.get(response_type, [])
+    print('response_' + str(response_type) + '=' + ','.join(body.hex() for body in bodies))
 if CONSUMPTION == 'true':
     for response_type in (47, 84, 177, 200, 216, 257, 309, 310, 332):
         bodies = recv_bodies.get(response_type, [])

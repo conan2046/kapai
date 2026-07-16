@@ -112,7 +112,7 @@ SpiritCfg* CUserSpiritCfg::GetSpiritCfg(uint8 id)
 }
 
 CUserSpirit::CUserSpirit()
-	: m_spirit(CUserSpirit::FULL_SPIRIT)
+	: m_spirit(CUserSpirit::FULL_SPIRIT), m_lastSpiritTime(0)
 {
 }
 
@@ -366,5 +366,4 @@ uint8 CUserSpirit::GetSpiritCnt()
 	}
 	return cnt;
 }
-
 
