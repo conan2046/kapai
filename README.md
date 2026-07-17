@@ -7,6 +7,8 @@ Cocos2d-x + Lua 前端、C++ 后端的联网卡牌游戏源码仓库。
 - `server/`：C++ 游戏服 + Lua 脚本
 - `tools/local/`：本地一键构建 / 启动 / 协议冒烟脚本
 - 文档：`AGENTS.md`、`LOCAL_RUN.md`、`LOCAL_DEBUG.md`、`PROTOCOL_COVERAGE.md`
+- Unity 迁移：`UNITYCLIENT_STATUS.md`（唯一状态源）→ `UNITYCLIENT_HANDOFF.md`（精简交接）→ `docs/unityclient/modules/`（按模块证据）→ `UNITYCLIENT_MIGRATION_PLAN.md`（稳定路线）
+- Unity 迁移工具：`tools/unity-migration/README.md`（Manifest、脚手架、协议取证、统一验收、文档门禁）
 
 ## 克隆（含 LFS 资源）
 ```bash

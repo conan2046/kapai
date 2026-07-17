@@ -871,6 +871,31 @@ bool CMainClass::Init(const SServerBasicCfg &cfg)
 				}
 			}
 
+			pDb->Query("CREATE TABLE IF NOT EXISTS `xin_shi` (`id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+			const SLocalColumn mailColumns[] = {
+				{"money", "`money` int NOT NULL DEFAULT 0"},
+				{"YB", "`YB` int NOT NULL DEFAULT 0"},
+				{"bdYB", "`bdYB` int NOT NULL DEFAULT 0"},
+				{"attachment", "`attachment` text NULL"},
+				{"from_id", "`from_id` int NOT NULL DEFAULT 0"},
+				{"to_id", "`to_id` int NOT NULL DEFAULT 0"},
+				{"gmtime", "`gmtime` int NOT NULL DEFAULT 0"},
+				{"time", "`time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP"},
+				{"shenhun", "`shenhun` int NOT NULL DEFAULT 0"},
+				{"deleted", "`deleted` tinyint NOT NULL DEFAULT 0"},
+				{"from_name", "`from_name` varchar(64) NOT NULL DEFAULT ''"},
+				{"message", "`message` text NULL"},
+			};
+			for(size_t i = 0; i < sizeof(mailColumns) / sizeof(mailColumns[0]); ++i)
+			{
+				snprintf(sql, sizeof(sql), "SHOW COLUMNS FROM `xin_shi` LIKE '%s'", mailColumns[i].name);
+				if(pDb->Query(sql) && pDb->GetRow() == NULL)
+				{
+					snprintf(sql, sizeof(sql), "ALTER TABLE `xin_shi` ADD COLUMN %s", mailColumns[i].define);
+					pDb->Query(sql);
+				}
+			}
+
 			pDb->Query("CREATE TABLE IF NOT EXISTS `fight_playback` (`id` int NOT NULL AUTO_INCREMENT, PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 			const SLocalColumn fightPlaybackColumns[] = {
 				{"type", "`type` int NOT NULL DEFAULT 0"},

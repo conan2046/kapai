@@ -98,6 +98,8 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Init-LocalDb.ps1 -ImportData
 
 ## 构建服务端
 
+`Build-Server.ps1` 会同时发现独立安装的 CMake 和 Visual Studio Build Tools 自带的 CMake；无需为了 PATH 缺少 `cmake` 额外重复安装。
+
 本机有 `winget` 时，可先安装基础工具：
 
 ```powershell

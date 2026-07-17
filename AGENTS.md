@@ -1,5 +1,17 @@
 # Codex Project Notes
 
+## Codex 性能与运行时生命周期
+- 本项目只有一套本地服务端：workspace-local MySQL + `kapai.exe`；有两套客户端：Cocos `ProjectX.exe` 与 Unity Editor/Player。
+- 每个任务开始先判断目标是服务端、Cocos 客户端还是 Unity 客户端；只启动当前操作必需的进程，不继承上个任务的运行状态。
+- 文档、代码阅读和静态修改默认不启动 MySQL、`kapai.exe`、Cocos 客户端、Unity 或 Unity MCP。
+- 服务端/协议任务按需启动 MySQL 和 `kapai.exe`；Cocos 联调只加 Cocos 客户端；Unity 联调只加 Unity，禁止两套客户端同时常驻。
+- Unity 纯 C#/Lua 文件修改先静态完成，只在编译、场景、Prefab、Console 或 PlayMode 验收阶段启动 Unity/MCP。
+- 功能阶段验收完成后，关闭本阶段启动的 Unity、Unity Hub、Cocos Simulator、`kapai.exe` 和 workspace-local MySQL；需要长跑 L5 或用户明确要求持续运行时除外。
+- 一个重任务同时只运行一个；16 GB 本机可用内存低于 4 GB 时停止新增任务，低于 2 GB 时停止重任务。
+- 单次终端输出不超过 200 行，日志默认只读尾部 100 行；大输出落盘到 `.local/`，不灌入对话。
+- 单任务文件达到 15 MB 预警，达到 20 MB 时更新 HANDOFF 并新开任务。
+- 根目录 `.svn/`、Unity `Library/Temp/Logs`、`build/`、`.local/` 和 `tools/local/vcpkg/` 默认不扫描、不统计内容，除非当前问题明确指向它们。
+
 ## Agent 命令执行环境规范
 - 执行命令时，请始终优先选择 **PowerShell 7 (pwsh.exe)**，而不是旧版的 **powershell.exe**
 - 这样能保证命令执行全部采用 UTF-8 编码，避免中文乱码问题及 BOM 错误
@@ -7,6 +19,15 @@
 ## 项目定位
 - 这是 Cocos2d-x 2.17 + Lua 前端、C++ 后端的联网卡牌游戏。
 - 当前仓库没有独立登录服源码；本地测试服采用最小改动的“无登录服直连游戏服”模式。
+
+## Unity 迁移文档读取与维护
+- Unity 迁移任务默认读取顺序：`UNITYCLIENT_STATUS.md` → `UNITYCLIENT_HANDOFF.md` → `docs/unityclient/modules/README.md` → 目标模块文档；仅按需读取 `UNITYCLIENT_MIGRATION_PLAN.md` 对应章节。
+- `UNITYCLIENT_STATUS.md` 是完成率、当前批次、最新验证的唯一状态源；其他文档禁止维护第二份实时百分比。
+- `UNITYCLIENT_HANDOFF.md` 只保存当前执行规则、路径、标准流程和高频坑，控制在约 200 行以内。
+- `UNITYCLIENT_MIGRATION_PLAN.md` 只保存稳定路线、依赖和完成门禁，不追加每日流水。
+- 模块协议、实现和验证证据写入 `docs/unityclient/modules/`；日期流水与旧全文写入 `docs/unityclient/history/`。
+- 新任务不得默认完整读取 `docs/unityclient/history/`；只有追查旧命令、错误或决策证据时才定点检索。
+- Unity 新模块先读取 `tools/unity-migration/unityclient-modules.json`，优先使用 `Get-ProtocolEvidence.ps1`、`New-UnityMigrationModule.ps1`、`Run-UnityModuleValidation.ps1` 和 `Test-UnityMigrationDocs.ps1`，不得重复创建平行工具。
 
 ## 分析与修改范围
 - 分析业务代码时优先看 `client/ProjectX/src/`、`client/ProjectX/res/`、`server/src/`、`server/script/`、`server/config/`、`server/sql/`、`tools/local/`。

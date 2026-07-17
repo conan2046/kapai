@@ -1914,6 +1914,84 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 			cout<<"[local] NpcInteract add-item rejected itemId="<<itemId<<" num="<<itemNum<<endl;
 		return;
 	}
+	// Local isolated-role task validation: op=51, uint16 condition, uint16 amount.
+	// This is deliberately unavailable outside local_test and only drives the
+	// normal mission manager path so production task behaviour remains unchanged.
+	if(op == 51)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint16 condition = 0;
+		uint16 amount = 0;
+		msg>>condition>>amount;
+		if(condition == 0 || amount == 0 || amount > 100)
+			return;
+		SingletonCMissionManager::instance().UpdateQuestState(pUser, condition, amount);
+		return;
+	}
+	// Local isolated-role currency validation: op=52, uint16 awardType,
+	// int32 delta. Restrict it to the two main HUD currencies.
+	if(op == 52)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint16 awardType = 0;
+		int delta = 0;
+		msg>>awardType>>delta;
+		if((awardType != HDAT_MONEY && awardType != HDAT_YB) || delta <= 0 || delta > 10000)
+			return;
+		pUser->AddMaterial(awardType, delta, false, false);
+		return;
+	}
+	// Local isolated-role hero equipment validation: op=53, uint8 kind,
+	// uint16 templateId. kind=1 adds equipment, kind=2 adds FaBao. The normal
+	// manager path emits the authoritative /319 op=6/op=22 update packet.
+	if(op == 53)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint8 kind = 0;
+		uint16 templateId = 0;
+		msg>>kind>>templateId;
+		if(templateId == 0)
+			return;
+		CEquipManeger& equipMgr = pUser->GetPetEquipMgr();
+		bool added = kind == 1 ? equipMgr.AddEquip(pUser, templateId)
+			: kind == 2 ? equipMgr.AddFaBao(pUser, templateId) : false;
+		if(!added)
+			cout<<"[local] NpcInteract add hero equipment rejected kind="<<(int)kind
+				<<" templateId="<<templateId<<endl;
+		return;
+	}
+	// Local isolated-role mail validation: op=54 inserts one deterministic
+	// attachment mail directly into the game DB. Production mail routing still
+	// goes through the long server and is untouched outside local_test.
+	if(op == 54)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		CGetDbConnect getDb;
+		CDatabaseSql *pDb = getDb.GetDbConnect();
+		if(pDb == NULL)
+			return;
+		SAwardData award;
+		award.type = 3201;
+		award.typeId = 0;
+		award.num = 1;
+		SMailData mailData;
+		mailData.awards.push_back(award);
+		string attachment;
+		MakeMailAttachStr(attachment, &mailData);
+		char sql[2048];
+		snprintf(sql, sizeof(sql), "delete from xin_shi where to_id=%u and message='Unity mail validation'", pUser->GetRoleId());
+		pDb->Query(sql);
+		snprintf(sql, sizeof(sql),
+			"insert into xin_shi (money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message) "
+			"values (0,0,0,'%s',0,%u,0,from_unixtime(%u),0,0,'System','Unity mail validation')",
+			attachment.c_str(), pUser->GetRoleId(), GetSysTime());
+		pDb->Query(sql);
+		return;
+	}
 
 	msg>>num;//>>input;
 
@@ -11427,7 +11505,45 @@ void CPackageDeal::XinShi(CNetMessage *pMsg,int sock)
 	}
 	else if (type == 2) // 获取邮件列表
 	{
-		ListXinShi(pUser);
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+		{
+			snprintf(sql, sizeof(sql),
+				"select id,from_id,from_name,unix_timestamp(time)+%u,message,attachment "
+				"from xin_shi where deleted=0 and to_id=%u and unix_timestamp(time)>%u order by id desc limit 30",
+				(uint32)Mail_Time_Limit, pUser->GetRoleId(), (uint32)(GetSysTime()-Mail_Time_Limit));
+			if(!pDb->Query(sql))
+				return;
+			uint8 count = (uint8)pDb->GetRowNum();
+			msg.ReWrite();
+			msg.SetType(MSG_SERVER_XINSHI);
+			msg<<(uint8)2<<count;
+			char **row = NULL;
+			while((row = pDb->GetRow()) != NULL)
+			{
+				msg<<(uint32)atoi(row[0])<<(uint32)atoi(row[1])<<(row[2] == NULL ? "" : row[2])
+					<<(uint32)atoi(row[3])<<(row[4] == NULL ? "" : row[4]);
+				MultiAward awards;
+				if(row[5] != NULL && strlen(row[5]) > 2)
+				{
+					uint8 pBuf[4096];
+					uint32 pos = 0;
+					uint32 bufLen = StrToHex(row[5], pBuf, sizeof(pBuf));
+					uint8 awardNum = pos < bufLen ? pBuf[pos++] : 0;
+					for(uint8 i=0; i<awardNum && pos <= bufLen; ++i)
+					{
+						SAwardData award;
+						ReadDataFromBuf((char *)pBuf, &award.type, sizeof(award.type), pos, bufLen);
+						ReadDataFromBuf((char *)pBuf, &award.typeId, sizeof(award.typeId), pos, bufLen);
+						ReadDataFromBuf((char *)pBuf, &award.num, sizeof(award.num), pos, bufLen);
+						if(pos <= bufLen) awards.push_back(award);
+					}
+				}
+				MakeMultiAwardMsg(awards, msg);
+			}
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
+		}
+		else
+			ListXinShi(pUser);
 	}
 	else if(type == 3) // 收信
 	{
@@ -25108,6 +25224,7 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 	uint8 op;
 	msg >> op;
 	CEquipManeger& equipMgr = pUser->GetPetEquipMgr();
+	const bool localTest = gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1";
 	switch (op)
 	{
 	case 1: // 拉取整个列表
@@ -25120,7 +25237,7 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 		equipMgr.TakeOffPetEquip(pUser, msg);
 		break;
 	case 4: // 强化
-		CHECK_SYSTEM_OPEN(SOT_1120)
+		if(!localTest) { CHECK_SYSTEM_OPEN(SOT_1120) }
 		equipMgr.StrongEquip(pUser, msg);
 		break;
 	case 5: // 分解
@@ -25153,7 +25270,7 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 		equipMgr.SendFaBaoList(pUser, msg);
 		return;
 	case 18: // 穿
-		CHECK_SYSTEM_OPEN(SOT_1180)
+		if(!localTest) { CHECK_SYSTEM_OPEN(SOT_1180) }
 		equipMgr.WearFaBao(pUser, msg);
 		break;
 	case 19: // 脱

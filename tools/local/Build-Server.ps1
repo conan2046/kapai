@@ -21,12 +21,19 @@ elseif (-not [System.IO.Path]::IsPathRooted($BuildDir)) {
 
 $Cmake = "cmake"
 if (-not (Get-Command cmake -ErrorAction SilentlyContinue)) {
-    $knownCmake = "C:\Program Files\CMake\bin\cmake.exe"
-    if (Test-Path $knownCmake) {
-        $Cmake = $knownCmake
-    } else {
+    $knownCmakeCandidates = @("C:\Program Files\CMake\bin\cmake.exe")
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path $vswhere) {
+        foreach ($vsPath in (& $vswhere -all -products * -property installationPath)) {
+            if (-not $vsPath) { continue }
+            $knownCmakeCandidates += Join-Path $vsPath "Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+        }
+    }
+    $knownCmake = $knownCmakeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $knownCmake) {
         throw "cmake not found. Install CMake first."
     }
+    $Cmake = $knownCmake
 }
 
 if (-not $VcpkgRoot) {

@@ -1,0 +1,42 @@
+local LoginController = require("Login.LoginController")
+local BagController = require("Bag.BagController")
+local SettingsController = require("Settings.SettingsController")
+local TaskController = require("Task.TaskController")
+local PlayerController = require("Player.PlayerController")
+local HeroController = require("Hero.HeroController")
+local EquipmentController = require("Hero.EquipmentController")
+local ServerTimeController = require("Time.ServerTimeController")
+local MailController = require("Mail.MailController")
+local ShopController = require("Shop.ShopController")
+
+function Begin() LoginController.begin() end
+function OnConnected() LoginController.onConnected() end
+function OnDisconnected(reason)
+    Bridge:SetStatus("Disconnected: " .. tostring(reason))
+end
+function OnLoginClicked() LoginController.onLoginClicked() end
+function OnBagClicked() BagController.onClick() end
+function OnBagUseClicked(slot, quantity) BagController.onUse(slot, quantity) end
+function OnSettingsClicked() SettingsController.onClick() end
+function OnTaskClicked() TaskController.onClick() end
+function OnTaskClaimClicked(id) TaskController.claim(id) end
+function OnHeroClicked() HeroController.onClick() end
+function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
+function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
+function OnFaBaoWear(uid, position, slot) EquipmentController.wearFaBao(uid, position, slot) end
+function OnFaBaoTakeOff(uid) EquipmentController.takeOffFaBao(uid) end
+function OnMailClicked() MailController.onClick() end
+function OnMailClaimClicked(id) MailController.claim(id) end
+function OnShopClicked() ShopController.onClick() end
+function OnShopBuyConfirmed(id) ShopController.buyConfirmed(id) end
+function OnPacket(command, message)
+    if LoginController.onPacket(command, message) then return end
+    if PlayerController.onPacket(command, message) then return end
+    if BagController.onPacket(command, message) then return end
+    if HeroController.onPacket(command, message) then return end
+    if EquipmentController.onPacket(command, message) then return end
+    if ServerTimeController.onPacket(command, message) then return end
+    if MailController.onPacket(command, message) then return end
+    if ShopController.onPacket(command, message) then return end
+    TaskController.onPacket(command, message)
+end

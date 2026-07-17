@@ -1,0 +1,152 @@
+local Protocol = require("Protocol")
+local itemCatalog = require("Data.ItemCatalog")
+local itemsById = {}
+for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
+
+local M = { validationStage = nil, validationMailId = 0, validationRewardCount = 0, rewardsByMail = {} }
+
+local function describeReward(rewardType, rewardId)
+    local config = itemsById[rewardId] or itemsById[rewardType] or {}
+    return config.name or "", config.pic or 0, config.quality or 0
+end
+
+local function requestList()
+    local message = Protocol.newMessage(Protocol.MAIL)
+    message:WriteByte(2)
+    message:WriteByte(0)
+    Bridge:Send(message)
+end
+
+local function injectValidationMail()
+    local message = Protocol.newMessage(Protocol.INTERACT)
+    message:WriteByte(54)
+    Bridge:Send(message)
+end
+
+function M.onClick()
+    M.validationStage = nil
+    if Bridge:HasCommandLineFlag("-projectXMailValidation") then
+        M.validationStage = "await_list"
+        injectValidationMail()
+    end
+    requestList()
+    Bridge:SetStatus("Mail/128 request sent: op=2.")
+end
+
+function M.claim(id)
+    local message = Protocol.newMessage(Protocol.MAIL)
+    message:WriteByte(3)
+    message:WriteUInt(id)
+    message:WriteByte(0)
+    Bridge:Send(message)
+    Bridge:SetStatus("Mail/128 claim sent: id=" .. tostring(id) .. ".")
+end
+
+local function readList(message)
+    local count = message:ReadByte()
+    local firstId = 0
+    M.rewardsByMail = {}
+    Bridge:BeginMailUpdate(count)
+    for index = 1, count do
+        local id = message:ReadUInt()
+        local fromId = message:ReadUInt()
+        local sender = message:ReadString()
+        local expireAt = message:ReadUInt()
+        local body = message:ReadString()
+        local rewardCount = message:ReadByte()
+        local rewards = {}
+        Bridge:BeginMailRecord(id, fromId, sender, expireAt, body, rewardCount)
+        for _ = 1, rewardCount do
+            local rewardType = message:ReadWord()
+            local rewardId = message:ReadUInt()
+            local amount = message:ReadUInt()
+            local name, picture, quality = describeReward(rewardType, rewardId)
+            Bridge:AddMailAttachment(rewardType, rewardId, amount, name, picture, quality)
+            table.insert(rewards, {
+                type = rewardType, id = rewardId, amount = amount,
+                name = name, picture = picture, quality = quality,
+            })
+        end
+        Bridge:EndMailRecord()
+        M.rewardsByMail[id] = rewards
+        if index == 1 then firstId = id end
+    end
+    if message.Remaining ~= 0 then
+        Bridge:Fail("Mail/128 list has " .. tostring(message.Remaining) .. " unread bytes.")
+        return
+    end
+    Bridge:EndMailUpdate()
+
+    if M.validationStage == "await_list" then
+        if count <= 0 or firstId == 0 then
+            M.validationStage = nil
+            Bridge:Fail("Mail validation injection returned an empty list.")
+            return
+        end
+        M.validationMailId = firstId
+        if not Bridge:SelectMail(firstId) or not Bridge:IsMailRead(firstId)
+            or Bridge:GetMailAttachmentCount(firstId) <= 0 then
+            M.validationStage = nil
+            Bridge:Fail("Mail list/read/attachment validation failed for id=" .. tostring(firstId) .. ".")
+            return
+        end
+        M.validationStage = "await_claim"
+        Bridge:CaptureMailDetailAndClaimValidation(firstId)
+    elseif M.validationStage == "verify_claim" then
+        local claimedId = M.validationMailId
+        M.validationStage = nil
+        Bridge:CompleteMailClaimValidation(claimedId, M.validationRewardCount)
+    else
+        Bridge:Complete("COMPLETE: main mail button -> /128 op=2 -> MailStore -> MailLayer ("
+            .. tostring(count) .. " mails)")
+    end
+end
+
+local function showRewards(mailId)
+    local rewards = M.rewardsByMail[mailId] or {}
+    Bridge:BeginRewardUpdate(#rewards)
+    for _, reward in ipairs(rewards) do
+        Bridge:AddRewardRecord(reward.type, reward.id, reward.amount,
+            reward.name, reward.picture, reward.quality)
+    end
+    if #rewards > 0 then Bridge:EndRewardUpdate("邮件奖励") end
+    return #rewards
+end
+
+local function readClaim(message)
+    local id = message:ReadUInt()
+    message:ReadByte() -- clientUse echo
+    local success = message:ReadByte()
+    local result = message.Remaining > 0 and message:ReadString() or ""
+    if success == 0 then
+        M.validationStage = nil
+        Bridge:Fail("Mail/128 claim failed: " .. tostring(result))
+        return
+    end
+    local rewardCount = showRewards(id)
+    Bridge:RemoveMail(id)
+    Bridge:ShowToast(result ~= "" and result or "邮件附件已领取", 2.0)
+    if M.validationStage == "await_claim" then
+        if id ~= M.validationMailId or rewardCount <= 0 then
+            M.validationStage = nil
+            Bridge:Fail("Mail claim response did not match the validation mail/rewards.")
+            return
+        end
+        M.validationRewardCount = rewardCount
+        M.validationStage = "verify_claim"
+        requestList()
+    end
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.MAIL then return false end
+    local op = message:ReadByte()
+    if op == 2 then readList(message)
+    elseif op == 3 then readClaim(message)
+    elseif op == 0 then return true
+    elseif op == 5 then requestList()
+    else Bridge:Fail("Mail/128 unsupported op=" .. tostring(op) .. ".") end
+    return true
+end
+
+return M

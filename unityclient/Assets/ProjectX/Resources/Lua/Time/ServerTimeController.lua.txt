@@ -1,0 +1,22 @@
+local Protocol = require("Protocol")
+local M = {}
+
+function M.request()
+    local message = Protocol.newMessage(Protocol.SERVER_TIME)
+    message:WriteByte(9)
+    Bridge:Send(message)
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.SERVER_TIME then return false end
+    local todaySeconds = message:ReadUInt()
+    local unixSeconds = message:ReadUInt()
+    if message.Remaining ~= 0 then
+        Bridge:Fail("ServerTime/206 has " .. tostring(message.Remaining) .. " unread bytes.")
+        return true
+    end
+    Bridge:SynchronizeServerTime(todaySeconds, unixSeconds)
+    return true
+end
+
+return M

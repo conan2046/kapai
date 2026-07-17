@@ -1,0 +1,33 @@
+local Protocol = require("Protocol")
+local M = {}
+
+function M.sendLogin()
+    local message = Protocol.newMessage(Protocol.USER_LOGIN)
+    message:WriteUInt(Bridge:GetLocalUserId())
+    message:WriteString("local")
+    message:WriteString("102600")
+    message:WriteUInt(1)
+    message:WriteString("local_test")
+    message:WriteString("")
+    message:WriteString("")
+    message:WriteString("")
+    Bridge:Send(message)
+end
+
+function M.sendCreateRole()
+    local message = Protocol.newMessage(Protocol.CREATE_ROLE)
+    message:WriteString(string.format("U%05d", Bridge:GetLocalUserId() % 100000))
+    message:WriteByte(0)
+    message:WriteByte(5)
+    message:WriteByte(5)
+    message:WriteUShort(1)
+    Bridge:Send(message)
+end
+
+function M.sendSelectRole(roleId)
+    local message = Protocol.newMessage(Protocol.SELECT_ROLE)
+    message:WriteUInt(roleId)
+    Bridge:Send(message)
+end
+
+return M

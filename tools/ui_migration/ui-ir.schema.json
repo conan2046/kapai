@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kapai.local/schemas/ui-ir-v1.json",
+  "title": "Kapai UI Migration IR v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "kind",
+    "source",
+    "coordinateSystem",
+    "root",
+    "resources",
+    "statistics"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": {
+      "enum": ["CocosStudioUI", "CocosStudioBinaryUI"]
+    },
+    "source": {
+      "type": "object",
+      "required": ["path", "format", "metadata"],
+      "properties": {
+        "path": { "type": "string" },
+        "format": { "type": "string" },
+        "metadata": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "coordinateSystem": {
+      "type": "object",
+      "required": ["origin", "xAxis", "yAxis", "unit"]
+    },
+    "root": { "$ref": "#/$defs/node" },
+    "animation": {},
+    "animationList": {},
+    "resources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/resource" }
+    },
+    "statistics": {
+      "type": "object",
+      "required": ["nodeCount", "nodeTypes", "resourceReferenceCount"]
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": [
+        "nodePath",
+        "name",
+        "sourceType",
+        "attributes",
+        "properties",
+        "resources",
+        "unityComponentHints",
+        "unityRect",
+        "children"
+      ],
+      "properties": {
+        "nodePath": { "type": "string" },
+        "name": { "type": "string" },
+        "sourceType": { "type": "string" },
+        "attributes": { "type": "object" },
+        "properties": { "type": "object" },
+        "resources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/resource" }
+        },
+        "unityComponentHints": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "unityRect": { "type": "object" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/node" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "resource": {
+      "type": "object",
+      "required": ["nodeName", "nodeType", "property", "type", "path", "plist"],
+      "properties": {
+        "nodeName": { "type": "string" },
+        "nodeType": { "type": "string" },
+        "nodePath": { "type": "string" },
+        "property": { "type": "string" },
+        "type": { "type": "string" },
+        "path": { "type": "string" },
+        "plist": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
