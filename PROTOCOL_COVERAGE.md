@@ -1,16 +1,9 @@
 # 协议覆盖矩阵
 
-> 自动生成时间：2026-07-15 11:03:43
+> 自动生成时间：2026-07-17 22:05:37
 > 生成命令：`pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1`
 
 当前文件用于跟踪本地测试服协议覆盖，不等同于完整人工 UI 验收。
-
-## Unity 客户端增量覆盖
-
-| 协议号 | 名称 | Unity 真实覆盖 | 视觉门禁 |
-|---:|---|---|---|
-| 221 | `MSG_SHOP` | `op=1/2`；17 件商品列表、限购/刷新倒计时、货币、确认弹窗；隔离角色 `7172217` 商品 `1001` 单次购买并持久化 `0→1` | `1334×750` 列表与确认弹窗截图通过 |
-| 319 | `PET_EQUIP_OPERATE` | `op=1/17` 分包列表、`op=16/22` Store 增量；隔离角色装备穿戴/强化/卸下、法宝穿戴/卸下 | Editor/Unity MCP 人工 QA 待补 |
 
 ## 覆盖统计
 
@@ -40,15 +33,15 @@
 | 9 | `PRO_ROLE_MOVE` | npc_move_to_1, npc_move_to_501, role_move_invalid |
 | 10 | `PRO_JUMP_SCENE` | jump_ack_idle, npc_scene_11_ready, npc_scene_ready |
 | 12 | `PRO_OPEN_INTERACT` | npc_open_501, npc_open_option_1, open_interact_invalid |
-| 13 | `PRO_INTERACT` | npc_dialog_close, npc_option_close, npc_select_option_802 |
+| 13 | `PRO_INTERACT` | interact_local_add_item_4, npc_dialog_close, npc_option_close, npc_select_option_802 |
 | 15 | `PRO_UPDATE_PACK` | package_discard_invalid |
 | 16 | `PRO_GET_ITEM_INFO` | item_info_self_slot0 |
 | 19 | `PRO_OTHER_ITEM_INFO` | other_item_self_slot0 |
 | 20 | `PRO_IGNORE_DIALOG` | ignore_dialog_idle |
 | 24 | `PRO_PET` | pet_all |
 | 26 | `PRO_MSG_CHAT` | nearby_chat |
-| 27 | `PRO_Friend` | friend_apply_list, friend_black_list, friend_gift_list, friend_list, friend_recommend |
-| 29 | `PRO_USER_TEAM` | team_list |
+| 27 | `PRO_Friend` | friend_apply_list, friend_black_list, friend_gift_list, friend_list, friend_recommend, login/select/create |
+| 29 | `PRO_USER_TEAM` | login/select/create, team_create, team_list, team_state |
 | 32 | `PRO_USER_PK` | player_pk_noop |
 | 33 | `PRO_PLYAER_MATCH` | player_match_noop |
 | 34 | `PRO_PLAYER_INFO` | player_info_self |
@@ -123,7 +116,7 @@
 | 217 | `MSG_FISH` | fish_room_list |
 | 219 | `MSG_OFFLINE_EXP` | offline_exp_info |
 | 220 | `MSG_VIP_OPTION` | vip_info |
-| 221 | `MSG_SHOP` | shop_buy_bad_type, shop_buy_type4_tid1, shop_count_bad_type, shop_list, shop_refresh_bad_type, shop_refresh_type4 |
+| 221 | `MSG_SHOP` | shop_buy_bad_type, shop_buy_stamina_pill_5, shop_buy_type4_tid1, shop_count_bad_type, shop_list, shop_refresh_bad_type, shop_refresh_type4 |
 | 222 | `MSG_TMP_HUODONG` | tmp_huodong_gift_status |
 | 223 | `MSG_STAGE_GOAL` | stage_award_1, stage_award_bad, stage_goal |
 | 224 | `MSG_PET_RANDOM_DRAW` | pet_draw_bad_op, pet_draw_info, pet_draw_single_type1, pet_draw_single_type2 |
@@ -155,7 +148,7 @@
 | 313 | `MSG_JIAOYI_HANG` | jiaoyi_buy_panel, jiaoyi_record, jiaoyi_sell_panel |
 | 314 | `MSG_FLOWER` | flower_rank, flower_self |
 | 319 | `PET_EQUIP_OPERATE` | fabao_list, fabao_takeoff_bad, fabao_wear_bad, pet_equip_list, pet_equip_master, pet_equip_search_count, pet_equip_strong_bad, pet_equip_takeoff_bad, pet_equip_wear_bad |
-| 320 | `MSG_GUANQIA` | fuben_achievement, fuben_fight_bad, fuben_fix_empty, fuben_map_main, fuben_node_empty, fuben_reset_bad, fuben_sweep_bad |
+| 320 | `MSG_GUANQIA` | fengshen_shilian_info, fengshen_trial_fight_dynamic, fengshen_trial_info_for_fight, fuben_achievement, fuben_fight_bad, fuben_fix_empty, fuben_map_main, fuben_node_empty, fuben_reset_bad, fuben_sweep_bad |
 | 321 | `MSG_SPIRIT` | tili_free_claim_1, tili_free_info, tili_info |
 | 330 | `MSG_REAL_NAME_REG` | real_name_empty |
 | 331 | `MSG_CLIENT_STRING_DATA_OPRATETION` | client_str_all, client_str_get_one, client_str_one_empty, client_str_set |
