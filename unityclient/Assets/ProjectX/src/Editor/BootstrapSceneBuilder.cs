@@ -41,6 +41,9 @@ namespace ProjectX.Editor
         private const string WorldPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/WorldMapNewLayer.prefab";
         private const string WorldMapPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/DadituuiLayer.prefab";
         private const string WorldDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/guanqiaxiangxiLayer.prefab";
+        private const string WelfarePrefab = "Assets/ProjectX/res/csd/Prefabs/WelfareLayer.prefab";
+        private const string WelfareSignPrefab = "Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab";
+        private const string WelfareOnlinePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab";
 
         [MenuItem("Tools/ProjectX App/Rebuild Bootstrap Scene", priority = 90)]
         public static void Build()
@@ -92,6 +95,9 @@ namespace ProjectX.Editor
             Instantiate(WorldPrefab, canvasObject.transform, false);
             Instantiate(WorldMapPrefab, canvasObject.transform, false);
             Instantiate(WorldDetailPrefab, canvasObject.transform, false);
+            Instantiate(WelfarePrefab, canvasObject.transform, false);
+            Instantiate(WelfareSignPrefab, canvasObject.transform, false);
+            Instantiate(WelfareOnlinePrefab, canvasObject.transform, false);
             GameObject heroList = Instantiate(HeroListPrefab, canvasObject.transform, false);
             Instantiate(HeroDetailPrefab, heroList.transform, true);
             GameObject heroEquipmentList = Instantiate(HeroEquipmentListPrefab, canvasObject.transform, false);

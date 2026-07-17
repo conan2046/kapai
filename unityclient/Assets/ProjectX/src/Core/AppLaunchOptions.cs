@@ -21,6 +21,7 @@ namespace ProjectX.Core
         public bool UseItemValidation => HasFlag("-projectXUseItemValidation");
         public bool SettingsValidation => HasFlag("-projectXSettingsValidation");
         public bool TaskValidation => HasFlag("-projectXTaskValidation");
+        public bool WelfareValidation => HasFlag("-projectXWelfareValidation");
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && flags.Contains(flag);
 

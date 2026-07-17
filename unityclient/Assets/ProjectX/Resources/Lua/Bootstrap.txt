@@ -13,6 +13,7 @@ local ChatController = require("Chat.ChatController")
 local TeamController = require("Team.TeamController")
 local GuildController = require("Guild.GuildController")
 local WorldController = require("World.WorldController")
+local WelfareController = require("Welfare.WelfareController")
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -57,6 +58,8 @@ function OnWorldRequestStage(stageId) WorldController.requestStage(stageId) end
 function OnWorldOpenPreferredStage() WorldController.openPreferredStage() end
 function OnWorldChallenge() WorldController.challengeSelected() end
 function OnWorldRefresh() WorldController.refreshAfterBattle() end
+function OnWelfareClicked() WelfareController.onClick() end
+function OnWelfareClaimSign() WelfareController.claimSign() end
 function OnPacket(command, message)
     if LoginController.onPacket(command, message) then return end
     if PlayerController.onPacket(command, message) then return end
@@ -71,5 +74,6 @@ function OnPacket(command, message)
     if TeamController.onPacket(command, message) then return end
     if GuildController.onPacket(command, message) then return end
     if WorldController.onPacket(command, message) then return end
+    if WelfareController.onPacket(command, message) then return end
     TaskController.onPacket(command, message)
 end

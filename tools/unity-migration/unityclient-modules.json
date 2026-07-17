@@ -327,6 +327,34 @@
         "build/ui-migration/bootstrap-world-final.png"
       ],
       "document": "docs/unityclient/modules/WORLD.md"
+    },
+    {
+      "key": "Welfare",
+      "displayName": "福利",
+      "status": "phase1-complete",
+      "protocols": [199, 222, 223],
+      "entries": [
+        "runtime welfare entry bound from Layer/Main_UI/ButtonGroup8/btn_fuli"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/WelfareLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab"
+      ],
+      "configs": [
+        "server/config/json/online_reward.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXWelfareValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-welfare-sign.png",
+        "build/ui-migration/bootstrap-welfare-online.png",
+        "build/ui-migration/bootstrap-welfare-stage-empty.png",
+        "build/ui-migration/bootstrap-welfare.png"
+      ],
+      "document": "docs/unityclient/modules/WELFARE.md"
     }
   ]
 }

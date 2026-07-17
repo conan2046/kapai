@@ -31,6 +31,7 @@ namespace ProjectX.Core
         public const string TeamLegacyPath = "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team";
         public const string GuildPath = "Layer/Main_UI/ButtonGroup3/btn_bangpai";
         public const string WorldPath = "Layer/Main_UI/btn_fuben";
+        public const string WelfareLegacyPath = "Layer/Main_UI/ButtonGroup8/btn_fuli";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -74,6 +75,8 @@ namespace ProjectX.Core
         private LuaFunction onWorldOpenPreferredStage;
         private LuaFunction onWorldChallenge;
         private LuaFunction onWorldRefresh;
+        private LuaFunction onWelfareClicked;
+        private LuaFunction onWelfareClaimSign;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -170,6 +173,16 @@ namespace ProjectX.Core
         private byte pendingWorldMapType;
         private uint pendingWorldChapterId;
         private string pendingWorldChapterName;
+        private CocosUiView welfareView;
+        private CocosUiView welfareSignView;
+        private CocosUiView welfareOnlineView;
+        private WelfarePresenter welfarePresenter;
+        private readonly List<WelfareSignRecord> pendingWelfareSigns = new List<WelfareSignRecord>();
+        private readonly List<WelfareOnlineRecord> pendingWelfareOnline = new List<WelfareOnlineRecord>();
+        private bool pendingWelfareSignedToday;
+        private byte pendingWelfareSignedDays;
+        private byte pendingWelfareOnlineClaimed;
+        private uint pendingWelfareOnlineSeconds;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -185,8 +198,14 @@ namespace ProjectX.Core
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
         public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
         public bool IsWorldOpen => worldView != null && services?.UiStack.Current == worldView;
+        public bool IsWelfareOpen => welfareView != null && services?.UiStack.Current == welfareView;
         public int WorldChapterCount => services?.World.ChapterCount ?? 0;
         public int WorldStageCount => services?.World.StageCount ?? 0;
+        public int WelfareSignCount => services?.Welfare.Signs.Count ?? 0;
+        public int WelfareOnlineCount => services?.Welfare.Online.Count ?? 0;
+        public int WelfareMissingIconCount => welfarePresenter?.MissingIconCount ?? 0;
+        public bool IsWelfareHotPointVisible => mainView != null
+            && mainView.GameObject.transform.Find("WelfareEntryRuntime/HotPoint")?.gameObject.activeSelf == true;
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
@@ -279,6 +298,8 @@ namespace ProjectX.Core
                 onWorldOpenPreferredStage = services.Lua.GetFunction("OnWorldOpenPreferredStage");
                 onWorldChallenge = services.Lua.GetFunction("OnWorldChallenge");
                 onWorldRefresh = services.Lua.GetFunction("OnWorldRefresh");
+                onWelfareClicked = services.Lua.GetFunction("OnWelfareClicked");
+                onWelfareClaimSign = services.Lua.GetFunction("OnWelfareClaimSign");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -293,6 +314,7 @@ namespace ProjectX.Core
             loadingPresenter?.Tick();
             toastPresenter?.Tick();
             shopPresenter?.Tick();
+            welfarePresenter?.Tick();
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
         }
 
@@ -339,6 +361,8 @@ namespace ProjectX.Core
             onWorldOpenPreferredStage?.Dispose();
             onWorldChallenge?.Dispose();
             onWorldRefresh?.Dispose();
+            onWelfareClicked?.Dispose();
+            onWelfareClaimSign?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -355,6 +379,7 @@ namespace ProjectX.Core
             teamPresenter?.Dispose();
             guildPresenter?.Dispose();
             worldPresenter?.Dispose();
+            welfarePresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -638,6 +663,20 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+        public void BindWelfareClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                CocosUiView legacy = services.UiRouter.FindBySource("UImainLayer_backup");
+                if (legacy?.Binding.Find(WelfareLegacyPath) == null)
+                    throw new InvalidOperationException($"Legacy welfare entry evidence is missing: {WelfareLegacyPath}");
+                Button button = EnsureRuntimeWelfareEntry();
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
         public void ShowFriend()
         {
             EnsureFriendPresenter();
@@ -674,6 +713,14 @@ namespace ProjectX.Core
             worldPresenter.ShowWorld();
             if (services.UiStack.Current != worldView) services.UiStack.Push(worldView);
             SetStatus($"World UI active: {services.World.ChapterCount} chapters, {services.World.StageCount} stages.");
+        }
+
+        public void ShowWelfare()
+        {
+            EnsureWelfarePresenter();
+            welfarePresenter.SelectTab(0);
+            if (services.UiStack.Current != welfareView) services.UiStack.Push(welfareView);
+            SetStatus($"Welfare UI active: {services.Welfare.Signs.Count} sign rewards, {services.Welfare.Online.Count} online rewards.");
         }
 
         public void ShowTask()
@@ -803,6 +850,7 @@ namespace ProjectX.Core
             services.Heroes.Clear();
             services.Formation.Clear();
             services.World.Clear();
+            services.Welfare.Clear();
             services.ServerTime.Reset();
             loadingPresenter?.Clear();
             toastPresenter?.Clear();
@@ -1449,6 +1497,81 @@ namespace ProjectX.Core
             Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {stageId} -> op=8 settlement -> persisted stars={stage.Stars}, server fight count={stage.FoughtCount}; isolated user={GetLocalUserId()}");
         }
 
+        public void BeginWelfareSignUpdate(bool signedToday, int signedDays, int expectedCount)
+        {
+            pendingWelfareSignedToday = signedToday;
+            pendingWelfareSignedDays = checked((byte)signedDays);
+            pendingWelfareSigns.Clear();
+            if (expectedCount > pendingWelfareSigns.Capacity) pendingWelfareSigns.Capacity = expectedCount;
+        }
+
+        public void AddWelfareSign(int day, int rewardType, double rewardId, double amount, double rewardValue,
+            int vipLevel, int vipMultiple, string name, int picture, int quality)
+        {
+            pendingWelfareSigns.Add(new WelfareSignRecord
+            {
+                Day = checked((byte)day),
+                Reward = new RewardRecord(rewardType, checked((uint)rewardId), checked((uint)amount), name, picture, quality),
+                VipLevel = checked((byte)vipLevel),
+                VipMultiple = checked((byte)vipMultiple)
+            });
+        }
+
+        public void EndWelfareSignUpdate()
+        {
+            services.Welfare.ReplaceSigns(pendingWelfareSignedToday, pendingWelfareSignedDays, pendingWelfareSigns);
+            RefreshWelfareHotPoint();
+            EnsureWelfarePresenter();
+            SetStatus($"Welfare /199 sign: today={pendingWelfareSignedToday}, days={pendingWelfareSignedDays}, rewards={pendingWelfareSigns.Count}.");
+        }
+
+        public void BeginWelfareOnlineUpdate(int claimedCount, double accumulatedSeconds, int expectedCount)
+        {
+            pendingWelfareOnlineClaimed = checked((byte)claimedCount);
+            pendingWelfareOnlineSeconds = checked((uint)accumulatedSeconds);
+            pendingWelfareOnline.Clear();
+            if (expectedCount > pendingWelfareOnline.Capacity) pendingWelfareOnline.Capacity = expectedCount;
+        }
+
+        public void AddWelfareOnline(int id, int cumulativeMinutes, double requiredSeconds, int rewardType,
+            double rewardId, double amount, string name, int picture, int quality)
+        {
+            pendingWelfareOnline.Add(new WelfareOnlineRecord
+            {
+                Id = checked((byte)id), CumulativeMinutes = checked((ushort)cumulativeMinutes),
+                RequiredSeconds = checked((uint)requiredSeconds),
+                Reward = new RewardRecord(rewardType, checked((uint)rewardId), checked((uint)amount), name, picture, quality)
+            });
+        }
+
+        public void EndWelfareOnlineUpdate()
+        {
+            services.Welfare.ReplaceOnline(pendingWelfareOnlineClaimed, pendingWelfareOnlineSeconds,
+                services.ServerTime.UnixSeconds, pendingWelfareOnline);
+            RefreshWelfareHotPoint();
+            EnsureWelfarePresenter();
+            SetStatus($"Welfare /222 online: claimed={pendingWelfareOnlineClaimed}, elapsed={pendingWelfareOnlineSeconds}s, rewards={pendingWelfareOnline.Count}.");
+        }
+
+        public void SetWelfareError(string message) { ShowToast(message, 3f); SetStatus(message); }
+        public void CaptureWelfareAndClaim() => StartCoroutine(CaptureWelfareTabsAndClaim());
+
+        public void CompleteWelfareValidation(int signedDays)
+        {
+            EnsureWelfarePresenter();
+            if (GetLocalUserId() == 1 || !IsWelfareOpen || !services.Welfare.SignedToday
+                || services.Welfare.SignedDays != signedDays || services.Welfare.Signs.Count == 0
+                || services.Welfare.Online.Count == 0 || services.ProtocolRegistry.PendingCount != 0
+                || IsWelfareHotPointVisible != services.Welfare.HasClaimable)
+            {
+                Fail($"Welfare final state mismatch: user={GetLocalUserId()}, open={IsWelfareOpen}, today={services.Welfare.SignedToday}, days={services.Welfare.SignedDays}/{signedDays}, sign={services.Welfare.Signs.Count}, online={services.Welfare.Online.Count}, pending={services.ProtocolRegistry.PendingCount}.");
+                return;
+            }
+            rewardPresenter?.Hide();
+            welfarePresenter.SelectTab(0);
+            Complete($"COMPLETE: /199 sign list -> single daily claim -> authoritative re-pull days={signedDays}; /222 online status={services.Welfare.OnlineClaimedCount}/{services.Welfare.Online.Count}; /223 unavailable empty state; isolated user={GetLocalUserId()}");
+        }
+
         public void AddShopRecord(int grid, double id, int buyCount, string name,
             string description, int picture, int quality)
         {
@@ -1996,6 +2119,12 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"World open failed: {exception.Message}"); }
         }
 
+        private void HandleWelfareClick()
+        {
+            try { CallLua(onWelfareClicked, "Welfare.OnClicked"); }
+            catch (Exception exception) { Fail($"Welfare open failed: {exception.Message}"); }
+        }
+
         private Button EnsureRuntimeTeamEntry()
         {
             Transform existing = mainView.GameObject.transform.Find("TeamEntryRuntime");
@@ -2055,6 +2184,43 @@ namespace ProjectX.Core
             label.text = "聊天";
             return button;
         }
+
+        private Button EnsureRuntimeWelfareEntry()
+        {
+            Transform existing = mainView.GameObject.transform.Find("WelfareEntryRuntime");
+            if (existing != null) { RefreshWelfareHotPoint(); return existing.GetComponent<Button>(); }
+            GameObject entry = new GameObject("WelfareEntryRuntime", typeof(RectTransform), typeof(Image), typeof(Button));
+            RectTransform rect = entry.GetComponent<RectTransform>();
+            rect.SetParent(mainView.GameObject.transform, false);
+            rect.anchorMin = new Vector2(0.82f, 0.87f);
+            rect.anchorMax = new Vector2(0.94f, 0.95f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = entry.GetComponent<Image>();
+            image.color = new Color(0.68f, 0.24f, 0.16f, 0.96f);
+            Button button = entry.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(HandleWelfareClick);
+            GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.SetParent(rect, false); labelRect.anchorMin = Vector2.zero; labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); label.fontSize = 22;
+            label.alignment = TextAnchor.MiddleCenter; label.color = Color.white; label.text = "福利";
+            GameObject hotPoint = new GameObject("HotPoint", typeof(RectTransform), typeof(Image));
+            RectTransform hotRect = hotPoint.GetComponent<RectTransform>();
+            hotRect.SetParent(rect, false); hotRect.anchorMin = new Vector2(0.86f, 0.72f); hotRect.anchorMax = new Vector2(0.98f, 0.94f);
+            hotRect.offsetMin = hotRect.offsetMax = Vector2.zero;
+            hotPoint.GetComponent<Image>().color = new Color(0.95f, 0.08f, 0.05f, 1f);
+            RefreshWelfareHotPoint();
+            return button;
+        }
+
+        private void RefreshWelfareHotPoint()
+        {
+            Transform hotPoint = mainView?.GameObject.transform.Find("WelfareEntryRuntime/HotPoint");
+            if (hotPoint != null) hotPoint.gameObject.SetActive(services?.Welfare.HasClaimable == true);
+        }
         private static IEnumerator InvokeButtonNextFrame(Button button) { yield return null; button.onClick.Invoke(); }
 
         private IEnumerator CaptureMailDetailAndClaim(uint mailId)
@@ -2067,6 +2233,29 @@ namespace ProjectX.Core
             ScreenCapture.CaptureScreenshot(path);
             yield return new WaitForSecondsRealtime(0.75f);
             InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)mailId);
+        }
+
+        private IEnumerator CaptureWelfareTabsAndClaim()
+        {
+            EnsureWelfarePresenter();
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string directory = Path.Combine(repositoryRoot, "build", "ui-migration");
+            Directory.CreateDirectory(directory);
+            welfarePresenter.SelectTab(0);
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-welfare-sign.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+            welfarePresenter.SelectTab(1);
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-welfare-online.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+            welfarePresenter.SelectTab(2);
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-welfare-stage-empty.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+            welfarePresenter.SelectTab(0);
+            InvokeLuaOrFail(onWelfareClaimSign, "Welfare.ClaimSign");
         }
 
         private void ShowShopPurchaseConfirmation(ShopRecord item)
@@ -2344,6 +2533,18 @@ namespace ProjectX.Core
                 id => { services.World.SelectStage(id); InvokeLuaOrFail(onWorldRequestStage, "World.RequestStage", (double)id); },
                 () => InvokeLuaOrFail(onWorldChallenge, "World.Challenge"),
                 () => HandleBack());
+        }
+
+        private void EnsureWelfarePresenter()
+        {
+            welfareView = welfareView ?? services.UiRouter.FindBySource("WelfareLayer");
+            welfareSignView = welfareSignView ?? services.UiRouter.FindBySource("SignLayer");
+            welfareOnlineView = welfareOnlineView ?? services.UiRouter.FindBySource("huodong/LoginGiftLayer");
+            if (welfareView == null || welfareSignView == null || welfareOnlineView == null)
+                throw new InvalidOperationException("Welfare imported CocosUiBindings were not found.");
+            welfarePresenter = welfarePresenter ?? new WelfarePresenter(welfareView, welfareSignView, welfareOnlineView,
+                services.Welfare, services.ServerTime, services.Resources,
+                () => InvokeLuaOrFail(onWelfareClaimSign, "Welfare.ClaimSign"), () => HandleBack());
         }
 
         private void BeginFriendUpdate(int maximum, int expectedCount)

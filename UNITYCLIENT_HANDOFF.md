@@ -1,6 +1,6 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-17 22:48
+> 最后更新：2026-07-17 23:12
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
@@ -30,9 +30,9 @@
 
 ## 3. 当前任务
 
-World / 战斗 / 副本第一阶段已完成：`/320 op=1/2/27` 世界、章节、关卡、详情与状态；`op=5/8` 完成一次本地 PvE 进入/结算和刷新后三星持久化。
+福利第一阶段已完成：`/199 op=8` 每日签到列表、今日/累计状态与一次领取重拉；`/222 activity=4` 在线奖励 12 档只读状态和 ServerTime 倒计时；`/223` 因服务端处理主体为空保留真实不可用空态。
 
-基线为 `main d46723ab8e2bb5465f1e22585f148eb57f02443f`，已包含 Guild `b6537c2`。最终证据账号 `7200008`；过程账号 `7200004-7200007` 不复用。实现复用 Hero、Formation、Reward、VirtualList、ResourceService 和 UiStack；PvP、战斗表现、技能特效、自动战斗、扫荡/重置/宝箱继续后置。
+基线为 `main c737be773e28cce38c6b47836ee2e5db670dd084`，已包含 World。最终证据账号 `7200014`；过程账号 `7200009-7200013` 不复用。实现复用 Reward、VirtualList、ResourceService、ServerTime、UiStack 和 Toast；在线领取、七日登录、等级礼包、活动/抽卡、充值/VIP 继续后置。
 
 ## 4. 已稳定的分层
 
@@ -74,6 +74,7 @@ World / 战斗 / 副本第一阶段已完成：`/320 op=1/2/27` 世界、章节�
 | 队伍 | `Data/TeamStore.cs`、`UI/TeamPresenter.cs`、`Resources/Lua/Team/TeamController.lua.txt` |
 | 帮派 | `Data/GuildStore.cs`、`UI/GuildPresenter.cs`、`Resources/Lua/Guild/GuildController.lua.txt` |
 | 世界/副本 | `Data/WorldStore.cs`、`UI/WorldPresenter.cs`、`Resources/Lua/World/WorldController.lua.txt` |
+| 福利 | `Data/WelfareStore.cs`、`UI/WelfarePresenter.cs`、`Resources/Lua/Welfare/WelfareController.lua.txt` |
 
 ## 6. 迁移提速工具
 
@@ -137,6 +138,9 @@ World / 战斗 / 副本第一阶段已完成：`/320 op=1/2/27` 世界、章节�
 | `/320` 货币奖励显示成 `#0` | 权威包使用 `type=600xx,id=0`；保留 id，只用 type 查询现有 ItemCatalog |
 | 奖励弹窗格子在画面外 | 导入 `ItemList` 锚点异常；Prefab 只读，在 RewardPresenter 运行时归一化 |
 | 首次关卡战斗次数仍为 0 | 以 `op=8` 奖励和重拉后三星为成功证据，保留服务端真实字段，不伪造次数 |
+| 福利 Prefab 新接线找不到 | 先执行 `BootstrapSceneBuilder.BuildBatch` 重建 Bootstrap；模块 Runner 只打开现有场景 |
+| `/199` 套统一成功码导致错包 | 查询回包直接追加签到字段；只有领取分支追加 `PRO_SUCCESS/ERROR` |
+| `/223` 旧客户端可解析但服务端无回包 | 以当前 `CMissionManager` 空实现为准，保留真实空态，不按旧 UI 猜可用性 |
 
 ## 10. 常用验证
 

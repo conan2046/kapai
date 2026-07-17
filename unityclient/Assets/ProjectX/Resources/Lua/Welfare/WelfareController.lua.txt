@@ -1,0 +1,146 @@
+local Protocol = require("Protocol")
+local itemCatalog = require("Data.ItemCatalog")
+local itemsById = {}
+for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
+
+local onlineConfig = {
+    {1,3,60001,0,50},{2,8,60001,0,100},{3,15,60001,0,150},
+    {4,25,60001,0,200},{5,40,60001,0,250},{6,60,1000,0,1},
+    {7,85,60001,0,300},{8,120,60005,1201,1},{9,150,60001,0,350},
+    {10,180,1000,0,1},{11,210,60005,1203,1},{12,240,1000,0,1}
+}
+
+local M = { validation = false, initialDays = 0, onlineReady = false, signReady = false, reward = nil }
+
+local function meta(rewardType, rewardId)
+    return itemsById[rewardId > 0 and rewardId or rewardType] or {}
+end
+
+local function sendSign(kind)
+    local message = Protocol.newMessage(Protocol.WELFARE)
+    message:WriteWord(8)
+    message:WriteByte(kind)
+    Bridge:Send(message)
+end
+
+local function requestOnline()
+    local message = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+    message:WriteByte(4)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+local function maybeCapture()
+    if M.validation and M.signReady and M.onlineReady then
+        M.signReady = false
+        Bridge:CaptureWelfareAndClaim()
+    end
+end
+
+function M.onClick()
+    Bridge:ShowWelfare()
+    M.validation = Bridge:HasCommandLineFlag("-projectXWelfareValidation")
+    M.onlineReady = false
+    M.signReady = false
+    M.reward = nil
+    sendSign(0)
+    requestOnline()
+    Bridge:SetStatus("Welfare /199 sign and /222 online status requested.")
+end
+
+function M.claimSign()
+    if not M.reward then Bridge:SetWelfareError("签到奖励状态尚未返回"); return end
+    sendSign(1)
+end
+
+local function readSign(message)
+    local kind = message:ReadByte()
+    if kind == 1 then
+        local success = message:ReadByte()
+        if success == 0 then
+            local detail = message.Remaining > 0 and message:ReadString() or "unknown"
+            Bridge:SetWelfareError("Welfare /199 sign failed: " .. detail)
+            if M.validation then Bridge:Fail("Welfare /199 sign failed: " .. detail) end
+            return
+        end
+        if message.Remaining ~= 0 then Bridge:Fail("Welfare /199 claim unread bytes: " .. tostring(message.Remaining)); return end
+        Bridge:BeginRewardUpdate(1)
+        Bridge:AddRewardRecord(M.reward.type, M.reward.id, M.reward.amount, M.reward.name, M.reward.pic, M.reward.quality)
+        Bridge:EndRewardUpdate("每日签到")
+        sendSign(0)
+        return
+    end
+
+    local signedToday = message:ReadByte()
+    local signedDays = message:ReadByte()
+    local count = message:ReadByte()
+    Bridge:BeginWelfareSignUpdate(signedToday ~= 0, signedDays, count)
+    local nextReward = nil
+    for _ = 1, count do
+        local day = message:ReadByte()
+        local rewardType = message:ReadUInt()
+        local amount = message:ReadUInt()
+        local value = message:ReadUInt()
+        local vipLevel = message:ReadByte()
+        local vipMultiple = message:ReadByte()
+        local found = meta(rewardType, rewardType)
+        Bridge:AddWelfareSign(day, rewardType, rewardType, amount, value, vipLevel, vipMultiple,
+            found.name or "", found.pic or 0, found.quality or 0)
+        if day == signedDays + 1 then
+            nextReward = {type=rewardType,id=rewardType,amount=amount,name=found.name or "",pic=found.pic or 0,quality=found.quality or 0}
+        end
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("Welfare /199 query unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndWelfareSignUpdate()
+    if M.validation and M.initialDays > 0 or (M.validation and M.reward ~= nil) then
+        if signedToday == 0 or signedDays ~= M.initialDays + 1 then
+            Bridge:Fail("Welfare persisted sign mismatch: before=" .. tostring(M.initialDays) .. ", after=" .. tostring(signedDays) .. ", today=" .. tostring(signedToday))
+            return
+        end
+        M.validation = false
+        Bridge:CompleteWelfareValidation(signedDays)
+        return
+    end
+    if M.validation then
+        if signedToday ~= 0 then Bridge:Fail("Fresh welfare validation user already signed today."); return end
+        M.initialDays = signedDays
+        M.reward = nextReward
+        M.signReady = true
+        maybeCapture()
+    end
+end
+
+local function readOnline(message)
+    local operation = message:ReadByte()
+    if operation ~= 1 then return end
+    local claimed = message:ReadByte()
+    local accumulated = message:ReadUInt()
+    if message.Remaining ~= 0 then Bridge:Fail("Welfare /222 online unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:BeginWelfareOnlineUpdate(claimed, accumulated, #onlineConfig)
+    local previous = 0
+    for _, value in ipairs(onlineConfig) do
+        local found = meta(value[3], value[4])
+        Bridge:AddWelfareOnline(value[1], value[2], (value[2] - previous) * 60,
+            value[3], value[4], value[5], found.name or "", found.pic or 0, found.quality or 0)
+        previous = value[2]
+    end
+    Bridge:EndWelfareOnlineUpdate()
+    M.onlineReady = true
+    maybeCapture()
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.WELFARE then
+        local operation = message:ReadWord()
+        if operation == 8 then readSign(message) end
+        return true
+    end
+    if command == Protocol.TEMP_ACTIVITY then
+        local activity = message:ReadByte()
+        if activity == 4 then readOnline(message) end
+        return true
+    end
+    return false
+end
+
+return M

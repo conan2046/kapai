@@ -27,6 +27,7 @@ namespace ProjectX.Core
             Team = new TeamStore();
             Guild = new GuildStore();
             World = new WorldStore();
+            Welfare = new WelfareStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -61,6 +62,7 @@ namespace ProjectX.Core
         public TeamStore Team { get; }
         public GuildStore Guild { get; }
         public WorldStore World { get; }
+        public WelfareStore Welfare { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -99,6 +101,7 @@ namespace ProjectX.Core
             Team.Clear();
             Guild.Clear();
             World.Clear();
+            Welfare.Clear();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();
