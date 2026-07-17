@@ -1963,6 +1963,35 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 				<<" templateId="<<templateId<<endl;
 		return;
 	}
+	// Local isolated-role mail validation: op=54 inserts one deterministic
+	// attachment mail directly into the game DB. Production mail routing still
+	// goes through the long server and is untouched outside local_test.
+	if(op == 54)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		CGetDbConnect getDb;
+		CDatabaseSql *pDb = getDb.GetDbConnect();
+		if(pDb == NULL)
+			return;
+		SAwardData award;
+		award.type = 3201;
+		award.typeId = 0;
+		award.num = 1;
+		SMailData mailData;
+		mailData.awards.push_back(award);
+		string attachment;
+		MakeMailAttachStr(attachment, &mailData);
+		char sql[2048];
+		snprintf(sql, sizeof(sql), "delete from xin_shi where to_id=%u and message='Unity mail validation'", pUser->GetRoleId());
+		pDb->Query(sql);
+		snprintf(sql, sizeof(sql),
+			"insert into xin_shi (money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message) "
+			"values (0,0,0,'%s',0,%u,0,from_unixtime(%u),0,0,'System','Unity mail validation')",
+			attachment.c_str(), pUser->GetRoleId(), GetSysTime());
+		pDb->Query(sql);
+		return;
+	}
 
 	msg>>num;//>>input;
 
@@ -11476,7 +11505,45 @@ void CPackageDeal::XinShi(CNetMessage *pMsg,int sock)
 	}
 	else if (type == 2) // 获取邮件列表
 	{
-		ListXinShi(pUser);
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+		{
+			snprintf(sql, sizeof(sql),
+				"select id,from_id,from_name,unix_timestamp(time)+%u,message,attachment "
+				"from xin_shi where deleted=0 and to_id=%u and unix_timestamp(time)>%u order by id desc limit 30",
+				(uint32)Mail_Time_Limit, pUser->GetRoleId(), (uint32)(GetSysTime()-Mail_Time_Limit));
+			if(!pDb->Query(sql))
+				return;
+			uint8 count = (uint8)pDb->GetRowNum();
+			msg.ReWrite();
+			msg.SetType(MSG_SERVER_XINSHI);
+			msg<<(uint8)2<<count;
+			char **row = NULL;
+			while((row = pDb->GetRow()) != NULL)
+			{
+				msg<<(uint32)atoi(row[0])<<(uint32)atoi(row[1])<<(row[2] == NULL ? "" : row[2])
+					<<(uint32)atoi(row[3])<<(row[4] == NULL ? "" : row[4]);
+				MultiAward awards;
+				if(row[5] != NULL && strlen(row[5]) > 2)
+				{
+					uint8 pBuf[4096];
+					uint32 pos = 0;
+					uint32 bufLen = StrToHex(row[5], pBuf, sizeof(pBuf));
+					uint8 awardNum = pos < bufLen ? pBuf[pos++] : 0;
+					for(uint8 i=0; i<awardNum && pos <= bufLen; ++i)
+					{
+						SAwardData award;
+						ReadDataFromBuf((char *)pBuf, &award.type, sizeof(award.type), pos, bufLen);
+						ReadDataFromBuf((char *)pBuf, &award.typeId, sizeof(award.typeId), pos, bufLen);
+						ReadDataFromBuf((char *)pBuf, &award.num, sizeof(award.num), pos, bufLen);
+						if(pos <= bufLen) awards.push_back(award);
+					}
+				}
+				MakeMultiAwardMsg(awards, msg);
+			}
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
+		}
+		else
+			ListXinShi(pUser);
 	}
 	else if(type == 3) // 收信
 	{

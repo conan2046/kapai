@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ProjectX.Data;
@@ -22,6 +23,7 @@ namespace ProjectX.Core
         public const string SettingsPath = "Layer/Main_UI/ButtonGroup7/btn_xitong";
         public const string TaskPath = "Layer/Main_UI/ButtonGroup5/btn_renwu";
         public const string HeroPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
+        public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -38,6 +40,8 @@ namespace ProjectX.Core
         private LuaFunction onHeroEquipmentTakeOff;
         private LuaFunction onFaBaoWear;
         private LuaFunction onFaBaoTakeOff;
+        private LuaFunction onMailClicked;
+        private LuaFunction onMailClaimClicked;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -83,6 +87,15 @@ namespace ProjectX.Core
         private CocosUiView loadingView;
         private LoadingPresenter loadingPresenter;
         private ToastPresenter toastPresenter;
+        private CocosUiView mailView;
+        private MailPresenter mailPresenter;
+        private readonly List<MailRecord> pendingMails = new List<MailRecord>();
+        private readonly List<RewardRecord> pendingMailAttachments = new List<RewardRecord>();
+        private uint pendingMailId;
+        private uint pendingMailFromId;
+        private string pendingMailSender;
+        private uint pendingMailExpireAt;
+        private string pendingMailMessage;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -110,6 +123,9 @@ namespace ProjectX.Core
         public bool IsLoadingVisible => loadingPresenter?.IsVisible ?? false;
         public bool IsToastVisible => toastPresenter?.IsVisible ?? false;
         public bool IsServerTimeSynchronized => services?.ServerTime.IsSynchronized ?? false;
+        public bool IsMailOpen => mailView != null && services?.UiStack.Current == mailView;
+        public int MailCount => services?.Mails.Count ?? 0;
+        public int MailMissingIconCount => mailPresenter?.MissingIconCount ?? 0;
         public AppState CurrentAppState => services?.State.Current ?? ProjectX.Core.AppState.Booting;
 
         private void Awake()
@@ -145,6 +161,8 @@ namespace ProjectX.Core
                 onHeroEquipmentTakeOff = services.Lua.GetFunction("OnHeroEquipmentTakeOff");
                 onFaBaoWear = services.Lua.GetFunction("OnFaBaoWear");
                 onFaBaoTakeOff = services.Lua.GetFunction("OnFaBaoTakeOff");
+                onMailClicked = services.Lua.GetFunction("OnMailClicked");
+                onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -177,6 +195,8 @@ namespace ProjectX.Core
             onHeroEquipmentTakeOff?.Dispose();
             onFaBaoWear?.Dispose();
             onFaBaoTakeOff?.Dispose();
+            onMailClicked?.Dispose();
+            onMailClaimClicked?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -186,6 +206,7 @@ namespace ProjectX.Core
             mainHudPresenter?.Dispose();
             loadingPresenter?.Dispose();
             toastPresenter?.Dispose();
+            mailPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -273,6 +294,7 @@ namespace ProjectX.Core
             heroDetailView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongInfoLayer");
             heroEquipmentListView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao");
             heroEquipmentDetailView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
+            mailView = services.UiRouter.FindBySource("MailLayer");
             services.UiStack.Clear();
             loginBackgroundView?.SetVisible(true);
             loginView?.SetVisible(true);
@@ -286,6 +308,7 @@ namespace ProjectX.Core
             heroListView?.SetVisible(false);
             heroEquipmentListView?.SetVisible(false);
             heroEquipmentDetailView?.SetVisible(false);
+            mailView?.SetVisible(false);
             if (loginView == null) { Fail("Login/loginLayer CocosUiBinding was not found."); return; }
             EnsureErrorPresenter();
             EnsureCommonPresenters();
@@ -313,6 +336,7 @@ namespace ProjectX.Core
             HideLoading("connect");
             HideLoading("reconnect");
             HideLoading("auto-reconnect");
+            errorPresenter?.Hide();
             EnsureMainHudPresenter();
             EnsureMainTaskTracker();
             services.State.Change(AppState.Main, "Main UI shown");
@@ -360,6 +384,24 @@ namespace ProjectX.Core
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
             catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void BindMailClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(MailPath, HandleMailClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void ShowMail()
+        {
+            EnsureMailPresenter();
+            if (services.UiStack.Current != mailView) services.UiStack.Push(mailView);
+            SetStatus($"Mail UI active: {services.Mails.Count} mails.");
         }
 
         public void ShowTask()
@@ -483,6 +525,7 @@ namespace ProjectX.Core
             services.Currencies.Clear();
             services.Bag.Clear();
             services.Rewards.Clear();
+            services.Mails.Clear();
             services.Heroes.Clear();
             services.Formation.Clear();
             services.ServerTime.Reset();
@@ -612,6 +655,76 @@ namespace ProjectX.Core
                 && rewardPresenter.RenderedCount == Math.Min(expectedCount, 4) && rewardPresenter.IsVisible;
             if (valid && dismiss) rewardPresenter.Hide();
             return valid;
+        }
+
+        public void BeginMailUpdate(int expectedCount)
+        {
+            pendingMails.Clear();
+            if (expectedCount > pendingMails.Capacity) pendingMails.Capacity = expectedCount;
+        }
+
+        public void BeginMailRecord(double id, double fromId, string sender, double expireAt,
+            string message, int expectedAttachmentCount)
+        {
+            pendingMailId = checked((uint)id);
+            pendingMailFromId = checked((uint)fromId);
+            pendingMailSender = sender ?? string.Empty;
+            pendingMailExpireAt = checked((uint)expireAt);
+            pendingMailMessage = message ?? string.Empty;
+            pendingMailAttachments.Clear();
+            if (expectedAttachmentCount > pendingMailAttachments.Capacity)
+                pendingMailAttachments.Capacity = expectedAttachmentCount;
+        }
+
+        public void AddMailAttachment(int type, double id, double amount, string name, int picture, int quality)
+        {
+            pendingMailAttachments.Add(new RewardRecord(type, checked((uint)id), checked((uint)amount),
+                name, picture, quality));
+        }
+
+        public void EndMailRecord()
+        {
+            pendingMails.Add(new MailRecord(pendingMailId, pendingMailFromId, pendingMailSender,
+                pendingMailExpireAt, pendingMailMessage, pendingMailAttachments.ToArray()));
+        }
+
+        public void EndMailUpdate()
+        {
+            services.Mails.Replace(pendingMails);
+            EnsureMailPresenter();
+            ShowMail();
+        }
+
+        public bool SelectMail(double id)
+        {
+            EnsureMailPresenter();
+            return mailPresenter.Select(checked((uint)id));
+        }
+
+        public bool IsMailRead(double id) =>
+            services.Mails.TryGet(checked((uint)id), out MailRecord value) && value.IsRead;
+
+        public int GetMailAttachmentCount(double id) =>
+            services.Mails.TryGet(checked((uint)id), out MailRecord value) ? value.Attachments.Count : 0;
+
+        public bool HasMail(double id) => services.Mails.TryGet(checked((uint)id), out _);
+        public void RemoveMail(double id) => services.Mails.Remove(checked((uint)id));
+
+        public void CompleteMailClaimValidation(double claimedId, int rewardCount)
+        {
+            uint id = checked((uint)claimedId);
+            if (services.Mails.TryGet(id, out _) || rewardCount <= 0 || !ValidateRewardPresentation(rewardCount, true)
+                || services.ProtocolRegistry.PendingCount != 0 || !IsMailOpen)
+            {
+                Fail($"Mail validation mismatch: claimedStillPresent={services.Mails.TryGet(id, out _)}, rewards={rewardCount}, pending={services.ProtocolRegistry.PendingCount}, open={IsMailOpen}.");
+                return;
+            }
+            Complete($"COMPLETE: /128 list -> MailStore/read/attachments -> claim id={id} -> RewardStore/RewardPresenter ({rewardCount}) -> persisted removal");
+        }
+
+        public void CaptureMailDetailAndClaimValidation(double mailId)
+        {
+            StartCoroutine(CaptureMailDetailAndClaim((uint)mailId));
         }
 
         public void BeginHeroUpdate(int followHeroId, int expectedCount)
@@ -1025,7 +1138,24 @@ namespace ProjectX.Core
             try { CallLua(onHeroClicked, "Hero.OnClicked"); }
             catch (Exception exception) { Fail($"Hero open failed: {exception.Message}"); }
         }
+        private void HandleMailClick()
+        {
+            try { CallLua(onMailClicked, "Mail.OnClicked"); }
+            catch (Exception exception) { Fail($"Mail open failed: {exception.Message}"); }
+        }
         private static IEnumerator InvokeButtonNextFrame(Button button) { yield return null; button.onClick.Invoke(); }
+
+        private IEnumerator CaptureMailDetailAndClaim(uint mailId)
+        {
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-mail-detail.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(0.75f);
+            InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)mailId);
+        }
 
         private void EnsureBagPresenter()
         {
@@ -1088,6 +1218,14 @@ namespace ProjectX.Core
             {
                 ClientLog.Warning("Task", "Task close button was not bound", exception.Message);
             }
+        }
+
+        private void EnsureMailPresenter()
+        {
+            mailView = mailView ?? services.UiRouter.FindBySource("MailLayer");
+            if (mailView == null) throw new InvalidOperationException("MailLayer CocosUiBinding was not found.");
+            mailPresenter = mailPresenter ?? new MailPresenter(mailView, services.Mails, services.Resources,
+                id => InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)id));
         }
 
         private void EnsureMainTaskTracker()

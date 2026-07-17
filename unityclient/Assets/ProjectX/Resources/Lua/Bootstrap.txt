@@ -6,6 +6,7 @@ local PlayerController = require("Player.PlayerController")
 local HeroController = require("Hero.HeroController")
 local EquipmentController = require("Hero.EquipmentController")
 local ServerTimeController = require("Time.ServerTimeController")
+local MailController = require("Mail.MailController")
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -23,6 +24,8 @@ function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(ui
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
 function OnFaBaoWear(uid, position, slot) EquipmentController.wearFaBao(uid, position, slot) end
 function OnFaBaoTakeOff(uid) EquipmentController.takeOffFaBao(uid) end
+function OnMailClicked() MailController.onClick() end
+function OnMailClaimClicked(id) MailController.claim(id) end
 function OnPacket(command, message)
     if LoginController.onPacket(command, message) then return end
     if PlayerController.onPacket(command, message) then return end
@@ -30,5 +33,6 @@ function OnPacket(command, message)
     if HeroController.onPacket(command, message) then return end
     if EquipmentController.onPacket(command, message) then return end
     if ServerTimeController.onPacket(command, message) then return end
+    if MailController.onPacket(command, message) then return end
     TaskController.onPacket(command, message)
 end

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using ProjectX.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -16,7 +17,7 @@ namespace ProjectX.Editor
         private const string ScreenshotPendingKey = "ProjectX.BootstrapApp.ScreenshotPending";
         private const string ScreenshotStartKey = "ProjectX.BootstrapApp.ScreenshotStart";
         private const string SettingsPhaseKey = "ProjectX.BootstrapApp.SettingsPhase";
-        private const double TimeoutSeconds = 60d;
+        private const double TimeoutSeconds = 120d;
         private const string BootstrapScene = "Assets/ProjectX/Scenes/Bootstrap.unity";
 
         static BootstrapAppRunner()
@@ -34,6 +35,7 @@ namespace ProjectX.Editor
                 throw new FileNotFoundException("Bootstrap scene is missing. Rebuild it first.", BootstrapScene);
 
             EditorSceneManager.OpenScene(BootstrapScene);
+            SetGameViewResolution(1334, 750);
             SessionState.SetBool(ArmedKey, true);
             SessionState.SetString(StartTimeKey, EditorApplication.timeSinceStartup.ToString("R"));
             SessionState.SetInt(ReconnectPhaseKey, 0);
@@ -51,6 +53,45 @@ namespace ProjectX.Editor
             Run();
         }
 
+        private static void SetGameViewResolution(int width, int height)
+        {
+            Assembly editorAssembly = typeof(EditorWindow).Assembly;
+            Type sizesType = editorAssembly.GetType("UnityEditor.GameViewSizes", true);
+            Type singletonType = typeof(ScriptableSingleton<>).MakeGenericType(sizesType);
+            object sizes = singletonType.GetProperty("instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+            object group = sizesType.GetProperty("currentGroup", BindingFlags.Public | BindingFlags.Instance)?.GetValue(sizes);
+            Type groupType = group?.GetType() ?? throw new InvalidOperationException("GameView size group is unavailable.");
+            MethodInfo getBuiltinCount = groupType.GetMethod("GetBuiltinCount", BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo getCustomCount = groupType.GetMethod("GetCustomCount", BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo getSize = groupType.GetMethod("GetGameViewSize", BindingFlags.Public | BindingFlags.Instance);
+            int count = (int)getBuiltinCount.Invoke(group, null) + (int)getCustomCount.Invoke(group, null);
+            int selected = -1;
+            for (int index = 0; index < count; index++)
+            {
+                object size = getSize.Invoke(group, new object[] { index });
+                Type sizeType = size.GetType();
+                int candidateWidth = (int)sizeType.GetProperty("width").GetValue(size);
+                int candidateHeight = (int)sizeType.GetProperty("height").GetValue(size);
+                if (candidateWidth == width && candidateHeight == height) { selected = index; break; }
+            }
+            if (selected < 0)
+            {
+                Type sizeType = editorAssembly.GetType("UnityEditor.GameViewSize", true);
+                Type sizeKindType = editorAssembly.GetType("UnityEditor.GameViewSizeType", true);
+                object fixedResolution = Enum.Parse(sizeKindType, "FixedResolution");
+                object size = Activator.CreateInstance(sizeType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                    null, new[] { fixedResolution, (object)width, height, $"ProjectX {width}x{height}" }, null);
+                groupType.GetMethod("AddCustomSize", BindingFlags.Public | BindingFlags.Instance).Invoke(group, new[] { size });
+                selected = count;
+            }
+            Type gameViewType = editorAssembly.GetType("UnityEditor.GameView", true);
+            EditorWindow gameView = EditorWindow.GetWindow(gameViewType);
+            gameViewType.GetProperty("selectedSizeIndex", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                ?.SetValue(gameView, selected);
+            gameView.Repaint();
+            Debug.Log($"[BootstrapAppRunner] GameView fixed at {width}x{height}.");
+        }
+
         private static void Monitor()
         {
             if (!SessionState.GetBool(ArmedKey, false) || !EditorApplication.isPlaying) return;
@@ -65,6 +106,7 @@ namespace ProjectX.Editor
             bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0;
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0;
+            bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
             {
@@ -75,6 +117,7 @@ namespace ProjectX.Editor
                 bool checkingPlayerHud = playerHudValidation;
                 bool checkingHero = heroValidation;
                 bool checkingHeroEquipment = heroEquipmentValidation;
+                bool checkingMail = mailValidation;
                 if (settingsValidation && settingsPhase == 2)
                 {
                     if (!app.IsLoginVisible || app.NetworkState != ProjectX.Network.NetworkState.Disconnected)
@@ -97,7 +140,8 @@ namespace ProjectX.Editor
                         return;
                     }
                     if (!checkingPlayerHud && (checkingTask ? !app.IsTaskOpen : checkingSettings ? !app.IsSettingsOpen
-                        : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero ? !app.IsHeroOpen : !app.IsBagOpen))
+                        : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero ? !app.IsHeroOpen
+                        : checkingMail ? !app.IsMailOpen : !app.IsBagOpen))
                     {
                         WriteResult(false, status + (checkingTask
                             ? " (task UI was not pushed onto UiStack)"
@@ -107,6 +151,8 @@ namespace ProjectX.Editor
                             ? " (hero equipment UI was not pushed onto UiStack)"
                             : checkingHero
                             ? " (hero UI was not pushed onto UiStack)"
+                            : checkingMail
+                            ? " (mail UI was not pushed onto UiStack)"
                             : " (bag UI was not pushed onto UiStack)"));
                         Finish(false);
                         return;
@@ -117,14 +163,23 @@ namespace ProjectX.Editor
                         Finish(false);
                         return;
                     }
-                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && app.BagMissingIconCount > 0)
+                    if (checkingMail && app.MailMissingIconCount > 0)
+                    {
+                        WriteResult(false, status + $" ({app.MailMissingIconCount} mail attachment icons were not resolved)");
+                        Finish(false);
+                        return;
+                    }
+                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && app.BagMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.BagMissingIconCount} item icons were not resolved)");
                         Finish(false);
                         return;
                     }
-                    ScreenCapture.CaptureScreenshot(checkingPlayerHud ? GetMainHudScreenshotPath()
-                        : checkingTask ? GetTaskScreenshotPath() : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath() : GetBagScreenshotPath());
+                    string screenshotPath = checkingPlayerHud ? GetMainHudScreenshotPath()
+                        : checkingTask ? GetTaskScreenshotPath() : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath()
+                        : checkingMail ? GetMailScreenshotPath() : GetBagScreenshotPath();
+                    Directory.CreateDirectory(Path.GetDirectoryName(screenshotPath));
+                    ScreenCapture.CaptureScreenshot(screenshotPath);
                     SessionState.SetBool(ScreenshotPendingKey, true);
                     SessionState.SetString(ScreenshotStartKey, EditorApplication.timeSinceStartup.ToString("R"));
                     return;
@@ -140,7 +195,8 @@ namespace ProjectX.Editor
                     return;
                 }
                 if (!app.HandleBack() || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
-                    : checkingHeroEquipment ? app.IsHeroEquipmentOpen : checkingHero ? app.IsHeroOpen : app.IsBagOpen))
+                    : checkingHeroEquipment ? app.IsHeroEquipmentOpen : checkingHero ? app.IsHeroOpen
+                    : checkingMail ? app.IsMailOpen : app.IsBagOpen))
                 {
                     WriteResult(false, status + (checkingTask
                         ? " (Esc/back did not return from task UI to main UI)"
@@ -150,6 +206,8 @@ namespace ProjectX.Editor
                         ? " (Esc/back did not return from hero equipment UI to hero UI)"
                         : checkingHero
                         ? " (Esc/back did not return from hero UI to main UI)"
+                        : checkingMail
+                        ? " (Esc/back did not return from mail UI to main UI)"
                         : " (Esc/back did not return from bag UI to main UI)"));
                     Finish(false);
                     return;
@@ -272,6 +330,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-hero.png");
+        }
+
+        private static string GetMailScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-mail.png");
         }
 
         private static string GetManualReconnectRequestPath()

@@ -3254,6 +3254,18 @@ CREATE TABLE IF NOT EXISTS `xianyuan_chapter` (
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `xin_shi` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `money` int NOT NULL DEFAULT '0',
+  `YB` int NOT NULL DEFAULT '0',
+  `bdYB` int NOT NULL DEFAULT '0',
+  `attachment` text,
+  `from_id` int NOT NULL DEFAULT '0',
+  `to_id` int NOT NULL DEFAULT '0',
+  `gmtime` int NOT NULL DEFAULT '0',
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `shenhun` int NOT NULL DEFAULT '0',
+  `deleted` tinyint NOT NULL DEFAULT '0',
+  `from_name` varchar(64) NOT NULL DEFAULT '',
+  `message` text,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;

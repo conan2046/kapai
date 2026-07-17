@@ -137,6 +137,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(39, "PRO_UPDATE_TASK", "Task"));
             registry.Register(new ProtocolDefinition(48, "PRO_ZHEN_FA", "Formation"));
             registry.Register(new ProtocolDefinition(65, "PRO_FUNC_HOT_POINT", "Task", expectsResponse: false));
+            registry.Register(new ProtocolDefinition(128, "MSG_CLIENT_XINSHI", "Mail"));
             registry.Register(new ProtocolDefinition(206, "MSG_SYNC_TIME", "Core"));
             registry.Register(new ProtocolDefinition(226, "MSG_UPDATE_USER_LEVELUP_INFO", "Player", expectsResponse: false));
             registry.Register(new ProtocolDefinition(321, "MSG_SPIRIT", "Player"));

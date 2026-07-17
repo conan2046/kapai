@@ -6,7 +6,7 @@ namespace ProjectX.UI.Migration
     {
         [SerializeField] private string cocosPath;
         [SerializeField] private string nodeType;
-        [SerializeField] private int tag;
+        [SerializeField] private new int tag;
         [SerializeField] private int actionTag;
 
         public string CocosPath => cocosPath;

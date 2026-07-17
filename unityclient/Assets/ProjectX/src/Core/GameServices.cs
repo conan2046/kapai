@@ -19,6 +19,7 @@ namespace ProjectX.Core
             Currencies = new CurrencyStore();
             Bag = new BagStore();
             Rewards = new RewardStore();
+            Mails = new MailStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -45,6 +46,7 @@ namespace ProjectX.Core
         public CurrencyStore Currencies { get; }
         public BagStore Bag { get; }
         public RewardStore Rewards { get; }
+        public MailStore Mails { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -76,6 +78,7 @@ namespace ProjectX.Core
             EquipmentCatalog.Clear();
             HeroEquipment.Clear();
             FaBao.Clear();
+            Mails.Clear();
             ServerTime.Reset();
             Configs.Clear();
         }

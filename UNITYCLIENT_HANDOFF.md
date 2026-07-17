@@ -1,11 +1,24 @@
 # UnityClient 当前工程交接
 
-> 最后更新：2026-07-16 23:45  
-> 仓库：`D:\neiwang_kapai`  
-> Unity 工程：`D:\neiwang_kapai\unityclient`  
-> 原客户端：`D:\neiwang_kapai\client\ProjectX`  
+> 最后更新：2026-07-17 11:02
+> 仓库：`E:\neiwang_kapai\Game`
+> Unity 工程：`E:\neiwang_kapai\Game\unityclient`
+> 原客户端：`E:\neiwang_kapai\Game\client\ProjectX`
 > 用途：新 Codex 对话先完整读取本文件和根目录 `AGENTS.md`，再继续 Unity 迁移。
 > 后续模块化路线与完成门禁：`UNITYCLIENT_MIGRATION_PLAN.md`。
+
+## 2026-07-17 11:02 Mail Store 第一阶段收口
+
+- 已完成 `/128 MSG_SERVER_XINSHI` 三方取证和 Unity 迁移：`MailStore + MailPresenter + MailController.lua`，覆盖邮件列表、本地已读、附件展示、单封领取和领取后服务端持久化复查。
+- 主界面真实入口 `Layer/Main_UI/ButtonGroup7/btn_mail` 已接入；页面复用真实 `MailLayer.prefab`、`VirtualList`、`ResourceService`、`RewardStore/RewardPresenter`、Toast 和返回栈。
+- 服务端仅在 `local_test=1` 下补齐本地 `/128 op=2` 直查、`xin_shi` 最小字段和 `/13 op=54` 隔离邮件注入；线上长连接服列表路径保持不变。
+- 隔离角色 `userId=717026` 实测通过：注入邮件 → `/128 op=2` 列表 → 选中并标记已读 → 显示 `Unity mail validation` 正文和 `10点贵族经验` 附件 → `/128 op=3` 单封领取 → RewardPresenter 1 项 → 再次 `/128 op=2` 确认邮件移除。
+- Unity MCP 已用于实例连接、项目/Editor 状态读取、场景重建、编译 Console 和验证菜单执行；最终 C# 编译为 `0 error / 0 warning`。
+- GameView 验收固定为 `1334×750`；`bootstrap-mail-detail.png` 和 `bootstrap-mail.png` 均确认像素尺寸为 `1334×750`。修复了透明正文底板、Cocos ScrollView 正文裁剪、附件行裁剪、未关闭详情浮层、恢复主界面后错误弹窗残留及截图目录未先创建等问题。
+- 结果文件 `build/ui-migration/bootstrap-app-result.json`：`success=true`；最终状态为 `COMPLETE: /128 list -> MailStore/read/attachments -> claim id=9 -> RewardStore/RewardPresenter (1) -> persisted removal`。
+- 本阶段没有改写 `MailLayer.prefab`；未 stage、commit、push。按完整可玩客户端业务加权口径约完成 `19%`，静态 Prefab 仍为 `356/356`。
+
+下一迁移建议：进入 `Shop Store`，先做商品列表只读、限购/刷新时间与货币显示；购买确认和单次购买继续使用隔离角色。一键领取、邮件删除和邮件红点留在 C4 第二阶段。
 
 ## 2026-07-16 23:45 HeroEquip/FaBao Store 阶段收口
 
