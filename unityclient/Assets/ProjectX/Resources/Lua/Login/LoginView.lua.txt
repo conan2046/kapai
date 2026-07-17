@@ -9,10 +9,12 @@ function M.showMain(autoInvokeBag)
         or Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
     local mailValidation = Bridge:HasCommandLineFlag("-projectXMailValidation")
-    Bridge:BindBagClick(autoInvokeBag and not taskValidation and not playerValidation and not heroValidation and not mailValidation)
+    local shopValidation = Bridge:HasCommandLineFlag("-projectXShopValidation")
+    Bridge:BindBagClick(autoInvokeBag and not taskValidation and not playerValidation and not heroValidation and not mailValidation and not shopValidation)
     Bridge:BindSettingsClick()
     Bridge:BindTaskClick(autoInvokeBag and taskValidation)
     Bridge:BindHeroClick(autoInvokeBag and heroValidation)
     Bridge:BindMailClick(autoInvokeBag and mailValidation)
+    Bridge:BindShopClick(autoInvokeBag and shopValidation)
 end
 return M

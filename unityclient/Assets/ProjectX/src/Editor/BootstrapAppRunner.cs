@@ -107,6 +107,7 @@ namespace ProjectX.Editor
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
+            bool shopValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
             {
@@ -118,6 +119,7 @@ namespace ProjectX.Editor
                 bool checkingHero = heroValidation;
                 bool checkingHeroEquipment = heroEquipmentValidation;
                 bool checkingMail = mailValidation;
+                bool checkingShop = shopValidation;
                 if (settingsValidation && settingsPhase == 2)
                 {
                     if (!app.IsLoginVisible || app.NetworkState != ProjectX.Network.NetworkState.Disconnected)
@@ -141,7 +143,7 @@ namespace ProjectX.Editor
                     }
                     if (!checkingPlayerHud && (checkingTask ? !app.IsTaskOpen : checkingSettings ? !app.IsSettingsOpen
                         : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero ? !app.IsHeroOpen
-                        : checkingMail ? !app.IsMailOpen : !app.IsBagOpen))
+                        : checkingMail ? !app.IsMailOpen : checkingShop ? !app.IsShopOpen : !app.IsBagOpen))
                     {
                         WriteResult(false, status + (checkingTask
                             ? " (task UI was not pushed onto UiStack)"
@@ -153,6 +155,8 @@ namespace ProjectX.Editor
                             ? " (hero UI was not pushed onto UiStack)"
                             : checkingMail
                             ? " (mail UI was not pushed onto UiStack)"
+                            : checkingShop
+                            ? " (shop UI was not pushed onto UiStack)"
                             : " (bag UI was not pushed onto UiStack)"));
                         Finish(false);
                         return;
@@ -169,7 +173,13 @@ namespace ProjectX.Editor
                         Finish(false);
                         return;
                     }
-                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && app.BagMissingIconCount > 0)
+                    if (checkingShop && app.ShopMissingIconCount > 0)
+                    {
+                        WriteResult(false, status + $" ({app.ShopMissingIconCount} shop icons were not resolved)");
+                        Finish(false);
+                        return;
+                    }
+                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && app.BagMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.BagMissingIconCount} item icons were not resolved)");
                         Finish(false);
@@ -177,7 +187,7 @@ namespace ProjectX.Editor
                     }
                     string screenshotPath = checkingPlayerHud ? GetMainHudScreenshotPath()
                         : checkingTask ? GetTaskScreenshotPath() : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath()
-                        : checkingMail ? GetMailScreenshotPath() : GetBagScreenshotPath();
+                        : checkingMail ? GetMailScreenshotPath() : checkingShop ? GetShopScreenshotPath() : GetBagScreenshotPath();
                     Directory.CreateDirectory(Path.GetDirectoryName(screenshotPath));
                     ScreenCapture.CaptureScreenshot(screenshotPath);
                     SessionState.SetBool(ScreenshotPendingKey, true);
@@ -196,7 +206,7 @@ namespace ProjectX.Editor
                 }
                 if (!app.HandleBack() || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
                     : checkingHeroEquipment ? app.IsHeroEquipmentOpen : checkingHero ? app.IsHeroOpen
-                    : checkingMail ? app.IsMailOpen : app.IsBagOpen))
+                    : checkingMail ? app.IsMailOpen : checkingShop ? app.IsShopOpen : app.IsBagOpen))
                 {
                     WriteResult(false, status + (checkingTask
                         ? " (Esc/back did not return from task UI to main UI)"
@@ -208,6 +218,8 @@ namespace ProjectX.Editor
                         ? " (Esc/back did not return from hero UI to main UI)"
                         : checkingMail
                         ? " (Esc/back did not return from mail UI to main UI)"
+                        : checkingShop
+                        ? " (Esc/back did not return from shop UI to main UI)"
                         : " (Esc/back did not return from bag UI to main UI)"));
                     Finish(false);
                     return;
@@ -337,6 +349,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-mail.png");
+        }
+
+        private static string GetShopScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop.png");
         }
 
         private static string GetManualReconnectRequestPath()

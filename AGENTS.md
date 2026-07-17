@@ -20,6 +20,14 @@
 - 这是 Cocos2d-x 2.17 + Lua 前端、C++ 后端的联网卡牌游戏。
 - 当前仓库没有独立登录服源码；本地测试服采用最小改动的“无登录服直连游戏服”模式。
 
+## Unity 迁移文档读取与维护
+- Unity 迁移任务默认读取顺序：`UNITYCLIENT_STATUS.md` → `UNITYCLIENT_HANDOFF.md` → `docs/unityclient/modules/README.md` → 目标模块文档；仅按需读取 `UNITYCLIENT_MIGRATION_PLAN.md` 对应章节。
+- `UNITYCLIENT_STATUS.md` 是完成率、当前批次、最新验证的唯一状态源；其他文档禁止维护第二份实时百分比。
+- `UNITYCLIENT_HANDOFF.md` 只保存当前执行规则、路径、标准流程和高频坑，控制在约 200 行以内。
+- `UNITYCLIENT_MIGRATION_PLAN.md` 只保存稳定路线、依赖和完成门禁，不追加每日流水。
+- 模块协议、实现和验证证据写入 `docs/unityclient/modules/`；日期流水与旧全文写入 `docs/unityclient/history/`。
+- 新任务不得默认完整读取 `docs/unityclient/history/`；只有追查旧命令、错误或决策证据时才定点检索。
+
 ## 分析与修改范围
 - 分析业务代码时优先看 `client/ProjectX/src/`、`client/ProjectX/res/`、`server/src/`、`server/script/`、`server/config/`、`server/sql/`、`tools/local/`。
 - 默认忽略生成物和第三方依赖：`build/`、`.local/`、`tools/local/vcpkg/`、客户端/服务端日志、MySQL data 目录。

@@ -29,6 +29,7 @@ namespace ProjectX.Editor
         private const string HeroEquipmentDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab";
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
         private const string MailPrefab = "Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab";
+        private const string ShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab";
 
         [MenuItem("Tools/ProjectX App/Rebuild Bootstrap Scene", priority = 90)]
         public static void Build()
@@ -68,6 +69,7 @@ namespace ProjectX.Editor
             Instantiate(RewardPrefab, canvasObject.transform, false);
             Instantiate(LoadingPrefab, canvasObject.transform, false);
             Instantiate(MailPrefab, canvasObject.transform, false);
+            Instantiate(ShopPrefab, canvasObject.transform, false);
             GameObject heroList = Instantiate(HeroListPrefab, canvasObject.transform, false);
             Instantiate(HeroDetailPrefab, heroList.transform, true);
             GameObject heroEquipmentList = Instantiate(HeroEquipmentListPrefab, canvasObject.transform, false);

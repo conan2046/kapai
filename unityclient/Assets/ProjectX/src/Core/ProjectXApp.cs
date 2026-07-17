@@ -24,6 +24,8 @@ namespace ProjectX.Core
         public const string TaskPath = "Layer/Main_UI/ButtonGroup5/btn_renwu";
         public const string HeroPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
+        public const string ShopPath = "Layer/Main_UI/ButtonGroup5/btn_shangcheng";
+        public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -42,6 +44,8 @@ namespace ProjectX.Core
         private LuaFunction onFaBaoTakeOff;
         private LuaFunction onMailClicked;
         private LuaFunction onMailClaimClicked;
+        private LuaFunction onShopClicked;
+        private LuaFunction onShopBuyConfirmed;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -96,6 +100,19 @@ namespace ProjectX.Core
         private string pendingMailSender;
         private uint pendingMailExpireAt;
         private string pendingMailMessage;
+        private CocosUiView shopView;
+        private ShopPresenter shopPresenter;
+        private readonly List<ShopRecord> pendingShopRecords = new List<ShopRecord>();
+        private byte pendingShopType;
+        private ushort pendingShopRefreshTimes;
+        private byte pendingShopFreeTimes;
+        private ushort pendingShopRefreshRemaining;
+        private ushort validationShopId;
+        private ushort validationShopBuyCount;
+        private int validationShopCurrencyType;
+        private long validationShopExpectedCurrency;
+        private int validationShopRewardType;
+        private uint validationShopRewardAmount;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -126,6 +143,9 @@ namespace ProjectX.Core
         public bool IsMailOpen => mailView != null && services?.UiStack.Current == mailView;
         public int MailCount => services?.Mails.Count ?? 0;
         public int MailMissingIconCount => mailPresenter?.MissingIconCount ?? 0;
+        public bool IsShopOpen => shopView != null && services?.UiStack.Current == shopView;
+        public int ShopCount => services?.Shop.Count ?? 0;
+        public int ShopMissingIconCount => shopPresenter?.MissingIconCount ?? 0;
         public AppState CurrentAppState => services?.State.Current ?? ProjectX.Core.AppState.Booting;
 
         private void Awake()
@@ -163,6 +183,8 @@ namespace ProjectX.Core
                 onFaBaoTakeOff = services.Lua.GetFunction("OnFaBaoTakeOff");
                 onMailClicked = services.Lua.GetFunction("OnMailClicked");
                 onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
+                onShopClicked = services.Lua.GetFunction("OnShopClicked");
+                onShopBuyConfirmed = services.Lua.GetFunction("OnShopBuyConfirmed");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -176,6 +198,7 @@ namespace ProjectX.Core
             services?.Tick();
             loadingPresenter?.Tick();
             toastPresenter?.Tick();
+            shopPresenter?.Tick();
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
         }
 
@@ -197,6 +220,8 @@ namespace ProjectX.Core
             onFaBaoTakeOff?.Dispose();
             onMailClicked?.Dispose();
             onMailClaimClicked?.Dispose();
+            onShopClicked?.Dispose();
+            onShopBuyConfirmed?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -207,6 +232,7 @@ namespace ProjectX.Core
             loadingPresenter?.Dispose();
             toastPresenter?.Dispose();
             mailPresenter?.Dispose();
+            shopPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -295,6 +321,7 @@ namespace ProjectX.Core
             heroEquipmentListView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao");
             heroEquipmentDetailView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
             mailView = services.UiRouter.FindBySource("MailLayer");
+            shopView = services.UiRouter.FindBySource("shop/shangcheng");
             services.UiStack.Clear();
             loginBackgroundView?.SetVisible(true);
             loginView?.SetVisible(true);
@@ -309,6 +336,7 @@ namespace ProjectX.Core
             heroEquipmentListView?.SetVisible(false);
             heroEquipmentDetailView?.SetVisible(false);
             mailView?.SetVisible(false);
+            shopView?.SetVisible(false);
             if (loginView == null) { Fail("Login/loginLayer CocosUiBinding was not found."); return; }
             EnsureErrorPresenter();
             EnsureCommonPresenters();
@@ -402,6 +430,25 @@ namespace ProjectX.Core
             EnsureMailPresenter();
             if (services.UiStack.Current != mailView) services.UiStack.Push(mailView);
             SetStatus($"Mail UI active: {services.Mails.Count} mails.");
+        }
+
+        public void BindShopClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(ShopPath, HandleShopClick, true);
+                mainView.BindClick(ShopSubmenuPath, HandleShopClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void ShowShop()
+        {
+            EnsureShopPresenter();
+            if (services.UiStack.Current != shopView) services.UiStack.Push(shopView);
+            SetStatus($"Shop UI active: {services.Shop.Count} goods.");
         }
 
         public void ShowTask()
@@ -526,6 +573,7 @@ namespace ProjectX.Core
             services.Bag.Clear();
             services.Rewards.Clear();
             services.Mails.Clear();
+            services.Shop.Clear();
             services.Heroes.Clear();
             services.Formation.Clear();
             services.ServerTime.Reset();
@@ -725,6 +773,117 @@ namespace ProjectX.Core
         public void CaptureMailDetailAndClaimValidation(double mailId)
         {
             StartCoroutine(CaptureMailDetailAndClaim((uint)mailId));
+        }
+
+        public int GetShopDisplayItemId(double id) =>
+            services.ShopCatalog.GetDisplayItemId(checked((ushort)id));
+
+        public void BeginShopUpdate(int type, int refreshTimes, int freeRefreshTimes,
+            int refreshRemainingSeconds, int expectedCount)
+        {
+            pendingShopType = checked((byte)type);
+            pendingShopRefreshTimes = checked((ushort)refreshTimes);
+            pendingShopFreeTimes = checked((byte)freeRefreshTimes);
+            pendingShopRefreshRemaining = checked((ushort)refreshRemainingSeconds);
+            pendingShopRecords.Clear();
+            if (expectedCount > pendingShopRecords.Capacity) pendingShopRecords.Capacity = expectedCount;
+        }
+
+        public void AddShopRecord(int grid, double id, int buyCount, string name,
+            string description, int picture, int quality)
+        {
+            pendingShopRecords.Add(services.ShopCatalog.Build(checked((byte)grid), checked((ushort)id),
+                checked((ushort)buyCount), name, description, picture, quality));
+        }
+
+        public void EndShopUpdate()
+        {
+            services.Shop.Replace(pendingShopType, pendingShopRefreshTimes, pendingShopFreeTimes,
+                pendingShopRefreshRemaining, services.ServerTime.UnixSeconds, pendingShopRecords);
+            EnsureShopPresenter();
+            ShowShop();
+        }
+
+        public bool PrepareShopPurchaseValidation(double rawId)
+        {
+            ushort id = checked((ushort)rawId);
+            if (GetLocalUserId() == 1)
+            {
+                Fail("Shop mutation validation requires an isolated userId, not default userId=1.");
+                return false;
+            }
+            if (!services.ServerTime.IsSynchronized)
+            {
+                Fail("Shop validation requires synchronized server time.");
+                return false;
+            }
+            if (!services.Shop.TryGet(id, out ShopRecord item) || item.IsSoldOut)
+            {
+                Fail($"Shop validation item is missing or sold out: id={id}.");
+                return false;
+            }
+            long currency = services.Currencies.Get(item.CostType);
+            if (currency < item.UnitCost)
+            {
+                Fail($"Shop validation currency is insufficient: type={item.CostType}, have={currency}, need={item.UnitCost}.");
+                return false;
+            }
+            validationShopId = id;
+            validationShopBuyCount = item.BuyCount;
+            validationShopCurrencyType = item.CostType;
+            validationShopExpectedCurrency = currency - item.UnitCost;
+            validationShopRewardType = item.RewardType;
+            validationShopRewardAmount = item.RewardAmount;
+            EnsureShopPresenter();
+            if (!shopPresenter.Select(id))
+            {
+                Fail($"Shop validation could not select id={id}.");
+                return false;
+            }
+            ShowShopPurchaseConfirmation(item);
+            StartCoroutine(CaptureShopConfirmationAndConfirm(id));
+            return true;
+        }
+
+        public bool ApplyShopPurchase(double rawId, int buyCount, int rewardType, double rewardAmount)
+        {
+            ushort id = checked((ushort)rawId);
+            if (!services.Shop.TryGet(id, out ShopRecord item)
+                || item.RewardType != rewardType || item.RewardAmount != checked((uint)rewardAmount))
+                return false;
+            return services.Shop.ApplyPurchase(id, checked((ushort)buyCount));
+        }
+
+        public void ShowShopPurchaseReward(double rawId, int rewardType, double rewardAmount)
+        {
+            ushort id = checked((ushort)rawId);
+            if (!services.Shop.TryGet(id, out ShopRecord item)) return;
+            services.Rewards.Replace("购买获得", new[]
+            {
+                new RewardRecord(rewardType, checked((uint)Math.Max(0, item.RewardId)),
+                    checked((uint)rewardAmount), item.Name, item.Picture, item.Quality)
+            });
+            EnsureRewardPresenter();
+            rewardPresenter.Show();
+        }
+
+        public void CompleteShopPurchaseValidation(double rawId)
+        {
+            ushort id = checked((ushort)rawId);
+            bool found = services.Shop.TryGet(id, out ShopRecord item);
+            long currency = services.Currencies.Get(validationShopCurrencyType);
+            bool rewardValid = ValidateRewardPresentation(1, true);
+            if (!found || id != validationShopId || item.BuyCount != validationShopBuyCount + 1
+                || currency != validationShopExpectedCurrency || item.RewardType != validationShopRewardType
+                || item.RewardAmount != validationShopRewardAmount || !rewardValid
+                || services.ProtocolRegistry.PendingCount != 0 || !IsShopOpen
+                || !services.ServerTime.IsSynchronized || shopPresenter.MissingIconCount != 0)
+            {
+                Fail($"Shop validation mismatch: found={found}, id={id}/{validationShopId}, count={(found ? item.BuyCount : 0)}/{validationShopBuyCount + 1}, currency={currency}/{validationShopExpectedCurrency}, reward={rewardValid}, pending={services.ProtocolRegistry.PendingCount}, open={IsShopOpen}, time={services.ServerTime.IsSynchronized}, missing={shopPresenter?.MissingIconCount ?? -1}.");
+                return;
+            }
+            toastPresenter?.Clear();
+            Complete($"COMPLETE: /221 list -> ShopStore/limits/server time/currency -> confirmed single purchase id={id} -> persisted count={item.BuyCount}");
         }
 
         public void BeginHeroUpdate(int followHeroId, int expectedCount)
@@ -1143,6 +1302,11 @@ namespace ProjectX.Core
             try { CallLua(onMailClicked, "Mail.OnClicked"); }
             catch (Exception exception) { Fail($"Mail open failed: {exception.Message}"); }
         }
+        private void HandleShopClick()
+        {
+            try { CallLua(onShopClicked, "Shop.OnClicked"); }
+            catch (Exception exception) { Fail($"Shop open failed: {exception.Message}"); }
+        }
         private static IEnumerator InvokeButtonNextFrame(Button button) { yield return null; button.onClick.Invoke(); }
 
         private IEnumerator CaptureMailDetailAndClaim(uint mailId)
@@ -1155,6 +1319,32 @@ namespace ProjectX.Core
             ScreenCapture.CaptureScreenshot(path);
             yield return new WaitForSecondsRealtime(0.75f);
             InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)mailId);
+        }
+
+        private void ShowShopPurchaseConfirmation(ShopRecord item)
+        {
+            EnsureErrorPresenter();
+            string limitText = item.Limit < 0 ? "不限购" : $"剩余限购 {item.RemainingLimit} 次";
+            errorPresenter.ShowConfirmation("购买确认",
+                $"花费 {item.UnitCost} {item.CostName}购买 {item.RewardAmount}×{item.Name}？\n{limitText}",
+                () => InvokeLuaOrFail(onShopBuyConfirmed, "Shop.OnBuyConfirmed", (double)item.Id));
+        }
+
+        private IEnumerator CaptureShopConfirmationAndConfirm(ushort itemId)
+        {
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop-confirm.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(0.75f);
+            if (!errorPresenter.IsVisible)
+            {
+                Fail($"Shop confirmation was not visible for id={itemId}.");
+                yield break;
+            }
+            errorPresenter.Confirm();
         }
 
         private void EnsureBagPresenter()
@@ -1226,6 +1416,14 @@ namespace ProjectX.Core
             if (mailView == null) throw new InvalidOperationException("MailLayer CocosUiBinding was not found.");
             mailPresenter = mailPresenter ?? new MailPresenter(mailView, services.Mails, services.Resources,
                 id => InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)id));
+        }
+
+        private void EnsureShopPresenter()
+        {
+            shopView = shopView ?? services.UiRouter.FindBySource("shop/shangcheng");
+            if (shopView == null) throw new InvalidOperationException("shop/shangcheng CocosUiBinding was not found.");
+            shopPresenter = shopPresenter ?? new ShopPresenter(shopView, services.Shop, services.Currencies,
+                services.Resources, services.ServerTime, ShowShopPurchaseConfirmation);
         }
 
         private void EnsureMainTaskTracker()
