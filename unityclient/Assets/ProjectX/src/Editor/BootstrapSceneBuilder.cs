@@ -38,6 +38,9 @@ namespace ProjectX.Editor
         private const string GuildInfoPrefab = "Assets/ProjectX/res/csd/Prefabs/bangpai/GangsLayer.prefab";
         private const string GuildMemberPrefab = "Assets/ProjectX/res/csd/Prefabs/bangpai/GangsMemberLayer.prefab";
         private const string GuildCreatePrefab = "Assets/ProjectX/res/csd/Prefabs/bangpai/GangsfoundLayer.prefab";
+        private const string WorldPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/WorldMapNewLayer.prefab";
+        private const string WorldMapPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/DadituuiLayer.prefab";
+        private const string WorldDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/guanqiaxiangxiLayer.prefab";
 
         [MenuItem("Tools/ProjectX App/Rebuild Bootstrap Scene", priority = 90)]
         public static void Build()
@@ -86,6 +89,9 @@ namespace ProjectX.Editor
             Instantiate(GuildInfoPrefab, canvasObject.transform, false);
             Instantiate(GuildMemberPrefab, canvasObject.transform, false);
             Instantiate(GuildCreatePrefab, canvasObject.transform, false);
+            Instantiate(WorldPrefab, canvasObject.transform, false);
+            Instantiate(WorldMapPrefab, canvasObject.transform, false);
+            Instantiate(WorldDetailPrefab, canvasObject.transform, false);
             GameObject heroList = Instantiate(HeroListPrefab, canvasObject.transform, false);
             Instantiate(HeroDetailPrefab, heroList.transform, true);
             GameObject heroEquipmentList = Instantiate(HeroEquipmentListPrefab, canvasObject.transform, false);

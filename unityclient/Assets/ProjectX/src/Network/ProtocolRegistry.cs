@@ -148,6 +148,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(226, "MSG_UPDATE_USER_LEVELUP_INFO", "Player", expectsResponse: false));
             registry.Register(new ProtocolDefinition(321, "MSG_SPIRIT", "Player"));
             registry.Register(new ProtocolDefinition(319, "PET_EQUIP_OPERATE", "HeroEquipment"));
+            registry.Register(new ProtocolDefinition(320, "MSG_GUANQIA", "WorldBattleDungeon"));
             registry.Register(new ProtocolDefinition(1001, "PRO_USER_LOGIN", "Login"));
             registry.Register(new ProtocolDefinition(1003, "PRO_CREATE_ROLE", "Login"));
             registry.Register(new ProtocolDefinition(1004, "PRO_SELECT_ROLE", "Login"));

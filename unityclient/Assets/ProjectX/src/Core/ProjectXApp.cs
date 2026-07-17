@@ -30,6 +30,7 @@ namespace ProjectX.Core
         public const string ChatPath = "Layer/Main_UI/ShortcutButtonGroup/Chat";
         public const string TeamLegacyPath = "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team";
         public const string GuildPath = "Layer/Main_UI/ButtonGroup3/btn_bangpai";
+        public const string WorldPath = "Layer/Main_UI/btn_fuben";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -67,6 +68,12 @@ namespace ProjectX.Core
         private LuaFunction onGuildCreate;
         private LuaFunction onGuildRequestMembers;
         private LuaFunction onGuildLeave;
+        private LuaFunction onWorldClicked;
+        private LuaFunction onWorldRequestChapter;
+        private LuaFunction onWorldRequestStage;
+        private LuaFunction onWorldOpenPreferredStage;
+        private LuaFunction onWorldChallenge;
+        private LuaFunction onWorldRefresh;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -152,6 +159,17 @@ namespace ProjectX.Core
         private GuildPresenter guildPresenter;
         private readonly List<GuildRecord> pendingGuildRecords = new List<GuildRecord>();
         private readonly List<GuildMemberRecord> pendingGuildMembers = new List<GuildMemberRecord>();
+        private CocosUiView worldView;
+        private CocosUiView worldMapView;
+        private CocosUiView worldDetailView;
+        private WorldPresenter worldPresenter;
+        private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
+        private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
+        private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
+        private WorldStageRecord pendingWorldStage;
+        private byte pendingWorldMapType;
+        private uint pendingWorldChapterId;
+        private string pendingWorldChapterName;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -166,6 +184,9 @@ namespace ProjectX.Core
         public bool IsLoginVisible => loginView != null && loginView.GameObject.activeSelf;
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
         public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
+        public bool IsWorldOpen => worldView != null && services?.UiStack.Current == worldView;
+        public int WorldChapterCount => services?.World.ChapterCount ?? 0;
+        public int WorldStageCount => services?.World.StageCount ?? 0;
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
@@ -252,6 +273,12 @@ namespace ProjectX.Core
                 onGuildCreate = services.Lua.GetFunction("OnGuildCreate");
                 onGuildRequestMembers = services.Lua.GetFunction("OnGuildRequestMembers");
                 onGuildLeave = services.Lua.GetFunction("OnGuildLeave");
+                onWorldClicked = services.Lua.GetFunction("OnWorldClicked");
+                onWorldRequestChapter = services.Lua.GetFunction("OnWorldRequestChapter");
+                onWorldRequestStage = services.Lua.GetFunction("OnWorldRequestStage");
+                onWorldOpenPreferredStage = services.Lua.GetFunction("OnWorldOpenPreferredStage");
+                onWorldChallenge = services.Lua.GetFunction("OnWorldChallenge");
+                onWorldRefresh = services.Lua.GetFunction("OnWorldRefresh");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -306,6 +333,12 @@ namespace ProjectX.Core
             onGuildCreate?.Dispose();
             onGuildRequestMembers?.Dispose();
             onGuildLeave?.Dispose();
+            onWorldClicked?.Dispose();
+            onWorldRequestChapter?.Dispose();
+            onWorldRequestStage?.Dispose();
+            onWorldOpenPreferredStage?.Dispose();
+            onWorldChallenge?.Dispose();
+            onWorldRefresh?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -321,6 +354,7 @@ namespace ProjectX.Core
             chatPresenter?.Dispose();
             teamPresenter?.Dispose();
             guildPresenter?.Dispose();
+            worldPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -593,6 +627,17 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+        public void BindWorldClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(WorldPath, HandleWorldClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
         public void ShowFriend()
         {
             EnsureFriendPresenter();
@@ -621,6 +666,14 @@ namespace ProjectX.Core
             SetStatus(services.Guild.HasGuild
                 ? $"Guild UI active: {services.Guild.Info.Name}, {services.Guild.MemberCount} members."
                 : $"Guild UI active: no guild, {services.Guild.Items.Count} guilds listed.");
+        }
+
+        public void ShowWorld()
+        {
+            EnsureWorldPresenter();
+            worldPresenter.ShowWorld();
+            if (services.UiStack.Current != worldView) services.UiStack.Push(worldView);
+            SetStatus($"World UI active: {services.World.ChapterCount} chapters, {services.World.StageCount} stages.");
         }
 
         public void ShowTask()
@@ -749,6 +802,7 @@ namespace ProjectX.Core
             services.Friends.Clear();
             services.Heroes.Clear();
             services.Formation.Clear();
+            services.World.Clear();
             services.ServerTime.Reset();
             loadingPresenter?.Clear();
             toastPresenter?.Clear();
@@ -1252,6 +1306,147 @@ namespace ProjectX.Core
                 return;
             }
             Complete($"COMPLETE: /54 empty/list -> create {expectedName} -> guild info -> PlayerSummary member list -> leave/dismiss -> persisted empty state");
+        }
+
+        public void BeginWorldChapterList(int mapType, int expectedCount)
+        {
+            pendingWorldMapType = checked((byte)mapType);
+            pendingWorldChapters.Clear();
+            if (expectedCount > pendingWorldChapters.Capacity) pendingWorldChapters.Capacity = expectedCount;
+        }
+
+        public void AddWorldChapter(double id, string name, int openLevel, int maximumStars)
+        {
+            pendingWorldChapters.Add(new WorldChapterRecord
+            {
+                Id = checked((uint)id),
+                Name = name ?? string.Empty,
+                OpenLevel = checked((ushort)openLevel),
+                MaximumStars = checked((byte)maximumStars)
+            });
+        }
+
+        public void SetWorldChapterProgress(double id, int ownedStars, int claimedBoxes)
+        {
+            uint chapterId = checked((uint)id);
+            WorldChapterRecord chapter = pendingWorldChapters.FirstOrDefault(value => value.Id == chapterId);
+            if (chapter == null) return;
+            chapter.OwnedStars = checked((ushort)ownedStars);
+            chapter.ClaimedBoxes = checked((byte)claimedBoxes);
+        }
+
+        public void EndWorldChapterList(double currentChapterId, double currentStageId)
+        {
+            services.World.ReplaceChapters(pendingWorldMapType, checked((uint)currentChapterId),
+                checked((uint)currentStageId), pendingWorldChapters);
+            EnsureWorldPresenter();
+            worldPresenter.ShowWorld();
+            SetStatus($"World/320 map: {services.World.ChapterCount} chapters, current={checked((uint)currentChapterId)}/{checked((uint)currentStageId)}.");
+        }
+
+        public double GetFirstWorldChapterId() => services.World.Chapters.FirstOrDefault()?.Id ?? 0;
+        public double GetWorldSelectedChapterId() => services.World.SelectedChapterId;
+        public double GetWorldPreferredStageId() => services.World.SelectedStageId;
+
+        public void BeginWorldStageList(int mapType, double chapterId, string chapterName, int expectedCount)
+        {
+            pendingWorldMapType = checked((byte)mapType);
+            pendingWorldChapterId = checked((uint)chapterId);
+            pendingWorldChapterName = chapterName ?? string.Empty;
+            pendingWorldStages.Clear();
+            pendingWorldStarBoxes.Clear();
+            pendingWorldStage = null;
+            if (expectedCount > pendingWorldStages.Capacity) pendingWorldStages.Capacity = expectedCount;
+        }
+
+        public void BeginWorldStage(double id, string name, int stars, int attempts, int spiritCost,
+            int remainingResets, int resetCost, double nextStageId, double rewardBoxId, int rewardBoxState)
+        {
+            pendingWorldStage = new WorldStageRecord
+            {
+                Id = checked((uint)id),
+                Name = name ?? string.Empty,
+                Stars = checked((byte)stars),
+                RemainingAttempts = checked((byte)attempts),
+                SpiritCost = checked((byte)spiritCost),
+                RemainingResets = checked((byte)remainingResets),
+                ResetCost = checked((ushort)resetCost),
+                NextStageId = checked((uint)nextStageId),
+                RewardBoxId = checked((uint)rewardBoxId),
+                RewardBoxState = checked((byte)rewardBoxState)
+            };
+        }
+
+        public void AddWorldStageReward(int type, double id, double amount, string name, int picture, int quality)
+        {
+            if (pendingWorldStage == null) throw new InvalidOperationException("World stage reward arrived without a stage.");
+            pendingWorldStage.AddReward(new RewardRecord(type, checked((uint)id), checked((uint)amount),
+                name, picture, quality));
+        }
+
+        public void EndWorldStage()
+        {
+            if (pendingWorldStage == null) throw new InvalidOperationException("World stage end arrived without a stage.");
+            pendingWorldStages.Add(pendingWorldStage);
+            pendingWorldStage = null;
+        }
+
+        public void AddWorldStarBox(int requiredStars, double rewardId, int state)
+        {
+            pendingWorldStarBoxes.Add(new WorldStarBoxRecord
+            {
+                RequiredStars = checked((byte)requiredStars),
+                RewardId = checked((uint)rewardId),
+                State = checked((byte)state)
+            });
+        }
+
+        public void EndWorldStageList()
+        {
+            services.World.ReplaceStages(pendingWorldMapType, pendingWorldChapterId, pendingWorldChapterName,
+                pendingWorldStages, pendingWorldStarBoxes);
+            EnsureWorldPresenter();
+            worldPresenter.ShowStages();
+            SetStatus($"World/320 chapter {pendingWorldChapterId}: {services.World.StageCount} stages.");
+        }
+
+        public void SetWorldStageStatus(int mapType, double chapterId, double stageId, int stars,
+            int foughtCount, int remainingResets)
+        {
+            services.World.UpdateStageStatus(checked((byte)mapType), checked((uint)chapterId), checked((uint)stageId),
+                checked((byte)stars), checked((byte)foughtCount), checked((byte)remainingResets));
+            EnsureWorldPresenter();
+            worldPresenter.ShowSelectedStage();
+            SetStatus($"World/320 stage {checked((uint)stageId)}: stars={stars}, fought={foughtCount}, resets={remainingResets}.");
+        }
+
+        public void ApplyWorldBattleResult(int foughtCount, double foughtStageId, double unlockedChapterId,
+            double unlockedStageId, double unlockedBoxId, double unlockedStarBoxId, int stars)
+        {
+            services.World.ApplyBattleResult(checked((byte)foughtCount), checked((uint)foughtStageId),
+                checked((uint)unlockedChapterId), checked((uint)unlockedStageId), checked((byte)stars));
+            SetStatus($"World/320 PvE result: stage={checked((uint)foughtStageId)}, stars={stars}, next={checked((uint)unlockedStageId)}, box={checked((uint)unlockedBoxId)}/{checked((uint)unlockedStarBoxId)}.");
+        }
+
+        public void SetWorldError(string message) { ShowToast(message, 3f); SetStatus(message); }
+        public void CaptureWorldMapAndContinue() => StartCoroutine(CaptureWorldMap());
+        public void CaptureWorldDetailAndChallenge() => StartCoroutine(CaptureWorldDetail());
+        public void CaptureWorldBattleAndRefresh(int rewardCount) => StartCoroutine(CaptureWorldBattleResult(rewardCount));
+
+        public void CompleteWorldBattleValidation(double expectedStageId, int expectedRewardCount)
+        {
+            EnsureWorldPresenter();
+            uint stageId = checked((uint)expectedStageId);
+            WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.Id == stageId);
+            if (GetLocalUserId() == 1 || !IsWorldOpen || stage == null || stage.Stars == 0 || stage.Stars == byte.MaxValue
+                || services.World.ChapterCount == 0 || services.World.StageCount == 0
+                || worldPresenter.RenderedRewardCount == 0 || expectedRewardCount <= 0)
+            {
+                Fail($"World final state mismatch: user={GetLocalUserId()}, open={IsWorldOpen}, chapter={services.World.ChapterCount}, stages={services.World.StageCount}, stage={stageId}, stars={stage?.Stars ?? 255}, fought={stage?.FoughtCount ?? 0}, rewards={expectedRewardCount}/{worldPresenter.RenderedRewardCount}.");
+                return;
+            }
+            rewardPresenter?.Hide();
+            Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {stageId} -> op=8 settlement -> persisted stars={stage.Stars}, server fight count={stage.FoughtCount}; isolated user={GetLocalUserId()}");
         }
 
         public void AddShopRecord(int grid, double id, int buyCount, string name,
@@ -1795,6 +1990,12 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Guild open failed: {exception.Message}"); }
         }
 
+        private void HandleWorldClick()
+        {
+            try { CallLua(onWorldClicked, "World.OnClicked"); }
+            catch (Exception exception) { Fail($"World open failed: {exception.Message}"); }
+        }
+
         private Button EnsureRuntimeTeamEntry()
         {
             Transform existing = mainView.GameObject.transform.Find("TeamEntryRuntime");
@@ -1949,6 +2150,63 @@ namespace ProjectX.Core
             InvokeLuaOrFail(onGuildLeave, "Guild.OnLeave");
         }
 
+        private IEnumerator CaptureWorldMap()
+        {
+            yield return new WaitForSecondsRealtime(1.5f);
+            EnsureWorldPresenter();
+            if (!IsWorldOpen || services.World.ChapterCount == 0 || services.World.StageCount == 0
+                || worldPresenter.RenderedCount != services.World.StageCount)
+            {
+                Fail($"World map state mismatch: open={IsWorldOpen}, chapters={services.World.ChapterCount}, stages={services.World.StageCount}, rendered={worldPresenter.RenderedCount}.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world.png"));
+            yield return new WaitForSecondsRealtime(0.75f);
+            InvokeLuaOrFail(onWorldOpenPreferredStage, "World.OpenPreferredStage");
+        }
+
+        private IEnumerator CaptureWorldDetail()
+        {
+            yield return new WaitForSecondsRealtime(1.25f);
+            EnsureWorldPresenter();
+            WorldStageRecord stage = services.World.SelectedStage;
+            if (!worldPresenter.DetailVisible || stage == null || !stage.IsUnlocked
+                || worldPresenter.RenderedRewardCount == 0)
+            {
+                Fail($"World detail state mismatch: detail={worldPresenter.DetailVisible}, stage={stage?.Id ?? 0}, unlocked={stage?.IsUnlocked ?? false}, rewards={worldPresenter.RenderedRewardCount}.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-detail.png"));
+            yield return new WaitForSecondsRealtime(0.75f);
+            InvokeLuaOrFail(onWorldChallenge, "World.Challenge");
+        }
+
+        private IEnumerator CaptureWorldBattleResult(int rewardCount)
+        {
+            yield return new WaitForSecondsRealtime(1.25f);
+            if (!ValidateRewardPresentation(rewardCount, false))
+            {
+                Fail($"World settlement reward presentation mismatch: expected={rewardCount}, actual={services.Rewards.Count}.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-result.png"));
+            yield return new WaitForSecondsRealtime(0.75f);
+            rewardPresenter?.Hide();
+            InvokeLuaOrFail(onWorldRefresh, "World.RefreshAfterBattle");
+        }
+
+        private static string BuildUiMigrationPath(string fileName)
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            return path;
+        }
+
         private void EnsureBagPresenter()
         {
             bagView = bagView ?? services.UiRouter.FindBySource("zhujue/beibao");
@@ -2071,6 +2329,21 @@ namespace ProjectX.Core
                 name => InvokeLuaOrFail(onGuildCreate, "Guild.Create", name),
                 () => InvokeLuaOrFail(onGuildRequestMembers, "Guild.RequestMembers"),
                 () => InvokeLuaOrFail(onGuildLeave, "Guild.Leave"));
+        }
+
+        private void EnsureWorldPresenter()
+        {
+            worldView = worldView ?? services.UiRouter.FindBySource("fuben/WorldMapNewLayer");
+            worldMapView = worldMapView ?? services.UiRouter.FindBySource("fuben/DadituuiLayer");
+            worldDetailView = worldDetailView ?? services.UiRouter.FindBySource("fuben/guanqiaxiangxiLayer");
+            if (worldView == null || worldMapView == null || worldDetailView == null)
+                throw new InvalidOperationException("World imported CocosUiBindings were not found.");
+            worldPresenter = worldPresenter ?? new WorldPresenter(worldView, worldMapView, worldDetailView,
+                services.World, services.Heroes, services.Formation, services.Resources,
+                id => InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)id),
+                id => { services.World.SelectStage(id); InvokeLuaOrFail(onWorldRequestStage, "World.RequestStage", (double)id); },
+                () => InvokeLuaOrFail(onWorldChallenge, "World.Challenge"),
+                () => HandleBack());
         }
 
         private void BeginFriendUpdate(int maximum, int expectedCount)

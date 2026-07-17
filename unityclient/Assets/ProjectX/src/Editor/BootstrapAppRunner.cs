@@ -112,6 +112,7 @@ namespace ProjectX.Editor
             bool chatValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXChatValidation") >= 0;
             bool teamValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTeamValidation") >= 0;
             bool guildValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGuildValidation") >= 0;
+            bool worldValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldBattleValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
             {
@@ -128,6 +129,7 @@ namespace ProjectX.Editor
                 bool checkingChat = chatValidation;
                 bool checkingTeam = teamValidation;
                 bool checkingGuild = guildValidation;
+                bool checkingWorld = worldValidation;
                 if (settingsValidation && settingsPhase == 2)
                 {
                     if (!app.IsLoginVisible || app.NetworkState != ProjectX.Network.NetworkState.Disconnected)
@@ -153,7 +155,8 @@ namespace ProjectX.Editor
                         : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero ? !app.IsHeroOpen
                         : checkingMail ? !app.IsMailOpen : checkingShop ? !app.IsShopOpen
                         : checkingFriend ? !app.IsFriendOpen : checkingChat ? !app.IsChatOpen
-                        : checkingTeam ? !app.IsTeamOpen : checkingGuild ? !app.IsGuildOpen : !app.IsBagOpen))
+                        : checkingTeam ? !app.IsTeamOpen : checkingGuild ? !app.IsGuildOpen
+                        : checkingWorld ? !app.IsWorldOpen : !app.IsBagOpen))
                     {
                         WriteResult(false, status + (checkingTask
                             ? " (task UI was not pushed onto UiStack)"
@@ -175,6 +178,8 @@ namespace ProjectX.Editor
                             ? " (team UI was not pushed onto UiStack)"
                             : checkingGuild
                             ? " (guild UI was not pushed onto UiStack)"
+                            : checkingWorld
+                            ? " (world UI was not pushed onto UiStack)"
                             : " (bag UI was not pushed onto UiStack)"));
                         Finish(false);
                         return;
@@ -197,7 +202,7 @@ namespace ProjectX.Editor
                         Finish(false);
                         return;
                     }
-                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && app.BagMissingIconCount > 0)
+                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && app.BagMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.BagMissingIconCount} item icons were not resolved)");
                         Finish(false);
@@ -207,7 +212,8 @@ namespace ProjectX.Editor
                         : checkingTask ? GetTaskScreenshotPath() : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath()
                         : checkingMail ? GetMailScreenshotPath() : checkingShop ? GetShopScreenshotPath()
                         : checkingFriend ? GetFriendScreenshotPath() : checkingChat ? GetChatScreenshotPath()
-                        : checkingTeam ? GetTeamScreenshotPath() : checkingGuild ? GetGuildScreenshotPath() : GetBagScreenshotPath();
+                        : checkingTeam ? GetTeamScreenshotPath() : checkingGuild ? GetGuildScreenshotPath()
+                        : checkingWorld ? GetWorldScreenshotPath() : GetBagScreenshotPath();
                     Directory.CreateDirectory(Path.GetDirectoryName(screenshotPath));
                     ScreenCapture.CaptureScreenshot(screenshotPath);
                     SessionState.SetBool(ScreenshotPendingKey, true);
@@ -228,7 +234,8 @@ namespace ProjectX.Editor
                     : checkingHeroEquipment ? app.IsHeroEquipmentOpen : checkingHero ? app.IsHeroOpen
                     : checkingMail ? app.IsMailOpen : checkingShop ? app.IsShopOpen
                     : checkingFriend ? app.IsFriendOpen : checkingChat ? app.IsChatOpen
-                    : checkingTeam ? app.IsTeamOpen : checkingGuild ? app.IsGuildOpen : app.IsBagOpen))
+                    : checkingTeam ? app.IsTeamOpen : checkingGuild ? app.IsGuildOpen
+                    : checkingWorld ? app.IsWorldOpen : app.IsBagOpen))
                 {
                     WriteResult(false, status + (checkingTask
                         ? " (Esc/back did not return from task UI to main UI)"
@@ -250,6 +257,8 @@ namespace ProjectX.Editor
                         ? " (Esc/back did not return from team UI to main UI)"
                         : checkingGuild
                         ? " (Esc/back did not return from guild UI to main UI)"
+                        : checkingWorld
+                        ? " (Esc/back did not return from world UI to main UI)"
                         : " (Esc/back did not return from bag UI to main UI)"));
                     Finish(false);
                     return;
@@ -414,6 +423,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-guild.png");
+        }
+
+        private static string GetWorldScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-world-final.png");
         }
 
         private static string GetManualReconnectRequestPath()

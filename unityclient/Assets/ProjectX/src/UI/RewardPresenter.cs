@@ -23,6 +23,7 @@ namespace ProjectX.UI
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             title = Require("Title/Title_1").GetComponent<Text>();
             tips = Require("tips").GetComponent<Text>();
+            NormalizeItemListLayout();
             for (int index = 0; index < cells.Length; index++)
                 cells[index] = Require($"ItemList/itemlayer_{index + 1}");
             BindClose("Btn_close");
@@ -110,6 +111,16 @@ namespace ProjectX.UI
             image.sprite = sprite;
             image.enabled = sprite != null;
             image.preserveAspect = true;
+        }
+
+        private void NormalizeItemListLayout()
+        {
+            RectTransform list = Require("ItemList").GetComponent<RectTransform>();
+            if (list == null) return;
+            list.anchorMin = new Vector2(0.5f, 0.5f);
+            list.anchorMax = new Vector2(0.5f, 0.5f);
+            list.pivot = Vector2.zero;
+            list.anchoredPosition = new Vector2(-280f, -70f);
         }
 
         private GameObject Require(string relativePath)

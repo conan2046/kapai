@@ -276,7 +276,9 @@
       "key": "Guild",
       "displayName": "帮派",
       "status": "phase1-complete",
-      "protocols": [54],
+      "protocols": [
+        54
+      ],
       "entries": [
         "Layer/Main_UI/ButtonGroup3/btn_bangpai"
       ],
@@ -288,12 +290,43 @@
       ],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXGuildValidation"],
+      "validationFlags": [
+        "-projectXGuildValidation"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-guild-members.png",
         "build/ui-migration/bootstrap-guild.png"
       ],
       "document": "docs/unityclient/modules/GUILD.md"
+    },
+    {
+      "key": "World",
+      "displayName": "世界/战斗/副本",
+      "status": "phase1-complete",
+      "protocols": [
+        320
+      ],
+      "entries": [
+        "Layer/Main_UI/btn_fuben"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/fuben/WorldMapNewLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/fuben/DadituuiLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/fuben/guanqiaxiangxiLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/zhandoujiesuanLayer.prefab"
+      ],
+      "configs": [],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXWorldBattleValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-world.png",
+        "build/ui-migration/bootstrap-world-detail.png",
+        "build/ui-migration/bootstrap-world-result.png",
+        "build/ui-migration/bootstrap-world-final.png"
+      ],
+      "document": "docs/unityclient/modules/WORLD.md"
     }
   ]
 }

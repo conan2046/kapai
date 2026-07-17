@@ -12,6 +12,7 @@ local FriendController = require("Friend.FriendController")
 local ChatController = require("Chat.ChatController")
 local TeamController = require("Team.TeamController")
 local GuildController = require("Guild.GuildController")
+local WorldController = require("World.WorldController")
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -50,6 +51,12 @@ function OnGuildClicked() GuildController.onClick() end
 function OnGuildCreate(name) GuildController.create(name) end
 function OnGuildRequestMembers() GuildController.requestMembers() end
 function OnGuildLeave() GuildController.leave() end
+function OnWorldClicked() WorldController.onClick() end
+function OnWorldRequestChapter(chapterId) WorldController.requestChapter(chapterId) end
+function OnWorldRequestStage(stageId) WorldController.requestStage(stageId) end
+function OnWorldOpenPreferredStage() WorldController.openPreferredStage() end
+function OnWorldChallenge() WorldController.challengeSelected() end
+function OnWorldRefresh() WorldController.refreshAfterBattle() end
 function OnPacket(command, message)
     if LoginController.onPacket(command, message) then return end
     if PlayerController.onPacket(command, message) then return end
@@ -63,5 +70,6 @@ function OnPacket(command, message)
     if ChatController.onPacket(command, message) then return end
     if TeamController.onPacket(command, message) then return end
     if GuildController.onPacket(command, message) then return end
+    if WorldController.onPacket(command, message) then return end
     TaskController.onPacket(command, message)
 end
