@@ -8,11 +8,17 @@
 
 ## 启动检查
 
-1. 在 `server/src/protocol.h` 确认协议号。
-2. 在 `server/src/pack_deal.cpp` 确认注册和处理函数。
-3. 在旧客户端查好友入口、请求、解析、红点和真实 Prefab。
-4. 用只读 smoke/隔离角色确认字段和空态。
-5. 明确列表、申请和玩家摘要 Store 边界。
+1. 先用 `Get-ProtocolEvidence.ps1` 取证候选协议，再回填 Manifest。
+2. 在 `server/src/protocol.h` 确认协议号。
+3. 在 `server/src/pack_deal.cpp` 确认注册和处理函数。
+4. 在旧客户端查好友入口、请求、解析、红点和真实 Prefab。
+5. 用只读 smoke/隔离角色确认字段和空态。
+6. 明确列表、申请和玩家摘要 Store 边界。
+
+```powershell
+pwsh -File tools/unity-migration/Get-ProtocolEvidence.ps1 -Protocol <协议号> -Module Friend
+pwsh -File tools/unity-migration/New-UnityMigrationModule.ps1 -Module Friend -DisplayName 好友 -WhatIf
+```
 
 ## 预期复用
 

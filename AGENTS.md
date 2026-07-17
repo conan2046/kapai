@@ -27,6 +27,7 @@
 - `UNITYCLIENT_MIGRATION_PLAN.md` 只保存稳定路线、依赖和完成门禁，不追加每日流水。
 - 模块协议、实现和验证证据写入 `docs/unityclient/modules/`；日期流水与旧全文写入 `docs/unityclient/history/`。
 - 新任务不得默认完整读取 `docs/unityclient/history/`；只有追查旧命令、错误或决策证据时才定点检索。
+- Unity 新模块先读取 `tools/unity-migration/unityclient-modules.json`，优先使用 `Get-ProtocolEvidence.ps1`、`New-UnityMigrationModule.ps1`、`Run-UnityModuleValidation.ps1` 和 `Test-UnityMigrationDocs.ps1`，不得重复创建平行工具。
 
 ## 分析与修改范围
 - 分析业务代码时优先看 `client/ProjectX/src/`、`client/ProjectX/res/`、`server/src/`、`server/script/`、`server/config/`、`server/sql/`、`tools/local/`。

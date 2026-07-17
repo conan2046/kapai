@@ -21,6 +21,7 @@
 | 运行时/网络/xLua | 第一阶段完成 | App 状态、协议分发、错误边界、重连、返回栈 | 回放、发布配置、完整错误码 |
 | 登录/主界面 | 第一阶段完成 | 启动、登录、创角、选角、切号、HUD | 正式登录服、更多主界面入口 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
+| 迁移提速工具 | 已完成 | Manifest、模块脚手架、协议取证、统一验收、文档门禁、隔离角色分配 | 随新模块持续补 Manifest |
 | 资源/时间 | 第一阶段完成 | ResourceService、缺图统计、ServerTime `/206` | Atlas、内存预算、异步加载 |
 | 设置 | 第一阶段完成 | 音乐/音效/音量持久化 | 兑换码、公告等独立模块 |
 | 背包 | 第一阶段完成 | `/8、/15` 全量/增量/整理/使用/持久化 | 更多物品类型和批量操作 |
@@ -48,6 +49,8 @@
 - 阶段结束状态：Unity、Cocos、`kapai.exe`、workspace-local MySQL 均关闭；3306/8711 无监听。
 
 ## 4. 当前批次
+
+迁移提速工具已完成，入口为 `tools/unity-migration/README.md`。
 
 下一批：`Friend Store`。
 

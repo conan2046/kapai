@@ -2,6 +2,8 @@
 
 模块文档只保存目标模块的协议、入口、Prefab、实现、验证和遗留项。新任务只读取目标模块，不默认读取历史全文。
 
+机器可读状态与验收参数统一维护在 `tools/unity-migration/unityclient-modules.json`。
+
 | 模块 | 文档 | 状态 |
 |---|---|---|
 | 底层/登录/主界面 | `FOUNDATION.md` | 第一阶段完成 |

@@ -70,20 +70,32 @@
 | 场景装配 | `Editor/BootstrapSceneBuilder.cs` |
 | 自动化 | `Editor/BootstrapAppRunner.cs` |
 
-## 6. 单模块标准流程
+## 6. 迁移提速工具
 
-1. 查 `server/src/protocol.h` 协议号。
-2. 查 `server/src/pack_deal.cpp` 注册和处理函数。
-3. 查旧客户端 Lua 的请求、解析、入口和真实 Prefab。
-4. 用 smoke/隔离角色确认真实字段，禁止凭注释猜包。
-5. 建 `Store/Catalog/Presenter/Lua Controller`。
-6. 在 `GameServices/ProjectXApp/ProtocolRegistry/BootstrapSceneBuilder` 接线。
-7. 先做只读列表，再增量，再消耗/变更。
-8. 自动化必须记录角色、前后状态、资源缺失和结果时间戳。
-9. 固定 `1334×750` GameView 视觉检查。
-10. 更新 STATUS、模块文档、协议覆盖，关闭本阶段进程。
+| 工具 | 用途 |
+|---|---|
+| `tools/unity-migration/unityclient-modules.json` | 模块、协议、入口、Prefab、配置和验收参数 |
+| `New-UnityMigrationModule.ps1` | 生成 Store/Catalog/Presenter/Lua/模块文档骨架 |
+| `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity、smoke 证据 |
+| `Run-UnityModuleValidation.ps1` | 自动分配隔离角色、启服、串行 Unity、结果/截图检查和清理 |
+| `Test-UnityMigrationDocs.ps1` | 状态唯一性、文档体积、Manifest 和路径门禁 |
 
-## 7. Unity 验收规则
+完整用法见 `tools/unity-migration/README.md`。
+
+## 7. 单模块标准流程
+
+1. 先运行 `Get-ProtocolEvidence.ps1 -Protocol <id> -Module <name>` 生成取证草稿。
+2. 查 `server/src/protocol.h` 协议号。
+3. 查 `server/src/pack_deal.cpp` 注册和处理函数。
+4. 查旧客户端 Lua 的请求、解析、入口和真实 Prefab。
+5. 用 smoke/隔离角色确认真实字段，禁止凭注释猜包。
+6. 用脚手架或现有结构建立 `Store/Catalog/Presenter/Lua Controller`。
+7. 在 `GameServices/ProjectXApp/ProtocolRegistry/BootstrapSceneBuilder` 接线。
+8. 先做只读列表，再增量，再消耗/变更。
+9. 使用 `Run-UnityModuleValidation.ps1 -Module <name>` 收口。
+10. 更新 STATUS、模块文档、协议覆盖，运行文档门禁并关闭本阶段进程。
+
+## 8. Unity 验收规则
 
 - 文档和纯静态修改不启动 Unity/MCP/服务。
 - C#/Lua 静态完成后，只有编译、场景、Prefab、Console、PlayMode 才启动 Unity。
@@ -95,7 +107,7 @@
 - batchMode 日志不能替代 GameView；图形环境可用时必须截图。
 - 阶段结束关闭 Unity、Unity Hub、Cocos、`kapai.exe`、workspace-local MySQL，并检查 3306/8711。
 
-## 8. 高频坑
+## 9. 高频坑
 
 | 坑 | 规则 |
 |---|---|
@@ -109,7 +121,7 @@
 | 日志成功但 UI 错位 | 固定分辨率截图检查文字、裁剪、层级和按钮状态 |
 | 测试数据重复消耗 | 每个变更场景使用新隔离角色，失败角色不复用为最终证据 |
 
-## 9. 常用验证
+## 10. 常用验证
 
 UI 转换测试：
 
@@ -123,6 +135,12 @@ Git 空白检查：
 & 'C:\Program Files\Git\cmd\git.exe' diff --check
 ```
 
+迁移文档与 Manifest：
+
+```powershell
+pwsh -File tools/unity-migration/Test-UnityMigrationDocs.ps1
+```
+
 Unity 模块验收参数示例：
 
 ```text
@@ -132,7 +150,7 @@ Unity 模块验收参数示例：
 -projectX<Module>Validation
 ```
 
-## 10. 当前工作区边界
+## 11. 当前工作区边界
 
 - 只有用户明确要求才 stage、commit、push。
 - 处理 Unity 迁移时保留用户已有 xlua `.meta` 删除、`ShaderGraphSettings.asset` 和 `.vscode/` 变化。
