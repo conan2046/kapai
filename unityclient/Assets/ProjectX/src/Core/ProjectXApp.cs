@@ -29,6 +29,7 @@ namespace ProjectX.Core
         public const string FriendPath = "Layer/Main_UI/ButtonGroup7/btn_friend";
         public const string ChatPath = "Layer/Main_UI/ShortcutButtonGroup/Chat";
         public const string TeamLegacyPath = "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team";
+        public const string GuildPath = "Layer/Main_UI/ButtonGroup3/btn_bangpai";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -62,6 +63,10 @@ namespace ProjectX.Core
         private LuaFunction onTeamInvite;
         private LuaFunction onTeamRespond;
         private LuaFunction onTeamLeave;
+        private LuaFunction onGuildClicked;
+        private LuaFunction onGuildCreate;
+        private LuaFunction onGuildRequestMembers;
+        private LuaFunction onGuildLeave;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -140,6 +145,13 @@ namespace ProjectX.Core
         private readonly List<TeamMemberRecord> pendingTeamMembers = new List<TeamMemberRecord>();
         private byte pendingTeamType;
         private ushort pendingTeamFormationId;
+        private CocosUiView guildView;
+        private CocosUiView guildInfoView;
+        private CocosUiView guildMemberView;
+        private CocosUiView guildCreateView;
+        private GuildPresenter guildPresenter;
+        private readonly List<GuildRecord> pendingGuildRecords = new List<GuildRecord>();
+        private readonly List<GuildMemberRecord> pendingGuildMembers = new List<GuildMemberRecord>();
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -153,6 +165,7 @@ namespace ProjectX.Core
         public bool IsSettingsOpen => settingsView != null && services?.UiStack.Current == settingsView;
         public bool IsLoginVisible => loginView != null && loginView.GameObject.activeSelf;
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
+        public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
@@ -235,6 +248,10 @@ namespace ProjectX.Core
                 onTeamInvite = services.Lua.GetFunction("OnTeamInvite");
                 onTeamRespond = services.Lua.GetFunction("OnTeamRespond");
                 onTeamLeave = services.Lua.GetFunction("OnTeamLeave");
+                onGuildClicked = services.Lua.GetFunction("OnGuildClicked");
+                onGuildCreate = services.Lua.GetFunction("OnGuildCreate");
+                onGuildRequestMembers = services.Lua.GetFunction("OnGuildRequestMembers");
+                onGuildLeave = services.Lua.GetFunction("OnGuildLeave");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -285,6 +302,10 @@ namespace ProjectX.Core
             onTeamInvite?.Dispose();
             onTeamRespond?.Dispose();
             onTeamLeave?.Dispose();
+            onGuildClicked?.Dispose();
+            onGuildCreate?.Dispose();
+            onGuildRequestMembers?.Dispose();
+            onGuildLeave?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -299,6 +320,7 @@ namespace ProjectX.Core
             friendPresenter?.Dispose();
             chatPresenter?.Dispose();
             teamPresenter?.Dispose();
+            guildPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -560,6 +582,17 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+        public void BindGuildClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(GuildPath, HandleGuildClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
         public void ShowFriend()
         {
             EnsureFriendPresenter();
@@ -579,6 +612,15 @@ namespace ProjectX.Core
             EnsureTeamPresenter();
             if (services.UiStack.Current != teamView) services.UiStack.Push(teamView);
             SetStatus($"Team UI active: {services.Team.PlayerCount} players.");
+        }
+
+        public void ShowGuild()
+        {
+            EnsureGuildPresenter();
+            if (services.UiStack.Current != guildView) services.UiStack.Push(guildView);
+            SetStatus(services.Guild.HasGuild
+                ? $"Guild UI active: {services.Guild.Info.Name}, {services.Guild.MemberCount} members."
+                : $"Guild UI active: no guild, {services.Guild.Items.Count} guilds listed.");
         }
 
         public void ShowTask()
@@ -1106,6 +1148,110 @@ namespace ProjectX.Core
                 return;
             }
             Complete($"COMPLETE: /29 empty -> create -> invite/peer accept {checked((uint)peerRoleId)} -> 2-player TeamStore/UI -> leave -> persisted empty state; /30 refresh active");
+        }
+
+        public void BeginGuildList(int expectedCount)
+        {
+            pendingGuildRecords.Clear();
+            if (expectedCount > pendingGuildRecords.Capacity) pendingGuildRecords.Capacity = expectedCount;
+        }
+
+        public void AddGuildRecord(int rank, double id, string name, int level, string leaderName,
+            int memberCount, int maximumMembers, int plantedCount, string notice, bool applied, int autoAcceptLevel)
+        {
+            pendingGuildRecords.Add(new GuildRecord
+            {
+                Rank = checked((ushort)rank),
+                Id = checked((uint)id),
+                Name = name ?? string.Empty,
+                Level = checked((byte)level),
+                LeaderName = leaderName ?? string.Empty,
+                MemberCount = checked((ushort)memberCount),
+                MaximumMembers = checked((ushort)maximumMembers),
+                PlantedCount = checked((ushort)plantedCount),
+                Notice = notice ?? string.Empty,
+                HasApplied = applied,
+                AutoAcceptLevel = checked((ushort)autoAcceptLevel)
+            });
+        }
+
+        public void EndGuildList()
+        {
+            services.Guild.ReplaceList(pendingGuildRecords);
+            EnsureGuildPresenter();
+        }
+
+        public void SetGuildInfo(double id, string name, string leaderName, int level, int legacyId,
+            int memberCount, double prosperity, string notice, string slogan, int autoAcceptLevel)
+        {
+            services.Guild.SetInfo(new GuildInfo
+            {
+                Id = checked((uint)id),
+                Name = name ?? string.Empty,
+                LeaderName = leaderName ?? string.Empty,
+                Level = checked((byte)level),
+                LegacyId = checked((ushort)legacyId),
+                MemberCount = checked((ushort)memberCount),
+                Prosperity = checked((uint)prosperity),
+                Notice = notice ?? string.Empty,
+                Slogan = slogan ?? string.Empty,
+                AutoAcceptLevel = checked((ushort)autoAcceptLevel)
+            });
+            EnsureGuildPresenter();
+            guildPresenter.ShowInfo();
+            SetStatus($"Guild/54 info: {name}, {memberCount} members.");
+        }
+
+        public void BeginGuildMembers(int expectedCount)
+        {
+            pendingGuildMembers.Clear();
+            if (expectedCount > pendingGuildMembers.Capacity) pendingGuildMembers.Capacity = expectedCount;
+        }
+
+        public void AddGuildMember(double roleId, string name, int level, int rank, int head,
+            double contribution, int sex, double power, int vip, double lastOfflineSeconds, double dailyActivity)
+        {
+            uint guildId = services.Guild.Info?.Id ?? 0;
+            pendingGuildMembers.Add(new GuildMemberRecord
+            {
+                Player = new PlayerSummary(checked((uint)roleId), name, checked((ushort)level),
+                    checked((byte)sex), checked((byte)head), checked((ulong)power), guildId: guildId),
+                Rank = checked((byte)rank),
+                Contribution = checked((uint)contribution),
+                VipLevel = checked((byte)vip),
+                LastOfflineSeconds = checked((uint)lastOfflineSeconds),
+                DailyActivity = checked((uint)dailyActivity)
+            });
+        }
+
+        public void EndGuildMembers()
+        {
+            services.Guild.ReplaceMembers(pendingGuildMembers);
+            EnsureGuildPresenter();
+            guildPresenter.ShowMembers(false);
+            SetStatus($"Guild/54 member list: {services.Guild.MemberCount} players.");
+        }
+
+        public void ClearGuildState()
+        {
+            services.Guild.ClearGuild();
+            guildPresenter?.ShowInfo();
+        }
+
+        public string MakeGuildValidationName() => $"验{GetLocalUserId() % 100000:D5}";
+        public void SetGuildError(string message) { ShowToast(message, 3f); SetStatus(message); }
+        public void CaptureGuildAndLeaveValidation() => StartCoroutine(CaptureGuildAndLeave());
+
+        public void CompleteGuildValidation(string expectedName)
+        {
+            EnsureGuildPresenter();
+            if (GetLocalUserId() == 1 || !IsGuildOpen || services.Guild.HasGuild
+                || services.Guild.MemberCount != 0 || guildPresenter.ShowingMembers)
+            {
+                Fail($"Guild final state mismatch: user={GetLocalUserId()}, open={IsGuildOpen}, hasGuild={services.Guild.HasGuild}, members={services.Guild.MemberCount}, memberView={guildPresenter.ShowingMembers}.");
+                return;
+            }
+            Complete($"COMPLETE: /54 empty/list -> create {expectedName} -> guild info -> PlayerSummary member list -> leave/dismiss -> persisted empty state");
         }
 
         public void AddShopRecord(int grid, double id, int buyCount, string name,
@@ -1643,6 +1789,12 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Team open failed: {exception.Message}"); }
         }
 
+        private void HandleGuildClick()
+        {
+            try { CallLua(onGuildClicked, "Guild.OnClicked"); }
+            catch (Exception exception) { Fail($"Guild open failed: {exception.Message}"); }
+        }
+
         private Button EnsureRuntimeTeamEntry()
         {
             Transform existing = mainView.GameObject.transform.Find("TeamEntryRuntime");
@@ -1775,6 +1927,28 @@ namespace ProjectX.Core
             InvokeLuaOrFail(onTeamLeave, "Team.OnLeave");
         }
 
+        private IEnumerator CaptureGuildAndLeave()
+        {
+            yield return new WaitForSecondsRealtime(1.5f);
+            EnsureGuildPresenter();
+            uint roleId = services.Player.RoleId;
+            if (!services.Guild.HasGuild || services.Guild.MemberCount != 1
+                || !services.Guild.ContainsMember(roleId) || guildPresenter.RenderedMemberCount != 1)
+            {
+                Fail($"Guild joined-state mismatch: guild={services.Guild.Info?.Id ?? 0}, role={roleId}, members={services.Guild.MemberCount}, rendered={guildPresenter.RenderedMemberCount}.");
+                yield break;
+            }
+            guildPresenter.ShowMembers(false);
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-guild-members.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(0.75f);
+            InvokeLuaOrFail(onGuildLeave, "Guild.OnLeave");
+        }
+
         private void EnsureBagPresenter()
         {
             bagView = bagView ?? services.UiRouter.FindBySource("zhujue/beibao");
@@ -1882,6 +2056,21 @@ namespace ProjectX.Core
                 () => InvokeLuaOrFail(onTeamCreate, "Team.Create"),
                 id => InvokeLuaOrFail(onTeamInvite, "Team.Invite", (double)id),
                 () => InvokeLuaOrFail(onTeamLeave, "Team.Leave"));
+        }
+
+        private void EnsureGuildPresenter()
+        {
+            guildView = guildView ?? services.UiRouter.FindBySource("bangpai/GangsApplyLayer");
+            guildInfoView = guildInfoView ?? services.UiRouter.FindBySource("bangpai/GangsLayer");
+            guildMemberView = guildMemberView ?? services.UiRouter.FindBySource("bangpai/GangsMemberLayer");
+            guildCreateView = guildCreateView ?? services.UiRouter.FindBySource("bangpai/GangsfoundLayer");
+            if (guildView == null || guildInfoView == null || guildMemberView == null || guildCreateView == null)
+                throw new InvalidOperationException("Guild imported CocosUiBindings were not found.");
+            guildPresenter = guildPresenter ?? new GuildPresenter(guildView, guildInfoView, guildMemberView,
+                guildCreateView, services.Guild, services.Player,
+                name => InvokeLuaOrFail(onGuildCreate, "Guild.Create", name),
+                () => InvokeLuaOrFail(onGuildRequestMembers, "Guild.RequestMembers"),
+                () => InvokeLuaOrFail(onGuildLeave, "Guild.Leave"));
         }
 
         private void BeginFriendUpdate(int maximum, int expectedCount)

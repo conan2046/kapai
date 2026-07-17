@@ -1,6 +1,6 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-17 18:15
+> 最后更新：2026-07-17 22:02
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
@@ -18,11 +18,11 @@
 
 | 项 | 路径 |
 |---|---|
-| 仓库 | `E:\neiwang_kapai\Game` |
-| Unity 工程 | `E:\neiwang_kapai\Game\unityclient` |
-| Cocos 客户端 | `E:\neiwang_kapai\Game\client\ProjectX` |
-| 服务端 | `E:\neiwang_kapai\Game\server` |
-| Unity | `E:\UnityPro\2022.3.62f3c1\Editor\Unity.exe` |
+| 仓库 | 当前工作区根目录 |
+| Unity 工程 | `unityclient/` |
+| Cocos 客户端 | `client/ProjectX/` |
+| 服务端 | `server/` |
+| Unity | 以 `tools/unity-migration/unityclient-modules.json` 的 `unityExecutable` 为准 |
 | 本地游戏服 | `127.0.0.1:8711` |
 | workspace MySQL | `127.0.0.1:3306` |
 
@@ -30,9 +30,9 @@
 
 ## 3. 当前任务
 
-Team 第一阶段已完成：`/29、/30` 权威状态、成员/宠物、创建、邀请/接受、离队和推送重拉已通过隔离账号闭环。
+Guild 第一阶段已完成：`/54` 空态、帮派列表、当前帮派、成员列表、创建和退出/单人解散已通过隔离账号闭环。
 
-下一批为 Guild `/54`，单独取证和验证。Friend、Chat、Team 已统一复用 `PlayerSummary`；不要再建立平行玩家摘要。商城手动刷新、邮件批量操作、装备深度培养暂不混入。
+最终证据账号为 `7200003`，角色 `U00003`，帮派 `验00003`；退出后已解散。Friend、Chat、Team、Guild 统一复用 `PlayerSummary`。下一模块尚未开始；Guild 的申请批准、邀请、职位、捐献、任务和红点深化继续后置，不与其他模块混做。
 
 ## 4. 已稳定的分层
 
@@ -72,6 +72,7 @@ Team 第一阶段已完成：`/29、/30` 权威状态、成员/宠物、创建�
 | 好友 | `Data/FriendStore.cs`、`UI/FriendPresenter.cs`、`Resources/Lua/Friend/FriendController.lua.txt` |
 | 聊天 | `Data/ChatStore.cs`、`UI/ChatPresenter.cs`、`Resources/Lua/Chat/ChatController.lua.txt` |
 | 队伍 | `Data/TeamStore.cs`、`UI/TeamPresenter.cs`、`Resources/Lua/Team/TeamController.lua.txt` |
+| 帮派 | `Data/GuildStore.cs`、`UI/GuildPresenter.cs`、`Resources/Lua/Guild/GuildController.lua.txt` |
 
 ## 6. 迁移提速工具
 
@@ -130,6 +131,8 @@ Team 第一阶段已完成：`/29、/30` 权威状态、成员/宠物、创建�
 | Team 推送状态漂移 | `/30` 只作通知，关联自身/当前队长时统一重拉 `/29 op=16` |
 | Team 本地功能未开放 | 本地缺配置会得到 `0xffff`；只在 `local_test=1` 回退到开放等级 32 |
 | 新 Prefab 路由找不到 | `BootstrapSceneBuilder` 新增装配后先重建场景；模块验证不会自动刷新旧场景 |
+| Guild 响应包格式不统一 | `/54` 多数处理直接复用请求消息并追加字段，逐 op 读取，不套统一包头 |
+| Guild 验证污染数据 | 只用新角色创建单人帮派，读取成员后退出触发解散，并重拉 `/54 op=13` 确认空态 |
 
 ## 10. 常用验证
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "unityExecutable": "E:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
+  "unityExecutable": "D:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
   "unityProject": "unityclient",
   "executeMethod": "ProjectX.Editor.BootstrapAppRunner.RunBatch",
   "resultFile": "build/ui-migration/bootstrap-app-result.json",
@@ -249,7 +249,10 @@
       "key": "Team",
       "displayName": "队伍",
       "status": "phase1-complete",
-      "protocols": [29, 30],
+      "protocols": [
+        29,
+        30
+      ],
       "entries": [
         "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team",
         "runtime Team entry bound from the legacy main-screen route"
@@ -260,12 +263,37 @@
       ],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXTeamValidation"],
+      "validationFlags": [
+        "-projectXTeamValidation"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-team-members.png",
         "build/ui-migration/bootstrap-team.png"
       ],
       "document": "docs/unityclient/modules/TEAM.md"
+    },
+    {
+      "key": "Guild",
+      "displayName": "帮派",
+      "status": "phase1-complete",
+      "protocols": [54],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup3/btn_bangpai"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/bangpai/GangsApplyLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/bangpai/GangsLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/bangpai/GangsMemberLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/bangpai/GangsfoundLayer.prefab"
+      ],
+      "configs": [],
+      "mutatesServer": true,
+      "validationFlags": ["-projectXGuildValidation"],
+      "screenshots": [
+        "build/ui-migration/bootstrap-guild-members.png",
+        "build/ui-migration/bootstrap-guild.png"
+      ],
+      "document": "docs/unityclient/modules/GUILD.md"
     }
   ]
 }

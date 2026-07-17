@@ -1,0 +1,119 @@
+local Protocol = require("Protocol")
+
+local M = { validationStage = nil, validationName = nil }
+
+local function send(op, write)
+    local message = Protocol.newMessage(Protocol.GUILD)
+    message:WriteByte(op)
+    if write then write(message) end
+    Bridge:Send(message)
+end
+
+local function requestList() send(2) end
+local function requestInfo() send(13) end
+local function requestMembers() send(10) end
+local function leaveGuild() send(12) end
+local function createGuild(name)
+    send(1, function(message)
+        message:WriteString(name)
+        message:WriteString("Unity Guild migration validation")
+        message:WriteUInt(0)
+        message:WriteWord(0)
+    end)
+end
+
+function M.onClick()
+    Bridge:ShowGuild()
+    M.validationStage = Bridge:HasCommandLineFlag("-projectXGuildValidation") and "initial_info" or nil
+    M.validationName = nil
+    requestInfo()
+    requestList()
+    Bridge:SetStatus("Guild/54 read-only state and guild list requested.")
+end
+
+function M.requestList() requestList() end
+function M.requestInfo() requestInfo() end
+function M.requestMembers() requestMembers() end
+function M.leave() leaveGuild() end
+function M.create(name) createGuild(name) end
+
+local function failValidation(detail)
+    if M.validationStage then Bridge:Fail(detail); M.validationStage = nil end
+end
+
+local function readList(message)
+    local count = message:ReadWord()
+    Bridge:BeginGuildList(count)
+    for index = 1, count do
+        Bridge:AddGuildRecord(message:ReadWord(), message:ReadUInt(), message:ReadString(), message:ReadByte(),
+            message:ReadString(), message:ReadWord(), message:ReadWord(), message:ReadWord(), message:ReadString(),
+            message:ReadByte() == 1, message:ReadWord())
+    end
+    if message.Remaining ~= 0 then failValidation("Guild/54 op=2 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndGuildList()
+end
+
+local function readInfo(message)
+    local success = message:ReadByte()
+    if success == 0 then
+        Bridge:ClearGuildState()
+        if M.validationStage == "initial_info" then
+            M.validationName = Bridge:MakeGuildValidationName()
+            M.validationStage = "creating"
+            createGuild(M.validationName)
+        elseif M.validationStage == "leaving" then
+            M.validationStage = nil
+            requestList()
+            Bridge:CompleteGuildValidation(M.validationName)
+        end
+        return
+    end
+    local id = message:ReadUInt()
+    local name = message:ReadString()
+    Bridge:SetGuildInfo(id, name, message:ReadString(), message:ReadByte(), message:ReadWord(), message:ReadWord(),
+        message:ReadUInt(), message:ReadString(), message:ReadString(), message:ReadWord())
+    if message.Remaining ~= 0 then failValidation("Guild/54 op=13 has unread bytes: " .. tostring(message.Remaining)); return end
+    if M.validationStage == "await_info" then
+        if name ~= M.validationName then failValidation("Guild created name mismatch: " .. tostring(name)); return end
+        M.validationStage = "await_members"
+        requestMembers()
+    end
+end
+
+local function readMembers(message)
+    local count = message:ReadByte()
+    Bridge:BeginGuildMembers(count)
+    for index = 1, count do
+        Bridge:AddGuildMember(message:ReadUInt(), message:ReadString(), message:ReadWord(), message:ReadByte(),
+            message:ReadByte(), message:ReadUInt(), message:ReadByte(), message:ReadULongInt(), message:ReadByte(),
+            message:ReadUInt(), message:ReadUInt())
+    end
+    if message.Remaining ~= 0 then failValidation("Guild/54 op=10 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndGuildMembers()
+    if M.validationStage == "await_members" then
+        M.validationStage = "leaving"
+        Bridge:CaptureGuildAndLeaveValidation()
+    end
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.GUILD then return false end
+    local op = message:ReadByte()
+    if op == 1 then
+        local success = message:ReadByte()
+        local detail = message.Remaining > 0 and message:ReadString() or ""
+        if M.validationStage == "creating" then
+            if success == 0 then failValidation("Guild/54 create failed: " .. detail)
+            else M.validationStage = "await_info"; requestInfo() end
+        elseif detail ~= "" then Bridge:SetGuildError(detail) end
+    elseif op == 2 then readList(message)
+    elseif op == 10 then readMembers(message)
+    elseif op == 12 then
+        local success = message:ReadByte()
+        if success == 0 then failValidation("Guild/54 leave failed") else requestInfo() end
+    elseif op == 13 then readInfo(message)
+    else return true end
+    return true
+end
+
+return M
