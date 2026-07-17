@@ -30,6 +30,10 @@ namespace ProjectX.Editor
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
         private const string MailPrefab = "Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab";
         private const string ShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab";
+        private const string FriendPrefab = "Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab";
+        private const string ChatPrefab = "Assets/ProjectX/res/csd/Prefabs/MainChatLayer.prefab";
+        private const string TeamMembersPrefab = "Assets/ProjectX/res/csd/Prefabs/TeamMembersLayer.prefab";
+        private const string TeamInvitePrefab = "Assets/ProjectX/res/csd/Prefabs/TeamInviteListLayer.prefab";
 
         [MenuItem("Tools/ProjectX App/Rebuild Bootstrap Scene", priority = 90)]
         public static void Build()
@@ -70,6 +74,10 @@ namespace ProjectX.Editor
             Instantiate(LoadingPrefab, canvasObject.transform, false);
             Instantiate(MailPrefab, canvasObject.transform, false);
             Instantiate(ShopPrefab, canvasObject.transform, false);
+            Instantiate(FriendPrefab, canvasObject.transform, false);
+            Instantiate(ChatPrefab, canvasObject.transform, false);
+            Instantiate(TeamMembersPrefab, canvasObject.transform, false);
+            Instantiate(TeamInvitePrefab, canvasObject.transform, false);
             GameObject heroList = Instantiate(HeroListPrefab, canvasObject.transform, false);
             Instantiate(HeroDetailPrefab, heroList.transform, true);
             GameObject heroEquipmentList = Instantiate(HeroEquipmentListPrefab, canvasObject.transform, false);

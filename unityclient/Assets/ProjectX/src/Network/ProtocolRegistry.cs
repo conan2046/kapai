@@ -133,6 +133,10 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(15, "PRO_UPDATE_PACK", "Bag"));
             registry.Register(new ProtocolDefinition(18, "PRO_UPDATE_CHAR", "Player", expectsResponse: false));
             registry.Register(new ProtocolDefinition(24, "PRO_PET", "Hero"));
+            registry.Register(new ProtocolDefinition(26, "PRO_MSG_CHAT", "Chat", expectsResponse: false));
+            registry.Register(new ProtocolDefinition(27, "PRO_FRIEND", "Friend"));
+            registry.Register(new ProtocolDefinition(29, "PRO_USER_TEAM", "Team"));
+            registry.Register(new ProtocolDefinition(30, "PRO_UPDATE_TEAM", "Team", expectsResponse: false));
             registry.Register(new ProtocolDefinition(37, "PRO_TASK_LIST", "Task"));
             registry.Register(new ProtocolDefinition(39, "PRO_UPDATE_TASK", "Task"));
             registry.Register(new ProtocolDefinition(48, "PRO_ZHEN_FA", "Formation"));

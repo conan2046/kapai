@@ -1,0 +1,198 @@
+local Protocol = require("Protocol")
+
+local M = {
+    validationStage = nil,
+    rejectedId = 0,
+    acceptedId = 0,
+    pendingFriends = 0,
+    pendingApplications = 0,
+}
+
+local function plain(value)
+    value = tostring(value or "")
+    return value:gsub("%[c%d+%]", ""):gsub("%[/c%]", "")
+end
+
+local function requestList()
+    local message = Protocol.newMessage(Protocol.FRIEND)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+local function requestApplications()
+    local message = Protocol.newMessage(Protocol.FRIEND)
+    message:WriteByte(2)
+    Bridge:Send(message)
+end
+
+local function apply(roleId)
+    local message = Protocol.newMessage(Protocol.FRIEND)
+    message:WriteByte(3)
+    message:WriteUInt(roleId)
+    Bridge:Send(message)
+end
+
+local function deal(roleId, accept)
+    local message = Protocol.newMessage(Protocol.FRIEND)
+    message:WriteByte(4)
+    message:WriteUInt(roleId)
+    message:WriteByte(accept and 1 or 0)
+    Bridge:Send(message)
+end
+
+local function deleteFriend(roleId)
+    local message = Protocol.newMessage(Protocol.FRIEND)
+    message:WriteByte(10)
+    message:WriteUInt(roleId)
+    Bridge:Send(message)
+end
+
+function M.onClick()
+    M.validationStage = Bridge:HasCommandLineFlag("-projectXFriendValidation") and "await_seed" or nil
+    M.rejectedId = 0
+    M.acceptedId = 0
+    requestList()
+    requestApplications()
+    Bridge:SetStatus("Friend/27 list and applications requested.")
+end
+
+function M.requestFriends() requestList() end
+function M.requestApplications() requestApplications() end
+function M.apply(roleId) apply(roleId) end
+function M.deal(roleId, accept) deal(roleId, accept) end
+function M.delete(roleId) deleteFriend(roleId) end
+
+local function readRecord(message, includeFriendState)
+    local id = message:ReadUInt()
+    local name = message:ReadString()
+    local level = message:ReadWord()
+    local sex = message:ReadByte()
+    local head = message:ReadByte()
+    local power = message:ReadULongInt()
+    local offline = message:ReadUInt()
+    local guildId = message:ReadUInt()
+    local guildName = message:ReadString()
+    local intimacy = includeFriendState and message:ReadUInt() or 0
+    local sendFlag = includeFriendState and message:ReadByte() or 0
+    Bridge:AddFriendRecord(id, name, level, sex, head, power, offline, guildId, guildName, intimacy, sendFlag)
+    return id
+end
+
+local function finishIfDeleted()
+    if M.validationStage ~= "verify_deleted" or M.pendingFriends ~= 0 or M.pendingApplications ~= 0 then return end
+    M.validationStage = nil
+    Bridge:CompleteFriendMutationValidation(M.rejectedId, M.acceptedId)
+end
+
+local function readList(message)
+    local maximum = message:ReadByte()
+    local count = message:ReadByte()
+    local firstId = 0
+    Bridge:BeginFriendListUpdate(maximum, count)
+    for index = 1, count do
+        local id = readRecord(message, true)
+        if index == 1 then firstId = id end
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("Friend/27 op=1 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndFriendListUpdate()
+    M.pendingFriends = count
+
+    if M.validationStage == "await_friend" and count == 1 and firstId == M.acceptedId then
+        M.validationStage = "await_delete"
+        Bridge:CaptureFriendAndDeleteValidation(firstId)
+    elseif M.validationStage == "verify_deleted" then
+        finishIfDeleted()
+    elseif not M.validationStage then
+        Bridge:Complete("COMPLETE: main friend button -> /27 op=1 -> FriendStore -> FriendLayer (" .. tostring(count) .. " friends)")
+    end
+end
+
+local function readApplications(message)
+    local maximum = message:ReadByte()
+    local count = message:ReadByte()
+    local ids = {}
+    Bridge:BeginFriendApplicationUpdate(maximum, count)
+    for index = 1, count do ids[index] = readRecord(message, false) end
+    if message.Remaining ~= 0 then Bridge:Fail("Friend/27 op=2 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndFriendApplicationUpdate()
+    M.pendingApplications = count
+
+    if M.validationStage == "await_seed" then
+        if count < 2 then Bridge:Fail("Friend validation requires two isolated incoming applications, got " .. tostring(count)); return end
+        M.rejectedId = ids[1]
+        M.acceptedId = ids[2]
+        M.validationStage = "await_reject"
+        deal(M.rejectedId, false)
+    elseif M.validationStage == "verify_reject" then
+        if count ~= 1 or ids[1] ~= M.acceptedId then Bridge:Fail("Friend reject did not remove exactly the selected application."); return end
+        M.validationStage = "await_add"
+        apply(M.rejectedId)
+    elseif M.validationStage == "verify_deleted" then
+        finishIfDeleted()
+    end
+end
+
+local function readApplyResult(message)
+    local roleId = message:ReadUInt()
+    local success = message:ReadByte()
+    local result = message.Remaining > 0 and message:ReadString() or ""
+    Bridge:ShowToast(result ~= "" and plain(result) or (success == 1 and "好友申请已发送" or "好友申请失败"), 2.0)
+    if M.validationStage == "await_add" then
+        if roleId ~= M.rejectedId or success ~= 1 then Bridge:Fail("Friend add validation failed: " .. result); return end
+        M.validationStage = "await_duplicate_error"
+        apply(M.rejectedId)
+    elseif M.validationStage == "await_duplicate_error" then
+        if roleId ~= M.rejectedId or success ~= 0 or result == "" then Bridge:Fail("Friend duplicate-apply error was not explicit."); return end
+        M.validationStage = "await_accept"
+        deal(M.acceptedId, true)
+    end
+end
+
+local function readDealResult(message)
+    local roleId = message:ReadUInt()
+    local accept = message:ReadByte()
+    local success = message:ReadByte()
+    local result = message.Remaining > 0 and message:ReadString() or ""
+    Bridge:ShowToast(result ~= "" and plain(result) or (success == 1 and "操作成功" or "操作失败"), 2.0)
+    if success ~= 1 then M.validationStage = nil; Bridge:Fail("Friend deal failed: " .. result); return end
+    Bridge:RemoveFriendApplication(roleId)
+    if M.validationStage == "await_reject" and accept == 0 and roleId == M.rejectedId then
+        M.validationStage = "verify_reject"
+        requestApplications()
+    elseif M.validationStage == "await_accept" and accept == 1 and roleId == M.acceptedId then
+        M.validationStage = "await_friend"
+        requestList()
+        requestApplications()
+    end
+end
+
+local function readDeleteResult(message)
+    local roleId = message:ReadUInt()
+    local success = message:ReadByte()
+    local result = message.Remaining > 0 and message:ReadString() or ""
+    Bridge:ShowToast(result ~= "" and plain(result) or (success == 1 and "好友已删除" or "删除失败"), 2.0)
+    if M.validationStage == "await_delete" then
+        if roleId ~= M.acceptedId or success ~= 1 then Bridge:Fail("Friend delete validation failed: " .. result); return end
+        Bridge:RemoveFriend(roleId)
+        M.validationStage = "verify_deleted"
+        M.pendingFriends = -1
+        M.pendingApplications = -1
+        requestList()
+        requestApplications()
+    end
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.FRIEND then return false end
+    local op = message:ReadByte()
+    if op == 1 then readList(message)
+    elseif op == 2 then readApplications(message)
+    elseif op == 3 then readApplyResult(message)
+    elseif op == 4 then readDealResult(message)
+    elseif op == 10 then readDeleteResult(message)
+    elseif op == 31 then requestList(); requestApplications()
+    else Bridge:Fail("Friend/27 unsupported op=" .. tostring(op) .. ".") end
+    return true
+end
+
+return M

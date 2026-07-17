@@ -1,6 +1,6 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-17 12:40
+> 最后更新：2026-07-17 18:15
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
@@ -30,9 +30,9 @@
 
 ## 3. 当前任务
 
-下一批：`Friend Store`。
+Team 第一阶段已完成：`/29、/30` 权威状态、成员/宠物、创建、邀请/接受、离队和推送重拉已通过隔离账号闭环。
 
-目标边界：好友列表、申请列表、添加、同意、拒绝、删除；先只读，再状态变更。商城手动刷新、邮件批量操作、装备深度培养暂不混入。
+下一批为 Guild `/54`，单独取证和验证。Friend、Chat、Team 已统一复用 `PlayerSummary`；不要再建立平行玩家摘要。商城手动刷新、邮件批量操作、装备深度培养暂不混入。
 
 ## 4. 已稳定的分层
 
@@ -69,6 +69,9 @@
 | 奖励 | `Data/RewardStore.cs`、`UI/RewardPresenter.cs` |
 | 场景装配 | `Editor/BootstrapSceneBuilder.cs` |
 | 自动化 | `Editor/BootstrapAppRunner.cs` |
+| 好友 | `Data/FriendStore.cs`、`UI/FriendPresenter.cs`、`Resources/Lua/Friend/FriendController.lua.txt` |
+| 聊天 | `Data/ChatStore.cs`、`UI/ChatPresenter.cs`、`Resources/Lua/Chat/ChatController.lua.txt` |
+| 队伍 | `Data/TeamStore.cs`、`UI/TeamPresenter.cs`、`Resources/Lua/Team/TeamController.lua.txt` |
 
 ## 6. 迁移提速工具
 
@@ -120,6 +123,13 @@
 | 自动脚本破坏手工 Prefab | 默认只实例化和运行时绑定，禁止覆盖重建 |
 | 日志成功但 UI 错位 | 固定分辨率截图检查文字、裁剪、层级和按钮状态 |
 | 测试数据重复消耗 | 每个变更场景使用新隔离角色，失败角色不复用为最终证据 |
+| ISO UTC 被误判为 stale | PowerShell 7 已转为 `DateTime` 时直接 `ToUniversalTime()`，不要先转字符串 |
+| Friend 旧空态溢出 | Prefab 保持只读，用运行时空态文案和添加入口覆盖 |
+| 广播消息重复 | 世界本地回显与服务端回包合并；私聊自身双发按发送者/接收者/时间去重 |
+| Team 战力被截断 | 服务端写 `uint64`；Unity 必须用 `ReadULongInt`，不要照抄旧 Lua 的 `ReadUInt` |
+| Team 推送状态漂移 | `/30` 只作通知，关联自身/当前队长时统一重拉 `/29 op=16` |
+| Team 本地功能未开放 | 本地缺配置会得到 `0xffff`；只在 `local_test=1` 回退到开放等级 32 |
+| 新 Prefab 路由找不到 | `BootstrapSceneBuilder` 新增装配后先重建场景；模块验证不会自动刷新旧场景 |
 
 ## 10. 常用验证
 
@@ -153,6 +163,6 @@ Unity 模块验收参数示例：
 ## 11. 当前工作区边界
 
 - 只有用户明确要求才 stage、commit、push。
-- 处理 Unity 迁移时保留用户已有 xlua `.meta` 删除、`ShaderGraphSettings.asset` 和 `.vscode/` 变化。
+- 处理 Unity 迁移时保留用户已有 xlua `.meta` 删除和 `unityclient/.vscode/`。
 - 大日志写入 `build/` 或 `.local/`，对话只读尾部和关键片段。
 - 历史证据不再追加到本文件；按模块写入 `docs/unityclient/modules/`，按日期归档到 `docs/unityclient/history/`。

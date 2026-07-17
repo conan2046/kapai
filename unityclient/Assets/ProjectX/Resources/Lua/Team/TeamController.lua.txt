@@ -1,0 +1,171 @@
+local Protocol = require("Protocol")
+
+local M = { validationStage = nil, inviteSent = false, peerRoleId = 0 }
+
+local function send(op, write)
+    local message = Protocol.newMessage(Protocol.TEAM)
+    message:WriteByte(op)
+    if write then write(message) end
+    Bridge:Send(message)
+end
+
+local function requestState() send(16) end
+local function createTeam() send(1) end
+local function leaveTeam() send(9) end
+local function invite(roleId) send(5, function(message) message:WriteUInt(roleId) end) end
+local function respond(leaderId, accept)
+    send(6, function(message) message:WriteByte(accept and 1 or 0); message:WriteUInt(leaderId) end)
+end
+
+function M.onClick()
+    Bridge:ShowTeam()
+    M.validationStage = Bridge:HasCommandLineFlag("-projectXTeamValidation") and "initial" or nil
+    M.peerRoleId = Bridge:GetTeamPeerRoleId()
+    M.inviteSent = false
+    requestState()
+    Bridge:SetStatus("Team/29 read-only state requested.")
+end
+
+function M.requestState() requestState() end
+function M.create() createTeam() end
+function M.invite(roleId) invite(roleId) end
+function M.respond(leaderId, accept) respond(leaderId, accept) end
+function M.leave() leaveTeam() end
+
+local function readPlayer(message)
+    local sourcePosition = message:ReadByte()
+    local lineupPosition = message:ReadByte()
+    local isLeader = message:ReadByte()
+    local roleId = message:ReadUInt()
+    local serverZone = message:ReadUInt()
+    local serverId = message:ReadUInt()
+    local leaveFlag = message:ReadByte()
+    local name = message:ReadString()
+    local level = message:ReadWord()
+    local head = message:ReadByte()
+    local sex = message:ReadByte()
+    local power = message:ReadULongInt()
+    local titleCount = message:ReadByte()
+    local titles = {}
+    for index = 1, titleCount do titles[index] = message:ReadWord() end
+    local shapeId = message:ReadUInt()
+    Bridge:AddTeamPlayerMember(sourcePosition, lineupPosition, isLeader == 1, roleId, name, level,
+        sex, head, power, leaveFlag == 0, serverZone, serverId, shapeId)
+end
+
+local function readPet(message)
+    Bridge:AddTeamPetMember(message:ReadByte(), message:ReadByte(), message:ReadUInt(), message:ReadString(),
+        message:ReadWord(), message:ReadByte(), message:ReadByte(), message:ReadULongInt())
+end
+
+local function runValidationAfterState(hasTeam)
+    if not M.validationStage then return end
+    if M.peerRoleId == 0 then Bridge:Fail("Team validation requires -projectXTeamPeerRoleId."); M.validationStage = nil; return end
+    if M.validationStage == "initial" then
+        if hasTeam then Bridge:Fail("Team isolated role unexpectedly started in a team."); M.validationStage = nil; return end
+        M.validationStage = "await_join"
+        createTeam()
+    elseif M.validationStage == "await_join" and hasTeam then
+        if Bridge:TeamContainsPlayer(M.peerRoleId) then
+            M.validationStage = "await_left"
+            Bridge:CaptureTeamAndLeaveValidation(M.peerRoleId)
+        elseif not M.inviteSent and Bridge:GetTeamPlayerCount() == 1 then
+            M.inviteSent = true
+            invite(M.peerRoleId)
+        end
+    elseif M.validationStage == "await_left" and not hasTeam then
+        M.validationStage = nil
+        Bridge:CompleteTeamValidation(M.peerRoleId)
+    end
+end
+
+local function readState(message)
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "队伍状态请求失败"
+        Bridge:SetTeamError(reason)
+        if M.validationStage then Bridge:Fail("Team/29 op=16 failed: " .. reason); M.validationStage = nil end
+        return
+    end
+    local teamType = message:ReadByte()
+    if teamType == 255 then
+        if message.Remaining > 0 then message:ReadByte() end
+        if message.Remaining ~= 0 then Bridge:Fail("Team empty op=16 has unread bytes: " .. tostring(message.Remaining)); return end
+        Bridge:ClearTeamState()
+        runValidationAfterState(false)
+        return
+    end
+    local formationId = message:ReadWord()
+    local count = message:ReadByte()
+    Bridge:BeginTeamUpdate(teamType, formationId, count)
+    for index = 1, count do
+        local kind = message:ReadByte()
+        if kind == 1 then readPlayer(message)
+        elseif kind == 2 then readPet(message)
+        else Bridge:Fail("Team/29 op=16 unknown member kind=" .. tostring(kind)); return end
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("Team/29 op=16 has unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndTeamUpdate()
+    runValidationAfterState(true)
+end
+
+local function readSummary(message)
+    local roleId = message:ReadUInt()
+    local name = message:ReadString()
+    local head = message:ReadByte()
+    local sex = message:ReadByte()
+    local level = message:ReadWord()
+    local power = message:ReadULongInt()
+    return roleId, name, head, sex, level, power
+end
+
+local function readTeamPacket(message)
+    local op = message:ReadByte()
+    if op == 1 then
+        local success = message:ReadByte()
+        if success ~= 1 then Bridge:Fail("Team creation failed."); return end
+        Bridge:MarkTeamCreated()
+        requestState()
+    elseif op == 2 then
+        message:ReadUInt()
+        if message.Remaining > 0 then message:ReadByte() end
+        requestState()
+    elseif op == 4 or op == 6 then
+        local roleId, name, head, sex, level, power = readSummary(message)
+        Bridge:AddTeamInvitation(roleId, name, level, sex, head, power)
+    elseif op == 9 then
+        Bridge:ClearTeamState()
+        requestState()
+    elseif op == 16 then readState(message)
+    elseif op == 19 then
+        if message.Remaining > 0 then message:ReadByte() end
+        if message.Remaining >= 4 then Bridge:RemoveTeamInvitation(message:ReadUInt()) end
+    elseif op == 31 then
+        message:ReadUInt(); message:ReadWord(); requestState()
+    else
+        Bridge:SetStatus("Team/29 op=" .. tostring(op) .. " received; state refresh requested.")
+        requestState()
+    end
+end
+
+local function readTeamPush(message)
+    local op = message:ReadByte()
+    local leaderId = 0
+    local memberId = 0
+    if op == 1 then leaderId = message:ReadUInt()
+    elseif op == 2 or op == 3 or op == 6 or op == 7 or op == 10 then leaderId = message:ReadUInt(); memberId = message:ReadUInt()
+    elseif op == 4 or op == 5 then leaderId = message:ReadUInt()
+    elseif op == 8 or op == 9 then leaderId = message:ReadUInt(); memberId = message:ReadUInt()
+    elseif op == 11 then leaderId = message:ReadUInt()
+    end
+    if leaderId == Bridge:GetPlayerRoleId() or memberId == Bridge:GetPlayerRoleId()
+        or leaderId == Bridge:GetTeamLeaderId() then requestState() end
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.TEAM then readTeamPacket(message); return true end
+    if command == Protocol.TEAM_UPDATE then readTeamPush(message); return true end
+    return false
+end
+
+return M

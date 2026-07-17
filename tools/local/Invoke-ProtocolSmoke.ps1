@@ -16,7 +16,11 @@ param(
   [switch]$BattleListOnly,
   [switch]$UiQueries,
   [switch]$NpcFlow,
-  [switch]$InvalidRisky
+  [switch]$InvalidRisky,
+  [int]$FriendApplyRoleId = 0,
+  [int]$TeamPeerAcceptLeaderRoleId = 0,
+  [int]$TeamPeerWaitSeconds = 120,
+  [switch]$TeamProbe
 )
 
 $autoCreateRoleText = if ($AutoCreateRole) { "true" } else { "false" }
@@ -33,6 +37,10 @@ $battleListOnlyText = if ($BattleListOnly) { "true" } else { "false" }
 $uiQueriesText = if ($UiQueries) { "true" } else { "false" }
 $npcFlowText = if ($NpcFlow) { "true" } else { "false" }
 $invalidRiskyText = if ($InvalidRisky) { "true" } else { "false" }
+$friendApplyRoleIdText = $FriendApplyRoleId
+$teamPeerAcceptLeaderRoleIdText = $TeamPeerAcceptLeaderRoleId
+$teamPeerWaitSecondsText = $TeamPeerWaitSeconds
+$teamProbeText = if ($TeamProbe) { "true" } else { "false" }
 $python = @"
 import socket, struct, time, threading
 
@@ -55,6 +63,10 @@ BATTLE_LIST_ONLY = "$battleListOnlyText"
 UI_QUERIES = "$uiQueriesText"
 NPC_FLOW = "$npcFlowText"
 INVALID_RISKY = "$invalidRiskyText"
+FRIEND_APPLY_ROLE_ID = $friendApplyRoleIdText
+TEAM_PEER_ACCEPT_LEADER_ROLE_ID = $teamPeerAcceptLeaderRoleIdText
+TEAM_PEER_WAIT_SECONDS = $teamPeerWaitSecondsText
+TEAM_PROBE = "$teamProbeText"
 
 def u8(v): return struct.pack('<B', v)
 def u16(v): return struct.pack('<H', v)
@@ -69,6 +81,7 @@ recv_types = []
 recv_bodies = {}
 recv_events = []
 created_role_id = {'id': None}
+create_response = {'body': None}
 battle_target = {'value': None}
 fengshen_trial = {'value': None}
 stop_flag = {'stop': False}
@@ -91,6 +104,8 @@ def reader(sock):
                 body = buf[6:total]
                 if msg_type == 1003 and len(body) >= 5 and body[0] == 1:
                     created_role_id['id'] = struct.unpack('<I', body[1:5])[0]
+                if msg_type == 1003:
+                    create_response['body'] = body
                 if BATTLE == 'true' and msg_type == 161 and len(body) >= 4 and body[0:3] == b'\x00\x01\x01':
                     pos = 4
                     candidate = None
@@ -206,6 +221,12 @@ if EXTENDED == 'true':
         ('jiaoyi_record', 313, u8(6)),
         ('flower_self', 314, u8(3)),
         ('flower_rank', 314, u8(6)),
+    ])
+
+if TEAM_PROBE == 'true':
+    smokes.extend([
+        ('team_create', 29, u8(1)),
+        ('team_state', 29, u8(16)),
     ])
 
 if ACTIONS == 'true':
@@ -402,7 +423,8 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
         while time.time() < deadline and created_role_id['id'] is None:
             time.sleep(0.05)
         if created_role_id['id'] is None:
-            raise RuntimeError('auto create role failed or timed out')
+            body = create_response['body']
+            raise RuntimeError('auto create role failed or timed out; response=' + (body.hex() if body is not None else 'none'))
         role_to_select = created_role_id['id']
         print('created_role_id=' + str(role_to_select))
     sock.sendall(pkt(1004, u32(role_to_select)))
@@ -414,6 +436,54 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
         smokes.append(('player_info_self', 34, u32(role_to_select)))
         smokes.append(('role_query_self', 248, u8(1) + s(str(role_to_select))))
     time.sleep(6.0 if AUTO_CREATE_ROLE == 'true' else 2.0)
+    if FRIEND_APPLY_ROLE_ID > 0:
+        event_start = len(recv_events)
+        sock.sendall(pkt(27, u8(3) + u32(FRIEND_APPLY_ROLE_ID)))
+        deadline = time.time() + 3.0
+        response = None
+        while time.time() < deadline and response is None:
+            for msg_type, body in recv_events[event_start:]:
+                if msg_type == 27 and len(body) >= 6 and body[0] == 3 and struct.unpack('<I', body[1:5])[0] == FRIEND_APPLY_ROLE_ID:
+                    response = body
+                    break
+            time.sleep(0.05)
+        if response is None:
+            raise RuntimeError('friend apply returned no matching /27 op=3 response')
+        print('friend_apply_response=' + response.hex())
+        if response[5] != 1:
+            raise RuntimeError('friend apply failed: ' + response.hex())
+    if TEAM_PEER_ACCEPT_LEADER_ROLE_ID > 0:
+        print('team_peer_waiting=' + str(TEAM_PEER_ACCEPT_LEADER_ROLE_ID), flush=True)
+        event_start = len(recv_events)
+        deadline = time.time() + max(10, TEAM_PEER_WAIT_SECONDS)
+        invitation = None
+        while time.time() < deadline and invitation is None:
+            for msg_type, body in recv_events[event_start:]:
+                if msg_type == 29:
+                    print('team_peer_event_29=' + body.hex(), flush=True)
+                if msg_type == 29 and len(body) >= 5 and body[0] == 6 and struct.unpack('<I', body[1:5])[0] == TEAM_PEER_ACCEPT_LEADER_ROLE_ID:
+                    invitation = body
+                    break
+            event_start = len(recv_events)
+            time.sleep(0.05)
+        if invitation is None:
+            raise RuntimeError('team peer received no /29 op=6 invitation from leader')
+        sock.sendall(pkt(29, u8(6) + u8(1) + u32(TEAM_PEER_ACCEPT_LEADER_ROLE_ID)))
+        print('team_peer_accepted=' + str(TEAM_PEER_ACCEPT_LEADER_ROLE_ID), flush=True)
+        joined = False
+        joined_deadline = time.time() + 10.0
+        while time.time() < joined_deadline and not joined:
+            for msg_type, body in recv_events[event_start:]:
+                if msg_type == 29 and len(body) >= 4 and body[0] == 16 and body[1] == 1 and body[2] != 255:
+                    joined = True
+                    break
+            time.sleep(0.05)
+        if not joined:
+            raise RuntimeError('team peer accepted invitation but received no /29 op=16 team state')
+        print('team_peer_joined=1', flush=True)
+        while time.time() < deadline and not stop_flag['stop']:
+            time.sleep(0.1)
+        smokes = []
     for name, t, body in smokes:
         if CONSUMPTION == 'true' and name == 'use_special_item_missing_rename_card':
             time.sleep(1.0)
@@ -457,6 +527,9 @@ if CONSUMPTION == 'true':
     for response_type in (47, 84, 177, 200, 216, 257, 309, 310, 332):
         bodies = recv_bodies.get(response_type, [])
         print('response_' + str(response_type) + '=' + ','.join(body.hex() for body in bodies))
+if TEAM_PROBE == 'true':
+    bodies = recv_bodies.get(29, [])
+    print('response_29=' + ','.join(body.hex() for body in bodies))
 if BATTLE == 'true':
     for response_type in (133, 134, 161):
         bodies = recv_bodies.get(response_type, [])
