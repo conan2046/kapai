@@ -1,0 +1,99 @@
+local Protocol = require("Protocol")
+
+local M = { validationStage = nil, worldText = "", privateText = "" }
+
+local function plain(value)
+    value = tostring(value or "")
+    return value:gsub("%[c%d+%]", ""):gsub("%[/c%]", "")
+end
+
+local function send(channel, content, targetRoleId)
+    content = tostring(content or "")
+    if content == "" then return end
+    local message = Protocol.newMessage(Protocol.CHAT)
+    message:WriteByte(channel)
+    message:WriteString(content)
+    if targetRoleId and targetRoleId > 0 then
+        message:WriteByte(1)
+        message:WriteUInt(targetRoleId)
+    else
+        message:WriteByte(0)
+    end
+    Bridge:Send(message)
+    if channel ~= 7 then Bridge:AddLocalChatMessage(channel, content) end
+end
+
+function M.onClick()
+    Bridge:ShowChat()
+    if not Bridge:HasCommandLineFlag("-projectXChatValidation") then
+        Bridge:SetStatus("Chat UI active; /26 send is ready.")
+        return
+    end
+    local roleId = Bridge:GetPlayerRoleId()
+    if roleId == 0 then Bridge:Fail("Chat validation requires a loaded role."); return end
+    M.worldText = "World validation " .. tostring(roleId)
+    M.privateText = "Private validation " .. tostring(roleId)
+    M.validationStage = "await_private"
+    send(1, M.worldText, 0)
+    send(7, M.privateText, roleId)
+    Bridge:SetStatus("Chat/26 world and self-private messages sent.")
+end
+
+function M.send(channel, content, targetRoleId) send(channel, content, targetRoleId) end
+
+local function readError(message)
+    local errorChannel = message:ReadByte()
+    local success = message:ReadByte()
+    local reason = message.Remaining > 0 and plain(message:ReadString()) or "聊天请求失败"
+    Bridge:SetChatError(errorChannel, reason)
+    if M.validationStage == "await_error" then
+        if success ~= 0 or errorChannel ~= 7 or reason == "" then
+            M.validationStage = nil
+            Bridge:Fail("Chat/26 invalid-target error packet mismatch.")
+            return
+        end
+        M.validationStage = nil
+        Bridge:CompleteChatValidation(M.worldText, M.privateText, reason)
+    end
+end
+
+local function readPrivate(message)
+    local senderId = message:ReadUInt()
+    local senderName = message:ReadString()
+    local vip = message:ReadByte()
+    local head = message:ReadByte()
+    local sex = message:ReadByte()
+    local level = message:ReadWord()
+    local teamId = message:ReadUInt()
+    local guildId = message:ReadUInt()
+    local recipientId = message:ReadUInt()
+    local serverTime = message:ReadUInt()
+    local content = message:ReadString()
+    Bridge:AddPrivateChatMessage(senderId, senderName, vip, head, sex, level, teamId, guildId,
+        recipientId, serverTime, content)
+    if M.validationStage == "await_private" and content == M.privateText then
+        M.validationStage = "await_error"
+        send(7, "Invalid target validation", 4294967294)
+    end
+end
+
+local function readPublic(channel, message)
+    local senderId = message:ReadUInt()
+    local senderName = message:ReadString()
+    local vip = message:ReadByte()
+    local head = message:ReadByte()
+    local sex = message:ReadByte()
+    local content = message:ReadString()
+    Bridge:AddChatMessage(channel, senderId, senderName, vip, head, sex, content)
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.CHAT then return false end
+    local channel = message:ReadByte()
+    if channel == 8 then readError(message)
+    elseif channel == 7 then readPrivate(message)
+    else readPublic(channel, message) end
+    return true
+end
+
+return M

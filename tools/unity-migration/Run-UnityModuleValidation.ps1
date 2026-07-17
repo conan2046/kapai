@@ -36,6 +36,9 @@ $summaryDirectory = Join-Path $root ".local\unity-validation"
 $summaryPath = Join-Path $summaryDirectory ("{0}-latest.json" -f $moduleKey.ToLowerInvariant())
 
 $effectiveUserId = $UserId
+$friendPeerUserIds = @()
+$friendTargetRoleId = 0
+$friendPeerRoleIds = @()
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
         if (-not $DryRun) {
@@ -45,6 +48,13 @@ if ($effectiveUserId -eq 0) {
     else {
         $effectiveUserId = 1
     }
+}
+if ($moduleConfig.key -ieq "Friend" -and -not $DryRun) {
+    if ($UserId -ne 0) { throw "Friend validation currently requires an auto-allocated isolated user; omit -UserId." }
+    $friendPeerUserIds = @(
+        New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
+        New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
+    )
 }
 $userArgument = if ($DryRun -and $effectiveUserId -eq 0) { "-projectXUserId=<auto-isolated>" } else { "-projectXUserId=$effectiveUserId" }
 $unityArguments = @(
@@ -128,6 +138,34 @@ try {
         if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
     }
 
+    if ($moduleConfig.key -ieq "Friend") {
+        [System.IO.Directory]::CreateDirectory($summaryDirectory) | Out-Null
+        $setupLogPath = Join-Path $summaryDirectory "friend-setup-latest.log"
+        $setupLines = New-Object System.Collections.Generic.List[string]
+        $targetName = "F{0:D5}" -f ($effectiveUserId % 100000)
+        $targetOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+            -UserId $effectiveUserId -AutoCreateRole -RoleName $targetName 2>&1)
+        $targetOutput | ForEach-Object { $setupLines.Add([string]$_) }
+        Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($setupLines -join "`n") + "`n")
+        if ($LASTEXITCODE -ne 0) { throw "Friend target role setup failed; see $setupLogPath" }
+        $targetMatch = @($targetOutput | Select-String -Pattern '^created_role_id=(\d+)$' | Select-Object -Last 1)
+        if ($targetMatch.Count -ne 1) { throw "Friend target role id was not reported." }
+        $friendTargetRoleId = [uint32]$targetMatch[0].Matches[0].Groups[1].Value
+        foreach ($peerUserId in $friendPeerUserIds) {
+            $peerName = "F{0:D5}" -f ($peerUserId % 100000)
+            $peerOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+                -UserId $peerUserId -AutoCreateRole -RoleName $peerName -FriendApplyRoleId $friendTargetRoleId 2>&1)
+            $peerOutput | ForEach-Object { $setupLines.Add([string]$_) }
+            Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($setupLines -join "`n") + "`n")
+            if ($LASTEXITCODE -ne 0) { throw "Friend peer role setup failed for userId=$peerUserId; see $setupLogPath" }
+            $peerMatch = @($peerOutput | Select-String -Pattern '^created_role_id=(\d+)$' | Select-Object -Last 1)
+            if ($peerMatch.Count -ne 1) { throw "Friend peer role id was not reported for userId=$peerUserId." }
+            $friendPeerRoleIds += [uint32]$peerMatch[0].Matches[0].Groups[1].Value
+        }
+        Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($setupLines -join "`n") + "`n")
+        Write-Host "Friend setup: targetRole=$friendTargetRoleId peerRoles=$($friendPeerRoleIds -join ',')"
+    }
+
     [System.IO.Directory]::CreateDirectory($logDirectory) | Out-Null
     if (Test-Path -LiteralPath $resultPath) { Remove-Item -LiteralPath $resultPath -Force }
     foreach ($screenshot in @($moduleConfig.screenshots)) {
@@ -156,7 +194,13 @@ try {
     }
 
     $result = Get-Content -Raw -Encoding UTF8 -LiteralPath $resultPath | ConvertFrom-Json
-    $resultUtc = [DateTime]::Parse([string]$result.utc).ToUniversalTime()
+    $resultUtc = if ($result.utc -is [DateTime]) {
+        ([DateTime]$result.utc).ToUniversalTime()
+    }
+    else {
+        [DateTime]::Parse([string]$result.utc, [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime()
+    }
     if ($resultUtc -lt $attemptStart.AddSeconds(-5)) { throw "Unity result UTC is stale: $($result.utc)" }
     if (-not [bool]$result.success) { throw "Unity validation failed: $($result.status)" }
     if ([string]$result.status -notlike "COMPLETE:*") { throw "Unity result is not COMPLETE: $($result.status)" }
@@ -202,10 +246,12 @@ try {
         userId = $effectiveUserId
         mutatesServer = [bool]$moduleConfig.mutatesServer
         status = [string]$result.status
-        resultUtc = [string]$result.utc
-        screenshots = @($screenshotResults)
+        resultUtc = $resultUtc.ToString("O")
+        screenshots = $screenshotResults.ToArray()
         log = $logPath
         startedProcessIds = @($startedIds)
+        friendTargetRoleId = $friendTargetRoleId
+        friendPeerRoleIds = [uint32[]]$friendPeerRoleIds
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 8) + "`n")

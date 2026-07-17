@@ -26,6 +26,8 @@ namespace ProjectX.Core
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
         public const string ShopPath = "Layer/Main_UI/ButtonGroup5/btn_shangcheng";
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
+        public const string FriendPath = "Layer/Main_UI/ButtonGroup7/btn_friend";
+        public const string ChatPath = "Layer/Main_UI/ShortcutButtonGroup/Chat";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -46,6 +48,14 @@ namespace ProjectX.Core
         private LuaFunction onMailClaimClicked;
         private LuaFunction onShopClicked;
         private LuaFunction onShopBuyConfirmed;
+        private LuaFunction onFriendClicked;
+        private LuaFunction onFriendRequestList;
+        private LuaFunction onFriendRequestApplications;
+        private LuaFunction onFriendApply;
+        private LuaFunction onFriendDeal;
+        private LuaFunction onFriendDelete;
+        private LuaFunction onChatClicked;
+        private LuaFunction onChatSend;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -113,6 +123,12 @@ namespace ProjectX.Core
         private long validationShopExpectedCurrency;
         private int validationShopRewardType;
         private uint validationShopRewardAmount;
+        private CocosUiView friendView;
+        private FriendPresenter friendPresenter;
+        private readonly List<FriendRecord> pendingFriendRecords = new List<FriendRecord>();
+        private byte pendingFriendMaximum;
+        private CocosUiView chatView;
+        private ChatPresenter chatPresenter;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -146,6 +162,13 @@ namespace ProjectX.Core
         public bool IsShopOpen => shopView != null && services?.UiStack.Current == shopView;
         public int ShopCount => services?.Shop.Count ?? 0;
         public int ShopMissingIconCount => shopPresenter?.MissingIconCount ?? 0;
+        public bool IsFriendOpen => friendView != null && services?.UiStack.Current == friendView;
+        public int FriendCount => services?.Friends.FriendCount ?? 0;
+        public int FriendApplicationCount => services?.Friends.ApplicationCount ?? 0;
+        public int FriendRenderedCount => friendPresenter?.RenderedCount ?? 0;
+        public bool IsChatOpen => chatView != null && services?.UiStack.Current == chatView;
+        public int ChatCount => services?.Chat.Count ?? 0;
+        public int ChatRenderedCount => chatPresenter?.RenderedCount ?? 0;
         public AppState CurrentAppState => services?.State.Current ?? ProjectX.Core.AppState.Booting;
 
         private void Awake()
@@ -185,6 +208,14 @@ namespace ProjectX.Core
                 onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
                 onShopClicked = services.Lua.GetFunction("OnShopClicked");
                 onShopBuyConfirmed = services.Lua.GetFunction("OnShopBuyConfirmed");
+                onFriendClicked = services.Lua.GetFunction("OnFriendClicked");
+                onFriendRequestList = services.Lua.GetFunction("OnFriendRequestList");
+                onFriendRequestApplications = services.Lua.GetFunction("OnFriendRequestApplications");
+                onFriendApply = services.Lua.GetFunction("OnFriendApply");
+                onFriendDeal = services.Lua.GetFunction("OnFriendDeal");
+                onFriendDelete = services.Lua.GetFunction("OnFriendDelete");
+                onChatClicked = services.Lua.GetFunction("OnChatClicked");
+                onChatSend = services.Lua.GetFunction("OnChatSend");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -222,6 +253,14 @@ namespace ProjectX.Core
             onMailClaimClicked?.Dispose();
             onShopClicked?.Dispose();
             onShopBuyConfirmed?.Dispose();
+            onFriendClicked?.Dispose();
+            onFriendRequestList?.Dispose();
+            onFriendRequestApplications?.Dispose();
+            onFriendApply?.Dispose();
+            onFriendDeal?.Dispose();
+            onFriendDelete?.Dispose();
+            onChatClicked?.Dispose();
+            onChatSend?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -233,6 +272,8 @@ namespace ProjectX.Core
             toastPresenter?.Dispose();
             mailPresenter?.Dispose();
             shopPresenter?.Dispose();
+            friendPresenter?.Dispose();
+            chatPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -250,6 +291,7 @@ namespace ProjectX.Core
         public bool IsAutomation() => services?.Options.Automation ?? false;
         public bool HasCommandLineFlag(string flag) => services?.Options.HasFlag(flag) ?? false;
         public uint GetLocalUserId() => services?.Config.LocalUserId ?? 1;
+        public uint GetPlayerRoleId() => services?.Player.RoleId ?? 0;
         public bool HandleBack()
         {
             if (IsHeroEquipmentOpen) heroEquipmentPresenter?.HideDetails();
@@ -322,6 +364,8 @@ namespace ProjectX.Core
             heroEquipmentDetailView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
             mailView = services.UiRouter.FindBySource("MailLayer");
             shopView = services.UiRouter.FindBySource("shop/shangcheng");
+            friendView = services.UiRouter.FindBySource("common/FriendLayer");
+            chatView = services.UiRouter.FindBySource("MainChatLayer");
             services.UiStack.Clear();
             loginBackgroundView?.SetVisible(true);
             loginView?.SetVisible(true);
@@ -337,6 +381,8 @@ namespace ProjectX.Core
             heroEquipmentDetailView?.SetVisible(false);
             mailView?.SetVisible(false);
             shopView?.SetVisible(false);
+            friendView?.SetVisible(false);
+            chatView?.SetVisible(false);
             if (loginView == null) { Fail("Login/loginLayer CocosUiBinding was not found."); return; }
             EnsureErrorPresenter();
             EnsureCommonPresenters();
@@ -449,6 +495,44 @@ namespace ProjectX.Core
             EnsureShopPresenter();
             if (services.UiStack.Current != shopView) services.UiStack.Push(shopView);
             SetStatus($"Shop UI active: {services.Shop.Count} goods.");
+        }
+
+        public void BindFriendClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(FriendPath, HandleFriendClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void BindChatClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.Binding.Find(ChatPath) != null
+                    ? mainView.BindClick(ChatPath, HandleChatClick, true)
+                    : EnsureRuntimeChatEntry();
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void ShowFriend()
+        {
+            EnsureFriendPresenter();
+            if (services.UiStack.Current != friendView) services.UiStack.Push(friendView);
+            SetStatus($"Friend UI active: {services.Friends.FriendCount} friends, {services.Friends.ApplicationCount} applications.");
+        }
+
+        public void ShowChat()
+        {
+            EnsureChatPresenter();
+            if (services.UiStack.Current != chatView) services.UiStack.Push(chatView);
+            SetStatus($"Chat UI active: {services.Chat.Count} messages.");
         }
 
         public void ShowTask()
@@ -574,6 +658,7 @@ namespace ProjectX.Core
             services.Rewards.Clear();
             services.Mails.Clear();
             services.Shop.Clear();
+            services.Friends.Clear();
             services.Heroes.Clear();
             services.Formation.Clear();
             services.ServerTime.Reset();
@@ -787,6 +872,124 @@ namespace ProjectX.Core
             pendingShopRefreshRemaining = checked((ushort)refreshRemainingSeconds);
             pendingShopRecords.Clear();
             if (expectedCount > pendingShopRecords.Capacity) pendingShopRecords.Capacity = expectedCount;
+        }
+
+        public void BeginFriendListUpdate(int maximum, int expectedCount) => BeginFriendUpdate(maximum, expectedCount);
+        public void BeginFriendApplicationUpdate(int maximum, int expectedCount) => BeginFriendUpdate(maximum, expectedCount);
+
+        public void AddFriendRecord(double id, string name, int level, int sex, int head, double power,
+            double offlineSeconds, double guildId, string guildName, double intimacy, int sendFlag)
+        {
+            pendingFriendRecords.Add(new FriendRecord(checked((uint)id), name, checked((ushort)level),
+                checked((byte)sex), checked((byte)head), checked((ulong)power), checked((uint)offlineSeconds),
+                checked((uint)guildId), guildName, checked((uint)intimacy), checked((byte)sendFlag)));
+        }
+
+        public void EndFriendListUpdate()
+        {
+            services.Friends.ReplaceFriends(pendingFriendMaximum, pendingFriendRecords);
+            EnsureFriendPresenter();
+            ShowFriend();
+        }
+
+        public void EndFriendApplicationUpdate()
+        {
+            services.Friends.ReplaceApplications(pendingFriendMaximum, pendingFriendRecords);
+            EnsureFriendPresenter();
+            ShowFriend();
+        }
+
+        public bool RemoveFriend(double id) => services.Friends.RemoveFriend(checked((uint)id));
+        public bool RemoveFriendApplication(double id) => services.Friends.RemoveApplication(checked((uint)id));
+
+        public void CaptureFriendAndDeleteValidation(double id)
+        {
+            EnsureFriendPresenter();
+            friendPresenter.ShowFriends(false);
+            toastPresenter?.Clear();
+            StartCoroutine(CaptureFriendAndDelete(checked((uint)id)));
+        }
+
+        public void CompleteFriendMutationValidation(double rejectedId, double acceptedId)
+        {
+            EnsureFriendPresenter();
+            friendPresenter.ShowFriends(false);
+            if (!IsFriendOpen || services.Friends.FriendCount != 0 || services.Friends.ApplicationCount != 0
+                || friendPresenter.RenderedCount != 0)
+            {
+                Fail($"Friend final state mismatch: open={IsFriendOpen}, friends={services.Friends.FriendCount}, applications={services.Friends.ApplicationCount}, rendered={friendPresenter.RenderedCount}.");
+                return;
+            }
+            toastPresenter?.Clear();
+            Complete($"COMPLETE: /27 seeded applications -> reject {checked((uint)rejectedId)} -> add/duplicate-error -> accept {checked((uint)acceptedId)} -> FriendStore/UI -> delete -> persisted empty state");
+        }
+
+        public void AddLocalChatMessage(int channel, string content)
+        {
+            services.Chat.Add(new ChatMessageRecord
+            {
+                Channel = checked((ChatChannel)(byte)channel),
+                SenderRoleId = services.Player.RoleId,
+                SenderName = services.Player.Name,
+                Content = content ?? string.Empty,
+                IsLocalEcho = true
+            });
+        }
+
+        public void AddChatMessage(int channel, double senderId, string senderName, int vip, int head, int sex, string content)
+        {
+            services.Chat.Add(new ChatMessageRecord
+            {
+                Channel = checked((ChatChannel)(byte)channel),
+                SenderRoleId = checked((uint)senderId),
+                SenderName = senderName ?? string.Empty,
+                VipLevel = checked((byte)vip),
+                Head = checked((byte)head),
+                Sex = checked((byte)sex),
+                Content = content ?? string.Empty
+            });
+        }
+
+        public void AddPrivateChatMessage(double senderId, string senderName, int vip, int head, int sex,
+            int level, double teamId, double guildId, double recipientId, double serverTime, string content)
+        {
+            services.Chat.Add(new ChatMessageRecord
+            {
+                Channel = ChatChannel.Private,
+                SenderRoleId = checked((uint)senderId),
+                SenderName = senderName ?? string.Empty,
+                VipLevel = checked((byte)vip),
+                Head = checked((byte)head),
+                Sex = checked((byte)sex),
+                Level = checked((ushort)level),
+                TeamId = checked((uint)teamId),
+                GuildId = checked((uint)guildId),
+                RecipientRoleId = checked((uint)recipientId),
+                ServerTime = checked((uint)serverTime),
+                Content = content ?? string.Empty
+            });
+        }
+
+        public void SetChatError(int channel, string message)
+        {
+            services.Chat.SetError(message);
+            ShowToast(message, 3f);
+        }
+
+        public void CompleteChatValidation(string worldText, string privateText, string error)
+        {
+            EnsureChatPresenter();
+            chatPresenter.SelectChannel(ChatChannel.Combined);
+            if (GetLocalUserId() == 1 || !IsChatOpen
+                || !services.Chat.Contains(ChatChannel.World, worldText)
+                || !services.Chat.Contains(ChatChannel.Private, privateText)
+                || string.IsNullOrWhiteSpace(error) || chatPresenter.RenderedCount < 2)
+            {
+                Fail($"Chat validation mismatch: user={GetLocalUserId()}, open={IsChatOpen}, messages={services.Chat.Count}, rendered={chatPresenter.RenderedCount}, error={error}.");
+                return;
+            }
+            toastPresenter?.Clear();
+            Complete($"COMPLETE: /26 world local echo -> self-private server packet -> ChatStore/UI -> invalid-target error ({services.Chat.Count} messages)");
         }
 
         public void AddShopRecord(int grid, double id, int buyCount, string name,
@@ -1307,6 +1510,46 @@ namespace ProjectX.Core
             try { CallLua(onShopClicked, "Shop.OnClicked"); }
             catch (Exception exception) { Fail($"Shop open failed: {exception.Message}"); }
         }
+        private void HandleFriendClick()
+        {
+            try { CallLua(onFriendClicked, "Friend.OnClicked"); }
+            catch (Exception exception) { Fail($"Friend open failed: {exception.Message}"); }
+        }
+        private void HandleChatClick()
+        {
+            try { CallLua(onChatClicked, "Chat.OnClicked"); }
+            catch (Exception exception) { Fail($"Chat open failed: {exception.Message}"); }
+        }
+
+        private Button EnsureRuntimeChatEntry()
+        {
+            Transform existing = mainView.GameObject.transform.Find("ChatEntryRuntime");
+            if (existing != null) return existing.GetComponent<Button>();
+            GameObject entry = new GameObject("ChatEntryRuntime", typeof(RectTransform), typeof(Image), typeof(Button));
+            RectTransform rect = entry.GetComponent<RectTransform>();
+            rect.SetParent(mainView.GameObject.transform, false);
+            rect.anchorMin = new Vector2(0.015f, 0.025f);
+            rect.anchorMax = new Vector2(0.12f, 0.105f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = entry.GetComponent<Image>();
+            image.color = new Color(0.12f, 0.25f, 0.42f, 0.95f);
+            Button button = entry.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(HandleChatClick);
+            GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.SetParent(rect, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 20;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.text = "聊天";
+            return button;
+        }
         private static IEnumerator InvokeButtonNextFrame(Button button) { yield return null; button.onClick.Invoke(); }
 
         private IEnumerator CaptureMailDetailAndClaim(uint mailId)
@@ -1345,6 +1588,19 @@ namespace ProjectX.Core
                 yield break;
             }
             errorPresenter.Confirm();
+        }
+
+        private IEnumerator CaptureFriendAndDelete(uint roleId)
+        {
+            yield return new WaitForSecondsRealtime(2.1f);
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-friend-list.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(0.75f);
+            InvokeLuaOrFail(onFriendDelete, "Friend.OnDelete", (double)roleId);
         }
 
         private void EnsureBagPresenter()
@@ -1424,6 +1680,33 @@ namespace ProjectX.Core
             if (shopView == null) throw new InvalidOperationException("shop/shangcheng CocosUiBinding was not found.");
             shopPresenter = shopPresenter ?? new ShopPresenter(shopView, services.Shop, services.Currencies,
                 services.Resources, services.ServerTime, ShowShopPurchaseConfirmation);
+        }
+
+        private void EnsureFriendPresenter()
+        {
+            friendView = friendView ?? services.UiRouter.FindBySource("common/FriendLayer");
+            if (friendView == null) throw new InvalidOperationException("common/FriendLayer CocosUiBinding was not found.");
+            friendPresenter = friendPresenter ?? new FriendPresenter(friendView, services.Friends,
+                () => InvokeLuaOrFail(onFriendRequestList, "Friend.RequestList"),
+                () => InvokeLuaOrFail(onFriendRequestApplications, "Friend.RequestApplications"),
+                id => InvokeLuaOrFail(onFriendApply, "Friend.Apply", (double)id),
+                (id, accept) => InvokeLuaOrFail(onFriendDeal, "Friend.Deal", (double)id, accept),
+                id => InvokeLuaOrFail(onFriendDelete, "Friend.Delete", (double)id));
+        }
+
+        private void EnsureChatPresenter()
+        {
+            chatView = chatView ?? services.UiRouter.FindBySource("MainChatLayer");
+            if (chatView == null) throw new InvalidOperationException("MainChatLayer CocosUiBinding was not found.");
+            chatPresenter = chatPresenter ?? new ChatPresenter(chatView, services.Chat,
+                (channel, content, targetId) => InvokeLuaOrFail(onChatSend, "Chat.Send", channel, content, (double)targetId));
+        }
+
+        private void BeginFriendUpdate(int maximum, int expectedCount)
+        {
+            pendingFriendMaximum = checked((byte)maximum);
+            pendingFriendRecords.Clear();
+            if (expectedCount > pendingFriendRecords.Capacity) pendingFriendRecords.Capacity = expectedCount;
         }
 
         private void EnsureMainTaskTracker()

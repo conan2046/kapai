@@ -53,7 +53,8 @@ if ($statusPath) {
     if ($functionalMatches.Count -ne 1) {
         Add-Failure "STATUS must contain exactly one Functional percentage row; found $($functionalMatches.Count)."
     }
-    if ($status -notmatch '下一批：`Friend Store`') {
+    $friendModule = @($manifest.modules | Where-Object { [string]$_.key -eq "Friend" }) | Select-Object -First 1
+    if ([string]$friendModule.status -ne "phase1-complete" -and $status -notmatch '下一批：`Friend Store`') {
         Add-Warning "STATUS next batch is not Friend Store. Update the manifest/document plan if this is intentional."
     }
 }

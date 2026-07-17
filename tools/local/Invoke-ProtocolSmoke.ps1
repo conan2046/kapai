@@ -16,7 +16,8 @@ param(
   [switch]$BattleListOnly,
   [switch]$UiQueries,
   [switch]$NpcFlow,
-  [switch]$InvalidRisky
+  [switch]$InvalidRisky,
+  [int]$FriendApplyRoleId = 0
 )
 
 $autoCreateRoleText = if ($AutoCreateRole) { "true" } else { "false" }
@@ -33,6 +34,7 @@ $battleListOnlyText = if ($BattleListOnly) { "true" } else { "false" }
 $uiQueriesText = if ($UiQueries) { "true" } else { "false" }
 $npcFlowText = if ($NpcFlow) { "true" } else { "false" }
 $invalidRiskyText = if ($InvalidRisky) { "true" } else { "false" }
+$friendApplyRoleIdText = $FriendApplyRoleId
 $python = @"
 import socket, struct, time, threading
 
@@ -55,6 +57,7 @@ BATTLE_LIST_ONLY = "$battleListOnlyText"
 UI_QUERIES = "$uiQueriesText"
 NPC_FLOW = "$npcFlowText"
 INVALID_RISKY = "$invalidRiskyText"
+FRIEND_APPLY_ROLE_ID = $friendApplyRoleIdText
 
 def u8(v): return struct.pack('<B', v)
 def u16(v): return struct.pack('<H', v)
@@ -69,6 +72,7 @@ recv_types = []
 recv_bodies = {}
 recv_events = []
 created_role_id = {'id': None}
+create_response = {'body': None}
 battle_target = {'value': None}
 fengshen_trial = {'value': None}
 stop_flag = {'stop': False}
@@ -91,6 +95,8 @@ def reader(sock):
                 body = buf[6:total]
                 if msg_type == 1003 and len(body) >= 5 and body[0] == 1:
                     created_role_id['id'] = struct.unpack('<I', body[1:5])[0]
+                if msg_type == 1003:
+                    create_response['body'] = body
                 if BATTLE == 'true' and msg_type == 161 and len(body) >= 4 and body[0:3] == b'\x00\x01\x01':
                     pos = 4
                     candidate = None
@@ -402,7 +408,8 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
         while time.time() < deadline and created_role_id['id'] is None:
             time.sleep(0.05)
         if created_role_id['id'] is None:
-            raise RuntimeError('auto create role failed or timed out')
+            body = create_response['body']
+            raise RuntimeError('auto create role failed or timed out; response=' + (body.hex() if body is not None else 'none'))
         role_to_select = created_role_id['id']
         print('created_role_id=' + str(role_to_select))
     sock.sendall(pkt(1004, u32(role_to_select)))
@@ -414,6 +421,22 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
         smokes.append(('player_info_self', 34, u32(role_to_select)))
         smokes.append(('role_query_self', 248, u8(1) + s(str(role_to_select))))
     time.sleep(6.0 if AUTO_CREATE_ROLE == 'true' else 2.0)
+    if FRIEND_APPLY_ROLE_ID > 0:
+        event_start = len(recv_events)
+        sock.sendall(pkt(27, u8(3) + u32(FRIEND_APPLY_ROLE_ID)))
+        deadline = time.time() + 3.0
+        response = None
+        while time.time() < deadline and response is None:
+            for msg_type, body in recv_events[event_start:]:
+                if msg_type == 27 and len(body) >= 6 and body[0] == 3 and struct.unpack('<I', body[1:5])[0] == FRIEND_APPLY_ROLE_ID:
+                    response = body
+                    break
+            time.sleep(0.05)
+        if response is None:
+            raise RuntimeError('friend apply returned no matching /27 op=3 response')
+        print('friend_apply_response=' + response.hex())
+        if response[5] != 1:
+            raise RuntimeError('friend apply failed: ' + response.hex())
     for name, t, body in smokes:
         if CONSUMPTION == 'true' and name == 'use_special_item_missing_rename_card':
             time.sleep(1.0)

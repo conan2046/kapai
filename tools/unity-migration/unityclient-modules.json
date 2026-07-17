@@ -11,13 +11,22 @@
       "key": "Bag",
       "displayName": "背包",
       "status": "phase1-complete",
-      "protocols": [8, 15],
-      "entries": ["Layer/Main_UI/ButtonGroup5/btn_beibao"],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab"],
+      "protocols": [
+        8,
+        15
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup5/btn_beibao"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab"
+      ],
       "configs": [],
       "mutatesServer": false,
       "validationFlags": [],
-      "screenshots": ["build/ui-migration/bootstrap-bag.png"],
+      "screenshots": [
+        "build/ui-migration/bootstrap-bag.png"
+      ],
       "document": "docs/unityclient/modules/BAG.md"
     },
     {
@@ -25,11 +34,17 @@
       "displayName": "系统设置",
       "status": "phase1-complete",
       "protocols": [],
-      "entries": ["Layer/Main_UI/ButtonGroup7/btn_xitong"],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/SystemLayer.prefab"],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup7/btn_xitong"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/SystemLayer.prefab"
+      ],
       "configs": [],
       "mutatesServer": false,
-      "validationFlags": ["-projectXSettingsValidation"],
+      "validationFlags": [
+        "-projectXSettingsValidation"
+      ],
       "screenshots": [],
       "document": "docs/unityclient/modules/FOUNDATION.md"
     },
@@ -37,47 +52,83 @@
       "key": "Task",
       "displayName": "任务",
       "status": "phase1-complete",
-      "protocols": [37, 39, 65],
-      "entries": ["Layer/Main_UI/ButtonGroup5/btn_renwu"],
+      "protocols": [
+        37,
+        39,
+        65
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup5/btn_renwu"
+      ],
       "prefabs": [],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXTaskValidation"],
-      "screenshots": ["build/ui-migration/bootstrap-task.png"],
+      "validationFlags": [
+        "-projectXTaskValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-task.png"
+      ],
       "document": "docs/unityclient/modules/TASK.md"
     },
     {
       "key": "PlayerHud",
       "displayName": "主界面HUD",
       "status": "phase1-complete",
-      "protocols": [18, 226, 321, 1004],
-      "entries": ["Layer/Main_UI"],
+      "protocols": [
+        18,
+        226,
+        321,
+        1004
+      ],
+      "entries": [
+        "Layer/Main_UI"
+      ],
       "prefabs": [],
       "configs": [],
       "mutatesServer": false,
-      "validationFlags": ["-projectXPlayerHudValidation"],
-      "screenshots": ["build/ui-migration/bootstrap-main-hud.png"],
+      "validationFlags": [
+        "-projectXPlayerHudValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-main-hud.png"
+      ],
       "document": "docs/unityclient/modules/FOUNDATION.md"
     },
     {
       "key": "Hero",
       "displayName": "神将与阵容",
       "status": "phase1-complete",
-      "protocols": [24, 48],
-      "entries": ["Layer/Main_UI/ButtonGroup5/btn_zhenrong"],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab"],
+      "protocols": [
+        24,
+        48
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup5/btn_zhenrong"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab"
+      ],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXHeroValidation"],
-      "screenshots": ["build/ui-migration/bootstrap-hero.png"],
+      "validationFlags": [
+        "-projectXHeroValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-hero.png"
+      ],
       "document": "docs/unityclient/modules/HERO_EQUIPMENT.md"
     },
     {
       "key": "HeroEquip",
       "displayName": "装备与法宝",
       "status": "phase1-complete",
-      "protocols": [319],
-      "entries": ["Hero detail equipment entry"],
+      "protocols": [
+        319
+      ],
+      "entries": [
+        "Hero detail equipment entry"
+      ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab"
@@ -87,20 +138,32 @@
         "unityclient/Assets/ProjectX/Resources/Configs/fabao.json"
       ],
       "mutatesServer": true,
-      "validationFlags": ["-projectXHeroEquipMutationValidation"],
-      "screenshots": ["build/ui-migration/bootstrap-hero.png"],
+      "validationFlags": [
+        "-projectXHeroEquipMutationValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-hero.png"
+      ],
       "document": "docs/unityclient/modules/HERO_EQUIPMENT.md"
     },
     {
       "key": "Mail",
       "displayName": "邮件",
       "status": "phase1-complete",
-      "protocols": [128],
-      "entries": ["Layer/Main_UI/ButtonGroup7/btn_mail"],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab"],
+      "protocols": [
+        128
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup7/btn_mail"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab"
+      ],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXMailValidation"],
+      "validationFlags": [
+        "-projectXMailValidation"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-mail-detail.png",
         "build/ui-migration/bootstrap-mail.png"
@@ -111,18 +174,24 @@
       "key": "Shop",
       "displayName": "商城",
       "status": "phase1-complete",
-      "protocols": [221],
+      "protocols": [
+        221
+      ],
       "entries": [
         "Layer/Main_UI/ButtonGroup5/btn_shangcheng",
         "Layer/Main_UI/tankuang1/btn_shangcheng"
       ],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab"],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab"
+      ],
       "configs": [
         "unityclient/Assets/ProjectX/Resources/Configs/shop.json",
         "unityclient/Assets/ProjectX/Resources/Configs/item.json"
       ],
       "mutatesServer": true,
-      "validationFlags": ["-projectXShopValidation"],
+      "validationFlags": [
+        "-projectXShopValidation"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-shop-confirm.png",
         "build/ui-migration/bootstrap-shop.png"
@@ -132,15 +201,31 @@
     {
       "key": "Friend",
       "displayName": "好友",
-      "status": "planned",
-      "protocols": [],
-      "entries": [],
-      "prefabs": [],
+      "status": "phase1-complete",
+      "protocols": [27],
+      "entries": ["Layer/Main_UI/ButtonGroup7/btn_friend"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab"],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": [],
-      "screenshots": [],
+      "validationFlags": ["-projectXFriendValidation"],
+      "screenshots": [
+        "build/ui-migration/bootstrap-friend-list.png",
+        "build/ui-migration/bootstrap-friend.png"
+      ],
       "document": "docs/unityclient/modules/FRIEND.md"
+    },
+    {
+      "key": "Chat",
+      "displayName": "聊天",
+      "status": "phase1-complete",
+      "protocols": [26],
+      "entries": ["Layer/Main_UI/ShortcutButtonGroup/Chat"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/MainChatLayer.prefab"],
+      "configs": [],
+      "mutatesServer": true,
+      "validationFlags": ["-projectXChatValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-chat.png"],
+      "document": "docs/unityclient/modules/CHAT.md"
     }
   ]
 }

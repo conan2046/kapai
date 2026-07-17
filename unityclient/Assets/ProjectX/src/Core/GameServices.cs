@@ -22,6 +22,8 @@ namespace ProjectX.Core
             Mails = new MailStore();
             ShopCatalog = new ShopCatalog();
             Shop = new ShopStore();
+            Friends = new FriendStore();
+            Chat = new ChatStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -51,6 +53,8 @@ namespace ProjectX.Core
         public MailStore Mails { get; }
         public ShopCatalog ShopCatalog { get; }
         public ShopStore Shop { get; }
+        public FriendStore Friends { get; }
+        public ChatStore Chat { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -84,6 +88,8 @@ namespace ProjectX.Core
             FaBao.Clear();
             Mails.Clear();
             Shop.Clear();
+            Friends.Clear();
+            Chat.Clear();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();
