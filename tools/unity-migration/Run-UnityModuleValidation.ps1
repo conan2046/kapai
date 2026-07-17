@@ -39,6 +39,9 @@ $effectiveUserId = $UserId
 $friendPeerUserIds = @()
 $friendTargetRoleId = 0
 $friendPeerRoleIds = @()
+$teamPeerUserId = 0
+$teamTargetRoleId = 0
+$teamPeerRoleId = 0
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
         if (-not $DryRun) {
@@ -55,6 +58,10 @@ if ($moduleConfig.key -ieq "Friend" -and -not $DryRun) {
         New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
         New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
     )
+}
+if ($moduleConfig.key -ieq "Team" -and -not $DryRun) {
+    if ($UserId -ne 0) { throw "Team validation requires auto-allocated isolated users; omit -UserId." }
+    $teamPeerUserId = New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
 }
 $userArgument = if ($DryRun -and $effectiveUserId -eq 0) { "-projectXUserId=<auto-isolated>" } else { "-projectXUserId=$effectiveUserId" }
 $unityArguments = @(
@@ -86,6 +93,7 @@ if ($existingUnity.Count -gt 0) {
     $details = ($existingUnity | ForEach-Object { "pid=$($_.Id) path=$($_.Path)" }) -join "; "
     throw "Unity is already running; close it before module validation. $details"
 }
+$beforeUnityIds = @($existingUnity | ForEach-Object { [int]$_.Id })
 $existingCocos = @(Get-Process ProjectX -ErrorAction SilentlyContinue)
 if ($existingCocos.Count -gt 0) {
     throw "Cocos ProjectX.exe is running. Unity validation refuses to keep both clients resident."
@@ -97,6 +105,7 @@ $startedIds = New-Object System.Collections.Generic.List[int]
 $runStartedUtc = [DateTime]::UtcNow
 $result = $null
 $failure = $null
+$teamPeerProcess = $null
 
 function Assert-WorkspaceListener {
     param([int]$Port, [string]$ExpectedName)
@@ -119,6 +128,14 @@ function Record-NewWorkspaceProcesses {
     }
 }
 
+function Stop-ValidationProcessTree {
+    param([int]$ProcessId)
+    foreach ($child in @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$ProcessId" -ErrorAction SilentlyContinue)) {
+        Stop-ValidationProcessTree -ProcessId ([int]$child.ProcessId)
+    }
+    Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue
+}
+
 try {
     $mysqlReady = Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe"
     if (-not $mysqlReady) {
@@ -132,7 +149,7 @@ try {
     $serverReady = Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe"
     if (-not $serverReady) {
         if ($NoStartServices) { throw "kapai.exe is not listening on 8711 and -NoStartServices was specified." }
-        & pwsh -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1")
+        & pwsh -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
         if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
         Record-NewWorkspaceProcesses
         if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
@@ -164,6 +181,51 @@ try {
         }
         Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($setupLines -join "`n") + "`n")
         Write-Host "Friend setup: targetRole=$friendTargetRoleId peerRoles=$($friendPeerRoleIds -join ',')"
+    }
+    if ($moduleConfig.key -ieq "Team") {
+        [System.IO.Directory]::CreateDirectory($summaryDirectory) | Out-Null
+        $setupLogPath = Join-Path $summaryDirectory "team-setup-latest.log"
+        $targetName = "T{0:D5}" -f ($effectiveUserId % 100000)
+        $targetOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+            -UserId $effectiveUserId -AutoCreateRole -RoleName $targetName 2>&1)
+        Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($targetOutput -join "`n") + "`n")
+        if ($LASTEXITCODE -ne 0) { throw "Team target role setup failed; see $setupLogPath" }
+        $targetMatch = @($targetOutput | Select-String -Pattern '^created_role_id=(\d+)$' | Select-Object -Last 1)
+        if ($targetMatch.Count -ne 1) { throw "Team target role id was not reported." }
+        $teamTargetRoleId = [uint32]$targetMatch[0].Matches[0].Groups[1].Value
+
+        $peerName = "T{0:D5}" -f ($teamPeerUserId % 100000)
+        $peerOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+            -UserId $teamPeerUserId -AutoCreateRole -RoleName $peerName 2>&1)
+        Write-UnityMigrationUtf8 -Path $setupLogPath -Content ((@($targetOutput) + @($peerOutput) -join "`n") + "`n")
+        if ($LASTEXITCODE -ne 0) { throw "Team peer role setup failed; see $setupLogPath" }
+        $peerMatch = @($peerOutput | Select-String -Pattern '^created_role_id=(\d+)$' | Select-Object -Last 1)
+        if ($peerMatch.Count -ne 1) { throw "Team peer role id was not reported." }
+        $teamPeerRoleId = [uint32]$peerMatch[0].Matches[0].Groups[1].Value
+        $unityArguments += "-projectXTeamPeerRoleId=$teamPeerRoleId"
+
+        # The setup smoke disconnects immediately after creating/selecting the role.
+        # Let the local server finish removing that socket before reconnecting the
+        # same role as the persistent invitation peer, otherwise its late cleanup
+        # can erase the new online-role index.
+        Start-Sleep -Seconds 2
+
+        $peerLogPath = Join-Path $summaryDirectory "team-peer-latest.log"
+        $peerErrorPath = Join-Path $summaryDirectory "team-peer-latest.err.log"
+        foreach ($path in @($peerLogPath, $peerErrorPath)) { if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force } }
+        $teamPeerProcess = Start-Process -FilePath "pwsh" -ArgumentList @(
+            "-NoProfile", "-File", (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1"),
+            "-UserId", $teamPeerUserId, "-RoleId", $teamPeerRoleId,
+            "-TeamPeerAcceptLeaderRoleId", $teamTargetRoleId, "-TeamPeerWaitSeconds", 600
+        ) -RedirectStandardOutput $peerLogPath -RedirectStandardError $peerErrorPath -WindowStyle Hidden -PassThru
+        $readyDeadline = [DateTime]::UtcNow.AddSeconds(15)
+        do {
+            Start-Sleep -Milliseconds 200
+            if ($teamPeerProcess.HasExited) { throw "Team peer exited before becoming ready; see $peerLogPath and $peerErrorPath" }
+            $peerLog = if (Test-Path -LiteralPath $peerLogPath) { Get-Content -Raw -Encoding UTF8 -LiteralPath $peerLogPath } else { "" }
+        } while ($peerLog -notmatch 'team_peer_waiting=' -and [DateTime]::UtcNow -lt $readyDeadline)
+        if ($peerLog -notmatch 'team_peer_waiting=') { throw "Team peer did not become ready within 15 seconds; see $peerLogPath" }
+        Write-Host "Team setup: targetRole=$teamTargetRoleId peerRole=$teamPeerRoleId"
     }
 
     [System.IO.Directory]::CreateDirectory($logDirectory) | Out-Null
@@ -252,6 +314,8 @@ try {
         startedProcessIds = @($startedIds)
         friendTargetRoleId = $friendTargetRoleId
         friendPeerRoleIds = [uint32[]]$friendPeerRoleIds
+        teamTargetRoleId = $teamTargetRoleId
+        teamPeerRoleId = $teamPeerRoleId
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 8) + "`n")
@@ -271,6 +335,14 @@ catch {
     Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 8) + "`n")
 }
 finally {
+    foreach ($unityProcess in @(Get-Process Unity -ErrorAction SilentlyContinue | Where-Object { $_.Id -notin $beforeUnityIds })) {
+        Write-Host "Stopping Unity process started by validation: pid=$($unityProcess.Id)"
+        Stop-Process -Id $unityProcess.Id -ErrorAction SilentlyContinue
+    }
+    if ($teamPeerProcess -and -not $teamPeerProcess.HasExited) {
+        Write-Host "Stopping Team peer process pid=$($teamPeerProcess.Id)"
+        Stop-ValidationProcessTree -ProcessId $teamPeerProcess.Id
+    }
     Record-NewWorkspaceProcesses
     if (-not $KeepServices) {
         foreach ($id in @($startedIds | Sort-Object -Descending)) {

@@ -10,6 +10,7 @@ local MailController = require("Mail.MailController")
 local ShopController = require("Shop.ShopController")
 local FriendController = require("Friend.FriendController")
 local ChatController = require("Chat.ChatController")
+local TeamController = require("Team.TeamController")
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -39,6 +40,11 @@ function OnFriendDeal(id, accept) FriendController.deal(id, accept) end
 function OnFriendDelete(id) FriendController.delete(id) end
 function OnChatClicked() ChatController.onClick() end
 function OnChatSend(channel, content, targetRoleId) ChatController.send(channel, content, targetRoleId) end
+function OnTeamClicked() TeamController.onClick() end
+function OnTeamCreate() TeamController.create() end
+function OnTeamInvite(roleId) TeamController.invite(roleId) end
+function OnTeamRespond(leaderId, accept) TeamController.respond(leaderId, accept) end
+function OnTeamLeave() TeamController.leave() end
 function OnPacket(command, message)
     if LoginController.onPacket(command, message) then return end
     if PlayerController.onPacket(command, message) then return end
@@ -50,5 +56,6 @@ function OnPacket(command, message)
     if ShopController.onPacket(command, message) then return end
     if FriendController.onPacket(command, message) then return end
     if ChatController.onPacket(command, message) then return end
+    if TeamController.onPacket(command, message) then return end
     TaskController.onPacket(command, message)
 end

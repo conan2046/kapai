@@ -202,12 +202,20 @@
       "key": "Friend",
       "displayName": "好友",
       "status": "phase1-complete",
-      "protocols": [27],
-      "entries": ["Layer/Main_UI/ButtonGroup7/btn_friend"],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab"],
+      "protocols": [
+        27
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup7/btn_friend"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab"
+      ],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXFriendValidation"],
+      "validationFlags": [
+        "-projectXFriendValidation"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-friend-list.png",
         "build/ui-migration/bootstrap-friend.png"
@@ -218,14 +226,46 @@
       "key": "Chat",
       "displayName": "聊天",
       "status": "phase1-complete",
-      "protocols": [26],
-      "entries": ["Layer/Main_UI/ShortcutButtonGroup/Chat"],
-      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/MainChatLayer.prefab"],
+      "protocols": [
+        26
+      ],
+      "entries": [
+        "Layer/Main_UI/ShortcutButtonGroup/Chat"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/MainChatLayer.prefab"
+      ],
       "configs": [],
       "mutatesServer": true,
-      "validationFlags": ["-projectXChatValidation"],
-      "screenshots": ["build/ui-migration/bootstrap-chat.png"],
+      "validationFlags": [
+        "-projectXChatValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-chat.png"
+      ],
       "document": "docs/unityclient/modules/CHAT.md"
+    },
+    {
+      "key": "Team",
+      "displayName": "队伍",
+      "status": "phase1-complete",
+      "protocols": [29, 30],
+      "entries": [
+        "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team",
+        "runtime Team entry bound from the legacy main-screen route"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/TeamMembersLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/TeamInviteListLayer.prefab"
+      ],
+      "configs": [],
+      "mutatesServer": true,
+      "validationFlags": ["-projectXTeamValidation"],
+      "screenshots": [
+        "build/ui-migration/bootstrap-team-members.png",
+        "build/ui-migration/bootstrap-team.png"
+      ],
+      "document": "docs/unityclient/modules/TEAM.md"
     }
   ]
 }

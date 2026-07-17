@@ -15,6 +15,7 @@
 using namespace boost;
 
 extern time_t sdHuodongMonsterDieTime;
+extern const char *gConfigFile;
 
 // 帮派挑战赛
 int BANG_PAI_TIAO_ZHAN_YEAR; // 年
@@ -1622,6 +1623,8 @@ bool CScene::CreateTeam(CUser *pUser, uint32 request)
 		+----+-----+-----+------+-------+-------+
 		*/
 		int openLevel = sSystemOpenCfgMananger.GetFuncOpenLevel(SOT_Team);
+		if(openLevel == 0xffff && gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+			openLevel = 32;
 		ShareUserPtr p = m_onlineUser.GetUserByRoleId(request);
 		if(p.get() != NULL)
 		{

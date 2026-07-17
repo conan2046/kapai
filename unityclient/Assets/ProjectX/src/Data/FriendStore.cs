@@ -9,27 +9,22 @@ namespace ProjectX.Data
         public FriendRecord(uint id, string name, ushort level, byte sex, byte head, ulong power,
             uint offlineSeconds, uint guildId, string guildName, uint intimacy = 0, byte sendFlag = 0)
         {
-            Id = id;
-            Name = name ?? string.Empty;
-            Level = level;
-            Sex = sex;
-            Head = head;
-            Power = power;
+            Player = new PlayerSummary(id, name, level, sex, head, power, guildId: guildId);
             OfflineSeconds = offlineSeconds;
-            GuildId = guildId;
             GuildName = guildName ?? string.Empty;
             Intimacy = intimacy;
             SendFlag = sendFlag;
         }
 
-        public uint Id { get; }
-        public string Name { get; }
-        public ushort Level { get; }
-        public byte Sex { get; }
-        public byte Head { get; }
-        public ulong Power { get; }
+        public PlayerSummary Player { get; }
+        public uint Id => Player.Id;
+        public string Name => Player.Name;
+        public ushort Level => Player.Level;
+        public byte Sex => Player.Sex;
+        public byte Head => Player.Head;
+        public ulong Power => Player.Power;
         public uint OfflineSeconds { get; }
-        public uint GuildId { get; }
+        public uint GuildId => Player.GuildId;
         public string GuildName { get; }
         public uint Intimacy { get; }
         public byte SendFlag { get; }

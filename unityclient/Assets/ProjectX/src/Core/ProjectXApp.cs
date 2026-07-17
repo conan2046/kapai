@@ -28,6 +28,7 @@ namespace ProjectX.Core
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
         public const string FriendPath = "Layer/Main_UI/ButtonGroup7/btn_friend";
         public const string ChatPath = "Layer/Main_UI/ShortcutButtonGroup/Chat";
+        public const string TeamLegacyPath = "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -56,6 +57,11 @@ namespace ProjectX.Core
         private LuaFunction onFriendDelete;
         private LuaFunction onChatClicked;
         private LuaFunction onChatSend;
+        private LuaFunction onTeamClicked;
+        private LuaFunction onTeamCreate;
+        private LuaFunction onTeamInvite;
+        private LuaFunction onTeamRespond;
+        private LuaFunction onTeamLeave;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView mainView;
@@ -129,6 +135,11 @@ namespace ProjectX.Core
         private byte pendingFriendMaximum;
         private CocosUiView chatView;
         private ChatPresenter chatPresenter;
+        private CocosUiView teamView;
+        private TeamPresenter teamPresenter;
+        private readonly List<TeamMemberRecord> pendingTeamMembers = new List<TeamMemberRecord>();
+        private byte pendingTeamType;
+        private ushort pendingTeamFormationId;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -169,6 +180,9 @@ namespace ProjectX.Core
         public bool IsChatOpen => chatView != null && services?.UiStack.Current == chatView;
         public int ChatCount => services?.Chat.Count ?? 0;
         public int ChatRenderedCount => chatPresenter?.RenderedCount ?? 0;
+        public bool IsTeamOpen => teamView != null && services?.UiStack.Current == teamView;
+        public int TeamPlayerCount => services?.Team.PlayerCount ?? 0;
+        public int TeamRenderedPlayerCount => teamPresenter?.RenderedPlayerCount ?? 0;
         public AppState CurrentAppState => services?.State.Current ?? ProjectX.Core.AppState.Booting;
 
         private void Awake()
@@ -216,6 +230,11 @@ namespace ProjectX.Core
                 onFriendDelete = services.Lua.GetFunction("OnFriendDelete");
                 onChatClicked = services.Lua.GetFunction("OnChatClicked");
                 onChatSend = services.Lua.GetFunction("OnChatSend");
+                onTeamClicked = services.Lua.GetFunction("OnTeamClicked");
+                onTeamCreate = services.Lua.GetFunction("OnTeamCreate");
+                onTeamInvite = services.Lua.GetFunction("OnTeamInvite");
+                onTeamRespond = services.Lua.GetFunction("OnTeamRespond");
+                onTeamLeave = services.Lua.GetFunction("OnTeamLeave");
                 using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
             }
             catch (Exception exception)
@@ -261,6 +280,11 @@ namespace ProjectX.Core
             onFriendDelete?.Dispose();
             onChatClicked?.Dispose();
             onChatSend?.Dispose();
+            onTeamClicked?.Dispose();
+            onTeamCreate?.Dispose();
+            onTeamInvite?.Dispose();
+            onTeamRespond?.Dispose();
+            onTeamLeave?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -274,6 +298,7 @@ namespace ProjectX.Core
             shopPresenter?.Dispose();
             friendPresenter?.Dispose();
             chatPresenter?.Dispose();
+            teamPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -521,6 +546,20 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+        public void BindTeamClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = EnsureRuntimeTeamEntry();
+                CocosUiView legacy = services.UiRouter.FindBySource("UImainLayer_backup");
+                if (legacy?.Binding.Find(TeamLegacyPath) == null)
+                    throw new InvalidOperationException($"Legacy team entry evidence is missing: {TeamLegacyPath}");
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
         public void ShowFriend()
         {
             EnsureFriendPresenter();
@@ -533,6 +572,13 @@ namespace ProjectX.Core
             EnsureChatPresenter();
             if (services.UiStack.Current != chatView) services.UiStack.Push(chatView);
             SetStatus($"Chat UI active: {services.Chat.Count} messages.");
+        }
+
+        public void ShowTeam()
+        {
+            EnsureTeamPresenter();
+            if (services.UiStack.Current != teamView) services.UiStack.Push(teamView);
+            SetStatus($"Team UI active: {services.Team.PlayerCount} players.");
         }
 
         public void ShowTask()
@@ -929,8 +975,7 @@ namespace ProjectX.Core
             services.Chat.Add(new ChatMessageRecord
             {
                 Channel = checked((ChatChannel)(byte)channel),
-                SenderRoleId = services.Player.RoleId,
-                SenderName = services.Player.Name,
+                Sender = services.Player.Summary,
                 Content = content ?? string.Empty,
                 IsLocalEcho = true
             });
@@ -941,11 +986,8 @@ namespace ProjectX.Core
             services.Chat.Add(new ChatMessageRecord
             {
                 Channel = checked((ChatChannel)(byte)channel),
-                SenderRoleId = checked((uint)senderId),
-                SenderName = senderName ?? string.Empty,
+                Sender = new PlayerSummary(checked((uint)senderId), senderName, sex: checked((byte)sex), head: checked((byte)head)),
                 VipLevel = checked((byte)vip),
-                Head = checked((byte)head),
-                Sex = checked((byte)sex),
                 Content = content ?? string.Empty
             });
         }
@@ -956,14 +998,9 @@ namespace ProjectX.Core
             services.Chat.Add(new ChatMessageRecord
             {
                 Channel = ChatChannel.Private,
-                SenderRoleId = checked((uint)senderId),
-                SenderName = senderName ?? string.Empty,
+                Sender = new PlayerSummary(checked((uint)senderId), senderName, checked((ushort)level),
+                    checked((byte)sex), checked((byte)head), teamId: checked((uint)teamId), guildId: checked((uint)guildId)),
                 VipLevel = checked((byte)vip),
-                Head = checked((byte)head),
-                Sex = checked((byte)sex),
-                Level = checked((ushort)level),
-                TeamId = checked((uint)teamId),
-                GuildId = checked((uint)guildId),
                 RecipientRoleId = checked((uint)recipientId),
                 ServerTime = checked((uint)serverTime),
                 Content = content ?? string.Empty
@@ -990,6 +1027,85 @@ namespace ProjectX.Core
             }
             toastPresenter?.Clear();
             Complete($"COMPLETE: /26 world local echo -> self-private server packet -> ChatStore/UI -> invalid-target error ({services.Chat.Count} messages)");
+        }
+
+        public uint GetTeamPeerRoleId() => services?.Options.TeamPeerRoleId ?? 0;
+        public uint GetTeamLeaderId() => services?.Team.LeaderId ?? 0;
+        public int GetTeamPlayerCount() => services?.Team.PlayerCount ?? 0;
+        public bool TeamContainsPlayer(double roleId) => services?.Team.ContainsPlayer(checked((uint)roleId)) ?? false;
+
+        public void BeginTeamUpdate(int teamType, int formationId, int expectedCount)
+        {
+            pendingTeamType = checked((byte)teamType);
+            pendingTeamFormationId = checked((ushort)formationId);
+            pendingTeamMembers.Clear();
+            if (expectedCount > pendingTeamMembers.Capacity) pendingTeamMembers.Capacity = expectedCount;
+        }
+
+        public void AddTeamPlayerMember(int sourcePosition, int lineupPosition, bool isLeader, double roleId,
+            string name, int level, int sex, int head, double power, bool temporarilyAway,
+            double serverZone, double serverId, double shapeId)
+        {
+            pendingTeamMembers.Add(new TeamMemberRecord
+            {
+                Kind = TeamMemberKind.Player,
+                SourcePosition = checked((byte)sourcePosition),
+                LineupPosition = checked((byte)lineupPosition),
+                IsLeader = isLeader,
+                IsTemporarilyAway = temporarilyAway,
+                Player = new PlayerSummary(checked((uint)roleId), name, checked((ushort)level), checked((byte)sex),
+                    checked((byte)head), checked((ulong)power)),
+                ServerZone = checked((uint)serverZone),
+                ServerId = checked((uint)serverId),
+                ShapeId = checked((uint)shapeId)
+            });
+        }
+
+        public void AddTeamPetMember(int sourcePosition, int lineupPosition, double petId, string name,
+            int level, int star, int breakLevel, double power)
+        {
+            pendingTeamMembers.Add(new TeamMemberRecord
+            {
+                Kind = TeamMemberKind.Pet,
+                SourcePosition = checked((byte)sourcePosition),
+                LineupPosition = checked((byte)lineupPosition),
+                PetId = checked((uint)petId),
+                PetName = name ?? string.Empty,
+                PetLevel = checked((ushort)level),
+                PetStar = checked((byte)star),
+                PetBreakLevel = checked((byte)breakLevel),
+                PetPower = checked((ulong)power)
+            });
+        }
+
+        public void EndTeamUpdate()
+        {
+            services.Team.Replace(pendingTeamType, pendingTeamFormationId, pendingTeamMembers);
+            EnsureTeamPresenter();
+            ShowTeam();
+        }
+
+        public void MarkTeamCreated() => services.Team.MarkCreated(services.Player.RoleId);
+        public void ClearTeamState() => services.Team.Leave();
+        public void AddTeamInvitation(double id, string name, int level, int sex, int head, double power) =>
+            services.Team.AddInvitation(new PlayerSummary(checked((uint)id), name, checked((ushort)level),
+                checked((byte)sex), checked((byte)head), checked((ulong)power)));
+        public void RemoveTeamInvitation(double id) => services.Team.RemoveInvitation(checked((uint)id));
+        public void SetTeamError(string message) { ShowToast(message, 3f); SetStatus(message); }
+
+        public void CaptureTeamAndLeaveValidation(double peerRoleId) =>
+            StartCoroutine(CaptureTeamAndLeave(checked((uint)peerRoleId)));
+
+        public void CompleteTeamValidation(double peerRoleId)
+        {
+            EnsureTeamPresenter();
+            if (GetLocalUserId() == 1 || !IsTeamOpen || services.Team.HasTeam || services.Team.PlayerCount != 0
+                || teamPresenter.RenderedPlayerCount != 1)
+            {
+                Fail($"Team final state mismatch: user={GetLocalUserId()}, open={IsTeamOpen}, hasTeam={services.Team.HasTeam}, players={services.Team.PlayerCount}, rendered={teamPresenter.RenderedPlayerCount}.");
+                return;
+            }
+            Complete($"COMPLETE: /29 empty -> create -> invite/peer accept {checked((uint)peerRoleId)} -> 2-player TeamStore/UI -> leave -> persisted empty state; /30 refresh active");
         }
 
         public void AddShopRecord(int grid, double id, int buyCount, string name,
@@ -1521,6 +1637,42 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Chat open failed: {exception.Message}"); }
         }
 
+        private void HandleTeamClick()
+        {
+            try { CallLua(onTeamClicked, "Team.OnClicked"); }
+            catch (Exception exception) { Fail($"Team open failed: {exception.Message}"); }
+        }
+
+        private Button EnsureRuntimeTeamEntry()
+        {
+            Transform existing = mainView.GameObject.transform.Find("TeamEntryRuntime");
+            if (existing != null) return existing.GetComponent<Button>();
+            GameObject entry = new GameObject("TeamEntryRuntime", typeof(RectTransform), typeof(Image), typeof(Button));
+            RectTransform rect = entry.GetComponent<RectTransform>();
+            rect.SetParent(mainView.GameObject.transform, false);
+            rect.anchorMin = new Vector2(0.125f, 0.025f);
+            rect.anchorMax = new Vector2(0.23f, 0.105f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = entry.GetComponent<Image>();
+            image.color = new Color(0.42f, 0.22f, 0.12f, 0.95f);
+            Button button = entry.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(HandleTeamClick);
+            GameObject labelObject = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.SetParent(rect, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 20;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.text = "队伍";
+            return button;
+        }
+
         private Button EnsureRuntimeChatEntry()
         {
             Transform existing = mainView.GameObject.transform.Find("ChatEntryRuntime");
@@ -1601,6 +1753,26 @@ namespace ProjectX.Core
             ScreenCapture.CaptureScreenshot(path);
             yield return new WaitForSecondsRealtime(0.75f);
             InvokeLuaOrFail(onFriendDelete, "Friend.OnDelete", (double)roleId);
+        }
+
+        private IEnumerator CaptureTeamAndLeave(uint peerRoleId)
+        {
+            yield return new WaitForSecondsRealtime(1.5f);
+            EnsureTeamPresenter();
+            if (!services.Team.ContainsPlayer(peerRoleId) || services.Team.PlayerCount != 2
+                || teamPresenter.RenderedPlayerCount != 2)
+            {
+                Fail($"Team joined-state mismatch: peer={peerRoleId}, players={services.Team.PlayerCount}, rendered={teamPresenter.RenderedPlayerCount}.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-team-members.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            ScreenCapture.CaptureScreenshot(path);
+            yield return new WaitForSecondsRealtime(0.75f);
+            InvokeLuaOrFail(onTeamLeave, "Team.OnLeave");
         }
 
         private void EnsureBagPresenter()
@@ -1700,6 +1872,16 @@ namespace ProjectX.Core
             if (chatView == null) throw new InvalidOperationException("MainChatLayer CocosUiBinding was not found.");
             chatPresenter = chatPresenter ?? new ChatPresenter(chatView, services.Chat,
                 (channel, content, targetId) => InvokeLuaOrFail(onChatSend, "Chat.Send", channel, content, (double)targetId));
+        }
+
+        private void EnsureTeamPresenter()
+        {
+            teamView = teamView ?? services.UiRouter.FindBySource("TeamMembersLayer");
+            if (teamView == null) throw new InvalidOperationException("TeamMembersLayer CocosUiBinding was not found.");
+            teamPresenter = teamPresenter ?? new TeamPresenter(teamView, services.Team, services.Player,
+                () => InvokeLuaOrFail(onTeamCreate, "Team.Create"),
+                id => InvokeLuaOrFail(onTeamInvite, "Team.Invite", (double)id),
+                () => InvokeLuaOrFail(onTeamLeave, "Team.Leave"));
         }
 
         private void BeginFriendUpdate(int maximum, int expectedCount)

@@ -18,6 +18,7 @@ namespace ProjectX.Data
         public uint Soul { get; private set; }
         public ushort PackageCapacity { get; private set; }
         public bool IsLoaded => RoleId != 0;
+        public PlayerSummary Summary => new PlayerSummary(RoleId, Name, Level, Sex, Head, Power);
 
         public void Initialize(uint roleId, string name, byte sex, byte model, byte head, ushort level,
             ulong experience, ulong power, uint potential, uint soul, ushort packageCapacity)

@@ -31,7 +31,7 @@ namespace ProjectX.Data
             for (int index = messages.Count - 1; index >= 0; index--)
             {
                 ChatMessageRecord existing = messages[index];
-                if (existing.Channel != message.Channel || existing.SenderRoleId != message.SenderRoleId
+                if (existing.Channel != message.Channel || existing.Sender.Id != message.Sender.Id
                     || existing.Content != message.Content) continue;
                 if (existing.IsLocalEcho && !message.IsLocalEcho)
                 {
@@ -72,14 +72,8 @@ namespace ProjectX.Data
     public sealed class ChatMessageRecord
     {
         public ChatChannel Channel { get; set; }
-        public uint SenderRoleId { get; set; }
-        public string SenderName { get; set; } = string.Empty;
+        public PlayerSummary Sender { get; set; } = new PlayerSummary();
         public byte VipLevel { get; set; }
-        public byte Head { get; set; }
-        public byte Sex { get; set; }
-        public ushort Level { get; set; }
-        public uint TeamId { get; set; }
-        public uint GuildId { get; set; }
         public uint RecipientRoleId { get; set; }
         public uint ServerTime { get; set; }
         public string Content { get; set; } = string.Empty;

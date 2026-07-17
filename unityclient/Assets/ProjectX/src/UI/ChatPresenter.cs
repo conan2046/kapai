@@ -98,7 +98,7 @@ namespace ProjectX.UI
             {
                 if (selectedChannel != ChatChannel.Combined && message.Channel != selectedChannel) continue;
                 string channel = ChatCatalog.GetName(message.Channel);
-                string sender = string.IsNullOrWhiteSpace(message.SenderName) ? "系统" : message.SenderName;
+                string sender = string.IsNullOrWhiteSpace(message.Sender?.Name) ? "系统" : message.Sender.Name;
                 Text row = CreateText($"Message_{RenderedCount}", content, $"[{channel}] {sender}：{message.Content}", 20, TextAnchor.MiddleLeft);
                 row.color = message.IsLocalEcho ? new Color(0.55f, 0.85f, 1f) : Color.white;
                 row.horizontalOverflow = HorizontalWrapMode.Wrap;

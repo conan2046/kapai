@@ -53,7 +53,7 @@ function Add-EvidenceSection {
     )
     [void]$Builder.AppendLine("## $Title")
     [void]$Builder.AppendLine()
-    if ($Lines.Count -eq 0) {
+    if (@($Lines).Count -eq 0) {
         [void]$Builder.AppendLine("未找到匹配；需要人工继续取证。")
     }
     else {

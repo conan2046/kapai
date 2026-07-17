@@ -24,6 +24,7 @@ namespace ProjectX.Core
             Shop = new ShopStore();
             Friends = new FriendStore();
             Chat = new ChatStore();
+            Team = new TeamStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -55,6 +56,7 @@ namespace ProjectX.Core
         public ShopStore Shop { get; }
         public FriendStore Friends { get; }
         public ChatStore Chat { get; }
+        public TeamStore Team { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -90,6 +92,7 @@ namespace ProjectX.Core
             Shop.Clear();
             Friends.Clear();
             Chat.Clear();
+            Team.Clear();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();
