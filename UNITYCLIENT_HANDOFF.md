@@ -28,7 +28,7 @@
 登录第一阶段已完成代码取证、Unity 修正与专用门禁：`LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`，真实启动资源与六组预载名称、登录/选服/创角/主界面 Prefab、本地按钮 `Btn_Play`、协议 `/1001→/1003→/1004→/88`、登录背景和男女角色 Imod、`NoticeLayer` 标题/正文均已动态验收。最终账号 `7300109`、角色 `1000046`；证据见 `docs/unityclient/modules/LOGIN.md`。
 活动第一阶段已按当前运行代码完成：`ButtonGroup5/btn_huodong → WelfareActivityFormerUI → /222 op=0xFF → tag=1 DailyRechargeUI → /222 op=18/1`。真实 Prefab 为 `huodong/ActivityRankingLayer、huodong/ActivityLevelLayer、DailyChargeLayer`；最终账号 `7200020`、角色 `1000034`。旧 `/209 + ActivityLayer` 继续判废。后续按 `ACTIVITY.md` 将累计充值/消费、节日、排行、砸蛋等拆成独立子阶段。
 神将招募第一阶段已按当前运行代码完成：`ButtonGroup3/btn_zhaomu → EMID_KAPAI_CHOUKA → HappyDrawUI → /224 op=1/2`，三池状态与一次真实免费基础单抽通过；最终账号 `7200024`、角色 `1000038`。旧 `EMID_CHOUKA/LuckyDrawUI` 与并存未调用配置链不计当前版本，证据见 `docs/unityclient/modules/DRAW.md`。
-用户最新优先级是“尽快跑起来”：整体布局和位置基本一致即可，UI 字体、动态模型、动画与装饰细节由用户后续手调，不再阻塞模块推进。大厅、游历、封神列传、竞技场、决战昆仑、血战、法宝搜索、七日目标及将魂/竞技场/血战商店均已用真实主布局通过门禁；好友赠送、好友深化、组队深化统一后置，下一未完成模块为体力领取。
+用户最新优先级是“尽快跑起来”：整体布局和位置基本一致即可，UI 字体、动态模型、动画与装饰细节由用户后续手调，不再阻塞模块推进。大厅、游历、封神列传、竞技场、决战昆仑、血战、法宝搜索、七日目标、将魂/竞技场/血战商店、体力领取及资源找回均已用真实主布局通过门禁；好友赠送、好友深化、组队深化统一后置，下一未完成模块为成长基金。
 
 ## 4. 已稳定的分层
 ```text

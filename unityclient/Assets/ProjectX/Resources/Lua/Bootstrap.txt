@@ -27,6 +27,8 @@ local KunLunController = require("Gameplay.KunLunController")
 local BloodFightController = require("Gameplay.BloodFightController")
 local XunBaoController = require("Gameplay.XunBaoController")
 local SevenDayController = require("Gameplay.SevenDayController")
+local StaminaClaimController = require("StaminaClaim.StaminaClaimController")
+local ResourceRecoveryController = require("ResourceRecovery.ResourceRecoveryController")
 local HotPointController = require("Shared.HotPointController")
 
 function Begin() LoginController.begin() end
@@ -90,9 +92,13 @@ function OnKunLunClicked() KunLunController.onClick() end
 function OnBloodFightClicked() BloodFightController.onClick() end
 function OnXunBaoClicked() XunBaoController.onClick() end
 function OnSevenDayClicked() SevenDayController.onClick() end
+function OnStaminaClaimClicked() StaminaClaimController.onClick() end
+function OnResourceRecoveryClicked() ResourceRecoveryController.onClick() end
 function OnPacket(command, message)
     if command == Protocol.TEMP_ACTIVITY then TempActivityController.onPacket(message); return end
     if LoginController.onPacket(command, message) then return end
+    if StaminaClaimController.onPacket(command, message) then return end
+    if ResourceRecoveryController.onPacket(command, message) then return end
     if PlayerController.onPacket(command, message) then return end
     if BagController.onPacket(command, message) then return end
     if HeroController.onPacket(command, message) then return end

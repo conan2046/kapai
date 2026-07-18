@@ -41,6 +41,10 @@ namespace ProjectX.Core
             BloodFight = new BloodFightStore();
             XunBao = new XunBaoStore();
             SevenDay = new SevenDayStore();
+            StaminaClaimCatalog = new StaminaClaimCatalog();
+            StaminaClaim = new StaminaClaimStore();
+            ResourceRecoveryCatalog = new ResourceRecoveryCatalog();
+            ResourceRecovery = new ResourceRecoveryStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -89,6 +93,10 @@ namespace ProjectX.Core
         public BloodFightStore BloodFight { get; }
         public XunBaoStore XunBao { get; }
         public SevenDayStore SevenDay { get; }
+        public StaminaClaimCatalog StaminaClaimCatalog { get; }
+        public StaminaClaimStore StaminaClaim { get; }
+        public ResourceRecoveryCatalog ResourceRecoveryCatalog { get; }
+        public ResourceRecoveryStore ResourceRecovery { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -139,6 +147,8 @@ namespace ProjectX.Core
             BloodFight.Clear();
             XunBao.Clear();
             SevenDay.Clear();
+            StaminaClaim.Clear();
+            ResourceRecovery.Reset();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();

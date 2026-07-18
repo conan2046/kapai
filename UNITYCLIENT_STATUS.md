@@ -9,7 +9,7 @@
 | 口径 | 当前值 | 说明 |
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
-| Functional | `约49%` | 当前活动、神将招募、玩法大厅、决战昆仑、血战、法宝搜索、七日目标及三类玩法商店只读首期已计入；旧 `/209`、旧 LuckyDraw 误版本均不计完成口径 |
+| Functional | `约52%` | 当前活动、神将招募、玩法大厅、决战昆仑、血战、法宝搜索、七日目标、三类玩法商店、体力领取及资源找回只读首期已计入；旧 `/209`、旧 LuckyDraw 误版本均不计完成口径 |
 | Validated | `0 个界面通过视觉 1:1 门禁` | 既有结果仅证明功能/协议与 Unity 单端可见；均缺 Cocos 同状态基准、节点映射和差异报告 |
 
 禁止在其他文档维护第二份完成率；下表“第一阶段完成”仅指旧功能口径，全部可见界面统一视为视觉 1:1 待重验。
@@ -36,14 +36,17 @@
 | 队伍 | 第一阶段完成 | `/29、/30` 状态、成员/宠物、创建、邀请/接受、离队、推送重拉 | 申请/踢人/移交队长/阵法/暂离 |
 | 帮派 | 第一阶段完成 | `/54` 空态、列表、状态、成员、创建、退出/单人解散 | 申请批准/自动加入、邀请、职位、捐献、任务、红点深化 |
 | 世界/战斗/副本 | 第一阶段完成 | `/320` 世界/章节/关卡/详情/阵容与奖励预览、隔离 PvE 结算和三星持久化 | 扫荡/重置/宝箱、支线、完整战斗表现 |
-| 福利 | 第一阶段完成 | `/199、/222、/223` 签到、在线奖励、阶段目标边界/空态、单次签到领取 | 在线领取、七日登录、等级礼包、阶段目标服务端恢复 |
+| 福利 | 第一阶段完成 | `/199、/222、/223` 签到、在线奖励、阶段目标边界/空态、单次签到领取；`/321 op=2` 体力领取三档权威状态 | 在线领取、体力实际领取、七日登录、等级礼包、阶段目标服务端恢复 |
 | 活动 | 第一阶段完成 | 当前入口 `ButtonGroup5/btn_huodong → WelfareActivityFormerUI`；`/222 op=0xFF` 列表、Tab/红点/倒计时、`op=18/1` 每日首充状态与奖励、真实未迁移 Tab 空边界通过 | 累计充值/消费、节日、排行、砸蛋、七日充值、神将折扣、领取与充值 SDK |
 | 抽卡 | 第一阶段完成 | 当前 `btn_zhaomu → HappyDrawUI`；`/224` 三池、免费次数/倒计时/红点、真实免费单抽、权威奖励与结果 Timeline | 十连正向、奖励预览、重复神将转换、券不足联动 |
-| 玩法大厅及首批子页 | `logic-validated-visual-deferred` | 大厅真实布局、游历、封神列传、竞技场、决战昆仑 `/213`、血战 `/323`、法宝搜索 `/319`、七日目标 `/37`、三类玩法商店 `/221` 均已跑通 | 好友赠送与组队统一后置；下一未完成模块为体力领取 |
+| 玩法大厅及首批子页 | `logic-validated-visual-deferred` | 大厅真实布局、游历、封神列传、竞技场、决战昆仑 `/213`、血战 `/323`、法宝搜索 `/319`、七日目标 `/37`、三类玩法商店 `/221`、体力领取 `/321`、资源找回 `/52` 均已跑通 | 好友赠送与组队统一后置；下一未完成模块为成长基金 |
 | 充值/VIP/渠道 | 后置 | 未开始 | 单独处理支付、SDK和合规 |
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- 资源找回首期（2026-07-18）：`function_id=19 → WelfareActivityUI/FindOfflineExp → huodong_bg + ziyuanzhaohui → /52 op=1` 返回 7 条权威记录；真实公共背景/双页签/货币栏、可滚动列表、成本/次数、入口/返回、`1334×750` 截图、16/16 测试、严重异常 0 均通过。`op=2` 找回首期禁用。
+- 体力领取背景修复（2026-07-18）：确认 Cocos 为 `huodong_bg` 父层 + `tililingquLayer` 子层；Unity 已恢复背景框、双页签和顶部货币栏并重新通过 `/321 op=2` 门禁。
+- 体力领取首期（2026-07-18）：`function_id=18 → WelfareActivityUI/ReceiveTiliUI → huodong/tililingquLayer → /321 op=2` 返回三档权威状态；真实人物/餐桌/时段布局、入口/返回、`1334×750` 截图、16/16 测试、严重异常 0 均通过。`op=3` 领取首期禁用。
 - 将魂/竞技场/血战商店首期（2026-07-18）：`function_id=15/16/17 → JiangHunShop/WanFaShopMainUI → /221 type=2..8` 七页全部返回，共 74 条权威商品；真实 Prefab、商品图标、页签、价格/限购/货币、入口/返回、三张 `1334×750` 截图、16/16 测试、严重异常 0 均通过。购买与刷新首期禁用。
 - 七日目标首期（2026-07-18）：`function_id=11 → OperationalActivity.SevenDay → QiriLayer → /37 op=4` 返回 130 条权威任务；真实左右布局、七天/分类页签、进度区、任务列表、关闭/Esc 返回、16/16 测试、严重异常 0 均通过，截图 `bootstrap-seven-day.png`。领取、前往和折扣购买首期禁用。
 - 玩法子页快速移植（2026-07-18）：游历 `/335 op=1`、封神列传 `/320 op=24`、竞技场 `/161 op=0` 均已改为真实 Prefab 主布局并通过模块门禁；动态模型容器与字体/装饰细节按用户要求延后人工调整。
@@ -51,10 +54,7 @@
 - 玩法大厅视觉修复基线（2026-07-18）：`btn_wanfa → shop/shop_bg + WanFaEntranceUI/common/ActivityLayer → WanFaInfoUI/TaskPopupLayer`；最终 `userId=7200039`，13 项与 `/65` 三类隐藏态通过。Cocos/Unity 列表与详情均为 `1334×750`，流程、节点映射、四份差异报告位于 `.local/ui-fidelity/Gameplay/`。列表全屏差异率 `12.08%`、详情 `10.70%`，因公共装饰/公告层与字体采样差异仍未通过，状态保持 `visual-fixing`。
 - Bootstrap 七日目标接线幂等（2026-07-18）：连续两次 SHA-256 `E546A076DA6A3D391F0A73ABA327D1623A0737DCF3967F55F3882F9474C112A0`，语义签名一致；脚本只阻止同一 Unity 项目，不误伤用户同时打开的其他项目。
 - 神将招募第一阶段（2026-07-18）：当前链为 `UImainLayer_new/ButtonGroup3/btn_zhaomu → EMID_KAPAI_CHOUKA → HappyDrawUI → csd/chouka/shenjiangzhaomu → /224`；最终 `userId=7200024`、`roleId=1000038`，op=1 返回 3 池，op=2 完成一次免费基础单抽并显示 `陈奇神魂×1`，截图 `1334×750`，严重异常 0。旧 `EMID_CHOUKA/LuckyDrawUI` 与未注册的另一套 `CPetDrawCfgMgr` 不计当前版本。
-- Bootstrap 招募接线幂等（2026-07-18）：清理场景 YAML 尾空格后连续两次 SHA-256 `D15CC67DFF4E594AEFB05F9EBD15F91619C7EE601E7CFA9042B0D20C890E499C`，第二次输出 `semantic signature unchanged`。
 - 活动第一阶段（2026-07-18）：当前真实链为 `UImainLayer_new/ButtonGroup5/btn_huodong → WelfareActivityFormerUI → csd/huodong/ActivityRankingLayer + ActivityLevelLayer → /222 op=0xFF`；首个子页为 `tag=1 DailyRechargeUI → csd/DailyChargeLayer → /222 op=18/subOp=1`。最终 `userId=7200020`、`roleId=1000034`，列表 2 条、奖励 1 条，三张 `1334×750` 截图，严重异常 0，夹具与备份表残留 0。
-- Bootstrap 活动接线幂等（2026-07-18）：清理 YAML 尾空格后连续两次 SHA-256 `C0F24A7AC9BA351AD65E0D51D29E7A4AF15E528D9D9B12336077873607D550E5`，两次均输出 `semantic signature unchanged`。
-- 资源专项（2026-07-18）：运行包 386 个 CSB，完整路径匹配 325、CSB 兜底 61、同名冲突 38 组；福利 scope 27 条源码引用中 26 个运行资源存在。
 - `.ani` 专项（2026-07-18）：活动 Lua 共 67 个构造入口、208 个调用、38 个动态加载表达式；886/886 ANI 可解析。Unity 逐项通过 885 个可播放资源、1327 个动作、10264 个动作序列帧，PNG/ANI 分离、附加层、翻转、颜色、透明度、旧速度倍率均通过；固定 UI 24 路径中 18 个真实播放、6 个源包缺整组资源，另有 `Skill/skill_5_h_l.ani` 缺 PNG。视觉联系表 `.local/validation/imod-static-ui-contact-sheet.png`。
 - CSB Timeline 专项（2026-07-18）：29 处有效调用展开为 27 个唯一资源/Prefab；22 个有真实轨道、5 个源文件本身为空时间轴。累计导入 461 条轨道、2478 帧、34 个命名片段；唯一 CSB-only `FengShenLayer.csb` 已逐帧解码。Unity 实例化播放 27/27、命名片段 34/34、非空 FrameEvent 3/3，视觉抽样见 `.local/validation/timeline-*.png`。
 - 真实资源：`LoginBgLayer.csb、loginLayer.csb、SeverListLayer.csb、RoleCreateLayer.csb`；登录背景 `res2/animation/effect_chuangjue_1` 动作 0 循环。
@@ -76,7 +76,7 @@
 4. 修复 Unity 后用同数据/步骤/稳定帧截图，生成叠加图与差异报告；未解释差异必须继续修。
 5. 功能 Runner、Bootstrap 幂等、Python UI、文档和严重异常门禁全部通过后，才可标记 `visual-1to1-complete`。
 6. 大厅、游历、封神列传、竞技场已完成真实主布局快速移植；细节 UI 和动态模型统一延后。
-7. 决战昆仑、血战、法宝搜索、七日目标及将魂/竞技场/血战商店已完成只读首期并通过门禁；好友赠送、好友深化、组队深化统一放到末尾，下一项为体力领取。
+7. 决战昆仑、血战、法宝搜索、七日目标、将魂/竞技场/血战商店、体力领取及资源找回已完成只读首期并通过门禁；好友赠送、好友深化、组队深化统一放到末尾，下一项为成长基金。
 
 暂不并行：商城第二阶段、邮件第二阶段、装备深度培养。
 

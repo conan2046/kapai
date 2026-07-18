@@ -140,6 +140,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(37, "PRO_TASK_LIST", "Task"));
             registry.Register(new ProtocolDefinition(39, "PRO_UPDATE_TASK", "Task"));
             registry.Register(new ProtocolDefinition(48, "PRO_ZHEN_FA", "Formation"));
+            registry.Register(new ProtocolDefinition(52, "PRO_FIND_RESOURCE", "ResourceRecovery"));
             registry.Register(new ProtocolDefinition(54, "PRO_BANGPAI", "Guild"));
             registry.Register(new ProtocolDefinition(65, "PRO_FUNC_HOT_POINT", "SharedHotPoint", expectsResponse: false));
             registry.Register(new ProtocolDefinition(88, "PRO_GONGGAO", "LoginMain", expectsResponse: false));

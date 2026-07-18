@@ -33,6 +33,17 @@ namespace ProjectX.Network
 
         public int Remaining => checked((int)(stream.Length - stream.Position));
 
+        public int Position
+        {
+            get => checked((int)stream.Position);
+            set
+            {
+                if (value < 0 || value > stream.Length)
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                stream.Position = value;
+            }
+        }
+
         public ushort OutgoingCommand
         {
             get

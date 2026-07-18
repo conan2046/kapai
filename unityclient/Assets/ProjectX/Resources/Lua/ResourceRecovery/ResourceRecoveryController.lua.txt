@@ -1,0 +1,45 @@
+local Protocol = require("Protocol")
+local M = { active = false, validation = false }
+
+function M.onClick()
+    M.active = true
+    M.validation = Bridge:HasCommandLineFlag("-projectXResourceRecoveryValidation")
+    Bridge:ShowResourceRecovery()
+    local message = Protocol.newMessage(Protocol.RESOURCE_RECOVERY)
+    message:WriteByte(1)
+    Bridge:Send(message)
+    Bridge:SetStatus("ResourceRecovery/52 op=1 requested.")
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.RESOURCE_RECOVERY or not M.active then return false end
+    local op = message:ReadByte()
+    if op ~= 1 then return false end
+    local count = message:ReadByte()
+    Bridge:BeginResourceRecoveryState()
+    for _ = 1, count do
+        local functionId = message:ReadUInt()
+        local leftTimes = message:ReadWord()
+        local costId = message:ReadWord()
+        local costSubtype = message:ReadUInt()
+        local costAmount = message:ReadUInt()
+        Bridge:BeginResourceRecoveryRecord(functionId, leftTimes, costId, costSubtype, costAmount)
+        local rewardCount = message:ReadByte()
+        for _ = 1, rewardCount do
+            Bridge:AddResourceRecoveryReward(message:ReadWord(), message:ReadUInt(), message:ReadUInt())
+        end
+        Bridge:EndResourceRecoveryRecord()
+    end
+    if message.Remaining ~= 0 then
+        M.active = false
+        Bridge:Fail("ResourceRecovery/52 op=1 has " .. tostring(message.Remaining) .. " unread bytes.")
+        return true
+    end
+    Bridge:CommitResourceRecoveryState()
+    M.active = false
+    Bridge:SetStatus("ResourceRecovery/52 op=1 recv: records=" .. tostring(count) .. ".")
+    if M.validation then M.validation = false; Bridge:CompleteResourceRecoveryValidation() end
+    return true
+end
+
+return M

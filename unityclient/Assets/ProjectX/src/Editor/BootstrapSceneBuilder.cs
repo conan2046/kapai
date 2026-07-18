@@ -75,6 +75,8 @@ namespace ProjectX.Editor
         private const string BloodFightPrefab = "Assets/ProjectX/res/csd/Prefabs/xuezhan/XuezhanMain.prefab";
         private const string XunBaoPrefab = "Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab";
         private const string SevenDayPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab";
+        private const string StaminaClaimPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/tililingquLayer.prefab";
+        private const string ResourceRecoveryPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ziyuanzhaohui.prefab";
 
         private readonly struct PrefabSpec
         {
@@ -103,6 +105,8 @@ namespace ProjectX.Editor
             new PrefabSpec(SettingsPrefab, false),
             new PrefabSpec(TaskBackgroundPrefab, false),
             new PrefabSpec(TaskPrefab, true, TaskBackgroundPrefab),
+            new PrefabSpec(StaminaClaimPrefab, false, TaskBackgroundPrefab),
+            new PrefabSpec(ResourceRecoveryPrefab, false, TaskBackgroundPrefab),
             new PrefabSpec(ErrorPrefab, false),
             new PrefabSpec(RewardPrefab, false),
             new PrefabSpec(LoadingPrefab, false),
@@ -291,13 +295,20 @@ namespace ProjectX.Editor
                     transform.gameObject.activeSelf,
                     GetParentPrefabPath(transform.parent)))
                 .ToArray();
-            if (actual.Length != PrefabSpecs.Length) return false;
+            if (actual.Length != PrefabSpecs.Length)
+            {
+                Debug.LogWarning($"[ProjectXApp] Bootstrap prefab count mismatch: expected={PrefabSpecs.Length}, actual={actual.Length}.");
+                return false;
+            }
             for (int index = 0; index < PrefabSpecs.Length; index++)
             {
                 PrefabSpec expected = PrefabSpecs[index];
                 PrefabSpec found = actual[index];
                 if (expected.Path != found.Path || expected.Active != found.Active || expected.ParentPath != found.ParentPath)
+                {
+                    Debug.LogWarning($"[ProjectXApp] Bootstrap prefab mismatch at {index}: expected={expected.Path}|{expected.Active}|{expected.ParentPath}, actual={found.Path}|{found.Active}|{found.ParentPath}.");
                     return false;
+                }
             }
             return true;
         }

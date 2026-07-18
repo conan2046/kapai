@@ -97,6 +97,8 @@ namespace ProjectX.Core
         private LuaFunction onBloodFightClicked;
         private LuaFunction onXunBaoClicked;
         private LuaFunction onSevenDayClicked;
+        private LuaFunction onStaminaClaimClicked;
+        private LuaFunction onResourceRecoveryClicked;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView loginServerListView;
@@ -246,10 +248,23 @@ namespace ProjectX.Core
         private XunBaoPresenter xunBaoPresenter;
         private CocosUiView sevenDayView;
         private SevenDayPresenter sevenDayPresenter;
+        private CocosUiView staminaClaimView;
+        private StaminaClaimPresenter staminaClaimPresenter;
+        private CocosUiView resourceRecoveryView;
+        private ResourceRecoveryPresenter resourceRecoveryPresenter;
+        private WelfareActivityFramePresenter welfareActivityFramePresenter;
         private CocosUiView soulShopView;
         private CocosUiView multiShopView;
         private GameplayShopsPresenter gameplayShopsPresenter;
         private readonly List<SevenDayTaskRecord> pendingSevenDayTasks = new List<SevenDayTaskRecord>();
+        private readonly List<StaminaClaimRecord> pendingStaminaClaimRecords = new List<StaminaClaimRecord>();
+        private readonly List<ResourceRecoveryRecord> pendingResourceRecoveryRecords = new List<ResourceRecoveryRecord>();
+        private readonly List<ResourceRecoveryReward> pendingResourceRecoveryRewards = new List<ResourceRecoveryReward>();
+        private int pendingResourceRecoveryFunctionId;
+        private ushort pendingResourceRecoveryLeftTimes;
+        private int pendingResourceRecoveryCostId;
+        private int pendingResourceRecoveryCostSubtype;
+        private uint pendingResourceRecoveryCostAmount;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -310,6 +325,10 @@ namespace ProjectX.Core
         public bool IsXunBaoAuthoritativeVisible => xunBaoPresenter?.IsAuthoritativeVisible ?? false;
         public bool IsSevenDayOpen => sevenDayView != null && services?.UiStack.Current == sevenDayView;
         public bool IsSevenDayAuthoritativeVisible => sevenDayPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsStaminaClaimOpen => staminaClaimView != null && staminaClaimView.GameObject.activeSelf && services?.UiStack.Current == taskBackgroundView;
+        public bool IsStaminaClaimAuthoritativeVisible => staminaClaimPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsResourceRecoveryOpen => resourceRecoveryView != null && resourceRecoveryView.GameObject.activeSelf && services?.UiStack.Current == taskBackgroundView;
+        public bool IsResourceRecoveryAuthoritativeVisible => resourceRecoveryPresenter?.IsAuthoritativeVisible ?? false;
         public bool IsGameplayShopOpen => gameplayShopsPresenter != null
             && services?.UiStack.Current == gameplayShopsPresenter.ActiveView;
         public int GameplayShopRenderedCount => gameplayShopsPresenter?.RenderedCount ?? 0;
@@ -424,6 +443,8 @@ namespace ProjectX.Core
                 onBloodFightClicked = services.Lua.GetFunction("OnBloodFightClicked");
                 onXunBaoClicked = services.Lua.GetFunction("OnXunBaoClicked");
                 onSevenDayClicked = services.Lua.GetFunction("OnSevenDayClicked");
+                onStaminaClaimClicked = services.Lua.GetFunction("OnStaminaClaimClicked");
+                onResourceRecoveryClicked = services.Lua.GetFunction("OnResourceRecoveryClicked");
                 StartCoroutine(RunCurrentCocosStartup());
             }
             catch (Exception exception)
@@ -515,6 +536,8 @@ namespace ProjectX.Core
             onBloodFightClicked?.Dispose();
             onXunBaoClicked?.Dispose();
             onSevenDayClicked?.Dispose();
+            onStaminaClaimClicked?.Dispose();
+            onResourceRecoveryClicked?.Dispose();
             youLiPresenter?.Dispose();
             fengShenStoryPresenter?.Dispose();
             arenaPresenter?.Dispose();
@@ -522,6 +545,9 @@ namespace ProjectX.Core
             bloodFightPresenter?.Dispose();
             xunBaoPresenter?.Dispose();
             sevenDayPresenter?.Dispose();
+            staminaClaimPresenter?.Dispose();
+            resourceRecoveryPresenter?.Dispose();
+            welfareActivityFramePresenter?.Dispose();
             gameplayShopsPresenter?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
@@ -634,6 +660,8 @@ namespace ProjectX.Core
             settingsView = services.UiRouter.FindBySource("zhujue/SystemLayer");
             taskBackgroundView = services.UiRouter.FindBySource("huodong/huodong_bg");
             taskView = services.UiRouter.FindBySource("huodong/RenwuLayer");
+            staminaClaimView = services.UiRouter.FindBySource("huodong/tililingquLayer");
+            resourceRecoveryView = services.UiRouter.FindBySource("huodong/ziyuanzhaohui");
             errorView = services.UiRouter.FindBySource("MessageBoxLayer");
             loadingView = services.UiRouter.FindBySource("common/jiemianjiazai");
             heroListView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongListLayer");
@@ -655,6 +683,8 @@ namespace ProjectX.Core
             settingsView?.SetVisible(false);
             taskBackgroundView?.SetVisible(false);
             taskView?.SetVisible(false);
+            staminaClaimView?.SetVisible(false);
+            resourceRecoveryView?.SetVisible(false);
             errorView?.SetVisible(false);
             loadingView?.SetVisible(false);
             heroListView?.SetVisible(false);
@@ -1119,6 +1149,18 @@ namespace ProjectX.Core
                 InvokeLuaOrFail(onGameplayShopOpened, "Gameplay.Shops", (double)functionId);
                 return;
             }
+            if (functionId == 18)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onStaminaClaimClicked, "Gameplay.StaminaClaim");
+                return;
+            }
+            if (functionId == 19)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onResourceRecoveryClicked, "Gameplay.ResourceRecovery");
+                return;
+            }
             ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
             SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}.");
         }
@@ -1260,10 +1302,27 @@ namespace ProjectX.Core
         public void CommitSevenDayState(){services.SevenDay.Replace(pendingSevenDayTasks);}
         public void CompleteSevenDayValidation(){StartCoroutine(CompleteSevenDayValidationAfterLayout());}
         private IEnumerator CompleteSevenDayValidationAfterLayout(){EnsureSevenDayPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsSevenDayOpen||!services.SevenDay.HasAuthoritativeResponse||!IsSevenDayAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"SevenDay state mismatch: open={IsSevenDayOpen}, authoritative={services.SevenDay.HasAuthoritativeResponse}, visible={IsSevenDayAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=11 -> OperationalActivity.SevenDay -> csd/huodong/QiriLayer.csb -> /37 op=4 tasks={services.SevenDay.Tasks.Count}; isolated user={GetLocalUserId()}");}
+        public void ShowStaminaClaim(){EnsureStaminaClaimPresenter();taskView?.SetVisible(false);resourceRecoveryView?.SetVisible(false);staminaClaimView.SetVisible(true);welfareActivityFramePresenter.Select(18);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("StaminaClaim current welfare UI active; awaiting /321 op=2.");}
+        public void BeginStaminaClaimState(){pendingStaminaClaimRecords.Clear();}
+        public void AddStaminaClaimState(int index,int state){pendingStaminaClaimRecords.Add(new StaminaClaimRecord(checked((byte)index),checked((byte)state)));}
+        public void CommitStaminaClaimState(){services.StaminaClaim.Replace(pendingStaminaClaimRecords);}
+        public void CompleteStaminaClaimValidation(){StartCoroutine(CompleteStaminaClaimValidationAfterLayout());}
+        private IEnumerator CompleteStaminaClaimValidationAfterLayout(){EnsureStaminaClaimPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsStaminaClaimOpen||!services.StaminaClaim.HasAuthoritativeResponse||!IsStaminaClaimAuthoritativeVisible||services.StaminaClaim.Items.Count!=3||services.ProtocolRegistry.PendingCount!=0){Fail($"StaminaClaim state mismatch: open={IsStaminaClaimOpen}, records={services.StaminaClaim.Items.Count}, authoritative={services.StaminaClaim.HasAuthoritativeResponse}, visible={IsStaminaClaimAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=18 -> WelfareActivityUI/ReceiveTiliUI -> huodong/tililingquLayer -> /321 op=2 slots={services.StaminaClaim.Items.Count}; read-only first phase");}
+
+        public void ShowResourceRecovery(){EnsureResourceRecoveryPresenter();taskView?.SetVisible(false);staminaClaimView?.SetVisible(false);resourceRecoveryView.SetVisible(true);welfareActivityFramePresenter.Select(19);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("ResourceRecovery current welfare UI active; awaiting /52 op=1.");}
+        public void BeginResourceRecoveryState(){pendingResourceRecoveryRecords.Clear();}
+        public void BeginResourceRecoveryRecord(int functionId,int leftTimes,int costId,int costSubtype,double costAmount){pendingResourceRecoveryFunctionId=functionId;pendingResourceRecoveryLeftTimes=checked((ushort)leftTimes);pendingResourceRecoveryCostId=costId;pendingResourceRecoveryCostSubtype=costSubtype;pendingResourceRecoveryCostAmount=checked((uint)costAmount);pendingResourceRecoveryRewards.Clear();}
+        public void AddResourceRecoveryReward(int itemId,int subtype,double amount){pendingResourceRecoveryRewards.Add(new ResourceRecoveryReward(itemId,subtype,checked((uint)amount)));}
+        public void EndResourceRecoveryRecord(){pendingResourceRecoveryRecords.Add(new ResourceRecoveryRecord(pendingResourceRecoveryFunctionId,pendingResourceRecoveryLeftTimes,pendingResourceRecoveryCostId,pendingResourceRecoveryCostSubtype,pendingResourceRecoveryCostAmount,pendingResourceRecoveryRewards.ToArray()));}
+        public void CommitResourceRecoveryState(){services.ResourceRecovery.Replace(pendingResourceRecoveryRecords);}
+        public void CompleteResourceRecoveryValidation(){StartCoroutine(CompleteResourceRecoveryValidationAfterLayout());}
+        private IEnumerator CompleteResourceRecoveryValidationAfterLayout(){EnsureResourceRecoveryPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsResourceRecoveryOpen||!IsResourceRecoveryAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"ResourceRecovery state mismatch: open={IsResourceRecoveryOpen}, records={services.ResourceRecovery.Items.Count}, visible={IsResourceRecoveryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=19 -> WelfareActivityUI/FindOfflineExp -> huodong/ziyuanzhaohui -> /52 op=1 records={services.ResourceRecovery.Items.Count}; read-only first phase");}
 
         public void ShowTask()
         {
             EnsureTaskPresenter();
+            staminaClaimView?.SetVisible(false);
+            resourceRecoveryView?.SetVisible(false);
             taskView.SetVisible(true);
             if (services.UiStack.Current != taskBackgroundView) services.UiStack.Push(taskBackgroundView);
             SetStatus($"Task UI active: {services.Tasks.Count} tasks.");
@@ -3468,6 +3527,9 @@ namespace ProjectX.Core
         private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,()=>HandleBack());}
 
         private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,()=>HandleBack());}
+        private void EnsureWelfareActivityFramePresenter(){taskBackgroundView=taskBackgroundView??services.UiRouter.FindBySource("huodong/huodong_bg");if(taskBackgroundView==null)throw new InvalidOperationException("Current welfare activity background was not found: huodong/huodong_bg.");welfareActivityFramePresenter=welfareActivityFramePresenter??new WelfareActivityFramePresenter(taskBackgroundView,services.Currencies,()=>HandleBack(),()=>InvokeLuaOrFail(onStaminaClaimClicked,"WelfareActivity.StaminaClaim"),()=>InvokeLuaOrFail(onResourceRecoveryClicked,"WelfareActivity.ResourceRecovery"));}
+        private void EnsureStaminaClaimPresenter(){EnsureWelfareActivityFramePresenter();staminaClaimView=staminaClaimView??services.UiRouter.FindBySource("huodong/tililingquLayer");if(staminaClaimView==null)throw new InvalidOperationException("Current StaminaClaim imported CocosUiBinding was not found: huodong/tililingquLayer.");staminaClaimPresenter=staminaClaimPresenter??new StaminaClaimPresenter(staminaClaimView,services.StaminaClaim,services.StaminaClaimCatalog,()=>HandleBack());}
+        private void EnsureResourceRecoveryPresenter(){EnsureWelfareActivityFramePresenter();resourceRecoveryView=resourceRecoveryView??services.UiRouter.FindBySource("huodong/ziyuanzhaohui");if(resourceRecoveryView==null)throw new InvalidOperationException("Current ResourceRecovery imported CocosUiBinding was not found: huodong/ziyuanzhaohui.");resourceRecoveryPresenter=resourceRecoveryPresenter??new ResourceRecoveryPresenter(resourceRecoveryView,services.ResourceRecovery,services.ResourceRecoveryCatalog);}
 
         private IEnumerator RequestValidationDrawNextFrame()
         {
