@@ -13139,6 +13139,9 @@ function LuaNetRecvdMsg.DealMsgGameNotice(stream)
     end
     local list = {}
     local num = stream:ReadByte()
+    if num == 0 then
+        return
+    end
     for i=1,num do
         local info = {}
         info.title = stream:ReadString()
