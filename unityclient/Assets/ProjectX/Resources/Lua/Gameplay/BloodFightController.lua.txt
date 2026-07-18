@@ -1,0 +1,20 @@
+local Protocol=require("Protocol")
+local M={validation=false}
+function M.onClick()
+ M.validation=Bridge:HasCommandLineFlag("-projectXBloodFightValidation");Bridge:ShowBloodFight()
+ local m=Protocol.newMessage(Protocol.BLOOD_FIGHT);m:WriteByte(1);Bridge:Send(m);Bridge:SetStatus("BloodFight/323 op=1 requested.")
+end
+function M.onPacket(command,message)
+ if command~=Protocol.BLOOD_FIGHT then return false end
+ local op=message:ReadByte();if op~=1 then return false end
+ local remaining=message:ReadByte();local revives=message:ReadByte();local state=message:ReadByte();local rewardState=message:ReadByte();local chapter=message:ReadByte()
+ local level=message:ReadWord();message:ReadWord();local todayMaxLevel=message:ReadWord();local historicalMaxStar=message:ReadWord();local totalStar=message:ReadWord();local todayMaxStar=message:ReadWord();local currentStar=message:ReadWord();message:ReadWord()
+ message:ReadWord();message:ReadWord();message:ReadWord();message:ReadUInt();message:ReadByte()
+ local count=message:ReadByte();for _=1,count do message:ReadByte();message:ReadWord();message:ReadUInt() end
+ count=message:ReadByte();for _=1,count do message:ReadWord();message:ReadUInt() end
+ message:ReadWord();message:ReadByte();count=message:ReadByte();for _=1,count do message:ReadByte();message:ReadByte() end
+ Bridge:SetBloodFightState(remaining,revives,state,rewardState,chapter,level,todayMaxLevel,historicalMaxStar,totalStar,todayMaxStar,currentStar)
+ Bridge:SetStatus("BloodFight/323 op=1 recv: chapter="..tostring(chapter)..", level="..tostring(level)..", remaining="..tostring(remaining)..".")
+ if M.validation then M.validation=false;Bridge:CompleteBloodFightValidation() end;return true
+end
+return M

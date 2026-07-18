@@ -1,0 +1,49 @@
+local Protocol = require("Protocol")
+local M = { validation = false }
+
+function M.onClick()
+    M.validation = Bridge:HasCommandLineFlag("-projectXKunLunValidation")
+    Bridge:ShowKunLun()
+    local message = Protocol.newMessage(Protocol.CHUANG_GUAN)
+    message:WriteByte(25)
+    Bridge:Send(message)
+    Bridge:SetStatus("KunLun/213 op=25 requested.")
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.CHUANG_GUAN then return false end
+    local op = message:ReadByte()
+    if op ~= 25 then return false end
+    local floor = message:ReadByte()
+    local fights = message:ReadByte()
+    local buys = message:ReadByte()
+    local position = message:ReadByte()
+    local count = message:ReadByte()
+    Bridge:BeginKunLunState(floor, fights, buys, position)
+    for _ = 1, count do
+        local enemyPosition = message:ReadByte()
+        local roleId = message:ReadUInt()
+        local name = message:ReadString()
+        local profession = message:ReadByte()
+        local sex = message:ReadByte()
+        local level = message:ReadWord()
+        local power = message:ReadUInt()
+        local robot = message:ReadByte()
+        local state = message:ReadByte()
+        local petCount = message:ReadByte()
+        local currentHealth, maxHealth = 0, 0
+        for _ = 1, petCount do
+            message:ReadByte()
+            currentHealth = currentHealth + message:ReadULongInt()
+            maxHealth = maxHealth + message:ReadULongInt()
+        end
+        local healthPercent = maxHealth > 0 and math.ceil(currentHealth * 100 / maxHealth) or 100
+        Bridge:AddKunLunEnemy(enemyPosition, roleId, name, profession, sex, level, power, robot, state, healthPercent)
+    end
+    Bridge:CommitKunLunState()
+    Bridge:SetStatus("KunLun/213 op=25 recv: floor=" .. tostring(floor) .. ", enemies=" .. tostring(count) .. ".")
+    if M.validation then M.validation = false; Bridge:CompleteKunLunValidation() end
+    return true
+end
+
+return M

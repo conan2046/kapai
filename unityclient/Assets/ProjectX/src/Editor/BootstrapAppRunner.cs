@@ -116,6 +116,16 @@ namespace ProjectX.Editor
             bool guildValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGuildValidation") >= 0;
             bool worldValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldBattleValidation") >= 0;
             bool welfareValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWelfareValidation") >= 0;
+            bool activityValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXActivityValidation") >= 0;
+            bool drawValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawValidation") >= 0;
+            bool gameplayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayValidation") >= 0;
+            bool youLiValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXYouLiValidation") >= 0;
+            bool fengShenStoryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFengShenStoryValidation") >= 0;
+            bool arenaValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXArenaValidation") >= 0;
+            bool kunLunValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXKunLunValidation") >= 0;
+            bool bloodFightValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBloodFightValidation") >= 0;
+            bool xunBaoValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXXunBaoValidation") >= 0;
+            bool sevenDayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSevenDayValidation") >= 0;
             bool loginValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
 
@@ -203,6 +213,16 @@ namespace ProjectX.Editor
                 bool checkingGuild = guildValidation;
                 bool checkingWorld = worldValidation;
                 bool checkingWelfare = welfareValidation;
+                bool checkingActivity = activityValidation;
+                bool checkingDraw = drawValidation;
+                bool checkingGameplay = gameplayValidation;
+                bool checkingYouLi = youLiValidation;
+                bool checkingFengShenStory = fengShenStoryValidation;
+                bool checkingArena = arenaValidation;
+                bool checkingKunLun = kunLunValidation;
+                bool checkingBloodFight = bloodFightValidation;
+                bool checkingXunBao = xunBaoValidation;
+                bool checkingSevenDay = sevenDayValidation;
                 if (settingsValidation && settingsPhase == 2)
                 {
                     if (!app.IsLoginVisible || app.NetworkState != ProjectX.Network.NetworkState.Disconnected)
@@ -229,7 +249,9 @@ namespace ProjectX.Editor
                         : checkingMail ? !app.IsMailOpen : checkingShop ? !app.IsShopOpen
                         : checkingFriend ? !app.IsFriendOpen : checkingChat ? !app.IsChatOpen
                         : checkingTeam ? !app.IsTeamOpen : checkingGuild ? !app.IsGuildOpen
-                        : checkingWorld ? !app.IsWorldOpen : checkingWelfare ? !app.IsWelfareOpen : !app.IsBagOpen))
+                        : checkingWorld ? !app.IsWorldOpen : checkingWelfare ? !app.IsWelfareOpen
+                        : checkingActivity ? !app.IsActivityOpen : checkingDraw ? !app.IsDrawOpen
+                        : checkingSevenDay ? !app.IsSevenDayOpen : checkingXunBao ? !app.IsXunBaoOpen : checkingBloodFight ? !app.IsBloodFightOpen : checkingKunLun ? !app.IsKunLunOpen : checkingArena ? !app.IsArenaOpen : checkingFengShenStory ? !app.IsFengShenStoryOpen : checkingYouLi ? !app.IsYouLiOpen : checkingGameplay ? !app.IsGameplayOpen : !app.IsBagOpen))
                     {
                         WriteResult(false, status + (checkingTask
                             ? " (task UI was not pushed onto UiStack)"
@@ -255,6 +277,26 @@ namespace ProjectX.Editor
                             ? " (world UI was not pushed onto UiStack)"
                             : checkingWelfare
                             ? " (welfare UI was not pushed onto UiStack)"
+                            : checkingActivity
+                            ? " (activity UI was not pushed onto UiStack)"
+                            : checkingDraw
+                            ? " (draw UI was not pushed onto UiStack)"
+                            : checkingSevenDay
+                            ? " (SevenDay UI was not pushed onto UiStack)"
+                            : checkingXunBao
+                            ? " (XunBao UI was not pushed onto UiStack)"
+                            : checkingBloodFight
+                            ? " (BloodFight UI was not pushed onto UiStack)"
+                            : checkingKunLun
+                            ? " (KunLun UI was not pushed onto UiStack)"
+                            : checkingArena
+                            ? " (Arena UI was not pushed onto UiStack)"
+                            : checkingFengShenStory
+                            ? " (FengShenStory UI was not pushed onto UiStack)"
+                            : checkingYouLi
+                            ? " (YouLi UI was not pushed onto UiStack)"
+                            : checkingGameplay
+                            ? " (gameplay UI was not pushed onto UiStack)"
                             : " (bag UI was not pushed onto UiStack)"));
                         Finish(false);
                         return;
@@ -283,7 +325,13 @@ namespace ProjectX.Editor
                         Finish(false);
                         return;
                     }
-                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && !checkingWelfare && app.BagMissingIconCount > 0)
+                    if (checkingGameplay && app.GameplayMissingIconCount > 0)
+                    {
+                        WriteResult(false, status + $" ({app.GameplayMissingIconCount} gameplay icons were not resolved)");
+                        Finish(false);
+                        return;
+                    }
+                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && !checkingWelfare && !checkingActivity && !checkingDraw && !checkingGameplay && !checkingYouLi && !checkingFengShenStory && !checkingArena && !checkingKunLun && !checkingBloodFight && !checkingXunBao && !checkingSevenDay && app.BagMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.BagMissingIconCount} item icons were not resolved)");
                         Finish(false);
@@ -294,7 +342,9 @@ namespace ProjectX.Editor
                         : checkingMail ? GetMailScreenshotPath() : checkingShop ? GetShopScreenshotPath()
                         : checkingFriend ? GetFriendScreenshotPath() : checkingChat ? GetChatScreenshotPath()
                         : checkingTeam ? GetTeamScreenshotPath() : checkingGuild ? GetGuildScreenshotPath()
-                        : checkingWorld ? GetWorldScreenshotPath() : checkingWelfare ? GetWelfareScreenshotPath() : GetBagScreenshotPath();
+                        : checkingWorld ? GetWorldScreenshotPath() : checkingWelfare ? GetWelfareScreenshotPath()
+                        : checkingActivity ? GetActivityScreenshotPath() : checkingDraw ? GetDrawScreenshotPath()
+                        : checkingSevenDay ? GetSevenDayScreenshotPath() : checkingXunBao ? GetXunBaoScreenshotPath() : checkingBloodFight ? GetBloodFightScreenshotPath() : checkingKunLun ? GetKunLunScreenshotPath() : checkingArena ? GetArenaScreenshotPath() : checkingFengShenStory ? GetFengShenStoryScreenshotPath() : checkingYouLi ? GetYouLiScreenshotPath() : checkingGameplay ? GetGameplayScreenshotPath() : GetBagScreenshotPath();
                     Directory.CreateDirectory(Path.GetDirectoryName(screenshotPath));
                     ScreenCapture.CaptureScreenshot(screenshotPath);
                     SessionState.SetBool(ScreenshotPendingKey, true);
@@ -316,7 +366,9 @@ namespace ProjectX.Editor
                     : checkingMail ? app.IsMailOpen : checkingShop ? app.IsShopOpen
                     : checkingFriend ? app.IsFriendOpen : checkingChat ? app.IsChatOpen
                     : checkingTeam ? app.IsTeamOpen : checkingGuild ? app.IsGuildOpen
-                    : checkingWorld ? app.IsWorldOpen : checkingWelfare ? app.IsWelfareOpen : app.IsBagOpen))
+                    : checkingWorld ? app.IsWorldOpen : checkingWelfare ? app.IsWelfareOpen
+                    : checkingActivity ? app.IsActivityOpen : checkingDraw ? app.IsDrawOpen
+                    : checkingSevenDay ? app.IsSevenDayOpen : checkingXunBao ? app.IsXunBaoOpen : checkingBloodFight ? app.IsBloodFightOpen : checkingKunLun ? app.IsKunLunOpen : checkingArena ? app.IsArenaOpen : checkingFengShenStory ? app.IsFengShenStoryOpen : checkingYouLi ? app.IsYouLiOpen : checkingGameplay ? app.IsGameplayOpen : app.IsBagOpen))
                 {
                     WriteResult(false, status + (checkingTask
                         ? " (Esc/back did not return from task UI to main UI)"
@@ -340,9 +392,29 @@ namespace ProjectX.Editor
                         ? " (Esc/back did not return from guild UI to main UI)"
                         : checkingWorld
                         ? " (Esc/back did not return from world UI to main UI)"
-                        : checkingWelfare
-                        ? " (Esc/back did not return from welfare UI to main UI)"
-                        : " (Esc/back did not return from bag UI to main UI)"));
+                            : checkingWelfare
+                            ? " (Esc/back did not return from welfare UI to main UI)"
+                            : checkingActivity
+                            ? " (Esc/back did not return from activity UI to main UI)"
+                            : checkingDraw
+                            ? " (Esc/back did not return from draw UI to main UI)"
+                            : checkingSevenDay
+                            ? " (Esc/back did not return from SevenDay UI to gameplay hub)"
+                            : checkingXunBao
+                            ? " (Esc/back did not return from XunBao UI to gameplay hub)"
+                            : checkingBloodFight
+                            ? " (Esc/back did not return from BloodFight UI to gameplay hub)"
+                            : checkingKunLun
+                            ? " (Esc/back did not return from KunLun UI to gameplay hub)"
+                            : checkingArena
+                            ? " (Esc/back did not return from Arena UI to gameplay hub)"
+                            : checkingFengShenStory
+                            ? " (Esc/back did not return from FengShenStory UI to gameplay hub)"
+                            : checkingYouLi
+                            ? " (Esc/back did not return from YouLi UI to gameplay hub)"
+                            : checkingGameplay
+                            ? " (Esc/back did not return from gameplay UI to main UI)"
+                            : " (Esc/back did not return from bag UI to main UI)"));
                     Finish(false);
                     return;
                 }
@@ -534,6 +606,76 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-welfare.png");
+        }
+
+        private static string GetActivityScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-activity.png");
+        }
+
+        private static string GetDrawScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-draw.png");
+        }
+
+        private static string GetGameplayScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-gameplay.png");
+        }
+
+        private static string GetYouLiScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-youli.png");
+        }
+
+        private static string GetFengShenStoryScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-fengshen-story.png");
+        }
+
+        private static string GetArenaScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-arena.png");
+        }
+
+        private static string GetKunLunScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-kunlun.png");
+        }
+
+        private static string GetBloodFightScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-blood-fight.png");
+        }
+
+        private static string GetXunBaoScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-xunbao.png");
+        }
+
+        private static string GetSevenDayScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-seven-day.png");
         }
 
         private static string GetManualReconnectRequestPath()

@@ -33,6 +33,9 @@ namespace ProjectX.Core
         public const string GuildPath = "Layer/Main_UI/ButtonGroup3/btn_bangpai";
         public const string WorldPath = "Layer/Main_UI/btn_fuben";
         public const string WelfareLegacyPath = "Layer/Main_UI/ButtonGroup8/btn_fuli";
+        public const string ActivityPath = "Layer/Main_UI/ButtonGroup5/btn_huodong";
+        public const string DrawPath = "Layer/Main_UI/ButtonGroup3/btn_zhaomu";
+        public const string GameplayPath = "Layer/Main_UI/btn_wanfa";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -79,6 +82,19 @@ namespace ProjectX.Core
         private LuaFunction onWorldRefresh;
         private LuaFunction onWelfareClicked;
         private LuaFunction onWelfareClaimSign;
+        private LuaFunction onActivityClicked;
+        private LuaFunction onActivitySelected;
+        private LuaFunction onDrawClicked;
+        private LuaFunction onDrawRequested;
+        private LuaFunction onGameplayClicked;
+        private LuaFunction onGameplayEntered;
+        private LuaFunction onYouLiClicked;
+        private LuaFunction onFengShenStoryClicked;
+        private LuaFunction onArenaClicked;
+        private LuaFunction onKunLunClicked;
+        private LuaFunction onBloodFightClicked;
+        private LuaFunction onXunBaoClicked;
+        private LuaFunction onSevenDayClicked;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView loginServerListView;
@@ -193,6 +209,42 @@ namespace ProjectX.Core
         private byte pendingWelfareSignedDays;
         private byte pendingWelfareOnlineClaimed;
         private uint pendingWelfareOnlineSeconds;
+        private CocosUiView activityRootView;
+        private CocosUiView activityBackgroundView;
+        private CocosUiView activityDailyRechargeView;
+        private ActivityPresenter activityPresenter;
+        private readonly List<ActivityListRecord> pendingActivityItems = new List<ActivityListRecord>();
+        private DailyRechargeActivityState pendingDailyRecharge;
+        private CocosUiView drawView;
+        private CocosUiView drawSingleResultView;
+        private CocosUiView drawTenResultView;
+        private DrawPresenter drawPresenter;
+        private readonly List<DrawPoolRecord> pendingDrawPools = new List<DrawPoolRecord>();
+        private DrawResultRecord pendingDrawResult;
+        private CocosUiView gameplayView;
+        private CocosUiView gameplayContentView;
+        private CocosUiView gameplayDetailView;
+        private GameplayPresenter gameplayPresenter;
+        private CocosUiView youLiView;
+        private YouLiPresenter youLiPresenter;
+        private CocosUiView fengShenStoryView;
+        private FengShenStoryPresenter fengShenStoryPresenter;
+        private CocosUiView arenaView;
+        private ArenaPresenter arenaPresenter;
+        private CocosUiView kunLunView;
+        private KunLunPresenter kunLunPresenter;
+        private readonly List<KunLunEnemyRecord> pendingKunLunEnemies = new List<KunLunEnemyRecord>();
+        private byte pendingKunLunFloor;
+        private byte pendingKunLunFights;
+        private byte pendingKunLunBuys;
+        private byte pendingKunLunPosition;
+        private CocosUiView bloodFightView;
+        private BloodFightPresenter bloodFightPresenter;
+        private CocosUiView xunBaoView;
+        private XunBaoPresenter xunBaoPresenter;
+        private CocosUiView sevenDayView;
+        private SevenDayPresenter sevenDayPresenter;
+        private readonly List<SevenDayTaskRecord> pendingSevenDayTasks = new List<SevenDayTaskRecord>();
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -221,6 +273,38 @@ namespace ProjectX.Core
         public int WelfareMissingIconCount => welfarePresenter?.MissingIconCount ?? 0;
         public bool IsWelfareHotPointVisible => mainView != null
             && mainView.GameObject.transform.Find("WelfareEntryRuntime/HotPoint")?.gameObject.activeSelf == true;
+        public bool IsActivityOpen => activityRootView != null && services?.UiStack.Current == activityRootView;
+        public int ActivityCount => services?.Activity.Count ?? 0;
+        public int ActivityRewardCount => activityPresenter?.RewardCount ?? 0;
+        public bool IsActivityEmptyVisible => activityPresenter?.EmptyStateVisible ?? false;
+        public bool IsActivityDailyRechargeVisible => activityPresenter?.DailyRechargeVisible ?? false;
+        public bool IsActivityHotPointVisible => mainView != null
+            && mainView.Binding.Find(ActivityPath)?.transform.Find("ActivityHotPointRuntime")?.gameObject.activeSelf == true;
+        public bool IsDrawOpen => drawView != null && services?.UiStack.Current == drawView;
+        public int DrawPoolCount => services?.Draw.Count ?? 0;
+        public int DrawResultCount => drawPresenter?.ResultCount ?? 0;
+        public bool IsDrawResultVisible => drawPresenter?.IsSingleResultVisible ?? false;
+        public bool IsDrawEffectLoaded => drawPresenter?.FurnaceEffectLoaded ?? false;
+        public bool IsGameplayOpen => gameplayView != null && services?.UiStack.Current == gameplayView;
+        public int GameplayRenderedCount => gameplayPresenter?.RenderedCount ?? 0;
+        public int GameplayMissingIconCount => gameplayPresenter?.MissingIconCount ?? 0;
+        public bool IsGameplayDetailVisible => gameplayPresenter?.IsDetailVisible ?? false;
+        public int GameplaySelectedFunctionId => gameplayPresenter?.SelectedFunctionId ?? 0;
+        public bool IsYouLiOpen => youLiView != null && services?.UiStack.Current == youLiView;
+        public int YouLiRenderedCount => youLiPresenter?.RenderedCount ?? 0;
+        public bool IsYouLiEmptyVisible => youLiPresenter?.EmptyStateVisible ?? false;
+        public bool IsFengShenStoryOpen => fengShenStoryView != null && services?.UiStack.Current == fengShenStoryView;
+        public bool IsFengShenStoryAuthoritativeVisible => fengShenStoryPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsArenaOpen => arenaView != null && services?.UiStack.Current == arenaView;
+        public bool IsArenaAuthoritativeVisible => arenaPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsKunLunOpen => kunLunView != null && services?.UiStack.Current == kunLunView;
+        public bool IsKunLunAuthoritativeVisible => kunLunPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsBloodFightOpen => bloodFightView != null && services?.UiStack.Current == bloodFightView;
+        public bool IsBloodFightAuthoritativeVisible => bloodFightPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsXunBaoOpen => xunBaoView != null && services?.UiStack.Current == xunBaoView;
+        public bool IsXunBaoAuthoritativeVisible => xunBaoPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsSevenDayOpen => sevenDayView != null && services?.UiStack.Current == sevenDayView;
+        public bool IsSevenDayAuthoritativeVisible => sevenDayPresenter?.IsAuthoritativeVisible ?? false;
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
@@ -316,6 +400,19 @@ namespace ProjectX.Core
                 onWorldRefresh = services.Lua.GetFunction("OnWorldRefresh");
                 onWelfareClicked = services.Lua.GetFunction("OnWelfareClicked");
                 onWelfareClaimSign = services.Lua.GetFunction("OnWelfareClaimSign");
+                onActivityClicked = services.Lua.GetFunction("OnActivityClicked");
+                onActivitySelected = services.Lua.GetFunction("OnActivitySelected");
+                onDrawClicked = services.Lua.GetFunction("OnDrawClicked");
+                onDrawRequested = services.Lua.GetFunction("OnDrawRequested");
+                onGameplayClicked = services.Lua.GetFunction("OnGameplayClicked");
+                onGameplayEntered = services.Lua.GetFunction("OnGameplayEntered");
+                onYouLiClicked = services.Lua.GetFunction("OnYouLiClicked");
+                onFengShenStoryClicked = services.Lua.GetFunction("OnFengShenStoryClicked");
+                onArenaClicked = services.Lua.GetFunction("OnArenaClicked");
+                onKunLunClicked = services.Lua.GetFunction("OnKunLunClicked");
+                onBloodFightClicked = services.Lua.GetFunction("OnBloodFightClicked");
+                onXunBaoClicked = services.Lua.GetFunction("OnXunBaoClicked");
+                onSevenDayClicked = services.Lua.GetFunction("OnSevenDayClicked");
                 StartCoroutine(RunCurrentCocosStartup());
             }
             catch (Exception exception)
@@ -331,6 +428,8 @@ namespace ProjectX.Core
             toastPresenter?.Tick();
             shopPresenter?.Tick();
             welfarePresenter?.Tick();
+            activityPresenter?.Tick();
+            drawPresenter?.Tick();
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
         }
 
@@ -390,6 +489,26 @@ namespace ProjectX.Core
             onWorldRefresh?.Dispose();
             onWelfareClicked?.Dispose();
             onWelfareClaimSign?.Dispose();
+            onActivityClicked?.Dispose();
+            onActivitySelected?.Dispose();
+            onDrawClicked?.Dispose();
+            onDrawRequested?.Dispose();
+            onGameplayClicked?.Dispose();
+            onGameplayEntered?.Dispose();
+            onYouLiClicked?.Dispose();
+            onFengShenStoryClicked?.Dispose();
+            onArenaClicked?.Dispose();
+            onKunLunClicked?.Dispose();
+            onBloodFightClicked?.Dispose();
+            onXunBaoClicked?.Dispose();
+            onSevenDayClicked?.Dispose();
+            youLiPresenter?.Dispose();
+            fengShenStoryPresenter?.Dispose();
+            arenaPresenter?.Dispose();
+            kunLunPresenter?.Dispose();
+            bloodFightPresenter?.Dispose();
+            xunBaoPresenter?.Dispose();
+            sevenDayPresenter?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -407,6 +526,10 @@ namespace ProjectX.Core
             guildPresenter?.Dispose();
             worldPresenter?.Dispose();
             welfarePresenter?.Dispose();
+            activityPresenter?.Dispose();
+            drawPresenter?.Dispose();
+            gameplayPresenter?.Dispose();
+            youLiPresenter?.Dispose();
             startupPresenter?.Dispose();
             loginPresenter?.Dispose();
             noticePresenter?.Dispose();
@@ -817,6 +940,40 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+        public void BindActivityClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(ActivityPath, HandleActivityClick, true);
+                EnsureActivityHotPoint(button.transform);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void BindDrawClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(DrawPath, HandleDrawClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void BindGameplayClick(bool autoInvoke)
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                Button button = mainView.BindClick(GameplayPath, HandleGameplayClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
         public void ShowFriend()
         {
             EnsureFriendPresenter();
@@ -862,6 +1019,227 @@ namespace ProjectX.Core
             if (services.UiStack.Current != welfareView) services.UiStack.Push(welfareView);
             SetStatus($"Welfare UI active: {services.Welfare.Signs.Count} sign rewards, {services.Welfare.Online.Count} online rewards.");
         }
+
+        public void ShowActivity()
+        {
+            EnsureActivityPresenter();
+            if (services.UiStack.Current != activityRootView) services.UiStack.Push(activityRootView);
+            SetStatus($"Activity UI active: {services.Activity.Count} activities.");
+        }
+
+        public void ShowDraw()
+        {
+            EnsureDrawPresenter();
+            if (services.UiStack.Current != drawView) services.UiStack.Push(drawView);
+            SetStatus($"Draw UI active: {services.Draw.Count} pools.");
+        }
+
+        public void ShowGameplay()
+        {
+            services.Gameplay.Load(services.GameplayCatalog.Items, services.Player.Level);
+            EnsureGameplayPresenter();
+            if (services.UiStack.Current != gameplayView) services.UiStack.Push(gameplayView);
+            SetStatus($"Gameplay current hub active: {services.Gameplay.Count} configured entries.");
+        }
+
+        public void EnterGameplay(int functionId)
+        {
+            GameplayDefinition definition = services.GameplayCatalog.Find(functionId);
+            if (definition == null) { Fail($"Gameplay route config is missing id={functionId}."); return; }
+            if (services.Player.Level < definition.OpenLevel)
+            {
+                ShowToast($"{definition.OpenLevel}级开启", 2f);
+                return;
+            }
+            if (functionId == 10)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onTaskClicked, "Gameplay.DailyTask");
+                return;
+            }
+            if (functionId == 1)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onYouLiClicked, "Gameplay.YouLi");
+                return;
+            }
+            if (functionId == 3)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onFengShenStoryClicked, "Gameplay.FengShenStory");
+                return;
+            }
+            if (functionId == 6)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena");
+                return;
+            }
+            if (functionId == 7)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onKunLunClicked, "Gameplay.KunLun");
+                return;
+            }
+            if (functionId == 8)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onBloodFightClicked, "Gameplay.BloodFight");
+                return;
+            }
+            if (functionId == 9)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao");
+                return;
+            }
+            if (functionId == 11)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onSevenDayClicked, "Gameplay.SevenDay");
+                return;
+            }
+            ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
+            SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}.");
+        }
+
+        public void UpdateGameplayHotPoint(int rawType, int rawState)
+        {
+            services.Gameplay.SetHotPoint(checked((ushort)rawType), rawState == 1);
+        }
+
+        public void CompleteGameplayValidation()
+        {
+            StartCoroutine(CaptureGameplayValidationStates());
+        }
+
+        private IEnumerator CaptureGameplayValidationStates()
+        {
+            EnsureGameplayPresenter();
+            if (!IsGameplayOpen || services.Gameplay.Count != 13 || services.Gameplay.OpenCount != 13
+                || GameplayRenderedCount != 13 || GameplayMissingIconCount != 0
+                || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"Gameplay list state mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, missing={GameplayMissingIconCount}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string listPath = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-gameplay-list.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(listPath));
+            ScreenCapture.CaptureScreenshot(listPath);
+            yield return new WaitForSecondsRealtime(0.8f);
+            gameplayPresenter.ShowDetail(1);
+            yield return new WaitForEndOfFrame();
+            if (!IsGameplayDetailVisible || GameplaySelectedFunctionId != 1)
+            {
+                Fail($"Gameplay detail state mismatch: detail={IsGameplayDetailVisible}, selected={GameplaySelectedFunctionId}.");
+                yield break;
+            }
+            Complete($"COMPLETE: current btn_wanfa -> shop/shop_bg + Main.WanFaEntranceUI -> function config 13 entries/level gates -> /65 types 101,51,103 authoritative hidden states -> YouLi detail/enter boundary; user={GetLocalUserId()}");
+        }
+
+        public void ShowYouLi()
+        {
+            services.YouLi.Initialize(services.YouLiCatalog.Items);
+            EnsureYouLiPresenter();
+            if (services.UiStack.Current != youLiView) services.UiStack.Push(youLiView);
+            SetStatus("YouLi current main UI active; awaiting /335 op=1.");
+        }
+
+        public void BeginYouLiUpdate(int expectedCount) => services.YouLi.BeginUpdate(expectedCount);
+
+        public void AddYouLiRecord(int id, int mode, int durationType, int heroId, double lastTime, double endTime,
+            int fragments, int rewardBatchCount, int dialogueCount)
+        {
+            services.YouLi.Add(checked((byte)id), checked((byte)mode), checked((byte)durationType), checked((ushort)heroId),
+                checked((uint)lastTime), checked((uint)endTime), checked((ushort)fragments), rewardBatchCount, dialogueCount);
+        }
+
+        public void EndYouLiUpdate() => services.YouLi.EndUpdate();
+        public void SetYouLiError(string message) { ShowToast(message, 3f); SetStatus("YouLi/335 failed: " + message); }
+
+        public void CompleteYouLiValidation()
+        {
+            StartCoroutine(CompleteYouLiValidationAfterLayout());
+        }
+
+        private IEnumerator CompleteYouLiValidationAfterLayout()
+        {
+            EnsureYouLiPresenter();
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            if (!IsYouLiOpen || !services.YouLi.HasAuthoritativeResponse || services.YouLi.Items.Count != 5
+                || YouLiRenderedCount != 5 || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"YouLi state mismatch: open={IsYouLiOpen}, authoritative={services.YouLi.HasAuthoritativeResponse}, catalog={services.YouLi.Items.Count}, rendered={YouLiRenderedCount}, server={services.YouLi.ServerRecordCount}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            Complete($"COMPLETE: btn_wanfa -> WanFaEntranceUI function_id=1 -> WanFa.YouLiMainUI -> csd/youli/youlisanjie.csb -> /335 op=1 records={services.YouLi.ServerRecordCount}; isolated user={GetLocalUserId()}");
+        }
+
+        public void ShowFengShenStory()
+        {
+            EnsureFengShenStoryPresenter();
+            if (services.UiStack.Current != fengShenStoryView) services.UiStack.Push(fengShenStoryView);
+            SetStatus("FengShenStory current main UI active; awaiting /320 op=24.");
+        }
+
+        public void SetFengShenStoryState(double chapterId, double levelId, int count)
+        {
+            services.FengShenStory.Replace(checked((uint)chapterId), checked((uint)levelId), checked((byte)count));
+        }
+
+        public void CompleteFengShenStoryValidation()
+        {
+            StartCoroutine(CompleteFengShenStoryValidationAfterLayout());
+        }
+
+        private IEnumerator CompleteFengShenStoryValidationAfterLayout()
+        {
+            EnsureFengShenStoryPresenter();
+            Canvas.ForceUpdateCanvases(); yield return new WaitForEndOfFrame();
+            if (!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
+                || !IsFengShenStoryAuthoritativeVisible || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            Complete($"COMPLETE: btn_wanfa -> function_id=3 -> FengShenStoryMainUI -> csd/fengshenliezhuan/fengshenliezhuanlLayer.csb -> /320 op=24 chapter={services.FengShenStory.ChapterId}, level={services.FengShenStory.LevelId}, count={services.FengShenStory.RemainingChallenges}; isolated user={GetLocalUserId()}");
+        }
+
+        public void ShowArena(){EnsureArenaPresenter();if(services.UiStack.Current!=arenaView)services.UiStack.Push(arenaView);SetStatus("Arena current KaPaiArenaUI active; awaiting /161 op=0.");}
+        public void SetArenaState(int opponents,double rank,int remaining,int challenged,int bought,double score){services.Arena.Replace(opponents,checked((uint)rank),checked((ushort)remaining),checked((ushort)challenged),checked((byte)bought),checked((uint)score));}
+        public void SetArenaError(string message){ShowToast(message,3f);SetStatus("Arena/161 failed: "+message);}
+        public void CompleteArenaValidation(){StartCoroutine(CompleteArenaValidationAfterLayout());}
+        private IEnumerator CompleteArenaValidationAfterLayout(){EnsureArenaPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsArenaOpen||!services.Arena.HasAuthoritativeResponse||!IsArenaAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"Arena state mismatch: open={IsArenaOpen}, authoritative={services.Arena.HasAuthoritativeResponse}, visible={IsArenaAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=6 -> WanFa.KaPaiArenaUI -> csd/common/JingjiLayer.csb -> /161 op=0 rank={services.Arena.Rank}, opponents={services.Arena.OpponentCount}, remaining={services.Arena.Remaining}; isolated user={GetLocalUserId()}");}
+
+        public void ShowKunLun(){EnsureKunLunPresenter();if(services.UiStack.Current!=kunLunView)services.UiStack.Push(kunLunView);SetStatus("KunLun current UI active; awaiting /213 op=25.");}
+        public void BeginKunLunState(int floor,int fights,int buys,int position){pendingKunLunFloor=checked((byte)floor);pendingKunLunFights=checked((byte)fights);pendingKunLunBuys=checked((byte)buys);pendingKunLunPosition=checked((byte)position);pendingKunLunEnemies.Clear();}
+        public void AddKunLunEnemy(int position,double roleId,string name,int profession,int sex,int level,double power,int robot,int state,int healthPercent){pendingKunLunEnemies.Add(new KunLunEnemyRecord(checked((byte)position),checked((uint)roleId),name,checked((byte)profession),checked((byte)sex),checked((ushort)level),checked((uint)power),robot!=0,checked((byte)state),Mathf.Clamp(healthPercent,0,100)));}
+        public void CommitKunLunState(){services.KunLun.Replace(pendingKunLunFloor,pendingKunLunFights,pendingKunLunBuys,pendingKunLunPosition,pendingKunLunEnemies);}
+        public void CompleteKunLunValidation(){StartCoroutine(CompleteKunLunValidationAfterLayout());}
+        private IEnumerator CompleteKunLunValidationAfterLayout(){EnsureKunLunPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsKunLunOpen||!services.KunLun.HasAuthoritativeResponse||!IsKunLunAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"KunLun state mismatch: open={IsKunLunOpen}, authoritative={services.KunLun.HasAuthoritativeResponse}, visible={IsKunLunAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=7 -> JueZhanKunLun.KunLunJueZhanUI -> csd/kunlun/juezhankunlun.csb -> /213 op=25 floor={services.KunLun.Floor}, enemies={services.KunLun.Enemies.Count}, remaining={services.KunLun.RemainingFights}; isolated user={GetLocalUserId()}");}
+
+        public void ShowBloodFight(){EnsureBloodFightPresenter();if(services.UiStack.Current!=bloodFightView)services.UiStack.Push(bloodFightView);SetStatus("BloodFight current UI active; awaiting /323 op=1.");}
+        public void SetBloodFightState(int remaining,int revives,int state,int rewardState,int chapter,int level,int todayMaxLevel,int historicalMaxStar,int totalStar,int todayMaxStar,int currentStar){services.BloodFight.Replace(checked((byte)remaining),checked((byte)revives),checked((byte)state),checked((byte)rewardState),checked((byte)chapter),checked((ushort)level),checked((ushort)todayMaxLevel),checked((ushort)historicalMaxStar),checked((ushort)totalStar),checked((ushort)todayMaxStar),checked((ushort)currentStar));}
+        public void CompleteBloodFightValidation(){StartCoroutine(CompleteBloodFightValidationAfterLayout());}
+        private IEnumerator CompleteBloodFightValidationAfterLayout(){EnsureBloodFightPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsBloodFightOpen||!services.BloodFight.HasAuthoritativeResponse||!IsBloodFightAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"BloodFight state mismatch: open={IsBloodFightOpen}, authoritative={services.BloodFight.HasAuthoritativeResponse}, visible={IsBloodFightAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=8 -> XueZhan.XueZhanMainUI -> csd/xuezhan/XuezhanMain.csb -> /323 op=1 chapter={services.BloodFight.Chapter}, level={services.BloodFight.Level}, remaining={services.BloodFight.Remaining}; isolated user={GetLocalUserId()}");}
+
+        public void ShowXunBao(){EnsureXunBaoPresenter();if(services.UiStack.Current!=xunBaoView)services.UiStack.Push(xunBaoView);SetStatus("XunBao current UI active; awaiting /319 op=31.");}
+        public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds));}
+        public void CompleteXunBaoValidation(){StartCoroutine(CompleteXunBaoValidationAfterLayout());}
+        private IEnumerator CompleteXunBaoValidationAfterLayout(){EnsureXunBaoPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsXunBaoOpen||!services.XunBao.HasAuthoritativeResponse||!IsXunBaoAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"XunBao state mismatch: open={IsXunBaoOpen}, authoritative={services.XunBao.HasAuthoritativeResponse}, visible={IsXunBaoAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=9 -> WanFa.XunBaoMainUI -> csd/wanfa/XunbaoLayer.csb -> /319 op=31 remaining={services.XunBao.Remaining}, seconds={services.XunBao.RecoverySeconds}; isolated user={GetLocalUserId()}");}
+
+        public void ShowSevenDay(){EnsureSevenDayPresenter();if(services.UiStack.Current!=sevenDayView)services.UiStack.Push(sevenDayView);SetStatus("SevenDay current UI active; awaiting /37 op=4.");}
+        public void BeginSevenDayState(){pendingSevenDayTasks.Clear();}
+        public void AddSevenDayTask(int id,double progress,int state){pendingSevenDayTasks.Add(new SevenDayTaskRecord(checked((ushort)id),checked((uint)progress),checked((byte)state)));}
+        public void CommitSevenDayState(){services.SevenDay.Replace(pendingSevenDayTasks);}
+        public void CompleteSevenDayValidation(){StartCoroutine(CompleteSevenDayValidationAfterLayout());}
+        private IEnumerator CompleteSevenDayValidationAfterLayout(){EnsureSevenDayPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsSevenDayOpen||!services.SevenDay.HasAuthoritativeResponse||!IsSevenDayAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"SevenDay state mismatch: open={IsSevenDayOpen}, authoritative={services.SevenDay.HasAuthoritativeResponse}, visible={IsSevenDayAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=11 -> OperationalActivity.SevenDay -> csd/huodong/QiriLayer.csb -> /37 op=4 tasks={services.SevenDay.Tasks.Count}; isolated user={GetLocalUserId()}");}
 
         public void ShowTask()
         {
@@ -991,6 +1369,8 @@ namespace ProjectX.Core
             services.Formation.Clear();
             services.World.Clear();
             services.Welfare.Clear();
+            services.Activity.Clear();
+            services.Draw.Clear();
             services.ServerTime.Reset();
             loadingPresenter?.Clear();
             toastPresenter?.Clear();
@@ -1712,6 +2092,159 @@ namespace ProjectX.Core
             Complete($"COMPLETE: /199 sign list -> single daily claim -> authoritative re-pull days={signedDays}; /222 online status={services.Welfare.OnlineClaimedCount}/{services.Welfare.Online.Count}; /223 unavailable empty state; isolated user={GetLocalUserId()}");
         }
 
+        public void BeginActivityListUpdate(int expectedCount)
+        {
+            pendingActivityItems.Clear();
+            if (expectedCount > pendingActivityItems.Capacity) pendingActivityItems.Capacity = expectedCount;
+        }
+
+        public void AddActivityListItem(double rawTag, string name, bool hotPoint, bool isNew, double rawRemainingSeconds)
+        {
+            pendingActivityItems.Add(new ActivityListRecord
+            {
+                Tag = checked((uint)rawTag), Name = name ?? string.Empty,
+                HasHotPoint = hotPoint, IsNew = isNew,
+                RemainingSeconds = checked((uint)rawRemainingSeconds)
+            });
+        }
+
+        public void EndActivityListUpdate()
+        {
+            services.Activity.ReplaceList(pendingActivityItems, services.ServerTime.UnixSeconds);
+            RefreshActivityHotPoint();
+            EnsureActivityPresenter();
+            SetStatus($"Activity /222 op=0xFF list: {services.Activity.Count} entries.");
+        }
+
+        public void SelectActivity(double rawTag)
+        {
+            services.Activity.Select(checked((uint)rawTag));
+        }
+
+        public void BeginActivityDailyRechargeUpdate(bool weChatVisible, bool recharged, bool claimed,
+            bool weChatRecharged, bool weChatClaimed, int expectedCount)
+        {
+            pendingDailyRecharge = new DailyRechargeActivityState
+            {
+                WeChatRewardVisible = weChatVisible, Recharged = recharged, Claimed = claimed,
+                WeChatRecharged = weChatRecharged, WeChatClaimed = weChatClaimed
+            };
+            if (expectedCount > pendingDailyRecharge.Rewards.Capacity)
+                pendingDailyRecharge.Rewards.Capacity = expectedCount;
+        }
+
+        public void AddActivityReward(int rewardType, double rawAmount, string name, int picture, int quality)
+        {
+            if (pendingDailyRecharge == null) throw new InvalidOperationException("Activity daily recharge update was not started.");
+            pendingDailyRecharge.Rewards.Add(new ActivityRewardRecord
+            {
+                Type = checked((ushort)rewardType), Amount = checked((uint)rawAmount),
+                Name = name ?? string.Empty, Picture = picture, Quality = quality
+            });
+        }
+
+        public void EndActivityDailyRechargeUpdate(bool validation)
+        {
+            if (pendingDailyRecharge == null) throw new InvalidOperationException("Activity daily recharge update was not started.");
+            services.Activity.SetDailyRecharge(pendingDailyRecharge);
+            EnsureActivityPresenter();
+            SetStatus($"Activity /222 op=18 subOp=1: rewards={services.Activity.DailyRecharge.Rewards.Count}, recharged={services.Activity.DailyRecharge.Recharged}, claimed={services.Activity.DailyRecharge.Claimed}.");
+            if (validation) StartCoroutine(CaptureActivityValidationStates());
+        }
+
+        public void SetActivityError(string message) { ShowToast(message, 3f); SetStatus(message); }
+
+        public void CompleteActivityValidation()
+        {
+            EnsureActivityPresenter();
+            bool hasUnsupportedTab = services.Activity.Items.Any(value => value.Tag != ActivityPresenter.DailyRechargeTag);
+            if (GetLocalUserId() == 1 || !IsActivityOpen || services.Activity.Count < 2
+                || !hasUnsupportedTab || !IsActivityDailyRechargeVisible || ActivityRewardCount == 0
+                || !activityPresenter.HasCountdown || services.ProtocolRegistry.PendingCount != 0
+                || IsActivityHotPointVisible != services.Activity.HasHotPoint)
+            {
+                Fail($"Activity final state mismatch: user={GetLocalUserId()}, open={IsActivityOpen}, list={services.Activity.Count}, daily={IsActivityDailyRechargeVisible}, rewards={ActivityRewardCount}, countdown={activityPresenter.HasCountdown}, pending={services.ProtocolRegistry.PendingCount}, hot={IsActivityHotPointVisible}/{services.Activity.HasHotPoint}.");
+                return;
+            }
+            Complete($"COMPLETE: Activity /222 op=0xFF list -> real tabs/hot-point/countdown -> op=18 subOp=1 daily recharge state/rewards -> unsupported real tab empty boundary; isolated user={GetLocalUserId()}");
+        }
+
+        public void BeginDrawPoolUpdate(int expectedCount)
+        {
+            pendingDrawPools.Clear();
+            if (expectedCount > pendingDrawPools.Capacity) pendingDrawPools.Capacity = expectedCount;
+        }
+
+        public void AddDrawPool(int kind, double rawTotalDraws, double rawCooldown, int freeTimes)
+        {
+            pendingDrawPools.Add(new DrawPoolRecord
+            {
+                Kind = checked((byte)kind),
+                TotalDraws = checked((uint)rawTotalDraws),
+                FreeCooldownSeconds = checked((uint)rawCooldown),
+                FreeTimes = checked((byte)freeTimes)
+            });
+        }
+
+        public void EndDrawPoolUpdate(bool validation)
+        {
+            services.Draw.ReplacePools(pendingDrawPools, services.ServerTime.UnixSeconds);
+            EnsureDrawPresenter();
+            RefreshDrawHotPoint();
+            SetStatus($"Draw /224 op=1: pools={services.Draw.Count}, free={services.Draw.HasFreeDraw}.");
+            if (validation) StartCoroutine(RequestValidationDrawNextFrame());
+        }
+
+        public void BeginDrawResult(int kind, int drawType, double rawTotalDraws, int freeTimes,
+            double rawCooldown, int expectedGuaranteedCount)
+        {
+            pendingDrawResult = new DrawResultRecord
+            {
+                Kind = checked((byte)kind),
+                DrawType = checked((byte)drawType),
+                TotalDraws = checked((uint)rawTotalDraws),
+                FreeTimes = checked((byte)freeTimes),
+                FreeCooldownSeconds = checked((uint)rawCooldown)
+            };
+            if (expectedGuaranteedCount > pendingDrawResult.GuaranteedRewards.Capacity)
+                pendingDrawResult.GuaranteedRewards.Capacity = expectedGuaranteedCount;
+        }
+
+        public void AddDrawGuaranteedReward(int type, double rawId, double rawAmount,
+            int transformItemId, double rawTransformAmount, string name, int picture, int quality)
+        {
+            RequirePendingDraw().GuaranteedRewards.Add(NewDrawReward(type, rawId, rawAmount,
+                transformItemId, rawTransformAmount, name, picture, quality));
+        }
+
+        public void AddDrawResultReward(int type, double rawId, double rawAmount,
+            int transformItemId, double rawTransformAmount, string name, int picture, int quality)
+        {
+            RequirePendingDraw().Rewards.Add(NewDrawReward(type, rawId, rawAmount,
+                transformItemId, rawTransformAmount, name, picture, quality));
+        }
+
+        public void EndDrawResult(bool validation)
+        {
+            DrawResultRecord result = RequirePendingDraw();
+            services.Draw.SetResult(result, services.ServerTime.UnixSeconds);
+            pendingDrawResult = null;
+            EnsureDrawPresenter();
+            RefreshDrawHotPoint();
+            SetStatus($"Draw /224 op=2: kind={result.Kind}, type={result.DrawType}, rewards={result.Rewards.Count}, total={result.TotalDraws}.");
+            if (!validation) return;
+            if (GetLocalUserId() == 1 || !IsDrawOpen || services.Draw.Count != 3
+                || result.Kind != 1 || result.DrawType != 1 || result.Rewards.Count != 1
+                || !IsDrawResultVisible || !IsDrawEffectLoaded || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"Draw final state mismatch: user={GetLocalUserId()}, open={IsDrawOpen}, pools={services.Draw.Count}, kind={result.Kind}, type={result.DrawType}, rewards={result.Rewards.Count}, result={IsDrawResultVisible}, effect={IsDrawEffectLoaded}, pending={services.ProtocolRegistry.PendingCount}.");
+                return;
+            }
+            Complete($"COMPLETE: current btn_zhaomu -> HappyDrawUI -> /224 op=1 three pools/free countdown/red-point -> op=2 kind=1 single free draw -> authoritative reward/result timeline; isolated user={GetLocalUserId()}");
+        }
+
+        public void SetDrawError(string message) { ShowToast(message, 3f); SetStatus(message); }
+
         public void AddShopRecord(int grid, double id, int buyCount, string name,
             string description, int picture, int quality)
         {
@@ -2266,6 +2799,24 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Welfare open failed: {exception.Message}"); }
         }
 
+        private void HandleActivityClick()
+        {
+            try { CallLua(onActivityClicked, "Activity.OnClicked"); }
+            catch (Exception exception) { Fail($"Activity open failed: {exception.Message}"); }
+        }
+
+        private void HandleDrawClick()
+        {
+            try { CallLua(onDrawClicked, "Draw.OnClicked"); }
+            catch (Exception exception) { Fail($"Draw open failed: {exception.Message}"); }
+        }
+
+        private void HandleGameplayClick()
+        {
+            try { CallLua(onGameplayClicked, "Gameplay.OnClicked"); }
+            catch (Exception exception) { Fail($"Gameplay open failed: {exception.Message}"); }
+        }
+
         private Button EnsureRuntimeTeamEntry()
         {
             Transform existing = mainView.GameObject.transform.Find("TeamEntryRuntime");
@@ -2362,6 +2913,26 @@ namespace ProjectX.Core
             Transform hotPoint = mainView?.GameObject.transform.Find("WelfareEntryRuntime/HotPoint");
             if (hotPoint != null) hotPoint.gameObject.SetActive(services?.Welfare.HasClaimable == true);
         }
+        private void EnsureActivityHotPoint(Transform button)
+        {
+            Transform existing = button.Find("ActivityHotPointRuntime");
+            if (existing == null)
+            {
+                GameObject go = new GameObject("ActivityHotPointRuntime", typeof(RectTransform), typeof(Image));
+                RectTransform rect = go.GetComponent<RectTransform>();
+                rect.SetParent(button, false); rect.anchorMin = new Vector2(0.82f, 0.72f);
+                rect.anchorMax = new Vector2(0.98f, 0.94f); rect.offsetMin = rect.offsetMax = Vector2.zero;
+                go.GetComponent<Image>().color = new Color(0.95f, 0.08f, 0.04f, 1f);
+            }
+            RefreshActivityHotPoint();
+        }
+
+        private void RefreshActivityHotPoint()
+        {
+            GameObject button = mainView?.Binding.Find(ActivityPath);
+            Transform hotPoint = button?.transform.Find("ActivityHotPointRuntime");
+            if (hotPoint != null) hotPoint.gameObject.SetActive(services?.Activity.HasHotPoint == true);
+        }
         private static IEnumerator InvokeButtonNextFrame(Button button) { yield return null; button.onClick.Invoke(); }
 
         private IEnumerator CaptureMailDetailAndClaim(uint mailId)
@@ -2397,6 +2968,37 @@ namespace ProjectX.Core
             yield return new WaitForSecondsRealtime(0.8f);
             welfarePresenter.SelectTab(0);
             InvokeLuaOrFail(onWelfareClaimSign, "Welfare.ClaimSign");
+        }
+
+        private IEnumerator CaptureActivityValidationStates()
+        {
+            EnsureActivityPresenter();
+            services.Activity.Select(ActivityPresenter.DailyRechargeTag);
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string directory = Path.Combine(repositoryRoot, "build", "ui-migration");
+            Directory.CreateDirectory(directory);
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-activity-detail.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+            ActivityListRecord unsupported = services.Activity.Items.FirstOrDefault(value => value.Tag != ActivityPresenter.DailyRechargeTag);
+            if (unsupported == null)
+            {
+                Fail("Activity validation did not receive the real unsupported-tab fixture.");
+                yield break;
+            }
+            services.Activity.Select(unsupported.Tag);
+            yield return new WaitForEndOfFrame();
+            if (!activityPresenter.EmptyStateVisible)
+            {
+                Fail($"Activity unsupported tab #{unsupported.Tag} did not render the first-phase empty boundary.");
+                yield break;
+            }
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-activity-empty.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+            services.Activity.Select(ActivityPresenter.DailyRechargeTag);
+            yield return new WaitForEndOfFrame();
+            CompleteActivityValidation();
         }
 
         private void ShowShopPurchaseConfirmation(ShopRecord item)
@@ -2687,6 +3289,112 @@ namespace ProjectX.Core
                 services.Welfare, services.ServerTime, services.Resources,
                 () => InvokeLuaOrFail(onWelfareClaimSign, "Welfare.ClaimSign"), () => HandleBack());
         }
+
+        private void EnsureActivityPresenter()
+        {
+            activityRootView = activityRootView ?? services.UiRouter.FindBySource("huodong/ActivityRankingLayer");
+            activityBackgroundView = activityBackgroundView ?? services.UiRouter.FindBySource("huodong/ActivityLevelLayer");
+            activityDailyRechargeView = activityDailyRechargeView ?? services.UiRouter.FindBySource("DailyChargeLayer");
+            if (activityRootView == null || activityBackgroundView == null || activityDailyRechargeView == null)
+                throw new InvalidOperationException("Current Activity imported CocosUiBindings were not found by full relative path.");
+            activityPresenter = activityPresenter ?? new ActivityPresenter(activityRootView, activityBackgroundView,
+                activityDailyRechargeView, services.Activity, services.ServerTime,
+                tag => InvokeLuaOrFail(onActivitySelected, "Activity.Selected", (double)tag), () => HandleBack());
+        }
+
+        private void EnsureDrawPresenter()
+        {
+            drawView = drawView ?? services.UiRouter.FindBySource("chouka/shenjiangzhaomu");
+            drawSingleResultView = drawSingleResultView ?? services.UiRouter.FindBySource("chouka/dancichouka");
+            drawTenResultView = drawTenResultView ?? services.UiRouter.FindBySource("chouka/shilianchouka");
+            if (drawView == null || drawSingleResultView == null || drawTenResultView == null)
+                throw new InvalidOperationException("Current HappyDraw imported CocosUiBindings were not found by full relative path.");
+            drawPresenter = drawPresenter ?? new DrawPresenter(drawView, drawSingleResultView, drawTenResultView,
+                services.Draw, services.ServerTime, services.Resources,
+                (kind, type) => InvokeLuaOrFail(onDrawRequested, "Draw.Requested", (double)kind, (double)type),
+                () => HandleBack());
+        }
+
+        private void EnsureGameplayPresenter()
+        {
+            gameplayView = gameplayView ?? services.UiRouter.FindBySource("shop/shop_bg");
+            gameplayContentView = gameplayContentView ?? services.UiRouter.FindBySource("common/ActivityLayer");
+            gameplayDetailView = gameplayDetailView ?? services.UiRouter.FindBySource("TaskPopupLayer");
+            if (gameplayView == null || gameplayContentView == null || gameplayDetailView == null)
+                throw new InvalidOperationException("Current Gameplay imported CocosUiBindings were not found by full relative path.");
+            string marqueeRoleName = HasCommandLineFlag("-projectXGameplayValidation")
+                ? "Test01"
+                : (string.IsNullOrWhiteSpace(services.Player.Name) ? "Test01" : services.Player.Name);
+            gameplayPresenter = gameplayPresenter ?? new GameplayPresenter(gameplayView, gameplayContentView, gameplayDetailView,
+                services.Gameplay, services.Resources,
+                id => InvokeLuaOrFail(onGameplayEntered, "Gameplay.Entered", (double)id), () => HandleBack(), marqueeRoleName);
+        }
+
+        private void EnsureYouLiPresenter()
+        {
+            youLiView = youLiView ?? services.UiRouter.FindBySource("youli/youlisanjie");
+            if (youLiView == null)
+                throw new InvalidOperationException("Current YouLi imported CocosUiBinding was not found: youli/youlisanjie.");
+            youLiPresenter = youLiPresenter ?? new YouLiPresenter(youLiView, services.YouLi, services.Player.Level, () => HandleBack());
+        }
+
+        private void EnsureFengShenStoryPresenter()
+        {
+            fengShenStoryView = fengShenStoryView ?? services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlLayer");
+            if (fengShenStoryView == null)
+                throw new InvalidOperationException("Current FengShenStory imported CocosUiBinding was not found: fengshenliezhuan/fengshenliezhuanlLayer.");
+            fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(fengShenStoryView, services.FengShenStory, () => HandleBack());
+        }
+
+        private void EnsureArenaPresenter(){arenaView=arenaView??services.UiRouter.FindBySource("common/JingjiLayer");if(arenaView==null)throw new InvalidOperationException("Current Arena imported CocosUiBinding was not found: common/JingjiLayer.");arenaPresenter=arenaPresenter??new ArenaPresenter(arenaView,services.Arena,()=>HandleBack());}
+
+        private void EnsureKunLunPresenter(){kunLunView=kunLunView??services.UiRouter.FindBySource("kunlun/juezhankunlun");if(kunLunView==null)throw new InvalidOperationException("Current KunLun imported CocosUiBinding was not found: kunlun/juezhankunlun.");kunLunPresenter=kunLunPresenter??new KunLunPresenter(kunLunView,services.KunLun,()=>HandleBack());}
+
+        private void EnsureBloodFightPresenter(){bloodFightView=bloodFightView??services.UiRouter.FindBySource("xuezhan/XuezhanMain");if(bloodFightView==null)throw new InvalidOperationException("Current BloodFight imported CocosUiBinding was not found: xuezhan/XuezhanMain.");bloodFightPresenter=bloodFightPresenter??new BloodFightPresenter(bloodFightView,services.BloodFight,()=>HandleBack());}
+
+        private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,()=>HandleBack());}
+
+        private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,()=>HandleBack());}
+
+        private IEnumerator RequestValidationDrawNextFrame()
+        {
+            yield return null;
+            if (services.Draw.Count != 3)
+            {
+                Fail($"Draw validation expected 3 current pools, got {services.Draw.Count}.");
+                yield break;
+            }
+            DrawPoolRecord normal = services.Draw.Pools.FirstOrDefault(value => value.Kind == 1);
+            if (normal == null || normal.FreeTimes == 0 || normal.FreeCooldownSeconds != 0)
+            {
+                Fail($"Draw validation isolated role has no free normal draw: free={normal?.FreeTimes ?? 0}, cd={normal?.FreeCooldownSeconds ?? 0}.");
+                yield break;
+            }
+            InvokeLuaOrFail(onDrawRequested, "Draw.ValidationSingle", 1d, 1d);
+        }
+
+        private void RefreshDrawHotPoint()
+        {
+            GameObject button = mainView?.Binding.Find(DrawPath);
+            Transform prompt = button?.transform.Find("Prompt");
+            if (prompt != null) prompt.gameObject.SetActive(services?.Draw.HasFreeDraw == true);
+        }
+
+        private DrawResultRecord RequirePendingDraw() => pendingDrawResult
+            ?? throw new InvalidOperationException("Draw result update was not started.");
+
+        private static DrawRewardRecord NewDrawReward(int type, double rawId, double rawAmount,
+            int transformItemId, double rawTransformAmount, string name, int picture, int quality) => new DrawRewardRecord
+        {
+            Type = checked((ushort)type),
+            Id = checked((uint)rawId),
+            Amount = checked((uint)rawAmount),
+            TransformItemId = checked((ushort)transformItemId),
+            TransformAmount = checked((uint)rawTransformAmount),
+            Name = name ?? string.Empty,
+            Picture = picture,
+            Quality = quality
+        };
 
         private void BeginFriendUpdate(int maximum, int expectedCount)
         {

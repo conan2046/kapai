@@ -1,0 +1,15 @@
+local Protocol=require("Protocol")
+local M={validation=false}
+function M.onClick()
+ M.validation=Bridge:HasCommandLineFlag("-projectXSevenDayValidation");Bridge:ShowSevenDay()
+ local m=Protocol.newMessage(Protocol.TASK_LIST);m:WriteByte(4);Bridge:Send(m);Bridge:SetStatus("SevenDay/37 op=4 requested.")
+end
+function M.onPacket(command,message)
+ if command~=Protocol.TASK_LIST then return false end
+ local op=message:ReadByte();if op~=4 then return false end
+ local count=message:ReadWord();Bridge:BeginSevenDayState()
+ for _=1,count do Bridge:AddSevenDayTask(message:ReadWord(),message:ReadUInt(),message:ReadByte()) end
+ Bridge:CommitSevenDayState();Bridge:SetStatus("SevenDay/37 op=4 recv: tasks="..tostring(count)..".")
+ if M.validation then M.validation=false;Bridge:CompleteSevenDayValidation() end;return true
+end
+return M

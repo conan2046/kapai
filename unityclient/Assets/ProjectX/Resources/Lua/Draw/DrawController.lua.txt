@@ -1,0 +1,100 @@
+local Protocol = require("Protocol")
+local itemCatalog = require("Data.ItemCatalog")
+local itemsById = {}
+for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
+local M = { validation = false, drawRequested = false }
+
+local function requestInfo()
+    local message = Protocol.newMessage(Protocol.PET_RANDOM_DRAW)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+function M.onClick()
+    M.validation = Bridge:HasCommandLineFlag("-projectXDrawValidation")
+    Bridge:ShowDraw()
+    requestInfo()
+    Bridge:SetStatus("Draw /224 op=1 requested.")
+end
+
+function M.draw(kind, drawType)
+    local message = Protocol.newMessage(Protocol.PET_RANDOM_DRAW)
+    message:WriteByte(2)
+    message:WriteByte(kind)
+    message:WriteByte(drawType)
+    M.drawRequested = true
+    Bridge:Send(message)
+    Bridge:SetStatus("Draw /224 op=2 kind=" .. tostring(kind) .. " type=" .. tostring(drawType) .. " requested.")
+end
+
+local function readReward(message)
+    local reward = {
+        type = message:ReadWord(),
+        id = message:ReadUInt(),
+        amount = message:ReadUInt(),
+        transformId = 0,
+        transformAmount = 0,
+    }
+    if reward.type == 60002 then
+        reward.transformId = message:ReadUShort()
+        reward.transformAmount = message:ReadUInt()
+    end
+    local item = itemsById[reward.type] or {}
+    reward.name = item.name or ""
+    reward.pic = item.pic or 0
+    reward.quality = item.quality or 0
+    return reward
+end
+
+local function readInfo(message)
+    local count = message:ReadByte()
+    Bridge:BeginDrawPoolUpdate(count)
+    for _ = 1, count do
+        Bridge:AddDrawPool(message:ReadByte(), message:ReadUInt(), message:ReadUInt(), message:ReadByte())
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("Draw /224 op=1 unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndDrawPoolUpdate(M.validation)
+end
+
+local function readResult(message)
+    local kind = message:ReadByte()
+    local drawType = message:ReadByte()
+    local success = message:ReadByte()
+    if success == 0 then
+        local detail = message.Remaining > 0 and message:ReadString() or "unknown"
+        Bridge:SetDrawError("Draw /224 op=2 failed: " .. detail)
+        if M.validation then Bridge:Fail("Draw validation failed: " .. detail) end
+        return
+    end
+    local total = message:ReadUInt()
+    local freeTimes, cooldown = 0, 0
+    if drawType == 1 then freeTimes = message:ReadByte(); cooldown = message:ReadUInt() end
+    local bonusCount = message:ReadByte()
+    Bridge:BeginDrawResult(kind, drawType, total, freeTimes, cooldown, bonusCount)
+    for _ = 1, bonusCount do
+        local reward = readReward(message)
+        Bridge:AddDrawGuaranteedReward(reward.type, reward.id, reward.amount, reward.transformId, reward.transformAmount, reward.name, reward.pic, reward.quality)
+    end
+    local resultCount = drawType == 1 and 1 or message:ReadByte()
+    for _ = 1, resultCount do
+        local reward = readReward(message)
+        Bridge:AddDrawResultReward(reward.type, reward.id, reward.amount, reward.transformId, reward.transformAmount, reward.name, reward.pic, reward.quality)
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("Draw /224 op=2 unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:EndDrawResult(M.validation)
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.PET_RANDOM_DRAW then return false end
+    local op = message:ReadByte()
+    if op == 1 then readInfo(message); return true end
+    if op == 2 then readResult(message); return true end
+    if op == 3 then
+        if message.Remaining >= 4 then message:ReadInt() end
+        return true
+    end
+    Bridge:SetDrawError("Draw /224 unknown op=" .. tostring(op))
+    return true
+end
+
+return M

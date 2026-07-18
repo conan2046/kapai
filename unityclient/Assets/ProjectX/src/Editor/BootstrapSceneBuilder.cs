@@ -49,6 +49,30 @@ namespace ProjectX.Editor
         private const string WelfarePrefab = "Assets/ProjectX/res/csd/Prefabs/WelfareLayer.prefab";
         private const string WelfareSignPrefab = "Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab";
         private const string WelfareOnlinePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab";
+        private const string ActivityRootPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ActivityRankingLayer.prefab";
+        private const string ActivityBackgroundPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ActivityLevelLayer.prefab";
+        private const string ActivityDailyRechargePrefab = "Assets/ProjectX/res/csd/Prefabs/DailyChargeLayer.prefab";
+        private const string DrawPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/shenjiangzhaomu.prefab";
+        private const string DrawSingleResultPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/dancichouka.prefab";
+        private const string DrawTenResultPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/shilianchouka.prefab";
+        private const string GameplayFramePrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab";
+        private const string GameplayPrefab = "Assets/ProjectX/res/csd/Prefabs/common/ActivityLayer.prefab";
+        private const string GameplayDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/TaskPopupLayer.prefab";
+        private const string GameplayFloatNoticePrefab = "Assets/ProjectX/Generated/FloatNoticeLayer.prefab";
+        private const string FloatNoticeBackground = "Assets/ProjectX/res/csd/UnityMigration/Sliced/res/UI/ui_shenjiang/ui_shenjiang_tips__L13_B13_R13_T13.png";
+        private const string FloatNoticeFont = "Assets/ProjectX/res/xiaokaiSJ2.ttf";
+        private const string YouLiPrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youlisanjie.prefab";
+        private const string YouLiDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youli.prefab";
+        private const string YouLiOneKeyPrefab = "Assets/ProjectX/res/csd/Prefabs/youli/yijianyouli.prefab";
+        private const string YouLiModePrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youlifangshi.prefab";
+        private const string YouLiTimePrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youlishichang.prefab";
+        private const string FengShenStoryPrefab = "Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlLayer.prefab";
+        private const string FengShenStoryLevelPrefab = "Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlevel.prefab";
+        private const string ArenaPrefab = "Assets/ProjectX/res/csd/Prefabs/common/JingjiLayer.prefab";
+        private const string KunLunPrefab = "Assets/ProjectX/res/csd/Prefabs/kunlun/juezhankunlun.prefab";
+        private const string BloodFightPrefab = "Assets/ProjectX/res/csd/Prefabs/xuezhan/XuezhanMain.prefab";
+        private const string XunBaoPrefab = "Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab";
+        private const string SevenDayPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab";
 
         private readonly struct PrefabSpec
         {
@@ -96,6 +120,28 @@ namespace ProjectX.Editor
             new PrefabSpec(WelfarePrefab, false),
             new PrefabSpec(WelfareSignPrefab, false),
             new PrefabSpec(WelfareOnlinePrefab, false),
+            new PrefabSpec(ActivityRootPrefab, false),
+            new PrefabSpec(ActivityBackgroundPrefab, true, ActivityRootPrefab),
+            new PrefabSpec(ActivityDailyRechargePrefab, true, ActivityRootPrefab),
+            new PrefabSpec(DrawPrefab, false),
+            new PrefabSpec(DrawSingleResultPrefab, true, DrawPrefab),
+            new PrefabSpec(DrawTenResultPrefab, true, DrawPrefab),
+            new PrefabSpec(GameplayFramePrefab, false),
+            new PrefabSpec(GameplayPrefab, true, GameplayFramePrefab),
+            new PrefabSpec(GameplayDetailPrefab, true, GameplayFramePrefab),
+            new PrefabSpec(GameplayFloatNoticePrefab, true, GameplayFramePrefab),
+            new PrefabSpec(YouLiPrefab, false),
+            new PrefabSpec(YouLiDetailPrefab, false),
+            new PrefabSpec(YouLiOneKeyPrefab, false),
+            new PrefabSpec(YouLiModePrefab, false),
+            new PrefabSpec(YouLiTimePrefab, false),
+            new PrefabSpec(FengShenStoryPrefab, false),
+            new PrefabSpec(FengShenStoryLevelPrefab, false),
+            new PrefabSpec(ArenaPrefab, false),
+            new PrefabSpec(KunLunPrefab, false),
+            new PrefabSpec(BloodFightPrefab, false),
+            new PrefabSpec(XunBaoPrefab, false),
+            new PrefabSpec(SevenDayPrefab, false),
             new PrefabSpec(HeroListPrefab, false),
             new PrefabSpec(HeroDetailPrefab, true, HeroListPrefab),
             new PrefabSpec(HeroEquipmentListPrefab, false),
@@ -105,6 +151,7 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]
         public static void Build()
         {
+            EnsureFloatNoticePrefab();
             if (IsBootstrapSceneCurrent())
             {
                 EnsureBuildSettings();
@@ -118,6 +165,7 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]
         public static void ForceRebuild()
         {
+            EnsureFloatNoticePrefab();
             Rebuild();
         }
 
@@ -173,6 +221,52 @@ namespace ProjectX.Editor
             GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             instance.SetActive(active);
             return instance;
+        }
+
+        private static void EnsureFloatNoticePrefab()
+        {
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(GameplayFloatNoticePrefab) != null) return;
+
+            Sprite background = AssetDatabase.LoadAssetAtPath<Sprite>(FloatNoticeBackground);
+            Font font = AssetDatabase.LoadAssetAtPath<Font>(FloatNoticeFont);
+            if (background == null) throw new FileNotFoundException($"FloatNotice background is missing: {FloatNoticeBackground}");
+            if (font == null) throw new FileNotFoundException($"FloatNotice font is missing: {FloatNoticeFont}");
+
+            GameObject root = new GameObject("FloatNoticeLayer", typeof(RectTransform));
+            RectTransform rootRect = root.GetComponent<RectTransform>();
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = rootRect.offsetMax = Vector2.zero;
+
+            GameObject bar = new GameObject("BottomLayout", typeof(RectTransform), typeof(Image));
+            RectTransform barRect = bar.GetComponent<RectTransform>();
+            barRect.SetParent(rootRect, false);
+            barRect.anchorMin = barRect.anchorMax = new Vector2(0.5f, 0f);
+            barRect.pivot = new Vector2(0.5f, 0f);
+            barRect.anchoredPosition = Vector2.zero;
+            barRect.sizeDelta = new Vector2(1200.6f, 30f);
+            Image image = bar.GetComponent<Image>();
+            image.sprite = background;
+            image.type = Image.Type.Sliced;
+            image.raycastTarget = false;
+
+            GameObject label = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            RectTransform labelRect = label.GetComponent<RectTransform>();
+            labelRect.SetParent(barRect, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text text = label.GetComponent<Text>();
+            text.font = font;
+            text.fontSize = 20;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            text.supportRichText = true;
+            text.raycastTarget = false;
+
+            Directory.CreateDirectory(Path.GetDirectoryName(GameplayFloatNoticePrefab));
+            PrefabUtility.SaveAsPrefabAsset(root, GameplayFloatNoticePrefab);
+            UnityEngine.Object.DestroyImmediate(root);
         }
 
         private static bool IsBootstrapSceneCurrent()

@@ -28,6 +28,18 @@ namespace ProjectX.Core
             Guild = new GuildStore();
             World = new WorldStore();
             Welfare = new WelfareStore();
+            Activity = new ActivityStore();
+            Draw = new DrawStore();
+            GameplayCatalog = new GameplayCatalog();
+            Gameplay = new GameplayStore();
+            YouLiCatalog = new YouLiCatalog();
+            YouLi = new YouLiStore();
+            FengShenStory = new FengShenStoryStore();
+            Arena = new ArenaStore();
+            KunLun = new KunLunStore();
+            BloodFight = new BloodFightStore();
+            XunBao = new XunBaoStore();
+            SevenDay = new SevenDayStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -63,6 +75,18 @@ namespace ProjectX.Core
         public GuildStore Guild { get; }
         public WorldStore World { get; }
         public WelfareStore Welfare { get; }
+        public ActivityStore Activity { get; }
+        public DrawStore Draw { get; }
+        public GameplayCatalog GameplayCatalog { get; }
+        public GameplayStore Gameplay { get; }
+        public YouLiCatalog YouLiCatalog { get; }
+        public YouLiStore YouLi { get; }
+        public FengShenStoryStore FengShenStory { get; }
+        public ArenaStore Arena { get; }
+        public KunLunStore KunLun { get; }
+        public BloodFightStore BloodFight { get; }
+        public XunBaoStore XunBao { get; }
+        public SevenDayStore SevenDay { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -102,6 +126,16 @@ namespace ProjectX.Core
             Guild.Clear();
             World.Clear();
             Welfare.Clear();
+            Activity.Clear();
+            Draw.Clear();
+            Gameplay.Clear();
+            YouLi.Clear();
+            FengShenStory.Clear();
+            Arena.Clear();
+            KunLun.Clear();
+            BloodFight.Clear();
+            XunBao.Clear();
+            SevenDay.Clear();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();

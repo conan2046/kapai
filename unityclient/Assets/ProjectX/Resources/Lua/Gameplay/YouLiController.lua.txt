@@ -1,0 +1,43 @@
+local Protocol = require("Protocol")
+local M = { validation = false }
+
+local function skipRewardBatch(message)
+    local count = message:ReadByte()
+    for _ = 1, count do message:ReadWord(); message:ReadUInt(); message:ReadUInt() end
+end
+
+function M.onClick()
+    M.validation = Bridge:HasCommandLineFlag("-projectXYouLiValidation")
+    Bridge:ShowYouLi()
+    local message = Protocol.newMessage(Protocol.YOU_LI)
+    message:WriteByte(1)
+    Bridge:Send(message)
+    Bridge:SetStatus("YouLi/335 op=1 requested from current WanFa route.")
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.YOU_LI then return false end
+    local op = message:ReadByte()
+    if op == 1 then
+        local count = message:ReadByte()
+        Bridge:BeginYouLiUpdate(count)
+        for _ = 1, count do
+            local id = message:ReadByte(); local mode = message:ReadByte(); local durationType = message:ReadByte()
+            local heroId = message:ReadWord(); local lastTime = message:ReadUInt(); local endTime = message:ReadUInt(); local fragments = message:ReadWord()
+            local rewardBatches = message:ReadByte()
+            for _ = 1, rewardBatches do skipRewardBatch(message) end
+            local dialogues = message:ReadByte()
+            for _ = 1, dialogues do message:ReadWord() end
+            Bridge:AddYouLiRecord(id, mode, durationType, heroId, lastTime, endTime, fragments, rewardBatches, dialogues)
+        end
+        Bridge:EndYouLiUpdate()
+        Bridge:SetStatus("YouLi/335 op=1 recv: records=" .. tostring(count) .. ".")
+        if M.validation then M.validation = false; Bridge:CompleteYouLiValidation() end
+    elseif op == 2 or op == 3 then
+        local success = message:ReadByte()
+        if success == 0 and message.Remaining > 0 then Bridge:SetYouLiError(message:ReadString()) end
+    end
+    return true
+end
+
+return M

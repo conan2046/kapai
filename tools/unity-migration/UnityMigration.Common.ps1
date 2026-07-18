@@ -28,7 +28,7 @@ function Import-UnityMigrationManifest {
         throw "Unity migration manifest not found: $resolved"
     }
     $manifest = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolved | ConvertFrom-Json
-    if ($manifest.schemaVersion -ne 1 -or $null -eq $manifest.modules) {
+    if ([int]$manifest.schemaVersion -notin @(1, 2) -or $null -eq $manifest.modules) {
         throw "Unsupported or invalid Unity migration manifest: $resolved"
     }
     return [pscustomobject]@{ Path = $resolved; Value = $manifest }

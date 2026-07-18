@@ -21,6 +21,8 @@ if ($matches.Count -ne 1) {
     throw "Module '$Module' was not found exactly once in $($manifestEntry.Path)."
 }
 $moduleConfig = $matches[0]
+$validationDataProperty = $moduleConfig.PSObject.Properties["validationData"]
+$moduleValidationData = if ($null -ne $validationDataProperty) { $validationDataProperty.Value } else { $null }
 if (@($moduleConfig.validationFlags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
     throw "Module '$($moduleConfig.key)' has no runnable validation flag yet."
 }
@@ -43,6 +45,7 @@ $teamPeerUserId = 0
 $teamTargetRoleId = 0
 $teamPeerRoleId = 0
 $validationDataApplied = $false
+$validationDataVariables = $null
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
         if (-not $DryRun) {
@@ -73,8 +76,8 @@ $unityArguments = @(
     $userArgument
 )
 $unityArguments += @($moduleConfig.validationFlags)
-if ($null -ne $moduleConfig.validationData) {
-    $unityArguments += @($moduleConfig.validationData.unityFlags)
+if ($null -ne $moduleValidationData) {
+    $unityArguments += @($moduleValidationData.unityFlags)
 }
 $unityArguments += @("-logFile", $logPath)
 
@@ -93,9 +96,17 @@ if (-not (Test-Path -LiteralPath $unityExe -PathType Leaf)) { throw "Unity execu
 if (-not (Test-Path -LiteralPath $unityProject -PathType Container)) { throw "Unity project not found: $unityProject" }
 
 $existingUnity = @(Get-Process Unity -ErrorAction SilentlyContinue)
-if ($existingUnity.Count -gt 0) {
-    $details = ($existingUnity | ForEach-Object { "pid=$($_.Id) path=$($_.Path)" }) -join "; "
-    throw "Unity is already running; close it before module validation. $details"
+$unityProjectPatterns = @(
+    [regex]::Escape($unityProject),
+    [regex]::Escape(($unityProject -replace '\\', '/'))
+)
+$existingProjectUnity = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" | Where-Object {
+    $commandLine = [string]$_.CommandLine
+    @($unityProjectPatterns | Where-Object { $commandLine -match $_ }).Count -gt 0
+})
+if ($existingProjectUnity.Count -gt 0) {
+    $details = ($existingProjectUnity | ForEach-Object { "pid=$($_.ProcessId)" }) -join "; "
+    throw "Unity is already running for project '$unityProject'; close it before module validation. $details"
 }
 $beforeUnityIds = @($existingUnity | ForEach-Object { [int]$_.Id })
 $existingCocos = @(Get-Process ProjectX -ErrorAction SilentlyContinue)
@@ -151,15 +162,7 @@ try {
     }
 
     $serverReady = Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe"
-    if (-not $serverReady) {
-        if ($NoStartServices) { throw "kapai.exe is not listening on 8711 and -NoStartServices was specified." }
-        & pwsh -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
-        if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
-        Record-NewWorkspaceProcesses
-        if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
-    }
-
-    if ($null -ne $moduleConfig.validationData) {
+    if ($null -ne $moduleValidationData) {
         $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
         $validationDataVariables = @{
             UserId = $effectiveUserId
@@ -168,6 +171,24 @@ try {
             NowPlus3600 = $now + 3600
             Module = $moduleKey
         }
+        if ([bool]$moduleValidationData.setupBeforeServer) {
+            if ($serverReady) { throw "$moduleKey validation data requires setupBeforeServer, but kapai.exe is already listening on 8711." }
+            $validationDataApplied = $true
+            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
+                -Phase setupSql -Variables $validationDataVariables
+            Write-Host "$moduleKey setup: manifest validation data applied before kapai startup."
+        }
+    }
+
+    if (-not $serverReady) {
+        if ($NoStartServices) { throw "kapai.exe is not listening on 8711 and -NoStartServices was specified." }
+        & pwsh -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
+        if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
+        Record-NewWorkspaceProcesses
+        if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
+    }
+
+    if ($null -ne $moduleValidationData -and -not [bool]$moduleValidationData.setupBeforeServer) {
         $validationDataApplied = $true
         Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
             -Phase setupSql -Variables $validationDataVariables

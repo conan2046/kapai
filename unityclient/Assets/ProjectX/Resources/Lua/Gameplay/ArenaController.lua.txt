@@ -1,0 +1,19 @@
+local Protocol=require("Protocol")
+local M={validation=false}
+function M.onClick()
+ M.validation=Bridge:HasCommandLineFlag("-projectXArenaValidation");Bridge:ShowArena()
+ local m=Protocol.newMessage(Protocol.ARENA);m:WriteByte(0);m:WriteByte(1);Bridge:Send(m);Bridge:SetStatus("Arena/161 op=0 type=1 requested.")
+end
+function M.onPacket(command,message)
+ if command~=Protocol.ARENA then return false end
+ local op=message:ReadByte();if op~=0 then return false end
+ local kind=message:ReadByte();local success=message:ReadByte()
+ if success==0 then Bridge:SetArenaError(message:ReadString());return true end
+ if kind~=1 then Bridge:SetArenaError("Arena unexpected response type "..tostring(kind));return true end
+ local count=message:ReadByte()
+ for _=1,count do local rank=message:ReadUInt();local idType=message:ReadByte();message:ReadUInt();if idType==0 then message:ReadString();message:ReadWord();message:ReadULongInt();message:ReadByte();message:ReadByte();message:ReadByte() end end
+ local rank=message:ReadUInt();local remaining=message:ReadWord();local challenged=message:ReadWord();local bought=message:ReadByte();local score=message:ReadUInt()
+ Bridge:SetArenaState(count,rank,remaining,challenged,bought,score);Bridge:SetStatus("Arena/161 op=0 recv: rank="..tostring(rank)..", opponents="..tostring(count)..".")
+ if M.validation then M.validation=false;Bridge:CompleteArenaValidation() end;return true
+end
+return M

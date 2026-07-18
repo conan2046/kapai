@@ -11,6 +11,8 @@
 | `Test-UnityMigrationDocs.ps1` | 检查状态唯一性、文档体积、Manifest 和引用路径 |
 | `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次 Bootstrap，校验场景 SHA-256 不发生二次变化 |
 
+视觉完成口径见 `docs/unityclient/UI_1TO1_STANDARD.md`。`Run-UnityModuleValidation.ps1` 的 Unity 单端截图只证明界面可运行；没有同状态 Cocos 基准、节点映射与差异报告时，Manifest 只能标记 `logic-validated-visual-pending`。
+
 ## 常用命令
 
 ```powershell
@@ -40,3 +42,5 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 - 变更型模块默认使用 `.local/unity-migration-userids.json` 分配新角色。
 - 变更型模块没有新结果时不会自动重试，避免同一角色重复消耗；重新运行会分配新角色。
 - 每次运行删除旧结果，并校验结果文件时间、`success`、状态和截图尺寸。
+- 每个界面先记录 Cocos 脚本/操作步骤/UI 资产和基准截图，再记录 Unity 对照与差异报告；不得用“无裁切/无重叠”代替 1:1 验收。
+- 启动时缓存配置的模块可在 `validationData` 设置 `setupBeforeServer=true`；Runner 会先启动 MySQL、执行同一套 Manifest SQL，再启动 `kapai.exe`，cleanup 仍在 finally 统一执行。

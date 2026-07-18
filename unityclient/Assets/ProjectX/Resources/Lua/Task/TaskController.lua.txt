@@ -137,16 +137,8 @@ local function readLegacyUpdate(message)
     else Bridge:Fail("Task/39 unknown op=" .. tostring(op) .. ".") end
 end
 
-local function readHotPoint(message)
-    local op = message:ReadByte()
-    local kind = message:ReadWord()
-    local state = message:ReadByte()
-    if op == 1 or op == 2 then Bridge:UpdateTaskHotPoint(kind, state) end
-end
-
 function M.onPacket(command, message)
     if command == Protocol.TASK_UPDATE then readLegacyUpdate(message); return true end
-    if command == Protocol.FUNC_HOT_POINT then readHotPoint(message); return true end
     if command ~= Protocol.TASK_LIST then return false end
     local op = message:ReadByte()
     if op == 1 then readList(message)

@@ -1,0 +1,26 @@
+local Protocol = require("Protocol")
+local M = { validation = false }
+
+function M.onClick()
+    M.validation = Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation")
+    Bridge:ShowFengShenStory()
+    local message = Protocol.newMessage(Protocol.WORLD_STAGE)
+    message:WriteByte(24)
+    Bridge:Send(message)
+    Bridge:SetStatus("FengShenStory/320 op=24 requested from current WanFa route.")
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.WORLD_STAGE then return false end
+    local op = message:ReadByte()
+    if op ~= 24 then return false end
+    local chapterId = message:ReadUInt()
+    local levelId = message:ReadUInt()
+    local count = message:ReadByte()
+    Bridge:SetFengShenStoryState(chapterId, levelId, count)
+    Bridge:SetStatus("FengShenStory/320 op=24 recv: chapter=" .. tostring(chapterId) .. ", level=" .. tostring(levelId) .. ", count=" .. tostring(count) .. ".")
+    if M.validation then M.validation = false; Bridge:CompleteFengShenStoryValidation() end
+    return true
+end
+
+return M

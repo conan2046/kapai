@@ -1,5 +1,11 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "visualFidelityPolicy": {
+    "standard": "docs/unityclient/UI_1TO1_STANDARD.md",
+    "legacyPhase1MeansLogicOnly": true,
+    "completeStatus": "visual-1to1-complete",
+    "requiredResolution": [1334, 750]
+  },
   "unityExecutable": "D:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
   "unityProject": "unityclient",
   "executeMethod": "ProjectX.Editor.BootstrapAppRunner.RunBatch",
@@ -416,6 +422,295 @@
         "build/ui-migration/bootstrap-welfare.png"
       ],
       "document": "docs/unityclient/modules/WELFARE.md"
+    },
+    {
+      "key": "Activity",
+      "displayName": "活动",
+      "status": "phase1-complete",
+      "protocols": [222],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup5/btn_huodong"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/ActivityRankingLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/ActivityLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/DailyChargeLayer.prefab"
+      ],
+      "configs": [
+        "server/src/huo_dong.h"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXActivityValidation"
+      ],
+      "validationData": {
+        "provider": "localMysql",
+        "setupBeforeServer": true,
+        "setupSql": [
+          "CREATE TABLE unity_validation_activity_info_{{UserId}} LIKE huodong_info",
+          "CREATE TABLE unity_validation_activity_award_{{UserId}} LIKE huodong_award",
+          "INSERT INTO unity_validation_activity_info_{{UserId}} SELECT * FROM huodong_info WHERE CAST(type AS UNSIGNED) IN (1,2)",
+          "INSERT INTO unity_validation_activity_award_{{UserId}} SELECT * FROM huodong_award WHERE CAST(type AS UNSIGNED)=1",
+          "DELETE FROM huodong_info WHERE CAST(type AS UNSIGNED) IN (1,2)",
+          "INSERT INTO huodong_info(name,type,showIdx,isShow,startTime,endTime,pic,day,startHour,endHour) VALUES('每日首充验证{{UserId}}',1,1,1,FROM_UNIXTIME({{NowMinus60}}),FROM_UNIXTIME({{NowPlus3600}}),0,0,0,0),('节日礼包边界{{UserId}}',2,2,1,FROM_UNIXTIME({{NowMinus60}}),FROM_UNIXTIME({{NowPlus3600}}),0,0,0,0)",
+          "DELETE FROM huodong_award WHERE CAST(type AS UNSIGNED)=1",
+          "INSERT INTO huodong_award(type,idx,idx2,idx3,YB,award1,num1,petQt1,petQtLv1,award2,num2,petQt2,petQtLv2,award3,num3,petQt3,petQtLv3,award4,num4,petQt4,petQtLv4,award5,num5,petQt5,petQtLv5,award6,num6,petQt6,petQtLv6) VALUES(1,DAYOFMONTH(NOW()),0,0,0,60003,100,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)"
+        ],
+        "cleanupSql": [
+          "DELETE FROM huodong_award WHERE CAST(type AS UNSIGNED)=1",
+          "INSERT INTO huodong_award SELECT * FROM unity_validation_activity_award_{{UserId}}",
+          "DROP TABLE unity_validation_activity_award_{{UserId}}",
+          "DELETE FROM huodong_info WHERE CAST(type AS UNSIGNED) IN (1,2)",
+          "INSERT INTO huodong_info SELECT * FROM unity_validation_activity_info_{{UserId}}",
+          "DROP TABLE unity_validation_activity_info_{{UserId}}"
+        ],
+        "unityFlags": []
+      },
+      "screenshots": [
+        "build/ui-migration/bootstrap-activity-detail.png",
+        "build/ui-migration/bootstrap-activity-empty.png",
+        "build/ui-migration/bootstrap-activity.png"
+      ],
+      "document": "docs/unityclient/modules/ACTIVITY.md"
+    },
+    {
+      "key": "Draw",
+      "displayName": "神将招募",
+      "status": "phase1-complete",
+      "protocols": [224],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup3/btn_zhaomu"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/shenjiangzhaomu.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/dancichouka.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/shilianchouka.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/jiangliyulan.prefab"
+      ],
+      "configs": [
+        "server/config/json/draw_basic.json",
+        "server/config/json/draw_config.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXDrawValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-draw.png"
+      ],
+      "document": "docs/unityclient/modules/DRAW.md"
+    },
+    {
+      "key": "Gameplay",
+      "displayName": "玩法大厅",
+      "status": "visual-fixing",
+      "protocols": [65],
+      "entries": [
+        "Layer/Main_UI/btn_wanfa"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/ActivityLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/TaskPopupLayer.prefab",
+        "unityclient/Assets/ProjectX/Generated/FloatNoticeLayer.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "unityclient/Assets/ProjectX/Resources/Configs/gameplay.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXGameplayValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-gameplay-list.png",
+        "build/ui-migration/bootstrap-gameplay.png"
+      ],
+      "visualFidelity": {
+        "status": "visual-fixing",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Gameplay/cocos/list.png",
+          ".local/ui-fidelity/Gameplay/cocos/detail-valid.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Gameplay/unity/list.png",
+          ".local/ui-fidelity/Gameplay/unity/detail.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Gameplay/diff/list-full.json",
+          ".local/ui-fidelity/Gameplay/diff/list-module.json",
+          ".local/ui-fidelity/Gameplay/diff/detail-full.json",
+          ".local/ui-fidelity/Gameplay/diff/detail-module.json"
+        ],
+        "flowEvidence": ".local/ui-fidelity/Gameplay/flow.md",
+        "uiMapping": ".local/ui-fidelity/Gameplay/ui-map.json"
+      },
+      "document": "docs/unityclient/modules/GAMEPLAY.md"
+    },
+    {
+      "key": "YouLi",
+      "displayName": "游历三界",
+      "status": "logic-validated-visual-pending",
+      "protocols": [335],
+      "entries": [
+        "Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=1"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/youli/youlisanjie.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/youli/youli.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/youli/yijianyouli.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/youli/youlifangshi.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/youli/youlishichang.prefab"
+      ],
+      "configs": [
+        "server/config/json/sanjie.json",
+        "server/config/json/sanjie_cost.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/sanjie.json"
+      ],
+      "mutatesServer": false,
+      "validationFlags": ["-projectXYouLiValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-youli.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-youli.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/YOULI.md"
+    },
+    {
+      "key": "FengShenStory",
+      "displayName": "封神列传",
+      "status": "logic-validated-visual-pending",
+      "protocols": [320],
+      "entries": ["Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=3"],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlevel.prefab"
+      ],
+      "configs": ["server/config/json/function.json"],
+      "mutatesServer": true,
+      "validationFlags": ["-projectXFengShenStoryValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-fengshen-story.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-fengshen-story.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/FENGSHEN_STORY.md"
+    },
+    {
+      "key": "Arena",
+      "displayName": "竞技场",
+      "status": "logic-validated-visual-pending",
+      "protocols": [161],
+      "entries": ["Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=6"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/common/JingjiLayer.prefab"],
+      "configs": ["server/config/json/function.json"],
+      "mutatesServer": true,
+      "validationFlags": ["-projectXArenaValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-arena.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-arena.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/ARENA.md"
+    },
+    {
+      "key": "KunLun",
+      "displayName": "决战昆仑",
+      "status": "logic-validated-visual-pending",
+      "protocols": [213],
+      "entries": ["Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=7"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/kunlun/juezhankunlun.prefab"],
+      "configs": [
+        "server/config/json/function.json",
+        "server/config/json/kunlun.json"
+      ],
+      "mutatesServer": false,
+      "validationFlags": ["-projectXKunLunValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-kunlun.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-kunlun.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/KUNLUN.md"
+    },
+    {
+      "key": "BloodFight",
+      "displayName": "血战到底",
+      "status": "logic-validated-visual-pending",
+      "protocols": [323],
+      "entries": ["Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=8"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/xuezhan/XuezhanMain.prefab"],
+      "configs": ["server/config/json/function.json", "server/config/json/config.json"],
+      "mutatesServer": false,
+      "validationFlags": ["-projectXBloodFightValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-blood-fight.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-blood-fight.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/BLOOD_FIGHT.md"
+    },
+    {
+      "key": "XunBao",
+      "displayName": "法宝搜索",
+      "status": "logic-validated-visual-pending",
+      "protocols": [319],
+      "entries": ["Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=9"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab"],
+      "configs": ["server/config/json/function.json", "server/config/json/config.json"],
+      "mutatesServer": false,
+      "validationFlags": ["-projectXXunBaoValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-xunbao.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-xunbao.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/XUNBAO.md"
+    },
+    {
+      "key": "SevenDay",
+      "displayName": "七日目标",
+      "status": "logic-validated-visual-pending",
+      "protocols": [37],
+      "entries": ["Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=11"],
+      "prefabs": ["unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab"],
+      "configs": ["server/config/json/function.json", "server/config/json/sevendays.json"],
+      "mutatesServer": false,
+      "validationFlags": ["-projectXSevenDayValidation"],
+      "screenshots": ["build/ui-migration/bootstrap-seven-day.png"],
+      "visualFidelity": {
+        "status": "pending-cocos-baseline",
+        "cocosScreenshots": [],
+        "unityScreenshots": ["build/ui-migration/bootstrap-seven-day.png"],
+        "diffReports": [],
+        "flowEvidence": "",
+        "uiMapping": ""
+      },
+      "document": "docs/unityclient/modules/SEVEN_DAY.md"
     }
   ]
 }

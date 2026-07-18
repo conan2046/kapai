@@ -15,8 +15,17 @@ $logDirectory = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.
 
 if (-not (Test-Path -LiteralPath $unityExe -PathType Leaf)) { throw "Unity executable not found: $unityExe" }
 if (-not (Test-Path -LiteralPath $scenePath -PathType Leaf)) { throw "Bootstrap scene not found: $scenePath" }
-if (@(Get-Process Unity -ErrorAction SilentlyContinue).Count -gt 0) {
-    throw "Unity is already running; close it before the Bootstrap idempotence test."
+$unityProjectPatterns = @(
+    [regex]::Escape($unityProject),
+    [regex]::Escape(($unityProject -replace '\\', '/'))
+)
+$existingProjectUnity = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" | Where-Object {
+    $commandLine = [string]$_.CommandLine
+    @($unityProjectPatterns | Where-Object { $commandLine -match $_ }).Count -gt 0
+})
+if ($existingProjectUnity.Count -gt 0) {
+    $details = ($existingProjectUnity | ForEach-Object { "PID=$($_.ProcessId) $($_.CommandLine)" }) -join '; '
+    throw "Unity is already running for project '$unityProject'; close it before the Bootstrap idempotence test. $details"
 }
 [System.IO.Directory]::CreateDirectory($logDirectory) | Out-Null
 

@@ -9,6 +9,8 @@
 #include "user_shop_manage.h"
 #include <math.h>
 
+extern const char *gConfigFile;
+
 CBloodFightCfgManager::CBloodFightCfgManager()
 {
 }
@@ -659,7 +661,19 @@ void CUserBloodFight::GetBloodMsg(CUser* pUser, CNetMessage& msg)
 {
 	BloodCntCfg* ccfg = sCBloodFightCfgManager.GetCntCfg(m_curChapter);
 	if (ccfg == NULL)
+	{
+		// The production configuration initializes BloodCntCfg before users load.
+		// The minimal local server can omit that optional chain; return a complete
+		// authoritative empty state rather than echoing only op=1.
+		if (gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+		{
+			msg << (uint8)0 << (uint8)0 << (uint8)BS_Ready << (uint8)1 << (uint8)1;
+			for (int i = 0; i < 11; ++i)
+				msg << (uint16)0;
+			msg << (uint32)0xffffffff << (uint8)0 << (uint8)0 << (uint8)0 << (uint16)0 << 0;
+		}
 		return;
+	}
 
 	if (m_tryTimes == ccfg->tryTimes && m_rankState == 0)
 	{

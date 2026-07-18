@@ -43,6 +43,7 @@ $handoffPath = Test-RequiredFile "UNITYCLIENT_HANDOFF.md"
 $planPath = Test-RequiredFile "UNITYCLIENT_MIGRATION_PLAN.md"
 Test-RequiredFile "docs/unityclient/modules/README.md" | Out-Null
 Test-RequiredFile "docs/unityclient/history/README.md" | Out-Null
+Test-RequiredFile "docs/unityclient/UI_1TO1_STANDARD.md" | Out-Null
 
 $lineRules = @(
     [pscustomobject]@{ Name = "STATUS"; Path = $statusPath; Limit = $StatusMaxLines },
@@ -117,8 +118,54 @@ foreach ($module in $manifest.modules) {
             Add-Warning "Module $key protocol /$protocol was not found as an explicit constant assignment in protocol.h."
         }
     }
+    $moduleStatus = [string]$module.status
+    $visualProperty = $module.PSObject.Properties["visualFidelity"]
+    $visual = if ($null -ne $visualProperty) { $visualProperty.Value } else { $null }
+    $visualCompleteStatus = if ($manifest.visualFidelityPolicy.completeStatus) {
+        [string]$manifest.visualFidelityPolicy.completeStatus
+    }
+    else { "visual-1to1-complete" }
+    if (($moduleStatus -match 'visual-(pending|fixing)') -and $null -eq $visual) {
+        Add-Failure "Module $key declares visual work but has no visualFidelity record."
+    }
+    if ($null -ne $visual) {
+        $allowedVisualStates = @("pending-cocos-baseline", "visual-fixing", "passed")
+        if ([string]$visual.status -notin $allowedVisualStates) {
+            Add-Failure "Module $key has invalid visualFidelity status: $($visual.status)"
+        }
+    }
+    if ($moduleStatus -eq $visualCompleteStatus) {
+        if ($null -eq $visual -or [string]$visual.status -ne "passed") {
+            Add-Failure "Module $key claims $visualCompleteStatus without passed visualFidelity evidence."
+        }
+        else {
+            foreach ($field in @("cocosScreenshots", "unityScreenshots", "diffReports")) {
+                if (@($visual.$field).Count -eq 0) {
+                    Add-Failure "Module $key visualFidelity has no $field."
+                }
+                foreach ($path in @($visual.$field)) {
+                    if (-not $path) { continue }
+                    $resolved = Resolve-UnityMigrationPath -Root $root -Path ([string]$path)
+                    if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+                        Add-Failure "Module $key visualFidelity references missing $field file: $path"
+                    }
+                }
+            }
+            foreach ($field in @("flowEvidence", "uiMapping")) {
+                $path = [string]$visual.$field
+                if (-not $path) {
+                    Add-Failure "Module $key visualFidelity has no $field."
+                    continue
+                }
+                $resolved = Resolve-UnityMigrationPath -Root $root -Path $path
+                if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+                    Add-Failure "Module $key visualFidelity references missing $field file: $path"
+                }
+            }
+        }
+    }
     $validationDataProperty = $module.PSObject.Properties["validationData"]
-    if ($null -ne $validationDataProperty) {
+    if ($null -ne $validationDataProperty -and $null -ne $validationDataProperty.Value) {
         $validationData = $validationDataProperty.Value
         $providerName = [string]$validationData.provider
         $providerProperty = $manifest.validationDataProviders.PSObject.Properties[$providerName]

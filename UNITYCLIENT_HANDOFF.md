@@ -1,13 +1,12 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-18 11:20
+> 最后更新：2026-07-18
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
-> 历史全文：`docs/unityclient/history/`
+> 视觉门禁：`docs/unityclient/UI_1TO1_STANDARD.md`；历史全文：`docs/unityclient/history/`
 
 ## 1. 新任务读取顺序
-
 1. `AGENTS.md`。
 2. `UNITYCLIENT_STATUS.md`。
 3. 本文件。
@@ -15,7 +14,6 @@
 5. 只读取 `UNITYCLIENT_MIGRATION_PLAN.md` 的对应阶段，不默认全文读取历史。
 
 ## 2. 工程定位
-
 | 项 | 路径 |
 |---|---|
 | 仓库 | 当前工作区根目录 |
@@ -26,18 +24,13 @@
 | 本地游戏服 | `127.0.0.1:8711` |
 | workspace MySQL | `127.0.0.1:3306` |
 
-这是 Cocos2d-x 2.17 + Lua 前端、C++ 后端的联网卡牌游戏。Unity 客户端以 uGUI + C# 通用层 + xLua 业务控制器重建，不逐字翻译旧 Cocos API。
-
 ## 3. 当前任务
-
-先前活动任务误取了仓库旧版“玩法”链路（`/209 + ActivityLayer`），结论已作废，不提交、不计完成率。仓库同时包含多代代码/UI，后续以当前可运行 Cocos 的实际代码调用链作为唯一版本依据。
-
 登录第一阶段已完成代码取证、Unity 修正与专用门禁：`LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`，真实启动资源与六组预载名称、登录/选服/创角/主界面 Prefab、本地按钮 `Btn_Play`、协议 `/1001→/1003→/1004→/88`、登录背景和男女角色 Imod、`NoticeLayer` 标题/正文均已动态验收。最终账号 `7300109`、角色 `1000046`；证据见 `docs/unityclient/modules/LOGIN.md`。
-
-下一阶段按当前运行代码重新追活动入口、协议与真实 CSB；旧 `/209 + ActivityLayer` 结论禁止复用。截图只用于最终像素验收，不用于推断入口、协议或版本。
+活动第一阶段已按当前运行代码完成：`ButtonGroup5/btn_huodong → WelfareActivityFormerUI → /222 op=0xFF → tag=1 DailyRechargeUI → /222 op=18/1`。真实 Prefab 为 `huodong/ActivityRankingLayer、huodong/ActivityLevelLayer、DailyChargeLayer`；最终账号 `7200020`、角色 `1000034`。旧 `/209 + ActivityLayer` 继续判废。后续按 `ACTIVITY.md` 将累计充值/消费、节日、排行、砸蛋等拆成独立子阶段。
+神将招募第一阶段已按当前运行代码完成：`ButtonGroup3/btn_zhaomu → EMID_KAPAI_CHOUKA → HappyDrawUI → /224 op=1/2`，三池状态与一次真实免费基础单抽通过；最终账号 `7200024`、角色 `1000038`。旧 `EMID_CHOUKA/LuckyDrawUI` 与并存未调用配置链不计当前版本，证据见 `docs/unityclient/modules/DRAW.md`。
+用户最新优先级是“尽快跑起来”：整体布局和位置基本一致即可，UI 字体、动态模型、动画与装饰细节由用户后续手调，不再阻塞模块推进。大厅、游历、封神列传、竞技场、决战昆仑、血战、法宝搜索、七日目标均已用真实主布局通过门禁；好友赠送、好友深化、组队深化统一后置，下一未完成模块为将魂商店。
 
 ## 4. 已稳定的分层
-
 ```text
 入口/Prefab
   → Presenter（节点绑定、渲染、交互转发）
@@ -78,6 +71,11 @@
 | 世界/副本 | `Data/WorldStore.cs`、`UI/WorldPresenter.cs`、`Resources/Lua/World/WorldController.lua.txt` |
 | 福利 | `Data/WelfareStore.cs`、`UI/WelfarePresenter.cs`、`Resources/Lua/Welfare/WelfareController.lua.txt` |
 | 登录 | `UI/LoginPresenter.cs`、`Resources/Lua/Login/LoginController.lua.txt`、`LoginProtocol.lua.txt` |
+| 活动 | `Data/ActivityStore.cs`、`UI/ActivityPresenter.cs`、`Resources/Lua/Activity/ActivityController.lua.txt`、`TempActivityController.lua.txt` |
+| 神将招募 | `Data/DrawStore.cs`、`UI/DrawPresenter.cs`、`Resources/Lua/Draw/DrawController.lua.txt` |
+| 玩法大厅 | `Data/GameplayStore.cs`、`UI/GameplayPresenter.cs`、`Resources/Lua/Gameplay/GameplayController.lua.txt`、`Shared/HotPointController.lua.txt` |
+| 决战昆仑 | `Data/KunLunStore.cs`、`UI/KunLunPresenter.cs`、`Resources/Lua/Gameplay/KunLunController.lua.txt` |
+| 血战到底 | `Data/BloodFightStore.cs`、`UI/BloodFightPresenter.cs`、`Resources/Lua/Gameplay/BloodFightController.lua.txt` |
 
 ## 6. 迁移提速工具
 
@@ -87,26 +85,24 @@
 | `New-UnityMigrationModule.ps1` | 生成 Store/Catalog/Presenter/Lua/模块文档骨架 |
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity、smoke 证据 |
 | `Run-UnityModuleValidation.ps1` | 自动分配隔离角色、启服、串行 Unity、结果/截图检查和清理 |
-| `Test-UnityMigrationDocs.ps1` | 状态唯一性、文档体积、Manifest 和路径门禁 |
+| `Test-UnityMigrationDocs.ps1` | 状态唯一性、Manifest、路径及视觉 1:1 完成证据门禁 |
 | `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次并校验 Bootstrap 场景 SHA-256 稳定 |
 | `tools/ui_migration/convert_ui.py` | 按完整相对路径生成 UI IR、CSB 兜底和 `runtime-ui-usage.json` |
 | `tools/ui_migration/convert_animations.py` | 全量解析 Imod `.ani`，按 `welfare/all` scope 准备 Unity 资源 |
 | `prepare_unity_project.py --scope timeline` | 解析 29 处有效 Timeline 调用，只准备 27 个唯一目标 Prefab |
 
-完整用法见 `tools/unity-migration/README.md`。
-
 ## 7. 单模块标准流程
 
-1. 先运行 `Get-ProtocolEvidence.ps1 -Protocol <id> -Module <name>` 生成取证草稿。
-2. 查 `server/src/protocol.h` 协议号。
-3. 查 `server/src/pack_deal.cpp` 注册和处理函数。
-4. 查旧客户端 Lua 的请求、解析、入口和真实 Prefab。
-5. 用 smoke/隔离角色确认真实字段，禁止凭注释猜包。
-6. 用脚手架或现有结构建立 `Store/Catalog/Presenter/Lua Controller`。
-7. 在 `GameServices/ProjectXApp/ProtocolRegistry/BootstrapSceneBuilder` 接线。
-8. 先做只读列表，再增量，再消耗/变更。
-9. 使用 `Run-UnityModuleValidation.ps1 -Module <name>` 收口。
-10. 更新 STATUS、模块文档、协议覆盖，运行文档门禁并关闭本阶段进程。
+1. 打印当前 Cocos 入口、Lua Controller/View、按钮回调和完整 CSB/CSD 路径。
+2. 核对写包/读包、`protocol.h`、`pack_deal.cpp` 与成功/失败/空态/不回包。
+3. 固定同账号、数据、`1334×750` 和逐步操作流程，捕获 Cocos 各状态基准图。
+4. 记录贴图/字体/Timeline/Imod/动态节点及 Cocos 节点 ↔ Unity Transform 映射。
+5. 静态实现 `Store/Catalog/Presenter/Lua Controller`，原 Prefab 优先只读。
+6. 先做只读列表，再增量，再消耗/变更；用隔离角色确认真实字段和状态。
+7. Unity 按同数据、步骤和稳定帧截图，生成叠加/差异图并逐项修正。
+8. 使用 `Run-UnityModuleValidation.ps1 -Module <name>` 收口功能与协议。
+9. 通过 Bootstrap 两次幂等、Python UI、文档门禁和严重异常扫描。
+10. 证据齐全才标记 `visual-1to1-complete`；更新 STATUS/模块文档并关闭本阶段进程。
 
 ## 8. Unity 验收规则
 
@@ -117,7 +113,7 @@
 - Runner 启动前删除旧结果；完成后校验 `success`、UTC、角色和最终状态。
 - 严重异常扫描：`error CS`、`LuaException`、`NullReferenceException`、`MissingReferenceException`、assert、真实 crash。
 - `CrashHandler` 等 Unity 性能标签不是实际 crash，不能误报。
-- batchMode 日志不能替代 GameView；图形环境可用时必须截图。
+- Unity 单端 GameView 截图不能替代 Cocos 对照；必须同状态双端截图、节点映射、叠加/差异报告齐全。
 - 阶段结束关闭 Unity、Unity Hub、Cocos、`kapai.exe`、workspace-local MySQL，并检查 3306/8711。
 
 ## 9. 高频坑
@@ -131,7 +127,7 @@
 | 批处理拿到旧 COMPLETE | 删除旧结果并验证时间戳 |
 | Unity 进程重叠 | `Start-Process -Wait`，运行前检查 Unity 进程 |
 | 自动脚本破坏手工 Prefab | 默认只实例化和运行时绑定，禁止覆盖重建 |
-| 日志成功但 UI 错位 | 固定分辨率截图检查文字、裁剪、层级和按钮状态 |
+| 日志成功但 UI 错位 | 只算逻辑通过；按同数据 Cocos 基准逐项修正坐标、字体、层级、状态、动画与交互 |
 | 测试数据重复消耗 | 每个变更场景使用新隔离角色，失败角色不复用为最终证据 |
 | ISO UTC 被误判为 stale | PowerShell 7 已转为 `DateTime` 时直接 `ToUniversalTime()`，不要先转字符串 |
 | Friend 旧空态溢出 | Prefab 保持只读，用运行时空态文案和添加入口覆盖 |
@@ -140,6 +136,8 @@
 | Team 推送状态漂移 | `/30` 只作通知，关联自身/当前队长时统一重拉 `/29 op=16` |
 | Team 本地功能未开放 | 本地缺配置会得到 `0xffff`；只在 `local_test=1` 回退到开放等级 32 |
 | 新 Prefab 路由找不到 | `BootstrapSceneBuilder` 新增装配后先重建场景；模块验证不会自动刷新旧场景 |
+| 决战昆仑本地 `/213 op=25` 超时 | 正式服依赖独立匹配服；本地 `long/queue/match` 关闭时仅在 `local_test=1` 返回空匹配状态，禁止改线上分支或伪造 9 个对手 |
+| 血战本地 `/323 op=1` 仅回 op | 最小服未生成 `BloodCntCfg`；仅 `local_test=1` 返回完整权威空状态包，线上配置完整分支不变 |
 | Bootstrap 每次整场景变化 | `BuildBatch` 先比对 Prefab 路径、层级、顺序和 active 语义签名；一致即跳过，改生成器后运行幂等门禁 |
 | Guild 响应包格式不统一 | `/54` 多数处理直接复用请求消息并追加字段，逐 op 读取，不套统一包头 |
 | Guild 验证污染数据 | 只用新角色创建单人帮派，读取成员后退出触发解散，并重拉 `/54 op=13` 确认空态 |
@@ -158,12 +156,16 @@
 | Timeline 文本命中数与真实调用不一致 | 29 条文本含 1 条注释；28 条有效 `createTimeline` 中通用入口展开为 2 个调用，最终仍是 29 处有效调用、27 个唯一资源 |
 | 空 Timeline 被伪造成缺陷 | `shenjiangzhaomu/Online/Lilian/juezhankunlun` 等源文件本身无轨道；Prefab 保留空定义和真实证据，不注入动画 |
 | 仓库多代 UI/代码混存 | 先从当前启动入口打印 Lua/C++ 调用链、协议与完整 CSB 路径；禁止按 basename、目录名或截图判断版本 |
+| `/222` 被福利与活动共享 | `TempActivityController` 只读一次首字节，再路由 `op=4` 福利或 `op=0xFF/18` 活动；禁止两个 Controller 分别消费同一消息游标 |
+| 活动配置启动时缓存 | Manifest 使用通用 `validationData.setupBeforeServer=true`，先备份/注入再启 `kapai.exe`；finally 恢复并删除备份表 |
 | 本地登录按钮绑错 | `LoginUI(openType=1)` 使用 `Btn_Play`；`Btn_Login` 是账号密码登录按钮，不能复用 |
 | 登录动画只看静态图 | `LoginBgUI` 必须断言 `effect_chuangjue_1` 的 Imod 动作 0 正在循环，再做最终截图 |
+| 主界面注释层级过时 | 以当前 Prefab 实际绑定为准；`btn_wanfa` 是 `Layer/Main_UI/btn_wanfa`，不套旧注释中的 `ButtonGroup3` |
+| `/65` 被任务与玩法大厅共享 | `Shared/HotPointController` 独占消息游标，再分发 Task/Gameplay Store；禁止两个 Controller 重复读取 |
+| `/319` 被装备与法宝搜索共享 | `XunBaoController` 必须先识别 `op=31`；未知 op 的 Controller 读取首字节后会推进游标，禁止按顺序重复试读同一消息 |
+| `/37` 被每日任务与七日目标共享 | `SevenDayController` 必须先识别 `op=4` 并写独立 Store；不能让每日任务 Controller 先消费 op 或混入日常任务列表 |
 
 ## 10. 常用验证
-
-UI 转换测试：
 
 ```powershell
 python -m unittest discover -s tools/ui_migration/tests -v
@@ -189,7 +191,6 @@ Unity 模块验收参数示例：
 -projectXUserId=<isolated-user-id>
 -projectX<Module>Validation
 ```
-
 ## 11. 当前工作区边界
 
 - 只有用户明确要求才 stage、commit、push。

@@ -1,0 +1,14 @@
+local ActivityController = require("Activity.ActivityController")
+local WelfareController = require("Welfare.WelfareController")
+
+local M = {}
+
+function M.onPacket(message)
+    local operation = message:ReadByte()
+    if ActivityController.onTempActivity(operation, message) then return true end
+    if WelfareController.onTempActivity(operation, message) then return true end
+    Bridge:SetStatus("Unhandled /222 operation: " .. tostring(operation))
+    return true
+end
+
+return M

@@ -1,3 +1,4 @@
+local Protocol = require("Protocol")
 local LoginController = require("Login.LoginController")
 local BagController = require("Bag.BagController")
 local SettingsController = require("Settings.SettingsController")
@@ -14,6 +15,18 @@ local TeamController = require("Team.TeamController")
 local GuildController = require("Guild.GuildController")
 local WorldController = require("World.WorldController")
 local WelfareController = require("Welfare.WelfareController")
+local ActivityController = require("Activity.ActivityController")
+local TempActivityController = require("Activity.TempActivityController")
+local DrawController = require("Draw.DrawController")
+local GameplayController = require("Gameplay.GameplayController")
+local YouLiController = require("Gameplay.YouLiController")
+local FengShenStoryController = require("Gameplay.FengShenStoryController")
+local ArenaController = require("Gameplay.ArenaController")
+local KunLunController = require("Gameplay.KunLunController")
+local BloodFightController = require("Gameplay.BloodFightController")
+local XunBaoController = require("Gameplay.XunBaoController")
+local SevenDayController = require("Gameplay.SevenDayController")
+local HotPointController = require("Shared.HotPointController")
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -61,11 +74,27 @@ function OnWorldChallenge() WorldController.challengeSelected() end
 function OnWorldRefresh() WorldController.refreshAfterBattle() end
 function OnWelfareClicked() WelfareController.onClick() end
 function OnWelfareClaimSign() WelfareController.claimSign() end
+function OnActivityClicked() ActivityController.onClick() end
+function OnActivitySelected(tag) ActivityController.select(tag) end
+function OnDrawClicked() DrawController.onClick() end
+function OnDrawRequested(kind, drawType) DrawController.draw(kind, drawType) end
+function OnGameplayClicked() GameplayController.onClick() end
+function OnGameplayEntered(functionId) GameplayController.enter(functionId) end
+function OnYouLiClicked() YouLiController.onClick() end
+function OnFengShenStoryClicked() FengShenStoryController.onClick() end
+function OnArenaClicked() ArenaController.onClick() end
+function OnKunLunClicked() KunLunController.onClick() end
+function OnBloodFightClicked() BloodFightController.onClick() end
+function OnXunBaoClicked() XunBaoController.onClick() end
+function OnSevenDayClicked() SevenDayController.onClick() end
 function OnPacket(command, message)
+    if command == Protocol.TEMP_ACTIVITY then TempActivityController.onPacket(message); return end
     if LoginController.onPacket(command, message) then return end
     if PlayerController.onPacket(command, message) then return end
     if BagController.onPacket(command, message) then return end
     if HeroController.onPacket(command, message) then return end
+    if SevenDayController.onPacket(command, message) then return end
+    if XunBaoController.onPacket(command, message) then return end
     if EquipmentController.onPacket(command, message) then return end
     if ServerTimeController.onPacket(command, message) then return end
     if MailController.onPacket(command, message) then return end
@@ -74,7 +103,14 @@ function OnPacket(command, message)
     if ChatController.onPacket(command, message) then return end
     if TeamController.onPacket(command, message) then return end
     if GuildController.onPacket(command, message) then return end
+    if FengShenStoryController.onPacket(command, message) then return end
+    if ArenaController.onPacket(command, message) then return end
+    if KunLunController.onPacket(command, message) then return end
+    if BloodFightController.onPacket(command, message) then return end
     if WorldController.onPacket(command, message) then return end
     if WelfareController.onPacket(command, message) then return end
+    if DrawController.onPacket(command, message) then return end
+    if HotPointController.onPacket(command, message) then return end
+    if YouLiController.onPacket(command, message) then return end
     TaskController.onPacket(command, message)
 end

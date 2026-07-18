@@ -8,6 +8,8 @@
 #include "arena.h"
 #include "role_simple_mgr.h"
 
+extern const char *gConfigFile;
+
 int CXunBaoManage::XUNBAO_FIGHT_CNT = 0; // 寻宝战斗次数
 vector<int> CXunBaoManage::BuyCost = vector<int>();
 
@@ -1045,6 +1047,16 @@ void CXunBaoManage::GetKunLunMsg(CNetMessage& msg)
 {
 	if (m_klFight.empty())
 	{
+		// The production path asks the standalone match server to provide nine
+		// opponents. local_test intentionally has no match server, so return the
+		// authoritative empty state instead of leaving the client waiting forever.
+		if (gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+		{
+			uint8 lessCnt = BuyCost.size() - m_buyCnt;
+			msg << m_floor << m_fightCnt << lessCnt << m_curPos << (uint8)0;
+			SingletonSocket::instance().SendMsg(m_pUser->GetSock(), msg);
+			return;
+		}
 		KunlunCfg* cfg = sCChuangGuanMapManager.GetKunLunCfg(m_floor);
 		if (cfg == NULL)
 			return;

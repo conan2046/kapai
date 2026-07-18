@@ -1,0 +1,111 @@
+local Protocol = require("Protocol")
+local itemCatalog = require("Data.ItemCatalog")
+local itemsById = {}
+for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
+
+local M = { validation = false }
+
+local function requestList()
+    local message = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+    message:WriteByte(0xff)
+    Bridge:Send(message)
+end
+
+local function requestDailyRecharge()
+    local message = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+    message:WriteByte(18)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+function M.onClick()
+    M.validation = Bridge:HasCommandLineFlag("-projectXActivityValidation")
+    Bridge:ShowActivity()
+    requestList()
+    Bridge:SetStatus("Activity /222 op=0xFF list requested.")
+end
+
+function M.select(tag)
+    Bridge:SelectActivity(tag)
+    if tag == 1 then
+        requestDailyRecharge()
+        Bridge:SetStatus("Activity /222 op=18 subOp=1 daily recharge requested.")
+    else
+        Bridge:SetActivityError("活动子页 #" .. tostring(tag) .. " 不在第一阶段迁移边界内")
+    end
+end
+
+local function readList(message)
+    local count = message:ReadByte()
+    Bridge:BeginActivityListUpdate(count)
+    local firstTag = 0
+    for index = 1, count do
+        local tag = message:ReadUInt()
+        local name = message:ReadString()
+        local hotPoint = message:ReadByte()
+        local newSign = message:ReadByte()
+        local remaining = message:ReadUInt()
+        if index == 1 then firstTag = tag end
+        Bridge:AddActivityListItem(tag, name, hotPoint ~= 0, newSign ~= 0, remaining)
+    end
+    if message.Remaining ~= 0 then
+        Bridge:Fail("Activity /222 op=0xFF unread bytes: " .. tostring(message.Remaining))
+        return
+    end
+    Bridge:EndActivityListUpdate()
+    if count == 0 then
+        if M.validation then Bridge:Fail("Activity validation fixture returned an empty list.") end
+        return
+    end
+    M.select(firstTag)
+end
+
+local function readDailyRecharge(message)
+    local subOperation = message:ReadByte()
+    local success = message:ReadByte()
+    if success == 0 then
+        local detail = message.Remaining > 0 and message:ReadString() or "unknown"
+        Bridge:SetActivityError("Activity /222 op=18 failed: " .. detail)
+        if M.validation then Bridge:Fail("Activity /222 op=18 failed: " .. detail) end
+        return
+    end
+    if subOperation ~= 1 then
+        Bridge:SetActivityError("Activity /222 op=18 unexpected subOp=" .. tostring(subOperation))
+        return
+    end
+    local weChatVisible = message:ReadByte()
+    local recharged = message:ReadByte()
+    local claimed = message:ReadByte()
+    local weChatRecharged = false
+    local weChatClaimed = false
+    if weChatVisible == 1 then
+        weChatRecharged = message:ReadByte() ~= 0
+        weChatClaimed = message:ReadByte() ~= 0
+    end
+    local count = message:ReadByte()
+    Bridge:BeginActivityDailyRechargeUpdate(weChatVisible ~= 0, recharged ~= 0, claimed ~= 0,
+        weChatRecharged, weChatClaimed, count)
+    for _ = 1, count do
+        local rewardType = message:ReadWord()
+        if rewardType == 60002 then
+            Bridge:Fail("Activity /222 op=18 pet reward decoding is outside phase 1.")
+            return
+        end
+        local amount = message:ReadUInt()
+        local found = itemsById[rewardType] or {}
+        Bridge:AddActivityReward(rewardType, amount, found.name or "", found.pic or 0, found.quality or 0)
+    end
+    if message.Remaining ~= 0 then
+        Bridge:Fail("Activity /222 op=18 unread bytes: " .. tostring(message.Remaining))
+        return
+    end
+    Bridge:EndActivityDailyRechargeUpdate(M.validation)
+end
+
+function M.onTempActivity(operation, message)
+    if operation == 0xff then readList(message); return true end
+    if operation == 18 then readDailyRecharge(message); return true end
+    return false
+end
+
+return M

@@ -1,0 +1,43 @@
+local Protocol = require("Protocol")
+local M = { validation = false, pending = 0 }
+local HOT_TYPES = { 101, 51, 103 }
+
+local function queryHotPoint(kind)
+    local message = Protocol.newMessage(Protocol.FUNC_HOT_POINT)
+    message:WriteByte(1)
+    message:WriteWord(kind)
+    M.pending = M.pending + 1
+    Bridge:Send(message)
+end
+
+function M.onClick()
+    M.validation = Bridge:HasCommandLineFlag("-projectXGameplayValidation")
+    M.pending = 0
+    Bridge:ShowGameplay()
+    for _, kind in ipairs(HOT_TYPES) do queryHotPoint(kind) end
+    Bridge:SetStatus("Gameplay current hub opened; /65 hot-point queries requested.")
+    if Bridge:HasCommandLineFlag("-projectXYouLiValidation") then Bridge:EnterGameplay(1) end
+    if Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") then Bridge:EnterGameplay(3) end
+    if Bridge:HasCommandLineFlag("-projectXArenaValidation") then Bridge:EnterGameplay(6) end
+    if Bridge:HasCommandLineFlag("-projectXKunLunValidation") then Bridge:EnterGameplay(7) end
+    if Bridge:HasCommandLineFlag("-projectXBloodFightValidation") then Bridge:EnterGameplay(8) end
+    if Bridge:HasCommandLineFlag("-projectXXunBaoValidation") then Bridge:EnterGameplay(9) end
+    if Bridge:HasCommandLineFlag("-projectXSevenDayValidation") then Bridge:EnterGameplay(11) end
+end
+
+function M.enter(functionId)
+    Bridge:EnterGameplay(functionId)
+end
+
+function M.onHotPoint(op, kind, state)
+    Bridge:UpdateTaskHotPoint(kind, state)
+    Bridge:UpdateGameplayHotPoint(kind, state)
+    Bridge:SetStatus("Gameplay /65 recv: op=" .. tostring(op) .. ", type=" .. tostring(kind) .. ", state=" .. tostring(state) .. ".")
+    if M.pending > 0 and op == 1 then M.pending = M.pending - 1 end
+    if M.validation and M.pending == 0 then
+        M.validation = false
+        Bridge:CompleteGameplayValidation()
+    end
+end
+
+return M

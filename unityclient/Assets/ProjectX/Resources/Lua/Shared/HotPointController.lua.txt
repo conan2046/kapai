@@ -1,0 +1,22 @@
+local Protocol = require("Protocol")
+local GameplayController = require("Gameplay.GameplayController")
+local M = {}
+
+function M.onPacket(command, message)
+    if command ~= Protocol.FUNC_HOT_POINT then return false end
+    local op = message:ReadByte()
+    if op ~= 1 and op ~= 2 then
+        Bridge:Fail("/65 unsupported op=" .. tostring(op))
+        return true
+    end
+    local kind = message:ReadWord()
+    local state = message:ReadByte()
+    if message.Remaining ~= 0 then
+        Bridge:Fail("/65 has " .. tostring(message.Remaining) .. " unread bytes.")
+        return true
+    end
+    GameplayController.onHotPoint(op, kind, state)
+    return true
+end
+
+return M
