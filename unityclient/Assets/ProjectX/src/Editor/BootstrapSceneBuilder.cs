@@ -15,6 +15,8 @@ namespace ProjectX.Editor
         private const string FirstPlayableScene = "Assets/ProjectX/Scenes/FirstPlayableLoop.unity";
         private const string LoginBackgroundPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/LoginBgLayer.prefab";
         private const string LoginPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab";
+        private const string LoginServerListPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab";
+        private const string RoleCreatePrefab = "Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab";
         private const string MainPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
         private const string BackupMainPrefab = "Assets/ProjectX/res/csd/Prefabs/UImainLayer_backup.prefab";
         private const string BagPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab";
@@ -73,6 +75,8 @@ namespace ProjectX.Editor
 
             Instantiate(LoginBackgroundPrefab, canvasObject.transform, true);
             Instantiate(LoginPrefab, canvasObject.transform, true);
+            Instantiate(LoginServerListPrefab, canvasObject.transform, false);
+            Instantiate(RoleCreatePrefab, canvasObject.transform, false);
             Instantiate(MainPrefab, canvasObject.transform, false);
             Instantiate(BackupMainPrefab, canvasObject.transform, false);
             Instantiate(BagPrefab, canvasObject.transform, false);

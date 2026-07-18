@@ -3,10 +3,14 @@ local LoginProtocol = require("Login.LoginProtocol")
 local LoginView = require("Login.LoginView")
 local PlayerController = require("Player.PlayerController")
 local ServerTimeController = require("Time.ServerTimeController")
-local M = { roleId = 0 }
+local M = { roleId = 0, createdRole = false }
 
-function M.begin() LoginView.show(Bridge:IsAutomation()) end
+function M.begin()
+    local autoInvoke = Bridge:IsAutomation() and not Bridge:HasCommandLineFlag("-projectXLoginValidation")
+    LoginView.show(autoInvoke)
+end
 function M.onLoginClicked() Bridge:Connect("127.0.0.1", 8711) end
+function M.onRoleCreateClicked() LoginProtocol.sendCreateRole() end
 function M.onConnected() LoginProtocol.sendLogin() end
 
 function M.onPacket(command, message)
@@ -15,7 +19,11 @@ function M.onPacket(command, message)
         message:ReadByte()
         message:ReadUInt()
         M.roleId = message:ReadUInt()
-        if M.roleId == 0 then LoginProtocol.sendCreateRole(); Bridge:SetStatus("No role found. Lua sent PRO_CREATE_ROLE/1003.")
+        M.createdRole = M.roleId == 0
+        if M.roleId == 0 then
+            local autoCreate = Bridge:IsAutomation() and not Bridge:HasCommandLineFlag("-projectXLoginValidation")
+            LoginView.showRoleCreate(autoCreate)
+            Bridge:SetStatus("No role found. RoleCreateLayer is active.")
         else LoginProtocol.sendSelectRole(M.roleId); Bridge:SetStatus("Lua sent PRO_SELECT_ROLE/1004 for role " .. tostring(M.roleId) .. ".") end
         return true
     end
@@ -61,6 +69,9 @@ function M.onPacket(command, message)
         LoginView.showMain(Bridge:IsAutomation())
         ServerTimeController.request()
         PlayerController.requestStamina()
+        if Bridge:HasCommandLineFlag("-projectXLoginValidation") then
+            Bridge:CompleteLoginValidation(M.createdRole)
+        end
         if Bridge:HasCommandLineFlag("-projectXPlayerHudValidation") then PlayerController.beginValidation() end
         return true
     end

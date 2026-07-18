@@ -17,6 +17,7 @@ namespace ProjectX.Editor
         private const string ScreenshotPendingKey = "ProjectX.BootstrapApp.ScreenshotPending";
         private const string ScreenshotStartKey = "ProjectX.BootstrapApp.ScreenshotStart";
         private const string SettingsPhaseKey = "ProjectX.BootstrapApp.SettingsPhase";
+        private const string LoginPhaseKey = "ProjectX.BootstrapApp.LoginPhase";
         private const double TimeoutSeconds = 120d;
         private const string BootstrapScene = "Assets/ProjectX/Scenes/Bootstrap.unity";
 
@@ -41,6 +42,7 @@ namespace ProjectX.Editor
             SessionState.SetInt(ReconnectPhaseKey, 0);
             SessionState.SetBool(ScreenshotPendingKey, false);
             SessionState.SetInt(SettingsPhaseKey, 0);
+            SessionState.SetInt(LoginPhaseKey, 0);
             DeletePreviousResult();
             Debug.Log("[BootstrapAppRunner] Runner armed; entering Play Mode.");
             EditorApplication.isPlaying = true;
@@ -114,9 +116,64 @@ namespace ProjectX.Editor
             bool guildValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGuildValidation") >= 0;
             bool worldValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldBattleValidation") >= 0;
             bool welfareValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWelfareValidation") >= 0;
+            bool loginValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
+
+            if (loginValidation && status == "Login UI ready.")
+            {
+                int loginPhase = SessionState.GetInt(LoginPhaseKey, 0);
+                if (loginPhase == 0)
+                {
+                    if (!app.ValidateLoginUi(out string loginDetail))
+                    {
+                        WriteResult(false, "Login UI validation failed: " + loginDetail);
+                        Finish(false);
+                        return;
+                    }
+                    string screenshot = GetLoginScreenshotPath();
+                    Directory.CreateDirectory(Path.GetDirectoryName(screenshot));
+                    if (File.Exists(screenshot)) File.Delete(screenshot);
+                    ScreenCapture.CaptureScreenshot(screenshot);
+                    SessionState.SetInt(LoginPhaseKey, 1);
+                    Debug.Log("[BootstrapAppRunner] Login code evidence validated; waiting for screenshot.");
+                    return;
+                }
+                if (loginPhase == 1 && File.Exists(GetLoginScreenshotPath())
+                    && new FileInfo(GetLoginScreenshotPath()).Length > 0)
+                {
+                    SessionState.SetInt(LoginPhaseKey, 2);
+                    app.InvokeLoginForValidation();
+                    return;
+                }
+            }
+            if (loginValidation && status == "No role found. RoleCreateLayer is active."
+                && SessionState.GetInt(LoginPhaseKey, 0) == 2)
+            {
+                if (!app.ValidateRoleCreateUi(out string roleDetail))
+                {
+                    WriteResult(false, "Role creation UI validation failed: " + roleDetail);
+                    Finish(false);
+                    return;
+                }
+                SessionState.SetInt(LoginPhaseKey, 3);
+                Debug.Log("[BootstrapAppRunner] RoleCreateLayer and Create_5/Create_4 animations validated.");
+                app.InvokeRoleCreateForValidation();
+                return;
+            }
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
             {
+                if (loginValidation)
+                {
+                    if (SessionState.GetInt(LoginPhaseKey, 0) != 3)
+                    {
+                        WriteResult(false, status + " (isolated role-creation evidence phase did not complete)");
+                        Finish(false);
+                        return;
+                    }
+                    WriteResult(true, status + " | login code/UI/animation evidence passed");
+                    Finish(true);
+                    return;
+                }
                 int phase = SessionState.GetInt(ReconnectPhaseKey, 0);
                 int settingsPhase = SessionState.GetInt(SettingsPhaseKey, 0);
                 bool checkingSettings = settingsValidation && settingsPhase == 1;
@@ -372,6 +429,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-bag.png");
+        }
+
+        private static string GetLoginScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-login.png");
         }
 
         private static string GetTaskScreenshotPath()

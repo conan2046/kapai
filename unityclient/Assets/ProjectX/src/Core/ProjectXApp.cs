@@ -18,7 +18,8 @@ namespace ProjectX.Core
     [LuaCallCSharp]
     public sealed class ProjectXApp : MonoBehaviour
     {
-        public const string LoginButtonPath = "Layer/Login/Btn_Login";
+        public const string LoginButtonPath = "Layer/Login/Btn_Play";
+        public const string LoginServerButtonPath = "Layer/Login/Btn_Sever";
         public const string BagPath = "Layer/Main_UI/ButtonGroup1/btn_Bag";
         public const string SettingsPath = "Layer/Main_UI/ButtonGroup7/btn_xitong";
         public const string TaskPath = "Layer/Main_UI/ButtonGroup5/btn_renwu";
@@ -38,6 +39,7 @@ namespace ProjectX.Core
         private LuaFunction onDisconnected;
         private LuaFunction onPacket;
         private LuaFunction onLoginClicked;
+        private LuaFunction onRoleCreateClicked;
         private LuaFunction onBagClicked;
         private LuaFunction onBagUseClicked;
         private LuaFunction onSettingsClicked;
@@ -79,6 +81,9 @@ namespace ProjectX.Core
         private LuaFunction onWelfareClaimSign;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
+        private CocosUiView loginServerListView;
+        private CocosUiView roleCreateView;
+        private LoginPresenter loginPresenter;
         private CocosUiView mainView;
         private CocosUiView bagView;
         private BagPresenter bagPresenter;
@@ -195,6 +200,8 @@ namespace ProjectX.Core
         public int BagMissingIconCount => bagPresenter?.MissingIconCount ?? 0;
         public bool IsSettingsOpen => settingsView != null && services?.UiStack.Current == settingsView;
         public bool IsLoginVisible => loginView != null && loginView.GameObject.activeSelf;
+        public int LoginPlayingAnimationCount => loginPresenter?.PlayingAnimationCount ?? 0;
+        public bool IsRoleCreateVisible => loginPresenter?.IsRoleCreateVisible ?? false;
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
         public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
         public bool IsWorldOpen => worldView != null && services?.UiStack.Current == worldView;
@@ -261,6 +268,7 @@ namespace ProjectX.Core
                 onDisconnected = services.Lua.GetFunction("OnDisconnected");
                 onPacket = services.Lua.GetFunction("OnPacket");
                 onLoginClicked = services.Lua.GetFunction("OnLoginClicked");
+                onRoleCreateClicked = services.Lua.GetFunction("OnRoleCreateClicked");
                 onBagClicked = services.Lua.GetFunction("OnBagClicked");
                 onBagUseClicked = services.Lua.GetFunction("OnBagUseClicked");
                 onSettingsClicked = services.Lua.GetFunction("OnSettingsClicked");
@@ -324,6 +332,7 @@ namespace ProjectX.Core
             onDisconnected?.Dispose();
             onPacket?.Dispose();
             onLoginClicked?.Dispose();
+            onRoleCreateClicked?.Dispose();
             onBagClicked?.Dispose();
             onBagUseClicked?.Dispose();
             onSettingsClicked?.Dispose();
@@ -380,6 +389,7 @@ namespace ProjectX.Core
             guildPresenter?.Dispose();
             worldPresenter?.Dispose();
             welfarePresenter?.Dispose();
+            loginPresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -387,6 +397,7 @@ namespace ProjectX.Core
 
         private void OnGUI()
         {
+            if (!HasCommandLineFlag("-projectXDebugOverlay")) return;
             GUI.depth = -1000;
             GUI.Box(new Rect(12f, 12f, 700f, 54f), $"ProjectX App\n{status}");
             if (!string.IsNullOrEmpty(disconnectReason)
@@ -457,6 +468,8 @@ namespace ProjectX.Core
         {
             loginView = services.UiRouter.FindBySource("Login/loginLayer");
             loginBackgroundView = services.UiRouter.FindBySource("Login/LoginBgLayer");
+            loginServerListView = services.UiRouter.FindBySource("Login/SeverListLayer");
+            roleCreateView = services.UiRouter.FindBySource("Login/RoleCreateLayer");
             mainView = services.UiRouter.FindBySource("UImainLayer", true);
             bagView = services.UiRouter.FindBySource("zhujue/beibao");
             settingsView = services.UiRouter.FindBySource("zhujue/SystemLayer");
@@ -475,6 +488,8 @@ namespace ProjectX.Core
             services.UiStack.Clear();
             loginBackgroundView?.SetVisible(true);
             loginView?.SetVisible(true);
+            loginServerListView?.SetVisible(false);
+            roleCreateView?.SetVisible(false);
             mainView?.SetVisible(false);
             bagView?.SetVisible(false);
             settingsView?.SetVisible(false);
@@ -490,6 +505,9 @@ namespace ProjectX.Core
             friendView?.SetVisible(false);
             chatView?.SetVisible(false);
             if (loginView == null) { Fail("Login/loginLayer CocosUiBinding was not found."); return; }
+            if (loginBackgroundView == null) { Fail("Login/LoginBgLayer CocosUiBinding was not found."); return; }
+            loginPresenter = loginPresenter ?? new LoginPresenter(loginBackgroundView, loginView, loginServerListView, roleCreateView);
+            loginPresenter.ShowLocalServer("本地测试服");
             EnsureErrorPresenter();
             EnsureCommonPresenters();
             services.State.Change(AppState.Login, "Login UI shown");
@@ -501,9 +519,71 @@ namespace ProjectX.Core
             try
             {
                 Button button = loginView.BindClick(LoginButtonPath, HandleLoginClick);
+                loginView.BindClick(LoginServerButtonPath, () => loginPresenter.ShowServerList(() =>
+                    loginPresenter.ShowLocalServer("本地测试服")));
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
             catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void InvokeLoginForValidation()
+        {
+            Button button = loginView?.Binding.Find(LoginButtonPath)?.GetComponent<Button>();
+            if (button == null) throw new InvalidOperationException("Local Btn_Play is not bound.");
+            button.onClick.Invoke();
+        }
+
+        public bool ValidateLoginUi(out string detail)
+        {
+            GameObject play = loginView?.Binding.Find(LoginButtonPath);
+            GameObject accountLogin = loginView?.Binding.Find("Layer/Login/Btn_Login");
+            GameObject server = loginView?.Binding.Find(LoginServerButtonPath);
+            Text serverName = loginView?.Binding.Find(LoginServerButtonPath + "/SeverName")?.GetComponent<Text>();
+            if (!IsLoginVisible) { detail = "loginLayer is hidden"; return false; }
+            if (play == null || !play.activeInHierarchy) { detail = "Btn_Play is not the active local entry"; return false; }
+            if (accountLogin != null && accountLogin.activeInHierarchy) { detail = "account Btn_Login must be hidden for local openType=1"; return false; }
+            if (server == null || !server.activeInHierarchy || serverName == null || serverName.text != "本地测试服")
+            { detail = "local server selector is not configured"; return false; }
+            if (LoginPlayingAnimationCount <= 0) { detail = "effect_chuangjue_1 is not playing"; return false; }
+            detail = "Btn_Play/local server/effect_chuangjue_1 match Cocos openType=1";
+            return true;
+        }
+
+        public void ShowRoleCreateUi()
+        {
+            loginPresenter?.ShowRoleCreate(HandleRoleCreateClick, false);
+            services.State.Change(AppState.Login, "Role creation UI shown");
+            SetStatus("Role creation UI ready.");
+        }
+
+        public void BindRoleCreateClick(bool autoInvoke)
+        {
+            try { loginPresenter?.ShowRoleCreate(HandleRoleCreateClick, autoInvoke); }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public bool ValidateRoleCreateUi(out string detail)
+        {
+            if (loginPresenter == null) { detail = "LoginPresenter is missing"; return false; }
+            return loginPresenter.ValidateRoleAnimations(out detail);
+        }
+
+        public void InvokeRoleCreateForValidation()
+        {
+            try { loginPresenter?.InvokeRoleCreate(); }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        public void CompleteLoginValidation(bool createdRole)
+        {
+            if (!HasCommandLineFlag("-projectXLoginValidation")) return;
+            if (mainView == null || services?.UiStack.Current != mainView)
+            { Fail("Login validation reached /1004 without the current UImainLayer root."); return; }
+            if (GetPlayerRoleId() == 0)
+            { Fail("Login validation reached main UI with roleId=0."); return; }
+            Complete($"COMPLETE: current Cocos login chain -> Btn_Play -> /1001 -> "
+                + (createdRole ? "RoleCreateLayer + Create_5/Create_4 -> /1003 -> " : string.Empty)
+                + $"/1004 -> current UImainLayer; user={GetLocalUserId()} role={GetPlayerRoleId()}");
         }
 
         public void ShowMainUi()
@@ -512,6 +592,7 @@ namespace ProjectX.Core
             if (mainView == null) { Fail("UImainLayer CocosUiBinding was not found."); return; }
             loginView?.SetVisible(false);
             loginBackgroundView?.SetVisible(false);
+            loginPresenter?.HideAll();
             services.UiStack.SetRoot(mainView);
             HideLoading("connect");
             HideLoading("reconnect");
@@ -2064,6 +2145,7 @@ namespace ProjectX.Core
         }
 
         private void HandleLoginClick() => InvokeLuaOrFail(onLoginClicked, "Login.OnLoginClicked");
+        private void HandleRoleCreateClick() => InvokeLuaOrFail(onRoleCreateClicked, "Login.OnRoleCreateClicked");
         private void HandleBagClick() => InvokeLuaOrFail(onBagClicked, "Bag.OnBagClicked");
         private void HandleSettingsClick()
         {

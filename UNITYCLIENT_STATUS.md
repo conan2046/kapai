@@ -1,6 +1,6 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-07-18 09:05
+> 最后更新：2026-07-18 10:45
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；长期路线见 `UNITYCLIENT_MIGRATION_PLAN.md`。
 
@@ -9,7 +9,7 @@
 | 口径 | 当前值 | 说明 |
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
-| Functional | `约33%` | 按完整可玩客户端业务规模加权 |
+| Functional | `约33%` | 活动旧版误取证不计完成口径；按完整可玩客户端业务规模加权 |
 | Validated | 暂不折算百分比 | 已完成模块记录独立自动化、真实协议、隔离角色和视觉门禁 |
 
 禁止在其他文档维护第二份完成率；阶段收口只修改本表。
@@ -19,7 +19,7 @@
 | 模块 | 状态 | 已完成边界 | 后续 |
 |---|---|---|---|
 | 运行时/网络/xLua | 第一阶段完成 | App 状态、协议分发、错误边界、重连、返回栈 | 回放、发布配置、完整错误码 |
-| 登录/主界面 | 第一阶段完成 | 启动、登录、创角、选角、切号、HUD | 正式登录服、更多主界面入口 |
+| 登录/主界面 | 重新验收中 | 当前本地登录段已通过：真实 LoginBg/login/SeverList/RoleCreate、`Btn_Play`、隔离创角 `/1001→/1003→/1004`、登录背景与男女角色 Imod、当前 UImainLayer | Logo/Windows 资源预载、`/88` 公告内容页继续逐段验收 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
 | 迁移提速工具 | 已完成 | Manifest、模块脚手架、协议取证、统一验收、文档门禁、隔离角色分配 | 随新模块持续补 Manifest |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
@@ -36,7 +36,8 @@
 | 帮派 | 第一阶段完成 | `/54` 空态、列表、状态、成员、创建、退出/单人解散 | 申请批准/自动加入、邀请、职位、捐献、任务、红点深化 |
 | 世界/战斗/副本 | 第一阶段完成 | `/320` 世界/章节/关卡/详情/阵容与奖励预览、隔离 PvE 结算和三星持久化 | 扫荡/重置/宝箱、支线、完整战斗表现 |
 | 福利 | 第一阶段完成 | `/199、/222、/223` 签到、在线奖励、阶段目标边界/空态、单次签到领取 | 在线领取、七日登录、等级礼包、阶段目标服务端恢复 |
-| 活动/抽卡 | 计划中 | 未开始 | 依赖时间、奖励、红点和商城 |
+| 活动 | 未完成（旧证据作废） | 已确认先前 `/209 + ActivityLayer` 对应仓库旧版“玩法”，不能代表当前运行游戏活动系统 | 待登录→主界面链路验收后，按当前运行代码重新追入口/协议/CSB |
+| 抽卡 | 计划中 | 未开始 | 单独立项，不并入活动 |
 | 充值/VIP/渠道 | 后置 | 未开始 | 单独处理支付、SDK和合规 |
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
@@ -46,29 +47,27 @@
 - `.ani` 专项（2026-07-18）：活动 Lua 共 67 个构造入口、208 个调用、38 个动态加载表达式；886/886 ANI 可解析。Unity 逐项通过 885 个可播放资源、1327 个动作、10264 个动作序列帧，PNG/ANI 分离、附加层、翻转、颜色、透明度、旧速度倍率均通过；固定 UI 24 路径中 18 个真实播放、6 个源包缺整组资源，另有 `Skill/skill_5_h_l.ani` 缺 PNG。视觉联系表 `.local/validation/imod-static-ui-contact-sheet.png`。
 - CSB Timeline 专项（2026-07-18）：29 处有效调用展开为 27 个唯一资源/Prefab；22 个有真实轨道、5 个源文件本身为空时间轴。累计导入 461 条轨道、2478 帧、34 个命名片段；唯一 CSB-only `FengShenLayer.csb` 已逐帧解码。Unity 实例化播放 27/27、命名片段 34/34、非空 FrameEvent 3/3，视觉抽样见 `.local/validation/timeline-*.png`。
 
-- 最新收口模块：福利系统第一阶段；新 `main` 基线 `c737be773e28cce38c6b47836ee2e5db670dd084`，已确认包含 World 提交。
-- 最终隔离账号：`userId=7200014`；过程账号 `7200009-7200013` 不作为最终证据，Team/Guild/World 账号未复用。
-- 状态闭环：`/199 op=8,type=0` 31 条签到奖励 → `type=1` 单次领取 → 重拉确认 `today=1,days=1`；`/222 activity=4` 读取 12 档在线奖励；`/223` 保留真实不可用空态。
-- Unity 结果：BatchMode 编译/运行通过；严重异常 `0`。
-- GameView：签到、在线奖励、阶段目标空态、领取后最终态四张 `1334×750`；奖励名称、数量、时间和领取状态完整可见。
-- UI/动画转换测试：`13/13`。
-- 结果：`build/ui-migration/bootstrap-app-result.json`，`success=true`。
-- 阶段结束状态：Unity、Cocos、`kapai.exe`、workspace-local MySQL 均关闭；3306/8711 无监听。
+- 当前重验模块：登录第一段；基线仍为 `main 2f6db98a83da180c739d4b225cdae6e953662152`，包含 ImodAnim 提交。
+- 代码证据：Windows 当前链路为 `main→LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`；本地入口 `Btn_Play`，协议 `/1001→/1003(仅无角色)→/1004`。
+- 真实资源：`LoginBgLayer.csb、loginLayer.csb、SeverListLayer.csb、RoleCreateLayer.csb`；登录背景 `res2/animation/effect_chuangjue_1` 动作 0 循环。
+- Unity 门禁：`ValidateLoginUi` 断言本地服、按钮显隐与登录动画；专用阶段再断言 `RoleCreateLayer` 的 `Create_5/Create_4` 动作 0 循环，最后进入当前 `UImainLayer`。登录验证不再借自动背包流程产生 `COMPLETE`。
+- 最终隔离账号：`userId=7300102`、`roleId=1000040`；`7200017` 已有旧角色、`7300101` 为失败过程账号，均不作为最终证据。
+- 结果：`build/ui-migration/bootstrap-app-result.json`，`success=true`；`bootstrap-login.png` 为 `1334×750`；UI/动画转换测试 `16/16`，严重异常 `0`。
+- 活动旧版 `/209 + ActivityLayer` 结果已判为错误版本证据，不再计入完成率，也不得提交。
 
 ## 4. 当前批次
 
 迁移提速工具已完成，入口为 `tools/unity-migration/README.md`。
 
-本批：福利第一阶段后的 Cocos UI 资源分流、`.ani` 兼容和 29 处有效 CSB Timeline 调用对应 Prefab 已完成；后续 Prefab 只按完整相对路径和模块 scope 导入。
+本批：以当前可运行 Cocos 代码为唯一版本基准，从登录开始逐功能重验；截图只做最终像素验收，不用于推断调用链。
 
 固定顺序：
 
-1. `/199、/222、/223`、服务端、旧客户端入口和 Welfare/Sign/LoginGift Prefab 已形成模块证据。
-2. WelfareStore/Presenter/Lua 复用 ServerTime、Reward、ResourceService、VirtualList、UiStack、Toast 和红点状态。
-3. 最终变更闭环为一次性账号签到，领取后重拉 `/199` 确认今日已领与累计天数持久化。
-4. 在线奖励未伪造在线时长；`/223` 当前服务端实现为空，未做旁路；活动、抽卡、充值、VIP 未混入。
-5. 后续模块继续按统一工具链单独立项。
-6. `.ani` 为支持角色/武器/技能动态路径已准备全量目录；新增或补回资源必须重跑 885 项全动作门禁，不得从另一款游戏或 Android `xcres` 副本猜补。
+1. 代码打印启动入口、Lua 控制器、真实 `createNode` CSB、按钮回调、协议号/字段、服务端处理和响应分支。
+2. Unity 按同一节点、状态机和动画参数实现；导入 Prefab 只读，运行时绑定。
+3. 登录本地服页面、隔离创角男女动画与 `/1001→/1003→/1004→UImainLayer` 已通过；下一段依次为 Logo/Windows 资源预载、`/88 NoticeLayer`。
+4. 每段先做代码/协议断言，再做 Unity 编译运行与动画过程门禁，最后才做静态截图像素比较。
+5. 登录链路完整收口后，再按当前运行代码重新立项活动；不复用旧 `ActivityLayer` 结论。
 
 暂不并行：商城第二阶段、邮件第二阶段、装备深度培养。
 
@@ -81,6 +80,7 @@
 - 手工 Prefab 默认只读，优先运行时绑定，不使用重建脚本覆盖设计结构。
 - 当前工作区存在用户自己的 xlua `.meta` 删除和 `unityclient/.vscode/`，处理 Unity 任务时继续保留。
 - 历史 Prefab 清单由 333 CSD + 23 basename 兜底生成，存在 38 组跨目录同名风险；不得按 Prefab 名称判断所属游戏。
+- 仓库同时保留多代代码/UI；模块归属必须由当前启动入口的实际调用链确认，禁止用文件名、目录名或截图反推版本。
 - Imod 固定调用有 6 条在桌面运行包缺整组 ANI/PNG，另有 1 个 ANI 缺可解码贴图；取得当前游戏原始美术前不能声称 100% 资源播放闭环。
 
 ## 6. 状态维护规则

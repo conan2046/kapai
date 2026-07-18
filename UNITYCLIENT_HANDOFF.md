@@ -1,6 +1,6 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-18 08:20
+> 最后更新：2026-07-18 10:45
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
@@ -30,9 +30,11 @@
 
 ## 3. 当前任务
 
-福利第一阶段已完成：`/199 op=8` 每日签到列表、今日/累计状态与一次领取重拉；`/222 activity=4` 在线奖励 12 档只读状态和 ServerTime 倒计时；`/223` 因服务端处理主体为空保留真实不可用空态。
+先前活动任务误取了仓库旧版“玩法”链路（`/209 + ActivityLayer`），结论已作废，不提交、不计完成率。仓库同时包含多代代码/UI，后续以当前可运行 Cocos 的实际代码调用链作为唯一版本依据。
 
-基线为 `main c737be773e28cce38c6b47836ee2e5db670dd084`，已包含 World。最终证据账号 `7200014`；过程账号 `7200009-7200013` 不复用。实现复用 Reward、VirtualList、ResourceService、ServerTime、UiStack 和 Toast；在线领取、七日登录、等级礼包、活动/抽卡、充值/VIP 继续后置。
+当前从登录重新逐段迁移。本地登录/隔离创角段已完成代码取证、Unity 修正与专用门禁：`LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`，真实资源 `LoginBgLayer/loginLayer/SeverListLayer/RoleCreateLayer/UImainLayer_new`，本地按钮 `Btn_Play`，协议 `/1001→/1003→/1004`，登录背景 `effect_chuangjue_1` 与男女 `Create_5/Create_4` 动作 0 循环。最终账号 `7300102`、角色 `1000040`；证据见 `docs/unityclient/modules/LOGIN.md`。
+
+下一段固定顺序：Logo/Windows 资源预载 → `/88 NoticeLayer`。当前主界面已作为 `/1004` 后置状态进入门禁；截图只用于最终像素验收，不用于推断入口、协议或版本。
 
 ## 4. 已稳定的分层
 
@@ -75,6 +77,7 @@
 | 帮派 | `Data/GuildStore.cs`、`UI/GuildPresenter.cs`、`Resources/Lua/Guild/GuildController.lua.txt` |
 | 世界/副本 | `Data/WorldStore.cs`、`UI/WorldPresenter.cs`、`Resources/Lua/World/WorldController.lua.txt` |
 | 福利 | `Data/WelfareStore.cs`、`UI/WelfarePresenter.cs`、`Resources/Lua/Welfare/WelfareController.lua.txt` |
+| 登录 | `UI/LoginPresenter.cs`、`Resources/Lua/Login/LoginController.lua.txt`、`LoginProtocol.lua.txt` |
 
 ## 6. 迁移提速工具
 
@@ -152,6 +155,9 @@
 | 从另一款游戏补缺失 ANI | 禁止按同名或 Android `xcres` 副本猜补；只接受当前游戏可解码原始 ANI/PNG |
 | Timeline 文本命中数与真实调用不一致 | 29 条文本含 1 条注释；28 条有效 `createTimeline` 中通用入口展开为 2 个调用，最终仍是 29 处有效调用、27 个唯一资源 |
 | 空 Timeline 被伪造成缺陷 | `shenjiangzhaomu/Online/Lilian/juezhankunlun` 等源文件本身无轨道；Prefab 保留空定义和真实证据，不注入动画 |
+| 仓库多代 UI/代码混存 | 先从当前启动入口打印 Lua/C++ 调用链、协议与完整 CSB 路径；禁止按 basename、目录名或截图判断版本 |
+| 本地登录按钮绑错 | `LoginUI(openType=1)` 使用 `Btn_Play`；`Btn_Login` 是账号密码登录按钮，不能复用 |
+| 登录动画只看静态图 | `LoginBgUI` 必须断言 `effect_chuangjue_1` 的 Imod 动作 0 正在循环，再做最终截图 |
 
 ## 10. 常用验证
 

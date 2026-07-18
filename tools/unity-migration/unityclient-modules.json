@@ -8,6 +8,37 @@
   "isolatedUserIdStart": 7200000,
   "modules": [
     {
+      "key": "Login",
+      "displayName": "登录与创角",
+      "status": "revalidation-in-progress",
+      "protocols": [
+        1001,
+        1003,
+        1004
+      ],
+      "entries": [
+        "Layer/Login/Btn_Play"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoginBgLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/core/AppDef.lua"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXLoginValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-login.png"
+      ],
+      "document": "docs/unityclient/modules/LOGIN.md"
+    },
+    {
       "key": "Bag",
       "displayName": "背包",
       "status": "phase1-complete",

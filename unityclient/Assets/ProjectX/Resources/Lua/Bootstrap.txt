@@ -21,6 +21,7 @@ function OnDisconnected(reason)
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
+function OnRoleCreateClicked() LoginController.onRoleCreateClicked() end
 function OnBagClicked() BagController.onClick() end
 function OnBagUseClicked(slot, quantity) BagController.onUse(slot, quantity) end
 function OnSettingsClicked() SettingsController.onClick() end

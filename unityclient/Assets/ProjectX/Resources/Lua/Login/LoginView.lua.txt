@@ -1,5 +1,6 @@
 local M = {}
 function M.show(autoInvoke) Bridge:ShowLoginUi(); Bridge:BindLoginClick(autoInvoke) end
+function M.showRoleCreate(autoInvoke) Bridge:BindRoleCreateClick(autoInvoke) end
 function M.showMain(autoInvokeBag)
     Bridge:ShowMainUi()
     local taskValidation = Bridge:HasCommandLineFlag("-projectXTaskValidation")
@@ -16,7 +17,8 @@ function M.showMain(autoInvokeBag)
     local guildValidation = Bridge:HasCommandLineFlag("-projectXGuildValidation")
     local worldValidation = Bridge:HasCommandLineFlag("-projectXWorldBattleValidation")
     local welfareValidation = Bridge:HasCommandLineFlag("-projectXWelfareValidation")
-    Bridge:BindBagClick(autoInvokeBag and not taskValidation and not playerValidation and not heroValidation and not mailValidation and not shopValidation and not friendValidation and not chatValidation and not teamValidation and not guildValidation and not worldValidation and not welfareValidation)
+    local loginValidation = Bridge:HasCommandLineFlag("-projectXLoginValidation")
+    Bridge:BindBagClick(autoInvokeBag and not taskValidation and not playerValidation and not heroValidation and not mailValidation and not shopValidation and not friendValidation and not chatValidation and not teamValidation and not guildValidation and not worldValidation and not welfareValidation and not loginValidation)
     Bridge:BindSettingsClick()
     Bridge:BindTaskClick(autoInvokeBag and taskValidation)
     Bridge:BindHeroClick(autoInvokeBag and heroValidation)
