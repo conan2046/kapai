@@ -1,0 +1,76 @@
+local Protocol = require("Protocol")
+local M = { active = false, validation = false, pending = 0, selected = 25 }
+local GROWTH, ACTIVE = 83, 94
+
+local function request(kind)
+    local message = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+    message:WriteByte(kind)
+    message:WriteByte(1)
+    M.pending = M.pending + 1
+    Bridge:Send(message)
+end
+
+function M.onClick(functionId)
+    M.active = true
+    M.validation = Bridge:HasCommandLineFlag("-projectXFundsValidation")
+    M.pending = 0
+    M.selected = tonumber(functionId) == 26 and 26 or 25
+    Bridge:ShowFunds(M.selected)
+    request(GROWTH)
+    request(ACTIVE)
+    Bridge:SetStatus("Funds/222 requested: growth op=83 and active op=94.")
+end
+
+local function parseRewards(message)
+    local rewardCount = message:ReadByte()
+    for _ = 1, rewardCount do Bridge:AddFundReward(message:ReadWord(), message:ReadUInt()) end
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.TEMP_ACTIVITY or not M.active then return false end
+    local kind = message:ReadByte()
+    if kind ~= GROWTH and kind ~= ACTIVE then
+        Bridge:Fail("Funds received unexpected /222 op=" .. tostring(kind) .. " while its two read-only requests were pending.")
+        M.active = false
+        return true
+    end
+    local opType = message:ReadByte()
+    if opType ~= 1 then Bridge:Fail("Funds/222 opType mismatch: " .. tostring(opType)); M.active=false; return true end
+    local success = message:ReadByte()
+    if success == 0 then
+        local detail = message.Remaining > 0 and message:ReadString() or "server rejected"
+        Bridge:Fail("Funds/222 op=" .. tostring(kind) .. " failed: " .. tostring(detail)); M.active=false; return true
+    end
+    local endTime = message:ReadUInt()
+    local boughtPlanId = message:ReadByte()
+    local planCount = message:ReadByte()
+    Bridge:BeginFundsPage(kind, endTime, boughtPlanId)
+    for _ = 1, planCount do
+        local id = message:ReadByte()
+        local bought = message:ReadByte()
+        local buyTime, progress = 0, 0
+        if kind == ACTIVE then buyTime=message:ReadUInt(); progress=message:ReadByte() end
+        local rate, price, total = message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
+        local tierCount = message:ReadByte()
+        Bridge:BeginFundPlan(id, bought, buyTime, progress, rate, price, total)
+        for _ = 1, tierCount do
+            Bridge:BeginFundTier(message:ReadByte(), message:ReadByte())
+            parseRewards(message)
+            Bridge:EndFundTier()
+        end
+        Bridge:EndFundPlan()
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("Funds/222 op="..tostring(kind).." has "..tostring(message.Remaining).." unread bytes.");M.active=false;return true end
+    Bridge:CommitFundsPage()
+    M.pending = M.pending - 1
+    Bridge:SetStatus("Funds/222 recv: op=" .. tostring(kind) .. ", plans=" .. tostring(planCount) .. ".")
+    if M.pending == 0 then
+        M.active = false
+        Bridge:ShowFunds(M.selected)
+        if M.validation then M.validation=false; Bridge:CompleteFundsValidation() end
+    end
+    return true
+end
+
+function M.reset() M.active=false;M.validation=false;M.pending=0 end
+return M

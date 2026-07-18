@@ -26,6 +26,7 @@ function M.onClick()
     if Bridge:HasCommandLineFlag("-projectXGameplayShopsValidation") then Bridge:EnterGameplay(15) end
     if Bridge:HasCommandLineFlag("-projectXStaminaClaimValidation") then Bridge:EnterGameplay(18) end
     if Bridge:HasCommandLineFlag("-projectXResourceRecoveryValidation") then Bridge:EnterGameplay(19) end
+    if Bridge:HasCommandLineFlag("-projectXFundsValidation") then Bridge:EnterGameplay(25) end
 end
 
 function M.enter(functionId)

@@ -11,9 +11,11 @@ namespace ProjectX.UI
         private readonly CurrencyStore currencies;
         private readonly GameObject staminaTab;
         private readonly GameObject recoveryTab;
+        private readonly GameObject growthTab;
+        private readonly GameObject activeTab;
 
         public WelfareActivityFramePresenter(CocosUiView view, CurrencyStore currencies, Action close,
-            Action stamina, Action recovery)
+            Action stamina, Action recovery, Action growth, Action active)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
@@ -24,12 +26,21 @@ namespace ProjectX.UI
             staminaTab = template.gameObject;
             recoveryTab = UnityEngine.Object.Instantiate(staminaTab, template.parent, false);
             recoveryTab.name = "Panel_ResourceRecovery";
+            growthTab = UnityEngine.Object.Instantiate(staminaTab, template.parent, false);
+            growthTab.name = "Panel_GrowthFund";
+            activeTab = UnityEngine.Object.Instantiate(staminaTab, template.parent, false);
+            activeTab.name = "Panel_ActiveFund";
             RectTransform source = staminaTab.GetComponent<RectTransform>();
             RectTransform clone = recoveryTab.GetComponent<RectTransform>();
             if (source != null && clone != null)
                 clone.anchoredPosition = source.anchoredPosition + new Vector2(0f, -Mathf.Max(82f, source.rect.height));
+            float spacing = Mathf.Max(82f, source?.rect.height ?? 82f);
+            RectTransform growthRect=growthTab.GetComponent<RectTransform>(); if(source!=null&&growthRect!=null)growthRect.anchoredPosition=source.anchoredPosition+new Vector2(0f,-spacing*2f);
+            RectTransform activeRect=activeTab.GetComponent<RectTransform>(); if(source!=null&&activeRect!=null)activeRect.anchoredPosition=source.anchoredPosition+new Vector2(0f,-spacing*3f);
             ConfigureTab(staminaTab.transform, "体力领取", stamina);
             ConfigureTab(recoveryTab.transform, "资源找回", recovery);
+            ConfigureTab(growthTab.transform, "成长基金", growth);
+            ConfigureTab(activeTab.transform, "活跃基金", active);
             Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform);
             Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform);
             Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.transform);
@@ -39,9 +50,12 @@ namespace ProjectX.UI
 
         public void Select(int functionId)
         {
-            SetText(view.Binding.Find("Layer/Panel_1/Title/TitleName")?.transform, functionId == 19 ? "资源找回" : "体力领取");
+            string title=functionId==19?"资源找回":functionId==25?"成长基金":functionId==26?"活跃基金":"体力领取";
+            SetText(view.Binding.Find("Layer/Panel_1/Title/TitleName")?.transform, title);
             SetSelected(staminaTab.transform, functionId == 18);
             SetSelected(recoveryTab.transform, functionId == 19);
+            SetSelected(growthTab.transform, functionId == 25);
+            SetSelected(activeTab.transform, functionId == 26);
         }
 
         public void Dispose() => currencies.Changed -= RenderCurrencies;

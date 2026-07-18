@@ -145,7 +145,14 @@ function M.onPacket(command, message)
     elseif op == 2 then readIncrement(message)
     elseif op == 3 then readClaim(message)
     elseif op == 5 then readActivityIncrement(message)
-    else Bridge:Fail("Task/37 unsupported op=" .. tostring(op) .. ".") end
+    elseif M.requested or M.validationStage ~= nil then
+        Bridge:Fail("Task/37 unsupported response op=" .. tostring(op) .. ".")
+    else
+        -- The shipped Cocos DealMsgTaskInfo silently ignores task pushes whose
+        -- op is owned by another task/activity generation. Formation changes
+        -- can trigger these unsolicited pushes; they must not replace the
+        -- active UI with a fatal error dialog.
+    end
     return true
 end
 

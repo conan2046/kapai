@@ -28,8 +28,10 @@ namespace ProjectX.Editor
         private const string TaskPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/RenwuLayer.prefab";
         private const string ErrorPrefab = "Assets/ProjectX/res/csd/Prefabs/MessageBoxLayer.prefab";
         private const string RewardPrefab = "Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab";
+        private const string HeroFramePrefab = "Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab";
         private const string HeroListPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab";
         private const string HeroDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab";
+        private const string HeroBagPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab";
         private const string HeroEquipmentListPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab";
         private const string HeroEquipmentDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab";
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
@@ -77,6 +79,8 @@ namespace ProjectX.Editor
         private const string SevenDayPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab";
         private const string StaminaClaimPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/tililingquLayer.prefab";
         private const string ResourceRecoveryPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ziyuanzhaohui.prefab";
+        private const string GrowthFundPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ChengZhangLayer.prefab";
+        private const string ActiveFundPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/HuoyueLayer.prefab";
 
         private readonly struct PrefabSpec
         {
@@ -107,6 +111,8 @@ namespace ProjectX.Editor
             new PrefabSpec(TaskPrefab, true, TaskBackgroundPrefab),
             new PrefabSpec(StaminaClaimPrefab, false, TaskBackgroundPrefab),
             new PrefabSpec(ResourceRecoveryPrefab, false, TaskBackgroundPrefab),
+            new PrefabSpec(GrowthFundPrefab, false, TaskBackgroundPrefab),
+            new PrefabSpec(ActiveFundPrefab, false, TaskBackgroundPrefab),
             new PrefabSpec(ErrorPrefab, false),
             new PrefabSpec(RewardPrefab, false),
             new PrefabSpec(LoadingPrefab, false),
@@ -150,8 +156,10 @@ namespace ProjectX.Editor
             new PrefabSpec(BloodFightPrefab, false),
             new PrefabSpec(XunBaoPrefab, false),
             new PrefabSpec(SevenDayPrefab, false),
-            new PrefabSpec(HeroListPrefab, false),
+            new PrefabSpec(HeroFramePrefab, false),
+            new PrefabSpec(HeroListPrefab, true, HeroFramePrefab),
             new PrefabSpec(HeroDetailPrefab, true, HeroListPrefab),
+            new PrefabSpec(HeroBagPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroEquipmentListPrefab, false),
             new PrefabSpec(HeroEquipmentDetailPrefab, false, HeroEquipmentListPrefab)
         };

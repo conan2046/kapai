@@ -1,5 +1,6 @@
 local Protocol = require("Protocol")
 local EquipmentController = require("Hero.EquipmentController")
+local FormationModel = require("Hero.LegacyFormationModel")
 
 local M = { requested = false, mutationStage = nil, mutationHero = nil, originalPosition = nil, targetPosition = nil }
 
@@ -9,15 +10,18 @@ local function requestFormation()
     Bridge:Send(message)
 end
 
+-- Equivalent to the shipped LuaNetSendMsg:QueryFormationInfo chain. The Unity
+-- socket/byte stream stays in C#, while request ownership stays in Lua.
 function M.onClick()
     M.requested = true
     local message = Protocol.newMessage(Protocol.HERO)
     message:WriteByte(1)
     Bridge:Send(message)
-    Bridge:SetStatus("Hero/24 list request sent.")
+    Bridge:SetStatus("Hero/24 list request sent by legacy Lua formation model.")
 end
 
 local function sendPosition(heroId, position)
+    -- Shipped LuaNetSendMsg:QueryFormationPetPos.
     local message = Protocol.newMessage(Protocol.FORMATION)
     message:WriteByte(4)
     message:WriteWord(heroId)
@@ -26,51 +30,82 @@ local function sendPosition(heroId, position)
 end
 
 local function readHero(message)
-    local id = message:ReadWord()
-    local fightPosition = message:ReadByte()
-    local name = message:ReadString()
-    local star = message:ReadByte()
-    local breakLevel = message:ReadByte()
-    local level = message:ReadWord()
-    local experience = message:ReadUInt()
-    local maxExperience = message:ReadUInt()
-    local power = message:ReadULongInt()
-    local attack = message:ReadUInt()
-    local physicalDefense = message:ReadUInt()
-    local magicDefense = message:ReadUInt()
-    local health = message:ReadULongInt()
-    local speed = message:ReadUInt()
+    local hero = {
+        id = message:ReadWord(),
+        fightPos = message:ReadByte(),
+        name = message:ReadString(),
+        star = message:ReadByte(),
+        breakLevel = message:ReadByte(),
+        level = message:ReadWord(),
+        experience = message:ReadUInt(),
+        maxExperience = message:ReadUInt(),
+        power = message:ReadULongInt(),
+        attack = message:ReadUInt(),
+        physicalDefense = message:ReadUInt(),
+        magicDefense = message:ReadUInt(),
+        health = message:ReadULongInt(),
+        speed = message:ReadUInt(),
+    }
     for _ = 1, 23 do message:ReadUInt() end
     message:ReadByte()
     local trainingCount = message:ReadByte()
     for _ = 1, trainingCount do message:ReadByte(); message:ReadWord() end
     local skillCount = message:ReadByte()
     for _ = 1, skillCount do message:ReadByte(); message:ReadWord(); message:ReadWord() end
-    Bridge:AddHeroRecord(id, fightPosition, name, star, breakLevel, level, experience,
-        maxExperience, power, attack, physicalDefense, magicDefense, health, speed)
+    return hero
 end
 
 local function readHeroList(message)
     local followId = message:ReadWord()
     local count = message:ReadByte()
-    Bridge:BeginHeroUpdate(followId, count)
-    for _ = 1, count do readHero(message) end
+    local heroes = {}
+    for index = 1, count do heroes[index] = readHero(message) end
     if message.Remaining ~= 0 then Bridge:Fail("Hero/24 has unread bytes: " .. tostring(message.Remaining)); return end
-    Bridge:EndHeroUpdate()
+    FormationModel:ReplaceHeroes(followId, heroes)
     requestFormation()
 end
 
+-- C# stores are now render mirrors only. All authoritative formation state and
+-- ordering is calculated by the Lua model before this snapshot is published.
+local function syncRenderMirror()
+    Bridge:BeginHeroUpdate(FormationModel.followHeroId, FormationModel:GetHeroCount())
+    for index = 1, #FormationModel.petlist do
+        local hero = FormationModel.petlist[index]
+        Bridge:AddHeroRecord(hero.id, hero.fightPos, hero.name, hero.star, hero.breakLevel, hero.level,
+            hero.experience, hero.maxExperience, hero.power, hero.attack, hero.physicalDefense,
+            hero.magicDefense, hero.health, hero.speed)
+    end
+    Bridge:EndHeroUpdate()
+
+    Bridge:BeginFormationUpdate(FormationModel.useId, FormationModel:GetFormationCount())
+    local formations = FormationModel:GetMyFormations()
+    for index = 1, #formations do Bridge:AddFormationRecord(formations[index][1], formations[index][2]) end
+    for index = 1, #FormationModel.ShowPosList do
+        Bridge:AddFormationDisplayHero(index, FormationModel.ShowPosList[index])
+    end
+    for index = 1, #FormationModel.CombatPosList do
+        Bridge:AddFormationCombatHero(index, FormationModel.CombatPosList[index])
+    end
+    Bridge:EndFormationUpdate()
+end
+
 local function readFormation(message)
+    -- Adapted directly from LuaNetRecvdMsg:DealMsgFormation op=1.
     local activeId = message:ReadWord()
     local count = message:ReadByte()
-    Bridge:BeginFormationUpdate(activeId, count)
-    for _ = 1, count do Bridge:AddFormationRecord(message:ReadWord(), message:ReadByte()) end
+    local formations = {}
+    for index = 1, count do formations[index] = { message:ReadWord(), message:ReadByte() } end
     local displayCount = message:ReadByte()
-    for index = 1, displayCount do Bridge:AddFormationDisplayHero(index, message:ReadWord()) end
+    local display = {}
+    for index = 1, displayCount do display[index] = message:ReadWord() end
     local combatCount = message:ReadByte()
-    for index = 1, combatCount do Bridge:AddFormationCombatHero(index, message:ReadWord()) end
+    local combat = {}
+    for index = 1, combatCount do combat[index] = message:ReadWord() end
     if message.Remaining ~= 0 then Bridge:Fail("Formation/48 has unread bytes: " .. tostring(message.Remaining)); return end
-    Bridge:EndFormationUpdate()
+
+    FormationModel:ReplaceFormation(activeId, formations, display, combat)
+    syncRenderMirror()
+
     if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation") then
         M.requested = false
@@ -78,8 +113,8 @@ local function readFormation(message)
         return
     end
     if M.mutationStage == "await_move_snapshot" then
-        if Bridge:GetFormationHeroAt(M.targetPosition) ~= M.mutationHero then
-            Bridge:Fail("Formation move snapshot did not place hero at target position.")
+        if FormationModel:GetCombatHero(M.targetPosition) ~= M.mutationHero then
+            Bridge:Fail("Lua formation model did not place hero at target position.")
             M.mutationStage = nil
             return
         end
@@ -87,35 +122,32 @@ local function readFormation(message)
         sendPosition(M.mutationHero, M.originalPosition)
         return
     elseif M.mutationStage == "await_restore_snapshot" then
-        if Bridge:GetFormationHeroAt(M.originalPosition) ~= M.mutationHero then
-            Bridge:Fail("Formation restore snapshot did not restore hero to original position.")
+        local restored = FormationModel:GetCombatHero(M.originalPosition)
+        if restored ~= M.mutationHero then
+            Bridge:Fail("Lua formation model did not restore hero to original position.")
             M.mutationStage = nil
             return
         end
         M.mutationStage = nil
-        Bridge:CompleteFormationMutationValidation(M.mutationHero, M.originalPosition, M.targetPosition)
+        Bridge:CompleteFormationLuaMutationValidation(M.mutationHero, M.originalPosition, M.targetPosition, restored)
         return
     end
     if M.requested then
         M.requested = false
         if Bridge:HasCommandLineFlag("-projectXFormationMutationValidation") then
-            local combatCount = Bridge:GetFormationCombatCount()
-            local original = 0
-            local heroId = 0
-            local target = 0
-            for position = 1, combatCount do
-                local id = Bridge:GetFormationHeroAt(position)
+            local original, heroId, target = 0, 0, 0
+            for position = 1, FormationModel:GetCombatCount() do
+                local id = FormationModel:GetCombatHero(position)
                 if id > 0 and original == 0 then original = position; heroId = id end
                 if id == 0 and target == 0 then target = position end
             end
             if heroId == 0 or target == 0 then Bridge:Fail("Formation mutation requires one occupied and one empty position."); return end
-            M.mutationHero = heroId
-            M.originalPosition = original
-            M.targetPosition = target
+            M.mutationHero, M.originalPosition, M.targetPosition = heroId, original, target
             M.mutationStage = "await_move_response"
             sendPosition(heroId, target)
         else
-            Bridge:CompleteHeroReadValidation()
+            Bridge:CompleteHeroLuaReadValidation(FormationModel:GetHeroCount(), FormationModel:GetFormationCount(),
+                FormationModel.useId, FormationModel:GetSelectedHeroId())
         end
     end
 end
@@ -149,6 +181,12 @@ function M.onPacket(command, message)
     if op == 1 then readFormation(message); return true end
     if op == 4 then readPositionResponse(message); return true end
     return false
+end
+
+function M.reset()
+    M.requested, M.mutationStage, M.mutationHero = false, nil, nil
+    M.originalPosition, M.targetPosition = nil, nil
+    FormationModel:Reset()
 end
 
 return M

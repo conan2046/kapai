@@ -44,6 +44,12 @@
 
 ## 标准调试与验收流程
 - 遇到错误先定位根因：复现协议/操作、看服务端日志、看客户端日志、查对应源码，不做无证据猜修。
+- Unity 迁移定位 Cocos 界面时，固定先完成：主界面按钮名/模块 ID → Lua 点击回调 → `Utils:OpenFunction/InitUI` → 当前 View/Controller → 完整 CSB/CSD 路径 → 动态节点/Timeline/Imod 调用。链路未打印清楚前禁止启动客户端靠截图找界面。
+- 历史截图必须先核对窗口标题、页面标题、账号/角色、步骤、分辨率和目标节点；任一不符即标记无效。禁止仅凭文件名（如 `cocos-formation*.png`）当作目标模块基准。
+- `Invoke-ClientWindow.ps1` 点击只允许按已确认控件坐标执行一次。后台消息、同步前台消息或真实点击首次未进入目标页时，立即停止坐标试错，转查 Lua 回调、客户端日志、协议回包或现有模块自动化；禁止连续截图主界面碰运气。
+- Cocos 自动化暂时无法进入页面时，先用 Lua/CSB/资源调用链完成可证静态修复，并把“缺有效 Cocos 动态截图”作为门禁保留；不得用 Unity 单端截图、错误历史截图或重复点击伪造视觉通过。
+- 每个可见界面及其关键状态必须先取得有效 Cocos 截图；Unity 修复后必须按同账号、同数据、同操作、同分辨率和同稳定帧截图，与 Cocos 逐项对比文字、图片、坐标、尺寸、层级、裁剪、动画和交互，并保存叠加图/差异报告。缺任一侧截图或差异报告时只能标记逻辑通过；占位文字、错误图片、文本截断/重叠、公共层遮挡均视为视觉未通过。
+- Cocos 与 Unity 动态资源对照必须核对资源类型与播放语义：静态 `Image`、CSB Timeline、Imod 模型不可互相替代；例如 `CreateAnimModel + PlayStand` 必须迁为对应 Imod 资源、动作号、循环、缩放和挂点，禁止用同角色半身像代替。
 - 常见错误诊断表见 `LOCAL_DEBUG.md`。
 - 协议覆盖矩阵见 `PROTOCOL_COVERAGE.md`，可用 `tools/local/Export-ProtocolCoverage.ps1` 刷新。
 - 一键本地验证用 `tools/local/Run-LocalVerification.ps1`；它会串联环境检查、可选构建/启动、协议 smoke 和日志扫描。

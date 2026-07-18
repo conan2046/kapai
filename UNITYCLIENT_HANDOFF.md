@@ -30,21 +30,20 @@
 神将招募第一阶段已按当前运行代码完成：`ButtonGroup3/btn_zhaomu → EMID_KAPAI_CHOUKA → HappyDrawUI → /224 op=1/2`，三池状态与一次真实免费基础单抽通过；最终账号 `7200024`、角色 `1000038`。旧 `EMID_CHOUKA/LuckyDrawUI` 与并存未调用配置链不计当前版本，证据见 `docs/unityclient/modules/DRAW.md`。
 用户最新优先级是“尽快跑起来”：整体布局和位置基本一致即可，UI 字体、动态模型、动画与装饰细节由用户后续手调，不再阻塞模块推进。大厅、游历、封神列传、竞技场、决战昆仑、血战、法宝搜索、七日目标、将魂/竞技场/血战商店、体力领取及资源找回均已用真实主布局通过门禁；好友赠送、好友深化、组队深化统一后置，下一未完成模块为成长基金。
 
-## 4. 已稳定的分层
+## 4. 当前分层与 Lua 回归原则
 ```text
 入口/Prefab
-  → Presenter（节点绑定、渲染、交互转发）
-  → Lua Controller（协议业务与按钮流程）
-  → ProtocolRegistry/Reader/Writer
-  → Store（权威状态、增量合并、事件）
-  → Presenter 重绘
+  → Lua Controller / Legacy Model（协议、业务、权威状态）
+  → 通用 C# Bridge（Socket、字节流、Unity 节点/资源/动画适配）
+  → Unity UI 重绘
 ```
 
 约束：
 
-- Presenter 不解析网络字节，不写奖励/消耗规则。
-- Lua Controller 不直接操作 Unity 层级。
-- 原始网络数据必须先进入 Store。
+- 新模块不得继续固定新增业务型 `Store.cs + Catalog.cs + Presenter.cs`。
+- 旧 Lua Controller/Logic/Data 优先复用；仅直接依赖 `cc/ccui` 的显示调用进入兼容层。
+- Presenter 不解析网络字节，不写奖励/消耗规则；现有 Presenter 可暂作渲染镜像，按触达逐步通用化，不一次性推倒。
+- 原始网络数据必须先进入 Lua 权威模型；C# Store 如仍存在，只能作为渲染镜像。
 - 配置统一由 Catalog/ConfigService 读取。
 - 切号清角色 Store，配置缓存可保留。
 
@@ -93,16 +92,15 @@
 
 ## 7. 单模块标准流程
 
-1. 打印当前 Cocos 入口、Lua Controller/View、按钮回调和完整 CSB/CSD 路径。
+1. 打印当前 Cocos 入口、Lua Controller/View、按钮回调和完整 CSB/CSD 路径；历史截图先校验窗口/页面标题、账号角色、步骤、分辨率和目标节点，不合格立即废弃。
 2. 核对写包/读包、`protocol.h`、`pack_deal.cpp` 与成功/失败/空态/不回包。
-3. 固定同账号、数据、`1334×750` 和逐步操作流程，捕获 Cocos 各状态基准图。
-4. 记录贴图/字体/Timeline/Imod/动态节点及 Cocos 节点 ↔ Unity Transform 映射。
+3. 固定同账号、数据、`1334×750` 和逐步操作流程，捕获 Cocos 各状态基准图；点击首次失败即转日志/代码/自动化，不重复试坐标。
+4. 记录贴图/字体/Timeline/Imod/动态节点及 Cocos 节点 ↔ Unity Transform 映射，静态图、Timeline、Imod 不得互相冒充。
 5. 静态实现 `Store/Catalog/Presenter/Lua Controller`，原 Prefab 优先只读。
 6. 先做只读列表，再增量，再消耗/变更；用隔离角色确认真实字段和状态。
 7. Unity 按同数据、步骤和稳定帧截图，生成叠加/差异图并逐项修正。
 8. 使用 `Run-UnityModuleValidation.ps1 -Module <name>` 收口功能与协议。
-9. 通过 Bootstrap 两次幂等、Python UI、文档门禁和严重异常扫描。
-10. 证据齐全才标记 `visual-1to1-complete`；更新 STATUS/模块文档并关闭本阶段进程。
+9. 通过 Bootstrap 两次幂等、Python UI、文档门禁、严重异常扫描；证据齐全才标记 `visual-1to1-complete`，更新文档并关闭进程。
 
 ## 8. Unity 验收规则
 
@@ -114,6 +112,7 @@
 - 严重异常扫描：`error CS`、`LuaException`、`NullReferenceException`、`MissingReferenceException`、assert、真实 crash。
 - `CrashHandler` 等 Unity 性能标签不是实际 crash，不能误报。
 - Unity 单端 GameView 截图不能替代 Cocos 对照；必须同状态双端截图、节点映射、叠加/差异报告齐全。
+- 截图门禁覆盖每个界面、弹窗、Tab 和关键状态；占位文字、错误图片、文字截断/重叠、公共层遮挡任一存在即保持 `visual-pending/visual-fixing`。
 - 阶段结束关闭 Unity、Unity Hub、Cocos、`kapai.exe`、workspace-local MySQL，并检查 3306/8711。
 
 ## 9. 高频坑
@@ -128,6 +127,8 @@
 | Unity 进程重叠 | `Start-Process -Wait`，运行前检查 Unity 进程 |
 | 自动脚本破坏手工 Prefab | 默认只实例化和运行时绑定，禁止覆盖重建 |
 | 日志成功但 UI 错位 | 只算逻辑通过；按同数据 Cocos 基准逐项修正坐标、字体、层级、状态、动画与交互 |
+| Cocos 基准定位低效 | 截图须验窗口/页面标题、账号角色、步骤、尺寸和节点；坐标只试一次，失败转 Lua/日志/协议/自动化；`cocos-formation-compare.png` 实为公告空框，已判无效 |
+| 动态模型被静态图替代 | 沿 `CreateAnimModel/ImodAnim/Timeline` 真实调用链迁移资源、动作号、循环、缩放和挂点；半身像不得冒充 `PlayStand` 模型 |
 | 测试数据重复消耗 | 每个变更场景使用新隔离角色，失败角色不复用为最终证据 |
 | ISO UTC 被误判为 stale | PowerShell 7 已转为 `DateTime` 时直接 `ToUniversalTime()`，不要先转字符串 |
 | Friend 旧空态溢出 | Prefab 保持只读，用运行时空态文案和添加入口覆盖 |

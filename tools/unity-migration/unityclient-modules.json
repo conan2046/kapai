@@ -168,13 +168,13 @@
     {
       "key": "Hero",
       "displayName": "神将与阵容",
-      "status": "phase1-complete",
+      "status": "lua-authoritative-pilot-validated",
       "protocols": [
         24,
         48
       ],
       "entries": [
-        "Layer/Main_UI/ButtonGroup5/btn_zhenrong"
+        "Layer/Main_UI/ButtonGroup1/btn_zhenrong"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab"
@@ -182,7 +182,8 @@
       "configs": [],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXHeroValidation"
+        "-projectXHeroValidation",
+        "-projectXFormationMutationValidation"
       ],
       "screenshots": [
         "build/ui-migration/bootstrap-hero.png"
@@ -911,6 +912,34 @@
         "build/ui-migration/bootstrap-resource-recovery.png"
       ],
       "document": "docs/unityclient/modules/RESOURCERECOVERY.md"
+    },
+    {
+      "key": "Funds",
+      "displayName": "全部基金",
+      "status": "logic-validated-visual-deferred",
+      "protocols": [
+        222
+      ],
+      "entries": [
+        "WanFaEntranceUI function_id=25 -> WelfareActivityUI -> FundRebate",
+        "WanFaEntranceUI function_id=26 -> WelfareActivityUI -> HuoyueLayer"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/huodong_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/ChengZhangLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/HuoyueLayer.prefab"
+      ],
+      "configs": [
+        "server/config/json/jijin.json"
+      ],
+      "mutatesServer": false,
+      "validationFlags": [
+        "-projectXFundsValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-funds.png"
+      ],
+      "document": "docs/unityclient/modules/FUNDS.md"
     }
   ]
 }

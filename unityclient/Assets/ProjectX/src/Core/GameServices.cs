@@ -45,6 +45,8 @@ namespace ProjectX.Core
             StaminaClaim = new StaminaClaimStore();
             ResourceRecoveryCatalog = new ResourceRecoveryCatalog();
             ResourceRecovery = new ResourceRecoveryStore();
+            FundsCatalog = new FundsCatalog();
+            Funds = new FundsStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
             EquipmentCatalog = new EquipmentCatalog();
@@ -97,6 +99,8 @@ namespace ProjectX.Core
         public StaminaClaimStore StaminaClaim { get; }
         public ResourceRecoveryCatalog ResourceRecoveryCatalog { get; }
         public ResourceRecoveryStore ResourceRecovery { get; }
+        public FundsCatalog FundsCatalog { get; }
+        public FundsStore Funds { get; }
         public HeroStore Heroes { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
@@ -149,6 +153,7 @@ namespace ProjectX.Core
             SevenDay.Clear();
             StaminaClaim.Clear();
             ResourceRecovery.Reset();
+            Funds.Reset();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();

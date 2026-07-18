@@ -29,11 +29,13 @@ local XunBaoController = require("Gameplay.XunBaoController")
 local SevenDayController = require("Gameplay.SevenDayController")
 local StaminaClaimController = require("StaminaClaim.StaminaClaimController")
 local ResourceRecoveryController = require("ResourceRecovery.ResourceRecoveryController")
+local FundsController = require("Funds.FundsController")
 local HotPointController = require("Shared.HotPointController")
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
 function OnDisconnected(reason)
+    HeroController.reset()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
@@ -94,7 +96,9 @@ function OnXunBaoClicked() XunBaoController.onClick() end
 function OnSevenDayClicked() SevenDayController.onClick() end
 function OnStaminaClaimClicked() StaminaClaimController.onClick() end
 function OnResourceRecoveryClicked() ResourceRecoveryController.onClick() end
+function OnFundsClicked(functionId) FundsController.onClick(functionId) end
 function OnPacket(command, message)
+    if FundsController.onPacket(command, message) then return end
     if command == Protocol.TEMP_ACTIVITY then TempActivityController.onPacket(message); return end
     if LoginController.onPacket(command, message) then return end
     if StaminaClaimController.onPacket(command, message) then return end

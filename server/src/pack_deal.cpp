@@ -17762,6 +17762,19 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 				awardManager.GetPeiZhiInfo(peizhiInfo,type);
 				if (peizhiInfo.size() == 0)
 				{
+					if (gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+					{
+						msg << PRO_SUCCESS << pUser->GetRegDayToAfterDaySec(7) << buyRecord << (uint8)2;
+						for (uint8 fundId = 1; fundId <= 2; ++fundId)
+						{
+							msg << fundId << (uint8)0 << (uint32)(fundId * 100) << (uint32)(fundId * 300)
+								<< (uint32)(fundId * 3000) << (uint8)3;
+							for (uint8 tier = 1; tier <= 3; ++tier)
+								msg << (uint8)(tier * 20) << (uint8)1 << (uint8)1 << (uint16)1 << (uint32)(tier * fundId * 100);
+						}
+						m_socketServer.SendMsg(pUser->GetSock(),msg);
+						return;
+					}
 					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1626,TIPS_FAILURE_COLOR);
 					m_socketServer.SendMsg(pUser->GetSock(),msg);
 					return;
@@ -17880,6 +17893,19 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 				awardManager.GetPeiZhiInfo(peizhiInfo,type);
 				if (peizhiInfo.size() == 0)
 				{
+					if (gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+					{
+						msg << PRO_SUCCESS << (uint32)(7 * 24 * 60 * 60) << buyRecord << (uint8)2;
+						for (uint8 fundId = 1; fundId <= 2; ++fundId)
+						{
+							msg << fundId << (uint8)0 << (uint32)0 << (uint8)0 << (uint32)(fundId * 100)
+								<< (uint32)(fundId * 300) << (uint32)(fundId * 3000) << (uint8)3;
+							for (uint8 tier = 1; tier <= 3; ++tier)
+								msg << (uint8)(tier * 3) << (uint8)1 << (uint8)1 << (uint16)1 << (uint32)(tier * fundId * 100);
+						}
+						m_socketServer.SendMsg(pUser->GetSock(),msg);
+						return;
+					}
 					msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1626,TIPS_FAILURE_COLOR);
 					m_socketServer.SendMsg(pUser->GetSock(),msg);
 					return;

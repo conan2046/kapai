@@ -1,0 +1,147 @@
+-- Unity xLua formation model adapted from the shipped Cocos client:
+--   Data/LRoleDataMgr.lua: LCPet + LCFormation
+-- It deliberately keeps the legacy method names so later modules can reuse the
+-- same business-facing API instead of introducing another C# Store contract.
+local M = {
+    followHeroId = 0,
+    useId = 0,
+    openFormationArr = {},
+    petlist = {},
+    petsById = {},
+    ShowPosList = {},
+    CombatPosList = {},
+    selectedHeroId = 0,
+}
+
+function M:Reset()
+    self.followHeroId = 0
+    self.useId = 0
+    self.openFormationArr = {}
+    self.petlist = {}
+    self.petsById = {}
+    self.ShowPosList = {}
+    self.CombatPosList = {}
+    self.selectedHeroId = 0
+end
+
+-- Legacy LCPet:GetPetById.
+function M:GetPetById(pid)
+    return self.petsById[pid]
+end
+
+-- Legacy LCPet:GetPetPos: the display lineup is the authoritative UI position.
+function M:GetPetPos(petId)
+    for index = 1, #self.ShowPosList do
+        if self.ShowPosList[index] == petId then return index end
+    end
+    return 0
+end
+
+-- Legacy LCPet:GetPetByFightPosFormation.
+function M:GetPetByFightPosFormation(position)
+    local petId = self.CombatPosList[position] or 0
+    return petId > 0 and self:GetPetById(petId) or nil
+end
+
+-- Legacy LCFormation:GetMyZhenfaLvById.
+function M:GetMyZhenfaLvById(formationId)
+    for index = 1, #self.openFormationArr do
+        local value = self.openFormationArr[index]
+        if value[1] == formationId then return value[2] end
+    end
+    return 0
+end
+
+-- Legacy LCFormation:AddFormation.
+function M:AddFormation(formationId, level)
+    for index = 1, #self.openFormationArr do
+        if self.openFormationArr[index][1] == formationId then
+            self.openFormationArr[index][2] = level
+            return
+        end
+    end
+    table.insert(self.openFormationArr, { formationId, level })
+end
+
+function M:ResetMyFormations()
+    self.openFormationArr = {}
+    return self.openFormationArr
+end
+
+function M:GetMyFormations()
+    return self.openFormationArr
+end
+
+function M:ReplaceHeroes(followHeroId, heroes)
+    self.followHeroId = followHeroId or 0
+    self.petlist = heroes or {}
+    self.petsById = {}
+    for index = 1, #self.petlist do
+        local pet = self.petlist[index]
+        self.petsById[pet.id] = pet
+    end
+end
+
+function M:ReplaceFormation(activeId, formations, display, combat)
+    self.useId = activeId or 0
+    self:ResetMyFormations()
+    for index = 1, #(formations or {}) do
+        self:AddFormation(formations[index][1], formations[index][2])
+    end
+    self.ShowPosList = display or {}
+    self.CombatPosList = combat or {}
+
+    for index = 1, #self.petlist do self.petlist[index].fightPos = 0 end
+    for position = 1, #self.CombatPosList do
+        local pet = self:GetPetById(self.CombatPosList[position])
+        if pet then pet.fightPos = position end
+    end
+
+    self:SortPetList()
+    if self.selectedHeroId == 0 or self:GetPetById(self.selectedHeroId) == nil then
+        self.selectedHeroId = self.petlist[1] and self.petlist[1].id or 0
+    end
+end
+
+-- Reuses the shipped LCPet:SortPetList rule: deployed heroes first in lineup
+-- order; undeployed heroes use the rule documented by the old client (power
+-- descending) with id as the deterministic final key.
+function M:SortPetList()
+    table.sort(self.petlist, function(a, b)
+        local showPosA = self:GetPetPos(a.id)
+        local showPosB = self:GetPetPos(b.id)
+        if showPosA > 0 and showPosB > 0 then return showPosA < showPosB end
+        if showPosA == 0 and showPosB > 0 then return false end
+        if showPosA > 0 and showPosB == 0 then return true end
+        if a.power ~= b.power then return a.power > b.power end
+        return a.id < b.id
+    end)
+end
+
+function M:SelectHero(heroId)
+    if self:GetPetById(heroId) == nil then return false end
+    self.selectedHeroId = heroId
+    return true
+end
+
+function M:GetSelectedHeroId()
+    return self.selectedHeroId
+end
+
+function M:GetHeroCount()
+    return #self.petlist
+end
+
+function M:GetFormationCount()
+    return #self.openFormationArr
+end
+
+function M:GetCombatCount()
+    return #self.CombatPosList
+end
+
+function M:GetCombatHero(position)
+    return self.CombatPosList[position] or 0
+end
+
+return M

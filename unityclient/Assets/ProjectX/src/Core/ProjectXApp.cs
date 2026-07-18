@@ -23,7 +23,8 @@ namespace ProjectX.Core
         public const string BagPath = "Layer/Main_UI/ButtonGroup1/btn_Bag";
         public const string SettingsPath = "Layer/Main_UI/ButtonGroup7/btn_xitong";
         public const string TaskPath = "Layer/Main_UI/ButtonGroup5/btn_renwu";
-        public const string HeroPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
+        public const string FormationPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
+        public const string HeroBagPath = "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao";
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
         public const string ShopPath = "Layer/Main_UI/ButtonGroup5/btn_shangcheng";
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
@@ -99,6 +100,7 @@ namespace ProjectX.Core
         private LuaFunction onSevenDayClicked;
         private LuaFunction onStaminaClaimClicked;
         private LuaFunction onResourceRecoveryClicked;
+        private LuaFunction onFundsClicked;
         private CocosUiView loginBackgroundView;
         private CocosUiView loginView;
         private CocosUiView loginServerListView;
@@ -116,9 +118,12 @@ namespace ProjectX.Core
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
         private readonly List<RewardRecord> pendingRewards = new List<RewardRecord>();
+        private CocosUiView heroFrameView;
         private CocosUiView heroListView;
         private CocosUiView heroDetailView;
+        private CocosUiView heroBagView;
         private HeroPresenter heroPresenter;
+        private HeroEntry pendingHeroEntry = HeroEntry.Formation;
         private readonly List<HeroRecord> pendingHeroes = new List<HeroRecord>();
         private readonly List<FormationRecord> pendingFormations = new List<FormationRecord>();
         private readonly List<int> pendingFormationDisplay = new List<int>();
@@ -252,6 +257,9 @@ namespace ProjectX.Core
         private StaminaClaimPresenter staminaClaimPresenter;
         private CocosUiView resourceRecoveryView;
         private ResourceRecoveryPresenter resourceRecoveryPresenter;
+        private CocosUiView growthFundView;
+        private CocosUiView activeFundView;
+        private FundsPresenter fundsPresenter;
         private WelfareActivityFramePresenter welfareActivityFramePresenter;
         private CocosUiView soulShopView;
         private CocosUiView multiShopView;
@@ -265,6 +273,15 @@ namespace ProjectX.Core
         private int pendingResourceRecoveryCostId;
         private int pendingResourceRecoveryCostSubtype;
         private uint pendingResourceRecoveryCostAmount;
+        private readonly List<FundPlan> pendingFundPlans = new List<FundPlan>();
+        private readonly List<FundTier> pendingFundTiers = new List<FundTier>();
+        private readonly List<FundReward> pendingFundRewards = new List<FundReward>();
+        private FundKind pendingFundKind;
+        private uint pendingFundEndTime;
+        private byte pendingFundBoughtPlanId;
+        private byte pendingFundPlanId, pendingFundPlanBought, pendingFundPlanProgress;
+        private uint pendingFundBuyTime, pendingFundRate, pendingFundPrice, pendingFundTotal;
+        private byte pendingFundTierCondition, pendingFundTierState;
         private string status = "Starting ProjectX...";
         private string disconnectReason;
         private int reconnectAttempts;
@@ -329,6 +346,9 @@ namespace ProjectX.Core
         public bool IsStaminaClaimAuthoritativeVisible => staminaClaimPresenter?.IsAuthoritativeVisible ?? false;
         public bool IsResourceRecoveryOpen => resourceRecoveryView != null && resourceRecoveryView.GameObject.activeSelf && services?.UiStack.Current == taskBackgroundView;
         public bool IsResourceRecoveryAuthoritativeVisible => resourceRecoveryPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsFundsOpen => fundsPresenter != null && services?.UiStack.Current == taskBackgroundView
+            && ((growthFundView?.GameObject.activeSelf ?? false) || (activeFundView?.GameObject.activeSelf ?? false));
+        public bool IsFundsAuthoritativeVisible => fundsPresenter?.IsAuthoritativeVisible ?? false;
         public bool IsGameplayShopOpen => gameplayShopsPresenter != null
             && services?.UiStack.Current == gameplayShopsPresenter.ActiveView;
         public int GameplayShopRenderedCount => gameplayShopsPresenter?.RenderedCount ?? 0;
@@ -337,7 +357,7 @@ namespace ProjectX.Core
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
         public int RewardCount => services?.Rewards.Count ?? 0;
-        public bool IsHeroOpen => heroListView != null && services?.UiStack.Current == heroListView;
+        public bool IsHeroOpen => heroFrameView != null && services?.UiStack.Current == heroFrameView;
         public bool IsHeroEquipmentOpen => heroEquipmentListView != null && services?.UiStack.Current == heroEquipmentListView;
         public int HeroEquipmentCount => services?.HeroEquipment.Count ?? 0;
         public int FaBaoCount => services?.FaBao.Count ?? 0;
@@ -445,6 +465,7 @@ namespace ProjectX.Core
                 onSevenDayClicked = services.Lua.GetFunction("OnSevenDayClicked");
                 onStaminaClaimClicked = services.Lua.GetFunction("OnStaminaClaimClicked");
                 onResourceRecoveryClicked = services.Lua.GetFunction("OnResourceRecoveryClicked");
+                onFundsClicked = services.Lua.GetFunction("OnFundsClicked");
                 StartCoroutine(RunCurrentCocosStartup());
             }
             catch (Exception exception)
@@ -538,6 +559,7 @@ namespace ProjectX.Core
             onSevenDayClicked?.Dispose();
             onStaminaClaimClicked?.Dispose();
             onResourceRecoveryClicked?.Dispose();
+            onFundsClicked?.Dispose();
             youLiPresenter?.Dispose();
             fengShenStoryPresenter?.Dispose();
             arenaPresenter?.Dispose();
@@ -547,6 +569,7 @@ namespace ProjectX.Core
             sevenDayPresenter?.Dispose();
             staminaClaimPresenter?.Dispose();
             resourceRecoveryPresenter?.Dispose();
+            fundsPresenter?.Dispose();
             welfareActivityFramePresenter?.Dispose();
             gameplayShopsPresenter?.Dispose();
             bagPresenter?.Dispose();
@@ -867,8 +890,10 @@ namespace ProjectX.Core
             try
             {
                 mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
-                Button button = mainView.BindClick(HeroPath, HandleHeroClick, true);
-                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+                Button formationButton = mainView.BindClick(FormationPath, HandleFormationClick, true);
+                Button bagButton = mainView.BindClick(HeroBagPath, HandleHeroBagClick, true);
+                if (autoInvoke)
+                    StartCoroutine(InvokeButtonNextFrame(HasCommandLineFlag("-projectXHeroBagValidation") ? bagButton : formationButton));
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
@@ -1161,6 +1186,12 @@ namespace ProjectX.Core
                 InvokeLuaOrFail(onResourceRecoveryClicked, "Gameplay.ResourceRecovery");
                 return;
             }
+            if (functionId == 25 || functionId == 26)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onFundsClicked, "Gameplay.Funds", (double)functionId);
+                return;
+            }
             ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
             SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}.");
         }
@@ -1302,14 +1333,14 @@ namespace ProjectX.Core
         public void CommitSevenDayState(){services.SevenDay.Replace(pendingSevenDayTasks);}
         public void CompleteSevenDayValidation(){StartCoroutine(CompleteSevenDayValidationAfterLayout());}
         private IEnumerator CompleteSevenDayValidationAfterLayout(){EnsureSevenDayPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsSevenDayOpen||!services.SevenDay.HasAuthoritativeResponse||!IsSevenDayAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"SevenDay state mismatch: open={IsSevenDayOpen}, authoritative={services.SevenDay.HasAuthoritativeResponse}, visible={IsSevenDayAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=11 -> OperationalActivity.SevenDay -> csd/huodong/QiriLayer.csb -> /37 op=4 tasks={services.SevenDay.Tasks.Count}; isolated user={GetLocalUserId()}");}
-        public void ShowStaminaClaim(){EnsureStaminaClaimPresenter();taskView?.SetVisible(false);resourceRecoveryView?.SetVisible(false);staminaClaimView.SetVisible(true);welfareActivityFramePresenter.Select(18);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("StaminaClaim current welfare UI active; awaiting /321 op=2.");}
+        public void ShowStaminaClaim(){EnsureStaminaClaimPresenter();taskView?.SetVisible(false);resourceRecoveryView?.SetVisible(false);growthFundView?.SetVisible(false);activeFundView?.SetVisible(false);staminaClaimView.SetVisible(true);welfareActivityFramePresenter.Select(18);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("StaminaClaim current welfare UI active; awaiting /321 op=2.");}
         public void BeginStaminaClaimState(){pendingStaminaClaimRecords.Clear();}
         public void AddStaminaClaimState(int index,int state){pendingStaminaClaimRecords.Add(new StaminaClaimRecord(checked((byte)index),checked((byte)state)));}
         public void CommitStaminaClaimState(){services.StaminaClaim.Replace(pendingStaminaClaimRecords);}
         public void CompleteStaminaClaimValidation(){StartCoroutine(CompleteStaminaClaimValidationAfterLayout());}
         private IEnumerator CompleteStaminaClaimValidationAfterLayout(){EnsureStaminaClaimPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsStaminaClaimOpen||!services.StaminaClaim.HasAuthoritativeResponse||!IsStaminaClaimAuthoritativeVisible||services.StaminaClaim.Items.Count!=3||services.ProtocolRegistry.PendingCount!=0){Fail($"StaminaClaim state mismatch: open={IsStaminaClaimOpen}, records={services.StaminaClaim.Items.Count}, authoritative={services.StaminaClaim.HasAuthoritativeResponse}, visible={IsStaminaClaimAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=18 -> WelfareActivityUI/ReceiveTiliUI -> huodong/tililingquLayer -> /321 op=2 slots={services.StaminaClaim.Items.Count}; read-only first phase");}
 
-        public void ShowResourceRecovery(){EnsureResourceRecoveryPresenter();taskView?.SetVisible(false);staminaClaimView?.SetVisible(false);resourceRecoveryView.SetVisible(true);welfareActivityFramePresenter.Select(19);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("ResourceRecovery current welfare UI active; awaiting /52 op=1.");}
+        public void ShowResourceRecovery(){EnsureResourceRecoveryPresenter();taskView?.SetVisible(false);staminaClaimView?.SetVisible(false);growthFundView?.SetVisible(false);activeFundView?.SetVisible(false);resourceRecoveryView.SetVisible(true);welfareActivityFramePresenter.Select(19);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("ResourceRecovery current welfare UI active; awaiting /52 op=1.");}
         public void BeginResourceRecoveryState(){pendingResourceRecoveryRecords.Clear();}
         public void BeginResourceRecoveryRecord(int functionId,int leftTimes,int costId,int costSubtype,double costAmount){pendingResourceRecoveryFunctionId=functionId;pendingResourceRecoveryLeftTimes=checked((ushort)leftTimes);pendingResourceRecoveryCostId=costId;pendingResourceRecoveryCostSubtype=costSubtype;pendingResourceRecoveryCostAmount=checked((uint)costAmount);pendingResourceRecoveryRewards.Clear();}
         public void AddResourceRecoveryReward(int itemId,int subtype,double amount){pendingResourceRecoveryRewards.Add(new ResourceRecoveryReward(itemId,subtype,checked((uint)amount)));}
@@ -1318,11 +1349,24 @@ namespace ProjectX.Core
         public void CompleteResourceRecoveryValidation(){StartCoroutine(CompleteResourceRecoveryValidationAfterLayout());}
         private IEnumerator CompleteResourceRecoveryValidationAfterLayout(){EnsureResourceRecoveryPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsResourceRecoveryOpen||!IsResourceRecoveryAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"ResourceRecovery state mismatch: open={IsResourceRecoveryOpen}, records={services.ResourceRecovery.Items.Count}, visible={IsResourceRecoveryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=19 -> WelfareActivityUI/FindOfflineExp -> huodong/ziyuanzhaohui -> /52 op=1 records={services.ResourceRecovery.Items.Count}; read-only first phase");}
 
+        public void ShowFunds(int functionId){EnsureFundsPresenter();taskView?.SetVisible(false);staminaClaimView?.SetVisible(false);resourceRecoveryView?.SetVisible(false);FundKind kind=functionId==26?FundKind.Active:FundKind.Growth;fundsPresenter.Show(kind);welfareActivityFramePresenter.Select(functionId);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus($"{(kind==FundKind.Growth?"Growth":"Active")} fund current UI active; awaiting /222.");}
+        public void BeginFundsPage(int rawKind,double endTime,int boughtPlanId){pendingFundKind=(FundKind)checked((byte)rawKind);pendingFundEndTime=checked((uint)endTime);pendingFundBoughtPlanId=checked((byte)boughtPlanId);pendingFundPlans.Clear();}
+        public void BeginFundPlan(int id,int bought,double buyTime,int progress,double rate,double price,double total){pendingFundPlanId=checked((byte)id);pendingFundPlanBought=checked((byte)bought);pendingFundBuyTime=checked((uint)buyTime);pendingFundPlanProgress=checked((byte)progress);pendingFundRate=checked((uint)rate);pendingFundPrice=checked((uint)price);pendingFundTotal=checked((uint)total);pendingFundTiers.Clear();}
+        public void BeginFundTier(int condition,int state){pendingFundTierCondition=checked((byte)condition);pendingFundTierState=checked((byte)state);pendingFundRewards.Clear();}
+        public void AddFundReward(int itemId,double amount){pendingFundRewards.Add(new FundReward(checked((ushort)itemId),checked((uint)amount)));}
+        public void EndFundTier(){pendingFundTiers.Add(new FundTier(pendingFundTierCondition,pendingFundTierState,pendingFundRewards.ToArray()));}
+        public void EndFundPlan(){pendingFundPlans.Add(new FundPlan(pendingFundPlanId,pendingFundPlanBought,pendingFundBuyTime,pendingFundPlanProgress,pendingFundRate,pendingFundPrice,pendingFundTotal,pendingFundTiers.ToArray()));}
+        public void CommitFundsPage(){services.Funds.Replace(new FundPage(pendingFundKind,pendingFundEndTime,pendingFundBoughtPlanId,pendingFundPlans.ToArray(),true));}
+        public void CompleteFundsValidation(){StartCoroutine(CompleteFundsValidationAfterLayout());}
+        private IEnumerator CompleteFundsValidationAfterLayout(){EnsureFundsPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();FundPage growth=services.Funds.Get(FundKind.Growth),active=services.Funds.Get(FundKind.Active);if(!IsFundsOpen||!services.Funds.HasAllAuthoritativeResponses||!IsFundsAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"Funds mismatch: open={IsFundsOpen}, growth={growth.Plans.Count}, active={active.Plans.Count}, visible={IsFundsAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: function_id=25/26 -> WelfareActivityUI -> ChengZhangLayer/HuoyueLayer -> /222 op=83/94 growthPlans={growth.Plans.Count}, activePlans={active.Plans.Count}; read-only first phase");}
+
         public void ShowTask()
         {
             EnsureTaskPresenter();
             staminaClaimView?.SetVisible(false);
             resourceRecoveryView?.SetVisible(false);
+            growthFundView?.SetVisible(false);
+            activeFundView?.SetVisible(false);
             taskView.SetVisible(true);
             if (services.UiStack.Current != taskBackgroundView) services.UiStack.Push(taskBackgroundView);
             SetStatus($"Task UI active: {services.Tasks.Count} tasks.");
@@ -2510,21 +2554,56 @@ namespace ProjectX.Core
                 if (pendingFormationCombat[index] > 0) positions[pendingFormationCombat[index]] = index + 1;
             services.Heroes.SetFightPositions(positions);
             EnsureHeroPresenter();
-            heroDetailView.SetVisible(true);
-            if (services.UiStack.Current != heroListView) services.UiStack.Push(heroListView);
-            SetStatus($"Hero formation UI active: {services.Heroes.Count} heroes, formation={services.Formation.ActiveFormationId}.");
+            bool showBag = pendingHeroEntry == HeroEntry.Bag;
+            heroListView.SetVisible(!showBag);
+            heroDetailView.SetVisible(!showBag);
+            heroBagView.SetVisible(showBag);
+            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = showBag ? "神将" : "阵容";
+            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            SetStatus(showBag
+                ? $"Hero bag UI active: {services.Heroes.Count} heroes."
+                : $"Hero formation UI active: {services.Heroes.Count} heroes, formation={services.Formation.ActiveFormationId}.");
         }
 
         public void CompleteHeroReadValidation()
         {
             EnsureHeroPresenter();
+            bool showBag = pendingHeroEntry == HeroEntry.Bag;
+            int rendered = showBag ? heroPresenter.BagItemCount : heroPresenter.ItemCount;
             if (services.Heroes.Count <= 0 || services.Formation.Formations.Count <= 0
-                || heroPresenter.ItemCount != services.Heroes.Count || !IsHeroOpen)
+                || rendered != services.Heroes.Count || !IsHeroOpen)
             {
-                Fail($"Hero read validation mismatch: heroes={services.Heroes.Count}, rendered={heroPresenter.ItemCount}, formations={services.Formation.Formations.Count}, open={IsHeroOpen}.");
+                Fail($"Hero read validation mismatch: entry={pendingHeroEntry}, heroes={services.Heroes.Count}, rendered={rendered}, formations={services.Formation.Formations.Count}, open={IsHeroOpen}.");
                 return;
             }
-            Complete($"COMPLETE: main formation button -> /24 HeroStore ({services.Heroes.Count}) -> /48 FormationStore -> hero list/detail UI");
+            Complete(showBag
+                ? $"COMPLETE: main hero bag button -> /24 HeroStore ({services.Heroes.Count}) -> /48 FormationStore -> hero bag grid UI"
+                : $"COMPLETE: main formation button -> /24 HeroStore ({services.Heroes.Count}) -> /48 FormationStore -> formation list/detail UI");
+        }
+
+        public void CompleteHeroLuaReadValidation(int luaHeroCount, int luaFormationCount,
+            int luaActiveFormationId, int luaSelectedHeroId)
+        {
+            EnsureHeroPresenter();
+            bool showBag = pendingHeroEntry == HeroEntry.Bag;
+            int rendered = showBag ? heroPresenter.BagItemCount : heroPresenter.ItemCount;
+            bool luaMatchesMirror = luaHeroCount == services.Heroes.Count
+                && luaFormationCount == services.Formation.Formations.Count
+                && luaActiveFormationId == services.Formation.ActiveFormationId
+                && luaSelectedHeroId == heroPresenter.SelectedId;
+            if (luaHeroCount <= 0 || luaFormationCount <= 0 || rendered != luaHeroCount
+                || !luaMatchesMirror || !IsHeroOpen)
+            {
+                Fail($"Lua formation read mismatch: entry={pendingHeroEntry}, luaHeroes={luaHeroCount}, "
+                    + $"mirrorHeroes={services.Heroes.Count}, rendered={rendered}, luaFormations={luaFormationCount}, "
+                    + $"mirrorFormations={services.Formation.Formations.Count}, active={luaActiveFormationId}/"
+                    + $"{services.Formation.ActiveFormationId}, selected={luaSelectedHeroId}/{heroPresenter.SelectedId}, open={IsHeroOpen}.");
+                return;
+            }
+            Complete(showBag
+                ? $"COMPLETE: Lua formation model -> /24 heroes={luaHeroCount} -> /48 formations={luaFormationCount} -> C# render mirror -> hero bag UI"
+                : $"COMPLETE: main formation button -> legacy Lua model -> /24 heroes={luaHeroCount} -> /48 active={luaActiveFormationId} -> C# render mirror -> formation UI");
         }
 
         public int GetFormationCombatCount() => services.Formation.CombatHeroes.Count;
@@ -2540,6 +2619,21 @@ namespace ProjectX.Core
                 return;
             }
             Complete($"COMPLETE: /24 HeroStore -> /48 snapshot -> /48 op=4 hero {heroId} position {originalPosition}->{targetPosition} -> pushed snapshot -> restore {targetPosition}->{originalPosition} -> pushed snapshot");
+        }
+
+        public void CompleteFormationLuaMutationValidation(int heroId, int originalPosition,
+            int targetPosition, int luaRestoredHeroId)
+        {
+            int mirrorPosition = services.Formation.GetCombatPosition(heroId);
+            if (luaRestoredHeroId != heroId || mirrorPosition != originalPosition || !IsHeroOpen)
+            {
+                Fail($"Lua formation mutation restore mismatch: hero={heroId}, luaRestored={luaRestoredHeroId}, "
+                    + $"mirrorPosition={mirrorPosition}, expected={originalPosition}, open={IsHeroOpen}.");
+                return;
+            }
+            Complete($"COMPLETE: legacy Lua formation model -> /48 op=4 hero {heroId} "
+                + $"{originalPosition}->{targetPosition} -> authoritative Lua snapshot -> restore "
+                + $"{targetPosition}->{originalPosition} -> C# render mirror matched");
         }
 
         public void BeginHeroEquipmentUpdate(int expectedCount)
@@ -2864,10 +2958,17 @@ namespace ProjectX.Core
             try { CallLua(onTaskClicked, "Task.OnClicked"); }
             catch (Exception exception) { Fail($"Task open failed: {exception.Message}"); }
         }
-        private void HandleHeroClick()
+        private void HandleFormationClick()
         {
-            try { CallLua(onHeroClicked, "Hero.OnClicked"); }
-            catch (Exception exception) { Fail($"Hero open failed: {exception.Message}"); }
+            pendingHeroEntry = HeroEntry.Formation;
+            try { CallLua(onHeroClicked, "Hero.OnFormationClicked"); }
+            catch (Exception exception) { Fail($"Formation open failed: {exception.Message}"); }
+        }
+        private void HandleHeroBagClick()
+        {
+            pendingHeroEntry = HeroEntry.Bag;
+            try { CallLua(onHeroClicked, "Hero.OnBagClicked"); }
+            catch (Exception exception) { Fail($"Hero bag open failed: {exception.Message}"); }
         }
         private void HandleMailClick()
         {
@@ -3278,11 +3379,21 @@ namespace ProjectX.Core
 
         private void EnsureHeroPresenter()
         {
+            heroFrameView = heroFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
             heroListView = heroListView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongListLayer");
             heroDetailView = heroDetailView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongInfoLayer");
-            if (heroListView == null || heroDetailView == null)
-                throw new InvalidOperationException("Hero list/detail CocosUiBindings were not found.");
-            heroPresenter = heroPresenter ?? new HeroPresenter(heroListView, heroDetailView, services.Heroes, services.Formation);
+            heroBagView = heroBagView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongbeibao");
+            if (heroFrameView == null || heroListView == null || heroDetailView == null || heroBagView == null)
+                throw new InvalidOperationException("Hero frame/formation/bag CocosUiBindings were not found.");
+            heroPresenter = heroPresenter ?? new HeroPresenter(heroListView, heroDetailView, heroBagView,
+                services.Heroes, services.Formation, services.Resources);
+            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+        }
+
+        private enum HeroEntry
+        {
+            Formation,
+            Bag
         }
 
         private void EnsureHeroEquipmentPresenter()
@@ -3527,9 +3638,10 @@ namespace ProjectX.Core
         private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,()=>HandleBack());}
 
         private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,()=>HandleBack());}
-        private void EnsureWelfareActivityFramePresenter(){taskBackgroundView=taskBackgroundView??services.UiRouter.FindBySource("huodong/huodong_bg");if(taskBackgroundView==null)throw new InvalidOperationException("Current welfare activity background was not found: huodong/huodong_bg.");welfareActivityFramePresenter=welfareActivityFramePresenter??new WelfareActivityFramePresenter(taskBackgroundView,services.Currencies,()=>HandleBack(),()=>InvokeLuaOrFail(onStaminaClaimClicked,"WelfareActivity.StaminaClaim"),()=>InvokeLuaOrFail(onResourceRecoveryClicked,"WelfareActivity.ResourceRecovery"));}
+        private void EnsureWelfareActivityFramePresenter(){taskBackgroundView=taskBackgroundView??services.UiRouter.FindBySource("huodong/huodong_bg");if(taskBackgroundView==null)throw new InvalidOperationException("Current welfare activity background was not found: huodong/huodong_bg.");welfareActivityFramePresenter=welfareActivityFramePresenter??new WelfareActivityFramePresenter(taskBackgroundView,services.Currencies,()=>HandleBack(),()=>InvokeLuaOrFail(onStaminaClaimClicked,"WelfareActivity.StaminaClaim"),()=>InvokeLuaOrFail(onResourceRecoveryClicked,"WelfareActivity.ResourceRecovery"),()=>InvokeLuaOrFail(onFundsClicked,"WelfareActivity.GrowthFund",25d),()=>InvokeLuaOrFail(onFundsClicked,"WelfareActivity.ActiveFund",26d));}
         private void EnsureStaminaClaimPresenter(){EnsureWelfareActivityFramePresenter();staminaClaimView=staminaClaimView??services.UiRouter.FindBySource("huodong/tililingquLayer");if(staminaClaimView==null)throw new InvalidOperationException("Current StaminaClaim imported CocosUiBinding was not found: huodong/tililingquLayer.");staminaClaimPresenter=staminaClaimPresenter??new StaminaClaimPresenter(staminaClaimView,services.StaminaClaim,services.StaminaClaimCatalog,()=>HandleBack());}
         private void EnsureResourceRecoveryPresenter(){EnsureWelfareActivityFramePresenter();resourceRecoveryView=resourceRecoveryView??services.UiRouter.FindBySource("huodong/ziyuanzhaohui");if(resourceRecoveryView==null)throw new InvalidOperationException("Current ResourceRecovery imported CocosUiBinding was not found: huodong/ziyuanzhaohui.");resourceRecoveryPresenter=resourceRecoveryPresenter??new ResourceRecoveryPresenter(resourceRecoveryView,services.ResourceRecovery,services.ResourceRecoveryCatalog);}
+        private void EnsureFundsPresenter(){EnsureWelfareActivityFramePresenter();growthFundView=growthFundView??services.UiRouter.FindBySource("huodong/ChengZhangLayer");activeFundView=activeFundView??services.UiRouter.FindBySource("huodong/HuoyueLayer");if(growthFundView==null||activeFundView==null)throw new InvalidOperationException("Current fund CocosUiBinding was not found: ChengZhangLayer/HuoyueLayer.");fundsPresenter=fundsPresenter??new FundsPresenter(growthFundView,activeFundView,services.Funds,services.FundsCatalog);}
 
         private IEnumerator RequestValidationDrawNextFrame()
         {

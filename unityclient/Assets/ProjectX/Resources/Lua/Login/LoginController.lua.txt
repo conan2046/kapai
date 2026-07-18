@@ -77,6 +77,15 @@ function M.onPacket(command, message)
         return true
     end
     if command == Protocol.GAME_NOTICE then
+        -- local_test may deliberately answer the optional notice query with an
+        -- empty packet when the production notice table is unavailable.
+        if message.Remaining == 0 then
+            Bridge:BeginGameNotice(0)
+            if Bridge:HasCommandLineFlag("-projectXLoginValidation") and Bridge:HasCommandLineFlag("-projectXRequireNoticeResponse") then
+                Bridge:Fail("Required PRO_GONGGAO/88 response was empty.")
+            end
+            return true
+        end
         local count = message:ReadByte()
         Bridge:BeginGameNotice(count)
         for _ = 1, count do

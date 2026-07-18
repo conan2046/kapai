@@ -105,7 +105,9 @@ namespace ProjectX.Editor
             bool settingsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsValidation") >= 0;
             bool taskValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskValidation") >= 0;
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
-            bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0;
+            bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroBagValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0;
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
@@ -129,6 +131,7 @@ namespace ProjectX.Editor
             bool sevenDayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSevenDayValidation") >= 0;
             bool staminaClaimValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXStaminaClaimValidation") >= 0;
             bool resourceRecoveryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXResourceRecoveryValidation") >= 0;
+            bool fundsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFundsValidation") >= 0;
             bool loginValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
 
@@ -229,6 +232,7 @@ namespace ProjectX.Editor
                 bool checkingSevenDay = sevenDayValidation;
                 bool checkingStaminaClaim = staminaClaimValidation;
                 bool checkingResourceRecovery = resourceRecoveryValidation;
+                bool checkingFunds = fundsValidation;
                 if (settingsValidation && settingsPhase == 2)
                 {
                     if (!app.IsLoginVisible || app.NetworkState != ProjectX.Network.NetworkState.Disconnected)
@@ -257,7 +261,7 @@ namespace ProjectX.Editor
                         : checkingTeam ? !app.IsTeamOpen : checkingGuild ? !app.IsGuildOpen
                         : checkingWorld ? !app.IsWorldOpen : checkingWelfare ? !app.IsWelfareOpen
                         : checkingActivity ? !app.IsActivityOpen : checkingDraw ? !app.IsDrawOpen
-                        : checkingResourceRecovery ? !app.IsResourceRecoveryOpen : checkingStaminaClaim ? !app.IsStaminaClaimOpen : checkingSevenDay ? !app.IsSevenDayOpen : checkingXunBao ? !app.IsXunBaoOpen : checkingBloodFight ? !app.IsBloodFightOpen : checkingKunLun ? !app.IsKunLunOpen : checkingArena ? !app.IsArenaOpen : checkingFengShenStory ? !app.IsFengShenStoryOpen : checkingYouLi ? !app.IsYouLiOpen : checkingGameplay ? !app.IsGameplayOpen : !app.IsBagOpen))
+                        : checkingFunds ? !app.IsFundsOpen : checkingResourceRecovery ? !app.IsResourceRecoveryOpen : checkingStaminaClaim ? !app.IsStaminaClaimOpen : checkingSevenDay ? !app.IsSevenDayOpen : checkingXunBao ? !app.IsXunBaoOpen : checkingBloodFight ? !app.IsBloodFightOpen : checkingKunLun ? !app.IsKunLunOpen : checkingArena ? !app.IsArenaOpen : checkingFengShenStory ? !app.IsFengShenStoryOpen : checkingYouLi ? !app.IsYouLiOpen : checkingGameplay ? !app.IsGameplayOpen : !app.IsBagOpen))
                     {
                         WriteResult(false, status + (checkingTask
                             ? " (task UI was not pushed onto UiStack)"
@@ -295,6 +299,8 @@ namespace ProjectX.Editor
                             ? " (StaminaClaim UI was not pushed onto UiStack)"
                             : checkingResourceRecovery
                             ? " (ResourceRecovery UI was not pushed onto UiStack)"
+                            : checkingFunds
+                            ? " (Funds UI was not pushed onto UiStack)"
                             : checkingXunBao
                             ? " (XunBao UI was not pushed onto UiStack)"
                             : checkingBloodFight
@@ -349,7 +355,7 @@ namespace ProjectX.Editor
                         Finish(false);
                         return;
                     }
-                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingGameplayShops && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && !checkingWelfare && !checkingActivity && !checkingDraw && !checkingGameplay && !checkingYouLi && !checkingFengShenStory && !checkingArena && !checkingKunLun && !checkingBloodFight && !checkingXunBao && !checkingSevenDay && !checkingStaminaClaim && !checkingResourceRecovery && app.BagMissingIconCount > 0)
+                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingGameplayShops && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && !checkingWelfare && !checkingActivity && !checkingDraw && !checkingGameplay && !checkingYouLi && !checkingFengShenStory && !checkingArena && !checkingKunLun && !checkingBloodFight && !checkingXunBao && !checkingSevenDay && !checkingStaminaClaim && !checkingResourceRecovery && !checkingFunds && app.BagMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.BagMissingIconCount} item icons were not resolved)");
                         Finish(false);
@@ -362,7 +368,7 @@ namespace ProjectX.Editor
                         : checkingTeam ? GetTeamScreenshotPath() : checkingGuild ? GetGuildScreenshotPath()
                         : checkingWorld ? GetWorldScreenshotPath() : checkingWelfare ? GetWelfareScreenshotPath()
                         : checkingActivity ? GetActivityScreenshotPath() : checkingDraw ? GetDrawScreenshotPath()
-                        : checkingResourceRecovery ? GetResourceRecoveryScreenshotPath() : checkingStaminaClaim ? GetStaminaClaimScreenshotPath() : checkingSevenDay ? GetSevenDayScreenshotPath() : checkingXunBao ? GetXunBaoScreenshotPath() : checkingBloodFight ? GetBloodFightScreenshotPath() : checkingKunLun ? GetKunLunScreenshotPath() : checkingArena ? GetArenaScreenshotPath() : checkingFengShenStory ? GetFengShenStoryScreenshotPath() : checkingYouLi ? GetYouLiScreenshotPath() : checkingGameplay ? GetGameplayScreenshotPath() : GetBagScreenshotPath();
+                        : checkingFunds ? GetFundsScreenshotPath() : checkingResourceRecovery ? GetResourceRecoveryScreenshotPath() : checkingStaminaClaim ? GetStaminaClaimScreenshotPath() : checkingSevenDay ? GetSevenDayScreenshotPath() : checkingXunBao ? GetXunBaoScreenshotPath() : checkingBloodFight ? GetBloodFightScreenshotPath() : checkingKunLun ? GetKunLunScreenshotPath() : checkingArena ? GetArenaScreenshotPath() : checkingFengShenStory ? GetFengShenStoryScreenshotPath() : checkingYouLi ? GetYouLiScreenshotPath() : checkingGameplay ? GetGameplayScreenshotPath() : GetBagScreenshotPath();
                     Directory.CreateDirectory(Path.GetDirectoryName(screenshotPath));
                     ScreenCapture.CaptureScreenshot(screenshotPath);
                     SessionState.SetBool(ScreenshotPendingKey, true);
@@ -386,7 +392,7 @@ namespace ProjectX.Editor
                     : checkingTeam ? app.IsTeamOpen : checkingGuild ? app.IsGuildOpen
                     : checkingWorld ? app.IsWorldOpen : checkingWelfare ? app.IsWelfareOpen
                     : checkingActivity ? app.IsActivityOpen : checkingDraw ? app.IsDrawOpen
-                    : checkingResourceRecovery ? app.IsResourceRecoveryOpen : checkingStaminaClaim ? app.IsStaminaClaimOpen : checkingSevenDay ? app.IsSevenDayOpen : checkingXunBao ? app.IsXunBaoOpen : checkingBloodFight ? app.IsBloodFightOpen : checkingKunLun ? app.IsKunLunOpen : checkingArena ? app.IsArenaOpen : checkingFengShenStory ? app.IsFengShenStoryOpen : checkingYouLi ? app.IsYouLiOpen : checkingGameplay ? app.IsGameplayOpen : app.IsBagOpen))
+                    : checkingFunds ? app.IsFundsOpen : checkingResourceRecovery ? app.IsResourceRecoveryOpen : checkingStaminaClaim ? app.IsStaminaClaimOpen : checkingSevenDay ? app.IsSevenDayOpen : checkingXunBao ? app.IsXunBaoOpen : checkingBloodFight ? app.IsBloodFightOpen : checkingKunLun ? app.IsKunLunOpen : checkingArena ? app.IsArenaOpen : checkingFengShenStory ? app.IsFengShenStoryOpen : checkingYouLi ? app.IsYouLiOpen : checkingGameplay ? app.IsGameplayOpen : app.IsBagOpen))
                 {
                     WriteResult(false, status + (checkingTask
                         ? " (Esc/back did not return from task UI to main UI)"
@@ -424,6 +430,8 @@ namespace ProjectX.Editor
                             ? " (Esc/back did not return from StaminaClaim UI to gameplay hub)"
                             : checkingResourceRecovery
                             ? " (Esc/back did not return from ResourceRecovery UI to gameplay hub)"
+                            : checkingFunds
+                            ? " (Esc/back did not return from Funds UI to gameplay hub)"
                             : checkingXunBao
                             ? " (Esc/back did not return from XunBao UI to gameplay hub)"
                             : checkingBloodFight
@@ -721,6 +729,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-resource-recovery.png");
+        }
+
+        private static string GetFundsScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-funds.png");
         }
 
         private static string GetManualReconnectRequestPath()
