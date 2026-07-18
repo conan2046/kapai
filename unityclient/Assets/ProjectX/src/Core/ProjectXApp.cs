@@ -57,6 +57,8 @@ namespace ProjectX.Core
         private LuaFunction onMailClaimClicked;
         private LuaFunction onShopClicked;
         private LuaFunction onShopBuyConfirmed;
+        private LuaFunction onGameplayShopOpened;
+        private LuaFunction onGameplayShopTab;
         private LuaFunction onFriendClicked;
         private LuaFunction onFriendRequestList;
         private LuaFunction onFriendRequestApplications;
@@ -244,6 +246,9 @@ namespace ProjectX.Core
         private XunBaoPresenter xunBaoPresenter;
         private CocosUiView sevenDayView;
         private SevenDayPresenter sevenDayPresenter;
+        private CocosUiView soulShopView;
+        private CocosUiView multiShopView;
+        private GameplayShopsPresenter gameplayShopsPresenter;
         private readonly List<SevenDayTaskRecord> pendingSevenDayTasks = new List<SevenDayTaskRecord>();
         private string status = "Starting ProjectX...";
         private string disconnectReason;
@@ -305,6 +310,10 @@ namespace ProjectX.Core
         public bool IsXunBaoAuthoritativeVisible => xunBaoPresenter?.IsAuthoritativeVisible ?? false;
         public bool IsSevenDayOpen => sevenDayView != null && services?.UiStack.Current == sevenDayView;
         public bool IsSevenDayAuthoritativeVisible => sevenDayPresenter?.IsAuthoritativeVisible ?? false;
+        public bool IsGameplayShopOpen => gameplayShopsPresenter != null
+            && services?.UiStack.Current == gameplayShopsPresenter.ActiveView;
+        public int GameplayShopRenderedCount => gameplayShopsPresenter?.RenderedCount ?? 0;
+        public int GameplayShopMissingIconCount => gameplayShopsPresenter?.MissingIconCount ?? 0;
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
@@ -375,6 +384,8 @@ namespace ProjectX.Core
                 onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
                 onShopClicked = services.Lua.GetFunction("OnShopClicked");
                 onShopBuyConfirmed = services.Lua.GetFunction("OnShopBuyConfirmed");
+                onGameplayShopOpened = services.Lua.GetFunction("OnGameplayShopOpened");
+                onGameplayShopTab = services.Lua.GetFunction("OnGameplayShopTab");
                 onFriendClicked = services.Lua.GetFunction("OnFriendClicked");
                 onFriendRequestList = services.Lua.GetFunction("OnFriendRequestList");
                 onFriendRequestApplications = services.Lua.GetFunction("OnFriendRequestApplications");
@@ -464,6 +475,8 @@ namespace ProjectX.Core
             onMailClaimClicked?.Dispose();
             onShopClicked?.Dispose();
             onShopBuyConfirmed?.Dispose();
+            onGameplayShopOpened?.Dispose();
+            onGameplayShopTab?.Dispose();
             onFriendClicked?.Dispose();
             onFriendRequestList?.Dispose();
             onFriendRequestApplications?.Dispose();
@@ -509,6 +522,7 @@ namespace ProjectX.Core
             bloodFightPresenter?.Dispose();
             xunBaoPresenter?.Dispose();
             sevenDayPresenter?.Dispose();
+            gameplayShopsPresenter?.Dispose();
             bagPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
@@ -1099,6 +1113,12 @@ namespace ProjectX.Core
                 InvokeLuaOrFail(onSevenDayClicked, "Gameplay.SevenDay");
                 return;
             }
+            if (functionId == 15 || functionId == 16 || functionId == 17)
+            {
+                gameplayPresenter?.HideDetail();
+                InvokeLuaOrFail(onGameplayShopOpened, "Gameplay.Shops", (double)functionId);
+                return;
+            }
             ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
             SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}.");
         }
@@ -1116,8 +1136,8 @@ namespace ProjectX.Core
         private IEnumerator CaptureGameplayValidationStates()
         {
             EnsureGameplayPresenter();
-            if (!IsGameplayOpen || services.Gameplay.Count != 13 || services.Gameplay.OpenCount != 13
-                || GameplayRenderedCount != 13 || GameplayMissingIconCount != 0
+            if (!IsGameplayOpen || services.Gameplay.Count != 16 || services.Gameplay.OpenCount != 16
+                || GameplayRenderedCount != 16 || GameplayMissingIconCount != 0
                 || services.ProtocolRegistry.PendingCount != 0)
             {
                 Fail($"Gameplay list state mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, missing={GameplayMissingIconCount}, pending={services.ProtocolRegistry.PendingCount}.");
@@ -1137,7 +1157,7 @@ namespace ProjectX.Core
                 Fail($"Gameplay detail state mismatch: detail={IsGameplayDetailVisible}, selected={GameplaySelectedFunctionId}.");
                 yield break;
             }
-            Complete($"COMPLETE: current btn_wanfa -> shop/shop_bg + Main.WanFaEntranceUI -> function config 13 entries/level gates -> /65 types 101,51,103 authoritative hidden states -> YouLi detail/enter boundary; user={GetLocalUserId()}");
+            Complete($"COMPLETE: current btn_wanfa -> shop/shop_bg + Main.WanFaEntranceUI -> function config 16 entries/level gates -> /65 types 101,51,103 authoritative hidden states -> YouLi detail/enter boundary; user={GetLocalUserId()}");
         }
 
         public void ShowYouLi()
@@ -2260,6 +2280,42 @@ namespace ProjectX.Core
             ShowShop();
         }
 
+        public void ShowGameplayShop(int functionId)
+        {
+            EnsureGameplayShopsPresenter();
+            CocosUiView previous = gameplayShopsPresenter.ActiveView;
+            gameplayShopsPresenter.ShowFunction(functionId);
+            CocosUiView target = gameplayShopsPresenter.ActiveView;
+            if (services.UiStack.Current == previous && previous != target) services.UiStack.Pop();
+            if (services.UiStack.Current != target) services.UiStack.Push(target);
+            SetStatus($"Gameplay shop function_id={functionId} active; awaiting /221.");
+        }
+
+        public void BeginGameplayShopUpdate(int type, int refreshTimes, int freeRefreshTimes,
+            int refreshRemainingSeconds, int expectedCount)
+        {
+            BeginShopUpdate(type, refreshTimes, freeRefreshTimes, refreshRemainingSeconds, expectedCount);
+        }
+
+        public void AddGameplayShopRecord(int grid, double id, int buyCount, string name,
+            string description, int picture, int quality)
+        {
+            AddShopRecord(grid, id, buyCount, name, description, picture, quality);
+        }
+
+        public void EndGameplayShopUpdate()
+        {
+            services.GameplayShops.Replace(pendingShopType, pendingShopRefreshTimes, pendingShopFreeTimes,
+                pendingShopRefreshRemaining, services.ServerTime.UnixSeconds, pendingShopRecords);
+            EnsureGameplayShopsPresenter();
+            gameplayShopsPresenter.SelectType(pendingShopType, false);
+        }
+
+        public void CompleteGameplayShopsValidation()
+        {
+            StartCoroutine(CaptureGameplayShopsValidation());
+        }
+
         public bool PrepareShopPurchaseValidation(double rawId)
         {
             ushort id = checked((ushort)rawId);
@@ -3202,6 +3258,50 @@ namespace ProjectX.Core
             }
         }
 
+        private IEnumerator CaptureGameplayShopsValidation()
+        {
+            byte[] allTypes = { 2, 3, 4, 5, 6, 7, 8 };
+            if (!services.GameplayShops.HasAll(allTypes) || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/7, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string directory = Path.Combine(repositoryRoot, "build", "ui-migration");
+            Directory.CreateDirectory(directory);
+
+            ShowGameplayShop(15);
+            gameplayShopsPresenter.SelectType(2, false);
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-gameplay-shop-jianghun.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+
+            ShowGameplayShop(16);
+            gameplayShopsPresenter.SelectType(3, false);
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-gameplay-shop-arena.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+
+            ShowGameplayShop(17);
+            gameplayShopsPresenter.SelectType(5, false);
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-gameplay-shop-blood.png"));
+            yield return new WaitForSecondsRealtime(0.8f);
+
+            if (!IsGameplayShopOpen || !gameplayShopsPresenter.IsAuthoritativeVisible
+                || gameplayShopsPresenter.RenderedCount <= 0 || gameplayShopsPresenter.MissingIconCount != 0)
+            {
+                Fail($"Gameplay shops render mismatch: open={IsGameplayShopOpen}, authoritative={gameplayShopsPresenter.IsAuthoritativeVisible}, rendered={gameplayShopsPresenter.RenderedCount}, missing={gameplayShopsPresenter.MissingIconCount}.");
+                yield break;
+            }
+            Complete($"COMPLETE: function_id=15/16/17 -> current JiangHunShop/WanFaShopMainUI -> /221 types 2,3,4,5,6,7,8 -> {services.GameplayShops.TotalItemCount(allTypes)} authoritative goods across 7 pages; read-only first phase");
+        }
+
         private void EnsureMailPresenter()
         {
             mailView = mailView ?? services.UiRouter.FindBySource("MailLayer");
@@ -3216,6 +3316,19 @@ namespace ProjectX.Core
             if (shopView == null) throw new InvalidOperationException("shop/shangcheng CocosUiBinding was not found.");
             shopPresenter = shopPresenter ?? new ShopPresenter(shopView, services.Shop, services.Currencies,
                 services.Resources, services.ServerTime, ShowShopPurchaseConfirmation);
+        }
+
+        private void EnsureGameplayShopsPresenter()
+        {
+            soulShopView = soulShopView ?? services.UiRouter.FindBySource("shop/jianghunshop");
+            multiShopView = multiShopView ?? services.UiRouter.FindBySource("shop/wanfashop");
+            if (soulShopView == null) throw new InvalidOperationException("shop/jianghunshop CocosUiBinding was not found.");
+            if (multiShopView == null) throw new InvalidOperationException("shop/wanfashop CocosUiBinding was not found.");
+            gameplayShopsPresenter = gameplayShopsPresenter ?? new GameplayShopsPresenter(
+                soulShopView, multiShopView, services.GameplayShops, services.Currencies,
+                services.Resources, services.ServerTime,
+                type => InvokeLuaOrFail(onGameplayShopTab, "Gameplay.Shops.Tab", (double)type),
+                () => HandleBack());
         }
 
         private void EnsureFriendPresenter()

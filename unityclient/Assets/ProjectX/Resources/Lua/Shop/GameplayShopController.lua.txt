@@ -1,0 +1,119 @@
+local Protocol = require("Protocol")
+local itemCatalog = require("Data.ItemCatalog")
+local itemsById = {}
+for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
+
+local M = {
+    activeRequestType = 0,
+    validation = false,
+    queue = {},
+    queueIndex = 0,
+}
+
+local FUNCTION_FIRST_TYPE = { [15] = 2, [16] = 3, [17] = 5 }
+local VALIDATION_TYPES = { 2, 3, 4, 5, 6, 7, 8 }
+
+local function requestPage(shopType)
+    M.activeRequestType = shopType
+    local message = Protocol.newMessage(Protocol.SHOP)
+    message:WriteByte(1)
+    message:WriteByte(shopType)
+    Bridge:Send(message)
+    Bridge:SetStatus("Gameplay shops /221 list request sent: type=" .. tostring(shopType) .. ".")
+end
+
+function M.open(functionId)
+    local firstType = FUNCTION_FIRST_TYPE[functionId]
+    if firstType == nil then
+        Bridge:Fail("Gameplay shop route is missing function_id=" .. tostring(functionId) .. ".")
+        return
+    end
+    Bridge:ShowGameplayShop(functionId)
+    M.validation = Bridge:HasCommandLineFlag("-projectXGameplayShopsValidation")
+    if M.validation then
+        M.queue = VALIDATION_TYPES
+        M.queueIndex = 1
+        requestPage(M.queue[M.queueIndex])
+    else
+        M.queue = {}
+        M.queueIndex = 0
+        requestPage(firstType)
+    end
+end
+
+function M.selectType(shopType)
+    if M.activeRequestType ~= 0 then return end
+    requestPage(shopType)
+end
+
+local function fail(reason)
+    M.activeRequestType = 0
+    M.validation = false
+    M.queue = {}
+    M.queueIndex = 0
+    Bridge:Fail(reason)
+end
+
+local function readList(message, op)
+    local shopType = message:ReadByte()
+    local success = message:ReadByte()
+    if shopType ~= M.activeRequestType then
+        fail("Gameplay shops /221 type mismatch: expected=" .. tostring(M.activeRequestType)
+            .. ", actual=" .. tostring(shopType) .. ".")
+        return
+    end
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "server rejected shop list"
+        fail("Gameplay shops /221 list failed: type=" .. tostring(shopType) .. ", " .. tostring(reason))
+        return
+    end
+    local refreshTimes = message:ReadUShort()
+    local freeTimes = message:ReadByte()
+    local refreshRemaining = message:ReadUShort()
+    local count = message:ReadByte()
+    Bridge:BeginGameplayShopUpdate(shopType, refreshTimes, freeTimes, refreshRemaining, count)
+    for _ = 1, count do
+        local grid = message:ReadByte()
+        local id = message:ReadUShort()
+        local buyCount = message:ReadUShort()
+        local displayId = Bridge:GetShopDisplayItemId(id)
+        local item = itemsById[displayId] or {}
+        Bridge:AddGameplayShopRecord(grid, id, buyCount, item.name or "", item.des or "",
+            item.pic or 0, item.quality or 0)
+    end
+    if message.Remaining ~= 0 then
+        fail("Gameplay shops /221 type=" .. tostring(shopType) .. " has "
+            .. tostring(message.Remaining) .. " unread bytes.")
+        return
+    end
+    Bridge:EndGameplayShopUpdate()
+    M.activeRequestType = 0
+    if not M.validation then
+        Bridge:SetStatus("Gameplay shops /221 type=" .. tostring(shopType) .. " rendered "
+            .. tostring(count) .. " authoritative goods.")
+        return
+    end
+    if count <= 0 then
+        fail("Gameplay shops validation received empty type=" .. tostring(shopType) .. ".")
+        return
+    end
+    M.queueIndex = M.queueIndex + 1
+    if M.queueIndex <= #M.queue then
+        requestPage(M.queue[M.queueIndex])
+        return
+    end
+    M.validation = false
+    M.queue = {}
+    M.queueIndex = 0
+    Bridge:CompleteGameplayShopsValidation()
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.SHOP or M.activeRequestType == 0 then return false end
+    local op = message:ReadByte()
+    if op == 1 or op == 3 then readList(message, op)
+    else fail("Gameplay shops /221 unsupported op=" .. tostring(op) .. ".") end
+    return true
+end
+
+return M

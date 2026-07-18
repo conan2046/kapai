@@ -35,6 +35,8 @@ namespace ProjectX.Editor
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
         private const string MailPrefab = "Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab";
         private const string ShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab";
+        private const string SoulShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/jianghunshop.prefab";
+        private const string MultiShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/wanfashop.prefab";
         private const string FriendPrefab = "Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab";
         private const string ChatPrefab = "Assets/ProjectX/res/csd/Prefabs/MainChatLayer.prefab";
         private const string TeamMembersPrefab = "Assets/ProjectX/res/csd/Prefabs/TeamMembersLayer.prefab";
@@ -106,6 +108,8 @@ namespace ProjectX.Editor
             new PrefabSpec(LoadingPrefab, false),
             new PrefabSpec(MailPrefab, false),
             new PrefabSpec(ShopPrefab, false),
+            new PrefabSpec(SoulShopPrefab, false),
+            new PrefabSpec(MultiShopPrefab, false),
             new PrefabSpec(FriendPrefab, false),
             new PrefabSpec(ChatPrefab, false),
             new PrefabSpec(TeamMembersPrefab, false),

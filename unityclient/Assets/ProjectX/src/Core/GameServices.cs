@@ -22,6 +22,7 @@ namespace ProjectX.Core
             Mails = new MailStore();
             ShopCatalog = new ShopCatalog();
             Shop = new ShopStore();
+            GameplayShops = new GameplayShopStore();
             Friends = new FriendStore();
             Chat = new ChatStore();
             Team = new TeamStore();
@@ -69,6 +70,7 @@ namespace ProjectX.Core
         public MailStore Mails { get; }
         public ShopCatalog ShopCatalog { get; }
         public ShopStore Shop { get; }
+        public GameplayShopStore GameplayShops { get; }
         public FriendStore Friends { get; }
         public ChatStore Chat { get; }
         public TeamStore Team { get; }
@@ -120,6 +122,7 @@ namespace ProjectX.Core
             FaBao.Clear();
             Mails.Clear();
             Shop.Clear();
+            GameplayShops.Clear();
             Friends.Clear();
             Chat.Clear();
             Team.Clear();

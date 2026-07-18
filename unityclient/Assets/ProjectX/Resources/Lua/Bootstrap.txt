@@ -9,6 +9,7 @@ local EquipmentController = require("Hero.EquipmentController")
 local ServerTimeController = require("Time.ServerTimeController")
 local MailController = require("Mail.MailController")
 local ShopController = require("Shop.ShopController")
+local GameplayShopController = require("Shop.GameplayShopController")
 local FriendController = require("Friend.FriendController")
 local ChatController = require("Chat.ChatController")
 local TeamController = require("Team.TeamController")
@@ -49,6 +50,8 @@ function OnMailClicked() MailController.onClick() end
 function OnMailClaimClicked(id) MailController.claim(id) end
 function OnShopClicked() ShopController.onClick() end
 function OnShopBuyConfirmed(id) ShopController.buyConfirmed(id) end
+function OnGameplayShopOpened(functionId) GameplayShopController.open(functionId) end
+function OnGameplayShopTab(shopType) GameplayShopController.selectType(shopType) end
 function OnFriendClicked() FriendController.onClick() end
 function OnFriendRequestList() FriendController.requestFriends() end
 function OnFriendRequestApplications() FriendController.requestApplications() end
@@ -98,6 +101,7 @@ function OnPacket(command, message)
     if EquipmentController.onPacket(command, message) then return end
     if ServerTimeController.onPacket(command, message) then return end
     if MailController.onPacket(command, message) then return end
+    if GameplayShopController.onPacket(command, message) then return end
     if ShopController.onPacket(command, message) then return end
     if FriendController.onPacket(command, message) then return end
     if ChatController.onPacket(command, message) then return end

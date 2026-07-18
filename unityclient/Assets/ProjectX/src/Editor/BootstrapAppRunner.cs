@@ -110,6 +110,7 @@ namespace ProjectX.Editor
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
             bool shopValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopValidation") >= 0;
+            bool gameplayShopsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsValidation") >= 0;
             bool friendValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFriendValidation") >= 0;
             bool chatValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXChatValidation") >= 0;
             bool teamValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTeamValidation") >= 0;
@@ -207,6 +208,7 @@ namespace ProjectX.Editor
                 bool checkingHeroEquipment = heroEquipmentValidation;
                 bool checkingMail = mailValidation;
                 bool checkingShop = shopValidation;
+                bool checkingGameplayShops = gameplayShopsValidation;
                 bool checkingFriend = friendValidation;
                 bool checkingChat = chatValidation;
                 bool checkingTeam = teamValidation;
@@ -246,7 +248,7 @@ namespace ProjectX.Editor
                     }
                     if (!checkingPlayerHud && (checkingTask ? !app.IsTaskOpen : checkingSettings ? !app.IsSettingsOpen
                         : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero ? !app.IsHeroOpen
-                        : checkingMail ? !app.IsMailOpen : checkingShop ? !app.IsShopOpen
+                        : checkingMail ? !app.IsMailOpen : checkingGameplayShops ? !app.IsGameplayShopOpen : checkingShop ? !app.IsShopOpen
                         : checkingFriend ? !app.IsFriendOpen : checkingChat ? !app.IsChatOpen
                         : checkingTeam ? !app.IsTeamOpen : checkingGuild ? !app.IsGuildOpen
                         : checkingWorld ? !app.IsWorldOpen : checkingWelfare ? !app.IsWelfareOpen
@@ -263,6 +265,8 @@ namespace ProjectX.Editor
                             ? " (hero UI was not pushed onto UiStack)"
                             : checkingMail
                             ? " (mail UI was not pushed onto UiStack)"
+                            : checkingGameplayShops
+                            ? " (gameplay shops UI was not pushed onto UiStack)"
                             : checkingShop
                             ? " (shop UI was not pushed onto UiStack)"
                             : checkingFriend
@@ -325,13 +329,19 @@ namespace ProjectX.Editor
                         Finish(false);
                         return;
                     }
+                    if (checkingGameplayShops && app.GameplayShopMissingIconCount > 0)
+                    {
+                        WriteResult(false, status + $" ({app.GameplayShopMissingIconCount} gameplay-shop icons were not resolved)");
+                        Finish(false);
+                        return;
+                    }
                     if (checkingGameplay && app.GameplayMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.GameplayMissingIconCount} gameplay icons were not resolved)");
                         Finish(false);
                         return;
                     }
-                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && !checkingWelfare && !checkingActivity && !checkingDraw && !checkingGameplay && !checkingYouLi && !checkingFengShenStory && !checkingArena && !checkingKunLun && !checkingBloodFight && !checkingXunBao && !checkingSevenDay && app.BagMissingIconCount > 0)
+                    if (!checkingTask && !checkingSettings && !checkingHero && !checkingHeroEquipment && !checkingMail && !checkingShop && !checkingGameplayShops && !checkingFriend && !checkingChat && !checkingTeam && !checkingGuild && !checkingWorld && !checkingWelfare && !checkingActivity && !checkingDraw && !checkingGameplay && !checkingYouLi && !checkingFengShenStory && !checkingArena && !checkingKunLun && !checkingBloodFight && !checkingXunBao && !checkingSevenDay && app.BagMissingIconCount > 0)
                     {
                         WriteResult(false, status + $" ({app.BagMissingIconCount} item icons were not resolved)");
                         Finish(false);
@@ -339,7 +349,7 @@ namespace ProjectX.Editor
                     }
                     string screenshotPath = checkingPlayerHud ? GetMainHudScreenshotPath()
                         : checkingTask ? GetTaskScreenshotPath() : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath()
-                        : checkingMail ? GetMailScreenshotPath() : checkingShop ? GetShopScreenshotPath()
+                        : checkingMail ? GetMailScreenshotPath() : checkingGameplayShops ? GetGameplayShopsScreenshotPath() : checkingShop ? GetShopScreenshotPath()
                         : checkingFriend ? GetFriendScreenshotPath() : checkingChat ? GetChatScreenshotPath()
                         : checkingTeam ? GetTeamScreenshotPath() : checkingGuild ? GetGuildScreenshotPath()
                         : checkingWorld ? GetWorldScreenshotPath() : checkingWelfare ? GetWelfareScreenshotPath()
@@ -363,7 +373,7 @@ namespace ProjectX.Editor
                 }
                 if (!app.HandleBack() || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
                     : checkingHeroEquipment ? app.IsHeroEquipmentOpen : checkingHero ? app.IsHeroOpen
-                    : checkingMail ? app.IsMailOpen : checkingShop ? app.IsShopOpen
+                    : checkingMail ? app.IsMailOpen : checkingGameplayShops ? app.IsGameplayShopOpen : checkingShop ? app.IsShopOpen
                     : checkingFriend ? app.IsFriendOpen : checkingChat ? app.IsChatOpen
                     : checkingTeam ? app.IsTeamOpen : checkingGuild ? app.IsGuildOpen
                     : checkingWorld ? app.IsWorldOpen : checkingWelfare ? app.IsWelfareOpen
@@ -380,6 +390,8 @@ namespace ProjectX.Editor
                         ? " (Esc/back did not return from hero UI to main UI)"
                         : checkingMail
                         ? " (Esc/back did not return from mail UI to main UI)"
+                        : checkingGameplayShops
+                        ? " (Esc/back did not return from gameplay shops UI to gameplay hub)"
                         : checkingShop
                         ? " (Esc/back did not return from shop UI to main UI)"
                         : checkingFriend
@@ -564,6 +576,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop.png");
+        }
+
+        private static string GetGameplayShopsScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-gameplay-shop-blood.png");
         }
 
         private static string GetFriendScreenshotPath()
