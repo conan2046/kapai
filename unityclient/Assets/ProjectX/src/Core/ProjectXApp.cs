@@ -83,7 +83,12 @@ namespace ProjectX.Core
         private CocosUiView loginView;
         private CocosUiView loginServerListView;
         private CocosUiView roleCreateView;
+        private CocosUiView noticeView;
+        private StartupPresenter startupPresenter;
         private LoginPresenter loginPresenter;
+        private NoticePresenter noticePresenter;
+        private readonly List<NoticeRecord> pendingGameNotices = new List<NoticeRecord>();
+        private bool gameNoticeRequested;
         private CocosUiView mainView;
         private CocosUiView bagView;
         private BagPresenter bagPresenter;
@@ -202,6 +207,9 @@ namespace ProjectX.Core
         public bool IsLoginVisible => loginView != null && loginView.GameObject.activeSelf;
         public int LoginPlayingAnimationCount => loginPresenter?.PlayingAnimationCount ?? 0;
         public bool IsRoleCreateVisible => loginPresenter?.IsRoleCreateVisible ?? false;
+        public bool IsGameNoticeOpen => noticeView != null && services?.UiStack.Current == noticeView;
+        public int GameNoticeCount => noticePresenter?.Count ?? 0;
+        public bool GameNoticeRequested => gameNoticeRequested;
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
         public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
         public bool IsWorldOpen => worldView != null && services?.UiStack.Current == worldView;
@@ -308,7 +316,7 @@ namespace ProjectX.Core
                 onWorldRefresh = services.Lua.GetFunction("OnWorldRefresh");
                 onWelfareClicked = services.Lua.GetFunction("OnWelfareClicked");
                 onWelfareClaimSign = services.Lua.GetFunction("OnWelfareClaimSign");
-                using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
+                StartCoroutine(RunCurrentCocosStartup());
             }
             catch (Exception exception)
             {
@@ -324,6 +332,16 @@ namespace ProjectX.Core
             shopPresenter?.Tick();
             welfarePresenter?.Tick();
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
+        }
+
+        private IEnumerator RunCurrentCocosStartup()
+        {
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null) { Fail("Startup Canvas was not found."); yield break; }
+            startupPresenter = new StartupPresenter(canvas);
+            SetStatus("LogoScene -> GameScene preload sequence.");
+            yield return startupPresenter.Play();
+            using (LuaFunction begin = services.Lua.GetFunction("Begin")) CallLua(begin, "Bootstrap.Begin");
         }
 
         private void OnDestroy()
@@ -389,7 +407,9 @@ namespace ProjectX.Core
             guildPresenter?.Dispose();
             worldPresenter?.Dispose();
             welfarePresenter?.Dispose();
+            startupPresenter?.Dispose();
             loginPresenter?.Dispose();
+            noticePresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (Instance == this) Instance = null;
@@ -458,6 +478,7 @@ namespace ProjectX.Core
         {
             try
             {
+                if (message.OutgoingCommand == 88) gameNoticeRequested = true;
                 services.ProtocolRegistry.TrackSend(message.OutgoingCommand);
                 services.Network.Send(message);
             }
@@ -470,6 +491,7 @@ namespace ProjectX.Core
             loginBackgroundView = services.UiRouter.FindBySource("Login/LoginBgLayer");
             loginServerListView = services.UiRouter.FindBySource("Login/SeverListLayer");
             roleCreateView = services.UiRouter.FindBySource("Login/RoleCreateLayer");
+            noticeView = services.UiRouter.FindBySource("/NoticeLayer.csd", true);
             mainView = services.UiRouter.FindBySource("UImainLayer", true);
             bagView = services.UiRouter.FindBySource("zhujue/beibao");
             settingsView = services.UiRouter.FindBySource("zhujue/SystemLayer");
@@ -490,6 +512,7 @@ namespace ProjectX.Core
             loginView?.SetVisible(true);
             loginServerListView?.SetVisible(false);
             roleCreateView?.SetVisible(false);
+            noticeView?.SetVisible(false);
             mainView?.SetVisible(false);
             bagView?.SetVisible(false);
             settingsView?.SetVisible(false);
@@ -545,7 +568,10 @@ namespace ProjectX.Core
             if (server == null || !server.activeInHierarchy || serverName == null || serverName.text != "本地测试服")
             { detail = "local server selector is not configured"; return false; }
             if (LoginPlayingAnimationCount <= 0) { detail = "effect_chuangjue_1 is not playing"; return false; }
-            detail = "Btn_Play/local server/effect_chuangjue_1 match Cocos openType=1";
+            string startupDetail = "StartupPresenter is missing";
+            if (startupPresenter == null || !startupPresenter.Validate(out startupDetail))
+            { detail = "startup mismatch: " + startupDetail; return false; }
+            detail = startupDetail + " -> Btn_Play/local server/effect_chuangjue_1 match Cocos openType=1";
             return true;
         }
 
@@ -577,13 +603,46 @@ namespace ProjectX.Core
         public void CompleteLoginValidation(bool createdRole)
         {
             if (!HasCommandLineFlag("-projectXLoginValidation")) return;
-            if (mainView == null || services?.UiStack.Current != mainView)
-            { Fail("Login validation reached /1004 without the current UImainLayer root."); return; }
+            bool requireNoticeResponse = HasCommandLineFlag("-projectXRequireNoticeResponse");
+            bool validRoot = mainView != null && (services?.UiStack.Current == mainView
+                || (requireNoticeResponse && services?.UiStack.Current == noticeView));
+            if (!validRoot)
+            { Fail("Login validation reached completion without the current UImainLayer/NoticeLayer stack."); return; }
             if (GetPlayerRoleId() == 0)
             { Fail("Login validation reached main UI with roleId=0."); return; }
-            Complete($"COMPLETE: current Cocos login chain -> Btn_Play -> /1001 -> "
+            if (!gameNoticeRequested)
+            { Fail("Login validation reached main UI without sending optional PRO_GONGGAO/88."); return; }
+            if (requireNoticeResponse && (!IsGameNoticeOpen || GameNoticeCount <= 0))
+            { Fail("Required local_test PRO_GONGGAO/88 response did not render NoticeLayer."); return; }
+            Complete($"COMPLETE: LogoScene/GameScene preload -> Btn_Play -> /1001 -> "
                 + (createdRole ? "RoleCreateLayer + Create_5/Create_4 -> /1003 -> " : string.Empty)
-                + $"/1004 -> current UImainLayer; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+                + $"/1004 -> current UImainLayer -> /88 NoticeLayer count={GameNoticeCount}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+        }
+
+        public void BeginGameNotice(int expectedCount)
+        {
+            pendingGameNotices.Clear();
+            if (expectedCount > 0) pendingGameNotices.Capacity = Math.Max(pendingGameNotices.Capacity, expectedCount);
+        }
+
+        public void AddGameNotice(string title, string text, int id, int operationType)
+        {
+            pendingGameNotices.Add(new NoticeRecord
+            {
+                Title = title ?? string.Empty,
+                Text = text ?? string.Empty,
+                Id = checked((byte)id),
+                OperationType = checked((byte)operationType)
+            });
+        }
+
+        public void ShowGameNotice()
+        {
+            if (noticeView == null) { Fail("NoticeLayer CocosUiBinding was not found."); return; }
+            noticePresenter = noticePresenter ?? new NoticePresenter(noticeView);
+            noticePresenter.Show(pendingGameNotices);
+            noticeView.GameObject.transform.SetAsLastSibling();
+            services.UiStack.Push(noticeView, false);
         }
 
         public void ShowMainUi()

@@ -9,6 +9,7 @@
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity 和 smoke 三方/四方证据 |
 | `Run-UnityModuleValidation.ps1` | 串行启服、运行 Unity、校验结果/日志/截图并清理本阶段进程 |
 | `Test-UnityMigrationDocs.ps1` | 检查状态唯一性、文档体积、Manifest 和引用路径 |
+| `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次 Bootstrap，校验场景 SHA-256 不发生二次变化 |
 
 ## 常用命令
 
@@ -27,6 +28,7 @@ pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Shop
 
 # 文档与 Manifest 门禁
 pwsh -File tools/unity-migration/Test-UnityMigrationDocs.ps1
+pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 ```
 
 ## 安全规则

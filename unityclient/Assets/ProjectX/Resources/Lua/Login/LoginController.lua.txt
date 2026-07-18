@@ -67,12 +67,25 @@ function M.onPacket(command, message)
         Bridge:InitializePlayer(roleId, name, sex, model, head, level, experience, power,
             money, premium, boundPremium, potential, soul, packageCapacity, guildContribution)
         LoginView.showMain(Bridge:IsAutomation())
+        LoginProtocol.requestGameNotice()
         ServerTimeController.request()
         PlayerController.requestStamina()
-        if Bridge:HasCommandLineFlag("-projectXLoginValidation") then
+        if Bridge:HasCommandLineFlag("-projectXLoginValidation") and not Bridge:HasCommandLineFlag("-projectXRequireNoticeResponse") then
             Bridge:CompleteLoginValidation(M.createdRole)
         end
         if Bridge:HasCommandLineFlag("-projectXPlayerHudValidation") then PlayerController.beginValidation() end
+        return true
+    end
+    if command == Protocol.GAME_NOTICE then
+        local count = message:ReadByte()
+        Bridge:BeginGameNotice(count)
+        for _ = 1, count do
+            Bridge:AddGameNotice(message:ReadString(), message:ReadString(), message:ReadByte(), message:ReadByte())
+        end
+        Bridge:ShowGameNotice()
+        if Bridge:HasCommandLineFlag("-projectXLoginValidation") and Bridge:HasCommandLineFlag("-projectXRequireNoticeResponse") then
+            Bridge:CompleteLoginValidation(M.createdRole)
+        end
         return true
     end
     return false

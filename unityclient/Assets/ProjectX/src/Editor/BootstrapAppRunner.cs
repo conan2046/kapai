@@ -164,12 +164,26 @@ namespace ProjectX.Editor
             {
                 if (loginValidation)
                 {
-                    if (SessionState.GetInt(LoginPhaseKey, 0) != 3)
+                    int loginPhase = SessionState.GetInt(LoginPhaseKey, 0);
+                    bool requireNoticeResponse = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXRequireNoticeResponse") >= 0;
+                    if (loginPhase != 3 && loginPhase != 4)
                     {
                         WriteResult(false, status + " (isolated role-creation evidence phase did not complete)");
                         Finish(false);
                         return;
                     }
+                    if (requireNoticeResponse && loginPhase == 3)
+                    {
+                        string noticeScreenshot = GetLoginNoticeScreenshotPath();
+                        Directory.CreateDirectory(Path.GetDirectoryName(noticeScreenshot));
+                        if (File.Exists(noticeScreenshot)) File.Delete(noticeScreenshot);
+                        ScreenCapture.CaptureScreenshot(noticeScreenshot);
+                        SessionState.SetInt(LoginPhaseKey, 4);
+                        Debug.Log("[BootstrapAppRunner] /88 NoticeLayer validated; waiting for screenshot.");
+                        return;
+                    }
+                    if (requireNoticeResponse && (loginPhase != 4 || !File.Exists(GetLoginNoticeScreenshotPath())
+                        || new FileInfo(GetLoginNoticeScreenshotPath()).Length == 0)) return;
                     WriteResult(true, status + " | login code/UI/animation evidence passed");
                     Finish(true);
                     return;
@@ -436,6 +450,13 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-login.png");
+        }
+
+        private static string GetLoginNoticeScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-login-notice.png");
         }
 
         private static string GetTaskScreenshotPath()

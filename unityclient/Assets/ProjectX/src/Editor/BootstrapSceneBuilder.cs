@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using ProjectX.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -17,6 +19,7 @@ namespace ProjectX.Editor
         private const string LoginPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab";
         private const string LoginServerListPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab";
         private const string RoleCreatePrefab = "Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab";
+        private const string NoticePrefab = "Assets/ProjectX/res/csd/Prefabs/NoticeLayer.prefab";
         private const string MainPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
         private const string BackupMainPrefab = "Assets/ProjectX/res/csd/Prefabs/UImainLayer_backup.prefab";
         private const string BagPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab";
@@ -47,8 +50,78 @@ namespace ProjectX.Editor
         private const string WelfareSignPrefab = "Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab";
         private const string WelfareOnlinePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab";
 
-        [MenuItem("Tools/ProjectX App/Rebuild Bootstrap Scene", priority = 90)]
+        private readonly struct PrefabSpec
+        {
+            public PrefabSpec(string path, bool active, string parentPath = null)
+            {
+                Path = path;
+                Active = active;
+                ParentPath = parentPath;
+            }
+
+            public string Path { get; }
+            public bool Active { get; }
+            public string ParentPath { get; }
+        }
+
+        private static readonly PrefabSpec[] PrefabSpecs =
+        {
+            new PrefabSpec(LoginBackgroundPrefab, true),
+            new PrefabSpec(LoginPrefab, true),
+            new PrefabSpec(LoginServerListPrefab, false),
+            new PrefabSpec(RoleCreatePrefab, false),
+            new PrefabSpec(NoticePrefab, false),
+            new PrefabSpec(MainPrefab, false),
+            new PrefabSpec(BackupMainPrefab, false),
+            new PrefabSpec(BagPrefab, false),
+            new PrefabSpec(SettingsPrefab, false),
+            new PrefabSpec(TaskBackgroundPrefab, false),
+            new PrefabSpec(TaskPrefab, true, TaskBackgroundPrefab),
+            new PrefabSpec(ErrorPrefab, false),
+            new PrefabSpec(RewardPrefab, false),
+            new PrefabSpec(LoadingPrefab, false),
+            new PrefabSpec(MailPrefab, false),
+            new PrefabSpec(ShopPrefab, false),
+            new PrefabSpec(FriendPrefab, false),
+            new PrefabSpec(ChatPrefab, false),
+            new PrefabSpec(TeamMembersPrefab, false),
+            new PrefabSpec(TeamInvitePrefab, false),
+            new PrefabSpec(GuildListPrefab, false),
+            new PrefabSpec(GuildInfoPrefab, false),
+            new PrefabSpec(GuildMemberPrefab, false),
+            new PrefabSpec(GuildCreatePrefab, false),
+            new PrefabSpec(WorldPrefab, false),
+            new PrefabSpec(WorldMapPrefab, false),
+            new PrefabSpec(WorldDetailPrefab, false),
+            new PrefabSpec(WelfarePrefab, false),
+            new PrefabSpec(WelfareSignPrefab, false),
+            new PrefabSpec(WelfareOnlinePrefab, false),
+            new PrefabSpec(HeroListPrefab, false),
+            new PrefabSpec(HeroDetailPrefab, true, HeroListPrefab),
+            new PrefabSpec(HeroEquipmentListPrefab, false),
+            new PrefabSpec(HeroEquipmentDetailPrefab, false, HeroEquipmentListPrefab)
+        };
+
+        [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]
         public static void Build()
+        {
+            if (IsBootstrapSceneCurrent())
+            {
+                EnsureBuildSettings();
+                Debug.Log("[ProjectXApp] Bootstrap scene semantic signature unchanged; rebuild skipped.");
+                return;
+            }
+
+            Rebuild();
+        }
+
+        [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]
+        public static void ForceRebuild()
+        {
+            Rebuild();
+        }
+
+        private static void Rebuild()
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -73,48 +146,17 @@ namespace ProjectX.Editor
             scaler.matchWidthOrHeight = 0.5f;
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
-            Instantiate(LoginBackgroundPrefab, canvasObject.transform, true);
-            Instantiate(LoginPrefab, canvasObject.transform, true);
-            Instantiate(LoginServerListPrefab, canvasObject.transform, false);
-            Instantiate(RoleCreatePrefab, canvasObject.transform, false);
-            Instantiate(MainPrefab, canvasObject.transform, false);
-            Instantiate(BackupMainPrefab, canvasObject.transform, false);
-            Instantiate(BagPrefab, canvasObject.transform, false);
-            Instantiate(SettingsPrefab, canvasObject.transform, false);
-            GameObject taskBackground = Instantiate(TaskBackgroundPrefab, canvasObject.transform, false);
-            Instantiate(TaskPrefab, taskBackground.transform, true);
-            Instantiate(ErrorPrefab, canvasObject.transform, false);
-            Instantiate(RewardPrefab, canvasObject.transform, false);
-            Instantiate(LoadingPrefab, canvasObject.transform, false);
-            Instantiate(MailPrefab, canvasObject.transform, false);
-            Instantiate(ShopPrefab, canvasObject.transform, false);
-            Instantiate(FriendPrefab, canvasObject.transform, false);
-            Instantiate(ChatPrefab, canvasObject.transform, false);
-            Instantiate(TeamMembersPrefab, canvasObject.transform, false);
-            Instantiate(TeamInvitePrefab, canvasObject.transform, false);
-            Instantiate(GuildListPrefab, canvasObject.transform, false);
-            Instantiate(GuildInfoPrefab, canvasObject.transform, false);
-            Instantiate(GuildMemberPrefab, canvasObject.transform, false);
-            Instantiate(GuildCreatePrefab, canvasObject.transform, false);
-            Instantiate(WorldPrefab, canvasObject.transform, false);
-            Instantiate(WorldMapPrefab, canvasObject.transform, false);
-            Instantiate(WorldDetailPrefab, canvasObject.transform, false);
-            Instantiate(WelfarePrefab, canvasObject.transform, false);
-            Instantiate(WelfareSignPrefab, canvasObject.transform, false);
-            Instantiate(WelfareOnlinePrefab, canvasObject.transform, false);
-            GameObject heroList = Instantiate(HeroListPrefab, canvasObject.transform, false);
-            Instantiate(HeroDetailPrefab, heroList.transform, true);
-            GameObject heroEquipmentList = Instantiate(HeroEquipmentListPrefab, canvasObject.transform, false);
-            Instantiate(HeroEquipmentDetailPrefab, heroEquipmentList.transform, false);
+            var instances = new Dictionary<string, GameObject>();
+            foreach (PrefabSpec spec in PrefabSpecs)
+            {
+                Transform parent = spec.ParentPath == null ? canvasObject.transform : instances[spec.ParentPath].transform;
+                instances.Add(spec.Path, Instantiate(spec.Path, parent, spec.Active));
+            }
             new GameObject("ProjectXApp", typeof(ProjectXApp));
 
             Directory.CreateDirectory(Path.GetDirectoryName(BootstrapScene));
             EditorSceneManager.SaveScene(scene, BootstrapScene);
-            EditorBuildSettings.scenes = new[]
-            {
-                new EditorBuildSettingsScene(BootstrapScene, true),
-                new EditorBuildSettingsScene(FirstPlayableScene, false)
-            };
+            EnsureBuildSettings();
             AssetDatabase.SaveAssets();
             Debug.Log("[ProjectXApp] Bootstrap scene rebuilt and set as build index 0.");
         }
@@ -131,6 +173,59 @@ namespace ProjectX.Editor
             GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             instance.SetActive(active);
             return instance;
+        }
+
+        private static bool IsBootstrapSceneCurrent()
+        {
+            if (!File.Exists(BootstrapScene)) return false;
+            Scene scene = EditorSceneManager.OpenScene(BootstrapScene, OpenSceneMode.Single);
+            GameObject[] roots = scene.GetRootGameObjects();
+            if (!roots.Select(root => root.name).SequenceEqual(new[]
+                { "Main Camera", "Directional Light", "Canvas", "EventSystem", "ProjectXApp" })) return false;
+
+            GameObject canvas = roots.SingleOrDefault(root => root.name == "Canvas");
+            if (canvas == null || roots.Single(root => root.name == "ProjectXApp").GetComponent<ProjectXApp>() == null) return false;
+
+            PrefabSpec[] actual = canvas.GetComponentsInChildren<Transform>(true)
+                .Where(transform => transform != canvas.transform && PrefabUtility.IsAnyPrefabInstanceRoot(transform.gameObject))
+                .Select(transform => new PrefabSpec(
+                    PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(transform.gameObject),
+                    transform.gameObject.activeSelf,
+                    GetParentPrefabPath(transform.parent)))
+                .ToArray();
+            if (actual.Length != PrefabSpecs.Length) return false;
+            for (int index = 0; index < PrefabSpecs.Length; index++)
+            {
+                PrefabSpec expected = PrefabSpecs[index];
+                PrefabSpec found = actual[index];
+                if (expected.Path != found.Path || expected.Active != found.Active || expected.ParentPath != found.ParentPath)
+                    return false;
+            }
+            return true;
+        }
+
+        private static string GetParentPrefabPath(Transform parent)
+        {
+            while (parent != null)
+            {
+                if (PrefabUtility.IsAnyPrefabInstanceRoot(parent.gameObject))
+                    return PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(parent.gameObject);
+                parent = parent.parent;
+            }
+            return null;
+        }
+
+        private static void EnsureBuildSettings()
+        {
+            var expected = new[]
+            {
+                new EditorBuildSettingsScene(BootstrapScene, true),
+                new EditorBuildSettingsScene(FirstPlayableScene, false)
+            };
+            if (EditorBuildSettings.scenes.Length == expected.Length &&
+                EditorBuildSettings.scenes.Zip(expected, (actual, item) =>
+                    actual.path == item.path && actual.enabled == item.enabled).All(matches => matches)) return;
+            EditorBuildSettings.scenes = expected;
         }
     }
 }

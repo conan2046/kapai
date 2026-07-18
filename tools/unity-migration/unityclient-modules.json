@@ -6,15 +6,30 @@
   "resultFile": "build/ui-migration/bootstrap-app-result.json",
   "logDirectory": "build/ui-migration",
   "isolatedUserIdStart": 7200000,
+  "validationDataProviders": {
+    "localMysql": {
+      "executable": "C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe",
+      "arguments": [
+        "--protocol=tcp",
+        "--host=127.0.0.1",
+        "--port=3306",
+        "--user=root",
+        "--password=123456",
+        "--default-character-set=utf8",
+        "--database=fxl_game_local"
+      ]
+    }
+  },
   "modules": [
     {
       "key": "Login",
       "displayName": "登录与创角",
-      "status": "revalidation-in-progress",
+      "status": "phase1-complete",
       "protocols": [
         1001,
         1003,
-        1004
+        1004,
+        88
       ],
       "entries": [
         "Layer/Login/Btn_Play"
@@ -24,7 +39,8 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/NoticeLayer.prefab"
       ],
       "configs": [
         "client/ProjectX/src/core/AppDef.lua"
@@ -33,8 +49,22 @@
       "validationFlags": [
         "-projectXLoginValidation"
       ],
+      "validationData": {
+        "provider": "localMysql",
+        "setupSql": [
+          "DELETE FROM notice_login WHERE title='本地公告验证{{UserId}}'",
+          "INSERT INTO notice_login(title,msg,showType,jumpType,beginTime,endTime) VALUES('本地公告验证{{UserId}}','Unity /88 NoticeLayer local_test validation',0,0,{{NowMinus60}},{{NowPlus3600}})"
+        ],
+        "cleanupSql": [
+          "DELETE FROM notice_login WHERE title='本地公告验证{{UserId}}'"
+        ],
+        "unityFlags": [
+          "-projectXRequireNoticeResponse"
+        ]
+      },
       "screenshots": [
-        "build/ui-migration/bootstrap-login.png"
+        "build/ui-migration/bootstrap-login.png",
+        "build/ui-migration/bootstrap-login-notice.png"
       ],
       "document": "docs/unityclient/modules/LOGIN.md"
     },

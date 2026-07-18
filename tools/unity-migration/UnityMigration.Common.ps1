@@ -47,6 +47,57 @@ function Write-UnityMigrationUtf8 {
     [System.IO.File]::WriteAllText($Path, $Content, $utf8)
 }
 
+function Expand-UnityMigrationTemplate {
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Template,
+        [Parameter(Mandatory = $true)][hashtable]$Variables
+    )
+    $expanded = $Template
+    foreach ($entry in $Variables.GetEnumerator()) {
+        $token = "{{" + $entry.Key + "}}"
+        $expanded = $expanded.Replace($token, [string]$entry.Value)
+    }
+    $unresolved = [regex]::Matches($expanded, '\{\{[A-Za-z][A-Za-z0-9]*\}\}')
+    if ($unresolved.Count -gt 0) {
+        $tokens = @($unresolved | ForEach-Object Value | Sort-Object -Unique) -join ", "
+        throw "Unresolved Unity migration template token(s): $tokens"
+    }
+    return $expanded
+}
+
+function Invoke-UnityMigrationValidationData {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$Manifest,
+        [Parameter(Mandatory = $true)]$ModuleConfig,
+        [Parameter(Mandatory = $true)][ValidateSet("setupSql", "cleanupSql")][string]$Phase,
+        [Parameter(Mandatory = $true)][hashtable]$Variables
+    )
+    $data = $ModuleConfig.validationData
+    if ($null -eq $data) { return }
+    $providerName = [string]$data.provider
+    $providerProperty = $Manifest.validationDataProviders.PSObject.Properties[$providerName]
+    if ($null -eq $providerProperty) { throw "Validation data provider '$providerName' was not found." }
+    $provider = $providerProperty.Value
+    $executable = Resolve-UnityMigrationPath -Root $Root -Path ([string]$provider.executable)
+    if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
+        throw "Validation data executable not found: $executable"
+    }
+    $statements = @($data.$Phase)
+    if ($statements.Count -eq 0) { return }
+    $sql = (@($statements | ForEach-Object {
+        Expand-UnityMigrationTemplate -Template ([string]$_) -Variables $Variables
+    }) -join ";`n") + ";"
+    $arguments = @($provider.arguments | ForEach-Object {
+        Expand-UnityMigrationTemplate -Template ([string]$_) -Variables $Variables
+    })
+    $arguments += "--execute=$sql"
+    & $executable @arguments 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Validation data $Phase failed for module '$($ModuleConfig.key)' via provider '$providerName'."
+    }
+}
+
 function Test-UnityMigrationPort {
     param([Parameter(Mandatory = $true)][int]$Port)
     return $null -ne (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1)

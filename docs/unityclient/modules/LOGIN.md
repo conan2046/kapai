@@ -34,21 +34,21 @@
 
 | 状态 | CSB/代码资源 | 动画调用 | Unity 对应 |
 |---|---|---|---|
-| Logo | 无 CSB；`bg3.png` | 0.5 秒 DelayTime | 待补启动阶段 |
-| 资源预载 | 无 CSB；`bg_jzzs.jpg/tipbg.png` | 公共 plist 异步回调 | 待补启动阶段 |
+| Logo | 无 CSB；`bg3.png` | 0.5 秒 DelayTime | `StartupPresenter` 精确映射并计时验收 |
+| 资源预载 | 无 CSB；`bg_jzzs.jpg/tipbg.png` | 6 组公共 plist 异步回调 | `StartupPresenter` 保留 6 组名称并完成 0.1 秒收尾态 |
 | 登录背景 | `Login/LoginBgLayer.csb` | `ImodAnim res2/animation/effect_chuangjue_1`, `PlayActionRepeat(0)` | `ImodAnimationPlayer/Resources`，动作 0 循环 |
 | 登录操作 | `Login/loginLayer.csb` | 仅 0.5/0.2 秒逻辑 DelayTime | 保持真实 Prefab；本地显示 `Btn_Play`，不是账号 `Btn_Login` |
 | 选服 | `Login/SeverListLayer.csb` | 无独立 ANI | 保持真实 Prefab，运行时绑定本地服 |
-| 创角 | `Login/RoleCreateLayer.csb` | 背景同上；角色 `PlayNewAction(0,true)` | 背景统一 Imod 播放器；男女角色资源待逐项核对 |
+| 创角 | `Login/RoleCreateLayer.csb` | 背景同上；角色 `PlayNewAction(0,true)` | 背景统一 Imod 播放器；男女 `Create_5/Create_4` 动作 0 循环已验收 |
 | 维护公告 | `GameNoticeLayer.csb` | `createTimeline`, `gotoFrameAndPlay(0)` | `CocosTimelinePlayer`，正式登录服后置 |
-| 游戏公告 | `NoticeLayer.csb` | 无 Lua 专属 ANI | `/88` 阶段迁移 |
+| 游戏公告 | `NoticeLayer.csb` | 无 Lua 专属 ANI | `/88` 真实回包、标题列表与正文渲染已验收 |
 
 ## 已确认的 Unity 偏差
 
 - 原 Unity 把 `Layer/Login/Btn_Login`（账号登录）当成本地进入游戏按钮；当前 Cocos 本地路径实际使用 `Btn_Play`。
 - 原 Unity 登录后直接发 `/1003`，没有经过 `RoleCreateLayer` 状态。
 - 原 Unity 未实例化 `SeverListLayer/RoleCreateLayer`，未播放登录背景 `effect_chuangjue_1`。
-- 原 Unity 尚未覆盖 Logo、Windows 资源预载态和 `/88 NoticeLayer`。
+- 原 Unity 尚未覆盖 Logo、Windows 资源预载态和 `/88 NoticeLayer`；本阶段已补齐。
 
 ## 本阶段改造门禁
 
@@ -58,10 +58,10 @@
 
 ## 2026-07-18 验证结果
 
-- 统一入口：`pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Login -UserId 7300102 -NoStartServices -SkipPythonTests`
-- 专用门禁顺序：`Btn_Play → /1001 roleId=0 → RoleCreateLayer → Create_5/Create_4 动作 0 循环 → /1003 → /1004 → UImainLayer_new`。
-- 最终证据：`userId=7300102`、`roleId=1000040`；结果 `build/ui-migration/bootstrap-app-result.json` 为 `success=true`。
-- 截图：`build/ui-migration/bootstrap-login.png`，`1334×750`；仅承担最终静态视觉证据。
-- 自动化已修正：登录验证禁用背包自动点击，只有登录专用三阶段全部完成才允许写入 `COMPLETE`。
-- 失败隔离：`7200017` 已有旧角色；`7300101` 因首次错误把 Toggle 当 Button 绑定而中止。两者不作为最终证据。
-- 剩余边界：Logo/Windows 六组公共 plist 预载态与 `/88 NoticeLayer` 尚未进入 Unity 动态门禁；服务端无有效公告时 `/88` 可不回包，后续不得伪造空响应。
+- 统一入口：`pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Login -UserId 7300109 -SkipPythonTests`。
+- 专用门禁顺序：`Logo 0.5s → Windows GameScene 预载态 → Btn_Play → /1001 roleId=0 → RoleCreateLayer → Create_5/Create_4 动作 0 循环 → /1003 → /1004 → UImainLayer_new → /88 NoticeLayer`。
+- 启动资源精确映射：`bg3.png、bg_jzzs.jpg、tipbg.png`；保留 `ui_loginPlist、ui_commonPlist、ui_mainPlist、ui_zhandouPlist、ui_huobi、ui_wanfaPlist` 六组名称。
+- 最终证据：`userId=7300109`、`roleId=1000046`；结果 `build/ui-migration/bootstrap-app-result.json` 为 `success=true`。
+- 截图：`build/ui-migration/bootstrap-login.png`、`bootstrap-login-notice.png`，均为 `1334×750`；仅承担最终静态视觉证据。
+- `/88` 动态验收在本地库临时插入唯一标题公告，验证真实回包、左侧标题和右侧正文后由 `finally` 精确删除；最终无测试公告残留。
+- 服务端无有效公告时 `/88` 可合法不回包；生产语义保持不变，自动化未伪造空响应。

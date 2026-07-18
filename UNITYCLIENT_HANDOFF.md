@@ -1,6 +1,6 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-18 10:45
+> 最后更新：2026-07-18 11:20
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
@@ -32,9 +32,9 @@
 
 先前活动任务误取了仓库旧版“玩法”链路（`/209 + ActivityLayer`），结论已作废，不提交、不计完成率。仓库同时包含多代代码/UI，后续以当前可运行 Cocos 的实际代码调用链作为唯一版本依据。
 
-当前从登录重新逐段迁移。本地登录/隔离创角段已完成代码取证、Unity 修正与专用门禁：`LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`，真实资源 `LoginBgLayer/loginLayer/SeverListLayer/RoleCreateLayer/UImainLayer_new`，本地按钮 `Btn_Play`，协议 `/1001→/1003→/1004`，登录背景 `effect_chuangjue_1` 与男女 `Create_5/Create_4` 动作 0 循环。最终账号 `7300102`、角色 `1000040`；证据见 `docs/unityclient/modules/LOGIN.md`。
+登录第一阶段已完成代码取证、Unity 修正与专用门禁：`LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`，真实启动资源与六组预载名称、登录/选服/创角/主界面 Prefab、本地按钮 `Btn_Play`、协议 `/1001→/1003→/1004→/88`、登录背景和男女角色 Imod、`NoticeLayer` 标题/正文均已动态验收。最终账号 `7300109`、角色 `1000046`；证据见 `docs/unityclient/modules/LOGIN.md`。
 
-下一段固定顺序：Logo/Windows 资源预载 → `/88 NoticeLayer`。当前主界面已作为 `/1004` 后置状态进入门禁；截图只用于最终像素验收，不用于推断入口、协议或版本。
+下一阶段按当前运行代码重新追活动入口、协议与真实 CSB；旧 `/209 + ActivityLayer` 结论禁止复用。截图只用于最终像素验收，不用于推断入口、协议或版本。
 
 ## 4. 已稳定的分层
 
@@ -83,11 +83,12 @@
 
 | 工具 | 用途 |
 |---|---|
-| `tools/unity-migration/unityclient-modules.json` | 模块、协议、入口、Prefab、配置和验收参数 |
+| `tools/unity-migration/unityclient-modules.json` | 模块、协议、入口、Prefab、配置、验收参数和数据夹具 |
 | `New-UnityMigrationModule.ps1` | 生成 Store/Catalog/Presenter/Lua/模块文档骨架 |
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity、smoke 证据 |
 | `Run-UnityModuleValidation.ps1` | 自动分配隔离角色、启服、串行 Unity、结果/截图检查和清理 |
 | `Test-UnityMigrationDocs.ps1` | 状态唯一性、文档体积、Manifest 和路径门禁 |
+| `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次并校验 Bootstrap 场景 SHA-256 稳定 |
 | `tools/ui_migration/convert_ui.py` | 按完整相对路径生成 UI IR、CSB 兜底和 `runtime-ui-usage.json` |
 | `tools/ui_migration/convert_animations.py` | 全量解析 Imod `.ani`，按 `welfare/all` scope 准备 Unity 资源 |
 | `prepare_unity_project.py --scope timeline` | 解析 29 处有效 Timeline 调用，只准备 27 个唯一目标 Prefab |
@@ -139,6 +140,7 @@
 | Team 推送状态漂移 | `/30` 只作通知，关联自身/当前队长时统一重拉 `/29 op=16` |
 | Team 本地功能未开放 | 本地缺配置会得到 `0xffff`；只在 `local_test=1` 回退到开放等级 32 |
 | 新 Prefab 路由找不到 | `BootstrapSceneBuilder` 新增装配后先重建场景；模块验证不会自动刷新旧场景 |
+| Bootstrap 每次整场景变化 | `BuildBatch` 先比对 Prefab 路径、层级、顺序和 active 语义签名；一致即跳过，改生成器后运行幂等门禁 |
 | Guild 响应包格式不统一 | `/54` 多数处理直接复用请求消息并追加字段，逐 op 读取，不套统一包头 |
 | Guild 验证污染数据 | 只用新角色创建单人帮派，读取成员后退出触发解散，并重拉 `/54 op=13` 确认空态 |
 | `/320` 货币奖励显示成 `#0` | 权威包使用 `type=600xx,id=0`；保留 id，只用 type 查询现有 ItemCatalog |

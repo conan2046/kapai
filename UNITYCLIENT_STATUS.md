@@ -1,6 +1,6 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-07-18 10:45
+> 最后更新：2026-07-18 11:20
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；长期路线见 `UNITYCLIENT_MIGRATION_PLAN.md`。
 
@@ -19,9 +19,9 @@
 | 模块 | 状态 | 已完成边界 | 后续 |
 |---|---|---|---|
 | 运行时/网络/xLua | 第一阶段完成 | App 状态、协议分发、错误边界、重连、返回栈 | 回放、发布配置、完整错误码 |
-| 登录/主界面 | 重新验收中 | 当前本地登录段已通过：真实 LoginBg/login/SeverList/RoleCreate、`Btn_Play`、隔离创角 `/1001→/1003→/1004`、登录背景与男女角色 Imod、当前 UImainLayer | Logo/Windows 资源预载、`/88` 公告内容页继续逐段验收 |
+| 登录/主界面 | 第一阶段完成 | 当前代码链已通过：Logo/Windows 预载、真实 LoginBg/login/SeverList/RoleCreate、`Btn_Play`、隔离创角 `/1001→/1003→/1004`、当前 UImainLayer、`/88 NoticeLayer` | 正式登录服、维护公告、发布配置后置 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
-| 迁移提速工具 | 已完成 | Manifest、模块脚手架、协议取证、统一验收、文档门禁、隔离角色分配 | 随新模块持续补 Manifest |
+| 迁移提速工具 | 已完成 | Manifest、模块脚手架、协议取证、统一验收、数据夹具 setup/cleanup、Bootstrap 幂等门禁、文档门禁、隔离角色分配 | 随新模块持续补 Manifest |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | 第一阶段完成 | 音乐/音效/音量持久化 | 兑换码、公告等独立模块 |
 | 背包 | 第一阶段完成 | `/8、/15` 全量/增量/整理/使用/持久化 | 更多物品类型和批量操作 |
@@ -47,12 +47,12 @@
 - `.ani` 专项（2026-07-18）：活动 Lua 共 67 个构造入口、208 个调用、38 个动态加载表达式；886/886 ANI 可解析。Unity 逐项通过 885 个可播放资源、1327 个动作、10264 个动作序列帧，PNG/ANI 分离、附加层、翻转、颜色、透明度、旧速度倍率均通过；固定 UI 24 路径中 18 个真实播放、6 个源包缺整组资源，另有 `Skill/skill_5_h_l.ani` 缺 PNG。视觉联系表 `.local/validation/imod-static-ui-contact-sheet.png`。
 - CSB Timeline 专项（2026-07-18）：29 处有效调用展开为 27 个唯一资源/Prefab；22 个有真实轨道、5 个源文件本身为空时间轴。累计导入 461 条轨道、2478 帧、34 个命名片段；唯一 CSB-only `FengShenLayer.csb` 已逐帧解码。Unity 实例化播放 27/27、命名片段 34/34、非空 FrameEvent 3/3，视觉抽样见 `.local/validation/timeline-*.png`。
 
-- 当前重验模块：登录第一段；基线仍为 `main 2f6db98a83da180c739d4b225cdae6e953662152`，包含 ImodAnim 提交。
+- 当前重验模块：登录第一阶段已收口；基础提交为 `main 543936ee69fde9bf81e9f8c1ce7372ca8e68b9a5`，启动态与 `/88` 为本批后续工作树。
 - 代码证据：Windows 当前链路为 `main→LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`；本地入口 `Btn_Play`，协议 `/1001→/1003(仅无角色)→/1004`。
 - 真实资源：`LoginBgLayer.csb、loginLayer.csb、SeverListLayer.csb、RoleCreateLayer.csb`；登录背景 `res2/animation/effect_chuangjue_1` 动作 0 循环。
-- Unity 门禁：`ValidateLoginUi` 断言本地服、按钮显隐与登录动画；专用阶段再断言 `RoleCreateLayer` 的 `Create_5/Create_4` 动作 0 循环，最后进入当前 `UImainLayer`。登录验证不再借自动背包流程产生 `COMPLETE`。
-- 最终隔离账号：`userId=7300102`、`roleId=1000040`；`7200017` 已有旧角色、`7300101` 为失败过程账号，均不作为最终证据。
-- 结果：`build/ui-migration/bootstrap-app-result.json`，`success=true`；`bootstrap-login.png` 为 `1334×750`；UI/动画转换测试 `16/16`，严重异常 `0`。
+- Unity 门禁：依次断言 Logo 0.5 秒、Windows 六组资源预载态、本地服按钮与登录动画、`RoleCreateLayer` 男女动作、当前 `UImainLayer`，最后发送 `/88` 并渲染真实 `NoticeLayer` 标题/正文。
+- 最终隔离账号：`userId=7300109`、`roleId=1000046`；公告验证数据由脚本临时写入并在退出路径精确清理。
+- 结果：`build/ui-migration/bootstrap-app-result.json`，`success=true`；`bootstrap-login.png`、`bootstrap-login-notice.png` 均为 `1334×750`；严重异常 `0`。
 - 活动旧版 `/209 + ActivityLayer` 结果已判为错误版本证据，不再计入完成率，也不得提交。
 
 ## 4. 当前批次
@@ -65,9 +65,9 @@
 
 1. 代码打印启动入口、Lua 控制器、真实 `createNode` CSB、按钮回调、协议号/字段、服务端处理和响应分支。
 2. Unity 按同一节点、状态机和动画参数实现；导入 Prefab 只读，运行时绑定。
-3. 登录本地服页面、隔离创角男女动画与 `/1001→/1003→/1004→UImainLayer` 已通过；下一段依次为 Logo/Windows 资源预载、`/88 NoticeLayer`。
+3. 登录第一阶段已通过：`Logo→Windows 预载→Btn_Play→/1001→/1003→/1004→UImainLayer→/88 NoticeLayer`。
 4. 每段先做代码/协议断言，再做 Unity 编译运行与动画过程门禁，最后才做静态截图像素比较。
-5. 登录链路完整收口后，再按当前运行代码重新立项活动；不复用旧 `ActivityLayer` 结论。
+5. 下一阶段按当前运行代码重新立项活动；不复用旧 `ActivityLayer` 结论。
 
 暂不并行：商城第二阶段、邮件第二阶段、装备深度培养。
 

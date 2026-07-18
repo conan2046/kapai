@@ -18,6 +18,16 @@ $warnings = New-Object System.Collections.Generic.List[string]
 function Add-Failure([string]$Message) { $failures.Add($Message) }
 function Add-Warning([string]$Message) { $warnings.Add($Message) }
 
+$templateProbe = Expand-UnityMigrationTemplate -Template "user={{UserId}}" -Variables @{ UserId = 42 }
+if ($templateProbe -ne "user=42") { Add-Failure "Validation data template expansion is broken." }
+try {
+    Expand-UnityMigrationTemplate -Template "{{UnknownToken}}" -Variables @{ UserId = 42 } | Out-Null
+    Add-Failure "Validation data template expansion accepted an unresolved token."
+}
+catch {
+    if ($_.Exception.Message -notlike "Unresolved Unity migration template token*") { throw }
+}
+
 function Test-RequiredFile {
     param([string]$RelativePath)
     $path = Resolve-UnityMigrationPath -Root $root -Path $RelativePath
@@ -105,6 +115,30 @@ foreach ($module in $manifest.modules) {
         }
         elseif ($protocolHeader -notmatch "=\s*$protocol\s*;") {
             Add-Warning "Module $key protocol /$protocol was not found as an explicit constant assignment in protocol.h."
+        }
+    }
+    $validationDataProperty = $module.PSObject.Properties["validationData"]
+    if ($null -ne $validationDataProperty) {
+        $validationData = $validationDataProperty.Value
+        $providerName = [string]$validationData.provider
+        $providerProperty = $manifest.validationDataProviders.PSObject.Properties[$providerName]
+        if (-not $providerName -or $null -eq $providerProperty) {
+            Add-Failure "Module $key references missing validation data provider: $providerName"
+        }
+        if (@($validationData.setupSql).Count -eq 0) {
+            Add-Failure "Module $key validationData has no setupSql."
+        }
+        if (@($validationData.cleanupSql).Count -eq 0) {
+            Add-Failure "Module $key validationData has no cleanupSql."
+        }
+        $templates = @($validationData.setupSql) + @($validationData.cleanupSql)
+        $allowedTokens = @("UserId", "Now", "NowMinus60", "NowPlus3600", "Module")
+        foreach ($template in $templates) {
+            foreach ($match in [regex]::Matches([string]$template, '\{\{([A-Za-z][A-Za-z0-9]*)\}\}')) {
+                if ($match.Groups[1].Value -notin $allowedTokens) {
+                    Add-Failure "Module $key uses unsupported validation data token: $($match.Value)"
+                }
+            }
         }
     }
 }

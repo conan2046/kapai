@@ -42,6 +42,7 @@ $friendPeerRoleIds = @()
 $teamPeerUserId = 0
 $teamTargetRoleId = 0
 $teamPeerRoleId = 0
+$validationDataApplied = $false
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
         if (-not $DryRun) {
@@ -72,6 +73,9 @@ $unityArguments = @(
     $userArgument
 )
 $unityArguments += @($moduleConfig.validationFlags)
+if ($null -ne $moduleConfig.validationData) {
+    $unityArguments += @($moduleConfig.validationData.unityFlags)
+}
 $unityArguments += @("-logFile", $logPath)
 
 Write-Host "Unity module validation"
@@ -153,6 +157,21 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
         Record-NewWorkspaceProcesses
         if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
+    }
+
+    if ($null -ne $moduleConfig.validationData) {
+        $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $validationDataVariables = @{
+            UserId = $effectiveUserId
+            Now = $now
+            NowMinus60 = $now - 60
+            NowPlus3600 = $now + 3600
+            Module = $moduleKey
+        }
+        $validationDataApplied = $true
+        Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
+            -Phase setupSql -Variables $validationDataVariables
+        Write-Host "$moduleKey setup: manifest validation data applied."
     }
 
     if ($moduleConfig.key -ieq "Friend") {
@@ -342,6 +361,14 @@ finally {
     if ($teamPeerProcess -and -not $teamPeerProcess.HasExited) {
         Write-Host "Stopping Team peer process pid=$($teamPeerProcess.Id)"
         Stop-ValidationProcessTree -ProcessId $teamPeerProcess.Id
+    }
+    if ($validationDataApplied) {
+        try {
+            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
+                -Phase cleanupSql -Variables $validationDataVariables
+            Write-Host "$moduleKey cleanup: manifest validation data removed."
+        }
+        catch { Write-Warning $_.Exception.Message }
     }
     Record-NewWorkspaceProcesses
     if (-not $KeepServices) {

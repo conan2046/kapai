@@ -30,4 +30,8 @@ function M.sendSelectRole(roleId)
     Bridge:Send(message)
 end
 
+function M.requestGameNotice()
+    Bridge:Send(Protocol.newMessage(Protocol.GAME_NOTICE))
+end
+
 return M
