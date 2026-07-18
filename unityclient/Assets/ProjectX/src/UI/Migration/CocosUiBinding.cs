@@ -60,6 +60,16 @@ namespace ProjectX.UI.Migration
                     && item.ActionTag == cocosActionTag);
             return metadata != null ? metadata.gameObject : null;
         }
+
+        public GameObject FindActionTag(int cocosActionTag)
+        {
+            CocosNodeReference node = nodes.Find(item => item.actionTag == cocosActionTag);
+            if (node != null && node.target != null) return node.target;
+            CocosNodeMetadata metadata = Array.Find(
+                GetComponentsInChildren<CocosNodeMetadata>(true),
+                item => item.ActionTag == cocosActionTag);
+            return metadata != null ? metadata.gameObject : null;
+        }
     }
 
 }

@@ -21,9 +21,10 @@ from ir_enrichment import (
     validate_ir_contract,
 )
 from plist_ir import parse_plist
+from runtime_usage import build_runtime_usage, relative_csb_key
 
 
-TOOL_VERSION = "0.2.0"
+TOOL_VERSION = "0.4.0"
 
 
 def write_json(path: Path, data: Any) -> None:
@@ -191,8 +192,8 @@ table{{border-collapse:collapse;width:100%;margin-top:20px}}th,td{{border:1px so
 <div class="card">待美术恢复：{summary.get('artRecoveryRequired', 0)}</div>
 <div class="card">PLIST：{summary['plistsParsed']}</div>
 </div>
-<p>运行时CSB：{inventory['csbFiles']}个；名称匹配：{inventory['matchedUniqueNames']}个；仅CSD：{len(inventory['csdOnlyNames'])}个；仅CSB：{len(inventory['csbOnlyNames'])}个。</p>
-<details><summary>仅CSB、缺少CSD的界面</summary><pre>{html.escape(chr(10).join(inventory['csbOnlyNames']))}</pre></details>
+<p>运行时CSB：{inventory['csbFiles']}个；完整路径匹配：{inventory['matchedPaths']}个；仅CSD：{len(inventory['csdOnlyPaths'])}个；仅CSB：{len(inventory['csbOnlyPaths'])}个；同名冲突：{len(inventory['duplicateBasenames'])}组。</p>
+<details><summary>仅CSB、缺少同路径CSD的界面</summary><pre>{html.escape(chr(10).join(inventory['csbOnlyPaths']))}</pre></details>
 <table><thead><tr><th>状态</th><th>CSD/CSB</th><th>节点</th><th>资源</th><th>原始差异</th><th>差异类型</th><th>错误</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table>
 </body></html>"""
@@ -225,6 +226,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=Path("build/ui-migration"),
         help="Generated IR/report directory (default: build/ui-migration)",
+    )
+    parser.add_argument(
+        "--lua-source-root",
+        type=Path,
+        default=Path("client/ProjectX/src"),
+        help="Lua source directory used to build the runtime CSB usage manifest",
     )
     parser.add_argument(
         "--clean", action="store_true", help="Remove the output directory before converting"
@@ -365,6 +372,16 @@ def main(argv: list[str] | None = None) -> int:
     csb_paths = sorted(csb_root.rglob("*.csb")) if csb_root.is_dir() else []
     csd_names = {path.stem.casefold() for path in csd_paths}
     csb_names = {path.stem.casefold() for path in csb_paths}
+    csd_keys = {relative_csb_key(path, csd_root) for path in csd_paths}
+    csb_keys = {
+        path.relative_to(csb_root).as_posix().casefold() for path in csb_paths
+    }
+    duplicate_basenames: dict[str, list[str]] = {}
+    for key in sorted(csb_keys):
+        duplicate_basenames.setdefault(Path(key).name, []).append(key)
+    duplicate_basenames = {
+        name: paths for name, paths in duplicate_basenames.items() if len(paths) > 1
+    }
     inventory = {
         "csdUniqueNames": len(csd_names),
         "csbFiles": len(csb_paths),
@@ -372,17 +389,27 @@ def main(argv: list[str] | None = None) -> int:
         "matchedUniqueNames": len(csd_names & csb_names),
         "csdOnlyNames": sorted(csd_names - csb_names),
         "csbOnlyNames": sorted(csb_names - csd_names),
+        "csdUniquePaths": len(csd_keys),
+        "csbUniquePaths": len(csb_keys),
+        "matchedPaths": len(csd_keys & csb_keys),
+        "csdOnlyPaths": sorted(csd_keys - csb_keys),
+        "csbOnlyPaths": sorted(csb_keys - csd_keys),
+        "duplicateBasenames": duplicate_basenames,
     }
+
+    lua_source_root = args.lua_source_root.resolve()
+    runtime_usage = build_runtime_usage(lua_source_root, csb_root, csd_root)
+    write_json(output_root / "runtime-ui-usage.json", runtime_usage)
 
     csb_dumper = args.csb_dumper.resolve()
     csb_errors: list[dict[str, str]] = []
     csb_converted = 0
-    csb_by_name: dict[str, Path] = {}
+    csb_by_key: dict[str, Path] = {}
     for path in csb_paths:
-        csb_by_name.setdefault(path.stem.casefold(), path)
+        csb_by_key[path.relative_to(csb_root).as_posix().casefold()] = path
     temp_csb_root = output_root / ".tmp-csb"
-    for name in inventory["csbOnlyNames"]:
-        path = csb_by_name[name]
+    for key in inventory["csbOnlyPaths"]:
+        path = csb_by_key[key]
         relative = path.relative_to(csb_root)
         item_report: dict[str, Any] = {
             "source": path.relative_to(csb_root.parent.parent.parent).as_posix()
@@ -558,7 +585,14 @@ def main(argv: list[str] | None = None) -> int:
         **{
             key: value
             for key, value in inventory.items()
-            if key not in {"csdOnlyNames", "csbOnlyNames"}
+            if key
+            not in {
+                "csdOnlyNames",
+                "csbOnlyNames",
+                "csdOnlyPaths",
+                "csbOnlyPaths",
+                "duplicateBasenames",
+            }
         },
     }
     report = {
@@ -571,6 +605,7 @@ def main(argv: list[str] | None = None) -> int:
         "assetManifest": asset_manifest["statistics"],
         "atlasRemap": atlas_remap["statistics"],
         "baselines": baseline_manifest,
+        "runtimeUsage": runtime_usage["statistics"],
     }
     write_json(output_root / "report.json", report)
     (output_root / "report.html").write_text(render_html(report), encoding="utf-8")

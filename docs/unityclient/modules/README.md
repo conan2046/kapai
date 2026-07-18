@@ -18,5 +18,6 @@
 | 帮派 | `GUILD.md` | 第一阶段完成 |
 | 世界/战斗/副本 | `WORLD.md` | 第一阶段完成 |
 | 福利 | `WELFARE.md` | 第一阶段完成 |
+| Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |
 
 新增模块文档固定结构：范围、三方证据、实现、验证、遗留项、关键坑。

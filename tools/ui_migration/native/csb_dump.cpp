@@ -288,6 +288,104 @@ void writeNode(std::ostream& out, const NodeTree* tree, int& nodeCount,
     out << "]}";
 }
 
+void writeEasing(std::ostream& out, const EasingData* easing) {
+    out << ",\"easingType\":" << (easing ? easing->type() : 0);
+}
+
+void writeFrame(std::ostream& out, const Frame* frame) {
+    out << '{';
+    if (frame && frame->pointFrame()) {
+        const auto* value = frame->pointFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":" << (value->tween() ? "true" : "false");
+        out << ",\"x\":" << (value->position() ? value->position()->x() : 0);
+        out << ",\"y\":" << (value->position() ? value->position()->y() : 0);
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->scaleFrame()) {
+        const auto* value = frame->scaleFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":" << (value->tween() ? "true" : "false");
+        out << ",\"x\":" << (value->scale() ? value->scale()->scaleX() : 0);
+        out << ",\"y\":" << (value->scale() ? value->scale()->scaleY() : 0);
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->colorFrame()) {
+        const auto* value = frame->colorFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":" << (value->tween() ? "true" : "false");
+        out << ",\"r\":" << (value->color() ? static_cast<int>(value->color()->r()) : 255);
+        out << ",\"g\":" << (value->color() ? static_cast<int>(value->color()->g()) : 255);
+        out << ",\"b\":" << (value->color() ? static_cast<int>(value->color()->b()) : 255);
+        out << ",\"a\":" << (value->color() ? static_cast<int>(value->color()->a()) : 255);
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->textureFrame()) {
+        const auto* value = frame->textureFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":" << (value->tween() ? "true" : "false");
+        out << ",\"texture\":"; jsonString(out, value->textureFile() ? str(value->textureFile()->path()) : "");
+        out << ",\"plist\":"; jsonString(out, value->textureFile() ? str(value->textureFile()->plistFile()) : "");
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->eventFrame()) {
+        const auto* value = frame->eventFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":false,\"eventName\":";
+        jsonString(out, str(value->value()));
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->intFrame()) {
+        const auto* value = frame->intFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":" << (value->tween() ? "true" : "false");
+        out << ",\"value\":" << value->value();
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->boolFrame()) {
+        const auto* value = frame->boolFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":false,\"visible\":" << (value->value() ? "true" : "false");
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->innerActionFrame()) {
+        const auto* value = frame->innerActionFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":false,\"innerActionType\":" << value->innerActionType();
+        out << ",\"animationName\":"; jsonString(out, str(value->currentAniamtionName()));
+        out << ",\"singleFrame\":" << value->singleFrameIndex();
+        writeEasing(out, value->easingData());
+    } else if (frame && frame->blendFrame()) {
+        const auto* value = frame->blendFrame();
+        out << "\"frame\":" << value->frameIndex() << ",\"tween\":false";
+        writeEasing(out, value->easingData());
+    } else {
+        out << "\"frame\":0,\"tween\":false";
+    }
+    out << '}';
+}
+
+void writeAnimation(std::ostream& out, const CSParseBinary* root) {
+    const NodeAction* action = root ? root->action() : nullptr;
+    out << "{\"duration\":" << (action ? action->duration() : 0)
+        << ",\"speed\":" << (action ? action->speed() : 1.0)
+        << ",\"currentAnimationName\":";
+    jsonString(out, action ? str(action->currentAnimationName()) : "");
+    out << ",\"timelines\":[";
+    if (action && action->timeLines()) {
+        for (flatbuffers::uoffset_t i = 0; i < action->timeLines()->size(); ++i) {
+            if (i) out << ',';
+            const TimeLine* timeline = action->timeLines()->Get(i);
+            out << "{\"actionTag\":" << (timeline ? timeline->actionTag() : 0) << ",\"property\":";
+            jsonString(out, timeline ? str(timeline->property()) : "");
+            out << ",\"frames\":[";
+            if (timeline && timeline->frames()) {
+                for (flatbuffers::uoffset_t j = 0; j < timeline->frames()->size(); ++j) {
+                    if (j) out << ',';
+                    writeFrame(out, timeline->frames()->Get(j));
+                }
+            }
+            out << "]}";
+        }
+    }
+    out << "],\"clips\":[";
+    if (root && root->animationList()) {
+        for (flatbuffers::uoffset_t i = 0; i < root->animationList()->size(); ++i) {
+            if (i) out << ',';
+            const AnimationInfo* clip = root->animationList()->Get(i);
+            out << "{\"name\":"; jsonString(out, clip ? str(clip->name()) : "");
+            out << ",\"startFrame\":" << (clip ? clip->startIndex() : 0)
+                << ",\"endFrame\":" << (clip ? clip->endIndex() : 0) << '}';
+        }
+    }
+    out << "]}";
+}
+
 bool readFile(const char* path, std::vector<unsigned char>& data) {
     std::ifstream input(path, std::ios::binary | std::ios::ate);
     if (!input) return false;
@@ -331,10 +429,8 @@ int main(int argc, char** argv) {
     output << ",\"coordinateSystem\":{\"origin\":\"bottom-left\",\"xAxis\":\"right\",\"yAxis\":\"up\",\"unit\":\"pixel\"}";
     output << ",\"root\":";
     writeNode(output, root->nodeTree(), nodeCount, typeCounts, resources, unknownClasses);
-    output << ",\"animation\":{\"duration\":" << (root->action() ? root->action()->duration() : 0)
-           << ",\"speed\":" << (root->action() ? root->action()->speed() : 1.0)
-           << ",\"timelineCount\":" << ((root->action() && root->action()->timeLines()) ? root->action()->timeLines()->size() : 0)
-           << ",\"requiresManualFrameDecode\":" << ((root->action() && root->action()->timeLines() && root->action()->timeLines()->size()) ? "true" : "false") << '}';
+    output << ",\"animation\":";
+    writeAnimation(output, root);
     output << ",\"statistics\":{\"nodeCount\":" << nodeCount << ",\"nodeTypes\":{";
     bool first = true;
     for (const auto& item : typeCounts) { if (!first) output << ','; first = false; jsonString(output, item.first); output << ':' << item.second; }

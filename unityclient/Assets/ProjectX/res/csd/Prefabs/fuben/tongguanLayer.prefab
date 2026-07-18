@@ -48,8 +48,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Image_bg
   nodeType: ImageViewObjectData
   tag: 298
@@ -72,8 +72,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -140,8 +140,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Particle_1
   nodeType: ParticleObjectData
   tag: 539
@@ -4993,8 +4993,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel
   nodeType: PanelObjectData
   tag: 299
@@ -5047,8 +5047,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Image_bg1
   nodeType: ImageViewObjectData
   tag: 300
@@ -5071,8 +5071,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -5139,8 +5139,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Image_tongguan
   nodeType: ImageViewObjectData
   tag: 301
@@ -5163,8 +5163,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -5194,6 +5194,7 @@ GameObject:
   - component: {fileID: 7310421612917163858}
   - component: {fileID: 6175344843114128201}
   - component: {fileID: 6989150692231644764}
+  - component: {fileID: 2427992984404851810}
   m_Layer: 0
   m_Name: tongguanLayer
   m_TagString: Untagged
@@ -5232,8 +5233,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer
   nodeType: GameLayerObjectData
   tag: 767
@@ -5248,8 +5249,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   source: cocosstudio/csd/fuben/tongguanLayer.csd
   nodes:
   - path: Layer
@@ -5287,6 +5288,224 @@ MonoBehaviour:
     tag: 539
     actionTag: -765992101
     target: {fileID: 1534362166378597214}
+--- !u!114 &2427992984404851810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5761188844825721889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  definition:
+    duration: 30
+    speed: 1
+    frameRate: 60
+    currentAnimationName: animation0
+    clips:
+    - name: animation0
+      startFrame: 0
+      endFrame: 30
+    timelines:
+    - actionTag: -765992101
+      property: Position
+      frames:
+      - frame: 30
+        x: 327.32
+        y: -297.54
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -765992101
+      property: Scale
+      frames:
+      - frame: 25
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -765992101
+      property: RotationSkew
+      frames:
+      - frame: 30
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 2091305466
+      property: Position
+      frames:
+      - frame: 0
+        x: -636.8937
+        y: 436.8822
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 15
+        x: 654.0602
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 18
+        x: 683.0604
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 21
+        x: 654.0602
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 26
+        x: 683.0604
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 654.0602
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 2091305466
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 15
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 18
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 21
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 26
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 2091305466
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 15
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 18
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 21
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 26
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+  playOnEnable: 0
+  loop: 0
 --- !u!1 &6838158671295765165
 GameObject:
   m_ObjectHideFlags: 0
@@ -5335,8 +5554,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Text
   nodeType: TextObjectData
   tag: 1464
@@ -5359,8 +5578,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.48235294, g: 0.33333334, b: 0.25882354, a: 0.7411765}
   m_RaycastTarget: 0

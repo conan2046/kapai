@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import plistlib
+import struct
 import sys
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ TOOLS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS_DIR))
 
 from csd_ir import parse_csd  # noqa: E402
+from ani_ir import AniFormatError, parse_ani_bytes  # noqa: E402
 from convert_ui import duplicate_status  # noqa: E402
 from ir_enrichment import (  # noqa: E402
     attach_paths_and_collect_resources,
@@ -20,9 +22,15 @@ from ir_enrichment import (  # noqa: E402
     validate_ir_contract,
 )
 from plist_ir import parse_plist  # noqa: E402
+from runtime_usage import (  # noqa: E402
+    build_runtime_usage,
+    collect_timeline_csb_references,
+    normalize_csb_path,
+)
 from prepare_unity_project import (  # noqa: E402
     _extract_frame,
     _normalize_node,
+    _normalize_animation,
     _normalize_resource,
     _scale9_border,
     _select_copy_asset,
@@ -48,6 +56,114 @@ SAMPLE_CSD = """<GameFile>
     </ObjectData>
   </Content></Content>
 </GameFile>"""
+
+
+class AniParserTests(unittest.TestCase):
+    def test_parses_legacy_modules_frames_actions_and_duration_compatibility(self) -> None:
+        data = bytearray([1])
+        data.extend(struct.pack("<hhhh", 0, 0, 10, 20))
+        data.extend([1, 1])
+        data.extend(struct.pack("<hh", -5, -10))
+        data.extend([0, 3, 1, 1, 0, 1])
+
+        result = parse_ani_bytes(bytes(data), "sample.ani")
+
+        self.assertEqual(result["modules"][0]["height"], 20)
+        self.assertEqual(result["frames"][0]["parts"][0]["x"], -5)
+        self.assertEqual(result["frames"][0]["parts"][0]["flags"], 3)
+        self.assertEqual(result["actions"][0]["frames"][0]["durationTicks"], 5)
+        self.assertEqual(result["frameRate"], 30)
+
+    def test_rejects_trailing_or_truncated_data(self) -> None:
+        with self.assertRaises(AniFormatError):
+            parse_ani_bytes(b"\x00\x00\x00\x99", "trailing.ani")
+        with self.assertRaises(AniFormatError):
+            parse_ani_bytes(b"\x01", "truncated.ani")
+
+
+class RuntimeUsageTests(unittest.TestCase):
+    def test_uses_full_relative_paths_and_ignores_lua_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "src/View/Welfare"
+            runtime = root / "runtime"
+            editor = root / "editor"
+            source.mkdir(parents=True)
+            (runtime / "huodong").mkdir(parents=True)
+            (editor / "huodong").mkdir(parents=True)
+            (runtime / "LevelGiftLayer.csb").write_bytes(b"root")
+            (runtime / "huodong/LevelGiftLayer.csb").write_bytes(b"event")
+            (editor / "huodong/LevelGiftLayer.csd").write_text("<xml/>", encoding="utf-8")
+            (source / "Sample.lua").write_text(
+                '-- ignored = "csd/huodong/LevelGiftLayer.csb"\n'
+                'local active = "csd/LevelGiftLayer.csb"\n',
+                encoding="utf-8",
+            )
+
+            usage = build_runtime_usage(root / "src", runtime, editor)
+
+        self.assertEqual(normalize_csb_path("csd/LevelGiftLayer.csb"), "levelgiftlayer.csb")
+        self.assertEqual(usage["sets"]["referenced"], ["levelgiftlayer.csb"])
+        self.assertEqual(usage["sets"]["welfare"], ["levelgiftlayer.csb"])
+        self.assertIn("levelgiftlayer.csb", usage["sets"]["referencedMissingEditorCsd"])
+        self.assertEqual(
+            usage["duplicateBasenames"]["levelgiftlayer.csb"],
+            ["huodong/levelgiftlayer.csb", "levelgiftlayer.csb"],
+        )
+
+    def test_resolves_active_timeline_variables_and_play_action_targets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            root.mkdir(exist_ok=True)
+            (root / "Sample.lua").write_text(
+                'local CsbFilePath = "csd/role/LevelUp.csb"\n'
+                'cc.CSLoader:createTimeline(CsbFilePath)\n'
+                '-- cc.CSLoader:createTimeline("csd/ignored.csb")\n'
+                'Utils:PlayAction("csd/map/Cloud.csb", 0, 10)\n',
+                encoding="utf-8",
+            )
+            references = collect_timeline_csb_references(root)
+
+        self.assertEqual(sorted(references), ["map/cloud.csb", "role/levelup.csb"])
+
+
+class TimelineNormalizationTests(unittest.TestCase):
+    def test_preserves_named_clips_events_tween_and_effective_duration(self) -> None:
+        animation = {
+            "attributes": {"Duration": 0, "Speed": 1, "ActivedAnimationName": "open"},
+            "children": [
+                {
+                    "tag": "Timeline",
+                    "attributes": {"ActionTag": 7, "Property": "FrameEvent"},
+                    "children": [
+                        {
+                            "tag": "EventFrame",
+                            "attributes": {
+                                "FrameIndex": 12,
+                                "Tween": False,
+                                "Value": "close",
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+        animation_list = {
+            "children": [
+                {
+                    "tag": "AnimationInfo",
+                    "attributes": {"Name": "open", "StartIndex": 3, "EndIndex": 20},
+                }
+            ]
+        }
+
+        result = _normalize_animation(animation, animation_list)
+
+        self.assertEqual(result["duration"], 20)
+        self.assertEqual(result["currentAnimationName"], "open")
+        self.assertEqual(result["clips"][0]["startFrame"], 3)
+        self.assertEqual(result["timelines"][0]["frames"][0]["eventName"], "close")
+        self.assertFalse(result["timelines"][0]["frames"][0]["tween"])
 
 
 class CsdParserTests(unittest.TestCase):

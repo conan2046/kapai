@@ -1,6 +1,6 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-17 23:12
+> 最后更新：2026-07-18 08:20
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
@@ -85,6 +85,9 @@
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity、smoke 证据 |
 | `Run-UnityModuleValidation.ps1` | 自动分配隔离角色、启服、串行 Unity、结果/截图检查和清理 |
 | `Test-UnityMigrationDocs.ps1` | 状态唯一性、文档体积、Manifest 和路径门禁 |
+| `tools/ui_migration/convert_ui.py` | 按完整相对路径生成 UI IR、CSB 兜底和 `runtime-ui-usage.json` |
+| `tools/ui_migration/convert_animations.py` | 全量解析 Imod `.ani`，按 `welfare/all` scope 准备 Unity 资源 |
+| `prepare_unity_project.py --scope timeline` | 解析 29 处有效 Timeline 调用，只准备 27 个唯一目标 Prefab |
 
 完整用法见 `tools/unity-migration/README.md`。
 
@@ -141,6 +144,11 @@
 | 福利 Prefab 新接线找不到 | 先执行 `BootstrapSceneBuilder.BuildBatch` 重建 Bootstrap；模块 Runner 只打开现有场景 |
 | `/199` 套统一成功码导致错包 | 查询回包直接追加签到字段；只有领取分支追加 `PRO_SUCCESS/ERROR` |
 | `/223` 旧客户端可解析但服务端无回包 | 以当前 `CMissionManager` 空实现为准，保留真实空态，不按旧 UI 猜可用性 |
+| 两款游戏 Prefab 混在一起 | 不按 basename 匹配；以 Lua 非注释引用和 `csd/` 完整路径生成 scope，未引用项只标记不直接删除 |
+| 根目录与 `huodong/` 同名 CSB | 视为两个独立界面；CSB fallback 保留相对目录，禁止拿同名 CSD 替代 |
+| `.ani` 无法由 Unity 原生播放 | 先转 JSON，再用 `ImodAnimationPlayer`；CSD/CSB Timeline 单独使用 `CocosTimelinePlayer` |
+| Timeline 文本命中数与真实调用不一致 | 29 条文本含 1 条注释；28 条有效 `createTimeline` 中通用入口展开为 2 个调用，最终仍是 29 处有效调用、27 个唯一资源 |
+| 空 Timeline 被伪造成缺陷 | `shenjiangzhaomu/Online/Lilian/juezhankunlun` 等源文件本身无轨道；Prefab 保留空定义和真实证据，不注入动画 |
 
 ## 10. 常用验证
 

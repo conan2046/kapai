@@ -1,6 +1,6 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-07-17 23:13
+> 最后更新：2026-07-18 08:20
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；长期路线见 `UNITYCLIENT_MIGRATION_PLAN.md`。
 
@@ -8,7 +8,7 @@
 
 | 口径 | 当前值 | 说明 |
 |---|---:|---|
-| Static | `356/356，100%` | Cocos UI 已转换为 uGUI Prefab，不代表业务可玩 |
+| Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `约33%` | 按完整可玩客户端业务规模加权 |
 | Validated | 暂不折算百分比 | 已完成模块记录独立自动化、真实协议、隔离角色和视觉门禁 |
 
@@ -22,7 +22,7 @@
 | 登录/主界面 | 第一阶段完成 | 启动、登录、创角、选角、切号、HUD | 正式登录服、更多主界面入口 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
 | 迁移提速工具 | 已完成 | Manifest、模块脚手架、协议取证、统一验收、文档门禁、隔离角色分配 | 随新模块持续补 Manifest |
-| 资源/时间 | 第一阶段完成 | ResourceService、缺图统计、ServerTime `/206` | Atlas、内存预算、异步加载 |
+| 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、CSB 路径白名单、Imod `.ani` 播放器、29 处有效 CSB Timeline 调用对应 27 个 Prefab | Atlas、内存预算、异步加载、Texture/Color/InnerAction 轨道按实际引用增量补齐 |
 | 设置 | 第一阶段完成 | 音乐/音效/音量持久化 | 兑换码、公告等独立模块 |
 | 背包 | 第一阶段完成 | `/8、/15` 全量/增量/整理/使用/持久化 | 更多物品类型和批量操作 |
 | 任务 | 第一阶段完成 | `/37、/39、/65` 列表/增量/追踪/红点/领奖 | 任务类型全覆盖 |
@@ -42,12 +42,16 @@
 
 ## 3. 最新验证基线
 
+- 资源专项（2026-07-18）：运行包 386 个 CSB，完整路径匹配 325、CSB 兜底 61、同名冲突 38 组；福利 scope 27 条源码引用中 26 个运行资源存在。
+- `.ani` 专项：886/886 全量解析成功，884 个同名 PNG；Unity 实测签到 `qiandao.ani` 10 模块/10 帧/1 动作，Timeline 位置/Alpha 插值通过，截图 `.local/validation/qiandao-unity.png`。
+- CSB Timeline 专项（2026-07-18）：29 处有效调用展开为 27 个唯一资源/Prefab；22 个有真实轨道、5 个源文件本身为空时间轴。累计导入 461 条轨道、2478 帧、34 个命名片段；唯一 CSB-only `FengShenLayer.csb` 已逐帧解码。Unity 实例化播放 27/27、命名片段 34/34、非空 FrameEvent 3/3，视觉抽样见 `.local/validation/timeline-*.png`。
+
 - 最新收口模块：福利系统第一阶段；新 `main` 基线 `c737be773e28cce38c6b47836ee2e5db670dd084`，已确认包含 World 提交。
 - 最终隔离账号：`userId=7200014`；过程账号 `7200009-7200013` 不作为最终证据，Team/Guild/World 账号未复用。
 - 状态闭环：`/199 op=8,type=0` 31 条签到奖励 → `type=1` 单次领取 → 重拉确认 `today=1,days=1`；`/222 activity=4` 读取 12 档在线奖励；`/223` 保留真实不可用空态。
 - Unity 结果：BatchMode 编译/运行通过；严重异常 `0`。
 - GameView：签到、在线奖励、阶段目标空态、领取后最终态四张 `1334×750`；奖励名称、数量、时间和领取状态完整可见。
-- UI 转换测试：`10/10`。
+- UI/动画转换测试：`13/13`。
 - 结果：`build/ui-migration/bootstrap-app-result.json`，`success=true`。
 - 阶段结束状态：Unity、Cocos、`kapai.exe`、workspace-local MySQL 均关闭；3306/8711 无监听。
 
@@ -55,7 +59,7 @@
 
 迁移提速工具已完成，入口为 `tools/unity-migration/README.md`。
 
-本批：福利第一阶段已完成，与活动、任务、邮件、充值/VIP 边界分离取证、实现和变更型验证。
+本批：福利第一阶段后的 Cocos UI 资源分流、`.ani` 兼容和 29 处有效 CSB Timeline 调用对应 Prefab 已完成；后续 Prefab 只按完整相对路径和模块 scope 导入。
 
 固定顺序：
 
@@ -64,6 +68,7 @@
 3. 最终变更闭环为一次性账号签到，领取后重拉 `/199` 确认今日已领与累计天数持久化。
 4. 在线奖励未伪造在线时长；`/223` 当前服务端实现为空，未做旁路；活动、抽卡、充值、VIP 未混入。
 5. 后续模块继续按统一工具链单独立项。
+6. `.ani` 全量可转换，Unity 仅按模块准备贴图，禁止无差别导入 886 套动画资源。
 
 暂不并行：商城第二阶段、邮件第二阶段、装备深度培养。
 
@@ -75,6 +80,7 @@
 - Runner 必须删除旧结果并校验本次时间戳，不能继承旧 `COMPLETE`。
 - 手工 Prefab 默认只读，优先运行时绑定，不使用重建脚本覆盖设计结构。
 - 当前工作区存在用户自己的 xlua `.meta` 删除和 `unityclient/.vscode/`，处理 Unity 任务时继续保留。
+- 历史 Prefab 清单由 333 CSD + 23 basename 兜底生成，存在 38 组跨目录同名风险；不得按 Prefab 名称判断所属游戏。
 
 ## 6. 状态维护规则
 

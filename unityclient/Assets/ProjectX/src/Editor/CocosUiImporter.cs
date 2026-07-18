@@ -16,6 +16,8 @@ namespace ProjectX.Editor
     {
         private const string ManifestPath =
             "Assets/ProjectX/res/csd/UnityMigration/unity-import-manifest.json";
+        private const string TimelineManifestPath =
+            "Assets/ProjectX/res/csd/UnityMigration/unity-import-manifest.timeline.json";
 
         [Serializable] private sealed class ImportManifest
         {
@@ -44,6 +46,7 @@ namespace ProjectX.Editor
             public string name;
             public string source;
             public UiNode root;
+            public CocosTimelineDefinition animation;
         }
 
         [Serializable] private sealed class UiNode
@@ -145,6 +148,110 @@ namespace ProjectX.Editor
             ImportBaselines(true);
         }
 
+        public static void ImportTimelinePrefabsBatch()
+        {
+            PatchTimelinePrefabs(TimelineManifestPath);
+        }
+
+        public static void ValidateTimelinePrefabsBatch()
+        {
+            ValidateManifest(TimelineManifestPath);
+        }
+
+        public static void ValidateTimelinePlaybackBatch()
+        {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
+                File.ReadAllText(ToAbsolutePath(TimelineManifestPath)));
+            int prefabs = 0;
+            int clips = 0;
+            int events = 0;
+            foreach (ImportDocument item in manifest.documents)
+            {
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(item.prefabAssetPath);
+                GameObject instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+                if (instance == null)
+                    throw new MissingReferenceException($"Cannot instantiate timeline prefab: {item.prefabAssetPath}");
+                try
+                {
+                    CocosTimelinePlayer player = instance.GetComponent<CocosTimelinePlayer>();
+                    if (player == null || player.Definition == null)
+                        throw new MissingReferenceException($"Timeline player is missing: {item.prefabAssetPath}");
+                    ValidateSupportedTimelineProperties(player.Definition, item.prefabAssetPath);
+                    int expectedEvents = CountTimelineEvents(player.Definition);
+                    int actualEvents = 0;
+                    player.FrameEvent += _ => actualEvents++;
+                    if (player.Duration > 0)
+                    {
+                        player.Play(0, player.Duration, false);
+                        player.Advance(PlaybackValidationSeconds(player.Definition, player.Duration));
+                        if (player.IsPlaying || Mathf.Abs(player.CurrentFrame - player.Duration) > 0.01f)
+                            throw new InvalidDataException($"Full timeline did not complete: {item.prefabAssetPath}");
+                    }
+                    if (actualEvents != expectedEvents)
+                        throw new InvalidDataException(
+                            $"Frame event mismatch in {item.prefabAssetPath}: expected {expectedEvents}, actual {actualEvents}");
+                    events += actualEvents;
+                    foreach (CocosTimelineClip clip in player.Definition.clips
+                             ?? Array.Empty<CocosTimelineClip>())
+                    {
+                        if (!player.TryPlay(clip.name, false))
+                            throw new InvalidDataException(
+                                $"Named timeline clip cannot start in {item.prefabAssetPath}: {clip.name}");
+                        player.Advance(PlaybackValidationSeconds(
+                            player.Definition, Mathf.Max(0, clip.endFrame - clip.startFrame)));
+                        if (player.IsPlaying)
+                            throw new InvalidDataException(
+                                $"Named timeline clip did not complete in {item.prefabAssetPath}: {clip.name}");
+                        clips++;
+                    }
+                    prefabs++;
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(instance);
+                }
+            }
+            Debug.Log(
+                $"ProjectX Timeline playback completed: {prefabs} prefabs, "
+                + $"{clips} named clips, {events} source frame events, 0 errors.");
+        }
+
+        private static float PlaybackValidationSeconds(CocosTimelineDefinition definition, int frames)
+        {
+            float rate = Mathf.Max(1, definition.frameRate)
+                         * Mathf.Max(0.01f, definition.speed);
+            return frames / rate + 0.1f;
+        }
+
+        private static int CountTimelineEvents(CocosTimelineDefinition definition)
+        {
+            int count = 0;
+            foreach (CocosTimelineTrack track in definition.timelines
+                     ?? Array.Empty<CocosTimelineTrack>())
+                if (string.Equals(track.property, "FrameEvent", StringComparison.Ordinal))
+                    foreach (CocosTimelineFrame frame in track.frames
+                             ?? Array.Empty<CocosTimelineFrame>())
+                        if (!string.IsNullOrEmpty(frame.eventName)) count++;
+            return count;
+        }
+
+        private static void ValidateSupportedTimelineProperties(
+            CocosTimelineDefinition definition,
+            string prefabPath)
+        {
+            var supported = new HashSet<string>(StringComparer.Ordinal)
+            {
+                "Position", "Scale", "Rotation", "RotationSkew", "Alpha",
+                "Visible", "VisibleForFrame", "AnchorPoint", "FrameEvent",
+            };
+            foreach (CocosTimelineTrack track in definition.timelines
+                     ?? Array.Empty<CocosTimelineTrack>())
+                if (!supported.Contains(track.property ?? string.Empty))
+                    throw new NotSupportedException(
+                        $"Unsupported timeline property in {prefabPath}: {track.property}");
+        }
+
         public static void ValidateBaselinesBatch()
         {
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -161,7 +268,68 @@ namespace ProjectX.Editor
 
         private static void ImportBaselines(bool createPreview)
         {
-            string manifestFile = ToAbsolutePath(ManifestPath);
+            RunManifestImport(ManifestPath, createPreview);
+        }
+
+        private static void PatchTimelinePrefabs(string manifestPath)
+        {
+            string manifestFile = ToAbsolutePath(manifestPath);
+            if (!File.Exists(manifestFile))
+                throw new FileNotFoundException("Timeline migration manifest is missing", manifestFile);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
+                File.ReadAllText(manifestFile));
+            foreach (ImportDocument item in manifest.documents)
+            {
+                UiDocument document = ReadDocument(item.documentAssetPath);
+                GameObject root = PrefabUtility.LoadPrefabContents(item.prefabAssetPath);
+                try
+                {
+                    CocosUiBinding binding = root.GetComponent<CocosUiBinding>();
+                    if (binding == null)
+                        throw new MissingReferenceException($"Cocos binding is missing: {item.prefabAssetPath}");
+                    CocosTimelinePlayer existing = root.GetComponent<CocosTimelinePlayer>();
+                    if (existing != null) UnityEngine.Object.DestroyImmediate(existing);
+                    if (document.animation != null)
+                        root.AddComponent<CocosTimelinePlayer>().Initialize(document.animation);
+                    ReconcileEmptyGraphics(document.root, binding);
+                    PrefabUtility.SaveAsPrefabAsset(root, item.prefabAssetPath);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ValidateBaselines(manifest);
+            Debug.Log($"ProjectX Timeline patch completed: {manifest.documents.Length} prefabs.");
+        }
+
+        private static void ReconcileEmptyGraphics(UiNode node, CocosUiBinding binding)
+        {
+            GameObject target = binding.Find(node.nodePath, node.nodeType, node.actionTag);
+            if (target != null && node.nodeType == "PanelObjectData"
+                               && !HasRenderableResource(FindResource(node, "FileData")))
+            {
+                Image image = target.GetComponent<Image>();
+                if (image != null) UnityEngine.Object.DestroyImmediate(image);
+            }
+            if (target != null && node.nodeType == "ButtonObjectData"
+                               && !HasRenderableResource(FindResource(node, "NormalFileData")))
+            {
+                Image image = target.GetComponent<Image>();
+                if (image != null)
+                    image.color = new Color(image.color.r, image.color.g, image.color.b, 0f);
+            }
+            if (node.children != null)
+                foreach (UiNode child in node.children)
+                    ReconcileEmptyGraphics(child, binding);
+        }
+
+        private static void RunManifestImport(string manifestPath, bool createPreview)
+        {
+            string manifestFile = ToAbsolutePath(manifestPath);
             if (!File.Exists(manifestFile))
                 throw new FileNotFoundException("Unity migration manifest is missing", manifestFile);
 
@@ -194,6 +362,18 @@ namespace ProjectX.Editor
             Debug.Log($"ProjectX UI import completed: {createdPrefabs.Count} prefabs.");
         }
 
+        private static void ValidateManifest(string manifestPath)
+        {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
+                File.ReadAllText(ToAbsolutePath(manifestPath)));
+            ValidationSummary summary = ValidateBaselines(manifest);
+            Debug.Log(
+                $"ProjectX Timeline validation completed: {summary.prefabs} prefabs, "
+                + $"{summary.timelinePrefabs} timeline components, "
+                + $"{summary.timelineTracks} tracks, 0 errors.");
+        }
+
         private static void ConfigurePlayerSettings()
         {
             PlayerSettings.defaultScreenWidth = 1334;
@@ -212,6 +392,8 @@ namespace ProjectX.Editor
             public int outlinedTexts;
             public int shadowedTexts;
             public int spriteBindings;
+            public int timelinePrefabs;
+            public int timelineTracks;
         }
 
         private static ValidationSummary ValidateBaselines(ImportManifest manifest)
@@ -243,6 +425,7 @@ namespace ProjectX.Editor
                     if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) != 0)
                         throw new MissingReferenceException(
                             $"Missing script in {item.prefabAssetPath}: {transform.name}");
+                ValidateTimeline(document, prefab, binding, item.prefabAssetPath, summary);
                 CollectTexturePaths(document.root, spritePaths);
                 ValidateTextStyles(document.root, binding, summary);
                 ValidateSpriteBindings(document.root, binding, summary);
@@ -273,6 +456,35 @@ namespace ProjectX.Editor
             if (!File.Exists(ToAbsolutePath(manifest.previewScene)))
                 throw new FileNotFoundException("Preview scene is missing", manifest.previewScene);
             return summary;
+        }
+
+        private static void ValidateTimeline(
+            UiDocument document,
+            GameObject prefab,
+            CocosUiBinding binding,
+            string prefabPath,
+            ValidationSummary summary)
+        {
+            CocosTimelinePlayer player = prefab.GetComponent<CocosTimelinePlayer>();
+            if (document.animation == null)
+            {
+                if (player != null)
+                    throw new InvalidDataException($"Unexpected timeline component: {prefabPath}");
+                return;
+            }
+            if (player == null || player.Definition == null)
+                throw new MissingReferenceException($"Timeline component is missing: {prefabPath}");
+            CocosTimelineTrack[] tracks = document.animation.timelines
+                ?? Array.Empty<CocosTimelineTrack>();
+            foreach (CocosTimelineTrack track in tracks)
+            {
+                if (string.Equals(track.property, "FrameEvent", StringComparison.Ordinal)) continue;
+                if (binding.FindActionTag(track.actionTag) == null)
+                    throw new MissingReferenceException(
+                        $"Timeline ActionTag {track.actionTag} is missing in {prefabPath}");
+            }
+            summary.timelinePrefabs++;
+            summary.timelineTracks += tracks.Length;
         }
 
         private static void ValidateTextStyles(
@@ -536,6 +748,8 @@ namespace ProjectX.Editor
             GameObject root = BuildNode(document.root, null, bindings);
             root.name = document.name;
             root.AddComponent<CocosUiBinding>().Initialize(document.source, bindings);
+            if (document.animation != null)
+                root.AddComponent<CocosTimelinePlayer>().Initialize(document.animation);
             return root;
         }
 
@@ -590,7 +804,7 @@ namespace ProjectX.Editor
                     AddImage(target, node, "FileData");
                     break;
                 case "PanelObjectData":
-                    if (FindResource(node, "FileData") != null)
+                    if (HasRenderableResource(FindResource(node, "FileData")))
                         AddImage(target, node, "FileData");
                     if (node.clip)
                         target.AddComponent<RectMask2D>();
@@ -635,10 +849,20 @@ namespace ProjectX.Editor
             image.color = node.color?.Value ?? Color.white;
             image.raycastTarget = node.touchEnabled;
             UiResource resource = FindResource(node, preferredProperty) ?? FindFirstImage(node);
-            if (resource != null)
+            if (HasRenderableResource(resource))
                 image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(resource.assetPath);
+            else
+                image.color = new Color(image.color.r, image.color.g, image.color.b, 0f);
             image.type = node.scale9 ? Image.Type.Sliced : Image.Type.Simple;
             return image;
+        }
+
+        private static bool HasRenderableResource(UiResource resource)
+        {
+            return resource != null
+                   && !string.IsNullOrWhiteSpace(resource.path)
+                   && !string.Equals(resource.type, "Default", StringComparison.OrdinalIgnoreCase)
+                   && !string.IsNullOrWhiteSpace(resource.assetPath);
         }
 
         private static void AddButton(GameObject target, UiNode node)

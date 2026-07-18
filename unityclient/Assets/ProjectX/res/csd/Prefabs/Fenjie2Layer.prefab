@@ -48,8 +48,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn/List
   nodeType: ListViewObjectData
   tag: 519
@@ -64,8 +64,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!114 &4582997513922171278
@@ -78,8 +78,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Content: {fileID: 0}
   m_Horizontal: 1
   m_Vertical: 1
@@ -109,6 +109,7 @@ GameObject:
   - component: {fileID: 8288804377481820431}
   - component: {fileID: 5193081768893902612}
   - component: {fileID: 166180042926123865}
+  - component: {fileID: 2862908877183656780}
   m_Layer: 0
   m_Name: Fenjie2Layer
   m_TagString: Untagged
@@ -146,8 +147,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer
   nodeType: GameLayerObjectData
   tag: 163
@@ -162,8 +163,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   source: cocosstudio/csd/Fenjie2Layer.csd
   nodes:
   - path: Layer
@@ -736,6 +737,3023 @@ MonoBehaviour:
     tag: 999
     actionTag: 1719152338
     target: {fileID: 2694279620671321338}
+--- !u!114 &2862908877183656780
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 86597475936336349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  definition:
+    duration: 300
+    speed: 1
+    frameRate: 60
+    currentAnimationName:
+    clips: []
+    timelines:
+    - actionTag: -1297427375
+      property: Position
+      frames:
+      - frame: 0
+        x: 375.4189
+        y: 141.0713
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 375.4189
+        y: 141.0713
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 141.0713
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 141.0713
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 375.42
+        y: 141.0713
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 375.42
+        y: 141.0713
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1297427375
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1297427375
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1297427375
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 196281008
+      property: Position
+      frames:
+      - frame: 0
+        x: -129.9675
+        y: 18.4431
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: -129.9675
+        y: 18.4431
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 250
+        y: 18.4431
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 250
+        y: 18.4431
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: -129.9675
+        y: 18.4431
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: -129.9675
+        y: 18.4431
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 196281008
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 196281008
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 196281008
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1165045802
+      property: Position
+      frames:
+      - frame: 0
+        x: 333
+        y: 20
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 333
+        y: 20
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 550
+        y: 20
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 333
+        y: 20
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 333
+        y: 20
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1165045802
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1165045802
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1165045802
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -227924286
+      property: Position
+      frames:
+      - frame: 0
+        x: -80
+        y: 185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: -80
+        y: 185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: -300
+        y: 185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: -80
+        y: 185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: -80
+        y: 185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -227924286
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -227924286
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -227924286
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -400043578
+      property: Position
+      frames:
+      - frame: 0
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -400043578
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -400043578
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -400043578
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 76
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 0
+        y: 0
+        value: 127
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 0
+        y: 0
+        value: 204
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: 0
+        value: 76
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1465701828
+      property: Position
+      frames:
+      - frame: 0
+        x: 87
+        y: 87
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 87
+        y: 87
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 87
+        y: 87
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 87
+        y: 87
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 87
+        y: 87
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1465701828
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 3
+        y: 3
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 2
+        y: 2
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1465701828
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 108591385
+      property: Position
+      frames:
+      - frame: 0
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 70
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 90
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 110
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 120
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 140
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 150
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 170
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 190
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 210
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 108591385
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 70
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 90
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 110
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 120
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 140
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 150
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 170
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 190
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 210
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 108591385
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 180
+        y: 180
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 360
+        y: 360
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 70
+        x: 450
+        y: 450
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 540
+        y: 540
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 90
+        x: 630
+        y: 630
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 720
+        y: 720
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 110
+        x: 900
+        y: 900
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 120
+        x: 1080
+        y: 1080
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 1440
+        y: 1440
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 140
+        x: 1800
+        y: 1800
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 150
+        x: 2160
+        y: 2160
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 2520
+        y: 2520
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 170
+        x: 2700
+        y: 2700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 2880
+        y: 2880
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 190
+        x: 2970
+        y: 2970
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 3060
+        y: 3060
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 210
+        x: 3150
+        y: 3150
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 3240
+        y: 3240
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 3330
+        y: 3330
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 3420
+        y: 3420
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 3510
+        y: 3510
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 3600
+        y: 3600
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 3600
+        y: 3600
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1802113549
+      property: Position
+      frames:
+      - frame: 0
+        x: 123.425
+        y: 120.6521
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 123.4222
+        y: 120.6521
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 123.4222
+        y: 120.6521
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 190
+        x: 123.4222
+        y: 120.6521
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 123.4222
+        y: 120.6521
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 205
+        x: 123.4222
+        y: 120.6521
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1802113549
+      property: Scale
+      frames:
+      - frame: 0
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 190
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 3
+        y: 3
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 205
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1802113549
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 160
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 190
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 200
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 205
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2049251709
+      property: Position
+      frames:
+      - frame: 205
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 210
+        x: 75
+        y: 200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 215
+        x: 40
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 7.5
+        y: 100
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: -25
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: -57.5
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: -90
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: -90
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: -20
+        y: -185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2049251709
+      property: Scale
+      frames:
+      - frame: 205
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 210
+        x: 0.505
+        y: 0.505
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 215
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2049251709
+      property: RotationSkew
+      frames:
+      - frame: 205
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 210
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 215
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 280
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1420627347
+      property: Position
+      frames:
+      - frame: 210
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 215
+        x: 75
+        y: 200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 40
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 20
+        y: 100
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: -10
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: -20
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: -20
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 285
+        x: -20
+        y: -185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1420627347
+      property: Scale
+      frames:
+      - frame: 210
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 215
+        x: 0.505
+        y: 0.505
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 285
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1420627347
+      property: RotationSkew
+      frames:
+      - frame: 210
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 215
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 285
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1572746694
+      property: Position
+      frames:
+      - frame: 215
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 162.5
+        y: 200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 200
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 225
+        y: 100
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 250
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 300
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 350
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 350
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 290
+        x: -20
+        y: -185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1572746694
+      property: Scale
+      frames:
+      - frame: 215
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 0.505
+        y: 0.505
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 290
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1572746694
+      property: RotationSkew
+      frames:
+      - frame: 215
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 290
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1533376619
+      property: Position
+      frames:
+      - frame: 220
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 137.5
+        y: 200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 150
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 167.5
+        y: 100
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 185
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 217.5
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 250
+        x: 250
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 250
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 295
+        x: -20
+        y: -185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1533376619
+      property: Scale
+      frames:
+      - frame: 220
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 0.505
+        y: 0.505
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 250
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 295
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1533376619
+      property: RotationSkew
+      frames:
+      - frame: 220
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 225
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 250
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 295
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -44949663
+      property: Position
+      frames:
+      - frame: 225
+        x: 125
+        y: 125
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 125
+        y: 200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 125
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 125
+        y: 100
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 125
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 250
+        x: 125
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 125
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 125
+        y: 30
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 300
+        x: -20
+        y: -185
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -44949663
+      property: Scale
+      frames:
+      - frame: 225
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0.505
+        y: 0.505
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 250
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 300
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -44949663
+      property: RotationSkew
+      frames:
+      - frame: 225
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 230
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 235
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 240
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 245
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 250
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 255
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 270
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 300
+        x: 0
+        y: -0.0017
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+  playOnEnable: 0
+  loop: 0
 --- !u!1 &115256064935641047
 GameObject:
   m_ObjectHideFlags: 0
@@ -784,8 +3802,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_5/IconBase
   nodeType: ImageViewObjectData
   tag: 988
@@ -808,8 +3826,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -876,8 +3894,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon4/UnlockIcon
   nodeType: ImageViewObjectData
   tag: 280
@@ -900,8 +3918,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 0
@@ -970,8 +3988,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon4/SelectIcon
   nodeType: ImageViewObjectData
   tag: 2034
@@ -994,8 +4012,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -1065,8 +4083,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_5
   nodeType: ButtonObjectData
   tag: 984
@@ -1089,8 +4107,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -1119,8 +4137,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -1202,8 +4220,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/CloseBtn
   nodeType: ButtonObjectData
   tag: 669
@@ -1226,8 +4244,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
@@ -1256,8 +4274,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -1338,8 +4356,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Particle_2
   nodeType: ParticleObjectData
   tag: 246
@@ -6196,8 +9214,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition
   nodeType: PanelObjectData
   tag: 1000
@@ -6220,8 +9238,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -6250,8 +9268,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!1 &336236596205607412
@@ -6302,8 +9320,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon1/SelectIcon/image1
   nodeType: ImageViewObjectData
   tag: 2026
@@ -6326,8 +9344,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.69803923}
   m_RaycastTarget: 0
@@ -6394,8 +9412,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn/ChooseBg
   nodeType: ImageViewObjectData
   tag: 450
@@ -6418,8 +9436,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -6486,8 +9504,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon3/SelectIcon/image2
   nodeType: ImageViewObjectData
   tag: 2033
@@ -6510,8 +9528,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -6578,8 +9596,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Image_4
   nodeType: ImageViewObjectData
   tag: 241
@@ -6602,8 +9620,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -6673,8 +9691,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_6
   nodeType: CheckBoxObjectData
   tag: 306
@@ -6697,8 +9715,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -6727,8 +9745,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -6815,8 +9833,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Btn
   nodeType: ButtonObjectData
   tag: 255
@@ -6839,8 +9857,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -6869,8 +9887,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -6951,8 +9969,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon5/CloseIcon
   nodeType: ImageViewObjectData
   tag: 285
@@ -6975,8 +9993,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -7046,8 +10064,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/ChooseSuit
   nodeType: ButtonObjectData
   tag: 446
@@ -7070,8 +10088,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -7100,8 +10118,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -7182,8 +10200,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Particle_6
   nodeType: ParticleObjectData
   tag: 250
@@ -12035,8 +15053,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon3/SelectIcon
   nodeType: ImageViewObjectData
   tag: 2031
@@ -12059,8 +15077,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -12131,8 +15149,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row
   nodeType: PanelObjectData
   tag: 265
@@ -12147,8 +15165,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!1 &1308821221478326088
@@ -12199,8 +15217,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Image_3
   nodeType: ImageViewObjectData
   tag: 240
@@ -12223,8 +15241,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -12291,8 +15309,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/OpenImage
   nodeType: ImageViewObjectData
   tag: 667
@@ -12315,8 +15333,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -12390,8 +15408,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -12465,8 +15483,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn
   nodeType: ButtonObjectData
   tag: 664
@@ -12489,8 +15507,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -12519,8 +15537,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -12601,8 +15619,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/ChooseBg
   nodeType: ImageViewObjectData
   tag: 665
@@ -12625,8 +15643,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -12693,8 +15711,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_3/ChooseBg
   nodeType: ImageViewObjectData
   tag: 969
@@ -12717,8 +15735,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -12785,8 +15803,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Particle_4
   nodeType: ParticleObjectData
   tag: 248
@@ -17636,8 +20654,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn/BtnName
   nodeType: TextObjectData
   tag: 451
@@ -17660,8 +20678,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.43137255, g: 0.21960784, b: 0.1882353, a: 1}
   m_RaycastTarget: 0
@@ -17732,8 +20750,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/QiannengBg/Text_135
   nodeType: TextObjectData
   tag: 260
@@ -17756,8 +20774,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.43137255, g: 0.21960784, b: 0.1882353, a: 1}
   m_RaycastTarget: 0
@@ -17828,8 +20846,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_6/ChooseBg
   nodeType: ImageViewObjectData
   tag: 993
@@ -17852,8 +20870,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -17923,8 +20941,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_1
   nodeType: CheckBoxObjectData
   tag: 287
@@ -17947,8 +20965,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -17977,8 +20995,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -18063,8 +21081,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/CloseImage
   nodeType: ImageViewObjectData
   tag: 668
@@ -18087,8 +21105,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -18158,8 +21176,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_1
   nodeType: ButtonObjectData
   tag: 671
@@ -18182,8 +21200,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -18212,8 +21230,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -18294,8 +21312,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel
   nodeType: SingleNodeObjectData
   tag: 231
@@ -18348,8 +21366,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_1/Text
   nodeType: TextObjectData
   tag: 297
@@ -18372,8 +21390,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.007843138, g: 0.7137255, b: 0.007843138, a: 1}
   m_RaycastTarget: 0
@@ -18448,8 +21466,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon2
   nodeType: ButtonObjectData
   tag: 270
@@ -18472,8 +21490,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -18502,8 +21520,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -18584,8 +21602,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Particle_1
   nodeType: ParticleObjectData
   tag: 245
@@ -23435,8 +26453,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_6/IconBase
   nodeType: ImageViewObjectData
   tag: 999
@@ -23459,8 +26477,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -23527,8 +26545,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Title/TitleL
   nodeType: ImageViewObjectData
   tag: 253
@@ -23551,8 +26569,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -23619,8 +26637,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon5/SelectIcon/image1
   nodeType: ImageViewObjectData
   tag: 2038
@@ -23643,8 +26661,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.69803923}
   m_RaycastTarget: 0
@@ -23715,8 +26733,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen
   nodeType: PanelObjectData
   tag: 286
@@ -23772,8 +26790,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_5
   nodeType: CheckBoxObjectData
   tag: 304
@@ -23796,8 +26814,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -23826,8 +26844,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -23924,8 +26942,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg
   nodeType: ImageViewObjectData
   tag: 237
@@ -23948,8 +26966,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24023,8 +27041,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24091,8 +27109,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon3/CloseIcon
   nodeType: ImageViewObjectData
   tag: 277
@@ -24115,8 +27133,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24183,8 +27201,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_2/ChooseBg
   nodeType: ImageViewObjectData
   tag: 961
@@ -24207,8 +27225,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24275,8 +27293,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon5/SelectIcon/image2
   nodeType: ImageViewObjectData
   tag: 2039
@@ -24299,8 +27317,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24367,8 +27385,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_6/Text
   nodeType: TextObjectData
   tag: 307
@@ -24391,8 +27409,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 0.64705884, b: 0, a: 1}
   m_RaycastTarget: 0
@@ -24463,8 +27481,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_1/ChooseBg
   nodeType: ImageViewObjectData
   tag: 672
@@ -24487,8 +27505,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24555,8 +27573,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_5/ChooseBg
   nodeType: ImageViewObjectData
   tag: 985
@@ -24579,8 +27597,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24647,8 +27665,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon5/UnlockIcon
   nodeType: ImageViewObjectData
   tag: 284
@@ -24671,8 +27689,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 0
@@ -24739,8 +27757,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/ChooseSuit/ChooseBg
   nodeType: ImageViewObjectData
   tag: 447
@@ -24763,8 +27781,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -24832,8 +27850,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/RewardBg/List
   nodeType: ListViewObjectData
   tag: 235
@@ -24848,8 +27866,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!114 &2584935196275787521
@@ -24862,8 +27880,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Content: {fileID: 0}
   m_Horizontal: 1
   m_Vertical: 1
@@ -24937,8 +27955,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn
   nodeType: ButtonObjectData
   tag: 449
@@ -24961,8 +27979,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -24991,8 +28009,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -25073,8 +28091,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Base2/Image
   nodeType: ImageViewObjectData
   tag: 244
@@ -25097,8 +28115,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.3019608, g: 0.3019608, b: 0.3019608, a: 1}
   m_RaycastTarget: 0
@@ -25165,8 +28183,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/RewardBg/Image_Bg
   nodeType: ImageViewObjectData
   tag: 234
@@ -25189,8 +28207,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.29803923}
   m_RaycastTarget: 0
@@ -25257,8 +28275,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_3/IconBase
   nodeType: ImageViewObjectData
   tag: 971
@@ -25281,8 +28299,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -25351,8 +28369,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon2/SelectIcon
   nodeType: ImageViewObjectData
   tag: 2028
@@ -25375,8 +28393,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -25446,8 +28464,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_4
   nodeType: ButtonObjectData
   tag: 976
@@ -25470,8 +28488,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -25500,8 +28518,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -25582,8 +28600,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Particle_3
   nodeType: ParticleObjectData
   tag: 247
@@ -30436,8 +33454,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/QiannengBg
   nodeType: ImageViewObjectData
   tag: 257
@@ -30460,8 +33478,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -30528,8 +33546,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_3/Text
   nodeType: TextObjectData
   tag: 301
@@ -30552,8 +33570,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.11764706, g: 0.5647059, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -30623,8 +33641,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck
   nodeType: SingleNodeObjectData
   tag: 263
@@ -30677,8 +33695,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Image_2
   nodeType: ImageViewObjectData
   tag: 239
@@ -30701,8 +33719,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -30776,8 +33794,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -30844,8 +33862,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_4/IconBase
   nodeType: ImageViewObjectData
   tag: 982
@@ -30868,8 +33886,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -30936,8 +33954,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn/OpenImage
   nodeType: ImageViewObjectData
   tag: 452
@@ -30960,8 +33978,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -31029,8 +34047,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/RewardBg/List/IconBg_1
   nodeType: ButtonObjectData
   tag: 236
@@ -31053,8 +34071,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -31083,8 +34101,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -31165,8 +34183,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_1/IconBase
   nodeType: ImageViewObjectData
   tag: 959
@@ -31189,8 +34207,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -31260,8 +34278,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Title
   nodeType: ImageViewObjectData
   tag: 251
@@ -31284,8 +34302,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -31352,8 +34370,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_2/Text
   nodeType: TextObjectData
   tag: 299
@@ -31376,8 +34394,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.11764706, g: 0.5647059, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -31452,8 +34470,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon1
   nodeType: ButtonObjectData
   tag: 266
@@ -31476,8 +34494,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -31506,8 +34524,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -31590,8 +34608,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/RewardBg
   nodeType: ImageViewObjectData
   tag: 233
@@ -31614,8 +34632,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -31685,8 +34703,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_3
   nodeType: CheckBoxObjectData
   tag: 300
@@ -31709,8 +34727,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -31739,8 +34757,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -31825,8 +34843,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon1/CloseIcon
   nodeType: ImageViewObjectData
   tag: 269
@@ -31849,8 +34867,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -31917,8 +34935,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck
   nodeType: PanelObjectData
   tag: 264
@@ -31933,8 +34951,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!1 &5353736397371993297
@@ -31985,8 +35003,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn/CloseImage
   nodeType: ImageViewObjectData
   tag: 453
@@ -32009,8 +35027,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -32080,8 +35098,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_4
   nodeType: CheckBoxObjectData
   tag: 302
@@ -32104,8 +35122,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -32134,8 +35152,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -32221,8 +35239,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Btn/Text
   nodeType: TextObjectData
   tag: 256
@@ -32245,8 +35263,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -32279,8 +35297,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_EffectColor: {r: 0.47058824, g: 0.25882354, b: 0.24705882, a: 1}
   m_EffectDistance: {x: 1, y: -1}
   m_UseGraphicAlpha: 1
@@ -32332,8 +35350,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon2/SelectIcon/image2
   nodeType: ImageViewObjectData
   tag: 2030
@@ -32356,8 +35374,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -32424,8 +35442,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/ChooseSuit/BtnName
   nodeType: TextObjectData
   tag: 448
@@ -32448,8 +35466,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.43137255, g: 0.21960784, b: 0.1882353, a: 1}
   m_RaycastTarget: 0
@@ -32520,8 +35538,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/BtnName
   nodeType: TextObjectData
   tag: 666
@@ -32544,8 +35562,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.43137255, g: 0.21960784, b: 0.1882353, a: 1}
   m_RaycastTarget: 0
@@ -32617,8 +35635,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Button_1
   nodeType: ButtonObjectData
   tag: 261
@@ -32641,8 +35659,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -32671,8 +35689,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -32754,8 +35772,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Base2
   nodeType: ImageViewObjectData
   tag: 243
@@ -32778,8 +35796,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -32846,8 +35864,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon4/CloseIcon
   nodeType: ImageViewObjectData
   tag: 281
@@ -32870,8 +35888,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -32938,8 +35956,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Base1
   nodeType: ImageViewObjectData
   tag: 242
@@ -32962,8 +35980,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 0
@@ -33033,8 +36051,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_2
   nodeType: ButtonObjectData
   tag: 960
@@ -33057,8 +36075,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -33087,8 +36105,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -33169,8 +36187,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon1/SelectIcon/image2
   nodeType: ImageViewObjectData
   tag: 2027
@@ -33193,8 +36211,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -33261,8 +36279,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_2/IconBase
   nodeType: ImageViewObjectData
   tag: 965
@@ -33285,8 +36303,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -33353,8 +36371,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_4/ChooseBg
   nodeType: ImageViewObjectData
   tag: 977
@@ -33377,8 +36395,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -33452,8 +36470,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -33521,8 +36539,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/SuitBtn/CloseBtn
   nodeType: ButtonObjectData
   tag: 663
@@ -33545,8 +36563,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 0, b: 0, a: 1}
   m_RaycastTarget: 1
@@ -33575,8 +36593,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -33657,8 +36675,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon3/SelectIcon/image1
   nodeType: ImageViewObjectData
   tag: 2032
@@ -33681,8 +36699,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.69803923}
   m_RaycastTarget: 0
@@ -33756,8 +36774,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -33824,8 +36842,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/QiannengBg/Icon
   nodeType: ImageViewObjectData
   tag: 259
@@ -33848,8 +36866,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -33918,8 +36936,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon1/SelectIcon
   nodeType: ImageViewObjectData
   tag: 2025
@@ -33942,8 +36960,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -34010,8 +37028,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon4/SelectIcon/image2
   nodeType: ImageViewObjectData
   tag: 2036
@@ -34034,8 +37052,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -34102,8 +37120,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon4/SelectIcon/image1
   nodeType: ImageViewObjectData
   tag: 2035
@@ -34126,8 +37144,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.69803923}
   m_RaycastTarget: 0
@@ -34197,8 +37215,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_2
   nodeType: CheckBoxObjectData
   tag: 298
@@ -34221,8 +37239,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -34251,8 +37269,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9085046f02f69544eb97fd06b6048fe2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -34337,8 +37355,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon2/CloseIcon
   nodeType: ImageViewObjectData
   tag: 273
@@ -34361,8 +37379,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -34429,8 +37447,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Image_1
   nodeType: ImageViewObjectData
   tag: 238
@@ -34453,8 +37471,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -34521,8 +37539,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon2/UnlockIcon
   nodeType: ImageViewObjectData
   tag: 272
@@ -34545,8 +37563,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 0
@@ -34616,8 +37634,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_3
   nodeType: ButtonObjectData
   tag: 968
@@ -34640,8 +37658,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -34670,8 +37688,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -34752,8 +37770,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon1/UnlockIcon
   nodeType: ImageViewObjectData
   tag: 268
@@ -34776,8 +37794,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 0
@@ -34844,8 +37862,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Title/TitleR
   nodeType: ImageViewObjectData
   tag: 254
@@ -34868,8 +37886,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -34936,8 +37954,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon2/SelectIcon/image1
   nodeType: ImageViewObjectData
   tag: 2029
@@ -34960,8 +37978,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.69803923}
   m_RaycastTarget: 0
@@ -35032,8 +38050,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon4
   nodeType: ButtonObjectData
   tag: 278
@@ -35056,8 +38074,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -35086,8 +38104,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -35168,8 +38186,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/QiannengBg/Value
   nodeType: TextObjectData
   tag: 258
@@ -35192,8 +38210,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -35264,8 +38282,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon3/UnlockIcon
   nodeType: ImageViewObjectData
   tag: 276
@@ -35288,8 +38306,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0, g: 0, b: 0, a: 1}
   m_RaycastTarget: 0
@@ -35360,8 +38378,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon5
   nodeType: ButtonObjectData
   tag: 282
@@ -35384,8 +38402,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -35414,8 +38432,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -35503,8 +38521,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie
   nodeType: PanelObjectData
   tag: 232
@@ -35527,8 +38545,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -35557,8 +38575,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
 --- !u!1 &8287752171553133482
@@ -35609,8 +38627,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_5/Text
   nodeType: TextObjectData
   tag: 305
@@ -35633,8 +38651,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.5019608, g: 0, b: 0.5019608, a: 1}
   m_RaycastTarget: 0
@@ -35705,8 +38723,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/Screen/CheckBox_4/Text
   nodeType: TextObjectData
   tag: 303
@@ -35729,8 +38747,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.5019608, g: 0, b: 0.5019608, a: 1}
   m_RaycastTarget: 0
@@ -35801,8 +38819,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Bg/Particle_5
   nodeType: ParticleObjectData
   tag: 249
@@ -40655,8 +43673,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/PositionBtn/EquipPosition/ChoosePosition_6
   nodeType: ButtonObjectData
   tag: 992
@@ -40679,8 +43697,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -40709,8 +43727,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -40791,8 +43809,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/Fenjie/Title/TitleName
   nodeType: TextObjectData
   tag: 252
@@ -40815,8 +43833,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.43137255, g: 0.21960784, b: 0.1882353, a: 1}
   m_RaycastTarget: 0
@@ -40891,8 +43909,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon3
   nodeType: ButtonObjectData
   tag: 274
@@ -40915,8 +43933,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
@@ -40945,8 +43963,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Navigation:
     m_Mode: 3
     m_WrapAround: 0
@@ -41034,8 +44052,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -41104,8 +44122,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag/BagCheck/BagCheck/Row/BagIcon5/SelectIcon
   nodeType: ImageViewObjectData
   tag: 2037
@@ -41128,8 +44146,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -41201,8 +44219,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/Panel/RoleBag
   nodeType: PanelObjectData
   tag: 262
@@ -41225,8 +44243,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1

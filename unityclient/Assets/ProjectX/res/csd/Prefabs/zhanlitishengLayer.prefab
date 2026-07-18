@@ -48,8 +48,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng
   nodeType: SingleNodeObjectData
   tag: 6454
@@ -65,6 +65,7 @@ GameObject:
   - component: {fileID: 7199230120985678367}
   - component: {fileID: 3333364659968941908}
   - component: {fileID: 8460694723355045278}
+  - component: {fileID: 7186622867348631647}
   m_Layer: 0
   m_Name: zhanlitishengLayer
   m_TagString: Untagged
@@ -102,8 +103,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer
   nodeType: GameLayerObjectData
   tag: 6285
@@ -118,8 +119,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   source: cocosstudio/csd/zhanlitishengLayer.csd
   nodes:
   - path: Layer
@@ -167,6 +168,474 @@ MonoBehaviour:
     tag: 1457
     actionTag: -1563323054
     target: {fileID: 7274755858845257395}
+--- !u!114 &7186622867348631647
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1511918983463145826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  definition:
+    duration: 220
+    speed: 1
+    frameRate: 60
+    currentAnimationName:
+    clips:
+    - name: up
+      startFrame: 0
+      endFrame: 60
+    - name: down
+      startFrame: 80
+      endFrame: 120
+    - name: end_1
+      startFrame: 130
+      endFrame: 170
+    - name: end_2
+      startFrame: 180
+      endFrame: 220
+    timelines:
+    - actionTag: -1806600065
+      property: Position
+      frames:
+      - frame: 30
+        x: 160
+        y: 70
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 14
+        eventName:
+    - actionTag: -1806600065
+      property: Scale
+      frames:
+      - frame: 30
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 14
+        eventName:
+      - frame: 40
+        x: 2
+        y: 2
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 45
+        x: 2
+        y: 2
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 13
+        eventName:
+      - frame: 50
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 22
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 120
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 145
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -1806600065
+      property: RotationSkew
+      frames:
+      - frame: 30
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 14
+        eventName:
+    - actionTag: -1806600065
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 30
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 14
+        eventName:
+      - frame: 40
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 45
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 13
+        eventName:
+    - actionTag: 1455711036
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 55
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2041434745
+      property: Position
+      frames:
+      - frame: 0
+        x: 1000
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 10
+        x: 500
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 20
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 40
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 120
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 145
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 170
+        x: 0
+        y: -50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 0
+        y: -200
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 0
+        y: -300
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2041434745
+      property: Scale
+      frames:
+      - frame: 10
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 145
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2041434745
+      property: RotationSkew
+      frames:
+      - frame: 10
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 145
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -2041434745
+      property: Alpha
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 10
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 20
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 40
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 120
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 130
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 145
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 170
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 180
+        x: 0
+        y: 0
+        value: 255
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 220
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 1
+        easingType: 0
+        eventName:
+  playOnEnable: 0
+  loop: 0
 --- !u!1 &1941493234221559093
 GameObject:
   m_ObjectHideFlags: 0
@@ -216,8 +685,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/Power_bg/AtlasLabel_1
   nodeType: TextAtlasObjectData
   tag: 1456
@@ -240,8 +709,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 0
@@ -312,8 +781,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/bg_zhanli/Image
   nodeType: ImageViewObjectData
   tag: 6452
@@ -336,8 +805,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -406,8 +875,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/bg_zhanli
   nodeType: ImageViewObjectData
   tag: 6451
@@ -430,8 +899,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -498,8 +967,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/Power_bg/Power_Image
   nodeType: ImageViewObjectData
   tag: 1455
@@ -522,8 +991,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 0
@@ -591,8 +1060,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/bg_zhanli/Value
   nodeType: TextObjectData
   tag: 6453
@@ -615,8 +1084,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 0.9098039, b: 0.6627451, a: 1}
   m_RaycastTarget: 0
@@ -649,8 +1118,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_EffectColor: {r: 0.41960785, g: 0.22352941, b: 0.22352941, a: 1}
   m_EffectDistance: {x: 1, y: -1}
   m_UseGraphicAlpha: 1
@@ -702,8 +1171,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/Power_bg/AtlasLabel_1/UPImage
   nodeType: ImageViewObjectData
   tag: 1457
@@ -726,8 +1195,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -796,8 +1265,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/zhanlitisheng/Power_bg
   nodeType: ImageViewObjectData
   tag: 1454
@@ -820,8 +1289,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 0

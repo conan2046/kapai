@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2677626583344822979}
   - component: {fileID: 416016641602031660}
   - component: {fileID: 875347187533240260}
+  - component: {fileID: 67869062100907775}
   m_Layer: 0
   m_Name: UImain_cloudLayer
   m_TagString: Untagged
@@ -48,8 +49,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer
   nodeType: GameLayerObjectData
   tag: 737
@@ -64,8 +65,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   source: cocosstudio/csd/common/UImain_cloudLayer.csd
   nodes:
   - path: Layer
@@ -98,6 +99,103 @@ MonoBehaviour:
     tag: 741
     actionTag: 843100245
     target: {fileID: 3622187186243226527}
+--- !u!114 &67869062100907775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1439288934698808574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  definition:
+    duration: 2495
+    speed: 0.5
+    frameRate: 60
+    currentAnimationName:
+    clips: []
+    timelines:
+    - actionTag: -1347962969
+      property: Position
+      frames:
+      - frame: 0
+        x: -200
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 1500
+        x: 2000
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1155184216
+      property: Position
+      frames:
+      - frame: 400
+        x: -200
+        y: 600
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 2000
+        x: 2000
+        y: 600
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 2017568117
+      property: Position
+      frames:
+      - frame: 500
+        x: -200
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 2495
+        x: 2000
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 843100245
+      property: Position
+      frames:
+      - frame: 700
+        x: -200
+        y: 257.5071
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 1500
+        x: 2000
+        y: 257.5071
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+  playOnEnable: 0
+  loop: 0
 --- !u!1 &3622187186243226527
 GameObject:
   m_ObjectHideFlags: 0
@@ -146,8 +244,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/CloudPanel/Image_4
   nodeType: ImageViewObjectData
   tag: 741
@@ -170,8 +268,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.8}
   m_RaycastTarget: 0
@@ -240,8 +338,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/CloudPanel
   nodeType: PanelObjectData
   tag: 740
@@ -294,8 +392,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/CloudPanel/Image_3
   nodeType: ImageViewObjectData
   tag: 742
@@ -318,8 +416,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -386,8 +484,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/CloudPanel/Image_1
   nodeType: ImageViewObjectData
   tag: 738
@@ -410,8 +508,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.8980392}
   m_RaycastTarget: 0
@@ -478,8 +576,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/CloudPanel/Image_2
   nodeType: ImageViewObjectData
   tag: 739
@@ -502,8 +600,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0

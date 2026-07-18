@@ -11,7 +11,7 @@ pwsh.exe -File tools/ui_migration/Build-CsbDump.ps1
 python tools/ui_migration/convert_ui.py --clean
 ```
 
-第一条命令使用仓库自带的旧版FlatBuffers头文件构建CSB解码器，不依赖Unity；只需本机已有Visual Studio C++ Build Tools和CMake。没有CSB兜底需求时可不构建，但23个仅有CSB的界面不会被补齐。
+第一条命令使用仓库自带的旧版 FlatBuffers 头文件构建 CSB 解码器，不依赖 Unity；只需本机已有 Visual Studio C++ Build Tools 和 CMake。完整路径审计后有 61 个仅有同路径 CSB 的界面需要兜底。
 
 默认输入：
 
@@ -32,8 +32,13 @@ build/ui-migration/
 ├── asset-manifest.json  # 唯一资源选源契约
 ├── atlas-remap.json     # 图集旧帧名重映射/占位恢复项
 ├── report.json          # 机器可读汇总和逐界面结果
-└── report.html          # 人工查看报告
+├── report.html          # 人工查看报告
+├── runtime-ui-usage.json # Lua引用、完整路径匹配和模块scope
+├── ani/                 # ImodAnim JSON（convert_animations.py）
+└── ani-manifest.json    # ANI结构、贴图配对和Unity资源键
 ```
+
+CSB/CSD 必须按 `csd/` 下完整相对路径匹配。根目录与 `huodong/`、`common/` 等目录的同名文件属于不同界面；`duplicateBasenames` 只做风险提示，不再按文件名合并。
 
 指定其他路径：
 
@@ -58,26 +63,49 @@ python tools/ui_migration/convert_ui.py `
 python -m unittest discover -s tools/ui_migration/tests -v
 ```
 
-## Unity 全量导入
+## Unity 范围导入
 
 Unity 工程保持旧客户端逻辑目录：
 
 - 旧客户端：`client/ProjectX/res/<legacy path>`
 - Unity：`unityclient/Assets/ProjectX/res/<legacy path>`
 
-默认准备全部 333 个 CSD 与 23 个仅 CSB 界面，以及它们引用的资源和九宫格切片：
+默认仍可准备全部 IR；新迁移模块优先使用代码引用 scope，避免把其他项目或废弃界面继续带入 Unity：
 
 ```powershell
 python tools/ui_migration/prepare_unity_project.py
+python tools/ui_migration/prepare_unity_project.py --scope referenced
+python tools/ui_migration/prepare_unity_project.py --scope welfare
+python tools/ui_migration/prepare_unity_project.py --scope timeline
 ```
 
 仅需调试 10 个代表界面时可加 `--scope baseline`。
+
+当前运行包为 386 个 CSB：325 个存在同路径 CSD，61 个必须由 CSB 解码器兜底。旧版“333 + 23”是按文件名合并后的历史口径。
+
+## ImodAnim `.ani`
+
+`.ani` 不是 Cocos Studio Timeline。它保存贴图模块、组合帧、动作序列和 30 FPS 时长。全量解析及福利范围准备：
+
+```powershell
+python tools/ui_migration/convert_animations.py --scope all
+python tools/ui_migration/convert_animations.py --scope welfare --prepare-unity
+```
+
+Unity 运行时使用 `ImodAnimationData/ImodAnimationPlayer`；CSD/CSB Timeline 使用独立的 `CocosTimelinePlayer`。后者支持 Position、Scale、RotationSkew、Alpha、VisibleForFrame、AnchorPoint、FrameEvent、命名片段、循环、暂停和时间倍率，并按 Cocos `FrameEaseType` 执行缓动。
 
 然后在 Unity 执行 `Tools > ProjectX UI > Import All Prefabs`，或用批处理：
 
 ```powershell
 & '<Unity.exe>' -batchmode -quit -projectPath unityclient `
   -executeMethod ProjectX.Editor.CocosUiImporter.ImportAllPrefabsBatch
+
+# 只向旧 Lua Timeline 实际引用的 27 个 Prefab 增量补写组件
+& '<Unity.exe>' -batchmode -quit -projectPath unityclient `
+  -executeMethod ProjectX.Editor.CocosUiImporter.ImportTimelinePrefabsBatch
+
+& '<Unity.exe>' -batchmode -quit -projectPath unityclient `
+  -executeMethod ProjectX.Editor.CocosUiImporter.ValidateTimelinePlaybackBatch
 ```
 
 输出：
@@ -89,9 +117,9 @@ python tools/ui_migration/prepare_unity_project.py
 ## 当前边界
 
 - 已完整保留 CSD 节点属性、子属性、资源引用和 Timeline XML 数据。
-- 已给常见 Cocos Studio 控件附加 Unity 组件映射提示，并支持生成全部 356 个 Unity Prefab。
+- 已给常见 Cocos Studio 控件附加 Unity 组件映射提示；历史工程已有 356 个 Prefab，新导入必须按完整路径和 scope 生成。
 - 已解析 TexturePacker 图集 PLIST 与粒子 PLIST。
 - 已为全部节点生成 `cocos-bottom-left-v1` RectTransform建议值；Stretch等原始约束仍完整保留，等待Unity基准界面视觉验收。
-- 仅有CSB的界面已提取节点、布局、文本、资源和动画摘要；CSB Timeline逐帧数据标记为后续补充项。
+- 仅有CSB的界面可提取节点、布局、文本、资源、命名片段和逐帧 Timeline；旧 Lua Timeline scope 中唯一二进制独占的 `FengShenLayer.csb` 已完成真实帧解码与视觉验收。
 - 缺失的旧美术源文件不会被猜测替换，会指向明确占位图，并在 `atlas-remap.json` 标记 `requiresArtRecovery`。
-- TextMeshPro字体资产、Cocos动画到AnimationClip的转换仍属于后续阶段。
+- TextMeshPro 字体资产仍属于后续阶段；`.ani` 使用兼容播放器，不批量膨胀为 AnimationClip。

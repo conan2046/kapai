@@ -48,8 +48,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/on/Loading
   nodeType: ImageViewObjectData
   tag: 1042
@@ -72,8 +72,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -140,8 +140,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/Text
   nodeType: TextObjectData
   tag: 838
@@ -164,8 +164,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 0.41960785, g: 0.22352941, b: 0.22352941, a: 1}
   m_RaycastTarget: 0
@@ -239,8 +239,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow
   nodeType: PanelObjectData
   tag: 835
@@ -263,8 +263,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -294,6 +294,7 @@ GameObject:
   - component: {fileID: 5317204118426759856}
   - component: {fileID: 9138187923806816391}
   - component: {fileID: 4329517380747570078}
+  - component: {fileID: 8310357678283436031}
   m_Layer: 0
   m_Name: VoiceWindow
   m_TagString: Untagged
@@ -331,8 +332,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer
   nodeType: GameLayerObjectData
   tag: 834
@@ -347,8 +348,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   source: cocosstudio/csd/VoiceWindow.csd
   nodes:
   - path: Layer
@@ -401,6 +402,555 @@ MonoBehaviour:
     tag: 838
     actionTag: -521773379
     target: {fileID: 209320333336892617}
+--- !u!114 &8310357678283436031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2900446937377534284}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  definition:
+    duration: 100
+    speed: 1
+    frameRate: 60
+    currentAnimationName:
+    clips: []
+    timelines:
+    - actionTag: -966046888
+      property: Position
+      frames:
+      - frame: 0
+        x: 85
+        y: 35
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 20
+        x: 85
+        y: 35
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 40
+        x: 85
+        y: 35
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 85
+        y: 35
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 85
+        y: 35
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 85
+        y: 35
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -966046888
+      property: Scale
+      frames:
+      - frame: 40
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -966046888
+      property: RotationSkew
+      frames:
+      - frame: 40
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -966046888
+      property: VisibleForFrame
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 20
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 40
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+    - actionTag: -792245627
+      property: Position
+      frames:
+      - frame: 0
+        x: 85
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 40
+        x: 85
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 85
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 85
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 85
+        y: 50
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -792245627
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -792245627
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: -792245627
+      property: VisibleForFrame
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 40
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+    - actionTag: 1602289153
+      property: Position
+      frames:
+      - frame: 0
+        x: 85
+        y: 65
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 85
+        y: 65
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 85
+        y: 65
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 85
+        y: 65
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1602289153
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1602289153
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 1602289153
+      property: VisibleForFrame
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 60
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+    - actionTag: 741463247
+      property: Position
+      frames:
+      - frame: 0
+        x: 85
+        y: 80
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 85
+        y: 80
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 85
+        y: 80
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 741463247
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 741463247
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName:
+    - actionTag: 741463247
+      property: VisibleForFrame
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 0
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 80
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+      - frame: 100
+        x: 0
+        y: 0
+        value: 1
+        visible: 1
+        tween: 0
+        easingType: 0
+        eventName:
+  playOnEnable: 0
+  loop: 0
 --- !u!1 &3905986491647377636
 GameObject:
   m_ObjectHideFlags: 0
@@ -449,8 +999,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/on/Voice_4
   nodeType: ImageViewObjectData
   tag: 1041
@@ -473,8 +1023,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -541,8 +1091,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/on/Voice_3
   nodeType: ImageViewObjectData
   tag: 1040
@@ -565,8 +1115,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -633,8 +1183,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/on/Voice_1
   nodeType: ImageViewObjectData
   tag: 1037
@@ -657,8 +1207,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -730,8 +1280,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/on
   nodeType: ImageViewObjectData
   tag: 837
@@ -754,8 +1304,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -822,8 +1372,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/on/Voice_2
   nodeType: ImageViewObjectData
   tag: 1039
@@ -846,8 +1396,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -914,8 +1464,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   cocosPath: Layer/VoiceWindow/off
   nodeType: ImageViewObjectData
   tag: 836
@@ -938,8 +1488,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0

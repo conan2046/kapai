@@ -324,6 +324,120 @@ def _normalize_node(
     }
 
 
+def _normalize_clips(animation_list: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not animation_list:
+        return []
+    if isinstance(animation_list.get("clips"), list):
+        return list(animation_list["clips"])
+    clips = []
+    for item in animation_list.get("children", []):
+        if item.get("tag") != "AnimationInfo":
+            continue
+        values = item.get("attributes", {})
+        clips.append(
+            {
+                "name": str(values.get("Name", "")),
+                "startFrame": int(values.get("StartIndex", 0)),
+                "endFrame": int(values.get("EndIndex", 0)),
+            }
+        )
+    return clips
+
+
+def _normalize_animation(
+    animation: dict[str, Any] | None,
+    animation_list: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not animation:
+        return None
+    if isinstance(animation.get("timelines"), list):
+        normalized = dict(animation)
+        normalized["frameRate"] = 60
+        normalized["clips"] = _normalize_clips(animation) or list(animation.get("clips", []))
+        normalized["duration"] = max(
+            int(normalized.get("duration", 0)),
+            max(
+                (
+                    int(frame.get("frame", 0))
+                    for timeline in normalized["timelines"]
+                    for frame in timeline.get("frames", [])
+                ),
+                default=0,
+            ),
+            max(
+                (int(clip.get("endFrame", 0)) for clip in normalized["clips"]),
+                default=0,
+            ),
+        )
+        return normalized
+    attributes = animation.get("attributes", {})
+    timelines = []
+    maximum_frame = 0
+    for timeline in animation.get("children", []):
+        if timeline.get("tag") != "Timeline":
+            continue
+        timeline_attributes = timeline.get("attributes", {})
+        frames = []
+        for frame in timeline.get("children", []):
+            values = frame.get("attributes", {})
+            frame_index = int(values.get("FrameIndex", 0))
+            maximum_frame = max(maximum_frame, frame_index)
+            easing = next(
+                (
+                    child.get("attributes", {})
+                    for child in frame.get("children", [])
+                    if child.get("tag") == "EasingData"
+                ),
+                {},
+            )
+            scalar_value = (
+                0.0
+                if frame.get("tag") == "EventFrame"
+                else float(
+                    values.get(
+                        "Value",
+                        values.get("Rotation", values.get("Alpha", 0.0)),
+                    )
+                    or 0.0
+                )
+            )
+            frames.append(
+                {
+                    "frame": frame_index,
+                    "x": float(values.get("X", values.get("ScaleX", 0.0)) or 0.0),
+                    "y": float(values.get("Y", values.get("ScaleY", 0.0)) or 0.0),
+                    "value": scalar_value,
+                    "visible": bool(values.get("Value", True)),
+                    "tween": bool(values.get("Tween", True)),
+                    "easingType": int(easing.get("Type", 0)),
+                    "eventName": str(values.get("Value", ""))
+                    if frame.get("tag") == "EventFrame"
+                    else "",
+                }
+            )
+        timelines.append(
+            {
+                "actionTag": int(timeline_attributes.get("ActionTag", 0)),
+                "property": str(timeline_attributes.get("Property", "")),
+                "frames": frames,
+            }
+        )
+    clips = _normalize_clips(animation_list)
+    duration = max(
+        int(attributes.get("Duration", 0)),
+        maximum_frame,
+        max((int(item["endFrame"]) for item in clips), default=0),
+    )
+    return {
+        "duration": duration,
+        "speed": float(attributes.get("Speed", 1.0) or 1.0),
+        "frameRate": 60,
+        "currentAnimationName": str(attributes.get("ActivedAnimationName", "")),
+        "clips": clips,
+        "timelines": timelines,
+    }
+
+
 def _prefab_relative(source: str, name: str) -> Path:
     parts = list(PurePosixPath(source.replace("\\", "/")).parts)
     try:
@@ -334,6 +448,19 @@ def _prefab_relative(source: str, name: str) -> Path:
     if not relative.name:
         relative = Path(f"{name}.csd")
     return relative.with_suffix(".prefab")
+
+
+def _runtime_csb_path(source: str, ir_path: Path, kind: str) -> str:
+    if kind == "csb":
+        relative = ir_path.name.removesuffix(".json")
+        parent = ir_path.parent
+        return (parent / relative).as_posix().lower()
+    parts = list(PurePosixPath(source.replace("\\", "/")).parts)
+    try:
+        index = next(i for i, part in enumerate(parts) if part.lower() == "csd")
+        return PurePosixPath(*parts[index + 1 :]).with_suffix(".csb").as_posix().lower()
+    except StopIteration:
+        return PurePosixPath(source).with_suffix(".csb").as_posix().lower()
 
 
 def _document_specs(migration_root: Path, scope: str) -> list[dict[str, Any]]:
@@ -369,8 +496,20 @@ def _document_specs(migration_root: Path, scope: str) -> list[dict[str, Any]]:
                     "irPath": ir_path.relative_to(migration_root).as_posix(),
                     "preview": source.replace("\\", "/").lower() in baseline_sources,
                     "kind": kind,
+                    "runtimePath": _runtime_csb_path(
+                        source, ir_path.relative_to(migration_root / kind), kind
+                    ),
                 }
             )
+    if scope in {"referenced", "welfare", "timeline"}:
+        usage = _read_json(migration_root / "runtime-ui-usage.json")
+        selected = {
+            str(value).lower()
+            for value in usage["sets"][
+                "welfare" if scope == "welfare" else "timeline" if scope == "timeline" else "referenced"
+            ]
+        }
+        specs = [item for item in specs if item["runtimePath"] in selected]
     return specs
 
 
@@ -387,7 +526,7 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
         ir = _read_json(migration_root / _safe_relative(spec["irPath"]))
         source = str(spec["source"])
         prefab_relative = (
-            Path("csb") / f"{spec['name']}.prefab"
+            Path("csb") / Path(spec["runtimePath"]).with_suffix(".prefab")
             if spec.get("kind") == "csb"
             else _prefab_relative(source, spec["name"])
         )
@@ -458,6 +597,9 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
                 "name": spec["name"],
                 "source": source,
                 "root": _normalize_node(ir["root"], unity_project, slice_variants),
+                "animation": _normalize_animation(
+                    ir.get("animation"), ir.get("animationList")
+                ),
             },
         )
 
@@ -490,7 +632,12 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
         "artRecoveryPlaceholders": sorted(placeholders),
         "decodableImageSubstitutions": sorted(source_substitutions),
     }
-    _write_json(data_root / "unity-import-manifest.json", result)
+    manifest_name = (
+        "unity-import-manifest.timeline.json"
+        if scope == "timeline"
+        else "unity-import-manifest.json"
+    )
+    _write_json(data_root / manifest_name, result)
     return result
 
 
@@ -499,7 +646,9 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--unity-project", type=Path)
     parser.add_argument("--migration-root", type=Path)
-    parser.add_argument("--scope", choices=("all", "baseline"), default="all")
+    parser.add_argument(
+        "--scope", choices=("all", "baseline", "referenced", "welfare", "timeline"), default="all"
+    )
     args = parser.parse_args()
     repo_root = args.repo_root.resolve()
     unity_project = (args.unity_project or repo_root / "unityclient").resolve()

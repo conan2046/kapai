@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ProjectX.Animation;
 using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace ProjectX.UI
         private readonly VirtualList<WelfareOnlineRecord> onlineList;
         private readonly GameObject stageEmpty;
         private readonly Text periodText;
+        private readonly ImodAnimationPlayer signAnimation;
         private int tab;
 
         public WelfarePresenter(CocosUiView welfareView, CocosUiView signView, CocosUiView onlineView,
@@ -47,6 +49,7 @@ namespace ProjectX.UI
                 new Vector2(0.93f, 0.95f), 22, TextAnchor.MiddleLeft);
             stageEmpty = CreateText(welfareView.GameObject.transform, "StageGoalEmpty", new Vector2(0.27f, 0.22f),
                 new Vector2(0.94f, 0.82f), 28, TextAnchor.MiddleCenter).gameObject;
+            signAnimation = CreateSignAnimation(signView.GameObject.transform);
             CreateTab("签到", 0, 0.68f);
             CreateTab("在线奖励", 1, 0.56f);
             CreateTab("阶段目标", 2, 0.44f);
@@ -76,6 +79,8 @@ namespace ProjectX.UI
             signView.GameObject.SetActive(tab == 0);
             onlineView.GameObject.SetActive(tab == 1);
             stageEmpty.SetActive(tab == 2);
+            if (signAnimation != null)
+                signAnimation.gameObject.SetActive(tab == 0 && store.NextSign != null);
             MissingIconCount = 0;
             signList.SetItems(store.Signs);
             onlineList.SetItems(store.Online);
@@ -173,6 +178,24 @@ namespace ProjectX.UI
             go.GetComponent<Button>().onClick.AddListener(() => SelectTab(value));
             Text text = CreateText(rect, "Label", Vector2.zero, Vector2.one, 24, TextAnchor.MiddleCenter);
             text.text = label;
+        }
+
+        private static ImodAnimationPlayer CreateSignAnimation(Transform parent)
+        {
+            var go = new GameObject("SignClaimAnimation", typeof(RectTransform));
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.sizeDelta = new Vector2(320f, 320f);
+            rect.anchoredPosition = new Vector2(180f, -20f);
+            ImodAnimationPlayer player = go.AddComponent<ImodAnimationPlayer>();
+            if (!player.LoadResource("ProjectXAnimation/res2/fx/qiandao"))
+            {
+                UnityEngine.Object.Destroy(go);
+                return null;
+            }
+            player.PlayActionRepeat(0);
+            return player;
         }
 
         private static Text CreateText(Transform parent, string name, Vector2 min, Vector2 max, int size, TextAnchor align)
