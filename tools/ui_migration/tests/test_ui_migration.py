@@ -16,6 +16,7 @@ sys.path.insert(0, str(TOOLS_DIR))
 from csd_ir import parse_csd  # noqa: E402
 from ani_ir import AniFormatError, parse_ani_bytes  # noqa: E402
 from convert_ui import duplicate_status  # noqa: E402
+from imod_usage import collect_imod_usage  # noqa: E402
 from ir_enrichment import (  # noqa: E402
     attach_paths_and_collect_resources,
     attach_unity_layout,
@@ -125,6 +126,25 @@ class RuntimeUsageTests(unittest.TestCase):
             references = collect_timeline_csb_references(root)
 
         self.assertEqual(sorted(references), ["map/cloud.csb", "role/levelup.csb"])
+
+    def test_collects_imod_calls_and_distinguishes_dynamic_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "Sample.lua").write_text(
+                'local effect = ImodAnim:createWithFileSync("res2/fx/fixed")\n'
+                'effect:PlayActionRepeat(0)\n'
+                'local dynamic = ImodAnim:create()\n'
+                'dynamic:initAnimWithName(path .. ".png", path .. ".ani")\n'
+                '-- local ignored = ImodAnim:createWithFileSync("ignored")\n'
+                'other:PlayAction(0)\n',
+                encoding="utf-8",
+            )
+            usage = collect_imod_usage(root)
+
+        self.assertEqual(usage["statistics"]["constructors"], 2)
+        self.assertEqual(usage["statistics"]["calls"], 4)
+        self.assertEqual(usage["fixedResourcePaths"], ["res2/fx/fixed"])
+        self.assertEqual(usage["statistics"]["dynamicLoads"], 1)
 
 
 class TimelineNormalizationTests(unittest.TestCase):

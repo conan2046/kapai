@@ -19,5 +19,6 @@
 | 世界/战斗/副本 | `WORLD.md` | 第一阶段完成 |
 | 福利 | `WELFARE.md` | 第一阶段完成 |
 | Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |
+| ImodAnim 兼容播放 | `IMOD_ANIMATION.md` / `IMOD_ANIMATION_CALLS.md` | 885 个可播放资源全动作验证；7 个源资产缺口 |
 
 新增模块文档固定结构：范围、三方证据、实现、验证、遗留项、关键坑。

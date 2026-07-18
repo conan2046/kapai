@@ -7,10 +7,18 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 from ani_ir import AniFormatError, parse_ani
 
 
 WELFARE_ANI_PATHS = {"res2/fx/qiandao.ani"}
+TEXTURE_OVERRIDES = {
+    "res2/fx/jishourenwu.ani": "res2/fx/jieshourenwu.png",
+}
+RESOURCE_ALIASES = {
+    "res2/fx/jishourenwu.ani": ["res2/fx/jieshourenwu"],
+}
 
 
 def _write_json(path: Path, value: Any) -> None:
@@ -23,6 +31,28 @@ def _write_json(path: Path, value: Any) -> None:
 
 def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _required_texture_size(parsed: dict[str, Any]) -> tuple[int, int]:
+    width = max((item["x"] + item["width"] for item in parsed["modules"]), default=0)
+    height = max((item["y"] + item["height"] for item in parsed["modules"]), default=0)
+    return width, height
+
+
+def _prepare_texture(source: Path, target: Path, required: tuple[int, int]) -> dict[str, Any]:
+    with Image.open(source) as image:
+        source_size = image.size
+        if required[0] <= image.width and required[1] <= image.height:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            return {"sourceSize": list(source_size), "preparedSize": list(source_size), "padded": False}
+        width = max(image.width, required[0])
+        height = max(image.height, required[1])
+        padded = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        padded.paste(image.convert("RGBA"), (0, 0))
+        target.parent.mkdir(parents=True, exist_ok=True)
+        padded.save(target)
+        return {"sourceSize": list(source_size), "preparedSize": [width, height], "padded": True}
 
 
 def convert(
@@ -43,15 +73,18 @@ def convert(
     errors = []
     for path in paths:
         relative = path.relative_to(resource_root)
-        texture = path.with_suffix(".png")
+        relative_key = relative.as_posix()
+        texture_relative = Path(TEXTURE_OVERRIDES.get(relative_key, relative.with_suffix(".png").as_posix()))
+        texture = resource_root / texture_relative
         try:
             parsed = parse_ani(path, resource_root)
             ir_path = output_root / "ani" / relative.with_suffix(".ani.json")
             _write_json(ir_path, parsed)
             entry = {
                 "source": relative.as_posix(),
-                "texture": relative.with_suffix(".png").as_posix(),
+                "texture": texture_relative.as_posix(),
                 "textureExists": texture.is_file(),
+                "aliases": RESOURCE_ALIASES.get(relative_key, []),
                 "ir": ir_path.relative_to(output_root).as_posix(),
                 "sourceSha256": _digest(path),
                 "statistics": parsed["statistics"],
@@ -68,12 +101,16 @@ def convert(
                     unity_texture = (
                         unity_project
                         / "Assets/ProjectX/Resources/ProjectXAnimation"
-                        / relative.with_suffix(".png")
+                        / texture_relative
                     )
-                    unity_texture.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(texture, unity_texture)
+                    entry["texturePreparation"] = _prepare_texture(
+                        texture, unity_texture, _required_texture_size(parsed)
+                    )
                 entry["unityResourceKey"] = (
                     "ProjectXAnimation/" + relative.with_suffix("").as_posix()
+                )
+                entry["unityTextureResourceKey"] = (
+                    "ProjectXAnimation/" + texture_relative.with_suffix("").as_posix()
                 )
         except (AniFormatError, OSError, ValueError) as exc:
             errors.append({"source": relative.as_posix(), "error": str(exc)})
@@ -92,6 +129,24 @@ def convert(
         },
     }
     _write_json(output_root / "ani-manifest.json", manifest)
+    if unity_project is not None:
+        catalog = {
+            "schemaVersion": 1,
+            "entries": [
+                {
+                    "legacyPath": item["source"][:-4],
+                    "animationResourceKey": item["unityResourceKey"],
+                    "textureResourceKey": item["unityTextureResourceKey"],
+                    "aliases": item["aliases"],
+                    "playable": item["textureExists"],
+                    "texturePadded": item.get("texturePreparation", {}).get("padded", False),
+                }
+                for item in entries
+            ],
+        }
+        _write_json(
+            unity_project / "Assets/ProjectX/Resources/ProjectXAnimation/catalog.json", catalog
+        )
     return manifest
 
 

@@ -89,10 +89,13 @@ python tools/ui_migration/prepare_unity_project.py --scope timeline
 
 ```powershell
 python tools/ui_migration/convert_animations.py --scope all
-python tools/ui_migration/convert_animations.py --scope welfare --prepare-unity
+python tools/ui_migration/imod_usage.py --markdown-output docs/unityclient/modules/IMOD_ANIMATION_CALLS.md
+python tools/ui_migration/convert_animations.py --scope all --prepare-unity
 ```
 
 Unity 运行时使用 `ImodAnimationData/ImodAnimationPlayer`；CSD/CSB Timeline 使用独立的 `CocosTimelinePlayer`。后者支持 Position、Scale、RotationSkew、Alpha、VisibleForFrame、AnchorPoint、FrameEvent、命名片段、循环、暂停和时间倍率，并按 Cocos `FrameEaseType` 执行缓动。
+
+Imod 全量门禁为 `ProjectX.Editor.ImodAnimationValidation.ValidateAllImodAnimationsBatch`。它逐项验证资源、全部动作、单次/循环、动态别名、PNG/ANI 分离参数、附加层和旧速度倍率，并生成固定 UI 联系表。当前源包存在 6 个固定调用缺整组 ANI/PNG、1 个 ANI 缺贴图，详见 `docs/unityclient/modules/IMOD_ANIMATION.md`。
 
 然后在 Unity 执行 `Tools > ProjectX UI > Import All Prefabs`，或用批处理：
 

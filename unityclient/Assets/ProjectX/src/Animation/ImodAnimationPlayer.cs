@@ -20,6 +20,7 @@ namespace ProjectX.Animation
         [SerializeField] private int initialAction;
 
         private readonly List<Sprite> moduleSprites = new List<Sprite>();
+        private readonly List<ImodAnimationPlayer> additionalLayers = new List<ImodAnimationPlayer>();
         private ImodAnimationData data;
         private RectTransform partTransform;
         private Image partImage;
@@ -72,6 +73,46 @@ namespace ProjectX.Animation
             return true;
         }
 
+        public bool LoadLegacy(string legacyPath)
+        {
+            if (!ImodAnimationResources.TryLoad(legacyPath, out ImodAnimationAssets assets))
+                return false;
+            Load(assets.Animation, assets.Texture);
+            return true;
+        }
+
+        public bool LoadLegacy(string texturePath, string animationPath)
+        {
+            if (!ImodAnimationResources.TryLoad(texturePath, animationPath, out ImodAnimationAssets assets))
+                return false;
+            Load(assets.Animation, assets.Texture);
+            return true;
+        }
+
+        public bool AddLegacyLayer(
+            string texturePath,
+            string animationPath,
+            int zOrder = 1,
+            Color? layerColor = null)
+        {
+            if (!ImodAnimationResources.TryLoad(texturePath, animationPath, out ImodAnimationAssets assets))
+                return false;
+            var layerObject = new GameObject(
+                $"__ImodLayer_{additionalLayers.Count + 1}", typeof(RectTransform));
+            RectTransform rect = layerObject.GetComponent<RectTransform>();
+            rect.SetParent(transform, false);
+            rect.SetSiblingIndex(Mathf.Clamp(zOrder, 0, transform.childCount - 1));
+            ImodAnimationPlayer player = layerObject.AddComponent<ImodAnimationPlayer>();
+            player.playOnEnable = false;
+            player.Load(assets.Animation, assets.Texture);
+            player.SetColor(layerColor ?? Color.white);
+            player.SetSpeedScale(speed);
+            player.SetFlippedX(flippedX);
+            player.SetFlippedY(flippedY);
+            additionalLayers.Add(player);
+            return true;
+        }
+
         public void Load(TextAsset json, Texture2D image)
         {
             if (json == null) throw new ArgumentNullException(nameof(json));
@@ -99,44 +140,80 @@ namespace ProjectX.Animation
             loop = repeat;
             playing = true;
             ApplySequenceFrame();
+            foreach (ImodAnimationPlayer layer in additionalLayers)
+                if (requestedAction < layer.data.actions.Length)
+                    layer.Play(requestedAction, repeat);
         }
-
-        public void PlayAction(int requestedAction) => Play(requestedAction, false);
-        public void PlayActionRepeat(int requestedAction) => Play(requestedAction, true);
 
         public void Stop()
         {
             playing = false;
             remaining = 0f;
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.Stop();
         }
 
         public void SetSpeedScale(float value)
         {
             speed = Mathf.Max(0.01f, value);
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetSpeedScale(speed);
         }
 
         public void SetFlippedX(bool value)
         {
             flippedX = value;
             RenderFrame(CurrentFrame);
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetFlippedX(value);
         }
 
         public void SetFlippedY(bool value)
         {
             flippedY = value;
             RenderFrame(CurrentFrame);
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetFlippedY(value);
         }
 
         public void SetColor(Color value)
         {
             color = value;
             if (partImage != null) partImage.color = color;
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetColor(value);
+        }
+
+        public void SetOpacity(int opacity)
+        {
+            Color value = color;
+            value.a = Mathf.Clamp01(opacity / 255f);
+            SetColor(value);
+        }
+
+        public void PlayNewAction(int requestedAction, bool repeat = false) => Play(requestedAction, repeat);
+        public void PlayAction(int requestedAction, float ignoredDuration = 0.1f) => Play(requestedAction, false);
+        public void PlayActionRepeat(
+            int requestedAction,
+            float ignoredDuration = 0.1f,
+            bool runTimerNow = false) => Play(requestedAction, true);
+
+        public void SetCurrentAction(int requestedAction)
+        {
+            Play(requestedAction, false);
+            Stop();
+        }
+
+        public void PlayFirstFrameIndex(int requestedAction) => SetCurrentAction(requestedAction);
+
+        public void StopCurrentAnimation()
+        {
+            Stop();
+            RenderFrame(0);
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.StopCurrentAnimation();
         }
 
         public void Advance(float deltaSeconds)
         {
             if (!playing || deltaSeconds <= 0f || actionIndex < 0) return;
-            remaining -= deltaSeconds * speed;
+            // Legacy ImodAnim multiplies its scheduled frame interval by _playScale.
+            // Values below 1 therefore play faster, values above 1 play slower.
+            remaining -= deltaSeconds / speed;
             int guard = 0;
             while (remaining <= 0f && playing && guard++ < 1024)
             {
@@ -235,11 +312,12 @@ namespace ProjectX.Animation
             if (flippedX) x = -x;
             if (flippedY) y = -y;
             partTransform.anchoredPosition = new Vector2(x, y);
-            bool partFlipX = (part.flags & FlipX) != 0;
-            bool partFlipY = (part.flags & FlipY) != 0;
+            if ((part.flags & FlipX) != 0) x -= module.width;
+            if ((part.flags & FlipY) != 0) y -= module.height;
+            partTransform.anchoredPosition = new Vector2(x, y);
             partTransform.localScale = new Vector3(
-                partFlipX ^ flippedX ? -1f : 1f,
-                partFlipY ^ flippedY ? -1f : 1f,
+                flippedX ? -1f : 1f,
+                flippedY ? -1f : 1f,
                 1f);
         }
     }

@@ -147,6 +147,9 @@
 | 两款游戏 Prefab 混在一起 | 不按 basename 匹配；以 Lua 非注释引用和 `csd/` 完整路径生成 scope，未引用项只标记不直接删除 |
 | 根目录与 `huodong/` 同名 CSB | 视为两个独立界面；CSB fallback 保留相对目录，禁止拿同名 CSD 替代 |
 | `.ani` 无法由 Unity 原生播放 | 先转 JSON，再用 `ImodAnimationPlayer`；CSD/CSB Timeline 单独使用 `CocosTimelinePlayer` |
+| Imod 大图在 Unity 切片越界 | `ProjectXAnimation` 必须保留原尺寸、NPOT None、无 Mipmap；默认 2048 缩图会破坏 ANI 像素坐标 |
+| Imod 固定调用被误判全覆盖 | 同时跑 `imod_usage.py` 交叉检查 Lua 路径；当前 24 条固定路径有 6 条源包完全缺失 |
+| 从另一款游戏补缺失 ANI | 禁止按同名或 Android `xcres` 副本猜补；只接受当前游戏可解码原始 ANI/PNG |
 | Timeline 文本命中数与真实调用不一致 | 29 条文本含 1 条注释；28 条有效 `createTimeline` 中通用入口展开为 2 个调用，最终仍是 29 处有效调用、27 个唯一资源 |
 | 空 Timeline 被伪造成缺陷 | `shenjiangzhaomu/Online/Lilian/juezhankunlun` 等源文件本身无轨道；Prefab 保留空定义和真实证据，不注入动画 |
 
