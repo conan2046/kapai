@@ -2,7 +2,7 @@
 
 > 最后更新：2026-07-19
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
-> 历史全文见 `docs/unityclient/history/`；长期路线见 `UNITYCLIENT_MIGRATION_PLAN.md`。
+> 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
 ## 1. 总进度
 
@@ -12,7 +12,7 @@
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
 | Validated | `0 个模块迁移完整` | 阵容人工检查发现大量可见按钮无 Listener；所有历史完成结论按新标准降为待审 |
 
-禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md`。
+禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
 ## 2. 模块状态
 
@@ -78,7 +78,7 @@
 
 ## 5. 已知风险
 
-- `UNITYCLIENT_MIGRATION_PLAN.md` 不再保存实时百分比，避免状态漂移。
+- 路线、流程、功能/视觉标准已合并到 `docs/unityclient/MIGRATION_GUIDE.md`，禁止新建平行文档。
 - 配置含义不一定等于服务端真实扣款/奖励语义，必须以真实结果为准。
 - Unity GUI 可异步返回；自动化必须用 `Start-Process -Wait`，同一隔离角色禁止并发。
 - Runner 必须删除旧结果并校验本次时间戳，不能继承旧 `COMPLETE`。
@@ -92,4 +92,4 @@
 - 每批只更新：总进度、模块状态、最新验证、当前批次。
 - 协议和实现证据写入 `docs/unityclient/modules/`。
 - 日期流水写入 `docs/unityclient/history/YYYY-MM.md` 或完整快照，不写回本文件。
-- 默认读取顺序：`AGENTS.md → 本文件 → UNITYCLIENT_HANDOFF.md → MIGRATION_SOP.md → 目标模块文档 → 计划对应章节`。
+- 默认读取顺序：`AGENTS.md → 本文件 → MIGRATION_GUIDE.md → modules/README.md → 目标模块文档/矩阵`。

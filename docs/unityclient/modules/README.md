@@ -9,7 +9,8 @@
 | 底层/登录/主界面 | `FOUNDATION.md` / `LOGIN.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 背包 | `BAG.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 任务 | `TASK.md` | 功能第一阶段完成；视觉 1:1 待重验 |
-| 神将/阵容/装备/法宝 | `HERO_EQUIPMENT.md` | 旧完成结论撤销；阵容、装备/法宝均为 `partial-interactive-audit-required`，等待完整控件矩阵和真实按钮点击重审 |
+| 神将/阵容 | `HERO.md` | `partial-interactive-audit-required`；矩阵0/16，等待真实按钮逐项重审 |
+| 装备/法宝 | `HERO_EQUIPMENT.md` | `partial-interactive-audit-required`；历史协议诊断可复用，G4-G6按新矩阵重做 |
 | 邮件 | `MAIL.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 商城 | `SHOP.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 将魂/竞技场/血战商店 | `GAMEPLAY_SHOPS.md` | 7 个 `/221` 协议页、74 条权威商品已通过门禁；视觉待重验 |
@@ -33,4 +34,4 @@
 | Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |
 | ImodAnim 兼容播放 | `IMOD_ANIMATION.md` / `IMOD_ANIMATION_CALLS.md` | 885 个可播放资源全动作验证；7 个源资产缺口 |
 
-新增模块文档固定结构：范围、三方证据、实现、功能验证、视觉 1:1 记录、遗留项、关键坑；视觉门禁见 `../UI_1TO1_STANDARD.md`。
+新增模块文档固定结构：当前结论、范围、三方证据、实现边界、有效证据、缺口和下一步；统一门禁见 `../MIGRATION_GUIDE.md`。

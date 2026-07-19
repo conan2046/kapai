@@ -2,8 +2,7 @@
 param(
     [string]$ManifestPath = "",
     [int]$StatusMaxLines = 100,
-    [int]$HandoffMaxLines = 200,
-    [int]$PlanMaxLines = 250,
+    [int]$GuideMaxLines = 360,
     [string]$JsonOutput = ""
 )
 
@@ -50,17 +49,13 @@ function Test-RequiredFile {
 }
 
 $statusPath = Test-RequiredFile "UNITYCLIENT_STATUS.md"
-$handoffPath = Test-RequiredFile "UNITYCLIENT_HANDOFF.md"
-$planPath = Test-RequiredFile "UNITYCLIENT_MIGRATION_PLAN.md"
+$guidePath = Test-RequiredFile "docs/unityclient/MIGRATION_GUIDE.md"
 Test-RequiredFile "docs/unityclient/modules/README.md" | Out-Null
 Test-RequiredFile "docs/unityclient/history/README.md" | Out-Null
-Test-RequiredFile "docs/unityclient/UI_1TO1_STANDARD.md" | Out-Null
-Test-RequiredFile "docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md" | Out-Null
 
 $lineRules = @(
     [pscustomobject]@{ Name = "STATUS"; Path = $statusPath; Limit = $StatusMaxLines },
-    [pscustomobject]@{ Name = "HANDOFF"; Path = $handoffPath; Limit = $HandoffMaxLines },
-    [pscustomobject]@{ Name = "PLAN"; Path = $planPath; Limit = $PlanMaxLines }
+    [pscustomobject]@{ Name = "MIGRATION_GUIDE"; Path = $guidePath; Limit = $GuideMaxLines }
 )
 foreach ($rule in $lineRules) {
     if (-not $rule.Path) { continue }
@@ -82,7 +77,7 @@ if ($statusPath) {
     }
 }
 
-$currentDocPaths = @($statusPath, $handoffPath, $planPath) | Where-Object { $_ }
+$currentDocPaths = @($statusPath, $guidePath) | Where-Object { $_ }
 $moduleDocDir = Resolve-UnityMigrationPath -Root $root -Path "docs/unityclient/modules"
 $currentDocPaths += @(Get-ChildItem -LiteralPath $moduleDocDir -Filter "*.md" -File | ForEach-Object FullName)
 foreach ($path in $currentDocPaths) {

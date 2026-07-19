@@ -16,7 +16,7 @@
 | `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次 Bootstrap，校验场景 SHA-256 不发生二次变化 |
 | `Test-UnityMigrationGitScope.ps1` | 分离语义修改、Unity `.meta` 和换行噪声，并支持 allowlist 门禁 |
 
-视觉完成口径见 `docs/unityclient/UI_1TO1_STANDARD.md`。`Run-UnityModuleValidation.ps1` 的 Unity 单端截图只证明界面可运行；没有同状态 Cocos 基准、节点映射与差异报告时，Manifest 只能标记 `logic-validated-visual-pending`。
+迁移流程、功能和视觉完成口径统一见 `docs/unityclient/MIGRATION_GUIDE.md`。`Run-UnityModuleValidation.ps1` 的 Unity 单端截图只证明界面可运行；没有同状态 Cocos 基准、节点映射与差异报告时，Manifest 只能标记 `logic-validated-visual-pending`。
 
 ## 常用命令
 

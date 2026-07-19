@@ -1,17 +1,17 @@
 {
   "schemaVersion": 2,
   "visualFidelityPolicy": {
-    "standard": "docs/unityclient/UI_1TO1_STANDARD.md",
+    "standard": "docs/unityclient/MIGRATION_GUIDE.md",
     "legacyPhase1MeansLogicOnly": true,
     "completeStatus": "migration-complete",
-    "functionalStandard": "docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md",
+    "functionalStandard": "docs/unityclient/MIGRATION_GUIDE.md",
     "requiredResolution": [
       1334,
       750
     ]
   },
   "completionPolicy": {
-    "standard": "docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md",
+    "standard": "docs/unityclient/MIGRATION_GUIDE.md",
     "controlMatrixRequired": true,
     "realEntryClickRequired": true,
     "manualAcceptanceRequired": true,
@@ -219,12 +219,12 @@
         "uiMapping": ".local/ui-fidelity/Hero/ui-map.json"
       },
       "controlMatrix": "docs/unityclient/matrices/HERO_CONTROLS.json",
-      "document": "docs/unityclient/modules/HERO_EQUIPMENT.md"
+      "document": "docs/unityclient/modules/HERO.md"
     },
     {
       "key": "HeroEquip",
       "displayName": "装备与法宝",
-      "status": "g6-logic-complete-visual-fixing",
+      "status": "partial-interactive-audit-required",
       "protocols": [
         319
       ],
