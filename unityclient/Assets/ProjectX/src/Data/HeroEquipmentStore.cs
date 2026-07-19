@@ -21,7 +21,7 @@ namespace ProjectX.Data
     {
         public HeroEquipmentRecord(uint uid, int templateId, int formationPosition, uint experience,
             IReadOnlyList<CultivationLevel> cultivation, int baseAttributeType, uint baseAttributeValue,
-            EquipmentDefinition definition)
+            int strengthAttributeType, uint strengthAttributeValue, EquipmentDefinition definition)
         {
             Uid = uid;
             TemplateId = templateId;
@@ -30,6 +30,8 @@ namespace ProjectX.Data
             Cultivation = cultivation ?? Array.Empty<CultivationLevel>();
             BaseAttributeType = baseAttributeType;
             BaseAttributeValue = baseAttributeValue;
+            StrengthAttributeType = strengthAttributeType;
+            StrengthAttributeValue = strengthAttributeValue;
             Definition = definition ?? EquipmentDefinition.Missing(templateId, HeroEquipmentKind.Equipment);
         }
 
@@ -41,12 +43,14 @@ namespace ProjectX.Data
         public IReadOnlyList<CultivationLevel> Cultivation { get; }
         public int BaseAttributeType { get; }
         public uint BaseAttributeValue { get; }
+        public int StrengthAttributeType { get; }
+        public uint StrengthAttributeValue { get; }
         public EquipmentDefinition Definition { get; }
         public int GetLevel(int type) => Cultivation.FirstOrDefault(item => item.Type == type).Level;
 
         public HeroEquipmentRecord WithFormation(int formationPosition)
             => new HeroEquipmentRecord(Uid, TemplateId, formationPosition, Experience, Cultivation,
-                BaseAttributeType, BaseAttributeValue, Definition);
+                BaseAttributeType, BaseAttributeValue, StrengthAttributeType, StrengthAttributeValue, Definition);
     }
 
     public readonly struct FaBaoRecord

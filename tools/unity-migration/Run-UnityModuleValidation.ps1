@@ -8,6 +8,8 @@ param(
     [switch]$KeepServices,
     [switch]$SkipPythonTests,
     [switch]$SkipScreenshotCheck,
+    [string[]]$ExtraFlags = @(),
+    [string[]]$ValidationFlagsOverride = @(),
     [switch]$DryRun
 )
 
@@ -75,7 +77,8 @@ $unityArguments = @(
     "-projectXAutomation",
     $userArgument
 )
-$unityArguments += @($moduleConfig.validationFlags)
+$unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($moduleConfig.validationFlags) })
+$unityArguments += @($ExtraFlags)
 if ($null -ne $moduleValidationData) {
     $unityArguments += @($moduleValidationData.unityFlags)
 }

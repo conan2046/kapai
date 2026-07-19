@@ -1,4 +1,5 @@
 local Protocol = require("Protocol")
+local EquipmentModel = require("Hero.LegacyEquipmentModel")
 
 local M = {
     requested = false,
@@ -11,6 +12,11 @@ local M = {
     faBaoUid = 0,
     formationPosition = 1,
     strengthBefore = 0,
+    pendingEquipment = {},
+    pendingFaBao = {},
+    invalidReason = "",
+    repeatReason = "",
+    openKind = 1,
 }
 
 local function sendOp(op)
@@ -27,7 +33,7 @@ local function requestLists()
     Bridge:SetStatus("HeroEquipment/319 list requests sent: op=1, op=17.")
 end
 
-local function readEquipmentRecord(message, upsert)
+local function readEquipmentRecord(message)
     local uid = message:ReadUInt()
     if uid == 0 then return end
     local templateId = message:ReadWord()
@@ -40,18 +46,26 @@ local function readEquipmentRecord(message, upsert)
     end
     local baseAttributeType = message:ReadWord()
     local baseAttributeValue = message:ReadUInt()
-    Bridge:BeginHeroEquipmentRecord(uid, templateId, formationPosition, experience,
-        baseAttributeType, baseAttributeValue)
-    for _, value in ipairs(cultivation) do Bridge:AddHeroEquipmentCultivation(value[1], value[2]) end
-    for _ = 1, 4 do
+    local strengthAttributeType, strengthAttributeValue = 0, 0
+    for group = 1, 4 do
         message:ReadByte()
         local attributeCount = message:ReadByte()
-        for _ = 1, attributeCount do message:ReadWord(); message:ReadUInt() end
+        for attribute = 1, attributeCount do
+            local attrType, attrValue = message:ReadWord(), message:ReadUInt()
+            if group == 1 and attribute == 1 then
+                strengthAttributeType, strengthAttributeValue = attrType, attrValue
+            end
+        end
     end
-    if upsert then Bridge:UpsertHeroEquipmentRecord() else Bridge:EndHeroEquipmentRecord() end
+    return {
+        uid = uid, templateId = templateId, fpos = formationPosition, experience = experience,
+        cultivation = cultivation, baseAttributeType = baseAttributeType,
+        baseAttributeValue = baseAttributeValue, part = Bridge:GetEquipmentPart(templateId),
+        strengthAttributeType = strengthAttributeType, strengthAttributeValue = strengthAttributeValue,
+    }
 end
 
-local function readFaBaoRecord(message, upsert)
+local function readFaBaoRecord(message)
     local uid = message:ReadUInt()
     if uid == 0 then return end
     local templateId = message:ReadWord()
@@ -63,9 +77,32 @@ local function readFaBaoRecord(message, upsert)
     for index = 1, cultivationCount do
         cultivation[index] = { message:ReadByte(), message:ReadByte() }
     end
-    Bridge:BeginFaBaoRecord(uid, templateId, formationPosition, slot, experience)
-    for _, value in ipairs(cultivation) do Bridge:AddFaBaoCultivation(value[1], value[2]) end
-    if upsert then Bridge:UpsertFaBaoRecord() else Bridge:EndFaBaoRecord() end
+    return {
+        uid = uid, templateId = templateId, fpos = formationPosition, wpos = slot,
+        experience = experience, cultivation = cultivation,
+    }
+end
+
+-- Publish a complete render snapshot only after the Lua authority has changed.
+local function syncRenderMirror()
+    Bridge:BeginHeroEquipmentUpdate(EquipmentModel:GetEquipmentCount())
+    for _, uid in ipairs(EquipmentModel.equipmentOrder) do
+        local value = EquipmentModel.equipment[uid]
+        Bridge:BeginHeroEquipmentRecord(value.uid, value.templateId, value.fpos, value.experience,
+            value.baseAttributeType, value.baseAttributeValue, value.strengthAttributeType, value.strengthAttributeValue)
+        for _, level in ipairs(value.cultivation) do Bridge:AddHeroEquipmentCultivation(level[1], level[2]) end
+        Bridge:EndHeroEquipmentRecord()
+    end
+    Bridge:EndHeroEquipmentUpdate()
+
+    Bridge:BeginFaBaoUpdate(EquipmentModel:GetFaBaoCount())
+    for _, uid in ipairs(EquipmentModel.faBaoOrder) do
+        local value = EquipmentModel.faBao[uid]
+        Bridge:BeginFaBaoRecord(value.uid, value.templateId, value.fpos, value.wpos, value.experience)
+        for _, level in ipairs(value.cultivation) do Bridge:AddFaBaoCultivation(level[1], level[2]) end
+        Bridge:EndFaBaoRecord()
+    end
+    Bridge:EndFaBaoUpdate()
 end
 
 local function selectFormationPosition()
@@ -125,22 +162,43 @@ local function sendFaBaoTakeOff(uid)
 end
 
 local function startMutation()
-    M.equipmentUid = Bridge:GetFirstHeroEquipmentUid(true)
-    M.faBaoUid = Bridge:GetFirstFaBaoUid(true)
+    local equipment = EquipmentModel:GetFirstEquipment(true)
+    local faBao = EquipmentModel:GetFirstFaBao(true)
+    M.equipmentUid = equipment and equipment.uid or 0
+    M.faBaoUid = faBao and faBao.uid or 0
     M.formationPosition = selectFormationPosition()
     if M.equipmentUid == 0 or M.faBaoUid == 0 then
         Bridge:Fail("Hero equipment mutation requires one unworn equipment and one unworn fabao.")
         return
     end
-    M.strengthBefore = Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid)
+    local strength = 0
+    for _, value in ipairs(equipment.cultivation) do if value[1] == 1 then strength = value[2] end end
+    M.strengthBefore = strength
+    if Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
+        Bridge:SetCurrency(60000, 0)
+        local cost = Bridge:GetEquipmentStrengthCost(M.equipmentUid)
+        if Bridge:GetCurrency(60000) < cost then
+            Bridge:CompleteHeroEquipmentMaterialValidation(M.equipmentUid, M.strengthBefore, "您的金币不足！")
+            return
+        end
+    end
     M.stage = "await_equipment_wear"
     sendEquipmentWear(M.equipmentUid, M.formationPosition)
 end
 
 local function finishLists()
     if not M.equipmentComplete or not M.faBaoComplete then return end
-    if not Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation") then
-        Bridge:CompleteHeroEquipmentReadValidation()
+    if M.stage == "await_final_lists" then
+        M.stage = nil
+        Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
+            Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid), M.faBaoUid, M.formationPosition,
+            M.invalidReason, M.repeatReason)
+        return
+    end
+    if not Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
+        and not Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
+        if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation") then Bridge:CompleteHeroEquipmentReadValidation()
+        else Bridge:ShowHeroEquipment(M.openKind) end
         return
     end
     if Bridge.HeroEquipmentCount == 0 or Bridge.FaBaoCount == 0 then
@@ -155,23 +213,25 @@ end
 local function readList(message, kind)
     local total = message:ReadWord()
     if kind == 1 then
-        if total == 0 then Bridge:BeginHeroEquipmentUpdate(0); Bridge:EndHeroEquipmentUpdate(); M.equipmentComplete = true; finishLists(); return end
+        if total == 0 then EquipmentModel:ReplaceEquipment({}); syncRenderMirror(); M.equipmentComplete = true; finishLists(); return end
     else
-        if total == 0 then Bridge:BeginFaBaoUpdate(0); Bridge:EndFaBaoUpdate(); M.faBaoComplete = true; finishLists(); return end
+        if total == 0 then EquipmentModel:ReplaceFaBao({}); syncRenderMirror(); M.faBaoComplete = true; finishLists(); return end
     end
     local packetCount = message:ReadByte()
     local packetIndex = message:ReadByte()
     local itemCount = message:ReadByte()
     if packetIndex == 0 then
-        if kind == 1 then Bridge:BeginHeroEquipmentUpdate(total) else Bridge:BeginFaBaoUpdate(total) end
+        if kind == 1 then M.pendingEquipment = {} else M.pendingFaBao = {} end
     end
     for _ = 1, itemCount do
-        if kind == 1 then readEquipmentRecord(message, false) else readFaBaoRecord(message, false) end
+        if kind == 1 then M.pendingEquipment[#M.pendingEquipment + 1] = readEquipmentRecord(message)
+        else M.pendingFaBao[#M.pendingFaBao + 1] = readFaBaoRecord(message) end
     end
     if message.Remaining ~= 0 then Bridge:Fail("HeroEquipment/319 list has unread bytes: " .. tostring(message.Remaining)); return end
     if packetIndex == packetCount - 1 then
-        if kind == 1 then Bridge:EndHeroEquipmentUpdate(); M.equipmentComplete = true
-        else Bridge:EndFaBaoUpdate(); M.faBaoComplete = true end
+        if kind == 1 then EquipmentModel:ReplaceEquipment(M.pendingEquipment); M.equipmentComplete = true
+        else EquipmentModel:ReplaceFaBao(M.pendingFaBao); M.faBaoComplete = true end
+        syncRenderMirror()
         finishLists()
     end
 end
@@ -186,7 +246,21 @@ end
 
 function M.wearEquipment(uid, position) sendEquipmentWear(uid, position) end
 function M.takeOffEquipment(uid, position) sendEquipmentTakeOff(uid, position) end
-function M.wearFaBao(uid, position, slot) sendFaBaoWear(uid, position, slot) end
+function M.strengthEquipment(uid)
+    if not EquipmentModel:GetEquipment(uid) then return end
+    local cost = Bridge:GetEquipmentStrengthCost(uid)
+    if Bridge:GetCurrency(60000) < cost then
+        Bridge:SetStatus("您的金币不足！")
+        return
+    end
+    sendEquipmentStrength(uid)
+end
+
+function M.open(kind)
+    M.openKind = kind == 2 and 2 or 1
+    requestLists()
+end
+function M.wearFaBao(uid, position) sendFaBaoWear(uid, position, EquipmentModel:SelectFaBaoSlot(position)) end
 function M.takeOffFaBao(uid) sendFaBaoTakeOff(uid) end
 
 local function readEquipmentWearResponse(message, op)
@@ -194,9 +268,19 @@ local function readEquipmentWearResponse(message, op)
     local uid = message:ReadUInt()
     if message.Remaining < 1 then Bridge:Fail("Equipment wear/takeoff returned no result byte (system gate or incomplete response).") M.stage = nil return end
     local success = message:ReadByte()
-    if success == 0 then Bridge:Fail("Equipment wear/takeoff failed: " .. tostring(message:ReadString())); M.stage = nil; return end
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown rejection"
+        if M.stage == "await_invalid_equipment" and op == 2 then
+            M.invalidReason = reason
+            M.stage = "await_repeat_fabao_takeoff"
+            sendFaBaoTakeOff(M.faBaoUid)
+            return
+        end
+        Bridge:Fail("Equipment wear/takeoff failed: " .. tostring(reason)); M.stage = nil; return
+    end
     if message.Remaining > 0 then message:ReadString() end
-    Bridge:SetHeroEquipmentFormation(uid, op == 2 and position or 0)
+    EquipmentModel:SetEquipmentFormation(uid, op == 2 and position or 0)
+    syncRenderMirror()
     if M.stage == "await_equipment_wear" and op == 2 then
         M.stage = "await_equipment_strength"
         sendEquipmentStrength(uid)
@@ -211,12 +295,22 @@ local function readEquipmentStrengthResponse(message)
     message:ReadByte()
     if message.Remaining < 1 then Bridge:Fail("Equipment strength returned no result byte (system gate or incomplete response).") M.stage = nil return end
     local success = message:ReadByte()
-    if success == 0 then Bridge:Fail("Equipment strength failed: " .. tostring(message:ReadString())); M.stage = nil; return end
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown rejection"
+        if Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
+            M.stage = nil
+            Bridge:CompleteHeroEquipmentMaterialValidation(uid, M.strengthBefore, reason)
+            return
+        end
+        Bridge:Fail("Equipment strength failed: " .. tostring(reason)); M.stage = nil; return
+    end
     message:ReadByte()
     message:ReadWord()
     local attributeCount = message:ReadByte()
     for _ = 1, attributeCount do message:ReadWord(); message:ReadUInt() end
-    local strengthAfter = Bridge:GetHeroEquipmentStrengthLevel(uid)
+    local equipment = EquipmentModel:GetEquipment(uid)
+    local strengthAfter = 0
+    for _, value in ipairs(equipment and equipment.cultivation or {}) do if value[1] == 1 then strengthAfter = value[2] end end
     if strengthAfter <= M.strengthBefore then
         Bridge:Fail("Equipment op=16 update did not advance strength before op=4 response.")
         M.stage = nil
@@ -232,10 +326,11 @@ local function readFaBaoWearResponse(message)
     local slot = message:ReadByte()
     if message.Remaining < 1 then Bridge:Fail("FaBao wear returned no result byte (system gate or incomplete response).") M.stage = nil return end
     local success = message:ReadByte()
-    message:ReadUInt()
+    local replacedUid = message:ReadUInt()
     if success == 0 then Bridge:Fail("FaBao wear failed: " .. tostring(message:ReadString())); M.stage = nil; return end
     if message.Remaining > 0 then message:ReadString() end
-    Bridge:SetFaBaoFormation(uid, position, slot)
+    EquipmentModel:SetFaBaoFormation(uid, position, slot, replacedUid)
+    syncRenderMirror()
     if M.stage == "await_fabao_wear" then
         M.stage = "await_fabao_takeoff"
         sendFaBaoTakeOff(uid)
@@ -245,28 +340,41 @@ end
 local function readFaBaoTakeOffResponse(message)
     local uid = message:ReadUInt()
     local success = message:ReadByte()
-    if success == 0 then Bridge:Fail("FaBao takeoff failed: " .. tostring(message:ReadString())); M.stage = nil; return end
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown rejection"
+        if M.stage == "await_repeat_fabao_takeoff" then
+            M.repeatReason = reason
+            M.stage = "await_final_lists"
+            requestLists()
+            return
+        end
+        Bridge:Fail("FaBao takeoff failed: " .. tostring(reason)); M.stage = nil; return
+    end
     if message.Remaining > 0 then message:ReadString() end
-    Bridge:SetFaBaoFormation(uid, 0, 0)
+    EquipmentModel:SetFaBaoFormation(uid, 0, 0, 0)
+    syncRenderMirror()
     if M.stage == "await_fabao_takeoff" then
-        M.stage = nil
-        Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
-            Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid), M.faBaoUid, M.formationPosition)
+        if Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation") then
+            M.stage = "await_invalid_equipment"
+            sendEquipmentWear(4294967295, M.formationPosition)
+        else
+            M.stage = nil
+            Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
+                Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid), M.faBaoUid, M.formationPosition, "", "")
+        end
     end
 end
 
-function M.onPacket(command, message)
-    if command ~= Protocol.PET_EQUIP_OPERATE then return false end
-    local op = message:ReadByte()
+function M.onOperation(op, message)
     if op == 1 then readList(message, 1); return true end
     if op == 17 then readList(message, 2); return true end
     if op == 6 then
-        readEquipmentRecord(message, true)
+        EquipmentModel:UpsertEquipment(readEquipmentRecord(message)); syncRenderMirror()
         if M.stage == "await_injection" then M.injectedEquipment = true end
     elseif op == 22 then
-        readFaBaoRecord(message, true)
+        EquipmentModel:UpsertFaBao(readFaBaoRecord(message)); syncRenderMirror()
         if M.stage == "await_injection" then M.injectedFaBao = true end
-    elseif op == 16 then readEquipmentRecord(message, true)
+    elseif op == 16 then EquipmentModel:UpsertEquipment(readEquipmentRecord(message)); syncRenderMirror()
     elseif op == 2 or op == 3 then readEquipmentWearResponse(message, op)
     elseif op == 4 then readEquipmentStrengthResponse(message)
     elseif op == 18 then readFaBaoWearResponse(message)
@@ -277,6 +385,21 @@ function M.onPacket(command, message)
         requestLists()
     end
     return true
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.PET_EQUIP_OPERATE then return false end
+    return M.onOperation(message:ReadByte(), message)
+end
+
+function M.reset()
+    M.requested, M.equipmentComplete, M.faBaoComplete = false, false, false
+    M.stage, M.injectedEquipment, M.injectedFaBao = nil, false, false
+    M.equipmentUid, M.faBaoUid, M.strengthBefore = 0, 0, 0
+    M.pendingEquipment, M.pendingFaBao = {}, {}
+    M.invalidReason, M.repeatReason = "", ""
+    M.openKind = 1
+    EquipmentModel:Reset()
 end
 
 return M

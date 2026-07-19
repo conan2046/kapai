@@ -36,6 +36,7 @@ function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
 function OnDisconnected(reason)
     HeroController.reset()
+    EquipmentController.reset()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
@@ -48,8 +49,11 @@ function OnTaskClaimClicked(id) TaskController.claim(id) end
 function OnHeroClicked() HeroController.onClick() end
 function OnFormationMove(heroId, position) HeroController.moveHero(heroId, position) end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
+function OnEquipmentBagClicked() EquipmentController.open(1) end
+function OnFaBaoBagClicked() EquipmentController.open(2) end
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
-function OnFaBaoWear(uid, position, slot) EquipmentController.wearFaBao(uid, position, slot) end
+function OnHeroEquipmentStrength(uid) EquipmentController.strengthEquipment(uid) end
+function OnFaBaoWear(uid, position) EquipmentController.wearFaBao(uid, position) end
 function OnFaBaoTakeOff(uid) EquipmentController.takeOffFaBao(uid) end
 function OnMailClicked() MailController.onClick() end
 function OnMailClaimClicked(id) MailController.claim(id) end
@@ -99,6 +103,12 @@ function OnStaminaClaimClicked() StaminaClaimController.onClick() end
 function OnResourceRecoveryClicked() ResourceRecoveryController.onClick() end
 function OnFundsClicked(functionId) FundsController.onClick(functionId) end
 function OnPacket(command, message)
+    if command == Protocol.PET_EQUIP_OPERATE then
+        local operation = message:ReadByte()
+        if EquipmentController.onOperation(operation, message) then return end
+        if XunBaoController.onOperation(operation, message) then return end
+        return
+    end
     if FundsController.onPacket(command, message) then return end
     if command == Protocol.TEMP_ACTIVITY then TempActivityController.onPacket(message); return end
     if LoginController.onPacket(command, message) then return end
@@ -108,8 +118,6 @@ function OnPacket(command, message)
     if BagController.onPacket(command, message) then return end
     if HeroController.onPacket(command, message) then return end
     if SevenDayController.onPacket(command, message) then return end
-    if XunBaoController.onPacket(command, message) then return end
-    if EquipmentController.onPacket(command, message) then return end
     if ServerTimeController.onPacket(command, message) then return end
     if MailController.onPacket(command, message) then return end
     if GameplayShopController.onPacket(command, message) then return end

@@ -122,7 +122,8 @@ local function readFormation(message)
     end
 
     if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
-        or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation") then
+        or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
+        or Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
         M.requested = false
         EquipmentController.onHeroReady()
         return

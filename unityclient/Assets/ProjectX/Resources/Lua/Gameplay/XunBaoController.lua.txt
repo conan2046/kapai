@@ -4,11 +4,14 @@ function M.onClick()
  M.validation=Bridge:HasCommandLineFlag("-projectXXunBaoValidation");Bridge:ShowXunBao()
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(31);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=31 requested.")
 end
-function M.onPacket(command,message)
- if command~=Protocol.PET_EQUIP_OPERATE then return false end
- local op=message:ReadByte();if op~=31 then return false end
+function M.onOperation(op,message)
+ if op~=31 then return false end
  local remaining=message:ReadWord();local seconds=message:ReadUInt()
  Bridge:SetXunBaoState(remaining,seconds);Bridge:SetStatus("XunBao/319 op=31 recv: remaining="..tostring(remaining)..", seconds="..tostring(seconds)..".")
  if M.validation then M.validation=false;Bridge:CompleteXunBaoValidation() end;return true
+end
+function M.onPacket(command,message)
+ if command~=Protocol.PET_EQUIP_OPERATE then return false end
+ return M.onOperation(message:ReadByte(),message)
 end
 return M

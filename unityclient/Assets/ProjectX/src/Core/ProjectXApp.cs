@@ -38,6 +38,8 @@ namespace ProjectX.Core
         public const string ActivityPath = "Layer/Main_UI/ButtonGroup5/btn_huodong";
         public const string DrawPath = "Layer/Main_UI/ButtonGroup3/btn_zhaomu";
         public const string GameplayPath = "Layer/Main_UI/btn_wanfa";
+        public const string EquipmentBagPath = "Layer/Main_UI/tankuang2/btn_zhuangbei";
+        public const string FaBaoBagPath = "Layer/Main_UI/tankuang2/btn_fabao";
 
         private GameServices services;
         private LuaFunction onConnected;
@@ -52,7 +54,10 @@ namespace ProjectX.Core
         private LuaFunction onTaskClaimClicked;
         private LuaFunction onHeroClicked;
         private LuaFunction onHeroEquipmentWear;
+        private LuaFunction onEquipmentBagClicked;
+        private LuaFunction onFaBaoBagClicked;
         private LuaFunction onHeroEquipmentTakeOff;
+        private LuaFunction onHeroEquipmentStrength;
         private LuaFunction onFaBaoWear;
         private LuaFunction onFaBaoTakeOff;
         private LuaFunction onMailClicked;
@@ -135,6 +140,9 @@ namespace ProjectX.Core
         private int pendingActiveFormationId;
         private CocosUiView heroEquipmentListView;
         private CocosUiView heroEquipmentDetailView;
+        private CocosUiView heroEquipmentChangeView;
+        private CocosUiView heroEquipmentCultivateView;
+        private CocosUiView heroEquipmentStrengthView;
         private HeroEquipmentPresenter heroEquipmentPresenter;
         private readonly List<HeroEquipmentRecord> pendingHeroEquipment = new List<HeroEquipmentRecord>();
         private readonly List<FaBaoRecord> pendingFaBao = new List<FaBaoRecord>();
@@ -145,6 +153,8 @@ namespace ProjectX.Core
         private uint pendingEquipmentExperience;
         private int pendingEquipmentBaseAttributeType;
         private uint pendingEquipmentBaseAttributeValue;
+        private int pendingEquipmentStrengthAttributeType;
+        private uint pendingEquipmentStrengthAttributeValue;
         private int pendingFaBaoSlot;
         private CocosUiView settingsView;
         private SettingsPresenter settingsPresenter;
@@ -362,7 +372,8 @@ namespace ProjectX.Core
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
         public int RewardCount => services?.Rewards.Count ?? 0;
         public bool IsHeroOpen => heroFrameView != null && services?.UiStack.Current == heroFrameView;
-        public bool IsHeroEquipmentOpen => heroEquipmentListView != null && services?.UiStack.Current == heroEquipmentListView;
+        public bool IsHeroEquipmentOpen => heroEquipmentListView?.GameObject.activeSelf == true
+            && heroFrameView != null && services?.UiStack.Current == heroFrameView;
         public int HeroEquipmentCount => services?.HeroEquipment.Count ?? 0;
         public int FaBaoCount => services?.FaBao.Count ?? 0;
         public int HeroEquipmentMissingIconCount => heroEquipmentPresenter?.MissingIconCount ?? 0;
@@ -421,7 +432,10 @@ namespace ProjectX.Core
                 onHeroClicked = services.Lua.GetFunction("OnHeroClicked");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onHeroEquipmentWear = services.Lua.GetFunction("OnHeroEquipmentWear");
+                onEquipmentBagClicked = services.Lua.GetFunction("OnEquipmentBagClicked");
+                onFaBaoBagClicked = services.Lua.GetFunction("OnFaBaoBagClicked");
                 onHeroEquipmentTakeOff = services.Lua.GetFunction("OnHeroEquipmentTakeOff");
+                onHeroEquipmentStrength = services.Lua.GetFunction("OnHeroEquipmentStrength");
                 onFaBaoWear = services.Lua.GetFunction("OnFaBaoWear");
                 onFaBaoTakeOff = services.Lua.GetFunction("OnFaBaoTakeOff");
                 onMailClicked = services.Lua.GetFunction("OnMailClicked");
@@ -516,7 +530,10 @@ namespace ProjectX.Core
             onHeroClicked?.Dispose();
             onFormationMove?.Dispose();
             onHeroEquipmentWear?.Dispose();
+            onEquipmentBagClicked?.Dispose();
+            onFaBaoBagClicked?.Dispose();
             onHeroEquipmentTakeOff?.Dispose();
+            onHeroEquipmentStrength?.Dispose();
             onFaBaoWear?.Dispose();
             onFaBaoTakeOff?.Dispose();
             onMailClicked?.Dispose();
@@ -629,7 +646,12 @@ namespace ProjectX.Core
                 formationPopupView.SetVisible(false);
                 return true;
             }
-            if (IsHeroEquipmentOpen) heroEquipmentPresenter?.HideDetails();
+            if (IsHeroEquipmentOpen)
+            {
+                heroEquipmentPresenter?.HideDetails();
+                heroEquipmentListView?.SetVisible(false);
+                heroFrameView?.SetVisible(false);
+            }
             return services?.UiStack.Pop() ?? false;
         }
 
@@ -703,6 +725,9 @@ namespace ProjectX.Core
             heroDetailView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongInfoLayer");
             heroEquipmentListView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao");
             heroEquipmentDetailView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
+            heroEquipmentChangeView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan");
+            heroEquipmentCultivateView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiyangcheng");
+            heroEquipmentStrengthView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiqianghua");
             mailView = services.UiRouter.FindBySource("MailLayer");
             shopView = services.UiRouter.FindBySource("shop/shangcheng");
             friendView = services.UiRouter.FindBySource("common/FriendLayer");
@@ -725,6 +750,9 @@ namespace ProjectX.Core
             heroListView?.SetVisible(false);
             heroEquipmentListView?.SetVisible(false);
             heroEquipmentDetailView?.SetVisible(false);
+            heroEquipmentChangeView?.SetVisible(false);
+            heroEquipmentCultivateView?.SetVisible(false);
+            heroEquipmentStrengthView?.SetVisible(false);
             mailView?.SetVisible(false);
             shopView?.SetVisible(false);
             friendView?.SetVisible(false);
@@ -1406,12 +1434,13 @@ namespace ProjectX.Core
             settingsButton.onClick.Invoke();
             if (!IsSettingsOpen) { Fail("Settings UI did not reopen for account-switch validation."); return; }
             settingsPresenter.InvokeReturnToLogin();
-            if (!IsLoginVisible || IsSettingsOpen || services.Network.State != NetworkState.Disconnected)
+            if (!IsLoginVisible || IsSettingsOpen || services.Network.State != NetworkState.Disconnected
+                || services.HeroEquipment.Count != 0 || services.FaBao.Count != 0)
             {
-                Fail("Settings account switch did not restore the disconnected login state.");
+                Fail($"Settings account switch cleanup mismatch: login={IsLoginVisible}, settings={IsSettingsOpen}, network={services.Network.State}, equipment={services.HeroEquipment.Count}, fabao={services.FaBao.Count}.");
                 return;
             }
-            Complete("COMPLETE: settings account switch -> network disconnected -> login UI restored");
+            Complete("COMPLETE: settings account switch -> network disconnected -> equipment/fabao Lua+C# state cleared -> login UI restored");
         }
 
         public bool ValidateFoundation(out string detail)
@@ -1502,6 +1531,11 @@ namespace ProjectX.Core
             services.Friends.Clear();
             services.Heroes.Clear();
             services.Formation.Clear();
+            services.HeroEquipment.Clear();
+            services.FaBao.Clear();
+            pendingHeroEquipment.Clear();
+            pendingFaBao.Clear();
+            pendingCultivation.Clear();
             services.World.Clear();
             services.Welfare.Clear();
             services.Activity.Clear();
@@ -2649,6 +2683,19 @@ namespace ProjectX.Core
                 + $"{targetPosition}->{originalPosition} -> C# render mirror matched");
         }
 
+        public void BindHeroEquipmentClick()
+        {
+            try
+            {
+                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView.BindClick(EquipmentBagPath,
+                    () => InvokeLuaOrFail(onEquipmentBagClicked, "HeroEquipment.OpenEquipment"), true);
+                mainView.BindClick(FaBaoBagPath,
+                    () => InvokeLuaOrFail(onFaBaoBagClicked, "HeroEquipment.OpenFaBao"), true);
+            }
+            catch (Exception exception) { Fail(exception.Message); }
+        }
+
         public void CompleteFormationInvalidValidation(int heroId, int position, string reason)
         {
             int persistedHero = services.Formation.CombatHeroes.Count > 0 ? services.Formation.CombatHeroes[0] : 0;
@@ -2667,7 +2714,7 @@ namespace ProjectX.Core
         }
 
         public void BeginHeroEquipmentRecord(double uid, int templateId, int formationPosition, double experience,
-            int baseAttributeType, double baseAttributeValue)
+            int baseAttributeType, double baseAttributeValue, int strengthAttributeType, double strengthAttributeValue)
         {
             pendingEquipmentUid = checked((uint)uid);
             pendingEquipmentTemplateId = templateId;
@@ -2675,6 +2722,8 @@ namespace ProjectX.Core
             pendingEquipmentExperience = checked((uint)experience);
             pendingEquipmentBaseAttributeType = baseAttributeType;
             pendingEquipmentBaseAttributeValue = checked((uint)baseAttributeValue);
+            pendingEquipmentStrengthAttributeType = strengthAttributeType;
+            pendingEquipmentStrengthAttributeValue = checked((uint)strengthAttributeValue);
             pendingCultivation.Clear();
         }
 
@@ -2686,6 +2735,7 @@ namespace ProjectX.Core
             pendingHeroEquipment.Add(new HeroEquipmentRecord(pendingEquipmentUid, pendingEquipmentTemplateId,
                 pendingEquipmentFormationPosition, pendingEquipmentExperience, pendingCultivation.ToArray(),
                 pendingEquipmentBaseAttributeType, pendingEquipmentBaseAttributeValue,
+                pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
                 services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
         }
 
@@ -2696,6 +2746,7 @@ namespace ProjectX.Core
             services.HeroEquipment.Upsert(new HeroEquipmentRecord(pendingEquipmentUid, pendingEquipmentTemplateId,
                 pendingEquipmentFormationPosition, pendingEquipmentExperience, pendingCultivation.ToArray(),
                 pendingEquipmentBaseAttributeType, pendingEquipmentBaseAttributeValue,
+                pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
                 services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
         }
 
@@ -2760,10 +2811,16 @@ namespace ProjectX.Core
         public int GetHeroEquipmentStrengthLevel(double uid)
             => services.HeroEquipment.TryGet(checked((uint)uid), out HeroEquipmentRecord value) ? value.GetLevel(1) : -1;
 
+        public int GetEquipmentStrengthCost(double uid)
+        {
+            return services.HeroEquipment.TryGet(checked((uint)uid), out HeroEquipmentRecord value)
+                ? services.EquipmentCatalog.GetStrengthCost(value.GetLevel(1) + 1, value.Definition.Quality) : 0;
+        }
+
         public int GetFaBaoFormation(double uid)
             => services.FaBao.TryGet(checked((uint)uid), out FaBaoRecord value) ? value.FormationPosition : -1;
 
-        public void ShowHeroEquipment()
+        public void ShowHeroEquipment(int kind = 1)
         {
             EnsureHeroEquipmentPresenter();
             int formationPosition = 1;
@@ -2773,25 +2830,42 @@ namespace ProjectX.Core
                 formationPosition = index + 1;
                 break;
             }
-            heroEquipmentPresenter.Show(formationPosition);
-            if (services.UiStack.Current != heroEquipmentListView) services.UiStack.Push(heroEquipmentListView);
+            HeroEquipmentKind displayKind = kind == 2 ? HeroEquipmentKind.FaBao : HeroEquipmentKind.Equipment;
+            ConfigureHeroEquipmentFrame(displayKind);
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroFrameView.SetVisible(true);
+            heroFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            heroEquipmentPresenter.Show(formationPosition, displayKind);
+            heroEquipmentListView.GameObject.transform.SetAsLastSibling();
             SetStatus($"Hero equipment UI active: equipment={services.HeroEquipment.Count}, fabao={services.FaBao.Count}.");
         }
 
         public void CompleteHeroEquipmentReadValidation()
         {
             ShowHeroEquipment();
-            if (heroEquipmentPresenter.ItemCount != services.HeroEquipment.Count + services.FaBao.Count
+            int equipmentRendered = heroEquipmentPresenter.RenderKind(HeroEquipmentKind.Equipment);
+            int equipmentMissing = heroEquipmentPresenter.MissingIconCount;
+            int faBaoRendered = heroEquipmentPresenter.RenderKind(HeroEquipmentKind.FaBao);
+            int faBaoMissing = heroEquipmentPresenter.MissingIconCount;
+            HeroEquipmentKind finalKind = HasCommandLineFlag("-projectXHeroEquipFaBaoScreenshot")
+                ? HeroEquipmentKind.FaBao : HeroEquipmentKind.Equipment;
+            heroEquipmentPresenter.RenderKind(finalKind);
+            ConfigureHeroEquipmentFrame(finalKind);
+            if (equipmentRendered != services.HeroEquipment.Count || faBaoRendered != services.FaBao.Count
+                || equipmentMissing + faBaoMissing != 0
                 || !IsHeroEquipmentOpen || services.ProtocolRegistry.PendingCount != 0)
             {
-                Fail($"Hero equipment read validation mismatch: equipment={services.HeroEquipment.Count}, fabao={services.FaBao.Count}, rendered={heroEquipmentPresenter.ItemCount}, open={IsHeroEquipmentOpen}, pending={services.ProtocolRegistry.PendingCount}.");
+                Fail($"Hero equipment read validation mismatch: equipment={services.HeroEquipment.Count}/{equipmentRendered}, fabao={services.FaBao.Count}/{faBaoRendered}, missingIcons={equipmentMissing + faBaoMissing}, open={IsHeroEquipmentOpen}, pending={services.ProtocolRegistry.PendingCount}.");
                 return;
             }
-            Complete($"COMPLETE: /319 op=1 HeroEquipmentStore ({services.HeroEquipment.Count}) + op=17 FaBaoStore ({services.FaBao.Count}) -> list/detail UI");
+            Complete($"COMPLETE: /319 op=1 equipment ({equipmentRendered}) + op=17 fabao ({faBaoRendered}) -> independent Lua-authoritative list/detail UI");
         }
 
         public void CompleteHeroEquipmentMutationValidation(double equipmentUid, int strengthBefore,
-            int strengthAfter, double faBaoUid, int formationPosition)
+            int strengthAfter, double faBaoUid, int formationPosition, string invalidReason, string repeatReason)
         {
             ShowHeroEquipment();
             uint equipmentId = checked((uint)equipmentUid);
@@ -2799,12 +2873,32 @@ namespace ProjectX.Core
             bool restored = services.HeroEquipment.TryGet(equipmentId, out HeroEquipmentRecord equip)
                 && equip.FormationPosition == 0 && equip.GetLevel(1) == strengthAfter
                 && services.FaBao.TryGet(faBaoId, out FaBaoRecord treasure) && treasure.FormationPosition == 0;
-            if (!restored || strengthAfter <= strengthBefore || heroEquipmentPresenter.MissingIconCount > 0)
+            int equipmentMissing = heroEquipmentPresenter.MissingIconCount;
+            heroEquipmentPresenter.RenderKind(HeroEquipmentKind.FaBao);
+            int faBaoMissing = heroEquipmentPresenter.MissingIconCount;
+            heroEquipmentPresenter.RenderKind(HeroEquipmentKind.Equipment);
+            if (!restored || strengthAfter <= strengthBefore || equipmentMissing + faBaoMissing > 0)
             {
-                Fail($"Hero equipment mutation mismatch: restored={restored}, strength={strengthBefore}->{strengthAfter}, missingIcons={heroEquipmentPresenter.MissingIconCount}.");
+                Fail($"Hero equipment mutation mismatch: restored={restored}, strength={strengthBefore}->{strengthAfter}, missingIcons={equipmentMissing + faBaoMissing}.");
                 return;
             }
-            Complete($"COMPLETE: /319 equipment {equipmentId} wear@{formationPosition} -> strengthen {strengthBefore}->{strengthAfter} -> takeoff; fabao {faBaoId} wear@{formationPosition}/5 -> takeoff; stores/list/detail restored");
+            string failures = string.IsNullOrEmpty(invalidReason) && string.IsNullOrEmpty(repeatReason)
+                ? string.Empty : $"; invalid rejected={invalidReason}; repeat rejected={repeatReason}; final lists reloaded";
+            Complete($"COMPLETE: /319 equipment {equipmentId} wear@{formationPosition} -> strengthen {strengthBefore}->{strengthAfter} -> takeoff; fabao {faBaoId} wear@{formationPosition}/5 -> takeoff; stores/list/detail restored{failures}");
+        }
+
+        public void CompleteHeroEquipmentMaterialValidation(double equipmentUid, int strengthBefore, string reason)
+        {
+            ShowHeroEquipment();
+            uint uid = checked((uint)equipmentUid);
+            bool unchanged = services.HeroEquipment.TryGet(uid, out HeroEquipmentRecord equipmentRecord)
+                && equipmentRecord.GetLevel(1) == strengthBefore;
+            if (!unchanged || string.IsNullOrWhiteSpace(reason))
+            {
+                Fail($"Hero equipment material validation mismatch: unchanged={unchanged}, reason={reason}.");
+                return;
+            }
+            Complete($"COMPLETE: /319 op=4 material insufficient rejected; uid={uid}; strength unchanged={strengthBefore}; reason={reason}");
         }
 
         public void BeginTaskUpdate(int expectedCount)
@@ -3415,6 +3509,9 @@ namespace ProjectX.Core
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
         }
 
+        public int GetEquipmentPart(int templateId)
+            => services.EquipmentCatalog.GetEquipment(templateId).Part;
+
         private void ShowFormationPopup()
         {
             formationPopupView = formationPopupView ?? services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangzhenxingLayer");
@@ -3526,16 +3623,57 @@ namespace ProjectX.Core
 
         private void EnsureHeroEquipmentPresenter()
         {
+            EnsureHeroPresenter();
             heroEquipmentListView = heroEquipmentListView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao");
             heroEquipmentDetailView = heroEquipmentDetailView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
-            if (heroEquipmentListView == null || heroEquipmentDetailView == null)
-                throw new InvalidOperationException("Hero equipment list/detail CocosUiBindings were not found.");
+            heroEquipmentChangeView = heroEquipmentChangeView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan");
+            heroEquipmentCultivateView = heroEquipmentCultivateView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiyangcheng");
+            heroEquipmentStrengthView = heroEquipmentStrengthView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiqianghua");
+            if (heroEquipmentListView == null || heroEquipmentDetailView == null || heroEquipmentChangeView == null
+                || heroEquipmentCultivateView == null || heroEquipmentStrengthView == null)
+                throw new InvalidOperationException("Hero equipment list/detail/change/cultivate/strength CocosUiBindings were not found.");
             heroEquipmentPresenter = heroEquipmentPresenter ?? new HeroEquipmentPresenter(
-                heroEquipmentListView, heroEquipmentDetailView, services.HeroEquipment, services.FaBao, services.Resources,
+                heroEquipmentListView, heroEquipmentDetailView, heroEquipmentChangeView,
+                heroEquipmentCultivateView, heroEquipmentStrengthView,
+                services.HeroEquipment, services.FaBao, services.EquipmentCatalog, services.Resources,
                 (uid, position) => InvokeLuaOrFail(onHeroEquipmentWear, "HeroEquipment.Wear", (double)uid, position),
                 (uid, position) => InvokeLuaOrFail(onHeroEquipmentTakeOff, "HeroEquipment.TakeOff", (double)uid, position),
-                (uid, position, slot) => InvokeLuaOrFail(onFaBaoWear, "FaBao.Wear", (double)uid, position, slot),
+                uid => InvokeLuaOrFail(onHeroEquipmentStrength, "HeroEquipment.Strength", (double)uid),
+                (uid, position) => InvokeLuaOrFail(onFaBaoWear, "FaBao.Wear", (double)uid, position),
                 uid => InvokeLuaOrFail(onFaBaoTakeOff, "FaBao.TakeOff", (double)uid));
+        }
+
+        private void ConfigureHeroEquipmentFrame(HeroEquipmentKind kind)
+        {
+            ConfigureHeroFrame(false);
+            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = kind == HeroEquipmentKind.Equipment ? "装备背包" : "法宝背包";
+            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            ConfigureHeroEquipmentTabs(tabs, kind);
+            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+        }
+
+        private static void ConfigureHeroEquipmentTabs(Transform tabs, HeroEquipmentKind kind)
+        {
+            if (tabs == null) return;
+            tabs.gameObject.SetActive(true);
+            Transform panel = tabs.Find("Panel_10");
+            Transform first = panel?.Find("Button1");
+            if (first == null) return;
+            SetTabText(first, kind == HeroEquipmentKind.Equipment ? "装备" : "法宝", true);
+            Transform second = panel.Find("Button2_Runtime");
+            if (second == null)
+            {
+                second = Instantiate(first.gameObject, panel, false).transform;
+                second.name = "Button2_Runtime";
+            }
+            RectTransform firstRect = first as RectTransform;
+            RectTransform secondRect = second as RectTransform;
+            if (firstRect != null && secondRect != null)
+                secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
+            SetTabText(second, "碎片", false);
+            Button shardButton = second.GetComponent<Button>();
+            if (shardButton != null) shardButton.interactable = false;
         }
 
         private void EnsureTaskPresenter()

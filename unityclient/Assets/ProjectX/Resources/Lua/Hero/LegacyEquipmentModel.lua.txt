@@ -1,0 +1,94 @@
+-- Unity xLua equipment model adapted from the shipped Cocos client:
+--   Data/LPetData.lua + Data/LRoleDataMgr.lua
+-- Protocol handlers mutate this table first. C# stores receive render snapshots only.
+local M = {
+    equipment = {},
+    equipmentOrder = {},
+    faBao = {},
+    faBaoOrder = {},
+}
+
+function M:Reset()
+    self.equipment = {}
+    self.equipmentOrder = {}
+    self.faBao = {}
+    self.faBaoOrder = {}
+end
+
+local function replace(target, order, values)
+    for key in pairs(target) do target[key] = nil end
+    for index = #order, 1, -1 do order[index] = nil end
+    for index = 1, #(values or {}) do
+        local value = values[index]
+        if value.uid and value.uid > 0 then
+            target[value.uid] = value
+            order[#order + 1] = value.uid
+        end
+    end
+end
+
+local function upsert(target, order, value)
+    if not value or not value.uid or value.uid == 0 then return false end
+    if target[value.uid] == nil then order[#order + 1] = value.uid end
+    target[value.uid] = value
+    return true
+end
+
+function M:ReplaceEquipment(values) replace(self.equipment, self.equipmentOrder, values) end
+function M:ReplaceFaBao(values) replace(self.faBao, self.faBaoOrder, values) end
+function M:UpsertEquipment(value) return upsert(self.equipment, self.equipmentOrder, value) end
+function M:UpsertFaBao(value) return upsert(self.faBao, self.faBaoOrder, value) end
+function M:GetEquipment(uid) return self.equipment[uid] end
+function M:GetFaBao(uid) return self.faBao[uid] end
+
+function M:SetEquipmentFormation(uid, position)
+    local value = self:GetEquipment(uid)
+    if not value then return false end
+    if position > 0 then
+        for _, otherUid in ipairs(self.equipmentOrder) do
+            local other = self.equipment[otherUid]
+            if other.uid ~= uid and other.fpos == position and other.part == value.part then other.fpos = 0 end
+        end
+    end
+    value.fpos = position
+    return true
+end
+
+function M:SetFaBaoFormation(uid, position, slot, replacedUid)
+    local value = self:GetFaBao(uid)
+    if not value then return false end
+    if replacedUid and replacedUid > 0 and self.faBao[replacedUid] then
+        self.faBao[replacedUid].fpos = 0
+        self.faBao[replacedUid].wpos = 0
+    end
+    value.fpos = position
+    value.wpos = slot
+    return true
+end
+
+function M:SelectFaBaoSlot(position)
+    for _, uid in ipairs(self.faBaoOrder) do
+        local value = self.faBao[uid]
+        if value.fpos == position and value.wpos == 5 then return 6 end
+    end
+    return 5
+end
+
+function M:GetFirstEquipment(unwornOnly)
+    for _, uid in ipairs(self.equipmentOrder) do
+        local value = self.equipment[uid]
+        if not unwornOnly or value.fpos == 0 then return value end
+    end
+end
+
+function M:GetFirstFaBao(unwornOnly)
+    for _, uid in ipairs(self.faBaoOrder) do
+        local value = self.faBao[uid]
+        if not unwornOnly or value.fpos == 0 then return value end
+    end
+end
+
+function M:GetEquipmentCount() return #self.equipmentOrder end
+function M:GetFaBaoCount() return #self.faBaoOrder end
+
+return M

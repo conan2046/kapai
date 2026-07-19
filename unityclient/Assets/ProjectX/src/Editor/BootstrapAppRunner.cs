@@ -110,7 +110,9 @@ namespace ProjectX.Editor
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationInvalidValidation") >= 0;
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
-                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0;
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipG4Validation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMaterialValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
             bool shopValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopValidation") >= 0;
             bool gameplayShopsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsValidation") >= 0;

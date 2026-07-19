@@ -43,10 +43,28 @@ namespace ProjectX.Core
             }
             string token = picture.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
                 ? picture.Substring(0, picture.Length - 4) : picture;
-            Sprite sprite = LoadFirst($"ItemIcons/{token}", $"MonsterBust/{token}");
+            Sprite sprite = LoadFirst($"ItemIcons/{token}", $"ItemIcons/equip{token}", $"MonsterBust/{token}");
             if (sprite != null) return sprite;
             usedPlaceholder = true;
             RecordMissing($"EquipmentIcon/{token}");
+            return LoadSprite("MonsterBust/head_defult");
+        }
+
+        public Sprite LoadFaBaoIcon(string picture, out bool usedPlaceholder)
+        {
+            usedPlaceholder = false;
+            if (string.IsNullOrWhiteSpace(picture))
+            {
+                usedPlaceholder = true;
+                RecordMissing("FaBaoIcon/empty");
+                return LoadSprite("MonsterBust/head_defult");
+            }
+            string token = picture.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                ? picture.Substring(0, picture.Length - 4) : picture;
+            Sprite sprite = LoadFirst($"FaBaoIcons/{token}");
+            if (sprite != null) return sprite;
+            usedPlaceholder = true;
+            RecordMissing($"FaBaoIcon/{token}");
             return LoadSprite("MonsterBust/head_defult");
         }
 

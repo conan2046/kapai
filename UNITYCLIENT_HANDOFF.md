@@ -29,7 +29,7 @@
 ## 3. 当前任务
 阵容试点已按 G0-G6 收口，状态为 `visual-1to1-complete`。五个目标状态均有 Windows `100%`、原生 `1334×750` 的 Cocos/Unity 对照、节点映射和差异报告；`/24、/48` 换位、恢复、重连持久化和非法回包通过。
 
-下一批只允许选择一个相邻模块，首选装备/法宝。开始编码前必须重新执行 G0-G2，不得把阵容截图、节点映射或视觉结论直接复用。
+当前单模块为装备/法宝。G0-G4 与 G6 逻辑门禁完成，状态为 `g6-logic-complete-visual-fixing`：Lua 权威、共享 `/319` 单次读 op、真实配置/图标、列表/详情/更换/单次强化 Prefab、穿脱/强化/失败/重拉/切号均通过。G5 已恢复装备与法宝列表两组双端差异图；旧 Runner 曾误删冻结 Cocos 基准，下一步只重采详情、弹窗、强化前后和失败态，补齐差异后才可升 `visual-1to1-complete`。
 
 ## 4. 当前分层与 Lua 回归原则
 ```text
@@ -159,7 +159,8 @@
 | 登录动画只看静态图 | `LoginBgUI` 必须断言 `effect_chuangjue_1` 的 Imod 动作 0 正在循环，再做最终截图 |
 | 主界面注释层级过时 | 以当前 Prefab 实际绑定为准；`btn_wanfa` 是 `Layer/Main_UI/btn_wanfa`，不套旧注释中的 `ButtonGroup3` |
 | `/65` 被任务与玩法大厅共享 | `Shared/HotPointController` 独占消息游标，再分发 Task/Gameplay Store；禁止两个 Controller 重复读取 |
-| `/319` 被装备与法宝搜索共享 | `XunBaoController` 必须先识别 `op=31`；未知 op 的 Controller 读取首字节后会推进游标，禁止按顺序重复试读同一消息 |
+| `/319` 被装备/法宝与寻宝共享 | `Bootstrap.OnPacket` 只读取一次 op，再调用 `EquipmentController.onOperation` / `XunBaoController.onOperation`；禁止各 Controller 重复读取首字节后顺序试探 |
+| Runner 删除冻结基准 | Manifest `screenshots` 只允许登记本次 Runner 生成物；Cocos 冻结图只放 `visualFidelity.cocosScreenshots`，否则 Runner 启动前会删除基准 |
 | `/37` 被每日任务与七日目标共享 | `SevenDayController` 必须先识别 `op=4` 并写独立 Store；不能让每日任务 Controller 先消费 op 或混入日常任务列表 |
 
 ## 10. 常用验证
