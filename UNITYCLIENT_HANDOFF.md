@@ -1,17 +1,19 @@
 # UnityClient 精简交接
 
-> 最后更新：2026-07-18
+> 最后更新：2026-07-19
 > 当前状态：`UNITYCLIENT_STATUS.md`
 > 长期计划：`UNITYCLIENT_MIGRATION_PLAN.md`
 > 模块证据：`docs/unityclient/modules/`
+> 严格流程：`docs/unityclient/MIGRATION_SOP.md`
 > 视觉门禁：`docs/unityclient/UI_1TO1_STANDARD.md`；历史全文：`docs/unityclient/history/`
 
 ## 1. 新任务读取顺序
 1. `AGENTS.md`。
 2. `UNITYCLIENT_STATUS.md`。
 3. 本文件。
-4. `docs/unityclient/modules/README.md` 和目标模块文档。
-5. 只读取 `UNITYCLIENT_MIGRATION_PLAN.md` 的对应阶段，不默认全文读取历史。
+4. `docs/unityclient/MIGRATION_SOP.md`。
+5. `docs/unityclient/modules/README.md` 和目标模块文档。
+6. 只读取 `UNITYCLIENT_MIGRATION_PLAN.md` 的对应阶段，不默认全文读取历史。
 
 ## 2. 工程定位
 | 项 | 路径 |
@@ -25,10 +27,8 @@
 | workspace MySQL | `127.0.0.1:3306` |
 
 ## 3. 当前任务
-登录第一阶段已完成代码取证、Unity 修正与专用门禁：`LogoScene→GameScene→LGameLogic→LoginBgUI/LoginUI(openType=1)`，真实启动资源与六组预载名称、登录/选服/创角/主界面 Prefab、本地按钮 `Btn_Play`、协议 `/1001→/1003→/1004→/88`、登录背景和男女角色 Imod、`NoticeLayer` 标题/正文均已动态验收。最终账号 `7300109`、角色 `1000046`；证据见 `docs/unityclient/modules/LOGIN.md`。
-活动第一阶段已按当前运行代码完成：`ButtonGroup5/btn_huodong → WelfareActivityFormerUI → /222 op=0xFF → tag=1 DailyRechargeUI → /222 op=18/1`。真实 Prefab 为 `huodong/ActivityRankingLayer、huodong/ActivityLevelLayer、DailyChargeLayer`；最终账号 `7200020`、角色 `1000034`。旧 `/209 + ActivityLayer` 继续判废。后续按 `ACTIVITY.md` 将累计充值/消费、节日、排行、砸蛋等拆成独立子阶段。
-神将招募第一阶段已按当前运行代码完成：`ButtonGroup3/btn_zhaomu → EMID_KAPAI_CHOUKA → HappyDrawUI → /224 op=1/2`，三池状态与一次真实免费基础单抽通过；最终账号 `7200024`、角色 `1000038`。旧 `EMID_CHOUKA/LuckyDrawUI` 与并存未调用配置链不计当前版本，证据见 `docs/unityclient/modules/DRAW.md`。
-用户最新优先级是“尽快跑起来”：整体布局和位置基本一致即可，UI 字体、动态模型、动画与装饰细节由用户后续手调，不再阻塞模块推进。大厅、游历、封神列传、竞技场、决战昆仑、血战、法宝搜索、七日目标、将魂/竞技场/血战商店、体力领取及资源找回均已用真实主布局通过门禁；好友赠送、好友深化、组队深化统一后置，下一未完成模块为成长基金。
+当前唯一目标是阵容视觉收口。逻辑已完成 `/24、/48` 阵位 `1→2→1`、Lua 权威快照和 C# 渲染镜像验证，但仍缺有效 Cocos 同状态截图与差异报告，状态为 `logic-validated-visual-pending`。
+阵容必须按 `MIGRATION_SOP.md` 的 G0-G6 完成：补 Cocos 基准 → 审查 Lua/节点映射 → 修正文图、遮挡、布局和 Imod → 重验协议与重连 → 生成逐状态差异报告 → 全门禁收口。完成前不得切换或推广到其他模块。
 
 ## 4. 当前分层与 Lua 回归原则
 ```text
@@ -92,15 +92,7 @@
 
 ## 7. 单模块标准流程
 
-1. 打印当前 Cocos 入口、Lua Controller/View、按钮回调和完整 CSB/CSD 路径；历史截图先校验窗口/页面标题、账号角色、步骤、分辨率和目标节点，不合格立即废弃。
-2. 核对写包/读包、`protocol.h`、`pack_deal.cpp` 与成功/失败/空态/不回包。
-3. 固定同账号、数据、`1334×750` 和逐步操作流程，捕获 Cocos 各状态基准图；点击首次失败即转日志/代码/自动化，不重复试坐标。
-4. 记录贴图/字体/Timeline/Imod/动态节点及 Cocos 节点 ↔ Unity Transform 映射，静态图、Timeline、Imod 不得互相冒充。
-5. 静态实现 `Store/Catalog/Presenter/Lua Controller`，原 Prefab 优先只读。
-6. 先做只读列表，再增量，再消耗/变更；用隔离角色确认真实字段和状态。
-7. Unity 按同数据、步骤和稳定帧截图，生成叠加/差异图并逐项修正。
-8. 使用 `Run-UnityModuleValidation.ps1 -Module <name>` 收口功能与协议。
-9. 通过 Bootstrap 两次幂等、Python UI、文档门禁、严重异常扫描；证据齐全才标记 `visual-1to1-complete`，更新文档并关闭进程。
+唯一流程见 `docs/unityclient/MIGRATION_SOP.md`：G0 范围冻结 → G1 Cocos 取证 → G2 迁移设计 → G3 静态实现 → G4 逻辑验收 → G5 视觉对照 → G6 回归收口。上一门禁未通过，不得进入下一阶段或开启下一模块。
 
 ## 8. Unity 验收规则
 
