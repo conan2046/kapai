@@ -4,9 +4,24 @@ namespace ProjectX.Data
 {
     public readonly struct HeroDefinition
     {
-        public HeroDefinition(int picture, int quality) { Picture = picture; Quality = quality; }
+        public HeroDefinition(int picture, int quality, string feature = "", bool physicalAttack = false,
+            int skillId = 0, string skillName = "", string skillDescription = "")
+        {
+            Picture = picture;
+            Quality = quality;
+            Feature = feature ?? "";
+            PhysicalAttack = physicalAttack;
+            SkillId = skillId;
+            SkillName = skillName ?? "";
+            SkillDescription = skillDescription ?? "";
+        }
         public int Picture { get; }
         public int Quality { get; }
+        public string Feature { get; }
+        public bool PhysicalAttack { get; }
+        public int SkillId { get; }
+        public string SkillName { get; }
+        public string SkillDescription { get; }
     }
 
     public static class HeroCatalog
@@ -34,7 +49,8 @@ namespace ProjectX.Data
                 { 44, new HeroDefinition(903, 5) }, { 45, new HeroDefinition(904, 5) },
                 { 46, new HeroDefinition(105, 5) }, { 47, new HeroDefinition(906, 5) },
                 { 48, new HeroDefinition(908, 4) }, { 49, new HeroDefinition(702, 5) },
-                { 57, new HeroDefinition(103, 4) }, { 60, new HeroDefinition(412, 5) },
+                { 57, new HeroDefinition(103, 4, "群体物理+免伤辅助", true, 571, "冲锋陷阵",
+                    "攻击敌方随机3个目标，造成攻击<color=#00ff00>2300%+200</color>的伤害，提高友方全体物理免伤<color=#00ff00>12%</color>") }, { 60, new HeroDefinition(412, 5) },
                 { 62, new HeroDefinition(310, 5) }, { 63, new HeroDefinition(606, 5) },
                 { 64, new HeroDefinition(907, 4) }, { 65, new HeroDefinition(114, 4) },
                 { 68, new HeroDefinition(913, 7) }, { 69, new HeroDefinition(914, 7) }

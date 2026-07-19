@@ -27,8 +27,9 @@
 | workspace MySQL | `127.0.0.1:3306` |
 
 ## 3. 当前任务
-当前唯一目标是阵容视觉收口。逻辑已完成 `/24、/48` 阵位 `1→2→1`、Lua 权威快照和 C# 渲染镜像验证，但仍缺有效 Cocos 同状态截图与差异报告，状态为 `logic-validated-visual-pending`。
-阵容必须按 `MIGRATION_SOP.md` 的 G0-G6 完成：补 Cocos 基准 → 审查 Lua/节点映射 → 修正文图、遮挡、布局和 Imod → 重验协议与重连 → 生成逐状态差异报告 → 全门禁收口。完成前不得切换或推广到其他模块。
+阵容试点已按 G0-G6 收口，状态为 `visual-1to1-complete`。五个目标状态均有 Windows `100%`、原生 `1334×750` 的 Cocos/Unity 对照、节点映射和差异报告；`/24、/48` 换位、恢复、重连持久化和非法回包通过。
+
+下一批只允许选择一个相邻模块，首选装备/法宝。开始编码前必须重新执行 G0-G2，不得把阵容截图、节点映射或视觉结论直接复用。
 
 ## 4. 当前分层与 Lua 回归原则
 ```text
@@ -119,7 +120,10 @@
 | Unity 进程重叠 | `Start-Process -Wait`，运行前检查 Unity 进程 |
 | 自动脚本破坏手工 Prefab | 默认只实例化和运行时绑定，禁止覆盖重建 |
 | 日志成功但 UI 错位 | 只算逻辑通过；按同数据 Cocos 基准逐项修正坐标、字体、层级、状态、动画与交互 |
+| Windows 显示缩放不是 100% | 在 G0 立即停止；旧截图全部作废，禁止把低分辨率客户区放大为 `1334×750` 当最终基准 |
 | Cocos 基准定位低效 | 截图须验窗口/页面标题、账号角色、步骤、尺寸和节点；坐标只试一次，失败转 Lua/日志/协议/自动化；`cocos-formation-compare.png` 实为公告空框，已判无效 |
+| Cocos 启动过早截图 | 本地登录后等待约 `40-45` 秒稳定主界面；`local_client.log` 为跨进程追加日志，多次登录记录不等于当前进程循环 |
+| Cocos 窗口边框混入基准 | 最终使用 `Invoke-ClientWindow.ps1 -CaptureClientOnly -PrintWindowFlags 2 -LogicalActivate -RestoreNoActivate`，直接取得原生 `1334×750` 客户区 |
 | 动态模型被静态图替代 | 沿 `CreateAnimModel/ImodAnim/Timeline` 真实调用链迁移资源、动作号、循环、缩放和挂点；半身像不得冒充 `PlayStand` 模型 |
 | 测试数据重复消耗 | 每个变更场景使用新隔离角色，失败角色不复用为最终证据 |
 | ISO UTC 被误判为 stale | PowerShell 7 已转为 `DateTime` 时直接 `ToUniversalTime()`，不要先转字符串 |

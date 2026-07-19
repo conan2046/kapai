@@ -107,7 +107,8 @@ namespace ProjectX.Editor
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
             bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroBagValidation") >= 0
-                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0;
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationInvalidValidation") >= 0;
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
@@ -385,7 +386,10 @@ namespace ProjectX.Editor
                     Finish(true);
                     return;
                 }
-                if (!app.HandleBack() || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
+                bool backHandled = app.HandleBack();
+                if (checkingHero && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationPopupValidation") >= 0)
+                    backHandled = app.HandleBack() && backHandled;
+                if (!backHandled || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
                     : checkingHeroEquipment ? app.IsHeroEquipmentOpen : checkingHero ? app.IsHeroOpen
                     : checkingMail ? app.IsMailOpen : checkingGameplayShops ? app.IsGameplayShopOpen : checkingShop ? app.IsShopOpen
                     : checkingFriend ? app.IsFriendOpen : checkingChat ? app.IsChatOpen

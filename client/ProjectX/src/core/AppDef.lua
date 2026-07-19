@@ -21,6 +21,11 @@ AppDef.LOCAL_TEST_AUTO_ENTER = true
 AppDef.LOCAL_TEST_AUTO_CREATE_ROLE = true
 AppDef.LOCAL_TEST_ROLE_NAME = "Test01"
 AppDef.LOCAL_TEST_ROLE_ID = 1000001
+-- 本地截图/自动化专用；nil 时关闭，不影响正常本地流程与线上路径。
+AppDef.LOCAL_TEST_AUTO_OPEN_MODULE = nil
+-- 本地阵容截图专用；例如 {1, 2} 会在打开布阵界面后交换两个阵位。
+AppDef.LOCAL_TEST_AUTO_FORMATION_MOVE = nil
+AppDef.LOCAL_TEST_AUTO_FORMATION_POPUP = nil
 
 --内网
 	-- AppDef.ipAdrr = "192.168.2.132"

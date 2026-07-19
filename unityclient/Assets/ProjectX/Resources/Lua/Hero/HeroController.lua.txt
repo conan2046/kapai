@@ -29,6 +29,15 @@ local function sendPosition(heroId, position)
     Bridge:Send(message)
 end
 
+function M.moveHero(heroId, position)
+    if M.mutationStage ~= nil then return end
+    local original = FormationModel:GetCombatPosition(heroId)
+    if original <= 0 or position <= 0 or position == original then return end
+    M.mutationHero, M.originalPosition, M.targetPosition = heroId, original, position
+    M.mutationStage = "interactive_response"
+    sendPosition(heroId, position)
+end
+
 local function readHero(message)
     local hero = {
         id = message:ReadWord(),
@@ -106,6 +115,12 @@ local function readFormation(message)
     FormationModel:ReplaceFormation(activeId, formations, display, combat)
     syncRenderMirror()
 
+    if M.mutationStage == "interactive_snapshot" then
+        M.mutationStage = nil
+        Bridge:SetStatus("Formation position updated by authoritative Lua snapshot.")
+        return
+    end
+
     if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation") then
         M.requested = false
@@ -134,7 +149,11 @@ local function readFormation(message)
     end
     if M.requested then
         M.requested = false
-        if Bridge:HasCommandLineFlag("-projectXFormationMutationValidation") then
+        if Bridge:HasCommandLineFlag("-projectXFormationInvalidValidation") then
+            M.mutationHero, M.originalPosition, M.targetPosition = 65535, 0, 1
+            M.mutationStage = "invalid_response"
+            sendPosition(M.mutationHero, M.targetPosition)
+        elseif Bridge:HasCommandLineFlag("-projectXFormationMutationValidation") then
             local original, heroId, target = 0, 0, 0
             for position = 1, FormationModel:GetCombatCount() do
                 local id = FormationModel:GetCombatHero(position)
@@ -158,8 +177,28 @@ local function readPositionResponse(message)
     local success = message:ReadByte()
     if success == 0 then
         local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        if M.mutationStage == "invalid_response" then
+            M.mutationStage = nil
+            Bridge:CompleteFormationInvalidValidation(heroId, position, reason)
+            return
+        end
         M.mutationStage = nil
         Bridge:Fail("Formation position change failed: " .. tostring(reason))
+        return
+    end
+    if M.mutationStage == "invalid_response" then
+        M.mutationStage = nil
+        Bridge:Fail("Invalid formation hero was unexpectedly accepted.")
+        return
+    end
+    if M.mutationStage == "interactive_response" then
+        if heroId ~= M.mutationHero or position ~= M.targetPosition then
+            M.mutationStage = nil
+            Bridge:Fail("Interactive formation response mismatch.")
+            return
+        end
+        M.mutationStage = "interactive_snapshot"
+        requestFormation()
         return
     end
     if heroId ~= M.mutationHero then Bridge:Fail("Formation response hero mismatch."); M.mutationStage = nil; return end

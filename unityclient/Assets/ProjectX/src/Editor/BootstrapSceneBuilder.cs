@@ -32,6 +32,7 @@ namespace ProjectX.Editor
         private const string HeroListPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab";
         private const string HeroDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab";
         private const string HeroBagPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab";
+        private const string FormationPopupPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangzhenxingLayer.prefab";
         private const string HeroEquipmentListPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab";
         private const string HeroEquipmentDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab";
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
@@ -158,8 +159,9 @@ namespace ProjectX.Editor
             new PrefabSpec(SevenDayPrefab, false),
             new PrefabSpec(HeroFramePrefab, false),
             new PrefabSpec(HeroListPrefab, true, HeroFramePrefab),
-            new PrefabSpec(HeroDetailPrefab, true, HeroListPrefab),
+            new PrefabSpec(HeroDetailPrefab, true, HeroFramePrefab),
             new PrefabSpec(HeroBagPrefab, false, HeroFramePrefab),
+            new PrefabSpec(FormationPopupPrefab, false),
             new PrefabSpec(HeroEquipmentListPrefab, false),
             new PrefabSpec(HeroEquipmentDetailPrefab, false, HeroEquipmentListPrefab)
         };

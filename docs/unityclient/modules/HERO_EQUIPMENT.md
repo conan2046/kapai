@@ -39,11 +39,18 @@
 ## 视觉门禁
 
 - 旧 `.local/cocos-formation-compare.png` 实际为“游戏公告”空框，不是阵容基准，已排除，不得作为视觉通过证据。
-- 当前仅完成真实 Cocos Lua/CSB/Imod 调用链取证和 Unity 动态截图；仍缺同账号、同状态 Cocos 阵容/背包有效截图及差异图，因此状态固定为 `logic-validated-visual-pending`。
-- 当前 Unity 阵容截图可见问题：武器名/法宝名字/技能描述等占位文字未替换，部分图标和文字内容不正确，顶部公共货币层遮挡阵容内容，文本存在截断/重叠，红点与按钮状态尚未逐项对齐。取得有效 Cocos 截图后必须按节点映射逐项修复，不得把现有截图记作视觉通过。
+- 最终基准固定 Windows `100%` 显示缩放、原生 `1334×750`；旧 `150%` 下实际 `889×500` 再放大的截图全部降级为历史参考。
+- 固定账号 `userId=7200057`、角色 `1000078/U00057`、神将 57 苏全忠。有效 Cocos 基准覆盖阵容首页、神将背包、布阵弹窗、换阵后和恢复后五个状态。
+- 对应 Unity 图、并排图、50% 叠加图、差异图、SHA-256 和全帧指标位于 `.local/ui-fidelity/Hero/unity/`、`.local/ui-fidelity/Hero/compare/`。五组 RGB MAE 分别为 `5.153 / 4.259 / 13.190 / 13.015 / 12.983`；指标包含同一 Imod 的不同动画帧、字体采样和 Cocos 实时跑马灯，不单独作为通过判定。
+- 已修复：三货币公共层、5 个阵容槽、真实头像/品质框/技能图和技能文本、中央与弹窗 Imod、神将/碎片页签、阵法图标/属性/消耗/材料、弹窗标题/遮罩、截断重叠、红点和占位文图。
+- 逻辑门禁：`/24 → /48`、阵位 `1→2→1`、回包后重拉权威快照、独立 Unity 进程重连持久化、非法 `hero=65535` 拒绝且阵位不变均通过；日志为 `unity-hero-validation.log`、`unity-hero-bag-validation.log`、`unity-formation-popup-validation.log`、`unity-formation-invalid-validation.log`。
+- 换阵后与恢复后均已取得 Cocos/Unity 同路径原生对照。此前所谓登录循环是把追加日志跨进程记录和启动早期截图误判为单进程循环；正确做法是等待 `40-45` 秒稳定帧并以客户区 `PrintWindow flags=2` 捕获。
+- 换阵补证修复：`HeroPresenter.ItemCount` 恢复为神将实际数量；`FormationPopupPresenter` 按首个非零战斗阵位和阵法网格映射挂载 Imod，换到位置 2 后模型不再消失。
+- G6：`Run-UnityModuleValidation.ps1 -Module Hero -UserId 7200057 -NoStartServices -KeepServices -SkipPythonTests` 通过并恢复 `1→2→1`；16/16 Python UI 通过；Bootstrap 两次 SHA-256 一致为 `2041B981D9A85C45A8080447E8D92CAB282C2D8C3E8C6BD8E51752C038A1031C`；严重异常 0。状态升级为 `visual-1to1-complete`。
 
 ## 遗留
 
-- 当前仅完成“Lua 权威业务状态 + C# 渲染镜像”试点；`HeroPresenter` 的节点绑定、VirtualList 和 Imod 仍在 C#，尚未完成通用 Lua UI Bridge。
+- 当前完成“Lua 权威业务状态 + C# 渲染镜像”试点；`HeroPresenter` 的节点绑定、VirtualList 和 Imod 保持为 Unity 平台渲染适配，不回收为业务权威。
+- 允许把本流程推广到一个相邻模块试行，首选装备/法宝；禁止多模块并行或批量 C#→Lua 重写。
 - 神将培养/进阶/技能/图鉴。
 - 法宝强化/炼化、装备精炼/觉醒/神铸、合成、分解、回收、完整属性模型。

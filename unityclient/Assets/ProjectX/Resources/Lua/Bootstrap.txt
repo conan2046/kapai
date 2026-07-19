@@ -46,6 +46,7 @@ function OnSettingsClicked() SettingsController.onClick() end
 function OnTaskClicked() TaskController.onClick() end
 function OnTaskClaimClicked(id) TaskController.claim(id) end
 function OnHeroClicked() HeroController.onClick() end
+function OnFormationMove(heroId, position) HeroController.moveHero(heroId, position) end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
 function OnFaBaoWear(uid, position, slot) EquipmentController.wearFaBao(uid, position, slot) end

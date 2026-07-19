@@ -9,6 +9,7 @@ using ProjectX.Diagnostics;
 using ProjectX.LuaRuntime;
 using ProjectX.Network;
 using ProjectX.UI;
+using ProjectX.UI.Migration;
 using UnityEngine;
 using UnityEngine.UI;
 using XLua;
@@ -123,6 +124,9 @@ namespace ProjectX.Core
         private CocosUiView heroDetailView;
         private CocosUiView heroBagView;
         private HeroPresenter heroPresenter;
+        private CocosUiView formationPopupView;
+        private FormationPopupPresenter formationPopupPresenter;
+        private LuaFunction onFormationMove;
         private HeroEntry pendingHeroEntry = HeroEntry.Formation;
         private readonly List<HeroRecord> pendingHeroes = new List<HeroRecord>();
         private readonly List<FormationRecord> pendingFormations = new List<FormationRecord>();
@@ -415,6 +419,7 @@ namespace ProjectX.Core
                 onTaskClicked = services.Lua.GetFunction("OnTaskClicked");
                 onTaskClaimClicked = services.Lua.GetFunction("OnTaskClaimClicked");
                 onHeroClicked = services.Lua.GetFunction("OnHeroClicked");
+                onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onHeroEquipmentWear = services.Lua.GetFunction("OnHeroEquipmentWear");
                 onHeroEquipmentTakeOff = services.Lua.GetFunction("OnHeroEquipmentTakeOff");
                 onFaBaoWear = services.Lua.GetFunction("OnFaBaoWear");
@@ -509,6 +514,7 @@ namespace ProjectX.Core
             onTaskClicked?.Dispose();
             onTaskClaimClicked?.Dispose();
             onHeroClicked?.Dispose();
+            onFormationMove?.Dispose();
             onHeroEquipmentWear?.Dispose();
             onHeroEquipmentTakeOff?.Dispose();
             onFaBaoWear?.Dispose();
@@ -615,8 +621,14 @@ namespace ProjectX.Core
         public bool HasCommandLineFlag(string flag) => services?.Options.HasFlag(flag) ?? false;
         public uint GetLocalUserId() => services?.Config.LocalUserId ?? 1;
         public uint GetPlayerRoleId() => services?.Player.RoleId ?? 0;
+        public bool IsFormationPopupOpen => formationPopupView?.GameObject.activeSelf == true;
         public bool HandleBack()
         {
+            if (formationPopupView?.GameObject.activeSelf == true)
+            {
+                formationPopupView.SetVisible(false);
+                return true;
+            }
             if (IsHeroEquipmentOpen) heroEquipmentPresenter?.HideDetails();
             return services?.UiStack.Pop() ?? false;
         }
@@ -2558,8 +2570,7 @@ namespace ProjectX.Core
             heroListView.SetVisible(!showBag);
             heroDetailView.SetVisible(!showBag);
             heroBagView.SetVisible(showBag);
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
-            if (title != null) title.text = showBag ? "神将" : "阵容";
+            ConfigureHeroFrame(showBag);
             if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
             SetStatus(showBag
                 ? $"Hero bag UI active: {services.Heroes.Count} heroes."
@@ -2601,6 +2612,7 @@ namespace ProjectX.Core
                     + $"{services.Formation.ActiveFormationId}, selected={luaSelectedHeroId}/{heroPresenter.SelectedId}, open={IsHeroOpen}.");
                 return;
             }
+            if (!showBag && HasCommandLineFlag("-projectXFormationPopupValidation")) ShowFormationPopup();
             Complete(showBag
                 ? $"COMPLETE: Lua formation model -> /24 heroes={luaHeroCount} -> /48 formations={luaFormationCount} -> C# render mirror -> hero bag UI"
                 : $"COMPLETE: main formation button -> legacy Lua model -> /24 heroes={luaHeroCount} -> /48 active={luaActiveFormationId} -> C# render mirror -> formation UI");
@@ -2631,9 +2643,21 @@ namespace ProjectX.Core
                     + $"mirrorPosition={mirrorPosition}, expected={originalPosition}, open={IsHeroOpen}.");
                 return;
             }
+            if (HasCommandLineFlag("-projectXFormationPopupValidation")) ShowFormationPopup();
             Complete($"COMPLETE: legacy Lua formation model -> /48 op=4 hero {heroId} "
                 + $"{originalPosition}->{targetPosition} -> authoritative Lua snapshot -> restore "
                 + $"{targetPosition}->{originalPosition} -> C# render mirror matched");
+        }
+
+        public void CompleteFormationInvalidValidation(int heroId, int position, string reason)
+        {
+            int persistedHero = services.Formation.CombatHeroes.Count > 0 ? services.Formation.CombatHeroes[0] : 0;
+            if (heroId != 65535 || position != 1 || persistedHero <= 0 || !IsHeroOpen)
+            {
+                Fail($"Formation invalid-response mismatch: hero={heroId}, position={position}, persisted={persistedHero}.");
+                return;
+            }
+            Complete($"COMPLETE: /48 op=4 invalid hero {heroId} rejected; authoritative formation unchanged at position 1 hero {persistedHero}; reason={reason}");
         }
 
         public void BeginHeroEquipmentUpdate(int expectedCount)
@@ -3388,6 +3412,110 @@ namespace ProjectX.Core
             heroPresenter = heroPresenter ?? new HeroPresenter(heroListView, heroDetailView, heroBagView,
                 services.Heroes, services.Formation, services.Resources);
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
+        }
+
+        private void ShowFormationPopup()
+        {
+            formationPopupView = formationPopupView ?? services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangzhenxingLayer");
+            if (formationPopupView == null)
+                throw new InvalidOperationException("Formation popup CocosUiBinding was not found.");
+            formationPopupPresenter = formationPopupPresenter ?? new FormationPopupPresenter(
+                formationPopupView, services.Formation, services.Heroes, services.Resources,
+                (heroId, position) => InvokeLuaOrFail(onFormationMove, "Hero.FormationMove", (double)heroId, position),
+                () => formationPopupView.SetVisible(false));
+            formationPopupPresenter.Render();
+            formationPopupView.SetVisible(true);
+            formationPopupView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void ConfigureHeroFrame(bool showBag)
+        {
+            CocosUiBinding binding = heroFrameView.Binding;
+            RectTransform root = binding.transform as RectTransform;
+            if (root != null)
+            {
+                root.pivot = new Vector2(0f, 1f);
+                root.anchorMin = root.anchorMax = new Vector2(0f, 1f);
+                root.anchoredPosition = Vector2.zero;
+                root.localScale = Vector3.one;
+            }
+
+            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null)
+            {
+                title.text = showBag ? "神将背包" : "阵容";
+                title.alignment = TextAnchor.MiddleLeft;
+                title.horizontalOverflow = HorizontalWrapMode.Overflow;
+                title.rectTransform.anchoredPosition = new Vector2(192.8862f, 28.1468f);
+                title.rectTransform.sizeDelta = new Vector2(240f, title.rectTransform.sizeDelta.y);
+                Transform help = title.transform.Find("Button_1");
+                if (help != null)
+                {
+                    help.gameObject.SetActive(!showBag);
+                    RectTransform helpRect = help as RectTransform;
+                    if (helpRect != null) helpRect.anchoredPosition = new Vector2(160f, 19.2803f);
+                }
+            }
+
+            Transform tabs = binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            ConfigureHeroBagTabs(tabs, showBag);
+
+            Transform gold3 = binding.Find("Layer/GoldCheck/GoldIcon3")?.transform;
+            Transform gold4 = binding.Find("Layer/GoldCheck/GoldIcon4")?.transform;
+            if (gold3 != null) gold3.gameObject.SetActive(true);
+            if (gold4 != null) gold4.gameObject.SetActive(true);
+            RectTransform stamina = binding.Find("Layer/GoldCheck/GoldIcon1")?.GetComponent<RectTransform>();
+            if (stamina == null) return;
+            stamina.gameObject.SetActive(true);
+            Text value = stamina.Find("GoldNumBg/Num")?.GetComponent<Text>();
+            if (value != null) value.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
+            Text gold = gold3?.Find("GoldNumBg/Num")?.GetComponent<Text>();
+            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
+            Text premium = gold4?.Find("GoldNumBg/Num")?.GetComponent<Text>();
+            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+
+            foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
+                if (child.name == "Prompt") child.gameObject.SetActive(false);
+        }
+
+        private static string FormatHeaderCurrency(long value)
+            => value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
+
+        private static void ConfigureHeroBagTabs(Transform tabs, bool showBag)
+        {
+            if (tabs == null) return;
+            tabs.gameObject.SetActive(showBag);
+            if (!showBag) return;
+            Transform panel = tabs.Find("Panel_10");
+            Transform first = panel?.Find("Button1");
+            if (first == null) return;
+            SetTabText(first, "神将", true);
+            Transform second = panel.Find("Button2_Runtime");
+            if (second == null)
+            {
+                second = Instantiate(first.gameObject, panel, false).transform;
+                second.name = "Button2_Runtime";
+            }
+            RectTransform firstRect = first as RectTransform;
+            RectTransform secondRect = second as RectTransform;
+            if (firstRect != null && secondRect != null)
+                secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
+            SetTabText(second, "碎片", false);
+        }
+
+        private static void SetTabText(Transform tab, string value, bool selected)
+        {
+            Text normal = tab.Find("BtnName")?.GetComponent<Text>();
+            Text chosen = tab.Find("ChooseBg/BtnName")?.GetComponent<Text>();
+            if (normal != null) normal.text = value;
+            if (chosen != null) chosen.text = value;
+            Transform choose = tab.Find("ChooseBg");
+            if (choose != null) choose.gameObject.SetActive(selected);
+            Image background = tab.GetComponent<Image>();
+            if (background != null && !selected) background.color = new Color(1f, 1f, 1f, 0f);
+            Button button = tab.GetComponent<Button>();
+            if (button != null) button.interactable = !selected;
         }
 
         private enum HeroEntry

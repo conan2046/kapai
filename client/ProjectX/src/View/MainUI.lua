@@ -120,6 +120,32 @@ function MainUI:Init()
        LRoleDataMgr.m_bIsmainInited = true
     end, 1)
 
+    if AppDef.LOCAL_TEST == true and type(AppDef.LOCAL_TEST_AUTO_OPEN_MODULE) == "number" then
+        local autoOpenModule = AppDef.LOCAL_TEST_AUTO_OPEN_MODULE
+        performWithDelay(self.m_pUILayer, function()
+            Utils:OpenFunction(autoOpenModule, nil, true)
+            if autoOpenModule == AppDef.EModuleID.EMID_KAPAI_SHENJIANG
+                and AppDef.LOCAL_TEST_AUTO_FORMATION_POPUP == true then
+                performWithDelay(AppDef.CurScene, function()
+                    Utils:OpenFunction(AppDef.EModuleID.EMID_SJBUZHEN, nil, true)
+                    local popupMove = AppDef.LOCAL_TEST_AUTO_FORMATION_MOVE
+                    if type(popupMove) == "table" and #popupMove == 2 then
+                        performWithDelay(AppDef.CurScene, function()
+                            LuaNetSendMsg:QueryFormationChangePos(popupMove[1], popupMove[2])
+                        end, 1)
+                    end
+                end, 3)
+            end
+            local autoMove = AppDef.LOCAL_TEST_AUTO_FORMATION_MOVE
+            if autoOpenModule == AppDef.EModuleID.EMID_SJBUZHEN
+                and type(autoMove) == "table" and #autoMove == 2 then
+                performWithDelay(self.m_pUILayer, function()
+                    LuaNetSendMsg:QueryFormationChangePos(autoMove[1], autoMove[2])
+                end, 2)
+            end
+        end, 2)
+    end
+
     if GameSdk.isFullScreen then
         self:UIAdaptation()
     end

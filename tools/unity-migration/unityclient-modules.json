@@ -168,7 +168,7 @@
     {
       "key": "Hero",
       "displayName": "神将与阵容",
-      "status": "lua-authoritative-pilot-validated",
+      "status": "visual-1to1-complete",
       "protocols": [
         24,
         48
@@ -188,6 +188,28 @@
       "screenshots": [
         "build/ui-migration/bootstrap-hero.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Hero/cocos/formation-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/cocos/hero-bag-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/cocos/formation-layout-from-formation-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/cocos/formation-layout-after-move-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/cocos/formation-layout-restored-user7200057-dpi100.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Hero/unity/formation-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/unity/hero-bag-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/unity/formation-layout-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/unity/formation-layout-after-move-user7200057-dpi100.png",
+          ".local/ui-fidelity/Hero/unity/formation-layout-user7200057-dpi100.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Hero/compare/report.json"
+        ],
+        "flowEvidence": ".local/ui-fidelity/Hero/flow.md",
+        "uiMapping": ".local/ui-fidelity/Hero/ui-map.json"
+      },
       "document": "docs/unityclient/modules/HERO_EQUIPMENT.md"
     },
     {

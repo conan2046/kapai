@@ -1,0 +1,57 @@
+{
+  "module": "HeroFormation",
+  "cocosResolution": "1334x750",
+  "unityResolution": "1334x750",
+  "windowsScale": "100%",
+  "account": { "userId": 7200057, "roleId": 1000078, "roleName": "U00057" },
+  "views": [
+    {
+      "state": "formation",
+      "cocosLua": "View/KaPaiPet/PetZhenRongUI.lua",
+      "cocosCsb": ["shenjiangyangcheng/yingxiongListLayer.csb", "shenjiangyangcheng/yingxiongInfoLayer.csb"],
+      "unitySources": ["shenjiangyangcheng/yingxiongListLayer", "shenjiangyangcheng/yingxiongInfoLayer"],
+      "mappings": [
+        { "semantic": "hero-list", "cocos": "shenjiangListUI/List", "unity": "Layer/shenjiangListUI/List" },
+        { "semantic": "hero-row", "cocos": "shenjiangListUI/List/Item", "unity": "Layer/shenjiangListUI/List/Item" },
+        { "semantic": "selected", "cocos": "Item/Choose", "unity": "Item/Choose" },
+        { "semantic": "portrait", "cocos": "Item/bg_Head/Icon", "unity": "Item/bg_Head/Icon" },
+        { "semantic": "detail-model-host", "cocos": "EquipUI/Bg/bg/Image/BaseImage/Node", "unity": "Layer/EquipUI/Bg/bg/Image/BaseImage/Node/RuntimeHeroModel" },
+        { "semantic": "equipment-slots", "cocos": "EquipUI/Bg/bg/EquipIcon1..6", "unity": "Layer/EquipUI/Bg/bg/EquipIcon1..6" },
+        { "semantic": "summary", "cocos": "EquipUI/Bg/bg/Image_bg/Tips_2", "unity": "Layer/EquipUI/Bg/bg/Image_bg/Tips_2" },
+        { "semantic": "stats", "cocos": "EquipUI/Bg/Equip/Text_0..4", "unity": "Layer/EquipUI/Bg/Equip/Text_0..4" },
+        { "semantic": "skill", "cocos": "EquipUI/Bg/Btn_Skill", "unity": "Layer/EquipUI/Bg/Btn_Skill" }
+      ]
+    },
+    {
+      "state": "hero-bag",
+      "cocosLua": "View/KaPaiPet/PetBagPetSubUI.lua",
+      "cocosCsb": ["shenjiangyangcheng/yingxiongbeibao.csb"],
+      "unitySources": ["shenjiangyangcheng/yingxiongbeibao"],
+      "mappings": [
+        { "semantic": "grid", "cocos": "yingxiongbeibaoUI/TableView", "unity": "Layer/yingxiongbeibaoUI/TableView" },
+        { "semantic": "row", "cocos": "TableView/ItemCell", "unity": "Layer/yingxiongbeibaoUI/TableView/ItemCell" },
+        { "semantic": "card", "cocos": "ItemCell/Item1..5", "unity": "ItemCell/Item1..5" },
+        { "semantic": "body", "cocos": "Item/Panel_icon/Icon", "unity": "Item/Panel_icon/Icon" },
+        { "semantic": "deployed", "cocos": "Item/shangzhen", "unity": "Item/shangzhen" },
+        { "semantic": "name-level-stars", "cocos": "Item/Name|Level|StarList", "unity": "Item/Name|Level|StarList" }
+      ]
+    },
+    {
+      "state": "formation-layout",
+      "cocosLua": "View/Pet/PetFormationSubUI.lua",
+      "moduleId": 1040,
+      "protocol": "/48 op=4 heroId,newPos (Unity); legacy Cocos QueryFormationChangePos oldPos,newPos",
+      "cocosCsb": ["shenjiangyangcheng/shenjiangzhenxingLayer.csb"],
+      "unitySources": ["shenjiangyangcheng/shenjiangzhenxingLayer"],
+      "unityStatus": "rendered and compared at dpi100 for initial, post-move position 2 and restored position 1 states",
+      "mappings": [
+        { "semantic": "popup-title", "cocos": "Bg/Popup/Title/Title", "unity": "Layer/RuntimeFormationTitle" },
+        { "semantic": "formation-list", "cocos": "FormationUI/List_Formation/ListView", "unity": "Layer/FormationUI/List_Formation/ListView" },
+        { "semantic": "formation-grid", "cocos": "FormationUI/Show/Formation/Position1..9", "unity": "Layer/FormationUI/Show/Formation/Position1..9" },
+        { "semantic": "formation-model", "cocos": "FormationUI/Show/Formation/Node_2", "unity": "Layer/FormationUI/Show/Formation/Node_2/RuntimeFormationHero" },
+        { "semantic": "attributes", "cocos": "FormationUI/Show/Info/Attribute1..5", "unity": "Layer/FormationUI/Show/Info/Attribute1..5" },
+        { "semantic": "cost-material", "cocos": "FormationUI/Show/Info/CoinBg|btn_Material", "unity": "Layer/FormationUI/Show/Info/CoinBg|btn_Material" }
+      ]
+    }
+  ]
+}

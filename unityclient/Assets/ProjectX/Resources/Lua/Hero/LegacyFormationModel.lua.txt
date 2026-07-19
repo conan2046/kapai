@@ -144,4 +144,11 @@ function M:GetCombatHero(position)
     return self.CombatPosList[position] or 0
 end
 
+function M:GetCombatPosition(heroId)
+    for position = 1, #self.CombatPosList do
+        if self.CombatPosList[position] == heroId then return position end
+    end
+    return 0
+end
+
 return M

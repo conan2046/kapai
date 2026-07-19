@@ -9,7 +9,10 @@ param(
     [switch]$SkipCapture,
     [switch]$LogicalActivate,
     [switch]$LogicalDeactivateAfter,
-    [ValidateSet(0, 2)]
+    [switch]$CaptureClientOnly,
+    [int]$NormalizeWidth = 0,
+    [int]$NormalizeHeight = 0,
+    [ValidateSet(0, 1, 2, 3)]
     [int]$PrintWindowFlags = 0,
     [int]$WaitMilliseconds = 1000
 )
@@ -33,6 +36,7 @@ public static class CodexClientWindow {
     [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int maxCount);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+    [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd, ref POINT point);
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT point);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
@@ -173,6 +177,8 @@ if ($RestoreForegroundAfter -and $foregroundBefore -ne [IntPtr]::Zero -and $fore
 
 $width = $null
 $height = $null
+$clientWidth = $null
+$clientHeight = $null
 if (-not $SkipCapture) {
     $rect = New-Object CodexClientWindow+RECT
     if (-not [CodexClientWindow]::GetWindowRect($windowHandle, [ref]$rect)) {
@@ -190,13 +196,25 @@ if (-not $SkipCapture) {
         New-Item -ItemType Directory -Force -Path $captureDir | Out-Null
     }
 
-    $width = $rect.Right - $rect.Left
-    $height = $rect.Bottom - $rect.Top
-    $bitmap = New-Object System.Drawing.Bitmap $width,$height
+    $captureWidth = $rect.Right - $rect.Left
+    $captureHeight = $rect.Bottom - $rect.Top
+    $effectivePrintWindowFlags = [uint32]$PrintWindowFlags
+    if ($CaptureClientOnly) {
+        $clientRect = New-Object CodexClientWindow+RECT
+        if (-not [CodexClientWindow]::GetClientRect($windowHandle, [ref]$clientRect)) {
+            throw "GetClientRect failed"
+        }
+        $clientWidth = $clientRect.Right - $clientRect.Left
+        $clientHeight = $clientRect.Bottom - $clientRect.Top
+        $captureWidth = $clientWidth
+        $captureHeight = $clientHeight
+        $effectivePrintWindowFlags = $effectivePrintWindowFlags -bor 1
+    }
+    $bitmap = New-Object System.Drawing.Bitmap $captureWidth,$captureHeight
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     $hdc = $graphics.GetHdc()
     try {
-        $captured = [CodexClientWindow]::PrintWindow($windowHandle, $hdc, [uint32]$PrintWindowFlags)
+        $captured = [CodexClientWindow]::PrintWindow($windowHandle, $hdc, $effectivePrintWindowFlags)
     }
     finally {
         $graphics.ReleaseHdc($hdc)
@@ -206,8 +224,34 @@ if (-not $SkipCapture) {
         $bitmap.Dispose()
         throw "PrintWindow failed"
     }
-    $bitmap.Save($CapturePath, [System.Drawing.Imaging.ImageFormat]::Png)
-    $bitmap.Dispose()
+
+    $outputBitmap = $bitmap
+
+    if (($NormalizeWidth -gt 0) -xor ($NormalizeHeight -gt 0)) {
+        $outputBitmap.Dispose()
+        throw "Pass both -NormalizeWidth and -NormalizeHeight, or neither"
+    }
+    if ($NormalizeWidth -gt 0 -and $NormalizeHeight -gt 0) {
+        $normalized = New-Object System.Drawing.Bitmap $NormalizeWidth,$NormalizeHeight
+        $normalized.SetResolution($outputBitmap.HorizontalResolution, $outputBitmap.VerticalResolution)
+        $normalizedGraphics = [System.Drawing.Graphics]::FromImage($normalized)
+        try {
+            $normalizedGraphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+            $normalizedGraphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            $normalizedGraphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+            $normalizedGraphics.DrawImage($outputBitmap, 0, 0, $NormalizeWidth, $NormalizeHeight)
+        }
+        finally {
+            $normalizedGraphics.Dispose()
+            $outputBitmap.Dispose()
+        }
+        $outputBitmap = $normalized
+    }
+
+    $width = $outputBitmap.Width
+    $height = $outputBitmap.Height
+    $outputBitmap.Save($CapturePath, [System.Drawing.Imaging.ImageFormat]::Png)
+    $outputBitmap.Dispose()
 }
 
 $foregroundAfter = [CodexClientWindow]::GetForegroundWindow()
@@ -217,6 +261,8 @@ $foregroundAfter = [CodexClientWindow]::GetForegroundWindow()
     ClickY = $ClickY
     Width = $width
     Height = $height
+    ClientWidth = $clientWidth
+    ClientHeight = $clientHeight
     ForegroundActivated = $ActivateForeground.IsPresent
     ForegroundRestored = $foregroundRestored
     RealClick = $RealClick.IsPresent
