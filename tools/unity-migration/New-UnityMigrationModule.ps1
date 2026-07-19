@@ -26,77 +26,39 @@ $displayNameProvided = $PSBoundParameters.ContainsKey("DisplayName")
 if (-not $DisplayName) { $DisplayName = $Module }
 
 $files = [ordered]@{}
-$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\Data\${Module}Store.cs")] = @"
+$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\UI\${Module}ViewState.cs")] = @"
 using System;
 using System.Collections.Generic;
-
-namespace ProjectX.Data
-{
-    public sealed class ${Module}Store
-    {
-        private readonly List<${Module}Record> items = new List<${Module}Record>();
-
-        public event Action Changed;
-        public IReadOnlyList<${Module}Record> Items => items;
-
-        public void Replace(IEnumerable<${Module}Record> values)
-        {
-            items.Clear();
-            if (values != null) items.AddRange(values);
-            Changed?.Invoke();
-        }
-
-        public void Reset()
-        {
-            items.Clear();
-            Changed?.Invoke();
-        }
-    }
-
-    public sealed class ${Module}Record
-    {
-        public uint Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-    }
-}
-"@
-$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\Data\${Module}Catalog.cs")] = @"
-using System.Collections.Generic;
-
-namespace ProjectX.Data
-{
-    public sealed class ${Module}Catalog
-    {
-        private readonly Dictionary<uint, string> names = new Dictionary<uint, string>();
-
-        public bool TryGetName(uint id, out string name) => names.TryGetValue(id, out name);
-    }
-}
-"@
-$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\UI\${Module}Presenter.cs")] = @"
-using System;
-using ProjectX.Data;
 
 namespace ProjectX.UI
 {
-    public sealed class ${Module}Presenter : IDisposable
+    [Serializable]
+    public sealed class ${Module}ViewState
     {
-        private readonly ${Module}Store store;
+        public string Status = string.Empty;
+        public List<${Module}ViewItem> Items = new List<${Module}ViewItem>();
+    }
 
-        public ${Module}Presenter(${Module}Store store)
-        {
-            this.store = store ?? throw new ArgumentNullException(nameof(store));
-            this.store.Changed += Render;
-        }
+    [Serializable]
+    public sealed class ${Module}ViewItem
+    {
+        public uint Id;
+        public string Name = string.Empty;
+    }
+}
+"@
+$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\UI\${Module}RenderBridge.cs")] = @"
+using System;
 
-        public void Render()
+namespace ProjectX.UI
+{
+    public sealed class ${Module}RenderBridge
+    {
+        public void Render(${Module}ViewState state)
         {
-            // Bind the authoritative Store state to the imported prefab here.
-        }
-
-        public void Dispose()
-        {
-            store.Changed -= Render;
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            // Rendering only: bind the Lua-authored DTO to the imported prefab.
+            // Protocol parsing, business rules and persistent state stay in Lua.
         }
     }
 }
@@ -115,11 +77,17 @@ end
 function M.reset()
 end
 
+function M.buildViewState()
+    return { status = "", items = {} }
+end
+
 return M
 "@
 $docName = $Module.ToUpperInvariant() + ".md"
 $documentRelative = "docs/unityclient/modules/$docName"
 $documentPath = Join-Path $destination ($documentRelative -replace '/', '\')
+$matrixRelative = "docs/unityclient/matrices/$($Module.ToUpperInvariant())_CONTROLS.json"
+$matrixPath = Join-Path $destination ($matrixRelative -replace '/', '\')
 $protocolText = if ($Protocols.Count -gt 0) { ($Protocols | ForEach-Object { "/$_" }) -join "、" } else { "待取证" }
 $files[$documentPath] = @"
 # $DisplayName 模块
@@ -137,12 +105,12 @@ $files[$documentPath] = @"
 - 旧客户端请求/解析：待补充。
 - 真实回包：待补充。
 
-## 实现
+## 实现边界
 
-- `${Module}Store`
-- `${Module}Catalog`
-- `${Module}Presenter`
-- `${Module}Controller.lua`
+- `${Module}Controller.lua`：协议、业务规则和权威状态。
+- `${Module}ViewState`：Lua → C# 的只读渲染 DTO。
+- `${Module}RenderBridge`：仅绑定 Prefab、资源、动画和交互回调。
+- 禁止新建业务型 C# Store/Catalog 或在 Bridge 解析协议。
 
 ## 验证
 
@@ -155,6 +123,13 @@ $files[$documentPath] = @"
 ## 遗留
 
 - 完成协议取证、真实 Prefab 绑定、自动化和完成门禁。
+"@
+$files[$matrixPath] = @"
+{
+  "schemaVersion": 1,
+  "module": "$Module",
+  "controls": []
+}
 "@
 
 $skipExisting = New-Object System.Collections.Generic.List[string]
@@ -203,6 +178,7 @@ if (-not $SkipManifest) {
         if ($PSBoundParameters.ContainsKey("ValidationFlag")) { $existing.validationFlags = $flags }
         $existing.status = "scaffolded"
         $existing.document = $documentRelative
+        $existing | Add-Member -Force -NotePropertyName controlMatrix -NotePropertyValue $matrixRelative
     }
     else {
         $newModule = [ordered]@{
@@ -216,6 +192,7 @@ if (-not $SkipManifest) {
             mutatesServer = [bool]$Mutation
             validationFlags = $flags
             screenshots = @()
+            controlMatrix = $matrixRelative
             document = $documentRelative
         }
         $manifest.modules = @($manifest.modules) + @($newModule)
@@ -223,8 +200,45 @@ if (-not $SkipManifest) {
     if ($PSCmdlet.ShouldProcess($manifestEntry.Path, "Update Unity migration manifest")) {
         Write-UnityMigrationUtf8 -Path $manifestEntry.Path -Content (($manifest | ConvertTo-Json -Depth 12) + "`n")
     }
+
+    $scenarioEntry = Import-UnityMigrationJson -Root $repositoryRoot -Path "tools/unity-migration/validation-scenarios.json"
+    $scenarioMatches = @($scenarioEntry.Value.scenarios | Where-Object { $_.module -ieq $Module })
+    if ($scenarioMatches.Count -gt 1) { throw "Validation scenario registry contains duplicate module '$Module'." }
+    $savedModule = @($manifest.modules | Where-Object { $_.key -eq $Module }) | Select-Object -First 1
+    $fixtureKey = if ([bool]$savedModule.mutatesServer) { "isolated-role" } else { "shared-readonly" }
+    if ($scenarioMatches.Count -eq 0) {
+        $scenarioEntry.Value.scenarios = @($scenarioEntry.Value.scenarios) + @([ordered]@{
+            key = ($Module -creplace '([a-z0-9])([A-Z])', '$1-$2').ToLowerInvariant() + "-default"
+            module = $Module
+            fixture = $fixtureKey
+            flags = $flags
+            artifacts = @()
+            captureStates = @()
+        })
+    }
+    else {
+        $scenarioMatches[0].fixture = $fixtureKey
+        $scenarioMatches[0].flags = $flags
+    }
+    if ($PSCmdlet.ShouldProcess($scenarioEntry.Path, "Update validation scenario registry")) {
+        Write-UnityMigrationUtf8 -Path $scenarioEntry.Path -Content (($scenarioEntry.Value | ConvertTo-Json -Depth 12) + "`n")
+    }
+
+    $gateEntry = Import-UnityMigrationJson -Root $repositoryRoot -Path "tools/unity-migration/migration-gates.json"
+    $gateMatches = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $Module })
+    if ($gateMatches.Count -gt 1) { throw "Gate registry contains duplicate module '$Module'." }
+    if ($gateMatches.Count -eq 0) {
+        $gateEntry.Value.modules = @($gateEntry.Value.modules) + @([ordered]@{
+            module = $Module
+            gates = [ordered]@{ G0 = "pending"; G1 = "pending"; G2 = "pending"; G3 = "pending"; G4 = "pending"; G5 = "pending"; G6 = "pending" }
+            evidence = $documentRelative
+        })
+        if ($PSCmdlet.ShouldProcess($gateEntry.Path, "Add pending G0-G6 gate record")) {
+            Write-UnityMigrationUtf8 -Path $gateEntry.Path -Content (($gateEntry.Value | ConvertTo-Json -Depth 12) + "`n")
+        }
+    }
 }
 
 Write-Host "Module scaffold ready: $Module"
 Write-Host "Selected files: $($files.Count - $skipExisting.Count); written files: $generatedCount; preserved files: $($skipExisting.Count)"
-Write-Host "Next: evidence -> protocol parser -> Store merge -> prefab binding -> validation flag."
+Write-Host "Next: G0 freeze -> G1 chain/evidence -> G2 Lua/protocol/mapping -> Lua authority -> render bridge -> G4-G6."

@@ -27,9 +27,10 @@
 | workspace MySQL | `127.0.0.1:3306` |
 
 ## 3. 当前任务
-阵容试点已按 G0-G6 收口，状态为 `visual-1to1-complete`。五个目标状态均有 Windows `100%`、原生 `1334×750` 的 Cocos/Unity 对照、节点映射和差异报告；`/24、/48` 换位、恢复、重连持久化和非法回包通过。
+阵容旧 `visual-1to1-complete` 结论已撤销。人工检查及代码复核确认 Cocos 养成、强化大师、替换、空位上阵、6 个装备/法宝槽、详细属性、布阵等控件在 Unity 无真实 Listener；旧 Runner 还绕过按钮直接调用内部流程。当前状态为 `partial-interactive-audit-required`，必须按 `FUNCTION_MIGRATION_COMPLETE_STANDARD.md` 从完整控件矩阵重做 G0。
 
-当前单模块为装备/法宝。G0-G4 与 G6 逻辑门禁完成，状态为 `g6-logic-complete-visual-fixing`：Lua 权威、共享 `/319` 单次读 op、真实配置/图标、列表/详情/更换/单次强化 Prefab、穿脱/强化/失败/重拉/切号均通过。G5 已恢复装备与法宝列表两组双端差异图；旧 Runner 曾误删冻结 Cocos 基准，下一步只重采详情、弹窗、强化前后和失败态，补齐差异后才可升 `visual-1to1-complete`。
+当前暂停所有迁移和视觉补证。Cocos 普查必须限定产品为《道友来封神》：从当前 `MainUI` 经 `OpenFunction/InitUI` 建闭包，禁止扫描全仓 Lua 后直接当迁移范围。首版结果：42 当前静态路由、84 未归属路由、57 Lua、312 控件候选、42 主界面绑定；见 `docs/unityclient/COCOS_CURRENT_VERSION_AUDIT.md` 和 `tools/cocos-audit/generated/`。
+阵容控件矩阵为 `docs/unityclient/matrices/HERO_CONTROLS.json`，当前 `0/16 complete`。下一步只允许在 Windows 100% 缩放、Cocos 原生 1334×750 下补逐控件真实可达性并冻结 G0；证据齐全前不得编码。
 
 ## 4. 当前分层与 Lua 回归原则
 ```text
@@ -81,10 +82,12 @@
 
 | 工具 | 用途 |
 |---|---|
-| `tools/unity-migration/unityclient-modules.json` | 模块、协议、入口、Prefab、配置、验收参数和数据夹具 |
-| `New-UnityMigrationModule.ps1` | 生成 Store/Catalog/Presenter/Lua/模块文档骨架 |
+| `tools/unity-migration/unityclient-modules.json` | 模块、协议、入口、Prefab 和配置清单 |
+| `validation-scenarios.json` / `validation-fixtures.json` | Runner 场景、运行产物、截图状态、角色夹具和清理策略 |
+| `migration-gates.json` / `Invoke-UnityMigrationGate.ps1` | G0-G6 顺序与证据机器门禁 |
+| `New-UnityMigrationModule.ps1` | 生成 Lua Controller、只读 ViewState、RenderBridge、文档和 pending 门禁 |
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity、smoke 证据 |
-| `Run-UnityModuleValidation.ps1` | 自动分配隔离角色、启服、串行 Unity、结果/截图检查和清理 |
+| `Run-UnityModuleValidation.ps1` | 场景/夹具驱动、冻结证据保护、隔离角色、Watchdog、结果检查和清理 |
 | `Test-UnityMigrationDocs.ps1` | 状态唯一性、Manifest、路径及视觉 1:1 完成证据门禁 |
 | `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次并校验 Bootstrap 场景 SHA-256 稳定 |
 | `tools/ui_migration/convert_ui.py` | 按完整相对路径生成 UI IR、CSB 兜底和 `runtime-ui-usage.json` |

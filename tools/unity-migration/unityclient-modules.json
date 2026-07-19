@@ -3,11 +3,19 @@
   "visualFidelityPolicy": {
     "standard": "docs/unityclient/UI_1TO1_STANDARD.md",
     "legacyPhase1MeansLogicOnly": true,
-    "completeStatus": "visual-1to1-complete",
+    "completeStatus": "migration-complete",
+    "functionalStandard": "docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md",
     "requiredResolution": [
       1334,
       750
     ]
+  },
+  "completionPolicy": {
+    "standard": "docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md",
+    "controlMatrixRequired": true,
+    "realEntryClickRequired": true,
+    "manualAcceptanceRequired": true,
+    "requiredControlStatus": "complete"
   },
   "unityExecutable": "D:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
   "unityProject": "unityclient",
@@ -168,7 +176,7 @@
     {
       "key": "Hero",
       "displayName": "神将与阵容",
-      "status": "visual-1to1-complete",
+      "status": "partial-interactive-audit-required",
       "protocols": [
         24,
         48
@@ -189,7 +197,7 @@
         "build/ui-migration/bootstrap-hero.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "visual-fixing",
         "cocosScreenshots": [
           ".local/ui-fidelity/Hero/cocos/formation-user7200057-dpi100.png",
           ".local/ui-fidelity/Hero/cocos/hero-bag-user7200057-dpi100.png",
@@ -210,6 +218,7 @@
         "flowEvidence": ".local/ui-fidelity/Hero/flow.md",
         "uiMapping": ".local/ui-fidelity/Hero/ui-map.json"
       },
+      "controlMatrix": "docs/unityclient/matrices/HERO_CONTROLS.json",
       "document": "docs/unityclient/modules/HERO_EQUIPMENT.md"
     },
     {

@@ -9,7 +9,7 @@
 | 底层/登录/主界面 | `FOUNDATION.md` / `LOGIN.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 背包 | `BAG.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 任务 | `TASK.md` | 功能第一阶段完成；视觉 1:1 待重验 |
-| 神将/阵容/装备/法宝 | `HERO_EQUIPMENT.md` | 阵容 `visual-1to1-complete`；装备/法宝 G0-G4 与 G6 逻辑门禁完成，状态 `g6-logic-complete-visual-fixing`；两组列表差异图已恢复，详情/弹窗/失败态 Cocos 基准待重采 |
+| 神将/阵容/装备/法宝 | `HERO_EQUIPMENT.md` | 旧完成结论撤销；阵容、装备/法宝均为 `partial-interactive-audit-required`，等待完整控件矩阵和真实按钮点击重审 |
 | 邮件 | `MAIL.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 商城 | `SHOP.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 将魂/竞技场/血战商店 | `GAMEPLAY_SHOPS.md` | 7 个 `/221` 协议页、74 条权威商品已通过门禁；视觉待重验 |

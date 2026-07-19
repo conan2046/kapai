@@ -1,0 +1,33 @@
+local Router = {}
+Router.__index = Router
+
+function Router.new(command)
+    assert(type(command) == "number", "ProtocolOpRouter requires a numeric command")
+    return setmetatable({ command = command, routes = {} }, Router)
+end
+
+function Router:register(owner, operations, handler)
+    assert(type(owner) == "string" and owner ~= "", "ProtocolOpRouter owner is required")
+    assert(type(operations) == "table", "ProtocolOpRouter operations must be a table")
+    assert(type(handler) == "function", "ProtocolOpRouter handler must be a function")
+    for _, operation in ipairs(operations) do
+        assert(type(operation) == "number", "ProtocolOpRouter operation must be numeric")
+        local current = self.routes[operation]
+        assert(current == nil, "ProtocolOpRouter duplicate command/op: /" .. tostring(self.command)
+            .. " op=" .. tostring(operation) .. " owners=" .. tostring(current and current.owner) .. "," .. owner)
+        self.routes[operation] = { owner = owner, handler = handler }
+    end
+end
+
+function Router:dispatch(message)
+    local operation = message:ReadByte()
+    local route = self.routes[operation]
+    if route == nil then return false, operation end
+    local handled = route.handler(operation, message)
+    assert(handled ~= false, "ProtocolOpRouter owner rejected registered op: " .. route.owner
+        .. " /" .. tostring(self.command) .. " op=" .. tostring(operation))
+    return true, operation
+end
+
+
+return Router

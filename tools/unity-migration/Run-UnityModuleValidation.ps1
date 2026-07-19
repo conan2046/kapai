@@ -10,6 +10,7 @@ param(
     [switch]$SkipScreenshotCheck,
     [string[]]$ExtraFlags = @(),
     [string[]]$ValidationFlagsOverride = @(),
+    [ValidateRange(30, 1800)][int]$UnityTimeoutSeconds = 300,
     [switch]$DryRun
 )
 
@@ -23,9 +24,23 @@ if ($matches.Count -ne 1) {
     throw "Module '$Module' was not found exactly once in $($manifestEntry.Path)."
 }
 $moduleConfig = $matches[0]
+$scenarioEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-scenarios.json"
+$scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
+$fixtureEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-fixtures.json"
+if ($null -eq $scenario) { throw "Module '$($moduleConfig.key)' has no central validation scenario." }
+$fixtureMatches = @($fixtureEntry.Value.profiles | Where-Object { $_.key -ieq ([string]$scenario.fixture) })
+if ($fixtureMatches.Count -ne 1) { throw "Scenario '$($scenario.key)' fixture '$($scenario.fixture)' was not found exactly once." }
+$fixture = $fixtureMatches[0]
+$scenarioArtifacts = @($scenario.artifacts)
+$immutableEvidenceRoots = @($scenarioEntry.Value.artifactPolicy.immutableRoots | ForEach-Object { [string]$_ })
+$requiredGate = [string](Get-UnityMigrationPropertyValue -Object $scenario -Name "requiredGate" -Default "")
+if ($requiredGate) { Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate $requiredGate }
+if ([bool]$fixture.mutatesServer -ne [bool]$moduleConfig.mutatesServer) {
+    throw "Scenario '$($scenario.key)' fixture mutation mode disagrees with module manifest."
+}
 $validationDataProperty = $moduleConfig.PSObject.Properties["validationData"]
 $moduleValidationData = if ($null -ne $validationDataProperty) { $validationDataProperty.Value } else { $null }
-if (@($moduleConfig.validationFlags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
+if (@($scenario.flags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
     throw "Module '$($moduleConfig.key)' has no runnable validation flag yet."
 }
 
@@ -77,7 +92,8 @@ $unityArguments = @(
     "-projectXAutomation",
     $userArgument
 )
-$unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($moduleConfig.validationFlags) })
+$unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($scenario.flags) })
+$unityArguments += "-projectXValidationScenario=$($scenario.key)"
 $unityArguments += @($ExtraFlags)
 if ($null -ne $moduleValidationData) {
     $unityArguments += @($moduleValidationData.unityFlags)
@@ -86,6 +102,8 @@ $unityArguments += @("-logFile", $logPath)
 
 Write-Host "Unity module validation"
 Write-Host "Module: $moduleKey ($($moduleConfig.displayName))"
+Write-Host "Scenario: $($scenario.key)"
+Write-Host "Fixture: $($fixture.key) (cleanup=$($fixture.cleanup))"
 Write-Host "Mutation: $([bool]$moduleConfig.mutatesServer)"
 Write-Host "UserId: $(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
 Write-Host "Unity: $unityExe"
@@ -273,8 +291,8 @@ try {
 
     [System.IO.Directory]::CreateDirectory($logDirectory) | Out-Null
     if (Test-Path -LiteralPath $resultPath) { Remove-Item -LiteralPath $resultPath -Force }
-    foreach ($screenshot in @($moduleConfig.screenshots)) {
-        $path = Resolve-UnityMigrationPath -Root $root -Path ([string]$screenshot)
+    foreach ($artifact in $scenarioArtifacts) {
+        $path = Assert-UnityMigrationRuntimeArtifact -Root $root -Artifact $artifact -ImmutableRoots $immutableEvidenceRoots
         if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
     }
 
@@ -283,7 +301,11 @@ try {
     for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
         $attemptStart = [DateTime]::UtcNow
         Write-Host "== Unity attempt $attempt/$maxAttempts =="
-        $process = Start-Process -FilePath $unityExe -ArgumentList $unityArguments -WindowStyle Hidden -Wait -PassThru
+        $process = Start-Process -FilePath $unityExe -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
+        if (-not $process.WaitForExit($UnityTimeoutSeconds * 1000)) {
+            Stop-ValidationProcessTree -ProcessId ([int]$process.Id)
+            throw "Unity validation timed out after $UnityTimeoutSeconds seconds; scenario=$($scenario.key), attempt=$attempt."
+        }
         if (Test-Path -LiteralPath $resultPath) {
             $item = Get-Item -LiteralPath $resultPath
             if ($item.LastWriteTimeUtc -ge $attemptStart.AddSeconds(-2)) { break }
@@ -320,8 +342,9 @@ try {
     $screenshotResults = New-Object System.Collections.Generic.List[object]
     if (-not $SkipScreenshotCheck) {
         Add-Type -AssemblyName System.Drawing
-        foreach ($screenshot in @($moduleConfig.screenshots)) {
-            $path = Resolve-UnityMigrationPath -Root $root -Path ([string]$screenshot)
+        foreach ($artifact in $scenarioArtifacts) {
+            $screenshot = Get-UnityMigrationArtifactPath -Artifact $artifact
+            $path = Assert-UnityMigrationRuntimeArtifact -Root $root -Artifact $artifact -ImmutableRoots $immutableEvidenceRoots
             if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Expected screenshot missing: $screenshot" }
             $item = Get-Item -LiteralPath $path
             if ($item.LastWriteTimeUtc -lt $attemptStart.AddSeconds(-2)) { throw "Screenshot is stale: $screenshot" }
@@ -348,6 +371,11 @@ try {
     $summary = [ordered]@{
         success = $true
         module = $moduleKey
+        scenario = [string]$scenario.key
+        fixture = [string]$fixture.key
+        fixtureCleanup = [string]$fixture.cleanup
+        requiredGate = $requiredGate
+        captureStates = @($scenario.captureStates)
         userId = $effectiveUserId
         mutatesServer = [bool]$moduleConfig.mutatesServer
         status = [string]$result.status
@@ -370,6 +398,8 @@ catch {
     $summary = [ordered]@{
         success = $false
         module = $moduleKey
+        scenario = [string]$scenario.key
+        fixture = [string]$fixture.key
         userId = $effectiveUserId
         error = $_.Exception.Message
         startedProcessIds = @($startedIds)

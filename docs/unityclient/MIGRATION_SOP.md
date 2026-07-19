@@ -1,6 +1,7 @@
 # Cocos → Unity 严格迁移 SOP
 
 > 本文件是 Unity 迁移唯一执行流程。`STATUS` 记录当前进度，模块文档记录证据，`UI_1TO1_STANDARD` 记录视觉细则；三者不得另建平行流程。
+> 功能“迁移完整”的唯一口径见 `FUNCTION_MIGRATION_COMPLETE_STANDARD.md`；页面打开、协议成功或截图相似均不能替代逐控件验收。
 
 ## 1. 不可违反的原则
 
@@ -12,6 +13,10 @@
 6. 协议成功不等于界面完成，主布局相似也不等于视觉通过；状态只能按门禁证据升级。
 7. 发现版本、协议、资源或数据不一致立即停工定位，禁止用占位文图、伪造回包、错误历史截图继续推进。
 8. 无法取得必要证据时标记阻塞；只有用户明确批准调整范围，才能跳过门禁，并必须记录未完成项。
+9. `validation-scenarios.json` 是 Runner、夹具、运行截图和双端状态的唯一注册表；冻结 Cocos/Unity 基准禁止列入可清理运行产物。
+10. G0-G6 状态必须同步写入 `migration-gates.json`；用 `Invoke-UnityMigrationGate.ps1` 校验前置门禁和证据，禁止只改文档文字越级。
+11. 自动化必须从真实入口和真实控件触发；直接调用内部打开、完成或渲染方法只能算单元测试，不能作为功能完整证据。
+12. G0 必须冻结完整控件矩阵。任何 Cocos 可达按钮、列表项或热区遗漏，后续 G1-G6 结果全部无效并回退 G0。
 
 ## 2. 状态机
 
@@ -22,7 +27,8 @@
 | `logic-implemented` | 静态实现完成，尚未真实动态闭环 |
 | `logic-validated-visual-pending` | 协议、状态、交互动态通过，尚无完整 Cocos 对照 |
 | `visual-fixing` | Cocos/Unity 同状态截图齐全，正在消除差异 |
-| `visual-1to1-complete` | G0-G6 全部门禁和证据通过 |
+| `visual-complete` | 已先达到 `functional-complete`，全部在册状态视觉与动画 1:1 通过 |
+| `migration-complete` | 完整控件矩阵、功能、视觉、异常、持久化、自动化及人工逐控件验收全部通过 |
 | `blocked` | 缺源码、资源、数据或可复现环境；模块文档已记录阻塞点 |
 
 状态只能逐级升级。旧 `phase1-complete` 仅代表旧功能口径，不得解释为视觉完成。
@@ -106,7 +112,17 @@
 - 模块文档记录截图尺寸、SHA-256、命令、结果和限制；`STATUS` 只更新唯一实时状态。
 - 关闭本阶段启动的 Cocos、Unity/Hub、`kapai.exe`、workspace MySQL，清理夹具。
 
-门禁：以上证据齐全才标记 `visual-1to1-complete`。
+门禁：以上证据齐全只能标记 `visual-complete`；同时满足功能完整标准及人工逐控件验收后，才可标记 `migration-complete`。
+
+机器门禁命令：
+
+```powershell
+# 检查前置门禁与证据，不改状态
+pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <name> -Gate G4 -Evidence <path>
+
+# 验证通过后落账；缺前置门禁或证据时直接失败
+pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <name> -Gate G4 -Evidence <path> -Complete
+```
 
 ## 4. 防跑偏检查
 
@@ -140,7 +156,7 @@
 4. G3：修复顶部货币层遮挡、占位文字、错误头像/图标/品质框、截断重叠、按钮/红点、Imod 位置缩放动作。
 5. G4：重验 `/24、/48` 换阵、恢复、重拉、重连持久化、异常回包和切号清理。
 6. G5：生成每个状态的 Cocos/Unity 并排、叠加和差异报告，清零未解释差异。
-7. G6：全部门禁通过后才升级 `visual-1to1-complete`；此前禁止推广到其他模块。
+7. G6：全部门禁及逐控件人工验收通过后才升级 `migration-complete`；此前禁止推广到其他模块。
 
 ### 阵容试点复盘（2026-07-19）
 
@@ -149,7 +165,7 @@
 - Popup 必须从阵容页按同一路径进入，不能用主界面直开截图替代；账号、角色、资源、分辨率和稳定帧缺一不可。
 - G4 已通过 `/24、/48` 换位、恢复、重拉、独立进程重连和非法神将回包。换阵补证发现并修复两个真实回归：列表数量误取固定阵位数、弹窗只读取 `CombatHeroes[0]` 导致换位后模型消失。
 - G5 已完成阵容首页、神将背包、布阵弹窗、换阵后、恢复后五组原生双端对照；静态资源、节点、阵位、层级和交互语义一致。剩余像素差仅为同一 Imod 动画取帧、字体栅格和实时跑马灯，可解释且不构成视觉缺陷。
-- G6 已通过模块 Runner、恢复、重连持久化、非法回包、16/16 Python UI、Bootstrap 两次幂等、文档门禁、严重异常及空白检查。阵容升级为 `visual-1to1-complete`。
+- 旧 G6 只验证了 Runner、恢复、重连、非法回包、Python UI、Bootstrap 和日志，遗漏真实按钮覆盖；原完成结论已撤销。
 
 ## 6. 试点后的推广规则
 

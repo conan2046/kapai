@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "order": ["G0", "G1", "G2", "G3", "G4", "G5", "G6"],
+    "passedValue": "passed",
+    "pendingValue": "pending",
+    "evidenceRequired": true
+  },
+  "modules": [
+    {
+      "module": "Hero",
+      "gates": { "G0": "pending", "G1": "pending", "G2": "pending", "G3": "pending", "G4": "pending", "G5": "pending", "G6": "pending" },
+      "evidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
+      "note": "Previous gates revoked: reachable Cocos controls were omitted and automation bypassed real button clicks."
+    },
+    {
+      "module": "HeroEquip",
+      "gates": { "G0": "passed", "G1": "passed", "G2": "passed", "G3": "passed", "G4": "pending", "G5": "pending", "G6": "pending" },
+      "evidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
+      "note": "Protocol diagnostics passed, but real visible-control coverage and manual interaction acceptance are incomplete."
+    }
+  ]
+}

@@ -31,6 +31,11 @@ local StaminaClaimController = require("StaminaClaim.StaminaClaimController")
 local ResourceRecoveryController = require("ResourceRecovery.ResourceRecoveryController")
 local FundsController = require("Funds.FundsController")
 local HotPointController = require("Shared.HotPointController")
+local ProtocolOpRouter = require("Shared.ProtocolOpRouter")
+
+local PetEquipRouter = ProtocolOpRouter.new(Protocol.PET_EQUIP_OPERATE)
+PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 16, 17, 18, 19, 22 }, EquipmentController.onOperation)
+PetEquipRouter:register("XunBao", { 31 }, XunBaoController.onOperation)
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -104,9 +109,9 @@ function OnResourceRecoveryClicked() ResourceRecoveryController.onClick() end
 function OnFundsClicked(functionId) FundsController.onClick(functionId) end
 function OnPacket(command, message)
     if command == Protocol.PET_EQUIP_OPERATE then
-        local operation = message:ReadByte()
-        if EquipmentController.onOperation(operation, message) then return end
-        if XunBaoController.onOperation(operation, message) then return end
+        local handled, operation = PetEquipRouter:dispatch(message)
+        if handled then return end
+        Bridge:SetStatus("Unhandled /319 op=" .. tostring(operation) .. ".")
         return
     end
     if FundsController.onPacket(command, message) then return end

@@ -12,6 +12,9 @@ $ErrorActionPreference = "Stop"
 $root = Get-UnityMigrationRoot
 $manifestEntry = Import-UnityMigrationManifest -Root $root -ManifestPath $ManifestPath
 $manifest = $manifestEntry.Value
+$scenarioEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-scenarios.json"
+$fixtureEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-fixtures.json"
+$gateEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/migration-gates.json"
 $failures = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
 
@@ -26,6 +29,14 @@ try {
 }
 catch {
     if ($_.Exception.Message -notlike "Unresolved Unity migration template token*") { throw }
+}
+try {
+    Assert-UnityMigrationRuntimeArtifact -Root $root `
+        -Artifact ([pscustomobject]@{ path = ".local/ui-fidelity/protected.png"; lifecycle = "runtime" }) | Out-Null
+    Add-Failure "Runtime artifact guard accepted an immutable visual evidence path."
+}
+catch {
+    if ($_.Exception.Message -notlike "Runtime artifact points inside immutable evidence root*") { throw }
 }
 
 function Test-RequiredFile {
@@ -44,6 +55,7 @@ $planPath = Test-RequiredFile "UNITYCLIENT_MIGRATION_PLAN.md"
 Test-RequiredFile "docs/unityclient/modules/README.md" | Out-Null
 Test-RequiredFile "docs/unityclient/history/README.md" | Out-Null
 Test-RequiredFile "docs/unityclient/UI_1TO1_STANDARD.md" | Out-Null
+Test-RequiredFile "docs/unityclient/FUNCTION_MIGRATION_COMPLETE_STANDARD.md" | Out-Null
 
 $lineRules = @(
     [pscustomobject]@{ Name = "STATUS"; Path = $statusPath; Limit = $StatusMaxLines },
@@ -60,7 +72,7 @@ foreach ($rule in $lineRules) {
 
 if ($statusPath) {
     $status = Get-Content -Raw -Encoding UTF8 -LiteralPath $statusPath
-    $functionalMatches = [regex]::Matches($status, '(?m)^\| Functional \| `?约?\d+%')
+    $functionalMatches = [regex]::Matches($status, '(?m)^\| Functional \| (`?约?\d+%|`待逐控件重审`)')
     if ($functionalMatches.Count -ne 1) {
         Add-Failure "STATUS must contain exactly one Functional percentage row; found $($functionalMatches.Count)."
     }
@@ -82,11 +94,44 @@ foreach ($path in $currentDocPaths) {
 $keys = @($manifest.modules | ForEach-Object { [string]$_.key })
 $duplicates = @($keys | Group-Object | Where-Object Count -gt 1)
 foreach ($duplicate in $duplicates) { Add-Failure "Duplicate manifest module key: $($duplicate.Name)" }
+$scenarioKeys = @($scenarioEntry.Value.scenarios | ForEach-Object { [string]$_.key })
+foreach ($duplicate in @($scenarioKeys | Group-Object | Where-Object Count -gt 1)) {
+    Add-Failure "Duplicate validation scenario key: $($duplicate.Name)"
+}
+$fixtureKeys = @($fixtureEntry.Value.profiles | ForEach-Object { [string]$_.key })
 
 $runnerText = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs")
 $protocolHeader = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "server/src/protocol.h")
 foreach ($module in $manifest.modules) {
     $key = [string]$module.key
+    $scenarios = @($scenarioEntry.Value.scenarios | Where-Object { $_.module -ieq $key })
+    if ($scenarios.Count -ne 1) {
+        Add-Failure "Module $key must have exactly one central validation scenario; found $($scenarios.Count)."
+        $scenario = $null
+    }
+    else { $scenario = $scenarios[0] }
+    if ($null -ne $scenario) {
+        if ([string]$scenario.fixture -notin $fixtureKeys) {
+            Add-Failure "Module $key scenario references missing fixture: $($scenario.fixture)"
+        }
+        $manifestFlags = @($module.validationFlags | ForEach-Object { [string]$_ })
+        $scenarioFlags = @($scenario.flags | ForEach-Object { [string]$_ })
+        if (@(Compare-Object $manifestFlags $scenarioFlags).Count -gt 0) {
+            Add-Failure "Module $key manifest/scenario validation flags drifted."
+        }
+        foreach ($artifact in @($scenario.artifacts)) {
+            try {
+                Assert-UnityMigrationRuntimeArtifact -Root $root -Artifact $artifact `
+                    -ImmutableRoots @($scenarioEntry.Value.artifactPolicy.immutableRoots) | Out-Null
+            }
+            catch { Add-Failure "Module $key has unsafe runtime artifact: $($_.Exception.Message)" }
+        }
+        $requiredGate = [string](Get-UnityMigrationPropertyValue -Object $scenario -Name "requiredGate" -Default "")
+        if ($requiredGate) {
+            $gateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $key })
+            if ($gateRecords.Count -ne 1) { Add-Failure "Module $key scenario requires $requiredGate but has no unique gate record." }
+        }
+    }
     if ($key -notmatch '^[A-Z][A-Za-z0-9]+$') { Add-Failure "Invalid module key: $key" }
     if (-not $module.document) {
         Add-Failure "Module $key has no document."
@@ -135,6 +180,14 @@ foreach ($module in $manifest.modules) {
         }
     }
     if ($moduleStatus -eq $visualCompleteStatus) {
+        $controlMatrix = [string](Get-UnityMigrationPropertyValue -Object $module -Name "controlMatrix" -Default "")
+        if (-not $controlMatrix) {
+            Add-Failure "Module $key claims $visualCompleteStatus without a controlMatrix."
+        }
+        else {
+            try { Assert-UnityMigrationControlMatrix -Root $root -ModuleKey $key -Path $controlMatrix | Out-Null }
+            catch { Add-Failure "Module $key controlMatrix failed: $($_.Exception.Message)" }
+        }
         if ($null -eq $visual -or [string]$visual.status -ne "passed") {
             Add-Failure "Module $key claims $visualCompleteStatus without passed visualFidelity evidence."
         }
@@ -190,6 +243,25 @@ foreach ($module in $manifest.modules) {
     }
 }
 
+foreach ($scenario in $scenarioEntry.Value.scenarios) {
+    if ([string]$scenario.module -notin $keys) {
+        Add-Failure "Validation scenario $($scenario.key) references unknown module: $($scenario.module)"
+    }
+}
+
+foreach ($record in $gateEntry.Value.modules) {
+    if ([string]$record.module -notin $keys) { Add-Failure "Gate record references unknown module: $($record.module)" }
+    foreach ($gate in @("G0","G1","G2","G3","G4","G5","G6")) {
+        $value = [string](Get-UnityMigrationPropertyValue -Object $record.gates -Name $gate -Default "")
+        if ($value -notin @("passed","pending","blocked")) {
+            Add-Failure "Module $($record.module) has invalid $gate state: $value"
+        }
+    }
+    if (-not $record.evidence -or -not (Test-Path -LiteralPath (Resolve-UnityMigrationPath -Root $root -Path ([string]$record.evidence)))) {
+        Add-Failure "Module $($record.module) gate evidence document is missing: $($record.evidence)"
+    }
+}
+
 $friend = @($manifest.modules | Where-Object key -eq "Friend")
 if ($friend.Count -ne 1) { Add-Failure "Manifest must contain exactly one Friend module." }
 
@@ -197,6 +269,8 @@ $result = [ordered]@{
     success = ($failures.Count -eq 0)
     manifest = $manifestEntry.Path
     moduleCount = @($manifest.modules).Count
+    scenarioCount = @($scenarioEntry.Value.scenarios).Count
+    fixtureCount = @($fixtureEntry.Value.profiles).Count
     failures = @($failures)
     warnings = @($warnings)
     checkedUtc = [DateTime]::UtcNow.ToString("O")

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "product": "道友来封神",
+  "auditedAt": "2026-07-19",
+  "runtime": {
+    "account": "userId=1 / roleId=1000005 / Test01 / level=60",
+    "windowTitle": "Cocos Simulator - 道友来封神",
+    "logicalResolution": "1334x750",
+    "capturedClientResolution": "1067x600",
+    "windowsScale": "100% (Win32 system/window DPI=96)",
+    "mainUiEvidence": ".local/cocos-audit-main-before.png"
+  },
+  "qualification": {
+    "currentMainBindings": 42,
+    "currentStaticRoutes": 42,
+    "unqualifiedConfiguredRoutes": 84,
+    "rule": "只有当前 MainUI 绑定且经 OpenFunction/InitUI 静态追达的代码进入《道友来封神》候选清单；未归属路由不标记为当前功能，也不直接武断标记为旧游戏。"
+  },
+  "manualChecks": [
+    {
+      "id": "CURRENT-MAIN-STARTUP",
+      "status": "current-runtime-confirmed",
+      "evidence": ".local/cocos-audit-main-before.png",
+      "note": "当前账号成功进入《道友来封神》MainUI。"
+    },
+    {
+      "id": "CURRENT-MAIN-BINDINGS",
+      "status": "manual-source-confirmed-runtime-pending",
+      "evidence": "tools/cocos-audit/generated/cocos-current-entry-inventory.json#mainControls",
+      "note": "42 个事件绑定均来自当前 MainUI；尚未逐个真实点击，不计运行时通过。"
+    },
+    {
+      "id": "HERO-ENTRY-btn_zhenrong",
+      "status": "current-run-blocked-historical-runtime-confirmed",
+      "evidence": ".local/ui-fidelity/Hero/flow.md",
+      "note": "当前调用链确认 btn_zhenrong -> PetTouchCallback -> 1030 -> PetZhenRongUI；历史 100% 缩放证据证明真实可达。本机 Win32 DPI 已是 96/100%，但模拟器实际客户区仍为 1067x600，未达到 config.json 的 1334x750；后台点击使硬件渲染白屏，因此不记本次真实点击通过。"
+    }
+  ],
+  "invalidEvidence": [
+    ".local/cocos-audit-hero-entry-attempt.png",
+    ".local/cocos-audit-hero-entry-refresh.png",
+    ".local/cocos-audit-hero-entry-live.png",
+    ".local/cocos-audit-hero-autoopen.png",
+    ".local/cocos-audit-hero-autoopen-live.png"
+  ]
+}
