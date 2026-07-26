@@ -20,6 +20,13 @@ local M = {
     preloadCallback = nil,
 }
 
+local function showBusinessError(reason)
+    local text = tostring(reason or "操作失败")
+    text = string.gsub(text, "%[/?c%]", "")
+    Bridge:SetStatus(text)
+    Bridge:ShowToast(text, 2.0)
+end
+
 local function sendOp(op)
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(op)
@@ -263,6 +270,7 @@ function M.strengthEquipment(uid)
     local cost = Bridge:GetEquipmentStrengthCost(uid)
     if Bridge:GetCurrency(60000) < cost then
         Bridge:SetStatus("您的金币不足！")
+        Bridge:ShowToast("您的金币不足！", 2.0)
         return
     end
     sendEquipmentStrength(uid)
@@ -288,7 +296,7 @@ local function readEquipmentWearResponse(message, op)
             sendFaBaoTakeOff(M.faBaoUid)
             return
         end
-        Bridge:Fail("Equipment wear/takeoff failed: " .. tostring(reason)); M.stage = nil; return
+        showBusinessError(reason); M.stage = nil; return
     end
     if message.Remaining > 0 then message:ReadString() end
     EquipmentModel:SetEquipmentFormation(uid, op == 2 and position or 0)
@@ -314,7 +322,7 @@ local function readEquipmentStrengthResponse(message)
             Bridge:CompleteHeroEquipmentMaterialValidation(uid, M.strengthBefore, reason)
             return
         end
-        Bridge:Fail("Equipment strength failed: " .. tostring(reason)); M.stage = nil; return
+        showBusinessError(reason); M.stage = nil; return
     end
     message:ReadByte()
     message:ReadWord()
@@ -328,8 +336,10 @@ local function readEquipmentStrengthResponse(message)
         M.stage = nil
         return
     end
-    M.stage = "await_equipment_takeoff"
-    sendEquipmentTakeOff(uid, M.formationPosition)
+    if M.stage == "await_equipment_strength" then
+        M.stage = "await_equipment_takeoff"
+        sendEquipmentTakeOff(uid, M.formationPosition)
+    end
 end
 
 local function readFaBaoWearResponse(message)
@@ -338,8 +348,13 @@ local function readFaBaoWearResponse(message)
     local slot = message:ReadByte()
     if message.Remaining < 1 then Bridge:Fail("FaBao wear returned no result byte (system gate or incomplete response).") M.stage = nil return end
     local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown rejection"
+        showBusinessError(reason)
+        M.stage = nil
+        return
+    end
     local replacedUid = message:ReadUInt()
-    if success == 0 then Bridge:Fail("FaBao wear failed: " .. tostring(message:ReadString())); M.stage = nil; return end
     if message.Remaining > 0 then message:ReadString() end
     EquipmentModel:SetFaBaoFormation(uid, position, slot, replacedUid)
     syncRenderMirror()
@@ -360,7 +375,7 @@ local function readFaBaoTakeOffResponse(message)
             requestLists()
             return
         end
-        Bridge:Fail("FaBao takeoff failed: " .. tostring(reason)); M.stage = nil; return
+        showBusinessError(reason); M.stage = nil; return
     end
     if message.Remaining > 0 then message:ReadString() end
     EquipmentModel:SetFaBaoFormation(uid, 0, 0, 0)

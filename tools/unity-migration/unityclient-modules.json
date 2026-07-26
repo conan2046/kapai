@@ -234,7 +234,7 @@
     {
       "key": "HeroEquip",
       "displayName": "装备与法宝",
-      "status": "partial-interactive-audit-required",
+      "status": "g6-complete-visual-passed",
       "protocols": [
         319
       ],
@@ -244,11 +244,15 @@
         "Layer/Main_UI/tankuang2/btn_fabao"
       ],
       "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeigenghuan.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiqianghua.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiqianghua.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaosuipianbeibao.prefab"
       ],
       "configs": [
         "unityclient/Assets/ProjectX/Resources/Configs/equip.json",
@@ -264,32 +268,40 @@
         "build/ui-migration/bootstrap-hero.png"
       ],
       "visualFidelity": {
-        "status": "visual-fixing",
+        "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/HeroEquip/cocos/01-hero-detail.png",
-          ".local/ui-fidelity/HeroEquip/cocos/03-equipment-bag.png",
-          ".local/ui-fidelity/HeroEquip/cocos/04-fabao-bag.png",
-          ".local/ui-fidelity/HeroEquip/cocos/05-equipment-bag-seeded.png",
-          ".local/ui-fidelity/HeroEquip/cocos/06-fabao-bag-seeded.png",
-          ".local/ui-fidelity/HeroEquip/cocos/07-fabao-fragments-seeded.png",
-          ".local/ui-fidelity/HeroEquip/cocos/08-hero-detail-equipped.png",
-          ".local/ui-fidelity/HeroEquip/cocos/09-equipment-detail.png",
-          ".local/ui-fidelity/HeroEquip/cocos/10-fabao-detail.png",
-          ".local/ui-fidelity/HeroEquip/cocos/11-equipment-strength-before.png",
-          ".local/ui-fidelity/HeroEquip/cocos/12-equipment-strength-after.png",
-          ".local/ui-fidelity/HeroEquip/cocos/13-hero-detail-replaced.png",
-          ".local/ui-fidelity/HeroEquip/cocos/14-equipment-change-popup.png",
-          ".local/ui-fidelity/HeroEquip/cocos/15-fabao-change-popup.png",
-          ".local/ui-fidelity/HeroEquip/cocos/17-equipment-material-insufficient.png",
-          ".local/ui-fidelity/HeroEquip/cocos/18-illegal-uid.png",
-          ".local/ui-fidelity/HeroEquip/cocos/19-repeat-operation.png",
-          ".local/ui-fidelity/HeroEquip/cocos/20-hero-detail-after-takeoff.png"
+          ".local/ui-fidelity/HeroEquip/cocos/g1-wear-menu-cua.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-hero-detail-equipped.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-bag.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-bag.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-hide-worn.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-fragments.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-help.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-help.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-detail.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-detail.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-strength-before.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-strength-after.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-change-available.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-change-available.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-material-insufficient.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-illegal-uid.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-repeat-operation.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-after-takeoff.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-after-takeoff.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-after-rewear.png"
         ],
-        "unityScreenshots": [],
-        "diffReports": [],
+        "unityScreenshots": [
+          ".local/ui-fidelity/HeroEquip/unity/g5-live-20260726/contact-sheet.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/report.json",
+          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json"
+        ],
         "flowEvidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
         "uiMapping": "docs/unityclient/modules/HERO_EQUIPMENT.md"
       },
+      "controlMatrix": "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
       "document": "docs/unityclient/modules/HERO_EQUIPMENT.md"
     },
     {

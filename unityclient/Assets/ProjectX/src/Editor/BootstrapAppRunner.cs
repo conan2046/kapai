@@ -18,7 +18,7 @@ namespace ProjectX.Editor
         private const string ScreenshotStartKey = "ProjectX.BootstrapApp.ScreenshotStart";
         private const string SettingsPhaseKey = "ProjectX.BootstrapApp.SettingsPhase";
         private const string LoginPhaseKey = "ProjectX.BootstrapApp.LoginPhase";
-        private const double TimeoutSeconds = 120d;
+        private const double DefaultTimeoutSeconds = 300d;
         private const string BootstrapScene = "Assets/ProjectX/Scenes/Bootstrap.unity";
         private const int RequiredGameViewWidth = 1334;
         private const int RequiredGameViewHeight = 750;
@@ -553,12 +553,26 @@ namespace ProjectX.Editor
 
             if (!double.TryParse(SessionState.GetString(StartTimeKey, "0"), out double startTime))
                 startTime = EditorApplication.timeSinceStartup;
-            double timeoutSeconds = requiresReconnectValidation ? 120d : TimeoutSeconds;
+            double timeoutSeconds = GetRunnerTimeoutSeconds();
+            if (requiresReconnectValidation)
+                timeoutSeconds = Math.Max(timeoutSeconds, 120d);
             if (EditorApplication.timeSinceStartup - startTime <= timeoutSeconds) return;
 
             WriteResult(false, status + " (timeout)");
             Debug.LogError("[BootstrapAppRunner] Timed out before the package response was received.");
             Finish(false);
+        }
+
+        private static double GetRunnerTimeoutSeconds()
+        {
+            const string prefix = "-projectXRunnerTimeoutSeconds=";
+            foreach (string argument in Environment.GetCommandLineArgs())
+            {
+                if (!argument.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+                if (double.TryParse(argument.Substring(prefix.Length), out double value))
+                    return Math.Max(60d, Math.Min(900d, value));
+            }
+            return DefaultTimeoutSeconds;
         }
 
         private static void Finish(bool success)
@@ -571,15 +585,38 @@ namespace ProjectX.Editor
         {
             string path = GetResultPath();
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            string escapedStatus = (status ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
+            ProjectXApp app = ProjectXApp.Instance;
+            uint userId = app?.GetLocalUserId() ?? 0;
+            uint roleId = app?.GetPlayerRoleId() ?? 0;
+            string scenario = GetLaunchArgumentValue("-projectXValidationScenario=");
             string json = "{\n"
                 + $"  \"success\": {(success ? "true" : "false")},\n"
-                + $"  \"status\": \"{escapedStatus}\",\n"
+                + $"  \"status\": \"{EscapeJson(status)}\",\n"
+                + $"  \"scenario\": \"{EscapeJson(scenario)}\",\n"
+                + $"  \"userId\": {userId},\n"
+                + $"  \"roleId\": {roleId},\n"
+                + $"  \"screenWidth\": {Screen.width},\n"
+                + $"  \"screenHeight\": {Screen.height},\n"
                 + $"  \"utc\": \"{DateTime.UtcNow:O}\"\n"
                 + "}\n";
             File.WriteAllText(path, json);
             Debug.Log($"[BootstrapAppRunner] Result written: {path}");
         }
+
+        private static string GetLaunchArgumentValue(string prefix)
+        {
+            foreach (string argument in Environment.GetCommandLineArgs())
+                if (argument.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    return argument.Substring(prefix.Length);
+            return string.Empty;
+        }
+
+        private static string EscapeJson(string value) =>
+            (value ?? string.Empty)
+                .Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n");
 
         private static void DeletePreviousResult()
         {

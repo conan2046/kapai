@@ -84,12 +84,61 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
-      "note": "Protocol diagnostics passed, but real visible-control coverage and manual interaction acceptance are incomplete."
+      "note": "G0-G6 passed under the new standard. Fixed account 7200057/1000115 completed 20/20 native 1334x750 dual-client visual states and 33/33 real controls. Unity MCP flows cover equipment/fabao wear, takeoff, strength, failures, reconnect, persistence and account-switch cleanup; BuildBatch idempotence passed twice.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
+          "docs/unityclient/modules/HERO_EQUIPMENT.md"
+        ],
+        "G1": [
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
+          "docs/unityclient/modules/HERO_EQUIPMENT.md",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-hero-detail-equipped.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-material-insufficient.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-illegal-uid.png"
+        ],
+        "G2": [
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
+          "docs/unityclient/modules/HERO_EQUIPMENT.md",
+          "tools/unity-migration/unityclient-modules.json",
+          "tools/local/Invoke-ProtocolSmoke.ps1",
+          ".local/unity-validation/hero-equip-g2-protocol-evidence.md",
+          "unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
+          "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt"
+        ],
+        "G3": [
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
+          "docs/unityclient/modules/HERO_EQUIPMENT.md",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs",
+          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity",
+          ".local/unity-validation/hero-equip-g3-mcp-evidence.md"
+        ],
+        "G4": [
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
+          "docs/unityclient/modules/HERO_EQUIPMENT.md",
+          "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt",
+          ".local/unity-validation/hero-equip-g4-mcp-evidence.md"
+        ],
+        "G5": [
+          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/report.json",
+          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json",
+          ".local/unity-validation/hero-equip-g5-mcp-evidence.md"
+        ],
+        "G6": [
+          ".local/unity-validation/hero-equip-g6-control-runner.json",
+          ".local/unity-validation/hero-equip-g6-control-runner.md",
+          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-07-26T18:23:16.6410299Z"
     }
   ]
 }

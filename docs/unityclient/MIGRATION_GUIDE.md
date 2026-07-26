@@ -186,6 +186,8 @@ Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失�
 | `New-UnityMigrationModule.ps1` | 生成模块骨架、控件矩阵和 pending 门禁 |
 | `Invoke-UnityMigrationGate.ps1` | 检查/落账 G0-G6 |
 | `Run-UnityModuleValidation.ps1` | 场景、夹具、Watchdog、结果和清理 |
+| `Test-UnityMigrationConnection.ps1` | 调用 Unity MCP 前检查实例、监听、启动日志和孤儿监听 |
+| `Test-UnityMigrationHardGates.ps1` | 验证场景/账号/角色/分辨率、控件矩阵、运行摘要和 G6 证据 |
 | `Test-UnityMigrationDocs.ps1` | 状态、Manifest、路径、矩阵和完成证据 |
 | `Test-UnityMigrationGitScope.ps1` | 语义变更、Unity meta和范围检查 |
 | `Test-BootstrapSceneIdempotence.ps1` | Bootstrap连续两次哈希一致 |
@@ -203,6 +205,8 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ./tools/unity-migration/Test-UnityMigrationDocs.ps1
 ./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
+
+动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`；验证器按 30 秒心跳区分总运行超时与无进展超时。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。
 
 ## 13. 高频坑与处理
 

@@ -41,6 +41,7 @@ namespace ProjectX.UI
         public void Show(string heading, string detail)
         {
             confirmation = null;
+            ConfigureMessageText();
             title.text = string.IsNullOrEmpty(heading) ? "提示" : heading;
             message.text = detail ?? string.Empty;
             message.gameObject.SetActive(true);
@@ -49,6 +50,15 @@ namespace ProjectX.UI
             confirmButton.gameObject.SetActive(false);
             view.SetVisible(true);
             view.GameObject.transform.SetAsLastSibling();
+        }
+
+        public void ShowHelp(string detail)
+        {
+            Show("提示", detail);
+            RectTransform rect = message.rectTransform;
+            rect.anchoredPosition = new Vector2(0f, 20f);
+            rect.sizeDelta = new Vector2(470f, 230f);
+            message.alignment = TextAnchor.UpperLeft;
         }
 
         public void ShowConfirmation(string heading, string detail, Action onConfirm)

@@ -1,9 +1,24 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-26 阵容 G0-G6 完成、16/16 控件与视觉通过
+> 当前交接：2026-07-27 HeroEquip G0-G6、33/33 控件、20/20 双端视觉完成
 > 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
 
 ## 0. 2026-07-26 新窗口直接执行
+
+### HeroEquip 当前续接
+
+- 未提交硬门禁工具已收口：PowerShell 语法、29 模块文档、16/16 Python UI、PlayerHud Preflight/DryRun、HeroEquip 正反向 Preflight、Unity 编译严重错误 0 均通过。
+- `Test-BootstrapSceneIdempotence.ps1` 已按正式 `BootstrapSceneBuilder.BuildBatch` 连续执行两次，SHA-256 均为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`。
+- HeroEquip 新矩阵：`docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json`，共 33 控件；Manifest 已声明，G0 机器 Preflight/DryRun 通过。
+- G1 已通过：固定账号 `7200057 / roleId=1000115` 从真实入口完成前台自动化，重采 20 张原生 `1334×750` Cocos 基准，覆盖装备/法宝背包、隐藏已穿戴、碎片、帮助、详情、强化前后、更换、卸下/重穿、材料不足、非法 UID 与重复操作。
+- G2 已通过：重新冻结 `/319 op1/2/3/4/16/17/18/19/22` 的字段顺序与状态规则、Lua 权威、9 个 Prefab、33 控件、3 份配置和装备/法宝独立资源域；修正协议 smoke 的 3 个旧错位负例。
+- G3 已通过：Unity MCP 编译、Bootstrap 强制重建、六个 HeroEquip View/Presenter 初始化及装备/法宝/碎片页面运行时检查均通过，Console 0 error / 0 warning。下一步只执行 G4 联机成功/失败/重拉/重连/切号闭环。
+- G4 已通过：固定账号 Unity MCP 真实 Button 完成装备/法宝穿脱、装备强化、材料不足、非法 UID、重复卸下、断服重启重连、正常断开持久化和切号清理；修复普通强化误进自动化卸下链及法宝失败包错读字段。下一步只执行 G5 双端视觉与 33 控件人工验收。
+- G5 已通过：Cocos/Unity 原图、并排/叠加/差异和人工验收均 `20/20`；强化页白块补为真实主角头像。
+- G6 已通过：控件矩阵 `33/33`，装备4/法宝2、缺图0、严重异常0；单次强化 UID `2121072641` 本轮 `8→10→12`；正式 `BuildBatch` 两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。
+- 证据：`.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g6-control-runner.json`。
+- 当前任务已收口，不开启下一模块；下一任务重新从状态表选择一个模块执行 G0。
+- 当前保留项不变：7 个 xLua `.meta` 删除和 `unityclient/.vscode/` 不覆盖、不暂存。
 
 ### 当前目标
 

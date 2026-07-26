@@ -399,9 +399,9 @@ if INVALID_RISKY == 'true':
         ('fuben_sweep_bad', 320, u8(6) + u8(1) + u32(0) + u32(0)),
         ('fuben_reset_bad', 320, u8(7) + u32(0)),
         ('blood_fight_revive_bad', 323, u8(7) + u8(0)),
-        ('pet_equip_wear_bad', 319, u8(2) + u32(0) + u16(0)),
-        ('pet_equip_takeoff_bad', 319, u8(3) + u32(0)),
-        ('pet_equip_strong_bad', 319, u8(4) + u32(0)),
+        ('pet_equip_wear_bad', 319, u8(2) + u8(0) + u32(0)),
+        ('pet_equip_takeoff_bad', 319, u8(3) + u8(0) + u32(0)),
+        ('pet_equip_strong_bad', 319, u8(4) + u32(0) + u8(0)),
         ('fabao_wear_bad', 319, u8(18) + u32(0) + u8(0) + u8(0)),
         ('fabao_takeoff_bad', 319, u8(19) + u32(0)),
     ])

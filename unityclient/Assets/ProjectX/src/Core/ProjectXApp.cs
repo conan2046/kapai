@@ -156,6 +156,7 @@ namespace ProjectX.Core
         private CocosUiView heroEquipmentChangeView;
         private CocosUiView heroEquipmentCultivateView;
         private CocosUiView heroEquipmentStrengthView;
+        private CocosUiView heroEquipmentFragmentView;
         private HeroEquipmentPresenter heroEquipmentPresenter;
         private readonly List<HeroEquipmentRecord> pendingHeroEquipment = new List<HeroEquipmentRecord>();
         private readonly List<FaBaoRecord> pendingFaBao = new List<FaBaoRecord>();
@@ -387,7 +388,8 @@ namespace ProjectX.Core
         public int RewardCount => services?.Rewards.Count ?? 0;
         public bool IsHeroOpen => heroFrameView != null && services?.UiStack.Current == heroFrameView;
         public bool IsHeroEquipmentOpen => (heroEquipmentListView?.GameObject.activeSelf == true
-            || heroEquipmentDetailView?.GameObject.activeSelf == true)
+            || heroEquipmentDetailView?.GameObject.activeSelf == true
+            || heroEquipmentFragmentView?.GameObject.activeSelf == true)
             && heroFrameView != null && services?.UiStack.Current == heroFrameView;
         public int HeroEquipmentCount => services?.HeroEquipment.Count ?? 0;
         public int FaBaoCount => services?.FaBao.Count ?? 0;
@@ -698,6 +700,7 @@ namespace ProjectX.Core
             {
                 heroEquipmentPresenter?.HideDetails();
                 heroEquipmentListView?.SetVisible(false);
+                heroEquipmentFragmentView?.SetVisible(false);
                 if (heroEquipmentOpenedFromHeroDetails)
                 {
                     heroEquipmentOpenedFromHeroDetails = false;
@@ -793,10 +796,11 @@ namespace ProjectX.Core
             heroEquipmentChangeView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan");
             heroEquipmentCultivateView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiyangcheng");
             heroEquipmentStrengthView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiqianghua");
+            heroEquipmentFragmentView = services.UiRouter.FindBySource("zhuangbeiyangcheng/fabaosuipianbeibao");
             mailView = services.UiRouter.FindBySource("MailLayer");
             shopView = services.UiRouter.FindBySource("shop/shangcheng");
             friendView = services.UiRouter.FindBySource("common/FriendLayer");
-            chatMiniView = services.UiRouter.FindBySource("ChatLayer");
+            chatMiniView = services.UiRouter.FindBySource("/ChatLayer.csd");
             chatView = services.UiRouter.FindBySource("MainChatLayer");
             services.UiStack.Clear();
             loginBackgroundView?.SetVisible(true);
@@ -825,6 +829,7 @@ namespace ProjectX.Core
             heroEquipmentChangeView?.SetVisible(false);
             heroEquipmentCultivateView?.SetVisible(false);
             heroEquipmentStrengthView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
             mailView?.SetVisible(false);
             shopView?.SetVisible(false);
             friendView?.SetVisible(false);
@@ -958,6 +963,7 @@ namespace ProjectX.Core
             services.UiStack.SetRoot(mainView);
             SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
             SetMainSubmenuVisible("Layer/Main_UI/tankuang2", false);
+            chatView?.SetVisible(false);
             chatMiniView?.SetVisible(true);
             HideLoading("connect");
             HideLoading("reconnect");
@@ -3253,6 +3259,7 @@ namespace ProjectX.Core
                 heroDetailView?.SetVisible(false);
             }
             heroBagView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
             heroFrameView.SetVisible(true);
             heroFrameView.GameObject.transform.SetAsLastSibling();
             if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
@@ -4426,6 +4433,63 @@ namespace ProjectX.Core
             heroEquipmentListView.GameObject.transform.SetAsLastSibling();
         }
 
+        private void ShowHeroEquipmentFragments()
+        {
+            EnsureHeroEquipmentPresenter();
+            ConfigureHeroEquipmentFrame(HeroEquipmentKind.FaBao);
+            heroEquipmentPresenter.HideDetails();
+            heroEquipmentListView.SetVisible(false);
+            heroEquipmentFragmentView.SetVisible(true);
+            heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();
+            heroFrameView.SetVisible(true);
+            heroFrameView.GameObject.transform.SetAsLastSibling();
+            RenderHeroEquipmentFragments();
+        }
+
+        private void RenderHeroEquipmentFragments()
+        {
+            BagItemRecord[] fragments = services.Bag.Items
+                .Where(item => item.Name.Contains("法宝") && item.Name.Contains("碎片"))
+                .Take(6)
+                .ToArray();
+            Transform root = heroEquipmentFragmentView.GameObject.transform;
+            Text numberText = root.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(value => value.name == "Number");
+            if (numberText != null) numberText.text = $"数量：{fragments.Length}";
+            for (int index = 1; index <= 6; index++)
+            {
+                Transform iconNode = root.GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(value => value.name == $"Icon_suipian_{index}");
+                bool hasItem = index <= fragments.Length;
+                if (iconNode == null) continue;
+                iconNode.gameObject.SetActive(hasItem);
+                if (!hasItem) continue;
+                BagItemRecord item = fragments[index - 1];
+                Image icon = iconNode.GetComponent<Image>();
+                if (icon != null)
+                {
+                    icon.sprite = services.Resources.LoadItemIcon(item.Picture);
+                    icon.preserveAspect = true;
+                }
+                Text name = iconNode.parent?.GetComponentsInChildren<Text>(true)
+                    .FirstOrDefault(value => value.name == "Name");
+                if (name != null) name.text = $"{item.Name} ×{item.Quantity}";
+            }
+            foreach (string disabledName in new[] { "xunbaoBtn", "recycle", "Button" })
+            {
+                foreach (Transform value in root.GetComponentsInChildren<Transform>(true)
+                    .Where(value => value.name == disabledName))
+                {
+                    Button button = value.GetComponent<Button>();
+                    if (button != null)
+                    {
+                        button.onClick.RemoveAllListeners();
+                        button.interactable = false;
+                    }
+                }
+            }
+        }
+
         private void ShowHeroAttributes(int heroId)
         {
             if (!services.Heroes.TryGet(heroId, out HeroRecord hero)) return;
@@ -4592,9 +4656,11 @@ namespace ProjectX.Core
             heroEquipmentChangeView = heroEquipmentChangeView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan");
             heroEquipmentCultivateView = heroEquipmentCultivateView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiyangcheng");
             heroEquipmentStrengthView = heroEquipmentStrengthView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiqianghua");
+            heroEquipmentFragmentView = heroEquipmentFragmentView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/fabaosuipianbeibao");
             if (heroEquipmentListView == null || heroEquipmentDetailView == null || heroEquipmentChangeView == null
-                || heroEquipmentCultivateView == null || heroEquipmentStrengthView == null)
-                throw new InvalidOperationException("Hero equipment list/detail/change/cultivate/strength CocosUiBindings were not found.");
+                || heroEquipmentCultivateView == null || heroEquipmentStrengthView == null
+                || heroEquipmentFragmentView == null)
+                throw new InvalidOperationException("Hero equipment list/detail/change/cultivate/strength/fragment CocosUiBindings were not found.");
             Transform detailRoot = heroEquipmentDetailView.GameObject.transform;
             if (detailRoot.parent == heroEquipmentListView.GameObject.transform)
             {
@@ -4618,7 +4684,8 @@ namespace ProjectX.Core
                 (uid, position) => InvokeLuaOrFail(onHeroEquipmentTakeOff, "HeroEquipment.TakeOff", (double)uid, position),
                 uid => InvokeLuaOrFail(onHeroEquipmentStrength, "HeroEquipment.Strength", (double)uid),
                 (uid, position) => InvokeLuaOrFail(onFaBaoWear, "FaBao.Wear", (double)uid, position),
-                uid => InvokeLuaOrFail(onFaBaoTakeOff, "FaBao.TakeOff", (double)uid));
+                uid => InvokeLuaOrFail(onFaBaoTakeOff, "FaBao.TakeOff", (double)uid),
+                ConfigureHeroEquipmentStrengthFrame);
         }
 
         private void ConfigureHeroEquipmentFrame(HeroEquipmentKind kind)
@@ -4629,9 +4696,55 @@ namespace ProjectX.Core
             Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             ConfigureHeroEquipmentTabs(tabs, kind);
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            ConfigureHeroEquipmentHelp(kind);
         }
 
-        private static void ConfigureHeroEquipmentTabs(Transform tabs, HeroEquipmentKind kind)
+        private void ConfigureHeroEquipmentHelp(HeroEquipmentKind kind)
+        {
+            Transform title = heroFrameView.Binding.Find("Layer/Panel_12/Title")?.transform;
+            if (title == null) return;
+            Transform existing = title.Find("HeroEquipmentHelpButton");
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject("HeroEquipmentHelpButton",
+                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(title, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0.5f);
+            rect.pivot = new Vector2(1f, 0.5f);
+            rect.anchoredPosition = new Vector2(-82f, 0f);
+            rect.sizeDelta = new Vector2(54f, 54f);
+            Image image = value.GetComponent<Image>();
+            image.color = new Color(0.55f, 0.27f, 0.08f, 0.95f);
+            Transform labelTransform = value.transform.Find("Label");
+            GameObject labelObject = labelTransform != null ? labelTransform.gameObject
+                : new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.SetParent(value.transform, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>();
+            Text titleText = title.GetComponentsInChildren<Text>(true).FirstOrDefault();
+            label.font = titleText != null ? titleText.font : Resources.GetBuiltinResource<Font>("Arial.ttf");
+            label.text = "?";
+            label.fontSize = 34;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            Button button = value.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => errorPresenter?.ShowHelp(
+                kind == HeroEquipmentKind.Equipment
+                    ? "装备强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
+                      "装备精炼等级上限由装备品质决定。\n" +
+                      "橙色以上装备可以进行装备觉醒，觉醒需消耗装备碎片及觉醒石。\n" +
+                      "红色以上装备可以进行装备神铸，神铸需消耗对应装备碎片。"
+                    : "法宝强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
+                      "法宝精炼消耗精炼石，精炼等级上限为25级。"));
+            value.SetActive(true);
+        }
+
+        private void ConfigureHeroEquipmentTabs(Transform tabs, HeroEquipmentKind kind)
         {
             if (tabs == null) return;
             tabs.gameObject.SetActive(true);
@@ -4639,6 +4752,11 @@ namespace ProjectX.Core
             Transform first = panel?.Find("Button1");
             if (first == null) return;
             SetTabText(first, kind == HeroEquipmentKind.Equipment ? "装备" : "法宝", true);
+            Button firstButton = first.GetComponent<Button>() ?? first.gameObject.AddComponent<Button>();
+            firstButton.onClick.RemoveAllListeners();
+            firstButton.onClick.AddListener(() =>
+                InvokeLuaOrFail(kind == HeroEquipmentKind.Equipment ? onEquipmentBagClicked : onFaBaoBagClicked,
+                    kind == HeroEquipmentKind.Equipment ? "HeroEquipment.TabEquipment" : "HeroEquipment.TabFaBao"));
             Transform second = panel.Find("Button2_Runtime");
             if (second == null)
             {
@@ -4649,9 +4767,63 @@ namespace ProjectX.Core
             RectTransform secondRect = second as RectTransform;
             if (firstRect != null && secondRect != null)
                 secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
+            bool showFragments = kind == HeroEquipmentKind.FaBao;
+            second.gameObject.SetActive(showFragments);
             SetTabText(second, "碎片", false);
-            Button shardButton = second.GetComponent<Button>();
-            if (shardButton != null) shardButton.interactable = false;
+            Button shardButton = second.GetComponent<Button>() ?? second.gameObject.AddComponent<Button>();
+            shardButton.interactable = showFragments;
+            shardButton.onClick.RemoveAllListeners();
+            if (showFragments) shardButton.onClick.AddListener(ShowHeroEquipmentFragments);
+        }
+
+        private void ConfigureHeroEquipmentStrengthFrame()
+        {
+            ConfigureHeroFrame(false);
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroReplacementView?.SetVisible(false);
+            heroEnhanceMasterView?.SetVisible(false);
+            heroCultivationView?.SetVisible(false);
+            heroLevelUpView?.SetVisible(false);
+            heroAttributesView?.SetVisible(false);
+            heroItemSourceView?.SetVisible(false);
+            Image portrait = heroEquipmentCultivateView?.Binding.Find(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon")?.GetComponent<Image>();
+            if (portrait != null)
+            {
+                portrait.sprite = services.Resources.LoadPlayerRoundPortrait(services.Player.Head);
+                portrait.enabled = portrait.sprite != null;
+                portrait.preserveAspect = true;
+            }
+            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "装备";
+            GameObject tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
+            if (tabs != null) tabs.SetActive(true);
+            Transform panel = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform first = panel?.Find("Button1");
+            if (first == null) return;
+            string[] labels = { "强化", "精炼", "觉醒", "神铸" };
+            RectTransform firstRect = first as RectTransform;
+            for (int index = 0; index < labels.Length; index++)
+            {
+                Transform tab = index == 0 ? first : panel.Find($"Button{index + 1}_StrengthRuntime");
+                if (tab == null)
+                {
+                    tab = Instantiate(first.gameObject, panel, false).transform;
+                    tab.name = $"Button{index + 1}_StrengthRuntime";
+                }
+                RectTransform rect = tab as RectTransform;
+                if (firstRect != null && rect != null)
+                    rect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f * index);
+                tab.gameObject.SetActive(true);
+                SetTabText(tab, labels[index], index == 0);
+                Button button = tab.GetComponent<Button>() ?? tab.gameObject.AddComponent<Button>();
+                button.onClick.RemoveAllListeners();
+                button.interactable = false;
+            }
+            Transform fragmentTab = panel.Find("Button2_Runtime");
+            if (fragmentTab != null) fragmentTab.gameObject.SetActive(false);
         }
 
         private void EnsureTaskPresenter()

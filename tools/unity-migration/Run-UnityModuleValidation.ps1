@@ -10,7 +10,10 @@ param(
     [switch]$SkipScreenshotCheck,
     [string[]]$ExtraFlags = @(),
     [string[]]$ValidationFlagsOverride = @(),
-    [ValidateRange(30, 1800)][int]$UnityTimeoutSeconds = 300,
+    [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
+    [ValidateRange(120, 3600)][int]$UnityTimeoutSeconds = 1800,
+    [ValidateRange(60, 900)][int]$UnityNoProgressTimeoutSeconds = 300,
+    [ValidateRange(10, 120)][int]$HeartbeatSeconds = 30,
     [switch]$DryRun
 )
 
@@ -53,6 +56,7 @@ $moduleKey = [string]$moduleConfig.key
 $logPath = Join-Path $logDirectory ("unity-{0}-validation.log" -f $moduleKey.ToLowerInvariant())
 $summaryDirectory = Join-Path $root ".local\unity-validation"
 $summaryPath = Join-Path $summaryDirectory ("{0}-latest.json" -f $moduleKey.ToLowerInvariant())
+$progressPath = Join-Path $summaryDirectory ("{0}-progress.json" -f $moduleKey.ToLowerInvariant())
 
 $effectiveUserId = $UserId
 $friendPeerUserIds = @()
@@ -94,6 +98,7 @@ $unityArguments = @(
 )
 $unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($scenario.flags) })
 $unityArguments += "-projectXValidationScenario=$($scenario.key)"
+$unityArguments += "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds"
 $unityArguments += @($ExtraFlags)
 if ($null -ne $moduleValidationData) {
     $unityArguments += @($moduleValidationData.unityFlags)
@@ -108,6 +113,11 @@ Write-Host "Mutation: $([bool]$moduleConfig.mutatesServer)"
 Write-Host "UserId: $(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
 Write-Host "Unity: $unityExe"
 Write-Host "Arguments: $($unityArguments -join ' ')"
+& pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
+    -Module $moduleKey -Phase Preflight -ManifestPath $manifestEntry.Path
+if ($LASTEXITCODE -ne 0) { throw "Unity migration hard-gate preflight failed with exit code $LASTEXITCODE" }
+Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "preflight-passed" `
+    -Detail "scenario=$($scenario.key); user=$(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
 
 if ($DryRun) {
     Write-Host "DryRun passed: no process, result, screenshot or user-id state was changed."
@@ -183,6 +193,7 @@ function Stop-ValidationProcessTree {
 }
 
 try {
+    Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "services"
     $mysqlReady = Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe"
     if (-not $mysqlReady) {
         if ($NoStartServices) { throw "MySQL is not listening on 3306 and -NoStartServices was specified." }
@@ -312,9 +323,54 @@ try {
         $attemptStart = [DateTime]::UtcNow
         Write-Host "== Unity attempt $attempt/$maxAttempts =="
         $process = Start-Process -FilePath $unityExe -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
-        if (-not $process.WaitForExit($UnityTimeoutSeconds * 1000)) {
-            Stop-ValidationProcessTree -ProcessId ([int]$process.Id)
-            throw "Unity validation timed out after $UnityTimeoutSeconds seconds; scenario=$($scenario.key), attempt=$attempt."
+        $lastProgressUtc = $attemptStart
+        $lastLogLength = -1L
+        $lastCpuSeconds = 0d
+        $nextHeartbeatUtc = $attemptStart.AddSeconds($HeartbeatSeconds)
+        Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "unity-running" `
+            -ProcessId ([int]$process.Id) -Detail "attempt=$attempt/$maxAttempts"
+        while (-not $process.HasExited) {
+            Start-Sleep -Seconds 1
+            $process.Refresh()
+            $nowUtc = [DateTime]::UtcNow
+            if (Test-Path -LiteralPath $logPath -PathType Leaf) {
+                $logItem = Get-Item -LiteralPath $logPath
+                if ($logItem.Length -ne $lastLogLength) {
+                    $lastLogLength = $logItem.Length
+                    $lastProgressUtc = $nowUtc
+                }
+            }
+            try {
+                $cpuSeconds = $process.TotalProcessorTime.TotalSeconds
+                if ($cpuSeconds -gt $lastCpuSeconds + 0.05d) {
+                    $lastCpuSeconds = $cpuSeconds
+                    $lastProgressUtc = $nowUtc
+                }
+            }
+            catch { }
+            if (Test-Path -LiteralPath $resultPath -PathType Leaf) {
+                $resultItem = Get-Item -LiteralPath $resultPath
+                if ($resultItem.LastWriteTimeUtc -ge $attemptStart.AddSeconds(-2)) {
+                    $lastProgressUtc = $nowUtc
+                }
+            }
+            if ($nowUtc -ge $nextHeartbeatUtc) {
+                $elapsed = [int]($nowUtc - $attemptStart).TotalSeconds
+                $idle = [int]($nowUtc - $lastProgressUtc).TotalSeconds
+                $detail = "attempt=$attempt/$maxAttempts; elapsed=${elapsed}s; idle=${idle}s; logBytes=$lastLogLength; cpu=$([Math]::Round($lastCpuSeconds, 1))s"
+                Write-Host "Unity heartbeat: $detail"
+                Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "unity-running" `
+                    -ProcessId ([int]$process.Id) -Detail $detail
+                $nextHeartbeatUtc = $nowUtc.AddSeconds($HeartbeatSeconds)
+            }
+            if (($nowUtc - $attemptStart).TotalSeconds -ge $UnityTimeoutSeconds) {
+                Stop-ValidationProcessTree -ProcessId ([int]$process.Id)
+                throw "Unity validation exceeded hard runtime $UnityTimeoutSeconds seconds; scenario=$($scenario.key), attempt=$attempt, log=$logPath."
+            }
+            if (($nowUtc - $lastProgressUtc).TotalSeconds -ge $UnityNoProgressTimeoutSeconds) {
+                Stop-ValidationProcessTree -ProcessId ([int]$process.Id)
+                throw "Unity validation made no observable log/CPU/result progress for $UnityNoProgressTimeoutSeconds seconds; scenario=$($scenario.key), attempt=$attempt, log=$logPath."
+            }
         }
         if (Test-Path -LiteralPath $resultPath) {
             $item = Get-Item -LiteralPath $resultPath
@@ -341,6 +397,7 @@ try {
     if ($resultUtc -lt $attemptStart.AddSeconds(-5)) { throw "Unity result UTC is stale: $($result.utc)" }
     if (-not [bool]$result.success) { throw "Unity validation failed: $($result.status)" }
     if ([string]$result.status -notlike "COMPLETE:*") { throw "Unity result is not COMPLETE: $($result.status)" }
+    Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $effectiveUserId
 
     $seriousPattern = 'error CS\d+|LuaException|NullReferenceException|MissingReferenceException|Assertion failed|Fatal Error|Crash!!!'
     $serious = @(Select-String -Path $logPath -Pattern $seriousPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)
@@ -387,6 +444,9 @@ try {
         requiredGate = $requiredGate
         captureStates = @($scenario.captureStates)
         userId = $effectiveUserId
+        roleId = [uint32]$result.roleId
+        screenWidth = [int]$result.screenWidth
+        screenHeight = [int]$result.screenHeight
         mutatesServer = [bool]$moduleConfig.mutatesServer
         status = [string]$result.status
         resultUtc = $resultUtc.ToString("O")
@@ -400,6 +460,11 @@ try {
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 8) + "`n")
+    & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
+        -Module $moduleKey -Phase PostRun -ManifestPath $manifestEntry.Path -SummaryPath $summaryPath
+    if ($LASTEXITCODE -ne 0) { throw "Unity migration hard-gate post-run failed with exit code $LASTEXITCODE" }
+    Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "passed" `
+        -Detail "user=$effectiveUserId; role=$($result.roleId); status=$($result.status)"
     Write-Host "Validation passed: $($result.status)"
     Write-Host "Summary: $summaryPath"
 }
@@ -416,6 +481,7 @@ catch {
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 8) + "`n")
+    Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "failed" -Detail $_.Exception.Message
 }
 finally {
     foreach ($unityProcess in @(Get-Process Unity -ErrorAction SilentlyContinue | Where-Object { $_.Id -notin $beforeUnityIds })) {

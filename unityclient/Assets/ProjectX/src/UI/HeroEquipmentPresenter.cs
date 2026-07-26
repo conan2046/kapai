@@ -54,6 +54,7 @@ namespace ProjectX.UI
         private readonly Action<uint> strengthEquipment;
         private readonly Action<uint, int> wearFaBao;
         private readonly Action<uint> takeOffFaBao;
+        private readonly Action showStrengthFrame;
         private readonly VirtualList<DisplayPair> list;
         private readonly VirtualList<DisplayPair> changeList;
         private readonly Text number;
@@ -74,16 +75,20 @@ namespace ProjectX.UI
         private readonly List<DisplayRecord> items = new List<DisplayRecord>();
         private readonly List<DisplayPair> rows = new List<DisplayPair>();
         private DisplayRecord selected;
+        private DisplayRecord changeCurrent;
+        private bool returnToListOnDetailClose = true;
         private HeroEquipmentKind activeKind = HeroEquipmentKind.Equipment;
         private int formationPosition = 1;
         private int missingIconCount;
+        private bool hideWorn;
+        private bool changeHideWorn;
 
         public HeroEquipmentPresenter(CocosUiView listView, CocosUiView detailView, CocosUiView changeView,
             CocosUiView cultivateView, CocosUiView strengthView,
             HeroEquipmentStore equipment, FaBaoStore faBao, EquipmentCatalog catalog, Core.ResourceService resources,
             Action<uint, int> wearEquipment, Action<uint, int> takeOffEquipment,
             Action<uint> strengthEquipment,
-            Action<uint, int> wearFaBao, Action<uint> takeOffFaBao)
+            Action<uint, int> wearFaBao, Action<uint> takeOffFaBao, Action showStrengthFrame)
         {
             this.listView = listView ?? throw new ArgumentNullException(nameof(listView));
             this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
@@ -99,6 +104,7 @@ namespace ProjectX.UI
             this.strengthEquipment = strengthEquipment;
             this.wearFaBao = wearFaBao;
             this.takeOffFaBao = takeOffFaBao;
+            this.showStrengthFrame = showStrengthFrame;
 
             GameObject viewport = Require(listView, "Layer/zhuangbeibeibaoUI/TableView");
             GameObject template = Require(listView, "Layer/zhuangbeibeibaoUI/ItemList");
@@ -112,10 +118,31 @@ namespace ProjectX.UI
             number = RequireText(listView, "Layer/zhuangbeibeibaoUI/Number");
             emptyState = Require(listView, "Layer/zhuangbeibeibaoUI/Point");
             recycleButton = Require(listView, "Layer/zhuangbeibeibaoUI/recycle");
+            recycleButton.SetActive(false);
             Require(listView, "Layer/zhuangbeibeibaoUI/cell").SetActive(false);
             hideWornToggle = Require(listView, "Layer/zhuangbeibeibaoUI/CheckBox");
             Toggle hideWorn = hideWornToggle.GetComponent<Toggle>();
-            if (hideWorn != null) hideWorn.isOn = false;
+            if (hideWorn != null)
+            {
+                hideWorn.isOn = false;
+                hideWorn.onValueChanged.RemoveAllListeners();
+                hideWorn.onValueChanged.AddListener(value =>
+                {
+                    this.hideWorn = value;
+                    Render();
+                });
+            }
+            Toggle changeFilter = Require(changeView, "Layer/Popup/CheckBox").GetComponent<Toggle>();
+            if (changeFilter != null)
+            {
+                changeFilter.isOn = false;
+                changeFilter.onValueChanged.RemoveAllListeners();
+                changeFilter.onValueChanged.AddListener(value =>
+                {
+                    changeHideWorn = value;
+                    RenderChange();
+                });
+            }
 
             detailName = RequireText(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name");
             detailDescription = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content");
@@ -136,7 +163,11 @@ namespace ProjectX.UI
             changeView.SetVisible(false);
             Button close = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Popup/Btn_close");
             close.onClick.RemoveAllListeners();
-            close.onClick.AddListener(HideDetails);
+            close.onClick.AddListener(() =>
+            {
+                HideDetails();
+                listView.SetVisible(returnToListOnDetailClose);
+            });
             DisableCultivationButtons();
             ConfigureDetailListLayout();
 
@@ -153,23 +184,30 @@ namespace ProjectX.UI
         {
             formationPosition = Mathf.Clamp(selectedFormationPosition, 1, 5);
             activeKind = kind;
+            selected = default;
+            returnToListOnDetailClose = true;
+            HideDetails();
             Render();
             listView.SetVisible(true);
-            if (items.Count > 0) ShowDetails(items[0]);
         }
 
         public bool ShowSlot(int selectedFormationPosition, int slot)
         {
             formationPosition = Mathf.Clamp(selectedFormationPosition, 1, 5);
             activeKind = slot <= 4 ? HeroEquipmentKind.Equipment : HeroEquipmentKind.FaBao;
+            returnToListOnDetailClose = false;
             Render();
             DisplayRecord item = items.FirstOrDefault(value =>
                 value.FormationPosition == formationPosition && value.Slot == slot);
-            if (item.Uid == 0)
-                item = items.FirstOrDefault(value => value.Slot == slot);
+            bool equipped = item.Uid != 0;
+            if (!equipped)
+                item = activeKind == HeroEquipmentKind.Equipment
+                    ? items.FirstOrDefault(value => value.FormationPosition == 0 && value.Slot == slot)
+                    : items.FirstOrDefault(value => value.FormationPosition == 0);
             if (item.Uid == 0) return false;
             listView.SetVisible(false);
-            ShowDetails(item);
+            if (equipped) ShowDetails(item);
+            else ShowChange(item);
             return true;
         }
 
@@ -196,12 +234,14 @@ namespace ProjectX.UI
             HeroEquipmentKind selectedKind = selected.Kind;
             items.Clear();
             if (activeKind == HeroEquipmentKind.Equipment)
-                items.AddRange(equipment.Items.Select(value => new DisplayRecord(value)));
+                items.AddRange(equipment.Items
+                    .Where(value => !hideWorn || value.FormationPosition == 0)
+                    .Select(value => new DisplayRecord(value)));
             else
                 items.AddRange(faBao.Items.Select(value => new DisplayRecord(value)));
             number.text = activeKind == HeroEquipmentKind.Equipment
                 ? $"数量：{equipment.Count}/1000" : $"数量：{faBao.Count}/999";
-            recycleButton.SetActive(activeKind == HeroEquipmentKind.Equipment);
+            recycleButton.SetActive(false);
             hideWornToggle.SetActive(activeKind == HeroEquipmentKind.Equipment);
             emptyState.SetActive(items.Count == 0);
             missingIconCount = items.Count(IsMissing);
@@ -265,9 +305,10 @@ namespace ProjectX.UI
             Button cultivate = cell.Find("Btn_yangcheng")?.GetComponent<Button>();
             if (cultivate != null)
             {
-                cultivate.gameObject.SetActive(true);
+                cultivate.gameObject.SetActive(item.Kind == HeroEquipmentKind.Equipment);
                 cultivate.onClick.RemoveAllListeners();
-                cultivate.onClick.AddListener(() => ShowDetails(item));
+                if (item.Kind == HeroEquipmentKind.Equipment)
+                    cultivate.onClick.AddListener(() => ShowStrength(item));
             }
         }
 
@@ -300,17 +341,6 @@ namespace ProjectX.UI
                 AttributeName(attrType) + "：");
             SetDetailText("Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1/Value",
                 $"+{(item.Kind == HeroEquipmentKind.Equipment ? item.Equipment.StrengthAttributeValue : 0u)}");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Atrribute_1",
-                AttributeName(attrType) + "：");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Atrribute_1/Value", "+0");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/juexingshuxing/Level/Value", "0星0品");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/juexingshuxing/Atrribute_1",
-                AttributeName(attrType) + "：");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/juexingshuxing/Atrribute_1/Value", "+0");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Level/Value", "0阶0层");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Atrribute_1",
-                AttributeName(attrType) + "：");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Atrribute_1/Value", "+0");
             ApplyIcon(detailIcon, item);
             bool worn = item.FormationPosition > 0;
             wearButton.gameObject.SetActive(true);
@@ -320,11 +350,11 @@ namespace ProjectX.UI
             strengthButton.onClick.RemoveAllListeners();
             strengthButton.gameObject.SetActive(item.Kind == HeroEquipmentKind.Equipment);
             SetSectionVisible("jichushuxing", true);
-            SetSectionVisible("qianghuashuxing", true);
-            SetSectionVisible("jinglianshuxing", true);
-            SetSectionVisible("juexingshuxing", item.Kind == HeroEquipmentKind.Equipment);
-            SetSectionVisible("shenzhushuxing", item.Kind == HeroEquipmentKind.Equipment);
-            SetSectionVisible("zhuangbeitaozhuang", item.Kind == HeroEquipmentKind.Equipment);
+            SetSectionVisible("qianghuashuxing", item.Kind == HeroEquipmentKind.Equipment);
+            SetSectionVisible("jinglianshuxing", false);
+            SetSectionVisible("juexingshuxing", false);
+            SetSectionVisible("shenzhushuxing", false);
+            SetSectionVisible("zhuangbeitaozhuang", false);
             if (item.Kind == HeroEquipmentKind.Equipment)
             {
                 wearButton.onClick.AddListener(() => ShowChange(item));
@@ -336,7 +366,9 @@ namespace ProjectX.UI
                 wearButton.onClick.AddListener(() => ShowChange(item));
                 takeOffButton.onClick.AddListener(() => takeOffFaBao?.Invoke(item.Uid));
             }
+            listView.SetVisible(false);
             detailView.SetVisible(true);
+            detailView.GameObject.transform.SetAsLastSibling();
             Canvas.ForceUpdateCanvases();
             foreach (ScrollRect scroll in detailView.GameObject.GetComponentsInChildren<ScrollRect>(true))
             {
@@ -352,21 +384,35 @@ namespace ProjectX.UI
 
         private void ShowChange(DisplayRecord current)
         {
-            List<DisplayRecord> candidates = current.Kind == HeroEquipmentKind.Equipment
-                ? equipment.Items.Where(value => value.FormationPosition == 0 && value.Slot == current.Slot)
+            changeCurrent = current;
+            changeHideWorn = false;
+            Transform changeViewport = changeView.Binding.Find("Layer/Popup/TableView")?.transform;
+            Transform changeBackground = changeView.Binding.Find("Layer/Popup/bg")?.transform;
+            if (changeViewport != null && changeBackground != null)
+                changeViewport.SetSiblingIndex(changeBackground.GetSiblingIndex() + 1);
+            Toggle filter = changeView.Binding.Find("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
+            if (filter != null) filter.SetIsOnWithoutNotify(false);
+            RenderChange();
+            Text title = RequireText(changeView, "Layer/Popup/Title/Title");
+            title.text = current.Kind == HeroEquipmentKind.Equipment ? "装备更换" : "法宝更换";
+            changeView.SetVisible(true);
+            changeView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void RenderChange()
+        {
+            if (changeCurrent.Uid == 0) return;
+            List<DisplayRecord> candidates = changeCurrent.Kind == HeroEquipmentKind.Equipment
+                ? equipment.Items.Where(value => value.Slot == changeCurrent.Slot
+                    && (!changeHideWorn || value.FormationPosition == 0))
                     .Select(value => new DisplayRecord(value)).ToList()
-                : faBao.Items.Where(value => value.FormationPosition == 0)
+                : faBao.Items.Where(value => !changeHideWorn || value.FormationPosition == 0)
                     .Select(value => new DisplayRecord(value)).ToList();
-            if (current.FormationPosition == 0 && candidates.All(value => value.Uid != current.Uid)) candidates.Insert(0, current);
             List<DisplayPair> candidateRows = new List<DisplayPair>();
             for (int index = 0; index < candidates.Count; index += 2)
                 candidateRows.Add(new DisplayPair(candidates[index], index + 1 < candidates.Count ? candidates[index + 1] : default,
                     index + 1 < candidates.Count));
             changeList.SetItems(candidateRows);
-            Text title = RequireText(changeView, "Layer/Popup/Title/Title");
-            title.text = current.Kind == HeroEquipmentKind.Equipment ? "装备更换" : "法宝更换";
-            changeView.SetVisible(true);
-            changeView.GameObject.transform.SetAsLastSibling();
         }
 
         private void BindChangeRow(RectTransform row, DisplayPair pair, int index)
@@ -387,7 +433,19 @@ namespace ProjectX.UI
             if (action == null) return;
             action.gameObject.SetActive(true);
             Text label = action.GetComponentInChildren<Text>(true);
-            if (label != null) label.text = "穿戴";
+            if (label != null)
+            {
+                label.text = item.Uid == changeCurrent.Uid ? "已穿戴" : "穿戴";
+                RectTransform labelRect = label.rectTransform;
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.anchoredPosition = Vector2.zero;
+                labelRect.sizeDelta = Vector2.zero;
+                label.alignment = TextAnchor.MiddleCenter;
+                label.horizontalOverflow = HorizontalWrapMode.Overflow;
+                label.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+            action.interactable = item.Uid != changeCurrent.Uid;
             action.onClick.RemoveAllListeners();
             action.onClick.AddListener(() =>
             {
@@ -399,10 +457,11 @@ namespace ProjectX.UI
 
         private void ShowStrength(DisplayRecord item)
         {
+            showStrengthFrame?.Invoke();
             int currentLevel = item.StrengthLevel;
             int nextLevel = Mathf.Min(currentLevel + 1, catalog.MaxStrengthLevel);
-            SetText(strengthView.Binding.transform, "Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/Level_1", $"当前等级 {currentLevel}");
-            SetText(strengthView.Binding.transform, "Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/Level_2", $"下一等级 {nextLevel}");
+            SetBoundText(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/Level_1", $"{currentLevel}级");
+            SetBoundText(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/Level_2", $"{nextLevel}级");
             int[] strengthAttribute = item.Definition.GetPrimaryStrengthAttribute();
             int attrType = strengthAttribute.Length >= 2 ? strengthAttribute[0] : item.Equipment.BaseAttributeType;
             int perLevel = strengthAttribute.Length >= 2 ? strengthAttribute[1] : 0;
@@ -411,14 +470,87 @@ namespace ProjectX.UI
             SetText(panel, "Value_1", (perLevel * currentLevel).ToString());
             SetText(panel, "Value_2", (perLevel * nextLevel).ToString());
             SetText(panel, "Value_3", perLevel.ToString());
-            SetText(strengthView.Binding.transform, "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/ConsumeBg/Value",
+            SetBoundText(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/ConsumeBg/Value",
                 catalog.GetStrengthCost(nextLevel, item.Definition.Quality).ToString());
+            SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/Name", item.Definition.Name);
+            SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/Name/addnum", $"+{currentLevel}");
+            SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text", "等级：");
+            SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text/levelnum", $"{currentLevel}级");
+            GameObject cultivateIconObject = cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
+            ApplyIcon(cultivateIconObject?.GetComponent<Image>(), item);
+            if (cultivateIconObject != null)
+            {
+                cultivateIconObject.SetActive(true);
+                RectTransform iconRect = cultivateIconObject.GetComponent<RectTransform>();
+                if (iconRect != null) iconRect.sizeDelta = new Vector2(180f, 180f);
+            }
+            SetBoundText(strengthView,
+                "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text", "强化");
+            Text strengthActionLabel = strengthView.Binding.Find(
+                "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text")?.GetComponent<Text>();
+            if (strengthActionLabel != null)
+            {
+                RectTransform labelRect = strengthActionLabel.rectTransform;
+                labelRect.anchorMin = Vector2.zero;
+                labelRect.anchorMax = Vector2.one;
+                labelRect.anchoredPosition = Vector2.zero;
+                labelRect.sizeDelta = Vector2.zero;
+                strengthActionLabel.alignment = TextAnchor.MiddleCenter;
+                strengthActionLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+                strengthActionLabel.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+            foreach (string hiddenPath in new[]
+            {
+                "Layer/zhuangbeiyangchengUI/zhuangbei/juexing",
+                "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu",
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua"
+            })
+                cultivateView.Binding.Find(hiddenPath)?.SetActive(false);
             strengthOnceButton.onClick.RemoveAllListeners();
             strengthOnceButton.onClick.AddListener(() => strengthEquipment?.Invoke(item.Uid));
+            BindStrengthTargets(item);
+            listView.SetVisible(false);
+            detailView.SetVisible(false);
+            changeView.SetVisible(false);
             cultivateView.SetVisible(true);
             strengthView.SetVisible(true);
             cultivateView.GameObject.transform.SetAsLastSibling();
             strengthView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void BindStrengthTargets(DisplayRecord current)
+        {
+            DisplayRecord[] targets = equipment.Items
+                .Select(value => new DisplayRecord(value))
+                .Take(4)
+                .ToArray();
+            GameObject template = cultivateView.Binding.Find(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/List/item_layer");
+            if (template == null) return;
+            Transform parent = template.transform.parent;
+            foreach (Transform child in parent.Cast<Transform>()
+                .Where(value => value.name.StartsWith("RuntimeStrengthTarget_", StringComparison.Ordinal))
+                .ToArray())
+                UnityEngine.Object.Destroy(child.gameObject);
+            RectTransform templateRect = template.GetComponent<RectTransform>();
+            Vector2 start = templateRect != null ? templateRect.anchoredPosition : Vector2.zero;
+            for (int index = 0; index < targets.Length; index++)
+            {
+                Transform slot = index == 0 ? template.transform
+                    : UnityEngine.Object.Instantiate(template, parent, false).transform;
+                slot.name = index == 0 ? "item_layer" : $"RuntimeStrengthTarget_{index}";
+                RectTransform rect = slot as RectTransform;
+                if (rect != null) rect.anchoredPosition = start + new Vector2(index * 88f, 0f);
+                slot.gameObject.SetActive(true);
+                DisplayRecord target = targets[index];
+                ApplyIcon(slot.Find("zhuangbeiIcon")?.GetComponent<Image>(), target);
+                Transform choose = slot.Find("Choose");
+                if (choose != null) choose.gameObject.SetActive(target.Uid == current.Uid);
+                Button button = slot.GetComponent<Button>() ?? slot.gameObject.AddComponent<Button>();
+                button.targetGraphic = slot.GetComponent<Graphic>() ?? slot.GetComponentInChildren<Graphic>();
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => ShowStrength(target));
+            }
         }
 
         private bool IsMissing(DisplayRecord item)
@@ -592,6 +724,12 @@ namespace ProjectX.UI
         private static void SetText(Transform root, string path, string value)
         {
             Text text = root.Find(path)?.GetComponent<Text>();
+            if (text != null) text.text = value;
+        }
+
+        private static void SetBoundText(CocosUiView view, string path, string value)
+        {
+            Text text = view.Binding.Find(path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 

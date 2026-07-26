@@ -160,11 +160,146 @@ function Assert-UnityMigrationControlMatrix {
                 throw "Control '$id' has not passed $field in $Path"
             }
         }
-        if ([string](Get-UnityMigrationPropertyValue -Object $control -Name "status" -Default "") -ne "complete") {
-            throw "Control '$id' is not complete in $Path"
+        $status = [string](Get-UnityMigrationPropertyValue -Object $control -Name "status" -Default "")
+        if ($status -ne "complete" -and $status -notmatch 'passed$') {
+            throw "Control '$id' is not complete/passed in $Path"
+        }
+    }
+
+    $hardGateVersion = [int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1)
+    if ($hardGateVersion -ge 2) {
+        $audit = Get-UnityMigrationPropertyValue -Object $matrix -Name "g6Audit"
+        if ($null -eq $audit) { throw "Hard-gate v2 matrix has no g6Audit: $Path" }
+        if ([uint32](Get-UnityMigrationPropertyValue -Object $audit -Name "userId" -Default 0) -eq 0 -or
+            [uint32](Get-UnityMigrationPropertyValue -Object $audit -Name "roleId" -Default 0) -eq 0) {
+            throw "Hard-gate v2 matrix has no fixed userId/roleId: $Path"
+        }
+        if ([string](Get-UnityMigrationPropertyValue -Object $audit -Name "screenshotSize" -Default "") -ne "1334x750") {
+            throw "Hard-gate v2 matrix screenshotSize must be 1334x750: $Path"
+        }
+        foreach ($field in @("placeholderCount", "duplicateUidCount", "seriousErrorCount")) {
+            if ([int](Get-UnityMigrationPropertyValue -Object $audit -Name $field -Default -1) -ne 0) {
+                throw "Hard-gate v2 matrix $field must be 0: $Path"
+            }
+        }
+        if ([int](Get-UnityMigrationPropertyValue -Object $audit -Name "automationScreenshotCount" -Default -1) -ne $controls.Count) {
+            throw "Hard-gate v2 matrix automationScreenshotCount must equal control count $($controls.Count): $Path"
+        }
+
+        Add-Type -AssemblyName System.Drawing
+        $seenEvidence = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        foreach ($control in $controls) {
+            $id = [string]$control.id
+            foreach ($field in @("cocosEvidence", "unityEvidence")) {
+                $evidence = [string](Get-UnityMigrationPropertyValue -Object $control -Name $field -Default "")
+                if (-not $evidence -or $evidence -match '(^|[-_/])missing([-/_.]|$)') {
+                    throw "Control '$id' has missing $field in hard-gate v2 matrix."
+                }
+                if (-not $seenEvidence.Add($evidence)) {
+                    throw "Control evidence path is reused: $evidence"
+                }
+                $resolved = Resolve-UnityMigrationPath -Root $Root -Path $evidence
+                if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+                    throw "Control '$id' evidence file does not exist: $evidence"
+                }
+                $image = [System.Drawing.Image]::FromFile($resolved)
+                try {
+                    if ($image.Width -ne 1334 -or $image.Height -ne 750) {
+                        throw "Control '$id' evidence has wrong size: $evidence ($($image.Width)x$($image.Height))"
+                    }
+                }
+                finally { $image.Dispose() }
+            }
         }
     }
     return $controls.Count
+}
+
+function Assert-UnityMigrationControlMatrixDeclared {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$ModuleKey,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [int]$MinimumCaptureStates = 0
+    )
+    $entry = Import-UnityMigrationJson -Root $Root -Path $Path
+    $matrix = $entry.Value
+    if ([int]$matrix.schemaVersion -ne 1 -or [string]$matrix.module -ine $ModuleKey) {
+        throw "Invalid control matrix identity: $Path"
+    }
+    $controls = @($matrix.controls)
+    if ($controls.Count -eq 0) { throw "Control matrix has no controls: $Path" }
+    if ($MinimumCaptureStates -gt 0 -and $controls.Count -lt $MinimumCaptureStates) {
+        throw "Control matrix has $($controls.Count) controls, fewer than $MinimumCaptureStates registered capture states: $Path"
+    }
+    $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $required = @("id", "page", "path", "cocosCallback", "unityBinding",
+        "successEvidence", "failureEvidence", "reconnectEvidence")
+    foreach ($control in $controls) {
+        foreach ($field in $required) {
+            if (-not [string](Get-UnityMigrationPropertyValue -Object $control -Name $field -Default "")) {
+                throw "Control matrix entry has no $field in $Path"
+            }
+        }
+        $id = [string]$control.id
+        if (-not $ids.Add($id)) { throw "Duplicate control id '$id' in $Path" }
+    }
+    return $controls.Count
+}
+
+function Assert-UnityMigrationBootstrapContract {
+    param([Parameter(Mandatory = $true)][string]$Root)
+    $path = Join-Path $Root "tools\unity-migration\Test-BootstrapSceneIdempotence.ps1"
+    $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $path
+    if ($content -notmatch 'BootstrapSceneBuilder\.BuildBatch') {
+        throw "Bootstrap idempotence test must execute BootstrapSceneBuilder.BuildBatch."
+    }
+    if ($content -match 'BootstrapSceneBuilder\.ForceRebuild|Force Rebuild Bootstrap Scene') {
+        throw "Bootstrap ForceRebuild must never be used as idempotence evidence."
+    }
+}
+
+function Assert-UnityMigrationRunnerIdentity {
+    param(
+        [Parameter(Mandatory = $true)]$Result,
+        [Parameter(Mandatory = $true)][string]$ScenarioKey,
+        [Parameter(Mandatory = $true)][uint32]$ExpectedUserId
+    )
+    if ([string](Get-UnityMigrationPropertyValue -Object $Result -Name "scenario" -Default "") -ne $ScenarioKey) {
+        throw "Unity result scenario mismatch: expected=$ScenarioKey actual=$($Result.scenario)"
+    }
+    if ([uint32](Get-UnityMigrationPropertyValue -Object $Result -Name "userId" -Default 0) -ne $ExpectedUserId) {
+        throw "Unity result userId mismatch: expected=$ExpectedUserId actual=$($Result.userId)"
+    }
+    if ([uint32](Get-UnityMigrationPropertyValue -Object $Result -Name "roleId" -Default 0) -eq 0) {
+        throw "Unity result roleId is zero."
+    }
+    if ([int](Get-UnityMigrationPropertyValue -Object $Result -Name "screenWidth" -Default 0) -ne 1334 -or
+        [int](Get-UnityMigrationPropertyValue -Object $Result -Name "screenHeight" -Default 0) -ne 750) {
+        throw "Unity result GameView size mismatch: $($Result.screenWidth)x$($Result.screenHeight)"
+    }
+    $status = [string](Get-UnityMigrationPropertyValue -Object $Result -Name "status" -Default "")
+    if ($status -match '(placeholder|占位|missing icon|not resolved|reused uid|duplicate uid)') {
+        throw "Unity result contains a hard visual/data failure marker: $status"
+    }
+}
+
+function Write-UnityMigrationProgress {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Phase,
+        [int]$ProcessId = 0,
+        [string]$Detail = ""
+    )
+    $state = [ordered]@{
+        module = $Module
+        phase = $Phase
+        processId = $ProcessId
+        detail = $Detail
+        updatedUtc = [DateTime]::UtcNow.ToString("O")
+    }
+    Write-UnityMigrationUtf8 -Path $Path -Content (($state | ConvertTo-Json -Depth 4) + "`n")
 }
 
 function Expand-UnityMigrationTemplate {
