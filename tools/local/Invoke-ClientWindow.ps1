@@ -62,7 +62,7 @@ public static class CodexClientWindow {
         EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
             uint owner;
             GetWindowThreadProcessId(hWnd, out owner);
-            if (owner != (uint)processId || !IsWindowVisible(hWnd)) return true;
+            if (owner != (uint)processId) return true;
             RECT rect;
             if (!GetWindowRect(hWnd, out rect)) return true;
             long width = Math.Max(0, rect.Right - rect.Left);

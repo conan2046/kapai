@@ -20,11 +20,22 @@ namespace ProjectX.Editor
         private const string LoginPhaseKey = "ProjectX.BootstrapApp.LoginPhase";
         private const double TimeoutSeconds = 120d;
         private const string BootstrapScene = "Assets/ProjectX/Scenes/Bootstrap.unity";
+        private const int RequiredGameViewWidth = 1334;
+        private const int RequiredGameViewHeight = 750;
 
         static BootstrapAppRunner()
         {
             EditorApplication.update -= Monitor;
             EditorApplication.update += Monitor;
+            EditorApplication.delayCall -= ApplyRequiredGameViewResolution;
+            EditorApplication.delayCall += ApplyRequiredGameViewResolution;
+        }
+
+        [MenuItem("Tools/ProjectX App/Set GameView 1334x750", priority = 89)]
+        public static void ApplyRequiredGameViewResolution()
+        {
+            if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+            SetGameViewResolution(RequiredGameViewWidth, RequiredGameViewHeight);
         }
 
         [MenuItem("Tools/ProjectX App/Run Bootstrap Validation", priority = 91)]
@@ -36,7 +47,7 @@ namespace ProjectX.Editor
                 throw new FileNotFoundException("Bootstrap scene is missing. Rebuild it first.", BootstrapScene);
 
             EditorSceneManager.OpenScene(BootstrapScene);
-            SetGameViewResolution(1334, 750);
+            ApplyRequiredGameViewResolution();
             SessionState.SetBool(ArmedKey, true);
             SessionState.SetString(StartTimeKey, EditorApplication.timeSinceStartup.ToString("R"));
             SessionState.SetInt(ReconnectPhaseKey, 0);
