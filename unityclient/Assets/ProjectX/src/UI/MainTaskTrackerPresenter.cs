@@ -12,6 +12,7 @@ namespace ProjectX.UI
         private const string PromptPath = "Layer/Main_UI/ButtonGroup5/btn_renwu/Prompt";
         private readonly TaskStore store;
         private readonly VirtualList<TaskRecord> list;
+        private readonly GameObject panel;
         private readonly GameObject prompt;
         private readonly Action openTasks;
         private bool serverHotPoint;
@@ -22,12 +23,12 @@ namespace ProjectX.UI
             this.openTasks = openTasks ?? throw new ArgumentNullException(nameof(openTasks));
             prompt = main?.Binding.Find(PromptPath)
                 ?? throw new InvalidOperationException("Main task red-dot node was not found.");
-            GameObject panel = backup?.Binding.Find(PanelPath)
+            panel = backup?.Binding.Find(PanelPath)
                 ?? throw new InvalidOperationException("Backup main task tracker panel was not found.");
             GameObject mainRoot = main.Binding.Find("Layer/Main_UI")
                 ?? throw new InvalidOperationException("Main UI root node was not found.");
             panel.transform.SetParent(mainRoot.transform, false);
-            panel.SetActive(true);
+            panel.SetActive(false);
             SetVisible(panel.transform, "CheckBox_Team", false);
             SetVisible(panel.transform, "Item_Team", false);
             SetVisible(panel.transform, "Panel", false);
@@ -51,7 +52,9 @@ namespace ProjectX.UI
 
         public void Render()
         {
-            list.SetItems(store.Items.Where(item => item.State < 2).Take(3).ToArray());
+            TaskRecord[] tracked = store.Items.Where(item => item.State < 2).Take(3).ToArray();
+            list.SetItems(tracked);
+            panel.SetActive(tracked.Length > 0);
             RenderHotPoint();
         }
 

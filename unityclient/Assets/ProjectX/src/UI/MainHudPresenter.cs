@@ -9,23 +9,35 @@ namespace ProjectX.UI
     {
         private readonly PlayerStore player;
         private readonly CurrencyStore currencies;
+        private readonly Core.ResourceService resources;
+        private readonly Image portrait;
         private readonly Text nameText;
         private readonly Text levelText;
+        private readonly Text vipText;
         private readonly Text powerText;
         private readonly Text goldText;
         private readonly Text premiumText;
         private readonly Text staminaText;
 
-        public MainHudPresenter(CocosUiView view, PlayerStore player, CurrencyStore currencies)
+        public MainHudPresenter(CocosUiView view, PlayerStore player, CurrencyStore currencies,
+            Core.ResourceService resources)
         {
             this.player = player ?? throw new ArgumentNullException(nameof(player));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
+            this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             nameText = RequireText(view, "Layer/Main_UI/Head/name_bg/name");
             levelText = RequireText(view, "Layer/Main_UI/Head/bg_Level/Value");
+            vipText = RequireText(view, "Layer/Main_UI/Head/bg_VIP/Value");
             powerText = RequireText(view, "Layer/Main_UI/Head/bg_CombatEffetiveness/Value");
             goldText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_jinbi/NumBg/Num");
             premiumText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_yuanbao/GoldNumBg/Num");
             staminaText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_tili/NumBg/Num");
+            portrait = view.Binding.Find("Layer/Main_UI/Head/Icon")?.GetComponent<Image>();
+            if (portrait != null)
+            {
+                portrait.preserveAspect = true;
+                portrait.color = Color.white;
+            }
             player.Changed += Render;
             currencies.Changed += Render;
             Render();
@@ -35,7 +47,12 @@ namespace ProjectX.UI
         {
             nameText.text = player.Name;
             levelText.text = player.Level.ToString();
+            vipText.text = "贵族0";
             powerText.text = FormatCompact(player.Power);
+            if (portrait != null)
+            {
+                portrait.sprite = resources.LoadPlayerRoundPortrait(player.Head);
+            }
             goldText.text = FormatCompact(unchecked((ulong)Math.Max(0, currencies.Gold)));
             premiumText.text = FormatCompact(unchecked((ulong)Math.Max(0, currencies.Premium)));
             staminaText.text = currencies.Get(CurrencyIds.Stamina).ToString();

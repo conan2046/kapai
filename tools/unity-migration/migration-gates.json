@@ -1,7 +1,15 @@
 {
   "schemaVersion": 1,
   "policy": {
-    "order": ["G0", "G1", "G2", "G3", "G4", "G5", "G6"],
+    "order": [
+      "G0",
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6"
+    ],
     "passedValue": "passed",
     "pendingValue": "pending",
     "evidenceRequired": true
@@ -9,13 +17,77 @@
   "modules": [
     {
       "module": "Hero",
-      "gates": { "G0": "pending", "G1": "pending", "G2": "pending", "G3": "pending", "G4": "pending", "G5": "pending", "G6": "pending" },
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
       "evidence": "docs/unityclient/modules/HERO.md",
-      "note": "Previous gates revoked: reachable Cocos controls were omitted and automation bypassed real button clicks."
+      "note": "G0-G6 passed after 16/16 real-Button automation, 16/16 same-account Cocos/Unity evidence and 16/16 final manual visual acceptance.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/HERO_CONTROLS.json",
+          "tools/cocos-audit/generated/cocos-runtime-reachability.json",
+          ".local/ui-fidelity/Hero/cocos/formation-entry-user7200057-dpi100.jpg"
+        ],
+        "G1": [
+          "docs/unityclient/matrices/HERO_CONTROLS.json",
+          "docs/unityclient/modules/HERO.md",
+          ".local/ui-fidelity/Hero/cocos/g1-locked-row-level1-user7200260.jpg"
+        ],
+        "G2": [
+          "docs/unityclient/matrices/HERO_CONTROLS.json",
+          "docs/unityclient/modules/HERO.md",
+          "tools/unity-migration/unityclient-modules.json",
+          ".local/protocol-evidence/Hero-24.md",
+          ".local/protocol-evidence/Hero-48.md"
+        ],
+        "G3": [
+          "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity",
+          "docs/unityclient/matrices/HERO_CONTROLS.json",
+          "docs/unityclient/modules/HERO.md"
+        ],
+        "G4": [
+          ".local/unity-validation/hero-g4-main-user7200057.json",
+          ".local/unity-validation/hero-locked.json",
+          ".local/unity-validation/hero-invalid.json",
+          ".local/unity-validation/hero-g4-reconnect-user7200057.json",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Hero/cocos/g5-live-20260726",
+          ".local/ui-fidelity/Hero/unity",
+          ".local/ui-fidelity/Hero/compare/g5-live-20260726/report.json",
+          ".local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.json",
+          "docs/unityclient/matrices/HERO_CONTROLS.json"
+        ],
+        "G6": [
+          "build/ui-migration/bootstrap-app-result.json",
+          "build/ui-migration/bootstrap-hero.png",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log"
+        ]
+      },
+      "updatedUtc": "2026-07-26T14:50:39.0223283Z"
     },
     {
       "module": "HeroEquip",
-      "gates": { "G0": "passed", "G1": "passed", "G2": "passed", "G3": "passed", "G4": "pending", "G5": "pending", "G6": "pending" },
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
       "evidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
       "note": "Protocol diagnostics passed, but real visible-control coverage and manual interaction acceptance are incomplete."
     }

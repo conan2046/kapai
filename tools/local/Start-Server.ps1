@@ -8,6 +8,21 @@ $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $WorkDir = Join-Path $Root "server\config"
 
+function Test-ListenPort([int]$Port) {
+    try {
+        if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop | Select-Object -First 1) {
+            return $true
+        }
+    }
+    catch {
+        # Restricted Windows sessions may deny Get-NetTCPConnection.
+    }
+    $netstat = Join-Path $env:SystemRoot "System32\netstat.exe"
+    return $null -ne (@(& $netstat -ano -p tcp 2>$null) |
+        Where-Object { $_ -match "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+\d+\s*$" } |
+        Select-Object -First 1)
+}
+
 if (-not $ExePath) {
     $candidates = @(
         (Join-Path $Root "build\server-win\$Configuration\kapai.exe"),
@@ -40,8 +55,7 @@ do {
         Get-Content -LiteralPath $StdOutLog,$StdErrLog -Tail 80 -ErrorAction SilentlyContinue
         throw "kapai.exe exited during startup with code $($process.ExitCode)"
     }
-    $listener = Get-NetTCPConnection -LocalPort 8711 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($listener) {
+    if (Test-ListenPort -Port 8711) {
         Write-Host "Server listening on 8711 (pid=$($process.Id))"
         return
     }

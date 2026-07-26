@@ -121,10 +121,18 @@ $unityProjectPatterns = @(
     [regex]::Escape($unityProject),
     [regex]::Escape(($unityProject -replace '\\', '/'))
 )
-$existingProjectUnity = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" | Where-Object {
-    $commandLine = [string]$_.CommandLine
-    @($unityProjectPatterns | Where-Object { $commandLine -match $_ }).Count -gt 0
-})
+$existingProjectUnity = @()
+try {
+    $existingProjectUnity = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'" -ErrorAction Stop | Where-Object {
+        $commandLine = [string]$_.CommandLine
+        @($unityProjectPatterns | Where-Object { $commandLine -match $_ }).Count -gt 0
+    })
+}
+catch {
+    if ($existingUnity.Count -gt 0) {
+        throw "Unity is running, but this session cannot inspect its project command line. Close Unity before module validation."
+    }
+}
 if ($existingProjectUnity.Count -gt 0) {
     $details = ($existingProjectUnity | ForEach-Object { "pid=$($_.ProcessId)" }) -join "; "
     throw "Unity is already running for project '$unityProject'; close it before module validation. $details"
@@ -145,14 +153,16 @@ $teamPeerProcess = $null
 
 function Assert-WorkspaceListener {
     param([int]$Port, [string]$ExpectedName)
-    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $listener) { return $false }
-    $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)" -ErrorAction SilentlyContinue
+    $listenerPid = Get-UnityMigrationTcpListenerPid -Port $Port
+    if ($null -eq $listenerPid) { return $false }
+    $process = Get-Process -Id $listenerPid -ErrorAction SilentlyContinue
     $rootPattern = [Regex]::Escape([System.IO.Path]::GetFullPath($root))
-    $processName = if ($process) { [string]$process.Name } else { "unknown" }
-    if (-not $process -or $process.Name -ne $ExpectedName -or
-        -not (($process.ExecutablePath -match $rootPattern) -or ($process.CommandLine -match $rootPattern))) {
-        throw "Port $Port is occupied by a non-workspace process (pid=$($listener.OwningProcess), name=$processName)."
+    $processName = if ($process) { "$($process.ProcessName).exe" } else { "unknown" }
+    $pathMatchesWorkspace = $process -and $process.Path -match $rootPattern
+    $workspaceMySql = $ExpectedName -eq "mysqld.exe" -and
+        (Test-Path -LiteralPath (Join-Path $root ".local\mysql-local.ini") -PathType Leaf)
+    if (-not $process -or $processName -ne $ExpectedName -or (-not $pathMatchesWorkspace -and -not $workspaceMySql)) {
+        throw "Port $Port is occupied by a non-workspace process (pid=$listenerPid, name=$processName)."
     }
     return $true
 }

@@ -17,7 +17,7 @@
     "manualAcceptanceRequired": true,
     "requiredControlStatus": "complete"
   },
-  "unityExecutable": "D:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
+  "unityExecutable": "E:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
   "unityProject": "unityclient",
   "executeMethod": "ProjectX.Editor.BootstrapAppRunner.RunBatch",
   "resultFile": "build/ui-migration/bootstrap-app-result.json",
@@ -185,13 +185,22 @@
         "Layer/Main_UI/ButtonGroup1/btn_zhenrong"
       ],
       "prefabs": [
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxionghuanjiang.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjueseLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangzhenxingLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab"
       ],
-      "configs": [],
+      "configs": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/zhenfa_config_dat.lua",
+        "client/ProjectX/src/ConfigData/zhenfa_level_dat.lua"
+      ],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXHeroValidation",
-        "-projectXFormationMutationValidation"
+        "-projectXHeroG4Validation"
       ],
       "screenshots": [
         "build/ui-migration/bootstrap-hero.png"
@@ -213,7 +222,8 @@
           ".local/ui-fidelity/Hero/unity/formation-layout-user7200057-dpi100.png"
         ],
         "diffReports": [
-          ".local/ui-fidelity/Hero/compare/report.json"
+          ".local/ui-fidelity/Hero/compare/g5-live-20260726/report.json",
+          ".local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.json"
         ],
         "flowEvidence": ".local/ui-fidelity/Hero/flow.md",
         "uiMapping": ".local/ui-fidelity/Hero/ui-map.json"

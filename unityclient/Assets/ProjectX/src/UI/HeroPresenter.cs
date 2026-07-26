@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ProjectX.Animation;
 using ProjectX.Core;
 using ProjectX.Data;
@@ -11,7 +12,17 @@ namespace ProjectX.UI
     {
         private readonly HeroStore heroes;
         private readonly FormationStore formation;
+        private readonly PlayerStore player;
+        private readonly HeroEquipmentStore equipment;
+        private readonly FaBaoStore faBao;
         private readonly ResourceService resources;
+        private readonly CocosUiView detailView;
+        private readonly Action<int, int> openReplacement;
+        private readonly Action<int> openCultivation;
+        private readonly Action<int> openEnhanceMaster;
+        private readonly Action<int, int> openEquipmentSlot;
+        private readonly Action<int> openAttributes;
+        private readonly Action<string> feedback;
         private readonly VirtualList<FormationSlot> list;
         private readonly VirtualList<HeroBagRow> bagList;
         private readonly Text summary;
@@ -27,13 +38,30 @@ namespace ProjectX.UI
         private readonly ImodAnimationPlayer detailModel;
         private readonly Image detailFallbackPortrait;
         private int selectedId;
+        private int selectedPosition = 1;
+        private bool selectionInitialized;
+        private static readonly int[] FormationOpenLevels = { 1, 2, 5, 11, 15 };
 
         public HeroPresenter(CocosUiView listView, CocosUiView detailView, CocosUiView bagView,
-            HeroStore heroes, FormationStore formation, ResourceService resources)
+            HeroStore heroes, FormationStore formation, PlayerStore player,
+            HeroEquipmentStore equipment, FaBaoStore faBao, ResourceService resources,
+            Action<int, int> openReplacement, Action<int> openCultivation,
+            Action<int> openEnhanceMaster, Action<int, int> openEquipmentSlot,
+            Action<int> openAttributes, Action<string> feedback)
         {
             this.heroes = heroes ?? throw new ArgumentNullException(nameof(heroes));
             this.formation = formation ?? throw new ArgumentNullException(nameof(formation));
+            this.player = player ?? throw new ArgumentNullException(nameof(player));
+            this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
+            this.faBao = faBao ?? throw new ArgumentNullException(nameof(faBao));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
+            this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
+            this.openReplacement = openReplacement ?? throw new ArgumentNullException(nameof(openReplacement));
+            this.openCultivation = openCultivation ?? throw new ArgumentNullException(nameof(openCultivation));
+            this.openEnhanceMaster = openEnhanceMaster ?? throw new ArgumentNullException(nameof(openEnhanceMaster));
+            this.openEquipmentSlot = openEquipmentSlot ?? throw new ArgumentNullException(nameof(openEquipmentSlot));
+            this.openAttributes = openAttributes ?? throw new ArgumentNullException(nameof(openAttributes));
+            this.feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
             GameObject viewport = Require(listView, "Layer/shenjiangListUI/List/Panel");
             RectTransform viewportRect = viewport.GetComponent<RectTransform>();
             viewportRect.anchoredPosition += new Vector2(-9.33f, 6.67f);
@@ -67,22 +95,48 @@ namespace ProjectX.UI
             detailModel = CreateModel(modelHost.transform);
             detailFallbackPortrait = CreatePortrait(portraitHost.transform);
             ClearPrefabPlaceholders(detailView.Binding);
+            BindDetailControls();
             HidePrompts(listView.Binding.transform);
             HidePrompts(detailView.Binding.transform);
             HidePrompts(bagView.Binding.transform);
             heroes.Changed += Render;
             formation.Changed += Render;
+            player.Changed += Render;
+            equipment.Changed += Render;
+            faBao.Changed += Render;
             Render();
         }
 
         public int ItemCount => heroes.Items.Count;
         public int BagItemCount { get; private set; }
         public int SelectedId => selectedId;
+        public int SelectedPosition => selectedPosition;
 
         public void Render()
         {
             var items = heroes.Items;
-            if (selectedId == 0 || !heroes.TryGet(selectedId, out _)) selectedId = items.Count > 0 ? items[0].Id : 0;
+            if (items.Count == 0)
+            {
+                selectionInitialized = false;
+                selectedId = 0;
+                selectedPosition = 1;
+            }
+            else if (!selectionInitialized || (selectedId > 0 && !heroes.TryGet(selectedId, out _)))
+            {
+                int firstOccupiedPosition = 0;
+                int firstOccupiedHero = 0;
+                for (int position = 1; position <= formation.CombatHeroes.Count; position++)
+                {
+                    int heroId = formation.CombatHeroes[position - 1];
+                    if (heroId <= 0 || !heroes.TryGet(heroId, out _)) continue;
+                    firstOccupiedPosition = position;
+                    firstOccupiedHero = heroId;
+                    break;
+                }
+                selectedPosition = firstOccupiedPosition > 0 ? firstOccupiedPosition : 1;
+                selectedId = firstOccupiedHero > 0 ? firstOccupiedHero : items[0].Id;
+                selectionInitialized = true;
+            }
             var slots = new System.Collections.Generic.List<FormationSlot>(5);
             for (int position = 1; position <= 5; position++)
             {
@@ -104,6 +158,9 @@ namespace ProjectX.UI
         {
             heroes.Changed -= Render;
             formation.Changed -= Render;
+            player.Changed -= Render;
+            equipment.Changed -= Render;
+            faBao.Changed -= Render;
             list.Dispose();
             bagList.Dispose();
         }
@@ -115,15 +172,33 @@ namespace ProjectX.UI
             Transform head = row.Find("bg_Head");
             Transform add = row.Find("bg_add");
             Transform locked = row.Find("bg_Lock");
+            int openLevel = FormationOpenLevels[Mathf.Clamp(slot.Position - 1, 0, FormationOpenLevels.Length - 1)];
+            bool isLocked = player.Level < openLevel;
             if (head != null) head.gameObject.SetActive(occupied);
-            if (add != null) add.gameObject.SetActive(!occupied);
-            if (locked != null) locked.gameObject.SetActive(false);
+            if (add != null) add.gameObject.SetActive(!occupied && !isLocked);
+            if (locked != null) locked.gameObject.SetActive(isLocked);
+            Button rowButton = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
+            rowButton.targetGraphic = row.GetComponent<Graphic>() ?? row.GetComponentInChildren<Graphic>();
+            rowButton.onClick.RemoveAllListeners();
+            if (isLocked)
+            {
+                Transform chooseLocked = row.Find("Choose");
+                if (chooseLocked != null) chooseLocked.gameObject.SetActive(false);
+                rowButton.onClick.AddListener(() => feedback($"{openLevel}级开启，上仙请升级"));
+                row.gameObject.name = $"FormationLocked_{slot.Position}";
+                return;
+            }
             if (!occupied)
             {
                 Transform chooseEmpty = row.Find("Choose");
-                if (chooseEmpty != null) chooseEmpty.gameObject.SetActive(false);
-                Button emptyButton = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
-                emptyButton.onClick.RemoveAllListeners();
+                if (chooseEmpty != null) chooseEmpty.gameObject.SetActive(selectedId == 0 && selectedPosition == slot.Position);
+                rowButton.onClick.AddListener(() =>
+                {
+                    selectedPosition = slot.Position;
+                    selectedId = 0;
+                    selectionInitialized = true;
+                    Render();
+                });
                 row.gameObject.name = $"FormationEmpty_{slot.Position}";
                 return;
             }
@@ -139,11 +214,14 @@ namespace ProjectX.UI
             Transform color = row.Find("bg_Head/Color");
             if (color != null) color.gameObject.SetActive(false);
             Transform choose = row.Find("Choose");
-            if (choose != null) choose.gameObject.SetActive(item.Id == selectedId);
-            Button button = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
-            button.targetGraphic = row.GetComponent<Graphic>() ?? row.GetComponentInChildren<Graphic>();
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => { selectedId = item.Id; Render(); });
+            if (choose != null) choose.gameObject.SetActive(item.Id == selectedId && selectedPosition == slot.Position);
+            rowButton.onClick.AddListener(() =>
+            {
+                selectedPosition = slot.Position;
+                selectedId = item.Id;
+                selectionInitialized = true;
+                Render();
+            });
             row.gameObject.name = $"Hero_{item.Id}_{index}";
         }
 
@@ -157,8 +235,13 @@ namespace ProjectX.UI
 
         private void ShowDetails()
         {
+            GameObject addPanel = detailView.Binding.Find("Layer/EquipUI/Bg/Panel_new");
+            GameObject background = detailView.Binding.Find("Layer/EquipUI/Bg");
             if (!heroes.TryGet(selectedId, out HeroRecord hero))
             {
+                if (background != null) background.SetActive(true);
+                if (addPanel != null) addPanel.SetActive(true);
+                SetDetailContentVisible(false);
                 summary.text = "暂无神将";
                 power.text = attack.text = health.text = physicalDefense.text = magicDefense.text = "-";
                 attackType.text = skillName.text = skillDescription.text = "";
@@ -167,6 +250,9 @@ namespace ProjectX.UI
                 detailFallbackPortrait.gameObject.SetActive(false);
                 return;
             }
+            if (background != null) background.SetActive(true);
+            if (addPanel != null) addPanel.SetActive(false);
+            SetDetailContentVisible(true);
             summary.text = $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}";
             power.text = hero.Power.ToString();
             attack.text = $"攻击：{hero.Attack}";
@@ -189,6 +275,111 @@ namespace ProjectX.UI
                 if (skillIcon != null) skillIcon.sprite = null;
             }
             ShowDetailModel(hero.Id);
+            RenderEquipmentSlots();
+        }
+
+        private void BindDetailControls()
+        {
+            Bind("Layer/EquipUI/Bg/Panel_new/addnew", () => openReplacement(selectedPosition, 0));
+            Bind("Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0", () =>
+            {
+                if (selectedId > 0) openCultivation(selectedId);
+            });
+            Bind("Layer/EquipUI/Bg/bg/Image_bg/Button1", () =>
+            {
+                if (selectedId > 0) openEnhanceMaster(selectedPosition);
+            });
+            Bind("Layer/EquipUI/Bg/bg/Image_bg/Button2", () =>
+            {
+                if (selectedId > 0) openReplacement(selectedPosition, selectedId);
+            });
+            Bind("Layer/EquipUI/Bg/bg/Btn_xiangxi", () =>
+            {
+                if (selectedId > 0) openAttributes(selectedId);
+            });
+            for (int slot = 1; slot <= 6; slot++)
+            {
+                int captured = slot;
+                Bind($"Layer/EquipUI/Bg/bg/EquipIcon{slot}", () =>
+                {
+                    if (selectedId > 0) openEquipmentSlot(selectedPosition, captured);
+                });
+            }
+        }
+
+        private void SetDetailContentVisible(bool visible)
+        {
+            foreach (string child in new[] { "bg", "Equip", "Btn_Skill" })
+            {
+                GameObject target = detailView.Binding.Find($"Layer/EquipUI/Bg/{child}");
+                if (target != null) target.SetActive(visible);
+            }
+        }
+
+        private void Bind(string path, Action action)
+        {
+            GameObject target = Require(detailView, path);
+            Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
+            button.targetGraphic = target.GetComponent<Graphic>() ?? target.GetComponentInChildren<Graphic>();
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+        }
+
+        private void RenderEquipmentSlots()
+        {
+            for (int slot = 1; slot <= 6; slot++)
+            {
+                GameObject iconHost = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase");
+                Image icon = EnsureRuntimeIcon(iconHost, $"EquippedItemIcon{slot}");
+                Text name = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/name")?.GetComponent<Text>();
+                Sprite sprite = null;
+                string label = string.Empty;
+                if (slot <= 4)
+                {
+                    HeroEquipmentRecord item = equipment.Items.FirstOrDefault(value =>
+                        value.FormationPosition == selectedPosition && value.Slot == slot);
+                    if (item.Uid > 0)
+                    {
+                        sprite = resources.LoadEquipmentIcon(item.Definition.Picture);
+                        label = item.GetLevel(1) > 0 ? $"{item.Definition.Name}+{item.GetLevel(1)}" : item.Definition.Name;
+                    }
+                }
+                else
+                {
+                    FaBaoRecord item = faBao.Items.FirstOrDefault(value =>
+                        value.FormationPosition == selectedPosition && value.Slot == slot);
+                    if (item.Uid > 0)
+                    {
+                        sprite = resources.LoadFaBaoIcon(item.Definition.Picture, out _);
+                        label = item.Definition.Name;
+                    }
+                }
+                if (icon != null)
+                {
+                    icon.sprite = sprite;
+                    icon.enabled = sprite != null;
+                    icon.preserveAspect = true;
+                }
+                if (name != null) name.text = label;
+            }
+        }
+
+        private static Image EnsureRuntimeIcon(GameObject host, string name)
+        {
+            if (host == null) return null;
+            Transform existing = host.transform.Find(name);
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(host.transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = new Vector2(5f, 5f);
+            rect.offsetMax = new Vector2(-5f, -5f);
+            Image image = value.GetComponent<Image>();
+            image.raycastTarget = false;
+            value.transform.SetAsLastSibling();
+            return image;
         }
 
         private void BindBagRow(RectTransform row, HeroBagRow data, int rowIndex)

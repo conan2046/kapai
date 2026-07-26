@@ -78,6 +78,22 @@ end
 
 function M.requestChapter(chapterId) requestChapter(chapterId) end
 function M.requestStage(stageId) requestStage(stageId) end
+function M.queryHeroEquipmentStages()
+    Bridge:BeginHeroEquipmentStageChecks()
+    local stages = {
+        {1001, 10006},
+        {1002, 10016},
+        {1002, 10019},
+        {1002, 10020},
+    }
+    for _, value in ipairs(stages) do
+        send(27, function(message)
+            message:WriteByte(1)
+            message:WriteUInt(value[1])
+            message:WriteUInt(value[2])
+        end)
+    end
+end
 function M.openPreferredStage()
     requestStage(Bridge:GetWorldPreferredStageId())
 end
@@ -157,14 +173,15 @@ local function readChapter(message)
     end
 end
 
-local function readStage(message)
-    local mapType = message:ReadByte()
+local function readStage(message, responseMapType)
+    local mapType = responseMapType or message:ReadByte()
     local chapterId = message:ReadUInt()
     local stageId = message:ReadUInt()
     local stars = message:ReadByte()
     local foughtCount = message:ReadByte()
     local resetCount = message:ReadByte()
     if message.Remaining ~= 0 then fail("World/320 op=27 unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:SetHeroEquipmentStageOpen(stageId, stars)
     Bridge:SetWorldStageStatus(mapType, chapterId, stageId, stars, foughtCount, resetCount)
     if M.validationStage == "await_map_capture" then
         M.validationStage = "await_detail_capture"
@@ -200,7 +217,10 @@ end
 function M.onPacket(command, message)
     if command ~= Protocol.WORLD_STAGE then return false end
     local op = message:ReadByte()
-    if op == 1 then readWorld(message)
+    -- The legacy server consumes op=27 before echoing the request fields, so
+    -- node-query responses begin with mapType and contain exactly 11 bytes more.
+    if op == 1 and message.Remaining == 11 then readStage(message, op)
+    elseif op == 1 then readWorld(message)
     elseif op == 2 then readChapter(message)
     elseif op == 5 then
         message:ReadByte(); message:ReadUInt(); message:ReadUInt()

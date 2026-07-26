@@ -1,8 +1,18 @@
 local Protocol = require("Protocol")
 local EquipmentController = require("Hero.EquipmentController")
 local FormationModel = require("Hero.LegacyFormationModel")
+local WorldController = require("World.WorldController")
 
-local M = { requested = false, mutationStage = nil, mutationHero = nil, originalPosition = nil, targetPosition = nil }
+local M = {
+    requested = false,
+    mutationStage = nil,
+    mutationHero = nil,
+    originalPosition = nil,
+    targetPosition = nil,
+    g4RestoreExpected = false,
+    equipmentReady = false,
+    formationReady = false,
+}
 
 local function requestFormation()
     local message = Protocol.newMessage(Protocol.FORMATION)
@@ -10,10 +20,36 @@ local function requestFormation()
     Bridge:Send(message)
 end
 
+local function runG4Validation()
+    local original, heroId, target = 0, 0, 0
+    for position = 1, FormationModel:GetCombatCount() do
+        local id = FormationModel:GetCombatHero(position)
+        if id > 0 and original == 0 then original = position; heroId = id end
+        if id == 0 and target == 0 then target = position end
+    end
+    if heroId == 0 or target == 0 then
+        Bridge:Fail("Hero G4 requires one occupied and one empty formation position.")
+        return
+    end
+    Bridge:RunHeroG4ControlValidation(heroId, original, target)
+end
+
 -- Equivalent to the shipped LuaNetSendMsg:QueryFormationInfo chain. The Unity
 -- socket/byte stream stays in C#, while request ownership stays in Lua.
 function M.onClick()
     M.requested = true
+    M.equipmentReady = false
+    M.formationReady = false
+    if Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
+        EquipmentController.preload(function()
+            M.equipmentReady = true
+            if M.formationReady then
+                M.formationReady = false
+                runG4Validation()
+            end
+        end)
+    end
+    WorldController.queryHeroEquipmentStages()
     local message = Protocol.newMessage(Protocol.HERO)
     message:WriteByte(1)
     Bridge:Send(message)
@@ -34,7 +70,11 @@ function M.moveHero(heroId, position)
     local original = FormationModel:GetCombatPosition(heroId)
     if original <= 0 or position <= 0 or position == original then return end
     M.mutationHero, M.originalPosition, M.targetPosition = heroId, original, position
-    M.mutationStage = "interactive_response"
+    if Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
+        M.mutationStage = M.g4RestoreExpected and "g4_restore_response" or "g4_move_response"
+    else
+        M.mutationStage = "interactive_response"
+    end
     sendPosition(heroId, position)
 end
 
@@ -120,6 +160,28 @@ local function readFormation(message)
         Bridge:SetStatus("Formation position updated by authoritative Lua snapshot.")
         return
     end
+    if M.mutationStage == "g4_move_snapshot" then
+        if FormationModel:GetCombatHero(M.targetPosition) ~= M.mutationHero then
+            Bridge:Fail("G4 real-control move did not persist at the target position.")
+            M.mutationStage = nil
+            return
+        end
+        M.mutationStage = nil
+        M.g4RestoreExpected = true
+        Bridge:ContinueHeroG4FormationRestore(M.mutationHero, M.targetPosition, M.originalPosition)
+        return
+    elseif M.mutationStage == "g4_restore_snapshot" then
+        local restored = FormationModel:GetCombatHero(M.targetPosition)
+        if restored ~= M.mutationHero then
+            Bridge:Fail("G4 real-control restore did not persist at the original position.")
+            M.mutationStage = nil
+            return
+        end
+        M.mutationStage = nil
+        M.g4RestoreExpected = false
+        Bridge:CompleteHeroG4Validation(M.mutationHero, M.targetPosition, M.originalPosition)
+        return
+    end
 
     if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
@@ -150,7 +212,12 @@ local function readFormation(message)
     end
     if M.requested then
         M.requested = false
-        if Bridge:HasCommandLineFlag("-projectXFormationInvalidValidation") then
+        if Bridge:HasCommandLineFlag("-projectXHeroLockedValidation") then
+            Bridge:RunHeroLockedControlValidation()
+        elseif Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
+            if M.equipmentReady then runG4Validation()
+            else M.formationReady = true end
+        elseif Bridge:HasCommandLineFlag("-projectXFormationInvalidValidation") then
             M.mutationHero, M.originalPosition, M.targetPosition = 65535, 0, 1
             M.mutationStage = "invalid_response"
             sendPosition(M.mutationHero, M.targetPosition)
@@ -202,6 +269,11 @@ local function readPositionResponse(message)
         requestFormation()
         return
     end
+    if M.mutationStage == "g4_move_response" and position == M.targetPosition then
+        M.mutationStage = "g4_move_snapshot"
+    elseif M.mutationStage == "g4_restore_response" and position == M.targetPosition then
+        M.mutationStage = "g4_restore_snapshot"
+    end
     if heroId ~= M.mutationHero then Bridge:Fail("Formation response hero mismatch."); M.mutationStage = nil; return end
     if M.mutationStage == "await_move_response" and position == M.targetPosition then
         M.mutationStage = "await_move_snapshot"
@@ -226,6 +298,8 @@ end
 function M.reset()
     M.requested, M.mutationStage, M.mutationHero = false, nil, nil
     M.originalPosition, M.targetPosition = nil, nil
+    M.g4RestoreExpected = false
+    M.equipmentReady, M.formationReady = false, false
     FormationModel:Reset()
 end
 

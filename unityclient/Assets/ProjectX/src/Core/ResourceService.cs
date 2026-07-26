@@ -30,6 +30,12 @@ namespace ProjectX.Core
 
         public Sprite LoadHeroPortrait(int picture) => LoadHeroPortrait(picture, out _);
 
+        public Sprite LoadPlayerRoundPortrait(int head)
+        {
+            int resolvedHead = head == 4 || head == 5 ? head : 5;
+            return LoadFirst($"RoleBust/{resolvedHead}_touxiang", $"MonsterBust/{resolvedHead}_tou");
+        }
+
         public Sprite LoadEquipmentIcon(string picture) => LoadEquipmentIcon(picture, out _);
 
         public Sprite LoadEquipmentIcon(string picture, out bool usedPlaceholder)

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
   "product": "道友来封神",
-  "auditedAt": "2026-07-19",
+  "auditedAt": "2026-07-26",
   "runtime": {
-    "account": "userId=1 / roleId=1000005 / Test01 / level=60",
+    "account": "userId=7200057 / roleId=1000078 / U00057 / level=60",
     "windowTitle": "Cocos Simulator - 道友来封神",
     "logicalResolution": "1334x750",
-    "capturedClientResolution": "1067x600",
-    "windowsScale": "100% (Win32 system/window DPI=96)",
-    "mainUiEvidence": ".local/cocos-audit-main-before.png"
+    "capturedClientResolution": "1334x750",
+    "windowsScale": "100% (window outer frame 1336x777; client crop 1334x750)",
+    "mainUiEvidence": ".local/ui-fidelity/Hero/cocos/formation-entry-user7200057-dpi100.jpg"
   },
   "qualification": {
     "currentMainBindings": 42,
@@ -31,9 +31,9 @@
     },
     {
       "id": "HERO-ENTRY-btn_zhenrong",
-      "status": "current-run-blocked-historical-runtime-confirmed",
-      "evidence": ".local/ui-fidelity/Hero/flow.md",
-      "note": "当前调用链确认 btn_zhenrong -> PetTouchCallback -> 1030 -> PetZhenRongUI；历史 100% 缩放证据证明真实可达。本机 Win32 DPI 已是 96/100%，但模拟器实际客户区仍为 1067x600，未达到 config.json 的 1334x750；后台点击使硬件渲染白屏，因此不记本次真实点击通过。"
+      "status": "current-runtime-confirmed",
+      "evidence": ".local/ui-fidelity/Hero/cocos/formation-entry-user7200057-dpi100.jpg",
+      "note": "隔离账号从当前主界面真实点击 btn_zhenrong，经过 PetTouchCallback -> 1030 -> PetZhenRongUI 成功进入阵容页；Computer Use 捕获窗口为 1336x777，去除边框和标题栏后的原生客户区证据为 1334x750。旧 PowerShell GetClientRect 的 1067x600 是 DPI 虚拟化误判。"
     }
   ],
   "invalidEvidence": [

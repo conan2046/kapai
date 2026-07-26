@@ -31,6 +31,12 @@ namespace ProjectX.Editor
         private const string HeroFramePrefab = "Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab";
         private const string HeroListPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab";
         private const string HeroDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab";
+        private const string HeroReplacementPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxionghuanjiang.prefab";
+        private const string HeroCultivationPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjueseLayer.prefab";
+        private const string HeroLevelUpPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshuxingLayer.prefab";
+        private const string HeroEnhanceMasterPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/qianghuadashi.prefab";
+        private const string HeroAttributesPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab";
+        private const string HeroItemSourcePrefab = "Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab";
         private const string HeroBagPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab";
         private const string FormationPopupPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangzhenxingLayer.prefab";
         private const string HeroEquipmentListPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab";
@@ -44,6 +50,7 @@ namespace ProjectX.Editor
         private const string SoulShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/jianghunshop.prefab";
         private const string MultiShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/wanfashop.prefab";
         private const string FriendPrefab = "Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab";
+        private const string ChatMiniPrefab = "Assets/ProjectX/res/csd/Prefabs/ChatLayer.prefab";
         private const string ChatPrefab = "Assets/ProjectX/res/csd/Prefabs/MainChatLayer.prefab";
         private const string TeamMembersPrefab = "Assets/ProjectX/res/csd/Prefabs/TeamMembersLayer.prefab";
         private const string TeamInvitePrefab = "Assets/ProjectX/res/csd/Prefabs/TeamInviteListLayer.prefab";
@@ -125,6 +132,7 @@ namespace ProjectX.Editor
             new PrefabSpec(SoulShopPrefab, false),
             new PrefabSpec(MultiShopPrefab, false),
             new PrefabSpec(FriendPrefab, false),
+            new PrefabSpec(ChatMiniPrefab, false),
             new PrefabSpec(ChatPrefab, false),
             new PrefabSpec(TeamMembersPrefab, false),
             new PrefabSpec(TeamInvitePrefab, false),
@@ -164,9 +172,15 @@ namespace ProjectX.Editor
             new PrefabSpec(HeroListPrefab, true, HeroFramePrefab),
             new PrefabSpec(HeroDetailPrefab, true, HeroFramePrefab),
             new PrefabSpec(HeroBagPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroCultivationPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroLevelUpPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroEnhanceMasterPrefab, false),
+            new PrefabSpec(HeroReplacementPrefab, false),
+            new PrefabSpec(HeroAttributesPrefab, false),
+            new PrefabSpec(HeroItemSourcePrefab, false),
             new PrefabSpec(FormationPopupPrefab, false),
             new PrefabSpec(HeroEquipmentListPrefab, false),
-            new PrefabSpec(HeroEquipmentDetailPrefab, false, HeroEquipmentListPrefab),
+            new PrefabSpec(HeroEquipmentDetailPrefab, false),
             new PrefabSpec(HeroEquipmentChangePrefab, false),
             new PrefabSpec(HeroEquipmentCultivatePrefab, false),
             new PrefabSpec(HeroEquipmentStrengthPrefab, false, HeroEquipmentCultivatePrefab)

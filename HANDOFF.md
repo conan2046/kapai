@@ -1,5 +1,62 @@
 # 本地卡牌项目调试交接
 
+> 当前交接：2026-07-26 阵容 G0-G6 完成、16/16 控件与视觉通过
+> 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
+
+## 0. 2026-07-26 新窗口直接执行
+
+### 当前目标
+
+- 只处理《道友来封神》神将/阵容，不开启新模块。
+- 当前门禁：`G0-G6 passed`，神将/阵容 `16/16 complete`。
+- G4 已完成：同账号 `7200057` 的16项真实 Button 主链、锁定/非法失败态、阵位 `1→2→1` 权威恢复，以及真实断线→重启服务→重连→重新登录→第二轮16控件复验。
+- G4重连证据：`.local/unity-validation/hero-g4-reconnect-user7200057.json`。
+- 最终 Runner、16/16真实 Button、严重异常扫描、双端视觉人工验收均已通过；G5、G6门禁已收口。
+- G6机器证据：`build/ui-migration/bootstrap-app-result.json`、`build/ui-migration/bootstrap-hero.png`、`build/ui-migration/bootstrap-idempotence-1.log`、`build/ui-migration/bootstrap-idempotence-2.log`；纳入 `ChatLayer` 后按正式 `BuildBatch` 契约双次验证，最终幂等 SHA-256 为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`。
+- G5全解锁夹具已补到固定账号 `7200057 / roleId=1000115`：等级60、神将57+64、阵位1穿戴 `1001..1004` 四件装备、法宝 `1001/1002` 两件、主线推进覆盖 `10006/10016/10019/10020`；协议穿戴错误0，压缩存档长度 `pet=84 / pet_equip=100 / guan_qia=424`，证据 `.local/unity-validation/hero-g5-fixture-user7200057.json`。
+
+### G5结果
+
+1. 用户已放宽禁止前台限制；固定账号 `7200057 / roleId=1000115`、同数据、原生客户区 `1334×750` 已重新采集 Cocos 16/16 原图：`.local/ui-fidelity/Hero/cocos/g5-live-20260726/`。
+2. Unity 已在相同账号/数据下重新采集16/16原图：`.local/ui-fidelity/Hero/unity/g5-HERO-*.png`。
+3. 并排、50%叠加、像素差异和聚合指标已生成：`.local/ui-fidelity/Hero/compare/g5-live-20260726/`。
+4. Unity 阵容入口已补 `/319 op=1/17` 装备/法宝预取；全解锁账号下强化大师真实打开，16项 Button 自动化通过。
+5. 人工视觉验收结果为 `16/16 passed`；14项原硬缺陷全部修复，详见 `manual-acceptance.md/json`。
+6. 最终 Runner 时间 `2026-07-26T14:31:28.6502368Z`，结果 success；本轮 Unity 原图16/16均刷新为原生 `1334×750`。
+7. 当前模块已收口，不继续扩展；新任务从 `UNITYCLIENT_STATUS.md` 选择下一模块。
+
+### 必读与状态
+
+按顺序读取：
+
+1. `UNITYCLIENT_STATUS.md`
+2. `docs/unityclient/MIGRATION_GUIDE.md`
+3. `docs/unityclient/modules/README.md`
+4. `docs/unityclient/modules/HERO.md`
+5. `docs/unityclient/matrices/HERO_CONTROLS.json`
+6. `tools/unity-migration/migration-gates.json`
+
+启动前必须先执行 `git status --short`。工作区仍有阵容 G3/G4、服务端测试、xLua `.meta` 删除和 `.vscode` 等未提交改动；不得 reset、checkout、覆盖或自动暂存。
+
+### 长期配置与最近提交
+
+- `.codex/config.toml` 的 `unityMCP.enabled = true` 是用户要求的长期设置，任务结束后不得改回 false。
+- Unity GameView 固定为 `1334×750`，不要通过修改启动分辨率抢占桌面。
+- 后台自动化机制已提交并推送远端 `main`：`da513368eec785d8a814ef8544d2845964e087b0`。
+- 该提交只包含：
+  - `docs/unityclient/MIGRATION_GUIDE.md`
+  - `tools/local/Invoke-ClientWindow.ps1`
+  - `tools/local/Start-Client.ps1`
+  - `unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs` 的分辨率代码块
+- `BootstrapAppRunner.cs` 当前仍有未提交的阵容 G4 重连代码，属于有效工作，不得因文件已部分提交而覆盖。
+
+### 当前运行与验证
+
+- 阶段收口后关闭 Unity、ProjectX、`kapai.exe`；既有 workspace-local MySQL 保持不动。
+- Unity迁移文档检查：29模块通过。
+- `tools/ui_migration/tests/test_ui_migration.py`：16/16通过。
+- 未经用户再次明确要求，不提交或推送剩余工作树。
+
 > 更新时间：2026-07-16
 > 工作区：`E:\neiwang_kapai\Game`
 > 项目：Cocos2d-x 2.17 + Lua 客户端、C++ 服务端的联网卡牌游戏

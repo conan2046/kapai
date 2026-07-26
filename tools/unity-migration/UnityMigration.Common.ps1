@@ -220,7 +220,26 @@ function Invoke-UnityMigrationValidationData {
 
 function Test-UnityMigrationPort {
     param([Parameter(Mandatory = $true)][int]$Port)
-    return $null -ne (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1)
+    return $null -ne (Get-UnityMigrationTcpListenerPid -Port $Port)
+}
+
+function Get-UnityMigrationTcpListenerPid {
+    param([Parameter(Mandatory = $true)][int]$Port)
+    try {
+        $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction Stop | Select-Object -First 1
+        if ($listener) { return [int]$listener.OwningProcess }
+    }
+    catch {
+        # Restricted Windows sessions can deny Get-NetTCPConnection even when netstat is readable.
+    }
+    $netstat = Join-Path $env:SystemRoot "System32\netstat.exe"
+    if (-not (Test-Path -LiteralPath $netstat -PathType Leaf)) { return $null }
+    foreach ($line in @(& $netstat -ano -p tcp 2>$null)) {
+        if ($line -match "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$") {
+            return [int]$Matches[1]
+        }
+    }
+    return $null
 }
 
 function Get-UnityMigrationWorkspaceProcesses {
@@ -229,12 +248,28 @@ function Get-UnityMigrationWorkspaceProcesses {
         [string[]]$Names = @("Unity.exe", "kapai.exe", "mysqld.exe", "ProjectX.exe")
     )
     $escapedRoot = [Regex]::Escape([System.IO.Path]::GetFullPath($Root))
-    return @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-        Where-Object {
-            $_.Name -in $Names -and
-            (($_.ExecutablePath -and $_.ExecutablePath -match $escapedRoot) -or
-             ($_.CommandLine -and $_.CommandLine -match $escapedRoot))
-        })
+    try {
+        return @(Get-CimInstance Win32_Process -ErrorAction Stop |
+            Where-Object {
+                $_.Name -in $Names -and
+                (($_.ExecutablePath -and $_.ExecutablePath -match $escapedRoot) -or
+                 ($_.CommandLine -and $_.CommandLine -match $escapedRoot))
+            })
+    }
+    catch {
+        return @(Get-Process -ErrorAction SilentlyContinue |
+            Where-Object {
+                "$($_.ProcessName).exe" -in $Names -and $_.Path -and $_.Path -match $escapedRoot
+            } |
+            ForEach-Object {
+                [pscustomobject]@{
+                    ProcessId = $_.Id
+                    Name = "$($_.ProcessName).exe"
+                    ExecutablePath = $_.Path
+                    CommandLine = $null
+                }
+            })
+    }
 }
 
 function New-UnityMigrationUserId {

@@ -840,9 +840,21 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 		const uint32 localTestMoney = 1000000;
 		const uint32 localTestTongBao = 100000;
 		const uint32 localTestBdTongBao = 100000;
-		snprintf(sql, sizeof(sql),
-			"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
-			localTestMoney, roleId);
+		const uint32 preserveLevelUserId = (uint32)atoi(
+			gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
+		if(preserveLevelUserId > 0 && preserveLevelUserId == userId)
+		{
+			snprintf(sql, sizeof(sql),
+				"update role_info set money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+				localTestMoney, roleId);
+			cout << "[local] UserLogin: preserve role level for fixture userId=" << userId << endl;
+		}
+		else
+		{
+			snprintf(sql, sizeof(sql),
+				"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+				localTestMoney, roleId);
+		}
 		pDb->Query(sql);
 		string userTab = GetUserInfoTab(serverId);
 		snprintf(sql, sizeof(sql),
@@ -1168,7 +1180,11 @@ void CPackageDeal::CreateRole(CNetMessage *pMsg,int sock)
 
 	uint32 reg_time = (uint32)GetSysTime();
 	string localTest = gyu::util::CIniFile::GetValue("local_test","server",gConfigFile);
-	uint8 initLevel = (localTest == "1") ? 60 : 1;
+	const uint32 preserveLevelUserId = (uint32)atoi(
+		gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
+	const bool preserveLocalLevel = localTest == "1" && preserveLevelUserId > 0 &&
+		preserveLevelUserId == pUser->GetUserId();
+	uint8 initLevel = (localTest == "1" && !preserveLocalLevel) ? 60 : 1;
 	uint32 initMoney = (localTest == "1") ? 1000000 : 0;
 	uint32 initTongBao = (localTest == "1") ? 100000 : 0;
 	uint32 initBdTongBao = (localTest == "1") ? 100000 : 0;
@@ -1990,6 +2006,40 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 			"values (0,0,0,'%s',0,%u,0,from_unixtime(%u),0,0,'System','Unity mail validation')",
 			attachment.c_str(), pUser->GetRoleId(), GetSysTime());
 		pDb->Query(sql);
+		return;
+	}
+	// Local isolated-role hero fixture: op=55, uint16 petId.
+	// Use the normal award path so the authoritative pet store, client update
+	// packet and persistence behaviour stay identical to regular gameplay.
+	if(op == 55)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint16 petId = 0;
+		msg>>petId;
+		if(petId == 0)
+			return;
+		if(!AddPet(pUser, petId, 1))
+			cout<<"[local] NpcInteract add hero rejected petId="<<petId<<endl;
+		return;
+	}
+	// Local isolated-role chapter fixture: op=56, uint8 type, uint16 chapters.
+	// The implementation is debug-build only and advances through the normal
+	// GuanQia container, which is then persisted with the role.
+	if(op == 56)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint8 type = 0;
+		uint16 chapters = 0;
+		msg>>type>>chapters;
+		if((type != 1 && type != 2) || chapters == 0 || chapters > 100)
+			return;
+#ifdef _DEBUG
+		pUser->GetGuanQia().GuanQiaGM(pUser, type, chapters);
+#else
+		cout<<"[local] NpcInteract chapter fixture requires a debug build"<<endl;
+#endif
 		return;
 	}
 

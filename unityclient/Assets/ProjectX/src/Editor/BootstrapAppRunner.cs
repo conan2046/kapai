@@ -118,6 +118,8 @@ namespace ProjectX.Editor
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
             bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroBagValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroLockedValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationInvalidValidation") >= 0;
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
@@ -269,7 +271,8 @@ namespace ProjectX.Editor
                         return;
                     }
                     if (!checkingPlayerHud && (checkingTask ? !app.IsTaskOpen : checkingSettings ? !app.IsSettingsOpen
-                        : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero ? !app.IsHeroOpen
+                        : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero
+                            ? !app.IsHeroOpen && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") < 0
                         : checkingMail ? !app.IsMailOpen : checkingGameplayShops ? !app.IsGameplayShopOpen : checkingShop ? !app.IsShopOpen
                         : checkingFriend ? !app.IsFriendOpen : checkingChat ? !app.IsChatOpen
                         : checkingTeam ? !app.IsTeamOpen : checkingGuild ? !app.IsGuildOpen
@@ -399,7 +402,9 @@ namespace ProjectX.Editor
                     Finish(true);
                     return;
                 }
-                bool backHandled = app.HandleBack();
+                bool realHeroClose = checkingHero && (Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
+                    || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroLockedValidation") >= 0);
+                bool backHandled = realHeroClose ? app.InvokeHeroCloseForValidation() : app.HandleBack();
                 if (checkingHero && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationPopupValidation") >= 0)
                     backHandled = app.HandleBack() && backHandled;
                 if (!backHandled || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
@@ -507,6 +512,36 @@ namespace ProjectX.Editor
                 File.Delete(GetManualReconnectRequestPath());
                 Debug.Log("[BootstrapAppRunner] MANUAL_RECONNECT_REQUESTED.");
                 app.Reconnect();
+            }
+
+            if (requiresReconnectValidation && SessionState.GetInt(ReconnectPhaseKey, 0) == 2
+                && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
+                && status.StartsWith("Hero formation UI active:", StringComparison.Ordinal))
+            {
+                SessionState.SetInt(ReconnectPhaseKey, 3);
+                if (!app.InvokeHeroEntryForReconnectValidation())
+                {
+                    WriteResult(false, status + " (real Hero entry could not be clicked after reconnect)");
+                    Finish(false);
+                    return;
+                }
+                Debug.Log("[BootstrapAppRunner] HERO_RECONNECT_ENTRY_CLICKED: rerunning real controls.");
+                return;
+            }
+
+            if (requiresReconnectValidation && SessionState.GetInt(ReconnectPhaseKey, 0) == 3
+                && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
+                && status.StartsWith("Hero formation UI active:", StringComparison.Ordinal))
+            {
+                SessionState.SetInt(ReconnectPhaseKey, 4);
+                if (!app.RunHeroG4FromCurrentSnapshotForReconnectValidation())
+                {
+                    WriteResult(false, status + " (authoritative Hero snapshot could not start the reconnect control rerun)");
+                    Finish(false);
+                    return;
+                }
+                Debug.Log("[BootstrapAppRunner] HERO_RECONNECT_CONTROLS_STARTED: authoritative snapshot ready.");
+                return;
             }
 
             if (!requiresReconnectValidation && status.IndexOf("failed", StringComparison.OrdinalIgnoreCase) >= 0)

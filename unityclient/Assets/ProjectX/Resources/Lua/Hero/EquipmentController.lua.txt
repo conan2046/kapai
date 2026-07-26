@@ -17,6 +17,7 @@ local M = {
     invalidReason = "",
     repeatReason = "",
     openKind = 1,
+    preloadCallback = nil,
 }
 
 local function sendOp(op)
@@ -188,6 +189,12 @@ end
 
 local function finishLists()
     if not M.equipmentComplete or not M.faBaoComplete then return end
+    if M.preloadCallback ~= nil then
+        local callback = M.preloadCallback
+        M.preloadCallback = nil
+        callback()
+        return
+    end
     if M.stage == "await_final_lists" then
         M.stage = nil
         Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
@@ -241,6 +248,11 @@ function M.onHeroReady()
     M.stage = nil
     M.injectedEquipment = false
     M.injectedFaBao = false
+    requestLists()
+end
+
+function M.preload(callback)
+    M.preloadCallback = callback
     requestLists()
 end
 
@@ -399,6 +411,7 @@ function M.reset()
     M.pendingEquipment, M.pendingFaBao = {}, {}
     M.invalidReason, M.repeatReason = "", ""
     M.openKind = 1
+    M.preloadCallback = nil
     EquipmentModel:Reset()
 end
 
