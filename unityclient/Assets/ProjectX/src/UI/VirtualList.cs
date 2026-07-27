@@ -51,6 +51,18 @@ namespace ProjectX.UI
 
         public int Count => items.Count;
 
+        public bool ScrollToBottom()
+        {
+            if (scrollRect == null || content == null || viewport == null
+                || content.rect.height <= viewport.rect.height) return false;
+            Canvas.ForceUpdateCanvases();
+            scrollRect.verticalNormalizedPosition = 0f;
+            content.anchoredPosition = new Vector2(content.anchoredPosition.x,
+                Math.Max(0f, content.rect.height - viewport.rect.height));
+            RefreshVisible();
+            return true;
+        }
+
         public void SetItems(IReadOnlyList<T> values)
         {
             items = values ?? Array.Empty<T>();

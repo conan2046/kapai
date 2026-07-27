@@ -133,6 +133,42 @@ namespace ProjectX.UI
             feedback("当前道具不可使用");
         }
 
+        public void ShowMailAttachment(RewardRecord item)
+        {
+            choices.Clear();
+            var choice = new Choice
+            {
+                Id = checked((int)item.Id),
+                Name = item.Name,
+                Description = "邮件附件奖励",
+                Picture = item.Picture,
+                Quality = item.Quality,
+                Quantity = checked((int)item.Amount),
+                ItemFrom = "来源：系统邮件",
+                Sources = string.Empty,
+            };
+            sourceChoice = choice;
+            popupFrameView.SetVisible(false);
+            giftView.SetVisible(false);
+            sourceView.SetVisible(true);
+            sourceView.GameObject.transform.SetAsLastSibling();
+            SetText(sourceView, "Layer/Popup/Panel_name/txt_name", choice.Name);
+            SetText(sourceView, "Layer/Popup/Panel_name/txt_num", $"数量：{choice.Quantity}");
+            SetText(sourceView, "Layer/Popup/Panel_name/txt_tips", choice.Description);
+            SetImage(sourceView, "Layer/Popup/Panel_name/Panel_icon/Icon", resources.LoadItemIcon(choice.Picture));
+            ClearChildren(sourceContent);
+            GameObject row = UnityEngine.Object.Instantiate(sourceTemplate, sourceContent, false);
+            row.name = "RuntimeMailSource";
+            row.SetActive(true);
+            SetRowText(row, "Name_1", choice.ItemFrom);
+            SetRowText(row, "Name_2", string.Empty);
+            SetRowText(row, "times", string.Empty);
+            SetRowActive(row, "Button_1", false);
+            SetRowActive(row, "Button_2", false);
+            SetRowActive(row, "Button_3", false);
+            SetRowActive(row, "item_icon", false);
+        }
+
         public void CloseAll()
         {
             inputView.SetVisible(false);

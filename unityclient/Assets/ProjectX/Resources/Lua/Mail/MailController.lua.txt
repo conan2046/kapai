@@ -3,7 +3,12 @@ local itemCatalog = require("Data.ItemCatalog")
 local itemsById = {}
 for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
 
-local M = { validationStage = nil, validationMailId = 0, validationRewardCount = 0, rewardsByMail = {} }
+local M = {
+    validationStage = nil, validationMailId = 0, validationRewardCount = 0,
+    rewardsByMail = {}, mailOrder = {}, pendingOp = 0, pendingId = 0,
+    listPending = false, refreshQueued = false, claimQueue = nil, readQueue = nil,
+    batchRewards = nil,
+}
 
 local function describeReward(rewardType, rewardId)
     local config = itemsById[rewardId] or itemsById[rewardType] or {}
@@ -11,6 +16,11 @@ local function describeReward(rewardType, rewardId)
 end
 
 local function requestList()
+    if M.listPending then
+        M.refreshQueued = true
+        return
+    end
+    M.listPending = true
     local message = Protocol.newMessage(Protocol.MAIL)
     message:WriteByte(2)
     message:WriteByte(0)
@@ -27,13 +37,21 @@ function M.onClick()
     M.validationStage = nil
     if Bridge:HasCommandLineFlag("-projectXMailValidation") then
         M.validationStage = "await_list"
-        injectValidationMail()
+        if not Bridge:HasCommandLineFlag("-projectXMailSkipInjection") then
+            injectValidationMail()
+        end
     end
     requestList()
     Bridge:SetStatus("Mail/128 request sent: op=2.")
 end
 
 function M.claim(id)
+    if M.pendingOp ~= 0 then
+        Bridge:ShowToast("邮件操作处理中", 1.5)
+        return
+    end
+    M.pendingOp = 3
+    M.pendingId = id
     local message = Protocol.newMessage(Protocol.MAIL)
     message:WriteByte(3)
     message:WriteUInt(id)
@@ -42,10 +60,148 @@ function M.claim(id)
     Bridge:SetStatus("Mail/128 claim sent: id=" .. tostring(id) .. ".")
 end
 
+function M.read(id)
+    if M.pendingOp ~= 0 then return end
+    M.pendingOp = 4
+    M.pendingId = id
+    local message = Protocol.newMessage(Protocol.MAIL)
+    message:WriteByte(4)
+    message:WriteUInt(id)
+    message:WriteByte(0)
+    Bridge:Send(message)
+    Bridge:SetStatus("Mail/128 read sent: id=" .. tostring(id) .. ".")
+end
+
+function M.delete(id)
+    if Bridge:DeleteLocalMail(id) then
+        Bridge:ShowToast("邮件已删除", 1.5)
+    else
+        Bridge:ShowToast("该邮件不可删除", 1.5)
+    end
+end
+
+local function sendNextBatchClaim()
+    if not M.claimQueue or #M.claimQueue == 0 then
+        M.pendingOp = 0
+        M.pendingId = 0
+        if M.batchRewards and #M.batchRewards > 0 then
+            Bridge:BeginRewardUpdate(#M.batchRewards)
+            for _, reward in ipairs(M.batchRewards) do
+                Bridge:AddRewardRecord(reward.type, reward.id, reward.amount,
+                    reward.name, reward.picture, reward.quality)
+            end
+            Bridge:EndRewardUpdate("邮件奖励")
+        end
+        M.claimQueue = nil
+        M.batchRewards = nil
+        if M.validationStage == "batch_running" then
+            M.validationStage = "await_batch_list"
+        end
+        requestList()
+        return
+    end
+    local id = table.remove(M.claimQueue, 1)
+    M.pendingOp = 3
+    M.pendingId = id
+    local message = Protocol.newMessage(Protocol.MAIL)
+    message:WriteByte(3)
+    message:WriteUInt(id)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+function M.claimAll()
+    if M.pendingOp ~= 0 then
+        Bridge:ShowToast("邮件操作处理中", 1.5)
+        return
+    end
+    M.claimQueue = {}
+    M.batchRewards = {}
+    for _, id in ipairs(M.mailOrder) do
+        local rewards = M.rewardsByMail[id]
+        if rewards and #rewards > 0 then table.insert(M.claimQueue, id) end
+    end
+    if #M.claimQueue == 0 then
+        M.claimQueue = nil
+        M.batchRewards = nil
+        Bridge:ShowToast("暂无可领取附件", 1.5)
+        return
+    end
+    sendNextBatchClaim()
+end
+
+function M.validationClaim(id)
+    M.validationStage = "await_claim"
+    M.claim(id)
+end
+
+function M.validationClaimAll()
+    M.validationStage = "batch_running"
+    M.claimAll()
+end
+
+local function sendNextBatchRead()
+    if not M.readQueue or #M.readQueue == 0 then
+        M.readQueue = nil
+        M.pendingOp = 0
+        M.pendingId = 0
+        M.validationStage = "await_read_list"
+        requestList()
+        return
+    end
+    local id = table.remove(M.readQueue, 1)
+    M.pendingOp = 4
+    M.pendingId = id
+    local message = Protocol.newMessage(Protocol.MAIL)
+    message:WriteByte(4)
+    message:WriteUInt(id)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+function M.validationReadAll()
+    M.readQueue = {}
+    for _, id in ipairs(M.mailOrder) do
+        local rewards = M.rewardsByMail[id]
+        if not rewards or #rewards == 0 then table.insert(M.readQueue, id) end
+    end
+    sendNextBatchRead()
+end
+
+function M.validationRepeat(id)
+    if M.pendingOp ~= 0 then return end
+    M.validationStage = "await_repeat_failure"
+    M.pendingOp = 3
+    M.pendingId = id
+    local message = Protocol.newMessage(Protocol.MAIL)
+    message:WriteByte(3)
+    message:WriteUInt(id)
+    message:WriteByte(0)
+    Bridge:Send(message)
+end
+
+function M.deleteAll()
+    local count = Bridge:DeleteAllLocalMails()
+    Bridge:ShowToast(count > 0 and "已删除全部已读邮件" or "暂无可删除邮件", 1.5)
+end
+
+function M.onDisconnected()
+    M.pendingOp = 0
+    M.pendingId = 0
+    M.listPending = false
+    M.refreshQueued = false
+    M.claimQueue = nil
+    M.readQueue = nil
+    M.batchRewards = nil
+end
+
 local function readList(message)
     local count = message:ReadByte()
     local firstId = 0
+    local validationId = 0
+    local validationRewardCount = -1
     M.rewardsByMail = {}
+    M.mailOrder = {}
     Bridge:BeginMailUpdate(count)
     for index = 1, count do
         local id = message:ReadUInt()
@@ -69,13 +225,23 @@ local function readList(message)
         end
         Bridge:EndMailRecord()
         M.rewardsByMail[id] = rewards
+        table.insert(M.mailOrder, id)
         if index == 1 then firstId = id end
+        if rewardCount > validationRewardCount then
+            validationRewardCount = rewardCount
+            validationId = id
+        end
     end
     if message.Remaining ~= 0 then
         Bridge:Fail("Mail/128 list has " .. tostring(message.Remaining) .. " unread bytes.")
         return
     end
     Bridge:EndMailUpdate()
+    M.listPending = false
+    if M.refreshQueued then
+        M.refreshQueued = false
+        requestList()
+    end
 
     if M.validationStage == "await_list" then
         if count <= 0 or firstId == 0 then
@@ -83,33 +249,43 @@ local function readList(message)
             Bridge:Fail("Mail validation injection returned an empty list.")
             return
         end
-        M.validationMailId = firstId
-        if not Bridge:SelectMail(firstId) or not Bridge:IsMailRead(firstId)
-            or Bridge:GetMailAttachmentCount(firstId) <= 0 then
+        M.validationMailId = validationId
+        if validationId == 0 or not Bridge:SelectMail(validationId)
+            or Bridge:GetMailAttachmentCount(validationId) <= 0 then
             M.validationStage = nil
-            Bridge:Fail("Mail list/read/attachment validation failed for id=" .. tostring(firstId) .. ".")
+            Bridge:Fail("Mail list/select/attachment validation failed for id=" .. tostring(validationId) .. ".")
             return
         end
-        M.validationStage = "await_claim"
-        Bridge:CaptureMailDetailAndClaimValidation(firstId)
+        M.validationStage = "await_ui"
+        Bridge:BeginMailG4Validation(validationId)
     elseif M.validationStage == "verify_claim" then
         local claimedId = M.validationMailId
         M.validationStage = nil
         Bridge:CompleteMailClaimValidation(claimedId, M.validationRewardCount)
+    elseif M.validationStage == "await_batch_list" then
+        M.validationStage = nil
+        Bridge:CompleteMailClaimAllValidation()
+    elseif M.validationStage == "await_read_list" then
+        M.validationStage = nil
+        Bridge:CompleteMailReadAllValidation()
+    elseif M.validationStage == "await_ui" then
+        -- G4 interaction coroutine owns the next operation.
     else
         Bridge:Complete("COMPLETE: main mail button -> /128 op=2 -> MailStore -> MailLayer ("
             .. tostring(count) .. " mails)")
     end
 end
 
-local function showRewards(mailId)
+local function showRewards(mailId, display)
     local rewards = M.rewardsByMail[mailId] or {}
-    Bridge:BeginRewardUpdate(#rewards)
-    for _, reward in ipairs(rewards) do
-        Bridge:AddRewardRecord(reward.type, reward.id, reward.amount,
-            reward.name, reward.picture, reward.quality)
+    if display then
+        Bridge:BeginRewardUpdate(#rewards)
+        for _, reward in ipairs(rewards) do
+            Bridge:AddRewardRecord(reward.type, reward.id, reward.amount,
+                reward.name, reward.picture, reward.quality)
+        end
+        if #rewards > 0 then Bridge:EndRewardUpdate("邮件奖励") end
     end
-    if #rewards > 0 then Bridge:EndRewardUpdate("邮件奖励") end
     return #rewards
 end
 
@@ -118,13 +294,31 @@ local function readClaim(message)
     message:ReadByte() -- clientUse echo
     local success = message:ReadByte()
     local result = message.Remaining > 0 and message:ReadString() or ""
+    local isBatch = M.claimQueue ~= nil
+    M.pendingOp = 0
+    M.pendingId = 0
     if success == 0 then
+        if M.validationStage == "await_repeat_failure" then
+            M.validationStage = nil
+            M.claimQueue = nil
+            M.batchRewards = nil
+            Bridge:CompleteMailRepeatValidation(id)
+            return
+        end
         M.validationStage = nil
-        Bridge:Fail("Mail/128 claim failed: " .. tostring(result))
+        M.claimQueue = nil
+        M.batchRewards = nil
+        Bridge:ShowToast(result ~= "" and result or "邮件领取失败", 2.0)
+        Bridge:SetStatus("Mail/128 claim failed: " .. tostring(result))
+        requestList()
         return
     end
-    local rewardCount = showRewards(id)
-    Bridge:RemoveMail(id)
+    local rewards = M.rewardsByMail[id] or {}
+    if isBatch then
+        for _, reward in ipairs(rewards) do table.insert(M.batchRewards, reward) end
+    end
+    local rewardCount = showRewards(id, not isBatch)
+    Bridge:MoveMailToHistory(id)
     Bridge:ShowToast(result ~= "" and result or "邮件附件已领取", 2.0)
     if M.validationStage == "await_claim" then
         if id ~= M.validationMailId or rewardCount <= 0 then
@@ -135,6 +329,31 @@ local function readClaim(message)
         M.validationRewardCount = rewardCount
         M.validationStage = "verify_claim"
         requestList()
+    elseif isBatch then
+        sendNextBatchClaim()
+    else
+        requestList()
+    end
+end
+
+local function readRead(message)
+    local id = message:ReadUInt()
+    message:ReadByte()
+    local success = message:ReadByte()
+    local result = message.Remaining > 0 and message:ReadString() or ""
+    M.pendingOp = 0
+    M.pendingId = 0
+    if success == 0 then
+        Bridge:ShowToast(result ~= "" and result or "邮件已读失败", 2.0)
+        Bridge:SetStatus("Mail/128 read failed: " .. tostring(result))
+        requestList()
+        return
+    end
+    Bridge:MoveMailToHistory(id)
+    if M.readQueue then
+        sendNextBatchRead()
+    else
+        requestList()
     end
 end
 
@@ -143,9 +362,10 @@ function M.onPacket(command, message)
     local op = message:ReadByte()
     if op == 2 then readList(message)
     elseif op == 3 then readClaim(message)
+    elseif op == 4 then readRead(message)
     elseif op == 0 then return true
     elseif op == 5 then requestList()
-    else Bridge:Fail("Mail/128 unsupported op=" .. tostring(op) .. ".") end
+    else Bridge:SetStatus("Mail/128 unsupported op=" .. tostring(op) .. ".") end
     return true
 end
 

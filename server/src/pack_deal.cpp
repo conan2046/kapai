@@ -1979,9 +1979,9 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 				<<" templateId="<<templateId<<endl;
 		return;
 	}
-	// Local isolated-role mail validation: op=54 inserts one deterministic
-	// attachment mail directly into the game DB. Production mail routing still
-	// goes through the long server and is untouched outside local_test.
+	// Local isolated-role mail validation: op=54 inserts a deterministic mail
+	// matrix directly into the game DB. Production mail routing still goes
+	// through the long server and is untouched outside local_test.
 	if(op == 54)
 	{
 		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
@@ -1990,22 +1990,54 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 		CDatabaseSql *pDb = getDb.GetDbConnect();
 		if(pDb == NULL)
 			return;
-		SAwardData award;
-		award.type = 3201;
-		award.typeId = 0;
-		award.num = 1;
-		SMailData mailData;
-		mailData.awards.push_back(award);
-		string attachment;
-		MakeMailAttachStr(attachment, &mailData);
 		char sql[2048];
-		snprintf(sql, sizeof(sql), "delete from xin_shi where to_id=%u and message='Unity mail validation'", pUser->GetRoleId());
-		pDb->Query(sql);
 		snprintf(sql, sizeof(sql),
-			"insert into xin_shi (money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message) "
-			"values (0,0,0,'%s',0,%u,0,from_unixtime(%u),0,0,'System','Unity mail validation')",
-			attachment.c_str(), pUser->GetRoleId(), GetSysTime());
+			"delete from xin_shi where to_id=%u and message like 'Unity mail validation%%'",
+			pUser->GetRoleId());
 		pDb->Query(sql);
+		for(int index = 13; index >= 0; --index)
+		{
+			int rewardCount = index == 0 ? 9 : index == 1 ? 2 : index == 2 ? 1 : (index % 3 == 0 ? 0 : 1);
+			SMailData mailData;
+			for(int rewardIndex = 0; rewardIndex < rewardCount; ++rewardIndex)
+			{
+				SAwardData award;
+				award.type = 3201 + (rewardIndex % 3);
+				award.typeId = 0;
+				award.num = rewardIndex + 1;
+				mailData.awards.push_back(award);
+			}
+			string attachment;
+			MakeMailAttachStr(attachment, &mailData);
+			const char *body = index == 3
+				? "Unity mail validation long body\\n"
+				  "01 This paragraph verifies vertical mail body scrolling.\\n"
+				  "02 This paragraph verifies vertical mail body scrolling.\\n"
+				  "03 This paragraph verifies vertical mail body scrolling.\\n"
+				  "04 This paragraph verifies vertical mail body scrolling.\\n"
+				  "05 This paragraph verifies vertical mail body scrolling.\\n"
+				  "06 This paragraph verifies vertical mail body scrolling.\\n"
+				  "07 This paragraph verifies vertical mail body scrolling.\\n"
+				  "08 This paragraph verifies vertical mail body scrolling.\\n"
+				  "09 This paragraph verifies vertical mail body scrolling.\\n"
+				  "10 This paragraph verifies vertical mail body scrolling.\\n"
+				  "11 This paragraph verifies vertical mail body scrolling.\\n"
+				  "12 This paragraph verifies vertical mail body scrolling.\\n"
+				  "13 This paragraph verifies vertical mail body scrolling.\\n"
+				  "14 This paragraph verifies vertical mail body scrolling.\\n"
+				  "15 This paragraph verifies vertical mail body scrolling.\\n"
+				  "16 This paragraph verifies vertical mail body scrolling.\\n"
+				  "17 This paragraph verifies vertical mail body scrolling.\\n"
+				  "18 This paragraph verifies vertical mail body scrolling.\\n"
+				  "19 This paragraph verifies vertical mail body scrolling.\\n"
+				  "20 End of long mail body."
+				: "Unity mail validation body.";
+			snprintf(sql, sizeof(sql),
+				"insert into xin_shi (money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message) "
+				"values (0,0,0,'%s',0,%u,0,from_unixtime(%u),0,0,'System','Unity mail validation %02d - %s')",
+				attachment.c_str(), pUser->GetRoleId(), (uint32)(GetSysTime() - index), index + 1, body);
+			pDb->Query(sql);
+		}
 		return;
 	}
 	// Local isolated-role hero fixture: op=55, uint16 petId.
@@ -11651,7 +11683,11 @@ void CPackageDeal::XinShi(CNetMessage *pMsg,int sock)
 		msg<<(uint8)3<<id<<clientUse;
 		char **row = pDb->GetRow();
 		if(row == NULL)
+		{
+			msg<<PRO_ERROR<<MakeStringColor("邮件不存在或已处理",TIPS_FAILURE_COLOR);
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
 			return;
+		}
 		// CEquipManeger& peMgr = pUser->GetPetEquipMgr();
 		if (GetSysTime() - (time_t)atoi(row[7]) > Mail_Time_Limit)
 		{
@@ -11688,8 +11724,38 @@ void CPackageDeal::XinShi(CNetMessage *pMsg,int sock)
 				pUser->AddMaterial(award);
 			}
 		}
-		snprintf(sql, sizeof(sql), "update xin_shi set deleted=1 where id=%u", id);
+		snprintf(sql, sizeof(sql), "update xin_shi set deleted=1 where id=%u and to_id=%u", id, pUser->GetRoleId());
 		pDb->Query(sql);
+		msg<<PRO_SUCCESS<<MakeStringColor(LANGUAGE_TRANSFORM_1383,TIPS_WARNING_COLOR);
+		m_socketServer.SendMsg(pUser->GetSock(),msg);
+	}
+	else if(type == 4) // 已读无附件邮件并从服务端待领取列表移除
+	{
+		uint32 id = 0;
+		uint8 clientUse = 0;
+		msg>>id>>clientUse;
+
+		msg.ReWrite();
+		msg.SetType(MSG_SERVER_XINSHI);
+		msg<<(uint8)4<<id<<clientUse;
+
+		snprintf(sql,sizeof(sql),"select id from xin_shi where deleted=0 and id=%u and to_id=%u",id,pUser->GetRoleId());
+		if(!pDb->Query(sql))
+			return;
+		if(pDb->GetRow() == NULL)
+		{
+			msg<<PRO_ERROR<<MakeStringColor("邮件不存在或已处理",TIPS_FAILURE_COLOR);
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
+			return;
+		}
+
+		snprintf(sql,sizeof(sql),"update xin_shi set deleted=1 where id=%u and to_id=%u",id,pUser->GetRoleId());
+		if(!pDb->Query(sql))
+		{
+			msg<<PRO_ERROR<<MakeStringColor("邮件状态更新失败",TIPS_FAILURE_COLOR);
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
+			return;
+		}
 		msg<<PRO_SUCCESS<<MakeStringColor(LANGUAGE_TRANSFORM_1383,TIPS_WARNING_COLOR);
 		m_socketServer.SendMsg(pUser->GetSock(),msg);
 	}

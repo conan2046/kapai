@@ -1,11 +1,23 @@
 param(
     [Nullable[int]]$ClickX = $null,
     [Nullable[int]]$ClickY = $null,
+    [Nullable[int]]$DragFromX = $null,
+    [Nullable[int]]$DragFromY = $null,
+    [Nullable[int]]$DragToX = $null,
+    [Nullable[int]]$DragToY = $null,
+    [ValidateRange(2, 120)]
+    [int]$DragSteps = 30,
+    [ValidateRange(100, 5000)]
+    [int]$DragDurationMilliseconds = 900,
+    [Nullable[int]]$WheelX = $null,
+    [Nullable[int]]$WheelY = $null,
+    [int]$WheelDelta = 0,
     [string]$CapturePath = "",
     [switch]$RestoreNoActivate,
     [switch]$ActivateForeground,
     [switch]$RestoreForegroundAfter,
     [switch]$RealClick,
+    [switch]$MessageDrag,
     [switch]$SkipCapture,
     [switch]$LogicalActivate,
     [switch]$LogicalDeactivateAfter,
@@ -53,6 +65,46 @@ public static class CodexClientWindow {
         mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
         System.Threading.Thread.Sleep(200);
         mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+        System.Threading.Thread.Sleep(150);
+    }
+
+    public static void DragScreen(int fromX, int fromY, int toX, int toY, int steps, int durationMilliseconds) {
+        SetCursorPos(fromX, fromY);
+        System.Threading.Thread.Sleep(100);
+        mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+        int delay = Math.Max(1, durationMilliseconds / steps);
+        for (int i = 1; i <= steps; ++i) {
+            int x = fromX + ((toX - fromX) * i / steps);
+            int y = fromY + ((toY - fromY) * i / steps);
+            SetCursorPos(x, y);
+            System.Threading.Thread.Sleep(delay);
+        }
+        mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+        System.Threading.Thread.Sleep(150);
+    }
+
+    private static IntPtr MouseLParam(int x, int y) {
+        return new IntPtr((y << 16) | (x & 0xFFFF));
+    }
+
+    public static void DragClientMessages(IntPtr hWnd, int fromX, int fromY, int toX, int toY, int steps, int durationMilliseconds) {
+        SendMessage(hWnd, 0x0200, IntPtr.Zero, MouseLParam(fromX, fromY));
+        SendMessage(hWnd, 0x0201, new IntPtr(1), MouseLParam(fromX, fromY));
+        int delay = Math.Max(1, durationMilliseconds / steps);
+        for (int i = 1; i <= steps; ++i) {
+            int x = fromX + ((toX - fromX) * i / steps);
+            int y = fromY + ((toY - fromY) * i / steps);
+            SendMessage(hWnd, 0x0200, new IntPtr(1), MouseLParam(x, y));
+            System.Threading.Thread.Sleep(delay);
+        }
+        SendMessage(hWnd, 0x0202, IntPtr.Zero, MouseLParam(toX, toY));
+        System.Threading.Thread.Sleep(150);
+    }
+
+    public static void WheelScreen(int x, int y, int delta) {
+        SetCursorPos(x, y);
+        System.Threading.Thread.Sleep(100);
+        mouse_event(0x0800, 0, 0, unchecked((uint)delta), UIntPtr.Zero);
         System.Threading.Thread.Sleep(150);
     }
 
@@ -163,6 +215,80 @@ if ($ClickX.HasValue -or $ClickY.HasValue) {
     }
 }
 
+$dragCoordinates = @($DragFromX, $DragFromY, $DragToX, $DragToY)
+$dragCoordinateCount = @($dragCoordinates | Where-Object { $_.HasValue }).Count
+if ($dragCoordinateCount -ne 0) {
+    if ($dragCoordinateCount -ne 4) {
+        throw "Pass DragFromX, DragFromY, DragToX and DragToY together"
+    }
+    if (-not $ActivateForeground) {
+        throw "Real drag requires -ActivateForeground"
+    }
+    if (@($dragCoordinates | Where-Object { $_.Value -lt 0 }).Count -gt 0) {
+        throw "Drag coordinates must be non-negative"
+    }
+    if ($MessageDrag) {
+        [CodexClientWindow]::DragClientMessages(
+            $windowHandle,
+            $DragFromX.Value,
+            $DragFromY.Value,
+            $DragToX.Value,
+            $DragToY.Value,
+            $DragSteps,
+            $DragDurationMilliseconds
+        )
+    }
+    else {
+        $dragFromScreen = New-Object CodexClientWindow+POINT
+        $dragFromScreen.X = $DragFromX.Value
+        $dragFromScreen.Y = $DragFromY.Value
+        $dragToScreen = New-Object CodexClientWindow+POINT
+        $dragToScreen.X = $DragToX.Value
+        $dragToScreen.Y = $DragToY.Value
+        if (-not [CodexClientWindow]::ClientToScreen($windowHandle, [ref]$dragFromScreen) -or
+            -not [CodexClientWindow]::ClientToScreen($windowHandle, [ref]$dragToScreen)) {
+            throw "ClientToScreen failed for drag coordinates"
+        }
+        $originalCursor = New-Object CodexClientWindow+POINT
+        [CodexClientWindow]::GetCursorPos([ref]$originalCursor) | Out-Null
+        [CodexClientWindow]::DragScreen(
+            $dragFromScreen.X,
+            $dragFromScreen.Y,
+            $dragToScreen.X,
+            $dragToScreen.Y,
+            $DragSteps,
+            $DragDurationMilliseconds
+        )
+        [CodexClientWindow]::SetCursorPos($originalCursor.X, $originalCursor.Y) | Out-Null
+    }
+}
+
+$wheelCoordinates = @($WheelX, $WheelY)
+$wheelCoordinateCount = @(
+    "WheelX", "WheelY" | Where-Object { $PSBoundParameters.ContainsKey($_) }
+).Count
+if ($WheelDelta -ne 0 -or $wheelCoordinateCount -ne 0) {
+    if ($WheelDelta -eq 0 -or $wheelCoordinateCount -ne 2) {
+        throw "Pass WheelX, WheelY and non-zero WheelDelta together"
+    }
+    if (-not $ActivateForeground) {
+        throw "Mouse wheel injection requires -ActivateForeground"
+    }
+    if ([int]$WheelX -lt 0 -or [int]$WheelY -lt 0) {
+        throw "Wheel coordinates must be non-negative"
+    }
+    $wheelScreen = New-Object CodexClientWindow+POINT
+    $wheelScreen.X = [int]$WheelX
+    $wheelScreen.Y = [int]$WheelY
+    if (-not [CodexClientWindow]::ClientToScreen($windowHandle, [ref]$wheelScreen)) {
+        throw "ClientToScreen failed for wheel coordinates"
+    }
+    $originalCursor = New-Object CodexClientWindow+POINT
+    [CodexClientWindow]::GetCursorPos([ref]$originalCursor) | Out-Null
+    [CodexClientWindow]::WheelScreen($wheelScreen.X, $wheelScreen.Y, $WheelDelta)
+    [CodexClientWindow]::SetCursorPos($originalCursor.X, $originalCursor.Y) | Out-Null
+}
+
 if ($WaitMilliseconds -gt 0) {
     Start-Sleep -Milliseconds $WaitMilliseconds
 }
@@ -259,6 +385,13 @@ $foregroundAfter = [CodexClientWindow]::GetForegroundWindow()
     Handle = $windowHandle
     ClickX = $ClickX
     ClickY = $ClickY
+    DragFromX = $DragFromX
+    DragFromY = $DragFromY
+    DragToX = $DragToX
+    DragToY = $DragToY
+    WheelX = $WheelX
+    WheelY = $WheelY
+    WheelDelta = $WheelDelta
     Width = $width
     Height = $height
     ClientWidth = $clientWidth
@@ -266,6 +399,7 @@ $foregroundAfter = [CodexClientWindow]::GetForegroundWindow()
     ForegroundActivated = $ActivateForeground.IsPresent
     ForegroundRestored = $foregroundRestored
     RealClick = $RealClick.IsPresent
+    MessageDrag = $MessageDrag.IsPresent
     FocusUnchanged = ($foregroundBefore -eq $foregroundAfter)
     PrintWindowFlags = $PrintWindowFlags
     CapturePath = $CapturePath

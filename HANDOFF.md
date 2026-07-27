@@ -1,9 +1,21 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-27 Task G0-G6 passed；通用硬门禁已固化；下一模块 Mail 从 G0 开始
+> 当前交接：2026-07-27 Mail G0-G6 passed / 13/13 complete
 > 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
 
 ## 0. 2026-07-27 新窗口直接执行
+
+### Mail 已收口
+
+- 门禁：`G0-G6 passed / 13/13 complete`；严格完成率 `5/29 = 17.2%`。
+- G4 隔离账号 `7200096/1000151`：13/13 真实控件、5/5 语义断言、5 张互异原生 `1334×750` 图通过；覆盖 `/128 op2/3/4`、重复失败、串行一键领取、批量已读、本地删除、空态、重进、断线和切号隔离。
+- G5 固定账号 `7200057/1000115`：同一批 14 封邮件完成 4/4 Cocos/Unity 原图与差异；数据库基线哈希 `3e3588a207e5c6d309391bb0a0bbb5cde40b60ffd17b6d3d4eace0d0aa9b1098`，重登录后再次精确恢复，夹具残留 0。
+- 已批准差异：Cocos 左列表不滚，Unity 已修为真实滚动；Cocos 附件详情错显 `数量:0`，Unity 显示权威 `数量:10`。
+- Unity 复用真实 `OneLevelLayer` 一级框架和 `common/huoqutujing` 公共详情；空态、完整日期/删除时间、活动使者标题、附件视口和旧附件误点竞态均已修复。
+- 正式 `BootstrapSceneBuilder.BuildBatch` 连续两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。
+- 证据：`.local/unity-validation/mail-latest.json`、`.local/ui-fidelity/Mail/compare/g5-live-20260727/`、`docs/unityclient/matrices/MAIL_CONTROLS.json`。
+- Unity、Cocos、`kapai.exe` 已停止；workspace-local MySQL 按项目既有状态保留。下一任务重新选择模块并从 G0 开始。
+- 未提交的其他工作仍不得暂存/覆盖：7 个 xLua `.meta` 删除、`unityclient/.vscode/`、`tools/local/Optimize-CodexLogsDatabase.ps1`、行尾异常 Lua。
 
 ### Task 已收口
 

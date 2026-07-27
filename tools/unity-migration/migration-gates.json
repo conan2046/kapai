@@ -16,6 +16,73 @@
   },
   "modules": [
     {
+      "module": "Mail",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/MAIL.md",
+      "note": "Mail G0-G6 passed on 2026-07-27: 13/13 real controls, 5/5 semantics, same-account 4/4 visual pairs, fixed-account restore/relogin/residual-zero checks and twice-run BuildBatch idempotence passed. G5 explicitly records Unity fixes for the approved Cocos list-scroll defect and the Cocos attachment quantity-zero defect.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/MAIL_CONTROLS.json",
+          "docs/unityclient/modules/MAIL.md",
+          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
+          "tools/cocos-audit/generated/cocos-control-candidates.json"
+        ],
+        "G1": [
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-populated-final.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-list-message-drag.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-list-hardware-drag-final.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-attachment-scroll-start.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-attachment-scroll-end.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-fixture-snapshot.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/MAIL.md",
+          "docs/unityclient/matrices/MAIL_CONTROLS.json",
+          ".local/unity-validation/mail-g2-protocol-evidence.md",
+          "server/src/pack_deal.cpp",
+          "server/src/init.cpp",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/Data/LSocialData.lua",
+          "unityclient/Assets/ProjectX/Resources/Lua/Mail/MailController.lua.txt",
+          "unityclient/Assets/ProjectX/src/Data/MailStore.cs"
+        ],
+        "G3": [
+          ".local/unity-validation/mail-g3-logic-evidence.md",
+          "unityclient/Assets/ProjectX/Resources/Lua/Mail/MailController.lua.txt",
+          "unityclient/Assets/ProjectX/src/Data/MailStore.cs"
+        ],
+        "G4": [
+          ".local/unity-validation/mail-latest.json",
+          ".local/ui-fidelity/Mail/unity/g4-20260727/G4_UNITY_EVIDENCE.md",
+          "build/ui-migration/bootstrap-mail-populated.png",
+          "build/ui-migration/bootstrap-mail.png"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json",
+          ".local/ui-fidelity/Mail/compare/g5-live-20260727/G5_VISUAL_ACCEPTANCE.md",
+          ".local/ui-fidelity/Mail/unity/g5-20260727/mail-fixed-unity-result.json"
+        ],
+        "G6": [
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          ".local/unity-validation/mail-latest.json",
+          ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json"
+        ]
+      },
+      "updatedUtc": "2026-07-27T10:12:13.1740442Z"
+    },
+    {
       "module": "Bag",
       "gates": {
         "G0": "passed",

@@ -63,6 +63,14 @@ namespace ProjectX.Core
         private LuaFunction onFaBaoTakeOff;
         private LuaFunction onMailClicked;
         private LuaFunction onMailClaimClicked;
+        private LuaFunction onMailReadClicked;
+        private LuaFunction onMailDeleteClicked;
+        private LuaFunction onMailClaimAllClicked;
+        private LuaFunction onMailDeleteAllClicked;
+        private LuaFunction onMailValidationClaim;
+        private LuaFunction onMailValidationClaimAll;
+        private LuaFunction onMailValidationReadAll;
+        private LuaFunction onMailValidationRepeat;
         private LuaFunction onShopClicked;
         private LuaFunction onShopBuyConfirmed;
         private LuaFunction onGameplayShopOpened;
@@ -212,6 +220,7 @@ namespace ProjectX.Core
         private string pendingMailSender;
         private uint pendingMailExpireAt;
         private string pendingMailMessage;
+        private bool mailValidationSawRedDot;
         private CocosUiView shopView;
         private ShopPresenter shopPresenter;
         private readonly List<ShopRecord> pendingShopRecords = new List<ShopRecord>();
@@ -456,6 +465,8 @@ namespace ProjectX.Core
         public bool IsMailOpen => mailView != null && services?.UiStack.Current == mailView;
         public int MailCount => services?.Mails.Count ?? 0;
         public int MailMissingIconCount => mailPresenter?.MissingIconCount ?? 0;
+        public bool IsMailRedDotVisible =>
+            mainView?.Binding.Find($"{MailPath}/Prompt")?.activeSelf == true;
         public bool IsShopOpen => shopView != null && services?.UiStack.Current == shopView;
         public int ShopCount => services?.Shop.Count ?? 0;
         public int ShopMissingIconCount => shopPresenter?.MissingIconCount ?? 0;
@@ -511,6 +522,14 @@ namespace ProjectX.Core
                 onFaBaoTakeOff = services.Lua.GetFunction("OnFaBaoTakeOff");
                 onMailClicked = services.Lua.GetFunction("OnMailClicked");
                 onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
+                onMailReadClicked = services.Lua.GetFunction("OnMailReadClicked");
+                onMailDeleteClicked = services.Lua.GetFunction("OnMailDeleteClicked");
+                onMailClaimAllClicked = services.Lua.GetFunction("OnMailClaimAllClicked");
+                onMailDeleteAllClicked = services.Lua.GetFunction("OnMailDeleteAllClicked");
+                onMailValidationClaim = services.Lua.GetFunction("OnMailValidationClaim");
+                onMailValidationClaimAll = services.Lua.GetFunction("OnMailValidationClaimAll");
+                onMailValidationReadAll = services.Lua.GetFunction("OnMailValidationReadAll");
+                onMailValidationRepeat = services.Lua.GetFunction("OnMailValidationRepeat");
                 onShopClicked = services.Lua.GetFunction("OnShopClicked");
                 onShopBuyConfirmed = services.Lua.GetFunction("OnShopBuyConfirmed");
                 onGameplayShopOpened = services.Lua.GetFunction("OnGameplayShopOpened");
@@ -609,6 +628,14 @@ namespace ProjectX.Core
             onFaBaoTakeOff?.Dispose();
             onMailClicked?.Dispose();
             onMailClaimClicked?.Dispose();
+            onMailReadClicked?.Dispose();
+            onMailDeleteClicked?.Dispose();
+            onMailClaimAllClicked?.Dispose();
+            onMailDeleteAllClicked?.Dispose();
+            onMailValidationClaim?.Dispose();
+            onMailValidationClaimAll?.Dispose();
+            onMailValidationReadAll?.Dispose();
+            onMailValidationRepeat?.Dispose();
             onShopClicked?.Dispose();
             onShopBuyConfirmed?.Dispose();
             onGameplayShopOpened?.Dispose();
@@ -1105,7 +1132,27 @@ namespace ProjectX.Core
         public void ShowMail()
         {
             EnsureMailPresenter();
+            bagView?.SetVisible(false);
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroReplacementView?.SetVisible(false);
+            heroCultivationView?.SetVisible(false);
+            heroLevelUpView?.SetVisible(false);
+            heroEnhanceMasterView?.SetVisible(false);
+            heroAttributesView?.SetVisible(false);
+            heroItemSourceView?.SetVisible(false);
+            heroEquipmentListView?.SetVisible(false);
+            heroEquipmentDetailView?.SetVisible(false);
+            heroEquipmentChangeView?.SetVisible(false);
+            heroEquipmentCultivateView?.SetVisible(false);
+            heroEquipmentStrengthView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
+            ConfigureMailFrame();
+            bagFrameView.SetVisible(true);
             if (services.UiStack.Current != mailView) services.UiStack.Push(mailView);
+            bagFrameView.GameObject.transform.SetAsLastSibling();
+            mailView.GameObject.transform.SetAsLastSibling();
             SetStatus($"Mail UI active: {services.Mails.Count} mails.");
         }
 
@@ -1716,6 +1763,7 @@ namespace ProjectX.Core
                 unchecked((byte)head), unchecked((ushort)level), checked((ulong)experience),
                 checked((ulong)power), potential, soul, unchecked((ushort)packageCapacity));
             services.Currencies.Initialize(money, premium, boundPremium, soul, guildContribution);
+            services.Mails.ConfigureAccount(roleId);
         }
 
         public void AddPlayerExperience(uint amount) => services.Player.AddExperience(amount);
@@ -2182,6 +2230,7 @@ namespace ProjectX.Core
         public void EndMailUpdate()
         {
             services.Mails.Replace(pendingMails);
+            UpdateMailRedDot();
             EnsureMailPresenter();
             ShowMail();
         }
@@ -2199,23 +2248,86 @@ namespace ProjectX.Core
             services.Mails.TryGet(checked((uint)id), out MailRecord value) ? value.Attachments.Count : 0;
 
         public bool HasMail(double id) => services.Mails.TryGet(checked((uint)id), out _);
-        public void RemoveMail(double id) => services.Mails.Remove(checked((uint)id));
+        public bool MoveMailToHistory(double id)
+        {
+            bool moved = services.Mails.MoveToHistory(checked((uint)id));
+            UpdateMailRedDot();
+            return moved;
+        }
+        public bool DeleteLocalMail(double id)
+        {
+            bool deleted = services.Mails.DeleteHistory(checked((uint)id));
+            UpdateMailRedDot();
+            return deleted;
+        }
+        public int DeleteAllLocalMails()
+        {
+            int count = services.Mails.DeleteAllHistory();
+            UpdateMailRedDot();
+            return count;
+        }
 
         public void CompleteMailClaimValidation(double claimedId, int rewardCount)
         {
             uint id = checked((uint)claimedId);
-            if (services.Mails.TryGet(id, out _) || rewardCount <= 0 || !ValidateRewardPresentation(rewardCount, true)
+            bool claimedHistory = services.Mails.TryGet(id, out MailRecord claimed)
+                && claimed.IsRead && !claimed.HasAttachments;
+            if (!claimedHistory || rewardCount <= 0 || !ValidateRewardPresentation(rewardCount, true)
                 || services.ProtocolRegistry.PendingCount != 0 || !IsMailOpen)
             {
-                Fail($"Mail validation mismatch: claimedStillPresent={services.Mails.TryGet(id, out _)}, rewards={rewardCount}, pending={services.ProtocolRegistry.PendingCount}, open={IsMailOpen}.");
+                Fail($"Mail validation mismatch: claimedHistory={claimedHistory}, rewards={rewardCount}, pending={services.ProtocolRegistry.PendingCount}, open={IsMailOpen}.");
                 return;
             }
-            Complete($"COMPLETE: /128 list -> MailStore/read/attachments -> claim id={id} -> RewardStore/RewardPresenter ({rewardCount}) -> persisted removal");
+            MarkValidationControl("MAIL-10-SINGLE-CLAIM");
+            if (!mailPresenter.Select(id) || mailPresenter.SingleActionLabel != "删除"
+                || !mailPresenter.InvokeSingleAction() || services.Mails.TryGet(id, out _))
+            {
+                Fail("Mail G4 single-delete control did not remove the claimed local-history mail.");
+                return;
+            }
+            MarkValidationControl("MAIL-11-SINGLE-DELETE");
+            InvokeLuaOrFail(onMailValidationRepeat, "Mail.ValidationRepeat", (double)id);
         }
 
-        public void CaptureMailDetailAndClaimValidation(double mailId)
+        public void BeginMailG4Validation(double mailId)
         {
-            StartCoroutine(CaptureMailDetailAndClaim((uint)mailId));
+            BeginValidationEvidence();
+            StartCoroutine(RunMailG4Validation(checked((uint)mailId)));
+        }
+
+        public void CompleteMailRepeatValidation(double mailId)
+        {
+            SetStatus($"Mail/128 repeated claim rejected explicitly: id={checked((uint)mailId)}.");
+            InvokeLuaOrFail(onMailValidationClaimAll, "Mail.ValidationClaimAll");
+        }
+
+        public void CompleteMailClaimAllValidation()
+        {
+            if (services.Mails.HasClaimable || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"Mail G4 claim-all mismatch: claimable={services.Mails.HasClaimable}, pending={services.ProtocolRegistry.PendingCount}.");
+                return;
+            }
+            rewardPresenter?.Hide();
+            MarkValidationControl("MAIL-12-CLAIM-ALL");
+            InvokeLuaOrFail(onMailValidationReadAll, "Mail.ValidationReadAll");
+        }
+
+        public void CompleteMailReadAllValidation()
+        {
+            if (services.Mails.Items.Any(item => !item.IsRead || item.HasAttachments)
+                || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"Mail G4 read-all mismatch: unread={services.Mails.Items.Count(item => !item.IsRead)}, pending={services.ProtocolRegistry.PendingCount}.");
+                return;
+            }
+            if (!mailPresenter.InvokeDeleteAll() || services.Mails.Count != 0 || !mailPresenter.IsEmptyVisible)
+            {
+                Fail("Mail G4 delete-all did not reach the real empty state.");
+                return;
+            }
+            MarkValidationControl("MAIL-13-DELETE-ALL");
+            StartCoroutine(FinalizeMailG4Validation());
         }
 
         public int GetShopDisplayItemId(double id) =>
@@ -4347,16 +4459,139 @@ namespace ProjectX.Core
         }
         private static IEnumerator InvokeButtonNextFrame(Button button) { yield return null; button.onClick.Invoke(); }
 
-        private IEnumerator CaptureMailDetailAndClaim(uint mailId)
+        private IEnumerator RunMailG4Validation(uint mailId)
         {
+            EnsureMailPresenter();
+            yield return new WaitForEndOfFrame();
+            if (!IsMailOpen || services.Mails.Count < 14 || mailPresenter.ItemCount != services.Mails.Count)
+            {
+                Fail($"Mail G4 fixture mismatch: open={IsMailOpen}, store={services.Mails.Count}, rendered={mailPresenter.ItemCount}.");
+                yield break;
+            }
+
+            mailValidationSawRedDot = IsMailRedDotVisible;
+            MarkValidationControl("MAIL-01-MAIN-ENTRY");
+            if (mailValidationSawRedDot) MarkValidationControl("MAIL-02-MAIN-RED-DOT");
+            if (mailPresenter.TabLabel == "邮件") MarkValidationControl("MAIL-04-MAIL-TAB");
+
+            Text emptyText = mailView.Binding.Find("Layer/None")?.GetComponentInChildren<Text>(true);
+            Text oneKeyClaim = mailView.Binding.Find("Layer/Panel/MailList/MailBg/ReceiveBtn/BtnName")?.GetComponent<Text>();
+            Text oneKeyDelete = mailView.Binding.Find("Layer/Panel/MailList/MailBg/DeleteBtn/BtnName")?.GetComponent<Text>();
+            RecordValidationSemantic("mail-title", !string.IsNullOrWhiteSpace(mailPresenter.TitleText),
+                $"actual={mailPresenter.TitleText}");
+            RecordValidationSemantic("mail-tab", mailPresenter.TabLabel == "邮件",
+                $"actual={mailPresenter.TabLabel}");
+            RecordValidationSemantic("mail-empty-text", emptyText != null && emptyText.text.Contains("暂无邮件"),
+                $"actual={emptyText?.text}");
+            RecordValidationSemantic("mail-action-labels",
+                mailPresenter.SingleActionLabel == "领取"
+                    && oneKeyClaim?.text.Contains("领取") == true
+                    && oneKeyDelete?.text.Contains("删除") == true,
+                $"single={mailPresenter.SingleActionLabel}, claimAll={oneKeyClaim?.text}, deleteAll={oneKeyDelete?.text}");
+            RecordValidationSemantic("mail-detail-fields",
+                !string.IsNullOrWhiteSpace(mailPresenter.TitleText) && !string.IsNullOrWhiteSpace(mailPresenter.BodyText),
+                "title/body must come from /128");
+            if (GetFailedValidationSemanticAssertions().Length > 0)
+            {
+                Fail("Mail G4 semantic assertions failed.");
+                yield break;
+            }
+            yield return CaptureMailValidationScreenshot("bootstrap-mail-populated.png");
+
+            MailRecord noAttachment = services.Mails.Items.FirstOrDefault(item => !item.HasAttachments);
+            if (noAttachment.Id == 0 || !mailPresenter.Select(noAttachment.Id))
+            {
+                Fail("Mail G4 fixture lacks a no-attachment mail.");
+                yield break;
+            }
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!services.Mails.TryGet(noAttachment.Id, out MailRecord readMail) || !readMail.IsRead)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!services.Mails.TryGet(noAttachment.Id, out MailRecord readResult) || !readResult.IsRead)
+            {
+                Fail("Mail G4 /128 op=4 did not produce per-role read history.");
+                yield break;
+            }
+            MarkValidationControl("MAIL-06-ROW-SELECT");
+
+            if (!mailPresenter.ScrollMailToBottom())
+            {
+                Fail("Mail G4 list ScrollRect did not reach the bottom.");
+                yield break;
+            }
+            MarkValidationControl("MAIL-05-LIST-SCROLL");
+            yield return CaptureMailValidationScreenshot("bootstrap-mail-scroll-bottom.png");
+
+            MailRecord longBodyMail = services.Mails.Items.FirstOrDefault(item =>
+                !item.HasAttachments
+                    && (item.Message.Contains("long body") || item.Message.Contains("长正文")));
+            if (longBodyMail.Id == 0) longBodyMail = noAttachment;
+            if (!mailPresenter.Select(longBodyMail.Id))
+            {
+                Fail("Mail G4 fixture lacks a long-body mail.");
+                yield break;
+            }
+            Canvas.ForceUpdateCanvases();
+            if (!mailPresenter.ScrollBodyToBottom())
+            {
+                Fail("Mail G4 long body ScrollRect did not reach the bottom.");
+                yield break;
+            }
+            MarkValidationControl("MAIL-07-BODY-SCROLL");
+
+            if (!mailPresenter.Select(mailId) || !mailPresenter.ScrollAttachmentsToEnd())
+            {
+                Fail("Mail G4 attachment ScrollRect did not reach the end.");
+                yield break;
+            }
+            MarkValidationControl("MAIL-08-ATTACHMENT-SCROLL");
+            yield return CaptureMailValidationScreenshot("bootstrap-mail-attachment-end.png");
+            MailRecord detailMail = services.Mails.Items.FirstOrDefault(item =>
+                item.Message.Contains("单附件可领取"));
+            if (detailMail.Id != 0) mailPresenter.Select(detailMail.Id);
+            if (!mailPresenter.InvokeFirstAttachmentDetail() || bagFlowPresenter?.IsSourceOpen != true)
+            {
+                Fail("Mail G4 attachment detail control did not open the shared item-source popup.");
+                yield break;
+            }
+            MarkValidationControl("MAIL-09-ATTACHMENT-DETAIL");
+            yield return CaptureMailValidationScreenshot("bootstrap-mail-detail.png");
+            bagFlowPresenter.CloseAll();
+            bagFrameView.SetVisible(true);
+            mailView.SetVisible(true);
+            bagFrameView.GameObject.transform.SetAsLastSibling();
+            mailView.GameObject.transform.SetAsLastSibling();
+            InvokeLuaOrFail(onMailValidationClaim, "Mail.ValidationClaim", (double)mailId);
+        }
+
+        private IEnumerator FinalizeMailG4Validation()
+        {
+            yield return CaptureMailValidationScreenshot("bootstrap-mail.png");
+            if (!mailValidationSawRedDot || IsMailRedDotVisible)
+            {
+                Fail($"Mail G4 red-dot transition mismatch: initial={mailValidationSawRedDot}, final={IsMailRedDotVisible}.");
+                yield break;
+            }
+            if (!mailPresenter.HasCloseControl || !mailPresenter.InvokeClose() || IsMailOpen)
+            {
+                Fail("Mail G4 real close control did not return to the previous UI.");
+                yield break;
+            }
+            MarkValidationControl("MAIL-03-CLOSE");
+            ShowMail();
+            Complete($"COMPLETE: Mail G4 13/13 real controls; /128 op2/3/4, repeated failure, serial claim-all/read-all, per-role persistence, empty state; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+        }
+
+        private IEnumerator CaptureMailValidationScreenshot(string fileName)
+        {
+            Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
-            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-mail-detail.png");
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             ScreenCapture.CaptureScreenshot(path);
-            yield return new WaitForSecondsRealtime(0.75f);
-            InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)mailId);
+            yield return new WaitForSecondsRealtime(0.8f);
         }
 
         private IEnumerator CaptureWelfareTabsAndClaim()
@@ -5662,9 +5897,66 @@ namespace ProjectX.Core
         private void EnsureMailPresenter()
         {
             mailView = mailView ?? services.UiRouter.FindBySource("MailLayer");
-            if (mailView == null) throw new InvalidOperationException("MailLayer CocosUiBinding was not found.");
-            mailPresenter = mailPresenter ?? new MailPresenter(mailView, services.Mails, services.Resources,
-                id => InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)id));
+            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            if (mailView == null || bagFrameView == null)
+                throw new InvalidOperationException("MailLayer/OneLevelLayer CocosUiBinding was not found.");
+            EnsureBagPresenter();
+            mailPresenter = mailPresenter ?? new MailPresenter(mailView, bagFrameView, services.Mails, services.Resources,
+                id => InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)id),
+                id => InvokeLuaOrFail(onMailReadClicked, "Mail.OnReadClicked", (double)id),
+                id => InvokeLuaOrFail(onMailDeleteClicked, "Mail.OnDeleteClicked", (double)id),
+                () => InvokeLuaOrFail(onMailClaimAllClicked, "Mail.OnClaimAllClicked"),
+                () => InvokeLuaOrFail(onMailDeleteAllClicked, "Mail.OnDeleteAllClicked"),
+                () =>
+                {
+                    bagFlowPresenter.CloseAll();
+                    bagFrameView.SetVisible(false);
+                    HandleBack();
+                },
+                item => bagFlowPresenter.ShowMailAttachment(item));
+        }
+
+        private void ConfigureMailFrame()
+        {
+            CocosUiBinding binding = bagFrameView.Binding;
+            RectTransform root = binding.transform as RectTransform;
+            if (root != null)
+            {
+                root.pivot = new Vector2(0f, 1f);
+                root.anchorMin = root.anchorMax = new Vector2(0f, 1f);
+                root.anchoredPosition = Vector2.zero;
+                root.localScale = Vector3.one;
+            }
+            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null)
+            {
+                title.text = "邮件";
+                title.alignment = TextAnchor.MiddleLeft;
+                title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            }
+            Transform help = title?.transform.Find("Button_1");
+            if (help != null) help.gameObject.SetActive(false);
+            Transform tabs = binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            if (tabs != null) tabs.gameObject.SetActive(true);
+            Transform first = tabs?.Find("Panel_10/Button1");
+            if (first != null) SetTabText(first, "邮件", true);
+            Transform second = tabs?.Find("Panel_10/Button2_Runtime");
+            if (second != null) second.gameObject.SetActive(false);
+            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
+            Text gold = binding.Find("Layer/GoldCheck/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
+            Text premium = binding.Find("Layer/GoldCheck/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
+            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
+            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
+            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
+                if (child.name == "Prompt") child.gameObject.SetActive(false);
+        }
+
+        private void UpdateMailRedDot()
+        {
+            if (mainView == null) return;
+            GameObject prompt = mainView.Binding.Find($"{MailPath}/Prompt");
+            if (prompt != null) prompt.SetActive(services.Mails.HasUnread);
         }
 
         private void EnsureShopPresenter()

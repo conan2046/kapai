@@ -59,7 +59,8 @@ try {
         "-projectXValidationScenario=$($scenario.key)",
         "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds",
         "-logFile", $logPath
-    ) + @($scenario.flags | ForEach-Object { [string]$_ })
+    ) + @($scenario.flags | ForEach-Object { [string]$_ }) `
+      + @($fixed.extraFlags | ForEach-Object { [string]$_ })
     $process = Start-Process -FilePath $unityExecutable -ArgumentList $arguments `
         -PassThru -WindowStyle Hidden
     $process.WaitForExit()
@@ -76,7 +77,18 @@ try {
     }
     $coverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
         -ControlMatrix ([string]$moduleConfig.controlMatrix)
-    Invoke-FixedAdapter "AssertSetup"
+    if (-not [bool]$fixed.skipPostValidationFixtureAssert) {
+        Invoke-FixedAdapter "AssertSetup"
+    }
+    foreach ($copy in @($fixed.artifactCopies)) {
+        $source = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.source)
+        $destination = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.destination)
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            throw "Fixed-account artifact is missing: $source"
+        }
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
+        Copy-Item -LiteralPath $source -Destination $destination -Force
+    }
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resultEvidence)) | Out-Null
     Copy-Item -LiteralPath $resultPath -Destination $resultEvidence -Force
     $summary = [ordered]@{

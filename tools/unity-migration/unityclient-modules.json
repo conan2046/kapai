@@ -370,7 +370,7 @@
     {
       "key": "Mail",
       "displayName": "邮件",
-      "status": "phase1-complete",
+      "status": "g6-complete",
       "protocols": [
         128
       ],
@@ -386,10 +386,14 @@
         "-projectXMailValidation"
       ],
       "screenshots": [
+        "build/ui-migration/bootstrap-mail-populated.png",
+        "build/ui-migration/bootstrap-mail-scroll-bottom.png",
+        "build/ui-migration/bootstrap-mail-attachment-end.png",
         "build/ui-migration/bootstrap-mail-detail.png",
         "build/ui-migration/bootstrap-mail.png"
       ],
-      "document": "docs/unityclient/modules/MAIL.md"
+      "document": "docs/unityclient/modules/MAIL.md",
+      "controlMatrix": "docs/unityclient/matrices/MAIL_CONTROLS.json"
     },
     {
       "key": "Shop",

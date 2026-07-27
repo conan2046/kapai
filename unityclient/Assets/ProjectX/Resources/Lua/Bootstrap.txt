@@ -43,6 +43,7 @@ function OnDisconnected(reason)
     BagController.onDisconnected()
     HeroController.reset()
     EquipmentController.reset()
+    MailController.onDisconnected()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
@@ -63,6 +64,14 @@ function OnFaBaoWear(uid, position) EquipmentController.wearFaBao(uid, position)
 function OnFaBaoTakeOff(uid) EquipmentController.takeOffFaBao(uid) end
 function OnMailClicked() MailController.onClick() end
 function OnMailClaimClicked(id) MailController.claim(id) end
+function OnMailReadClicked(id) MailController.read(id) end
+function OnMailDeleteClicked(id) MailController.delete(id) end
+function OnMailClaimAllClicked() MailController.claimAll() end
+function OnMailDeleteAllClicked() MailController.deleteAll() end
+function OnMailValidationClaim(id) MailController.validationClaim(id) end
+function OnMailValidationClaimAll() MailController.validationClaimAll() end
+function OnMailValidationReadAll() MailController.validationReadAll() end
+function OnMailValidationRepeat(id) MailController.validationRepeat(id) end
 function OnShopClicked() ShopController.onClick() end
 function OnShopBuyConfirmed(id) ShopController.buyConfirmed(id) end
 function OnGameplayShopOpened(functionId) GameplayShopController.open(functionId) end

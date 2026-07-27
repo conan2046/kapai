@@ -71,3 +71,4 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 - `sourceContracts` 在启服前校验 Cocos/Unity 关键文件与锚点，优先暴露入口、协议和实现漂移。
 - `validationData.setupAssertSql/cleanupAssertSql` 可用 SQL `SIGNAL` 把夹具注入与恢复验证变为硬失败。
 - 声明 `controlCoverageRequired` 后，Runner 实际触发 ID 必须与矩阵 ID 完全一致；语义断言失败或缺失同样硬失败。
+- 变更型固定账号模块可在 `fixedAccount` 声明 `extraFlags`、`skipPostValidationFixtureAssert=true` 和 `artifactCopies`：先保存运行原图，再由适配器精确恢复并重登录复核；不得在变更完成后误用“夹具仍处于 Setup 状态”断言。
