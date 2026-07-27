@@ -208,6 +208,8 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 
 动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`；验证器按 30 秒心跳区分总运行超时与无进展超时。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。
 
+提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。夹具可声明 `validationData.setupAssertSql/cleanupAssertSql`，用 SQL `SIGNAL` 把注入与恢复失败变成硬失败。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
+
 ## 13. 高频坑与处理
 
 | 问题 | 处理 |

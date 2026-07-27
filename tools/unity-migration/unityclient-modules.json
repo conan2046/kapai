@@ -152,8 +152,13 @@
       "entries": [
         "Layer/Main_UI/ButtonGroup5/btn_renwu"
       ],
-      "prefabs": [],
-      "configs": [],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/huodong_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/RenwuLayer.prefab"
+      ],
+      "configs": [
+        "unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json"
+      ],
       "mutatesServer": true,
       "validationFlags": [
         "-projectXTaskValidation"
@@ -161,7 +166,8 @@
       "screenshots": [
         "build/ui-migration/bootstrap-task.png"
       ],
-      "document": "docs/unityclient/modules/TASK.md"
+      "document": "docs/unityclient/modules/TASK.md",
+      "controlMatrix": "docs/unityclient/matrices/TASK_CONTROLS.json"
     },
     {
       "key": "PlayerHud",

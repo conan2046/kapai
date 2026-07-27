@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "module": "Task",
+  "hardGateVersion": 1,
+  "scope": {
+    "screenSize": "1334x750",
+    "included": [
+      "主界面任务入口、每日任务唯一页签、任务列表和空态",
+      "任务奖励、前往、领取、已领取、四档活跃宝箱及奖励弹窗",
+      "体力/铜钱加号、禁用通宝加号、/37、/39、/65 type=101"
+    ],
+    "sharedGlobalControlsOwnedElsewhere": [
+      "货币加号目标页、任务跳转目标页及通用奖励弹窗框架由对应公共模块负责"
+    ],
+    "excludedMustBeHiddenOrDisabled": [
+      "当前入口只创建每日任务页签；通宝加号在 Cocos 明确禁用"
+    ]
+  },
+  "controls": [
+    {
+      "id": "TASK-01-MAIN-ENTRY",
+      "page": "主界面",
+      "path": "UImainLayer_new/Main_UI/ButtonGroup5/btn_renwu",
+      "visibleCondition": "主界面且 EMID_TASK_DALIY 开放",
+      "cocosCallback": "MainUI taskBtn -> Utils:OpenFunction(EMID_TASK_DALIY) -> Activity.TaskLayer",
+      "protocolOp": "/37 op=2 活跃奖励；/37 op=0 每日任务",
+      "unityBinding": "真实 btn_renwu -> 打开 Task 背景与 RenwuLayer",
+      "successEvidence": "pending G1 current Cocos evidence",
+      "failureEvidence": "pending G4 locked/disconnected evidence",
+      "reconnectEvidence": "pending G4 reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-02-CLOSE",
+      "page": "任务",
+      "path": "huodong_bg/Panel_1/Title/CloseBtn",
+      "visibleCondition": "任务一级界面打开",
+      "cocosCallback": "TaskLayer closeCallback -> RemoveUI",
+      "protocolOp": "无",
+      "unityBinding": "公共 CloseBtn -> 仅关闭 Task 层",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending repeated-close evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-03-STAMINA-ADD",
+      "page": "任务",
+      "path": "huodong_bg/Panel_1/GoldCheck/GoldIcon1/AddBtn",
+      "visibleCondition": "任务一级界面打开",
+      "cocosCallback": "TaskLayer:onTiliClicked -> Utils:OpenUseUI(500,1)",
+      "protocolOp": "Task 不发包；进入体力道具子流程",
+      "unityBinding": "体力 AddBtn -> Foundation/Bag 共用入口",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending no-item evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-04-MONEY-ADD",
+      "page": "任务",
+      "path": "huodong_bg/Panel_1/GoldCheck/GoldIcon3/AddBtn",
+      "visibleCondition": "任务一级界面打开",
+      "cocosCallback": "TaskLayer:onMoneyClicked -> OpenFunction(EMID_SCCHANGYONG)",
+      "protocolOp": "Task 不发包；跳常用商城",
+      "unityBinding": "铜钱 AddBtn -> Shop 共用入口",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending locked evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-05-TONGBAO-ADD-DISABLED",
+      "page": "任务",
+      "path": "huodong_bg/Panel_1/GoldCheck/GoldIcon4/AddBtn",
+      "visibleCondition": "可见但禁用",
+      "cocosCallback": "TaskLayer:InitTouchEvt -> AddBtn:setEnabled(false)",
+      "protocolOp": "无；必须不发包",
+      "unityBinding": "通宝 AddBtn 保持禁用",
+      "successEvidence": "pending G1 disabled-state evidence",
+      "failureEvidence": "pending click-noop evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-06-DAILY-TAB",
+      "page": "任务",
+      "path": "huodong_bg/Panel_1/Btn_ListView/Panel_1/Button",
+      "visibleCondition": "唯一每日页签，当前选中禁用",
+      "cocosCallback": "TaskLayer:TabBtnClicked(1) -> current tab return",
+      "protocolOp": "无",
+      "unityBinding": "只显示每日任务页签且不可重复触发",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending duplicate-tab evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-07-LIST-SCROLL",
+      "page": "任务",
+      "path": "RenwuLayer/Renwu/Content/ListView (runtime cc.TableView)",
+      "visibleCondition": "任务超过一屏",
+      "cocosCallback": "HuoyueTaskUI:initListTableView -> vertical TableView",
+      "protocolOp": "/37 op=0 全量；/39 增量",
+      "unityBinding": "TaskPresenter VirtualList -> ScrollRect/Viewport/Content",
+      "successEvidence": "pending G1 top/bottom evidence",
+      "failureEvidence": "pending empty/refresh evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-08-REWARD-ITEM",
+      "page": "任务",
+      "path": "RenwuLayer/Renwu/Item/Panel/ListView/itemBase*",
+      "visibleCondition": "任务配置含奖励",
+      "cocosCallback": "HuoyueTaskUI:ShowExpCellInfo -> ShowItemByConfigData(..., true)",
+      "protocolOp": "无；只读配置奖励",
+      "unityBinding": "动态奖励格显示真实图标/数量与公共详情",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending missing-config/icon evidence",
+      "reconnectEvidence": "pending account-switch evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-09-GO",
+      "page": "任务",
+      "path": "RenwuLayer/Renwu/Item/Panel/Btn",
+      "visibleCondition": "state=0 且 config.jump != 0",
+      "cocosCallback": "HuoyueTaskUI:onTaskBtnClicked -> Delete TaskLayer -> OpenFunction(jump)，含装备/法宝/帮派特化",
+      "protocolOp": "无；跳转目标模块",
+      "unityBinding": "按 daily_tasks.jump 跳转，不得固定打开神将或假页面",
+      "successEvidence": "pending G1 multiple-jump evidence",
+      "failureEvidence": "pending jump=0/no-equipment/no-guild evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-10-CLAIM",
+      "page": "任务",
+      "path": "RenwuLayer/Renwu/Item/Panel/Btn_0",
+      "visibleCondition": "state=1",
+      "cocosCallback": "HuoyueTaskUI:onTaskBtnClicked -> QueryGotTaskAward(2, task_id)",
+      "protocolOp": "/37 op=2, task_id；回包后 state=2 并重排",
+      "unityBinding": "真实领取 Button -> Lua 权威领奖并等待回包",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending repeat/invalid/disconnected evidence",
+      "reconnectEvidence": "pending persistence evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-11-ACTIVITY-BOXES",
+      "page": "任务",
+      "path": "RenwuLayer/Renwu/Content/TitleBg/LoadingBg/Panel_1..Panel_4",
+      "visibleCondition": "收到 /37 op=2",
+      "cocosCallback": "HuoyueTaskUI:OnRewardBoxClicked -> OpenRewardBox；state 0/2 预览，state 1 可领",
+      "protocolOp": "预览无包；确认后 /37 op=0, task_id",
+      "unityBinding": "四档宝箱绑定进度、开闭态、可领特效和奖励弹窗",
+      "successEvidence": "pending G1 four-box evidence",
+      "failureEvidence": "pending missing/repeat evidence",
+      "reconnectEvidence": "pending persistence evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-12-BOX-CONFIRM",
+      "page": "活跃宝箱奖励",
+      "path": "tanchuangjiangli/Popup/btn_lingqu",
+      "visibleCondition": "宝箱 state=1 的可领弹窗",
+      "cocosCallback": "RewardGetUI:OnDrawClick -> OkBtn -> QueryGotTaskAward(0, task_id)",
+      "protocolOp": "/37 op=0, task_id",
+      "unityBinding": "确认仅在可领态显示，单次提交并等待回包",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending state0/state2/repeat evidence",
+      "reconnectEvidence": "pending persistence evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-13-BOX-CLOSE",
+      "page": "活跃宝箱奖励",
+      "path": "tanchuangjiangli/Popup/Btn_close",
+      "visibleCondition": "奖励弹窗打开",
+      "cocosCallback": "RewardGetUI:OnCloseClick -> CloseUI",
+      "protocolOp": "无；取消不领奖",
+      "unityBinding": "关闭后返回 Task 并保持列表位置",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending repeated-close evidence",
+      "reconnectEvidence": "pending reconnect evidence",
+      "status": "g0-declared"
+    },
+    {
+      "id": "TASK-14-BOX-REWARD-ITEM",
+      "page": "活跃宝箱奖励",
+      "path": "tanchuangjiangli/Popup/ListView/ItemList*/itemlayer_1..4/item",
+      "visibleCondition": "奖励弹窗包含至少一个奖励",
+      "cocosCallback": "RewardGetUI:ShowCellInfo -> Utils:ShowItemByConfigData(..., true, true)",
+      "protocolOp": "无；只读奖励内容",
+      "unityBinding": "动态奖励格显示真实名称、品质、图标、数量及公共详情点击",
+      "successEvidence": "pending G1",
+      "failureEvidence": "pending missing-config/icon evidence",
+      "reconnectEvidence": "pending account-switch evidence",
+      "status": "g0-declared"
+    }
+  ]
+}

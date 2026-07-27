@@ -106,6 +106,8 @@ foreach ($module in $manifest.modules) {
     }
     else { $scenario = $scenarios[0] }
     if ($null -ne $scenario) {
+        try { Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario | Out-Null }
+        catch { Add-Failure "Module $key source contract failed: $($_.Exception.Message)" }
         if ([string]$scenario.fixture -notin $fixtureKeys) {
             Add-Failure "Module $key scenario references missing fixture: $($scenario.fixture)"
         }
@@ -226,7 +228,10 @@ foreach ($module in $manifest.modules) {
         if (@($validationData.cleanupSql).Count -eq 0) {
             Add-Failure "Module $key validationData has no cleanupSql."
         }
-        $templates = @($validationData.setupSql) + @($validationData.cleanupSql)
+        $templates = @($validationData.setupSql) +
+            @((Get-UnityMigrationPropertyValue -Object $validationData -Name "setupAssertSql" -Default @())) +
+            @($validationData.cleanupSql) +
+            @((Get-UnityMigrationPropertyValue -Object $validationData -Name "cleanupAssertSql" -Default @()))
         $allowedTokens = @("UserId", "Now", "NowMinus60", "NowPlus3600", "Module")
         foreach ($template in $templates) {
             foreach ($match in [regex]::Matches([string]$template, '\{\{([A-Za-z][A-Za-z0-9]*)\}\}')) {

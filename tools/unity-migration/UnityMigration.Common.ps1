@@ -325,7 +325,7 @@ function Invoke-UnityMigrationValidationData {
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)]$Manifest,
         [Parameter(Mandatory = $true)]$ModuleConfig,
-        [Parameter(Mandatory = $true)][ValidateSet("setupSql", "cleanupSql")][string]$Phase,
+        [Parameter(Mandatory = $true)][ValidateSet("setupSql", "setupAssertSql", "cleanupSql", "cleanupAssertSql")][string]$Phase,
         [Parameter(Mandatory = $true)][hashtable]$Variables
     )
     $data = $ModuleConfig.validationData
@@ -338,7 +338,7 @@ function Invoke-UnityMigrationValidationData {
     if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
         throw "Validation data executable not found: $executable"
     }
-    $statements = @($data.$Phase)
+    $statements = @((Get-UnityMigrationPropertyValue -Object $data -Name $Phase -Default @()))
     if ($statements.Count -eq 0) { return }
     $sql = (@($statements | ForEach-Object {
         Expand-UnityMigrationTemplate -Template ([string]$_) -Variables $Variables
@@ -356,6 +356,82 @@ function Invoke-UnityMigrationValidationData {
 function Test-UnityMigrationPort {
     param([Parameter(Mandatory = $true)][int]$Port)
     return $null -ne (Get-UnityMigrationTcpListenerPid -Port $Port)
+}
+
+function Assert-UnityMigrationSourceContracts {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$Scenario
+    )
+    $contracts = @((Get-UnityMigrationPropertyValue -Object $Scenario -Name "sourceContracts" -Default @()))
+    $hashLines = New-Object System.Collections.Generic.List[string]
+    foreach ($contract in $contracts) {
+        $relativePath = [string]$contract.path
+        if (-not $relativePath) { throw "Scenario '$($Scenario.key)' contains a source contract without path." }
+        $path = Resolve-UnityMigrationPath -Root $Root -Path $relativePath
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Scenario '$($Scenario.key)' source contract is missing: $relativePath"
+        }
+        $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $path
+        foreach ($token in @($contract.contains)) {
+            if (-not $content.Contains([string]$token)) {
+                throw "Scenario '$($Scenario.key)' source contract drifted: '$relativePath' no longer contains '$token'."
+            }
+        }
+        $hashLines.Add("$relativePath=$((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash)")
+    }
+    if ($hashLines.Count -eq 0) { return "" }
+    $bytes = [Text.Encoding]::UTF8.GetBytes(($hashLines -join "`n"))
+    $stream = [IO.MemoryStream]::new($bytes)
+    try { return (Get-FileHash -Algorithm SHA256 -InputStream $stream).Hash }
+    finally { $stream.Dispose() }
+}
+
+function Assert-UnityMigrationVisualArtifacts {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$Scenario,
+        [string[]]$ImmutableRoots = @(),
+        [datetime]$FreshAfterUtc = [datetime]::MinValue
+    )
+    $assertions = Get-UnityMigrationPropertyValue -Object $Scenario -Name "visualAssertions" -Default $null
+    $expectedWidth = [int](Get-UnityMigrationPropertyValue -Object $assertions -Name "width" -Default 1334)
+    $expectedHeight = [int](Get-UnityMigrationPropertyValue -Object $assertions -Name "height" -Default 750)
+    $minimumBytes = [int](Get-UnityMigrationPropertyValue -Object $assertions -Name "minimumBytes" -Default 1024)
+    $requireUnique = [bool](Get-UnityMigrationPropertyValue -Object $assertions -Name "requireUniqueHashes" -Default $true)
+    $results = New-Object System.Collections.Generic.List[object]
+    Add-Type -AssemblyName System.Drawing
+    foreach ($artifact in @($Scenario.artifacts)) {
+        $relativePath = Get-UnityMigrationArtifactPath -Artifact $artifact
+        $path = Assert-UnityMigrationRuntimeArtifact -Root $Root -Artifact $artifact -ImmutableRoots $ImmutableRoots
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Expected screenshot missing: $relativePath" }
+        $item = Get-Item -LiteralPath $path
+        if ($item.Length -lt $minimumBytes) {
+            throw "Screenshot is suspiciously small: $relativePath ($($item.Length) bytes, minimum=$minimumBytes)."
+        }
+        if ($FreshAfterUtc -ne [datetime]::MinValue -and $item.LastWriteTimeUtc -lt $FreshAfterUtc.AddSeconds(-2)) {
+            throw "Screenshot is stale: $relativePath"
+        }
+        $image = [System.Drawing.Image]::FromFile($path)
+        try {
+            if ($image.Width -ne $expectedWidth -or $image.Height -ne $expectedHeight) {
+                throw "Screenshot has wrong size: $relativePath ($($image.Width)x$($image.Height), expected ${expectedWidth}x${expectedHeight})"
+            }
+        }
+        finally { $image.Dispose() }
+        $results.Add([pscustomobject]@{
+            path = $relativePath
+            width = $expectedWidth
+            height = $expectedHeight
+            bytes = [long]$item.Length
+            sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+        })
+    }
+    if ($requireUnique -and $results.Count -gt 1 -and
+        @($results | Group-Object sha256 | Where-Object Count -gt 1).Count -gt 0) {
+        throw "Scenario '$($Scenario.key)' contains duplicate screenshot content."
+    }
+    return $results.ToArray()
 }
 
 function Get-UnityMigrationTcpListenerPid {

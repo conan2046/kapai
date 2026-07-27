@@ -80,6 +80,40 @@
       "updatedUtc": "2026-07-27T04:29:02.3950046Z"
     },
     {
+      "module": "Task",
+      "gates": {
+        "G0": "passed",
+        "G1": "blocked",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/TASK.md",
+      "note": "G0 passed with 14 current controls. G1 reached the real Cocos page on fixed account 7200057/1000115, but authoritative /37 returned an empty daily-task list; populated, claimable, claimed, scroll and reward-popup states remain unavailable, so G2 is forbidden.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/TASK_CONTROLS.json",
+          "docs/unityclient/modules/TASK.md",
+          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
+          "tools/cocos-audit/generated/cocos-control-candidates.json"
+        ],
+        "G1": [
+          ".local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/01-task-entry.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/04-task-page-native-1334x750.png",
+          ".local/kapai-current.out"
+        ],
+        "G2": [],
+        "G3": [],
+        "G4": [],
+        "G5": [],
+        "G6": []
+      },
+      "updatedUtc": "2026-07-27T00:00:00Z"
+    },
+    {
       "module": "Hero",
       "gates": {
         "G0": "passed",

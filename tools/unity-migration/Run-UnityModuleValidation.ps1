@@ -8,6 +8,7 @@ param(
     [switch]$KeepServices,
     [switch]$SkipPythonTests,
     [switch]$SkipScreenshotCheck,
+    [ValidateSet("Full", "Preflight", "VisualReplay")][string]$ValidationMode = "Full",
     [string[]]$ExtraFlags = @(),
     [string[]]$ValidationFlagsOverride = @(),
     [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
@@ -57,6 +58,7 @@ $logPath = Join-Path $logDirectory ("unity-{0}-validation.log" -f $moduleKey.ToL
 $summaryDirectory = Join-Path $root ".local\unity-validation"
 $summaryPath = Join-Path $summaryDirectory ("{0}-latest.json" -f $moduleKey.ToLowerInvariant())
 $progressPath = Join-Path $summaryDirectory ("{0}-progress.json" -f $moduleKey.ToLowerInvariant())
+$visualReplayPath = Join-Path $summaryDirectory ("{0}-visual-replay-latest.json" -f $moduleKey.ToLowerInvariant())
 
 $effectiveUserId = $UserId
 $friendPeerUserIds = @()
@@ -69,7 +71,7 @@ $validationDataApplied = $false
 $validationDataVariables = $null
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
-        if (-not $DryRun) {
+        if (-not $DryRun -and $ValidationMode -eq "Full") {
             $effectiveUserId = New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
         }
     }
@@ -77,14 +79,14 @@ if ($effectiveUserId -eq 0) {
         $effectiveUserId = 1
     }
 }
-if ($moduleConfig.key -ieq "Friend" -and -not $DryRun) {
+if ($moduleConfig.key -ieq "Friend" -and -not $DryRun -and $ValidationMode -eq "Full") {
     if ($UserId -ne 0) { throw "Friend validation currently requires an auto-allocated isolated user; omit -UserId." }
     $friendPeerUserIds = @(
         New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
         New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
     )
 }
-if ($moduleConfig.key -ieq "Team" -and -not $DryRun) {
+if ($moduleConfig.key -ieq "Team" -and -not $DryRun -and $ValidationMode -eq "Full") {
     if ($UserId -ne 0) { throw "Team validation requires auto-allocated isolated users; omit -UserId." }
     $teamPeerUserId = New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
 }
@@ -116,11 +118,28 @@ Write-Host "Arguments: $($unityArguments -join ' ')"
 & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
     -Module $moduleKey -Phase Preflight -ManifestPath $manifestEntry.Path
 if ($LASTEXITCODE -ne 0) { throw "Unity migration hard-gate preflight failed with exit code $LASTEXITCODE" }
+$sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
 Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "preflight-passed" `
-    -Detail "scenario=$($scenario.key); user=$(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
+    -Detail "scenario=$($scenario.key); source=$sourceContractFingerprint; user=$(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
 
-if ($DryRun) {
-    Write-Host "DryRun passed: no process, result, screenshot or user-id state was changed."
+if ($DryRun -or $ValidationMode -eq "Preflight") {
+    Write-Host "$ValidationMode preflight passed: no process, result, screenshot or user-id state was changed."
+    exit 0
+}
+if ($ValidationMode -eq "VisualReplay") {
+    $visualResults = Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario -ImmutableRoots $immutableEvidenceRoots
+    $visualReplay = [ordered]@{
+        success = $true
+        mode = "visual-replay"
+        limitation = "Structural replay only; it does not replace fresh G5 Cocos/Unity evidence."
+        module = $moduleKey
+        scenario = [string]$scenario.key
+        sourceContractFingerprint = $sourceContractFingerprint
+        screenshots = @($visualResults)
+        checkedUtc = [DateTime]::UtcNow.ToString("O")
+    }
+    Write-UnityMigrationUtf8 -Path $visualReplayPath -Content (($visualReplay | ConvertTo-Json -Depth 8) + "`n")
+    Write-Host "Visual replay passed: $visualReplayPath"
     exit 0
 }
 if (-not (Test-Path -LiteralPath $unityExe -PathType Leaf)) { throw "Unity executable not found: $unityExe" }
@@ -218,6 +237,8 @@ try {
             $validationDataApplied = $true
             Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
                 -Phase setupSql -Variables $validationDataVariables
+            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
+                -Phase setupAssertSql -Variables $validationDataVariables
             Write-Host "$moduleKey setup: manifest validation data applied before kapai startup."
         }
     }
@@ -234,6 +255,8 @@ try {
         $validationDataApplied = $true
         Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
             -Phase setupSql -Variables $validationDataVariables
+        Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
+            -Phase setupAssertSql -Variables $validationDataVariables
         Write-Host "$moduleKey setup: manifest validation data applied."
     }
 
@@ -406,24 +429,10 @@ try {
         throw "Unity log contains serious errors:`n$sample"
     }
 
-    $screenshotResults = New-Object System.Collections.Generic.List[object]
+    $screenshotResults = @()
     if (-not $SkipScreenshotCheck) {
-        Add-Type -AssemblyName System.Drawing
-        foreach ($artifact in $scenarioArtifacts) {
-            $screenshot = Get-UnityMigrationArtifactPath -Artifact $artifact
-            $path = Assert-UnityMigrationRuntimeArtifact -Root $root -Artifact $artifact -ImmutableRoots $immutableEvidenceRoots
-            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Expected screenshot missing: $screenshot" }
-            $item = Get-Item -LiteralPath $path
-            if ($item.LastWriteTimeUtc -lt $attemptStart.AddSeconds(-2)) { throw "Screenshot is stale: $screenshot" }
-            $image = [System.Drawing.Image]::FromFile($path)
-            try {
-                if ($image.Width -ne 1334 -or $image.Height -ne 750) {
-                    throw "Screenshot has wrong size: $screenshot ($($image.Width)x$($image.Height))"
-                }
-                $screenshotResults.Add([pscustomobject]@{ path = [string]$screenshot; width = $image.Width; height = $image.Height })
-            }
-            finally { $image.Dispose() }
-        }
+        $screenshotResults = @(Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario `
+            -ImmutableRoots $immutableEvidenceRoots -FreshAfterUtc $attemptStart)
     }
 
     if (-not $SkipPythonTests) {
@@ -450,7 +459,8 @@ try {
         mutatesServer = [bool]$moduleConfig.mutatesServer
         status = [string]$result.status
         resultUtc = $resultUtc.ToString("O")
-        screenshots = $screenshotResults.ToArray()
+        screenshots = @($screenshotResults)
+        sourceContractFingerprint = $sourceContractFingerprint
         log = $logPath
         startedProcessIds = @($startedIds)
         friendTargetRoleId = $friendTargetRoleId
@@ -496,9 +506,29 @@ finally {
         try {
             Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
                 -Phase cleanupSql -Variables $validationDataVariables
+            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
+                -Phase cleanupAssertSql -Variables $validationDataVariables
             Write-Host "$moduleKey cleanup: manifest validation data removed."
         }
-        catch { Write-Warning $_.Exception.Message }
+        catch {
+            Write-Warning $_.Exception.Message
+            if (-not $failure) {
+                $failure = $_
+                $cleanupSummary = [ordered]@{
+                    success = $false
+                    module = $moduleKey
+                    scenario = [string]$scenario.key
+                    fixture = [string]$fixture.key
+                    userId = $effectiveUserId
+                    error = "Fixture cleanup assertion failed: $($_.Exception.Message)"
+                    startedProcessIds = @($startedIds)
+                    checkedUtc = [DateTime]::UtcNow.ToString("O")
+                }
+                Write-UnityMigrationUtf8 -Path $summaryPath -Content (($cleanupSummary | ConvertTo-Json -Depth 8) + "`n")
+                Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "failed" `
+                    -Detail $cleanupSummary.error
+            }
+        }
     }
     Record-NewWorkspaceProcesses
     if (-not $KeepServices) {

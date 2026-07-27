@@ -21,11 +21,11 @@
 | 运行时/网络/xLua | 第一阶段完成 | App 状态、协议分发、错误边界、重连、返回栈 | 回放、发布配置、完整错误码 |
 | 登录/主界面 | 第一阶段完成 | 当前代码链已通过：Logo/Windows 预载、真实 LoginBg/login/SeverList/RoleCreate、`Btn_Play`、隔离创角 `/1001→/1003→/1004`、当前 UImainLayer、`/88 NoticeLayer` | 正式登录服、维护公告、发布配置后置 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
-| 迁移提速工具 | 第一阶段完成 | Manifest、模块脚手架、协议取证、功能验收、数据夹具、Bootstrap 幂等；已新增 Cocos↔Unity 1:1 证据门禁 | 补自动截图与差异生成 |
+| 迁移提速工具 | 第二阶段完成 | 新增零副作用 Preflight、视觉结构快跑、源码锚点防漂移、夹具 setup/cleanup SQL 硬断言；29模块一致性与16项解析回归通过 | 后续模块统一先 Preflight，再按 G0-G6 顺序推进 |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | 第一阶段完成 | 音乐/音效/音量持久化 | 兑换码、公告等独立模块 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定隔离账号完成 Cocos/Unity 26/26 原生图、并排/叠加/差异、真实控件、`/8`/`/15`、使用/整理/增删改、重连/持久化/切号及 Bootstrap 幂等 | 当前模块收口；下一任务重新选择一个模块执行 G0 |
-| 任务 | 第一阶段完成 | `/37、/39、/65` 列表/增量/追踪/红点/领奖 | 任务类型全覆盖 |
+| 任务 | `G0 passed / G1 blocked` | 14组当前 Cocos 控件已冻结；固定账号真实进入任务页，`/37 op=2/op=0` 均回包，当前权威每日任务列表为空 | 先建立可回滚 populated/claimable Cocos 夹具并补齐 G1；不得进入 G2 |
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
 | 装备/法宝 | `G0-G6 passed / 33/33 complete` | 固定账号完成 20/20 双端视觉、33/33 真实控件、穿脱/强化/失败态/重连/持久化/切号及 Bootstrap 幂等 | 当前模块收口；新任务再选下一模块 |
 | 邮件 | 第一阶段完成 | `/128` 列表、已读、附件、单封领取 | 红点、一键领取、删除、空态 |
@@ -44,6 +44,7 @@
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- Task G0/G1（2026-07-27）：优化后的 Preflight 在不分配账号、不启服务/Unity时完成14控件、源码锚点、Manifest/Scenario与文档漂移检查，G0通过。固定账号 `7200057/1000115` 随后真实点击 Cocos 任务入口，服务端收到并响应两次 `/37`，取得原生 `1334×750` 页面；当前每日任务列表为空，缺 populated/claimable/claimed/scroll/reward-popup 状态，故 G1 blocked，未进入 G2。证据 `.local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md`。
 - 背包 G0-G6 收口（2026-07-27）：固定隔离账号 `7200057 / roleId=1000115`、Windows 100%、双端原生 `1334×750`。矩阵 `26/26 complete`；Cocos/Unity 原图、并排、50% 叠加、增强差异、真实控件自动化和人工视觉均 `26/26 passed`。真实 `/8`、`/15` 覆盖全量、增量新增/更新/删除、整理、批量/礼包/直接使用、无效/重复拒绝、重拉、断线重连、持久化和切号清理；严重异常 0，Python UI `16/16`。正式 `BootstrapSceneBuilder.BuildBatch` 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。测试数据只来自可逆本地隔离夹具，不是正式服/生产数据；来源目标模块未迁移时保持 Bag 并记录不可用目标，不再打开无数据神将空壳。证据 `.local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json`、`.local/unity-validation/bag-latest.json`。
 - 装备/法宝 G0-G6收口（2026-07-27）：固定账号 `7200057 / roleId=1000115`、原生 `1334×750`；Cocos/Unity 原图、并排/叠加/差异和人工视觉均 `20/20 passed`，控件矩阵 `33/33`。Unity MCP 真实 Button 覆盖主入口、六槽、背包/碎片、帮助、详情/更换、筛选、强化和关闭；G4穿脱、失败态、断服重连、持久化与切号清理继续有效。强化页补齐真实主角头像，单次强化 UID `2121072641` 本轮 `8→10→12`；缺图0、严重异常0、Console最终0 error/0 warning。正式 `BuildBatch` 经 Unity MCP 连续两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。证据 `.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g6-control-runner.json`。
 - 神将/阵容 G0-G6收口（2026-07-26）：固定账号 `7200057 / roleId=1000115`、同数据、原生 `1334×750` 的 Cocos/Unity 原图、并排/叠加/差异、真实 Button 自动化和人工视觉均 `16/16 passed`。修复范围包括主界面公共层与圆形头像、阵容装备/法宝真实图标、候选页残留、养成页内容与经验条、强化大师、四装备/两法宝独立详情和完整属性弹窗。最终 Runner `build/ui-migration/bootstrap-app-result.json` 于 `2026-07-26T14:31:28.6502368Z` 成功，严重异常0；纳入 `ChatLayer` 后正式 Bootstrap 双批处理幂等 SHA-256 为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`；G5、G6门禁已通过。证据 `.local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.md`。
@@ -78,7 +79,7 @@
 - 活动旧版 `/209 + ActivityLayer` 结果已判为错误版本证据，不再计入完成率，也不得提交。
 
 ## 4. 当前批次
-背包 Bag 当前只推进到 G1：G0 26/26 控件闭包、G1 当前 Cocos `1334×750` 基准已通过，G2-G6 pending。本任务不进入 G2；下一步只冻结 `/8`、`/15` 字段、全量/增量/删除/整理/使用规则及 26 控件生命周期设计。固定账号 `7200057 / roleId=1000115` 的原始包备份为 `.local/ui-fidelity/Bag/cocos/g1-20260727/fixture-baseline.json`，27 项同域夹具暂保留供 G2-G5 同数据验证，模块结束后精确恢复；G1 未执行有效 `/15` 消耗。
+Task 当前只推进到 G1：G0 14组控件闭包通过；G1 固定账号真实 Cocos `/37` 返回空列表，标记 blocked。下一步只建立可回滚 populated/claimable Cocos 夹具并补齐 G1；G1 未通过前禁止进入 G2。
 
 ## 5. 已知风险
 

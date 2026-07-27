@@ -1,9 +1,19 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-27 Bag G0-G6、26/26 控件完整收口
+> 当前交接：2026-07-27 提速工具落地；Task G0 passed、G1 blocked
 > 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
 
 ## 0. 2026-07-27 新窗口直接执行
+
+### 当前 Task 续接
+
+- 提速方案已落地到现有 Runner：`Preflight` 零副作用预检、`VisualReplay` 截图结构快跑、`sourceContracts` 源码锚点防漂移、`setupAssertSql/cleanupAssertSql` 夹具恢复硬断言。
+- 回归：29模块文档一致、16/16 UI解析测试、Task HardGate/Runner Preflight 均通过。
+- Task G0：14组当前 Cocos 可达控件已冻结，矩阵 `docs/unityclient/matrices/TASK_CONTROLS.json`。
+- Task G1：固定账号 `7200057 / roleId=1000115` 真实进入任务页；服务端两次 `/37` 均回包，但当前每日任务列表为空。证据 `.local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md`。
+- G1 当前为 `blocked`：缺 populated、claimable、claimed、scroll、reward-popup 当前 Cocos 状态。下一步只建立可回滚真实 `/37` 夹具并补齐 G1；禁止进入 G2。
+- 本轮没有启动 Unity；不得用旧 `bootstrap-task.png`、Unity 假数据或无数据神将空壳替代 Cocos G1。
+- 保留且不得暂存/覆盖：7个 xLua `.meta` 删除、`unityclient/.vscode/`、`tools/local/Optimize-CodexLogsDatabase.ps1`、两个仅行尾异常 Lua。
 
 ### Bag 已收口
 

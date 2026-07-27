@@ -30,6 +30,12 @@ pwsh -File tools/unity-migration/Get-ProtocolEvidence.ps1 -Protocol 221 -Module 
 # 只打印 Unity 验收计划，不启动任何进程
 pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Shop -DryRun
 
+# 仅做中央注册表、源码锚点和门禁漂移预检，不启服务
+pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Task -ValidationMode Preflight
+
+# 复检现有截图的尺寸、最小体积和重复内容，不替代新鲜 G5 双端取证
+pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Task -ValidationMode VisualReplay
+
 # 完整商城验收；变更型模块未传 UserId 时自动分配隔离角色
 pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Shop
 
@@ -55,3 +61,5 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 - 新模块脚手架默认生成 Lua 权威 + C# 只读 DTO/RenderBridge，不再生成业务型 Store/Catalog。
 - 每个界面先记录 Cocos 脚本/操作步骤/UI 资产和基准截图，再记录 Unity 对照与差异报告；不得用“无裁切/无重叠”代替 1:1 验收。
 - 启动时缓存配置的模块可在 `validationData` 设置 `setupBeforeServer=true`；Runner 会先启动 MySQL、执行同一套 Manifest SQL，再启动 `kapai.exe`，cleanup 仍在 finally 统一执行。
+- `sourceContracts` 在启服前校验 Cocos/Unity 关键文件与锚点，优先暴露入口、协议和实现漂移。
+- `validationData.setupAssertSql/cleanupAssertSql` 可用 SQL `SIGNAL` 把夹具注入与恢复验证变为硬失败。
