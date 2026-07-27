@@ -51,3 +51,11 @@
 
 - Task 当前 Cocos 可达范围已完成；跳转目标模块内部功能继续由各自模块负责。
 - 不新增当前 Cocos 不存在的任务页签或通宝加号业务。
+
+## 后续模块复用契约
+
+- Runner 输出 `validatedControlIds`，必须与控件矩阵 ID 集合完全一致；不再接受状态字符串自报覆盖率。
+- 标题、页签、货币栏、操作按钮和奖励弹窗标题进入语义断言；缺失、错字或禁用态错误直接阻断 PostRun/G6。
+- `Run-UnityFixedAccountValidation.ps1` 统一执行注入前快照、夹具注入、真控件运行、`finally` 精确恢复及重登录后二次恢复断言。
+- `New-UnityModuleG5Evidence.ps1` 统一生成双端差异报告，并记录输入 SHA-256、固定身份、原生分辨率和源码提交。
+- 后续模块先在 `module-evidence-contracts.json` 登记固定账号适配器与 G5 状态对，才允许进入 G4-G6。

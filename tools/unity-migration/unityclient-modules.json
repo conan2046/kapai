@@ -143,7 +143,7 @@
     {
       "key": "Task",
       "displayName": "任务",
-      "status": "phase1-complete",
+      "status": "migration-complete",
       "protocols": [
         37,
         39,
@@ -192,6 +192,23 @@
       "screenshots": [
         "build/ui-migration/bootstrap-task.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Task/cocos/g1-20260727/12-task-populated-claimable-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/23-task-scroll-bottom-claimed-native.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Task/unity/g5-20260727/TASK-01-POPULATED.png",
+          ".local/ui-fidelity/Task/unity/g5-20260727/TASK-07-SCROLL-BOTTOM.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Task/compare/g5-live-20260727/report.json",
+          ".local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
+        "uiMapping": "docs/unityclient/matrices/TASK_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/TASK.md",
       "controlMatrix": "docs/unityclient/matrices/TASK_CONTROLS.json"
     },

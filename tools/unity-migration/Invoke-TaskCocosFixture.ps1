@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Cleanup", "AssertCleanup")]
+    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup")]
     [string]$Action,
 
     [uint32]$UserId = 7200057,
@@ -170,6 +170,45 @@ FROM unity_validation_task_fixture WHERE user_id=$UserId
     "AssertSetup" {
         Invoke-TaskSql -Sql $appliedAssertSql
         Write-Host "Task fixture application assertion passed: userId=$UserId roleId=$RoleId"
+    }
+    "Restore" {
+        Assert-ClientsStopped
+        $existing = @(Invoke-TaskSql -Sql "SELECT COUNT(*) FROM unity_validation_task_fixture WHERE user_id=$UserId AND role_id=$RoleId" -ReturnOutput)
+        if ([int]$existing[-1] -ne 1) { throw "Task fixture snapshot missing before retained restore." }
+        Invoke-TaskSql -Sql @"
+UPDATE role_info r
+JOIN unity_validation_task_fixture f ON f.role_id=r.id AND f.user_id=$UserId
+SET r.mission=f.backup_mission,
+    r.save_data=f.backup_save_data,
+    r.package=f.backup_package,
+    r.money=f.backup_role_money
+WHERE r.id=$RoleId;
+UPDATE user_info1 u
+JOIN unity_validation_task_fixture f ON f.user_id=u.id
+SET u.money=f.backup_user_money,
+    u.bd_money=f.backup_bd_money
+WHERE u.id=$UserId AND u.role0=$RoleId
+"@
+        $restored = @(Invoke-TaskSql -Sql @"
+SELECT $hashExpression=f.snapshot_hash
+FROM role_info r
+JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId
+JOIN unity_validation_task_fixture f ON f.user_id=$UserId AND f.role_id=$RoleId
+WHERE r.id=$RoleId
+"@ -ReturnOutput)
+        if ([int]$restored[-1] -ne 1) { throw "Task retained snapshot restore assertion failed." }
+        Write-Host "Task fixture restored while retaining snapshot: userId=$UserId roleId=$RoleId"
+    }
+    "AssertRestored" {
+        $restored = @(Invoke-TaskSql -Sql @"
+SELECT COUNT(*)=1 AND $hashExpression=f.snapshot_hash
+FROM role_info r
+JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId
+JOIN unity_validation_task_fixture f ON f.user_id=$UserId AND f.role_id=$RoleId
+WHERE r.id=$RoleId
+"@ -ReturnOutput)
+        if ([int]$restored[-1] -ne 1) { throw "Task retained snapshot hash assertion failed." }
+        Write-Host "Task retained snapshot hash assertion passed: userId=$UserId roleId=$RoleId"
     }
     "Cleanup" {
         Assert-ClientsStopped

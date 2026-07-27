@@ -134,6 +134,10 @@ namespace ProjectX.Core
         private int bagG4InitialDirectQuantity;
         private int bagG4InitialRewardQuantity;
         private uint validationRoleIdSnapshot;
+        private readonly HashSet<string> validationControlIds = new HashSet<string>(StringComparer.Ordinal);
+        private readonly HashSet<string> passedValidationSemantics = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> failedValidationSemantics =
+            new Dictionary<string, string>(StringComparer.Ordinal);
         private bool bagInitialSelectionApplied;
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
@@ -398,6 +402,42 @@ namespace ProjectX.Core
         public int GameplayShopMissingIconCount => gameplayShopsPresenter?.MissingIconCount ?? 0;
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
+
+        public void BeginValidationEvidence()
+        {
+            validationControlIds.Clear();
+            passedValidationSemantics.Clear();
+            failedValidationSemantics.Clear();
+        }
+
+        public void MarkValidationControl(string controlId)
+        {
+            if (!string.IsNullOrWhiteSpace(controlId)) validationControlIds.Add(controlId.Trim());
+        }
+
+        public void RecordValidationSemantic(string key, bool passed, string detail = "")
+        {
+            if (string.IsNullOrWhiteSpace(key)) return;
+            key = key.Trim();
+            if (passed)
+            {
+                failedValidationSemantics.Remove(key);
+                passedValidationSemantics.Add(key);
+                return;
+            }
+            passedValidationSemantics.Remove(key);
+            failedValidationSemantics[key] = detail ?? string.Empty;
+        }
+
+        public string[] GetValidatedControlIds() =>
+            validationControlIds.OrderBy(value => value, StringComparer.Ordinal).ToArray();
+
+        public string[] GetPassedValidationSemanticKeys() =>
+            passedValidationSemantics.OrderBy(value => value, StringComparer.Ordinal).ToArray();
+
+        public string[] GetFailedValidationSemanticAssertions() =>
+            failedValidationSemantics.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => $"{pair.Key}: {pair.Value}").ToArray();
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
         public int RewardCount => services?.Rewards.Count ?? 0;
         public bool IsHeroOpen => heroFrameView != null && services?.UiStack.Current == heroFrameView;
@@ -3765,6 +3805,7 @@ namespace ProjectX.Core
 
         private IEnumerator RunTaskG4ValidationRoutine()
         {
+            BeginValidationEvidence();
             EnsureTaskPresenter();
             EnsureRewardPresenter();
             if (!IsTaskOpen || services.Tasks.Count < 10 || services.Tasks.ActivityBoxCount != 4
@@ -3777,8 +3818,29 @@ namespace ProjectX.Core
                 yield break;
             }
 
+            MarkValidationControl("TASK-01-MAIN-ENTRY");
+            CocosUiBinding initialTaskBinding = taskBackgroundView.Binding;
+            Text initialTaskTitle = initialTaskBinding.Find("Layer/Panel_1/Title/TitleName")?.GetComponent<Text>();
+            Text initialTaskTab = initialTaskBinding.Find(
+                "Layer/Panel_1/Btn_ListView/Panel_1/Button/ChooseBg/BtnName")?.GetComponent<Text>();
+            Transform initialCurrencyHost = initialTaskBinding.Find("Layer/Panel_1/GoldCheck")?.transform;
+            bool titleSemantic = initialTaskTitle?.text == "任务";
+            bool tabSemantic = initialTaskTab?.text == "每日任务";
+            bool currencySemantic = initialCurrencyHost != null
+                && initialCurrencyHost.GetComponentsInChildren<Text>(true).Count(text => !string.IsNullOrWhiteSpace(text.text)) >= 3;
+            bool actionSemantic = taskPresenter.HasActionLabel("前 往") && taskPresenter.HasActionLabel("领 取");
+            RecordValidationSemantic("task-title", titleSemantic, $"actual={initialTaskTitle?.text}");
+            RecordValidationSemantic("task-tab", tabSemantic, $"actual={initialTaskTab?.text}");
+            RecordValidationSemantic("task-header-currencies", currencySemantic, "three populated currency labels required");
+            RecordValidationSemantic("task-action-labels", actionSemantic, "前 往 and 领 取 required");
+            if (!titleSemantic || !tabSemantic || !currencySemantic || !actionSemantic)
+            {
+                Fail("Task G4 semantic text assertions failed before interaction.");
+                yield break;
+            }
             yield return CaptureTaskG5Evidence("TASK-01-POPULATED");
             if (!taskPresenter.ScrollToBottom()) { Fail("Task G4 real ScrollRect was unavailable."); yield break; }
+            MarkValidationControl("TASK-07-LIST-SCROLL");
             yield return CaptureTaskG5Evidence("TASK-07-SCROLL-BOTTOM");
 
             float deadline;
@@ -3792,11 +3854,19 @@ namespace ProjectX.Core
                     + $"rendered={rewardPresenter.RenderedCount}.");
                 yield break;
             }
+            MarkValidationControl("TASK-11-ACTIVITY-BOXES");
+            MarkValidationControl("TASK-14-BOX-REWARD-ITEM");
+            bool rewardTitleSemantic = rewardPresenter.TitleText == "宝箱奖励";
+            RecordValidationSemantic("task-reward-title", rewardTitleSemantic,
+                $"actual={rewardPresenter.TitleText}");
+            if (!rewardTitleSemantic) { Fail("Task G4 reward title semantic assertion failed."); yield break; }
             yield return CaptureTaskG5Evidence("TASK-11-BOX-CLAIMABLE");
             rewardPresenter.Hide();
+            MarkValidationControl("TASK-13-BOX-CLOSE");
             yield return CaptureTaskG5Evidence("TASK-13-BOX-CLOSE");
             if (!taskPresenter.InvokeActivityBox(1, out boxId) || !rewardPresenter.InvokeConfirm())
             { Fail("Task G4 box confirmation did not use the real btn_lingqu."); yield break; }
+            MarkValidationControl("TASK-12-BOX-CONFIRM");
             deadline = Time.realtimeSinceStartup + 8f;
             while ((!services.Tasks.TryGet(0, boxId, out TaskRecord box) || box.State != 2
                     || !rewardPresenter.IsVisible) && Time.realtimeSinceStartup < deadline)
@@ -3812,6 +3882,7 @@ namespace ProjectX.Core
             deadline = Time.realtimeSinceStartup + 8f;
             while (!IsGuildOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsGuildOpen) { Fail("Task G4 real 前往 did not open Guild."); yield break; }
+            MarkValidationControl("TASK-09-GO");
             yield return CaptureTaskG5Evidence("TASK-09-GO-GUILD");
             HandleBack();
             taskButton?.onClick.Invoke();
@@ -3829,6 +3900,8 @@ namespace ProjectX.Core
             if (!services.Tasks.TryGet(2, dailyId, out TaskRecord claimedDaily) || claimedDaily.State != 2
                 || !rewardPresenter.IsVisible || rewardPresenter.RenderedCount == 0)
             { Fail($"Task G4 daily claim did not reach authoritative state=2: id={dailyId}."); yield break; }
+            MarkValidationControl("TASK-08-REWARD-ITEM");
+            MarkValidationControl("TASK-10-CLAIM");
             yield return CaptureTaskG5Evidence("TASK-10-DAILY-CLAIMED-REWARD");
             rewardPresenter.Hide();
             yield return CaptureTaskG5Evidence("TASK-10-DAILY-CLAIMED-ROW");
@@ -3842,6 +3915,7 @@ namespace ProjectX.Core
             Button close = taskBackgroundView.Binding.Find("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>();
             close?.onClick.Invoke();
             if (IsTaskOpen) { Fail("Task G4 close button did not return to main."); yield break; }
+            MarkValidationControl("TASK-02-CLOSE");
             taskButton?.onClick.Invoke();
             deadline = Time.realtimeSinceStartup + 8f;
             while ((!IsTaskOpen || services.ProtocolRegistry.PendingCount != 0)
@@ -3887,12 +3961,15 @@ namespace ProjectX.Core
                     + $"tabInteractable={taskTabButton?.interactable}, premiumInteractable={premiumAdd?.interactable}.");
                 yield break;
             }
+            MarkValidationControl("TASK-05-TONGBAO-ADD-DISABLED");
+            MarkValidationControl("TASK-06-DAILY-TAB");
 
             Button staminaAdd = taskBinding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.GetComponent<Button>();
             staminaAdd?.onClick.Invoke();
             deadline = Time.realtimeSinceStartup + 8f;
             while (!IsBagOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsBagOpen) { Fail("Task G4 stamina AddBtn did not open Bag."); yield break; }
+            MarkValidationControl("TASK-03-STAMINA-ADD");
             HandleBack();
             if (!IsTaskOpen) HandleTaskClick();
             deadline = Time.realtimeSinceStartup + 8f;
@@ -3904,6 +3981,7 @@ namespace ProjectX.Core
             deadline = Time.realtimeSinceStartup + 8f;
             while (!IsShopOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsShopOpen) { Fail("Task G4 money AddBtn did not open Shop."); yield break; }
+            MarkValidationControl("TASK-04-MONEY-ADD");
             HandleBack();
             if (!IsTaskOpen) HandleTaskClick();
             deadline = Time.realtimeSinceStartup + 8f;

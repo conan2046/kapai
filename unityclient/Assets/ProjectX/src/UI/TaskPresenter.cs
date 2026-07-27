@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
@@ -39,6 +40,8 @@ namespace ProjectX.UI
 
         public int ItemCount => list.Count;
         public int ActivityBoxCount { get; private set; }
+        public bool HasActionLabel(string label) =>
+            view.GameObject.GetComponentsInChildren<Text>(true).Any(text => text.text == label);
 
         public bool ScrollToBottom()
         {

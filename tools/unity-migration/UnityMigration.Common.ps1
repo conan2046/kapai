@@ -284,6 +284,47 @@ function Assert-UnityMigrationRunnerIdentity {
     }
 }
 
+function Assert-UnityMigrationRunnerCoverage {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$Result,
+        [Parameter(Mandatory = $true)]$Scenario,
+        [string]$ControlMatrix = ""
+    )
+    $coverageRequired = [bool](Get-UnityMigrationPropertyValue -Object $Scenario `
+        -Name "controlCoverageRequired" -Default $false)
+    $semanticKeys = @((Get-UnityMigrationPropertyValue -Object $Scenario `
+        -Name "semanticAssertionKeys" -Default @()) | ForEach-Object { [string]$_ })
+    $actualControls = @((Get-UnityMigrationPropertyValue -Object $Result `
+        -Name "validatedControlIds" -Default @()) | ForEach-Object { [string]$_ })
+    $passedSemantics = @((Get-UnityMigrationPropertyValue -Object $Result `
+        -Name "passedSemanticAssertions" -Default @()) | ForEach-Object { [string]$_ })
+    $failedSemantics = @((Get-UnityMigrationPropertyValue -Object $Result `
+        -Name "failedSemanticAssertions" -Default @()) | ForEach-Object { [string]$_ })
+
+    if ($coverageRequired) {
+        if (-not $ControlMatrix) { throw "Scenario '$($Scenario.key)' requires runtime control coverage but has no control matrix." }
+        $matrix = (Import-UnityMigrationJson -Root $Root -Path $ControlMatrix).Value
+        $expectedControls = @($matrix.controls | ForEach-Object { [string]$_.id })
+        $difference = @(Compare-Object ($expectedControls | Sort-Object) ($actualControls | Sort-Object))
+        if ($difference.Count -gt 0) {
+            throw "Runtime control coverage mismatch: expected=$($expectedControls.Count) actual=$($actualControls.Count); diff=$($difference.InputObject -join ',')"
+        }
+    }
+    if ($failedSemantics.Count -gt 0) {
+        throw "Runtime semantic assertions failed: $($failedSemantics -join '; ')"
+    }
+    $missingSemantics = @($semanticKeys | Where-Object { $_ -notin $passedSemantics })
+    if ($missingSemantics.Count -gt 0) {
+        throw "Runtime semantic assertions were not proved: $($missingSemantics -join ', ')"
+    }
+    return [pscustomobject]@{
+        validatedControlIds = $actualControls
+        passedSemanticAssertions = $passedSemantics
+        failedSemanticAssertions = $failedSemantics
+    }
+}
+
 function Write-UnityMigrationProgress {
     param(
         [Parameter(Mandatory = $true)][string]$Path,

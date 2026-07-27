@@ -61,6 +61,8 @@ if (-not [bool]$result.success -or [string]$result.status -notlike "COMPLETE:*")
 }
 $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $result -Name "userId" -Default 0)
 Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $expectedUserId
+$runtimeCoverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
+    -ControlMatrix $controlMatrix
 
 if (-not $SummaryPath) {
     $SummaryPath = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-latest.json"
@@ -80,6 +82,10 @@ if (@($summary.captureStates).Count -ne $captureStates.Count -or
 }
 if (@($summary.screenshots).Count -ne $artifacts.Count) {
     throw "Validation summary screenshot count does not match runtime artifact count."
+}
+if ((@($summary.validatedControlIds) -join "`n") -ne (@($runtimeCoverage.validatedControlIds) -join "`n") -or
+    (@($summary.passedSemanticAssertions) -join "`n") -ne (@($runtimeCoverage.passedSemanticAssertions) -join "`n")) {
+    throw "Validation summary runtime coverage does not match the Unity result."
 }
 
 if ($Phase -eq "G6") {

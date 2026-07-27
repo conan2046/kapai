@@ -186,6 +186,8 @@ Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失�
 | `New-UnityMigrationModule.ps1` | 生成模块骨架、控件矩阵和 pending 门禁 |
 | `Invoke-UnityMigrationGate.ps1` | 检查/落账 G0-G6 |
 | `Run-UnityModuleValidation.ps1` | 场景、夹具、Watchdog、结果和清理 |
+| `Run-UnityFixedAccountValidation.ps1` | 按模块契约执行固定账号快照、注入、真控件验证、精确恢复和重登录复核 |
+| `New-UnityModuleG5Evidence.ps1` | 按模块契约生成双端并排/叠加/差异、输入哈希和提交来源报告 |
 | `Test-UnityMigrationConnection.ps1` | 调用 Unity MCP 前检查实例、监听、启动日志和孤儿监听 |
 | `Test-UnityMigrationHardGates.ps1` | 验证场景/账号/角色/分辨率、控件矩阵、运行摘要和 G6 证据 |
 | `Test-UnityMigrationDocs.ps1` | 状态、Manifest、路径、矩阵和完成证据 |
@@ -202,13 +204,15 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ./tools/unity-migration/Get-ProtocolEvidence.ps1 -Module <Module>
 ./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0 -DryRun
 ./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module>
+./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module>
+./tools/unity-migration/New-UnityModuleG5Evidence.ps1 -Module <Module>
 ./tools/unity-migration/Test-UnityMigrationDocs.ps1
 ./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
 
-动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`；验证器按 30 秒心跳区分总运行超时与无进展超时。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。
+动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`、实际触发控件 ID 和语义断言结果；声明 `controlCoverageRequired` 的场景必须与控件矩阵 ID 集合完全一致。验证器按 30 秒心跳区分总运行超时与无进展超时。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。
 
-提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。夹具可声明 `validationData.setupAssertSql/cleanupAssertSql`，用 SQL `SIGNAL` 把注入与恢复失败变成硬失败。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
+提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。固定账号和 G5 状态对统一登记在 `module-evidence-contracts.json`；夹具必须有注入前快照、`setupAssertSql/cleanupAssertSql` 或等价硬断言、`finally` 恢复及重登录后复核。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
 
 ## 13. 高频坑与处理
 

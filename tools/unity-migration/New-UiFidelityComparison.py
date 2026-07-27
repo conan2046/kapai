@@ -32,7 +32,12 @@ def main() -> None:
     stat = ImageStat.Stat(diff)
     mean = sum(stat.mean) / len(stat.mean)
     rms = sum(stat.rms) / len(stat.rms)
-    changed = sum(1 for pixel in diff.getdata() if max(pixel) > 8)
+    pixels = (
+        diff.get_flattened_data()
+        if hasattr(diff, "get_flattened_data")
+        else diff.getdata()
+    )
+    changed = sum(1 for pixel in pixels if max(pixel) > 8)
     report = {
         "name": args.name,
         "size": list(cocos.size),

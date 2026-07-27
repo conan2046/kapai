@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "module": "Task",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-TaskCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Task/unity/g5-20260727/task-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Task/unity/g5-20260727/task-fixed-unity-result.json",
+        "reloginRequired": true
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/Task/cocos/g1-20260727",
+        "unityDirectory": ".local/ui-fidelity/Task/unity/g5-20260727",
+        "compareDirectory": ".local/ui-fidelity/Task/compare/g5-live-20260727",
+        "width": 1334,
+        "height": 750,
+        "pairs": [
+          { "id": "TASK-01-POPULATED", "cocos": "12-task-populated-claimable-native.png", "unity": "TASK-01-POPULATED.png" },
+          { "id": "TASK-02-RELOAD", "cocos": "12-task-populated-claimable-native.png", "unity": "TASK-02-RELOAD.png" },
+          { "id": "TASK-07-SCROLL-BOTTOM", "cocos": "23-task-scroll-bottom-claimed-native.png", "unity": "TASK-07-SCROLL-BOTTOM.png" },
+          { "id": "TASK-09-GO-GUILD", "cocos": "17-task-go-guild-native.png", "unity": "TASK-09-GO-GUILD.png" },
+          { "id": "TASK-10-DAILY-CLAIMED-REWARD", "cocos": "13-daily-claim-reward-popup-native.png", "unity": "TASK-10-DAILY-CLAIMED-REWARD.png" },
+          { "id": "TASK-10-DAILY-CLAIMED-ROW", "cocos": "23-task-scroll-bottom-claimed-native.png", "unity": "TASK-10-DAILY-CLAIMED-ROW.png" },
+          { "id": "TASK-11-BOX-CLAIMABLE", "cocos": "18-active-box-claimable-popup-native.png", "unity": "TASK-11-BOX-CLAIMABLE.png" },
+          { "id": "TASK-12-BOX-CONFIRMED", "cocos": "20-active-box-claimed-rewards-native.png", "unity": "TASK-12-BOX-CONFIRMED.png" },
+          { "id": "TASK-13-BOX-CLOSE", "cocos": "19-active-box-popup-closed-native.png", "unity": "TASK-13-BOX-CLOSE.png" },
+          { "id": "TASK-14-BOX-OPENED", "cocos": "21-active-box-claimed-native.png", "unity": "TASK-11-BOX-OPENED.png" },
+          { "id": "TASK-15-RECONNECT", "cocos": "24-restored-relogin-native.png", "unity": "TASK-01-RECONNECT.png" }
+        ]
+      }
+    }
+  ]
+}

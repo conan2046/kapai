@@ -1,6 +1,6 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-27 Task G0-G6 passed；下一任务重新选择模块执行 G0
+> 当前交接：2026-07-27 Task G0-G6 passed；通用硬门禁已固化；下一模块 Mail 从 G0 开始
 > 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
 
 ## 0. 2026-07-27 新窗口直接执行
@@ -15,7 +15,8 @@
 - 固定账号夹具注入前、精确恢复后及重登录后哈希均为 `99ccff91ef8285ff80565658ce2366ec615682a30ebc48378f452ac341494d29`；`setupAssertSql/cleanupAssertSql/restoredHashAssertSql` 全部通过。
 - 正式 `BootstrapSceneBuilder.BuildBatch` 连续两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。
 - 证据：`.local/unity-validation/task-latest.json`、`.local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json`、`.local/ui-fidelity/Task/unity/g5-20260727/task-fixed-fixture-snapshot.json`。
-- 新增可复用安全脚本：`Run-TaskFixedUnityG5.ps1`、`New-TaskG5Evidence.ps1`；前者始终在 `finally` 中停服并精确回滚。
+- Task 已成为通用回归样板：`Run-UnityFixedAccountValidation.ps1` 负责快照、注入、矩阵覆盖、精确恢复和重登录复核；`New-UnityModuleG5Evidence.ps1` 负责双端输入哈希、提交来源与差异报告。旧 Task 脚本保留为兼容薄封装。
+- 下一模块固定为 Mail：先冻结红点、列表、已读、详情、附件、单封/一键领取、删除确认、关闭、滚动、空态、错误、重拉/重连/切号，不得直接沿用旧第一阶段结论。
 - 保留且不得暂存/覆盖：7个 xLua `.meta` 删除、`unityclient/.vscode/`、`tools/local/Optimize-CodexLogsDatabase.ps1`、两个仅行尾异常 Lua。
 
 ### Bag 已收口

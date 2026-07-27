@@ -7,10 +7,13 @@
 | `unityclient-modules.json` | 模块、协议、入口、Prefab、配置、验收参数的机器可读清单 |
 | `validation-scenarios.json` | Runner 参数、夹具、运行产物和双端截图状态的中央注册表 |
 | `validation-fixtures.json` | 只读、隔离角色、多人角色及全局快照回滚策略 |
+| `module-evidence-contracts.json` | 固定账号适配器、快照、G5 双端目录与状态对 |
 | `migration-gates.json` | 模块 G0-G6 的机器可读状态；未通过前置门禁时拒绝运行 |
 | `New-UnityMigrationModule.ps1` | 生成 Lua Controller、只读 ViewState、RenderBridge、模块文档和待办门禁 |
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity 和 smoke 三方/四方证据 |
 | `Run-UnityModuleValidation.ps1` | 串行启服、运行 Unity、校验结果/日志/截图并清理本阶段进程 |
+| `Run-UnityFixedAccountValidation.ps1` | 通用固定账号快照、注入、矩阵覆盖、精确恢复和重登录复核 |
+| `New-UnityModuleG5Evidence.ps1` | 通用 G5 双端比较、输入哈希、提交来源和联系表 |
 | `Invoke-UnityMigrationGate.ps1` | 校验门禁前置项和证据；按 G0→G6 顺序落账 |
 | `Test-UnityMigrationDocs.ps1` | 检查状态唯一性、文档体积、Manifest 和引用路径 |
 | `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次 Bootstrap，校验场景 SHA-256 不发生二次变化 |
@@ -39,6 +42,10 @@ pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Task -Val
 # 完整商城验收；变更型模块未传 UserId 时自动分配隔离角色
 pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Shop
 
+# 固定账号回滚验收与 G5 对照均由模块契约驱动
+pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Task
+pwsh -File tools/unity-migration/New-UnityModuleG5Evidence.ps1 -Module Task
+
 # 文档与 Manifest 门禁
 pwsh -File tools/unity-migration/Test-UnityMigrationDocs.ps1
 pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
@@ -63,3 +70,4 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 - 启动时缓存配置的模块可在 `validationData` 设置 `setupBeforeServer=true`；Runner 会先启动 MySQL、执行同一套 Manifest SQL，再启动 `kapai.exe`，cleanup 仍在 finally 统一执行。
 - `sourceContracts` 在启服前校验 Cocos/Unity 关键文件与锚点，优先暴露入口、协议和实现漂移。
 - `validationData.setupAssertSql/cleanupAssertSql` 可用 SQL `SIGNAL` 把夹具注入与恢复验证变为硬失败。
+- 声明 `controlCoverageRequired` 后，Runner 实际触发 ID 必须与矩阵 ID 完全一致；语义断言失败或缺失同样硬失败。

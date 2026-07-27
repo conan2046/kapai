@@ -4,11 +4,13 @@
 
 机器可读状态与验收参数统一维护在 `tools/unity-migration/unityclient-modules.json`。
 
+后续模块统一复用 Task 样板：运行时控件 ID 与矩阵全等、关键中文/禁用态语义断言、固定账号快照精确恢复、G5 双端输入哈希与源码来源。
+
 | 模块 | 文档 | 状态 |
 |---|---|---|
 | 底层/登录/主界面 | `FOUNDATION.md` / `LOGIN.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；双端视觉、真实协议、生命周期与幂等门禁通过 |
-| 任务 | `TASK.md` | 功能第一阶段完成；视觉 1:1 待重验 |
+| 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `partial-interactive-audit-required`；矩阵0/16，等待真实按钮逐项重审 |
 | 装备/法宝 | `HERO_EQUIPMENT.md` | `partial-interactive-audit-required`；历史协议诊断可复用，G4-G6按新矩阵重做 |
 | 邮件 | `MAIL.md` | 功能第一阶段完成；视觉 1:1 待重验 |

@@ -40,6 +40,7 @@ namespace ProjectX.UI
 
         public bool IsVisible => view.GameObject != null && view.GameObject.activeSelf;
         public int RenderedCount { get; private set; }
+        public string TitleText => title?.text ?? string.Empty;
         public bool CanConfirm => confirmButton != null && confirmButton.gameObject.activeSelf
             && confirmButton.interactable;
 

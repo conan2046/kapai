@@ -91,7 +91,7 @@
         "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/TASK.md",
-      "note": "Task G0-G6 passed. Fixed account 7200057/1000115 completed 11/11 current Cocos/Unity native 1334x750 critical visual states and 14/14 real controls. Protocol, invalid/repeat, reload, reconnect, persistence, account-switch cleanup, exact SQL snapshot restore and twice-run BuildBatch idempotence passed.",
+      "note": "Task G0-G6 passed and is the reusable hard-gate sample. Fixed account 7200057/1000115 completed 11/11 native states and 14/14 runtime-reported control ids; five semantic assertions, retained snapshot restore, post-login final restore, G5 input hashes and twice-run BuildBatch idempotence passed.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/TASK_CONTROLS.json",
@@ -139,8 +139,12 @@
         ],
         "G6": [
           ".local/unity-validation/task-latest.json",
+          ".local/unity-validation/task-fixed-account-latest.json",
           ".local/ui-fidelity/Task/unity/g5-20260727/task-fixed-fixture-snapshot.json",
           ".local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json",
+          "tools/unity-migration/module-evidence-contracts.json",
+          "tools/unity-migration/Run-UnityFixedAccountValidation.ps1",
+          "tools/unity-migration/New-UnityModuleG5Evidence.ps1",
           ".local/unity-validation/bootstrap-idempotence-latest.json",
           "build/ui-migration/bootstrap-idempotence-1.log",
           "build/ui-migration/bootstrap-idempotence-2.log",
@@ -149,7 +153,7 @@
           "docs/unityclient/modules/TASK.md"
         ]
       },
-      "updatedUtc": "2026-07-27T07:16:00Z"
+      "updatedUtc": "2026-07-27T08:00:00Z"
     },
     {
       "module": "Hero",

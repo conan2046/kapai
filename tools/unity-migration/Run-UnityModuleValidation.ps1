@@ -421,6 +421,8 @@ try {
     if (-not [bool]$result.success) { throw "Unity validation failed: $($result.status)" }
     if ([string]$result.status -notlike "COMPLETE:*") { throw "Unity result is not COMPLETE: $($result.status)" }
     Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $effectiveUserId
+    $runtimeCoverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
+        -ControlMatrix ([string](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "controlMatrix" -Default ""))
 
     $seriousPattern = 'error CS\d+|LuaException|NullReferenceException|MissingReferenceException|Assertion failed|Fatal Error|Crash!!!'
     $serious = @(Select-String -Path $logPath -Pattern $seriousPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)
@@ -458,6 +460,9 @@ try {
         screenHeight = [int]$result.screenHeight
         mutatesServer = [bool]$moduleConfig.mutatesServer
         status = [string]$result.status
+        validatedControlIds = @($runtimeCoverage.validatedControlIds)
+        passedSemanticAssertions = @($runtimeCoverage.passedSemanticAssertions)
+        failedSemanticAssertions = @($runtimeCoverage.failedSemanticAssertions)
         resultUtc = $resultUtc.ToString("O")
         screenshots = @($screenshotResults)
         sourceContractFingerprint = $sourceContractFingerprint

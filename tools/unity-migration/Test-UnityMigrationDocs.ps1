@@ -13,6 +13,7 @@ $manifestEntry = Import-UnityMigrationManifest -Root $root -ManifestPath $Manife
 $manifest = $manifestEntry.Value
 $scenarioEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-scenarios.json"
 $fixtureEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-fixtures.json"
+$evidenceContractEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/module-evidence-contracts.json"
 $gateEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/migration-gates.json"
 $failures = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
@@ -124,6 +125,18 @@ foreach ($module in $manifest.modules) {
             catch { Add-Failure "Module $key has unsafe runtime artifact: $($_.Exception.Message)" }
         }
         $requiredGate = [string](Get-UnityMigrationPropertyValue -Object $scenario -Name "requiredGate" -Default "")
+        $coverageRequired = [bool](Get-UnityMigrationPropertyValue -Object $scenario `
+            -Name "controlCoverageRequired" -Default $false)
+        $semanticKeys = @((Get-UnityMigrationPropertyValue -Object $scenario `
+            -Name "semanticAssertionKeys" -Default @()) | ForEach-Object { [string]$_ })
+        if ($coverageRequired -and -not [string](Get-UnityMigrationPropertyValue -Object $module `
+            -Name "controlMatrix" -Default "")) {
+            Add-Failure "Module $key requires runtime control coverage without a controlMatrix."
+        }
+        if (@($semanticKeys | Where-Object { -not $_ }).Count -gt 0 -or
+            @($semanticKeys | Sort-Object -Unique).Count -ne $semanticKeys.Count) {
+            Add-Failure "Module $key has empty or duplicate semanticAssertionKeys."
+        }
         if ($requiredGate) {
             $gateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $key })
             if ($gateRecords.Count -ne 1) { Add-Failure "Module $key scenario requires $requiredGate but has no unique gate record." }
@@ -239,6 +252,27 @@ foreach ($module in $manifest.modules) {
                     Add-Failure "Module $key uses unsupported validation data token: $($match.Value)"
                 }
             }
+        }
+    }
+}
+
+foreach ($contract in $evidenceContractEntry.Value.modules) {
+    $key = [string]$contract.module
+    if ($key -notin $keys) { Add-Failure "Evidence contract references unknown module: $key"; continue }
+    if ($null -ne $contract.fixedAccount) {
+        $adapter = [string]$contract.fixedAccount.adapter
+        if ([uint32]$contract.fixedAccount.userId -eq 0 -or [uint32]$contract.fixedAccount.roleId -eq 0) {
+            Add-Failure "Evidence contract $key has no fixed userId/roleId."
+        }
+        Test-RequiredFile $adapter | Out-Null
+    }
+    if ($null -ne $contract.g5) {
+        $pairIds = @($contract.g5.pairs | ForEach-Object { [string]$_.id })
+        if ($pairIds.Count -eq 0 -or @($pairIds | Sort-Object -Unique).Count -ne $pairIds.Count) {
+            Add-Failure "Evidence contract $key has empty or duplicate G5 pair ids."
+        }
+        if ([int]$contract.g5.width -ne 1334 -or [int]$contract.g5.height -ne 750) {
+            Add-Failure "Evidence contract $key G5 size must be 1334x750."
         }
     }
 }

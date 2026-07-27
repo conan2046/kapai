@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using ProjectX.Core;
 using UnityEditor;
@@ -612,6 +614,9 @@ namespace ProjectX.Editor
             ProjectXApp app = ProjectXApp.Instance;
             uint userId = app?.GetLocalUserId() ?? 0;
             uint roleId = app?.GetValidationRoleId() ?? 0;
+            string[] validatedControls = app?.GetValidatedControlIds() ?? Array.Empty<string>();
+            string[] passedSemantics = app?.GetPassedValidationSemanticKeys() ?? Array.Empty<string>();
+            string[] failedSemantics = app?.GetFailedValidationSemanticAssertions() ?? Array.Empty<string>();
             string scenario = GetLaunchArgumentValue("-projectXValidationScenario=");
             string json = "{\n"
                 + $"  \"success\": {(success ? "true" : "false")},\n"
@@ -621,6 +626,9 @@ namespace ProjectX.Editor
                 + $"  \"roleId\": {roleId},\n"
                 + $"  \"screenWidth\": {Screen.width},\n"
                 + $"  \"screenHeight\": {Screen.height},\n"
+                + $"  \"validatedControlIds\": {FormatJsonArray(validatedControls)},\n"
+                + $"  \"passedSemanticAssertions\": {FormatJsonArray(passedSemantics)},\n"
+                + $"  \"failedSemanticAssertions\": {FormatJsonArray(failedSemantics)},\n"
                 + $"  \"utc\": \"{DateTime.UtcNow:O}\"\n"
                 + "}\n";
             File.WriteAllText(path, json);
@@ -641,6 +649,10 @@ namespace ProjectX.Editor
                 .Replace("\"", "\\\"")
                 .Replace("\r", "\\r")
                 .Replace("\n", "\\n");
+
+        private static string FormatJsonArray(IEnumerable<string> values) =>
+            "[" + string.Join(",", (values ?? Enumerable.Empty<string>())
+                .Select(value => $"\"{EscapeJson(value)}\"")) + "]";
 
         private static void DeletePreviousResult()
         {
