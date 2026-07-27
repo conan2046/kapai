@@ -1,6 +1,6 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-07-26
+> 最后更新：2026-07-27
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -10,7 +10,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `2 个模块迁移完整` | 神将/阵容、装备/法宝已按新标准完成 G0-G6、真实控件和双端视觉验收；其他历史完成结论仍待重审 |
+| Validated | `3/29 = 10.3%` | 背包、神将/阵容、装备/法宝已按新标准完成 G0-G6、真实控件和双端视觉验收；这是当前唯一可审计的严格移植完成率 |
 
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -24,7 +24,7 @@
 | 迁移提速工具 | 第一阶段完成 | Manifest、模块脚手架、协议取证、功能验收、数据夹具、Bootstrap 幂等；已新增 Cocos↔Unity 1:1 证据门禁 | 补自动截图与差异生成 |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | 第一阶段完成 | 音乐/音效/音量持久化 | 兑换码、公告等独立模块 |
-| 背包 | 第一阶段完成 | `/8、/15` 全量/增量/整理/使用/持久化 | 更多物品类型和批量操作 |
+| 背包 | `G0-G6 passed / 26/26 complete` | 固定隔离账号完成 Cocos/Unity 26/26 原生图、并排/叠加/差异、真实控件、`/8`/`/15`、使用/整理/增删改、重连/持久化/切号及 Bootstrap 幂等 | 当前模块收口；下一任务重新选择一个模块执行 G0 |
 | 任务 | 第一阶段完成 | `/37、/39、/65` 列表/增量/追踪/红点/领奖 | 任务类型全覆盖 |
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
 | 装备/法宝 | `G0-G6 passed / 33/33 complete` | 固定账号完成 20/20 双端视觉、33/33 真实控件、穿脱/强化/失败态/重连/持久化/切号及 Bootstrap 幂等 | 当前模块收口；新任务再选下一模块 |
@@ -44,6 +44,7 @@
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- 背包 G0-G6 收口（2026-07-27）：固定隔离账号 `7200057 / roleId=1000115`、Windows 100%、双端原生 `1334×750`。矩阵 `26/26 complete`；Cocos/Unity 原图、并排、50% 叠加、增强差异、真实控件自动化和人工视觉均 `26/26 passed`。真实 `/8`、`/15` 覆盖全量、增量新增/更新/删除、整理、批量/礼包/直接使用、无效/重复拒绝、重拉、断线重连、持久化和切号清理；严重异常 0，Python UI `16/16`。正式 `BootstrapSceneBuilder.BuildBatch` 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。测试数据只来自可逆本地隔离夹具，不是正式服/生产数据；来源目标模块未迁移时保持 Bag 并记录不可用目标，不再打开无数据神将空壳。证据 `.local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json`、`.local/unity-validation/bag-latest.json`。
 - 装备/法宝 G0-G6收口（2026-07-27）：固定账号 `7200057 / roleId=1000115`、原生 `1334×750`；Cocos/Unity 原图、并排/叠加/差异和人工视觉均 `20/20 passed`，控件矩阵 `33/33`。Unity MCP 真实 Button 覆盖主入口、六槽、背包/碎片、帮助、详情/更换、筛选、强化和关闭；G4穿脱、失败态、断服重连、持久化与切号清理继续有效。强化页补齐真实主角头像，单次强化 UID `2121072641` 本轮 `8→10→12`；缺图0、严重异常0、Console最终0 error/0 warning。正式 `BuildBatch` 经 Unity MCP 连续两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。证据 `.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g6-control-runner.json`。
 - 神将/阵容 G0-G6收口（2026-07-26）：固定账号 `7200057 / roleId=1000115`、同数据、原生 `1334×750` 的 Cocos/Unity 原图、并排/叠加/差异、真实 Button 自动化和人工视觉均 `16/16 passed`。修复范围包括主界面公共层与圆形头像、阵容装备/法宝真实图标、候选页残留、养成页内容与经验条、强化大师、四装备/两法宝独立详情和完整属性弹窗。最终 Runner `build/ui-migration/bootstrap-app-result.json` 于 `2026-07-26T14:31:28.6502368Z` 成功，严重异常0；纳入 `ChatLayer` 后正式 Bootstrap 双批处理幂等 SHA-256 为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`；G5、G6门禁已通过。证据 `.local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.md`。
 - 神将/阵容 G6机器回归（2026-07-26，门禁仍pending）：用户明确授权在 G5 pending 时先执行机器回归。固定账号 `7200057` 由 Unity MCP 菜单触发真实入口 Runner，16项真实 Button 链和阵位 `1→2→1` 权威恢复通过；本次结果 `build/ui-migration/bootstrap-app-result.json`，截图 `bootstrap-hero.png` 为 `1334×750`，严重异常 `0`，Python UI `16/16`，文档 `29` 模块一致，Git范围 `unexpected=0`。修复 `BootstrapSceneBuilder` 中阵容子 Prefab 深度遍历顺序误判后，双次幂等 SHA-256 均为 `ECD2CBBF048917252DDC852CEEC7F7F87A184832C7AD1CEB9DACCFE3F6980559`。因 G5双端视觉证据缺失且矩阵 `manualPassed=0/16`，机器门禁仍为 G0-G4 passed、G5-G6 pending。
@@ -77,9 +78,7 @@
 - 活动旧版 `/209 + ActivityLayer` 结果已判为错误版本证据，不再计入完成率，也不得提交。
 
 ## 4. 当前批次
-装备/法宝 HeroEquip 已于 2026-07-27 按新标准完成 G0-G6：33/33 控件、20/20 双端视觉、联机变更/失败/重连/持久化/切号和 Bootstrap 幂等全部通过。本任务停止扩展，不开启下一模块。
-- 装备/法宝（2026-07-19）：G0-G4 与 G6 逻辑门禁完成；固定 `userId=7200057` 为装备 5、法宝 3。真实 `/319` 穿戴→强化 `5→7`→卸下、法宝穿脱、非法 UID、重复操作、材料不足、最终重拉、独立重连和切号清理通过；16/16 Python UI、Bootstrap 幂等 SHA-256 `9AC1A77AEC1F9ED405C6DE7E0C9B90F56799C59CBE60404599F1CA33234393AC`、严重异常 0。装备/法宝列表双端 MAE 为 `9.0451/7.4068`；因旧 Runner 误删其余冻结 Cocos 图，状态保持 `g6-logic-complete-visual-fixing`，不得计视觉完成。
-下一任务从状态表选择一个模块重新执行 G0；商城、邮件第二阶段及装备深度培养继续暂停。
+背包 Bag 当前只推进到 G1：G0 26/26 控件闭包、G1 当前 Cocos `1334×750` 基准已通过，G2-G6 pending。本任务不进入 G2；下一步只冻结 `/8`、`/15` 字段、全量/增量/删除/整理/使用规则及 26 控件生命周期设计。固定账号 `7200057 / roleId=1000115` 的原始包备份为 `.local/ui-fidelity/Bag/cocos/g1-20260727/fixture-baseline.json`，27 项同域夹具暂保留供 G2-G5 同数据验证，模块结束后精确恢复；G1 未执行有效 `/15` 消耗。
 
 ## 5. 已知风险
 

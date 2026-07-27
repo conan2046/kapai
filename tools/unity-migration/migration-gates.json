@@ -16,6 +16,70 @@
   },
   "modules": [
     {
+      "module": "Bag",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/BAG.md",
+      "note": "Bag G0 scope freezes 26 current Cocos controls after G1 reverse-audit found the nested equipment-info branch. G1 current Cocos evidence passed; G2-G6 require fresh evidence and cannot inherit legacy phase1 results.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/BAG_CONTROLS.json",
+          "docs/unityclient/modules/BAG.md",
+          "tools/cocos-audit/generated/cocos-current-entry-inventory.json"
+        ],
+        "G1": [
+          ".local/ui-fidelity/Bag/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
+          ".local/ui-fidelity/Bag/cocos/g1-20260727/05-bag-default-populated.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260727/28-bag-close-main.png"
+        ],
+        "G2": [
+          "docs/unityclient/modules/BAG.md",
+          "docs/unityclient/matrices/BAG_CONTROLS.json",
+          "tools/unity-migration/unityclient-modules.json",
+          ".local/protocol-evidence/8.md",
+          ".local/protocol-evidence/15.md"
+        ],
+        "G3": [
+          ".local/unity-validation/bag-latest.json",
+          "build/ui-migration/bootstrap-bag.png",
+          "build/ui-migration/unity-bag-validation.log",
+          "docs/unityclient/matrices/BAG_CONTROLS.json"
+        ],
+        "G4": [
+          ".local/unity-validation/bag-latest.json",
+          "build/ui-migration/bootstrap-bag.png",
+          "build/ui-migration/unity-bag-validation.log",
+          ".local/ui-fidelity/Bag/unity/g5-20260727"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Bag/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
+          ".local/ui-fidelity/Bag/unity/g5-20260727",
+          ".local/ui-fidelity/Bag/compare/g5-live-20260727/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json",
+          "docs/unityclient/matrices/BAG_CONTROLS.json"
+        ],
+        "G6": [
+          ".local/unity-validation/bag-latest.json",
+          ".local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json",
+          ".local/ui-fidelity/Bag/compare/g5-live-20260727/report.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          "docs/unityclient/matrices/BAG_CONTROLS.json",
+          "UNITYCLIENT_STATUS.md",
+          "docs/unityclient/modules/BAG.md"
+        ]
+      },
+      "updatedUtc": "2026-07-27T04:29:02.3950046Z"
+    },
+    {
       "module": "Hero",
       "gates": {
         "G0": "passed",

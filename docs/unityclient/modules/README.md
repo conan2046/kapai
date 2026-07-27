@@ -7,7 +7,7 @@
 | 模块 | 文档 | 状态 |
 |---|---|---|
 | 底层/登录/主界面 | `FOUNDATION.md` / `LOGIN.md` | 功能第一阶段完成；视觉 1:1 待重验 |
-| 背包 | `BAG.md` | 功能第一阶段完成；视觉 1:1 待重验 |
+| 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；双端视觉、真实协议、生命周期与幂等门禁通过 |
 | 任务 | `TASK.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 神将/阵容 | `HERO.md` | `partial-interactive-audit-required`；矩阵0/16，等待真实按钮逐项重审 |
 | 装备/法宝 | `HERO_EQUIPMENT.md` | `partial-interactive-audit-required`；历史协议诊断可复用，G4-G6按新矩阵重做 |

@@ -40,6 +40,7 @@ PetEquipRouter:register("XunBao", { 31 }, XunBaoController.onOperation)
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
 function OnDisconnected(reason)
+    BagController.onDisconnected()
     HeroController.reset()
     EquipmentController.reset()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
@@ -47,7 +48,7 @@ end
 function OnLoginClicked() LoginController.onLoginClicked() end
 function OnRoleCreateClicked() LoginController.onRoleCreateClicked() end
 function OnBagClicked() BagController.onClick() end
-function OnBagUseClicked(slot, quantity) BagController.onUse(slot, quantity) end
+function OnBagUseClicked(slot, quantity, target) BagController.onUse(slot, quantity, target) end
 function OnSettingsClicked() SettingsController.onClick() end
 function OnTaskClicked() TaskController.onClick() end
 function OnTaskClaimClicked(id) TaskController.claim(id) end

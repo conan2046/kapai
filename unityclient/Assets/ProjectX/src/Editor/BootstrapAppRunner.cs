@@ -113,6 +113,7 @@ namespace ProjectX.Editor
             string status = app?.Status ?? "Waiting for ProjectXApp...";
             bool reconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXReconnectValidation") >= 0;
             bool manualReconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXManualReconnectValidation") >= 0;
+            bool bagG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBagG4Validation") >= 0;
             bool settingsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsValidation") >= 0;
             bool taskValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskValidation") >= 0;
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
@@ -217,6 +218,15 @@ namespace ProjectX.Editor
                     if (requireNoticeResponse && (loginPhase != 4 || !File.Exists(GetLoginNoticeScreenshotPath())
                         || new FileInfo(GetLoginNoticeScreenshotPath()).Length == 0)) return;
                     WriteResult(true, status + " | login code/UI/animation evidence passed");
+                    Finish(true);
+                    return;
+                }
+                if (bagG4Validation)
+                {
+                    // Bag G4 owns its 26 state captures and finishes by exercising
+                    // account-switch cleanup, so the expected terminal UI is Login,
+                    // not an open Bag on UiStack.
+                    WriteResult(true, status);
                     Finish(true);
                     return;
                 }
@@ -587,7 +597,7 @@ namespace ProjectX.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             ProjectXApp app = ProjectXApp.Instance;
             uint userId = app?.GetLocalUserId() ?? 0;
-            uint roleId = app?.GetPlayerRoleId() ?? 0;
+            uint roleId = app?.GetValidationRoleId() ?? 0;
             string scenario = GetLaunchArgumentValue("-projectXValidationScenario=");
             string json = "{\n"
                 + $"  \"success\": {(success ? "true" : "false")},\n"

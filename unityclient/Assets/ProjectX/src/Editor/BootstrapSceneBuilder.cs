@@ -23,6 +23,8 @@ namespace ProjectX.Editor
         private const string MainPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
         private const string BackupMainPrefab = "Assets/ProjectX/res/csd/Prefabs/UImainLayer_backup.prefab";
         private const string BagPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab";
+        private const string BagInputPrefab = "Assets/ProjectX/res/csd/Prefabs/EnterNumLayer.prefab";
+        private const string BagGiftPrefab = "Assets/ProjectX/res/csd/Prefabs/common/OpenBox_1Layer.prefab";
         private const string SettingsPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/SystemLayer.prefab";
         private const string TaskBackgroundPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/huodong_bg.prefab";
         private const string TaskPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/RenwuLayer.prefab";
@@ -118,6 +120,8 @@ namespace ProjectX.Editor
             new PrefabSpec(MainPrefab, false),
             new PrefabSpec(BackupMainPrefab, false),
             new PrefabSpec(BagPrefab, false),
+            new PrefabSpec(BagInputPrefab, false),
+            new PrefabSpec(BagGiftPrefab, false),
             new PrefabSpec(SettingsPrefab, false),
             new PrefabSpec(TaskBackgroundPrefab, false),
             new PrefabSpec(TaskPrefab, true, TaskBackgroundPrefab),

@@ -7,7 +7,8 @@ namespace ProjectX.Data
     public readonly struct BagItemRecord
     {
         public BagItemRecord(int slot, int itemId, int quantity, string name, string description,
-            int picture, int quality, int useType, int useJump, int sortPriority)
+            int picture, int quality, int useType, int useJump, int sortPriority,
+            int itemType = 0, string itemFrom = "", string choices = "", string sources = "")
         {
             Slot = slot;
             ItemId = itemId;
@@ -19,6 +20,10 @@ namespace ProjectX.Data
             UseType = useType;
             UseJump = useJump;
             SortPriority = sortPriority;
+            ItemType = itemType;
+            ItemFrom = itemFrom ?? string.Empty;
+            Choices = choices ?? string.Empty;
+            Sources = sources ?? string.Empty;
         }
 
         public int Slot { get; }
@@ -31,6 +36,10 @@ namespace ProjectX.Data
         public int UseType { get; }
         public int UseJump { get; }
         public int SortPriority { get; }
+        public int ItemType { get; }
+        public string ItemFrom { get; }
+        public string Choices { get; }
+        public string Sources { get; }
     }
 
     public sealed class BagStore
@@ -40,6 +49,8 @@ namespace ProjectX.Data
         public int Count => bySlot.Count;
         public IReadOnlyList<BagItemRecord> Items => bySlot.Values
             .Where(item => item.ItemId > 0 && item.Quantity > 0)
+            .Where(item => item.ItemType != 2 && item.ItemType != 7
+                && item.ItemType != 13 && item.ItemType != 16)
             .OrderBy(item => item.SortPriority)
             .ThenBy(item => item.ItemId)
             .ThenBy(item => item.Slot)
@@ -67,6 +78,9 @@ namespace ProjectX.Data
 
         public bool TryGet(int slot, out BagItemRecord item) => bySlot.TryGetValue(slot, out item);
         public int GetQuantity(int slot) => bySlot.TryGetValue(slot, out BagItemRecord item) ? item.Quantity : 0;
+        public int GetTotalQuantityByItemId(int itemId) => bySlot.Values
+            .Where(item => item.ItemId == itemId && item.Quantity > 0)
+            .Sum(item => item.Quantity);
 
         public void Clear()
         {

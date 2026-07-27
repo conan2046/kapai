@@ -9,17 +9,55 @@ local M = {
     awaitingSort = false,
     validationStage = nil,
     validationSlot = nil,
-    validationQuantity = nil
+    validationQuantity = nil,
+    g4Stage = nil
 }
+
+local function clean(value)
+    value = tostring(value or "")
+    value = string.gsub(value, "[\t\r\n]", " ")
+    return value
+end
+
+local function encodeSources(cfg)
+    local values = {}
+    for _, source in ipairs(cfg.item_source or {}) do
+        if source[1] ~= nil then table.insert(values, tostring(source[1])) end
+    end
+    return table.concat(values, ",")
+end
+
+local function encodeChoices(cfg)
+    local rows = {}
+    for _, reward in ipairs(cfg.sub_value or {}) do
+        local id = tonumber(reward[1]) or 0
+        local rewardCfg = byId[id] or {}
+        local quantity = tonumber(reward[#reward]) or 1
+        table.insert(rows, table.concat({
+            tostring(id),
+            clean(rewardCfg.name),
+            clean(rewardCfg.des),
+            tostring(rewardCfg.pic or 0),
+            tostring(rewardCfg.quality or 0),
+            tostring(rewardCfg.type or 0),
+            tostring(quantity),
+            clean(rewardCfg.item_from),
+            encodeSources(rewardCfg)
+        }, "\t"))
+    end
+    return table.concat(rows, "\n")
+end
 
 local function addOrUpdate(slot, id, num, replace)
     local cfg = byId[id] or {}
     if replace then
         Bridge:AddBagItem(slot, id, num, cfg.name or "", cfg.des or "", cfg.pic or 0,
-            cfg.quality or 0, cfg.use_type or 0, cfg.use_jump or 0, cfg.sort_priority or 999999)
+            cfg.quality or 0, cfg.use_type or 0, cfg.use_jump or 0, cfg.sort_priority or 999999,
+            cfg.type or 0, cfg.item_from or "", encodeChoices(cfg), encodeSources(cfg))
     else
         Bridge:UpsertBagItem(slot, id, num, cfg.name or "", cfg.des or "", cfg.pic or 0,
-            cfg.quality or 0, cfg.use_type or 0, cfg.use_jump or 0, cfg.sort_priority or 999999)
+            cfg.quality or 0, cfg.use_type or 0, cfg.use_jump or 0, cfg.sort_priority or 999999,
+            cfg.type or 0, cfg.item_from or "", encodeChoices(cfg), encodeSources(cfg))
     end
 end
 
@@ -43,7 +81,13 @@ function M.onClick()
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
-function M.onUse(slot, quantity)
+function M.onDisconnected()
+    M.requested = false
+    M.awaitingSort = false
+    if M.g4Stage ~= "await_reconnect" then M.g4Stage = nil end
+end
+
+function M.onUse(slot, quantity, target)
     local currentQuantity = Bridge:GetBagQuantity(slot)
     if currentQuantity <= 0 then
         Bridge:SetStatus("Selected bag slot is empty.")
@@ -52,10 +96,11 @@ function M.onUse(slot, quantity)
     local message = Protocol.newMessage(Protocol.PACKAGE_UPDATE)
     message:WriteByte(1)
     message:WriteWord(slot - 1)
-    message:WriteByte(1)
-    message:WriteByte(0)
+    message:WriteByte(math.max(1, math.min(tonumber(quantity) or 1, currentQuantity, 255)))
+    message:WriteByte(math.max(0, math.min(tonumber(target) or 0, 255)))
     Bridge:Send(message)
-    Bridge:SetStatus("Use-item request sent for slot " .. tostring(slot) .. ".")
+    Bridge:SetStatus("Use-item request sent for slot " .. tostring(slot)
+        .. ", quantity=" .. tostring(quantity) .. ", target=" .. tostring(target) .. ".")
 end
 
 local function beginUseValidation()
@@ -100,6 +145,16 @@ function M.onPacket(command, message)
         local serverCount = readFullPackage(message, true)
         local renderedCount = Bridge:GetBagCount()
         M.requested = false
+        if M.g4Stage == "await_reopen_full" then
+            M.g4Stage = "await_reconnect"
+            Bridge:BeginBagDisconnectValidation()
+            return true
+        end
+        if M.g4Stage == "await_reconnect" then
+            M.g4Stage = nil
+            Bridge:CompleteBagG4Validation()
+            return true
+        end
         if Bridge:IsAutomation() then
             local sortMessage = Protocol.newMessage(Protocol.PACKAGE_UPDATE)
             sortMessage:WriteByte(6)
@@ -120,10 +175,21 @@ function M.onPacket(command, message)
         if success == 1 then
             readFullPackage(message, false)
             local renderedCount = Bridge:GetBagCount()
+            if M.g4Stage == "await_final_sort" then
+                M.awaitingSort = false
+                M.g4Stage = "await_reopen_full"
+                Bridge:BeginBagReloadValidation()
+                return true
+            end
             if M.awaitingSort then
                 M.awaitingSort = false
                 if Bridge:HasCommandLineFlag("-projectXUseItemValidation") then
                     beginUseValidation()
+                elseif Bridge:HasCommandLineFlag("-projectXBagG3Validation") then
+                    Bridge:CompleteBagG3Validation()
+                elseif Bridge:HasCommandLineFlag("-projectXBagG4Validation") then
+                    M.g4Stage = "await_batch"
+                    Bridge:BeginBagG4Validation()
                 else
                     Bridge:Complete("COMPLETE: package/8 + package-update/15 sort -> rendered bag UI ("
                         .. tostring(renderedCount) .. " stacks)")
@@ -155,6 +221,28 @@ function M.onPacket(command, message)
         addOrUpdate(slot, itemId, quantity, false)
     end
     validateIncrementalUpdate(slot, itemId, itemId == 0 and 0 or Bridge:GetBagQuantity(slot))
+    if M.g4Stage == "await_batch" and (itemId == 500 or itemId == 0) then
+        M.g4Stage = "await_gift"
+        Bridge:ContinueBagG4AfterBatchUse()
+    elseif M.g4Stage == "await_gift" and (itemId == 1111 or itemId == 0) then
+        local inject = Protocol.newMessage(Protocol.INTERACT)
+        inject:WriteByte(50)
+        inject:WriteUInt(USE_VALIDATION_ITEM_ID)
+        inject:WriteWord(1)
+        M.g4Stage = "await_direct_add"
+        Bridge:Send(inject)
+    elseif M.g4Stage == "await_direct_add" and itemId == USE_VALIDATION_ITEM_ID then
+        M.validationSlot = slot
+        M.g4Stage = "await_direct_consume"
+        Bridge:RunBagG4DirectUse()
+    elseif M.g4Stage == "await_direct_consume" and slot == M.validationSlot then
+        M.onUse(slot, 1, 0)
+        local sortMessage = Protocol.newMessage(Protocol.PACKAGE_UPDATE)
+        sortMessage:WriteByte(6)
+        M.g4Stage = "await_final_sort"
+        M.awaitingSort = true
+        Bridge:Send(sortMessage)
+    end
     return true
 end
 

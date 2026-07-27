@@ -88,7 +88,7 @@
     {
       "key": "Bag",
       "displayName": "背包",
-      "status": "phase1-complete",
+      "status": "g6-complete",
       "protocols": [
         8,
         15
@@ -97,14 +97,28 @@
         "Layer/Main_UI/ButtonGroup5/btn_beibao"
       ],
       "prefabs": [
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/EnterNumLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/OpenBox_1Layer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab"
       ],
-      "configs": [],
-      "mutatesServer": false,
-      "validationFlags": [],
+      "configs": [
+        "client/ProjectX/src/ConfigData/item_dat.lua",
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_dat.lua",
+        "client/ProjectX/src/ConfigData/suit_dat.lua"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXBagG4Validation"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-bag.png"
       ],
+      "controlMatrix": "docs/unityclient/matrices/BAG_CONTROLS.json",
       "document": "docs/unityclient/modules/BAG.md"
     },
     {

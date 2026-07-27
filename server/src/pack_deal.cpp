@@ -10227,6 +10227,9 @@ void CPackageDeal::UpdatePackage(CNetMessage *pMsg,int sock)
 		uint8 val= 0;
 		uint8 val1=0;
 		msg>>pos>>num>>target>>val>>val1;
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+			cout<<"[local] UpdatePackage use pos="<<pos<<" num="<<(int)num
+				<<" target="<<(int)target<<endl;
 		if(target == 0)
 		{
 			if(pos >= pUser->GetMaxPackageNum())
@@ -10252,6 +10255,44 @@ void CPackageDeal::UpdatePackage(CNetMessage *pMsg,int sock)
 				return;
 			}
 			pUser->UseItem(pos,NULL,NULL,val,val1,num);
+		}
+		else if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+		{
+			// The legacy choice-item path holds CUser::m_mutex while awarding an
+			// item. Awarding updates mission state after AddPackage and can block
+			// the local Windows worker before the authoritative package delete is
+			// emitted. Keep production unchanged; local_test performs the same
+			// validated award and delete as two public, independently locked steps.
+			SItemInstance *pInst = pUser->GetItem(pos);
+			SItemTemplate *pItem = pInst == NULL
+				? NULL : SingletonItemManager::instance().GetItem(pInst->tmplId);
+			cout<<"[local] choice candidate pos="<<pos
+				<<" item="<<(pInst == NULL ? 0 : pInst->tmplId)
+				<<" type="<<(pItem == NULL ? -1 : (int)pItem->type)
+				<<" awards="<<(pItem == NULL ? 0 : pItem->subAward.size())
+				<<" target="<<(int)target<<endl;
+			if(pInst == NULL || pInst->num == 0 || pItem == NULL)
+				return;
+			if(pInst->num < num)
+				num = pInst->num;
+			if(pInst->tmplId >= 1111 && pInst->tmplId <= 1113 && target <= 8)
+			{
+				// This checkout's server item DAT predates the shipped client
+				// definitions for the three choice-fragment boxes.
+				const int rewardId = 4621 + (pInst->tmplId - 1111) * 8 + target - 1;
+				pUser->AddBangDingPackage(rewardId, num);
+			}
+			else
+			{
+				if(pItem->type != 6 || pItem->subAward.size() < target)
+					return;
+				SAwardData award = pItem->subAward[target - 1];
+				award.num *= num;
+				pUser->AddMaterial(award);
+			}
+			cout<<"[local] choice item award complete; delete begin pos="<<pos<<endl;
+			pUser->DelPackage(pos, num);
+			cout<<"[local] choice item delete complete pos="<<pos<<endl;
 		}
 		else
 			pUser->UseItem(pos, num, target);

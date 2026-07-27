@@ -1,9 +1,23 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-27 HeroEquip G0-G6、33/33 控件、20/20 双端视觉完成
+> 当前交接：2026-07-27 Bag G0-G6、26/26 控件完整收口
 > 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
 
-## 0. 2026-07-26 新窗口直接执行
+## 0. 2026-07-27 新窗口直接执行
+
+### Bag 已收口
+
+- 只处理 Bag 的任务已完成；门禁 `G0-G6 passed / 26/26 complete`，下一任务重新选择模块并从 G0 开始。
+- 固定隔离账号 `userId=7200057 / roleId=1000115`，Windows 100%，Cocos/Unity 原生 `1334×750`；测试数据为可逆本地夹具，不是正式服/生产数据。
+- Cocos/Unity 原图、逐控件并排、50% 叠加、增强差异、真实控件自动化与人工视觉均 `26/26 passed`：`.local/ui-fidelity/Bag/compare/g5-live-20260727/`。
+- 真实 `/8`、`/15` 的全量、增量、整理、批量/礼包/直接使用、失败拒绝、重拉、断线重连、持久化和切号清理通过：`.local/unity-validation/bag-latest.json`。
+- Cocos 列表不滚动缺陷已在 Unity 修复；目标玩法未迁移时保持 Bag 并记录不可用目标，不再跳转无数据神将空壳。
+- 正式 `BuildBatch` 两次 SHA-256：`B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`；严重异常 0、Python UI 16/16、文档 29 模块一致。
+- G6 后已确认固定角色原背包 `78da63601805a360140c77000003e80001` 与体力 100 恢复；Unity、Cocos、`kapai.exe` 均为 0 进程，既有 workspace-local MySQL 保持运行。
+- 远端/本地基线 SHA：`1ae7dee8f456d61f1d50812a4945b0748d5274c2`。
+- 保留且不得暂存/覆盖：7 个 xLua `.meta` 删除、`unityclient/.vscode/`、`tools/local/Optimize-CodexLogsDatabase.ps1`、两个仅行尾异常的 Cocos Lua 文件。
+
+### HeroEquip 已完成
 
 ### HeroEquip 当前续接
 

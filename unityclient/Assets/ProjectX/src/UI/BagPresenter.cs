@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,6 +11,7 @@ namespace ProjectX.UI
     {
         private const string BasePath = "Layer/beibao_layer";
         private readonly CocosUiView view;
+        private readonly CocosUiView frameView;
         private readonly BagStore store;
         private readonly Action<BagItemRecord> useAction;
         private readonly Core.ResourceService resources;
@@ -21,10 +23,15 @@ namespace ProjectX.UI
         private readonly Button useButton;
         private RectTransform content;
         private int missingIconCount;
+        private readonly Dictionary<int, Button> itemButtons = new Dictionary<int, Button>();
+        private readonly Dictionary<int, Transform> itemSlots = new Dictionary<int, Transform>();
+        private int selectedSlot;
 
-        public BagPresenter(CocosUiView view, BagStore store, Core.ResourceService resources, Action<BagItemRecord> useAction)
+        public BagPresenter(CocosUiView view, CocosUiView frameView, BagStore store,
+            Core.ResourceService resources, Action<BagItemRecord> useAction, Action closeAction)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
+            this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
             this.useAction = useAction;
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
@@ -36,18 +43,38 @@ namespace ProjectX.UI
             useButton = Require("item/Btn_use").GetComponent<Button>();
             Require("item/Btn_use").SetActive(false);
             rowTemplate.SetActive(false);
+            Button close = this.frameView.BindClick("Layer/Panel_12/Title/CloseBtn", closeAction, true);
+            Button tab = this.frameView.BindClick("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1", () => { }, true);
+            tab.interactable = false;
+            SetFrameText("Layer/Panel_12/Title/TitleName", "道具背包");
+            SetFrameText("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1/BtnName", "全部");
+            SetFrameText("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1/ChooseBg/BtnName", "全部");
+            GameObject detailTouch = Require("item/Node/Icon");
+            Button detail = detailTouch.GetComponent<Button>() ?? detailTouch.AddComponent<Button>();
+            detail.onClick.RemoveAllListeners();
+            detail.onClick.AddListener(() => { });
             ConfigureScrollView();
             store.Changed += Render;
             Render();
         }
 
-        public int ItemCount => store.Count;
+        public int ItemCount => store.Items.Count;
         public int MissingIconCount => missingIconCount;
+        public int SelectedSlot => selectedSlot;
+        public ScrollRect Scroll => viewportObject.GetComponent<ScrollRect>();
+
+        public void ResetSelection()
+        {
+            selectedSlot = int.MinValue;
+            Render();
+        }
 
         public void Render()
         {
             IReadOnlyList<BagItemRecord> items = store.Items;
             ClearRows();
+            itemButtons.Clear();
+            itemSlots.Clear();
             missingIconCount = 0;
             foreach (BagItemRecord item in items)
             {
@@ -62,13 +89,67 @@ namespace ProjectX.UI
             float rowHeight = Mathf.Max(1f, templateRect.rect.height > 0 ? templateRect.rect.height : templateRect.sizeDelta.y);
             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) CreateRow(rowIndex, rowHeight);
             content.sizeDelta = new Vector2(content.sizeDelta.x, rowCount * rowHeight);
-            ShowDetails(items.Count > 0 ? items[0] : default, items.Count > 0);
+            BagItemRecord selected = items.FirstOrDefault(item => item.Slot == selectedSlot);
+            if (selected.ItemId <= 0 && items.Count > 0)
+                selected = items.FirstOrDefault(item => item.ItemId == 500);
+            if (selected.ItemId <= 0 && items.Count > 0) selected = items[0];
+            selectedSlot = selected.ItemId > 0 ? selected.Slot : 0;
+            UpdateSelectionVisuals();
+            ShowDetails(selected, selected.ItemId > 0);
         }
 
         public void Dispose()
         {
             store.Changed -= Render;
             ClearRows();
+        }
+
+        public bool SelectItem(int itemId)
+        {
+            BagItemRecord item = store.Items.FirstOrDefault(value => value.ItemId == itemId);
+            if (item.ItemId <= 0 || !itemButtons.TryGetValue(item.Slot, out Button button)) return false;
+            button.onClick.Invoke();
+            return true;
+        }
+
+        public bool InvokeControl(string controlId)
+        {
+            switch (controlId)
+            {
+                case "BAG-02-CLOSE":
+                    return Invoke(frameView, "Layer/Panel_12/Title/CloseBtn");
+                case "BAG-03-TAB":
+                    return frameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1") != null;
+                case "BAG-04-LIST-ITEM":
+                    foreach (Button button in itemButtons.Values) { button.onClick.Invoke(); return true; }
+                    return false;
+                case "BAG-05-LIST-SCROLL":
+                    if (Scroll == null) return false;
+                    Scroll.verticalNormalizedPosition = 0f;
+                    Canvas.ForceUpdateCanvases();
+                    return true;
+                case "BAG-06-DETAIL-ICON":
+                    detailIcon.GetComponent<Button>()?.onClick.Invoke();
+                    return detailIcon != null;
+                case "BAG-07-USE":
+                    if (useButton == null || !useButton.gameObject.activeSelf) return false;
+                    useButton.onClick.Invoke();
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public bool Validate(out string detail)
+        {
+            ScrollRect scroll = Scroll;
+            bool structure = scroll != null && scroll.viewport != null && scroll.content == content
+                && viewportObject.GetComponent<RectMask2D>() != null && !scroll.horizontal && scroll.vertical;
+            bool controls = frameView.Binding.Find("Layer/Panel_12/Title/CloseBtn") != null
+                && frameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1") != null
+                && useButton != null && detailIcon != null;
+            detail = $"items={ItemCount}, buttons={itemButtons.Count}, scroll={structure}, controls={controls}";
+            return structure && controls && itemButtons.Count == ItemCount;
         }
 
         private void ConfigureScrollView()
@@ -120,45 +201,104 @@ namespace ProjectX.UI
                 slot.gameObject.SetActive(occupied);
                 if (!occupied) continue;
                 BagItemRecord item = items[itemIndex];
+                BagItemRecord capturedItem = item;
                 Text nameText = slot.Find("Name")?.GetComponent<Text>();
-                if (nameText != null) nameText.text = item.Name;
+                if (nameText != null)
+                {
+                    nameText.text = item.Name;
+                    nameText.color = QualityColor(item.Quality);
+                }
+                ApplyQuality(slot, item.Quality);
                 ApplyIcon(slot.Find("Icon")?.GetComponent<Image>(), item.Picture);
-                AddQuantityLabel(slot, item.Quantity);
+                AddQuantityLabel(slot, slot.Find("Icon"), item.Quantity);
                 Button button = slot.GetComponent<Button>() ?? slot.gameObject.AddComponent<Button>();
                 button.targetGraphic = slot.GetComponent<Graphic>() ?? slot.GetComponentInChildren<Graphic>();
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => ShowDetails(item, true));
+                button.onClick.AddListener(() =>
+                {
+                    selectedSlot = capturedItem.Slot;
+                    UpdateSelectionVisuals();
+                    ShowDetails(capturedItem, true);
+                });
+                itemButtons[item.Slot] = button;
+                itemSlots[item.Slot] = slot;
             }
         }
 
-        private static void AddQuantityLabel(Transform slot, int quantity)
+        private void ApplyQuality(Transform slot, int quality)
+        {
+            Transform icon = slot.Find("Icon");
+            if (icon == null) return;
+            Transform existing = slot.Find("RuntimeQuality");
+            GameObject qualityObject = existing != null
+                ? existing.gameObject
+                : new GameObject("RuntimeQuality", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            qualityObject.transform.SetParent(slot, false);
+            RectTransform source = icon.GetComponent<RectTransform>();
+            RectTransform rect = qualityObject.GetComponent<RectTransform>();
+            rect.anchorMin = source.anchorMin;
+            rect.anchorMax = source.anchorMax;
+            rect.pivot = source.pivot;
+            rect.anchoredPosition = source.anchoredPosition;
+            rect.sizeDelta = source.sizeDelta;
+            rect.localScale = source.localScale;
+            Image image = qualityObject.GetComponent<Image>();
+            image.sprite = resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}");
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            qualityObject.transform.SetSiblingIndex(icon.GetSiblingIndex());
+        }
+
+        private static void AddQuantityLabel(Transform slot, Transform icon, int quantity)
         {
             GameObject labelObject = new GameObject("RuntimeQuantity", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
             labelObject.transform.SetParent(slot, false);
             RectTransform rect = labelObject.GetComponent<RectTransform>();
-            rect.anchorMin = new Vector2(0.45f, 0f);
-            rect.anchorMax = new Vector2(1f, 0.35f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            RectTransform source = icon?.GetComponent<RectTransform>();
+            if (source != null)
+            {
+                rect.anchorMin = source.anchorMin;
+                rect.anchorMax = source.anchorMax;
+                rect.pivot = source.pivot;
+                rect.anchoredPosition = source.anchoredPosition;
+                rect.sizeDelta = source.sizeDelta;
+                rect.localScale = source.localScale;
+            }
             Text label = labelObject.GetComponent<Text>();
             label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontSize = 18;
+            label.fontSize = 17;
             label.alignment = TextAnchor.LowerRight;
             label.color = Color.white;
-            label.text = quantity > 1 ? quantity.ToString() : string.Empty;
+            label.text = quantity.ToString();
+            label.raycastTarget = false;
+        }
+
+        private void UpdateSelectionVisuals()
+        {
+            foreach (KeyValuePair<int, Transform> pair in itemSlots)
+            {
+                Transform choose = pair.Value.Find("Choose");
+                if (choose != null) choose.gameObject.SetActive(pair.Key == selectedSlot);
+            }
         }
 
         private void ShowDetails(BagItemRecord item, bool hasItem)
         {
-            if (detailName != null) detailName.text = hasItem ? item.Name : "背包为空";
+            if (detailName != null)
+            {
+                detailName.text = hasItem ? item.Name : "背包为空";
+                detailName.color = hasItem ? QualityColor(item.Quality) : QualityColor(1);
+            }
             if (detailDescription != null)
                 detailDescription.text = hasItem
-                    ? $"{item.Description}\n物品ID：{item.ItemId}　数量：{item.Quantity}　格位：{item.Slot}"
+                    ? item.Description
                     : "暂无物品";
             ApplyIcon(detailIcon, hasItem ? item.Picture : 0);
             if (useButton != null)
             {
-                bool canUse = hasItem && item.UseType > 0 && useAction != null;
+                bool canUse = hasItem
+                    && (item.UseType > 0 || item.UseJump > 0 || item.ItemType == 6)
+                    && useAction != null;
                 useButton.gameObject.SetActive(canUse);
                 useButton.onClick.RemoveAllListeners();
                 if (canUse) useButton.onClick.AddListener(() => useAction(item));
@@ -179,11 +319,40 @@ namespace ProjectX.UI
             return resources.LoadItemIcon(picture);
         }
 
+        private static Color QualityColor(int quality)
+        {
+            switch (quality)
+            {
+                case 2: return new Color32(36, 155, 48, 255);
+                case 3: return new Color32(35, 98, 174, 255);
+                case 4: return new Color32(135, 32, 151, 255);
+                case 5: return new Color32(203, 91, 27, 255);
+                case 6: return new Color32(190, 35, 35, 255);
+                case 7: return new Color32(209, 148, 24, 255);
+                default: return new Color32(132, 83, 61, 255);
+            }
+        }
+
         private GameObject Require(string relativePath)
         {
             GameObject result = view.Binding.Find($"{BasePath}/{relativePath}");
             if (result == null) throw new InvalidOperationException($"Bag UI node was not found: {BasePath}/{relativePath}");
             return result;
+        }
+
+        private void SetFrameText(string path, string value)
+        {
+            Text label = frameView.Binding.Find(path)?.GetComponent<Text>();
+            if (label != null) label.text = value;
+        }
+
+        private static bool Invoke(CocosUiView target, string path)
+        {
+            GameObject node = target.Binding.Find(path);
+            Button button = node == null ? null : node.GetComponent<Button>();
+            if (button == null) return false;
+            button.onClick.Invoke();
+            return true;
         }
     }
 }

@@ -7,7 +7,7 @@
   },
   "scenarios": [
     { "key": "login-default", "module": "Login", "fixture": "isolated-role", "flags": ["-projectXLoginValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-login.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-login-notice.png","lifecycle":"runtime"}], "captureStates": ["login","notice"] },
-    { "key": "bag-default", "module": "Bag", "fixture": "shared-readonly", "flags": [], "artifacts": [{"path":"build/ui-migration/bootstrap-bag.png","lifecycle":"runtime"}], "captureStates": ["bag"] },
+    { "key": "bag-default", "module": "Bag", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXBagG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-bag.png","lifecycle":"runtime"}], "captureStates": ["bag","input","gift","source","equipment-info","source-destination","reload","reconnect"] },
     { "key": "settings-default", "module": "Settings", "fixture": "shared-readonly", "flags": ["-projectXSettingsValidation"], "artifacts": [], "captureStates": [] },
     { "key": "task-default", "module": "Task", "fixture": "isolated-role", "flags": ["-projectXTaskValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-task.png","lifecycle":"runtime"}], "captureStates": ["task"] },
     { "key": "player-hud-default", "module": "PlayerHud", "fixture": "shared-readonly", "flags": ["-projectXPlayerHudValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-main-hud.png","lifecycle":"runtime"}], "captureStates": ["main-hud"] },

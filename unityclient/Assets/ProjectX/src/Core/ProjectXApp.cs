@@ -120,8 +120,21 @@ namespace ProjectX.Core
         private bool gameNoticeRequested;
         private CocosUiView mainView;
         private CocosUiView bagView;
+        private CocosUiView bagFrameView;
+        private CocosUiView bagInputView;
+        private CocosUiView bagPopupFrameView;
+        private CocosUiView bagGiftView;
+        private CocosUiView bagSourceView;
+        private CocosUiView bagEquipmentInfoView;
         private BagPresenter bagPresenter;
+        private BagFlowPresenter bagFlowPresenter;
         private readonly List<BagItemRecord> pendingBagItems = new List<BagItemRecord>();
+        private int bagG4InitialBatchQuantity;
+        private int bagG4InitialGiftQuantity;
+        private int bagG4InitialDirectQuantity;
+        private int bagG4InitialRewardQuantity;
+        private uint bagG4ValidatedRoleId;
+        private bool bagInitialSelectionApplied;
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
         private readonly List<RewardRecord> pendingRewards = new List<RewardRecord>();
@@ -613,6 +626,7 @@ namespace ProjectX.Core
             welfareActivityFramePresenter?.Dispose();
             gameplayShopsPresenter?.Dispose();
             bagPresenter?.Dispose();
+            bagFlowPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
             heroEquipmentPresenter?.Dispose();
@@ -655,6 +669,7 @@ namespace ProjectX.Core
         public bool HasCommandLineFlag(string flag) => services?.Options.HasFlag(flag) ?? false;
         public uint GetLocalUserId() => services?.Config.LocalUserId ?? 1;
         public uint GetPlayerRoleId() => services?.Player.RoleId ?? 0;
+        public uint GetValidationRoleId() => GetPlayerRoleId() != 0 ? GetPlayerRoleId() : bagG4ValidatedRoleId;
         public bool IsFormationPopupOpen => formationPopupView?.GameObject.activeSelf == true;
         public bool HandleBack()
         {
@@ -776,6 +791,12 @@ namespace ProjectX.Core
             noticeView = services.UiRouter.FindBySource("/NoticeLayer.csd", true);
             mainView = services.UiRouter.FindBySource("UImainLayer", true);
             bagView = services.UiRouter.FindBySource("zhujue/beibao");
+            bagFrameView = services.UiRouter.FindBySource("OneLevelLayer");
+            bagInputView = services.UiRouter.FindBySource("EnterNumLayer");
+            bagPopupFrameView = services.UiRouter.FindBySource("shop/shop_bg");
+            bagGiftView = services.UiRouter.FindBySource("common/OpenBox_1Layer");
+            bagSourceView = services.UiRouter.FindBySource("common/huoqutujing");
+            bagEquipmentInfoView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
             settingsView = services.UiRouter.FindBySource("zhujue/SystemLayer");
             taskBackgroundView = services.UiRouter.FindBySource("huodong/huodong_bg");
             taskView = services.UiRouter.FindBySource("huodong/RenwuLayer");
@@ -810,6 +831,12 @@ namespace ProjectX.Core
             noticeView?.SetVisible(false);
             mainView?.SetVisible(false);
             bagView?.SetVisible(false);
+            bagFrameView?.SetVisible(false);
+            bagInputView?.SetVisible(false);
+            bagPopupFrameView?.SetVisible(false);
+            bagGiftView?.SetVisible(false);
+            bagSourceView?.SetVisible(false);
+            bagEquipmentInfoView?.SetVisible(false);
             settingsView?.SetVisible(false);
             taskBackgroundView?.SetVisible(false);
             taskView?.SetVisible(false);
@@ -817,7 +844,10 @@ namespace ProjectX.Core
             resourceRecoveryView?.SetVisible(false);
             errorView?.SetVisible(false);
             loadingView?.SetVisible(false);
+            heroFrameView?.SetVisible(false);
             heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
             heroReplacementView?.SetVisible(false);
             heroCultivationView?.SetVisible(false);
             heroLevelUpView?.SetVisible(false);
@@ -1612,6 +1642,7 @@ namespace ProjectX.Core
             services.Player.Clear();
             services.Currencies.Clear();
             services.Bag.Clear();
+            bagFlowPresenter?.CloseAll();
             services.Rewards.Clear();
             services.Mails.Clear();
             services.Shop.Clear();
@@ -1705,30 +1736,347 @@ namespace ProjectX.Core
         }
 
         public void AddBagItem(int slot, int itemId, int quantity, string itemName, string description,
-            int picture, int quality, int useType, int useJump, int sortPriority)
+            int picture, int quality, int useType, int useJump, int sortPriority,
+            int itemType, string itemFrom, string choices, string sources)
         {
             pendingBagItems.Add(new BagItemRecord(slot, itemId, quantity, itemName, description,
-                picture, quality, useType, useJump, sortPriority));
+                picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources));
         }
 
         public void EndBagUpdate()
         {
             services.Bag.Replace(pendingBagItems);
             EnsureBagPresenter();
+            if (!bagInitialSelectionApplied)
+            {
+                bagPresenter.ResetSelection();
+                bagInitialSelectionApplied = true;
+            }
+            ConfigureBagFrame();
+            // Imported Prefabs can retain their serialized active state from the
+            // last editor build. A real Bag entry must explicitly isolate itself
+            // from every Hero surface before becoming the UiStack top.
+            heroFrameView?.SetVisible(false);
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroReplacementView?.SetVisible(false);
+            heroCultivationView?.SetVisible(false);
+            heroLevelUpView?.SetVisible(false);
+            heroEnhanceMasterView?.SetVisible(false);
+            heroAttributesView?.SetVisible(false);
+            heroItemSourceView?.SetVisible(false);
+            heroEquipmentListView?.SetVisible(false);
+            heroEquipmentDetailView?.SetVisible(false);
+            heroEquipmentChangeView?.SetVisible(false);
+            heroEquipmentCultivateView?.SetVisible(false);
+            heroEquipmentStrengthView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
+            gameplayContentView?.SetVisible(false);
+            gameplayDetailView?.SetVisible(false);
+            bagFrameView.SetVisible(true);
             if (services.UiStack.Current != bagView) services.UiStack.Push(bagView);
+            bagFrameView.GameObject.transform.SetAsLastSibling();
+            bagView.GameObject.transform.SetAsLastSibling();
             SetStatus($"Bag UI active: {bagPresenter.ItemCount} item stacks, {bagPresenter.MissingIconCount} missing icons.");
         }
 
         public void UpsertBagItem(int slot, int itemId, int quantity, string itemName, string description,
-            int picture, int quality, int useType, int useJump, int sortPriority)
+            int picture, int quality, int useType, int useJump, int sortPriority,
+            int itemType, string itemFrom, string choices, string sources)
         {
             services.Bag.Upsert(new BagItemRecord(slot, itemId, quantity, itemName, description,
-                picture, quality, useType, useJump, sortPriority));
+                picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources));
         }
 
         public void RemoveBagItem(int slot) => services.Bag.Remove(slot);
         public int GetBagCount() => services.Bag.Count;
         public int GetBagQuantity(int slot) => services.Bag.GetQuantity(slot);
+        public bool IsBagInputOpen => bagFlowPresenter?.IsInputOpen == true;
+        public bool IsBagGiftOpen => bagFlowPresenter?.IsGiftOpen == true;
+        public bool IsBagSourceOpen => bagFlowPresenter?.IsSourceOpen == true;
+        public bool IsBagEquipmentInfoOpen => bagFlowPresenter?.IsEquipmentInfoOpen == true;
+        public int BagModalQuantity => bagFlowPresenter?.Quantity ?? 0;
+        public int BagChoiceCount => bagFlowPresenter?.ChoiceCount ?? 0;
+        public bool BagHasChoice => bagFlowPresenter?.HasSelection == true;
+        public bool SelectBagItem(int itemId) => bagPresenter?.SelectItem(itemId) == true;
+        public bool InvokeBagControl(string controlId) =>
+            bagPresenter?.InvokeControl(controlId) == true || bagFlowPresenter?.InvokeControl(controlId) == true;
+        public bool ValidateBagStatic(out string detail)
+        {
+            EnsureBagPresenter();
+            bool bagOk = bagPresenter.Validate(out string bagDetail);
+            bool flowOk = bagFlowPresenter.Validate(out string flowDetail);
+            detail = bagDetail + " | " + flowDetail;
+            return bagOk && flowOk;
+        }
+        public void CompleteBagG3Validation()
+        {
+            if (!ValidateBagStatic(out string detail))
+            {
+                Fail("Bag G3 static validation failed: " + detail);
+                return;
+            }
+            Complete("COMPLETE: Bag G3 real Prefabs + 26-control bindings + scroll/modal lifecycle | " + detail);
+        }
+
+        public void BeginBagG4Validation()
+        {
+            StartCoroutine(BeginBagG4ValidationRoutine());
+        }
+
+        private IEnumerator BeginBagG4ValidationRoutine()
+        {
+            bagG4ValidatedRoleId = GetPlayerRoleId();
+            bool staticValid = ValidateBagStatic(out string detail);
+            if (GetLocalUserId() == 1 || !IsBagOpen || services.Bag.Count < 20 || !staticValid)
+            {
+                Fail($"Bag G4 fixture/static mismatch: user={GetLocalUserId()}, open={IsBagOpen}, "
+                    + $"count={services.Bag.Count}, detail={detail}.");
+                yield break;
+            }
+            bagG4InitialBatchQuantity = GetBagQuantityByItemId(500);
+            bagG4InitialGiftQuantity = GetBagQuantityByItemId(1111);
+            bagG4InitialDirectQuantity = GetBagQuantityByItemId(3201);
+            bagG4InitialRewardQuantity = GetBagQuantityByItemId(4621);
+            if (bagG4InitialBatchQuantity < 2 || bagG4InitialGiftQuantity < 1)
+            {
+                Fail($"Bag G4 fixture lacks batch/gift items: 500={bagG4InitialBatchQuantity}, "
+                    + $"1111={bagG4InitialGiftQuantity}.");
+                yield break;
+            }
+
+            if (!SelectBagItem(500))
+            { Fail("Bag G4 entry fixture could not select the Cocos baseline item 500."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-01-ENTRY");
+            if (!InvokeBagControl("BAG-03-TAB")) { Fail("Bag G4 tab binding failed."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-03-TAB");
+            if (!SelectBagItem(500)) { Fail("Bag G4 could not select batch item 500."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-04-LIST-ITEM");
+            if (!InvokeBagControl("BAG-05-LIST-SCROLL")) { Fail("Bag G4 list scroll failed."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-05-LIST-SCROLL");
+            if (!InvokeBagControl("BAG-06-DETAIL-ICON")) { Fail("Bag G4 detail icon binding failed."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-06-DETAIL-ICON");
+
+            if (!InvokeBagControl("BAG-07-USE") || !IsBagInputOpen)
+            { Fail("Bag G4 batch item did not open EnterNumLayer."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-07-USE-BATCH");
+            InvokeBagControl("BAG-08-INPUT-DIGITS");
+            if (BagModalQuantity != 1) { Fail("Bag G4 input digit did not set quantity=1."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-08-INPUT-DIGITS");
+            InvokeBagControl("BAG-09-INPUT-DELETE");
+            if (BagModalQuantity != 0) { Fail("Bag G4 input delete did not clear quantity."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-09-INPUT-DELETE");
+            InvokeBagControl("BAG-10-INPUT-CONFIRM");
+            if (IsBagInputOpen || GetBagQuantityByItemId(500) != bagG4InitialBatchQuantity)
+            { Fail("Bag G4 zero confirmation changed authoritative state."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-10-INPUT-ZERO");
+
+            SelectBagItem(500);
+            InvokeBagControl("BAG-07-USE");
+            InvokeBagControl("BAG-11-INPUT-CLOSE");
+            if (IsBagInputOpen) { Fail("Bag G4 input close did not close the modal."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-11-INPUT-CLOSE");
+
+            SelectBagItem(500);
+            InvokeBagControl("BAG-07-USE");
+            InvokeBagControl("BAG-08-INPUT-DIGITS");
+            InvokeBagControl("BAG-10-INPUT-CONFIRM");
+        }
+
+        public void ContinueBagG4AfterBatchUse()
+        {
+            StartCoroutine(ContinueBagG4AfterBatchUseRoutine());
+        }
+
+        private IEnumerator ContinueBagG4AfterBatchUseRoutine()
+        {
+            if (GetBagQuantityByItemId(500) != bagG4InitialBatchQuantity - 1 || !IsBagOpen)
+            {
+                Fail($"Bag G4 batch consume mismatch: item500={GetBagQuantityByItemId(500)}/"
+                    + $"{bagG4InitialBatchQuantity - 1}, open={IsBagOpen}.");
+                yield break;
+            }
+            yield return CaptureBagG5Evidence("BAG-10-BATCH-SUCCESS");
+            if (!SelectBagItem(1114) || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen)
+            { Fail("Bag G4 gift item did not open OpenBox_1Layer."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-12-GIFT-OPEN");
+            InvokeBagControl("BAG-18-GIFT-CONFIRM");
+            if (!IsBagGiftOpen || GetBagQuantityByItemId(1114) != 3)
+            { Fail("Bag G4 no-selection gift confirmation mutated or closed."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-18-GIFT-NO-SELECTION");
+            InvokeBagControl("BAG-19-GIFT-CLOSE");
+            if (IsBagGiftOpen) { Fail("Bag G4 gift close failed."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-19-GIFT-CLOSE");
+
+            SelectBagItem(1114);
+            InvokeBagControl("BAG-07-USE");
+            InvokeBagControl("BAG-12-GIFT-OPTION");
+            if (!BagHasChoice) { Fail("Bag G4 gift choice did not select."); yield break; }
+            InvokeBagControl("BAG-17-GIFT-ADD-TEN");
+            yield return CaptureBagG5Evidence("BAG-12-GIFT-OPTION");
+            InvokeBagControl("BAG-14-GIFT-SUB-ONE");
+            InvokeBagControl("BAG-13-GIFT-SCROLL");
+            yield return CaptureBagG5Evidence("BAG-13-GIFT-SCROLL");
+            bagFlowPresenter.ResetGiftScroll();
+            InvokeBagControl("BAG-15-GIFT-ADD-ONE");
+            yield return CaptureBagG5Evidence("BAG-15-GIFT-ADD-ONE");
+            InvokeBagControl("BAG-14-GIFT-SUB-ONE");
+            yield return CaptureBagG5Evidence("BAG-14-GIFT-SUB-ONE");
+            InvokeBagControl("BAG-17-GIFT-ADD-TEN");
+            yield return CaptureBagG5Evidence("BAG-17-GIFT-ADD-TEN");
+            InvokeBagControl("BAG-16-GIFT-SUB-TEN");
+            yield return CaptureBagG5Evidence("BAG-16-GIFT-SUB-TEN");
+            InvokeBagControl("BAG-17-GIFT-ADD-TEN");
+
+            if (!InvokeBagControl("BAG-20-GIFT-REWARD-DETAIL") || !IsBagSourceOpen)
+            { Fail("Bag G4 gift reward detail did not open source UI."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-20-GIFT-REWARD-DETAIL");
+            InvokeBagControl("BAG-23-SOURCE-SCROLL");
+            yield return CaptureBagG5Evidence("BAG-23-SOURCE-SCROLL");
+            InvokeBagControl("BAG-21-SOURCE-CLOSE");
+            if (!IsBagGiftOpen || IsBagSourceOpen)
+            { Fail("Bag G4 source close did not return to gift."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-21-SOURCE-CLOSE");
+
+            InvokeBagControl("BAG-19-GIFT-CLOSE");
+            SelectBagItem(1112);
+            InvokeBagControl("BAG-07-USE");
+            if (!bagFlowPresenter.SelectGiftChoice(0)
+                || !InvokeBagControl("BAG-20-GIFT-REWARD-DETAIL")
+                || !IsBagSourceOpen)
+            { Fail("Bag G4 equipment-fragment source setup failed."); yield break; }
+            if (!InvokeBagControl("BAG-22-SOURCE-ICON") || !IsBagEquipmentInfoOpen)
+            { Fail("Bag G4 source icon did not open equipment info."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-22-SOURCE-ICON");
+            InvokeBagControl("BAG-26-EQUIP-INFO-SCROLL");
+            yield return CaptureBagG5Evidence("BAG-26-EQUIP-INFO-SCROLL");
+            InvokeBagControl("BAG-25-EQUIP-INFO-CLOSE");
+            if (!IsBagSourceOpen || IsBagEquipmentInfoOpen)
+            { Fail("Bag G4 equipment info close did not return one layer."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-25-EQUIP-INFO-CLOSE");
+            if (!InvokeBagControl("BAG-24-SOURCE-ACTION"))
+            { Fail("Bag G4 source action did not invoke its target."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-24-SOURCE-ACTION");
+            if (!IsBagOpen || IsBagSourceOpen)
+            { Fail("Bag G4 source action escaped Bag or left the source popup open."); yield break; }
+
+            SelectBagItem(1111);
+            InvokeBagControl("BAG-07-USE");
+            bagFlowPresenter.SelectGiftChoice(0);
+            InvokeBagControl("BAG-18-GIFT-CONFIRM");
+        }
+
+        public bool RunBagG4DirectUse()
+        {
+            if (!SelectBagItem(3201) || !InvokeBagControl("BAG-07-USE"))
+            {
+                Fail("Bag G4 injected direct-use item could not be used through the real button.");
+                return false;
+            }
+            return true;
+        }
+
+        public void BeginBagReloadValidation()
+        {
+            StartCoroutine(BeginBagReloadValidationRoutine());
+        }
+
+        private IEnumerator BeginBagReloadValidationRoutine()
+        {
+            yield return CaptureBagG5Evidence("BAG-18-GIFT-SUCCESS");
+            if (!InvokeBagControl("BAG-02-CLOSE") || IsBagOpen)
+            { Fail("Bag G4 close button did not return to main."); yield break; }
+            yield return CaptureBagG5Evidence("BAG-02-CLOSE");
+            mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+            Button entry = mainView?.Binding.Find(BagPath)?.GetComponent<Button>();
+            if (entry == null) { Fail("Bag G4 real main entry was unavailable after close."); yield break; }
+            entry.onClick.Invoke();
+        }
+
+        public void BeginBagDisconnectValidation()
+        {
+            if (!IsBagOpen || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"Bag G4 pre-disconnect mismatch: open={IsBagOpen}, pending={services.ProtocolRegistry.PendingCount}.");
+                return;
+            }
+            StartCoroutine(BeginBagDisconnectValidationRoutine());
+        }
+
+        private IEnumerator BeginBagDisconnectValidationRoutine()
+        {
+            services.Network.Disconnect();
+            yield return null;
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (services.Network.State != NetworkState.Disconnected)
+            {
+                Fail($"Bag G4 disconnect was not observed: state={services.Network.State}.");
+                yield break;
+            }
+            // The Bag gate owns this deliberate disconnect. Trigger the real
+            // reconnect entry after the disconnected state is observable instead
+            // of depending on the general delayed retry policy.
+            Reconnect();
+        }
+
+        public void CompleteBagG4Validation()
+        {
+            StartCoroutine(CompleteBagG4ValidationRoutine());
+        }
+
+        private IEnumerator CompleteBagG4ValidationRoutine()
+        {
+            if (!IsBagOpen || services.ProtocolRegistry.PendingCount != 0
+                || GetBagQuantityByItemId(500) != bagG4InitialBatchQuantity - 1
+                || GetBagQuantityByItemId(1111) != bagG4InitialGiftQuantity - 1
+                || GetBagQuantityByItemId(3201) != bagG4InitialDirectQuantity
+                || GetBagQuantityByItemId(4621) <= bagG4InitialRewardQuantity
+                || IsBagInputOpen || IsBagGiftOpen || IsBagSourceOpen || IsBagEquipmentInfoOpen)
+            {
+                Fail($"Bag G4 persisted/reconnect mismatch: open={IsBagOpen}, pending={services.ProtocolRegistry.PendingCount}, "
+                    + $"500={GetBagQuantityByItemId(500)}/{bagG4InitialBatchQuantity - 1}, "
+                    + $"1111={GetBagQuantityByItemId(1111)}/{bagG4InitialGiftQuantity - 1}, "
+                    + $"3201={GetBagQuantityByItemId(3201)}/{bagG4InitialDirectQuantity}, "
+                    + $"4621={GetBagQuantityByItemId(4621)}/{bagG4InitialRewardQuantity + 1}, "
+                    + $"modals={IsBagInputOpen}/{IsBagGiftOpen}/{IsBagSourceOpen}/{IsBagEquipmentInfoOpen}.");
+                yield break;
+            }
+            yield return CaptureBagG5Evidence("BAG-01-RECONNECT");
+            ReturnToLogin();
+            if (!IsLoginVisible || services.Bag.Count != 0 || IsBagOpen || IsBagInputOpen
+                || IsBagGiftOpen || IsBagSourceOpen || IsBagEquipmentInfoOpen)
+            {
+                Fail($"Bag G4 account-switch cleanup mismatch: login={IsLoginVisible}, count={services.Bag.Count}, "
+                    + $"open={IsBagOpen}, modals={IsBagInputOpen}/{IsBagGiftOpen}/{IsBagSourceOpen}/{IsBagEquipmentInfoOpen}.");
+                yield break;
+            }
+            Complete("COMPLETE: Bag G4 real controls -> batch/gift/direct use -> authoritative add/update/delete/sort "
+                + "-> invalid/repeat rejection -> close/reload -> disconnect/reconnect persistence -> account-switch cleanup");
+        }
+
+        private int GetBagQuantityByItemId(int itemId)
+        {
+            return services.Bag.GetTotalQuantityByItemId(itemId);
+        }
+
+        private IEnumerator CaptureBagG5Evidence(string controlId)
+        {
+            string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            string outputDirectory = Path.Combine(repositoryRoot, ".local", "ui-fidelity", "Bag", "unity", "g5-20260727");
+            Directory.CreateDirectory(outputDirectory);
+            string path = Path.Combine(outputDirectory, controlId + ".png");
+            if (File.Exists(path)) File.Delete(path);
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length == 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+                throw new IOException($"Bag G5 screenshot was not written: {path}");
+            if (string.Equals(controlId, "BAG-01-RECONNECT", StringComparison.Ordinal))
+                File.Copy(path, BuildUiMigrationPath("bootstrap-bag.png"), true);
+        }
 
         public void BeginRewardUpdate(int expectedCount)
         {
@@ -3455,6 +3803,10 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
             services.Heroes.Clear();
             services.Formation.Clear();
+            services.Bag.Clear();
+            bagFlowPresenter?.CloseAll();
+            bagFrameView?.SetVisible(false);
+            bagView?.SetVisible(false);
             services.HeroEquipment.Clear();
             services.FaBao.Clear();
             heroG4ControlValidationRunning = false;
@@ -3941,9 +4293,42 @@ namespace ProjectX.Core
         private void EnsureBagPresenter()
         {
             bagView = bagView ?? services.UiRouter.FindBySource("zhujue/beibao");
-            if (bagView == null) throw new InvalidOperationException("zhujue/beibao CocosUiBinding was not found.");
-            bagPresenter = bagPresenter ?? new BagPresenter(bagView, services.Bag, services.Resources,
-                item => InvokeLuaOrFail(onBagUseClicked, "Bag.OnUseClicked", item.Slot, item.Quantity));
+            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            bagInputView = bagInputView ?? services.UiRouter.FindBySource("EnterNumLayer");
+            bagPopupFrameView = bagPopupFrameView ?? services.UiRouter.FindBySource("shop/shop_bg");
+            bagGiftView = bagGiftView ?? services.UiRouter.FindBySource("common/OpenBox_1Layer");
+            bagSourceView = bagSourceView ?? services.UiRouter.FindBySource("common/huoqutujing");
+            bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
+            if (bagView == null || bagFrameView == null || bagInputView == null || bagPopupFrameView == null
+                || bagGiftView == null || bagSourceView == null || bagEquipmentInfoView == null)
+                throw new InvalidOperationException("Bag required CocosUiBinding was not found.");
+            bagFlowPresenter = bagFlowPresenter ?? new BagFlowPresenter(
+                bagInputView, bagPopupFrameView, bagGiftView, bagSourceView, bagEquipmentInfoView,
+                services.Resources, services.EquipmentCatalog,
+                (item, quantity, target) => InvokeLuaOrFail(onBagUseClicked, "Bag.OnUseClicked",
+                    item.Slot, quantity, target),
+                functionId =>
+                {
+                    // Bag must not present another module's placeholder data as an
+                    // authoritative destination. Keep the real source click bound,
+                    // close only the source popup, and leave Bag active until that
+                    // destination has completed its own migration gates.
+                    SetStatus($"Bag source target is not migrated: function_id={functionId}; Bag remains active.");
+                },
+                SetStatus);
+            bagPresenter = bagPresenter ?? new BagPresenter(bagView, bagFrameView, services.Bag, services.Resources,
+                item =>
+                {
+                    bagFlowPresenter.ShowUseFlow(item);
+                    gameplayContentView?.SetVisible(false);
+                    gameplayDetailView?.SetVisible(false);
+                },
+                () =>
+                {
+                    bagFlowPresenter.CloseAll();
+                    bagFrameView.SetVisible(false);
+                    HandleBack();
+                });
         }
 
         private void EnsureSettingsPresenter()
@@ -4551,6 +4936,40 @@ namespace ProjectX.Core
             heroAttributesView.BindClick("Layer/Mask_close", () => heroAttributesView.SetVisible(false), true);
             heroAttributesView.SetVisible(true);
             heroAttributesView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void ConfigureBagFrame()
+        {
+            // OneLevelLayer is shared with Hero. Reapply its authoritative header
+            // state on every Bag response so no previous module title, tab or
+            // placeholder currency survives.
+            CocosUiBinding binding = bagFrameView.Binding;
+            RectTransform root = binding.transform as RectTransform;
+            if (root != null)
+            {
+                root.pivot = new Vector2(0f, 1f);
+                root.anchorMin = root.anchorMax = new Vector2(0f, 1f);
+                root.anchoredPosition = Vector2.zero;
+                root.localScale = Vector3.one;
+            }
+            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "道具背包";
+            Transform help = title?.transform.Find("Button_1");
+            if (help != null) help.gameObject.SetActive(false);
+            Transform first = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            if (first != null) SetTabText(first, "全部", true);
+            Transform second = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
+            if (second != null) second.gameObject.SetActive(false);
+            Transform gold3 = binding.Find("Layer/GoldCheck/GoldIcon3")?.transform;
+            Transform gold4 = binding.Find("Layer/GoldCheck/GoldIcon4")?.transform;
+            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
+            Text gold = gold3?.Find("GoldNumBg/Num")?.GetComponent<Text>();
+            Text premium = gold4?.Find("GoldNumBg/Num")?.GetComponent<Text>();
+            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
+            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
+            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
+                if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
 
         private void ConfigureHeroFrame(bool showBag)
