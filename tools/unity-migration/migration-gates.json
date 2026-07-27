@@ -83,15 +83,15 @@
       "module": "Task",
       "gates": {
         "G0": "passed",
-        "G1": "blocked",
-        "G2": "pending",
-        "G3": "pending",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/TASK.md",
-      "note": "G0 passed with 14 current controls. G1 reached the real Cocos page on fixed account 7200057/1000115, but authoritative /37 returned an empty daily-task list; populated, claimable, claimed, scroll and reward-popup states remain unavailable, so G2 is forbidden.",
+      "note": "Task G0-G6 passed. Fixed account 7200057/1000115 completed 11/11 current Cocos/Unity native 1334x750 critical visual states and 14/14 real controls. Protocol, invalid/repeat, reload, reconnect, persistence, account-switch cleanup, exact SQL snapshot restore and twice-run BuildBatch idempotence passed.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/TASK_CONTROLS.json",
@@ -101,17 +101,55 @@
         ],
         "G1": [
           ".local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/Task/cocos/g1-20260727/01-task-entry.png",
-          ".local/ui-fidelity/Task/cocos/g1-20260727/04-task-page-native-1334x750.png",
-          ".local/kapai-current.out"
+          ".local/ui-fidelity/Task/cocos/g1-20260727/12-task-populated-claimable-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/13-daily-claim-reward-popup-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/17-task-go-guild-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/18-active-box-claimable-popup-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/20-active-box-claimed-rewards-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/23-task-scroll-bottom-claimed-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/24-restored-relogin-native.png",
+          ".local/ui-fidelity/Task/cocos/g1-20260727/task-fixture-snapshot.json"
         ],
-        "G2": [],
-        "G3": [],
-        "G4": [],
-        "G5": [],
-        "G6": []
+        "G2": [
+          "docs/unityclient/modules/TASK.md",
+          "docs/unityclient/matrices/TASK_CONTROLS.json",
+          "tools/unity-migration/unityclient-modules.json",
+          "unityclient/Assets/ProjectX/Resources/Lua/Task/TaskController.lua.txt",
+          "unityclient/Assets/ProjectX/src/Data/TaskStore.cs"
+        ],
+        "G3": [
+          "unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs",
+          "unityclient/Assets/ProjectX/src/UI/RewardPresenter.cs",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/huodong_bg.prefab",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/RenwuLayer.prefab",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab"
+        ],
+        "G4": [
+          ".local/unity-validation/task-latest.json",
+          "build/ui-migration/bootstrap-task.png",
+          "build/ui-migration/unity-task-validation.log",
+          ".local/ui-fidelity/Task/unity/g4-isolated-latest"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
+          ".local/ui-fidelity/Task/unity/g5-20260727",
+          ".local/ui-fidelity/Task/compare/g5-live-20260727/report.json",
+          ".local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json",
+          "docs/unityclient/matrices/TASK_CONTROLS.json"
+        ],
+        "G6": [
+          ".local/unity-validation/task-latest.json",
+          ".local/ui-fidelity/Task/unity/g5-20260727/task-fixed-fixture-snapshot.json",
+          ".local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          "docs/unityclient/matrices/TASK_CONTROLS.json",
+          "UNITYCLIENT_STATUS.md",
+          "docs/unityclient/modules/TASK.md"
+        ]
       },
-      "updatedUtc": "2026-07-27T00:00:00Z"
+      "updatedUtc": "2026-07-27T07:16:00Z"
     },
     {
       "module": "Hero",

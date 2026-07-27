@@ -1,18 +1,21 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-27 提速工具落地；Task G0 passed、G1 blocked
+> 当前交接：2026-07-27 Task G0-G6 passed；下一任务重新选择模块执行 G0
 > 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
 
 ## 0. 2026-07-27 新窗口直接执行
 
-### 当前 Task 续接
+### Task 已收口
 
-- 提速方案已落地到现有 Runner：`Preflight` 零副作用预检、`VisualReplay` 截图结构快跑、`sourceContracts` 源码锚点防漂移、`setupAssertSql/cleanupAssertSql` 夹具恢复硬断言。
-- 回归：29模块文档一致、16/16 UI解析测试、Task HardGate/Runner Preflight 均通过。
-- Task G0：14组当前 Cocos 可达控件已冻结，矩阵 `docs/unityclient/matrices/TASK_CONTROLS.json`。
-- Task G1：固定账号 `7200057 / roleId=1000115` 真实进入任务页；服务端两次 `/37` 均回包，但当前每日任务列表为空。证据 `.local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md`。
-- G1 当前为 `blocked`：缺 populated、claimable、claimed、scroll、reward-popup 当前 Cocos 状态。下一步只建立可回滚真实 `/37` 夹具并补齐 G1；禁止进入 G2。
-- 本轮没有启动 Unity；不得用旧 `bootstrap-task.png`、Unity 假数据或无数据神将空壳替代 Cocos G1。
+- Task 门禁 `G0-G6 passed`，矩阵 `14/14 complete`；严格完成率更新为 `4/29 = 13.8%`。
+- 固定账号 `7200057 / roleId=1000115` 从真实 `btn_renwu` 入口完成 Cocos/Unity 原生 `1334×750` 的 `11/11` 关键状态，并排、50%叠加、增强差异和人工视觉均通过。
+- `/37` 列表 `op=1,type=2/0`、领奖 `op=3,type=2/0,task_id`，以及 `/39`、`/65 type=101` 已按 Lua 权威/C#渲染镜像接入。
+- 14项真控件覆盖关闭、体力/铜钱加号、禁用通宝、唯一每日页签、列表滚动、奖励物品、前往、领取/已领取、四档宝箱和奖励弹窗确认/关闭。
+- 重复/非法领取、关闭重载、断线重连、持久化和切号清理通过；最终隔离回归为 `7200085 / roleId=1000140`，严重异常0、Python UI `16/16`。
+- 固定账号夹具注入前、精确恢复后及重登录后哈希均为 `99ccff91ef8285ff80565658ce2366ec615682a30ebc48378f452ac341494d29`；`setupAssertSql/cleanupAssertSql/restoredHashAssertSql` 全部通过。
+- 正式 `BootstrapSceneBuilder.BuildBatch` 连续两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。
+- 证据：`.local/unity-validation/task-latest.json`、`.local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json`、`.local/ui-fidelity/Task/unity/g5-20260727/task-fixed-fixture-snapshot.json`。
+- 新增可复用安全脚本：`Run-TaskFixedUnityG5.ps1`、`New-TaskG5Evidence.ps1`；前者始终在 `finally` 中停服并精确回滚。
 - 保留且不得暂存/覆盖：7个 xLua `.meta` 删除、`unityclient/.vscode/`、`tools/local/Optimize-CodexLogsDatabase.ps1`、两个仅行尾异常 Lua。
 
 ### Bag 已收口

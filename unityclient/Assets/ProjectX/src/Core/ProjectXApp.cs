@@ -133,7 +133,7 @@ namespace ProjectX.Core
         private int bagG4InitialGiftQuantity;
         private int bagG4InitialDirectQuantity;
         private int bagG4InitialRewardQuantity;
-        private uint bagG4ValidatedRoleId;
+        private uint validationRoleIdSnapshot;
         private bool bagInitialSelectionApplied;
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
@@ -193,6 +193,7 @@ namespace ProjectX.Core
         private MainHudPresenter mainHudPresenter;
         private Button taskButton;
         private readonly List<TaskRecord> pendingTaskRecords = new List<TaskRecord>();
+        private int pendingTaskType = 2;
         private CocosUiView errorView;
         private GameErrorPresenter errorPresenter;
         private CocosUiView loadingView;
@@ -669,7 +670,7 @@ namespace ProjectX.Core
         public bool HasCommandLineFlag(string flag) => services?.Options.HasFlag(flag) ?? false;
         public uint GetLocalUserId() => services?.Config.LocalUserId ?? 1;
         public uint GetPlayerRoleId() => services?.Player.RoleId ?? 0;
-        public uint GetValidationRoleId() => GetPlayerRoleId() != 0 ? GetPlayerRoleId() : bagG4ValidatedRoleId;
+        public uint GetValidationRoleId() => GetPlayerRoleId() != 0 ? GetPlayerRoleId() : validationRoleIdSnapshot;
         public bool IsFormationPopupOpen => formationPopupView?.GameObject.activeSelf == true;
         public bool HandleBack()
         {
@@ -1827,7 +1828,7 @@ namespace ProjectX.Core
 
         private IEnumerator BeginBagG4ValidationRoutine()
         {
-            bagG4ValidatedRoleId = GetPlayerRoleId();
+            validationRoleIdSnapshot = GetPlayerRoleId();
             bool staticValid = ValidateBagStatic(out string detail);
             if (GetLocalUserId() == 1 || !IsBagOpen || services.Bag.Count < 20 || !staticValid)
             {
@@ -2043,6 +2044,7 @@ namespace ProjectX.Core
                 yield break;
             }
             yield return CaptureBagG5Evidence("BAG-01-RECONNECT");
+            validationRoleIdSnapshot = GetPlayerRoleId();
             ReturnToLogin();
             if (!IsLoginVisible || services.Bag.Count != 0 || IsBagOpen || IsBagInputOpen
                 || IsBagGiftOpen || IsBagSourceOpen || IsBagEquipmentInfoOpen)
@@ -3684,8 +3686,9 @@ namespace ProjectX.Core
             Complete($"COMPLETE: /319 op=4 material insufficient rejected; uid={uid}; strength unchanged={strengthBefore}; reason={reason}");
         }
 
-        public void BeginTaskUpdate(int expectedCount)
+        public void BeginTaskUpdate(int type, int expectedCount)
         {
+            pendingTaskType = type;
             pendingTaskRecords.Clear();
             if (expectedCount > 0) pendingTaskRecords.Capacity = Math.Max(pendingTaskRecords.Capacity, expectedCount);
         }
@@ -3697,18 +3700,18 @@ namespace ProjectX.Core
 
         public void EndTaskUpdate()
         {
-            services.Tasks.Replace(pendingTaskRecords);
+            services.Tasks.Replace(pendingTaskType, pendingTaskRecords);
             EnsureTaskPresenter();
             taskPresenter.Render();
             ShowTask();
         }
 
-        public void UpsertTaskRecord(int id, uint progress, int state)
+        public void UpsertTaskRecord(int type, int id, uint progress, int state)
         {
-            services.Tasks.Upsert(id, progress, unchecked((byte)state));
+            services.Tasks.Upsert(type, id, progress, unchecked((byte)state));
         }
 
-        public void MarkTaskClaimed(int id) => services.Tasks.MarkClaimed(id);
+        public void MarkTaskClaimed(int type, int id) => services.Tasks.MarkClaimed(type, id);
 
         public void UpsertTrackedMission(int id, string name)
         {
@@ -3731,7 +3734,7 @@ namespace ProjectX.Core
 
         public void CompleteTaskMutationValidation(int taskId, int rewardCount)
         {
-            if (!services.Tasks.TryGet(taskId, out TaskRecord record) || record.State != 2)
+            if (!services.Tasks.TryGet(2, taskId, out TaskRecord record) || record.State != 2)
             {
                 Fail($"Task mutation validation did not persist claimed state for task {taskId}.");
                 return;
@@ -3753,6 +3756,186 @@ namespace ProjectX.Core
                 return;
             }
             Complete($"COMPLETE: /37 op=2 incremental -> red dot/tracker -> /37 op=3 claim -> RewardStore/RewardPresenter ({rewardCount}) -> persisted state=2");
+        }
+
+        public void RunTaskG4Validation()
+        {
+            StartCoroutine(RunTaskG4ValidationRoutine());
+        }
+
+        private IEnumerator RunTaskG4ValidationRoutine()
+        {
+            EnsureTaskPresenter();
+            EnsureRewardPresenter();
+            if (!IsTaskOpen || services.Tasks.Count < 10 || services.Tasks.ActivityBoxCount != 4
+                || taskPresenter.ItemCount != services.Tasks.Count || taskPresenter.ActivityBoxCount != 4
+                || !services.Tasks.Items.Any(item => item.State == 0)
+                || !services.Tasks.Items.Any(item => item.State == 1))
+            {
+                Fail($"Task G4 initial state mismatch: open={IsTaskOpen}, daily={services.Tasks.Count}/"
+                    + $"{taskPresenter.ItemCount}, boxes={services.Tasks.ActivityBoxCount}/{taskPresenter.ActivityBoxCount}.");
+                yield break;
+            }
+
+            yield return CaptureTaskG5Evidence("TASK-01-POPULATED");
+            if (!taskPresenter.ScrollToBottom()) { Fail("Task G4 real ScrollRect was unavailable."); yield break; }
+            yield return CaptureTaskG5Evidence("TASK-07-SCROLL-BOTTOM");
+
+            float deadline;
+            if (!taskPresenter.InvokeActivityBox(1, out int boxId) || !rewardPresenter.IsVisible
+                || !rewardPresenter.CanConfirm || rewardPresenter.RenderedCount != 4)
+            {
+                string boxStates = string.Join(",", services.Tasks.ActivityBoxes.Select(item =>
+                    $"{item.Id}:{item.State}:{item.Progress}/{item.Target}:r{item.Rewards.Count}"));
+                Fail($"Task G4 claimable activity box preview/confirm mismatch: boxes={boxStates}, "
+                    + $"visible={rewardPresenter.IsVisible}, confirm={rewardPresenter.CanConfirm}, "
+                    + $"rendered={rewardPresenter.RenderedCount}.");
+                yield break;
+            }
+            yield return CaptureTaskG5Evidence("TASK-11-BOX-CLAIMABLE");
+            rewardPresenter.Hide();
+            yield return CaptureTaskG5Evidence("TASK-13-BOX-CLOSE");
+            if (!taskPresenter.InvokeActivityBox(1, out boxId) || !rewardPresenter.InvokeConfirm())
+            { Fail("Task G4 box confirmation did not use the real btn_lingqu."); yield break; }
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((!services.Tasks.TryGet(0, boxId, out TaskRecord box) || box.State != 2
+                    || !rewardPresenter.IsVisible) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!services.Tasks.TryGet(0, boxId, out TaskRecord claimedBox) || claimedBox.State != 2
+                || rewardPresenter.RenderedCount != 4)
+            { Fail($"Task G4 activity box claim did not persist: id={boxId}."); yield break; }
+            yield return CaptureTaskG5Evidence("TASK-12-BOX-CONFIRMED");
+            rewardPresenter.Hide();
+            yield return CaptureTaskG5Evidence("TASK-11-BOX-OPENED");
+
+            if (!taskPresenter.InvokeGo(2128)) { Fail("Task G4 fixture lacks jump=2128 row."); yield break; }
+            deadline = Time.realtimeSinceStartup + 8f;
+            while (!IsGuildOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsGuildOpen) { Fail("Task G4 real 前往 did not open Guild."); yield break; }
+            yield return CaptureTaskG5Evidence("TASK-09-GO-GUILD");
+            HandleBack();
+            taskButton?.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((!IsTaskOpen || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsTaskOpen) { Fail("Task G4 did not reload from the real btn_renwu entry."); yield break; }
+
+            if (!taskPresenter.InvokeFirstDailyClaim(out int dailyId))
+            { Fail("Task G4 fixture lacks claimable daily row."); yield break; }
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((!services.Tasks.TryGet(2, dailyId, out TaskRecord daily) || daily.State != 2
+                    || !rewardPresenter.IsVisible) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!services.Tasks.TryGet(2, dailyId, out TaskRecord claimedDaily) || claimedDaily.State != 2
+                || !rewardPresenter.IsVisible || rewardPresenter.RenderedCount == 0)
+            { Fail($"Task G4 daily claim did not reach authoritative state=2: id={dailyId}."); yield break; }
+            yield return CaptureTaskG5Evidence("TASK-10-DAILY-CLAIMED-REWARD");
+            rewardPresenter.Hide();
+            yield return CaptureTaskG5Evidence("TASK-10-DAILY-CLAIMED-ROW");
+
+            InvokeLuaOrFail(onTaskClaimClicked, "Task.RepeatClaim", 2, dailyId);
+            InvokeLuaOrFail(onTaskClaimClicked, "Task.InvalidClaim", 2, 65535);
+            yield return new WaitForSecondsRealtime(0.4f);
+            if (!services.Tasks.TryGet(2, dailyId, out TaskRecord repeated) || repeated.State != 2)
+            { Fail("Task G4 repeat/invalid claim changed authoritative state."); yield break; }
+
+            Button close = taskBackgroundView.Binding.Find("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>();
+            close?.onClick.Invoke();
+            if (IsTaskOpen) { Fail("Task G4 close button did not return to main."); yield break; }
+            taskButton?.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((!IsTaskOpen || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!services.Tasks.TryGet(2, dailyId, out TaskRecord reloadedDaily) || reloadedDaily.State != 2
+                || !services.Tasks.TryGet(0, boxId, out TaskRecord reloadedBox) || reloadedBox.State != 2)
+            { Fail("Task G4 close/reload did not retain claimed states."); yield break; }
+            yield return CaptureTaskG5Evidence("TASK-02-RELOAD");
+
+            services.Network.Disconnect();
+            yield return null;
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (services.Network.State != NetworkState.Disconnected)
+            { Fail($"Task G4 disconnect was not observed: {services.Network.State}."); yield break; }
+            Reconnect();
+            deadline = Time.realtimeSinceStartup + 15f;
+            while (services.Network.State != NetworkState.Connected && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.Network.State != NetworkState.Connected)
+            { Fail("Task G4 reconnect timed out."); yield break; }
+            deadline = Time.realtimeSinceStartup + 12f;
+            while ((CurrentAppState != AppState.Main || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            taskButton?.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((!IsTaskOpen || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!services.Tasks.TryGet(2, dailyId, out TaskRecord reconnectDaily) || reconnectDaily.State != 2
+                || !services.Tasks.TryGet(0, boxId, out TaskRecord reconnectBox) || reconnectBox.State != 2)
+            { Fail("Task G4 reconnect did not restore claimed task/box states."); yield break; }
+            yield return CaptureTaskG5Evidence("TASK-01-RECONNECT");
+
+            CocosUiBinding taskBinding = taskBackgroundView.Binding;
+            Text taskTitle = taskBinding.Find("Layer/Panel_1/Title/TitleName")?.GetComponent<Text>();
+            Text taskTabName = taskBinding.Find("Layer/Panel_1/Btn_ListView/Panel_1/Button/ChooseBg/BtnName")?.GetComponent<Text>();
+            Button taskTabButton = taskBinding.Find("Layer/Panel_1/Btn_ListView/Panel_1/Button")?.GetComponent<Button>();
+            Button premiumAdd = taskBinding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.GetComponent<Button>();
+            if (taskTitle?.text != "任务" || taskTabName?.text != "每日任务"
+                || taskTabButton == null || taskTabButton.interactable
+                || premiumAdd == null || premiumAdd.interactable)
+            {
+                Fail($"Task G4 frame mismatch: title={taskTitle?.text}, tab={taskTabName?.text}, "
+                    + $"tabInteractable={taskTabButton?.interactable}, premiumInteractable={premiumAdd?.interactable}.");
+                yield break;
+            }
+
+            Button staminaAdd = taskBinding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.GetComponent<Button>();
+            staminaAdd?.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while (!IsBagOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsBagOpen) { Fail("Task G4 stamina AddBtn did not open Bag."); yield break; }
+            HandleBack();
+            if (!IsTaskOpen) HandleTaskClick();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while (!IsTaskOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsTaskOpen) { Fail("Task G4 did not return from stamina AddBtn."); yield break; }
+
+            Button moneyAdd = taskBinding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
+            moneyAdd?.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while (!IsShopOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsShopOpen) { Fail("Task G4 money AddBtn did not open Shop."); yield break; }
+            HandleBack();
+            if (!IsTaskOpen) HandleTaskClick();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while (!IsTaskOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsTaskOpen) { Fail("Task G4 did not return from money AddBtn."); yield break; }
+
+            validationRoleIdSnapshot = GetPlayerRoleId();
+            ReturnToLogin();
+            if (!IsLoginVisible || services.Tasks.Count != 0 || services.Tasks.ActivityBoxCount != 0 || IsTaskOpen)
+            { Fail("Task G4 account switch did not clear Task Lua/C# state."); yield break; }
+            Complete("COMPLETE: Task G4 14/14 real controls -> populated/scroll/go/claim/claimed/four boxes/reward "
+                + "confirm-close-items/stamina-money-disabled-premium-tab -> repeat+invalid rejection -> close/reload "
+                + "-> disconnect/reconnect persistence -> account-switch cleanup");
+        }
+
+        private IEnumerator CaptureTaskG5Evidence(string controlId)
+        {
+            string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            string evidenceRun = GetLocalUserId() == 7200057 ? "g5-20260727" : "g4-isolated-latest";
+            string outputDirectory = Path.Combine(repositoryRoot, ".local", "ui-fidelity", "Task", "unity", evidenceRun);
+            Directory.CreateDirectory(outputDirectory);
+            string path = Path.Combine(outputDirectory, controlId + ".png");
+            if (File.Exists(path)) File.Delete(path);
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length == 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+                throw new IOException($"Task G5 screenshot was not written: {path}");
+            if (string.Equals(controlId, "TASK-01-RECONNECT", StringComparison.Ordinal))
+                File.Copy(path, BuildUiMigrationPath("bootstrap-task.png"), true);
         }
 
         public void SetStatus(string value)
@@ -5251,8 +5434,11 @@ namespace ProjectX.Core
             taskView = taskView ?? services.UiRouter.FindBySource("huodong/RenwuLayer");
             if (taskBackgroundView == null) throw new InvalidOperationException("huodong/huodong_bg CocosUiBinding was not found.");
             if (taskView == null) throw new InvalidOperationException("huodong/RenwuLayer CocosUiBinding was not found.");
-            taskPresenter = taskPresenter ?? new TaskPresenter(taskView, services.Tasks,
-                item => InvokeLuaOrFail(onTaskClaimClicked, "Task.OnClaimClicked", item.Id));
+            taskPresenter = taskPresenter ?? new TaskPresenter(taskView, services.Tasks, services.Resources,
+                HandleTaskGo,
+                item => InvokeLuaOrFail(onTaskClaimClicked, "Task.OnClaimClicked", item.Type, item.Id),
+                ShowTaskBoxPreview);
+            ConfigureTaskFrame();
             try
             {
                 taskBackgroundView.BindClick("Layer/Panel_1/Title/CloseBtn", () => services.UiStack.Pop(), true);
@@ -5261,6 +5447,94 @@ namespace ProjectX.Core
             {
                 ClientLog.Warning("Task", "Task close button was not bound", exception.Message);
             }
+        }
+
+        private void ConfigureTaskFrame()
+        {
+            CocosUiBinding binding = taskBackgroundView.Binding;
+            SetTaskText(binding.Find("Layer/Panel_1/Title/TitleName")?.transform, "任务");
+            Transform tabPanel = binding.Find("Layer/Panel_1/Btn_ListView/Panel_1")?.transform;
+            Transform tab = binding.Find("Layer/Panel_1/Btn_ListView/Panel_1/Button")?.transform;
+            SetTaskText(tab?.Find("BtnName"), "每日任务");
+            SetTaskText(tab?.Find("ChooseBg/BtnName"), "每日任务");
+            Transform selected = tab?.Find("ChooseBg");
+            if (selected != null) selected.gameObject.SetActive(true);
+            Button tabButton = tab?.GetComponent<Button>();
+            if (tabButton != null)
+            {
+                tabButton.onClick.RemoveAllListeners();
+                tabButton.interactable = false;
+            }
+            Transform tabPrompt = tab?.Find("Prompt");
+            if (tabPrompt != null) tabPrompt.gameObject.SetActive(false);
+            if (tabPanel?.parent != null)
+                foreach (Transform sibling in tabPanel.parent)
+                    if (sibling != tabPanel && sibling.name.StartsWith("Panel_", StringComparison.Ordinal))
+                        sibling.gameObject.SetActive(false);
+
+            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform,
+                $"{services.Currencies.Get(CurrencyIds.Stamina)}/100");
+            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform,
+                FormatHeaderCurrency(services.Currencies.Gold));
+            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/GoldNumBg/Num")?.transform,
+                services.Currencies.Premium.ToString());
+
+            Transform stamina = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform;
+            Transform money = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform;
+            Transform premium = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.transform;
+            BindTaskFrameButton(stamina, HandleBagClick, true);
+            BindTaskFrameButton(money, HandleShopClick, true);
+            BindTaskFrameButton(premium, null, false);
+        }
+
+        private static void BindTaskFrameButton(Transform target, Action action, bool interactable)
+        {
+            Button button = target?.GetComponent<Button>();
+            if (button == null) return;
+            button.onClick.RemoveAllListeners();
+            button.interactable = interactable;
+            if (interactable && action != null) button.onClick.AddListener(() => action());
+        }
+
+        private static void SetTaskText(Transform target, string value)
+        {
+            Text text = target?.GetComponent<Text>();
+            if (text != null) text.text = value ?? string.Empty;
+        }
+
+        private void HandleTaskGo(TaskRecord item)
+        {
+            if (item.State != 0 || item.Jump == 0) return;
+            if (services.UiStack.Current == taskBackgroundView) services.UiStack.Pop();
+            switch (item.Jump)
+            {
+                case 6: InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena"); break;
+                case 7: InvokeLuaOrFail(onKunLunClicked, "Gameplay.KunLun"); break;
+                case 8: InvokeLuaOrFail(onBloodFightClicked, "Gameplay.BloodFight"); break;
+                case 9: InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao"); break;
+                case 1010: HandleDrawClick(); break;
+                case 2128:
+                case 2120: HandleGuildClick(); break;
+                default:
+                    SetStatus($"Task jump uses current function_id={item.Jump}; destination remains closed until its own entry is invoked.");
+                    break;
+            }
+        }
+
+        private void ShowTaskBoxPreview(TaskRecord item)
+        {
+            var rewards = new List<RewardRecord>();
+            foreach (TaskRewardDefinition reward in item.Rewards)
+                rewards.Add(new RewardRecord(reward.id, unchecked((uint)reward.id), reward.amount,
+                    reward.name, reward.picture, reward.quality));
+            services.Rewards.Replace("宝箱奖励", rewards);
+            EnsureRewardPresenter();
+            rewardPresenter.Show(
+                item.State == 1
+                    ? (Action)(() => InvokeLuaOrFail(onTaskClaimClicked, "Task.OnClaimClicked", item.Type, item.Id))
+                    : null,
+                item.State == 1);
+            SetStatus($"Task activity box preview: id={item.Id}, state={item.State}, rewards={rewards.Count}.");
         }
 
         private IEnumerator CaptureGameplayShopsValidation()

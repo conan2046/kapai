@@ -20,7 +20,7 @@ namespace ProjectX.Core
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
         public bool UseItemValidation => HasFlag("-projectXUseItemValidation");
         public bool SettingsValidation => HasFlag("-projectXSettingsValidation");
-        public bool TaskValidation => HasFlag("-projectXTaskValidation");
+        public bool TaskValidation => HasFlag("-projectXTaskValidation") || HasFlag("-projectXTaskG4Validation");
         public bool WelfareValidation => HasFlag("-projectXWelfareValidation");
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && flags.Contains(flag);

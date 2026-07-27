@@ -15,6 +15,8 @@ namespace ProjectX.UI
         private readonly Text tips;
         private readonly GameObject[] cells = new GameObject[4];
         private readonly Core.ResourceService resources;
+        private readonly Button confirmButton;
+        private Action confirmAction;
 
         public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources)
         {
@@ -27,7 +29,9 @@ namespace ProjectX.UI
             for (int index = 0; index < cells.Length; index++)
                 cells[index] = Require($"ItemList/itemlayer_{index + 1}");
             BindClose("Btn_close");
-            BindClose("btn_lingqu");
+            GameObject confirmNode = Require("btn_lingqu");
+            confirmButton = confirmNode.GetComponent<Button>() ?? confirmNode.AddComponent<Button>();
+            confirmButton.targetGraphic = confirmNode.GetComponent<Graphic>();
             Text confirm = Require("btn_lingqu/Text1").GetComponent<Text>();
             if (confirm != null) confirm.text = "确 定";
             store.Changed += Render;
@@ -36,15 +40,44 @@ namespace ProjectX.UI
 
         public bool IsVisible => view.GameObject != null && view.GameObject.activeSelf;
         public int RenderedCount { get; private set; }
+        public bool CanConfirm => confirmButton != null && confirmButton.gameObject.activeSelf
+            && confirmButton.interactable;
+
+        public bool InvokeConfirm()
+        {
+            if (!CanConfirm) return false;
+            confirmButton.onClick.Invoke();
+            return true;
+        }
 
         public void Show()
         {
+            Show(null, false);
+        }
+
+        public void Show(Action onConfirm, bool allowConfirm)
+        {
+            confirmAction = onConfirm;
+            confirmButton.gameObject.SetActive(allowConfirm);
+            confirmButton.onClick.RemoveAllListeners();
+            if (allowConfirm)
+                confirmButton.onClick.AddListener(() =>
+                {
+                    Action action = confirmAction;
+                    confirmAction = null;
+                    Hide();
+                    action?.Invoke();
+                });
             Render();
             view.SetVisible(true);
             view.GameObject.transform.SetAsLastSibling();
         }
 
-        public void Hide() => view.SetVisible(false);
+        public void Hide()
+        {
+            confirmAction = null;
+            view.SetVisible(false);
+        }
 
         public void Render()
         {

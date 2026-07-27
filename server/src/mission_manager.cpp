@@ -588,6 +588,8 @@ bool CMissionManager::CheckQuestState(CUser* pUser, UserQuest* quest, QuestCfg* 
 /////////////////////////////////////////////////////////////////////////////////////
 
 CUserMission::CUserMission()
+	: m_taskValidationFixtureActive(false),
+	  m_taskValidationActiveValue(0)
 {
 
 }
@@ -1096,6 +1098,63 @@ void CUserMission::ChechNewQuest()
 	}
 }
 
+void CUserMission::ApplyTaskValidationFixture(CUser* pUser, uint32 activeValue)
+{
+	if (pUser == NULL)
+		return;
+	m_taskValidationFixtureActive = true;
+	m_taskValidationActiveValue = activeValue;
+
+	ChechNewQuest();
+	CheckQuestShow(pUser);
+
+	UserQuestMap* dailyMap = GetUserQuestMap(2);
+	if (dailyMap != NULL)
+	{
+		for (UserQuestMapIt it = dailyMap->begin(); it != dailyMap->end(); ++it)
+		{
+			it->second.num = 0;
+			it->second.state = 0;
+			it->second.show = true;
+		}
+
+		UserQuest* claimable = GetUserQuest(2, 9);
+		if (claimable != NULL)
+		{
+			claimable->num = 1;
+			claimable->state = 1;
+		}
+
+		UserQuest* claimed = GetUserQuest(2, 12);
+		if (claimed != NULL)
+		{
+			claimed->num = 20;
+			claimed->state = 2;
+			m_finishQuest.insert(claimed->id);
+		}
+	}
+
+	UserQuestMap* activityMap = GetUserQuestMap(0);
+	if (activityMap != NULL)
+	{
+		for (UserQuestMapIt it = activityMap->begin(); it != activityMap->end(); ++it)
+		{
+			it->second.num = activeValue;
+			it->second.state = 0;
+			it->second.show = true;
+		}
+
+		UserQuest* firstBox = GetUserQuest(0, 144);
+		if (firstBox != NULL)
+		{
+			firstBox->num = activeValue;
+			firstBox->state = activeValue >= 50 ? 1 : 0;
+		}
+	}
+
+	pUser->SetExtData32(EData32_HuoYueDu_Day, activeValue);
+}
+
 
 bool CUserMission::IsFinishQuest(uint16 tid)
 {
@@ -1107,6 +1166,25 @@ void CUserMission::GetQuestMessage(CUser* pUser, CNetMessage& msg)
 {
 	uint8 type;
 	msg >> type;
+	if (m_taskValidationFixtureActive && type == 0)
+	{
+		UserQuestMap* fixtureMap = GetUserQuestMap(0);
+		if (fixtureMap != NULL)
+		{
+			for (UserQuestMapIt it = fixtureMap->begin(); it != fixtureMap->end(); ++it)
+			{
+				if (it->second.state != 2)
+				it->second.num = m_taskValidationActiveValue;
+			}
+			UserQuest* firstBox = GetUserQuest(0, 144);
+			if (firstBox != NULL && firstBox->state != 2)
+			{
+				firstBox->num = m_taskValidationActiveValue;
+				firstBox->state = m_taskValidationActiveValue >= 50 ? 1 : 0;
+			}
+		}
+		pUser->SetExtData32(EData32_HuoYueDu_Day, m_taskValidationActiveValue);
+	}
 	CMissionManager& mgr = sCMissionManager;
 	UserQuestMap* qMap = GetUserQuestMap(type);
 	if (qMap == NULL)

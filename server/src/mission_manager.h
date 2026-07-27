@@ -736,6 +736,7 @@ public:
 	void ResetQuest(CUser* pUser);
 	void ChechNewQuest();
 	void InitJiJin(CUser* pUser, uint8 type);
+	void ApplyTaskValidationFixture(CUser* pUser, uint32 activeValue);
 
 public:
 	void GetQuestMessage(CUser* pUser, CNetMessage& msg);
@@ -763,6 +764,8 @@ private:
 	set<uint16> m_finishQuest;
 	UserQuestMap m_hdQuest;
 	U8tU32Map m_buyTime;
+	bool m_taskValidationFixtureActive;
+	uint32 m_taskValidationActiveValue;
 };
 
 class CMissionManager
@@ -889,4 +892,3 @@ typedef boost::details::pool::singleton_default<CMissionManager> SingletonCMissi
 #define sCMissionManager SingletonCMissionManager::instance()
 
 #endif
-

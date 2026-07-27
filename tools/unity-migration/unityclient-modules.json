@@ -41,7 +41,7 @@
     {
       "key": "Login",
       "displayName": "登录与创角",
-      "status": "phase1-complete",
+      "status": "complete",
       "protocols": [
         1001,
         1003,
@@ -154,15 +154,41 @@
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/huodong_bg.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/RenwuLayer.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/RenwuLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab"
       ],
       "configs": [
         "unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXTaskValidation"
+        "-projectXTaskG4Validation"
       ],
+      "validationData": {
+        "provider": "localMysql",
+        "setupBeforeServer": true,
+        "setupSql": [
+          "CREATE TABLE IF NOT EXISTS unity_validation_task_fixture (user_id INT UNSIGNED NOT NULL, role_id INT UNSIGNED NOT NULL DEFAULT 0, active_value INT UNSIGNED NOT NULL DEFAULT 50, enabled TINYINT UNSIGNED NOT NULL DEFAULT 1, applied TINYINT UNSIGNED NOT NULL DEFAULT 0, backup_mission MEDIUMTEXT NULL, backup_save_data MEDIUMTEXT NULL, backup_package MEDIUMTEXT NULL, backup_role_money BIGINT NULL, backup_user_money BIGINT NULL, backup_bd_money BIGINT NULL, snapshot_hash CHAR(64) NULL, PRIMARY KEY(user_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+          "DELETE FROM unity_validation_task_fixture WHERE user_id={{UserId}}",
+          "INSERT INTO unity_validation_task_fixture(user_id,role_id,active_value,enabled,applied) VALUES({{UserId}},0,50,1,0)"
+        ],
+        "setupAssertSql": [
+          "SET @task_setup_assert=IF((SELECT COUNT(*) FROM unity_validation_task_fixture WHERE user_id={{UserId}} AND active_value=50 AND enabled=1 AND applied=0)=1,'SELECT 1','SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT=''Task fixture setup assertion failed''')",
+          "PREPARE task_setup_stmt FROM @task_setup_assert",
+          "EXECUTE task_setup_stmt",
+          "DEALLOCATE PREPARE task_setup_stmt"
+        ],
+        "cleanupSql": [
+          "DELETE FROM unity_validation_task_fixture WHERE user_id={{UserId}}"
+        ],
+        "cleanupAssertSql": [
+          "SET @task_cleanup_assert=IF((SELECT COUNT(*) FROM unity_validation_task_fixture WHERE user_id={{UserId}})=0,'SELECT 1','SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT=''Task fixture cleanup assertion failed''')",
+          "PREPARE task_cleanup_stmt FROM @task_cleanup_assert",
+          "EXECUTE task_cleanup_stmt",
+          "DEALLOCATE PREPARE task_cleanup_stmt"
+        ],
+        "unityFlags": []
+      },
       "screenshots": [
         "build/ui-migration/bootstrap-task.png"
       ],

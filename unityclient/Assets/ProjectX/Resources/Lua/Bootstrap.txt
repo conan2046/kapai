@@ -51,7 +51,7 @@ function OnBagClicked() BagController.onClick() end
 function OnBagUseClicked(slot, quantity, target) BagController.onUse(slot, quantity, target) end
 function OnSettingsClicked() SettingsController.onClick() end
 function OnTaskClicked() TaskController.onClick() end
-function OnTaskClaimClicked(id) TaskController.claim(id) end
+function OnTaskClaimClicked(taskType, id) TaskController.claim(taskType, id) end
 function OnHeroClicked() HeroController.onClick() end
 function OnFormationMove(heroId, position) HeroController.moveHero(heroId, position) end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
@@ -109,6 +109,12 @@ function OnStaminaClaimClicked() StaminaClaimController.onClick() end
 function OnResourceRecoveryClicked() ResourceRecoveryController.onClick() end
 function OnFundsClicked(functionId) FundsController.onClick(functionId) end
 function OnPacket(command, message)
+    if command == Protocol.TASK_LIST then
+        local op = message:ReadByte()
+        if op == 4 then SevenDayController.onTaskPacket(message)
+        else TaskController.onTaskPacket(op, message) end
+        return
+    end
     if command == Protocol.PET_EQUIP_OPERATE then
         local handled, operation = PetEquipRouter:dispatch(message)
         if handled then return end

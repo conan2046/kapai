@@ -1,12 +1,658 @@
 {
   "items": [
-    { "id": 1, "type": 1, "title": "竞技场挑战", "description": "完成 3 次竞技场挑战", "target": 3 },
-    { "id": 2, "type": 1, "title": "竞技场挑战", "description": "完成 6 次竞技场挑战", "target": 6 },
-    { "id": 3, "type": 1, "title": "竞技场挑战", "description": "完成 10 次竞技场挑战", "target": 10 },
-    { "id": 4, "type": 1, "title": "竞技场挑战", "description": "完成 20 次竞技场挑战", "target": 20 },
-    { "id": 5, "type": 1, "title": "竞技场挑战", "description": "完成 30 次竞技场挑战", "target": 30 },
-    { "id": 6, "type": 1, "title": "竞技场挑战", "description": "完成 40 次竞技场挑战", "target": 40 },
-    { "id": 7, "type": 1, "title": "竞技场挑战", "description": "完成 50 次竞技场挑战", "target": 50 },
-    { "id": 8, "type": 1, "title": "竞技场挑战", "description": "完成 60 次竞技场挑战", "target": 60 }
+    {
+      "id": 9,
+      "type": 2,
+      "des": "每日登录游戏",
+      "condition": [
+        4,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 60001,
+          "subtype": 0,
+          "amount": 20,
+          "name": "元宝",
+          "picture": 3012,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 0
+    },
+    {
+      "id": 10,
+      "type": 2,
+      "des": "装备强化1次",
+      "condition": [
+        7,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 60000,
+          "subtype": 0,
+          "amount": 100000,
+          "name": "金币",
+          "picture": 3006,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 10,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 1120
+    },
+    {
+      "id": 11,
+      "type": 2,
+      "des": "法宝搜索5次",
+      "condition": [
+        14,
+        5
+      ],
+      "rewards": [
+        {
+          "id": 402,
+          "subtype": 0,
+          "amount": 1,
+          "name": "寻宝令",
+          "picture": 703,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 20,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 9
+    },
+    {
+      "id": 12,
+      "type": 2,
+      "des": "赠送体力20次",
+      "condition": [
+        5,
+        20
+      ],
+      "rewards": [
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 1,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 1222
+    },
+    {
+      "id": 13,
+      "type": 2,
+      "des": "帮派捐献5次",
+      "condition": [
+        6,
+        5
+      ],
+      "rewards": [
+        {
+          "id": 60021,
+          "subtype": 0,
+          "amount": 200,
+          "name": "帮贡",
+          "picture": 3026,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 2120
+    },
+    {
+      "id": 14,
+      "type": 2,
+      "des": "封神试炼1次",
+      "condition": [
+        55,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 60000,
+          "subtype": 0,
+          "amount": 100000,
+          "name": "金币",
+          "picture": 3006,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 2
+    },
+    {
+      "id": 15,
+      "type": 2,
+      "des": "装备精炼1次",
+      "condition": [
+        8,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 612,
+          "subtype": 0,
+          "amount": 5,
+          "name": "高级精炼石",
+          "picture": 523,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 1130
+    },
+    {
+      "id": 16,
+      "type": 2,
+      "des": "竞技场挑战20次",
+      "condition": [
+        9,
+        20
+      ],
+      "rewards": [
+        {
+          "id": 401,
+          "subtype": 0,
+          "amount": 1,
+          "name": "竞技场挑战令",
+          "picture": 702,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 20,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 6
+    },
+    {
+      "id": 17,
+      "type": 2,
+      "des": "游历三界1次",
+      "condition": [
+        10,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 60001,
+          "subtype": 0,
+          "amount": 50,
+          "name": "元宝",
+          "picture": 3012,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 10,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 1
+    },
+    {
+      "id": 18,
+      "type": 2,
+      "des": "法宝强化1次",
+      "condition": [
+        11,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 60028,
+          "subtype": 616,
+          "amount": 5,
+          "name": "法宝",
+          "picture": 3012,
+          "quality": 5
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 10,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 1182
+    },
+    {
+      "id": 19,
+      "type": 2,
+      "des": "主线挑战5次",
+      "condition": [
+        13,
+        5,
+        1
+      ],
+      "rewards": [
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 1,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 4
+    },
+    {
+      "id": 20,
+      "type": 2,
+      "des": "封神列传5次",
+      "condition": [
+        12,
+        5
+      ],
+      "rewards": [
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 1,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 20,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 3
+    },
+    {
+      "id": 21,
+      "type": 2,
+      "des": "体力丹购买5次",
+      "condition": [
+        1,
+        5,
+        500
+      ],
+      "rewards": [
+        {
+          "id": 60001,
+          "subtype": 0,
+          "amount": 50,
+          "name": "元宝",
+          "picture": 3012,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 15,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 13
+    },
+    {
+      "id": 22,
+      "type": 2,
+      "des": "招募神将3次",
+      "condition": [
+        2,
+        3
+      ],
+      "rewards": [
+        {
+          "id": 1000,
+          "subtype": 0,
+          "amount": 3,
+          "name": "招募券",
+          "picture": 2103,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 10,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 1010
+    },
+    {
+      "id": 23,
+      "type": 2,
+      "des": "血战战斗3次",
+      "condition": [
+        3,
+        3
+      ],
+      "rewards": [
+        {
+          "id": 515,
+          "subtype": 0,
+          "amount": 1,
+          "name": "玄机兵甲盒",
+          "picture": 707,
+          "quality": 5
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 20,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 8
+    },
+    {
+      "id": 24,
+      "type": 2,
+      "des": "决战昆仑战斗10次",
+      "condition": [
+        56,
+        10
+      ],
+      "rewards": [
+        {
+          "id": 60001,
+          "subtype": 0,
+          "amount": 50,
+          "name": "元宝",
+          "picture": 3012,
+          "quality": 3
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 20,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 7
+    },
+    {
+      "id": 500,
+      "type": 2,
+      "des": "帮派副本挑战5次",
+      "condition": [
+        60,
+        5
+      ],
+      "rewards": [
+        {
+          "id": 60021,
+          "subtype": 0,
+          "amount": 500,
+          "name": "帮贡",
+          "picture": 3026,
+          "quality": 4
+        },
+        {
+          "id": 60030,
+          "subtype": 0,
+          "amount": 10,
+          "name": "活跃度",
+          "picture": 556,
+          "quality": 3
+        }
+      ],
+      "jump": 2128
+    },
+    {
+      "id": 144,
+      "type": 0,
+      "des": "活跃度奖励",
+      "condition": [
+        39,
+        50
+      ],
+      "rewards": [
+        {
+          "id": 1000,
+          "subtype": 0,
+          "amount": 2,
+          "name": "招募券",
+          "picture": 2103,
+          "quality": 3
+        },
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 1,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 400,
+          "subtype": 0,
+          "amount": 2,
+          "name": "刷新令",
+          "picture": 701,
+          "quality": 4
+        },
+        {
+          "id": 60000,
+          "subtype": 0,
+          "amount": 50000,
+          "name": "金币",
+          "picture": 3006,
+          "quality": 3
+        }
+      ],
+      "jump": 0
+    },
+    {
+      "id": 145,
+      "type": 0,
+      "des": "活跃度奖励",
+      "condition": [
+        39,
+        100
+      ],
+      "rewards": [
+        {
+          "id": 1000,
+          "subtype": 0,
+          "amount": 2,
+          "name": "招募券",
+          "picture": 2103,
+          "quality": 3
+        },
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 1,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 400,
+          "subtype": 0,
+          "amount": 2,
+          "name": "刷新令",
+          "picture": 701,
+          "quality": 4
+        },
+        {
+          "id": 60000,
+          "subtype": 0,
+          "amount": 80000,
+          "name": "金币",
+          "picture": 3006,
+          "quality": 3
+        }
+      ],
+      "jump": 0
+    },
+    {
+      "id": 146,
+      "type": 0,
+      "des": "活跃度奖励",
+      "condition": [
+        39,
+        150
+      ],
+      "rewards": [
+        {
+          "id": 1000,
+          "subtype": 0,
+          "amount": 3,
+          "name": "招募券",
+          "picture": 2103,
+          "quality": 3
+        },
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 1,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 400,
+          "subtype": 0,
+          "amount": 3,
+          "name": "刷新令",
+          "picture": 701,
+          "quality": 4
+        },
+        {
+          "id": 60000,
+          "subtype": 0,
+          "amount": 120000,
+          "name": "金币",
+          "picture": 3006,
+          "quality": 3
+        }
+      ],
+      "jump": 0
+    },
+    {
+      "id": 147,
+      "type": 0,
+      "des": "活跃度奖励",
+      "condition": [
+        39,
+        200
+      ],
+      "rewards": [
+        {
+          "id": 855,
+          "subtype": 0,
+          "amount": 5,
+          "name": "图鉴升级卷轴",
+          "picture": 25105,
+          "quality": 5
+        },
+        {
+          "id": 60001,
+          "subtype": 0,
+          "amount": 100,
+          "name": "元宝",
+          "picture": 3012,
+          "quality": 3
+        },
+        {
+          "id": 500,
+          "subtype": 0,
+          "amount": 2,
+          "name": "体力丹",
+          "picture": 5018,
+          "quality": 4
+        },
+        {
+          "id": 400,
+          "subtype": 0,
+          "amount": 3,
+          "name": "刷新令",
+          "picture": 701,
+          "quality": 4
+        }
+      ],
+      "jump": 0
+    }
   ]
 }

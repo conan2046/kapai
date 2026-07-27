@@ -3,69 +3,69 @@ local itemCatalog = require("Data.ItemCatalog")
 local itemsById = {}
 for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
 
-local QUEST_CONDITION_ARENA = 9
-local M = { requested = false, taskType = 1, validationStage = nil, rewardCount = 0 }
+local M = {
+    requested = {},
+    receivedDaily = false,
+    receivedBoxes = false,
+    g4Started = false,
+    validationStage = nil,
+    rewardCount = 0
+}
 
-local function requestList()
+local function requestList(taskType)
     local message = Protocol.newMessage(Protocol.TASK_LIST)
     message:WriteByte(1)
-    message:WriteByte(M.taskType)
-    M.requested = true
+    message:WriteByte(taskType)
+    M.requested[taskType] = true
     Bridge:Send(message)
 end
 
-local function beginMutationValidation()
-    local message = Protocol.newMessage(Protocol.INTERACT)
-    message:WriteByte(51)
-    message:WriteWord(QUEST_CONDITION_ARENA)
-    message:WriteWord(3)
-    M.validationStage = "await_increment"
-    Bridge:Send(message)
-    Bridge:SetStatus("Task mutation validation: waiting for /37 op=2 increment.")
+local function requestAll()
+    M.receivedDaily = false
+    M.receivedBoxes = false
+    requestList(2)
+    requestList(0)
 end
 
 function M.onClick()
-    requestList()
-    Bridge:SetStatus("Task/37 request sent: op=1, type=" .. tostring(M.taskType) .. ".")
+    requestAll()
+    Bridge:SetStatus("Task/37 request sent: op=1, type=2 daily + type=0 activity boxes.")
 end
 
-function M.claim(id)
+function M.claim(taskType, id)
     local message = Protocol.newMessage(Protocol.TASK_LIST)
     message:WriteByte(3)
-    message:WriteByte(M.taskType)
+    message:WriteByte(taskType)
     message:WriteWord(id)
     Bridge:Send(message)
-    if M.validationStage == "await_increment" then M.validationStage = "await_claim" end
-    Bridge:SetStatus("Task/37 claim sent: type=" .. tostring(M.taskType) .. ", id=" .. tostring(id) .. ".")
+    Bridge:SetStatus("Task/37 claim sent: type=" .. tostring(taskType) .. ", id=" .. tostring(id) .. ".")
 end
 
 local function readList(message)
     local taskType = message:ReadByte()
-    if taskType ~= M.taskType then
-        M.requested = false
-        Bridge:Fail("Task/37 response type mismatch: " .. tostring(taskType) .. ".")
+    if taskType ~= 0 and taskType ~= 2 then
+        Bridge:Fail("Task/37 unexpected list type: " .. tostring(taskType) .. ".")
         return
     end
     local count = message:ReadWord()
-    Bridge:BeginTaskUpdate(count)
+    Bridge:BeginTaskUpdate(taskType, count)
     for _ = 1, count do
         Bridge:AddTaskRecord(message:ReadWord(), message:ReadUInt(), message:ReadByte())
     end
     if message.Remaining ~= 0 then
-        M.requested = false
         Bridge:Fail("Task/37 list has " .. tostring(message.Remaining) .. " unread bytes.")
         return
     end
-    M.requested = false
+    M.requested[taskType] = nil
     Bridge:EndTaskUpdate()
-    if M.validationStage == "verify_claim" then
-        M.validationStage = nil
-        Bridge:CompleteTaskMutationValidation(1, M.rewardCount)
-    elseif Bridge:HasCommandLineFlag("-projectXTaskMutationValidation") then
-        beginMutationValidation()
-    else
-        Bridge:Complete("COMPLETE: main task button -> /37 op=1 type=1 -> TaskStore -> VirtualList ("
-            .. tostring(count) .. " tasks)")
+    if taskType == 2 then M.receivedDaily = true else M.receivedBoxes = true end
+    if M.receivedDaily and M.receivedBoxes then
+        if Bridge:HasCommandLineFlag("-projectXTaskG4Validation") and not M.g4Started then
+            M.g4Started = true
+            Bridge:RunTaskG4Validation()
+        elseif not Bridge:HasCommandLineFlag("-projectXTaskG4Validation") then
+            Bridge:Complete("COMPLETE: real btn_renwu -> /37 op=1 type=2+0 -> TaskStore -> daily VirtualList + four activity boxes")
+        end
     end
 end
 
@@ -73,37 +73,41 @@ local function readIncrement(message)
     local id = message:ReadWord()
     local progress = message:ReadUInt()
     local state = message:ReadByte()
-    Bridge:UpsertTaskRecord(id, progress, state)
-    if message.Remaining ~= 0 then
-        Bridge:Fail("Task/37 increment has " .. tostring(message.Remaining) .. " unread bytes.")
-        return
-    end
-    if M.validationStage == "await_increment" and id == 1 and state == 1 then M.claim(id) end
+    if message.Remaining ~= 0 then return end
+    local taskType = id >= 144 and id <= 147 and 0 or 2
+    Bridge:UpsertTaskRecord(taskType, id, progress, state)
 end
 
 local function readActivityIncrement(message)
-    -- /37 op=5 belongs to the independent seven-day/activity task store in
-    -- the legacy client. Consume it here without mixing ids into daily tasks.
-    message:ReadWord()
-    message:ReadUInt()
-    message:ReadByte()
+    local id = message:ReadWord()
+    local progress = message:ReadUInt()
+    local state = message:ReadByte()
+    if message.Remaining ~= 0 then return end
+    Bridge:UpsertTaskRecord(0, id, progress, state)
 end
 
 local function readClaim(message)
     local taskType = message:ReadByte()
     local id = message:ReadWord()
+    if message.Remaining == 0 then
+        Bridge:SetStatus("Task/37 claim rejected without payload: type=" .. tostring(taskType)
+            .. ", id=" .. tostring(id) .. ".")
+        return
+    end
     local success = message:ReadByte()
     if success == 0 then
         local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
-        M.validationStage = nil
-        Bridge:Fail("Task/37 claim failed: " .. tostring(reason))
+        Bridge:SetStatus("Task/37 claim rejected: type=" .. tostring(taskType)
+            .. ", id=" .. tostring(id) .. ", reason=" .. tostring(reason))
         return
     end
-    Bridge:MarkTaskClaimed(id)
+    Bridge:MarkTaskClaimed(taskType, id)
     local unlockCount = message:ReadByte()
     for _ = 1, unlockCount do
         local nextId = message:ReadWord()
-        if nextId > 0 then Bridge:UpsertTaskRecord(nextId, message:ReadUInt(), message:ReadByte()) end
+        if nextId > 0 then
+            Bridge:UpsertTaskRecord(taskType, nextId, message:ReadUInt(), message:ReadByte())
+        end
     end
     M.rewardCount = message:ReadByte()
     Bridge:BeginRewardUpdate(M.rewardCount)
@@ -111,22 +115,17 @@ local function readClaim(message)
         local rewardType = message:ReadWord()
         local rewardId = message:ReadUInt()
         local rewardAmount = message:ReadUInt()
-        local found = itemsById[rewardId] or {}
+        local found = itemsById[rewardId] or itemsById[rewardType] or {}
         Bridge:AddRewardRecord(rewardType, rewardId, rewardAmount, found.name or "",
             found.pic or 0, found.quality or 0)
     end
-    Bridge:EndRewardUpdate("任务奖励")
+    Bridge:EndRewardUpdate(taskType == 0 and "活跃度奖励" or "任务奖励")
     if message.Remaining ~= 0 then
-        M.validationStage = nil
         Bridge:Fail("Task/37 claim has " .. tostring(message.Remaining) .. " unread bytes.")
         return
     end
-    if M.validationStage == "await_claim" then
-        M.validationStage = "verify_claim"
-        requestList()
-    else
-        Bridge:SetStatus("Task reward claimed: id=" .. tostring(id) .. ".")
-    end
+    Bridge:SetStatus("Task reward claimed: type=" .. tostring(taskType)
+        .. ", id=" .. tostring(id) .. ", rewards=" .. tostring(M.rewardCount) .. ".")
 end
 
 local function readLegacyUpdate(message)
@@ -137,22 +136,22 @@ local function readLegacyUpdate(message)
     else Bridge:Fail("Task/39 unknown op=" .. tostring(op) .. ".") end
 end
 
-function M.onPacket(command, message)
-    if command == Protocol.TASK_UPDATE then readLegacyUpdate(message); return true end
-    if command ~= Protocol.TASK_LIST then return false end
-    local op = message:ReadByte()
+function M.onTaskPacket(op, message)
     if op == 1 then readList(message)
     elseif op == 2 then readIncrement(message)
     elseif op == 3 then readClaim(message)
     elseif op == 5 then readActivityIncrement(message)
-    elseif M.requested or M.validationStage ~= nil then
-        Bridge:Fail("Task/37 unsupported response op=" .. tostring(op) .. ".")
     else
-        -- The shipped Cocos DealMsgTaskInfo silently ignores task pushes whose
-        -- op is owned by another task/activity generation. Formation changes
-        -- can trigger these unsolicited pushes; they must not replace the
-        -- active UI with a fatal error dialog.
+        -- The shipped Cocos client silently ignores /37 pushes owned by older
+        -- task/activity generations (for example op=0/op=9 during login).
+        -- They must never contaminate or fail the current type=2/type=0 store.
     end
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.TASK_UPDATE then readLegacyUpdate(message); return true end
+    if command ~= Protocol.TASK_LIST then return false end
+    M.onTaskPacket(message:ReadByte(), message)
     return true
 end
 

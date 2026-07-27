@@ -115,7 +115,9 @@ namespace ProjectX.Editor
             bool manualReconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXManualReconnectValidation") >= 0;
             bool bagG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBagG4Validation") >= 0;
             bool settingsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsValidation") >= 0;
-            bool taskValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskValidation") >= 0;
+            bool taskG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskG4Validation") >= 0;
+            bool taskValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskValidation") >= 0
+                || taskG4Validation;
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
             bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroBagValidation") >= 0
@@ -195,6 +197,12 @@ namespace ProjectX.Editor
             }
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
             {
+                if (taskG4Validation
+                    && !status.StartsWith("COMPLETE: Task G4", StringComparison.Ordinal))
+                    return;
+                if (taskValidation && !taskG4Validation
+                    && !status.StartsWith("COMPLETE: real btn_renwu", StringComparison.Ordinal))
+                    return;
                 if (loginValidation)
                 {
                     int loginPhase = SessionState.GetInt(LoginPhaseKey, 0);
@@ -226,6 +234,12 @@ namespace ProjectX.Editor
                     // Bag G4 owns its 26 state captures and finishes by exercising
                     // account-switch cleanup, so the expected terminal UI is Login,
                     // not an open Bag on UiStack.
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (taskG4Validation)
+                {
                     WriteResult(true, status);
                     Finish(true);
                     return;

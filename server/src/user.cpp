@@ -11307,6 +11307,32 @@ bool CUser::ReadData(uint32 roleId)
 		LoadXianYuan(row[48]);
 		InitJingJie();
 		SetExtData32(0,GetSysTime());
+		// Keep validation queries after all role_info row fields are consumed:
+		// querying through the same DB handle invalidates the current row buffer.
+		if (gyu::util::CIniFile::GetValue("local_test", "server", "config") == "1" &&
+			pDb->Query("SHOW TABLES LIKE 'unity_validation_task_fixture'") &&
+			pDb->GetRow() != NULL)
+		{
+			char fixtureSql[256];
+			snprintf(fixtureSql, sizeof(fixtureSql),
+				"select active_value from unity_validation_task_fixture where user_id=%u and enabled=1 and applied=0 and (role_id=0 or role_id=%u) limit 1",
+				m_userId, m_roleId);
+			if (pDb->Query(fixtureSql))
+			{
+				char** fixtureRow = pDb->GetRow();
+				if (fixtureRow != NULL)
+				{
+					uint32 activeValue = (uint32)atoi(fixtureRow[0]);
+					m_missList.ApplyTaskValidationFixture(this, activeValue);
+					snprintf(fixtureSql, sizeof(fixtureSql),
+						"update unity_validation_task_fixture set role_id=%u,applied=1 where user_id=%u",
+						m_roleId, m_userId);
+					pDb->Query(fixtureSql);
+					cout << "[local] Task validation fixture applied userId=" << m_userId
+						<< " roleId=" << m_roleId << " activeValue=" << activeValue << endl;
+				}
+			}
+		}
 		ret = true;
 
 		

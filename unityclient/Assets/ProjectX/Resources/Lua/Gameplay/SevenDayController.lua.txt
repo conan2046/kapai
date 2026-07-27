@@ -7,9 +7,12 @@ end
 function M.onPacket(command,message)
  if command~=Protocol.TASK_LIST then return false end
  local op=message:ReadByte();if op~=4 then return false end
+ M.onTaskPacket(message);return true
+end
+function M.onTaskPacket(message)
  local count=message:ReadWord();Bridge:BeginSevenDayState()
  for _=1,count do Bridge:AddSevenDayTask(message:ReadWord(),message:ReadUInt(),message:ReadByte()) end
  Bridge:CommitSevenDayState();Bridge:SetStatus("SevenDay/37 op=4 recv: tasks="..tostring(count)..".")
- if M.validation then M.validation=false;Bridge:CompleteSevenDayValidation() end;return true
+ if M.validation then M.validation=false;Bridge:CompleteSevenDayValidation() end
 end
 return M

@@ -15,9 +15,21 @@ namespace ProjectX.Data
     {
         public int id;
         public int type;
-        public string title;
-        public string description;
-        public int target;
+        public string des;
+        public int[] condition;
+        public TaskRewardDefinition[] rewards;
+        public int jump;
+    }
+
+    [Serializable]
+    public sealed class TaskRewardDefinition
+    {
+        public int id;
+        public int subtype;
+        public uint amount;
+        public string name;
+        public int picture;
+        public int quality;
     }
 
     public readonly struct TaskRecord
@@ -34,15 +46,21 @@ namespace ProjectX.Data
         public uint Progress { get; }
         public byte State { get; }
         public TaskDefinition Definition { get; }
-        public int Target => Math.Max(1, Definition?.target ?? 1);
-        public string Title => string.IsNullOrEmpty(Definition?.title) ? $"任务 {Id}" : Definition.title;
-        public string Description => Definition?.description ?? string.Empty;
+        public int Type => Definition?.type ?? 2;
+        public int Target => Math.Max(1, Definition?.condition != null && Definition.condition.Length > 1
+            ? Definition.condition[1] : 1);
+        public int Jump => Definition?.jump ?? 0;
+        public string Title => Type == 0 ? "活跃度奖励" : "每日任务";
+        public string Description => string.IsNullOrEmpty(Definition?.des) ? $"任务 {Id}" : Definition.des;
+        public IReadOnlyList<TaskRewardDefinition> Rewards =>
+            Definition?.rewards ?? Array.Empty<TaskRewardDefinition>();
     }
 
     public sealed class TaskStore
     {
         private readonly Dictionary<int, TaskDefinition> definitions;
-        private readonly Dictionary<int, TaskRecord> records = new Dictionary<int, TaskRecord>();
+        private readonly Dictionary<int, TaskRecord> dailyRecords = new Dictionary<int, TaskRecord>();
+        private readonly Dictionary<int, TaskRecord> activityBoxes = new Dictionary<int, TaskRecord>();
         private readonly Dictionary<int, string> trackedMissions = new Dictionary<int, string>();
 
         public TaskStore(ConfigService configs)
@@ -54,18 +72,25 @@ namespace ProjectX.Data
         }
 
         public event Action Changed;
-        public int Count => records.Count;
+        public int Count => dailyRecords.Count;
+        public int ActivityBoxCount => activityBoxes.Count;
+        public uint ActivityValue => activityBoxes.Count == 0 ? 0u : activityBoxes.Values.Max(item => item.Progress);
         public int TrackedMissionCount => trackedMissions.Count;
-        public bool HasClaimable => records.Values.Any(item => item.State == 1);
-        public IReadOnlyList<TaskRecord> Items => records.Values
+        public bool HasClaimable => dailyRecords.Values.Any(item => item.State == 1)
+            || activityBoxes.Values.Any(item => item.State == 1);
+        public IReadOnlyList<TaskRecord> Items => dailyRecords.Values
             .OrderBy(item => item.State == 1 ? 0 : item.State == 0 ? 1 : 2)
-            .ThenBy(item => item.Id)
+            .ThenByDescending(item => item.Id)
+            .ToArray();
+        public IReadOnlyList<TaskRecord> ActivityBoxes => activityBoxes.Values
+            .OrderBy(item => item.Target)
             .ToArray();
 
-        public void Replace(IEnumerable<TaskRecord> values)
+        public void Replace(int type, IEnumerable<TaskRecord> values)
         {
-            records.Clear();
-            foreach (TaskRecord value in values ?? Array.Empty<TaskRecord>()) records[value.Id] = value;
+            Dictionary<int, TaskRecord> target = type == 0 ? activityBoxes : dailyRecords;
+            target.Clear();
+            foreach (TaskRecord value in values ?? Array.Empty<TaskRecord>()) target[value.Id] = value;
             Changed?.Invoke();
         }
 
@@ -75,18 +100,20 @@ namespace ProjectX.Data
             return new TaskRecord(id, progress, state, definition);
         }
 
-        public void Upsert(int id, uint progress, byte state)
+        public void Upsert(int type, int id, uint progress, byte state)
         {
-            records[id] = CreateRecord(id, progress, state);
+            (type == 0 ? activityBoxes : dailyRecords)[id] = CreateRecord(id, progress, state);
             Changed?.Invoke();
         }
 
-        public bool TryGet(int id, out TaskRecord record) => records.TryGetValue(id, out record);
+        public bool TryGet(int type, int id, out TaskRecord record) =>
+            (type == 0 ? activityBoxes : dailyRecords).TryGetValue(id, out record);
 
-        public void MarkClaimed(int id)
+        public void MarkClaimed(int type, int id)
         {
-            if (!records.TryGetValue(id, out TaskRecord record)) return;
-            records[id] = CreateRecord(id, record.Progress, 2);
+            Dictionary<int, TaskRecord> target = type == 0 ? activityBoxes : dailyRecords;
+            if (!target.TryGetValue(id, out TaskRecord record)) return;
+            target[id] = CreateRecord(id, record.Progress, 2);
             Changed?.Invoke();
         }
 
@@ -99,7 +126,8 @@ namespace ProjectX.Data
 
         public void Clear()
         {
-            records.Clear();
+            dailyRecords.Clear();
+            activityBoxes.Clear();
             trackedMissions.Clear();
             Changed?.Invoke();
         }
