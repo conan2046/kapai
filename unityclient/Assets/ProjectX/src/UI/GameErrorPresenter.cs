@@ -38,6 +38,20 @@ namespace ProjectX.UI
 
         public bool IsVisible => view.GameObject != null && view.GameObject.activeSelf;
 
+        public bool InvokeCancel()
+        {
+            if (!IsVisible || !cancelButton.gameObject.activeSelf || !cancelButton.interactable) return false;
+            cancelButton.onClick.Invoke();
+            return true;
+        }
+
+        public bool InvokeConfirmation()
+        {
+            if (!IsVisible || !confirmButton.gameObject.activeSelf || !confirmButton.interactable) return false;
+            confirmButton.onClick.Invoke();
+            return true;
+        }
+
         public void Show(string heading, string detail)
         {
             confirmation = null;

@@ -2,6 +2,42 @@
   "schemaVersion": 1,
   "modules": [
     {
+      "module": "Shop",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-ShopCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": false,
+        "artifactCopies": [
+          { "source": "build/ui-migration/bootstrap-shop-list.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-LIST.png" },
+          { "source": "build/ui-migration/bootstrap-shop-quantity.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-QUANTITY.png" },
+          { "source": "build/ui-migration/bootstrap-shop-scroll-bottom.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-SCROLL-BOTTOM.png" },
+          { "source": "build/ui-migration/bootstrap-shop-confirm.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-CONFIRM.png" },
+          { "source": "build/ui-migration/bootstrap-shop-reward.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-REWARD.png" },
+          { "source": "build/ui-migration/bootstrap-shop.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-RELOAD.png" }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/Shop/cocos/g1-20260728",
+        "unityDirectory": ".local/ui-fidelity/Shop/unity/g5-20260728",
+        "compareDirectory": ".local/ui-fidelity/Shop/compare/g5-live-20260728",
+        "width": 1334,
+        "height": 750,
+        "pairs": [
+          { "id": "SHOP-LIST", "cocos": "05-shop-list.png", "unity": "SHOP-LIST.png" },
+          { "id": "SHOP-QUANTITY", "cocos": "08-shop-quantity-input.png", "unity": "SHOP-QUANTITY.png" },
+          { "id": "SHOP-SCROLL-BOTTOM", "cocos": "06-shop-list-scrolled.png", "unity": "SHOP-SCROLL-BOTTOM.png" },
+          { "id": "SHOP-CONFIRM", "cocos": "13-success-reward.png", "unity": "SHOP-CONFIRM.png" },
+          { "id": "SHOP-REWARD", "cocos": "13-success-reward.png", "unity": "SHOP-REWARD.png" },
+          { "id": "SHOP-RELOAD", "cocos": "22-relogin-shop-restored-native.png", "unity": "SHOP-RELOAD.png" }
+        ]
+      }
+    },
+    {
       "module": "Task",
       "fixedAccount": {
         "userId": 7200057,

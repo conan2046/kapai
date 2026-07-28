@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-07-27
+> 最后更新：2026-07-28
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `5/29 = 17.2%` | 背包、任务、神将/阵容、装备/法宝、邮件已按新标准完成 G0-G6、真实控件和双端视觉验收；这是当前唯一可审计的严格移植完成率 |
+| Validated | `6/29 = 20.7%` | 背包、任务、神将/阵容、装备/法宝、邮件、基础商城已按新标准完成 G0-G6、真实控件和双端视觉验收；这是当前唯一可审计的严格移植完成率 |
 
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -28,7 +28,7 @@
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
 | 装备/法宝 | `G0-G6 passed / 33/33 complete` | 固定账号完成 20/20 双端视觉、33/33 真实控件、穿脱/强化/失败态/重连/持久化/切号及 Bootstrap 幂等 | 当前模块收口；新任务再选下一模块 |
 | 邮件 | `G0-G6 passed / 13/13 complete` | 固定账号完成 4/4 双端视觉、13/13 真实控件、`/128 op2/3/4/5`、失败/重拉/重进/断线/切号、账号历史隔离及 Bootstrap 幂等；Cocos 列表不滚和附件数量 0 已按批准差异由 Unity 修复 | 当前模块收口；下一任务重新选择模块执行 G0 |
-| 基础商城 | 第一阶段完成 | `/221` 列表、限购、倒计时、货币、确认、单次购买 | 手动刷新、错误/空态 |
+| 基础商城 | `G0-G6 passed / 21/21 complete` | 固定账号完成 6/6 双端视觉；真实 `/221 op1/2/3/4`、数量键盘、确认/取消、奖励、限购、余额不足、不可刷新、空态、重拉、重进、断线、切号、精确恢复及 Bootstrap 幂等 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 将魂/竞技场/血战商店 | `logic-validated-visual-deferred` | `function_id=15/16/17`、`/221 type=2..8` 七页、74 条权威商品、页签/价格/限购/货币/刷新信息、入口与返回 | 购买/刷新写操作、Cocos 同状态基准与视觉细调 |
 | 好友 | 第一阶段完成 | `/27` 列表、申请、添加、同意、拒绝、删除、增量重拉、空态 | 赠送/推荐/搜索/黑名单 |
 | 聊天 | 第一阶段完成 | `/26` 世界发送、私聊真实回包、频道/错误态、确定性去重 | 历史、未读、语音、跨服、合规过滤 |
@@ -43,12 +43,12 @@
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- Shop G0-G6（2026-07-28）：范围固定为基础商城 `type=1`；固定账号 `7200057/1000115` 完成商品列表、数量键盘、滚动、购买确认、奖励、重拉/重登 `6/6` 双端原生 `1334×750` 视觉，控件矩阵 `21/21 complete`。最终隔离账号 `7200123/1000174` 完成 `/221 op1/2/3/4`、21/21 真实控件、5/5 语义断言、余额不足、空态、断线重连和切号清理。修复奖励弹窗层级、商品行高、页签截断及英雄阵容残留；批准购买确认、公共奖励弹窗和 type=1 不可刷新提示三项目标差异。固定账号恢复及重登录哈希均为 `adabb7fcb1c9784356a98e1246074dad868ebe5c55dbb656230991beea302be0`，夹具残留 0；正式 BuildBatch 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/ui-fidelity/Shop/compare/g5-live-20260728/`、`.local/unity-validation/shop-latest.json`。
 - Mail G0-G6（2026-07-27）：固定账号 `7200057/1000115` 同一批 14 封邮件完成 4/4 双端视觉；隔离账号 `7200096/1000151` 完成 13/13 真实控件、5/5 语义断言和 5 张互异原生图。`/128 op2/3/4/5`、重复/非法失败、串行一键领取、无附件已读、账号历史隔离、重进/断线/切号、空态均通过。Cocos 左列表不滚和附件详情数量 0 作为已记录缺陷，Unity 分别修为真实滚动和权威数量。固定账号重登录后精确恢复，夹具残留 0；正式 BuildBatch 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/unity-validation/mail-latest.json`、`.local/ui-fidelity/Mail/compare/g5-live-20260727/`。
 - Task G0-G6 收口（2026-07-27）：固定账号 `7200057/1000115` 从真实 `btn_renwu` 进入，Cocos/Unity 原生 `1334×750` 的 populated、滚动、前往、领取/已领取、四档宝箱、奖励弹窗确认/关闭/物品、重载和重连等 `11/11` 关键状态通过并排/叠加/增强差异与人工验收；控件矩阵 `14/14 complete`。`/37 type=2/type=0`、`/39`、`/65 type=101`、重复/非法拒绝、断线重连、持久化、切号清理均通过。注入前、恢复后及重登录后的固定账号哈希均为 `99ccff91ef8285ff80565658ce2366ec615682a30ebc48378f452ac341494d29`；最终隔离回归 `7200085/1000140`、16/16 Python UI、严重异常0。正式 `BuildBatch` 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json`、`.local/unity-validation/task-latest.json`。
 - 背包 G0-G6 收口（2026-07-27）：固定隔离账号 `7200057 / roleId=1000115`、Windows 100%、双端原生 `1334×750`。矩阵 `26/26 complete`；Cocos/Unity 原图、并排、50% 叠加、增强差异、真实控件自动化和人工视觉均 `26/26 passed`。真实 `/8`、`/15` 覆盖全量、增量新增/更新/删除、整理、批量/礼包/直接使用、无效/重复拒绝、重拉、断线重连、持久化和切号清理；严重异常 0，Python UI `16/16`。正式 `BootstrapSceneBuilder.BuildBatch` 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。测试数据只来自可逆本地隔离夹具，不是正式服/生产数据；来源目标模块未迁移时保持 Bag 并记录不可用目标，不再打开无数据神将空壳。证据 `.local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json`、`.local/unity-validation/bag-latest.json`。
 - 装备/法宝 G0-G6收口（2026-07-27）：固定账号 `7200057 / roleId=1000115`、原生 `1334×750`；Cocos/Unity 原图、并排/叠加/差异和人工视觉均 `20/20 passed`，控件矩阵 `33/33`。Unity MCP 真实 Button 覆盖主入口、六槽、背包/碎片、帮助、详情/更换、筛选、强化和关闭；G4穿脱、失败态、断服重连、持久化与切号清理继续有效。强化页补齐真实主角头像，单次强化 UID `2121072641` 本轮 `8→10→12`；缺图0、严重异常0、Console最终0 error/0 warning。正式 `BuildBatch` 经 Unity MCP 连续两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。证据 `.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g6-control-runner.json`。
 - 神将/阵容 G0-G6收口（2026-07-26）：固定账号 `7200057 / roleId=1000115`、同数据、原生 `1334×750` 的 Cocos/Unity 原图、并排/叠加/差异、真实 Button 自动化和人工视觉均 `16/16 passed`。修复范围包括主界面公共层与圆形头像、阵容装备/法宝真实图标、候选页残留、养成页内容与经验条、强化大师、四装备/两法宝独立详情和完整属性弹窗。最终 Runner `build/ui-migration/bootstrap-app-result.json` 于 `2026-07-26T14:31:28.6502368Z` 成功，严重异常0；纳入 `ChatLayer` 后正式 Bootstrap 双批处理幂等 SHA-256 为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`；G5、G6门禁已通过。证据 `.local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.md`。
-- 神将/阵容 G6机器回归（2026-07-26，门禁仍pending）：用户明确授权在 G5 pending 时先执行机器回归。固定账号 `7200057` 由 Unity MCP 菜单触发真实入口 Runner，16项真实 Button 链和阵位 `1→2→1` 权威恢复通过；本次结果 `build/ui-migration/bootstrap-app-result.json`，截图 `bootstrap-hero.png` 为 `1334×750`，严重异常 `0`，Python UI `16/16`，文档 `29` 模块一致，Git范围 `unexpected=0`。修复 `BootstrapSceneBuilder` 中阵容子 Prefab 深度遍历顺序误判后，双次幂等 SHA-256 均为 `ECD2CBBF048917252DDC852CEEC7F7F87A184832C7AD1CEB9DACCFE3F6980559`。因 G5双端视觉证据缺失且矩阵 `manualPassed=0/16`，机器门禁仍为 G0-G4 passed、G5-G6 pending。
 - 神将/阵容 G4通过、G5待后台补证（2026-07-26）：同账号 `7200057` 的16项真实 Button 主链、等级1锁定阵位、服务端非法 hero `65535` 拒绝及阵位 `1→2→1` 权威恢复均通过。随后真实停止 `kapai`、观察断线、重启服务、手动触发重连、重新登录并从真实阵容入口恢复 `/24 op=1 → /48 op=1` 快照，第二轮16控件链再次通过；证据 `.local/unity-validation/hero-g4-reconnect-user7200057.json`。Unity 16/16 `1334×750` 原图已生成。现有 Cocos G1 组内数据不一致，旧差异报告无效；按用户确认模式只允许后台 Cocos 自动化，当前客户端无可用顶层窗口，故机器门禁为 G0-G4 passed、G5-G6 pending。
 - 神将/阵容 G3（2026-07-26）：6个真实 Prefab 已进入 Bootstrap 场景，16/16项真实控件完成静态绑定；修复空阵位选择被 `Render()` 重置的问题。Unity 2022.3.62f3c1 编译、场景重建、Console 0 error、文档门禁通过；机器门禁 G0-G3 passed。因G4-G6尚未执行，迁移完成仍为 `0/16`。
 - 装备/法宝 G3（2026-07-26）：收口自动详情、隐藏已穿戴、回收、养成入口、法宝碎片、公共帮助、更换筛选、强化装备选择、空槽候选及排除培养区。Unity MCP 强制刷新编译、重建 Bootstrap，六个 HeroEquip View 节点数 `41/99/40/49/34/36`；PlayMode 六引用、Presenter 初始化和装备/法宝/碎片打开通过，Console 0 error / 0 warning。机器门禁 G0-G3 passed。
@@ -79,7 +79,7 @@
 - 活动旧版 `/209 + ActivityLayer` 结果已判为错误版本证据，不再计入完成率，也不得提交。
 
 ## 4. 当前批次
-Task 已完成 G0-G6，并固化为后续模块的自动门禁样板：Runner 必须上报矩阵控件 ID 与语义断言，固定账号必须快照/精确恢复/重登录复核，G5 报告必须记录双端输入哈希与源码提交。Mail 随后也已完成 G0-G6；严格完成率现为 `5/29 = 17.2%`。
+Shop 基础商城 type=1 已完成 G0-G6；严格完成率现为 `6/29 = 20.7%`。下一任务重新选择一个模块，从 G0 开始，不继承本轮 Shop 运行证据。
 
 ## 5. 已知风险
 

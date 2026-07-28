@@ -398,7 +398,7 @@
     {
       "key": "Shop",
       "displayName": "商城",
-      "status": "phase1-complete",
+      "status": "g6-complete",
       "protocols": [
         221
       ],
@@ -410,18 +410,21 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab"
       ],
       "configs": [
+        "server/config/json/shop.json",
+        "server/config/json/shop_config.json",
         "unityclient/Assets/ProjectX/Resources/Configs/shop.json",
         "unityclient/Assets/ProjectX/Resources/Configs/item.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXShopValidation"
+        "-projectXShopG4Validation"
       ],
       "screenshots": [
         "build/ui-migration/bootstrap-shop-confirm.png",
         "build/ui-migration/bootstrap-shop.png"
       ],
-      "document": "docs/unityclient/modules/SHOP.md"
+      "document": "docs/unityclient/modules/SHOP.md",
+      "controlMatrix": "docs/unityclient/matrices/SHOP_CONTROLS.json"
     },
     {
       "key": "GameplayShops",

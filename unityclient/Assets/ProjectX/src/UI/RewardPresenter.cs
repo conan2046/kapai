@@ -16,7 +16,9 @@ namespace ProjectX.UI
         private readonly GameObject[] cells = new GameObject[4];
         private readonly Core.ResourceService resources;
         private readonly Button confirmButton;
+        private readonly Button closeButton;
         private Action confirmAction;
+        private Action<RewardRecord> itemClick;
 
         public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources)
         {
@@ -28,7 +30,7 @@ namespace ProjectX.UI
             NormalizeItemListLayout();
             for (int index = 0; index < cells.Length; index++)
                 cells[index] = Require($"ItemList/itemlayer_{index + 1}");
-            BindClose("Btn_close");
+            closeButton = BindClose("Btn_close");
             GameObject confirmNode = Require("btn_lingqu");
             confirmButton = confirmNode.GetComponent<Button>() ?? confirmNode.AddComponent<Button>();
             confirmButton.targetGraphic = confirmNode.GetComponent<Graphic>();
@@ -43,6 +45,28 @@ namespace ProjectX.UI
         public string TitleText => title?.text ?? string.Empty;
         public bool CanConfirm => confirmButton != null && confirmButton.gameObject.activeSelf
             && confirmButton.interactable;
+
+        public void SetItemClickHandler(Action<RewardRecord> callback)
+        {
+            itemClick = callback;
+            Render();
+        }
+
+        public bool InvokeFirstItem()
+        {
+            if (!IsVisible || RenderedCount <= 0) return false;
+            Button button = cells[0].GetComponent<Button>();
+            if (button == null || !button.interactable) return false;
+            button.onClick.Invoke();
+            return true;
+        }
+
+        public bool InvokeClose()
+        {
+            if (!IsVisible || closeButton == null || !closeButton.interactable) return false;
+            closeButton.onClick.Invoke();
+            return true;
+        }
 
         public bool InvokeConfirm()
         {
@@ -98,21 +122,33 @@ namespace ProjectX.UI
                 Image icon = cell.transform.Find("item")?.GetComponent<Image>();
                 ApplyIcon(icon, item.Picture);
                 AddOrUpdateAmount(cell.transform, item.Amount);
+                Button itemButton = cell.GetComponent<Button>() ?? cell.AddComponent<Button>();
+                itemButton.targetGraphic = cell.GetComponent<Graphic>()
+                    ?? cell.GetComponentInChildren<Graphic>(true);
+                itemButton.onClick.RemoveAllListeners();
+                itemButton.interactable = itemClick != null;
+                if (itemClick != null)
+                {
+                    RewardRecord captured = item;
+                    itemButton.onClick.AddListener(() => itemClick(captured));
+                }
             }
         }
 
         public void Dispose()
         {
             store.Changed -= Render;
+            itemClick = null;
         }
 
-        private void BindClose(string relativePath)
+        private Button BindClose(string relativePath)
         {
             GameObject node = Require(relativePath);
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(Hide);
+            return button;
         }
 
         private static void AddOrUpdateAmount(Transform cell, uint amount)

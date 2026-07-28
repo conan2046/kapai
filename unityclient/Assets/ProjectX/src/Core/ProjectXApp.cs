@@ -30,6 +30,7 @@ namespace ProjectX.Core
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
         public const string ShopPath = "Layer/Main_UI/ButtonGroup5/btn_shangcheng";
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
+        public const string ShopCoinShortcutPath = "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn";
         public const string FriendPath = "Layer/Main_UI/ButtonGroup7/btn_friend";
         public const string ChatPath = "Layer/Main_UI/ShortcutButtonGroup/Chat";
         public const string TeamLegacyPath = "Layer/Main_UI/Panel_QuestAndTeam/CheckBox_Team";
@@ -73,6 +74,13 @@ namespace ProjectX.Core
         private LuaFunction onMailValidationRepeat;
         private LuaFunction onShopClicked;
         private LuaFunction onShopBuyConfirmed;
+        private LuaFunction onShopRefreshRequested;
+        private LuaFunction onShopCountRequested;
+        private LuaFunction onShopRequestTimeout;
+        private LuaFunction onShopValidationRefresh;
+        private LuaFunction onShopValidationCount;
+        private LuaFunction onShopValidationFailure;
+        private LuaFunction onShopValidationSuccess;
         private LuaFunction onGameplayShopOpened;
         private LuaFunction onGameplayShopTab;
         private LuaFunction onFriendClicked;
@@ -234,6 +242,7 @@ namespace ProjectX.Core
         private long validationShopExpectedCurrency;
         private int validationShopRewardType;
         private uint validationShopRewardAmount;
+        private int validationShopQuantity = 1;
         private CocosUiView friendView;
         private FriendPresenter friendPresenter;
         private readonly List<FriendRecord> pendingFriendRecords = new List<FriendRecord>();
@@ -532,6 +541,13 @@ namespace ProjectX.Core
                 onMailValidationRepeat = services.Lua.GetFunction("OnMailValidationRepeat");
                 onShopClicked = services.Lua.GetFunction("OnShopClicked");
                 onShopBuyConfirmed = services.Lua.GetFunction("OnShopBuyConfirmed");
+                onShopRefreshRequested = services.Lua.GetFunction("OnShopRefreshRequested");
+                onShopCountRequested = services.Lua.GetFunction("OnShopCountRequested");
+                onShopRequestTimeout = services.Lua.GetFunction("OnShopRequestTimeout");
+                onShopValidationRefresh = services.Lua.GetFunction("OnShopValidationRefresh");
+                onShopValidationCount = services.Lua.GetFunction("OnShopValidationCount");
+                onShopValidationFailure = services.Lua.GetFunction("OnShopValidationFailure");
+                onShopValidationSuccess = services.Lua.GetFunction("OnShopValidationSuccess");
                 onGameplayShopOpened = services.Lua.GetFunction("OnGameplayShopOpened");
                 onGameplayShopTab = services.Lua.GetFunction("OnGameplayShopTab");
                 onFriendClicked = services.Lua.GetFunction("OnFriendClicked");
@@ -638,6 +654,13 @@ namespace ProjectX.Core
             onMailValidationRepeat?.Dispose();
             onShopClicked?.Dispose();
             onShopBuyConfirmed?.Dispose();
+            onShopRefreshRequested?.Dispose();
+            onShopCountRequested?.Dispose();
+            onShopRequestTimeout?.Dispose();
+            onShopValidationRefresh?.Dispose();
+            onShopValidationCount?.Dispose();
+            onShopValidationFailure?.Dispose();
+            onShopValidationSuccess?.Dispose();
             onGameplayShopOpened?.Dispose();
             onGameplayShopTab?.Dispose();
             onFriendClicked?.Dispose();
@@ -796,6 +819,13 @@ namespace ProjectX.Core
                     return true;
                 }
                 heroFrameView?.SetVisible(false);
+            }
+            if (IsShopOpen)
+            {
+                shopPresenter?.ResetTransientState();
+                errorPresenter?.Hide();
+                rewardPresenter?.Hide();
+                bagFrameView?.SetVisible(false);
             }
             return services?.UiStack.Pop() ?? false;
         }
@@ -1161,9 +1191,10 @@ namespace ProjectX.Core
             try
             {
                 mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
-                Button button = mainView.BindClick(ShopPath, HandleShopClick, true);
-                mainView.BindClick(ShopSubmenuPath, HandleShopClick, true);
-                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+                Button toggle = mainView.BindClick(ShopPath, ToggleShopSubmenu, true);
+                Button entry = mainView.BindClick(ShopSubmenuPath, HandleShopClick, true);
+                mainView.BindClick(ShopCoinShortcutPath, HandleShopClick, true);
+                if (autoInvoke) StartCoroutine(InvokeShopEntryNextFrames(toggle, entry));
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
@@ -1171,7 +1202,30 @@ namespace ProjectX.Core
         public void ShowShop()
         {
             EnsureShopPresenter();
-            if (services.UiStack.Current != shopView) services.UiStack.Push(shopView);
+            bagView?.SetVisible(false);
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroReplacementView?.SetVisible(false);
+            heroCultivationView?.SetVisible(false);
+            heroLevelUpView?.SetVisible(false);
+            heroEnhanceMasterView?.SetVisible(false);
+            heroAttributesView?.SetVisible(false);
+            heroItemSourceView?.SetVisible(false);
+            heroEquipmentListView?.SetVisible(false);
+            heroEquipmentDetailView?.SetVisible(false);
+            heroEquipmentChangeView?.SetVisible(false);
+            heroEquipmentCultivateView?.SetVisible(false);
+            heroEquipmentStrengthView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
+            bagFrameView.SetVisible(true);
+            ConfigureShopFrame();
+            if (services.UiStack.Current != shopView)
+            {
+                services.UiStack.Push(shopView);
+                bagFrameView.GameObject.transform.SetAsLastSibling();
+                shopView.GameObject.transform.SetAsLastSibling();
+            }
             SetStatus($"Shop UI active: {services.Shop.Count} goods.");
         }
 
@@ -1734,6 +1788,8 @@ namespace ProjectX.Core
             services.Rewards.Clear();
             services.Mails.Clear();
             services.Shop.Clear();
+            shopPresenter?.ResetTransientState();
+            errorPresenter?.Hide();
             services.Friends.Clear();
             services.Heroes.Clear();
             services.Formation.Clear();
@@ -3056,6 +3112,142 @@ namespace ProjectX.Core
             StartCoroutine(CaptureGameplayShopsValidation());
         }
 
+        public void BeginShopG4Validation(double rawId)
+        {
+            StartCoroutine(RunShopG4InitialUiValidation(checked((ushort)rawId)));
+        }
+
+        private IEnumerator RunShopG4InitialUiValidation(ushort itemId)
+        {
+            BeginValidationEvidence();
+            EnsureShopPresenter();
+            if (!IsShopOpen || services.Shop.Count < 3 || shopPresenter.ItemCount != services.Shop.Count
+                || !services.Shop.TryGet(itemId, out ShopRecord item) || shopPresenter.MissingIconCount != 0)
+            {
+                Fail($"Shop G4 initial state mismatch: open={IsShopOpen}, store={services.Shop.Count}, "
+                    + $"rendered={shopPresenter?.ItemCount ?? -1}, item={itemId}, missing={shopPresenter?.MissingIconCount ?? -1}.");
+                yield break;
+            }
+
+            MarkValidationControl("SHOP-01-MAIN-TOGGLE");
+            MarkValidationControl("SHOP-02-SUBMENU-ENTRY");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            shopPresenter.Render();
+            yield return null;
+            Text title = bagFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text tab = shopView.Binding.Find("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
+            RecordValidationSemantic("shop-title", title?.text == "商城", $"actual={title?.text}");
+            RecordValidationSemantic("shop-tab", tab?.text == "道具购买", $"actual={tab?.text}");
+            RecordValidationSemantic("shop-details", !string.IsNullOrWhiteSpace(item.Name)
+                && !string.IsNullOrWhiteSpace(item.Description) && item.UnitCost > 0,
+                $"id={item.Id}, name={item.Name}, cost={item.UnitCost}");
+            RecordValidationSemantic("shop-refresh-config", shopPresenter.IsRefreshDisabledForBaseShop,
+                "type=1 must expose a real but disabled refresh control");
+            RecordValidationSemantic("shop-authority", services.ServerTime.IsSynchronized
+                && services.ProtocolRegistry.PendingCount == 0, "server time and pending state");
+            if (GetFailedValidationSemanticAssertions().Length > 0)
+            {
+                Fail("Shop G4 semantic assertions failed.");
+                yield break;
+            }
+
+            if (!shopPresenter.InvokeBaseTab()) { Fail("Shop G4 base tab was not bound."); yield break; }
+            MarkValidationControl("SHOP-06-BASE-TAB");
+            if (!shopPresenter.InvokeSelect(itemId)
+                && (!shopPresenter.InvokeFirstBound(out itemId)
+                    || !services.Shop.TryGet(itemId, out item)))
+            { Fail($"Shop G4 could not invoke any bound item (requested {itemId})."); yield break; }
+            MarkValidationControl("SHOP-08-ITEM-SELECT");
+            yield return CaptureShopValidationScreenshot("bootstrap-shop-list.png");
+
+            if (!shopPresenter.InvokePlus() || shopPresenter.SelectedQuantity != 2)
+            { Fail("Shop G4 plus control failed."); yield break; }
+            MarkValidationControl("SHOP-10-QUANTITY-PLUS");
+            if (!shopPresenter.InvokeMinus() || shopPresenter.SelectedQuantity != 1)
+            { Fail("Shop G4 minus control failed."); yield break; }
+            MarkValidationControl("SHOP-09-QUANTITY-MINUS");
+            if (!shopPresenter.InvokeQuantityInput()) { Fail("Shop G4 quantity input did not open."); yield break; }
+            MarkValidationControl("SHOP-11-QUANTITY-INPUT-OPEN");
+            if (!shopPresenter.InvokeQuantityDigit(2)) { Fail("Shop G4 keypad digit failed."); yield break; }
+            MarkValidationControl("SHOP-12-QUANTITY-KEYPAD");
+            if (!shopPresenter.InvokeQuantityDelete()) { Fail("Shop G4 keypad delete failed."); yield break; }
+            MarkValidationControl("SHOP-13-QUANTITY-DELETE");
+            if (!shopPresenter.InvokeQuantityCancel() || shopPresenter.IsQuantityInputVisible)
+            { Fail("Shop G4 quantity cancel failed."); yield break; }
+            MarkValidationControl("SHOP-15-QUANTITY-CANCEL");
+            if (!shopPresenter.InvokeQuantityInput() || !shopPresenter.InvokeQuantityDelete()
+                || !shopPresenter.InvokeQuantityDigit(2))
+            { Fail("Shop G4 quantity input second pass failed."); yield break; }
+            yield return CaptureShopValidationScreenshot("bootstrap-shop-quantity.png");
+            if (!shopPresenter.InvokeQuantityConfirm() || shopPresenter.SelectedQuantity != 2)
+            { Fail("Shop G4 quantity confirm failed."); yield break; }
+            MarkValidationControl("SHOP-14-QUANTITY-CONFIRM");
+
+            if (!shopPresenter.ScrollToBottom()) { Fail("Shop G4 list did not scroll."); yield break; }
+            MarkValidationControl("SHOP-07-LIST-SCROLL");
+            yield return CaptureShopValidationScreenshot("bootstrap-shop-scroll-bottom.png");
+
+            if (!shopPresenter.InvokeSelect(itemId)) shopPresenter.Select(itemId);
+            if (!shopPresenter.InvokePlus() || !shopPresenter.InvokeBuy() || !errorPresenter.IsVisible)
+            { Fail("Shop G4 buy control did not open confirmation."); yield break; }
+            MarkValidationControl("SHOP-16-BUY");
+            if (!errorPresenter.InvokeCancel() || errorPresenter.IsVisible
+                || services.ProtocolRegistry.PendingCount != 0)
+            { Fail("Shop G4 purchase cancel changed pending state."); yield break; }
+            MarkValidationControl("SHOP-18-PURCHASE-CANCEL");
+            if (!shopPresenter.IsRefreshDisabledForBaseShop)
+            { Fail("Shop G4 type=1 refresh control was not disabled."); yield break; }
+            MarkValidationControl("SHOP-19-MANUAL-REFRESH");
+            InvokeLuaOrFail(onShopValidationRefresh, "Shop.ValidationRefresh");
+        }
+
+        public void CompleteShopRefreshFailureValidation(string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason) || services.ProtocolRegistry.PendingCount != 0)
+            { Fail("Shop G4 op=3 failure did not clear pending state."); return; }
+            ushort id = services.Shop.Items.First().Id;
+            InvokeLuaOrFail(onShopValidationCount, "Shop.ValidationCount", (double)id);
+        }
+
+        public void CompleteShopCountValidation(double rawId, int buyCount)
+        {
+            ushort id = checked((ushort)rawId);
+            if (!services.Shop.TryGet(id, out ShopRecord item) || item.BuyCount != buyCount
+                || services.ProtocolRegistry.PendingCount != 0)
+            { Fail("Shop G4 op=4 authoritative count mismatch."); return; }
+            ShopRecord failureItem = services.Shop.Items.FirstOrDefault(value => value.Id == 1015);
+            if (failureItem == null) failureItem = services.Shop.Items.OrderByDescending(value => value.UnitCost).First();
+            InvokeLuaOrFail(onShopValidationFailure, "Shop.ValidationFailure",
+                (double)failureItem.Id, 200);
+        }
+
+        public void CompleteShopFailureValidation()
+        {
+            StartCoroutine(RunShopG4SuccessfulPurchase());
+        }
+
+        private IEnumerator RunShopG4SuccessfulPurchase()
+        {
+            while (services.ProtocolRegistry.PendingCount != 0) yield return null;
+            ShopRecord item = services.Shop.Items.First();
+            validationShopId = item.Id;
+            validationShopBuyCount = item.BuyCount;
+            validationShopCurrencyType = item.CostType;
+            validationShopQuantity = 2;
+            validationShopExpectedCurrency = services.Currencies.Get(item.CostType) - item.TotalCost(2);
+            validationShopRewardType = item.RewardType;
+            validationShopRewardAmount = item.RewardAmount;
+            if (!shopPresenter.Select(item.Id) || !shopPresenter.InvokePlus()
+                || shopPresenter.SelectedQuantity != 2 || !shopPresenter.InvokeBuy()
+                || !errorPresenter.IsVisible)
+            { Fail("Shop G4 successful purchase confirmation did not open."); yield break; }
+            yield return CaptureShopValidationScreenshot("bootstrap-shop-confirm.png");
+            if (!errorPresenter.InvokeConfirmation())
+            { Fail("Shop G4 real confirmation control failed."); yield break; }
+            MarkValidationControl("SHOP-17-PURCHASE-CONFIRM");
+        }
+
         public bool PrepareShopPurchaseValidation(double rawId)
         {
             ushort id = checked((ushort)rawId);
@@ -3092,7 +3284,7 @@ namespace ProjectX.Core
                 Fail($"Shop validation could not select id={id}.");
                 return false;
             }
-            ShowShopPurchaseConfirmation(item);
+            ShowShopPurchaseConfirmation(item, 1);
             StartCoroutine(CaptureShopConfirmationAndConfirm(id));
             return true;
         }
@@ -3106,16 +3298,42 @@ namespace ProjectX.Core
             return services.Shop.ApplyPurchase(id, checked((ushort)buyCount));
         }
 
-        public void ShowShopPurchaseReward(double rawId, int rewardType, double rewardAmount)
+        public void SetShopBuyCount(double rawId, int buyCount)
+        {
+            services.Shop.ApplyPurchase(checked((ushort)rawId), checked((ushort)buyCount));
+        }
+
+        public void ClearShopState()
+        {
+            services.Shop.Clear();
+            pendingShopRecords.Clear();
+            shopPresenter?.ResetTransientState();
+            errorPresenter?.Hide();
+            rewardPresenter?.Hide();
+        }
+
+        public void RequestShopCount(double rawId)
+        {
+            InvokeLuaOrFail(onShopCountRequested, "Shop.OnCountRequested", rawId);
+        }
+
+        public void ShowShopPurchaseReward(double rawId, int rewardType, double rewardAmount,
+            int quantity)
         {
             ushort id = checked((ushort)rawId);
             if (!services.Shop.TryGet(id, out ShopRecord item)) return;
+            uint totalAmount = checked((uint)rewardAmount * checked((uint)Math.Max(1, quantity)));
             services.Rewards.Replace("购买获得", new[]
             {
                 new RewardRecord(rewardType, checked((uint)Math.Max(0, item.RewardId)),
-                    checked((uint)rewardAmount), item.Name, item.Picture, item.Quality)
+                    totalAmount, item.Name, item.Picture, item.Quality)
             });
             EnsureRewardPresenter();
+            rewardPresenter.SetItemClickHandler(reward =>
+            {
+                EnsureErrorPresenter();
+                errorPresenter.Show("奖励详情", $"{reward.Name}\n数量：{reward.Amount}");
+            });
             rewardPresenter.Show();
         }
 
@@ -3124,18 +3342,108 @@ namespace ProjectX.Core
             ushort id = checked((ushort)rawId);
             bool found = services.Shop.TryGet(id, out ShopRecord item);
             long currency = services.Currencies.Get(validationShopCurrencyType);
-            bool rewardValid = ValidateRewardPresentation(1, true);
-            if (!found || id != validationShopId || item.BuyCount != validationShopBuyCount + 1
+            bool rewardValid = ValidateRewardPresentation(1,
+                !HasCommandLineFlag("-projectXShopG4Validation"));
+            if (!found || id != validationShopId
+                || item.BuyCount != validationShopBuyCount + validationShopQuantity
                 || currency != validationShopExpectedCurrency || item.RewardType != validationShopRewardType
                 || item.RewardAmount != validationShopRewardAmount || !rewardValid
                 || services.ProtocolRegistry.PendingCount != 0 || !IsShopOpen
                 || !services.ServerTime.IsSynchronized || shopPresenter.MissingIconCount != 0)
             {
-                Fail($"Shop validation mismatch: found={found}, id={id}/{validationShopId}, count={(found ? item.BuyCount : 0)}/{validationShopBuyCount + 1}, currency={currency}/{validationShopExpectedCurrency}, reward={rewardValid}, pending={services.ProtocolRegistry.PendingCount}, open={IsShopOpen}, time={services.ServerTime.IsSynchronized}, missing={shopPresenter?.MissingIconCount ?? -1}.");
+                Fail($"Shop validation mismatch: found={found}, id={id}/{validationShopId}, count={(found ? item.BuyCount : 0)}/{validationShopBuyCount + validationShopQuantity}, currency={currency}/{validationShopExpectedCurrency}, reward={rewardValid}, pending={services.ProtocolRegistry.PendingCount}, open={IsShopOpen}, time={services.ServerTime.IsSynchronized}, missing={shopPresenter?.MissingIconCount ?? -1}.");
+                return;
+            }
+            if (HasCommandLineFlag("-projectXShopG4Validation"))
+            {
+                StartCoroutine(FinalizeShopG4Validation());
                 return;
             }
             toastPresenter?.Clear();
             Complete($"COMPLETE: /221 list -> ShopStore/limits/server time/currency -> confirmed single purchase id={id} -> persisted count={item.BuyCount}");
+        }
+
+        private IEnumerator FinalizeShopG4Validation()
+        {
+            yield return CaptureShopValidationScreenshot("bootstrap-shop-reward.png");
+            if (!rewardPresenter.InvokeFirstItem() || !errorPresenter.IsVisible)
+            { Fail("Shop G4 reward item did not open the shared detail."); yield break; }
+            MarkValidationControl("SHOP-20-REWARD-ITEM");
+            errorPresenter.Hide();
+            if (!rewardPresenter.InvokeClose() || rewardPresenter.IsVisible)
+            { Fail("Shop G4 reward close control failed."); yield break; }
+            MarkValidationControl("SHOP-21-REWARD-CLOSE");
+
+            Button headerCoin = bagFrameView.Binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
+            if (headerCoin == null || !headerCoin.interactable)
+            { Fail("Shop G4 header coin add was not bound."); yield break; }
+            headerCoin.onClick.Invoke();
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)
+            { Fail("Shop G4 header coin add did not reload Shop."); yield break; }
+            MarkValidationControl("SHOP-04-HEADER-COIN-PLUS");
+
+            Button close = bagFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            if (close == null || !close.interactable) { Fail("Shop G4 close was not bound."); yield break; }
+            close.onClick.Invoke();
+            if (IsShopOpen) { Fail("Shop G4 close did not return to main."); yield break; }
+            MarkValidationControl("SHOP-05-CLOSE");
+
+            Button shortcut = mainView.Binding.Find(ShopCoinShortcutPath)?.GetComponent<Button>();
+            if (shortcut == null || !shortcut.interactable)
+            { Fail("Shop G4 main coin shortcut was not bound."); yield break; }
+            shortcut.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 10f;
+            while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsShopOpen || services.Shop.Count == 0)
+            { Fail("Shop G4 main coin shortcut did not open authoritative Shop."); yield break; }
+            MarkValidationControl("SHOP-03-MAIN-COIN-SHORTCUT");
+
+            services.Shop.Clear();
+            if (!shopPresenter.IsEmptyStateVisible)
+            { Fail("Shop G4 empty state retained stale detail or buy state."); yield break; }
+            HandleShopClick();
+            deadline = Time.realtimeSinceStartup + 10f;
+            while ((services.Shop.Count == 0 || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.Shop.Count == 0) { Fail("Shop G4 empty-state reload failed."); yield break; }
+
+            services.Network.Disconnect();
+            HandleDisconnected("Shop G4 deliberate disconnect");
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (services.Network.State != NetworkState.Disconnected || services.Shop.Count != 0
+                || IsShopOpen || shopPresenter.IsQuantityInputVisible || errorPresenter.IsVisible
+                || rewardPresenter.IsVisible)
+            { Fail("Shop G4 disconnect cleanup mismatch."); yield break; }
+            Reconnect();
+            deadline = Time.realtimeSinceStartup + 20f;
+            while (services.Network.State != NetworkState.Connected
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.Network.State != NetworkState.Connected)
+            { Fail("Shop G4 reconnect failed."); yield break; }
+            deadline = Time.realtimeSinceStartup + 20f;
+            while (!IsShopOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsShopOpen)
+            {
+                shortcut.onClick.Invoke();
+                deadline = Time.realtimeSinceStartup + 10f;
+                while (!IsShopOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            }
+            if (!IsShopOpen || services.Shop.Count == 0)
+            { Fail("Shop G4 reconnect did not restore authoritative Shop."); yield break; }
+
+            yield return CaptureShopValidationScreenshot("bootstrap-shop.png");
+            validationRoleIdSnapshot = GetPlayerRoleId();
+            ReturnToLogin();
+            if (!IsLoginVisible || services.Shop.Count != 0 || IsShopOpen
+                || shopPresenter.IsQuantityInputVisible || errorPresenter.IsVisible || rewardPresenter.IsVisible)
+            { Fail("Shop G4 account-switch cleanup mismatch."); yield break; }
+            toastPresenter?.Clear();
+            Complete($"COMPLETE: Shop G4 21/21 real controls; /221 op1/2/3/4, quantity=2, "
+                + $"insufficient/reload/empty/reconnect/account-switch; user={GetLocalUserId()} role={validationRoleIdSnapshot}");
         }
 
         public void BeginHeroUpdate(int followHeroId, int expectedCount)
@@ -4178,6 +4486,12 @@ namespace ProjectX.Core
             services.Formation.Clear();
             services.Bag.Clear();
             bagFlowPresenter?.CloseAll();
+            services.Shop.Clear();
+            shopPresenter?.ResetTransientState();
+            errorPresenter?.Hide();
+            rewardPresenter?.Hide();
+            if (IsShopOpen) services.UiStack.Pop();
+            shopView?.SetVisible(false);
             bagFrameView?.SetVisible(false);
             bagView?.SetVisible(false);
             services.HeroEquipment.Clear();
@@ -4268,8 +4582,15 @@ namespace ProjectX.Core
         }
         private void HandleShopClick()
         {
+            SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
             try { CallLua(onShopClicked, "Shop.OnClicked"); }
             catch (Exception exception) { Fail($"Shop open failed: {exception.Message}"); }
+        }
+
+        private void ToggleShopSubmenu()
+        {
+            GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang1");
+            if (submenu != null) submenu.SetActive(!submenu.activeSelf);
         }
         private void HandleFriendClick()
         {
@@ -4328,6 +4649,14 @@ namespace ProjectX.Core
         {
             GameObject submenu = mainView?.Binding.Find(path);
             if (submenu != null) submenu.SetActive(visible);
+        }
+
+        private static IEnumerator InvokeShopEntryNextFrames(Button toggle, Button entry)
+        {
+            yield return null;
+            toggle.onClick.Invoke();
+            yield return null;
+            entry.onClick.Invoke();
         }
 
         private Button EnsureRuntimeTeamEntry()
@@ -4648,13 +4977,20 @@ namespace ProjectX.Core
             CompleteActivityValidation();
         }
 
-        private void ShowShopPurchaseConfirmation(ShopRecord item)
+        private void ShowShopPurchaseConfirmation(ShopRecord item, int quantity)
         {
             EnsureErrorPresenter();
             string limitText = item.Limit < 0 ? "不限购" : $"剩余限购 {item.RemainingLimit} 次";
+            long totalCost = item.TotalCost(quantity);
+            uint totalReward = checked(item.RewardAmount * checked((uint)Math.Max(1, quantity)));
             errorPresenter.ShowConfirmation("购买确认",
-                $"花费 {item.UnitCost} {item.CostName}购买 {item.RewardAmount}×{item.Name}？\n{limitText}",
-                () => InvokeLuaOrFail(onShopBuyConfirmed, "Shop.OnBuyConfirmed", (double)item.Id));
+                $"花费 {totalCost} {item.CostName}购买 {totalReward}×{item.Name}？\n{limitText}",
+                () => InvokeLuaOrFail(
+                    HasCommandLineFlag("-projectXShopG4Validation")
+                        ? onShopValidationSuccess : onShopBuyConfirmed,
+                    HasCommandLineFlag("-projectXShopG4Validation")
+                        ? "Shop.ValidationSuccess" : "Shop.OnBuyConfirmed",
+                    (double)item.Id, quantity));
         }
 
         private IEnumerator CaptureShopConfirmationAndConfirm(ushort itemId)
@@ -4672,6 +5008,24 @@ namespace ProjectX.Core
                 yield break;
             }
             errorPresenter.Confirm();
+        }
+
+        private IEnumerator CaptureShopValidationScreenshot(string fileName)
+        {
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while ((!File.Exists(path) || new FileInfo(path).Length == 0)
+                && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+                Fail($"Shop G4 screenshot was not written: {fileName}.");
         }
 
         private IEnumerator CaptureFriendAndDelete(uint roleId)
@@ -5962,9 +6316,59 @@ namespace ProjectX.Core
         private void EnsureShopPresenter()
         {
             shopView = shopView ?? services.UiRouter.FindBySource("shop/shangcheng");
-            if (shopView == null) throw new InvalidOperationException("shop/shangcheng CocosUiBinding was not found.");
+            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            bagInputView = bagInputView ?? services.UiRouter.FindBySource("EnterNumLayer");
+            if (shopView == null || bagFrameView == null || bagInputView == null)
+                throw new InvalidOperationException("Shop required CocosUiBinding was not found.");
             shopPresenter = shopPresenter ?? new ShopPresenter(shopView, services.Shop, services.Currencies,
-                services.Resources, services.ServerTime, ShowShopPurchaseConfirmation);
+                services.Resources, services.ServerTime, bagInputView, ShowShopPurchaseConfirmation,
+                () => InvokeLuaOrFail(onShopRefreshRequested, "Shop.OnRefreshRequested"));
+        }
+
+        private void ConfigureShopFrame()
+        {
+            CocosUiBinding binding = bagFrameView.Binding;
+            RectTransform root = binding.transform as RectTransform;
+            if (root != null)
+            {
+                root.pivot = new Vector2(0f, 1f);
+                root.anchorMin = root.anchorMax = new Vector2(0f, 1f);
+                root.anchoredPosition = Vector2.zero;
+                root.localScale = Vector3.one;
+            }
+            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null)
+            {
+                title.text = "商城";
+                title.alignment = TextAnchor.MiddleLeft;
+                title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            }
+            Transform help = title?.transform.Find("Button_1");
+            if (help != null) help.gameObject.SetActive(false);
+            Transform tabs = binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            if (tabs != null) tabs.gameObject.SetActive(false);
+            Transform tabPanel = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            if (tabPanel != null) tabPanel.gameObject.SetActive(false);
+            GameObject subTabs = binding.Find("Layer/Panel_12/SubBtnList");
+            if (subTabs != null) subTabs.SetActive(false);
+            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
+            Text gold = binding.Find("Layer/GoldCheck/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
+            Text premium = binding.Find("Layer/GoldCheck/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
+            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
+            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
+            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon1/AddBtn")?.transform, null, false);
+            BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.transform,
+                HandleShopClick, true);
+            BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon4/AddBtn")?.transform, null, false);
+            bagFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () =>
+            {
+                shopPresenter?.ResetTransientState();
+                errorPresenter?.Hide();
+                rewardPresenter?.Hide();
+                bagFrameView.SetVisible(false);
+                HandleBack();
+            }, true);
         }
 
         private void EnsureGameplayShopsPresenter()
@@ -6214,6 +6618,8 @@ namespace ProjectX.Core
         {
             string detail = $"{context.Protocol.Name} 请求超时（{context.Protocol.TimeoutSeconds:F0}秒）";
             SetStatus(detail);
+            if (context.Protocol.Command == 221)
+                InvokeLuaOrFail(onShopRequestTimeout, "Shop.OnRequestTimeout");
             EnsureErrorPresenter();
             errorPresenter?.Show("网络超时", detail);
         }

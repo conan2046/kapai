@@ -7,9 +7,18 @@ local M = {
     shopType = 1,
     validationStage = nil,
     validationItemId = 0,
+    validationStarted = false,
+    pendingOp = 0,
+    pendingId = 0,
+    pendingQuantity = 0,
 }
 
 local function requestList()
+    if M.pendingOp ~= 0 then
+        Bridge:ShowToast("商城请求处理中", 1.5)
+        return
+    end
+    M.pendingOp = 1
     local message = Protocol.newMessage(Protocol.SHOP)
     message:WriteByte(1)
     message:WriteByte(M.shopType)
@@ -18,28 +27,132 @@ local function requestList()
 end
 
 function M.onClick()
-    M.validationStage = Bridge:HasCommandLineFlag("-projectXShopValidation") and "await_list" or nil
+    local g4 = Bridge:HasCommandLineFlag("-projectXShopG4Validation")
+    M.validationStage = (Bridge:HasCommandLineFlag("-projectXShopValidation")
+        or (g4 and not M.validationStarted)) and "await_list" or nil
+    if g4 then M.validationStarted = true end
     requestList()
 end
 
-function M.buyConfirmed(id)
+function M.validationRefresh()
+    M.validationStage = "await_refresh_failure"
+    M.refresh()
+end
+
+function M.validationCount(id)
+    M.validationStage = "await_count"
+    M.requestCount(id)
+end
+
+function M.validationFailure(id, quantity)
+    M.validationStage = "await_purchase_failure"
+    M.buyConfirmed(id, quantity)
+end
+
+function M.validationSuccess(id, quantity)
+    M.validationItemId = id
+    M.validationStage = "await_purchase"
+    M.buyConfirmed(id, quantity)
+end
+
+function M.buyConfirmed(id, quantity)
+    if M.pendingOp ~= 0 then
+        Bridge:ShowToast("商城请求处理中", 1.5)
+        return
+    end
+    quantity = math.floor(tonumber(quantity) or 0)
+    if quantity < 1 or quantity > 200 then
+        Bridge:ShowToast("购买数量无效", 2.0)
+        return
+    end
+    M.pendingOp = 2
+    M.pendingId = id
+    M.pendingQuantity = quantity
     local message = Protocol.newMessage(Protocol.SHOP)
     message:WriteByte(2)
     message:WriteByte(M.shopType)
     message:WriteWord(id)
-    message:WriteUShort(1)
+    message:WriteUShort(quantity)
     message:WriteByte(0)
     Bridge:Send(message)
-    Bridge:SetStatus("Shop/221 purchase sent: id=" .. tostring(id) .. ", quantity=1.")
+    Bridge:SetStatus("Shop/221 purchase sent: id=" .. tostring(id)
+        .. ", quantity=" .. tostring(quantity) .. ".")
 end
 
-local function readList(message)
+function M.refresh()
+    if M.pendingOp ~= 0 then
+        Bridge:ShowToast("商城请求处理中", 1.5)
+        return
+    end
+    M.pendingOp = 3
+    local message = Protocol.newMessage(Protocol.SHOP)
+    message:WriteByte(3)
+    message:WriteByte(M.shopType)
+    Bridge:Send(message)
+    Bridge:SetStatus("Shop/221 refresh request sent: type=" .. tostring(M.shopType) .. ".")
+end
+
+function M.requestCount(id)
+    if M.pendingOp ~= 0 then return end
+    M.pendingOp = 4
+    M.pendingId = id
+    local message = Protocol.newMessage(Protocol.SHOP)
+    message:WriteByte(4)
+    message:WriteByte(M.shopType)
+    message:WriteWord(id)
+    Bridge:Send(message)
+end
+
+function M.onDisconnected()
+    M.pendingOp = 0
+    M.pendingId = 0
+    M.pendingQuantity = 0
+    M.validationStage = nil
+    Bridge:ClearShopState()
+end
+
+function M.onRequestTimeout()
+    M.pendingOp = 0
+    M.pendingId = 0
+    M.pendingQuantity = 0
+    M.validationStage = nil
+    Bridge:SetStatus("Shop/221 request timed out; pending state cleared.")
+end
+
+local function failMalformed(context, clearStore)
+    M.pendingOp = 0
+    M.pendingId = 0
+    M.pendingQuantity = 0
+    M.validationStage = nil
+    if clearStore then Bridge:ClearShopState() end
+    Bridge:Fail("Shop/221 malformed " .. context .. " response.")
+end
+
+local function readList(message, op)
+    if message.Remaining < 2 then
+        failMalformed(op == 1 and "list" or "refresh", op == 1)
+        return
+    end
     local shopType = message:ReadByte()
     local success = message:ReadByte()
     if success == 0 then
-        local reason = message.Remaining > 0 and message:ReadString() or "server rejected shop list"
+        local reason = message.Remaining >= 2 and message:ReadString() or "server rejected shop list"
+        M.pendingOp = 0
+        local validationStage = M.validationStage
         M.validationStage = nil
-        Bridge:Fail("Shop/221 list failed: " .. tostring(reason))
+        if op == 1 then Bridge:ClearShopState() end
+        Bridge:ShowToast(tostring(reason), 2.0)
+        Bridge:SetStatus(op == 3 and validationStage == "await_refresh_failure"
+            and ("Shop/221 refresh rejection observed: " .. tostring(reason))
+            or ("Shop/221 " .. (op == 1 and "list" or "refresh")
+                .. " failed: " .. tostring(reason)))
+        if op == 3 and validationStage == "await_refresh_failure" then
+            Bridge:CompleteShopRefreshFailureValidation(tostring(reason))
+        end
+        return
+    end
+    if shopType ~= M.shopType or message.Remaining < 6 then
+        failMalformed(op == 1 and "list" or "refresh", op == 1)
         return
     end
 
@@ -47,22 +160,31 @@ local function readList(message)
     local freeTimes = message:ReadByte()
     local refreshRemaining = message:ReadUShort()
     local count = message:ReadByte()
+    if message.Remaining < count * 5 then
+        failMalformed(op == 1 and "list" or "refresh", op == 1)
+        return
+    end
     local firstId = 0
-    Bridge:BeginShopUpdate(shopType, refreshTimes, freeTimes, refreshRemaining, count)
+    local records = {}
     for index = 1, count do
         local grid = message:ReadByte()
         local id = message:ReadUShort()
         local buyCount = message:ReadUShort()
         local displayId = Bridge:GetShopDisplayItemId(id)
         local item = itemsById[displayId] or {}
-        Bridge:AddShopRecord(grid, id, buyCount, item.name or "", item.des or "",
-            item.pic or 0, item.quality or 0)
+        records[index] = { grid, id, buyCount, item.name or "", item.des or "",
+            item.pic or 0, item.quality or 0 }
         if firstId == 0 then firstId = id end
     end
     if message.Remaining ~= 0 then
-        M.validationStage = nil
-        Bridge:Fail("Shop/221 list has " .. tostring(message.Remaining) .. " unread bytes.")
+        failMalformed(op == 1 and "list" or "refresh", op == 1)
         return
+    end
+    M.pendingOp = 0
+    Bridge:BeginShopUpdate(shopType, refreshTimes, freeTimes, refreshRemaining, count)
+    for _, record in ipairs(records) do
+        Bridge:AddShopRecord(record[1], record[2], record[3], record[4],
+            record[5], record[6], record[7])
     end
     Bridge:EndShopUpdate()
 
@@ -73,15 +195,27 @@ local function readList(message)
             return
         end
         M.validationItemId = firstId
-        if not Bridge:PrepareShopPurchaseValidation(firstId) then
-            M.validationStage = nil
-            return
+        if Bridge:HasCommandLineFlag("-projectXShopG4Validation") then
+            M.validationStage = "await_ui"
+            Bridge:BeginShopG4Validation(firstId)
+        else
+            if not Bridge:PrepareShopPurchaseValidation(firstId) then
+                M.validationStage = nil
+                return
+            end
+            M.validationStage = "await_purchase"
         end
-        M.validationStage = "await_purchase"
+    elseif M.validationStage == "await_failure_relist" then
+        M.validationStage = "await_ui"
+        Bridge:CompleteShopFailureValidation()
     elseif M.validationStage == "verify_purchase" then
         local id = M.validationItemId
         M.validationStage = nil
         Bridge:CompleteShopPurchaseValidation(id)
+    elseif M.validationStage == "await_ui"
+        or Bridge:HasCommandLineFlag("-projectXShopG4Validation") then
+        Bridge:SetStatus("Shop/221 authoritative list reloaded: "
+            .. tostring(count) .. " goods.")
     else
         Bridge:Complete("COMPLETE: main shop button -> /221 op=1 -> ShopStore -> shangcheng ("
             .. tostring(count) .. " goods)")
@@ -89,32 +223,50 @@ local function readList(message)
 end
 
 local function readPurchase(message)
+    if message.Remaining < 7 then
+        failMalformed("purchase", false)
+        return
+    end
     local shopType = message:ReadByte()
     local id = message:ReadUShort()
     local quantity = message:ReadUShort()
     message:ReadByte() -- use echo
     local success = message:ReadByte()
     if success == 0 then
-        local reason = message.Remaining > 0 and message:ReadString() or "server rejected purchase"
-        M.validationStage = nil
-        Bridge:Fail("Shop/221 purchase failed: " .. tostring(reason))
+        local reason = message.Remaining >= 2 and message:ReadString() or "server rejected purchase"
+        local validationStage = M.validationStage
+        M.pendingOp = 0
+        M.pendingId = 0
+        M.pendingQuantity = 0
+        Bridge:ShowToast(tostring(reason), 2.0)
+        Bridge:SetStatus(validationStage == "await_purchase_failure"
+            and ("Shop/221 purchase rejection observed: " .. tostring(reason))
+            or ("Shop/221 purchase failed: " .. tostring(reason)))
+        M.validationStage = validationStage == "await_purchase_failure"
+            and "await_failure_relist" or nil
+        requestList()
+        return
+    end
+    if message.Remaining < 8 then
+        failMalformed("purchase", false)
         return
     end
     local buyCount = message:ReadUShort()
     local rewardType = message:ReadUShort()
     local rewardAmount = message:ReadUInt()
     if message.Remaining ~= 0 then
-        M.validationStage = nil
-        Bridge:Fail("Shop/221 purchase has " .. tostring(message.Remaining) .. " unread bytes.")
+        failMalformed("purchase", false)
         return
     end
-    if shopType ~= M.shopType or quantity ~= 1
+    if shopType ~= M.shopType or id ~= M.pendingId or quantity ~= M.pendingQuantity
         or not Bridge:ApplyShopPurchase(id, buyCount, rewardType, rewardAmount) then
-        M.validationStage = nil
-        Bridge:Fail("Shop purchase response did not match the selected item.")
+        failMalformed("purchase identity", false)
         return
     end
-    Bridge:ShowShopPurchaseReward(id, rewardType, rewardAmount)
+    M.pendingOp = 0
+    M.pendingId = 0
+    M.pendingQuantity = 0
+    Bridge:ShowShopPurchaseReward(id, rewardType, rewardAmount, quantity)
     Bridge:ShowToast("购买成功", 2.0)
     if M.validationStage == "await_purchase" then
         if id ~= M.validationItemId then
@@ -124,15 +276,49 @@ local function readPurchase(message)
         end
         M.validationStage = "verify_purchase"
         requestList()
+    else
+        requestList()
+    end
+end
+
+local function readCount(message)
+    if message.Remaining < 4 then
+        failMalformed("count", false)
+        return
+    end
+    local shopType = message:ReadByte()
+    local id = message:ReadWord()
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining >= 2 and message:ReadString() or "server rejected count query"
+        M.pendingOp = 0
+        Bridge:ShowToast(tostring(reason), 2.0)
+        return
+    end
+    if shopType ~= M.shopType or id ~= M.pendingId or message.Remaining ~= 2 then
+        failMalformed("count", false)
+        return
+    end
+    local buyCount = message:ReadWord()
+    M.pendingOp = 0
+    M.pendingId = 0
+    Bridge:SetShopBuyCount(id, buyCount)
+    if M.validationStage == "await_count" then
+        M.validationStage = "await_ui"
+        Bridge:CompleteShopCountValidation(id, buyCount)
     end
 end
 
 function M.onPacket(command, message)
     if command ~= Protocol.SHOP then return false end
+    if message.Remaining < 1 then
+        failMalformed("header", M.pendingOp == 1)
+        return true
+    end
     local op = message:ReadByte()
-    if op == 1 or op == 3 then readList(message)
+    if op == 1 or op == 3 then readList(message, op)
     elseif op == 2 then readPurchase(message)
-    elseif op == 4 then return true
+    elseif op == 4 then readCount(message)
     else Bridge:Fail("Shop/221 unsupported op=" .. tostring(op) .. ".") end
     return true
 end

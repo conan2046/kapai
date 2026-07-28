@@ -15,8 +15,11 @@ namespace ProjectX.UI
         private readonly CurrencyStore currencies;
         private readonly ResourceService resources;
         private readonly ServerTimeService serverTime;
-        private readonly Action<ShopRecord> requestConfirmation;
+        private readonly Action<ShopRecord, int> requestConfirmation;
+        private readonly Action requestRefresh;
         private readonly VirtualList<ShopRow> list;
+        private readonly Dictionary<ushort, Button> cellButtons = new Dictionary<ushort, Button>();
+        private readonly ShopQuantityPresenter quantityPresenter;
         private readonly Text detailName;
         private readonly Text detailDescription;
         private readonly Text quantity;
@@ -27,13 +30,20 @@ namespace ProjectX.UI
         private readonly Image ownedIcon;
         private readonly Image expenditureIcon;
         private readonly Button buyButton;
+        private readonly Button minusButton;
+        private readonly Button plusButton;
+        private readonly Button quantityButton;
+        private readonly Button refreshButton;
         private readonly Text refreshText;
+        private readonly Button baseTabButton;
         private ushort selectedId;
+        private int selectedQuantity = 1;
         private int missingIconCount;
         private uint lastRefreshSecond = uint.MaxValue;
 
         public ShopPresenter(CocosUiView view, ShopStore store, CurrencyStore currencies,
-            ResourceService resources, ServerTimeService serverTime, Action<ShopRecord> requestConfirmation)
+            ResourceService resources, ServerTimeService serverTime, CocosUiView quantityInputSource,
+            Action<ShopRecord, int> requestConfirmation, Action requestRefresh)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
@@ -41,10 +51,12 @@ namespace ProjectX.UI
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.serverTime = serverTime ?? throw new ArgumentNullException(nameof(serverTime));
             this.requestConfirmation = requestConfirmation ?? throw new ArgumentNullException(nameof(requestConfirmation));
+            this.requestRefresh = requestRefresh ?? throw new ArgumentNullException(nameof(requestRefresh));
+            quantityPresenter = new ShopQuantityPresenter(quantityInputSource);
 
             GameObject viewport = Require("List");
             GameObject template = Require("Item");
-            float itemHeight = Math.Max(150f, template.GetComponent<RectTransform>()?.rect.height ?? 180f);
+            float itemHeight = Math.Max(1f, template.GetComponent<RectTransform>()?.rect.height ?? 115f);
             list = new VirtualList<ShopRow>(viewport, template, itemHeight, BindRow);
             detailName = RequireText("bg/name");
             detailDescription = RequireText("bg/desc");
@@ -59,12 +71,48 @@ namespace ProjectX.UI
             Text buyText = RequireText("btn_Buy/Text");
             buyText.gameObject.SetActive(false);
             CreateBuyLabel(buyText.font ?? detailName.font);
-            refreshText = CreateRefreshText();
+            refreshButton = CreateRefreshControl(out refreshText);
+            Transform leftTabs = Require("ListView_left").transform;
+            foreach (Transform child in leftTabs)
+                child.gameObject.SetActive(child.name == "Panel_button");
+            Transform baseTabPanel = Require("ListView_left/Panel_button").transform;
+            foreach (Transform child in baseTabPanel)
+                child.gameObject.SetActive(child.name == "Button_1");
+            GameObject baseTab = Require("ListView_left/Panel_button/Button_1");
+            baseTabButton = baseTab.GetComponent<Button>() ?? baseTab.AddComponent<Button>();
+            baseTabButton.targetGraphic = baseTab.GetComponent<Graphic>()
+                ?? baseTab.GetComponentInChildren<Graphic>(true);
+            Text baseTabText = baseTab.transform.Find("Text")?.GetComponent<Text>();
+            if (baseTabText != null)
+            {
+                baseTabText.text = "道具购买";
+                baseTabText.rectTransform.sizeDelta = new Vector2(112f, baseTabText.rectTransform.sizeDelta.y);
+                baseTabText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            }
+            baseTabButton.onClick.RemoveAllListeners();
+            baseTabButton.onClick.AddListener(Render);
+            baseTabButton.interactable = false;
             Require("bg/bg_Num/TextField").SetActive(false);
-            Require("bg/bg_Num/TextButton").SetActive(false);
+            GameObject quantityNode = Require("bg/bg_Num/TextButton");
+            quantityNode.SetActive(true);
+            quantityButton = quantityNode.GetComponent<Button>() ?? quantityNode.AddComponent<Button>();
+            quantityButton.targetGraphic = quantityNode.GetComponent<Graphic>()
+                ?? quantityNode.GetComponentInChildren<Graphic>(true);
             quantity.gameObject.SetActive(true);
-            Require("bg/btn_Minus").SetActive(false);
-            Require("bg/btn_Plus").SetActive(false);
+            GameObject minusNode = Require("bg/btn_Minus");
+            GameObject plusNode = Require("bg/btn_Plus");
+            minusNode.SetActive(true);
+            plusNode.SetActive(true);
+            minusButton = minusNode.GetComponent<Button>() ?? minusNode.AddComponent<Button>();
+            plusButton = plusNode.GetComponent<Button>() ?? plusNode.AddComponent<Button>();
+            minusButton.targetGraphic = minusNode.GetComponent<Graphic>();
+            plusButton.targetGraphic = plusNode.GetComponent<Graphic>();
+            minusButton.onClick.RemoveAllListeners();
+            plusButton.onClick.RemoveAllListeners();
+            quantityButton.onClick.RemoveAllListeners();
+            minusButton.onClick.AddListener(() => AdjustQuantity(-1));
+            plusButton.onClick.AddListener(() => AdjustQuantity(1));
+            quantityButton.onClick.AddListener(OpenQuantityInput);
             store.Changed += Render;
             currencies.Changed += RenderDetails;
             serverTime.Synchronized += RenderRefreshTime;
@@ -74,6 +122,74 @@ namespace ProjectX.UI
         public int ItemCount => store.Count;
         public int MissingIconCount => missingIconCount;
         public ushort SelectedId => selectedId;
+        public int SelectedQuantity => selectedQuantity;
+        public bool IsQuantityInputVisible => quantityPresenter.IsVisible;
+        public bool IsRefreshDisabledForBaseShop => store.Type == 1 && !refreshButton.interactable
+            && refreshText.text.Contains("不可刷新");
+        public bool IsEmptyStateVisible => store.Count == 0 && detailName.text == "暂无商品"
+            && !buyButton.interactable;
+
+        public bool InvokeBaseTab()
+        {
+            if (baseTabButton == null || baseTabButton.interactable) return false;
+            Render();
+            return true;
+        }
+
+        public bool ScrollToBottom() => list.ScrollToBottom();
+
+        public bool InvokeSelect(ushort id)
+        {
+            cellButtons.TryGetValue(id, out Button button);
+            if (button == null) return false;
+            button.onClick.Invoke();
+            return selectedId == id;
+        }
+
+        public bool InvokeFirstBound(out ushort id)
+        {
+            foreach (KeyValuePair<ushort, Button> pair in cellButtons)
+            {
+                id = pair.Key;
+                pair.Value.onClick.Invoke();
+                return selectedId == id;
+            }
+            id = 0;
+            return false;
+        }
+
+        public bool InvokeMinus()
+        {
+            if (!minusButton.interactable) return false;
+            minusButton.onClick.Invoke();
+            return true;
+        }
+
+        public bool InvokePlus()
+        {
+            if (!plusButton.interactable) return false;
+            plusButton.onClick.Invoke();
+            return true;
+        }
+
+        public bool InvokeQuantityInput()
+        {
+            if (!quantityButton.interactable) return false;
+            quantityButton.onClick.Invoke();
+            return quantityPresenter.IsVisible;
+        }
+
+        public bool InvokeQuantityDigit(int digit) => quantityPresenter.InvokeDigit(digit);
+        public bool InvokeQuantityDelete() => quantityPresenter.InvokeDelete();
+        public bool InvokeQuantityConfirm() => quantityPresenter.InvokeConfirm();
+        public bool InvokeQuantityCancel() => quantityPresenter.InvokeClose();
+
+        public bool InvokeBuy()
+        {
+            if (!buyButton.interactable) return false;
+            buyButton.onClick.Invoke();
+            return true;
+        }
 
         public void Tick()
         {
@@ -87,6 +203,7 @@ namespace ProjectX.UI
         public void Render()
         {
             IReadOnlyList<ShopRecord> items = store.Items;
+            cellButtons.Clear();
             missingIconCount = 0;
             foreach (ShopRecord item in items)
             {
@@ -98,12 +215,22 @@ namespace ProjectX.UI
             if (items.Count == 0)
             {
                 selectedId = 0;
+                selectedQuantity = 1;
+                quantityPresenter.Hide();
                 detailName.text = "暂无商品";
                 detailDescription.text = "当前商店没有可显示的商品。";
+                quantity.text = "0";
+                owned.text = "0";
+                expenditure.text = "0";
                 buyButton.interactable = false;
+                RenderRefreshTime();
                 return;
             }
-            if (!store.TryGet(selectedId, out _)) selectedId = items[0].Id;
+            if (!store.TryGet(selectedId, out _))
+            {
+                selectedId = items[0].Id;
+                selectedQuantity = 1;
+            }
             RenderDetails();
             RenderRefreshTime();
         }
@@ -112,8 +239,16 @@ namespace ProjectX.UI
         {
             if (!store.TryGet(id, out _)) return false;
             selectedId = id;
+            selectedQuantity = 1;
             Render();
             return true;
+        }
+
+        public void ResetTransientState()
+        {
+            selectedId = 0;
+            selectedQuantity = 1;
+            quantityPresenter.Hide();
         }
 
         public void Dispose()
@@ -122,6 +257,7 @@ namespace ProjectX.UI
             currencies.Changed -= RenderDetails;
             serverTime.Synchronized -= RenderRefreshTime;
             list.Dispose();
+            quantityPresenter.Dispose();
         }
 
         private void BindRow(RectTransform row, ShopRow value, int index)
@@ -133,7 +269,7 @@ namespace ProjectX.UI
 
         private void BindCell(Transform row, string path, ShopRecord item, int index)
         {
-            Transform cell = row.Find(path);
+            Transform cell = FindDescendant(row, path);
             if (cell == null) return;
             cell.gameObject.SetActive(item != null);
             if (item == null) return;
@@ -160,9 +296,19 @@ namespace ProjectX.UI
             SetCurrencyIcon(costIcon, item.CostPicture);
             Button button = cell.GetComponent<Button>() ?? cell.gameObject.AddComponent<Button>();
             button.targetGraphic = cell.GetComponent<Graphic>() ?? cell.GetComponentInChildren<Graphic>();
+            button.interactable = true;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => Select(item.Id));
-            cell.gameObject.name = $"Shop_{item.Id}_{index}";
+            cellButtons[item.Id] = button;
+        }
+
+        private static Transform FindDescendant(Transform root, string name)
+        {
+            Transform direct = root.Find(name);
+            if (direct != null) return direct;
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+                if (child != root && child.name == name) return child;
+            return null;
         }
 
         private void RenderDetails()
@@ -170,21 +316,35 @@ namespace ProjectX.UI
             if (!store.TryGet(selectedId, out ShopRecord item)) return;
             detailName.text = item.Name;
             detailDescription.text = item.Description;
-            quantity.text = "1";
+            selectedQuantity = Mathf.Clamp(selectedQuantity, 1, MaximumQuantity(item));
+            quantity.text = selectedQuantity.ToString();
             limitLabel.text = item.Limit < 0 ? "已购次数：" : $"限购 {item.Limit} 次，剩余：";
             limitValue.text = item.Limit < 0 ? $"{item.BuyCount}次" : $"{item.RemainingLimit}次";
             owned.text = currencies.Get(item.CostType).ToString();
-            expenditure.text = item.UnitCost.ToString();
+            long totalCost = item.TotalCost(selectedQuantity);
+            expenditure.text = totalCost.ToString();
             SetCurrencyIcon(ownedIcon, item.CostPicture);
             SetCurrencyIcon(expenditureIcon, item.CostPicture);
-            buyButton.interactable = !item.IsSoldOut && currencies.Get(item.CostType) >= item.UnitCost;
+            bool purchasable = !item.IsSoldOut && selectedQuantity > 0
+                && currencies.Get(item.CostType) >= totalCost;
+            buyButton.interactable = purchasable;
+            minusButton.interactable = selectedQuantity > 1;
+            plusButton.interactable = selectedQuantity < MaximumQuantity(item);
+            quantityButton.interactable = !item.IsSoldOut;
             buyButton.onClick.RemoveAllListeners();
-            if (!item.IsSoldOut) buyButton.onClick.AddListener(() => requestConfirmation(item));
+            if (purchasable)
+                buyButton.onClick.AddListener(() => requestConfirmation(item, selectedQuantity));
         }
 
         private void RenderRefreshTime()
         {
             if (refreshText == null) return;
+            refreshButton.interactable = false;
+            if (store.Type == 1)
+            {
+                refreshText.text = "不可刷新（服务端配置）";
+                return;
+            }
             TimeSpan remaining;
             string prefix;
             if (store.RefreshDeadlineUnix > 0 && serverTime.IsSynchronized)
@@ -205,24 +365,60 @@ namespace ProjectX.UI
             refreshText.text = $"{prefix}  {FormatDuration(remaining)}";
         }
 
-        private Text CreateRefreshText()
+        private Button CreateRefreshControl(out Text label)
         {
             Transform parent = view.GameObject.transform;
-            var node = new GameObject("RuntimeShopRefresh", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            var node = new GameObject("RuntimeShopRefreshButton", typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(Image), typeof(Button));
             node.transform.SetParent(parent, false);
             RectTransform rect = node.GetComponent<RectTransform>();
             rect.anchorMin = new Vector2(1f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(1f, 1f);
             rect.anchoredPosition = new Vector2(-110f, -165f);
-            rect.sizeDelta = new Vector2(440f, 38f);
-            Text value = node.GetComponent<Text>();
-            value.font = detailName.font;
-            value.fontSize = 19;
-            value.color = new Color32(125, 70, 50, 255);
-            value.alignment = TextAnchor.MiddleRight;
-            value.raycastTarget = false;
-            return value;
+            rect.sizeDelta = new Vector2(310f, 42f);
+            Image background = node.GetComponent<Image>();
+            background.color = new Color32(232, 211, 177, 230);
+            Button button = node.GetComponent<Button>();
+            button.targetGraphic = background;
+            button.onClick.AddListener(() => requestRefresh());
+            var textNode = new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            textNode.transform.SetParent(node.transform, false);
+            RectTransform textRect = textNode.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+            label = textNode.GetComponent<Text>();
+            label.font = detailName.font;
+            label.fontSize = 19;
+            label.color = new Color32(125, 70, 50, 255);
+            label.alignment = TextAnchor.MiddleCenter;
+            label.raycastTarget = false;
+            return button;
+        }
+
+        private void AdjustQuantity(int delta)
+        {
+            if (!store.TryGet(selectedId, out ShopRecord item)) return;
+            selectedQuantity = Mathf.Clamp(selectedQuantity + delta, 1, MaximumQuantity(item));
+            RenderDetails();
+        }
+
+        private void OpenQuantityInput()
+        {
+            if (!store.TryGet(selectedId, out ShopRecord item) || item.IsSoldOut) return;
+            quantityPresenter.Show(selectedQuantity, MaximumQuantity(item), value =>
+            {
+                selectedQuantity = value;
+                RenderDetails();
+            });
+        }
+
+        private static int MaximumQuantity(ShopRecord item)
+        {
+            int limit = item.RemainingLimit < 0 ? 200 : item.RemainingLimit;
+            return Mathf.Max(1, Mathf.Min(200, limit));
         }
 
         private Text CreateBuyLabel(Font font)

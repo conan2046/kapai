@@ -53,6 +53,18 @@ namespace ProjectX.Data
         public int DiscountPercent => pricePercentages[Math.Min(BuyCount, pricePercentages.Length - 1)];
         public int UnitCost => Math.Max(0, (int)(BaseCost * (DiscountPercent / 100f)));
 
+        public long TotalCost(int quantity)
+        {
+            int count = Math.Max(0, quantity);
+            long percentageTotal = 0;
+            for (int index = 0; index < count; index++)
+            {
+                int percentageIndex = Math.Min(BuyCount + index, pricePercentages.Length - 1);
+                percentageTotal += pricePercentages[percentageIndex];
+            }
+            return Math.Max(0L, (long)(BaseCost * (percentageTotal / 100d)));
+        }
+
         public ShopRecord WithBuyCount(ushort value) =>
             new ShopRecord(Grid, Id, value, RewardType, RewardId, RewardAmount, Name, Description,
                 Picture, Quality, CostType, CostPicture, CostName, BaseCost, Limit, pricePercentages);
