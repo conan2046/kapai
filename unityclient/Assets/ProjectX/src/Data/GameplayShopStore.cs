@@ -47,6 +47,40 @@ namespace ProjectX.Data
 
         public bool TryGet(byte type, out GameplayShopPage page) => pages.TryGetValue(type, out page);
 
+        public bool TryGet(byte type, ushort id, out ShopRecord record)
+        {
+            record = null;
+            if (!pages.TryGetValue(type, out GameplayShopPage page)) return false;
+            foreach (ShopRecord item in page.Items)
+            {
+                if (item.Id != id) continue;
+                record = item;
+                return true;
+            }
+            return false;
+        }
+
+        public bool ApplyPurchase(byte type, ushort id, ushort buyCount)
+        {
+            if (!pages.TryGetValue(type, out GameplayShopPage page)) return false;
+            var values = new List<ShopRecord>(page.Items.Count);
+            bool found = false;
+            foreach (ShopRecord item in page.Items)
+            {
+                if (item.Id == id)
+                {
+                    values.Add(item.WithBuyCount(buyCount));
+                    found = true;
+                }
+                else values.Add(item);
+            }
+            if (!found) return false;
+            pages[type] = new GameplayShopPage(page.Type, page.RefreshTimes, page.FreeRefreshTimes,
+                RemainingSeconds(page.RefreshDeadlineUnix), 0, values);
+            Changed?.Invoke();
+            return true;
+        }
+
         public bool HasAll(params byte[] types)
         {
             if (types == null || types.Length == 0) return false;
@@ -68,6 +102,13 @@ namespace ProjectX.Data
         {
             pages.Clear();
             Changed?.Invoke();
+        }
+
+        private static ushort RemainingSeconds(uint deadline)
+        {
+            if (deadline == 0) return 0;
+            uint now = checked((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            return checked((ushort)Math.Min(ushort.MaxValue, deadline > now ? deadline - now : 0));
         }
     }
 }

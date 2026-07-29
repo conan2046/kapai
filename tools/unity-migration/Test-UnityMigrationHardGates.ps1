@@ -51,7 +51,22 @@ if ($Phase -eq "Preflight") {
     exit 0
 }
 
-$resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
+if (-not $SummaryPath) {
+    $SummaryPath = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-latest.json"
+}
+$resolvedSummary = Resolve-UnityMigrationPath -Root $root -Path $SummaryPath
+if (-not (Test-Path -LiteralPath $resolvedSummary -PathType Leaf)) {
+    throw "Validation summary is missing: $SummaryPath"
+}
+$summary = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedSummary | ConvertFrom-Json
+if (-not [bool]$summary.success) { throw "Validation summary is not successful: $SummaryPath" }
+$summaryResultEvidence = [string](Get-UnityMigrationPropertyValue -Object $summary -Name "resultEvidence" -Default "")
+$resultPath = if ($summaryResultEvidence) {
+    Resolve-UnityMigrationPath -Root $root -Path $summaryResultEvidence
+}
+else {
+    Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
+}
 if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
     throw "Unity result is missing: $resultPath"
 }
@@ -63,16 +78,6 @@ $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $result -Name
 Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $expectedUserId
 $runtimeCoverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
     -ControlMatrix $controlMatrix
-
-if (-not $SummaryPath) {
-    $SummaryPath = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-latest.json"
-}
-$resolvedSummary = Resolve-UnityMigrationPath -Root $root -Path $SummaryPath
-if (-not (Test-Path -LiteralPath $resolvedSummary -PathType Leaf)) {
-    throw "Validation summary is missing: $SummaryPath"
-}
-$summary = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedSummary | ConvertFrom-Json
-if (-not [bool]$summary.success) { throw "Validation summary is not successful: $SummaryPath" }
 if ([uint32]$summary.userId -ne [uint32]$result.userId -or [uint32]$summary.roleId -ne [uint32]$result.roleId) {
     throw "Validation summary identity does not match the Unity result."
 }

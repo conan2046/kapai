@@ -4,22 +4,63 @@ local itemsById = {}
 for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
 
 local M = {
-    activeRequestType = 0,
+    activeFunction = 0,
+    activeType = 0,
+    pendingOp = 0,
+    pendingType = 0,
+    pendingId = 0,
+    pendingQuantity = 0,
     validation = false,
     queue = {},
     queueIndex = 0,
+    validationPhase = "",
+    validationItems = {},
+    validationRefreshTimes = 0,
+    validationFreeTimes = 0,
 }
 
 local FUNCTION_FIRST_TYPE = { [15] = 2, [16] = 3, [17] = 5 }
-local VALIDATION_TYPES = { 2, 3, 4, 5, 6, 7, 8 }
+local ALL_TYPES = { 2, 3, 4, 5, 6, 7, 8, 23, 25, 26, 27, 28 }
+local ALLOWED = {}
+for _, value in ipairs(ALL_TYPES) do ALLOWED[value] = true end
+
+local function clearPending()
+    M.pendingOp = 0
+    M.pendingType = 0
+    M.pendingId = 0
+    M.pendingQuantity = 0
+end
+
+local function failMalformed(context, clearStore)
+    clearPending()
+    M.validation = false
+    M.queue = {}
+    M.queueIndex = 0
+    if clearStore then Bridge:ClearGameplayShopState() end
+    Bridge:Fail("Gameplay shops /221 malformed " .. tostring(context) .. " response.")
+end
+
+local function begin(op, shopType, id, quantity)
+    if M.pendingOp ~= 0 then
+        Bridge:ShowToast("商店请求处理中", 1.5)
+        return false
+    end
+    M.pendingOp = op
+    M.pendingType = shopType
+    M.pendingId = id or 0
+    M.pendingQuantity = quantity or 0
+    return true
+end
 
 local function requestPage(shopType)
-    M.activeRequestType = shopType
+    if not ALLOWED[shopType] or not begin(1, shopType) then return false end
+    M.activeType = shopType
     local message = Protocol.newMessage(Protocol.SHOP)
     message:WriteByte(1)
     message:WriteByte(shopType)
     Bridge:Send(message)
     Bridge:SetStatus("Gameplay shops /221 list request sent: type=" .. tostring(shopType) .. ".")
+    return true
 end
 
 function M.open(functionId)
@@ -28,12 +69,18 @@ function M.open(functionId)
         Bridge:Fail("Gameplay shop route is missing function_id=" .. tostring(functionId) .. ".")
         return
     end
+    M.activeFunction = functionId
+    M.activeType = firstType
     Bridge:ShowGameplayShop(functionId)
+    M.visualValidation = Bridge:HasCommandLineFlag("-projectXGameplayShopsVisualValidation")
     M.validation = Bridge:HasCommandLineFlag("-projectXGameplayShopsValidation")
+        or M.visualValidation
     if M.validation then
-        M.queue = VALIDATION_TYPES
+        M.queue = ALL_TYPES
         M.queueIndex = 1
-        requestPage(M.queue[M.queueIndex])
+        M.validationPhase = "loading"
+        M.validationItems = {}
+        requestPage(M.queue[1])
     else
         M.queue = {}
         M.queueIndex = 0
@@ -42,77 +89,317 @@ function M.open(functionId)
 end
 
 function M.selectType(shopType)
-    if M.activeRequestType ~= 0 then return end
+    shopType = math.floor(tonumber(shopType) or 0)
+    if not ALLOWED[shopType] then
+        Bridge:ShowToast("该商店页不可用", 2.0)
+        return
+    end
     requestPage(shopType)
 end
 
-local function fail(reason)
-    M.activeRequestType = 0
+function M.buy(shopType, id, quantity)
+    shopType = math.floor(tonumber(shopType) or 0)
+    id = math.floor(tonumber(id) or 0)
+    quantity = math.floor(tonumber(quantity) or 0)
+    if not ALLOWED[shopType] or id <= 0 or quantity < 1 or quantity > 10000 then
+        Bridge:ShowToast("购买参数无效", 2.0)
+        return false
+    end
+    if not begin(2, shopType, id, quantity) then return false end
+    local message = Protocol.newMessage(Protocol.SHOP)
+    message:WriteByte(2)
+    message:WriteByte(shopType)
+    message:WriteWord(id)
+    message:WriteUShort(quantity)
+    message:WriteByte(0)
+    Bridge:Send(message)
+    Bridge:SetStatus("Gameplay shops /221 purchase sent: type=" .. tostring(shopType)
+        .. ", id=" .. tostring(id) .. ", quantity=" .. tostring(quantity) .. ".")
+    return true
+end
+
+function M.refresh()
+    if M.activeType ~= 2 then
+        Bridge:ShowToast("当前商店不可刷新", 2.0)
+        return false
+    end
+    if not begin(3, 2) then return false end
+    local message = Protocol.newMessage(Protocol.SHOP)
+    message:WriteByte(3)
+    message:WriteByte(2)
+    Bridge:Send(message)
+    Bridge:SetStatus("Gameplay shops /221 soul refresh sent.")
+    return true
+end
+
+function M.requestCount(shopType, id)
+    shopType = math.floor(tonumber(shopType) or 0)
+    id = math.floor(tonumber(id) or 0)
+    if not ALLOWED[shopType] or id <= 0 or not begin(4, shopType, id) then return false end
+    local message = Protocol.newMessage(Protocol.SHOP)
+    message:WriteByte(4)
+    message:WriteByte(shopType)
+    message:WriteWord(id)
+    Bridge:Send(message)
+    return true
+end
+
+function M.onDisconnected()
+    clearPending()
+    M.activeFunction = 0
+    M.activeType = 0
     M.validation = false
     M.queue = {}
     M.queueIndex = 0
-    Bridge:Fail(reason)
+    M.validationPhase = ""
+    M.validationItems = {}
+    Bridge:ClearGameplayShopState()
+end
+
+function M.onRequestTimeout()
+    clearPending()
+    M.validation = false
+    M.queue = {}
+    M.queueIndex = 0
+    Bridge:SetStatus("Gameplay shops /221 request timed out; pending state cleared.")
 end
 
 local function readList(message, op)
+    if M.pendingOp ~= op or message.Remaining < 2 then
+        failMalformed(op == 3 and "refresh identity" or "list identity", op == 1)
+        return
+    end
     local shopType = message:ReadByte()
     local success = message:ReadByte()
-    if shopType ~= M.activeRequestType then
-        fail("Gameplay shops /221 type mismatch: expected=" .. tostring(M.activeRequestType)
-            .. ", actual=" .. tostring(shopType) .. ".")
+    if shopType ~= M.pendingType then
+        failMalformed("list type identity", op == 1)
         return
     end
     if success == 0 then
-        local reason = message.Remaining > 0 and message:ReadString() or "server rejected shop list"
-        fail("Gameplay shops /221 list failed: type=" .. tostring(shopType) .. ", " .. tostring(reason))
+        local reason = message.Remaining >= 2 and message:ReadString() or "server rejected shop list"
+        clearPending()
+        Bridge:ShowToast(tostring(reason), 2.0)
+        Bridge:SetStatus("Gameplay shops /221 " .. (op == 3 and "refresh" or "list")
+            .. " failed: " .. tostring(reason))
+        return
+    end
+    if message.Remaining < 6 then
+        failMalformed("list body", op == 1)
         return
     end
     local refreshTimes = message:ReadUShort()
     local freeTimes = message:ReadByte()
     local refreshRemaining = message:ReadUShort()
     local count = message:ReadByte()
-    Bridge:BeginGameplayShopUpdate(shopType, refreshTimes, freeTimes, refreshRemaining, count)
-    for _ = 1, count do
+    if message.Remaining < count * 5 then
+        failMalformed("list records", op == 1)
+        return
+    end
+    local records = {}
+    local ids = {}
+    for index = 1, count do
         local grid = message:ReadByte()
         local id = message:ReadUShort()
         local buyCount = message:ReadUShort()
         local displayId = Bridge:GetShopDisplayItemId(id)
         local item = itemsById[displayId] or {}
-        Bridge:AddGameplayShopRecord(grid, id, buyCount, item.name or "", item.des or "",
-            item.pic or 0, item.quality or 0)
+        records[index] = { grid, id, buyCount, item.name or "", item.des or "",
+            item.pic or 0, item.quality or 0 }
+        ids[index] = { id = id, buyCount = buyCount }
     end
     if message.Remaining ~= 0 then
-        fail("Gameplay shops /221 type=" .. tostring(shopType) .. " has "
-            .. tostring(message.Remaining) .. " unread bytes.")
+        failMalformed("list trailing bytes", op == 1)
         return
     end
+    Bridge:BeginGameplayShopUpdate(shopType, refreshTimes, freeTimes, refreshRemaining, count)
+    for _, record in ipairs(records) do
+        Bridge:AddGameplayShopRecord(record[1], record[2], record[3], record[4],
+            record[5], record[6], record[7])
+    end
     Bridge:EndGameplayShopUpdate()
-    M.activeRequestType = 0
+    clearPending()
+    M.activeType = shopType
+    M.validationItems[shopType] = ids
+
     if not M.validation then
-        Bridge:SetStatus("Gameplay shops /221 type=" .. tostring(shopType) .. " rendered "
-            .. tostring(count) .. " authoritative goods.")
+        Bridge:SetStatus("Gameplay shops /221 type=" .. tostring(shopType)
+            .. " rendered " .. tostring(count) .. " authoritative goods.")
         return
     end
     if count <= 0 then
-        fail("Gameplay shops validation received empty type=" .. tostring(shopType) .. ".")
+        failMalformed("validation empty type=" .. tostring(shopType), false)
         return
     end
-    M.queueIndex = M.queueIndex + 1
-    if M.queueIndex <= #M.queue then
-        requestPage(M.queue[M.queueIndex])
+    if M.validationPhase == "loading" then
+        M.queueIndex = M.queueIndex + 1
+        if M.queueIndex <= #M.queue then
+            requestPage(M.queue[M.queueIndex])
+        else
+            M.queue = {}
+            M.queueIndex = 0
+            if M.visualValidation then
+                M.validation = false
+                M.visualValidation = false
+                M.validationPhase = ""
+                Bridge:CompleteGameplayShopsVisualValidation()
+            else
+                local premium = M.validationItems[28] or {}
+                local condition = M.validationItems[7] or {}
+                if #premium < 2 or #condition < 16
+                    or not Bridge:BeginGameplayShopsG4Validation(
+                        premium[1].id, premium[1].buyCount, condition[16].id) then
+                    failMalformed("validation fixture ids", false)
+                    return
+                end
+                M.validationPhase = "count-before"
+                M.requestCount(28, premium[1].id)
+            end
+        end
+    elseif M.validationPhase == "purchase-reload" and shopType == 28 then
+        local premium = M.validationItems[28]
+        if not Bridge:ValidateGameplayShopPurchase(28, premium[1].id, 25) then
+            failMalformed("validation purchase reload", false)
+            return
+        end
+        M.validationPhase = "soldout"
+        M.buy(28, premium[1].id, 1)
+    elseif M.validationPhase == "refresh-prime" and shopType == 2 then
+        M.validationRefreshTimes = refreshTimes
+        M.validationFreeTimes = freeTimes
+        M.validationPhase = "refresh"
+        M.refresh()
+    elseif M.validationPhase == "refresh" and op == 3 and shopType == 2 then
+        if not Bridge:ValidateGameplayShopRefresh(
+            M.validationRefreshTimes, M.validationFreeTimes, refreshTimes, freeTimes) then
+            failMalformed("validation refresh result", false)
+            return
+        end
+        M.validation = false
+        M.validationPhase = ""
+        Bridge:CompleteGameplayShopsValidation()
+    end
+end
+
+local function readPurchase(message)
+    if M.pendingOp ~= 2 or message.Remaining < 7 then
+        failMalformed("purchase identity", false)
         return
     end
-    M.validation = false
-    M.queue = {}
-    M.queueIndex = 0
-    Bridge:CompleteGameplayShopsValidation()
+    local shopType = message:ReadByte()
+    local id = message:ReadUShort()
+    local quantity = message:ReadUShort()
+    message:ReadByte()
+    local success = message:ReadByte()
+    if shopType ~= M.pendingType or id ~= M.pendingId or quantity ~= M.pendingQuantity then
+        failMalformed("purchase echo", false)
+        return
+    end
+    if success == 0 then
+        local reason = message.Remaining >= 2 and message:ReadString() or "server rejected purchase"
+        clearPending()
+        Bridge:ShowToast(tostring(reason), 2.0)
+        Bridge:SetStatus("Gameplay shops /221 purchase failed: " .. tostring(reason))
+        if M.validation and M.validationPhase == "soldout" then
+            if not Bridge:RecordGameplayShopG4Event("soldout", true, tostring(reason)) then return end
+            local premium = M.validationItems[28]
+            M.validationPhase = "insufficient"
+            M.buy(28, premium[2].id, 10000)
+        elseif M.validation and M.validationPhase == "insufficient" then
+            if not Bridge:RecordGameplayShopG4Event("insufficient", true, tostring(reason)) then return end
+            local condition = M.validationItems[7]
+            M.validationPhase = "condition"
+            M.buy(7, condition[16].id, 1)
+        elseif M.validation and M.validationPhase == "condition" then
+            if not Bridge:RecordGameplayShopG4Event("condition", true, tostring(reason)) then return end
+            local premium = M.validationItems[28]
+            M.validationPhase = "invalid-repeat"
+            local first = M.requestCount(28, premium[1].id)
+            local second = M.requestCount(28, premium[1].id)
+            if not Bridge:RecordGameplayShopG4Event("invalid-repeat", first and not second,
+                "second request rejected while op=4 pending") then return end
+        else
+            requestPage(shopType)
+        end
+        return
+    end
+    if message.Remaining ~= 8 then
+        failMalformed("purchase body", false)
+        return
+    end
+    local buyCount = message:ReadUShort()
+    local rewardType = message:ReadUShort()
+    local rewardAmount = message:ReadUInt()
+    if not Bridge:ApplyGameplayShopPurchase(shopType, id, buyCount, rewardType, rewardAmount) then
+        failMalformed("purchase result", false)
+        return
+    end
+    clearPending()
+    Bridge:ShowGameplayShopPurchaseReward(shopType, id, rewardType, rewardAmount, quantity)
+    Bridge:ShowToast("购买成功", 2.0)
+    if M.validation and M.validationPhase == "purchase" then
+        if buyCount ~= 25 or not Bridge:RecordGameplayShopG4Event(
+            "purchase-response", true, "buyCount=25 and reward payload accepted") then
+            failMalformed("validation purchase count", false)
+            return
+        end
+        M.validationPhase = "purchase-reload"
+    end
+    requestPage(shopType)
+end
+
+local function readCount(message)
+    if M.pendingOp ~= 4 or message.Remaining < 4 then
+        failMalformed("count identity", false)
+        return
+    end
+    local shopType = message:ReadByte()
+    local id = message:ReadUShort()
+    local success = message:ReadByte()
+    if shopType ~= M.pendingType or id ~= M.pendingId then
+        failMalformed("count echo", false)
+        return
+    end
+    if success == 0 then
+        local reason = message.Remaining >= 2 and message:ReadString() or "server rejected count query"
+        clearPending()
+        Bridge:ShowToast(tostring(reason), 2.0)
+        return
+    end
+    if message.Remaining ~= 2 then
+        failMalformed("count body", false)
+        return
+    end
+    local buyCount = message:ReadUShort()
+    clearPending()
+    Bridge:SetGameplayShopBuyCount(shopType, id, buyCount)
+    if M.validation and M.validationPhase == "count-before" then
+        if buyCount ~= 0 or not Bridge:RecordGameplayShopG4Event(
+            "count-before", true, "op=4 authoritative buyCount=0") then
+            failMalformed("validation initial count", false)
+            return
+        end
+        M.validationPhase = "purchase"
+        M.buy(28, id, 25)
+    elseif M.validation and M.validationPhase == "invalid-repeat" then
+        M.validationPhase = "refresh-prime"
+        requestPage(2)
+    end
 end
 
 function M.onPacket(command, message)
-    if command ~= Protocol.SHOP or M.activeRequestType == 0 then return false end
+    if command ~= Protocol.SHOP or M.pendingOp == 0 then return false end
+    if message.Remaining < 1 then
+        failMalformed("header", M.pendingOp == 1)
+        return true
+    end
     local op = message:ReadByte()
-    if op == 1 or op == 3 then readList(message, op)
-    else fail("Gameplay shops /221 unsupported op=" .. tostring(op) .. ".") end
+    if op ~= M.pendingOp then
+        failMalformed("op identity expected=" .. tostring(M.pendingOp)
+            .. ", actual=" .. tostring(op), false)
+    elseif op == 1 or op == 3 then readList(message, op)
+    elseif op == 2 then readPurchase(message)
+    elseif op == 4 then readCount(message)
+    else failMalformed("unsupported op=" .. tostring(op), false) end
     return true
 end
 

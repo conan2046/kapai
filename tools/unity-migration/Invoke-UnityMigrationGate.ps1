@@ -16,6 +16,10 @@ $matches = @($entry.Value.modules | Where-Object { $_.module -ieq $Module })
 if ($matches.Count -ne 1) { throw "Module '$Module' has no unique gate record." }
 $record = $matches[0]
 $gateNumber = [int]$Gate.Substring(1)
+$manifest = (Import-UnityMigrationManifest -Root $root).Value
+$moduleMatches = @($manifest.modules | Where-Object { $_.key -ieq $Module })
+if ($moduleMatches.Count -ne 1) { throw "Module '$Module' has no unique manifest entry." }
+$moduleConfig = $moduleMatches[0]
 
 if ($gateNumber -gt 0) {
     Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey $Module -RequiredGate ("G{0}" -f ($gateNumber - 1))
@@ -32,6 +36,13 @@ if (-not $Complete) {
     exit 0
 }
 if ($Evidence.Count -eq 0) { throw "Completing $Gate requires at least one evidence path." }
+if ($Gate -eq "G0") {
+    $declaredMatrix = [string](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "controlMatrix" -Default "")
+    if (-not $declaredMatrix) { throw "Completing G0 requires a manifest controlMatrix." }
+    $declaredCount = Assert-UnityMigrationControlMatrixDeclared -Root $root -ModuleKey $Module `
+        -Path $declaredMatrix -RequireLifecycleFields
+    Write-Host "$Module G0 control matrix schema frozen: $declaredCount controls."
+}
 if ($Gate -eq "G6") {
     if (-not $ControlMatrixPath) { throw "Completing G6 requires -ControlMatrixPath." }
     & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `

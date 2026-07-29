@@ -45,6 +45,7 @@ function OnDisconnected(reason)
     EquipmentController.reset()
     MailController.onDisconnected()
     ShopController.onDisconnected()
+    GameplayShopController.onDisconnected()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
@@ -84,6 +85,10 @@ function OnShopValidationFailure(id, quantity) ShopController.validationFailure(
 function OnShopValidationSuccess(id, quantity) ShopController.validationSuccess(id, quantity) end
 function OnGameplayShopOpened(functionId) GameplayShopController.open(functionId) end
 function OnGameplayShopTab(shopType) GameplayShopController.selectType(shopType) end
+function OnGameplayShopBuy(shopType, id, quantity) GameplayShopController.buy(shopType, id, quantity) end
+function OnGameplayShopRefresh() GameplayShopController.refresh() end
+function OnGameplayShopCount(shopType, id) GameplayShopController.requestCount(shopType, id) end
+function OnGameplayShopRequestTimeout() GameplayShopController.onRequestTimeout() end
 function OnFriendClicked() FriendController.onClick() end
 function OnFriendRequestList() FriendController.requestFriends() end
 function OnFriendRequestApplications() FriendController.requestApplications() end

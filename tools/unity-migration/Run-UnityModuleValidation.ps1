@@ -11,6 +11,7 @@ param(
     [ValidateSet("Full", "Preflight", "VisualReplay")][string]$ValidationMode = "Full",
     [string[]]$ExtraFlags = @(),
     [string[]]$ValidationFlagsOverride = @(),
+    [string]$PythonExecutable = "",
     [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
     [ValidateRange(120, 3600)][int]$UnityTimeoutSeconds = 1800,
     [ValidateRange(60, 900)][int]$UnityNoProgressTimeoutSeconds = 300,
@@ -51,6 +52,11 @@ if (@($scenario.flags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
 if (-not $UnityExecutable) { $UnityExecutable = [string]$manifest.unityExecutable }
 $unityExe = Resolve-UnityMigrationPath -Root $root -Path $UnityExecutable
 $unityProject = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityProject)
+$pwshExecutable = Get-UnityMigrationPowerShellExecutable
+$protocolPythonExe = Get-UnityMigrationPythonExecutable -ExplicitPath $PythonExecutable -Root $root
+$pythonExe = if ($SkipPythonTests) { "" } else {
+    $protocolPythonExe
+}
 $resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
 $logDirectory = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.logDirectory)
 $moduleKey = [string]$moduleConfig.key
@@ -59,6 +65,7 @@ $summaryDirectory = Join-Path $root ".local\unity-validation"
 $summaryPath = Join-Path $summaryDirectory ("{0}-latest.json" -f $moduleKey.ToLowerInvariant())
 $progressPath = Join-Path $summaryDirectory ("{0}-progress.json" -f $moduleKey.ToLowerInvariant())
 $visualReplayPath = Join-Path $summaryDirectory ("{0}-visual-replay-latest.json" -f $moduleKey.ToLowerInvariant())
+$timingPath = Join-Path $summaryDirectory ("{0}-timings-latest.json" -f $moduleKey.ToLowerInvariant())
 
 $effectiveUserId = $UserId
 $friendPeerUserIds = @()
@@ -69,6 +76,8 @@ $teamTargetRoleId = 0
 $teamPeerRoleId = 0
 $validationDataApplied = $false
 $validationDataVariables = $null
+$autoAllocatedDisposableRole = $UserId -eq 0 -and [bool]$moduleConfig.mutatesServer -and
+    -not $DryRun -and $ValidationMode -eq "Full" -and [string]$fixture.cleanup -eq "disposable-role"
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
         if (-not $DryRun -and $ValidationMode -eq "Full") {
@@ -114,8 +123,12 @@ Write-Host "Fixture: $($fixture.key) (cleanup=$($fixture.cleanup))"
 Write-Host "Mutation: $([bool]$moduleConfig.mutatesServer)"
 Write-Host "UserId: $(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
 Write-Host "Unity: $unityExe"
+Write-Host "PowerShell: $pwshExecutable"
+if ($pythonExe) { Write-Host "Python: $pythonExe" }
 Write-Host "Arguments: $($unityArguments -join ' ')"
-& pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
+if (-not (Test-Path -LiteralPath $unityExe -PathType Leaf)) { throw "Unity executable not found: $unityExe" }
+if (-not (Test-Path -LiteralPath $unityProject -PathType Container)) { throw "Unity project not found: $unityProject" }
+& $pwshExecutable -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
     -Module $moduleKey -Phase Preflight -ManifestPath $manifestEntry.Path
 if ($LASTEXITCODE -ne 0) { throw "Unity migration hard-gate preflight failed with exit code $LASTEXITCODE" }
 $sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
@@ -142,9 +155,6 @@ if ($ValidationMode -eq "VisualReplay") {
     Write-Host "Visual replay passed: $visualReplayPath"
     exit 0
 }
-if (-not (Test-Path -LiteralPath $unityExe -PathType Leaf)) { throw "Unity executable not found: $unityExe" }
-if (-not (Test-Path -LiteralPath $unityProject -PathType Container)) { throw "Unity project not found: $unityProject" }
-
 $existingUnity = @(Get-Process Unity -ErrorAction SilentlyContinue)
 $unityProjectPatterns = @(
     [regex]::Escape($unityProject),
@@ -179,6 +189,11 @@ $runStartedUtc = [DateTime]::UtcNow
 $result = $null
 $failure = $null
 $teamPeerProcess = $null
+$timings = [ordered]@{}
+$overallTiming = Start-UnityMigrationTiming
+$activeTimingName = ""
+$activeTiming = $null
+$runStatus = "failed"
 
 function Assert-WorkspaceListener {
     param([int]$Port, [string]$ExpectedName)
@@ -212,11 +227,21 @@ function Stop-ValidationProcessTree {
 }
 
 try {
+    $activeTimingName = "compilePreflight"
+    $activeTiming = Start-UnityMigrationTiming
+    Invoke-UnityMigrationCompilePreflight -Root $root -UnityProject $unityProject `
+        -UnityExecutable $unityExe | Out-Null
+    Complete-UnityMigrationTiming -Timings $timings -Name $activeTimingName -Timing $activeTiming
+    $activeTimingName = ""
+    $activeTiming = $null
+
+    $activeTimingName = "servicesAndFixtureSetup"
+    $activeTiming = Start-UnityMigrationTiming
     Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "services"
     $mysqlReady = Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe"
     if (-not $mysqlReady) {
         if ($NoStartServices) { throw "MySQL is not listening on 3306 and -NoStartServices was specified." }
-        & pwsh -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
+        & $pwshExecutable -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
         if ($LASTEXITCODE -ne 0) { throw "Start-LocalMySql.ps1 failed with exit code $LASTEXITCODE" }
         Record-NewWorkspaceProcesses
         if (-not (Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe")) { throw "Workspace MySQL did not listen on 3306." }
@@ -245,7 +270,7 @@ try {
 
     if (-not $serverReady) {
         if ($NoStartServices) { throw "kapai.exe is not listening on 8711 and -NoStartServices was specified." }
-        & pwsh -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
+        & $pwshExecutable -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
         if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
         Record-NewWorkspaceProcesses
         if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
@@ -265,8 +290,8 @@ try {
         $setupLogPath = Join-Path $summaryDirectory "friend-setup-latest.log"
         $setupLines = New-Object System.Collections.Generic.List[string]
         $targetName = "F{0:D5}" -f ($effectiveUserId % 100000)
-        $targetOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-            -UserId $effectiveUserId -AutoCreateRole -RoleName $targetName 2>&1)
+        $targetOutput = @(& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+            -UserId $effectiveUserId -AutoCreateRole -RoleName $targetName -PythonExecutable $protocolPythonExe 2>&1)
         $targetOutput | ForEach-Object { $setupLines.Add([string]$_) }
         Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($setupLines -join "`n") + "`n")
         if ($LASTEXITCODE -ne 0) { throw "Friend target role setup failed; see $setupLogPath" }
@@ -275,8 +300,9 @@ try {
         $friendTargetRoleId = [uint32]$targetMatch[0].Matches[0].Groups[1].Value
         foreach ($peerUserId in $friendPeerUserIds) {
             $peerName = "F{0:D5}" -f ($peerUserId % 100000)
-            $peerOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-                -UserId $peerUserId -AutoCreateRole -RoleName $peerName -FriendApplyRoleId $friendTargetRoleId 2>&1)
+            $peerOutput = @(& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+                -UserId $peerUserId -AutoCreateRole -RoleName $peerName -FriendApplyRoleId $friendTargetRoleId `
+                -PythonExecutable $protocolPythonExe 2>&1)
             $peerOutput | ForEach-Object { $setupLines.Add([string]$_) }
             Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($setupLines -join "`n") + "`n")
             if ($LASTEXITCODE -ne 0) { throw "Friend peer role setup failed for userId=$peerUserId; see $setupLogPath" }
@@ -291,8 +317,8 @@ try {
         [System.IO.Directory]::CreateDirectory($summaryDirectory) | Out-Null
         $setupLogPath = Join-Path $summaryDirectory "team-setup-latest.log"
         $targetName = "T{0:D5}" -f ($effectiveUserId % 100000)
-        $targetOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-            -UserId $effectiveUserId -AutoCreateRole -RoleName $targetName 2>&1)
+        $targetOutput = @(& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+            -UserId $effectiveUserId -AutoCreateRole -RoleName $targetName -PythonExecutable $protocolPythonExe 2>&1)
         Write-UnityMigrationUtf8 -Path $setupLogPath -Content (($targetOutput -join "`n") + "`n")
         if ($LASTEXITCODE -ne 0) { throw "Team target role setup failed; see $setupLogPath" }
         $targetMatch = @($targetOutput | Select-String -Pattern '^created_role_id=(\d+)$' | Select-Object -Last 1)
@@ -300,8 +326,8 @@ try {
         $teamTargetRoleId = [uint32]$targetMatch[0].Matches[0].Groups[1].Value
 
         $peerName = "T{0:D5}" -f ($teamPeerUserId % 100000)
-        $peerOutput = @(& pwsh -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-            -UserId $teamPeerUserId -AutoCreateRole -RoleName $peerName 2>&1)
+        $peerOutput = @(& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+            -UserId $teamPeerUserId -AutoCreateRole -RoleName $peerName -PythonExecutable $protocolPythonExe 2>&1)
         Write-UnityMigrationUtf8 -Path $setupLogPath -Content ((@($targetOutput) + @($peerOutput) -join "`n") + "`n")
         if ($LASTEXITCODE -ne 0) { throw "Team peer role setup failed; see $setupLogPath" }
         $peerMatch = @($peerOutput | Select-String -Pattern '^created_role_id=(\d+)$' | Select-Object -Last 1)
@@ -318,10 +344,11 @@ try {
         $peerLogPath = Join-Path $summaryDirectory "team-peer-latest.log"
         $peerErrorPath = Join-Path $summaryDirectory "team-peer-latest.err.log"
         foreach ($path in @($peerLogPath, $peerErrorPath)) { if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force } }
-        $teamPeerProcess = Start-Process -FilePath "pwsh" -ArgumentList @(
+        $teamPeerProcess = Start-Process -FilePath $pwshExecutable -ArgumentList @(
             "-NoProfile", "-File", (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1"),
             "-UserId", $teamPeerUserId, "-RoleId", $teamPeerRoleId,
-            "-TeamPeerAcceptLeaderRoleId", $teamTargetRoleId, "-TeamPeerWaitSeconds", 600
+            "-TeamPeerAcceptLeaderRoleId", $teamTargetRoleId, "-TeamPeerWaitSeconds", 600,
+            "-PythonExecutable", $protocolPythonExe
         ) -RedirectStandardOutput $peerLogPath -RedirectStandardError $peerErrorPath -WindowStyle Hidden -PassThru
         $readyDeadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
@@ -334,6 +361,9 @@ try {
     }
 
     [System.IO.Directory]::CreateDirectory($logDirectory) | Out-Null
+    Complete-UnityMigrationTiming -Timings $timings -Name $activeTimingName -Timing $activeTiming
+    $activeTimingName = ""
+    $activeTiming = $null
     if (Test-Path -LiteralPath $resultPath) { Remove-Item -LiteralPath $resultPath -Force }
     foreach ($artifact in $scenarioArtifacts) {
         $path = Assert-UnityMigrationRuntimeArtifact -Root $root -Artifact $artifact -ImmutableRoots $immutableEvidenceRoots
@@ -342,72 +372,34 @@ try {
 
     $attemptStart = $null
     $maxAttempts = if ([bool]$moduleConfig.mutatesServer) { 1 } else { 2 }
+    $activeTimingName = "unityValidation"
+    $activeTiming = Start-UnityMigrationTiming
     for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
         $attemptStart = [DateTime]::UtcNow
         Write-Host "== Unity attempt $attempt/$maxAttempts =="
-        $process = Start-Process -FilePath $unityExe -ArgumentList $unityArguments -WindowStyle Hidden -PassThru
-        $lastProgressUtc = $attemptStart
-        $lastLogLength = -1L
-        $lastCpuSeconds = 0d
-        $nextHeartbeatUtc = $attemptStart.AddSeconds($HeartbeatSeconds)
-        Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "unity-running" `
-            -ProcessId ([int]$process.Id) -Detail "attempt=$attempt/$maxAttempts"
-        while (-not $process.HasExited) {
-            Start-Sleep -Seconds 1
-            $process.Refresh()
-            $nowUtc = [DateTime]::UtcNow
-            if (Test-Path -LiteralPath $logPath -PathType Leaf) {
-                $logItem = Get-Item -LiteralPath $logPath
-                if ($logItem.Length -ne $lastLogLength) {
-                    $lastLogLength = $logItem.Length
-                    $lastProgressUtc = $nowUtc
-                }
+        try {
+            $processRun = Invoke-UnityMigrationProcess -Executable $unityExe -Arguments $unityArguments `
+                -Module $moduleKey -Phase "unity-validation-$attempt" -LogPath $logPath `
+                -ResultPath $resultPath -ProgressPath $progressPath `
+                -TimeoutSeconds $UnityTimeoutSeconds -HeartbeatSeconds $HeartbeatSeconds `
+                -NoProgressTimeoutSeconds $UnityNoProgressTimeoutSeconds
+            if ($processRun.exitCode -ne 0) {
+                throw "Unity exited with code $($processRun.exitCode)."
             }
-            try {
-                $cpuSeconds = $process.TotalProcessorTime.TotalSeconds
-                if ($cpuSeconds -gt $lastCpuSeconds + 0.05d) {
-                    $lastCpuSeconds = $cpuSeconds
-                    $lastProgressUtc = $nowUtc
-                }
-            }
-            catch { }
-            if (Test-Path -LiteralPath $resultPath -PathType Leaf) {
-                $resultItem = Get-Item -LiteralPath $resultPath
-                if ($resultItem.LastWriteTimeUtc -ge $attemptStart.AddSeconds(-2)) {
-                    $lastProgressUtc = $nowUtc
-                }
-            }
-            if ($nowUtc -ge $nextHeartbeatUtc) {
-                $elapsed = [int]($nowUtc - $attemptStart).TotalSeconds
-                $idle = [int]($nowUtc - $lastProgressUtc).TotalSeconds
-                $detail = "attempt=$attempt/$maxAttempts; elapsed=${elapsed}s; idle=${idle}s; logBytes=$lastLogLength; cpu=$([Math]::Round($lastCpuSeconds, 1))s"
-                Write-Host "Unity heartbeat: $detail"
-                Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "unity-running" `
-                    -ProcessId ([int]$process.Id) -Detail $detail
-                $nextHeartbeatUtc = $nowUtc.AddSeconds($HeartbeatSeconds)
-            }
-            if (($nowUtc - $attemptStart).TotalSeconds -ge $UnityTimeoutSeconds) {
-                Stop-ValidationProcessTree -ProcessId ([int]$process.Id)
-                throw "Unity validation exceeded hard runtime $UnityTimeoutSeconds seconds; scenario=$($scenario.key), attempt=$attempt, log=$logPath."
-            }
-            if (($nowUtc - $lastProgressUtc).TotalSeconds -ge $UnityNoProgressTimeoutSeconds) {
-                Stop-ValidationProcessTree -ProcessId ([int]$process.Id)
-                throw "Unity validation made no observable log/CPU/result progress for $UnityNoProgressTimeoutSeconds seconds; scenario=$($scenario.key), attempt=$attempt, log=$logPath."
-            }
+            break
         }
-        if (Test-Path -LiteralPath $resultPath) {
-            $item = Get-Item -LiteralPath $resultPath
-            if ($item.LastWriteTimeUtc -ge $attemptStart.AddSeconds(-2)) { break }
+        catch {
+            if ($attempt -lt $maxAttempts -and -not [bool]$moduleConfig.mutatesServer) {
+                Write-Warning "Unity did not produce a fresh result; retrying once after compile/domain reload: $($_.Exception.Message)"
+                if (Test-Path -LiteralPath $resultPath) { Remove-Item -LiteralPath $resultPath -Force }
+                continue
+            }
+            throw
         }
-        if ($attempt -lt $maxAttempts) {
-            Write-Warning "Unity exited without a fresh result, likely after script compilation; retrying once."
-            continue
-        }
-        $retryHint = if ([bool]$moduleConfig.mutatesServer) {
-            "Mutation modules are never retried automatically; rerun the command to allocate a fresh isolated user."
-        } else { "No fresh result was produced." }
-        throw "Unity did not produce a fresh result. Last exit code: $($process.ExitCode). $retryHint"
     }
+    Complete-UnityMigrationTiming -Timings $timings -Name $activeTimingName -Timing $activeTiming
+    $activeTimingName = ""
+    $activeTiming = $null
 
     $result = Get-Content -Raw -Encoding UTF8 -LiteralPath $resultPath | ConvertFrom-Json
     $resultUtc = if ($result.utc -is [DateTime]) {
@@ -432,18 +424,28 @@ try {
     }
 
     $screenshotResults = @()
+    $activeTimingName = "screenshotValidation"
+    $activeTiming = Start-UnityMigrationTiming
     if (-not $SkipScreenshotCheck) {
         $screenshotResults = @(Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario `
             -ImmutableRoots $immutableEvidenceRoots -FreshAfterUtc $attemptStart)
     }
+    Complete-UnityMigrationTiming -Timings $timings -Name $activeTimingName -Timing $activeTiming
+    $activeTimingName = ""
+    $activeTiming = $null
 
     if (-not $SkipPythonTests) {
+        $activeTimingName = "pythonTests"
+        $activeTiming = Start-UnityMigrationTiming
         Push-Location $root
         try {
-            & python -m unittest discover -s tools/ui_migration/tests -v
+            & $pythonExe -m unittest discover -s tools/ui_migration/tests -v
             if ($LASTEXITCODE -ne 0) { throw "UI migration Python tests failed with exit code $LASTEXITCODE" }
         }
         finally { Pop-Location }
+        Complete-UnityMigrationTiming -Timings $timings -Name $activeTimingName -Timing $activeTiming
+        $activeTimingName = ""
+        $activeTiming = $null
     }
 
     $summary = [ordered]@{
@@ -475,15 +477,21 @@ try {
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 8) + "`n")
-    & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
+    & $pwshExecutable -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
         -Module $moduleKey -Phase PostRun -ManifestPath $manifestEntry.Path -SummaryPath $summaryPath
     if ($LASTEXITCODE -ne 0) { throw "Unity migration hard-gate post-run failed with exit code $LASTEXITCODE" }
     Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "passed" `
         -Detail "user=$effectiveUserId; role=$($result.roleId); status=$($result.status)"
     Write-Host "Validation passed: $($result.status)"
     Write-Host "Summary: $summaryPath"
+    $runStatus = "passed"
 }
 catch {
+    if ($null -ne $activeTiming -and $activeTimingName) {
+        Complete-UnityMigrationTiming -Timings $timings -Name $activeTimingName -Timing $activeTiming
+        $activeTimingName = ""
+        $activeTiming = $null
+    }
     $failure = $_
     $summary = [ordered]@{
         success = $false
@@ -499,6 +507,7 @@ catch {
     Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "failed" -Detail $_.Exception.Message
 }
 finally {
+    $cleanupTiming = Start-UnityMigrationTiming
     foreach ($unityProcess in @(Get-Process Unity -ErrorAction SilentlyContinue | Where-Object { $_.Id -notin $beforeUnityIds })) {
         Write-Host "Stopping Unity process started by validation: pid=$($unityProcess.Id)"
         Stop-Process -Id $unityProcess.Id -ErrorAction SilentlyContinue
@@ -506,6 +515,33 @@ finally {
     if ($teamPeerProcess -and -not $teamPeerProcess.HasExited) {
         Write-Host "Stopping Team peer process pid=$($teamPeerProcess.Id)"
         Stop-ValidationProcessTree -ProcessId $teamPeerProcess.Id
+    }
+    foreach ($serverProcess in @(Get-Process kapai -ErrorAction SilentlyContinue | Where-Object { $_.Id -in $startedIds })) {
+        Stop-ValidationProcessTree -ProcessId $serverProcess.Id
+    }
+    if ($autoAllocatedDisposableRole) {
+        try {
+            Start-Sleep -Seconds 1
+            $cleanupUsers = @($effectiveUserId) + @($friendPeerUserIds) + @($teamPeerUserId) |
+                Where-Object { [uint32]$_ -gt 0 } | Sort-Object -Unique
+            $disposableCleanup = @($cleanupUsers | ForEach-Object {
+                Remove-UnityMigrationDisposableRole -Root $root -Manifest $manifest -UserId ([uint32]$_)
+            })
+            $cleanupEvidencePath = Join-Path $summaryDirectory ("{0}-disposable-cleanup-latest.json" -f $moduleKey.ToLowerInvariant())
+            $cleanupEvidence = [ordered]@{
+                success = $true
+                module = $moduleKey
+                users = @($disposableCleanup)
+                residual = 0
+                checkedUtc = [DateTime]::UtcNow.ToString("O")
+            }
+            Write-UnityMigrationUtf8 -Path $cleanupEvidencePath -Content (($cleanupEvidence | ConvertTo-Json -Depth 6) + "`n")
+            Write-Host "$moduleKey cleanup: $($cleanupUsers.Count) disposable role(s) removed with zero residue."
+        }
+        catch {
+            Write-Warning $_.Exception.Message
+            if (-not $failure) { $failure = $_ }
+        }
     }
     if ($validationDataApplied) {
         try {
@@ -545,7 +581,18 @@ finally {
             }
         }
     }
+    Complete-UnityMigrationTiming -Timings $timings -Name "cleanup" -Timing $cleanupTiming
 }
 
+Complete-UnityMigrationTiming -Timings $timings -Name "overall" -Timing $overallTiming
+$timingReport = [ordered]@{
+    schemaVersion = 1
+    module = $moduleKey
+    mode = $ValidationMode
+    status = $runStatus
+    timings = $timings
+    checkedUtc = [DateTime]::UtcNow.ToString("O")
+}
+Write-UnityMigrationUtf8 -Path $timingPath -Content (($timingReport | ConvertTo-Json -Depth 8) + "`n")
 if ($failure) { throw $failure }
 exit 0

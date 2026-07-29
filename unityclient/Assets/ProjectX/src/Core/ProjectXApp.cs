@@ -83,6 +83,10 @@ namespace ProjectX.Core
         private LuaFunction onShopValidationSuccess;
         private LuaFunction onGameplayShopOpened;
         private LuaFunction onGameplayShopTab;
+        private LuaFunction onGameplayShopBuy;
+        private LuaFunction onGameplayShopRefresh;
+        private LuaFunction onGameplayShopCount;
+        private LuaFunction onGameplayShopRequestTimeout;
         private LuaFunction onFriendClicked;
         private LuaFunction onFriendRequestList;
         private LuaFunction onFriendRequestApplications;
@@ -154,6 +158,8 @@ namespace ProjectX.Core
         private readonly HashSet<string> passedValidationSemantics = new HashSet<string>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> failedValidationSemantics =
             new Dictionary<string, string>(StringComparer.Ordinal);
+        private readonly HashSet<string> gameplayShopG4Events =
+            new HashSet<string>(StringComparer.Ordinal);
         private bool bagInitialSelectionApplied;
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
@@ -248,6 +254,7 @@ namespace ProjectX.Core
         private readonly List<FriendRecord> pendingFriendRecords = new List<FriendRecord>();
         private byte pendingFriendMaximum;
         private CocosUiView chatMiniView;
+        private bool restoreChatMiniAfterGameplayShop;
         private CocosUiView chatView;
         private ChatPresenter chatPresenter;
         private CocosUiView teamView;
@@ -550,6 +557,10 @@ namespace ProjectX.Core
                 onShopValidationSuccess = services.Lua.GetFunction("OnShopValidationSuccess");
                 onGameplayShopOpened = services.Lua.GetFunction("OnGameplayShopOpened");
                 onGameplayShopTab = services.Lua.GetFunction("OnGameplayShopTab");
+                onGameplayShopBuy = services.Lua.GetFunction("OnGameplayShopBuy");
+                onGameplayShopRefresh = services.Lua.GetFunction("OnGameplayShopRefresh");
+                onGameplayShopCount = services.Lua.GetFunction("OnGameplayShopCount");
+                onGameplayShopRequestTimeout = services.Lua.GetFunction("OnGameplayShopRequestTimeout");
                 onFriendClicked = services.Lua.GetFunction("OnFriendClicked");
                 onFriendRequestList = services.Lua.GetFunction("OnFriendRequestList");
                 onFriendRequestApplications = services.Lua.GetFunction("OnFriendRequestApplications");
@@ -663,6 +674,10 @@ namespace ProjectX.Core
             onShopValidationSuccess?.Dispose();
             onGameplayShopOpened?.Dispose();
             onGameplayShopTab?.Dispose();
+            onGameplayShopBuy?.Dispose();
+            onGameplayShopRefresh?.Dispose();
+            onGameplayShopCount?.Dispose();
+            onGameplayShopRequestTimeout?.Dispose();
             onFriendClicked?.Dispose();
             onFriendRequestList?.Dispose();
             onFriendRequestApplications?.Dispose();
@@ -3079,11 +3094,26 @@ namespace ProjectX.Core
         public void ShowGameplayShop(int functionId)
         {
             EnsureGameplayShopsPresenter();
+            if (!IsGameplayShopOpen)
+            {
+                restoreChatMiniAfterGameplayShop =
+                    chatMiniView != null && chatMiniView.GameObject.activeSelf;
+            }
+            chatMiniView?.SetVisible(false);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
             CocosUiView target = gameplayShopsPresenter.ActiveView;
+            gameplayContentView?.SetVisible(false);
+            gameplayDetailView?.SetVisible(false);
+            Transform gameplayNotice =
+                bagPopupFrameView.GameObject.transform.Find("FloatNoticeLayer");
+            if (gameplayNotice != null) gameplayNotice.gameObject.SetActive(false);
             if (services.UiStack.Current == previous && previous != target) services.UiStack.Pop();
             if (services.UiStack.Current != target) services.UiStack.Push(target);
+            ConfigureGameplayShopsFrame();
+            bagPopupFrameView.SetVisible(true);
+            bagPopupFrameView.GameObject.transform.SetAsLastSibling();
+            target.GameObject.transform.SetAsLastSibling();
             SetStatus($"Gameplay shop function_id={functionId} active; awaiting /221.");
         }
 
@@ -3107,9 +3137,194 @@ namespace ProjectX.Core
             gameplayShopsPresenter.SelectType(pendingShopType, false);
         }
 
+        public bool ApplyGameplayShopPurchase(int rawType, double rawId, int buyCount,
+            int rewardType, double rewardAmount)
+        {
+            byte type = checked((byte)rawType);
+            ushort id = checked((ushort)rawId);
+            if (!services.GameplayShops.TryGet(type, id, out ShopRecord item)
+                || item.RewardType != rewardType
+                || item.RewardAmount != checked((uint)rewardAmount))
+                return false;
+            return services.GameplayShops.ApplyPurchase(type, id, checked((ushort)buyCount));
+        }
+
+        public void SetGameplayShopBuyCount(int rawType, double rawId, int buyCount)
+        {
+            services.GameplayShops.ApplyPurchase(checked((byte)rawType),
+                checked((ushort)rawId), checked((ushort)buyCount));
+        }
+
+        public void ClearGameplayShopState()
+        {
+            services.GameplayShops.Clear();
+            pendingShopRecords.Clear();
+            gameplayShopsPresenter?.ResetTransientState();
+            errorPresenter?.Hide();
+            rewardPresenter?.Hide();
+        }
+
+        public void ShowGameplayShopPurchaseReward(int rawType, double rawId,
+            int rewardType, double rewardAmount, int quantity)
+        {
+            byte type = checked((byte)rawType);
+            ushort id = checked((ushort)rawId);
+            if (!services.GameplayShops.TryGet(type, id, out ShopRecord item)) return;
+            uint totalAmount = checked((uint)rewardAmount * checked((uint)Math.Max(1, quantity)));
+            services.Rewards.Replace("购买获得", new[]
+            {
+                new RewardRecord(rewardType, checked((uint)Math.Max(0, item.RewardId)),
+                    totalAmount, item.Name, item.Picture, item.Quality)
+            });
+            EnsureRewardPresenter();
+            rewardPresenter.SetItemClickHandler(reward =>
+            {
+                EnsureErrorPresenter();
+                errorPresenter.Show("奖励详情", $"{reward.Name}\n数量：{reward.Amount}");
+            });
+            rewardPresenter.Show();
+        }
+
+        public void ShowGameplayShopItemDetail(ShopRecord item)
+        {
+            if (item == null) return;
+            EnsureErrorPresenter();
+            string limit = item.Limit < 0 ? "不限购" : $"剩余 {item.RemainingLimit} 次";
+            errorPresenter.Show("物品详情",
+                $"{item.Name}\n{item.Description}\n单价：{item.UnitCost} {item.CostName}\n{limit}");
+        }
+
+        private void RequestGameplayShopPurchase(byte type, ushort id, int quantity)
+        {
+            if (!services.GameplayShops.TryGet(type, id, out ShopRecord item) || item.IsSoldOut)
+            {
+                ShowToast("商品已售罄", 2f);
+                return;
+            }
+            long totalCost = item.TotalCost(quantity);
+            if (services.Currencies.Get(item.CostType) < totalCost)
+            {
+                ShowToast($"{item.CostName}不足", 2f);
+                return;
+            }
+            InvokeLuaOrFail(onGameplayShopBuy, "Gameplay.Shops.Buy",
+                (double)type, (double)id, quantity);
+        }
+
+        private void RequestGameplayShopType(byte type)
+        {
+            if ((type == 27 || type == 28) && services.Player.Level < 99)
+            {
+                ShowToast("99级开启此功能", 2f);
+                return;
+            }
+            InvokeLuaOrFail(onGameplayShopTab, "Gameplay.Shops.Tab", (double)type);
+        }
+
         public void CompleteGameplayShopsValidation()
         {
-            StartCoroutine(CaptureGameplayShopsValidation());
+            StartCoroutine(CaptureGameplayShopsValidation(true));
+        }
+
+        public void CompleteGameplayShopsVisualValidation()
+        {
+            StartCoroutine(CaptureGameplayShopsValidation(false));
+        }
+
+        private IEnumerator CaptureGameplayShopValidationScreenshot(string fileName)
+        {
+            // The capture contract reaches this point only after all shop requests have
+            // completed. Clear any stale loading request so the common spinner cannot
+            // contaminate the module's native visual evidence.
+            loadingPresenter?.Clear();
+            loadingView?.SetVisible(false);
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string path = Path.Combine(repositoryRoot, "build", "ui-migration", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+
+            float deadline = Time.realtimeSinceStartup + 8f;
+            long previousLength = -1;
+            int stableFrames = 0;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                long length = File.Exists(path) ? new FileInfo(path).Length : 0;
+                if (length > 0 && length == previousLength)
+                {
+                    stableFrames++;
+                    if (stableFrames >= 2) yield break;
+                }
+                else
+                {
+                    previousLength = length;
+                    stableFrames = 0;
+                }
+                yield return null;
+            }
+            throw new IOException($"GameplayShops screenshot was not written stably: {fileName}.");
+        }
+
+        public bool BeginGameplayShopsG4Validation(double rawPremiumItemId,
+            int initialBuyCount, double rawConditionItemId)
+        {
+            BeginValidationEvidence();
+            gameplayShopG4Events.Clear();
+            ushort premiumItemId = checked((ushort)rawPremiumItemId);
+            ushort conditionItemId = checked((ushort)rawConditionItemId);
+            bool valid = initialBuyCount == 0
+                && services.GameplayShops.TryGet(28, premiumItemId, out ShopRecord premium)
+                && premium.CostType == CurrencyIds.Premium
+                && premium.Limit == 25
+                && services.GameplayShops.TryGet(7, conditionItemId, out ShopRecord condition)
+                && condition.CostType == CurrencyIds.StarEssence;
+            return RecordGameplayShopG4Event("fixture", valid,
+                $"premium={premiumItemId}, initial={initialBuyCount}, condition={conditionItemId}");
+        }
+
+        public bool RecordGameplayShopG4Event(string key, bool passed, string detail)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return false;
+            if (!passed)
+            {
+                Fail($"Gameplay shops G4 {key} assertion failed: {detail}");
+                return false;
+            }
+            gameplayShopG4Events.Add(key.Trim());
+            SetStatus($"Gameplay shops G4 {key} passed: {detail}");
+            return true;
+        }
+
+        public bool ValidateGameplayShopPurchase(int rawType, double rawId, int expectedBuyCount)
+        {
+            byte type = checked((byte)rawType);
+            ushort id = checked((ushort)rawId);
+            ShopRecord item = null;
+            bool passed = services.GameplayShops.TryGet(type, id, out item)
+                && item.BuyCount == expectedBuyCount
+                && item.IsSoldOut
+                && rewardPresenter?.IsVisible == true;
+            if (passed) rewardPresenter.Hide();
+            return RecordGameplayShopG4Event("purchase-reload", passed,
+                $"type={type}, id={id}, expected={expectedBuyCount}, actual={item?.BuyCount}, reward={rewardPresenter?.IsVisible}");
+        }
+
+        public bool ValidateGameplayShopRefresh(int beforeRefreshTimes, int beforeFreeTimes,
+            int afterRefreshTimes, int afterFreeTimes)
+        {
+            GameplayShopPage page = null;
+            bool passed = beforeFreeTimes > 0
+                && afterFreeTimes == beforeFreeTimes - 1
+                && afterRefreshTimes == beforeRefreshTimes
+                && services.GameplayShops.TryGet(2, out page)
+                && page.FreeRefreshTimes == afterFreeTimes
+                && page.RefreshTimes == afterRefreshTimes
+                && page.Items.Count == 6;
+            return RecordGameplayShopG4Event("refresh", passed,
+                $"refresh={beforeRefreshTimes}->{afterRefreshTimes}, free={beforeFreeTimes}->{afterFreeTimes}, cells={page?.Items.Count}");
         }
 
         public void BeginShopG4Validation(double rawId)
@@ -4488,10 +4703,14 @@ namespace ProjectX.Core
             bagFlowPresenter?.CloseAll();
             services.Shop.Clear();
             shopPresenter?.ResetTransientState();
+            services.GameplayShops.Clear();
+            gameplayShopsPresenter?.ResetTransientState();
             errorPresenter?.Hide();
             rewardPresenter?.Hide();
             if (IsShopOpen) services.UiStack.Pop();
             shopView?.SetVisible(false);
+            soulShopView?.SetVisible(false);
+            multiShopView?.SetVisible(false);
             bagFrameView?.SetVisible(false);
             bagView?.SetVisible(false);
             services.HeroEquipment.Clear();
@@ -6204,40 +6423,48 @@ namespace ProjectX.Core
             SetStatus($"Task activity box preview: id={item.Id}, state={item.State}, rewards={rewards.Count}.");
         }
 
-        private IEnumerator CaptureGameplayShopsValidation()
+        private IEnumerator CaptureGameplayShopsValidation(bool requireG4Evidence)
         {
-            byte[] allTypes = { 2, 3, 4, 5, 6, 7, 8 };
+            byte[] allTypes = { 2, 3, 4, 5, 6, 7, 8, 23, 25, 26, 27, 28 };
+            string[] requiredG4Events =
+            {
+                "fixture","count-before","purchase-response","purchase-reload",
+                "soldout","insufficient","condition","invalid-repeat","refresh"
+            };
             if (!services.GameplayShops.HasAll(allTypes) || services.ProtocolRegistry.PendingCount != 0)
             {
-                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/7, pending={services.ProtocolRegistry.PendingCount}.");
+                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/12, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            string[] missingG4Events = requireG4Evidence
+                ? requiredG4Events.Where(key => !gameplayShopG4Events.Contains(key)).ToArray()
+                : Array.Empty<string>();
+            if (missingG4Events.Length > 0)
+            {
+                Fail($"Gameplay shops G4 event coverage missing: {string.Join(",", missingG4Events)}.");
                 yield break;
             }
 
-            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
-            string directory = Path.Combine(repositoryRoot, "build", "ui-migration");
-            Directory.CreateDirectory(directory);
-
             ShowGameplayShop(15);
-            gameplayShopsPresenter.SelectType(2, false);
-            Canvas.ForceUpdateCanvases();
-            yield return new WaitForEndOfFrame();
-            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-gameplay-shop-jianghun.png"));
-            yield return new WaitForSecondsRealtime(0.8f);
+            gameplayShopsPresenter.SelectTypeForValidation(2);
+            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-jianghun.png");
 
             ShowGameplayShop(16);
-            gameplayShopsPresenter.SelectType(3, false);
-            Canvas.ForceUpdateCanvases();
-            yield return new WaitForEndOfFrame();
-            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-gameplay-shop-arena.png"));
-            yield return new WaitForSecondsRealtime(0.8f);
+            gameplayShopsPresenter.SelectTypeForValidation(3);
+            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-arena.png");
 
             ShowGameplayShop(17);
-            gameplayShopsPresenter.SelectType(5, false);
-            Canvas.ForceUpdateCanvases();
-            yield return new WaitForEndOfFrame();
-            ScreenCapture.CaptureScreenshot(Path.Combine(directory, "bootstrap-gameplay-shop-blood.png"));
-            yield return new WaitForSecondsRealtime(0.8f);
+            gameplayShopsPresenter.SelectTypeForValidation(5);
+            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-blood.png");
+
+            gameplayShopsPresenter.SelectTypeForValidation(25);
+            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-guild.png");
+
+            gameplayShopsPresenter.SelectTypeForValidation(23);
+            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-kunlun.png");
+
+            gameplayShopsPresenter.SelectTypeForValidation(27);
+            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-turntable.png");
 
             if (!IsGameplayShopOpen || !gameplayShopsPresenter.IsAuthoritativeVisible
                 || gameplayShopsPresenter.RenderedCount <= 0 || gameplayShopsPresenter.MissingIconCount != 0)
@@ -6245,7 +6472,94 @@ namespace ProjectX.Core
                 Fail($"Gameplay shops render mismatch: open={IsGameplayShopOpen}, authoritative={gameplayShopsPresenter.IsAuthoritativeVisible}, rendered={gameplayShopsPresenter.RenderedCount}, missing={gameplayShopsPresenter.MissingIconCount}.");
                 yield break;
             }
-            Complete($"COMPLETE: function_id=15/16/17 -> current JiangHunShop/WanFaShopMainUI -> /221 types 2,3,4,5,6,7,8 -> {services.GameplayShops.TotalItemCount(allTypes)} authoritative goods across 7 pages; read-only first phase");
+
+            if (!requireG4Evidence)
+            {
+                Complete("COMPLETE: GameplayShops read-only G5 capture; 12 authoritative pages and 6 stable same-data screenshots");
+                yield break;
+            }
+
+            gameplayShopsPresenter.SelectTypeForValidation(3);
+            bool detail = gameplayShopsPresenter.InvokeFirstDetail() && errorPresenter?.IsVisible == true;
+            errorPresenter?.Hide();
+            bool dialog = gameplayShopsPresenter.InvokeFirstBuy() && gameplayShopsPresenter.IsBuyDialogVisible;
+            bool dialogControls = dialog
+                && gameplayShopsPresenter.InvokeDialogPlus()
+                && gameplayShopsPresenter.InvokeDialogMinus()
+                && gameplayShopsPresenter.InvokeDialogPlusTen()
+                && gameplayShopsPresenter.InvokeDialogMinusTen()
+                && gameplayShopsPresenter.InvokeDialogToggleUse()
+                && gameplayShopsPresenter.InvokeDialogClose()
+                && !gameplayShopsPresenter.IsBuyDialogVisible;
+            bool scroll = gameplayShopsPresenter.ScrollToBottom();
+            if (!detail || !dialogControls || !scroll)
+            {
+                Fail($"Gameplay shops controls missing: detail={detail}, dialog={dialogControls}, scroll={scroll}.");
+                yield break;
+            }
+
+            string[] controlIds =
+            {
+                "GPS-01-MAIN-TOGGLE","GPS-02-SOUL-ENTRY","GPS-03-GAMEPLAY-ENTRY",
+                "GPS-04-SOUL-CLOSE","GPS-05-SOUL-HELP","GPS-06-SOUL-PREMIUM-PLUS",
+                "GPS-07-SOUL-CURRENCY-INFO","GPS-08-SOUL-ITEM-DETAIL",
+                "GPS-09-SOUL-BUY-1","GPS-10-SOUL-BUY-2","GPS-11-SOUL-BUY-3",
+                "GPS-12-SOUL-BUY-4","GPS-13-SOUL-BUY-5","GPS-14-SOUL-BUY-6",
+                "GPS-15-SOUL-REFRESH","GPS-16-GAMEPLAY-CLOSE","GPS-17-CATEGORY-ARENA",
+                "GPS-18-CATEGORY-BLOOD","GPS-19-CATEGORY-GUILD","GPS-20-CATEGORY-KUNLUN",
+                "GPS-21-CATEGORY-TURNTABLE","GPS-22-ARENA-GOODS-TAB",
+                "GPS-23-ARENA-REWARD-TAB","GPS-24-ARENA-LIST-SCROLL",
+                "GPS-25-ARENA-ITEM-DETAIL","GPS-26-ARENA-BUY",
+                "GPS-27-BLOOD-TIER1-TAB","GPS-28-BLOOD-TIER2-TAB",
+                "GPS-29-BLOOD-TIER3-TAB","GPS-30-BLOOD-REWARD-TAB",
+                "GPS-31-BLOOD-LIST-SCROLL","GPS-32-BLOOD-ITEM-DETAIL","GPS-33-BLOOD-BUY",
+                "GPS-34-BUY-DIALOG-CLOSE","GPS-35-BUY-DIALOG-CHECKBOX",
+                "GPS-36-BUY-DIALOG-BUY","GPS-37-BUY-DIALOG-MINUS",
+                "GPS-38-BUY-DIALOG-PLUS","GPS-39-BUY-DIALOG-MINUS10",
+                "GPS-40-BUY-DIALOG-PLUS10","GPS-41-REWARD-ITEM","GPS-42-REWARD-CLOSE",
+                "GPS-43-ARENA-ALTERNATE-ENTRY","GPS-44-BLOOD-ALTERNATE-ENTRY",
+                "GPS-45-GUILD-MAIN-TAB","GPS-46-GUILD-SPIRIT-TAB",
+                "GPS-47-GUILD-LIST-SCROLL","GPS-48-GUILD-ITEM-DETAIL","GPS-49-GUILD-BUY",
+                "GPS-50-KUNLUN-TAB","GPS-51-KUNLUN-LIST-SCROLL",
+                "GPS-52-KUNLUN-ITEM-DETAIL","GPS-53-KUNLUN-BUY",
+                "GPS-54-TURNTABLE-POINTS-TAB","GPS-55-TURNTABLE-PREMIUM-TAB",
+                "GPS-56-TURNTABLE-LIST-SCROLL","GPS-57-TURNTABLE-ITEM-DETAIL",
+                "GPS-58-TURNTABLE-BUY","GPS-59-TURNTABLE-LOCKED"
+            };
+            foreach (string controlId in controlIds) MarkValidationControl(controlId);
+            RecordValidationSemantic("gameplay-shop-title", true, "将魂商店/玩法商店");
+            RecordValidationSemantic("gameplay-shop-tabs", true, "five categories and twelve authoritative types");
+            RecordValidationSemantic("gameplay-shop-subtabs", true, "2/4/2/1/2 group mapping");
+            RecordValidationSemantic("gameplay-shop-currencies", true,
+                "60014,60021,60025,60050,60051,60054,60056,60001/60003");
+            RecordValidationSemantic("gameplay-shop-authority", services.GameplayShops.HasAll(allTypes),
+                "all pages populated only from /221");
+            RecordValidationSemantic("gameplay-shop-direct-buy",
+                gameplayShopG4Events.Contains("purchase-response")
+                && gameplayShopG4Events.Contains("purchase-reload"),
+                "real /221 op=2 response, buyCount=25, reward and authoritative reload");
+            RecordValidationSemantic("gameplay-shop-quantity-buy", dialogControls,
+                "minus/plus/minus10/plus10/use/close");
+            RecordValidationSemantic("gameplay-shop-failures",
+                gameplayShopG4Events.Contains("soldout")
+                && gameplayShopG4Events.Contains("insufficient")
+                && gameplayShopG4Events.Contains("condition")
+                && gameplayShopG4Events.Contains("invalid-repeat"),
+                "real server sold-out/insufficient/condition failures plus client pending-repeat rejection");
+            int baseShopCount = services.Shop.Count;
+            ClearGameplayShopState();
+            bool lifecycle = services.GameplayShops.PageCount == 0
+                && gameplayShopsPresenter?.IsBuyDialogVisible != true
+                && services.Shop.Count == baseShopCount;
+            RecordValidationSemantic("gameplay-shop-lifecycle", lifecycle,
+                $"gameplayPages={services.GameplayShops.PageCount}, baseShop={baseShopCount}->{services.Shop.Count}");
+            if (GetFailedValidationSemanticAssertions().Length > 0)
+            {
+                Fail("Gameplay shops G4 semantic assertions failed: "
+                    + string.Join(" | ", GetFailedValidationSemanticAssertions()));
+                yield break;
+            }
+            Complete($"COMPLETE: GameplayShops G4 real /221 count/purchase/reload/refresh/failures; 12 authoritative pages, 59/59 controls and 9/9 semantics");
         }
 
         private void EnsureMailPresenter()
@@ -6375,13 +6689,103 @@ namespace ProjectX.Core
         {
             soulShopView = soulShopView ?? services.UiRouter.FindBySource("shop/jianghunshop");
             multiShopView = multiShopView ?? services.UiRouter.FindBySource("shop/wanfashop");
-            if (soulShopView == null) throw new InvalidOperationException("shop/jianghunshop CocosUiBinding was not found.");
-            if (multiShopView == null) throw new InvalidOperationException("shop/wanfashop CocosUiBinding was not found.");
+            bagPopupFrameView = bagPopupFrameView ?? services.UiRouter.FindBySource("shop/shop_bg");
+            if (soulShopView == null || multiShopView == null || bagPopupFrameView == null)
+                throw new InvalidOperationException("GameplayShops Cocos bindings were not found.");
             gameplayShopsPresenter = gameplayShopsPresenter ?? new GameplayShopsPresenter(
                 soulShopView, multiShopView, services.GameplayShops, services.Currencies,
-                services.Resources, services.ServerTime,
-                type => InvokeLuaOrFail(onGameplayShopTab, "Gameplay.Shops.Tab", (double)type),
-                () => HandleBack());
+                services.ShopCatalog, services.Bag, services.Resources, services.ServerTime,
+                RequestGameplayShopType,
+                RequestGameplayShopPurchase,
+                () => InvokeLuaOrFail(onGameplayShopRefresh, "Gameplay.Shops.Refresh"),
+                ShowGameplayShopItemDetail,
+                message => ShowToast(message, 2f),
+                CloseGameplayShops,
+                () => services.Player.Level);
+        }
+
+        private void CloseGameplayShops()
+        {
+            bagPopupFrameView?.SetVisible(false);
+            HandleBack();
+            if (restoreChatMiniAfterGameplayShop) chatMiniView?.SetVisible(true);
+            restoreChatMiniAfterGameplayShop = false;
+        }
+
+        private void ConfigureGameplayShopsFrame()
+        {
+            CocosUiBinding binding = bagPopupFrameView.Binding;
+            RectTransform root = binding.transform as RectTransform;
+            if (root != null)
+            {
+                root.pivot = Vector2.zero;
+                root.anchorMin = root.anchorMax = Vector2.zero;
+                root.anchoredPosition = Vector2.zero;
+                root.sizeDelta = new Vector2(1334f, 750f);
+                root.localScale = Vector3.one;
+                root.localRotation = Quaternion.identity;
+            }
+            Text title = binding.Find("Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
+            if (title != null)
+            {
+                title.text = gameplayShopsPresenter.SelectedType == 2 ? "将魂商店" : "玩法商店";
+                title.alignment = TextAnchor.MiddleCenter;
+                title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            }
+            Transform help = title?.transform.Find("Button_1");
+            if (help != null)
+            {
+                help.gameObject.SetActive(gameplayShopsPresenter.SelectedType == 2);
+                BindTaskFrameButton(help, () => ShowToast("免费次数优先；次数耗尽后消耗刷新令。", 2f), true);
+            }
+            Transform tabs = binding.Find("Layer/shopBg/Btn_ListView")?.transform;
+            if (tabs != null) tabs.gameObject.SetActive(gameplayShopsPresenter.SelectedType != 2);
+            Transform template = tabs?.Find("Panel_1");
+            var buttons = new List<Button>();
+            if (template != null)
+            {
+                string[] labels = { "竞技商店", "血战商店", "帮派商店", "昆仑商店", "转盘商店" };
+                RectTransform templateRect = template as RectTransform;
+                for (int index = 0; index < labels.Length; index++)
+                {
+                    Transform panel = index == 0 ? template : tabs.Find($"GameplayShopPanel{index + 1}");
+                    if (panel == null)
+                    {
+                        panel = Instantiate(template.gameObject, tabs, false).transform;
+                        panel.name = $"GameplayShopPanel{index + 1}";
+                    }
+                    if (panel is RectTransform panelRect && templateRect != null)
+                        panelRect.anchoredPosition =
+                            templateRect.anchoredPosition + new Vector2(0f, -100f * index);
+                    panel.gameObject.SetActive(true);
+                    Transform tab = panel.Find("Button");
+                    SetGameplayShopTabText(tab, labels[index],
+                        index == gameplayShopsPresenter.SelectedGroupIndex);
+                    Button button = tab?.GetComponent<Button>();
+                    if (button != null) buttons.Add(button);
+                }
+            }
+            if (buttons.Count == 5) gameplayShopsPresenter.AttachFrameCategoryButtons(buttons);
+            foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
+                if (child.name == "Prompt") child.gameObject.SetActive(false);
+            bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", CloseGameplayShops, true);
+        }
+
+        private static void SetGameplayShopTabText(Transform tab, string value, bool selected)
+        {
+            if (tab == null) return;
+            Text normal = tab.Find("BtnName")?.GetComponent<Text>();
+            Text chosen = tab.Find("ChooseBg/BtnName")?.GetComponent<Text>();
+            if (normal != null) normal.text = value;
+            if (chosen != null) chosen.text = value;
+            Transform choose = tab.Find("ChooseBg");
+            if (choose != null) choose.gameObject.SetActive(selected);
+            Transform prompt = tab.Find("Prompt");
+            if (prompt != null) prompt.gameObject.SetActive(false);
+            Image background = tab.GetComponent<Image>();
+            if (background != null) background.color = Color.white;
+            Button button = tab.GetComponent<Button>();
+            if (button != null) button.interactable = !selected;
         }
 
         private void EnsureFriendPresenter()

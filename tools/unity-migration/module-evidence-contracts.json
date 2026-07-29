@@ -2,6 +2,56 @@
   "schemaVersion": 1,
   "modules": [
     {
+      "module": "GameplayShops",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-GameplayShopsCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
+        "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
+        "visualValidationFlags": ["-projectXGameplayShopsVisualValidation"],
+        "visualOnlyArtifacts": true,
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
+            { "id": "twelve-authoritative-pages", "description": "以确定性 zlib 商店二进制准备 type 2,3,4,5,6,7,8,23,25,26,27,28，登录后逐页指纹必须不变" },
+            { "id": "turntable-level-unlock", "description": "固定角色临时提升到 99 级，覆盖转盘解锁后的 type 27/28，同时保留 G1 的 60 级锁定证据" },
+            { "id": "refresh-and-purchase", "description": "准备将魂六格与免费刷新、转盘绑定元宝商品及空购买计数，供真实 op 2/3/4 断言；Unity 内部硬断言变更，外层 finally 精确恢复" },
+            { "id": "failure-state-matrix", "description": "保留条件未达、售罄、余额不足与非法重复请求的真实服务端失败分支" },
+            { "id": "exact-restore-surface", "description": "快照 level,package,mysteryShop,shenhunShop,save_data,mission,role money,user money,bd_money 并以整体 SHA256 复核恢复和残留清零" }
+          ]
+        },
+        "artifactCopies": [
+          { "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-SOUL.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-shop-arena.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-ARENA.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-shop-blood.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-BLOOD.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-shop-guild.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-GUILD.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-KUNLUN.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-shop-turntable.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-TURNTABLE.png" }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/GameplayShops/cocos/g5-20260729",
+        "unityDirectory": ".local/ui-fidelity/GameplayShops/unity/g5-20260729",
+        "compareDirectory": ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729",
+        "width": 1334,
+        "height": 750,
+        "pairs": [
+          { "id": "GAMEPLAY-SOUL", "cocos": "GAMEPLAY-SOUL.jpg", "unity": "GAMEPLAY-SOUL.png" },
+          { "id": "GAMEPLAY-ARENA", "cocos": "GAMEPLAY-ARENA.jpg", "unity": "GAMEPLAY-ARENA.png" },
+          { "id": "GAMEPLAY-BLOOD", "cocos": "GAMEPLAY-BLOOD.jpg", "unity": "GAMEPLAY-BLOOD.png" },
+          { "id": "GAMEPLAY-GUILD", "cocos": "GAMEPLAY-GUILD.jpg", "unity": "GAMEPLAY-GUILD.png" },
+          { "id": "GAMEPLAY-KUNLUN", "cocos": "GAMEPLAY-KUNLUN.jpg", "unity": "GAMEPLAY-KUNLUN.png" },
+          { "id": "GAMEPLAY-TURNTABLE", "cocos": "GAMEPLAY-TURNTABLE.jpg", "unity": "GAMEPLAY-TURNTABLE.png" }
+        ]
+      }
+    },
+    {
       "module": "Shop",
       "fixedAccount": {
         "userId": 7200057,
@@ -12,6 +62,14 @@
         "reloginRequired": true,
         "extraFlags": [],
         "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": false,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
+            { "id": "purchase-currencies", "description": "准备元宝、绑定元宝和角色货币的确定性购买余额" },
+            { "id": "base-shop-state", "description": "基础商城 type=1 从空持久化状态由服务端确定性初始化" }
+          ]
+        },
         "artifactCopies": [
           { "source": "build/ui-migration/bootstrap-shop-list.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-LIST.png" },
           { "source": "build/ui-migration/bootstrap-shop-quantity.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-QUANTITY.png" },
@@ -45,7 +103,18 @@
         "adapter": "tools/unity-migration/Invoke-TaskCocosFixture.ps1",
         "snapshot": ".local/ui-fidelity/Task/unity/g5-20260727/task-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/Task/unity/g5-20260727/task-fixed-unity-result.json",
-        "reloginRequired": true
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
+            { "id": "task-fixture-row", "description": "准备可由服务端登录阶段应用的任务快照和活跃度夹具" },
+            { "id": "task-reward-state", "description": "登录后断言任务、奖励货币和可领取状态已注入" }
+          ]
+        },
+        "artifactCopies": []
       },
       "g5": {
         "cocosDirectory": ".local/ui-fidelity/Task/cocos/g1-20260727",
@@ -79,6 +148,14 @@
         "reloginRequired": true,
         "skipPostValidationFixtureAssert": true,
         "extraFlags": ["-projectXMailSkipInjection"],
+        "dataPreflight": {
+          "requiresLogin": false,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
+            { "id": "mail-state-matrix", "description": "准备 14 封可见邮件和 1 封已领取隐藏邮件" },
+            { "id": "mail-attachments", "description": "准备无附件、单附件和九附件的确定性邮件状态" }
+          ]
+        },
         "artifactCopies": [
           { "source": "build/ui-migration/bootstrap-mail-populated.png", "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-01-POPULATED.png" },
           { "source": "build/ui-migration/bootstrap-mail-scroll-bottom.png", "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-05-LIST-SCROLL-BOTTOM.png" },

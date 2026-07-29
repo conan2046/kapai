@@ -16,6 +16,103 @@
   },
   "modules": [
     {
+      "module": "GameplayShops",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+      "note": "GameplayShops G0 re-freezes 59 controls/control families across soul type=2, arena type=3/4, blood type=5/6/7/8, kunlun type=23, guild type=25/26 and turntable type=27/28. G1 uses fresh fixed-account native Cocos evidence and exact mutation recovery; legacy read-only Unity results remain clues only.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
+          "tools/cocos-audit/generated/cocos-control-candidates.json"
+        ],
+        "G1": [
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/G1_COCOS_EVIDENCE.md",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/02-soul-list-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/06-soul-purchase-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/07-arena-goods-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/09-blood-tier1-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/13-guild-shop-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/15-kunlun-shop-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/16-turntable-locked-native.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/17-arena-insufficient-native.jpg"
+        ],
+        "G2": [
+          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "tools/unity-migration/unityclient-modules.json",
+          "tools/unity-migration/validation-scenarios.json",
+          ".local/protocol-evidence/GameplayShops-221.md",
+          ".local/unity-validation/gameplay-shops-g2-protocol-evidence.md",
+          "server/src/protocol.h",
+          "server/src/pack_deal.cpp",
+          "server/src/user_shop_manage.cpp",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/View/Shop/WanFaShopDelegate.lua",
+          "server/config/json/shop.json",
+          "server/config/json/shop_config.json"
+        ],
+        "G3": [
+          ".local/unity-validation/gameplay-shops-g3-implementation.md",
+          ".local/unity-validation/unity-compile-preflight-latest.json",
+          ".local/unity-validation/unity-compile-preflight.log",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
+          "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+          "unityclient/Assets/ProjectX/src/Data/GameplayShopStore.cs",
+          "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+        ],
+        "G4": [
+          ".local/unity-validation/gameplay-shops-g4-evidence.md",
+          ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
+          "build/ui-migration/unity-gameplayshops-fixed-account.log"
+        ],
+        "G5": [
+          ".local/unity-validation/gameplay-shops-g5-evidence.md",
+          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
+          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg",
+          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/contact-side-1.jpg",
+          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/G5_VISUAL_ACCEPTANCE.md",
+          "build/ui-migration/unity-gameplayshops-g5-visual.log"
+        ],
+        "G6": [
+          ".local/unity-validation/gameplay-shops-g6-evidence.md",
+          ".local/unity-validation/gameplayshops-latest.json",
+          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+          "UNITYCLIENT_STATUS.md",
+          "tools/unity-migration/unityclient-modules.json"
+        ]
+      },
+      "updatedUtc": "2026-07-29T12:17:26.7518753Z"
+    },
+    {
       "module": "Shop",
       "gates": {
         "G0": "passed",

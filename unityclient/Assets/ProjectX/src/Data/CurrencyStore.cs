@@ -16,6 +16,8 @@ namespace ProjectX.Data
         public const int Activity = 60030;
         public const int Arena = 60050;
         public const int Kunlun = 60051;
+        public const int Spirit = 60054;
+        public const int Turntable = 60056;
     }
 
     public sealed class CurrencyStore

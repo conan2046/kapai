@@ -20,8 +20,20 @@ param(
   [int]$FriendApplyRoleId = 0,
   [int]$TeamPeerAcceptLeaderRoleId = 0,
   [int]$TeamPeerWaitSeconds = 120,
-  [switch]$TeamProbe
+  [switch]$TeamProbe,
+  [string]$PythonExecutable = ""
 )
+
+if (-not $PythonExecutable) {
+  $pythonCommand = Get-Command python -ErrorAction SilentlyContinue | Select-Object -First 1
+  if (-not $pythonCommand) {
+    throw "Python executable was not resolved. Pass -PythonExecutable with an absolute path."
+  }
+  $PythonExecutable = [string]$pythonCommand.Source
+}
+if (-not (Test-Path -LiteralPath $PythonExecutable -PathType Leaf)) {
+  throw "Python executable is missing: $PythonExecutable"
+}
 
 $autoCreateRoleText = if ($AutoCreateRole) { "true" } else { "false" }
 if ($AutoCreateRole -and [string]::IsNullOrWhiteSpace($RoleName)) {
@@ -585,9 +597,9 @@ if NPC_FLOW == 'true':
         raise RuntimeError('missing required NPC flow responses: ' + ','.join(map(str, missing_npc_response_types)))
 "@
 
-$python | python -
+$python | & $PythonExecutable -
 $pythonExitCode = $LASTEXITCODE
-if ($pythonExitCode -ne 0) {
+if ($null -eq $pythonExitCode -or $pythonExitCode -ne 0) {
   Write-Error "Protocol smoke Python runner failed with exit code $pythonExitCode"
-  exit $pythonExitCode
+  exit $(if ($null -eq $pythonExitCode) { 1 } else { $pythonExitCode })
 }

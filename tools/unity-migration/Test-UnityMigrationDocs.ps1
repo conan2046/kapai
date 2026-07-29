@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+    [Alias("Module")][string]$TargetModule = "",
     [string]$ManifestPath = "",
     [int]$StatusMaxLines = 100,
     [int]$GuideMaxLines = 360,
@@ -17,6 +18,13 @@ $evidenceContractEntry = Import-UnityMigrationJson -Root $root -Path "tools/unit
 $gateEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/migration-gates.json"
 $failures = New-Object System.Collections.Generic.List[string]
 $warnings = New-Object System.Collections.Generic.List[string]
+$moduleMatches = if ($TargetModule) {
+    @($manifest.modules | Where-Object { $_.key -ieq $TargetModule })
+} else { @($manifest.modules) }
+if ($TargetModule -and $moduleMatches.Count -ne 1) {
+    throw "Module '$TargetModule' was not found exactly once."
+}
+$modulesToCheck = @($moduleMatches)
 
 function Add-Failure([string]$Message) { $failures.Add($Message) }
 function Add-Warning([string]$Message) { $warnings.Add($Message) }
@@ -80,7 +88,14 @@ if ($statusPath) {
 
 $currentDocPaths = @($statusPath, $guidePath) | Where-Object { $_ }
 $moduleDocDir = Resolve-UnityMigrationPath -Root $root -Path "docs/unityclient/modules"
-$currentDocPaths += @(Get-ChildItem -LiteralPath $moduleDocDir -Filter "*.md" -File | ForEach-Object FullName)
+$currentDocPaths += if ($TargetModule) {
+    @($modulesToCheck | ForEach-Object {
+        Resolve-UnityMigrationPath -Root $root -Path ([string]$_.document)
+    })
+}
+else {
+    @(Get-ChildItem -LiteralPath $moduleDocDir -Filter "*.md" -File | ForEach-Object FullName)
+}
 foreach ($path in $currentDocPaths) {
     $text = Get-Content -Raw -Encoding UTF8 -LiteralPath $path
     if ($text -match '18%') { Add-Failure "Stale 18% progress marker: $path" }
@@ -98,7 +113,7 @@ $fixtureKeys = @($fixtureEntry.Value.profiles | ForEach-Object { [string]$_.key 
 
 $runnerText = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs")
 $protocolHeader = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "server/src/protocol.h")
-foreach ($module in $manifest.modules) {
+foreach ($module in $modulesToCheck) {
     $key = [string]$module.key
     $scenarios = @($scenarioEntry.Value.scenarios | Where-Object { $_.module -ieq $key })
     if ($scenarios.Count -ne 1) {
@@ -256,15 +271,16 @@ foreach ($module in $manifest.modules) {
     }
 }
 
-foreach ($contract in $evidenceContractEntry.Value.modules) {
+foreach ($contract in @($evidenceContractEntry.Value.modules | Where-Object {
+    -not $TargetModule -or [string]$_.module -ieq $TargetModule
+})) {
     $key = [string]$contract.module
     if ($key -notin $keys) { Add-Failure "Evidence contract references unknown module: $key"; continue }
     if ($null -ne $contract.fixedAccount) {
-        $adapter = [string]$contract.fixedAccount.adapter
-        if ([uint32]$contract.fixedAccount.userId -eq 0 -or [uint32]$contract.fixedAccount.roleId -eq 0) {
-            Add-Failure "Evidence contract $key has no fixed userId/roleId."
+        foreach ($contractFailure in @(Get-UnityMigrationFixedAccountContractFailures `
+            -Root $root -Module $key -FixedAccount $contract.fixedAccount)) {
+            Add-Failure $contractFailure
         }
-        Test-RequiredFile $adapter | Out-Null
     }
     if ($null -ne $contract.g5) {
         $pairIds = @($contract.g5.pairs | ForEach-Object { [string]$_.id })
@@ -277,13 +293,17 @@ foreach ($contract in $evidenceContractEntry.Value.modules) {
     }
 }
 
-foreach ($scenario in $scenarioEntry.Value.scenarios) {
+foreach ($scenario in @($scenarioEntry.Value.scenarios | Where-Object {
+    -not $TargetModule -or [string]$_.module -ieq $TargetModule
+})) {
     if ([string]$scenario.module -notin $keys) {
         Add-Failure "Validation scenario $($scenario.key) references unknown module: $($scenario.module)"
     }
 }
 
-foreach ($record in $gateEntry.Value.modules) {
+foreach ($record in @($gateEntry.Value.modules | Where-Object {
+    -not $TargetModule -or [string]$_.module -ieq $TargetModule
+})) {
     if ([string]$record.module -notin $keys) { Add-Failure "Gate record references unknown module: $($record.module)" }
     foreach ($gate in @("G0","G1","G2","G3","G4","G5","G6")) {
         $value = [string](Get-UnityMigrationPropertyValue -Object $record.gates -Name $gate -Default "")
@@ -296,14 +316,18 @@ foreach ($record in $gateEntry.Value.modules) {
     }
 }
 
-$friend = @($manifest.modules | Where-Object key -eq "Friend")
-if ($friend.Count -ne 1) { Add-Failure "Manifest must contain exactly one Friend module." }
+if (-not $TargetModule) {
+    $friend = @($manifest.modules | Where-Object key -eq "Friend")
+    if ($friend.Count -ne 1) { Add-Failure "Manifest must contain exactly one Friend module." }
+}
 
 $result = [ordered]@{
     success = ($failures.Count -eq 0)
     manifest = $manifestEntry.Path
-    moduleCount = @($manifest.modules).Count
-    scenarioCount = @($scenarioEntry.Value.scenarios).Count
+    scope = $(if ($TargetModule) { "module" } else { "all" })
+    module = $TargetModule
+    moduleCount = @($modulesToCheck).Count
+    scenarioCount = @($scenarioEntry.Value.scenarios | Where-Object { -not $TargetModule -or [string]$_.module -ieq $TargetModule }).Count
     fixtureCount = @($fixtureEntry.Value.profiles).Count
     failures = @($failures)
     warnings = @($warnings)
@@ -321,5 +345,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host "Unity migration docs passed: $(@($manifest.modules).Count) modules, no consistency failures."
+Write-Host "Unity migration docs passed: scope=$(if ($TargetModule) { $TargetModule } else { 'all' }), modules=$(@($modulesToCheck).Count), no consistency failures."
 exit 0

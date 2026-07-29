@@ -26,17 +26,41 @@ namespace ProjectX.Data
         [JsonProperty("des")] public string Description { get; set; }
         [JsonProperty("pic")] public int Picture { get; set; }
         [JsonProperty("quality")] public int Quality { get; set; }
+        [JsonProperty("type")] public int Type { get; set; }
+    }
+
+    [Serializable]
+    internal sealed class SynthesisDefinition
+    {
+        [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("type")] public int Type { get; set; }
+        [JsonProperty("item")] public int[][] Items { get; set; }
     }
 
     public sealed class ShopCatalog
     {
         private readonly Dictionary<ushort, ShopDefinition> shops = new Dictionary<ushort, ShopDefinition>();
         private readonly Dictionary<int, ShopItemDefinition> items = new Dictionary<int, ShopItemDefinition>();
+        private readonly Dictionary<int, SynthesisDefinition> synthesis =
+            new Dictionary<int, SynthesisDefinition>();
+        private readonly Dictionary<int, int> synthesisCosts = new Dictionary<int, int>();
 
         public ShopCatalog()
         {
             Load("Configs/shop", shops, value => value.Id);
             Load("Configs/item", items, value => value.Id);
+            Load("Configs/hecheng", synthesis, value => value.Id);
+            foreach (SynthesisDefinition definition in synthesis.Values)
+            {
+                if (definition.Type != 2 && definition.Type != 4) continue;
+                int itemId = definition.Items != null && definition.Items.Length > 0
+                    ? Value(definition.Items[0], 0)
+                    : 0;
+                int cost = definition.Items != null && definition.Items.Length > 0
+                    ? Value(definition.Items[0], 2)
+                    : 0;
+                if (itemId > 0 && cost > 0) synthesisCosts[itemId] = cost;
+            }
         }
 
         public int GetDisplayItemId(ushort id)
@@ -44,6 +68,15 @@ namespace ProjectX.Data
             ShopDefinition definition = Get(id);
             if (definition.Item == null || definition.Item.Length == 0) return 0;
             return definition.Item[0];
+        }
+
+        public int GetSynthesisCost(int itemId) =>
+            synthesisCosts.TryGetValue(itemId, out int cost) ? cost : 0;
+
+        public bool IsShard(int itemId)
+        {
+            ShopItemDefinition item = FindItem(itemId);
+            return item != null && (item.Type == 2 || item.Type == 7);
         }
 
         public ShopRecord Build(byte grid, ushort id, ushort buyCount, string fallbackName,
@@ -71,10 +104,16 @@ namespace ProjectX.Data
 
             ShopItemDefinition item = FindItem(rewardType);
             ShopItemDefinition currency = FindItem(configuredCostType) ?? FindItem(costType);
+            // The shipped Lua catalog is the visual authority for normal items, while
+            // hero-soul entries (item type 2) intentionally use their item-id portrait
+            // from the current JSON catalog. This mirrors Cocos GetItemCellValue output.
+            int picture = item?.Type == 2 && item.Picture > 0
+                ? item.Picture
+                : fallbackPicture > 0 ? fallbackPicture : item?.Picture ?? 0;
             return new ShopRecord(grid, id, buyCount, rewardType, rewardId, rewardAmount,
                 NonEmpty(fallbackName, item?.Name, $"商品 #{rewardType}"),
                 NonEmpty(fallbackDescription, item?.Description, "暂无描述"),
-                fallbackPicture > 0 ? fallbackPicture : item?.Picture ?? 0,
+                picture,
                 fallbackQuality > 0 ? fallbackQuality : item?.Quality ?? 0,
                 costType, currency?.Picture ?? 0, NonEmpty(currency?.Name, $"货币 #{costType}"),
                 baseCost, limit, definition.PricePercentages);
@@ -84,6 +123,8 @@ namespace ProjectX.Data
         {
             shops.Clear();
             items.Clear();
+            synthesis.Clear();
+            synthesisCosts.Clear();
         }
 
         private ShopDefinition Get(ushort id) => shops.TryGetValue(id, out ShopDefinition value)

@@ -135,7 +135,9 @@ namespace ProjectX.Editor
             bool shopG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopG4Validation") >= 0;
             bool shopValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopValidation") >= 0
                 || shopG4Validation;
-            bool gameplayShopsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsValidation") >= 0;
+            bool gameplayShopsValidation =
+                Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsVisualValidation") >= 0;
             bool friendValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFriendValidation") >= 0;
             bool chatValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXChatValidation") >= 0;
             bool teamValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTeamValidation") >= 0;
@@ -738,7 +740,7 @@ namespace ProjectX.Editor
         {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
-            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-gameplay-shop-blood.png");
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-gameplay-shop-final.png");
         }
 
         private static string GetFriendScreenshotPath()

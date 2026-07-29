@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
+& (Join-Path $PSScriptRoot "Test-UnityModuleG5Preflight.ps1") -Module $Module -RequireInputs
 $contracts = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/module-evidence-contracts.json").Value
 $contract = @($contracts.modules | Where-Object { $_.module -ieq $Module })

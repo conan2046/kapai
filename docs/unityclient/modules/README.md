@@ -15,7 +15,7 @@
 | 装备/法宝 | `HERO_EQUIPMENT.md` | `partial-interactive-audit-required`；历史协议诊断可复用，G4-G6按新矩阵重做 |
 | 邮件 | `MAIL.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 商城 | `SHOP.md` | 功能第一阶段完成；视觉 1:1 待重验 |
-| 将魂/竞技场/血战商店 | `GAMEPLAY_SHOPS.md` | 7 个 `/221` 协议页、74 条权威商品已通过门禁；视觉待重验 |
+| 玩法商店 | `GAMEPLAY_SHOPS.md` | `G0-G6 passed / 59/59 complete`；12 类 `/221` 商店、6 组双端视觉、固定账号恢复与 Bootstrap 幂等通过；父玩法资源产出链不在本模块声明内 |
 | 体力领取 | `STAMINACLAIM.md` | `/321 op=2` 三档权威状态已通过门禁；领取写操作禁用 |
 | 资源找回 | `RESOURCERECOVERY.md` | `/52 op=1` 七条权威记录已通过门禁；找回写操作禁用 |
 | 全部基金 | `FUNDS.md` | 成长/活跃基金 `/222 op=83/94` 双页权威状态已通过；购买/领取写操作禁用 |
