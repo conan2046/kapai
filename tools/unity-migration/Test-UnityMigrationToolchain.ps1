@@ -199,6 +199,18 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     $fixedRunnerSource.Contains('Invoke-UnityMigrationProcess -Executable $unityExecutable')
 ) "Fixed-account runner bypasses the unified Unity process runner."
+Assert-ToolchainTest (
+    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "visualValidationFlags"')
+) "Fixed-account runner does not safely read optional visual validation flags."
+Assert-ToolchainTest (
+    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "visualOnlyArtifacts"')
+) "Fixed-account runner does not safely read the optional visual-only artifact flag."
+Assert-ToolchainTest (
+    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId"')
+) "Fixed-account runner does not support a contract-declared terminal user identity."
+Assert-ToolchainTest (
+    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId"')
+) "Fixed-account runner does not support a contract-declared terminal role identity."
 
 $moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") `
     -Raw -Encoding UTF8

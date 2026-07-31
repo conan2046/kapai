@@ -73,6 +73,8 @@ namespace ProjectX.Editor
         private const string DrawPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/shenjiangzhaomu.prefab";
         private const string DrawSingleResultPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/dancichouka.prefab";
         private const string DrawTenResultPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/shilianchouka.prefab";
+        private const string DrawPreviewPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/jiangliyulan.prefab";
+        private const string DrawExchangePrefab = "Assets/ProjectX/res/csd/Prefabs/common/daojuduihuan.prefab";
         private const string GameplayFramePrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab";
         private const string GameplayPrefab = "Assets/ProjectX/res/csd/Prefabs/common/ActivityLayer.prefab";
         private const string GameplayDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/TaskPopupLayer.prefab";
@@ -157,6 +159,8 @@ namespace ProjectX.Editor
             new PrefabSpec(DrawPrefab, false),
             new PrefabSpec(DrawSingleResultPrefab, true, DrawPrefab),
             new PrefabSpec(DrawTenResultPrefab, true, DrawPrefab),
+            new PrefabSpec(DrawPreviewPrefab, false, DrawPrefab),
+            new PrefabSpec(DrawExchangePrefab, false),
             new PrefabSpec(GameplayFramePrefab, false),
             new PrefabSpec(GameplayPrefab, true, GameplayFramePrefab),
             new PrefabSpec(GameplayDetailPrefab, true, GameplayFramePrefab),
@@ -195,6 +199,7 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]
         public static void Build()
         {
+            EnsureDrawDynamicResources();
             EnsureFloatNoticePrefab();
             if (IsBootstrapSceneCurrent())
             {
@@ -204,6 +209,45 @@ namespace ProjectX.Editor
             }
 
             Rebuild();
+        }
+
+        private static void EnsureDrawDynamicResources()
+        {
+            string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            CopyResourceIfChanged(
+                Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", "skill_641.png"),
+                "Assets/ProjectX/Resources/HeroUI/skill_641.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_A.png",
+                "Assets/ProjectX/Resources/HeroUI/quality_score_A.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_s.png",
+                "Assets/ProjectX/Resources/HeroUI/quality_score_S.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_ss.png",
+                "Assets/ProjectX/Resources/HeroUI/quality_score_SS.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_sss.png",
+                "Assets/ProjectX/Resources/HeroUI/quality_score_SSS.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_ssss.png",
+                "Assets/ProjectX/Resources/HeroUI/quality_score_SSSS.png");
+        }
+
+        private static void CopyResourceIfChanged(string sourcePath, string destinationAssetPath)
+        {
+            string absoluteSource = Path.IsPathRooted(sourcePath)
+                ? sourcePath : Path.GetFullPath(sourcePath);
+            string absoluteDestination = Path.GetFullPath(destinationAssetPath);
+            if (!File.Exists(absoluteSource))
+                throw new FileNotFoundException($"Draw dynamic resource is missing: {absoluteSource}");
+            byte[] source = File.ReadAllBytes(absoluteSource);
+            bool changed = !File.Exists(absoluteDestination)
+                || !source.SequenceEqual(File.ReadAllBytes(absoluteDestination));
+            if (!changed) return;
+            Directory.CreateDirectory(Path.GetDirectoryName(absoluteDestination));
+            File.WriteAllBytes(absoluteDestination, source);
+            AssetDatabase.ImportAsset(destinationAssetPath, ImportAssetOptions.ForceSynchronousImport);
         }
 
         [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]

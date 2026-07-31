@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace ProjectX.UI.Migration
 {
@@ -228,6 +229,17 @@ namespace ProjectX.UI.Migration
                 case "Alpha":
                     CanvasGroup group = target.GetComponent<CanvasGroup>();
                     if (group == null) group = target.AddComponent<CanvasGroup>();
+                    // Imported Cocos nodes store their first-frame opacity on the
+                    // Graphic itself. CanvasGroup alone cannot revive a Graphic
+                    // whose color alpha is zero, so normalize the base graphic and
+                    // let the timeline-owned CanvasGroup carry node opacity.
+                    Graphic graphic = target.GetComponent<Graphic>();
+                    if (graphic != null)
+                    {
+                        Color color = graphic.color;
+                        color.a = 1f;
+                        graphic.color = color;
+                    }
                     group.alpha = Mathf.LerpUnclamped(left.value, right.value, t) / 255f;
                     break;
                 case "VisibleForFrame":

@@ -4,8 +4,8 @@
     {
       "module": "GameplayShops",
       "fixedAccount": {
-        "userId": 7200057,
-        "roleId": 1000115,
+    "userId": 7200057,
+    "roleId": 1000115,
         "adapter": "tools/unity-migration/Invoke-GameplayShopsCocosFixture.ps1",
         "snapshot": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
@@ -174,6 +174,63 @@
           { "id": "MAIL-05-LIST-SCROLL-BOTTOM", "cocos": "mail-list-hardware-drag-final.png", "unity": "MAIL-05-LIST-SCROLL-BOTTOM.png" },
           { "id": "MAIL-08-ATTACHMENT-END", "cocos": "mail-attachment-scroll-end.png", "unity": "MAIL-08-ATTACHMENT-END.png" },
           { "id": "MAIL-09-ATTACHMENT-DETAIL", "cocos": "mail-attachment-detail.png", "unity": "MAIL-09-ATTACHMENT-DETAIL.png" }
+        ]
+      }
+    },
+    {
+      "module": "Draw",
+  "fixedAccount": {
+    "userId": 7200057,
+    "roleId": 1000115,
+    "terminalUserId": 705213,
+    "terminalRoleId": 1000006,
+    "adapter": "tools/unity-migration/Invoke-DrawCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Draw/unity/g3/draw-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Draw/unity/g6/draw-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": ["-projectXDrawClosureValidation", "-projectXDrawIsolationUserId=705213"],
+        "skipPostValidationFixtureAssert": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
+            { "id": "deterministic-first-high-draw", "description": "服务端夹具把高级池累计次数设为 0、免费次数设为 1，首个真实 /224 高级单抽权威返回神将 64" },
+            { "id": "target-hero-initial-state", "description": "夹具中移除神将 64、保留神将 57 与合法原始阵位，确保目标只能由本次招募产生" },
+            { "id": "draw-resource-state", "description": "准备基础、高级、友情招募券及免费次数，覆盖免费、单抽、十连和资源不足分支" },
+            { "id": "hero-level-material", "description": "准备初级神将内丹 834 及其服务端模板 type=3/sub_value=60006,200，供真实 /24 op=3 培养并验证资源扣除与属性刷新；模板原值须随夹具精确恢复" },
+            { "id": "legal-formation-replacement", "description": "保留可替换的合法阵位与既有神将，目标神将可经真实 /48 op=4 上阵" },
+            { "id": "alternate-account-isolation", "description": "准备独立只读 userId=705213/roleId=1000006，并硬断言其初始神将列表不存在目标 64；闭环末尾必须真实切换并重拉 /24,/48 验证隔离" },
+            { "id": "exact-restore-surface", "description": "快照 level、package、pet、chou_ka、zhenfa、save_data、角色货币与战力、账户货币及 834 模板，以整体 SHA256、模板原值和 fixture 零残留验证精确恢复" }
+          ]
+        },
+        "artifactCopies": [
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-MAIN.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-MAIN.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-REWARD-PREVIEW.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-REWARD-PREVIEW.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-NEW.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-NEW.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-DUPLICATE.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-DUPLICATE.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESOURCE-INSUFFICIENT.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESOURCE-INSUFFICIENT.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-LIST.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-LIST.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-CULTIVATE.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-CULTIVATE.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-SELECTION.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-SELECTION.png" },
+          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-MOUNTED.png" }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/Draw/cocos/g5-20260730",
+        "unityDirectory": ".local/ui-fidelity/Draw/unity/g5-20260730",
+        "compareDirectory": ".local/ui-fidelity/Draw/compare/g5-20260730",
+        "width": 1334,
+        "height": 750,
+        "pairs": [
+          { "id": "DRAW-MAIN", "cocos": "DRAW-MAIN.png", "unity": "DRAW-MAIN.png" },
+          { "id": "DRAW-REWARD-PREVIEW", "cocos": "DRAW-REWARD-PREVIEW.png", "unity": "DRAW-REWARD-PREVIEW.png" },
+          { "id": "DRAW-RESULT-NEW", "cocos": "DRAW-RESULT-NEW.png", "unity": "DRAW-RESULT-NEW.png" },
+          { "id": "DRAW-RESULT-DUPLICATE", "cocos": "DRAW-RESULT-DUPLICATE.png", "unity": "DRAW-RESULT-DUPLICATE.png" },
+          { "id": "DRAW-RESOURCE-INSUFFICIENT", "cocos": "DRAW-RESOURCE-INSUFFICIENT.png", "unity": "DRAW-RESOURCE-INSUFFICIENT.png" },
+          { "id": "DRAW-HERO-LIST", "cocos": "DRAW-HERO-LIST.png", "unity": "DRAW-HERO-LIST.png" },
+          { "id": "DRAW-HERO-CULTIVATE", "cocos": "DRAW-HERO-CULTIVATE.png", "unity": "DRAW-HERO-CULTIVATE.png" },
+          { "id": "DRAW-FORMATION-SELECTION", "cocos": "DRAW-FORMATION-SELECTION.png", "unity": "DRAW-FORMATION-SELECTION.png" },
+          { "id": "DRAW-FORMATION-MOUNTED", "cocos": "DRAW-FORMATION-MOUNTED.png", "unity": "DRAW-FORMATION-MOUNTED.png" }
         ]
       }
     }

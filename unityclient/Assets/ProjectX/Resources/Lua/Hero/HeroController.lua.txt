@@ -9,9 +9,12 @@ local M = {
     mutationHero = nil,
     originalPosition = nil,
     targetPosition = nil,
+    levelUpHero = nil,
+    levelUpBeforeLevel = nil,
     g4RestoreExpected = false,
     equipmentReady = false,
     formationReady = false,
+    closureStage = nil,
 }
 
 local function requestFormation()
@@ -68,14 +71,60 @@ end
 function M.moveHero(heroId, position)
     if M.mutationStage ~= nil then return end
     local original = FormationModel:GetCombatPosition(heroId)
-    if original <= 0 or position <= 0 or position == original then return end
+    if position <= 0 or position == original or FormationModel:GetPetById(heroId) == nil then return end
     M.mutationHero, M.originalPosition, M.targetPosition = heroId, original, position
-    if Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
+    if M.closureStage == "mount" then
+        M.mutationStage = "closure_move_response"
+    elseif Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
         M.mutationStage = M.g4RestoreExpected and "g4_restore_response" or "g4_move_response"
     else
         M.mutationStage = "interactive_response"
     end
     sendPosition(heroId, position)
+end
+
+-- The closure uses the same replacement-button path as a player. This only
+-- arms the existing /48 response assertion; the button callback sends /48.
+function M.prepareDrawClosureMount()
+    if not Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
+        or M.closureStage ~= "await_material_refresh" then return end
+    M.closureStage = "mount"
+end
+
+function M.prepareDrawClosureReconnect()
+    if Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") and M.closureStage == "mounted" then
+        M.closureStage = "await_reconnect"
+    end
+end
+
+function M.prepareDrawClosureAccountIsolation()
+    if Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") and M.closureStage == "await_reconnect" then
+        M.closureStage = "await_account_isolation"
+    end
+end
+
+-- Shipped LuaNetSendMsg:QueryPetLvUp. The screen is refreshed from the
+-- authoritative /24 + /48 snapshots; this function never mutates local data.
+function M.levelUp(heroId, itemId, itemCount)
+    if M.mutationStage ~= nil or heroId == nil or itemId == nil then return end
+    if Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
+        and M.closureStage == "await_initial_material" then
+        M.closureStage = "levelup"
+    end
+    local hero = FormationModel:GetPetById(heroId)
+    if hero == nil then return end
+    M.mutationHero = heroId
+    M.levelUpHero = heroId
+    M.levelUpBeforeLevel = hero.level
+    M.levelUpBeforeExperience = hero.experience
+    M.mutationStage = "levelup_response"
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(3)
+    message:WriteWord(heroId)
+    message:WriteWord(itemId)
+    message:WriteByte(math.max(1, math.min(tonumber(itemCount) or 1, 255)))
+    Bridge:Send(message)
+    Bridge:SetStatus("Hero/24 op=3 level-up request sent for hero " .. tostring(heroId) .. ".")
 end
 
 local function readHero(message)
@@ -155,6 +204,42 @@ local function readFormation(message)
     FormationModel:ReplaceFormation(activeId, formations, display, combat)
     syncRenderMirror()
 
+    if M.mutationStage == "levelup_snapshot" then
+        local hero = FormationModel:GetPetById(M.levelUpHero)
+        M.requested = false
+        if hero == nil or (hero.level <= (M.levelUpBeforeLevel or 0)
+            and hero.experience <= (M.levelUpBeforeExperience or 0)) then
+            Bridge:Fail("Hero level-up did not persist in the authoritative /24 snapshot.")
+            M.mutationStage = nil
+            return
+        end
+        if Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") and M.closureStage == "levelup" then
+            M.mutationStage = nil
+            M.closureStage = "await_material_refresh"
+            Bridge:CompleteDrawClosureHeroLevelUp(hero.id, M.levelUpBeforeLevel or 0, hero.level,
+                M.levelUpBeforeExperience or 0, hero.experience)
+            Bridge:BeginDrawClosureBagRefresh()
+            return
+        end
+        M.mutationStage = nil
+        Bridge:SetStatus("Hero/24 op=3 persisted: hero=" .. tostring(hero.id) .. " level=" .. tostring(hero.level) .. ".")
+        return
+    end
+
+    if M.mutationStage == "closure_move_snapshot" then
+        local hero = FormationModel:GetPetById(M.mutationHero)
+        M.requested = false
+        if hero == nil or FormationModel:GetCombatHero(M.targetPosition) ~= M.mutationHero then
+            Bridge:Fail("Draw closure formation snapshot did not contain the recruited hero.")
+            M.mutationStage = nil
+            return
+        end
+        M.mutationStage = nil
+        M.closureStage = "mounted"
+        Bridge:CompleteDrawClosureFormation(hero.id, M.targetPosition, hero.level, hero.attack, hero.health)
+        return
+    end
+
     if M.mutationStage == "interactive_snapshot" then
         M.mutationStage = nil
         Bridge:SetStatus("Formation position updated by authoritative Lua snapshot.")
@@ -212,7 +297,30 @@ local function readFormation(message)
     end
     if M.requested then
         M.requested = false
-        if Bridge:HasCommandLineFlag("-projectXHeroLockedValidation") then
+        if Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") then
+            local hero = FormationModel:GetPetById(64)
+            if M.closureStage == nil then
+                if hero == nil then Bridge:Fail("Draw closure recruited target hero is absent from /24."); return end
+                M.closureStage = "await_initial_material"
+                Bridge:BeginDrawClosureBagRefresh()
+            elseif M.closureStage == "mounted" then
+                if hero == nil or FormationModel:GetCombatPosition(hero.id) ~= 1 then
+                    Bridge:Fail("Draw closure reentry lost target hero or formation position.")
+                    return
+                end
+                Bridge:CompleteDrawClosureModuleReentry(hero.id, 1, hero.level)
+            elseif M.closureStage == "await_reconnect" then
+                if hero == nil or FormationModel:GetCombatPosition(hero.id) ~= 1 then
+                    Bridge:Fail("Draw closure reconnect lost target hero or formation position.")
+                    return
+                end
+                Bridge:CompleteDrawClosureReconnect(hero.id, 1, hero.level, hero.experience)
+            elseif M.closureStage == "await_account_isolation" then
+                local target = FormationModel:GetPetById(64)
+                local position = target == nil and 0 or FormationModel:GetCombatPosition(64)
+                Bridge:CompleteDrawClosureAccountIsolation(FormationModel:GetHeroCount(), position)
+            end
+        elseif Bridge:HasCommandLineFlag("-projectXHeroLockedValidation") then
             Bridge:RunHeroLockedControlValidation()
         elseif Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
             if M.equipmentReady then runG4Validation()
@@ -259,6 +367,12 @@ local function readPositionResponse(message)
         Bridge:Fail("Invalid formation hero was unexpectedly accepted.")
         return
     end
+    if M.mutationStage == nil then
+        -- A disconnect can leave an already-acknowledged /48 op=4 packet in the
+        -- socket queue. It has no matching in-flight position mutation, so it
+        -- must not be treated as a response for the next account/session.
+        return
+    end
     if M.mutationStage == "interactive_response" then
         if heroId ~= M.mutationHero or position ~= M.targetPosition then
             M.mutationStage = nil
@@ -273,6 +387,9 @@ local function readPositionResponse(message)
         M.mutationStage = "g4_move_snapshot"
     elseif M.mutationStage == "g4_restore_response" and position == M.targetPosition then
         M.mutationStage = "g4_restore_snapshot"
+    elseif M.mutationStage == "closure_move_response" and position == M.targetPosition then
+        M.mutationStage = "closure_move_snapshot"
+        requestFormation()
     end
     if heroId ~= M.mutationHero then Bridge:Fail("Formation response hero mismatch."); M.mutationStage = nil; return end
     if M.mutationStage == "await_move_response" and position == M.targetPosition then
@@ -282,10 +399,25 @@ local function readPositionResponse(message)
     end
 end
 
+local function readLevelUpResponse(message)
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        M.mutationStage = nil
+        Bridge:Fail("Hero level-up failed: " .. tostring(reason))
+        return
+    end
+    if M.mutationStage ~= "levelup_response" then return end
+    M.mutationStage = "levelup_snapshot"
+    M.onClick()
+end
+
 function M.onPacket(command, message)
     if command == Protocol.HERO then
         local op = message:ReadByte()
-        if op == 1 then readHeroList(message) else return false end
+        if op == 1 then readHeroList(message)
+        elseif op == 3 then readLevelUpResponse(message)
+        else return false end
         return true
     end
     if command ~= Protocol.FORMATION then return false end
@@ -296,10 +428,14 @@ function M.onPacket(command, message)
 end
 
 function M.reset()
+    local keepClosure = Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
+        and (M.closureStage == "await_reconnect" or M.closureStage == "await_account_isolation")
     M.requested, M.mutationStage, M.mutationHero = false, nil, nil
     M.originalPosition, M.targetPosition = nil, nil
+    M.levelUpHero, M.levelUpBeforeLevel, M.levelUpBeforeExperience = nil, nil, nil
     M.g4RestoreExpected = false
     M.equipmentReady, M.formationReady = false, false
+    M.closureStage = keepClosure and M.closureStage or nil
     FormationModel:Reset()
 end
 

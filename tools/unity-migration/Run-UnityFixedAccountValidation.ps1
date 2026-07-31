@@ -40,12 +40,18 @@ $pythonExecutable = Get-UnityMigrationPythonExecutable
 $adapter = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.adapter)
 $snapshot = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.snapshot)
 $resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
-$visualValidationFlags = @($fixed.visualValidationFlags | ForEach-Object { [string]$_ })
+$visualValidationFlags = @(
+    Get-UnityMigrationPropertyValue -Object $fixed -Name "visualValidationFlags" -Default @() |
+        ForEach-Object { [string]$_ }
+)
+$visualOnlyArtifacts = [bool](
+    Get-UnityMigrationPropertyValue -Object $fixed -Name "visualOnlyArtifacts" -Default $false
+)
 if ($VisualOnly -and $visualValidationFlags.Count -eq 0) {
     throw "Module '$Module' has no fixedAccount.visualValidationFlags contract."
 }
 $resultEvidenceContract = if ($VisualOnly) {
-    [string]$fixed.visualResultEvidence
+    [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "visualResultEvidence" -Default "")
 } else {
     [string]$fixed.resultEvidence
 }
@@ -238,9 +244,16 @@ try {
             if (-not [bool]$result.success -or [string]$result.status -notlike "COMPLETE:*") {
                 throw "Unity fixed-account validation failed: $($result.status)"
             }
-            Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $UserId
-            if ([uint32]$result.roleId -ne $RoleId) {
-                throw "Unity fixed-account role mismatch: expected=$RoleId actual=$($result.roleId)"
+            $runnerUserId = [uint32](
+                Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId" -Default $UserId
+            )
+            $runnerRoleId = [uint32](
+                Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId" -Default $RoleId
+            )
+            Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) `
+                -ExpectedUserId $runnerUserId
+            if ([uint32]$result.roleId -ne $runnerRoleId) {
+                throw "Unity fixed-account role mismatch: expected=$runnerRoleId actual=$($result.roleId)"
             }
             $coverage = if ($VisualOnly) {
                 [pscustomobject]@{
@@ -263,7 +276,7 @@ try {
         try {
             $screenshots = New-Object System.Collections.Generic.List[object]
             Add-Type -AssemblyName System.Drawing
-            if (-not $VisualOnly -and [bool]$fixed.visualOnlyArtifacts) {
+            if (-not $VisualOnly -and $visualOnlyArtifacts) {
                 $visualSummaryPath = Join-Path $root `
                     ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-visual-latest.json"
                 if (-not (Test-Path -LiteralPath $visualSummaryPath -PathType Leaf)) {
@@ -291,7 +304,7 @@ try {
                     $screenshots.Add($visualScreenshot)
                 }
             }
-            $artifactCopies = if (-not $VisualOnly -and [bool]$fixed.visualOnlyArtifacts) {
+            $artifactCopies = if (-not $VisualOnly -and $visualOnlyArtifacts) {
                 @()
             } else {
                 @($fixed.artifactCopies)

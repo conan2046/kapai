@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-07-29
+> 最后更新：2026-07-30
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `7/29 = 24.1%` | 背包、任务、神将/阵容、装备/法宝、邮件、基础商城、玩法商店已按新标准完成 G0-G6 |
+| Validated | `8/29 = 27.6%` | 背包、任务、神将/阵容、装备/法宝、邮件、基础商城、玩法商店、神将招募已按新标准完成 G0-G6 |
 
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -37,12 +37,13 @@
 | 世界/战斗/副本 | 第一阶段完成 | `/320` 世界/章节/关卡/详情/阵容与奖励预览、隔离 PvE 结算和三星持久化 | 扫荡/重置/宝箱、支线、完整战斗表现 |
 | 福利 | 第一阶段完成 | `/199、/222、/223` 签到、在线奖励、阶段目标边界/空态、单次签到领取；`/321 op=2` 体力领取三档权威状态 | 在线领取、体力实际领取、七日登录、等级礼包、阶段目标服务端恢复 |
 | 活动 | 第一阶段完成 | 当前入口 `ButtonGroup5/btn_huodong → WelfareActivityFormerUI`；`/222 op=0xFF` 列表、Tab/红点/倒计时、`op=18/1` 每日首充状态与奖励、真实未迁移 Tab 空边界通过 | 累计充值/消费、节日、排行、砸蛋、七日充值、神将折扣、领取与充值 SDK |
-| 抽卡 | 第一阶段完成 | 当前 `btn_zhaomu → HappyDrawUI`；`/224` 三池、免费次数/倒计时/红点、真实免费单抽、权威奖励与结果 Timeline | 十连正向、奖励预览、重复神将转换、券不足联动 |
+| 抽卡 | `G0-G6 complete` | 当前 `btn_zhaomu → HappyDrawUI → /224`；28/28 控件、三池、免费/券消耗、十连、预览、新/重复结果、Hero 培养、Formation 上阵、重进/重连/切号和精确恢复完成 | 概率公示、支付渠道不在本模块；World 后续单独迁移 |
 | 玩法大厅及首批子页 | `logic-validated-visual-deferred` | 大厅真实布局、游历、封神列传、竞技场、决战昆仑 `/213`、血战 `/323`、法宝搜索 `/319`、七日目标 `/37`、三类玩法商店 `/221`、体力领取 `/321`、资源找回 `/52`、成长/活跃基金 `/222` 均已跑通 | 好友赠送与组队统一后置；继续下一个非社交模块 |
 | 充值/VIP/渠道 | 后置 | 未开始 | 单独处理支付、SDK和合规 |
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- Draw G0-G6（2026-07-31）：固定账号 `7200057/1000115` 以可逆 Fixture 保证高级首次招募权威返回神将 `64 郑伦`，真实完成 `/224 → /24 op=3 → /48 op=4` 的招募、培养、上阵、重进、断线重连和切换账号 `705213/1000006` 隔离；28/28 控件、6/6 语义断言通过。9 组同账号 `1334×750` 双端视觉完成；Cocos 上阵完成帧保留培养前陈旧数值，Unity显示服务端权威刷新值，已作为受控原生缺陷记录。恢复前后及重登录 SHA-256 均为 `d10f760ded12ce9b8518770097bad55e1d85b72906a0e3344a9de47fe23483ee`，Fixture 残留 0；冻结工具链加最小可选字段/终态身份修复后回归 `43/43`，两次正式 BuildBatch SHA-256 均为 `CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。证据 `.local/unity-validation/draw-fixed-account-latest.json`、`.local/ui-fidelity/Draw/compare/g5-20260730/`。
 - GameplayShops G5重验（2026-07-29）：六页恢复 `shop/shop_bg`、菱形导航、原生页签、真实品质框/物品图/数量/碎片角标/合成计数，并清除聊天公共层残留；同账号同数据 `1334×750` 逐页人工验收通过，MAE `6.7721～10.4781`，结构错位、错资源及文字裁切/重叠为 `0`。证据 `.local/ui-fidelity/GameplayShops/compare/g5-live-20260729/`。
 - Shop G0-G6（2026-07-28）：范围固定为基础商城 `type=1`；固定账号 `7200057/1000115` 完成商品列表、数量键盘、滚动、购买确认、奖励、重拉/重登 `6/6` 双端原生 `1334×750` 视觉，控件矩阵 `21/21 complete`。最终隔离账号 `7200123/1000174` 完成 `/221 op1/2/3/4`、21/21 真实控件、5/5 语义断言、余额不足、空态、断线重连和切号清理。修复奖励弹窗层级、商品行高、页签截断及英雄阵容残留；批准购买确认、公共奖励弹窗和 type=1 不可刷新提示三项目标差异。固定账号恢复及重登录哈希均为 `adabb7fcb1c9784356a98e1246074dad868ebe5c55dbb656230991beea302be0`，夹具残留 0；正式 BuildBatch 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/ui-fidelity/Shop/compare/g5-live-20260728/`、`.local/unity-validation/shop-latest.json`。
 - Mail G0-G6（2026-07-27）：固定账号 `7200057/1000115` 同一批 14 封邮件完成 4/4 双端视觉；隔离账号 `7200096/1000151` 完成 13/13 真实控件、5/5 语义断言和 5 张互异原生图。`/128 op2/3/4/5`、重复/非法失败、串行一键领取、无附件已读、账号历史隔离、重进/断线/切号、空态均通过。Cocos 左列表不滚和附件详情数量 0 作为已记录缺陷，Unity 分别修为真实滚动和权威数量。固定账号重登录后精确恢复，夹具残留 0；正式 BuildBatch 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/unity-validation/mail-latest.json`、`.local/ui-fidelity/Mail/compare/g5-live-20260727/`。
@@ -69,7 +70,6 @@
 - 玩法大厅公共层（2026-07-18）：真实 `ui_shenjiang_tips.png` 底部公告与扇子装饰已接入；最终 `userId=7200047`、16/16 测试、严重异常 0，Bootstrap SHA-256 两次一致为 `8A160A8F17CAA1B2A45AD623F941C81E9EB2A39DE119262F540AB9F30A9F0519`。
 - 玩法大厅视觉修复基线（2026-07-18）：`btn_wanfa → shop/shop_bg + WanFaEntranceUI/common/ActivityLayer → WanFaInfoUI/TaskPopupLayer`；最终 `userId=7200039`，13 项与 `/65` 三类隐藏态通过。Cocos/Unity 列表与详情均为 `1334×750`，流程、节点映射、四份差异报告位于 `.local/ui-fidelity/Gameplay/`。列表全屏差异率 `12.08%`、详情 `10.70%`，因公共装饰/公告层与字体采样差异仍未通过，状态保持 `visual-fixing`。
 - Bootstrap 七日目标接线幂等（2026-07-18）：连续两次 SHA-256 `E546A076DA6A3D391F0A73ABA327D1623A0737DCF3967F55F3882F9474C112A0`，语义签名一致；脚本只阻止同一 Unity 项目，不误伤用户同时打开的其他项目。
-- 神将招募第一阶段（2026-07-18）：当前链为 `UImainLayer_new/ButtonGroup3/btn_zhaomu → EMID_KAPAI_CHOUKA → HappyDrawUI → csd/chouka/shenjiangzhaomu → /224`；最终 `userId=7200024`、`roleId=1000038`，op=1 返回 3 池，op=2 完成一次免费基础单抽并显示 `陈奇神魂×1`，截图 `1334×750`，严重异常 0。旧 `EMID_CHOUKA/LuckyDrawUI` 与未注册的另一套 `CPetDrawCfgMgr` 不计当前版本。
 - 活动第一阶段（2026-07-18）：当前真实链为 `UImainLayer_new/ButtonGroup5/btn_huodong → WelfareActivityFormerUI → csd/huodong/ActivityRankingLayer + ActivityLevelLayer → /222 op=0xFF`；首个子页为 `tag=1 DailyRechargeUI → csd/DailyChargeLayer → /222 op=18/subOp=1`。最终 `userId=7200020`、`roleId=1000034`，列表 2 条、奖励 1 条，三张 `1334×750` 截图，严重异常 0，夹具与备份表残留 0。
 - `.ani` 专项（2026-07-18）：活动 Lua 共 67 个构造入口、208 个调用、38 个动态加载表达式；886/886 ANI 可解析。Unity 逐项通过 885 个可播放资源、1327 个动作、10264 个动作序列帧，PNG/ANI 分离、附加层、翻转、颜色、透明度、旧速度倍率均通过；固定 UI 24 路径中 18 个真实播放、6 个源包缺整组资源，另有 `Skill/skill_5_h_l.ani` 缺 PNG。视觉联系表 `.local/validation/imod-static-ui-contact-sheet.png`。
 - CSB Timeline 专项（2026-07-18）：29 处有效调用展开为 27 个唯一资源/Prefab；22 个有真实轨道、5 个源文件本身为空时间轴。累计导入 461 条轨道、2478 帧、34 个命名片段；唯一 CSB-only `FengShenLayer.csb` 已逐帧解码。Unity 实例化播放 27/27、命名片段 34/34、非空 FrameEvent 3/3，视觉抽样见 `.local/validation/timeline-*.png`。
@@ -80,7 +80,7 @@
 - 活动旧版 `/209 + ActivityLayer` 结果已判为错误版本证据，不再计入完成率，也不得提交。
 
 ## 4. 当前批次
-GameplayShops（玩法商店）已完成 G0-G6：`59/59` 控件、`9/9` 语义、6 组同数据双端视觉、固定账号精确恢复和两次正式 BuildBatch 均通过；严格完成率更新为 `7/29 = 24.1%`。本模块声明真实兑换与消费闭环，不声明尚未迁移的父玩法资源产出链。
+Draw（神将招募）已完成 G0-G6：`28/28` 控件、`6/6` 语义、9 组双端视觉、固定账号真实招募→Hero 培养→Formation 上阵→重连闭环、切号隔离、精确恢复和两次正式 BuildBatch 均通过；严格完成率更新为 `8/29 = 27.6%`。本任务已停止，不启动 World；下一任务边界为 `World（世界/战斗/副本）`，不得复用本轮截图、Runner 或 SHA。
 
 ## 5. 已知风险
 

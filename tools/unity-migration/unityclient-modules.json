@@ -124,7 +124,7 @@
     {
       "key": "Settings",
       "displayName": "系统设置",
-      "status": "phase1-complete",
+      "status": "g3-implemented",
       "protocols": [],
       "entries": [
         "Layer/Main_UI/ButtonGroup7/btn_xitong"
@@ -215,7 +215,7 @@
     {
       "key": "PlayerHud",
       "displayName": "主界面HUD",
-      "status": "phase1-complete",
+      "status": "g6-complete",
       "protocols": [
         18,
         226,
@@ -725,11 +725,31 @@
       ],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXDrawValidation"
+        "-projectXDrawClosureValidation"
       ],
+      "controlMatrix": "docs/unityclient/matrices/DRAW_CONTROLS.json",
       "screenshots": [
         "build/ui-migration/bootstrap-draw.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Draw/cocos/g5-20260730/DRAW-MAIN.png",
+          ".local/ui-fidelity/Draw/cocos/g5-20260730/DRAW-HERO-LIST.png",
+          ".local/ui-fidelity/Draw/cocos/g5-20260730/DRAW-FORMATION-MOUNTED.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-MAIN.png",
+          ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-LIST.png",
+          ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Draw/compare/g5-20260730/report.json",
+          ".local/ui-fidelity/Draw/compare/g5-20260730/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/unity-validation/draw-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/DRAW_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/DRAW.md"
     },
     {

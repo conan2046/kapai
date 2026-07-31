@@ -40,6 +40,20 @@ namespace ProjectX.Editor
             SetGameViewResolution(RequiredGameViewWidth, RequiredGameViewHeight);
         }
 
+        [MenuItem("Tools/ProjectX App/Capture Current Draw Evidence", priority = 90)]
+        public static void CaptureCurrentDrawEvidence()
+        {
+            if (!EditorApplication.isPlaying || ProjectXApp.Instance == null)
+                throw new InvalidOperationException("Draw evidence capture requires a running ProjectX app.");
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string directory = Path.Combine(repositoryRoot, ".local", "ui-fidelity", "Draw", "unity", "g5-20260730");
+            Directory.CreateDirectory(directory);
+            string path = Path.Combine(directory, "unity-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmssfff") + ".png");
+            ScreenCapture.CaptureScreenshot(path);
+            Debug.Log("[BootstrapAppRunner] Draw evidence capture queued: " + path);
+        }
+
         [MenuItem("Tools/ProjectX App/Run Bootstrap Validation", priority = 91)]
         public static void Run()
         {
@@ -145,7 +159,8 @@ namespace ProjectX.Editor
             bool worldValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldBattleValidation") >= 0;
             bool welfareValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWelfareValidation") >= 0;
             bool activityValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXActivityValidation") >= 0;
-            bool drawValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawValidation") >= 0;
+            bool drawValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0;
             bool gameplayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayValidation") >= 0;
             bool youLiValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXYouLiValidation") >= 0;
             bool fengShenStoryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFengShenStoryValidation") >= 0;
@@ -243,6 +258,14 @@ namespace ProjectX.Editor
                     // Bag G4 owns its 26 state captures and finishes by exercising
                     // account-switch cleanup, so the expected terminal UI is Login,
                     // not an open Bag on UiStack.
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (drawValidation && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0)
+                {
+                    // Draw G4 deliberately ends after alternate-account isolation at
+                    // the disconnected login UI, rather than leaving Draw on UiStack.
                     WriteResult(true, status);
                     Finish(true);
                     return;
@@ -583,7 +606,13 @@ namespace ProjectX.Editor
                 return;
             }
 
-            if (!requiresReconnectValidation && status.IndexOf("failed", StringComparison.OrdinalIgnoreCase) >= 0)
+            // Draw closure performs a reconnect later, but any preceding G4 control
+            // failure is terminal. Do not let the generic reconnect allowance turn a
+            // concrete validation failure into a runner timeout.
+            if ((drawValidation && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0
+                    || !requiresReconnectValidation)
+                && (app.CurrentAppState == AppState.Failed
+                    || status.IndexOf("failed", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 WriteResult(false, status);
                 Finish(false);

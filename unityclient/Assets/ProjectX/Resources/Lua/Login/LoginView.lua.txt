@@ -1,3 +1,4 @@
+local DrawController = require("Draw.DrawController")
 local M = {}
 function M.show(autoInvoke) Bridge:ShowLoginUi(); Bridge:BindLoginClick(autoInvoke) end
 function M.showRoleCreate(autoInvoke) Bridge:BindRoleCreateClick(autoInvoke) end
@@ -7,6 +8,10 @@ function M.showMain(autoInvokeBag)
         or Bridge:HasCommandLineFlag("-projectXTaskMutationValidation")
         or Bridge:HasCommandLineFlag("-projectXTaskG4Validation")
     local playerValidation = Bridge:HasCommandLineFlag("-projectXPlayerHudValidation")
+    local bagValidation = Bridge:HasCommandLineFlag("-projectXBagValidation")
+        or Bridge:HasCommandLineFlag("-projectXBagG3Validation")
+        or Bridge:HasCommandLineFlag("-projectXBagG4Validation")
+        or Bridge:HasCommandLineFlag("-projectXUseItemValidation")
     local heroValidation = Bridge:HasCommandLineFlag("-projectXHeroValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroBagValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroG4Validation")
@@ -28,6 +33,7 @@ function M.showMain(autoInvokeBag)
     local welfareValidation = Bridge:HasCommandLineFlag("-projectXWelfareValidation")
     local activityValidation = Bridge:HasCommandLineFlag("-projectXActivityValidation")
     local drawValidation = Bridge:HasCommandLineFlag("-projectXDrawValidation")
+        or Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
     local gameplayValidation = Bridge:HasCommandLineFlag("-projectXGameplayValidation")
         or Bridge:HasCommandLineFlag("-projectXYouLiValidation")
         or Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation")
@@ -42,7 +48,10 @@ function M.showMain(autoInvokeBag)
         or Bridge:HasCommandLineFlag("-projectXResourceRecoveryValidation")
         or Bridge:HasCommandLineFlag("-projectXFundsValidation")
     local loginValidation = Bridge:HasCommandLineFlag("-projectXLoginValidation")
-    Bridge:BindBagClick(autoInvokeBag and not taskValidation and not playerValidation and not heroValidation and not mailValidation and not shopValidation and not friendValidation and not chatValidation and not teamValidation and not guildValidation and not worldValidation and not welfareValidation and not activityValidation and not drawValidation and not gameplayValidation and not loginValidation)
+    -- Editor-visible automation still needs native click targets. Only batch
+    -- validation flags may invoke one automatically; otherwise the old generic
+    -- automation mode left an outstanding Bag /8 request behind every login.
+    Bridge:BindBagClick(autoInvokeBag and bagValidation)
     Bridge:BindSettingsClick()
     Bridge:BindTaskClick(autoInvokeBag and taskValidation)
     Bridge:BindHeroClick(autoInvokeBag and heroValidation)
@@ -56,7 +65,7 @@ function M.showMain(autoInvokeBag)
     Bridge:BindWorldClick(autoInvokeBag and worldValidation)
     Bridge:BindWelfareClick(autoInvokeBag and welfareValidation)
     Bridge:BindActivityClick(autoInvokeBag and activityValidation)
-    Bridge:BindDrawClick(autoInvokeBag and drawValidation)
+    Bridge:BindDrawClick(autoInvokeBag and drawValidation and DrawController.shouldAutoInvoke())
     Bridge:BindGameplayClick(autoInvokeBag and gameplayValidation)
 end
 return M

@@ -51,12 +51,15 @@ end
 function OnLoginClicked() LoginController.onLoginClicked() end
 function OnRoleCreateClicked() LoginController.onRoleCreateClicked() end
 function OnBagClicked() BagController.onClick() end
+function OnDrawClosureBagRefresh() BagController.requestDrawClosureSnapshot() end
 function OnBagUseClicked(slot, quantity, target) BagController.onUse(slot, quantity, target) end
 function OnSettingsClicked() SettingsController.onClick() end
 function OnTaskClicked() TaskController.onClick() end
 function OnTaskClaimClicked(taskType, id) TaskController.claim(taskType, id) end
 function OnHeroClicked() HeroController.onClick() end
 function OnFormationMove(heroId, position) HeroController.moveHero(heroId, position) end
+function OnHeroLevelUp(heroId, itemId, itemCount) HeroController.levelUp(heroId, itemId, itemCount) end
+function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
 function OnEquipmentBagClicked() EquipmentController.open(1) end
 function OnFaBaoBagClicked() EquipmentController.open(2) end
@@ -118,6 +121,8 @@ function OnActivityClicked() ActivityController.onClick() end
 function OnActivitySelected(tag) ActivityController.select(tag) end
 function OnDrawClicked() DrawController.onClick() end
 function OnDrawRequested(kind, drawType) DrawController.draw(kind, drawType) end
+function OnDrawClosurePrepareReconnect() HeroController.prepareDrawClosureReconnect() end
+function OnDrawClosurePrepareAccountIsolation() HeroController.prepareDrawClosureAccountIsolation() end
 function OnGameplayClicked() GameplayController.onClick() end
 function OnGameplayEntered(functionId) GameplayController.enter(functionId) end
 function OnYouLiClicked() YouLiController.onClick() end

@@ -1,8 +1,13 @@
 local Protocol = require("Protocol")
+local BagController = require("Bag.BagController")
 local itemCatalog = require("Data.ItemCatalog")
 local itemsById = {}
 for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
-local M = { validation = false, drawRequested = false }
+local M = { validation = false, drawRequested = false, closureStarted = false }
+
+function M.shouldAutoInvoke()
+    return not Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") or not M.closureStarted
+end
 
 local function requestInfo()
     local message = Protocol.newMessage(Protocol.PET_RANDOM_DRAW)
@@ -12,7 +17,10 @@ end
 
 function M.onClick()
     M.validation = Bridge:HasCommandLineFlag("-projectXDrawValidation")
+        or Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
+    if Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") then M.closureStarted = true end
     Bridge:ShowDraw()
+    BagController.requestDrawHeaderRefresh()
     requestInfo()
     Bridge:SetStatus("Draw /224 op=1 requested.")
 end
@@ -63,7 +71,7 @@ local function readResult(message)
     if success == 0 then
         local detail = message.Remaining > 0 and message:ReadString() or "unknown"
         Bridge:SetDrawError("Draw /224 op=2 failed: " .. detail)
-        if M.validation then Bridge:Fail("Draw validation failed: " .. detail) end
+        if M.validation and not Bridge:IsExpectedDrawFailure() then Bridge:Fail("Draw validation failed: " .. detail) end
         return
     end
     local total = message:ReadUInt()

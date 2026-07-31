@@ -10,7 +10,9 @@ local M = {
     validationStage = nil,
     validationSlot = nil,
     validationQuantity = nil,
-    g4Stage = nil
+    g4Stage = nil,
+    drawClosureRequested = false,
+    drawHeaderRequested = false
 }
 
 local function clean(value)
@@ -61,9 +63,9 @@ local function addOrUpdate(slot, id, num, replace)
     end
 end
 
-local function readFullPackage(message, hasTailFlags)
+local function readFullPackage(message, hasTailFlags, headerOnly)
     local count = message:ReadWord()
-    Bridge:BeginBagUpdate(count)
+    if headerOnly then Bridge:BeginBagHeaderUpdate(count) else Bridge:BeginBagUpdate(count) end
     for _ = 1, count do
         local slot = message:ReadWord() + 1
         local id = message:ReadWord()
@@ -72,12 +74,25 @@ local function readFullPackage(message, hasTailFlags)
     end
     if hasTailFlags and message.Remaining > 0 then message:ReadByte() end
     if hasTailFlags and message.Remaining > 0 then message:ReadByte() end
-    Bridge:EndBagUpdate()
+    if headerOnly then Bridge:EndBagHeaderUpdate() else Bridge:EndBagUpdate() end
     return count
 end
 
 function M.onClick()
     M.requested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
+function M.requestDrawClosureSnapshot()
+    M.drawClosureRequested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
+-- HappyDrawUI reads the live package for its three recruitment-ticket counts.
+-- Unity has no legacy LRoleDataMgr cache, so refresh the same server-owned
+-- package before rendering Draw instead of inventing local counts.
+function M.requestDrawHeaderRefresh()
+    M.drawHeaderRequested = true
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
@@ -141,9 +156,22 @@ local function validateIncrementalUpdate(slot, itemId, quantity)
 end
 
 function M.onPacket(command, message)
-    if command == Protocol.ROLE_PACKAGE and M.requested then
-        local serverCount = readFullPackage(message, true)
+    if command == Protocol.ROLE_PACKAGE and (M.requested or M.drawClosureRequested or M.drawHeaderRequested) then
+        -- A main-screen click can still carry an obsolete package request from
+        -- the imported navigation layer. Once Draw is already open, its /8
+        -- response is strictly header data and must never replace the Draw UI.
+        local headerOnly = M.drawHeaderRequested or Bridge:IsDrawActive()
+        local serverCount = readFullPackage(message, true, headerOnly)
         local renderedCount = Bridge:GetBagCount()
+        if M.drawHeaderRequested then
+            M.drawHeaderRequested = false
+            return true
+        end
+        if M.drawClosureRequested then
+            M.drawClosureRequested = false
+            Bridge:CompleteDrawClosureBagRefresh(serverCount)
+            return true
+        end
         M.requested = false
         if M.g4Stage == "await_reopen_full" then
             M.g4Stage = "await_reconnect"

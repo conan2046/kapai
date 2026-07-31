@@ -464,6 +464,47 @@
       "updatedUtc": "2026-07-26T14:50:39.0223283Z"
     },
     {
+      "module": "Draw",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/DRAW.md",
+      "note": "Draw current HappyDrawUI /224 migration and the real Draw to Hero cultivation to Formation closure are complete. Historical phase1 evidence remains excluded.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/DRAW_CONTROLS.json"
+        ],
+        "G1": [
+          "docs/unityclient/modules/DRAW.md"
+        ],
+        "G2": [
+          "docs/unityclient/modules/DRAW.md"
+        ],
+        "G3": [
+          "docs/unityclient/modules/DRAW.md"
+        ],
+        "G4": [
+          ".local/unity-validation/draw-fixed-account-latest.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Draw/compare/g5-20260730/report.json",
+          ".local/ui-fidelity/Draw/compare/g5-20260730/manual-acceptance.json"
+        ],
+        "G6": [
+          ".local/unity-validation/draw-fixed-account-latest.json",
+          "docs/unityclient/modules/DRAW.md",
+          "UNITYCLIENT_STATUS.md"
+        ]
+      },
+      "updatedUtc": "2026-07-30T07:24:00.0000000Z"
+    },
+    {
       "module": "HeroEquip",
       "gates": {
         "G0": "passed",

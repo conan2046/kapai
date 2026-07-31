@@ -102,7 +102,7 @@ local function readList(message)
         Bridge:CaptureFriendAndDeleteValidation(firstId)
     elseif M.validationStage == "verify_deleted" then
         finishIfDeleted()
-    elseif not M.validationStage then
+    elseif not M.validationStage and not Bridge:HasCommandLineFlag("-projectXDrawClosureValidation") then
         Bridge:Complete("COMPLETE: main friend button -> /27 op=1 -> FriendStore -> FriendLayer (" .. tostring(count) .. " friends)")
     end
 end

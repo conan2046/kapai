@@ -7,17 +7,20 @@ namespace ProjectX.Core
     {
         private readonly HashSet<string> flags;
 
-        private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId)
+        private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId, uint drawIsolationUserId)
         {
             this.flags = flags;
             LocalUserId = localUserId;
             TeamPeerRoleId = teamPeerRoleId;
+            DrawIsolationUserId = drawIsolationUserId;
         }
 
         public uint LocalUserId { get; }
         public uint TeamPeerRoleId { get; }
+        public uint DrawIsolationUserId { get; }
         public bool Automation => HasFlag("-projectXAutomation");
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
+        public bool DrawClosureValidation => HasFlag("-projectXDrawClosureValidation");
         public bool UseItemValidation => HasFlag("-projectXUseItemValidation");
         public bool SettingsValidation => HasFlag("-projectXSettingsValidation");
         public bool TaskValidation => HasFlag("-projectXTaskValidation") || HasFlag("-projectXTaskG4Validation");
@@ -30,6 +33,7 @@ namespace ProjectX.Core
             var parsedFlags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             uint localUserId = 1;
             uint teamPeerRoleId = 0;
+            uint drawIsolationUserId = 0;
             foreach (string raw in arguments ?? Array.Empty<string>())
             {
                 string argument = raw ?? string.Empty;
@@ -44,8 +48,13 @@ namespace ProjectX.Core
                     && uint.TryParse(argument.Substring(teamPeerPrefix.Length), out uint peerValue)
                     && peerValue > 0)
                     teamPeerRoleId = peerValue;
+                const string drawIsolationPrefix = "-projectXDrawIsolationUserId=";
+                if (argument.StartsWith(drawIsolationPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(drawIsolationPrefix.Length), out uint isolationValue)
+                    && isolationValue > 0)
+                    drawIsolationUserId = isolationValue;
             }
-            return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId);
+            return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId, drawIsolationUserId);
         }
 
         public static AppLaunchOptions Current() => Parse(Environment.GetCommandLineArgs());

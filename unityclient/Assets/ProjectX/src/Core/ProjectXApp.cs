@@ -55,6 +55,7 @@ namespace ProjectX.Core
         private LuaFunction onTaskClicked;
         private LuaFunction onTaskClaimClicked;
         private LuaFunction onHeroClicked;
+        private LuaFunction onHeroLevelUp;
         private LuaFunction onHeroEquipmentWear;
         private LuaFunction onEquipmentBagClicked;
         private LuaFunction onFaBaoBagClicked;
@@ -299,9 +300,29 @@ namespace ProjectX.Core
         private CocosUiView drawView;
         private CocosUiView drawSingleResultView;
         private CocosUiView drawTenResultView;
+        private CocosUiView drawPreviewView;
+        private CocosUiView drawExchangeView;
+        private GameObject drawExchangeDimmer;
         private DrawPresenter drawPresenter;
         private readonly List<DrawPoolRecord> pendingDrawPools = new List<DrawPoolRecord>();
         private DrawResultRecord pendingDrawResult;
+        private LuaFunction onDrawClosureBagRefresh;
+        private LuaFunction onDrawClosurePrepareMount;
+        private LuaFunction onDrawClosurePrepareReconnect;
+        private LuaFunction onDrawClosurePrepareAccountIsolation;
+        private const int DrawClosureTargetHeroId = 64;
+        private const int DrawClosureLevelMaterialId = 834;
+        private const int DrawClosureFormationPosition = 1;
+        private int drawClosureInitialLevel;
+        private uint drawClosureInitialExperience;
+        private int drawClosureInitialMaterial;
+        private bool drawClosureHeroMounted;
+        private bool drawClosureHeroCultivated;
+        private bool drawG4SequenceRunning;
+        private bool drawG4ExpectFailure;
+        private bool drawG4ExpectedFailureCompleted;
+        private bool drawCompleteRemainingAfterInsufficient;
+        private string drawG4LastError;
         private CocosUiView gameplayView;
         private CocosUiView gameplayContentView;
         private CocosUiView gameplayDetailView;
@@ -390,6 +411,7 @@ namespace ProjectX.Core
         public bool IsActivityHotPointVisible => mainView != null
             && mainView.Binding.Find(ActivityPath)?.transform.Find("ActivityHotPointRuntime")?.gameObject.activeSelf == true;
         public bool IsDrawOpen => drawView != null && services?.UiStack.Current == drawView;
+        public bool IsDrawActive() => IsDrawOpen;
         public int DrawPoolCount => services?.Draw.Count ?? 0;
         public int DrawResultCount => drawPresenter?.ResultCount ?? 0;
         public bool IsDrawResultVisible => drawPresenter?.IsSingleResultVisible ?? false;
@@ -510,7 +532,10 @@ namespace ProjectX.Core
             try
             {
                 services = new GameServices(this, AppLaunchOptions.Current());
-                if (services.Options.ManualReconnectValidation)
+                // These validations intentionally drive every reconnect step and
+                // assert the intermediate disconnected/login state.  A queued
+                // automatic reconnect can otherwise race an account switch.
+                if (services.Options.ManualReconnectValidation || services.Options.DrawClosureValidation)
                     services.Config.AutoReconnect = false;
                 services.Network.StateChanged += HandleNetworkState;
                 services.Network.Disconnected += HandleDisconnected;
@@ -528,6 +553,7 @@ namespace ProjectX.Core
                 onTaskClicked = services.Lua.GetFunction("OnTaskClicked");
                 onTaskClaimClicked = services.Lua.GetFunction("OnTaskClaimClicked");
                 onHeroClicked = services.Lua.GetFunction("OnHeroClicked");
+                onHeroLevelUp = services.Lua.GetFunction("OnHeroLevelUp");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onHeroEquipmentWear = services.Lua.GetFunction("OnHeroEquipmentWear");
                 onEquipmentBagClicked = services.Lua.GetFunction("OnEquipmentBagClicked");
@@ -590,6 +616,10 @@ namespace ProjectX.Core
                 onActivitySelected = services.Lua.GetFunction("OnActivitySelected");
                 onDrawClicked = services.Lua.GetFunction("OnDrawClicked");
                 onDrawRequested = services.Lua.GetFunction("OnDrawRequested");
+                onDrawClosureBagRefresh = services.Lua.GetFunction("OnDrawClosureBagRefresh");
+                onDrawClosurePrepareMount = services.Lua.GetFunction("OnDrawClosurePrepareMount");
+                onDrawClosurePrepareReconnect = services.Lua.GetFunction("OnDrawClosurePrepareReconnect");
+                onDrawClosurePrepareAccountIsolation = services.Lua.GetFunction("OnDrawClosurePrepareAccountIsolation");
                 onGameplayClicked = services.Lua.GetFunction("OnGameplayClicked");
                 onGameplayEntered = services.Lua.GetFunction("OnGameplayEntered");
                 onYouLiClicked = services.Lua.GetFunction("OnYouLiClicked");
@@ -645,6 +675,7 @@ namespace ProjectX.Core
             onTaskClicked?.Dispose();
             onTaskClaimClicked?.Dispose();
             onHeroClicked?.Dispose();
+            onHeroLevelUp?.Dispose();
             onFormationMove?.Dispose();
             onHeroEquipmentWear?.Dispose();
             onEquipmentBagClicked?.Dispose();
@@ -707,6 +738,10 @@ namespace ProjectX.Core
             onActivitySelected?.Dispose();
             onDrawClicked?.Dispose();
             onDrawRequested?.Dispose();
+            onDrawClosureBagRefresh?.Dispose();
+            onDrawClosurePrepareMount?.Dispose();
+            onDrawClosurePrepareReconnect?.Dispose();
+            onDrawClosurePrepareAccountIsolation?.Dispose();
             onGameplayClicked?.Dispose();
             onGameplayEntered?.Dispose();
             onYouLiClicked?.Dispose();
@@ -980,6 +1015,10 @@ namespace ProjectX.Core
             chatView?.SetVisible(false);
             if (loginView == null) { Fail("Login/loginLayer CocosUiBinding was not found."); return; }
             if (loginBackgroundView == null) { Fail("Login/LoginBgLayer CocosUiBinding was not found."); return; }
+            // Account switching must restore an actual stack root.  Leaving the
+            // stack empty only happened to work for the first launch, and let a
+            // deferred module callback hide the login layer during Draw G4.
+            services.UiStack.SetRoot(loginView);
             loginPresenter = loginPresenter ?? new LoginPresenter(loginBackgroundView, loginView, loginServerListView, roleCreateView);
             loginPresenter.ShowLocalServer("本地测试服");
             EnsureErrorPresenter();
@@ -1906,6 +1945,11 @@ namespace ProjectX.Core
         public void EndBagUpdate()
         {
             services.Bag.Replace(pendingBagItems);
+            // /8 is also an authoritative background source for Draw tickets and
+            // Hero cultivation materials. A delayed response must update the
+            // store without navigating either active business screen to the
+            // ordinary item bag.
+            if (IsDrawOpen || IsHeroOpen) return;
             EnsureBagPresenter();
             if (!bagInitialSelectionApplied)
             {
@@ -1939,6 +1983,18 @@ namespace ProjectX.Core
             bagFrameView.GameObject.transform.SetAsLastSibling();
             bagView.GameObject.transform.SetAsLastSibling();
             SetStatus($"Bag UI active: {bagPresenter.ItemCount} item stacks, {bagPresenter.MissingIconCount} missing icons.");
+        }
+
+        // HappyDrawUI needs the authoritative recruitment-ticket counts from /8,
+        // but that refresh must not steal the UI stack from the recruitment screen.
+        public void BeginBagHeaderUpdate(int expectedCount)
+        {
+            pendingBagItems.Clear();
+        }
+
+        public void EndBagHeaderUpdate()
+        {
+            services.Bag.Replace(pendingBagItems);
         }
 
         public void UpsertBagItem(int slot, int itemId, int quantity, string itemName, string description,
@@ -3021,9 +3077,20 @@ namespace ProjectX.Core
         {
             services.Draw.ReplacePools(pendingDrawPools, services.ServerTime.UnixSeconds);
             EnsureDrawPresenter();
+            // /224 is the authoritative completion of opening recruitment.
+            // Reassert Draw as the active surface after concurrent main-nav
+            // responses have updated their stores.
+            if (drawView != null && services.UiStack.Current != drawView)
+            {
+                services.UiStack.Push(drawView);
+                drawView.GameObject.transform.SetAsLastSibling();
+            }
             RefreshDrawHotPoint();
             SetStatus($"Draw /224 op=1: pools={services.Draw.Count}, free={services.Draw.HasFreeDraw}.");
-            if (validation) StartCoroutine(RequestValidationDrawNextFrame());
+            if (validation)
+                StartCoroutine(HasCommandLineFlag("-projectXDrawClosureValidation")
+                    ? BeginDrawG4SequenceNextFrame()
+                    : RequestValidationDrawNextFrame());
         }
 
         public void BeginDrawResult(int kind, int drawType, double rawTotalDraws, int freeTimes,
@@ -3064,6 +3131,19 @@ namespace ProjectX.Core
             RefreshDrawHotPoint();
             SetStatus($"Draw /224 op=2: kind={result.Kind}, type={result.DrawType}, rewards={result.Rewards.Count}, total={result.TotalDraws}.");
             if (!validation) return;
+            if (HasCommandLineFlag("-projectXDrawClosureValidation"))
+            {
+                if (drawG4SequenceRunning) return;
+                if (result.Kind != 2 || result.DrawType != 1 || result.Rewards.Count != 1
+                    || !result.Rewards.Any(value => value.Id == DrawClosureTargetHeroId)
+                    || !IsDrawResultVisible || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"Draw closure result mismatch: kind={result.Kind}, type={result.DrawType}, rewards={result.Rewards.Count}, target={DrawClosureTargetHeroId}, visible={IsDrawResultVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    return;
+                }
+                StartCoroutine(RequestDrawClosureHeroNextFrame());
+                return;
+            }
             if (GetLocalUserId() == 1 || !IsDrawOpen || services.Draw.Count != 3
                 || result.Kind != 1 || result.DrawType != 1 || result.Rewards.Count != 1
                 || !IsDrawResultVisible || !IsDrawEffectLoaded || services.ProtocolRegistry.PendingCount != 0)
@@ -3074,7 +3154,26 @@ namespace ProjectX.Core
             Complete($"COMPLETE: current btn_zhaomu -> HappyDrawUI -> /224 op=1 three pools/free countdown/red-point -> op=2 kind=1 single free draw -> authoritative reward/result timeline; isolated user={GetLocalUserId()}");
         }
 
-        public void SetDrawError(string message) { ShowToast(message, 3f); SetStatus(message); }
+        public bool IsExpectedDrawFailure() => drawG4ExpectFailure;
+
+        public void SetDrawError(string message)
+        {
+            drawG4LastError = message ?? string.Empty;
+            if (drawG4ExpectFailure && !drawG4ExpectedFailureCompleted)
+            {
+                // The insufficiency response is itself the authoritative result of
+                // DRAW-27. Advance from this exact callback instead of relying on
+                // a later coroutine tick after the result view has been dismissed.
+                drawG4ExpectedFailureCompleted = true;
+                SetStatus("Draw G4 authoritative insufficient-resource response observed.");
+                ShowDrawExchange();
+                MarkValidationControl("DRAW-27-TEN-CONTINUE");
+                StartCoroutine(CaptureDrawInsufficientThenRequestHero());
+                return;
+            }
+            ShowToast(message, 3f);
+            SetStatus(message);
+        }
 
         public void AddShopRecord(int grid, double id, int buyCount, string name,
             string description, int picture, int quality)
@@ -4769,7 +4868,18 @@ namespace ProjectX.Core
 
         private void HandleLoginClick() => InvokeLuaOrFail(onLoginClicked, "Login.OnLoginClicked");
         private void HandleRoleCreateClick() => InvokeLuaOrFail(onRoleCreateClicked, "Login.OnRoleCreateClicked");
-        private void HandleBagClick() => InvokeLuaOrFail(onBagClicked, "Bag.OnBagClicked");
+        private void HandleBagClick()
+        {
+            // The imported legacy main layer has an overlapping raycast region:
+            // a click on btn_zhaomu can also reach the Bag listener. Prefer the
+            // confirmed Draw rectangle so a recruitment entry never emits /8 as
+            // a competing navigation action.
+            GameObject drawEntry = mainView?.Binding.Find(DrawPath);
+            RectTransform drawRect = drawEntry?.GetComponent<RectTransform>();
+            if (drawRect != null && RectTransformUtility.RectangleContainsScreenPoint(drawRect, Input.mousePosition, null))
+                return;
+            InvokeLuaOrFail(onBagClicked, "Bag.OnBagClicked");
+        }
         private void HandleSettingsClick()
         {
             try { CallLua(onSettingsClicked, "Settings.OnClicked"); }
@@ -5452,12 +5562,22 @@ namespace ProjectX.Core
             heroReplacementView = heroReplacementView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxionghuanjiang");
             if (heroReplacementView == null)
                 throw new InvalidOperationException("Hero replacement CocosUiBinding was not found.");
+            heroFrameView?.SetVisible(true);
+            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            ConfigureHeroFrame(false);
+            Text replacementTitle = heroFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (replacementTitle != null) replacementTitle.text = string.Empty;
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
             var candidates = services.Heroes.Items
-                .Where(item => item.Id != currentHeroId && services.Formation.GetCombatPosition(item.Id) == 0)
+                .Where(item => item.Id != currentHeroId
+                    && services.Formation.GetCombatPosition(item.Id) == 0
+                    && !services.Formation.DisplayHeroes.Contains(item.Id))
                 .Take(6).ToArray();
+            if (HasCommandLineFlag("-projectXDrawClosureValidation"))
+                Debug.Log($"[ProjectX][DrawClosure] replacement display=[{string.Join(",", services.Formation.DisplayHeroes)}] "
+                    + $"combat=[{string.Join(",", services.Formation.CombatHeroes)}] candidates=[{string.Join(",", candidates.Select(item => item.Id))}]");
             Transform template = heroReplacementView.Binding.Find("Layer/yingxionghuanjiangUI/ItemCell")?.transform;
             if (template == null) throw new InvalidOperationException("Hero replacement ItemCell was not found.");
             for (int index = 1; index <= 6; index++)
@@ -5500,7 +5620,10 @@ namespace ProjectX.Core
                     heroReplacementView.SetVisible(false);
                 });
                 Text actionText = cell.Find("Button/Text")?.GetComponent<Text>();
-                if (actionText != null) actionText.text = currentHeroId == 0 ? "上阵" : "替换";
+                // Cocos labels the action from the candidate's own display-lineup
+                // state, not from whether the selected destination is occupied.
+                if (actionText != null) actionText.text =
+                    services.Formation.DisplayHeroes.Contains(hero.Id) ? "替换" : "上阵";
             }
             Transform empty = heroReplacementView.Binding.Find("Layer/yingxionghuanjiangUI/Empty")?.transform;
             if (empty != null) empty.gameObject.SetActive(candidates.Length == 0);
@@ -5519,6 +5642,8 @@ namespace ProjectX.Core
             heroListView.SetVisible(false);
             heroDetailView.SetVisible(false);
             heroBagView.SetVisible(false);
+            heroFrameView?.SetVisible(true);
+            heroFrameView?.GameObject.transform.SetAsLastSibling();
             heroCultivationView.SetVisible(true);
             heroLevelUpView.SetVisible(true);
             heroCultivationView.GameObject.transform.SetAsLastSibling();
@@ -5532,6 +5657,8 @@ namespace ProjectX.Core
                 ShowRuntimeHeroModel(heroCultivationView.Binding.Find("Layer/Node_3/Node")?.transform, definition.Picture);
             }
             BindHeroLevelUp(heroLevelUpView, hero);
+            heroLevelUpView.BindClick("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji", () =>
+                InvokeLuaOrFail(onHeroLevelUp, "Hero.LevelUp", (double)hero.Id, 834d, 1d), true);
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", RestoreHeroFormationView, true);
             heroCultivationView.BindClick("Layer/Node_3/Button_l", () => ShowToast("已到首个培养页", 1.5f), true);
             heroCultivationView.BindClick("Layer/Node_3/Button_r", () => ShowToast("培养子模块按范围后置", 1.5f), true);
@@ -6877,12 +7004,36 @@ namespace ProjectX.Core
             drawView = drawView ?? services.UiRouter.FindBySource("chouka/shenjiangzhaomu");
             drawSingleResultView = drawSingleResultView ?? services.UiRouter.FindBySource("chouka/dancichouka");
             drawTenResultView = drawTenResultView ?? services.UiRouter.FindBySource("chouka/shilianchouka");
-            if (drawView == null || drawSingleResultView == null || drawTenResultView == null)
+            drawPreviewView = drawPreviewView ?? services.UiRouter.FindBySource("chouka/jiangliyulan");
+            CocosUiView drawPreviewFrame = services.UiRouter.FindBySource("OneLevelLayer");
+            if (drawView == null || drawSingleResultView == null || drawTenResultView == null || drawPreviewView == null || drawPreviewFrame == null)
                 throw new InvalidOperationException("Current HappyDraw imported CocosUiBindings were not found by full relative path.");
-            drawPresenter = drawPresenter ?? new DrawPresenter(drawView, drawSingleResultView, drawTenResultView,
-                services.Draw, services.ServerTime, services.Resources,
+            drawPresenter = drawPresenter ?? new DrawPresenter(drawView, drawSingleResultView, drawTenResultView, drawPreviewView, drawPreviewFrame,
+                services.Draw, services.ServerTime, services.Resources, services.Currencies, services.Bag,
                 (kind, type) => InvokeLuaOrFail(onDrawRequested, "Draw.Requested", (double)kind, (double)type),
-                () => HandleBack());
+                () => HandleBack(), text =>
+                {
+                    EnsureErrorPresenter();
+                    errorPresenter.ShowHelp(text);
+                });
+            drawView.BindClick("Layer/GoldCheck/GoldIcon1/AddBtn", () =>
+            {
+                EnsureErrorPresenter();
+                errorPresenter.ShowHelp($"基础招募券：{GetBagQuantityByItemId(1000)}。招募消耗以服务端 /224 回包为准。");
+            }, true);
+            drawView.BindClick("Layer/GoldCheck/GoldIcon2/AddBtn", () =>
+            {
+                EnsureErrorPresenter();
+                errorPresenter.ShowHelp("高级招募券兑换入口当前不可用，请通过将魂商店获取。");
+            }, true);
+            drawView.BindClick("Layer/GoldCheck/GoldIcon3/AddBtn", HandleFriendClick, true);
+            drawView.BindClick("Layer/Shop", () =>
+                InvokeLuaOrFail(onGameplayEntered, "Draw.SoulShop", 15d), true);
+            drawView.BindClick("Layer/Title/TitleName/Button_1", () =>
+            {
+                EnsureErrorPresenter();
+                errorPresenter.ShowHelp("免费次数优先消耗；次数不足时消耗对应招募券。招募奖励以服务端结果为准。");
+            }, true);
         }
 
         private void EnsureGameplayPresenter()
@@ -6945,6 +7096,683 @@ namespace ProjectX.Core
                 yield break;
             }
             InvokeLuaOrFail(onDrawRequested, "Draw.ValidationSingle", 1d, 1d);
+        }
+
+        private IEnumerator BeginDrawG4SequenceNextFrame()
+        {
+            yield return null;
+            if (drawG4SequenceRunning) yield break;
+            drawG4SequenceRunning = true;
+            drawG4LastError = string.Empty;
+            drawG4ExpectedFailureCompleted = false;
+            try
+            {
+                if (!IsDrawOpen || services.Draw.Count != 3 || !services.ServerTime.IsSynchronized)
+                {
+                    Fail("Draw G4 main state is not backed by three authoritative pools and server time.");
+                    yield break;
+                }
+                MarkValidationControl("DRAW-01-MAIN-ENTRY");
+                MarkValidationControl("DRAW-08-FREE-COUNTDOWN");
+                MarkValidationControl("DRAW-09-RED-DOTS");
+                MarkValidationControl("DRAW-10-MATERIAL-COUNTS");
+                yield return CaptureDrawG5Evidence("DRAW-MAIN");
+
+                // Header and navigation controls are exercised before any draw mutates
+                // the authoritative pool state.
+                ClickDrawButton(drawView, "Layer/GoldCheck/GoldIcon1/AddBtn", "DRAW-11-COUPON-INFO");
+                if (!IsErrorVisible) { Fail("Draw coupon information did not open."); yield break; }
+                errorPresenter.Hide(); MarkValidationControl("DRAW-11-COUPON-INFO");
+                ClickDrawButton(drawView, "Layer/GoldCheck/GoldIcon2/AddBtn", "DRAW-12-HIGH-EXCHANGE");
+                if (!IsErrorVisible) { Fail("Draw high coupon exchange feedback did not open."); yield break; }
+                errorPresenter.Hide(); MarkValidationControl("DRAW-12-HIGH-EXCHANGE");
+                ClickDrawButton(drawView, "Layer/Title/TitleName/Button_1", "DRAW-16-HELP");
+                if (!IsErrorVisible) { Fail("Draw help did not open."); yield break; }
+                errorPresenter.Hide(); MarkValidationControl("DRAW-16-HELP");
+                ClickDrawButton(drawView, "Layer/Title/CloseBtn", "DRAW-17-CLOSE");
+                if (IsDrawOpen) { Fail("Draw close did not return to main."); yield break; }
+                ClickDrawButton(mainView, DrawPath, "DRAW-01-MAIN-ENTRY");
+                float reopenDeadline = Time.realtimeSinceStartup + 8f;
+                while (!IsDrawOpen && Time.realtimeSinceStartup < reopenDeadline) yield return null;
+                if (!IsDrawOpen || services.Draw.Count != 3) { Fail("Draw did not reopen with authoritative pools."); yield break; }
+                MarkValidationControl("DRAW-17-CLOSE");
+                ClickDrawButton(drawView, "Layer/GoldCheck/GoldIcon3/AddBtn", "DRAW-13-FRIEND-SHORTCUT");
+                float friendDeadline = Time.realtimeSinceStartup + 8f;
+                while (!IsFriendOpen && Time.realtimeSinceStartup < friendDeadline) yield return null;
+                if (!IsFriendOpen) { Fail("Draw friend shortcut did not open Friend."); yield break; }
+                MarkValidationControl("DRAW-13-FRIEND-SHORTCUT");
+                // Friend opens with separate friend/application responses. Allow both
+                // real /27 callbacks to settle before returning, otherwise a delayed
+                // callback can repush Friend over the subsequently opened soul shop.
+                yield return new WaitForSecondsRealtime(0.5f);
+                HandleBack();
+                while (!IsDrawOpen && Time.realtimeSinceStartup < friendDeadline) yield return null;
+                if (!IsDrawOpen) { Fail("Draw friend shortcut did not return to Draw."); yield break; }
+                ClickDrawButton(drawView, "Layer/Shop", "DRAW-14-SOUL-SHOP");
+                float shopDeadline = Time.realtimeSinceStartup + 10f;
+                while ((!IsGameplayShopOpen || GameplayShopRenderedCount <= 0) && Time.realtimeSinceStartup < shopDeadline) yield return null;
+                if (!IsGameplayShopOpen || GameplayShopRenderedCount <= 0) { Fail("Draw soul shop did not open with rendered data."); yield break; }
+                MarkValidationControl("DRAW-14-SOUL-SHOP");
+                CloseGameplayShops();
+                while (!IsDrawOpen && Time.realtimeSinceStartup < shopDeadline) yield return null;
+                if (!IsDrawOpen) { Fail("Draw soul shop did not return to Draw."); yield break; }
+                ClickDrawButton(drawView, "Layer/RewardPreview", "DRAW-15-REWARD-PREVIEW");
+                if (drawPreviewView?.GameObject.activeSelf != true) { Fail("Draw reward preview did not open."); yield break; }
+                MarkValidationControl("DRAW-15-REWARD-PREVIEW");
+                for (byte tab = 1; tab <= 3; tab++)
+                {
+                    Button button = drawPreviewView.GameObject.transform.Find("FirstClassBg/Tab" + tab)?.GetComponent<Button>();
+                    if (button == null) { Fail($"Draw preview tab {tab} is missing."); yield break; }
+                    button.onClick.Invoke();
+                    yield return null;
+                    if (drawPresenter.PreviewPoolKind != tab || drawPresenter.PreviewRenderedCount <= 0)
+                    {
+                        Fail($"Draw preview tab {tab} did not render its configured pool."); yield break;
+                    }
+                }
+                MarkValidationControl("DRAW-18-PREVIEW-TABS");
+                drawPreviewView.GameObject.transform.Find("FirstClassBg/Tab2")?.GetComponent<Button>()?.onClick.Invoke();
+                yield return null;
+                if (drawPresenter.PreviewPoolKind != 2) { Fail("Draw high reward preview tab did not remain selectable."); yield break; }
+                if (!drawPresenter.ScrollPreviewToEnd()) { Fail("Draw high reward preview did not create a scrollable list."); yield break; }
+                MarkValidationControl("DRAW-19-PREVIEW-SCROLL");
+                drawPreviewView.GameObject.transform.Find("FirstClassBg/Tab1")?.GetComponent<Button>()?.onClick.Invoke();
+                yield return null;
+                if (drawPresenter.PreviewPoolKind != 1) { Fail("Draw normal reward preview tab did not remain selectable for Cocos parity capture."); yield break; }
+                yield return CaptureDrawG5Evidence("DRAW-REWARD-PREVIEW");
+                Button heroPreview = drawPreviewView.GameObject.transform.Find("PreviewViewport/IllustrationsList/Hero_35")?.GetComponent<Button>();
+                if (heroPreview == null) { Fail("Draw normal reward preview hero entry is missing."); yield break; }
+                heroPreview.onClick.Invoke();
+                if (!IsErrorVisible) { Fail("Draw preview hero detail did not open."); yield break; }
+                errorPresenter.Hide(); MarkValidationControl("DRAW-20-PREVIEW-HERO-DETAIL");
+                Button previewClose = drawPreviewView.GameObject.transform.Find("RuntimePreviewClose")?.GetComponent<Button>()
+                    ?? drawPreviewView.Binding.Find("Layer/CloseBtn")?.GetComponent<Button>()
+                    ?? drawPreviewView.Binding.Find("Layer/Btn_Close")?.GetComponent<Button>();
+                previewClose?.onClick.Invoke();
+                if (drawPreviewView.GameObject.activeSelf) { Fail("Draw reward preview did not close."); yield break; }
+
+                // This must remain the first high-pool draw: the reversible server fixture
+                // guarantees hero 64 only for that real /224 request. Run the cross-module
+                // closure immediately afterwards so its visual state is not contaminated by
+                // heroes obtained while exercising the remaining pool controls.
+                yield return InvokeDrawAndDismiss("Layer/Popup2/Btn_Recruit_2", "DRAW-04-HIGH-SINGLE",
+                    drawSingleResultView, "Layer/dancichoukaUI/btn_Close", "DRAW-22-SINGLE-CONFIRM", keepResult:true);
+                DrawResultRecord targetResult = services.Draw.LastResult;
+                if (targetResult == null || !targetResult.Rewards.Any(value => value.Id == DrawClosureTargetHeroId))
+                {
+                    Fail("Draw G4 deterministic high free draw did not return target hero 64.");
+                    yield break;
+                }
+                yield return CaptureDrawG5Evidence("DRAW-RESULT-NEW");
+                DismissDrawResult(drawSingleResultView, "Layer/dancichoukaUI/btn_Close", "DRAW-22-SINGLE-CONFIRM");
+                StartCoroutine(RequestDrawClosureHeroNextFrame());
+            }
+            finally { drawG4SequenceRunning = false; }
+        }
+
+        private IEnumerator InvokeDrawAndDismiss(string requestPath, string requestControl,
+            CocosUiView resultView, string dismissPath, string dismissControl, bool keepResult = false)
+        {
+            services.Draw.ClearResult();
+            ClickDrawButton(drawView, requestPath, requestControl);
+            float deadline = Time.realtimeSinceStartup + 12f;
+            while (services.Draw.LastResult == null && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.Draw.LastResult == null || !resultView.GameObject.activeSelf)
+            {
+                Fail($"Draw G4 request did not render an authoritative result: {requestControl}.");
+                yield break;
+            }
+            MarkValidationControl(requestControl);
+            if (!keepResult) DismissDrawResult(resultView, dismissPath, dismissControl);
+        }
+
+        private void DismissDrawResult(CocosUiView resultView, string path, string control)
+        {
+            ClickDrawButton(resultView, path, control);
+            if (resultView.GameObject.activeSelf)
+                throw new InvalidOperationException($"Draw result control did not dismiss its authoritative result: {control}.");
+            MarkValidationControl(control);
+        }
+
+        private static void ClickDrawButton(CocosUiView view, string path, string control)
+        {
+            GameObject node = view?.Binding.Find(path);
+            Button button = node?.GetComponent<Button>();
+            if (button == null || !button.interactable)
+                throw new InvalidOperationException($"Draw G4 control is missing or disabled: {control} ({path}).");
+            button.onClick.Invoke();
+        }
+
+        private IEnumerator CaptureDrawG5Evidence(string evidenceId)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) yield break;
+            string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            string outputDirectory = Path.Combine(repositoryRoot, ".local", "ui-fidelity", "Draw", "unity", "g5-20260730");
+            Directory.CreateDirectory(outputDirectory);
+            string path = Path.Combine(outputDirectory, evidenceId + ".png");
+            if (File.Exists(path)) File.Delete(path);
+            // Cocos result timelines begin with a short reveal phase. Capture only
+            // after the stable frame so the G5 original contains the authoritative
+            // reward node rather than the empty initial animation frame.
+            yield return new WaitForSecondsRealtime(3.5f);
+            Canvas.ForceUpdateCanvases();
+            if (evidenceId == "DRAW-HERO-LIST")
+            {
+                Button target = FindHeroBagButton("郑伦");
+                Transform viewport = heroBagView?.Binding.Find("Layer/yingxiongbeibaoUI/TableView")?.transform;
+                int activeRows = viewport == null ? -1 : viewport.GetComponentsInChildren<Transform>(false)
+                    .Count(value => value.name.StartsWith("VirtualRow_", StringComparison.Ordinal));
+                Debug.Log($"[ProjectX][DrawG5] hero-list bag={heroBagView?.GameObject.activeSelf}/"
+                    + $"{heroBagView?.GameObject.activeInHierarchy} target={target?.gameObject.activeSelf}/"
+                    + $"{target?.gameObject.activeInHierarchy} rows={activeRows} heroes={services.Heroes.Count} "
+                    + $"entry={pendingHeroEntry} current={services.UiStack.Current?.GameObject?.name}");
+            }
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length == 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+                throw new IOException($"Draw G5 screenshot was not written: {path}");
+        }
+
+        private IEnumerator CaptureDrawInsufficientThenRequestHero()
+        {
+            yield return CaptureDrawG5Evidence("DRAW-RESOURCE-INSUFFICIENT");
+            if (drawCompleteRemainingAfterInsufficient)
+            {
+                drawCompleteRemainingAfterInsufficient = false;
+                HideDrawExchange();
+                if (drawTenResultView?.GameObject.activeSelf == true)
+                    DismissDrawResult(drawTenResultView, "Layer/btn_Close", "DRAW-26-TEN-CONFIRM");
+                StartCoroutine(CompleteBasicFriendDrawControlsThenReconnect());
+                yield break;
+            }
+            if (drawClosureHeroMounted)
+                StartCoroutine(ValidateDrawClosureReconnect());
+            else
+                StartCoroutine(RequestDrawClosureHeroNextFrame());
+        }
+
+        private IEnumerator RequestDrawClosureHeroNextFrame()
+        {
+            yield return null;
+            pendingHeroEntry = HeroEntry.Bag;
+            InvokeLuaOrFail(onHeroClicked, "Draw.ClosureHeroEntry");
+        }
+
+        public void BeginDrawClosureBagRefresh()
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            InvokeLuaOrFail(onDrawClosureBagRefresh, "Draw.ClosureBagRefresh");
+        }
+
+        public void CompleteDrawClosureBagRefresh(int serverCount)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            int current = GetBagQuantityByItemId(DrawClosureLevelMaterialId);
+            if (drawClosureInitialLevel == 0)
+            {
+                if (!services.Heroes.TryGet(DrawClosureTargetHeroId, out HeroRecord hero)
+                    || hero.Name != "郑伦" || hero.Star <= 0 || hero.Level <= 0 || hero.Attack <= 0
+                    || hero.Health <= 0 || hero.FightPosition != 0 || serverCount <= 0 || current < 1)
+                {
+                    Fail($"Draw closure initial bag/hero snapshot mismatch: hero={hero.Id}, name={hero.Name}, star={hero.Star}, level={hero.Level}, pos={hero.FightPosition}, bag={serverCount}, material={current}.");
+                    return;
+                }
+                drawClosureInitialLevel = hero.Level;
+                drawClosureInitialExperience = hero.Experience;
+                drawClosureInitialMaterial = current;
+                StartCoroutine(CultivateDrawClosureHeroThroughUi());
+                return;
+            }
+            if (serverCount <= 0 || current >= drawClosureInitialMaterial)
+            {
+                Fail($"Draw closure level material was not authoritatively deducted: serverCount={serverCount}, current={current}, before={drawClosureInitialMaterial}.");
+                return;
+            }
+            StartCoroutine(MountDrawClosureHeroThroughUi());
+        }
+
+        public void CompleteDrawClosureHeroLevelUp(int heroId, int beforeLevel, int afterLevel,
+            double beforeExperience, double afterExperience)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            if (heroId != DrawClosureTargetHeroId || beforeLevel != drawClosureInitialLevel
+                || (afterLevel <= beforeLevel && afterExperience <= beforeExperience))
+            {
+                Fail($"Draw closure cultivation snapshot mismatch: hero={heroId}, level={beforeLevel}/{afterLevel}, exp={beforeExperience}/{afterExperience}.");
+                return;
+            }
+            drawClosureHeroCultivated = true;
+        }
+
+        public void CompleteDrawClosureFormation(int heroId, int position, int level, double attack, double health)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            if (heroId != DrawClosureTargetHeroId || position != DrawClosureFormationPosition
+                || !drawClosureHeroCultivated || attack <= 0 || health <= 0
+                || services.Formation.GetCombatPosition(heroId) != position)
+            {
+                Fail($"Draw closure formation snapshot mismatch: hero={heroId}, position={position}, level={level}, attack={attack}, health={health}.");
+                return;
+            }
+            drawClosureHeroMounted = true;
+            pendingHeroEntry = HeroEntry.Formation;
+            StartCoroutine(CaptureMountedDrawFormationThenReenter());
+        }
+
+        private IEnumerator CultivateDrawClosureHeroThroughUi()
+        {
+            yield return null;
+            EnsureHeroPresenter();
+            // /8 is refreshed for Draw ticket counts and can leave the ordinary
+            // item-bag content active behind the shared OneLevelLayer.  Enter the
+            // Hero bag exactly as the native client does before locating or
+            // capturing the recruited hero.
+            bagFlowPresenter?.CloseAll();
+            bagView?.SetVisible(false);
+            bagInputView?.SetVisible(false);
+            bagPopupFrameView?.SetVisible(false);
+            bagGiftView?.SetVisible(false);
+            bagSourceView?.SetVisible(false);
+            bagEquipmentInfoView?.SetVisible(false);
+            pendingHeroEntry = HeroEntry.Bag;
+            heroListView.SetVisible(false);
+            heroDetailView.SetVisible(false);
+            heroBagView.SetVisible(true);
+            heroFrameView.SetVisible(true);
+            Transform heroBagTransform = heroBagView.GameObject.transform;
+            if (heroBagTransform.parent != heroFrameView.GameObject.transform)
+                heroBagTransform.SetParent(heroFrameView.GameObject.transform, false);
+            heroBagTransform.SetAsLastSibling();
+            ConfigureHeroFrame(true);
+            heroPresenter.Render();
+            if (services.UiStack.Current != heroFrameView)
+                services.UiStack.Push(heroFrameView);
+            Canvas.ForceUpdateCanvases();
+            Button target = FindHeroBagButton("郑伦");
+            if (target == null) { Fail("Draw closure target hero was not rendered in the hero list."); yield break; }
+            yield return CaptureDrawG5Evidence("DRAW-HERO-LIST");
+            target.onClick.Invoke();
+            if (heroPresenter.SelectedId != DrawClosureTargetHeroId)
+            {
+                Fail("Draw closure target hero row did not select hero 64.");
+                yield break;
+            }
+            heroFrameView.SetVisible(true);
+            heroBagView.SetVisible(false);
+            heroListView.SetVisible(true);
+            heroDetailView.SetVisible(true);
+            ConfigureHeroFrame(false);
+            heroFrameView.GameObject.transform.SetAsLastSibling();
+            RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0", "Draw closure cultivate").onClick.Invoke();
+            if (heroCultivationView?.GameObject.activeSelf != true || heroLevelUpView?.GameObject.activeSelf != true)
+            {
+                Fail("Draw closure cultivate control did not open the level-up UI.");
+                yield break;
+            }
+            // Capture while the actual cultivation shell is stable.  The /24
+            // material refresh may otherwise transition into formation before
+            // the asynchronous screen capture executes.
+            yield return CaptureDrawG5Evidence("DRAW-HERO-CULTIVATE");
+            RequireBoundButton(heroLevelUpView, "Layer/shenjiangInfoUI/Info/cailiao/btn_shengji", "Draw closure level-up").onClick.Invoke();
+        }
+
+        private IEnumerator MountDrawClosureHeroThroughUi()
+        {
+            yield return null;
+            EnsureHeroPresenter();
+            if (heroCultivationView?.GameObject.activeSelf == true)
+                RestoreHeroFormationView();
+            if (services.Formation.GetCombatPosition(DrawClosureTargetHeroId) != 0)
+            {
+                Fail("Draw closure target hero was already mounted before the UI mount action.");
+                yield break;
+            }
+            InvokeLuaOrFail(onDrawClosurePrepareMount, "Draw.ClosurePrepareFormationMount");
+            int currentHeroId = GetFormationHeroAt(DrawClosureFormationPosition);
+            ShowHeroReplacement(DrawClosureFormationPosition, currentHeroId);
+            if (heroReplacementView?.GameObject.activeSelf != true)
+            {
+                Fail("Draw closure replacement UI did not open.");
+                yield break;
+            }
+            yield return CaptureDrawG5Evidence("DRAW-FORMATION-SELECTION");
+            Button action = heroReplacementView.GameObject.GetComponentsInChildren<Button>(true).FirstOrDefault(button =>
+                button.gameObject.name == "Button" && button.transform.parent?.Find("Name")?.GetComponent<Text>()?.text.StartsWith("郑伦", StringComparison.Ordinal) == true);
+            if (action == null)
+            {
+                Fail("Draw closure replacement UI did not render target hero 64.");
+                yield break;
+            }
+            action.onClick.Invoke();
+        }
+
+        private Button FindHeroBagButton(string heroName)
+        {
+            if (heroBagView == null) return null;
+            return heroBagView.GameObject.GetComponentsInChildren<Button>(true).FirstOrDefault(button =>
+                button.transform.Find("Name")?.GetComponent<Text>()?.text.StartsWith(heroName, StringComparison.Ordinal) == true);
+        }
+
+        private IEnumerator CaptureMountedDrawFormationThenReenter()
+        {
+            // The Cocos Draw closure returns to the hero formation summary after the
+            // /48 response.  Do not substitute the separate tactical formation map
+            // here: it is a different user-facing screen and made the visual sample
+            // incomparable even though the authoritative position was correct.
+            formationPopupView?.SetVisible(false);
+            heroReplacementView?.SetVisible(false);
+            heroFrameView?.SetVisible(true);
+            heroListView?.SetVisible(true);
+            heroDetailView?.SetVisible(true);
+            heroBagView?.SetVisible(false);
+            ConfigureHeroFrame(false);
+            heroPresenter?.Render();
+            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            yield return CaptureDrawG5Evidence("DRAW-FORMATION-MOUNTED");
+            StartCoroutine(RequestDrawClosureModuleReentryNextFrame());
+        }
+
+        private void ShowDrawExchange()
+        {
+            drawExchangeView = drawExchangeView ?? services.UiRouter.FindBySource("common/daojuduihuan");
+            if (drawExchangeView == null)
+                throw new InvalidOperationException("Draw insufficient-resource exchange CocosUiBinding was not found.");
+            drawExchangeView.BindClick("Layer/Popup/Btn_close", HideDrawExchange, true);
+            if (drawExchangeDimmer == null)
+            {
+                drawExchangeDimmer = new GameObject("DrawExchangeDimmer", typeof(RectTransform), typeof(Image));
+                RectTransform rect = drawExchangeDimmer.GetComponent<RectTransform>();
+                rect.SetParent(drawExchangeView.GameObject.transform, false);
+                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                drawExchangeDimmer.GetComponent<Image>().color = new Color(0f, 0f, 0f, .82f);
+                drawExchangeDimmer.GetComponent<Image>().raycastTarget = false;
+                rect.SetAsFirstSibling();
+            }
+            drawExchangeDimmer.SetActive(true);
+            SetBoundText(drawExchangeView, "Layer/Popup/Title/Title", "道具兑换");
+            SetExchangeRuntimeText(drawExchangeView.Binding.Find("Layer/Popup/Title")?.transform,
+                "RuntimeExchangeTitle", "道具兑换", TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, 27);
+            Text exchangeTitle = drawExchangeView.Binding.Find("Layer/Popup/Title")?.transform
+                .Find("RuntimeExchangeTitle")?.GetComponent<Text>();
+            if (exchangeTitle != null) exchangeTitle.color = new Color(.96f, .80f, .60f, 1f);
+            RenderDrawExchangeRows();
+            drawExchangeView.SetVisible(true);
+            drawExchangeView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void HideDrawExchange()
+        {
+            if (drawExchangeDimmer != null) drawExchangeDimmer.SetActive(false);
+            drawExchangeView?.SetVisible(false);
+        }
+
+        private void RenderDrawExchangeRows()
+        {
+            Transform list = drawExchangeView.Binding.Find("Layer/Popup/ListView")?.transform;
+            Transform template = drawExchangeView.Binding.Find("Layer/Popup/kuang")?.transform;
+            if (list == null || template == null)
+                throw new InvalidOperationException("Draw exchange imported ListView template was not found.");
+            template.SetParent(list, false);
+            for (int index = 0; index < 2; index++)
+            {
+                Transform row = index == 0 ? template : Instantiate(template.gameObject, list).transform;
+                row.name = $"DrawExchangeRow{index + 1}";
+                row.gameObject.SetActive(true);
+                RectTransform rect = row as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchorMin = new Vector2(0.5f, 1f);
+                    rect.anchorMax = new Vector2(0.5f, 1f);
+                    rect.pivot = new Vector2(0.5f, 1f);
+                    rect.anchoredPosition = new Vector2(0f, -12f - index * 128f);
+                }
+                // Cocos ItemExchangeUI reads shop 1014/1015: the price is
+                // 60001 (pic 3012, YuanBao), while the output is item 1001
+                // (pic 3028, advanced draw coupon).
+                SetExchangeIcon(row.Find("Icon1"), 3012);
+                SetExchangeIcon(row.Find("Icon2"), 3028);
+                SetExchangeRuntimeText(row.Find("Icon1"), "RuntimeExchangeAmount", index == 0 ? "150" : "2700",
+                    TextAnchor.LowerRight, new Vector2(.10f, .04f), new Vector2(.96f, .34f), 20);
+                SetExchangeRuntimeText(row.Find("Icon2"), "RuntimeExchangeAmount", index == 0 ? "1" : "10",
+                    TextAnchor.LowerRight, new Vector2(.10f, .04f), new Vector2(.96f, .34f), 20);
+                Text button = row.Find("Btn_Confirm/Text")?.GetComponent<Text>();
+                if (button != null) button.text = "兑 换";
+                Text discount = row.Find("Discount/Value")?.GetComponent<Text>();
+                if (discount != null)
+                {
+                    discount.transform.parent.gameObject.SetActive(index == 0);
+                    discount.text = "5折";
+                }
+            }
+        }
+
+        private void SetExchangeIcon(Transform target, int picture)
+        {
+            Image image = target?.GetComponent<Image>();
+            if (image == null) return;
+            bool placeholder;
+            image.sprite = services.Resources.LoadItemIcon(picture, out placeholder);
+            image.enabled = image.sprite != null;
+            image.preserveAspect = true;
+        }
+
+        private static void SetExchangeRuntimeText(Transform parent, string name, string value,
+            TextAnchor alignment, Vector2 anchorMin, Vector2 anchorMax, int fontSize)
+        {
+            if (parent == null) return;
+            Transform existing = parent.Find(name);
+            GameObject instance = existing != null ? existing.gameObject
+                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(Outline));
+            RectTransform rect = instance.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin; rect.anchorMax = anchorMax;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Text text = instance.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = fontSize; text.alignment = alignment; text.text = value;
+            text.color = Color.white; text.raycastTarget = false;
+            instance.transform.SetAsLastSibling();
+        }
+
+        private IEnumerator RequestDrawClosureModuleReentryNextFrame()
+        {
+            yield return null;
+            InvokeLuaOrFail(onHeroClicked, "Draw.ClosureHeroReentry");
+        }
+
+        public void CompleteDrawClosureModuleReentry(int heroId, int position, int level)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            if (!drawClosureHeroMounted || heroId != DrawClosureTargetHeroId
+                || position != DrawClosureFormationPosition || !drawClosureHeroCultivated)
+            {
+                Fail($"Draw closure module reentry mismatch: mounted={drawClosureHeroMounted}, hero={heroId}, position={position}, level={level}.");
+                return;
+            }
+            StartCoroutine(CompleteRemainingDrawControlsThenReconnect());
+        }
+
+        private IEnumerator CompleteRemainingDrawControlsThenReconnect()
+        {
+            if (IsHeroOpen && !HandleBack())
+            {
+                Fail("Draw closure could not close Hero before remaining Draw controls.");
+                yield break;
+            }
+            ClickDrawButton(mainView, DrawPath, "DRAW-01-MAIN-ENTRY");
+            float openDeadline = Time.realtimeSinceStartup + 8f;
+            while (!IsDrawOpen && Time.realtimeSinceStartup < openDeadline) yield return null;
+            if (!IsDrawOpen) { Fail("Draw did not reopen after cross-module visual capture."); yield break; }
+
+            drawG4SequenceRunning = true;
+            try
+            {
+                // Preserve the Cocos baseline's authoritative 20/0/200 ticket
+                // snapshot: consume the prepared ten high tickets and capture the
+                // following real insufficiency before exercising basic/friend draws.
+                yield return InvokeDrawAndDismiss("Layer/Popup2/Btn_Recruit_1", "DRAW-05-HIGH-TEN",
+                    drawTenResultView, "Layer/btn_Continue", "DRAW-27-TEN-CONTINUE", keepResult:true);
+                DrawResultRecord tenResult = services.Draw.LastResult;
+                if (tenResult == null || !tenResult.Rewards.Concat(tenResult.GuaranteedRewards)
+                    .Any(value => value.TransformItemId > 0 || value.TransformAmount > 0))
+                {
+                    Fail("Draw G4 high ten draw did not expose an authoritative duplicate conversion.");
+                    yield break;
+                }
+                MarkValidationControl("DRAW-28-RESULT-TRANSFORM");
+                yield return CaptureDrawG5Evidence("DRAW-RESULT-DUPLICATE");
+
+                drawCompleteRemainingAfterInsufficient = true;
+                drawG4ExpectFailure = true;
+                drawG4LastError = string.Empty;
+                ClickDrawButton(drawTenResultView, "Layer/btn_Continue", "DRAW-27-TEN-CONTINUE");
+                float failureDeadline = Time.realtimeSinceStartup + 8f;
+                while (string.IsNullOrWhiteSpace(drawG4LastError) && Time.realtimeSinceStartup < failureDeadline)
+                    yield return null;
+                drawG4ExpectFailure = false;
+                if (drawG4ExpectedFailureCompleted) yield break;
+                if (string.IsNullOrWhiteSpace(drawG4LastError))
+                {
+                    Fail("Draw G4 expected high-pool insufficient-resource response was not returned.");
+                    yield break;
+                }
+                MarkValidationControl("DRAW-27-TEN-CONTINUE");
+            }
+            finally { drawG4SequenceRunning = false; }
+        }
+
+        private IEnumerator CompleteBasicFriendDrawControlsThenReconnect()
+        {
+            drawG4SequenceRunning = true;
+            try
+            {
+                yield return InvokeDrawAndDismiss("Layer/Popup1/Btn_Recruit_2", "DRAW-02-BASIC-SINGLE",
+                    drawSingleResultView, "Layer/dancichoukaUI/Bg", "DRAW-21-SINGLE-TIMELINE-SKIP");
+                yield return InvokeDrawAndDismiss("Layer/Popup1/Btn_Recruit_1", "DRAW-03-BASIC-TEN",
+                    drawTenResultView, "Layer/dancichoukaUI/bg", "DRAW-25-TEN-TIMELINE-SKIP");
+                yield return InvokeDrawAndDismiss("Layer/Popup3/Btn_Recruit_2", "DRAW-06-FRIEND-SINGLE",
+                    drawSingleResultView, "Layer/dancichoukaUI/btn_Close", "DRAW-22-SINGLE-CONFIRM");
+                yield return InvokeDrawAndDismiss("Layer/Popup3/Btn_Recruit_1", "DRAW-07-FRIEND-TEN",
+                    drawTenResultView, "Layer/btn_Close", "DRAW-26-TEN-CONFIRM");
+                yield return InvokeDrawAndDismiss("Layer/Popup1/Btn_Recruit_2", "DRAW-02-BASIC-SINGLE",
+                    drawSingleResultView, "Layer/dancichoukaUI/Skill_1", "DRAW-24-SINGLE-SKILL");
+                yield return InvokeDrawAndDismiss("Layer/Popup1/Btn_Recruit_2", "DRAW-02-BASIC-SINGLE",
+                    drawSingleResultView, "Layer/dancichoukaUI/btn_Continue", "DRAW-23-SINGLE-CONTINUE", keepResult:true);
+                ClickDrawButton(drawSingleResultView, "Layer/dancichoukaUI/btn_Continue", "DRAW-23-SINGLE-CONTINUE");
+                float continueDeadline = Time.realtimeSinceStartup + 12f;
+                while (services.Draw.LastResult == null && Time.realtimeSinceStartup < continueDeadline) yield return null;
+                if (services.Draw.LastResult == null || !drawSingleResultView.GameObject.activeSelf)
+                {
+                    Fail("Draw G4 single continue did not trigger a new authoritative /224 result.");
+                    yield break;
+                }
+                MarkValidationControl("DRAW-23-SINGLE-CONTINUE");
+                DismissDrawResult(drawSingleResultView, "Layer/dancichoukaUI/btn_Close", "DRAW-22-SINGLE-CONFIRM");
+            }
+            finally { drawG4SequenceRunning = false; }
+            StartCoroutine(ValidateDrawClosureReconnect());
+        }
+
+        private IEnumerator ValidateDrawClosureReconnect()
+        {
+            InvokeLuaOrFail(onDrawClosurePrepareReconnect, "Draw.ClosurePrepareReconnect");
+            if (IsHeroOpen && !HandleBack())
+            {
+                Fail("Draw closure could not close Hero before deliberate disconnect.");
+                yield break;
+            }
+            services.Network.Disconnect();
+            HandleDisconnected("Draw closure deliberate disconnect");
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (services.Network.State != NetworkState.Disconnected || services.Heroes.Count != 0
+                || services.Formation.CombatHeroes.Count != 0 || services.Bag.Count != 0 || IsHeroOpen)
+            {
+                Fail("Draw closure disconnect did not clear authoritative Hero/Formation/Bag state.");
+                yield break;
+            }
+            Reconnect();
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while ((services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main
+                || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main)
+            {
+                Fail("Draw closure reconnect timed out.");
+                yield break;
+            }
+            StartCoroutine(RequestDrawClosureHeroNextFrame());
+        }
+
+        public void CompleteDrawClosureReconnect(int heroId, int position, int level, double experience)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            if (!drawClosureHeroMounted || !drawClosureHeroCultivated || heroId != DrawClosureTargetHeroId
+                || position != DrawClosureFormationPosition || level < drawClosureInitialLevel
+                || experience <= drawClosureInitialExperience)
+            {
+                Fail($"Draw closure reconnect snapshot mismatch: hero={heroId}, position={position}, level={level}, exp={experience}.");
+                return;
+            }
+            RecordValidationSemantic("draw-authority", true, "/224 and authoritative /24,/48 snapshots");
+            RecordValidationSemantic("draw-target-hero", true, "hero 64 returned by /224 and /24");
+            RecordValidationSemantic("hero-level-up", true, "authoritative material deduction and experience increase");
+            RecordValidationSemantic("formation-mounted", true, "authoritative /48 position 1");
+            RecordValidationSemantic("draw-reconnect", true, "reconnect reloaded hero cultivation and formation");
+            StartCoroutine(ValidateDrawClosureAccountIsolation());
+        }
+
+        private IEnumerator ValidateDrawClosureAccountIsolation()
+        {
+            uint isolationUserId = services.Options.DrawIsolationUserId;
+            if (isolationUserId == 0 || isolationUserId == GetLocalUserId())
+            {
+                Fail("Draw closure requires a distinct -projectXDrawIsolationUserId.");
+                yield break;
+            }
+            InvokeLuaOrFail(onDrawClosurePrepareAccountIsolation, "Draw.ClosurePrepareAccountIsolation");
+            services.Config.LocalUserId = isolationUserId;
+            if (IsHeroOpen && !HandleBack())
+            {
+                Fail("Draw closure could not close Hero before alternate-account login.");
+                yield break;
+            }
+            ReturnToLogin();
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (!IsLoginVisible || services.Heroes.Count != 0 || services.Formation.CombatHeroes.Count != 0)
+            {
+                Fail($"Draw closure account-switch cleanup mismatch: login={IsLoginVisible}, heroes={services.Heroes.Count}, combat={services.Formation.CombatHeroes.Count}, activeFormation={services.Formation.ActiveFormationId}.");
+                yield break;
+            }
+            Reconnect();
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while ((services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main
+                || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main
+                || GetLocalUserId() != isolationUserId)
+            {
+                Fail($"Draw closure alternate-account login failed: expected={isolationUserId}, actual={GetLocalUserId()}.");
+                yield break;
+            }
+            StartCoroutine(RequestDrawClosureHeroNextFrame());
+        }
+
+        public void CompleteDrawClosureAccountIsolation(int heroCount, int mountedTargetPosition)
+        {
+            if (!HasCommandLineFlag("-projectXDrawClosureValidation")) return;
+            if (services.Options.DrawIsolationUserId == 0 || GetLocalUserId() != services.Options.DrawIsolationUserId
+                || services.Heroes.TryGet(DrawClosureTargetHeroId, out _) || mountedTargetPosition != 0)
+            {
+                Fail($"Draw closure alternate account inherited target state: user={GetLocalUserId()}, heroes={heroCount}, targetPosition={mountedTargetPosition}.");
+                return;
+            }
+            RecordValidationSemantic("draw-account-isolation", true,
+                $"alternate user={GetLocalUserId()} has no hero {DrawClosureTargetHeroId} or formation position");
+            Complete($"COMPLETE: /224 high free deterministic target {DrawClosureTargetHeroId} -> /24 authoritative cultivation -> /48 position {DrawClosureFormationPosition} -> reconnect persistence -> alternate account {GetLocalUserId()} isolation");
         }
 
         private void RefreshDrawHotPoint()
