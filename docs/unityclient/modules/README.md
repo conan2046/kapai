@@ -8,7 +8,9 @@
 
 | 模块 | 文档 | 状态 |
 |---|---|---|
-| 底层/登录/主界面 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过；系统设置下一模块，主界面 HUD 后置 |
+| 底层/登录 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过 |
+| 系统设置 | `SETTINGS.md` | `G0-G6 passed / 21/21 complete`；设备级持久化、切号隔离、`no-server-fixture`、8/8 双端视觉和 Bootstrap 幂等通过 |
+| 主界面 HUD | `FOUNDATION.md` | 下一模块；必须在新任务从 G0 开始 |
 | 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；双端视觉、真实协议、生命周期与幂等门禁通过 |
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `partial-interactive-audit-required`；矩阵0/16，等待真实按钮逐项重审 |

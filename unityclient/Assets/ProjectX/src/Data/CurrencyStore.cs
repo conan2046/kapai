@@ -30,6 +30,7 @@ namespace ProjectX.Data
         public long BoundPremium => Get(CurrencyIds.BoundPremium);
         public long Stamina => Get(CurrencyIds.Stamina);
 
+        public bool Has(int id) => values.ContainsKey(id);
         public long Get(int id) => values.TryGetValue(id, out long value) ? value : 0;
 
         public void Initialize(long gold, long premium, long boundPremium, uint soul, uint guildContribution)

@@ -152,7 +152,151 @@
       }
     },
     { "key": "bag-default", "module": "Bag", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXBagG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-bag.png","lifecycle":"runtime"}], "captureStates": ["bag","input","gift","source","equipment-info","source-destination","reload","reconnect"] },
-    { "key": "settings-default", "module": "Settings", "fixture": "shared-readonly", "flags": ["-projectXSettingsValidation"], "artifacts": [], "captureStates": [] },
+    {
+      "key": "settings-default",
+      "module": "Settings",
+      "fixture": "shared-readonly",
+      "fixtureContract": "no-server-fixture",
+      "flags": [
+        "-projectXSettingsValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-settings.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-default.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-music-mid.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-music-off.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-both-off.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-restart.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-corrupt-fallback.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-settings-switch-account.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "default",
+        "music-off",
+        "effects-off",
+        "mid-volume",
+        "reenter",
+        "restart",
+        "corrupt-unavailable",
+        "external-boundaries",
+        "account-switch"
+      ],
+      "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "settings-authoritative-identity",
+        "settings-defaults",
+        "settings-toggle-boundaries",
+        "settings-device-persistence",
+        "settings-corrupt-config",
+        "settings-audio-application",
+        "settings-external-boundaries",
+        "settings-account-isolation",
+        "settings-no-server-fixture",
+        "settings-control-matrix-21"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "OnSettingButtonClick",
+            "EMID_SHEZHI"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Setting/SettingUI.lua",
+          "contains": [
+            "IsMusicClosed",
+            "MusicVolume",
+            "IsEffectClosed",
+            "EffectVolume"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Background/FirstClassBg.lua",
+          "contains": [
+            "GoldIcon1",
+            "GoldIcon3",
+            "GoldIcon4"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Settings/SettingsController.lua.txt",
+          "contains": [
+            "Bridge:ShowSettings"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs",
+          "contains": [
+            "MusicClosedKey",
+            "EffectsClosedKey",
+            "NormalizeVolume",
+            "ApplyAudio"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "RunSettingsValidation",
+            "RunSettingsAccountValidation",
+            "settings-control-matrix-21"
+          ]
+        },
+        {
+          "path": "docs/unityclient/matrices/SETTINGS_CONTROLS.json",
+          "contains": [
+            "no-server-fixture",
+            "device-local-shared-across-accounts"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true,
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "build/ui-migration/bootstrap-settings.png",
+              "build/ui-migration/bootstrap-settings-corrupt-fallback.png",
+              "build/ui-migration/bootstrap-settings-default.png"
+            ]
+          },
+          {
+            "ids": [
+              "build/ui-migration/bootstrap-settings-music-mid.png",
+              "build/ui-migration/bootstrap-settings-restart.png"
+            ]
+          }
+        ]
+      }
+    },
     { "key": "task-default", "module": "Task", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXTaskG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-task.png","lifecycle":"runtime"}], "captureStates": ["task-populated","task-go","task-claimable","task-claimed","task-scroll-top","task-scroll-bottom","activity-boxes","reward-popup-preview","reward-popup-claimable","reward-popup-claimed","invalid-repeat","reload","reconnect","account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["task-title","task-tab","task-header-currencies","task-action-labels","task-reward-title"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["BTN_NAME_task","EMID_TASK_DALIY"]},{"path":"client/ProjectX/src/View/Activity/HuoyueTaskUI.lua","contains":["QueryGotTaskList","QueryGotTaskAward"]},{"path":"server/src/mission_manager.cpp","contains":["ApplyTaskValidationFixture","GetQuestAward"]},{"path":"server/config/json/daily.json","contains":["\"id\":144","\"type\":0","\"id\":9","\"type\":2"]},{"path":"unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs","contains":["-projectXTaskG4Validation"]},{"path":"unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs","contains":["class TaskPresenter","InvokeActivityBox","ScrollToBottom","HasActionLabel"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["MarkValidationControl","RecordValidationSemantic"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
     { "key": "player-hud-default", "module": "PlayerHud", "fixture": "shared-readonly", "flags": ["-projectXPlayerHudValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-main-hud.png","lifecycle":"runtime"}], "captureStates": ["main-hud"] },
     { "key": "hero-g6", "module": "Hero", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXHeroG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-hero.png","lifecycle":"runtime"}], "captureStates": ["formation-list","all-rows-unlocked","empty-slot","replacement","cultivation","enhance-master-open","equipment-slots","fabao-slots","attributes","formation-popup","formation-mutated","formation-restored"] },

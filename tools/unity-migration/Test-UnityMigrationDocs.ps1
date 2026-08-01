@@ -316,9 +316,10 @@ foreach ($contract in @($evidenceContractEntry.Value.modules | Where-Object {
 })) {
     $key = [string]$contract.module
     if ($key -notin $keys) { Add-Failure "Evidence contract references unknown module: $key"; continue }
-    if ($null -ne $contract.fixedAccount) {
+    $fixedAccount = Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount" -Default $null
+    if ($null -ne $fixedAccount) {
         foreach ($contractFailure in @(Get-UnityMigrationFixedAccountContractFailures `
-            -Root $root -Module $key -FixedAccount $contract.fixedAccount)) {
+            -Root $root -Module $key -FixedAccount $fixedAccount)) {
             Add-Failure $contractFailure
         }
     }

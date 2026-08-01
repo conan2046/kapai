@@ -147,21 +147,32 @@
     {
       "key": "Settings",
       "displayName": "系统设置",
-      "status": "g3-implemented",
+      "status": "complete",
       "protocols": [],
       "entries": [
         "Layer/Main_UI/ButtonGroup7/btn_xitong"
       ],
       "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/SystemLayer.prefab"
       ],
-      "configs": [],
+      "configs": [
+        "client/ProjectX/UserDefault.xml",
+        "client/ProjectX/src/Data/LUserConfigMgr.lua",
+        "client/ProjectX/src/Logic/LSoundLogic.lua"
+      ],
       "mutatesServer": false,
+      "fixtureContract": {
+        "mode": "no-server-fixture",
+        "serverSnapshotRequired": false,
+        "cleanupAssertion": "fixtureResidueCount=0"
+      },
       "validationFlags": [
         "-projectXSettingsValidation"
       ],
       "screenshots": [],
-      "document": "docs/unityclient/modules/FOUNDATION.md"
+      "document": "docs/unityclient/modules/SETTINGS.md",
+      "controlMatrix": "docs/unityclient/matrices/SETTINGS_CONTROLS.json"
     },
     {
       "key": "Task",

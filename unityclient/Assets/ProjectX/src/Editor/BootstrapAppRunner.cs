@@ -19,6 +19,13 @@ namespace ProjectX.Editor
         private const string ScreenshotPendingKey = "ProjectX.BootstrapApp.ScreenshotPending";
         private const string ScreenshotStartKey = "ProjectX.BootstrapApp.ScreenshotStart";
         private const string SettingsPhaseKey = "ProjectX.BootstrapApp.SettingsPhase";
+        private const string SettingsVisualPhaseKey = "ProjectX.BootstrapApp.SettingsVisualPhase";
+        private const string SettingsVisualPreparedKey = "ProjectX.BootstrapApp.SettingsVisualPrepared";
+        private const string SettingsVisualPendingKey = "ProjectX.BootstrapApp.SettingsVisualPending";
+        private const string SettingsVisualStartKey = "ProjectX.BootstrapApp.SettingsVisualStart";
+        private const string SettingsVisualCaptureStartKey = "ProjectX.BootstrapApp.SettingsVisualCaptureStart";
+        private const string SettingsSwitchPendingKey = "ProjectX.BootstrapApp.SettingsSwitchPending";
+        private const string SettingsSwitchStartKey = "ProjectX.BootstrapApp.SettingsSwitchStart";
         private const string LoginPhaseKey = "ProjectX.BootstrapApp.LoginPhase";
         private const double DefaultTimeoutSeconds = 300d;
         private const string BootstrapScene = "Assets/ProjectX/Scenes/Bootstrap.unity";
@@ -69,6 +76,10 @@ namespace ProjectX.Editor
             SessionState.SetInt(ReconnectPhaseKey, 0);
             SessionState.SetBool(ScreenshotPendingKey, false);
             SessionState.SetInt(SettingsPhaseKey, 0);
+            SessionState.SetInt(SettingsVisualPhaseKey, 0);
+            SessionState.SetBool(SettingsVisualPreparedKey, false);
+            SessionState.SetBool(SettingsVisualPendingKey, false);
+            SessionState.SetBool(SettingsSwitchPendingKey, false);
             SessionState.SetInt(LoginPhaseKey, 0);
             DeletePreviousResult();
             Debug.Log("[BootstrapAppRunner] Runner armed; entering Play Mode.");
@@ -208,6 +219,13 @@ namespace ProjectX.Editor
                     return;
                 }
             }
+            if (settingsValidation && status == "Main UI active." && app.IsSettingsDataReady
+                && SessionState.GetInt(SettingsPhaseKey, 0) == 0)
+            {
+                SessionState.SetInt(SettingsPhaseKey, 1);
+                app.RunSettingsValidation();
+                return;
+            }
             if (loginValidation && status == "No role found. RoleCreateLayer is active."
                 && SessionState.GetInt(LoginPhaseKey, 0) == 2)
             {
@@ -325,6 +343,26 @@ namespace ProjectX.Editor
                 bool checkingFunds = fundsValidation;
                 if (settingsValidation && settingsPhase == 2)
                 {
+                    string switchScreenshot = GetSettingsSwitchScreenshotPath();
+                    if (!SessionState.GetBool(SettingsSwitchPendingKey, false))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(switchScreenshot));
+                        if (File.Exists(switchScreenshot)) File.Delete(switchScreenshot);
+                        ScreenCapture.CaptureScreenshot(switchScreenshot);
+                        SessionState.SetBool(SettingsSwitchPendingKey, true);
+                        SessionState.SetString(SettingsSwitchStartKey, EditorApplication.timeSinceStartup.ToString("R"));
+                        return;
+                    }
+                    double.TryParse(SessionState.GetString(SettingsSwitchStartKey, "0"), out double switchStart);
+                    if (EditorApplication.timeSinceStartup - switchStart < .75d) return;
+                    if (!File.Exists(switchScreenshot) || new FileInfo(switchScreenshot).Length == 0)
+                    {
+                        WriteResult(false, status + " (settings account-switch screenshot was not written)");
+                        Finish(false);
+                        return;
+                    }
+                    MirrorSettingsIsolationScreenshot(switchScreenshot,
+                        GetSettingsScenarioSwitchScreenshotPath());
                     if (!app.IsLoginVisible || app.NetworkState != ProjectX.Network.NetworkState.Disconnected)
                     {
                         WriteResult(false, status + " (account switch did not leave the app at disconnected login UI)");
@@ -336,6 +374,54 @@ namespace ProjectX.Editor
                     return;
                 }
                 if (requiresReconnectValidation && phase == 1) return;
+                if (checkingSettings)
+                {
+                    int visualPhase = SessionState.GetInt(SettingsVisualPhaseKey, 0);
+                    if (visualPhase < 6)
+                    {
+                        string visualPath = GetSettingsStateScreenshotPath(visualPhase);
+                        if (!SessionState.GetBool(SettingsVisualPreparedKey, false))
+                        {
+                            if (!app.PrepareSettingsVisualState(visualPhase, out string visualDetail))
+                            {
+                                WriteResult(false, status + " (settings visual state failed: " + visualDetail + ")");
+                                Finish(false);
+                                return;
+                            }
+                            SessionState.SetBool(SettingsVisualPreparedKey, true);
+                            SessionState.SetString(SettingsVisualStartKey, EditorApplication.timeSinceStartup.ToString("R"));
+                            Debug.Log($"[BootstrapAppRunner] Settings visual state {visualPhase} prepared: {visualDetail}");
+                            return;
+                        }
+                        double.TryParse(SessionState.GetString(SettingsVisualStartKey, "0"), out double visualStart);
+                        if (EditorApplication.timeSinceStartup - visualStart < .25d) return;
+                        if (!SessionState.GetBool(SettingsVisualPendingKey, false))
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(visualPath));
+                            if (File.Exists(visualPath)) File.Delete(visualPath);
+                            ScreenCapture.CaptureScreenshot(visualPath);
+                            SessionState.SetBool(SettingsVisualPendingKey, true);
+                            SessionState.SetString(SettingsVisualCaptureStartKey, EditorApplication.timeSinceStartup.ToString("R"));
+                            Debug.Log($"[BootstrapAppRunner] Settings visual state {visualPhase} queued after stable-frame delay.");
+                            return;
+                        }
+                        double.TryParse(SessionState.GetString(SettingsVisualCaptureStartKey, "0"), out double captureStart);
+                        if (EditorApplication.timeSinceStartup - captureStart < .75d) return;
+                        if (!File.Exists(visualPath) || new FileInfo(visualPath).Length == 0)
+                        {
+                            WriteResult(false, status + $" (settings visual screenshot {visualPhase} was not written)");
+                            Finish(false);
+                            return;
+                        }
+                        MirrorSettingsIsolationScreenshot(visualPath,
+                            GetSettingsScenarioStateScreenshotPath(visualPhase));
+                        SessionState.SetBool(SettingsVisualPreparedKey, false);
+                        SessionState.SetBool(SettingsVisualPendingKey, false);
+                        SessionState.SetInt(SettingsVisualPhaseKey, visualPhase + 1);
+                        if (visualPhase == 5) app.RestoreSettingsVisualPreferences();
+                        return;
+                    }
+                }
                 if (!SessionState.GetBool(ScreenshotPendingKey, false))
                 {
                     if (checkingTask && !app.ValidateFoundation(out string foundationDetail))
@@ -453,7 +539,8 @@ namespace ProjectX.Editor
                         return;
                     }
                     string screenshotPath = checkingPlayerHud ? GetMainHudScreenshotPath()
-                        : checkingTask ? GetTaskScreenshotPath() : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath()
+                        : checkingTask ? GetTaskScreenshotPath() : checkingSettings ? GetSettingsScreenshotPath()
+                        : checkingHero || checkingHeroEquipment ? GetHeroScreenshotPath()
                         : checkingMail ? GetMailScreenshotPath() : checkingGameplayShops ? GetGameplayShopsScreenshotPath() : checkingShop ? GetShopScreenshotPath()
                         : checkingFriend ? GetFriendScreenshotPath() : checkingChat ? GetChatScreenshotPath()
                         : checkingTeam ? GetTeamScreenshotPath() : checkingGuild ? GetGuildScreenshotPath()
@@ -544,13 +631,6 @@ namespace ProjectX.Editor
                             ? " (Esc/back did not return from gameplay UI to main UI)"
                             : " (Esc/back did not return from bag UI to main UI)"));
                     Finish(false);
-                    return;
-                }
-
-                if (settingsValidation && settingsPhase == 0)
-                {
-                    SessionState.SetInt(SettingsPhaseKey, 1);
-                    app.RunSettingsValidation();
                     return;
                 }
 
@@ -726,6 +806,64 @@ namespace ProjectX.Editor
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-bag.png");
+        }
+
+        private static string GetSettingsScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-settings.png");
+        }
+
+        private static string GetSettingsStateScreenshotPath(int index)
+        {
+            string[] names = {
+                "default", "music-mid", "music-off", "both-off", "restart", "corrupt-fallback"
+            };
+            if (index < 0 || index >= names.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            bool isolation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsIsolationVisual") >= 0;
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            string prefix = isolation ? "bootstrap-settings-isolation-" : "bootstrap-settings-";
+            return Path.Combine(repositoryRoot, "build", "ui-migration", prefix + names[index] + ".png");
+        }
+
+        private static string GetSettingsScenarioStateScreenshotPath(int index)
+        {
+            string[] names = {
+                "default", "music-mid", "music-off", "both-off", "restart", "corrupt-fallback"
+            };
+            if (index < 0 || index >= names.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration",
+                "bootstrap-settings-" + names[index] + ".png");
+        }
+
+        private static string GetSettingsSwitchScreenshotPath()
+        {
+            bool isolation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsIsolationVisual") >= 0;
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration",
+                isolation ? "bootstrap-settings-isolation-switch-account.png" : "bootstrap-settings-switch-account.png");
+        }
+
+        private static string GetSettingsScenarioSwitchScreenshotPath()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+            return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-settings-switch-account.png");
+        }
+
+        private static void MirrorSettingsIsolationScreenshot(string sourcePath, string scenarioPath)
+        {
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsIsolationVisual") < 0)
+                return;
+            Directory.CreateDirectory(Path.GetDirectoryName(scenarioPath));
+            File.Copy(sourcePath, scenarioPath, true);
         }
 
         private static string GetLoginScreenshotPath()

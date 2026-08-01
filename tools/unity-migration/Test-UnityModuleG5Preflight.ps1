@@ -40,7 +40,7 @@ if (@($directories | Where-Object { -not $_ }).Count -gt 0 -or
     @($directories | Sort-Object -Unique).Count -ne 3) {
     throw "Module '$Module' G5 Cocos, Unity and compare directories must be non-empty and distinct."
 }
-$fixed = $contract.fixedAccount
+$fixed = Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount" -Default $null
 if ($null -ne $fixed) {
     $copies = @($fixed.artifactCopies)
     $sources = @($copies | ForEach-Object { [string]$_.source })
@@ -55,7 +55,7 @@ if ($null -ne $fixed) {
 }
 
 $states = New-Object System.Collections.Generic.List[object]
-$hashes = New-Object System.Collections.Generic.List[string]
+$hashes = New-Object System.Collections.Generic.List[object]
 if ($RequireInputs) { Add-Type -AssemblyName System.Drawing }
 foreach ($pair in $pairs) {
     $state = [ordered]@{ id = [string]$pair.id; inputsChecked = [bool]$RequireInputs }
@@ -81,12 +81,18 @@ foreach ($pair in $pairs) {
         finally { $image.Dispose() }
         $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
         $state["${side}Sha256"] = $sha
-        if ($side -eq "unity") { $hashes.Add($sha) }
+        if ($side -eq "unity") {
+            $hashes.Add([pscustomobject]@{ id = [string]$pair.id; sha256 = $sha })
+        }
     }
     $states.Add([pscustomobject]$state)
 }
-if ($RequireInputs -and @($hashes | Group-Object | Where-Object Count -gt 1).Count -gt 0) {
-    throw "Module '$Module' G5 Unity states contain duplicate screenshot content; possible path overwrite or wrong page capture."
+if ($RequireInputs) {
+    $allowedDuplicateGroups = @(Get-UnityMigrationPropertyValue -Object $g5 `
+        -Name "allowedDuplicateGroups" -Default @())
+    Assert-UnityMigrationDuplicateHashPolicy -Items $hashes.ToArray() -IdentifierProperty "id" `
+        -HashProperty "sha256" -AllowedDuplicateGroups $allowedDuplicateGroups `
+        -Context "Module '$Module' G5 Unity states"
 }
 
 $result = [ordered]@{

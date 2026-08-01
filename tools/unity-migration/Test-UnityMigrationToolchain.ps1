@@ -141,6 +141,23 @@ $g5FingerprintB = Get-UnityMigrationG5ContractFingerprint -Contract $g5Contract
 Assert-ToolchainTest ($g5FingerprintA -match '^[A-F0-9]{64}$') "G5 contract fingerprint is not SHA-256."
 Assert-ToolchainTest ($g5FingerprintA -eq $g5FingerprintB) "G5 contract fingerprint is not deterministic."
 
+$duplicateSamples = @(
+    [pscustomobject]@{ id = "DEFAULT"; sha256 = "same" },
+    [pscustomobject]@{ id = "CORRUPT"; sha256 = "same" },
+    [pscustomobject]@{ id = "MUSIC-OFF"; sha256 = "different" }
+)
+Assert-UnityMigrationDuplicateHashPolicy -Items $duplicateSamples -IdentifierProperty "id" `
+    -HashProperty "sha256" -AllowedDuplicateGroups @([pscustomobject]@{ ids = @("DEFAULT", "CORRUPT") }) `
+    -Context "Toolchain duplicate policy sample"
+Assert-ToolchainTest $true "A declared visual-equivalence group was rejected."
+$unexpectedDuplicateRejected = $false
+try {
+    Assert-UnityMigrationDuplicateHashPolicy -Items $duplicateSamples -IdentifierProperty "id" `
+        -HashProperty "sha256" -AllowedDuplicateGroups @() -Context "Toolchain duplicate policy sample"
+}
+catch { $unexpectedDuplicateRejected = $true }
+Assert-ToolchainTest $unexpectedDuplicateRejected "An undeclared duplicate screenshot group was accepted."
+
 $validEvidence = [pscustomobject]@{
     contractFingerprint = $dataFingerprintA
     userId = 7200057
@@ -327,6 +344,8 @@ Assert-ToolchainTest (
 
 $gateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-UnityMigrationGate.ps1") `
     -Raw -Encoding UTF8
+$hardGateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityMigrationHardGates.ps1") `
+    -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $gateSource.Contains("Completing G1 requires -CocosAutomationLedgerPath") -and
     $gateSource.Contains("Completing G4 requires -SummaryPath") -and
@@ -334,6 +353,10 @@ Assert-ToolchainTest (
     $gateSource.Contains("Test-UnityModuleG5Preflight.ps1") -and
     $gateSource.Contains("New-UnityMigrationRetrospective")
 ) "G1/G2/G4/G5/G6 workflow or automatic retrospective enforcement disappeared from the migration gate."
+Assert-ToolchainTest (
+    $hardGateSource.Contains("G6 Computer Use runtime must be stopped after Cocos evidence") -and
+    $hardGateSource.Contains("OpenAI\\Codex\\runtimes\\cua_node")
+) "G6 no longer rejects a residual Computer Use runtime after native Cocos evidence collection."
 
 $moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") `
     -Raw -Encoding UTF8
@@ -342,6 +365,25 @@ Assert-ToolchainTest (
     $moduleRunnerSource.Contains('$ValidationMode -eq "Preflight"') -and
     $moduleRunnerSource.Contains('"-projectXUserId=<auto-isolated>"')
 ) "Standard Unity runner no longer records batch execution or an accurate preflight account plan."
+
+$bootstrapRunnerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('settingsValidation && status == "Main UI active."') -and
+    $bootstrapRunnerSource.Contains('app.IsSettingsDataReady') -and
+    $bootstrapRunnerSource.Contains('SessionState.GetInt(SettingsPhaseKey, 0) == 0') -and
+    $bootstrapRunnerSource.Contains('app.RunSettingsValidation();') -and
+    $bootstrapRunnerSource.Contains('SettingsVisualPreparedKey') -and
+    $bootstrapRunnerSource.Contains('queued after stable-frame delay') -and
+    $bootstrapRunnerSource.Contains('MirrorSettingsIsolationScreenshot')
+) "Settings batch validation no longer starts from the authoritative Main UI ready state."
+
+$settingsPresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $settingsPresenterSource.Contains('slider.handleRect.SetSizeWithCurrentAnchors') -and
+    $settingsPresenterSource.Contains('colors.disabledColor = Color.white')
+) "Settings Slider no longer repairs the imported zero-size Cocos handle or preserves its disabled visual."
 
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
@@ -358,6 +400,19 @@ Assert-ToolchainTest (
     $commonSource.Contains('transient-bee-lock-attempt1.log') -and
     $commonSource.Contains('retrying the same compile preflight once')
 ) "Compile preflight no longer performs the bounded same-tool retry for the proven transient Unity Bee reference lock."
+
+$g5PreflightSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityModuleG5Preflight.ps1") `
+    -Raw -Encoding UTF8
+$g5EvidenceSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityModuleG5Evidence.ps1") `
+    -Raw -Encoding UTF8
+$docsTestSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityMigrationDocs.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $g5PreflightSource.Contains('Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount"') -and
+    $docsTestSource.Contains('Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount"') -and
+    $g5EvidenceSource.Contains('primaryUserId') -and
+    $g5EvidenceSource.Contains('primaryRoleId')
+) "Client-local no-server-fixture G5 contracts are no longer supported by the shared evidence tools."
 
 $scaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") `
     -Raw -Encoding UTF8

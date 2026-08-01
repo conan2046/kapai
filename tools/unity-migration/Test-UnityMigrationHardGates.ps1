@@ -107,6 +107,16 @@ if ((@($summary.validatedControlIds) -join "`n") -ne (@($runtimeCoverage.validat
 
 if ($Phase -eq "G6") {
     if (-not $controlMatrix) { throw "G6 hard gates require a control matrix." }
+    if ($IsWindows) {
+        $computerUseRuntimeProcesses = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
+            $_.Name -in @("node_repl.exe", "codex-computer-use.exe") -and
+            [string]$_.CommandLine -match 'OpenAI\\Codex\\runtimes\\cua_node|computer-use-client|codex-computer-use'
+        })
+        if ($computerUseRuntimeProcesses.Count -gt 0) {
+            $processDetails = @($computerUseRuntimeProcesses | ForEach-Object { "PID=$($_.ProcessId) Name=$($_.Name)" }) -join '; '
+            throw "G6 Computer Use runtime must be stopped after Cocos evidence: $processDetails"
+        }
+    }
     $idempotencePath = Join-Path $root ".local\unity-validation\bootstrap-idempotence-latest.json"
     if (-not (Test-Path -LiteralPath $idempotencePath -PathType Leaf)) {
         throw "G6 hard gates require the Bootstrap idempotence summary."

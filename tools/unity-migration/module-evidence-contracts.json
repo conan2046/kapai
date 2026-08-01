@@ -79,6 +79,38 @@
       }
     },
     {
+      "module": "Settings",
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/Settings/cocos/g5-20260801",
+        "unityDirectory": ".local/ui-fidelity/Settings/unity/g5-20260801",
+        "compareDirectory": ".local/ui-fidelity/Settings/compare/g5-live-20260801",
+        "width": 1334,
+        "height": 750,
+        "allowedDuplicateGroups": [
+          {"ids": ["SETTINGS-DEFAULT", "SETTINGS-CORRUPT-FALLBACK"]},
+          {"ids": ["SETTINGS-MUSIC-MID", "SETTINGS-RESTART"]}
+        ],
+        "identity": {
+          "primaryUserId": 7200057,
+          "primaryRoleId": 1000115,
+          "isolationUserId": 705213,
+          "isolationRoleId": 1000006,
+          "persistence": "device-local-shared-across-accounts",
+          "fixtureContract": "no-server-fixture"
+        },
+        "pairs": [
+          { "id": "SETTINGS-DEFAULT", "cocos": "SETTINGS-DEFAULT.png", "unity": "SETTINGS-DEFAULT.png" },
+          { "id": "SETTINGS-MUSIC-MID", "cocos": "SETTINGS-MUSIC-MID.png", "unity": "SETTINGS-MUSIC-MID.png" },
+          { "id": "SETTINGS-MUSIC-OFF", "cocos": "SETTINGS-MUSIC-OFF.png", "unity": "SETTINGS-MUSIC-OFF.png" },
+          { "id": "SETTINGS-BOTH-OFF", "cocos": "SETTINGS-BOTH-OFF.png", "unity": "SETTINGS-BOTH-OFF.png" },
+          { "id": "SETTINGS-RESTART", "cocos": "SETTINGS-RESTART.png", "unity": "SETTINGS-RESTART.png" },
+          { "id": "SETTINGS-SWITCH-ACCOUNT", "cocos": "SETTINGS-SWITCH-ACCOUNT-MID.png", "unity": "SETTINGS-SWITCH-ACCOUNT.png" },
+          { "id": "SETTINGS-ACCOUNT-ISOLATION", "cocos": "SETTINGS-ACCOUNT-ISOLATION-MID.png", "unity": "SETTINGS-ACCOUNT-ISOLATION.png" },
+          { "id": "SETTINGS-CORRUPT-FALLBACK", "cocos": "SETTINGS-CORRUPT-FALLBACK.png", "unity": "SETTINGS-CORRUPT-FALLBACK.png" }
+        ]
+      }
+    },
+    {
       "module": "GameplayShops",
       "fixedAccount": {
     "userId": 7200057,

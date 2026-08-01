@@ -694,6 +694,76 @@
         ]
       },
       "updatedUtc": "2026-08-01T06:51:45.5942952Z"
+    },
+    {
+      "module": "Settings",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/SETTINGS.md",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/SETTINGS.md",
+          "docs/unityclient/matrices/SETTINGS_CONTROLS.json"
+        ],
+        "G1": [
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/G1_COCOS_EVIDENCE.md",
+          ".local/unity-validation/settings-cocos-automation-ledger.json",
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/01-settings-default-native.png",
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/04-both-off-native.png",
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/05-restart-persistence-native.png",
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/07-account-isolation-native.png",
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/08-corrupt-range-fallback-native.png"
+        ],
+        "G2": [
+          ".local/unity-validation/settings-g2-source-audit.json",
+          ".local/unity-validation/settings-protocol-88-evidence.md",
+          ".local/unity-validation/settings-protocol-199-evidence.md",
+          "docs/unityclient/modules/SETTINGS.md",
+          "docs/unityclient/matrices/SETTINGS_CONTROLS.json"
+        ],
+        "G3": [
+          ".local/unity-validation/settings-g3-editor-check.json",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/SystemLayer.prefab",
+          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity",
+          "tools/unity-migration/module-evidence-contracts.json"
+        ],
+        "G4": [
+          ".local/unity-validation/settings-latest.json",
+          "build/ui-migration/bootstrap-app-result.json",
+          "build/ui-migration/bootstrap-settings.png",
+          "build/ui-migration/unity-settings-validation.log"
+        ],
+        "G5": [
+          ".local/unity-validation/settings-g5-preflight-latest.json",
+          ".local/ui-fidelity/Settings/compare/g5-live-20260801/report.json",
+          ".local/ui-fidelity/Settings/compare/g5-live-20260801/contact-side-1.jpg",
+          ".local/ui-fidelity/Settings/compare/g5-live-20260801/contact-side-2.jpg",
+          ".local/ui-fidelity/Settings/cocos/g5-20260801/SETTINGS-DEFAULT.png",
+          ".local/ui-fidelity/Settings/unity/g5-20260801/SETTINGS-DEFAULT.png"
+        ],
+        "G6": [
+          ".local/unity-validation/settings-g6-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          ".local/unity-validation/settings-g6-severe-errors.json",
+          ".local/unity-validation/settings-no-server-fixture-latest.json",
+          ".local/ui-fidelity/Settings/compare/g5-live-20260801/report.json",
+          "docs/unityclient/matrices/SETTINGS_CONTROLS.json",
+          "docs/unityclient/modules/SETTINGS.md",
+          ".local/unity-validation/settings-operation-ledger.json",
+          ".local/unity-validation/settings-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-01T10:09:45.5105768Z"
     }
   ]
 }

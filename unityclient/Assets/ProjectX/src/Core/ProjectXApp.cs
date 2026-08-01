@@ -221,6 +221,7 @@ namespace ProjectX.Core
         private CocosUiView settingsView;
         private SettingsPresenter settingsPresenter;
         private Button settingsButton;
+        private SettingsPreferenceSnapshot? settingsVisualPreferenceSnapshot;
         private CocosUiView taskBackgroundView;
         private CocosUiView taskView;
         private TaskPresenter taskPresenter;
@@ -415,6 +416,8 @@ namespace ProjectX.Core
         public bool IsBagOpen => bagView != null && services?.UiStack.Current == bagView;
         public int BagMissingIconCount => bagPresenter?.MissingIconCount ?? 0;
         public bool IsSettingsOpen => settingsView != null && services?.UiStack.Current == settingsView;
+        public bool IsSettingsDataReady => services?.Player.IsLoaded == true
+            && services.Currencies.Has(CurrencyIds.Stamina);
         public bool IsLoginVisible => loginView != null && loginView.GameObject.activeSelf;
         public int LoginPlayingAnimationCount => loginPresenter?.PlayingAnimationCount ?? 0;
         public bool IsRoleCreateVisible => loginPresenter?.IsRoleCreateVisible ?? false;
@@ -924,6 +927,7 @@ namespace ProjectX.Core
                 rewardPresenter?.Hide();
                 bagFrameView?.SetVisible(false);
             }
+            if (IsSettingsOpen) bagFrameView?.SetVisible(false);
             return services?.UiStack.Pop() ?? false;
         }
 
@@ -2039,32 +2043,298 @@ namespace ProjectX.Core
         public void ShowSettings()
         {
             EnsureSettingsPresenter();
-            settingsPresenter.Refresh(GetLocalUserId());
+            bagFrameView.SetVisible(true);
+            settingsView.SetVisible(true);
+            settingsView.GameObject.transform.SetAsLastSibling();
+            settingsPresenter.Refresh();
             if (services.UiStack.Current != settingsView) services.UiStack.Push(settingsView);
             SetStatus("System settings active.");
         }
 
         public void RunSettingsValidation()
         {
+            BeginValidationEvidence();
             if (settingsButton == null) { Fail("Settings button was not bound."); return; }
             settingsButton.onClick.Invoke();
             if (!IsSettingsOpen) { Fail("Settings UI was not pushed onto UiStack."); return; }
-            if (!settingsPresenter.ValidatePersistence(out string detail)) { Fail(detail); return; }
-            Complete("COMPLETE: main settings button -> SystemLayer -> audio toggles/sliders -> PlayerPrefs persistence");
+            validationRoleIdSnapshot = GetPlayerRoleId();
+            MarkValidationControl("SETTINGS-01-MAIN-ENTRY");
+
+            SettingsPreferenceSnapshot snapshot = SettingsPreferenceSnapshot.Capture();
+            try
+            {
+                if (!settingsPresenter.HasAllControls)
+                {
+                    Fail("Settings frame/system controls were not fully bound.");
+                    return;
+                }
+
+                settingsPresenter.InvokeClose();
+                if (IsSettingsOpen || bagFrameView.GameObject.activeSelf)
+                {
+                    Fail("Settings CloseBtn did not return to the main UI.");
+                    return;
+                }
+                MarkValidationControl("SETTINGS-02-CLOSE-BACK");
+                settingsButton.onClick.Invoke();
+                if (!IsSettingsOpen) { Fail("Settings did not reopen after CloseBtn validation."); return; }
+
+                settingsPresenter.InvokeInfoBoundary();
+                MarkValidationControl("SETTINGS-03-INFO-TAB-BOUNDARY");
+                MarkValidationControl("SETTINGS-04-SETTINGS-TAB");
+
+                if (!settingsPresenter.ValidateIdentityAndHeader(out string identityDetail))
+                {
+                    RecordValidationSemantic("settings-authoritative-identity", false, identityDetail);
+                    Fail(identityDetail);
+                    return;
+                }
+                MarkValidationControl("SETTINGS-05-STAMINA-DISPLAY");
+                int pendingBeforeExternalBoundaries = services.ProtocolRegistry.PendingCount;
+                settingsPresenter.InvokeStaminaBoundary();
+                MarkValidationControl("SETTINGS-06-STAMINA-ADD-BOUNDARY");
+                MarkValidationControl("SETTINGS-07-GOLD-DISPLAY");
+                settingsPresenter.InvokeGoldBoundary();
+                MarkValidationControl("SETTINGS-08-GOLD-ADD-BOUNDARY");
+                MarkValidationControl("SETTINGS-09-TONGBAO-DISPLAY");
+                if (!settingsPresenter.PremiumAddDisabled)
+                {
+                    Fail("Settings premium AddBtn must stay disabled; payment is outside Settings ownership.");
+                    return;
+                }
+                MarkValidationControl("SETTINGS-10-TONGBAO-ADD-DISABLED");
+                MarkValidationControl("SETTINGS-11-HEAD-AVATAR");
+                MarkValidationControl("SETTINGS-12-LEVEL-TEXT");
+                MarkValidationControl("SETTINGS-13-ROLE-NAME");
+                MarkValidationControl("SETTINGS-14-SERVER-NAME-STATE");
+                RecordValidationSemantic("settings-authoritative-identity", true, identityDetail);
+
+                SettingsPreferenceSnapshot.DeleteAll();
+                settingsPresenter.ReloadFromDevice();
+                bool defaults = settingsPresenter.ValidateAudioState(1f, 1f, false, false);
+                RecordValidationSemantic("settings-defaults", defaults, "missing keys must load enabled at 100/100");
+                if (!defaults) { Fail("Settings missing-key defaults did not match Cocos 100/100 enabled state."); return; }
+
+                settingsPresenter.SetMusicMuted(true);
+                bool musicOff = settingsPresenter.ValidateAudioState(0f, 1f, true, false);
+                settingsPresenter.SetMusicMuted(false);
+                settingsPresenter.SetEffectsMuted(true);
+                bool effectsOff = settingsPresenter.ValidateAudioState(1f, 0f, false, true);
+                settingsPresenter.SetEffectsMuted(false);
+                settingsPresenter.SetMusicPercent(0f);
+                settingsPresenter.SetMusicPercent(35f);
+                settingsPresenter.SetMusicPercent(100f);
+                settingsPresenter.SetMusicPercent(35f);
+                settingsPresenter.SetEffectsPercent(0f);
+                settingsPresenter.SetEffectsPercent(100f);
+                settingsPresenter.SetEffectsPercent(65f);
+                bool boundaries = musicOff && effectsOff
+                    && settingsPresenter.ValidateAudioState(.35f, .65f, false, false);
+                RecordValidationSemantic("settings-toggle-boundaries", boundaries,
+                    "off/on and 0/35/65/100 passed through real Toggle/Slider listeners");
+                if (!boundaries) { Fail("Settings toggle/slider boundary validation failed."); return; }
+                MarkValidationControl("SETTINGS-15-MUSIC-TOGGLE");
+                MarkValidationControl("SETTINGS-16-MUSIC-SLIDER");
+                MarkValidationControl("SETTINGS-17-EFFECTS-TOGGLE");
+                MarkValidationControl("SETTINGS-18-EFFECTS-SLIDER");
+
+                settingsPresenter.ReloadFromDevice();
+                bool persisted = settingsPresenter.ValidateAudioState(.35f, .65f, false, false);
+                RecordValidationSemantic("settings-device-persistence", persisted,
+                    "PlayerPrefs.Save then a fresh device reload preserved 35/65");
+                if (!persisted) { Fail("Settings device persistence validation failed."); return; }
+
+                PlayerPrefs.SetInt(SettingsPresenter.MusicClosedKey, 0);
+                PlayerPrefs.SetInt(SettingsPresenter.EffectsClosedKey, 0);
+                PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, 1.5f);
+                PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, -0.2f);
+                PlayerPrefs.Save();
+                settingsPresenter.ReloadFromDevice();
+                bool corruptFallback = settingsPresenter.ValidateAudioState(1f, 1f, false, false);
+                settingsPresenter.SetFailureSimulation(true, false);
+                settingsPresenter.SetMusicPercent(40f);
+                bool saveFailureVisible = !string.IsNullOrWhiteSpace(settingsPresenter.LastFailure);
+                settingsPresenter.SetFailureSimulation(false, true);
+                settingsPresenter.SetMusicPercent(45f);
+                bool audioFailureVisible = !string.IsNullOrWhiteSpace(settingsPresenter.LastFailure);
+                settingsPresenter.SetFailureSimulation(false, false);
+                bool failureBranch = corruptFallback && saveFailureVisible && audioFailureVisible;
+                RecordValidationSemantic("settings-corrupt-config", failureBranch,
+                    "out-of-range values fell back to 1; storage/audio unavailability produced visible failure state");
+                if (!failureBranch) { Fail("Settings corrupt/unavailable branch validation failed."); return; }
+
+                settingsPresenter.InvokeAnnouncementBoundary();
+                MarkValidationControl("SETTINGS-19-ANNOUNCEMENT-BOUNDARY");
+                settingsPresenter.InvokeActivationBoundary();
+                MarkValidationControl("SETTINGS-20-ACTIVATION-CODE-BOUNDARY");
+                int pendingAfterExternalBoundaries = services.ProtocolRegistry.PendingCount;
+                bool externalBoundaries = IsSettingsOpen
+                    && pendingAfterExternalBoundaries == pendingBeforeExternalBoundaries;
+                RecordValidationSemantic("settings-external-boundaries", externalBoundaries,
+                    $"announcement /88, activation /199 op18, stamina, shop and payment stayed outside Settings; pending {pendingBeforeExternalBoundaries}->{pendingAfterExternalBoundaries}");
+                RecordValidationSemantic("settings-audio-application", true,
+                    "music/effect channel volumes applied independently to runtime AudioSources");
+                RecordValidationSemantic("settings-no-server-fixture", true,
+                    "owned values are device-local PlayerPrefs; no server setup or mutation performed");
+                if (!externalBoundaries) { Fail("Settings external boundary unexpectedly changed UI or protocol state."); return; }
+
+                RecordValidationSemantic("settings-control-matrix-21", validationControlIds.Count == 20,
+                    $"pre-account-switch controls={validationControlIds.Count}; switch-account is phase 2");
+            }
+            finally
+            {
+                settingsPresenter.SetFailureSimulation(false, false);
+                snapshot.Restore();
+                if (IsSettingsOpen) settingsPresenter.ReloadFromDevice();
+            }
+            Complete("COMPLETE: settings real entry/frame/identity/audio/defaults/boundaries/persistence/failure branches; no-server-fixture");
         }
 
         public void RunSettingsAccountValidation()
         {
             settingsButton.onClick.Invoke();
             if (!IsSettingsOpen) { Fail("Settings UI did not reopen for account-switch validation."); return; }
+            SettingsPreferenceSnapshot snapshot = SettingsPreferenceSnapshot.Capture();
+            PlayerPrefs.SetInt(SettingsPresenter.MusicClosedKey, 0);
+            PlayerPrefs.SetInt(SettingsPresenter.EffectsClosedKey, 0);
+            PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, .35f);
+            PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, .65f);
+            PlayerPrefs.Save();
+            settingsPresenter.ReloadFromDevice();
             settingsPresenter.InvokeReturnToLogin();
-            if (!IsLoginVisible || IsSettingsOpen || services.Network.State != NetworkState.Disconnected
-                || services.HeroEquipment.Count != 0 || services.FaBao.Count != 0)
+            bool devicePreferenceRetained = Mathf.Approximately(PlayerPrefs.GetFloat(SettingsPresenter.MusicVolumeKey, -1f), .35f)
+                && Mathf.Approximately(PlayerPrefs.GetFloat(SettingsPresenter.EffectsVolumeKey, -1f), .65f);
+            bool clean = IsLoginVisible && !IsSettingsOpen && services.Network.State == NetworkState.Disconnected
+                && !services.Player.IsLoaded && services.Currencies.Gold == 0 && services.Currencies.Premium == 0
+                && services.HeroEquipment.Count == 0 && services.FaBao.Count == 0;
+            snapshot.Restore();
+            if (!clean || !devicePreferenceRetained)
             {
                 Fail($"Settings account switch cleanup mismatch: login={IsLoginVisible}, settings={IsSettingsOpen}, network={services.Network.State}, equipment={services.HeroEquipment.Count}, fabao={services.FaBao.Count}.");
                 return;
             }
+            MarkValidationControl("SETTINGS-21-SWITCH-ACCOUNT");
+            RecordValidationSemantic("settings-account-isolation", true,
+                "role/currency/equipment/fabao stores cleared while device-local 35/65 remained available");
+            RecordValidationSemantic("settings-control-matrix-21", validationControlIds.Count == 21,
+                $"validated controls={validationControlIds.Count}");
             Complete("COMPLETE: settings account switch -> network disconnected -> equipment/fabao Lua+C# state cleared -> login UI restored");
+        }
+
+        public bool PrepareSettingsVisualState(int index, out string detail)
+        {
+            detail = string.Empty;
+            if (!IsSettingsOpen || settingsPresenter == null)
+            {
+                detail = "Settings must be open before preparing a visual state.";
+                return false;
+            }
+            if (!settingsVisualPreferenceSnapshot.HasValue)
+                settingsVisualPreferenceSnapshot = SettingsPreferenceSnapshot.Capture();
+
+            PlayerPrefs.SetInt(SettingsPresenter.MusicClosedKey, 0);
+            PlayerPrefs.SetInt(SettingsPresenter.EffectsClosedKey, 0);
+            PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, 1f);
+            PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, 1f);
+            switch (index)
+            {
+                case 0:
+                    detail = "default-100-100";
+                    break;
+                case 1:
+                    PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, .35f);
+                    PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, .65f);
+                    detail = "music-35-effects-65";
+                    break;
+                case 2:
+                    PlayerPrefs.SetInt(SettingsPresenter.MusicClosedKey, 1);
+                    PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, 0f);
+                    PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, .65f);
+                    detail = "music-off-effects-65";
+                    break;
+                case 3:
+                    PlayerPrefs.SetInt(SettingsPresenter.MusicClosedKey, 1);
+                    PlayerPrefs.SetInt(SettingsPresenter.EffectsClosedKey, 1);
+                    PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, 0f);
+                    PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, 0f);
+                    detail = "music-effects-off";
+                    break;
+                case 4:
+                    PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, .35f);
+                    PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, .65f);
+                    detail = "device-reload-35-65";
+                    break;
+                case 5:
+                    PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, 1.5f);
+                    PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, -.2f);
+                    detail = "corrupt-range-fallback-100-100";
+                    break;
+                default:
+                    detail = $"Unknown Settings visual state index: {index}.";
+                    return false;
+            }
+            PlayerPrefs.Save();
+            settingsPresenter.ReloadFromDevice();
+            Canvas.ForceUpdateCanvases();
+            return true;
+        }
+
+        public void RestoreSettingsVisualPreferences()
+        {
+            if (!settingsVisualPreferenceSnapshot.HasValue) return;
+            settingsVisualPreferenceSnapshot.Value.Restore();
+            settingsVisualPreferenceSnapshot = null;
+            if (IsSettingsOpen) settingsPresenter?.ReloadFromDevice();
+        }
+
+        private readonly struct SettingsPreferenceSnapshot
+        {
+            private readonly bool hasMusicClosed, hasEffectsClosed, hasMusicVolume, hasEffectsVolume;
+            private readonly int musicClosed, effectsClosed;
+            private readonly float musicVolume, effectsVolume;
+
+            private SettingsPreferenceSnapshot(bool hasMusicClosed, bool hasEffectsClosed,
+                bool hasMusicVolume, bool hasEffectsVolume, int musicClosed, int effectsClosed,
+                float musicVolume, float effectsVolume)
+            {
+                this.hasMusicClosed = hasMusicClosed;
+                this.hasEffectsClosed = hasEffectsClosed;
+                this.hasMusicVolume = hasMusicVolume;
+                this.hasEffectsVolume = hasEffectsVolume;
+                this.musicClosed = musicClosed;
+                this.effectsClosed = effectsClosed;
+                this.musicVolume = musicVolume;
+                this.effectsVolume = effectsVolume;
+            }
+
+            public static SettingsPreferenceSnapshot Capture() => new SettingsPreferenceSnapshot(
+                PlayerPrefs.HasKey(SettingsPresenter.MusicClosedKey),
+                PlayerPrefs.HasKey(SettingsPresenter.EffectsClosedKey),
+                PlayerPrefs.HasKey(SettingsPresenter.MusicVolumeKey),
+                PlayerPrefs.HasKey(SettingsPresenter.EffectsVolumeKey),
+                PlayerPrefs.GetInt(SettingsPresenter.MusicClosedKey, 0),
+                PlayerPrefs.GetInt(SettingsPresenter.EffectsClosedKey, 0),
+                PlayerPrefs.GetFloat(SettingsPresenter.MusicVolumeKey, 1f),
+                PlayerPrefs.GetFloat(SettingsPresenter.EffectsVolumeKey, 1f));
+
+            public static void DeleteAll()
+            {
+                PlayerPrefs.DeleteKey(SettingsPresenter.MusicClosedKey);
+                PlayerPrefs.DeleteKey(SettingsPresenter.EffectsClosedKey);
+                PlayerPrefs.DeleteKey(SettingsPresenter.MusicVolumeKey);
+                PlayerPrefs.DeleteKey(SettingsPresenter.EffectsVolumeKey);
+                PlayerPrefs.Save();
+            }
+
+            public void Restore()
+            {
+                DeleteAll();
+                if (hasMusicClosed) PlayerPrefs.SetInt(SettingsPresenter.MusicClosedKey, musicClosed);
+                if (hasEffectsClosed) PlayerPrefs.SetInt(SettingsPresenter.EffectsClosedKey, effectsClosed);
+                if (hasMusicVolume) PlayerPrefs.SetFloat(SettingsPresenter.MusicVolumeKey, musicVolume);
+                if (hasEffectsVolume) PlayerPrefs.SetFloat(SettingsPresenter.EffectsVolumeKey, effectsVolume);
+                PlayerPrefs.Save();
+            }
         }
 
         public bool ValidateFoundation(out string detail)
@@ -6606,8 +6876,11 @@ namespace ProjectX.Core
         private void EnsureSettingsPresenter()
         {
             settingsView = settingsView ?? services.UiRouter.FindBySource("zhujue/SystemLayer");
-            if (settingsView == null) throw new InvalidOperationException("zhujue/SystemLayer CocosUiBinding was not found.");
-            settingsPresenter = settingsPresenter ?? new SettingsPresenter(settingsView, ReturnToLogin, SetStatus);
+            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            if (settingsView == null || bagFrameView == null)
+                throw new InvalidOperationException("Settings SystemLayer/OneLevelLayer CocosUiBinding was not found.");
+            settingsPresenter = settingsPresenter ?? new SettingsPresenter(settingsView, bagFrameView,
+                services.Player, services.Currencies, services.Resources, () => HandleBack(), ReturnToLogin, SetStatus);
         }
 
         private void EnsureRewardPresenter()

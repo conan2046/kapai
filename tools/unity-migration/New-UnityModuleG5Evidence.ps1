@@ -14,7 +14,7 @@ $contract = @($contracts.modules | Where-Object { $_.module -ieq $Module })
 if ($contract.Count -ne 1 -or $null -eq $contract[0].g5) {
     throw "Module '$Module' has no unique G5 evidence contract."
 }
-$fixed = $contract[0].fixedAccount
+$fixed = Get-UnityMigrationPropertyValue -Object $contract[0] -Name "fixedAccount" -Default $null
 $g5 = $contract[0].g5
 $cocosDirectory = Resolve-UnityMigrationPath -Root $root -Path ([string]$g5.cocosDirectory)
 $unityDirectory = Resolve-UnityMigrationPath -Root $root -Path ([string]$g5.unityDirectory)
@@ -49,11 +49,20 @@ $reports = foreach ($pair in $g5.pairs) {
 }
 $git = "C:/Program Files/Git/cmd/git.exe"
 $sourceCommit = (& $git -C $root rev-parse HEAD).Trim()
+$summaryUserId = if ($null -ne $fixed) { [uint32]$fixed.userId } else {
+    [uint32](Get-UnityMigrationPropertyValue -Object $g5.identity -Name "primaryUserId" -Default 0)
+}
+$summaryRoleId = if ($null -ne $fixed) { [uint32]$fixed.roleId } else {
+    [uint32](Get-UnityMigrationPropertyValue -Object $g5.identity -Name "primaryRoleId" -Default 0)
+}
+if ($summaryUserId -eq 0 -or $summaryRoleId -eq 0) {
+    throw "Module '$Module' G5 evidence contract has no authoritative primary identity."
+}
 $summary = [ordered]@{
     schemaVersion = 2
     module = [string]$contract[0].module
-    userId = [uint32]$fixed.userId
-    roleId = [uint32]$fixed.roleId
+    userId = $summaryUserId
+    roleId = $summaryRoleId
     sourceCommit = $sourceCommit
     stateCount = $reports.Count
     imageSize = @{ width = [int]$g5.width; height = [int]$g5.height }

@@ -1342,6 +1342,7 @@ function Assert-UnityMigrationVisualArtifacts {
     $expectedHeight = [int](Get-UnityMigrationPropertyValue -Object $assertions -Name "height" -Default 750)
     $minimumBytes = [int](Get-UnityMigrationPropertyValue -Object $assertions -Name "minimumBytes" -Default 1024)
     $requireUnique = [bool](Get-UnityMigrationPropertyValue -Object $assertions -Name "requireUniqueHashes" -Default $true)
+    $allowedDuplicateGroups = @(Get-UnityMigrationPropertyValue -Object $assertions -Name "allowedDuplicateGroups" -Default @())
     $results = New-Object System.Collections.Generic.List[object]
     Add-Type -AssemblyName System.Drawing
     foreach ($artifact in @($Scenario.artifacts)) {
@@ -1370,11 +1371,41 @@ function Assert-UnityMigrationVisualArtifacts {
             sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
         })
     }
-    if ($requireUnique -and $results.Count -gt 1 -and
-        @($results | Group-Object sha256 | Where-Object Count -gt 1).Count -gt 0) {
-        throw "Scenario '$($Scenario.key)' contains duplicate screenshot content."
+    if ($requireUnique -and $results.Count -gt 1) {
+        Assert-UnityMigrationDuplicateHashPolicy -Items $results.ToArray() -IdentifierProperty "path" `
+            -HashProperty "sha256" -AllowedDuplicateGroups $allowedDuplicateGroups `
+            -Context "Scenario '$($Scenario.key)'"
     }
     return $results.ToArray()
+}
+
+function Assert-UnityMigrationDuplicateHashPolicy {
+    param(
+        [Parameter(Mandatory = $true)][object[]]$Items,
+        [Parameter(Mandatory = $true)][string]$IdentifierProperty,
+        [Parameter(Mandatory = $true)][string]$HashProperty,
+        [object[]]$AllowedDuplicateGroups = @(),
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+    $knownIds = @($Items | ForEach-Object { [string]$_.$IdentifierProperty })
+    $allowedKeys = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+    $claimedIds = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+    foreach ($group in @($AllowedDuplicateGroups)) {
+        $ids = @(Get-UnityMigrationPropertyValue -Object $group -Name "ids" -Default @() | `
+            ForEach-Object { [string]$_ } | Where-Object { $_ } | Sort-Object -Unique)
+        if ($ids.Count -lt 2) { throw "$Context has an invalid allowed duplicate group; at least two ids are required." }
+        foreach ($id in $ids) {
+            if ($knownIds -notcontains $id) { throw "$Context allowed duplicate id is unknown: $id" }
+            if (-not $claimedIds.Add($id)) { throw "$Context allowed duplicate id appears in multiple groups: $id" }
+        }
+        [void]$allowedKeys.Add((@($ids | Sort-Object) -join "`n"))
+    }
+    foreach ($duplicate in @($Items | Group-Object -Property $HashProperty | Where-Object Count -gt 1)) {
+        $ids = @($duplicate.Group | ForEach-Object { [string]$_.$IdentifierProperty } | Sort-Object)
+        if (-not $allowedKeys.Contains(($ids -join "`n"))) {
+            throw "$Context contains duplicate screenshot content: $($ids -join ', ')."
+        }
+    }
 }
 
 function Get-UnityMigrationTcpListenerPid {
