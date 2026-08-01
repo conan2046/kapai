@@ -114,31 +114,31 @@
 
 ### G0 范围冻结
 
-冻结模块、入口、页面、弹窗、全部控件、状态、成功/失败分支、测试账号、分辨率、包含项和排除项。生成控件矩阵；任何 Cocos 可达控件遗漏则后续结果全部无效。
+冻结模块、入口、页面、弹窗、全部控件、状态、成功/失败分支、测试账号、分辨率、包含项和排除项。生成控件矩阵并写入 `workflowPolicyVersion=1`；用 `acceptanceExamples` 以 `given/when/then` 冻结至少一个具体产品结果，禁止把“分组、汇总、刷新”等歧义拖到 G5；任何 Cocos 可达控件遗漏则后续结果全部无效。
 
 退出条件：范围无歧义；测试账号可复现；矩阵覆盖率100%；机器门禁为 G0 passed。
 
 ### G1 Cocos 运行链取证
 
-打印 `入口 → Lua回调 → Utils:OpenFunction/InitUI → View/Controller → CSB/CSD → 动态节点/Timeline/Imod → 协议`。从真实入口取得每个关键状态的 Cocos 截图/视频和日志。
+打印 `入口 → Lua回调 → Utils:OpenFunction/InitUI → View/Controller → CSB/CSD → 动态节点/Timeline/Imod → 协议`。从真实入口取得每个关键状态的 Cocos 截图/视频和日志。迁移操作统一走 `computer-use@openai-bundled`；用户入口可显示为 AdsPower Browser 插件链接，但自动化目标必须唯一匹配原生 `ProjectX.exe / Cocos Simulator`，不得操作 AdsPower 浏览器窗口。每次观察后只执行一个状态派生动作并立即刷新；首次未到达立即记录失败并转源码、日志和协议诊断。
 
-退出条件：所有冻结状态有有效 Cocos 证据；截图窗口、标题、账号、角色、步骤、分辨率和目标节点一致；无猜测链路。
+退出条件：所有冻结状态有有效 Cocos 证据；截图窗口、标题、账号、角色、步骤、分辨率和目标节点一致；无猜测链路；G1 门禁已校验 `-CocosAutomationLedgerPath`。
 
 ### G2 迁移设计
 
-确认旧 Lua 权威数据、协议/op/字段/错误码、服务端处理、配置和资源、Unity Transform 映射、Lua/C#边界、重连与切号策略。
+确认旧 Lua 权威数据、协议/op/字段/错误码、服务端处理、配置和资源、Unity Transform 映射、Lua/C#边界、重连与切号策略。控件矩阵 `sourceAudit` 必须分别关闭入口闭包、共享协议所有权、配置→资源闭包和运行时 Transform 四项检查；源码确实缺失的内容逐项登记 `id/handling/evidence`，不得靠猜路径或临场占位。
 
-退出条件：三方证据齐全；资源类型与播放语义明确；每个控件都有实现与验证设计。
+退出条件：三方证据齐全；资源类型与播放语义明确；每个控件都有实现与验证设计；`sourceAudit` 机器门禁通过。
 
 ### G3 静态实现
 
 接入真实 Prefab、资源、Lua Controller/Legacy Model 和 C# Render Bridge。按矩阵绑定真实控件；排除功能必须隐藏或禁用，不能保留空壳入口。
 
-退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查。
+退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查；场景在 G3 前已登记 `requiredGate=G3`、全控件覆盖、语义断言、源码锚点、全部截图状态和 `1334×750` 视觉断言；变更型模块已有固定账号数据合同。
 
 ### G4 逻辑动态验收
 
-验证列表/全量/增量、正常写操作、空态、材料不足、非法/重复、超时/断线、重拉、重连、返回、切号。每项必须由真实控件触发，服务端结果与 UI 刷新一致。
+验证列表/全量/增量、正常写操作、空态、材料不足、非法/重复、超时/断线、重拉、重连、返回、切号。每项必须由真实控件触发，服务端结果与 UI 刷新一致。G4/G6 运行证据只接受两个标准 Runner 的 Unity `-batchMode` 摘要；Unity MCP 只允许用于 G3 编辑器检查，不得作为动态验收或出证路径。
 
 退出条件：控件功能覆盖100%；成功/失败覆盖100%；权威持久化和清理通过。
 
@@ -148,7 +148,7 @@
 
 截图必须为原生客户区 `1334×750`，Windows 100%缩放，禁止桌面截图或二次放大。`Image`、CSB Timeline、Imod 不可互相替代；`CreateAnimModel + PlayStand` 必须迁真实资源、动作号、循环、缩放和挂点。
 
-Cocos 自动化长期采用后台模式：优先 `PrintWindow` 客户区截图和窗口相对后台消息，不置前窗口、不移动真实鼠标、不影响用户操作。每个已确认坐标只允许后台点击一次；首次未进入目标页立即停止，转查 Lua 回调、客户端日志、协议回包或现有自动化。无法后台到达的页面保留 `pending`，不得用前台真实点击、旧截图或 Unity 单端证据替代；只有用户当次明确授权时才可临时使用前台操作。
+Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从最新 `ProjectX.exe / Cocos Simulator` 状态派生一个动作，执行后立即刷新，不复用旧坐标、旧截图 ID 或旧元素索引。常规项目内点击、拖动、滚动和截图已预授权；首次未进入目标页立即记失败并转查 Lua 回调、客户端日志、协议回包。无法到达的页面保留 `pending`，不得用 AdsPower 浏览器页、桌面截图、旧截图或 Unity 单端证据替代。
 
 退出条件：所有状态双端证据齐全；无错误图片、占位文字、截断重叠、公共层遮挡或未解释差异。
 
@@ -183,7 +183,7 @@ Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失�
 | 工具 | 用途 |
 |---|---|
 | `Get-ProtocolEvidence.ps1` | 提取服务端、Cocos、Unity、smoke协议证据 |
-| `New-UnityMigrationModule.ps1` | 生成模块骨架、控件矩阵和 pending 门禁 |
+| `New-UnityMigrationModule.ps1` | 默认生成规划文档、控件矩阵和 pending 门禁；`-IncludeImplementationSkeleton` 受 G2 前置门禁保护 |
 | `Invoke-UnityMigrationGate.ps1` | 检查/落账 G0-G6 |
 | `Run-UnityModuleValidation.ps1` | 场景、夹具、Watchdog、结果和清理 |
 | `Run-UnityFixedAccountValidation.ps1` | 按模块契约执行固定账号快照、注入、真控件验证、精确恢复和重登录复核 |
@@ -197,13 +197,18 @@ Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失�
 | `tools/ui_migration/convert_ui.py` | UI IR、CSB兜底、Prefab准备 |
 | `tools/ui_migration/convert_animations.py` | Imod ANI解析与资源准备 |
 
+工具路由为机器策略，不得临场替换：Cocos 只走 Computer Use 的 `ProjectX.exe / Cocos Simulator` 原生窗口；Unity 逻辑验收走 `Run-UnityModuleValidation.ps1`，固定账号走 `Run-UnityFixedAccountValidation.ps1`；G5 走中央状态对和 `New-UnityModuleG5Evidence.ps1`；G6 走两次 `BuildBatch`。常规 Cocos UI 操作按用户长期授权自动放行，不重复申请；Computer Use 明令要求确认的删除、安装、对外提交等高风险动作不在此授权内。标准工具遇到问题时先形成可复现错误并修工具及测试，禁止换桌面坐标、手工调用内部完成方法、MCP 截图或临时模块脚本绕过门禁。
+
 常用命令：
 
 ```powershell
 python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-audit/generated
 ./tools/unity-migration/Get-ProtocolEvidence.ps1 -Module <Module>
-./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0 -DryRun
-./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module>
+./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0
+./tools/unity-migration/Update-UnityMigrationOperationLedger.ps1 -Module <Module> -Gate G1 -Category CocosAutomation -Tool computer-use@openai-bundled -Operation capture-control -Outcome Passed -TargetId <ControlId> -CapturePath .local/ui-fidelity/<Module>/cocos/<ControlId>.png -Width 1334 -Height 750 -Evidence .local/ui-fidelity/<Module>/cocos/<ControlId>.png
+./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G1 -Complete -CocosAutomationLedgerPath .local/unity-validation/<module>-cocos-automation-ledger.json -Evidence @('<module-doc>','<ledger>')
+./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -ValidationMode Preflight
+./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly
 ./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module>
 ./tools/unity-migration/New-UnityModuleG5Evidence.ps1 -Module <Module>
 ./tools/unity-migration/Test-UnityMigrationDocs.ps1
@@ -216,12 +221,37 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 
 ## 13. 高频坑与处理
 
+以下约束来自已完成模块的实际返工，不是建议项：
+
+| 模块 | 已发生的弯路 | 已固化约束 |
+|---|---|---|
+| Bag | 初始范围遗漏嵌套装备详情分支 | G0 必须从当前入口闭包反查所有嵌套页，矩阵为空或漏页不得继续 |
+| Task | 进入动态验证后才发现权威任务列表为空 | 变更型模块 G3 前必须有固定账号合同，Full 前必须通过 `DataPreflightOnly` |
+| Hero | Cocos 无有效窗口后尝试旧图、完成标记和 Force Rebuild 证明 | 无当前 Cocos 动态证据保持 pending；G6 只认两次正式 `BuildBatch` |
+| HeroEquip | 监听端口存在却没有可用 Unity Editor，反复尝试 MCP | MCP 前先查进程、实例和 editor state；MCP 仅限 G3，G4-G6 只认 batch摘要 |
+| Mail | 有/无附件状态及原生滚动、数量缺陷直到后期才分清 | G1 冻结状态对和已批准原生缺陷；Fixture 同时准备正反状态并精确恢复 |
+| Shop | 启动 Unity 后才发现账号数据和实际扣款配置不满足 | `dataPreflight.requirements` 必须覆盖账号绑定、货币、商品和真实成本字段 |
+| GameplayShops | `VisualOnly` 结果缺截图，随后靠人工合并造成反复 | 只有账号、角色、源码/G5指纹和逐图 SHA 全匹配才允许复用视觉产物 |
+| Draw | 可选合同字段、终态切号身份和随机抽取导致假阻塞 | 可选字段统一安全读取；终态身份显式登记；随机业务必须先找确定性服务端条件 |
+| World | 猜 `-DryRun`、资产路径和扫荡展示语义；共享 `/320` 被提前消费 | 先查工具参数和源码链；G0 写结果示例；资源缺口只做可证模块兼容；共享协议不匹配必须恢复游标 |
+
 | 问题 | 处理 |
 |---|---|
 | 扫描到旧游戏 Lua | 只认当前 MainUI 静态闭包和运行入口 |
 | AppDef有枚举就认当前功能 | 必须有当前入口、资源和运行证明 |
 | 历史截图文件名看似正确 | 核对窗口、标题、账号、角色、步骤、分辨率、节点 |
 | 坐标点击失败后继续试错 | 首次失败立即停，转查回调、日志、协议、自动化 |
+| Cocos 操作 AdsPower 浏览器窗口或混用多套桌面自动化 | 统一 Computer Use，唯一匹配 `ProjectX.exe / Cocos Simulator`；AdsPower 仅是用户入口标签，不是游戏目标 |
+
+### 6.6 失败台账、自动复盘与迭代
+
+- 标准路径：`.local/unity-validation/<module>-operation-ledger.json`。失败发生即记录，不允许迁移完成后凭记忆补写。
+- `Failed/Blocked` 必须包含原始错误和根因；根因暂未知时只能写 `pending-diagnosis`，该状态会阻塞 G6。
+- 修复后用同一工具追加 `Resolved`，关联失败 `recordId`，并填写解决方式、可复用迭代动作及证据。迭代优先进入中央脚本、`validation-scenarios.json`、`AGENTS.md` 和工具链回归测试；模块特例进入矩阵/场景。
+- G6 自动生成 `.local/unity-validation/<module>-retrospective-latest.json`，按根因聚类所有失败及迭代；任一失败未诊断、未解决或证据缺失时门禁失败。
+- 下一模块 G0 先读取上一模块复盘；命中同类根因时直接执行已固化路径，不再重复试错。
+| 到 Unity 阶段才发现账号无数据 | G3 前登记固定账号合同；Full 前强制 `-DataPreflightOnly` 凭证 |
+| 小改一次就重跑完整闭环 | 先批量收敛视觉差异；Preflight/VisualReplay 分流，最终只跑计划内 Full、G5、G6 |
 | Runner直接调用内部方法 | 判定无效，必须从真实 Button/Item/Tab 触发 |
 | Unity单端截图通过 | 只能证明可运行，不能算视觉通过 |
 | 静态头像替代动态模型 | 使用真实 Imod/Timeline资源和动作语义 |

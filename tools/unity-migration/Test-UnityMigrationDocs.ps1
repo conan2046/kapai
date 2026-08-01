@@ -29,6 +29,9 @@ $modulesToCheck = @($moduleMatches)
 function Add-Failure([string]$Message) { $failures.Add($Message) }
 function Add-Warning([string]$Message) { $warnings.Add($Message) }
 
+try { Assert-UnityMigrationWorkflowPolicy -Root $root | Out-Null }
+catch { Add-Failure $_.Exception.Message }
+
 $templateProbe = Expand-UnityMigrationTemplate -Template "user={{UserId}}" -Variables @{ UserId = 42 }
 if ($templateProbe -ne "user=42") { Add-Failure "Validation data template expansion is broken." }
 try {
@@ -122,6 +125,14 @@ foreach ($module in $modulesToCheck) {
     }
     else { $scenario = $scenarios[0] }
     if ($null -ne $scenario) {
+        $moduleGateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $key })
+        if ($moduleGateRecords.Count -eq 1 -and [string]$moduleGateRecords[0].gates.G0 -eq "passed") {
+            try {
+                Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $module `
+                    -Scenario $scenario -Phase G0 | Out-Null
+            }
+            catch { Add-Failure "Module $key workflow contract failed: $($_.Exception.Message)" }
+        }
         try { Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario | Out-Null }
         catch { Add-Failure "Module $key source contract failed: $($_.Exception.Message)" }
         if ([string]$scenario.fixture -notin $fixtureKeys) {

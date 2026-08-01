@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "module": "GameplayShops",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    { "id": "gameplay-shops-shared-protocol", "given": "固定账号具备各玩法商店类型和货币", "when": "切换多商店并购买、刷新、触发条件/售罄/余额失败", "then": "每个控制器只消费自己拥有的/221类型，12页权威状态、重连和切号一致" }
+  ],
   "hardGateVersion": 1,
   "scope": {
     "screenSize": "1334x750",

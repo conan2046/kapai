@@ -173,7 +173,9 @@ Assert-ToolchainTest (
 ) "Fixed-account runner no longer restores the preceding isolated validation result."
 Assert-ToolchainTest (
     $fixedRunnerSource.Contains('captureStates = @($scenario.captureStates)') -and
-    $fixedRunnerSource.Contains('screenshots = @($visualResults)')
+    $fixedRunnerSource.Contains('screenshots = @($visualResults)') -and
+    $fixedRunnerSource.Contains('executionMode = "batch"') -and
+    $fixedRunnerSource.Contains('Assert-UnityMigrationModuleWorkflowContract')
 ) "Fixed-account runner no longer emits the hard-gate visual summary."
 
 $fixedIdentity = [pscustomobject]@{
@@ -190,5 +192,171 @@ Assert-ToolchainTest (
     @(Get-UnityMigrationSummaryIdentityFailures -Summary $fixedSummary -Result $wrongTerminal `
         -FixedAccount $fixedIdentity).Count -eq 1
 ) "Wrong terminal isolation identity was not rejected."
+
+$workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
+Assert-ToolchainTest (
+    @(Get-UnityMigrationWorkflowPolicyFailures -Policy $workflowPolicy).Count -eq 0
+) "Canonical workflow policy was rejected."
+
+$invalidWorkflowPolicy = $workflowPolicy | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$invalidWorkflowPolicy.cocos.maximumAttemptsPerTarget = 2
+$invalidWorkflowPolicy.unity.runtimeValidationMode = "editor-or-batch"
+$workflowFailures = @(Get-UnityMigrationWorkflowPolicyFailures -Policy $invalidWorkflowPolicy)
+Assert-ToolchainTest (
+    @($workflowFailures | Where-Object { $_ -like "*maximumAttemptsPerTarget*" }).Count -eq 1
+) "Repeated Cocos target attempts were not rejected by workflow policy."
+Assert-ToolchainTest (
+    @($workflowFailures | Where-Object { $_ -like "*runtimeValidationMode*batch-only*" }).Count -eq 1
+) "Non-batch Unity runtime validation was not rejected by workflow policy."
+
+$validLedger = [pscustomobject]@{
+    schemaVersion = 1
+    module = "Sample"
+    workflowPolicyVersion = 1
+    tool = "computer-use@openai-bundled"
+    requestedAppReference = "plugin://computer-use@openai-bundled?app=com.adspower.global"
+    targetProcess = "ProjectX.exe"
+    targetWindow = "Cocos Simulator"
+    approvalMode = "routine-project-actions-preapproved"
+    attempts = @(
+        [pscustomobject]@{
+            targetId = "SAMPLE-01"; attemptNumber = 1; desktopCapture = $false
+            capturePath = ".local/sample-01.png"; width = 1334; height = 750
+        }
+    )
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationCocosAutomationLedgerFailures -Ledger $validLedger `
+        -ExpectedModule "Sample").Count -eq 0
+) "Valid Cocos automation ledger was rejected."
+$invalidLedger = $validLedger | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$invalidLedger.attempts = @($invalidLedger.attempts) + @($invalidLedger.attempts[0])
+$invalidLedger.targetProcess = "com.adspower.global"
+$invalidLedger.approvalMode = "ask-every-time"
+$ledgerFailures = @(Get-UnityMigrationCocosAutomationLedgerFailures -Ledger $invalidLedger `
+    -ExpectedModule "Sample")
+Assert-ToolchainTest (
+    @($ledgerFailures | Where-Object { $_ -like "*repeated target ids*" }).Count -eq 1
+) "Duplicate Cocos target ids were not rejected."
+Assert-ToolchainTest (
+    @($ledgerFailures | Where-Object { $_ -like "*targetProcess must be ProjectX.exe*" }).Count -eq 1 -and
+    @($ledgerFailures | Where-Object { $_ -like "*routine-project-actions-preapproved*" }).Count -eq 1
+) "AdsPower-as-game-target or redundant routine approval was not rejected."
+
+$operationLedger = [pscustomobject]@{
+    schemaVersion = 1
+    module = "Sample"
+    workflowPolicyVersion = 1
+    records = @(
+        [pscustomobject]@{
+            recordId = "failure-1"; outcome = "Failed"; error = "wrong page"
+            rootCause = "stale-coordinate"; relatedRecordId = ""; resolution = ""
+            iterationAction = ""; iterationEvidence = @()
+        },
+        [pscustomobject]@{
+            recordId = "resolution-1"; outcome = "Resolved"; error = ""; rootCause = ""
+            relatedRecordId = "failure-1"; resolution = "observe fresh state"
+            iterationAction = "lock observe-action-refresh"; iterationEvidence = @("tools/unity-migration/validation-scenarios.json")
+        }
+    )
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger).Count -eq 0
+) "Diagnosed and iterated migration failure was rejected."
+$operationLedger.records[1].iterationEvidence = @()
+Assert-ToolchainTest (
+    @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger).Count -eq 1
+) "Failure without iteration evidence did not block retrospective completion."
+
+$validBatchSummary = [pscustomobject]@{
+    executionMode = "batch"
+    runner = [string]$workflowPolicy.unity.standardRunner
+    workflowPolicyVersion = [int]$workflowPolicy.version
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationBatchSummaryFailures -Summary $validBatchSummary `
+        -Policy $workflowPolicy).Count -eq 0
+) "Canonical batch validation summary was rejected."
+$invalidBatchSummary = [pscustomobject]@{
+    executionMode = "mcp"
+    runner = "manual-playmode"
+    workflowPolicyVersion = 0
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationBatchSummaryFailures -Summary $invalidBatchSummary `
+        -Policy $workflowPolicy).Count -eq 3
+) "Non-canonical Unity validation summary was not rejected."
+
+$validSourceAuditMatrix = [pscustomobject]@{
+    sourceAudit = [pscustomobject]@{
+        entryClosureComplete = $true
+        protocolOwnershipComplete = $true
+        configAssetClosureComplete = $true
+        runtimeTransformClosureComplete = $true
+        knownGaps = @(
+            [pscustomobject]@{ id = "missing-item"; handling = "module-local"; evidence = "source:1" }
+        )
+    }
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationSourceAuditFailures -Matrix $validSourceAuditMatrix).Count -eq 0
+) "Valid source/config/transform audit was rejected."
+$invalidSourceAuditMatrix = [pscustomobject]@{
+    sourceAudit = [pscustomobject]@{
+        entryClosureComplete = $true
+        protocolOwnershipComplete = $false
+        configAssetClosureComplete = $false
+        runtimeTransformClosureComplete = $true
+        knownGaps = @([pscustomobject]@{ id = "missing-item"; handling = ""; evidence = "" })
+    }
+}
+$sourceAuditFailures = @(Get-UnityMigrationSourceAuditFailures -Matrix $invalidSourceAuditMatrix)
+Assert-ToolchainTest (
+    @($sourceAuditFailures | Where-Object { $_ -like "*protocolOwnershipComplete*" }).Count -eq 1 -and
+    @($sourceAuditFailures | Where-Object { $_ -like "*configAssetClosureComplete*" }).Count -eq 1 -and
+    @($sourceAuditFailures | Where-Object { $_ -like "*requires id, handling and evidence*" }).Count -eq 1
+) "Incomplete source/config/transform audit was not rejected."
+
+$operationLedgerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $operationLedgerSource.Contains('computer-use@openai-bundled') -and
+    $operationLedgerSource.Contains('routine-project-actions-preapproved') -and
+    $operationLedgerSource.Contains('Add-UnityMigrationOperationRecord')
+) "Cocos Computer Use evidence or migration operation ledger writer disappeared."
+
+$gateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-UnityMigrationGate.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $gateSource.Contains("Completing G1 requires -CocosAutomationLedgerPath") -and
+    $gateSource.Contains("Completing G4 requires -SummaryPath") -and
+    $gateSource.Contains("Assert-UnityMigrationSourceAudit") -and
+    $gateSource.Contains("Test-UnityModuleG5Preflight.ps1") -and
+    $gateSource.Contains("New-UnityMigrationRetrospective")
+) "G1/G2/G4/G5/G6 workflow or automatic retrospective enforcement disappeared from the migration gate."
+
+$moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $moduleRunnerSource.Contains('executionMode = "batch"') -and
+    $moduleRunnerSource.Contains('$ValidationMode -eq "Preflight"') -and
+    $moduleRunnerSource.Contains('"-projectXUserId=<auto-isolated>"')
+) "Standard Unity runner no longer records batch execution or an accurate preflight account plan."
+
+$scaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $scaffoldSource.Contains('[switch]$IncludeImplementationSkeleton') -and
+    $scaffoldSource.Contains('RequiredGate G2') -and
+    $scaffoldSource.Contains('-not $IncludeImplementationSkeleton')
+) "New module scaffolding can create implementation code before G2 or rewrite planning registries during implementation scaffolding."
+
+$manifestForWorkflow = (Import-UnityMigrationManifest -Root $root).Value
+$worldModule = @($manifestForWorkflow.modules | Where-Object { $_.key -eq "World" }) | Select-Object -First 1
+$worldScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "World"
+Assert-ToolchainTest (
+    $null -ne (Assert-UnityMigrationModuleWorkflowContract -Root $root `
+        -ModuleConfig $worldModule -Scenario $worldScenario -Phase G3)
+) "The completed World module no longer satisfies the hardened G3 workflow contract."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

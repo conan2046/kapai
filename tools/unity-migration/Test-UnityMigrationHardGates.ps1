@@ -60,6 +60,11 @@ if (-not (Test-Path -LiteralPath $resolvedSummary -PathType Leaf)) {
 }
 $summary = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedSummary | ConvertFrom-Json
 if (-not [bool]$summary.success) { throw "Validation summary is not successful: $SummaryPath" }
+$workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
+$batchFailures = @(Get-UnityMigrationBatchSummaryFailures -Summary $summary -Policy $workflowPolicy)
+if ($batchFailures.Count -gt 0) {
+    throw "Validation summary was not produced by the canonical batch workflow: $($batchFailures -join '; ')"
+}
 $summaryResultEvidence = [string](Get-UnityMigrationPropertyValue -Object $summary -Name "resultEvidence" -Default "")
 $resultPath = if ($summaryResultEvidence) {
     Resolve-UnityMigrationPath -Root $root -Path $summaryResultEvidence

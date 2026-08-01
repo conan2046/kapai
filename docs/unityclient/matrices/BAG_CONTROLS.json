@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "module": "Bag",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    { "id": "bag-nested-equipment", "given": "背包存在装备及普通道具", "when": "从真实列表点击装备并进入详情/来源", "then": "装备嵌套详情、来源、返回及普通道具分支均在矩阵内且显示权威数据" }
+  ],
   "hardGateVersion": 1,
   "scope": {
     "fixedUserId": 7200057,

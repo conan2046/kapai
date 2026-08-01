@@ -33,6 +33,7 @@ $scenarioEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migrat
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 $fixtureEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-fixtures.json"
 if ($null -eq $scenario) { throw "Module '$($moduleConfig.key)' has no central validation scenario." }
+$workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
 $fixtureMatches = @($fixtureEntry.Value.profiles | Where-Object { $_.key -ieq ([string]$scenario.fixture) })
 if ($fixtureMatches.Count -ne 1) { throw "Scenario '$($scenario.key)' fixture '$($scenario.fixture)' was not found exactly once." }
 $fixture = $fixtureMatches[0]
@@ -96,7 +97,9 @@ if ($moduleConfig.key -ieq "Team" -and -not $DryRun -and $ValidationMode -eq "Fu
     if ($UserId -ne 0) { throw "Team validation requires auto-allocated isolated users; omit -UserId." }
     $teamPeerUserId = New-UnityMigrationUserId -Root $root -StartAt ([int]$manifest.isolatedUserIdStart)
 }
-$userArgument = if ($DryRun -and $effectiveUserId -eq 0) { "-projectXUserId=<auto-isolated>" } else { "-projectXUserId=$effectiveUserId" }
+$userArgument = if (($DryRun -or $ValidationMode -eq "Preflight") -and $effectiveUserId -eq 0) {
+    "-projectXUserId=<auto-isolated>"
+} else { "-projectXUserId=$effectiveUserId" }
 $unityArguments = @(
     "-batchMode",
     "-projectPath", $unityProject,
@@ -133,7 +136,7 @@ Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "pref
     -Detail "scenario=$($scenario.key); source=$sourceContractFingerprint; user=$(if ($effectiveUserId -eq 0) { '<auto-isolated>' } else { $effectiveUserId })"
 
 if ($DryRun -or $ValidationMode -eq "Preflight") {
-    Write-Host "$ValidationMode preflight passed: no process, result, screenshot or user-id state was changed."
+    Write-Host "$(if ($DryRun) { 'Dry-run' } else { 'Preflight' }) passed: no process, result, screenshot or user-id state was changed."
     exit 0
 }
 if ($ValidationMode -eq "VisualReplay") {
@@ -488,6 +491,9 @@ try {
 
     $summary = [ordered]@{
         success = $true
+        executionMode = "batch"
+        runner = [string]$workflowPolicy.unity.standardRunner
+        workflowPolicyVersion = [int]$workflowPolicy.version
         module = $moduleKey
         scenario = [string]$scenario.key
         fixture = [string]$fixture.key
@@ -531,6 +537,10 @@ catch {
         $activeTiming = $null
     }
     $failure = $_
+    Add-UnityMigrationOperationRecord -Root $root -Module $moduleKey -Gate G4 -Category UnityBatch `
+        -Tool "tools/unity-migration/Run-UnityModuleValidation.ps1" -Operation "batch-validation" `
+        -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
+        -Evidence @($summaryPath, $logPath, $progressPath) | Out-Null
     $summary = [ordered]@{
         success = $false
         module = $moduleKey
@@ -564,6 +574,10 @@ finally {
         }
         catch {
             Write-Warning $_.Exception.Message
+            Add-UnityMigrationOperationRecord -Root $root -Module $moduleKey -Gate G4 -Category UnityBatch `
+                -Tool "tools/unity-migration/Run-UnityModuleValidation.ps1" -Operation "fixture-cleanup" `
+                -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
+                -Evidence @($setupLogPath, $summaryPath) | Out-Null
             if (-not $failure) {
                 $failure = $_
                 $cleanupSummary = [ordered]@{
@@ -606,4 +620,7 @@ $timingReport = [ordered]@{
 }
 Write-UnityMigrationUtf8 -Path $timingPath -Content (($timingReport | ConvertTo-Json -Depth 8) + "`n")
 if ($failure) { throw $failure }
+Add-UnityMigrationOperationRecord -Root $root -Module $moduleKey -Gate G4 -Category UnityBatch `
+    -Tool "tools/unity-migration/Run-UnityModuleValidation.ps1" -Operation "batch-validation" `
+    -Outcome Passed -Evidence @($summaryPath, $logPath, $progressPath) | Out-Null
 exit 0

@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "module": "World",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    { "id": "world-sweep-aggregate", "given": "固定账号对同一关卡可扫荡N次并获得多类奖励", "when": "点击扫荡N次", "then": "结果标题显示扫荡N次收益汇总，相同type/id合并总量且再次扫荡按钮显示真实N" }
+  ],
   "hardGateVersion": 2,
   "scope": {
     "screenSize": "1334x750",

@@ -5,11 +5,11 @@
 | 工具 | 用途 |
 |---|---|
 | `unityclient-modules.json` | 模块、协议、入口、Prefab、配置、验收参数的机器可读清单 |
-| `validation-scenarios.json` | Runner 参数、夹具、运行产物和双端截图状态的中央注册表 |
+| `validation-scenarios.json` | Runner 参数、夹具、运行产物、双端截图状态和强制工具路由的中央注册表 |
 | `validation-fixtures.json` | 只读、隔离角色、多人角色及全局快照回滚策略 |
 | `module-evidence-contracts.json` | 固定账号适配器、快照、G5 双端目录与状态对 |
 | `migration-gates.json` | 模块 G0-G6 的机器可读状态；未通过前置门禁时拒绝运行 |
-| `New-UnityMigrationModule.ps1` | 生成 Lua Controller、只读 ViewState、RenderBridge、模块文档和待办门禁 |
+| `New-UnityMigrationModule.ps1` | 默认只生成规划文档、控件矩阵和待办门禁；G2通过后显式加 `-IncludeImplementationSkeleton` 才生成 Lua/C# 骨架 |
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity 和 smoke 三方/四方证据 |
 | `Run-UnityModuleValidation.ps1` | 串行启服、运行 Unity、校验结果/日志/截图并清理本阶段进程 |
 | `Run-UnityFixedAccountValidation.ps1` | 通用固定账号快照、注入、矩阵覆盖、精确恢复和重登录复核 |
@@ -27,8 +27,14 @@
 # 查看脚手架计划，不写文件
 pwsh -File tools/unity-migration/New-UnityMigrationModule.ps1 -Module Friend -DisplayName 好友 -WhatIf
 
+# G2 通过后才允许生成实现骨架
+pwsh -File tools/unity-migration/New-UnityMigrationModule.ps1 -Module Friend -IncludeImplementationSkeleton
+
 # 提取协议证据到 .local/protocol-evidence/
 pwsh -File tools/unity-migration/Get-ProtocolEvidence.ps1 -Protocol 221 -Module Shop
+
+# Cocos 只用窗口级后台自动化；每个 TargetId 只允许一次并自动写账本
+pwsh -File tools/unity-migration/Update-UnityMigrationOperationLedger.ps1 -Module Shop -Gate G1 -Category CocosAutomation -Tool computer-use@openai-bundled -Operation capture-control -Outcome Passed -TargetId SHOP-01-MAIN-ENTRY -CapturePath .local/ui-fidelity/Shop/cocos/SHOP-01-MAIN-ENTRY.png -Width 1334 -Height 750 -Evidence .local/ui-fidelity/Shop/cocos/SHOP-01-MAIN-ENTRY.png
 
 # 只打印 Unity 验收计划，不启动任何进程
 pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Shop -DryRun
@@ -66,7 +72,11 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 ## 安全规则
 
 - 不启动 Cocos 客户端。
+- Cocos 迁移操作只允许 Computer Use 定位原生 `ProjectX.exe / Cocos Simulator`；AdsPower Browser 链接是插件入口标注，不是游戏目标。常规点击、拖动、滚动和截图按用户授权自动放行。
+- Cocos 每次观察后只执行一个动作并刷新；首次导航失败立即写操作台账，转查 Lua 回调、日志、协议或既有自动化，禁止连续坐标试错、桌面截图或临时脚本碰运气。
+- 所有迁移失败使用 `Update-UnityMigrationOperationLedger.ps1` 记录；修复后追加关联的 `Resolved` 记录。G6 自动生成复盘并拒绝未诊断、未解决或无迭代证据的失败。
 - 运行前发现 Unity 已存在时直接失败，不复用、不强杀。
+- G4/G6 只接受标准 Runner 写出的 `executionMode=batch` 摘要；Unity MCP 仅限 G3 编辑器检查，不能作为逻辑验证或出证。
 - 只关闭本脚本实际启动的 `kapai.exe` 和 workspace-local MySQL。
 - Unity 必须通过 `Start-Process -Wait` 串行执行。
 - 变更型模块默认使用 `.local/unity-migration-userids.json` 分配新角色。
@@ -78,6 +88,7 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 - 每个界面先记录 Cocos 脚本/操作步骤/UI 资产和基准截图，再记录 Unity 对照与差异报告；不得用“无裁切/无重叠”代替 1:1 验收。
 - 启动时缓存配置的模块可在 `validationData` 设置 `setupBeforeServer=true`；Runner 会先启动 MySQL、执行同一套 Manifest SQL，再启动 `kapai.exe`，cleanup 仍在 finally 统一执行。
 - `sourceContracts` 在启服前校验 Cocos/Unity 关键文件与锚点，优先暴露入口、协议和实现漂移。
+- G2 必须完成控件矩阵 `sourceAudit`：入口闭包、共享协议所有权、配置/资源闭包、运行时 Transform 均为 true；已知缺口必须记录处理方式和源码证据。
 - `validationData.setupAssertSql/cleanupAssertSql` 可用 SQL `SIGNAL` 把夹具注入与恢复验证变为硬失败。
 - 声明 `controlCoverageRequired` 后，Runner 实际触发 ID 必须与矩阵 ID 完全一致；语义断言失败或缺失同样硬失败。
 - 变更型固定账号模块可在 `fixedAccount` 声明 `extraFlags`、`skipPostValidationFixtureAssert=true` 和 `artifactCopies`：先保存运行原图，再由适配器精确恢复并重登录复核；不得在变更完成后误用“夹具仍处于 Setup 状态”断言。

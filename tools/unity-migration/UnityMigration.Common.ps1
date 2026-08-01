@@ -70,6 +70,467 @@ function Get-UnityMigrationPropertyValue {
     return $property.Value
 }
 
+function Get-UnityMigrationWorkflowPolicyFailures {
+    param([Parameter(Mandatory = $true)]$Policy)
+    $failures = New-Object System.Collections.Generic.List[string]
+    if ([int](Get-UnityMigrationPropertyValue -Object $Policy -Name "version" -Default 0) -ne 1) {
+        $failures.Add("workflowPolicy.version must be 1.")
+    }
+    $cocos = Get-UnityMigrationPropertyValue -Object $Policy -Name "cocos" -Default $null
+    $unity = Get-UnityMigrationPropertyValue -Object $Policy -Name "unity" -Default $null
+    $sequence = Get-UnityMigrationPropertyValue -Object $Policy -Name "sequence" -Default $null
+    $iteration = Get-UnityMigrationPropertyValue -Object $Policy -Name "iteration" -Default $null
+    $expectedStrings = @(
+        @($cocos, "tool", "computer-use@openai-bundled"),
+        @($cocos, "requestedAppReference", "plugin://computer-use@openai-bundled?app=com.adspower.global"),
+        @($cocos, "targetProcess", "ProjectX.exe"),
+        @($cocos, "targetWindow", "Cocos Simulator"),
+        @($cocos, "mode", "observe-one-action-refresh-then-diagnose"),
+        @($cocos, "approvalMode", "routine-project-actions-preapproved"),
+        @($cocos, "ledgerWriter", "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1"),
+        @($unity, "standardRunner", "tools/unity-migration/Run-UnityModuleValidation.ps1"),
+        @($unity, "fixedAccountRunner", "tools/unity-migration/Run-UnityFixedAccountValidation.ps1"),
+        @($unity, "runtimeValidationMode", "batch-only"),
+        @($unity, "mcpScope", "g3-editor-inspection-only"),
+        @($iteration, "operationLedgerPattern", ".local/unity-validation/{module}-operation-ledger.json"),
+        @($iteration, "retrospectivePattern", ".local/unity-validation/{module}-retrospective-latest.json")
+    )
+    foreach ($rule in $expectedStrings) {
+        if ([string](Get-UnityMigrationPropertyValue -Object $rule[0] -Name $rule[1] -Default "") -ne $rule[2]) {
+            $failures.Add("workflowPolicy $($rule[1]) must be '$($rule[2])'.")
+        }
+    }
+    if ([int](Get-UnityMigrationPropertyValue -Object $cocos -Name "maximumAttemptsPerTarget" -Default 0) -ne 1) {
+        $failures.Add("workflowPolicy cocos.maximumAttemptsPerTarget must be 1.")
+    }
+    foreach ($rule in @(
+        @($cocos, "requireAutomationLedger"),
+        @($cocos, "forbidDesktopCapture"),
+        @($cocos, "forbidHistoricalEvidence"),
+        @($cocos, "forbidPowerShellUiAutomationMix"),
+        @($cocos, "routineActionsPreapproved"),
+        @($cocos, "highRiskConfirmationsRemain"),
+        @($unity, "requireRegisteredArtifactsBeforeG3"),
+        @($unity, "requireDataPreflightBeforeFullRun"),
+        @($sequence, "requireCurrentCocosBeforeG2"),
+        @($sequence, "requireSourceContractsBeforeG3"),
+        @($sequence, "requireControlCoverageBeforeG4"),
+        @($sequence, "requireG5ContractBeforeFullRun"),
+        @($sequence, "visualReplayIsNotG5Evidence"),
+        @($sequence, "requireTwoBuildBatchRunsForG6"),
+        @($iteration, "recordEveryFailure"),
+        @($iteration, "requireFailureRootCause"),
+        @($iteration, "requireResolutionAndIterationEvidenceBeforeG6"),
+        @($iteration, "autoSummarizeAtG6"),
+        @($iteration, "requireToolchainTestForPolicyIteration")
+    )) {
+        $value = Get-UnityMigrationPropertyValue -Object $rule[0] -Name $rule[1] -Default $null
+        if ($value -isnot [bool] -or -not $value) {
+            $failures.Add("workflowPolicy $($rule[1]) must be boolean true.")
+        }
+    }
+    return @($failures)
+}
+
+function Assert-UnityMigrationWorkflowPolicy {
+    param([Parameter(Mandatory = $true)][string]$Root)
+    $entry = Import-UnityMigrationJson -Root $Root -Path "tools/unity-migration/validation-scenarios.json"
+    $policy = Get-UnityMigrationPropertyValue -Object $entry.Value -Name "workflowPolicy" -Default $null
+    if ($null -eq $policy) { throw "Validation scenario registry has no workflowPolicy." }
+    $failures = @(Get-UnityMigrationWorkflowPolicyFailures -Policy $policy)
+    if ($failures.Count -gt 0) { throw "Unity migration workflow policy is invalid: $($failures -join '; ')" }
+    return $policy
+}
+
+function Get-UnityMigrationCocosAutomationLedgerFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Ledger,
+        [Parameter(Mandatory = $true)][string]$ExpectedModule,
+        [string]$Root = "",
+        [switch]$RequireFiles
+    )
+    $failures = New-Object System.Collections.Generic.List[string]
+    if ([int](Get-UnityMigrationPropertyValue -Object $Ledger -Name "schemaVersion" -Default 0) -ne 1) {
+        $failures.Add("Cocos automation ledger schemaVersion must be 1.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Ledger -Name "module" -Default "") -ine $ExpectedModule) {
+        $failures.Add("Cocos automation ledger module mismatch.")
+    }
+    if ([int](Get-UnityMigrationPropertyValue -Object $Ledger -Name "workflowPolicyVersion" -Default 0) -ne 1) {
+        $failures.Add("Cocos automation ledger workflowPolicyVersion must be 1.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Ledger -Name "tool" -Default "") -ne
+        "computer-use@openai-bundled") {
+        $failures.Add("Cocos automation ledger must be produced by computer-use@openai-bundled.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Ledger -Name "targetProcess" -Default "") -ne
+        "ProjectX.exe") {
+        $failures.Add("Cocos automation ledger targetProcess must be ProjectX.exe.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Ledger -Name "targetWindow" -Default "") -notlike
+        "*Cocos Simulator*") {
+        $failures.Add("Cocos automation ledger targetWindow must identify Cocos Simulator.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Ledger -Name "approvalMode" -Default "") -ne
+        "routine-project-actions-preapproved") {
+        $failures.Add("Cocos automation ledger must record routine-project-actions-preapproved.")
+    }
+    $attempts = @((Get-UnityMigrationPropertyValue -Object $Ledger -Name "attempts" -Default @()))
+    if ($attempts.Count -eq 0) { $failures.Add("Cocos automation ledger has no attempts.") }
+    $targetIds = New-Object System.Collections.Generic.List[string]
+    $capturePaths = New-Object System.Collections.Generic.List[string]
+    foreach ($attempt in $attempts) {
+        $targetId = [string](Get-UnityMigrationPropertyValue -Object $attempt -Name "targetId" -Default "")
+        if (-not $targetId) { $failures.Add("Cocos automation attempt has no targetId."); continue }
+        $targetIds.Add($targetId)
+        if ([int](Get-UnityMigrationPropertyValue -Object $attempt -Name "attemptNumber" -Default 0) -ne 1) {
+            $failures.Add("Cocos target '$targetId' was attempted more than once.")
+        }
+        if ([bool](Get-UnityMigrationPropertyValue -Object $attempt -Name "desktopCapture" -Default $true)) {
+            $failures.Add("Cocos target '$targetId' used a desktop capture instead of the game window.")
+        }
+        $capturePath = [string](Get-UnityMigrationPropertyValue -Object $attempt -Name "capturePath" -Default "")
+        if (-not $capturePath) {
+            $failures.Add("Cocos target '$targetId' has no window capture.")
+        }
+        else { $capturePaths.Add($capturePath) }
+        if ([int](Get-UnityMigrationPropertyValue -Object $attempt -Name "width" -Default 0) -ne 1334 -or
+            [int](Get-UnityMigrationPropertyValue -Object $attempt -Name "height" -Default 0) -ne 750) {
+            $failures.Add("Cocos target '$targetId' capture must be 1334x750.")
+        }
+        if ($RequireFiles -and $capturePath) {
+            if (-not $Root) { throw "-RequireFiles requires -Root." }
+            $resolved = Resolve-UnityMigrationPath -Root $Root -Path $capturePath
+            if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+                $failures.Add("Cocos target '$targetId' capture is missing: $capturePath")
+            }
+        }
+    }
+    if (@($targetIds | Sort-Object -Unique).Count -ne $targetIds.Count) {
+        $failures.Add("Cocos automation ledger contains repeated target ids.")
+    }
+    if (@($capturePaths | Sort-Object -Unique).Count -ne $capturePaths.Count) {
+        $failures.Add("Cocos automation ledger reuses a capture path across targets.")
+    }
+    return @($failures)
+}
+
+function Assert-UnityMigrationCocosAutomationLedger {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+    $entry = Import-UnityMigrationJson -Root $Root -Path $Path
+    $failures = @(Get-UnityMigrationCocosAutomationLedgerFailures -Ledger $entry.Value `
+        -ExpectedModule $Module -Root $Root -RequireFiles)
+    if ($failures.Count -gt 0) { throw "Cocos automation ledger is invalid: $($failures -join '; ')" }
+    return @($entry.Value.attempts).Count
+}
+
+function Get-UnityMigrationOperationLedgerPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module
+    )
+    return Join-Path $Root ".local/unity-validation/$($Module.ToLowerInvariant())-operation-ledger.json"
+}
+
+function Add-UnityMigrationOperationRecord {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][ValidatePattern('^G[0-6]$')][string]$Gate,
+        [Parameter(Mandatory = $true)][string]$Tool,
+        [Parameter(Mandatory = $true)][string]$Operation,
+        [Parameter(Mandatory = $true)][ValidateSet("Passed", "Failed", "Blocked", "Resolved")][string]$Outcome,
+        [ValidateSet("General", "CocosAutomation", "UnityBatch", "Gate")][string]$Category = "General",
+        [string]$ErrorMessage = "",
+        [string]$RootCause = "",
+        [string]$RelatedRecordId = "",
+        [string]$Resolution = "",
+        [string]$IterationAction = "",
+        [string[]]$IterationEvidence = @(),
+        [string[]]$Evidence = @(),
+        [string]$TargetId = "",
+        [string]$Path = ""
+    )
+    if ($Outcome -in @("Failed", "Blocked") -and (-not $ErrorMessage -or -not $RootCause)) {
+        throw "$Outcome operation records require -ErrorMessage and -RootCause. Use pending-diagnosis until the cause is known."
+    }
+    if ($Outcome -eq "Resolved" -and
+        (-not $RelatedRecordId -or -not $Resolution -or -not $IterationAction -or $IterationEvidence.Count -eq 0)) {
+        throw "Resolved operation records require -RelatedRecordId, -Resolution, -IterationAction and -IterationEvidence."
+    }
+    if (-not $Path) { $Path = Get-UnityMigrationOperationLedgerPath -Root $Root -Module $Module }
+    $resolvedPath = Resolve-UnityMigrationPath -Root $Root -Path $Path
+    if (Test-Path -LiteralPath $resolvedPath -PathType Leaf) {
+        $ledger = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedPath | ConvertFrom-Json
+        if ([int](Get-UnityMigrationPropertyValue -Object $ledger -Name "schemaVersion" -Default 0) -ne 1 -or
+            [string](Get-UnityMigrationPropertyValue -Object $ledger -Name "module" -Default "") -ine $Module) {
+            throw "Operation ledger identity is invalid: $resolvedPath"
+        }
+    }
+    else {
+        $ledger = [pscustomobject][ordered]@{
+            schemaVersion = 1
+            module = $Module
+            workflowPolicyVersion = 1
+            records = @()
+        }
+    }
+    if ($Outcome -eq "Resolved") {
+        $related = @($ledger.records | Where-Object { [string]$_.recordId -eq $RelatedRecordId })
+        if ($related.Count -ne 1 -or [string]$related[0].outcome -notin @("Failed", "Blocked")) {
+            throw "Resolved record references no unique Failed/Blocked record: $RelatedRecordId"
+        }
+        if (@($ledger.records | Where-Object {
+            [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $RelatedRecordId
+        }).Count -gt 0) {
+            throw "Failure '$RelatedRecordId' already has a resolution record."
+        }
+    }
+    $recordId = ([Guid]::NewGuid().ToString("N"))
+    $record = [pscustomobject][ordered]@{
+        recordId = $recordId
+        timestampUtc = [DateTime]::UtcNow.ToString("O")
+        gate = $Gate
+        category = $Category
+        tool = $Tool
+        operation = $Operation
+        targetId = $TargetId
+        outcome = $Outcome
+        error = $ErrorMessage
+        rootCause = $RootCause
+        relatedRecordId = $RelatedRecordId
+        resolution = $Resolution
+        iterationAction = $IterationAction
+        iterationEvidence = @($IterationEvidence)
+        evidence = @($Evidence)
+    }
+    $ledger.records = @($ledger.records) + @($record)
+    $ledger | Add-Member -Force -NotePropertyName updatedUtc -NotePropertyValue $record.timestampUtc
+    Write-UnityMigrationUtf8 -Path $resolvedPath -Content (($ledger | ConvertTo-Json -Depth 12) + "`n")
+    return [pscustomobject]@{ Path = $resolvedPath; Record = $record; Ledger = $ledger }
+}
+
+function Get-UnityMigrationRetrospectiveFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Ledger,
+        [string]$Root = "",
+        [switch]$RequireEvidenceFiles
+    )
+    $failures = New-Object System.Collections.Generic.List[string]
+    $records = @((Get-UnityMigrationPropertyValue -Object $Ledger -Name "records" -Default @()))
+    foreach ($failed in @($records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") })) {
+        $id = [string]$failed.recordId
+        if (-not [string]$failed.error -or -not [string]$failed.rootCause -or [string]$failed.rootCause -eq "pending-diagnosis") {
+            $failures.Add("Failure '$id' has no diagnosed root cause.")
+        }
+        $resolved = @($records | Where-Object {
+            [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $id
+        })
+        if ($resolved.Count -ne 1) {
+            $failures.Add("Failure '$id' has no unique resolution and iteration record.")
+            continue
+        }
+        $item = $resolved[0]
+        if (-not [string]$item.resolution -or -not [string]$item.iterationAction -or @($item.iterationEvidence).Count -eq 0) {
+            $failures.Add("Failure '$id' resolution is missing resolution, iterationAction or iterationEvidence.")
+        }
+        if ($RequireEvidenceFiles) {
+            if (-not $Root) { throw "-RequireEvidenceFiles requires -Root." }
+            foreach ($evidencePath in @($item.iterationEvidence)) {
+                $resolvedEvidence = Resolve-UnityMigrationPath -Root $Root -Path ([string]$evidencePath)
+                if (-not (Test-Path -LiteralPath $resolvedEvidence)) {
+                    $failures.Add("Failure '$id' iteration evidence is missing: $evidencePath")
+                }
+            }
+        }
+    }
+    return @($failures)
+}
+
+function New-UnityMigrationRetrospective {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [switch]$RequireEvidenceFiles
+    )
+    $ledgerPath = Get-UnityMigrationOperationLedgerPath -Root $Root -Module $Module
+    if (Test-Path -LiteralPath $ledgerPath -PathType Leaf) {
+        $ledger = Get-Content -Raw -Encoding UTF8 -LiteralPath $ledgerPath | ConvertFrom-Json
+    }
+    else {
+        $ledger = [pscustomobject][ordered]@{
+            schemaVersion = 1; module = $Module; workflowPolicyVersion = 1; records = @()
+        }
+    }
+    $records = @($ledger.records)
+    $unresolved = @(Get-UnityMigrationRetrospectiveFailures -Ledger $ledger -Root $Root `
+        -RequireEvidenceFiles:$RequireEvidenceFiles)
+    $failedRecords = @($records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") })
+    $resolutionRecords = @($records | Where-Object { [string]$_.outcome -eq "Resolved" })
+    $summary = [pscustomobject][ordered]@{
+        schemaVersion = 1
+        module = $Module
+        operationLedger = [IO.Path]::GetRelativePath($Root, $ledgerPath).Replace('\', '/')
+        operationCount = $records.Count
+        passedCount = @($records | Where-Object { [string]$_.outcome -eq "Passed" }).Count
+        failedOrBlockedCount = $failedRecords.Count
+        resolvedCount = $resolutionRecords.Count
+        unresolvedCount = $unresolved.Count
+        unresolved = @($unresolved)
+        failureGroups = @($failedRecords | Group-Object rootCause | ForEach-Object {
+            [pscustomobject]@{ rootCause = $_.Name; count = $_.Count; recordIds = @($_.Group.recordId) }
+        })
+        iterations = @($resolutionRecords | ForEach-Object {
+            [pscustomobject]@{
+                relatedRecordId = $_.relatedRecordId
+                resolution = $_.resolution
+                action = $_.iterationAction
+                evidence = @($_.iterationEvidence)
+            }
+        })
+        checkedUtc = [DateTime]::UtcNow.ToString("O")
+    }
+    $summaryPath = Join-Path $Root ".local/unity-validation/$($Module.ToLowerInvariant())-retrospective-latest.json"
+    Write-UnityMigrationUtf8 -Path $summaryPath -Content (($summary | ConvertTo-Json -Depth 12) + "`n")
+    return [pscustomobject]@{ Path = $summaryPath; Summary = $summary }
+}
+
+function Get-UnityMigrationBatchSummaryFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Summary,
+        [Parameter(Mandatory = $true)]$Policy
+    )
+    $failures = New-Object System.Collections.Generic.List[string]
+    if ([string](Get-UnityMigrationPropertyValue -Object $Summary -Name "executionMode" -Default "") -ne "batch") {
+        $failures.Add("validation summary executionMode must be batch")
+    }
+    $runner = [string](Get-UnityMigrationPropertyValue -Object $Summary -Name "runner" -Default "")
+    $allowed = @([string]$Policy.unity.standardRunner, [string]$Policy.unity.fixedAccountRunner)
+    if ($runner -notin $allowed) { $failures.Add("validation summary runner is not canonical: $runner") }
+    if ([int](Get-UnityMigrationPropertyValue -Object $Summary -Name "workflowPolicyVersion" -Default 0) -ne
+        [int]$Policy.version) {
+        $failures.Add("validation summary workflowPolicyVersion mismatch")
+    }
+    return @($failures)
+}
+
+function Assert-UnityMigrationModuleWorkflowContract {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$ModuleConfig,
+        [Parameter(Mandatory = $true)]$Scenario,
+        [ValidateSet("G0", "G3")][string]$Phase = "G0"
+    )
+    $policy = Assert-UnityMigrationWorkflowPolicy -Root $Root
+    $matrixPath = [string](Get-UnityMigrationPropertyValue -Object $ModuleConfig -Name "controlMatrix" -Default "")
+    if (-not $matrixPath) { throw "Module '$($ModuleConfig.key)' has no controlMatrix for workflow policy." }
+    $matrix = (Import-UnityMigrationJson -Root $Root -Path $matrixPath).Value
+    if ([int](Get-UnityMigrationPropertyValue -Object $matrix -Name "workflowPolicyVersion" -Default 0) -ne
+        [int]$policy.version) {
+        throw "Module '$($ModuleConfig.key)' control matrix does not freeze workflowPolicyVersion $($policy.version)."
+    }
+    $examples = @((Get-UnityMigrationPropertyValue -Object $matrix -Name "acceptanceExamples" -Default @()))
+    if ($examples.Count -eq 0) {
+        throw "Module '$($ModuleConfig.key)' control matrix has no concrete acceptanceExamples."
+    }
+    $exampleIds = New-Object System.Collections.Generic.List[string]
+    foreach ($example in $examples) {
+        foreach ($field in @("id", "given", "when", "then")) {
+            if (-not [string](Get-UnityMigrationPropertyValue -Object $example -Name $field -Default "")) {
+                throw "Module '$($ModuleConfig.key)' acceptance example is missing $field."
+            }
+        }
+        $exampleIds.Add([string]$example.id)
+    }
+    if (@($exampleIds | Sort-Object -Unique).Count -ne $exampleIds.Count) {
+        throw "Module '$($ModuleConfig.key)' acceptanceExamples contains duplicate ids."
+    }
+    if ($Phase -eq "G3") {
+        if (-not [bool](Get-UnityMigrationPropertyValue -Object $Scenario -Name "controlCoverageRequired" -Default $false)) {
+            throw "Module '$($ModuleConfig.key)' scenario must require runtime control coverage."
+        }
+        if (@((Get-UnityMigrationPropertyValue -Object $Scenario -Name "semanticAssertionKeys" -Default @())).Count -eq 0) {
+            throw "Module '$($ModuleConfig.key)' scenario has no semantic assertions."
+        }
+        if (@((Get-UnityMigrationPropertyValue -Object $Scenario -Name "sourceContracts" -Default @())).Count -eq 0) {
+            throw "Module '$($ModuleConfig.key)' scenario has no source contracts."
+        }
+        $visual = Get-UnityMigrationPropertyValue -Object $Scenario -Name "visualAssertions" -Default $null
+        if ($null -eq $visual -or [int]$visual.width -ne 1334 -or [int]$visual.height -ne 750) {
+            throw "Module '$($ModuleConfig.key)' scenario must freeze 1334x750 visual assertions."
+        }
+        if (@($Scenario.captureStates).Count -eq 0 -or @($Scenario.artifacts).Count -eq 0) {
+            throw "Module '$($ModuleConfig.key)' scenario must register capture states and runtime artifacts before G3."
+        }
+        $contracts = (Import-UnityMigrationJson -Root $Root `
+            -Path "tools/unity-migration/module-evidence-contracts.json").Value
+        $matches = @($contracts.modules | Where-Object { $_.module -ieq ([string]$ModuleConfig.key) })
+        if ($matches.Count -ne 1 -or $null -eq $matches[0].g5 -or @($matches[0].g5.pairs).Count -eq 0 -or
+            [int]$matches[0].g5.width -ne 1334 -or [int]$matches[0].g5.height -ne 750) {
+            throw "Module '$($ModuleConfig.key)' requires a unique 1334x750 G5 evidence contract before G3."
+        }
+        if ([bool]$ModuleConfig.mutatesServer) {
+            if ($null -eq $matches[0].fixedAccount) {
+                throw "Mutating module '$($ModuleConfig.key)' requires a unique fixed-account evidence contract before G3."
+            }
+            $contractFailures = @(Get-UnityMigrationFixedAccountContractFailures -Root $Root `
+                -Module ([string]$ModuleConfig.key) -FixedAccount $matches[0].fixedAccount)
+            if ($contractFailures.Count -gt 0) {
+                throw "Mutating module '$($ModuleConfig.key)' fixed-account contract is invalid: $($contractFailures -join '; ')"
+            }
+        }
+    }
+    return $policy
+}
+
+function Get-UnityMigrationSourceAuditFailures {
+    param([Parameter(Mandatory = $true)]$Matrix)
+    $failures = New-Object System.Collections.Generic.List[string]
+    $audit = Get-UnityMigrationPropertyValue -Object $Matrix -Name "sourceAudit" -Default $null
+    if ($null -eq $audit) { return @("Control matrix has no sourceAudit.") }
+    foreach ($name in @(
+        "entryClosureComplete", "protocolOwnershipComplete",
+        "configAssetClosureComplete", "runtimeTransformClosureComplete"
+    )) {
+        $value = Get-UnityMigrationPropertyValue -Object $audit -Name $name -Default $null
+        if ($value -isnot [bool] -or -not $value) {
+            $failures.Add("sourceAudit.$name must be boolean true before G2.")
+        }
+    }
+    $gaps = @((Get-UnityMigrationPropertyValue -Object $audit -Name "knownGaps" -Default @()))
+    $gapIds = New-Object System.Collections.Generic.List[string]
+    foreach ($gap in $gaps) {
+        $id = [string](Get-UnityMigrationPropertyValue -Object $gap -Name "id" -Default "")
+        $handling = [string](Get-UnityMigrationPropertyValue -Object $gap -Name "handling" -Default "")
+        $evidence = [string](Get-UnityMigrationPropertyValue -Object $gap -Name "evidence" -Default "")
+        if (-not $id -or -not $handling -or -not $evidence) {
+            $failures.Add("Every sourceAudit.knownGaps entry requires id, handling and evidence.")
+        }
+        else { $gapIds.Add($id) }
+    }
+    if (@($gapIds | Sort-Object -Unique).Count -ne $gapIds.Count) {
+        $failures.Add("sourceAudit.knownGaps contains duplicate ids.")
+    }
+    return @($failures)
+}
+
+function Assert-UnityMigrationSourceAudit {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$MatrixPath
+    )
+    $matrix = (Import-UnityMigrationJson -Root $Root -Path $MatrixPath).Value
+    if ([string]$matrix.module -ine $Module) { throw "Source audit matrix module mismatch: $MatrixPath" }
+    $failures = @(Get-UnityMigrationSourceAuditFailures -Matrix $matrix)
+    if ($failures.Count -gt 0) { throw "Module '$Module' source audit is incomplete: $($failures -join '; ')" }
+    return @($matrix.sourceAudit.knownGaps).Count
+}
+
 function Resolve-UnityMigrationExecutable {
     param(
         [Parameter(Mandatory = $true)][string]$Name,

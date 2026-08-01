@@ -13,6 +13,7 @@ param(
     [string]$DestinationRoot = "",
     [string]$ManifestPath = "",
     [switch]$SkipManifest,
+    [switch]$IncludeImplementationSkeleton,
     [switch]$Force
 )
 
@@ -26,6 +27,8 @@ $displayNameProvided = $PSBoundParameters.ContainsKey("DisplayName")
 if (-not $DisplayName) { $DisplayName = $Module }
 
 $files = [ordered]@{}
+if ($IncludeImplementationSkeleton) {
+    Assert-UnityMigrationGatePrerequisite -Root $repositoryRoot -ModuleKey $Module -RequiredGate G2
 $files[(Join-Path $destination "unityclient\Assets\ProjectX\src\UI\${Module}ViewState.cs")] = @"
 using System;
 using System.Collections.Generic;
@@ -83,6 +86,7 @@ end
 
 return M
 "@
+}
 $docName = $Module.ToUpperInvariant() + ".md"
 $documentRelative = "docs/unityclient/modules/$docName"
 $documentPath = Join-Path $destination ($documentRelative -replace '/', '\')
@@ -120,6 +124,13 @@ $files[$documentPath] = @"
 - 隔离角色：未验证。
 - GameView：未验证。
 
+## 冻结项
+
+- G0 `acceptanceExamples`：待补充具体 `given/when/then`。
+- G1 Cocos 自动化账本：待生成。
+- G2 `sourceAudit`：入口、共享协议、配置资源和运行时 Transform 待核清。
+- G3 batch 场景：源码锚点、语义断言、截图状态和固定账号合同待冻结。
+
 ## 遗留
 
 - 完成协议取证、真实 Prefab 绑定、自动化和完成门禁。
@@ -128,6 +139,15 @@ $files[$matrixPath] = @"
 {
   "schemaVersion": 1,
   "module": "$Module",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [],
+  "sourceAudit": {
+    "entryClosureComplete": false,
+    "protocolOwnershipComplete": false,
+    "configAssetClosureComplete": false,
+    "runtimeTransformClosureComplete": false,
+    "knownGaps": []
+  },
   "controls": []
 }
 "@
@@ -135,12 +155,18 @@ $files[$matrixPath] = @"
 $skipExisting = New-Object System.Collections.Generic.List[string]
 foreach ($entry in $files.GetEnumerator()) {
     $path = [string]$entry.Key
-    if ((Test-Path -LiteralPath $path) -and -not $Force) {
-        if ($path -eq $documentPath) {
+    if (Test-Path -LiteralPath $path) {
+        if ($IncludeImplementationSkeleton -and $path -in @($documentPath, $matrixPath)) {
             [void]$skipExisting.Add($path)
             continue
         }
-        throw "Refusing to overwrite existing file without -Force: $path"
+        if (-not $Force) {
+            if ($path -eq $documentPath) {
+                [void]$skipExisting.Add($path)
+                continue
+            }
+            throw "Refusing to overwrite existing file without -Force: $path"
+        }
     }
 }
 
@@ -157,7 +183,7 @@ foreach ($entry in $files.GetEnumerator()) {
     }
 }
 
-if (-not $SkipManifest) {
+if (-not $SkipManifest -and -not $IncludeImplementationSkeleton) {
     $manifestEntry = Import-UnityMigrationManifest -Root $repositoryRoot -ManifestPath $ManifestPath
     $manifest = $manifestEntry.Value
     $existingModules = @($manifest.modules | Where-Object { $_.key -eq $Module })
@@ -211,14 +237,39 @@ if (-not $SkipManifest) {
             key = ($Module -creplace '([a-z0-9])([A-Z])', '$1-$2').ToLowerInvariant() + "-default"
             module = $Module
             fixture = $fixtureKey
+            requiredGate = "G3"
             flags = $flags
             artifacts = @()
             captureStates = @()
+            controlCoverageRequired = $true
+            semanticAssertionKeys = @()
+            sourceContracts = @()
+            visualAssertions = [ordered]@{
+                width = 1334
+                height = 750
+                minimumBytes = 4096
+                requireUniqueHashes = $true
+            }
         })
     }
     else {
         $scenarioMatches[0].fixture = $fixtureKey
         $scenarioMatches[0].flags = $flags
+        $scenarioMatches[0] | Add-Member -Force -NotePropertyName requiredGate -NotePropertyValue "G3"
+        $scenarioMatches[0] | Add-Member -Force -NotePropertyName controlCoverageRequired -NotePropertyValue $true
+        foreach ($name in @("semanticAssertionKeys", "sourceContracts")) {
+            if ($null -eq $scenarioMatches[0].PSObject.Properties[$name]) {
+                $scenarioMatches[0] | Add-Member -NotePropertyName $name -NotePropertyValue @()
+            }
+        }
+        if ($null -eq $scenarioMatches[0].PSObject.Properties["visualAssertions"]) {
+            $scenarioMatches[0] | Add-Member -NotePropertyName visualAssertions -NotePropertyValue ([pscustomobject][ordered]@{
+                width = 1334
+                height = 750
+                minimumBytes = 4096
+                requireUniqueHashes = $true
+            })
+        }
     }
     if ($PSCmdlet.ShouldProcess($scenarioEntry.Path, "Update validation scenario registry")) {
         Write-UnityMigrationUtf8 -Path $scenarioEntry.Path -Content (($scenarioEntry.Value | ConvertTo-Json -Depth 12) + "`n")
@@ -241,4 +292,4 @@ if (-not $SkipManifest) {
 
 Write-Host "Module scaffold ready: $Module"
 Write-Host "Selected files: $($files.Count - $skipExisting.Count); written files: $generatedCount; preserved files: $($skipExisting.Count)"
-Write-Host "Next: G0 freeze -> G1 chain/evidence -> G2 Lua/protocol/mapping -> Lua authority -> render bridge -> G4-G6."
+Write-Host "Next: freeze workflowPolicyVersion=1, acceptanceExamples and controls at G0; collect the Cocos automation ledger at G1; close sourceAudit at G2. Re-run with -IncludeImplementationSkeleton only after G2 passed; run Unity only through the batch runners at G4-G6."

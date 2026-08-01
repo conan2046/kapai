@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "module": "HeroEquip",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    { "id": "hero-equip-mutation", "given": "固定账号具有装备、法宝及强化材料", "when": "穿戴、卸下、强化并触发材料不足和非法UID", "then": "成功与失败均由服务端回包驱动，重连保持且Fixture精确恢复" }
+  ],
   "hardGateVersion": 1,
   "scope": {
     "fixedUserId": 7200057,

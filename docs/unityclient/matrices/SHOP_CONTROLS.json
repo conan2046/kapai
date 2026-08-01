@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "module": "Shop",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    { "id": "shop-real-cost", "given": "固定账号具有商品配置对应的真实支付货币", "when": "调整数量、确认购买、刷新并触发余额不足", "then": "扣除配置实际货币和数量，失败不先改客户端状态，重连结果一致" }
+  ],
   "hardGateVersion": 1,
   "scope": {
     "screenSize": "1334x750",

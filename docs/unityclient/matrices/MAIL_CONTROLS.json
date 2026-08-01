@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "module": "Mail",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    { "id": "mail-positive-negative", "given": "固定账号同时具有有附件、无附件、已读和未读邮件", "when": "领取、删除、全部操作及重复请求", "then": "所有状态使用真实邮件权威数据，批准的Cocos滚动/数量缺陷单独记录而不复制" }
+  ],
   "hardGateVersion": 1,
   "scope": {
     "screenSize": "1334x750",

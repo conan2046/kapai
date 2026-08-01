@@ -5,6 +5,50 @@
     "runtimeRoots": ["build/ui-migration", ".local/unity-validation"],
     "defaultLifecycle": "runtime"
   },
+  "workflowPolicy": {
+    "version": 1,
+    "cocos": {
+      "tool": "computer-use@openai-bundled",
+      "requestedAppReference": "plugin://computer-use@openai-bundled?app=com.adspower.global",
+      "targetProcess": "ProjectX.exe",
+      "targetWindow": "Cocos Simulator",
+      "mode": "observe-one-action-refresh-then-diagnose",
+      "approvalMode": "routine-project-actions-preapproved",
+      "ledgerWriter": "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1",
+      "maximumAttemptsPerTarget": 1,
+      "requireAutomationLedger": true,
+      "forbidDesktopCapture": true,
+      "forbidHistoricalEvidence": true,
+      "forbidPowerShellUiAutomationMix": true,
+      "routineActionsPreapproved": true,
+      "highRiskConfirmationsRemain": true
+    },
+    "unity": {
+      "standardRunner": "tools/unity-migration/Run-UnityModuleValidation.ps1",
+      "fixedAccountRunner": "tools/unity-migration/Run-UnityFixedAccountValidation.ps1",
+      "runtimeValidationMode": "batch-only",
+      "mcpScope": "g3-editor-inspection-only",
+      "requireRegisteredArtifactsBeforeG3": true,
+      "requireDataPreflightBeforeFullRun": true
+    },
+    "sequence": {
+      "requireCurrentCocosBeforeG2": true,
+      "requireSourceContractsBeforeG3": true,
+      "requireControlCoverageBeforeG4": true,
+      "requireG5ContractBeforeFullRun": true,
+      "visualReplayIsNotG5Evidence": true,
+      "requireTwoBuildBatchRunsForG6": true
+    },
+    "iteration": {
+      "operationLedgerPattern": ".local/unity-validation/{module}-operation-ledger.json",
+      "retrospectivePattern": ".local/unity-validation/{module}-retrospective-latest.json",
+      "recordEveryFailure": true,
+      "requireFailureRootCause": true,
+      "requireResolutionAndIterationEvidenceBeforeG6": true,
+      "autoSummarizeAtG6": true,
+      "requireToolchainTestForPolicyIteration": true
+    }
+  },
   "scenarios": [
     { "key": "login-default", "module": "Login", "fixture": "isolated-role", "flags": ["-projectXLoginValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-login.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-login-notice.png","lifecycle":"runtime"}], "captureStates": ["login","notice"] },
     { "key": "bag-default", "module": "Bag", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXBagG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-bag.png","lifecycle":"runtime"}], "captureStates": ["bag","input","gift","source","equipment-info","source-destination","reload","reconnect"] },
@@ -20,7 +64,7 @@
     { "key": "chat-default", "module": "Chat", "fixture": "isolated-role", "flags": ["-projectXChatValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-chat.png","lifecycle":"runtime"}], "captureStates": ["chat"] },
     { "key": "team-default", "module": "Team", "fixture": "isolated-role-team-peer", "flags": ["-projectXTeamValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-team-members.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-team.png","lifecycle":"runtime"}], "captureStates": ["members","team"] },
     { "key": "guild-default", "module": "Guild", "fixture": "isolated-role", "flags": ["-projectXGuildValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-guild-members.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-guild.png","lifecycle":"runtime"}], "captureStates": ["members","guild"] },
-    { "key": "world-default", "module": "World", "fixture": "isolated-role", "flags": ["-projectXWorldBattleValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-world-map.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-detail.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-sweep.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-reset.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-result.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-chest.png","lifecycle":"runtime"}], "captureStates": ["world-map","stage-detail","sweep-summary","reset-confirm","battle-result","chest-state"] },
+    { "key": "world-default", "module": "World", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXWorldBattleValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-world-map.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-detail.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-sweep.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-reset.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-result.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-chest.png","lifecycle":"runtime"}], "captureStates": ["world-map","stage-detail","sweep-summary","reset-confirm","battle-result","chest-state"], "controlCoverageRequired": true, "semanticAssertionKeys": ["world-authority","world-battle","world-reconnect","world-account-isolation","world-exclusions"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["FuBenTouchCallback","EMID_KAPAI_ZHUXIANFUBEN"]},{"path":"server/src/pack_deal.cpp","contains":["MSG_GUANQIA","void CPackageDeal::DealGuanQia"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt","contains":["Protocol.WORLD_STAGE","BeginWorldSweepRewards"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["BeginWorldChapterList","world-account-isolation"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
     { "key": "welfare-default", "module": "Welfare", "fixture": "isolated-role", "flags": ["-projectXWelfareValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-welfare-sign.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-welfare-online.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-welfare-stage-empty.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-welfare.png","lifecycle":"runtime"}], "captureStates": ["sign","online","stage-empty","welfare"] },
     { "key": "activity-default", "module": "Activity", "fixture": "isolated-role-global-snapshot", "flags": ["-projectXActivityValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-activity-detail.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-activity-empty.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-activity.png","lifecycle":"runtime"}], "captureStates": ["detail","empty","list"] },
     { "key": "draw-default", "module": "Draw", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXDrawClosureValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-draw.png","lifecycle":"runtime"}], "captureStates": ["draw-main","high-free-result","hero-list","hero-cultivation","formation-mounted","reconnect","account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["draw-authority","draw-target-hero","hero-level-up","formation-mounted","draw-reconnect","draw-account-isolation"], "sourceContracts": [{"path":"server/src/chou_ka_manager.cpp","contains":["jilu->allCnt == 0 && type == 2","singleAward.typeId = 64"]},{"path":"server/src/pack_deal.cpp","contains":["void CPackageDeal::PetDraw","void CPackageDeal::ZhenFaOption"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/Draw/DrawController.lua.txt","contains":["Protocol.PET_RANDOM_DRAW","readResult"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt","contains":["function M.levelUp","message:WriteByte(3)"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["BeginDrawResult","EndDrawResult"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },

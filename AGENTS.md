@@ -28,6 +28,7 @@
 - 新任务不得默认完整读取 `docs/unityclient/history/`；只有追查旧命令、错误或决策证据时才定点检索。
 - Unity 新模块先读取 `tools/unity-migration/unityclient-modules.json`，优先使用 `Get-ProtocolEvidence.ps1`、`New-UnityMigrationModule.ps1`、`Run-UnityModuleValidation.ps1` 和 `Test-UnityMigrationDocs.ps1`，不得重复创建平行工具。
 - 严格按 `MIGRATION_GUIDE.md` 的 G0-G6 门禁推进；同一时间只处理一个模块，上一门禁未通过不得编码、切阶段或开启下一模块。任何跳过门禁必须先记录阻塞并取得用户明确批准。
+- 每个新模块 G0 必须在控件矩阵冻结 `workflowPolicyVersion=1`，并用 `acceptanceExamples` 的 `given/when/then` 写明至少一个具体结果样例。禁止先尝试任意 GUI/MCP/临时脚本，失败后才回到标准工具；工具路由只认 `validation-scenarios.json.workflowPolicy`。
 
 ## 分析与修改范围
 - 分析业务代码时优先看 `client/ProjectX/src/`、`client/ProjectX/res/`、`server/src/`、`server/script/`、`server/config/`、`server/sql/`、`tools/local/`。
@@ -46,8 +47,14 @@
 - 遇到错误先定位根因：复现协议/操作、看服务端日志、看客户端日志、查对应源码，不做无证据猜修。
 - Unity 迁移定位 Cocos 界面时，固定先完成：主界面按钮名/模块 ID → Lua 点击回调 → `Utils:OpenFunction/InitUI` → 当前 View/Controller → 完整 CSB/CSD 路径 → 动态节点/Timeline/Imod 调用。链路未打印清楚前禁止启动客户端靠截图找界面。
 - 历史截图必须先核对窗口标题、页面标题、账号/角色、步骤、分辨率和目标节点；任一不符即标记无效。禁止仅凭文件名（如 `cocos-formation*.png`）当作目标模块基准。
-- `Invoke-ClientWindow.ps1` 点击只允许按已确认控件坐标执行一次。后台消息、同步前台消息或真实点击首次未进入目标页时，立即停止坐标试错，转查 Lua 回调、客户端日志、协议回包或现有模块自动化；禁止连续截图主界面碰运气。
+- Cocos 迁移点击/拖动/截图统一使用 `computer-use@openai-bundled`（用户入口标注 `plugin://computer-use@openai-bundled?app=com.adspower.global`），但实际唯一目标必须是原生 `ProjectX.exe` 的 `Cocos Simulator` 窗口，禁止把 AdsPower 浏览器窗口误当游戏客户端。每次先观察，只执行一个状态派生动作并立即刷新；首次未进入目标页即停止坐标试错，转查 Lua 回调、客户端日志和协议。当前项目内常规 Cocos 点击、拖动、滚动、截图已获用户预授权，自动放行且不重复询问；删除、安装、对外提交、权限/账号等 Computer Use 高风险动作仍按工具安全规则确认。
+- 每次迁移操作都写入 `.local/unity-validation/<module>-operation-ledger.json`。任何命令非零、超时、错误窗口/页面、UI 状态不符、证据不合格均立即记 `Failed/Blocked + error + rootCause`；查明后追加 `Resolved + resolution + iterationAction + iterationEvidence`。不得删失败记录或只在对话中口头说明。G6 自动生成 `<module>-retrospective-latest.json`，存在未诊断、未解决或无迭代证据的失败时禁止收口。
+- 失败复盘必须落到可复用迭代：优先修中央工具、配置或规则并补 `Test-UnityMigrationToolchain.ps1` 回归；仅属模块业务差异时写入模块矩阵/场景和证据。下一模块 G0 前先读上一模块自动复盘，禁止再次尝试已判定无效的路径。
 - Cocos 自动化暂时无法进入页面时，先用 Lua/CSB/资源调用链完成可证静态修复，并把“缺有效 Cocos 动态截图”作为门禁保留；不得用 Unity 单端截图、错误历史截图或重复点击伪造视觉通过。
+- Unity G4/G6 的逻辑验证、截图和摘要必须全程通过 `Run-UnityModuleValidation.ps1` 或 `Run-UnityFixedAccountValidation.ps1` 的 `-batchMode` 路径完成；Unity MCP 只可用于 G3 的 Prefab/场景/编译/Console 检查，MCP、手工 PlayMode、内部完成方法或旧 Runner 结果不得作为 G4-G6 证据。
+- 变更型模块必须在 G3 前登记固定账号、数据需求、快照/恢复/残留合同；启动 Unity 前先跑 `-DataPreflightOnly`。缺数据时停在当前门禁，禁止等完整 Unity 运行后才补数据或用客户端假数据。
+- G2 必须完成控件矩阵 `sourceAudit`：入口闭包、共享协议所有权、配置到资源闭包、运行时 Transform/缩放/锚点全部核清；缺配置或缺资源只能登记可追溯的模块级处理与源码证据，禁止猜路径、全局补假数据或到 G5 才发现。
+- 标准迁移工具出现问题时，先保存最小复现、修复现有工具并补 `Test-UnityMigrationToolchain.ps1` 回归；不得新建同用途脚本或换另一种自动化绕过。视觉差异先批量收敛，再执行计划内一次 Full、G5 和 G6，禁止每个小改都重跑完整闭环。
 - 每个可见界面及其关键状态必须先取得有效 Cocos 截图；Unity 修复后必须按同账号、同数据、同操作、同分辨率和同稳定帧截图，与 Cocos 逐项对比文字、图片、坐标、尺寸、层级、裁剪、动画和交互，并保存叠加图/差异报告。缺任一侧截图或差异报告时只能标记逻辑通过；占位文字、错误图片、文本截断/重叠、公共层遮挡均视为视觉未通过。
 - Cocos 与 Unity 动态资源对照必须核对资源类型与播放语义：静态 `Image`、CSB Timeline、Imod 模型不可互相替代；例如 `CreateAnimModel + PlayStand` 必须迁为对应 Imod 资源、动作号、循环、缩放和挂点，禁止用同角色半身像代替。
 - 常见错误诊断表见 `LOCAL_DEBUG.md`。
@@ -86,7 +93,7 @@
   - `Export-ProtocolCoverage.ps1`：从 `protocol.h`、`pack_deal.cpp`、`Invoke-ProtocolSmoke.ps1` 生成协议覆盖矩阵。
   - `Run-LocalVerification.ps1`：串联环境检查、可选构建/启动、协议 smoke、日志扫描，用于本地验证收口。
   - `Test-FreshLocalSetup.ps1`：创建隔离数据库和临时端口，用指定干净 EXE 验证登录、创角与基础协议，不修改正式本地库。
-  - `Invoke-ClientWindow.ps1`：枚举 `ProjectX` 顶层窗口并优先选择 `Cocos Simulator` 游戏窗（不要误用调试控制台句柄），按游戏窗口句柄截图或发送窗口相对坐标消息；截图禁止截桌面。默认后台操作；只有用户明确允许时才能使用 `-ActivateForeground -RealClick` 临时置前和真实点击，并用 `-RestoreForegroundAfter` 恢复原窗口。主界面控件不响应后台消息时不得伪造 L6 通过。
+  - `Invoke-ClientWindow.ps1`：保留为非迁移诊断/兼容工具；迁移 Cocos 自动化的主路径是 Computer Use 定位 `ProjectX.exe / Cocos Simulator`。不得在同一轮 Windows 自动化中混用 Computer Use 与该 PowerShell UI 自动化脚本。
 
 ## 编译与运行约束
 - 服务端已补 `server/src/gyu/*.cpp` 兼容实现，构建时优先使用仓库内源码，不再强依赖外部 `/usr/local/gyu/lib/libgyu`。

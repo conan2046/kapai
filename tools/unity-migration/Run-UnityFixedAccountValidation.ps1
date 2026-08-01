@@ -32,6 +32,10 @@ if ($contractFailures.Count -gt 0) {
 }
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." }
+$workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
+Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate G3
+Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig `
+    -Scenario $scenario -Phase G3 | Out-Null
 if ($UserId -eq 0) { $UserId = [uint32]$fixed.userId }
 if ($RoleId -eq 0) { $RoleId = [uint32]$fixed.roleId }
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
@@ -266,6 +270,9 @@ try {
             $summary = [ordered]@{
                 schemaVersion = 1
                 success = $true
+                executionMode = "batch"
+                runner = [string]$workflowPolicy.unity.fixedAccountRunner
+                workflowPolicyVersion = [int]$workflowPolicy.version
                 module = [string]$moduleConfig.key
                 scenario = [string]$scenario.key
                 validationMode = "fixed-account"
@@ -358,6 +365,13 @@ try {
     $runStatus = "passed"
     Write-Host "Fixed-account validation passed and restored: module=$Module userId=$UserId roleId=$RoleId"
 }
+catch {
+    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate G6 -Category UnityBatch `
+        -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" -Operation "fixed-account-batch-validation" `
+        -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
+        -Evidence @($timingPath) | Out-Null
+    throw
+}
 finally {
     if ($DataPreflightOnly -and $fixtureCreated) {
         Get-Process Unity,kapai,ProjectX -ErrorAction SilentlyContinue |
@@ -398,4 +412,9 @@ finally {
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     Write-UnityMigrationUtf8 -Path $timingPath -Content (($timingReport | ConvertTo-Json -Depth 8) + "`n")
+}
+if ($runStatus -in @("passed", "preflight-passed", "data-preflight-passed")) {
+    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate G6 -Category UnityBatch `
+        -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" -Operation "fixed-account-batch-validation" `
+        -Outcome Passed -Evidence @($timingPath) | Out-Null
 }
