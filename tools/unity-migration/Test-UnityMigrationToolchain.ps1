@@ -343,6 +343,22 @@ Assert-ToolchainTest (
     $moduleRunnerSource.Contains('"-projectXUserId=<auto-isolated>"')
 ) "Standard Unity runner no longer records batch execution or an accurate preflight account plan."
 
+$fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $fixedRunnerSource.Contains('$requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }') -and
+    $fixedRunnerSource.Contains('$workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }') -and
+    $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)')
+) "Fixed-account data/compile preflights no longer run after G2 while the full run remains gated by G3."
+
+$commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $commonSource.Contains('error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process') -and
+    $commonSource.Contains('PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process') -and
+    $commonSource.Contains('transient-bee-lock-attempt1.log') -and
+    $commonSource.Contains('retrying the same compile preflight once')
+) "Compile preflight no longer performs the bounded same-tool retry for the proven transient Unity Bee reference lock."
+
 $scaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") `
     -Raw -Encoding UTF8
 Assert-ToolchainTest (

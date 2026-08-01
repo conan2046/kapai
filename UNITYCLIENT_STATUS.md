@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `9/29 = 31.0%` | 背包、任务、神将/阵容、装备/法宝、邮件、基础商城、玩法商店、神将招募、世界/战斗/副本已按新标准完成 G0-G6 |
+| Validated | `10/29 = 34.5%` | 登录与创角、背包、任务、神将/阵容、装备/法宝、邮件、基础商城、玩法商店、神将招募、世界/战斗/副本已按新标准完成 G0-G6 |
 
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -18,7 +18,7 @@
 | 模块 | 状态 | 已完成边界 | 后续 |
 |---|---|---|---|
 | 运行时/网络/xLua | 第一阶段完成 | App 状态、协议分发、错误边界、重连、返回栈 | 回放、发布配置、完整错误码 |
-| 登录/主界面 | 第一阶段完成 | 当前代码链已通过：Logo/Windows 预载、真实 LoginBg/login/SeverList/RoleCreate、`Btn_Play`、隔离创角 `/1001→/1003→/1004`、当前 UImainLayer、`/88 NoticeLayer` | 正式登录服、维护公告、发布配置后置 |
+| 登录与创角 | `G0-G6 passed / 21/21 complete` | 固定账号完成 17/17 双端原生视觉、21/21 真实控件、10/10 语义断言；覆盖 LoginBg/loginLayer/SeverListLayer/RoleCreateLayer/NoticeLayer、`/1001→/1003→/1004`、`/1002`、`/88`、已有/无角色、命名合法/非法/重复、失败/超时/断线/重连、返回/重进/切号隔离及精确恢复 | 正式登录服、渠道 SDK、发布配置后置；系统设置为下一模块，主界面 HUD 再后置 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
@@ -43,6 +43,7 @@
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- Login G0-G6（2026-08-01）：固定账号 `7200057/1000115`、可逆创角账号 `7300204/T00204`、隔离账号 `705213/1000006`；21/21 控件、10/10 语义断言、17/17 同账号同数据同流程 `1334×750` 双端原生视觉通过。覆盖 `/1001→/1003→/1004`、`/1002`、`/88`、已有角色/无角色、选服、合法/非法/重复名、连接失败/真实超时/断线重连、返回重进及账号隔离。创角夹具已精确恢复且残留 0；两次正式 BuildBatch SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`；自动复盘 62/62 失败均已诊断并解决。证据 `.local/unity-validation/login-fixed-account-latest.json`、`.local/ui-fidelity/Login/compare/g5-live-20260801/report.json`、`.local/unity-validation/login-retrospective-latest.json`。
 - World G0-G6（2026-08-01）：固定账号 `7200057/1000115`、终态隔离账号 `705213/1000006`，25/25 控件和 5/5 语义断言通过；6 组当前 `1334×750` 双端视觉完成。扫荡页按用户确认展示“扫荡5次收益汇总”，相同 `type/id` 奖励合并总量；按钮同步显示真实次数。源码缺失的 `4601–4604` 元数据只在 World 展示层依据素心装备表与连续碎片编号受控补全，不改共享掉落配置。恢复前后 SHA-256 均为 `1fe6274907b6aef8f631994fa0a7c4d9b17e19fe30e7a5b54ae2a6aca0eca11d`，Fixture 残留 0；两次正式 BuildBatch SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`。证据 `.local/unity-validation/world-fixed-account-latest.json`、`.local/ui-fidelity/World/compare/g5-20260731-cua/`。
 - Draw G0-G6（2026-07-31）：固定账号 `7200057/1000115` 以可逆 Fixture 保证高级首次招募权威返回神将 `64 郑伦`，真实完成 `/224 → /24 op=3 → /48 op=4` 的招募、培养、上阵、重进、断线重连和切换账号 `705213/1000006` 隔离；28/28 控件、6/6 语义断言通过。9 组同账号 `1334×750` 双端视觉完成；Cocos 上阵完成帧保留培养前陈旧数值，Unity显示服务端权威刷新值，已作为受控原生缺陷记录。恢复前后及重登录 SHA-256 均为 `d10f760ded12ce9b8518770097bad55e1d85b72906a0e3344a9de47fe23483ee`，Fixture 残留 0；冻结工具链加最小可选字段/终态身份修复后回归 `43/43`，两次正式 BuildBatch SHA-256 均为 `CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。证据 `.local/unity-validation/draw-fixed-account-latest.json`、`.local/ui-fidelity/Draw/compare/g5-20260730/`。
 - GameplayShops G5重验（2026-07-29）：六页恢复 `shop/shop_bg`、菱形导航、原生页签、真实品质框/物品图/数量/碎片角标/合成计数，并清除聊天公共层残留；同账号同数据 `1334×750` 逐页人工验收通过，MAE `6.7721～10.4781`，结构错位、错资源及文字裁切/重叠为 `0`。证据 `.local/ui-fidelity/GameplayShops/compare/g5-live-20260729/`。
@@ -92,7 +93,7 @@
 支付前置不单独增加 29 个业务模块的分母；实现范围与硬规则见 `docs/unityclient/modules/PAYMENT.md`。
 
 ## 5. 当前批次
-World（世界/战斗/副本）G0-G6 已通过并收口：25/25 控件、5/5 语义、6/6 视觉状态、固定账号精确恢复、切号隔离、零 Fixture 残留和双次 BuildBatch 均通过。扫荡结果按“扫荡 N 次收益汇总”展示所有收益总量。严格完成率为 `9/29 = 31.0%`；Cocos、Unity、服务端和工作区 MySQL 均已停止。下一模块按上述 P0→P4 顺序从 G0 开始。
+Login（登录与创角）G0-G6 已通过并收口：21/21 控件、10/10 语义、17/17 双端视觉状态、固定账号精确恢复、切号隔离、零 Fixture 残留和双次 BuildBatch 均通过。严格完成率为 `10/29 = 34.5%`；Cocos、Unity、服务端和工作区 MySQL 均已停止。下一模块固定为“系统设置”，必须从 G0 开始；完成后才处理主界面 HUD。
 
 ## 6. 已知风险
 

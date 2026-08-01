@@ -886,19 +886,37 @@ function Invoke-UnityMigrationCompilePreflight {
         }
         catch { }
     }
-    if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
     $arguments = @("-batchMode", "-quit", "-projectPath", $UnityProject, "-logFile", $logPath)
-    $process = Start-Process -FilePath $UnityExecutable -ArgumentList $arguments -WindowStyle Hidden -PassThru
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-        try { $process.Kill($true) } catch { }
+    $process = $null
+    for ($attempt = 1; $attempt -le 2; $attempt++) {
+        if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
+        $process = Start-Process -FilePath $UnityExecutable -ArgumentList $arguments -WindowStyle Hidden -PassThru
+        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+            try { $process.Kill($true) } catch { }
+            Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
+            throw "Unity compile preflight timed out after $TimeoutSeconds seconds; log=$logPath"
+        }
+        # Unity batchmode may report its exit code before ILPP/Bee release Assembly-CSharp.dll.
+        # The child processes are only cleaned after this owned batch process has exited.
         Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
-        throw "Unity compile preflight timed out after $TimeoutSeconds seconds; log=$logPath"
+        if ($process.ExitCode -eq 0) { break }
+        $transientBeeLockPatterns = @(
+            "error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process",
+            "PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process"
+        )
+        $transientBeeLock = $attempt -eq 1 -and (Test-Path -LiteralPath $logPath) -and
+            (Select-String -LiteralPath $logPath -Pattern $transientBeeLockPatterns -CaseSensitive:$false -Quiet)
+        if (-not $transientBeeLock) {
+            throw "Unity compile preflight failed with exit code $($process.ExitCode); log=$logPath"
+        }
+        $retryEvidence = "$logPath.transient-bee-lock-attempt1.log"
+        Copy-Item -LiteralPath $logPath -Destination $retryEvidence -Force
+        Write-Warning "Unity Bee held Assembly-CSharp.ref.dll during API update; retrying the same compile preflight once. Evidence: $retryEvidence"
+        Start-Sleep -Seconds 2
+        Assert-NoUnityMigrationBlockingDotNet -Root $Root
     }
-    # Unity batchmode may report its exit code before ILPP/Bee release Assembly-CSharp.dll.
-    # The child processes are only cleaned after this owned batch process has exited.
-    Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
-    if ($process.ExitCode -ne 0) {
-        throw "Unity compile preflight failed with exit code $($process.ExitCode); log=$logPath"
+    if ($null -eq $process -or $process.ExitCode -ne 0) {
+        throw "Unity compile preflight failed after transient-lock retry; log=$logPath"
     }
     $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process'
     $serious = @(Select-String -LiteralPath $logPath -Pattern $seriousPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)

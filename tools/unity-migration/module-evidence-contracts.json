@@ -2,6 +2,83 @@
   "schemaVersion": 1,
   "modules": [
     {
+      "module": "Login",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-LoginCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-unity-result.json",
+        "visualResultEvidence": ".local/ui-fidelity/Login/unity/g5-20260801/login-g5-visual-result.json",
+        "visualValidationFlags": ["-projectXLoginVisualValidation"],
+        "visualOnlyArtifacts": true,
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXLoginClosureValidation",
+          "-projectXLoginCreateUserId=7300204",
+          "-projectXLoginIsolationUserId=705213"
+        ],
+        "skipPostValidationFixtureAssert": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {"id":"primary-account-role-link","description":"固定 userId=7200057 必须唯一绑定 roleId=1000115/T00057"},
+            {"id":"alternate-account-role-link","description":"隔离 userId=705213 必须唯一绑定 roleId=1000006/T67076"},
+            {"id":"disposable-account-absent","description":"可逆创角 userId=7300204 在运行前必须无任何身份残留"},
+            {"id":"notice-authority","description":"临时插入唯一 /88 公告，运行后精确删除并恢复原始行数"},
+            {"id":"exact-restore-surface","description":"主账号和隔离账号身份哈希不变，可逆创角和公告残留均为 0"}
+          ]
+        },
+        "artifactCopies": [
+          {"source":"build/ui-migration/bootstrap-login-local.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png"},
+          {"source":"build/ui-migration/bootstrap-login-server-list.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/SERVER-LIST.png"},
+          {"source":"build/ui-migration/bootstrap-login-existing-role.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/EXISTING-ROLE.png"},
+          {"source":"build/ui-migration/bootstrap-login-handover.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/HANDOVER.png"},
+          {"source":"build/ui-migration/bootstrap-login-role-male.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-MALE.png"},
+          {"source":"build/ui-migration/bootstrap-login-role-female.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-FEMALE.png"},
+          {"source":"build/ui-migration/bootstrap-login-role-random.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-RANDOM.png"},
+          {"source":"build/ui-migration/bootstrap-login-name-invalid.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-INVALID.png"},
+          {"source":"build/ui-migration/bootstrap-login-name-duplicate.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-DUPLICATE.png"},
+          {"source":"build/ui-migration/bootstrap-login-role-success.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-SUCCESS.png"},
+          {"source":"build/ui-migration/bootstrap-login-notice.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/NOTICE.png"},
+          {"source":"build/ui-migration/bootstrap-login-connect-error.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/CONNECT-ERROR.png"},
+          {"source":"build/ui-migration/bootstrap-login-connect-timeout.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/CONNECT-TIMEOUT.png"},
+          {"source":"build/ui-migration/bootstrap-login-disconnect.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/DISCONNECT.png"},
+          {"source":"build/ui-migration/bootstrap-login-reconnected.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/RECONNECTED.png"},
+          {"source":"build/ui-migration/bootstrap-login-return-reenter.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/RETURN-REENTER.png"},
+          {"source":"build/ui-migration/bootstrap-login-account-isolation.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ACCOUNT-ISOLATION.png"}
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/Login/cocos/g5-20260801",
+        "unityDirectory": ".local/ui-fidelity/Login/unity/g5-20260801",
+        "compareDirectory": ".local/ui-fidelity/Login/compare/g5-live-20260801",
+        "width": 1334,
+        "height": 750,
+        "pairs": [
+          {"id":"LOGIN-LOCAL","cocos":"LOGIN-LOCAL.png","unity":"LOGIN-LOCAL.png"},
+          {"id":"SERVER-LIST","cocos":"SERVER-LIST.png","unity":"SERVER-LIST.png"},
+          {"id":"EXISTING-ROLE","cocos":"EXISTING-ROLE.png","unity":"EXISTING-ROLE.png"},
+          {"id":"HANDOVER","cocos":"HANDOVER.png","unity":"HANDOVER.png"},
+          {"id":"ROLE-MALE","cocos":"ROLE-MALE.png","unity":"ROLE-MALE.png"},
+          {"id":"ROLE-FEMALE","cocos":"ROLE-FEMALE.png","unity":"ROLE-FEMALE.png"},
+          {"id":"ROLE-RANDOM","cocos":"ROLE-RANDOM.png","unity":"ROLE-RANDOM.png"},
+          {"id":"ROLE-INVALID","cocos":"ROLE-INVALID.png","unity":"ROLE-INVALID.png"},
+          {"id":"ROLE-DUPLICATE","cocos":"ROLE-DUPLICATE.png","unity":"ROLE-DUPLICATE.png"},
+          {"id":"ROLE-SUCCESS","cocos":"ROLE-SUCCESS.png","unity":"ROLE-SUCCESS.png"},
+          {"id":"NOTICE","cocos":"NOTICE.png","unity":"NOTICE.png"},
+          {"id":"CONNECT-ERROR","cocos":"CONNECT-ERROR.png","unity":"CONNECT-ERROR.png"},
+          {"id":"CONNECT-TIMEOUT","cocos":"CONNECT-TIMEOUT.png","unity":"CONNECT-TIMEOUT.png"},
+          {"id":"DISCONNECT","cocos":"DISCONNECT.png","unity":"DISCONNECT.png"},
+          {"id":"RECONNECTED","cocos":"RECONNECTED.png","unity":"RECONNECTED.png"},
+          {"id":"RETURN-REENTER","cocos":"RETURN-REENTER.png","unity":"RETURN-REENTER.png"},
+          {"id":"ACCOUNT-ISOLATION","cocos":"ACCOUNT-ISOLATION.png","unity":"ACCOUNT-ISOLATION.png"}
+        ]
+      }
+    },
+    {
       "module": "GameplayShops",
       "fixedAccount": {
     "userId": 7200057,

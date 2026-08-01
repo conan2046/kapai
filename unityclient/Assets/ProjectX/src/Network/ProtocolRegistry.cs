@@ -158,6 +158,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(319, "PET_EQUIP_OPERATE", "HeroEquipment"));
             registry.Register(new ProtocolDefinition(320, "MSG_GUANQIA", "WorldBattleDungeon"));
             registry.Register(new ProtocolDefinition(1001, "PRO_USER_LOGIN", "Login"));
+            registry.Register(new ProtocolDefinition(1002, "PRO_ROLE_NAME_CHECK", "Login"));
             registry.Register(new ProtocolDefinition(1003, "PRO_CREATE_ROLE", "Login"));
             registry.Register(new ProtocolDefinition(1004, "PRO_SELECT_ROLE", "Login"));
             return registry;

@@ -4,7 +4,7 @@ local M = {}
 function M.sendLogin()
     local message = Protocol.newMessage(Protocol.USER_LOGIN)
     message:WriteUInt(Bridge:GetLocalUserId())
-    message:WriteString("local")
+    message:WriteString(Bridge:GetLoginSignature())
     message:WriteString("102600")
     message:WriteUInt(1)
     message:WriteString("local_test")
@@ -14,12 +14,28 @@ function M.sendLogin()
     Bridge:Send(message)
 end
 
+function M.requestRandomRoleNames()
+    local message = Protocol.newMessage(Protocol.ROLE_NAME_CHECK)
+    message:WriteByte(2)
+    message:WriteByte(Bridge:GetRoleSex() - 1)
+    Bridge:Send(message)
+end
+
+function M.checkRoleName(name)
+    local message = Protocol.newMessage(Protocol.ROLE_NAME_CHECK)
+    message:WriteByte(1)
+    message:WriteString(name)
+    Bridge:Send(message)
+end
+
 function M.sendCreateRole()
+    local sex = Bridge:GetRoleSex() - 1
+    local model = sex == 0 and 5 or 4
     local message = Protocol.newMessage(Protocol.CREATE_ROLE)
-    message:WriteString(string.format("U%05d", Bridge:GetLocalUserId() % 100000))
-    message:WriteByte(0)
-    message:WriteByte(5)
-    message:WriteByte(5)
+    message:WriteString(Bridge:GetRoleName())
+    message:WriteByte(sex)
+    message:WriteByte(model)
+    message:WriteByte(model)
     message:WriteUShort(1)
     Bridge:Send(message)
 end

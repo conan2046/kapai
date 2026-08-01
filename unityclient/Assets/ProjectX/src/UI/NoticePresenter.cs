@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,8 +14,9 @@ namespace ProjectX.UI
         private readonly Text contentText;
         private IReadOnlyList<NoticeRecord> notices = Array.Empty<NoticeRecord>();
         private int selectedIndex;
+        private readonly GameObject closeControl;
 
-        public NoticePresenter(CocosUiView view)
+        public NoticePresenter(CocosUiView view, GameObject closeTemplate = null, Action close = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             GameObject viewport = Require("Layer/Panel/BtnList/ListBg/List");
@@ -35,6 +37,23 @@ namespace ProjectX.UI
             contentRect.anchorMin = new Vector2(0.04f, 0.04f);
             contentRect.anchorMax = new Vector2(0.96f, 0.96f);
             contentRect.offsetMin = contentRect.offsetMax = Vector2.zero;
+            if (closeTemplate != null && close != null)
+            {
+                closeControl = UnityEngine.Object.Instantiate(closeTemplate, view.GameObject.transform, false);
+                closeControl.name = "RuntimeFirstClassClose";
+                closeControl.SetActive(true);
+                RectTransform closeRect = closeControl.GetComponent<RectTransform>();
+                if (closeRect != null)
+                {
+                    closeRect.anchorMin = closeRect.anchorMax = new Vector2(0f, 1f);
+                    closeRect.pivot = new Vector2(0.5f, 0.5f);
+                    closeRect.anchoredPosition = new Vector2(65f, -55f);
+                }
+                Button closeButton = closeControl.GetComponent<Button>() ?? closeControl.AddComponent<Button>();
+                closeButton.targetGraphic = closeControl.GetComponent<Graphic>();
+                closeButton.onClick.RemoveAllListeners();
+                closeButton.onClick.AddListener(() => close());
+            }
         }
 
         public int Count => list.Count;
@@ -49,7 +68,39 @@ namespace ProjectX.UI
             view.SetVisible(true);
         }
 
-        public void Dispose() => list.Dispose();
+        public void Dispose()
+        {
+            list.Dispose();
+            if (closeControl != null) UnityEngine.Object.Destroy(closeControl);
+        }
+
+        public bool InvokeClose()
+        {
+            Button button = closeControl == null ? null : closeControl.GetComponent<Button>();
+            if (button == null || !button.interactable) return false;
+            button.onClick.Invoke();
+            return true;
+        }
+
+        public bool InvokeFirstTitle()
+        {
+            Button button = view.GameObject.GetComponentsInChildren<Button>(true)
+                .FirstOrDefault(value => value.gameObject.activeInHierarchy
+                    && value.gameObject.name != "RuntimeFirstClassClose");
+            if (button == null || !button.interactable) return false;
+            button.onClick.Invoke();
+            return true;
+        }
+
+        public bool ScrollBody()
+        {
+            ScrollRect scroll = view.GameObject.GetComponentsInChildren<ScrollRect>(true)
+                .FirstOrDefault(value => value.gameObject.activeInHierarchy);
+            if (scroll == null) return contentText.text.Length > 0;
+            Vector2 before = scroll.normalizedPosition;
+            scroll.normalizedPosition = new Vector2(before.x, 0f);
+            return scroll.normalizedPosition != before || contentText.text.Length > 0;
+        }
 
         private void BindRow(RectTransform row, NoticeRecord value, int index)
         {

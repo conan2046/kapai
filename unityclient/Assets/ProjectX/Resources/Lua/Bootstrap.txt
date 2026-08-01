@@ -50,6 +50,7 @@ function OnDisconnected(reason)
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
 function OnRoleCreateClicked() LoginController.onRoleCreateClicked() end
+function OnRoleRandomClicked() LoginController.onRoleRandomClicked() end
 function OnBagClicked() BagController.onClick() end
 function OnDrawClosureBagRefresh() BagController.requestDrawClosureSnapshot() end
 function OnBagUseClicked(slot, quantity, target) BagController.onUse(slot, quantity, target) end

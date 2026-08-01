@@ -6,7 +6,9 @@ param(
   [int]$ServerId = 1,
   [string]$Version = "102600",
   [switch]$AutoCreateRole,
+  [switch]$ExpectCreateFailure,
   [string]$RoleName = "",
+  [switch]$RoleNameOnly,
   [switch]$Extended,
   [switch]$Actions,
   [switch]$Mutations,
@@ -36,10 +38,15 @@ if (-not (Test-Path -LiteralPath $PythonExecutable -PathType Leaf)) {
 }
 
 $autoCreateRoleText = if ($AutoCreateRole) { "true" } else { "false" }
+if ($ExpectCreateFailure -and -not $AutoCreateRole) {
+  throw "ExpectCreateFailure requires AutoCreateRole"
+}
+$expectCreateFailureText = if ($ExpectCreateFailure) { "true" } else { "false" }
 if ($AutoCreateRole -and [string]::IsNullOrWhiteSpace($RoleName)) {
   $RoleName = "T" + (Get-Random -Minimum 10000 -Maximum 99999)
 }
 $extendedText = if ($Extended) { "true" } else { "false" }
+$roleNameOnlyText = if ($RoleNameOnly) { "true" } else { "false" }
 $actionsText = if ($Actions) { "true" } else { "false" }
 $mutationsText = if ($Mutations) { "true" } else { "false" }
 $positiveText = if ($Positive) { "true" } else { "false" }
@@ -54,7 +61,7 @@ $teamPeerAcceptLeaderRoleIdText = $TeamPeerAcceptLeaderRoleId
 $teamPeerWaitSecondsText = $TeamPeerWaitSeconds
 $teamProbeText = if ($TeamProbe) { "true" } else { "false" }
 $python = @"
-import socket, struct, time, threading
+import socket, struct, time, threading, sys
 
 HOST = "$HostName"
 PORT = $Port
@@ -63,8 +70,10 @@ ROLE_ID = $RoleId
 SERVER_ID = $ServerId
 VERSION = "$Version"
 AUTO_CREATE_ROLE = "$autoCreateRoleText"
+EXPECT_CREATE_FAILURE = "$expectCreateFailureText"
 ROLE_NAME = "$RoleName"
 GUILD_NAME = "G" + ROLE_NAME[1:] if len(ROLE_NAME) > 1 else "G10001"
+ROLE_NAME_ONLY = "$roleNameOnlyText"
 EXTENDED = "$extendedText"
 ACTIONS = "$actionsText"
 MUTATIONS = "$mutationsText"
@@ -224,6 +233,7 @@ if EXTENDED == 'true':
         ('fuben_daily_list', 190, u8(11)),
         ('huodong_state', 199, u16(1)),
         ('role_name_check_smoke', 1002, u8(1) + s('Smoke')),
+		('role_name_random_female', 1002, u8(2) + u8(1)),
         ('yaoling_cost', 55, u8(2)),
         ('bangzhan_info', 56, u8(1)),
         ('pk_notice_state', 262, u8(3)),
@@ -427,13 +437,40 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
     )
     sock.sendall(pkt(1001, login_body))
     time.sleep(1.0)
+    if ROLE_NAME_ONLY == 'true':
+        event_start = len(recv_events)
+        sock.sendall(pkt(1002, u8(2) + u8(1)))
+        deadline = time.time() + 3.0
+        response = None
+        while time.time() < deadline and response is None:
+            for msg_type, body in recv_events[event_start:]:
+                if msg_type == 1002 and len(body) >= 5 and body[0] == 2 and body[1] == 1 and body[2] > 0:
+                    response = body
+                    break
+            time.sleep(0.05)
+        if response is None:
+            raise RuntimeError('role-name-only probe returned no /1002 op=2 female candidate')
+        print('role_name_only_response=' + response.hex())
+        smokes = []
     role_to_select = ROLE_ID
     if AUTO_CREATE_ROLE == 'true':
         create_body = s(ROLE_NAME) + u8(0) + u8(5) + u8(5) + u16(1)
         sock.sendall(pkt(1003, create_body))
         deadline = time.time() + 3.0
         while time.time() < deadline and created_role_id['id'] is None:
+            if create_response['body'] is not None and EXPECT_CREATE_FAILURE == 'true':
+                break
             time.sleep(0.05)
+        if EXPECT_CREATE_FAILURE == 'true':
+            body = create_response['body']
+            if body is None:
+                raise RuntimeError('expected create-role failure timed out with no /1003 response')
+            if len(body) < 1 or body[0] != 0:
+                raise RuntimeError('expected create-role failure but received: ' + body.hex())
+            print('create_role_expected_failure=' + body.hex())
+            stop_flag['stop'] = True
+            time.sleep(0.2)
+            sys.exit(0)
         if created_role_id['id'] is None:
             body = create_response['body']
             raise RuntimeError('auto create role failed or timed out; response=' + (body.hex() if body is not None else 'none'))
@@ -535,6 +572,12 @@ print('recv_types=' + ','.join(map(str, recv_types[:200])))
 for response_type in (321,):
     bodies = recv_bodies.get(response_type, [])
     print('response_' + str(response_type) + '=' + ','.join(body.hex() for body in bodies))
+if EXTENDED == 'true' or ROLE_NAME_ONLY == 'true':
+    role_name_bodies = recv_bodies.get(1002, [])
+    print('response_1002=' + ','.join(body.hex() for body in role_name_bodies))
+    random_name_bodies = [body for body in role_name_bodies if len(body) >= 5 and body[0] == 2 and body[1] == 1 and body[2] > 0]
+    if not random_name_bodies:
+        raise RuntimeError('role-name random request returned no /1002 op=2 female candidate')
 if CONSUMPTION == 'true':
     for response_type in (47, 84, 177, 200, 216, 257, 309, 310, 332):
         bodies = recv_bodies.get(response_type, [])

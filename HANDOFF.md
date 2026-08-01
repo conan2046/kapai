@@ -1,9 +1,27 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-08-01 World G0-G6 passed / 25/25 complete
-> 本节覆盖下方 Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。
+> 当前交接：2026-08-01 Login G0-G6 passed / 21/21 complete
+> 本节覆盖下方 World、Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。
 
-## 0. 2026-08-01 新窗口直接执行
+## 0. 2026-08-01 登录与创角收口
+
+- 门禁：`G0-G6 passed / 21/21 complete`；唯一状态源严格完成率 `10/29 = 34.5%`。
+- 固定账号 `7200057/1000115`、可逆创角账号 `7300204/T00204`、隔离账号 `705213/1000006`；21/21 真实控件、10/10 语义断言、17/17 双端原生 `1334×750` 状态通过。
+- 覆盖 LoginBg、loginLayer、SeverListLayer、RoleCreateLayer、NoticeLayer、`/1001→/1003→/1004`、`/1002`、`/88`、已有/无角色、合法/非法/重复名、选服、失败/超时/断线/重连、返回/重进、切号隔离。
+- G5：`.local/ui-fidelity/Login/cocos/g5-20260801/`、`.local/ui-fidelity/Login/unity/g5-20260801/`、`.local/ui-fidelity/Login/compare/g5-live-20260801/report.json`。
+- G6：夹具精确恢复且残留 0；两次真实 BuildBatch SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`；自动复盘 62/62 已解决、未解决 0。证据 `.local/unity-validation/login-fixed-account-latest.json`、`.local/unity-validation/login-retrospective-latest.json`。
+- Cocos、Computer Use、Unity、`kapai.exe`、workspace-local MySQL 均已停止；未提交改动未暂存、未清理、未提交、未推送。
+- 下一模块固定为“系统设置”，必须新任务从 G0 开始；完成后才处理主界面 HUD。支付、活动、基金、福利、竞技、社交不得提前处理。
+
+### 下一任务新对话内容
+
+```text
+继续 E:\neiwang_kapai\Game 的 Cocos → Unity 迁移。登录与创角已按新标准通过 G0-G6，本任务只处理 P0 第二个模块“系统设置”；完成后下一模块才是主界面 HUD。禁止提前处理支付、活动、基金、福利、竞技或社交模块。
+
+先按 AGENTS.md、UNITYCLIENT_STATUS.md、MIGRATION_GUIDE.md、modules/README.md 和设置模块文档读取顺序检查 Git 与上一模块自动复盘，保护全部未提交改动。系统设置必须从 G0 重新冻结真实入口、页面、弹窗、控件、持久化、成功/失败、返回/重进、断线重连和切号隔离；旧第一阶段结论、旧截图和旧 Runner 不能跳门禁。严格按 G0-G6 推进，上一门禁未通过不得进入下一门禁；真实服务端使用可逆夹具，Cocos 仅用 computer-use@openai-bundled 操作原生 ProjectX.exe / Cocos Simulator，Unity G4-G6 仅用标准 batchMode Runner。完成后更新唯一状态源、生成 HANDOFF，并给出“主界面 HUD”新对话内容。未经明确要求不提交、不推送。
+```
+
+## 1. 2026-08-01 World 旧交接
 
 ### World 已收口
 

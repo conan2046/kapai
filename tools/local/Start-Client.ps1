@@ -1,6 +1,11 @@
 param(
     [switch]$RedirectLogs,
-    [int]$LocalUserId = 0
+    [int]$LocalUserId = 0,
+    [switch]$DisableAutoEnter,
+    [switch]$DisableAutoCreateRole,
+    [string]$LocalRoleNamePreset = "",
+    [string]$LocalGameIp = "",
+    [int]$LocalGamePort = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,11 +43,16 @@ try {
     Pop-Location
 }
 
+$sourceAppDef = Join-Path $ClientDir "src\core\AppDef.lua"
+$simulatorAppDef = Join-Path $SimDir "src\core\AppDef.lua"
+# Runtime overrides must never leak into the next launch. The legacy copy batch
+# uses xcopy /D, so a previously modified simulator file can be newer than the
+# authoritative source and survive indefinitely unless this file is reset.
+Copy-Item -LiteralPath $sourceAppDef -Destination $simulatorAppDef -Force
 if ($PSBoundParameters.ContainsKey("LocalUserId")) {
     if ($LocalUserId -le 0) {
         throw "LocalUserId must be a positive integer"
     }
-    $simulatorAppDef = Join-Path $SimDir "src\core\AppDef.lua"
     $appDefText = Get-Content -LiteralPath $simulatorAppDef -Raw -Encoding UTF8
     $uidPattern = '(?m)^AppDef\.LOCAL_TEST_UID\s*=\s*\d+\s*$'
     if ([regex]::Matches($appDefText, $uidPattern).Count -ne 1) {
@@ -53,6 +63,56 @@ if ($PSBoundParameters.ContainsKey("LocalUserId")) {
         $uidPattern,
         "AppDef.LOCAL_TEST_UID = $LocalUserId"
     )
+    Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
+}
+
+if ($PSBoundParameters.ContainsKey("LocalGameIp") -or $PSBoundParameters.ContainsKey("LocalGamePort")) {
+    if (-not $LocalGameIp -or -not [System.Net.IPAddress]::TryParse($LocalGameIp, [ref]([System.Net.IPAddress]$null))) {
+        throw "LocalGameIp must be a valid IP address when overriding the local endpoint"
+    }
+    if ($LocalGamePort -lt 1 -or $LocalGamePort -gt 65535) {
+        throw "LocalGamePort must be between 1 and 65535 when overriding the local endpoint"
+    }
+    $appDefText = Get-Content -LiteralPath $simulatorAppDef -Raw -Encoding UTF8
+    $ipPattern = '(?m)^AppDef\.LOCAL_TEST_GAME_IP\s*=\s*"[^"]*"\s*$'
+    $portPattern = '(?m)^AppDef\.LOCAL_TEST_GAME_PORT\s*=\s*\d+\s*$'
+    if ([regex]::Matches($appDefText, $ipPattern).Count -ne 1 -or
+        [regex]::Matches($appDefText, $portPattern).Count -ne 1) {
+        throw "Expected exactly one local game endpoint assignment in $simulatorAppDef"
+    }
+    $appDefText = [regex]::Replace($appDefText, $ipPattern, "AppDef.LOCAL_TEST_GAME_IP = `"$LocalGameIp`"")
+    $appDefText = [regex]::Replace($appDefText, $portPattern, "AppDef.LOCAL_TEST_GAME_PORT = $LocalGamePort")
+    Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
+}
+
+if ($DisableAutoEnter -or $DisableAutoCreateRole) {
+    $appDefText = Get-Content -LiteralPath $simulatorAppDef -Raw -Encoding UTF8
+    $autoOverrides = [ordered]@{}
+    if ($DisableAutoEnter) { $autoOverrides["LOCAL_TEST_AUTO_ENTER"] = "false" }
+    if ($DisableAutoCreateRole) { $autoOverrides["LOCAL_TEST_AUTO_CREATE_ROLE"] = "false" }
+    foreach ($entry in $autoOverrides.GetEnumerator()) {
+        $pattern = "(?m)^AppDef\.$($entry.Key)\s*=\s*(?:true|false)\s*$"
+        if ([regex]::Matches($appDefText, $pattern).Count -ne 1) {
+            throw "Expected exactly one AppDef.$($entry.Key) assignment in $simulatorAppDef"
+        }
+        $appDefText = [regex]::Replace($appDefText, $pattern, "AppDef.$($entry.Key) = $($entry.Value)")
+    }
+    Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
+}
+
+if ($PSBoundParameters.ContainsKey("LocalRoleNamePreset")) {
+    if ($LocalRoleNamePreset -match '["\\\r\n]') {
+        throw "LocalRoleNamePreset cannot contain quotes, backslashes, or line breaks"
+    }
+    $appDefText = Get-Content -LiteralPath $simulatorAppDef -Raw -Encoding UTF8
+    $presetPattern = '(?m)^AppDef\.LOCAL_TEST_ROLE_NAME_PRESET\s*=.*(?:\r?\n)?'
+    $appDefText = [regex]::Replace($appDefText, $presetPattern, "")
+    $anchorPattern = '(?m)^(AppDef\.LOCAL_TEST_ROLE_NAME\s*=.*)$'
+    if ([regex]::Matches($appDefText, $anchorPattern).Count -ne 1) {
+        throw "Expected exactly one AppDef.LOCAL_TEST_ROLE_NAME assignment in $simulatorAppDef"
+    }
+    $replacement = "`$1`nAppDef.LOCAL_TEST_ROLE_NAME_PRESET = `"$LocalRoleNamePreset`""
+    $appDefText = [regex]::Replace($appDefText, $anchorPattern, $replacement)
     Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
 }
 

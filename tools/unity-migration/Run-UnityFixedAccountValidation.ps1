@@ -33,9 +33,11 @@ if ($contractFailures.Count -gt 0) {
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." }
 $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
-Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate G3
+$requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }
+$workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }
+Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate $requiredGate
 Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig `
-    -Scenario $scenario -Phase G3 | Out-Null
+    -Scenario $scenario -Phase $workflowPhase | Out-Null
 if ($UserId -eq 0) { $UserId = [uint32]$fixed.userId }
 if ($RoleId -eq 0) { $RoleId = [uint32]$fixed.roleId }
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable

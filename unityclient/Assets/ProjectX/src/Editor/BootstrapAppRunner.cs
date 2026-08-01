@@ -173,8 +173,14 @@ namespace ProjectX.Editor
             bool resourceRecoveryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXResourceRecoveryValidation") >= 0;
             bool fundsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFundsValidation") >= 0;
             bool loginValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginValidation") >= 0;
+            bool loginClosureValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginClosureValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
 
+            if (loginValidation && loginClosureValidation && status == "Login UI ready.")
+            {
+                app.BeginLoginClosureValidation();
+                return;
+            }
             if (loginValidation && status == "Login UI ready.")
             {
                 int loginPhase = SessionState.GetInt(LoginPhaseKey, 0);
@@ -229,6 +235,12 @@ namespace ProjectX.Editor
                     return;
                 if (loginValidation)
                 {
+                    if (loginClosureValidation)
+                    {
+                        WriteResult(true, status + " | login closure runner evidence passed");
+                        Finish(true);
+                        return;
+                    }
                     int loginPhase = SessionState.GetInt(LoginPhaseKey, 0);
                     bool requireNoticeResponse = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXRequireNoticeResponse") >= 0;
                     if (loginPhase != 3 && loginPhase != 4)

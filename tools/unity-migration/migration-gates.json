@@ -502,7 +502,7 @@
           "UNITYCLIENT_STATUS.md"
         ]
       },
-      "updatedUtc": "2026-07-30T07:24:00.0000000Z"
+      "updatedUtc": "2026-07-30T07:24:00Z"
     },
     {
       "module": "HeroEquip",
@@ -626,7 +626,74 @@
           ".local/unity-validation/world-fixed-account-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-01T00:11:04.8365190Z"
+      "updatedUtc": "2026-08-01T00:11:04.836519Z"
+    },
+    {
+      "module": "Login",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/LOGIN.md",
+      "note": "Login restarted from G0 on 2026-08-01. Historical complete/phase-one labels, screenshots, Runner results and hashes are excluded from every current gate.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/LOGIN_CONTROLS.json",
+          "docs/unityclient/modules/LOGIN.md",
+          "tools/unity-migration/unityclient-modules.json",
+          "tools/unity-migration/validation-scenarios.json"
+        ],
+        "G1": [
+          "docs/unityclient/modules/LOGIN.md",
+          "docs/unityclient/matrices/LOGIN_CONTROLS.json",
+          ".local/unity-validation/login-g1-source-evidence.json",
+          ".local/unity-validation/login-cocos-automation-ledger.json",
+          ".local/unity-validation/login-operation-ledger.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/LOGIN.md",
+          "docs/unityclient/matrices/LOGIN_CONTROLS.json",
+          ".local/unity-validation/login-g2-source-audit.json",
+          ".local/protocol-evidence/Login/1001.md",
+          ".local/protocol-evidence/Login/1002.md",
+          ".local/protocol-evidence/Login/1003.md",
+          ".local/protocol-evidence/Login/1004.md",
+          ".local/protocol-evidence/Login/88.md"
+        ],
+        "G3": [
+          ".local/unity-validation/login-g3-static-evidence.json",
+          ".local/unity-validation/unity-compile-preflight-latest.json",
+          ".local/unity-validation/login-fixed-account-data-preflight-latest.json",
+          "docs/unityclient/matrices/LOGIN_CONTROLS.json",
+          "tools/unity-migration/validation-scenarios.json"
+        ],
+        "G4": [
+          ".local/unity-validation/login-fixed-account-latest.json",
+          ".local/unity-validation/login-fixed-account-timings-latest.json",
+          ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-unity-result.json",
+          ".local/unity-validation/login-fixed-account-data-preflight-latest.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Login/compare/g5-live-20260801/report.json",
+          ".local/unity-validation/login-g5-preflight-latest.json",
+          ".local/unity-validation/login-fixed-account-latest.json",
+          ".local/unity-validation/login-g5-cocos-automation-ledger.json"
+        ],
+        "G6": [
+          ".local/unity-validation/login-fixed-account-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/ui-fidelity/Login/compare/g5-live-20260801/report.json",
+          ".local/unity-validation/login-operation-ledger.json",
+          "docs/unityclient/matrices/LOGIN_CONTROLS.json",
+          ".local/unity-validation/login-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-01T06:51:45.5942952Z"
     }
   ]
 }

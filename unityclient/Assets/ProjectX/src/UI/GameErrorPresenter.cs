@@ -13,6 +13,7 @@ namespace ProjectX.UI
         private readonly Button cancelButton;
         private readonly Button confirmButton;
         private Action confirmation;
+        private Action cancellation;
 
         public GameErrorPresenter(CocosUiView view)
         {
@@ -24,7 +25,7 @@ namespace ProjectX.UI
             if (titleRect != null) titleRect.sizeDelta = new Vector2(220f, Math.Max(32f, titleRect.sizeDelta.y));
             BindDismiss("Layer/MessageBoxUI/bg/Btn_close");
             singleConfirm = Bind("Layer/MessageBoxUI/Btn_Confirm", Hide);
-            cancelButton = Bind("Layer/MessageBoxUI/Btn_Confirm1", Hide);
+            cancelButton = Bind("Layer/MessageBoxUI/Btn_Confirm1", Cancel);
             confirmButton = Bind("Layer/MessageBoxUI/Btn_Confirm2", Confirm);
             SetOptionalVisible("Layer/MessageBoxUI/IconBg1", false);
             SetOptionalVisible("Layer/MessageBoxUI/Spend", false);
@@ -53,9 +54,17 @@ namespace ProjectX.UI
             return true;
         }
 
+        public bool InvokeSingleConfirmation()
+        {
+            if (!IsVisible || !singleConfirm.gameObject.activeSelf || !singleConfirm.interactable) return false;
+            singleConfirm.onClick.Invoke();
+            return true;
+        }
+
         public void Show(string heading, string detail)
         {
             confirmation = null;
+            cancellation = null;
             ConfigureMessageText();
             title.text = string.IsNullOrEmpty(heading) ? "提示" : heading;
             message.text = detail ?? string.Empty;
@@ -77,9 +86,11 @@ namespace ProjectX.UI
         }
 
         public void ShowConfirmation(string heading, string detail, Action onConfirm,
-            string confirmLabel = "确定", string cancelLabel = "取消", bool alignTopLeft = false)
+            string confirmLabel = "确定", string cancelLabel = "取消", bool alignTopLeft = false,
+            Action onCancel = null)
         {
             confirmation = onConfirm ?? throw new ArgumentNullException(nameof(onConfirm));
+            cancellation = onCancel;
             ConfigureMessageText();
             title.text = string.IsNullOrEmpty(heading) ? "购买确认" : heading;
             message.text = detail ?? string.Empty;
@@ -106,9 +117,17 @@ namespace ProjectX.UI
             callback?.Invoke();
         }
 
+        public void Cancel()
+        {
+            Action callback = cancellation;
+            Hide();
+            callback?.Invoke();
+        }
+
         public void Hide()
         {
             confirmation = null;
+            cancellation = null;
             view.SetVisible(false);
         }
 

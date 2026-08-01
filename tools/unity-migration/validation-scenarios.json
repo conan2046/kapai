@@ -50,7 +50,107 @@
     }
   },
   "scenarios": [
-    { "key": "login-default", "module": "Login", "fixture": "isolated-role", "flags": ["-projectXLoginValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-login.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-login-notice.png","lifecycle":"runtime"}], "captureStates": ["login","notice"] },
+    {
+      "key": "login-default",
+      "module": "Login",
+      "fixture": "isolated-role-global-snapshot",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXLoginValidation",
+        "-projectXLoginClosureValidation"
+      ],
+      "artifacts": [
+        { "path": "build/ui-migration/bootstrap-login-local.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-server-list.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-existing-role.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-handover.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-role-male.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-role-female.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-role-random.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-name-invalid.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-name-duplicate.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-role-success.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-notice.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-connect-error.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-connect-timeout.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-disconnect.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-reconnected.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-return-reenter.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-login-account-isolation.png", "lifecycle": "runtime" }
+      ],
+      "captureStates": [
+        "login-local",
+        "server-list",
+        "existing-role",
+        "login-handover",
+        "role-male",
+        "role-female",
+        "role-random",
+        "name-invalid",
+        "name-duplicate",
+        "role-success",
+        "notice",
+        "connect-error",
+        "connect-timeout",
+        "disconnect",
+        "reconnected",
+        "return-reenter",
+        "account-isolation"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "login-existing-role-authority",
+        "login-no-role-create",
+        "login-role-name-rejections",
+        "login-server-selection",
+        "login-notice-authority",
+        "login-network-recovery",
+        "login-account-isolation",
+        "login-control-matrix-21",
+        "login-fixture-zero-residue",
+        "login-exclusions"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/core/AppDef.lua",
+          "contains": ["AppDef.LOCAL_TEST", "AppDef.LOCAL_TEST_GAME_PORT"]
+        },
+        {
+          "path": "client/ProjectX/src/View/Login/LoginUI.lua",
+          "contains": ["Btn_Play", "Btn_Sever", "Btn_handover", "EnterGame"]
+        },
+        {
+          "path": "client/ProjectX/src/View/Login/RoleCreateUI.lua",
+          "contains": ["btn_Random", "btn_Start", "QueryCreateHero"]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": ["CPackageDeal::UserLogin", "CPackageDeal::RoleNameOption", "CPackageDeal::CreateRole", "CPackageDeal::SelectRole", "CPackageDeal::QueryGongGao"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginController.lua.txt",
+          "contains": ["Protocol.USER_LOGIN", "Protocol.ROLE_NAME_CHECK", "Protocol.CREATE_ROLE", "Protocol.SELECT_ROLE", "Protocol.GAME_NOTICE"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/LoginPresenter.cs",
+          "contains": ["LoginPresenter", "ShowHandover", "ShowServerList", "ShowRoleCreate", "InvokeRoleRandom", "InvokeRoleBack"]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-LoginCocosFixture.ps1",
+          "contains": ["fixedDisposableUserId", "Assert-FixedRestored", "Remove-FixedDisposableIdentity"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": ["MarkValidationControl", "RecordValidationSemantic", "BeginLoginClosureValidation"]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
     { "key": "bag-default", "module": "Bag", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXBagG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-bag.png","lifecycle":"runtime"}], "captureStates": ["bag","input","gift","source","equipment-info","source-destination","reload","reconnect"] },
     { "key": "settings-default", "module": "Settings", "fixture": "shared-readonly", "flags": ["-projectXSettingsValidation"], "artifacts": [], "captureStates": [] },
     { "key": "task-default", "module": "Task", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXTaskG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-task.png","lifecycle":"runtime"}], "captureStates": ["task-populated","task-go","task-claimable","task-claimed","task-scroll-top","task-scroll-bottom","activity-boxes","reward-popup-preview","reward-popup-claimable","reward-popup-claimed","invalid-repeat","reload","reconnect","account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["task-title","task-tab","task-header-currencies","task-action-labels","task-reward-title"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["BTN_NAME_task","EMID_TASK_DALIY"]},{"path":"client/ProjectX/src/View/Activity/HuoyueTaskUI.lua","contains":["QueryGotTaskList","QueryGotTaskAward"]},{"path":"server/src/mission_manager.cpp","contains":["ApplyTaskValidationFixture","GetQuestAward"]},{"path":"server/config/json/daily.json","contains":["\"id\":144","\"type\":0","\"id\":9","\"type\":2"]},{"path":"unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs","contains":["-projectXTaskG4Validation"]},{"path":"unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs","contains":["class TaskPresenter","InvokeActivityBox","ScrollToBottom","HasActionLabel"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["MarkValidationControl","RecordValidationSemantic"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },

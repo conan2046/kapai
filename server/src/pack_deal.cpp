@@ -1048,6 +1048,23 @@ void CPackageDeal::RoleNameOption(CNetMessage *pMsg,int sock)
 		msg>>sex;
 		if(sex > 1)
 			return;
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+		{
+			CUser *pUser = m_onlineUser.GetUserBySock(sock).get();
+			if(pUser == NULL)
+				return;
+			char localName1[16];
+			char localName2[16];
+			char localName3[16];
+			snprintf(localName1,sizeof(localName1),"T%05u",pUser->GetUserId()%100000);
+			snprintf(localName2,sizeof(localName2),"U%05u",pUser->GetUserId()%100000);
+			snprintf(localName3,sizeof(localName3),"V%05u",pUser->GetUserId()%100000);
+			CNetMessage newmsg;
+			newmsg.SetType(PRO_ROLE_NAME_CHECK);
+			newmsg<<op<<sex<<(uint8)3<<string(localName1)<<string(localName2)<<string(localName3);
+			m_socketServer.SendMsg(sock,newmsg);
+			return;
+		}
 		//未创建角色，只好以sock来识别，应该生成一个唯一id
 		QueryRoleName(sock,sex);
 	}

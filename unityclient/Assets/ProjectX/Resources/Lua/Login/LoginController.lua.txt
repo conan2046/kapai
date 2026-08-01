@@ -9,13 +9,31 @@ function M.begin()
     local autoInvoke = Bridge:IsAutomation() and not Bridge:HasCommandLineFlag("-projectXLoginValidation")
     LoginView.show(autoInvoke)
 end
-function M.onLoginClicked() Bridge:Connect("127.0.0.1", 8711) end
+function M.onLoginClicked() Bridge:Connect(Bridge:GetGameHost(), Bridge:GetGamePort()) end
 function M.onRoleCreateClicked() LoginProtocol.sendCreateRole() end
+function M.onRoleRandomClicked() LoginProtocol.requestRandomRoleNames() end
 function M.onConnected() LoginProtocol.sendLogin() end
 
 function M.onPacket(command, message)
+    if command == Protocol.ROLE_NAME_CHECK then
+        local op = message:ReadByte()
+        if op == 2 then
+            message:ReadByte()
+            local count = message:ReadByte()
+            local names = { "", "", "" }
+            for index = 1, count do
+                local value = message:ReadString()
+                if index <= 3 then names[index] = value end
+            end
+            Bridge:ApplyRoleNameCandidates(names[1], names[2], names[3])
+            return true
+        end
+        local detail = message.Remaining > 0 and message:ReadString() or "角色名不可用"
+        Bridge:ShowLoginError(detail)
+        return true
+    end
     if command == Protocol.USER_LOGIN then
-        if message:ReadByte() ~= 1 then Bridge:Fail("PRO_USER_LOGIN/1001 returned failure."); return true end
+        if message:ReadByte() ~= 1 then Bridge:ShowLoginError(message.Remaining > 0 and message:ReadString() or "登录失败"); return true end
         message:ReadByte()
         message:ReadUInt()
         M.roleId = message:ReadUInt()
@@ -28,13 +46,13 @@ function M.onPacket(command, message)
         return true
     end
     if command == Protocol.CREATE_ROLE then
-        if message:ReadByte() ~= 1 then Bridge:Fail("PRO_CREATE_ROLE/1003 returned failure."); return true end
+        if message:ReadByte() ~= 1 then Bridge:ShowLoginError(message.Remaining > 0 and message:ReadString() or "创建角色失败"); return true end
         M.roleId = message:ReadUInt()
         LoginProtocol.sendSelectRole(M.roleId)
         return true
     end
     if command == Protocol.SELECT_ROLE then
-        if message:ReadByte() ~= 1 then Bridge:Fail("PRO_SELECT_ROLE/1004 returned failure."); return true end
+        if message:ReadByte() ~= 1 then Bridge:ShowLoginError(message.Remaining > 0 and message:ReadString() or "登录失败"); return true end
         local roleId = message:ReadUInt()
         local name = message:ReadString()
         local sex = message:ReadByte()

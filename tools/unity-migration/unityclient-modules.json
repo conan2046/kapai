@@ -41,15 +41,18 @@
     {
       "key": "Login",
       "displayName": "登录与创角",
-      "status": "complete",
+      "status": "migration-complete",
       "protocols": [
         1001,
+        1002,
         1003,
         1004,
         88
       ],
       "entries": [
-        "Layer/Login/Btn_Play"
+        "Layer/Login/Btn_Play",
+        "Layer/Login/Btn_Sever",
+        "Layer/Login/Btn_handover"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoginBgLayer.prefab",
@@ -64,7 +67,8 @@
       ],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXLoginValidation"
+        "-projectXLoginValidation",
+        "-projectXLoginClosureValidation"
       ],
       "validationData": {
         "provider": "localMysql",
@@ -83,6 +87,25 @@
         "build/ui-migration/bootstrap-login.png",
         "build/ui-migration/bootstrap-login-notice.png"
       ],
+      "controlMatrix": "docs/unityclient/matrices/LOGIN_CONTROLS.json",
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Login/cocos/g5-20260801/LOGIN-LOCAL.png",
+          ".local/ui-fidelity/Login/cocos/g5-20260801/ROLE-SUCCESS.png",
+          ".local/ui-fidelity/Login/cocos/g5-20260801/NOTICE.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png",
+          ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-SUCCESS.png",
+          ".local/ui-fidelity/Login/unity/g5-20260801/NOTICE.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Login/compare/g5-live-20260801/report.json"
+        ],
+        "flowEvidence": ".local/unity-validation/login-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/LOGIN_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/LOGIN.md"
     },
     {

@@ -47,6 +47,10 @@ function RoleCreateUI:Init()
     
     self:InitData()
     self:AddTouchEvt()
+    if AppDef.LOCAL_TEST == true and AppDef.LOCAL_TEST_ROLE_NAME_PRESET ~= nil and AppDef.LOCAL_TEST_ROLE_NAME_PRESET ~= "" then
+        self.m_pName:setString(AppDef.LOCAL_TEST_ROLE_NAME_PRESET)
+        return
+    end
     if AppDef.LOCAL_TEST == true and AppDef.LOCAL_TEST_AUTO_CREATE_ROLE == true then
         local roleName = AppDef.LOCAL_TEST_ROLE_NAME or "Test01"
         self.m_pName:setString(roleName)
