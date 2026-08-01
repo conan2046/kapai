@@ -2,7 +2,7 @@
 param(
     [Alias("Module")][string]$TargetModule = "",
     [string]$ManifestPath = "",
-    [int]$StatusMaxLines = 100,
+    [int]$StatusMaxLines = 115,
     [int]$GuideMaxLines = 360,
     [string]$JsonOutput = ""
 )
@@ -62,7 +62,8 @@ function Test-RequiredFile {
 
 $statusPath = Test-RequiredFile "UNITYCLIENT_STATUS.md"
 $guidePath = Test-RequiredFile "docs/unityclient/MIGRATION_GUIDE.md"
-Test-RequiredFile "docs/unityclient/modules/README.md" | Out-Null
+$moduleIndexPath = Test-RequiredFile "docs/unityclient/modules/README.md"
+$paymentPath = Test-RequiredFile "docs/unityclient/modules/PAYMENT.md"
 Test-RequiredFile "docs/unityclient/history/README.md" | Out-Null
 
 $lineRules = @(
@@ -83,10 +84,38 @@ if ($statusPath) {
     if ($functionalMatches.Count -ne 1) {
         Add-Failure "STATUS must contain exactly one Functional percentage row; found $($functionalMatches.Count)."
     }
-    $friendModule = @($manifest.modules | Where-Object { [string]$_.key -eq "Friend" }) | Select-Object -First 1
-    if ([string]$friendModule.status -ne "phase1-complete" -and $status -notmatch '下一批：`Friend Store`') {
-        Add-Warning "STATUS next batch is not Friend Store. Update the manifest/document plan if this is intentional."
+    $priorityLabels = @("P0 基础层", "P1 其他单人功能", "P2 运营与商业化", "P3 竞技/玩家依赖", "P4 社交最后")
+    $lastPriorityIndex = -1
+    foreach ($label in $priorityLabels) {
+        $priorityIndex = $status.IndexOf($label, [StringComparison]::Ordinal)
+        if ($priorityIndex -lt 0 -or $priorityIndex -le $lastPriorityIndex) {
+            Add-Failure "STATUS migration priority is missing or out of order: $label"
+        }
+        $lastPriorityIndex = $priorityIndex
     }
+    foreach ($progress in @("12/29 = 41.4%", "20/29 = 69.0%", "23/29 = 79.3%", "25/29 = 86.2%", "29/29 = 100%")) {
+        if (-not $status.Contains($progress)) { Add-Failure "STATUS priority progress is missing: $progress" }
+    }
+    if (-not $status.Contains("PAYMENT.md")) { Add-Failure "STATUS P2 plan no longer references the payment prerequisite." }
+}
+
+if ($paymentPath) {
+    $payment = Get-Content -Raw -Encoding UTF8 -LiteralPath $paymentPath
+    foreach ($anchor in @(
+        "planned-prerequisite", "PROJECTX_PAYMENT_TEST", "PROJECTX_PAYMENT_PRODUCTION",
+        "CPackageDeal::Charge", "CMainClass::ChongZhiSuccess", "MSG_CILENT_CHARGE /247",
+        "PaymentService", "PaymentBuildGuard"
+    )) {
+        if (-not $payment.Contains($anchor)) { Add-Failure "Payment prerequisite is missing anchor: $anchor" }
+    }
+    if (-not $payment.Contains("当前仅冻结方案，未实现源码")) {
+        Add-Failure "Payment prerequisite must remain explicitly planned until its source implementation is complete."
+    }
+}
+
+if ($moduleIndexPath) {
+    $moduleIndex = Get-Content -Raw -Encoding UTF8 -LiteralPath $moduleIndexPath
+    if (-not $moduleIndex.Contains("PAYMENT.md")) { Add-Failure "Module index no longer references PAYMENT.md." }
 }
 
 $currentDocPaths = @($statusPath, $guidePath) | Where-Object { $_ }

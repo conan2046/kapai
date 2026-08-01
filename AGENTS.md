@@ -29,6 +29,7 @@
 - Unity 新模块先读取 `tools/unity-migration/unityclient-modules.json`，优先使用 `Get-ProtocolEvidence.ps1`、`New-UnityMigrationModule.ps1`、`Run-UnityModuleValidation.ps1` 和 `Test-UnityMigrationDocs.ps1`，不得重复创建平行工具。
 - 严格按 `MIGRATION_GUIDE.md` 的 G0-G6 门禁推进；同一时间只处理一个模块，上一门禁未通过不得编码、切阶段或开启下一模块。任何跳过门禁必须先记录阻塞并取得用户明确批准。
 - 每个新模块 G0 必须在控件矩阵冻结 `workflowPolicyVersion=1`，并用 `acceptanceExamples` 的 `given/when/then` 写明至少一个具体结果样例。禁止先尝试任意 GUI/MCP/临时脚本，失败后才回到标准工具；工具路由只认 `validation-scenarios.json.workflowPolicy`。
+- 当前模块优先级唯一读取 `UNITYCLIENT_STATUS.md` 的 P0-P4：P0 基础、P1 其他单人功能、P2 运营与商业化、P3 竞技/玩家依赖、P4 社交最后。进入 P2 的活动、全部基金或福利 G0 前，必须先读取并完成 `docs/unityclient/modules/PAYMENT.md` 支付前置；该前置当前仅为计划，禁止误报已实现。
 
 ## 分析与修改范围
 - 分析业务代码时优先看 `client/ProjectX/src/`、`client/ProjectX/res/`、`server/src/`、`server/script/`、`server/config/`、`server/sql/`、`tools/local/`。
