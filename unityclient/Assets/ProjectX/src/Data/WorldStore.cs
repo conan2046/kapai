@@ -24,6 +24,8 @@ namespace ProjectX.Data
     public sealed class WorldStageRecord
     {
         private readonly List<RewardRecord> rewards = new List<RewardRecord>();
+        private readonly List<RewardRecord> currencyRewards = new List<RewardRecord>();
+        private readonly List<RewardRecord> itemRewards = new List<RewardRecord>();
 
         public uint Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -37,11 +39,15 @@ namespace ProjectX.Data
         public byte RewardBoxState { get; set; }
         public byte FoughtCount { get; set; }
         public IReadOnlyList<RewardRecord> Rewards => rewards;
+        public IReadOnlyList<RewardRecord> CurrencyRewards => currencyRewards;
+        public IReadOnlyList<RewardRecord> ItemRewards => itemRewards;
         public bool IsUnlocked => Stars != byte.MaxValue;
 
-        public void AddReward(RewardRecord reward)
+        public void AddReward(RewardRecord reward, bool isCurrency)
         {
-            if (reward.Amount > 0) rewards.Add(reward);
+            if (reward.Amount == 0) return;
+            rewards.Add(reward);
+            (isCurrency ? currencyRewards : itemRewards).Add(reward);
         }
     }
 
@@ -127,6 +133,35 @@ namespace ProjectX.Data
             }
             if (unlockedChapterId > 0) CurrentChapterId = unlockedChapterId;
             if (unlockedStageId > 0) CurrentStageId = unlockedStageId;
+            Changed?.Invoke();
+        }
+
+        public void ApplySweep(uint stageId, byte count)
+        {
+            WorldStageRecord stage = stages.FirstOrDefault(value => value.Id == stageId);
+            if (stage == null) return;
+            stage.RemainingAttempts = (byte)Math.Max(0, stage.RemainingAttempts - count);
+            stage.FoughtCount = (byte)Math.Min(byte.MaxValue, stage.FoughtCount + count);
+            SelectedStageId = stageId;
+            Changed?.Invoke();
+        }
+
+        public void ApplyReset(uint stageId, byte usedResets)
+        {
+            WorldStageRecord stage = stages.FirstOrDefault(value => value.Id == stageId);
+            if (stage == null) return;
+            SelectedStageId = stageId;
+            Changed?.Invoke();
+        }
+
+        public void ApplyClaimedBox(uint chapterId, uint boxId)
+        {
+            WorldStarBoxRecord box = starBoxes.FirstOrDefault(value => value.RewardId == boxId);
+            if (box != null) box.State = 2;
+            WorldStageRecord stage = stages.FirstOrDefault(value => value.RewardBoxId == boxId);
+            if (stage != null) stage.RewardBoxState = 2;
+            WorldChapterRecord chapter = chapters.FirstOrDefault(value => value.Id == chapterId);
+            if (chapter != null) chapter.ClaimedBoxes++;
             Changed?.Invoke();
         }
 

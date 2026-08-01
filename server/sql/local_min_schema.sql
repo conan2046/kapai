@@ -2452,6 +2452,13 @@ CREATE TABLE IF NOT EXISTS `rank_list` (
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `rank_list_save` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `type` int NOT NULL DEFAULT '0',
+  `rank` int NOT NULL DEFAULT '0',
+  `role_id` int NOT NULL DEFAULT '0',
+  `data1` bigint NOT NULL DEFAULT '0',
+  `data2` bigint NOT NULL DEFAULT '0',
+  `value1` int NOT NULL DEFAULT '0',
+  `time` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;

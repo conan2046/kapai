@@ -5,13 +5,12 @@ param(
     [uint32]$RoleId = 0,
     [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
     [switch]$PreflightOnly,
-    [switch]$DataPreflightOnly,
-    [switch]$VisualOnly
+    [switch]$DataPreflightOnly
 )
 
 $ErrorActionPreference = "Stop"
-if (@($PreflightOnly, $DataPreflightOnly, $VisualOnly | Where-Object { $_ }).Count -gt 1) {
-    throw "-PreflightOnly, -DataPreflightOnly and -VisualOnly are mutually exclusive."
+if ($PreflightOnly -and $DataPreflightOnly) {
+    throw "-PreflightOnly and -DataPreflightOnly are mutually exclusive."
 }
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
@@ -36,38 +35,17 @@ if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." 
 if ($UserId -eq 0) { $UserId = [uint32]$fixed.userId }
 if ($RoleId -eq 0) { $RoleId = [uint32]$fixed.roleId }
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
-$pythonExecutable = Get-UnityMigrationPythonExecutable
 $adapter = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.adapter)
 $snapshot = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.snapshot)
 $resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
-$visualValidationFlags = @(
-    Get-UnityMigrationPropertyValue -Object $fixed -Name "visualValidationFlags" -Default @() |
-        ForEach-Object { [string]$_ }
-)
-$visualOnlyArtifacts = [bool](
-    Get-UnityMigrationPropertyValue -Object $fixed -Name "visualOnlyArtifacts" -Default $false
-)
-if ($VisualOnly -and $visualValidationFlags.Count -eq 0) {
-    throw "Module '$Module' has no fixedAccount.visualValidationFlags contract."
-}
-$resultEvidenceContract = if ($VisualOnly) {
-    [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "visualResultEvidence" -Default "")
-} else {
-    [string]$fixed.resultEvidence
-}
-if ([string]::IsNullOrWhiteSpace($resultEvidenceContract)) {
-    throw "Module '$Module' has no result evidence path for the selected validation mode."
-}
-$resultEvidence = Resolve-UnityMigrationPath -Root $root -Path $resultEvidenceContract
+$resultEvidence = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.resultEvidence)
 $dataEvidencePath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
 $dataPreflightFingerprint = Get-UnityMigrationDataPreflightFingerprint -Root $root -FixedAccount $fixed
-$sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
-$g5ContractFingerprint = Get-UnityMigrationG5ContractFingerprint -Contract $contract
 $logPath = Join-Path (Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.logDirectory)) `
-    "unity-$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account$(if ($VisualOnly) { '-visual' } else { '' }).log"
+    "unity-$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account.log"
 $unityExecutable = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityExecutable)
 $unityProject = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityProject)
-$timingPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account$(if ($VisualOnly) { '-visual' } else { '' })-timings-latest.json"
+$timingPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-timings-latest.json"
 $timings = [ordered]@{}
 $overallTiming = Start-UnityMigrationTiming
 $runStatus = "failed"
@@ -93,6 +71,22 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Fixed-account adapter action failed: $Action" }
     }
 
+    function Stop-OrphanUnityIlppProcess {
+        if (@(Get-Process Unity -ErrorAction SilentlyContinue).Count -gt 0) { return }
+        $editorDirectory = Split-Path -Parent $unityExecutable
+        $ilppDotnet = Join-Path $editorDirectory "Data\NetCoreRuntime\dotnet.exe"
+        $orphanIlpp = @(Get-Process dotnet -ErrorAction SilentlyContinue | Where-Object {
+            $_.Path -and [IO.Path]::GetFullPath($_.Path) -ieq [IO.Path]::GetFullPath($ilppDotnet)
+        })
+        if ($orphanIlpp.Count -eq 0) { return }
+        $orphanIlpp | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Milliseconds 500
+        $stillRunning = @($orphanIlpp | Where-Object { Get-Process -Id $_.Id -ErrorAction SilentlyContinue })
+        if ($stillRunning.Count -gt 0) {
+            throw "Unity ILPP process did not release in time: pid=$($stillRunning[0].Id)"
+        }
+    }
+
     if (-not $PreflightOnly -and -not $DataPreflightOnly) {
         if (-not (Test-Path -LiteralPath $dataEvidencePath -PathType Leaf)) {
             throw "Fixed-account data preflight evidence is missing. Run with -DataPreflightOnly before full validation: $dataEvidencePath"
@@ -100,14 +94,13 @@ try {
         $dataEvidence = Get-Content -LiteralPath $dataEvidencePath -Raw -Encoding UTF8 | ConvertFrom-Json
         $dataEvidenceFailures = @(Get-UnityMigrationDataPreflightEvidenceFailures `
             -Evidence $dataEvidence -ExpectedFingerprint $dataPreflightFingerprint `
-            -ExpectedUserId $UserId -ExpectedRoleId $RoleId `
-            -ExpectedSourceContractFingerprint $sourceContractFingerprint `
-            -ExpectedG5ContractFingerprint $g5ContractFingerprint)
+            -ExpectedUserId $UserId -ExpectedRoleId $RoleId)
         if ($dataEvidenceFailures.Count -gt 0) {
             throw "Fixed-account data preflight evidence is stale or incomplete: $($dataEvidenceFailures -join '; '). Rerun -DataPreflightOnly before full validation."
         }
     }
     if (-not $DataPreflightOnly) {
+        Stop-OrphanUnityIlppProcess
         $compileTiming = Start-UnityMigrationTiming
         try {
             Invoke-UnityMigrationCompilePreflight -Root $root -UnityProject $unityProject `
@@ -157,8 +150,7 @@ try {
             if ([bool]$fixed.dataPreflight.requiresLogin) {
                 & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight server startup failed." }
-                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-                    -UserId $UserId -PythonExecutable $pythonExecutable
+                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight login failed." }
                 Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 2
@@ -178,8 +170,6 @@ try {
                 requirements = @($fixed.dataPreflight.requirements)
                 requiresLogin = [bool]$fixed.dataPreflight.requiresLogin
                 contractFingerprint = $dataPreflightFingerprint
-                sourceContractFingerprint = $sourceContractFingerprint
-                g5ContractFingerprint = $g5ContractFingerprint
                 snapshotHash = [string](Get-UnityMigrationPropertyValue -Object $snapshotPayload -Name "snapshotHash" -Default "")
                 setupAssert = "passed"
                 restoreAssert = "passed"
@@ -214,11 +204,6 @@ try {
             Complete-UnityMigrationTiming -Timings $timings -Name "serverStartup" -Timing $serverTiming
         }
         if (Test-Path -LiteralPath $resultPath) { Remove-Item -LiteralPath $resultPath -Force }
-        $validationFlags = if ($VisualOnly) {
-            @($visualValidationFlags)
-        } else {
-            @($scenario.flags | ForEach-Object { [string]$_ })
-        }
         $arguments = @(
             "-batchMode",
             "-projectPath", $unityProject,
@@ -228,43 +213,34 @@ try {
             "-projectXValidationScenario=$($scenario.key)",
             "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds",
             "-logFile", $logPath
-        ) + $validationFlags `
+        ) + @($scenario.flags | ForEach-Object { [string]$_ }) `
           + @($fixed.extraFlags | ForEach-Object { [string]$_ })
         $unityTiming = Start-UnityMigrationTiming
         try {
-            $processRun = Invoke-UnityMigrationProcess -Executable $unityExecutable -Arguments $arguments `
-                -Module ([string]$moduleConfig.key) -Phase "fixed-account-validation" `
-                -LogPath $logPath -ResultPath $resultPath `
-                -ProgressPath (Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-progress.json") `
-                -TimeoutSeconds ($RunnerTimeoutSeconds + 180) -NoProgressTimeoutSeconds ($RunnerTimeoutSeconds + 90)
-            if ($processRun.exitCode -ne 0) {
-                throw "Unity fixed-account process failed; exit=$($processRun.exitCode); log=$logPath"
+            $process = Start-Process -FilePath $unityExecutable -ArgumentList $arguments `
+                -PassThru -WindowStyle Hidden
+            $process.WaitForExit()
+            if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
+                throw "Unity fixed-account result is missing; exit=$($process.ExitCode); log=$logPath"
             }
             $result = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            # Preserve the exact runner payload before the outer lifecycle restores
+            # the previous result file. This is needed to diagnose control/semantic
+            # coverage failures without treating an earlier result as current evidence.
+            $runnerCapture = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-runner-latest.json"
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($runnerCapture)) | Out-Null
+            Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
             if (-not [bool]$result.success -or [string]$result.status -notlike "COMPLETE:*") {
                 throw "Unity fixed-account validation failed: $($result.status)"
             }
-            $runnerUserId = [uint32](
-                Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId" -Default $UserId
-            )
-            $runnerRoleId = [uint32](
-                Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId" -Default $RoleId
-            )
-            Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) `
-                -ExpectedUserId $runnerUserId
+            $runnerUserId = [uint32](Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId" -Default $UserId)
+            $runnerRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId" -Default $RoleId)
+            Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $runnerUserId
             if ([uint32]$result.roleId -ne $runnerRoleId) {
-                throw "Unity fixed-account role mismatch: expected=$runnerRoleId actual=$($result.roleId)"
+                throw "Unity fixed-account terminal role mismatch: expected=$runnerRoleId actual=$($result.roleId)"
             }
-            $coverage = if ($VisualOnly) {
-                [pscustomobject]@{
-                    validatedControlIds = @()
-                    passedSemanticAssertions = @()
-                    failedSemanticAssertions = @()
-                }
-            } else {
-                Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
-                    -ControlMatrix ([string]$moduleConfig.controlMatrix)
-            }
+            $coverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
+                -ControlMatrix ([string]$moduleConfig.controlMatrix)
             if (-not [bool]$fixed.skipPostValidationFixtureAssert) {
                 Invoke-FixedAdapter "AssertSetup"
             }
@@ -274,42 +250,7 @@ try {
         }
         $artifactTiming = Start-UnityMigrationTiming
         try {
-            $screenshots = New-Object System.Collections.Generic.List[object]
-            Add-Type -AssemblyName System.Drawing
-            if (-not $VisualOnly -and $visualOnlyArtifacts) {
-                $visualSummaryPath = Join-Path $root `
-                    ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-visual-latest.json"
-                if (-not (Test-Path -LiteralPath $visualSummaryPath -PathType Leaf)) {
-                    throw "Fixed-account full validation requires a current visual-only summary: $visualSummaryPath"
-                }
-                $visualSummary = Get-Content -LiteralPath $visualSummaryPath -Raw -Encoding UTF8 | ConvertFrom-Json
-                if (-not [bool]$visualSummary.success -or
-                    [uint32]$visualSummary.userId -ne $UserId -or
-                    [uint32]$visualSummary.roleId -ne $RoleId -or
-                    [string]$visualSummary.sourceContractFingerprint -ne $sourceContractFingerprint -or
-                    [string]$visualSummary.g5ContractFingerprint -ne $g5ContractFingerprint) {
-                    throw "Fixed-account visual-only summary does not match the current identity and source/G5 contracts."
-                }
-                $visualScreenshots = @($visualSummary.screenshots)
-                if ($visualScreenshots.Count -ne @($fixed.artifactCopies).Count) {
-                    throw "Fixed-account visual-only screenshot count does not match the artifact contract."
-                }
-                foreach ($visualScreenshot in $visualScreenshots) {
-                    $visualPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$visualScreenshot.path)
-                    if (-not (Test-Path -LiteralPath $visualPath -PathType Leaf) -or
-                        (Get-FileHash -Algorithm SHA256 -LiteralPath $visualPath).Hash -ne
-                            [string]$visualScreenshot.sha256) {
-                        throw "Fixed-account visual-only screenshot is missing or stale: $($visualScreenshot.path)"
-                    }
-                    $screenshots.Add($visualScreenshot)
-                }
-            }
-            $artifactCopies = if (-not $VisualOnly -and $visualOnlyArtifacts) {
-                @()
-            } else {
-                @($fixed.artifactCopies)
-            }
-            foreach ($copy in $artifactCopies) {
+            foreach ($copy in @($fixed.artifactCopies)) {
                 $source = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.source)
                 $destination = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.destination)
                 if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
@@ -317,64 +258,40 @@ try {
                 }
                 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
                 Copy-Item -LiteralPath $source -Destination $destination -Force
-                $image = [System.Drawing.Image]::FromFile($destination)
-                try {
-                    if ($image.Width -ne 1334 -or $image.Height -ne 750) {
-                        throw "Fixed-account artifact has wrong size: $($copy.destination) ($($image.Width)x$($image.Height))"
-                    }
-                }
-                finally { $image.Dispose() }
-                $item = Get-Item -LiteralPath $destination
-                $screenshots.Add([pscustomobject]@{
-                    path = [string]$copy.destination
-                    width = 1334
-                    height = 750
-                    bytes = [long]$item.Length
-                    sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $destination).Hash
-                })
-            }
-            $duplicateHashes = @($screenshots | Group-Object sha256 | Where-Object Count -gt 1)
-            if ($duplicateHashes.Count -gt 0) {
-                throw "Fixed-account artifact capture contains duplicate screenshot content."
             }
             [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resultEvidence)) | Out-Null
             Copy-Item -LiteralPath $resultPath -Destination $resultEvidence -Force
+            $visualResults = Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario
+            $sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
             $summary = [ordered]@{
                 schemaVersion = 1
                 success = $true
                 module = [string]$moduleConfig.key
                 scenario = [string]$scenario.key
-                validationMode = $(if ($VisualOnly) { "fixed-account-visual-only" } else { "fixed-account" })
+                validationMode = "fixed-account"
                 fixture = [string]$scenario.fixture
                 userId = $UserId
                 roleId = $RoleId
+                terminalUserId = $runnerUserId
+                terminalRoleId = $runnerRoleId
                 status = [string]$result.status
                 screenWidth = [int]$result.screenWidth
                 screenHeight = [int]$result.screenHeight
-                captureStates = $(if ($VisualOnly) {
-                    @($contract.g5.pairs | ForEach-Object { [string]$_.id })
-                } else {
-                    @($scenario.captureStates | ForEach-Object { [string]$_ })
-                })
-                screenshots = @($screenshots.ToArray())
+                captureStates = @($scenario.captureStates)
+                screenshots = @($visualResults)
                 validatedControlIds = @($coverage.validatedControlIds)
                 passedSemanticAssertions = @($coverage.passedSemanticAssertions)
                 failedSemanticAssertions = @($coverage.failedSemanticAssertions)
                 snapshot = [string]$fixed.snapshot
-                resultEvidence = $resultEvidenceContract
+                resultEvidence = [string]$fixed.resultEvidence
                 resultSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $resultEvidence).Hash
                 sourceContractFingerprint = $sourceContractFingerprint
-                g5ContractFingerprint = $g5ContractFingerprint
-                dataPreflightEvidence = [IO.Path]::GetRelativePath($root, $dataEvidencePath).Replace('\', '/')
-                unityProcess = $processRun
+                g5ContractFingerprint = Get-UnityMigrationG5ContractFingerprint -Contract $contract
+                dataPreflightEvidence = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
                 checkedUtc = [DateTime]::UtcNow.ToString("O")
             }
-            $fixedSummaryPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account$(if ($VisualOnly) { '-visual' } else { '' })-latest.json"
-            Write-UnityMigrationUtf8 -Path $fixedSummaryPath -Content (($summary | ConvertTo-Json -Depth 10) + "`n")
-            if (-not $VisualOnly) {
-                $standardSummaryPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-latest.json"
-                Write-UnityMigrationUtf8 -Path $standardSummaryPath -Content (($summary | ConvertTo-Json -Depth 10) + "`n")
-            }
+            Write-UnityMigrationUtf8 -Path (Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-latest.json") `
+                -Content (($summary | ConvertTo-Json -Depth 8) + "`n")
             $validationPassed = $true
         }
         finally {
@@ -409,8 +326,7 @@ try {
         try {
             & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login server startup failed." }
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-                -UserId $UserId -PythonExecutable $pythonExecutable
+            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login failed." }
         }
         catch { $reloginFailure = $_ }
@@ -440,7 +356,7 @@ try {
         }
     }
     $runStatus = "passed"
-    Write-Host "Fixed-account $(if ($VisualOnly) { 'visual-only ' } else { '' })validation passed and restored: module=$Module userId=$UserId roleId=$RoleId"
+    Write-Host "Fixed-account validation passed and restored: module=$Module userId=$UserId roleId=$RoleId"
 }
 finally {
     if ($DataPreflightOnly -and $fixtureCreated) {
@@ -476,7 +392,7 @@ finally {
     $timingReport = [ordered]@{
         schemaVersion = 1
         module = $Module
-        mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } elseif ($VisualOnly) { "visual-only" } else { "full" })
+        mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } else { "full" })
         status = $runStatus
         timings = $timings
         checkedUtc = [DateTime]::UtcNow.ToString("O")

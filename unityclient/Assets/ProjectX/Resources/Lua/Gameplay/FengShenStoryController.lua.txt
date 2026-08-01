@@ -12,8 +12,14 @@ end
 
 function M.onPacket(command, message)
     if command ~= Protocol.WORLD_STAGE then return false end
+    local startPosition = message.Position
     local op = message:ReadByte()
-    if op ~= 24 then return false end
+    if op ~= 24 then
+        -- /320 is shared with World.  Leave unmatched packets intact for the
+        -- next controller instead of consuming their operation byte.
+        message.Position = startPosition
+        return false
+    end
     local chapterId = message:ReadUInt()
     local levelId = message:ReadUInt()
     local count = message:ReadByte()

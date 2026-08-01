@@ -1,9 +1,22 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-07-27 Mail G0-G6 passed / 13/13 complete
-> 本节覆盖下方 2026-07-16 的旧交接；旧内容只作为历史参考。
+> 当前交接：2026-08-01 World G0-G6 passed / 25/25 complete
+> 本节覆盖下方 Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。
 
-## 0. 2026-07-27 新窗口直接执行
+## 0. 2026-08-01 新窗口直接执行
+
+### World 已收口
+
+- 门禁：`G0-G6 passed / 25/25 complete`；严格完成率 `9/29 = 31.0%`。
+- 固定账号 `7200057/1000115`、终态隔离账号 `705213/1000006`；25/25 真实控件、5/5 语义断言、6/6 双端 `1334×750` 视觉状态通过。
+- `/320 op=1/2/4/5/6/7/8/27` 覆盖章节、关卡、详情、扫荡、重置、普通/星级宝箱、挑战、结算、重拉、重连和切号；统计/复活继续保持协议不可用边界，不生成假数据。
+- 用户最终确认：扫荡结果显示“扫荡 N 次收益汇总”，相同 `{type,id}` 奖励合并总量，不按每次战斗分组；标题和再次扫荡按钮均绑定真实次数。
+- 共享 `item_dat.lua/item.json` 缺 `4601–4604`；World 展示层依据素心装备表和连续碎片编号受控显示 `4603=碎片素心衣` 及 `petequip_2103`，未修改全局掉落配置。
+- 固定账号恢复前后 SHA-256：`1fe6274907b6aef8f631994fa0a7c4d9b17e19fe30e7a5b54ae2a6aca0eca11d`；Fixture 残留 0。正式 `BuildBatch` 两次 SHA-256：`6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`。
+- 证据：`.local/unity-validation/world-fixed-account-latest.json`、`.local/ui-fidelity/World/compare/g5-20260731-cua/`、`docs/unityclient/matrices/WORLD_CONTROLS.json`。
+- Unity、Cocos、`kapai.exe`、workspace-local MySQL 均已停止；未提交的其他模块和用户改动不得暂存、覆盖或回退。下一任务从 `UNITYCLIENT_STATUS.md` 选择一个模块并重新执行 G0。
+
+## 1. 2026-07-27 旧窗口交接
 
 ### Mail 已收口
 

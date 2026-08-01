@@ -566,6 +566,67 @@
         ]
       },
       "updatedUtc": "2026-07-26T18:23:16.6410299Z"
+    },
+    {
+      "module": "World",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/WORLD.md",
+      "note": "World restarted from G0 on 2026-07-31. Historical phase1 screenshots, Runner output and SHA are excluded from every current gate.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/WORLD_CONTROLS.json"
+        ],
+        "G1": [
+          "docs/unityclient/modules/WORLD.md",
+          ".local/ui-fidelity/World/cocos/g1-20260731-cua/capture-manifest.json",
+          ".local/ui-fidelity/World/cocos/g1-20260731-cua/world-fixed-fixture-snapshot.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/WORLD.md",
+          "docs/unityclient/matrices/WORLD_CONTROLS.json",
+          "tools/unity-migration/module-evidence-contracts.json",
+          "tools/unity-migration/Invoke-WorldCocosFixture.ps1",
+          "server/src/protocol.h",
+          "server/src/pack_deal.cpp",
+          "server/src/user_guanqia.cpp",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/View/FuBenMap/StageInfoUI.lua"
+        ],
+        "G3": [
+          "docs/unityclient/modules/WORLD.md",
+          "docs/unityclient/matrices/WORLD_CONTROLS.json",
+          ".local/unity-validation/world-g3-implementation.md",
+          ".local/unity-validation/world-g3-compile-20260731-final2.log",
+          ".local/unity-validation/world-fixed-account-data-preflight-latest.json",
+          "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt",
+          "unityclient/Assets/ProjectX/src/Data/WorldStore.cs",
+          "unityclient/Assets/ProjectX/src/UI/WorldPresenter.cs",
+          "unityclient/Assets/ProjectX/src/UI/WorldOutcomePresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs",
+          "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity"
+        ],
+        "G4": [
+          ".local/unity-validation/world-fixed-account-latest.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/World/compare/g5-20260731-cua/manual-acceptance.md"
+        ],
+        "G6": [
+          ".local/unity-validation/world-fixed-account-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-01T00:11:04.8365190Z"
     }
   ]
 }

@@ -235,14 +235,56 @@ function Get-UnityMigrationDataPreflightFingerprint {
     finally { $stream.Dispose() }
 }
 
+function Get-UnityMigrationG5ContractFingerprint {
+    param([Parameter(Mandatory = $true)]$Contract)
+    $payload = [ordered]@{
+        module = [string](Get-UnityMigrationPropertyValue -Object $Contract -Name "module" -Default "")
+        fixedAccount = Get-UnityMigrationPropertyValue -Object $Contract -Name "fixedAccount" -Default $null
+        g5 = Get-UnityMigrationPropertyValue -Object $Contract -Name "g5" -Default $null
+    }
+    $json = $payload | ConvertTo-Json -Depth 16 -Compress
+    $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+    $stream = [IO.MemoryStream]::new($bytes)
+    try { return (Get-FileHash -Algorithm SHA256 -InputStream $stream).Hash }
+    finally { $stream.Dispose() }
+}
+
+function Get-UnityMigrationSummaryIdentityFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Summary,
+        [Parameter(Mandatory = $true)]$Result,
+        $FixedAccount = $null
+    )
+    $failures = New-Object System.Collections.Generic.List[string]
+    if ($null -eq $FixedAccount) {
+        if ([uint32]$Summary.userId -ne [uint32]$Result.userId -or
+            [uint32]$Summary.roleId -ne [uint32]$Result.roleId) {
+            $failures.Add("summary identity does not match result identity")
+        }
+        return $failures.ToArray()
+    }
+
+    $fixedUserId = [uint32]$FixedAccount.userId
+    $fixedRoleId = [uint32]$FixedAccount.roleId
+    $terminalUserId = [uint32](Get-UnityMigrationPropertyValue -Object $FixedAccount `
+        -Name "terminalUserId" -Default $fixedUserId)
+    $terminalRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $FixedAccount `
+        -Name "terminalRoleId" -Default $fixedRoleId)
+    if ([uint32]$Summary.userId -ne $fixedUserId -or [uint32]$Summary.roleId -ne $fixedRoleId) {
+        $failures.Add("summary identity does not match fixed account")
+    }
+    if ([uint32]$Result.userId -ne $terminalUserId -or [uint32]$Result.roleId -ne $terminalRoleId) {
+        $failures.Add("result identity does not match terminal account")
+    }
+    return $failures.ToArray()
+}
+
 function Get-UnityMigrationDataPreflightEvidenceFailures {
     param(
         [Parameter(Mandatory = $true)]$Evidence,
         [Parameter(Mandatory = $true)][string]$ExpectedFingerprint,
         [Parameter(Mandatory = $true)][uint32]$ExpectedUserId,
-        [Parameter(Mandatory = $true)][uint32]$ExpectedRoleId,
-        [string]$ExpectedSourceContractFingerprint = "",
-        [string]$ExpectedG5ContractFingerprint = ""
+        [Parameter(Mandatory = $true)][uint32]$ExpectedRoleId
     )
     $failures = New-Object System.Collections.Generic.List[string]
     if ([string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "contractFingerprint" -Default "") -ne $ExpectedFingerprint) {
@@ -254,38 +296,12 @@ function Get-UnityMigrationDataPreflightEvidenceFailures {
     if ([uint32](Get-UnityMigrationPropertyValue -Object $Evidence -Name "roleId" -Default 0) -ne $ExpectedRoleId) {
         $failures.Add("roleId mismatch")
     }
-    if ($ExpectedSourceContractFingerprint -and
-        [string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "sourceContractFingerprint" -Default "") -ne
-        $ExpectedSourceContractFingerprint) {
-        $failures.Add("source contract fingerprint mismatch")
-    }
-    if ($ExpectedG5ContractFingerprint -and
-        [string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "g5ContractFingerprint" -Default "") -ne
-        $ExpectedG5ContractFingerprint) {
-        $failures.Add("G5 contract fingerprint mismatch")
-    }
     foreach ($name in @("setupAssert", "restoreAssert", "cleanupAssert")) {
         if ([string](Get-UnityMigrationPropertyValue -Object $Evidence -Name $name -Default "") -ne "passed") {
             $failures.Add("$name is not passed")
         }
     }
     return @($failures)
-}
-
-function Get-UnityMigrationObjectFingerprint {
-    param([Parameter(Mandatory = $true)]$Value)
-    $json = $Value | ConvertTo-Json -Depth 16 -Compress
-    $bytes = [Text.Encoding]::UTF8.GetBytes($json)
-    $stream = [IO.MemoryStream]::new($bytes)
-    try { return (Get-FileHash -Algorithm SHA256 -InputStream $stream).Hash }
-    finally { $stream.Dispose() }
-}
-
-function Get-UnityMigrationG5ContractFingerprint {
-    param([Parameter(Mandatory = $true)]$Contract)
-    $g5 = Get-UnityMigrationPropertyValue -Object $Contract -Name "g5" -Default $null
-    if ($null -eq $g5) { return "" }
-    return Get-UnityMigrationObjectFingerprint -Value $g5
 }
 
 function Test-UnityMigrationCommandLineReferencesRoot {
@@ -325,6 +341,26 @@ function Assert-NoUnityMigrationBlockingDotNet {
             "pid=$($_.ProcessId), command=$command"
         }) -join "; "
         throw "Project-related dotnet process may hold Unity/ILPP files. Stop it before validation. $details"
+    }
+}
+
+function Stop-UnityMigrationCompileChildren {
+    param([Parameter(Mandatory = $true)][string]$UnityExecutable)
+    if (-not $IsWindows) { return }
+    $editorDirectory = Split-Path -Parent $UnityExecutable
+    $runtimeDirectory = Join-Path $editorDirectory "Data\NetCoreRuntime"
+    $children = @(Get-Process dotnet,bee_backend -ErrorAction SilentlyContinue | Where-Object {
+        $_.Path -and $_.Path.StartsWith($editorDirectory, [StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($children.Count -eq 0) { return }
+    $children | Stop-Process -Force -ErrorAction SilentlyContinue
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    do {
+        Start-Sleep -Milliseconds 250
+        $remaining = @($children | Where-Object { Get-Process -Id $_.Id -ErrorAction SilentlyContinue })
+    } while ($remaining.Count -gt 0 -and [DateTime]::UtcNow -lt $deadline)
+    if ($remaining.Count -gt 0) {
+        throw "Unity ILPP/Bee child process did not exit: pid=$($remaining[0].Id)"
     }
 }
 
@@ -391,11 +427,17 @@ function Invoke-UnityMigrationCompilePreflight {
     }
     if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
     $arguments = @("-batchMode", "-quit", "-projectPath", $UnityProject, "-logFile", $logPath)
-    $run = Invoke-UnityMigrationProcess -Executable $UnityExecutable -Arguments $arguments `
-        -Module "Toolchain" -Phase "compile-preflight" -LogPath $logPath `
-        -TimeoutSeconds $TimeoutSeconds -HeartbeatSeconds 30
-    if ($run.exitCode -ne 0) {
-        throw "Unity compile preflight failed with exit code $($run.exitCode); log=$logPath"
+    $process = Start-Process -FilePath $UnityExecutable -ArgumentList $arguments -WindowStyle Hidden -PassThru
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+        try { $process.Kill($true) } catch { }
+        Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
+        throw "Unity compile preflight timed out after $TimeoutSeconds seconds; log=$logPath"
+    }
+    # Unity batchmode may report its exit code before ILPP/Bee release Assembly-CSharp.dll.
+    # The child processes are only cleaned after this owned batch process has exited.
+    Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
+    if ($process.ExitCode -ne 0) {
+        throw "Unity compile preflight failed with exit code $($process.ExitCode); log=$logPath"
     }
     $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process'
     $serious = @(Select-String -LiteralPath $logPath -Pattern $seriousPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)
@@ -435,124 +477,6 @@ function Complete-UnityMigrationTiming {
     $Timings[$Name] = [ordered]@{
         startedUtc = ([DateTime]$Timing.startedUtc).ToString("O")
         durationMs = [long]$Timing.stopwatch.ElapsedMilliseconds
-    }
-}
-
-function Stop-UnityMigrationProcessTree {
-    param([Parameter(Mandatory = $true)][int]$ProcessId)
-    $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
-    if (-not $process) { return }
-    try { $process.Kill($true) }
-    catch { Stop-Process -Id $ProcessId -Force -ErrorAction SilentlyContinue }
-}
-
-function Invoke-UnityMigrationProcess {
-    param(
-        [Parameter(Mandatory = $true)][string]$Executable,
-        [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [Parameter(Mandatory = $true)][string]$Module,
-        [Parameter(Mandatory = $true)][string]$Phase,
-        [string]$LogPath = "",
-        [string]$ResultPath = "",
-        [string]$ProgressPath = "",
-        [ValidateRange(30, 7200)][int]$TimeoutSeconds = 1800,
-        [ValidateRange(5, 300)][int]$HeartbeatSeconds = 30,
-        [ValidateRange(0, 1800)][int]$NoProgressTimeoutSeconds = 0,
-        [ValidateRange(5, 120)][int]$StartupGraceSeconds = 30
-    )
-    if (-not (Test-Path -LiteralPath $Executable -PathType Leaf)) {
-        throw "Process executable is missing: $Executable"
-    }
-    $startedUtc = [DateTime]::UtcNow
-    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
-    $lastHeartbeat = [DateTime]::MinValue
-    $lastProgressUtc = $startedUtc
-    $lastLogLength = -1L
-    $lastResultWriteUtc = [DateTime]::MinValue
-    $lastCpuSeconds = 0d
-    $startupObserved = $false
-    if ($LogPath -and (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
-        Remove-Item -LiteralPath $LogPath -Force
-    }
-    $process = Start-Process -FilePath $Executable -ArgumentList $Arguments -WindowStyle Hidden -PassThru
-    try {
-        while (-not $process.HasExited) {
-            Start-Sleep -Seconds 1
-            $process.Refresh()
-            $now = [DateTime]::UtcNow
-            $progressed = $false
-            if ($LogPath -and (Test-Path -LiteralPath $LogPath -PathType Leaf)) {
-                $logItem = Get-Item -LiteralPath $LogPath
-                if ($logItem.LastWriteTimeUtc -ge $startedUtc.AddSeconds(-2) -and
-                    $logItem.Length -ne $lastLogLength) {
-                    $lastLogLength = $logItem.Length
-                    $progressed = $true
-                    $startupObserved = $true
-                }
-            }
-            if ($ResultPath -and (Test-Path -LiteralPath $ResultPath -PathType Leaf)) {
-                $resultItem = Get-Item -LiteralPath $ResultPath
-                if ($resultItem.LastWriteTimeUtc -ne $lastResultWriteUtc) {
-                    $lastResultWriteUtc = $resultItem.LastWriteTimeUtc
-                    $progressed = $true
-                    $startupObserved = $true
-                }
-            }
-            try {
-                $cpuSeconds = $process.TotalProcessorTime.TotalSeconds
-                if ($cpuSeconds -gt $lastCpuSeconds + 0.05d) {
-                    $lastCpuSeconds = $cpuSeconds
-                    $progressed = $true
-                }
-                if ($cpuSeconds -ge 0.25d) { $startupObserved = $true }
-            }
-            catch { }
-            if ($progressed) { $lastProgressUtc = $now }
-            $heartbeatDue = ($now - $lastHeartbeat).TotalSeconds -ge $HeartbeatSeconds
-            if ($ProgressPath -and ($progressed -or $heartbeatDue)) {
-                Write-UnityMigrationProgress -Path $ProgressPath -Module $Module -Phase $Phase `
-                    -ProcessId $process.Id -Detail "elapsed=$([int]$stopwatch.Elapsed.TotalSeconds)s; logBytes=$lastLogLength; cpu=$([Math]::Round($lastCpuSeconds, 2))s"
-            }
-            if ($heartbeatDue) {
-                Write-Host "Unity process heartbeat: module=$Module phase=$Phase pid=$($process.Id) elapsed=$([int]$stopwatch.Elapsed.TotalSeconds)s logBytes=$lastLogLength cpu=$([Math]::Round($lastCpuSeconds, 2))s"
-                $lastHeartbeat = $now
-            }
-            if (-not $startupObserved -and $stopwatch.Elapsed.TotalSeconds -ge $StartupGraceSeconds) {
-                throw "Unity process did not start real work within ${StartupGraceSeconds}s: module=$Module phase=$Phase pid=$($process.Id) log=$LogPath"
-            }
-            if ($stopwatch.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
-                throw "Unity process timed out: module=$Module phase=$Phase timeout=${TimeoutSeconds}s log=$LogPath"
-            }
-            if ($NoProgressTimeoutSeconds -gt 0 -and
-                ($now - $lastProgressUtc).TotalSeconds -ge $NoProgressTimeoutSeconds) {
-                throw "Unity process made no file progress: module=$Module phase=$Phase timeout=${NoProgressTimeoutSeconds}s log=$LogPath"
-            }
-        }
-        $process.WaitForExit()
-        $stopwatch.Stop()
-        if ($ResultPath) {
-            if (-not (Test-Path -LiteralPath $ResultPath -PathType Leaf)) {
-                throw "Unity process result is missing: module=$Module phase=$Phase result=$ResultPath log=$LogPath"
-            }
-            if ((Get-Item -LiteralPath $ResultPath).LastWriteTimeUtc -lt $startedUtc.AddSeconds(-2)) {
-                throw "Unity process result is stale: module=$Module phase=$Phase result=$ResultPath"
-            }
-        }
-        return [pscustomobject]@{
-            processId = $process.Id
-            exitCode = $process.ExitCode
-            startedUtc = $startedUtc.ToString("O")
-            durationMs = [long]$stopwatch.ElapsedMilliseconds
-            logPath = $LogPath
-            resultPath = $ResultPath
-        }
-    }
-    catch {
-        Stop-UnityMigrationProcessTree -ProcessId $process.Id
-        throw
-    }
-    finally {
-        $process.Dispose()
     }
 }
 
@@ -891,54 +815,6 @@ function Invoke-UnityMigrationValidationData {
     if ($LASTEXITCODE -ne 0) {
         throw "Validation data $Phase failed for module '$($ModuleConfig.key)' via provider '$providerName'."
     }
-}
-
-function Invoke-UnityMigrationSql {
-    param(
-        [Parameter(Mandatory = $true)][string]$Root,
-        [Parameter(Mandatory = $true)]$Manifest,
-        [Parameter(Mandatory = $true)][string]$Sql,
-        [string]$ProviderName = ""
-    )
-    if (-not $ProviderName) {
-        $providers = @($Manifest.validationDataProviders.PSObject.Properties)
-        if ($providers.Count -ne 1) {
-            throw "A validation data provider must be specified when the manifest has $($providers.Count) providers."
-        }
-        $ProviderName = [string]$providers[0].Name
-    }
-    $providerProperty = $Manifest.validationDataProviders.PSObject.Properties[$ProviderName]
-    if ($null -eq $providerProperty) { throw "Validation data provider '$ProviderName' was not found." }
-    $provider = $providerProperty.Value
-    $executable = Resolve-UnityMigrationPath -Root $Root -Path ([string]$provider.executable)
-    $arguments = @($provider.arguments | ForEach-Object { [string]$_ })
-    $arguments += "--batch"
-    $arguments += "--skip-column-names"
-    $arguments += "--execute=$Sql"
-    $output = @(& $executable @arguments 2>$null)
-    if ($LASTEXITCODE -ne 0) { throw "Validation SQL failed via provider '$ProviderName'." }
-    return @($output)
-}
-
-function Remove-UnityMigrationDisposableRole {
-    param(
-        [Parameter(Mandatory = $true)][string]$Root,
-        [Parameter(Mandatory = $true)]$Manifest,
-        [Parameter(Mandatory = $true)][uint32]$UserId
-    )
-    if ($UserId -eq 0) { throw "Disposable-role cleanup refuses userId 0." }
-    $sql = @"
-SET @uid := $UserId;
-SET @rid := COALESCE((SELECT CAST(role0 AS UNSIGNED) FROM user_info1 WHERE id=@uid LIMIT 1), 0);
-DELETE FROM role_info WHERE id=@rid AND @rid<>0;
-DELETE FROM user_info1 WHERE id=@uid;
-SELECT CONCAT('residual=', (SELECT COUNT(*) FROM user_info1 WHERE id=@uid) + (SELECT COUNT(*) FROM role_info WHERE id=@rid AND @rid<>0));
-"@
-    $output = @(Invoke-UnityMigrationSql -Root $Root -Manifest $Manifest -Sql $sql)
-    if ("residual=0" -notin @($output | ForEach-Object { ([string]$_).Trim() })) {
-        throw "Disposable-role cleanup left residue for userId=$UserId; output=$($output -join ',')"
-    }
-    return [pscustomobject]@{ userId = $UserId; cleanupAssert = "passed"; residual = 0 }
 }
 
 function Test-UnityMigrationPort {

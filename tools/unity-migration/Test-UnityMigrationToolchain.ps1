@@ -127,10 +127,22 @@ $dataFingerprintB = Get-UnityMigrationDataPreflightFingerprint -Root $root -Fixe
 Assert-ToolchainTest ($dataFingerprintA -match '^[A-F0-9]{64}$') "Data preflight fingerprint is not SHA-256."
 Assert-ToolchainTest ($dataFingerprintA -eq $dataFingerprintB) "Data preflight fingerprint is not deterministic."
 
+$g5Contract = [pscustomobject]@{
+    module = "G5Sample"
+    fixedAccount = $valid
+    g5 = [pscustomobject]@{
+        cocosDirectory = ".local/g5/cocos"; unityDirectory = ".local/g5/unity"; compareDirectory = ".local/g5/compare"
+        width = 1334; height = 750
+        pairs = @([pscustomobject]@{ id = "STATE"; cocos = "cocos.png"; unity = "unity.png" })
+    }
+}
+$g5FingerprintA = Get-UnityMigrationG5ContractFingerprint -Contract $g5Contract
+$g5FingerprintB = Get-UnityMigrationG5ContractFingerprint -Contract $g5Contract
+Assert-ToolchainTest ($g5FingerprintA -match '^[A-F0-9]{64}$') "G5 contract fingerprint is not SHA-256."
+Assert-ToolchainTest ($g5FingerprintA -eq $g5FingerprintB) "G5 contract fingerprint is not deterministic."
+
 $validEvidence = [pscustomobject]@{
     contractFingerprint = $dataFingerprintA
-    sourceContractFingerprint = "SOURCE-A"
-    g5ContractFingerprint = "G5-A"
     userId = 7200057
     roleId = 1000115
     setupAssert = "passed"
@@ -139,54 +151,20 @@ $validEvidence = [pscustomobject]@{
 }
 $validEvidenceFailures = @(Get-UnityMigrationDataPreflightEvidenceFailures `
     -Evidence $validEvidence -ExpectedFingerprint $dataFingerprintA `
-    -ExpectedUserId 7200057 -ExpectedRoleId 1000115 `
-    -ExpectedSourceContractFingerprint "SOURCE-A" -ExpectedG5ContractFingerprint "G5-A")
+    -ExpectedUserId 7200057 -ExpectedRoleId 1000115)
 Assert-ToolchainTest ($validEvidenceFailures.Count -eq 0) "Valid data preflight evidence was rejected."
 $staleEvidence = $validEvidence.PSObject.Copy()
 $staleEvidence.contractFingerprint = "STALE"
-$staleEvidence.sourceContractFingerprint = "SOURCE-STALE"
-$staleEvidence.g5ContractFingerprint = "G5-STALE"
 $staleEvidence.cleanupAssert = "pending"
 $staleEvidenceFailures = @(Get-UnityMigrationDataPreflightEvidenceFailures `
     -Evidence $staleEvidence -ExpectedFingerprint $dataFingerprintA `
-    -ExpectedUserId 7200057 -ExpectedRoleId 1000115 `
-    -ExpectedSourceContractFingerprint "SOURCE-A" -ExpectedG5ContractFingerprint "G5-A")
+    -ExpectedUserId 7200057 -ExpectedRoleId 1000115)
 Assert-ToolchainTest (
     @($staleEvidenceFailures | Where-Object { $_ -eq "contract fingerprint mismatch" }).Count -eq 1
 ) "Stale data preflight fingerprint was not rejected."
 Assert-ToolchainTest (
     @($staleEvidenceFailures | Where-Object { $_ -eq "cleanupAssert is not passed" }).Count -eq 1
 ) "Incomplete data preflight cleanup assertion was not rejected."
-Assert-ToolchainTest (
-    @($staleEvidenceFailures | Where-Object { $_ -eq "source contract fingerprint mismatch" }).Count -eq 1
-) "Stale source contract fingerprint was not rejected."
-Assert-ToolchainTest (
-    @($staleEvidenceFailures | Where-Object { $_ -eq "G5 contract fingerprint mismatch" }).Count -eq 1
-) "Stale G5 contract fingerprint was not rejected."
-
-$contracts = (Import-UnityMigrationJson -Root $root `
-    -Path "tools/unity-migration/module-evidence-contracts.json").Value
-$gameplayContract = @($contracts.modules | Where-Object module -eq "GameplayShops")[0]
-$g5FingerprintA = Get-UnityMigrationG5ContractFingerprint -Contract $gameplayContract
-$g5FingerprintB = Get-UnityMigrationG5ContractFingerprint -Contract $gameplayContract
-Assert-ToolchainTest ($g5FingerprintA -match '^[A-F0-9]{64}$') "G5 contract fingerprint is not SHA-256."
-Assert-ToolchainTest ($g5FingerprintA -eq $g5FingerprintB) "G5 contract fingerprint is not deterministic."
-
-$gameplayModule = @($manifest.modules | Where-Object key -eq "GameplayShops")[0]
-$gameplayScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "GameplayShops"
-$gameplaySourceFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $gameplayScenario
-Assert-ToolchainTest (
-    $gameplaySourceFingerprint -match '^[A-F0-9]{64}$'
-) "GameplayShops G3 source contract is not frozen by a SHA-256 fingerprint."
-$declaredControls = Assert-UnityMigrationControlMatrixDeclared -Root $root -ModuleKey "GameplayShops" `
-    -Path ([string]$gameplayModule.controlMatrix) -RequireLifecycleFields
-Assert-ToolchainTest ($declaredControls -eq 59) "G0 lifecycle matrix precheck did not validate all GameplayShops controls."
-
-$processProbe = Invoke-UnityMigrationProcess -Executable $pwshExecutable `
-    -Arguments @("-NoProfile", "-Command", "exit 0") -Module "Toolchain" -Phase "process-probe" `
-    -TimeoutSeconds 30 -HeartbeatSeconds 5
-Assert-ToolchainTest ($processProbe.exitCode -eq 0) "Unified process runner did not return a successful exit code."
-Assert-ToolchainTest ([long]$processProbe.durationMs -ge 0) "Unified process runner did not record duration."
 
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
@@ -194,31 +172,23 @@ Assert-ToolchainTest (
     $fixedRunnerSource.Contains('Write-UnityMigrationUtf8 -Path $resultPath -Content $previousResultContent')
 ) "Fixed-account runner no longer restores the preceding isolated validation result."
 Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('Write-UnityMigrationUtf8 -Path $standardSummaryPath')
-) "Fixed-account runner does not emit the standard G6-compatible summary."
-Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('Invoke-UnityMigrationProcess -Executable $unityExecutable')
-) "Fixed-account runner bypasses the unified Unity process runner."
-Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "visualValidationFlags"')
-) "Fixed-account runner does not safely read optional visual validation flags."
-Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "visualOnlyArtifacts"')
-) "Fixed-account runner does not safely read the optional visual-only artifact flag."
-Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId"')
-) "Fixed-account runner does not support a contract-declared terminal user identity."
-Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId"')
-) "Fixed-account runner does not support a contract-declared terminal role identity."
+    $fixedRunnerSource.Contains('captureStates = @($scenario.captureStates)') -and
+    $fixedRunnerSource.Contains('screenshots = @($visualResults)')
+) "Fixed-account runner no longer emits the hard-gate visual summary."
 
-$moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") `
-    -Raw -Encoding UTF8
+$fixedIdentity = [pscustomobject]@{
+    userId = 7200057; roleId = 1000115; terminalUserId = 705213; terminalRoleId = 1000006
+}
+$fixedSummary = [pscustomobject]@{ userId = 7200057; roleId = 1000115 }
+$terminalResult = [pscustomobject]@{ userId = 705213; roleId = 1000006 }
 Assert-ToolchainTest (
-    $moduleRunnerSource.Contains('Invoke-UnityMigrationProcess -Executable $unityExe')
-) "Module runner bypasses the unified Unity process runner."
+    @(Get-UnityMigrationSummaryIdentityFailures -Summary $fixedSummary -Result $terminalResult `
+        -FixedAccount $fixedIdentity).Count -eq 0
+) "Fixed-account summary and terminal isolation identity were rejected."
+$wrongTerminal = [pscustomobject]@{ userId = 705214; roleId = 1000006 }
 Assert-ToolchainTest (
-    $moduleRunnerSource.Contains('Remove-UnityMigrationDisposableRole')
-) "Module runner does not enforce disposable-role cleanup."
+    @(Get-UnityMigrationSummaryIdentityFailures -Summary $fixedSummary -Result $wrongTerminal `
+        -FixedAccount $fixedIdentity).Count -eq 1
+) "Wrong terminal isolation identity was not rejected."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

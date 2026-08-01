@@ -33,6 +33,7 @@ namespace ProjectX.UI
             SetOptionalVisible("Layer/MessageBoxUI/CheckBox", false);
             SetOptionalVisible("Layer/MessageBoxUI/Btn_Confirm3", false);
             SetOptionalVisible("Layer/MessageBoxUI/Btn_Confirm2/Time", false);
+            EnsureModalMask();
             Hide();
         }
 
@@ -75,17 +76,25 @@ namespace ProjectX.UI
             message.alignment = TextAnchor.UpperLeft;
         }
 
-        public void ShowConfirmation(string heading, string detail, Action onConfirm)
+        public void ShowConfirmation(string heading, string detail, Action onConfirm,
+            string confirmLabel = "确定", string cancelLabel = "取消", bool alignTopLeft = false)
         {
             confirmation = onConfirm ?? throw new ArgumentNullException(nameof(onConfirm));
+            ConfigureMessageText();
             title.text = string.IsNullOrEmpty(heading) ? "购买确认" : heading;
             message.text = detail ?? string.Empty;
+            if (alignTopLeft)
+            {
+                message.alignment = TextAnchor.UpperLeft;
+                message.rectTransform.anchoredPosition = new Vector2(0f, 53f);
+                message.rectTransform.sizeDelta = new Vector2(490f, 180f);
+            }
             message.gameObject.SetActive(true);
             singleConfirm.gameObject.SetActive(false);
             cancelButton.gameObject.SetActive(true);
             confirmButton.gameObject.SetActive(true);
-            SetButtonText(cancelButton, "取消");
-            SetButtonText(confirmButton, "确定");
+            SetButtonText(cancelButton, cancelLabel);
+            SetButtonText(confirmButton, confirmLabel);
             view.SetVisible(true);
             view.GameObject.transform.SetAsLastSibling();
         }
@@ -150,6 +159,24 @@ namespace ProjectX.UI
             message.horizontalOverflow = HorizontalWrapMode.Wrap;
             message.verticalOverflow = VerticalWrapMode.Truncate;
             message.raycastTarget = false;
+        }
+
+        private void EnsureModalMask()
+        {
+            Transform layer = view.Binding.Find("Layer")?.transform ?? view.GameObject.transform;
+            Transform existing = layer.Find("RuntimeModalMask");
+            GameObject maskObject = existing == null
+                ? new GameObject("RuntimeModalMask", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image))
+                : existing.gameObject;
+            RectTransform rect = maskObject.GetComponent<RectTransform>();
+            rect.SetParent(layer, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = maskObject.GetComponent<Image>();
+            image.color = new Color(0f, 0f, 0f, 0.40f);
+            image.raycastTarget = true;
+            maskObject.transform.SetAsFirstSibling();
         }
 
         private void SetOptionalVisible(string path, bool visible)

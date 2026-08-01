@@ -4,6 +4,7 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^G[0-6]$')][string]$Gate,
     [string[]]$Evidence = @(),
     [string]$ControlMatrixPath = "",
+    [string]$SummaryPath = "",
     [switch]$Complete,
     [string]$RegistryPath = "tools/unity-migration/migration-gates.json"
 )
@@ -45,8 +46,14 @@ if ($Gate -eq "G0") {
 }
 if ($Gate -eq "G6") {
     if (-not $ControlMatrixPath) { throw "Completing G6 requires -ControlMatrixPath." }
-    & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
-        -Module $Module -Phase G6
+    if ($SummaryPath) {
+        & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
+            -Module $Module -Phase G6 -SummaryPath $SummaryPath
+    }
+    else {
+        & pwsh -NoProfile -File (Join-Path $root "tools/unity-migration/Test-UnityMigrationHardGates.ps1") `
+            -Module $Module -Phase G6
+    }
     if ($LASTEXITCODE -ne 0) { throw "G6 hard-gate verification failed with exit code $LASTEXITCODE" }
     $controlCount = Assert-UnityMigrationControlMatrix -Root $root -ModuleKey $Module -Path $ControlMatrixPath
     Write-Host "$Module control matrix passed: $controlCount/$controlCount controls complete."

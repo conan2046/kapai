@@ -3,11 +3,25 @@ local itemCatalog = require("Data.ItemCatalog")
 local itemsById = {}
 for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
 
+-- The shipped item catalog starts the equipment-fragment sequence at 4605,
+-- while /320 still awards the four preceding 素心 fragments.  Their identity
+-- is fixed by equip_dat.lua (1001-1004) and the contiguous 4605+ fragment
+-- sequence, so keep this correction local to World instead of changing the
+-- shared item catalog used by every module.
+local worldMissingFragments = {
+    [4601] = { name = "碎片素心刀", equipmentPicture = "petequip_2101", quality = 2 },
+    [4602] = { name = "碎片素心鞋", equipmentPicture = "petequip_2102", quality = 2 },
+    [4603] = { name = "碎片素心衣", equipmentPicture = "petequip_2103", quality = 2 },
+    [4604] = { name = "碎片素心腕", equipmentPicture = "petequip_2104", quality = 2 },
+}
+
 local M = {
     mapType = 1,
     validationStage = nil,
     validationStageId = 0,
-    validationRewardCount = 0
+    validationChapterId = 0,
+    validationRewardCount = 0,
+    requestedStageId = 0
 }
 
 local function send(op, write)
@@ -31,6 +45,9 @@ end
 local function requestStage(stageId)
     local chapterId = Bridge:GetWorldSelectedChapterId()
     if chapterId == 0 or stageId == 0 then return end
+    -- /320 op=27 is also emitted by HeroEquip probes.  Remember the World
+    -- request so an unrelated same-chapter response cannot replace selection.
+    M.requestedStageId = stageId
     send(27, function(message)
         message:WriteByte(M.mapType)
         message:WriteUInt(chapterId)
@@ -48,8 +65,33 @@ local function challengeStage(stageId)
     end)
 end
 
+local function sweepStage(stageId)
+    local chapterId = Bridge:GetWorldSelectedChapterId()
+    if chapterId == 0 or stageId == 0 then return end
+    send(6, function(message)
+        message:WriteByte(M.mapType)
+        message:WriteUInt(chapterId)
+        message:WriteUInt(stageId)
+    end)
+end
+
+local function resetStage(stageId)
+    if stageId == 0 then return end
+    send(7, function(message) message:WriteUInt(stageId) end)
+end
+
+local function claimBox(boxId)
+    local chapterId = Bridge:GetWorldSelectedChapterId()
+    if chapterId == 0 or boxId == 0 then return end
+    send(4, function(message)
+        message:WriteByte(M.mapType)
+        message:WriteUInt(chapterId)
+        message:WriteUInt(boxId)
+    end)
+end
+
 local function rewardDefinition(id)
-    return itemsById[id] or {}
+    return itemsById[id] or worldMissingFragments[id] or {}
 end
 
 local function readReward(message)
@@ -58,8 +100,11 @@ local function readReward(message)
     local amount = message:ReadUInt()
     -- Currency rewards use their 600xx award type with an authoritative payload id of 0.
     -- Keep the payload id intact, but resolve display metadata through the type in that case.
-    local found = rewardDefinition(rewardId > 0 and rewardId or rewardType)
-    return rewardType, rewardId, amount, found.name or "", found.pic or 0, found.quality or 0
+    local displayId = rewardId > 0 and rewardId or rewardType
+    local found = rewardDefinition(displayId)
+    local displayName = found.name or ""
+    if displayName == "" then displayName = "奖励 #" .. tostring(displayId) end
+    return rewardType, rewardId, amount, displayName, found.pic or 0, found.quality or 0
 end
 
 local function fail(detail)
@@ -68,6 +113,9 @@ local function fail(detail)
 end
 
 function M.onClick()
+    if Bridge:HasCommandLineFlag("-projectXWorldBattleValidation") and M.validationStage == "reconnect_pending" then
+        return
+    end
     Bridge:ShowWorld()
     M.validationStage = Bridge:HasCommandLineFlag("-projectXWorldBattleValidation") and "await_world" or nil
     M.validationStageId = 0
@@ -78,6 +126,9 @@ end
 
 function M.requestChapter(chapterId) requestChapter(chapterId) end
 function M.requestStage(stageId) requestStage(stageId) end
+function M.sweepSelected() sweepStage(Bridge:GetWorldSelectedStageId()) end
+function M.resetStage(stageId) resetStage(stageId) end
+function M.claimBox(boxId) claimBox(boxId) end
 function M.queryHeroEquipmentStages()
     Bridge:BeginHeroEquipmentStageChecks()
     local stages = {
@@ -108,6 +159,10 @@ function M.refreshAfterBattle()
     M.validationStage = "verify_world"
     requestWorld()
 end
+function M.validateAccountIsolation()
+    M.validationStage = "await_isolation_world"
+    requestWorld()
+end
 
 local function readWorld(message)
     local mapType = message:ReadByte()
@@ -116,16 +171,30 @@ local function readWorld(message)
     local count = message:ReadWord()
     Bridge:BeginWorldChapterList(mapType, count)
     for _ = 1, count do
-        Bridge:AddWorldChapter(message:ReadUInt(), message:ReadString(), message:ReadWord(), message:ReadByte())
+        -- Read each wire field before calling the bridge.  xLua argument evaluation
+        -- may otherwise consume the stream out of protocol order.
+        local chapterId = message:ReadUInt()
+        local chapterName = message:ReadString()
+        local openLevel = message:ReadWord()
+        local maxStars = message:ReadByte()
+        Bridge:AddWorldChapter(chapterId, chapterName, openLevel, maxStars)
     end
     local currentChapter = message:ReadUInt()
     local currentStage = message:ReadUInt()
     local progressCount = message:ReadWord()
     for _ = 1, progressCount do
-        Bridge:SetWorldChapterProgress(message:ReadUInt(), message:ReadWord(), message:ReadByte())
+        local chapterId = message:ReadUInt()
+        local stars = message:ReadWord()
+        local claimedBoxes = message:ReadByte()
+        Bridge:SetWorldChapterProgress(chapterId, stars, claimedBoxes)
     end
     if message.Remaining ~= 0 then fail("World/320 op=1 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:EndWorldChapterList(currentChapter, currentStage)
+    if M.validationStage == "await_isolation_world" then
+        M.validationStage = "await_isolation_chapter"
+        requestChapter(currentChapter)
+        return
+    end
     local chapter = currentChapter
     if chapter == 0 then chapter = Bridge:GetFirstWorldChapterId() end
     if chapter == 0 then fail("World/320 returned no chapter."); return end
@@ -153,22 +222,45 @@ local function readChapter(message)
         local boxState = boxId > 0 and message:ReadByte() or 0
         Bridge:BeginWorldStage(stageId, stageName, stars, attempts, spirit, resets, resetCost, nextStage, boxId, boxState)
         local currencyCount = message:ReadByte()
-        for _ = 1, currencyCount do Bridge:AddWorldStageReward(readReward(message)) end
+        for _ = 1, currencyCount do
+            local reward = { readReward(message) }
+            Bridge:AddWorldStageReward(reward[1], reward[2], reward[3], reward[4], reward[5], reward[6], true)
+        end
         local itemCount = message:ReadByte()
-        for _ = 1, itemCount do Bridge:AddWorldStageReward(readReward(message)) end
+        for _ = 1, itemCount do
+            local reward = { readReward(message) }
+            Bridge:AddWorldStageReward(reward[1], reward[2], reward[3], reward[4], reward[5], reward[6], false)
+        end
         Bridge:EndWorldStage()
     end
     local starBoxCount = message:ReadByte()
     for _ = 1, starBoxCount do
-        Bridge:AddWorldStarBox(message:ReadByte(), message:ReadUInt(), message:ReadByte())
+        local requiredStars = message:ReadByte()
+        local boxId = message:ReadUInt()
+        local state = message:ReadByte()
+        Bridge:AddWorldStarBox(requiredStars, boxId, state)
     end
     if message.Remaining ~= 0 then fail("World/320 op=2 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:EndWorldStageList()
-    if M.validationStage == "await_world" or M.validationStage == "verify_world" then
-        M.validationStage = M.validationStage == "await_world" and "await_map_capture" or "verify_stage"
-        if M.validationStage == "await_map_capture" then Bridge:CaptureWorldMapAndContinue()
-        else M.openPreferredStage() end
-    else
+    if M.validationStage == "await_isolation_chapter" then
+        M.validationStage = "await_isolation_stage"
+        M.openPreferredStage()
+        return
+    end
+    if M.validationStage == "await_world" then
+        -- Chapter navigation inside the capture coroutine produces additional
+        -- op=2 replies.  Transition before starting it so only this first
+        -- authoritative chapter reply owns the validation flow.
+        M.validationStage = "map_capture_running"
+        Bridge:CaptureWorldMapAndContinue()
+    elseif M.validationStage == "verify_world" then
+        M.validationStage = "verify_stage"
+        requestStage(M.validationStageId)
+    elseif M.validationStage ~= "map_capture_running" then
+        -- CaptureWorldMapAndContinue owns the real previous/next/chapter-row
+        -- probes.  Auto-opening a stage for every intermediate op=2 reply lets
+        -- an earlier chapter's op=27 race the final selected chapter and enter
+        -- detail capture with stale data.
         M.openPreferredStage()
     end
 end
@@ -182,13 +274,27 @@ local function readStage(message, responseMapType)
     local resetCount = message:ReadByte()
     if message.Remaining ~= 0 then fail("World/320 op=27 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:SetHeroEquipmentStageOpen(stageId, stars)
+    -- Hero's equipment-open probes deliberately reuse /320 op=27, including
+    -- nodes in the currently visible World chapter.  They are valid Hero
+    -- evidence, but only the outstanding World stage request may alter World.
+    if chapterId ~= Bridge:GetWorldSelectedChapterId() then return end
+    if M.requestedStageId == 0 or stageId ~= M.requestedStageId then return end
+    M.requestedStageId = 0
     Bridge:SetWorldStageStatus(mapType, chapterId, stageId, stars, foughtCount, resetCount)
-    if M.validationStage == "await_map_capture" then
-        M.validationStage = "await_detail_capture"
+    local isSelectedStage = chapterId == Bridge:GetWorldSelectedChapterId()
+        and stageId == Bridge:GetWorldPreferredStageId()
+    if M.validationStage == "map_capture_running" and isSelectedStage then
+        -- /320 op=27 is also used by unrelated World consumers (for example
+        -- HeroEquip's stage probes).  Only the stage selected by this World
+        -- run may enter the detail/battle validation path.
+        M.validationStage = "detail_capture_running"
         Bridge:CaptureWorldDetailAndChallenge()
     elseif M.validationStage == "verify_stage" then
-        M.validationStage = nil
+        M.validationStage = "reconnect_pending"
         Bridge:CompleteWorldBattleValidation(M.validationStageId, M.validationRewardCount)
+    elseif M.validationStage == "await_isolation_stage" then
+        M.validationStage = nil
+        Bridge:CompleteWorldAccountIsolationValidation(chapterId, stageId, stars)
     end
 end
 
@@ -202,21 +308,98 @@ local function readBattleResult(message)
     local stars = message:ReadByte()
     local rewardCount = message:ReadByte()
     Bridge:BeginRewardUpdate(rewardCount)
-    for _ = 1, rewardCount do Bridge:AddRewardRecord(readReward(message)) end
+    local visibleRewardCount = 0
+    for _ = 1, rewardCount do
+        local reward = { readReward(message) }
+        if reward[3] > 0 then visibleRewardCount = visibleRewardCount + 1 end
+        Bridge:AddRewardRecord(reward[1], reward[2], reward[3], reward[4], reward[5], reward[6])
+    end
     if message.Remaining ~= 0 then fail("World/320 op=8 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:ApplyWorldBattleResult(foughtCount, foughtStageId, unlockedChapterId, unlockedStageId,
         unlockedBoxId, unlockedStarBoxId, stars)
-    M.validationRewardCount = rewardCount
-    if rewardCount > 0 then Bridge:EndRewardUpdate("关卡结算") end
+    M.validationRewardCount = visibleRewardCount
+    Bridge:ShowWorldBattleResult(stars)
     if M.validationStage == "await_battle" then
         M.validationStage = "await_result_capture"
-        Bridge:CaptureWorldBattleAndRefresh(rewardCount)
+        Bridge:CaptureWorldBattleAndRefresh(visibleRewardCount)
     end
+end
+
+local function readBoxAward(message)
+    message:ReadByte()
+    local chapterId = message:ReadUInt()
+    local boxId = message:ReadUInt()
+    local success = message:ReadByte()
+    if success == 0 then
+        fail("World/320 op=4 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown"))
+        return
+    end
+    local rewardCount = message:ReadByte()
+    Bridge:BeginRewardUpdate(rewardCount)
+    for _ = 1, rewardCount do Bridge:AddRewardRecord(readReward(message)) end
+    if message.Remaining ~= 0 then fail("World/320 op=4 unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:ApplyWorldBoxClaim(chapterId, boxId)
+    Bridge:EndRewardUpdate("宝箱奖励")
+end
+
+local function readSweep(message)
+    message:ReadByte()
+    message:ReadUInt()
+    local stageId = message:ReadUInt()
+    local success = message:ReadByte()
+    if success == 0 then
+        fail("World/320 op=6 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown"))
+        return
+    end
+    local sweepCount = message:ReadByte()
+    local rewards = {}
+    Bridge:BeginWorldSweepRewards(sweepCount)
+    for sweepIndex = 1, sweepCount do
+        message:ReadByte()
+        local currencyCount = message:ReadByte()
+        for _ = 1, currencyCount do
+            local reward = { readReward(message) }
+            table.insert(rewards, reward)
+            Bridge:AddWorldSweepReward(sweepIndex, table.unpack(reward))
+        end
+        local itemCount = message:ReadByte()
+        for _ = 1, itemCount do
+            local reward = { readReward(message) }
+            table.insert(rewards, reward)
+            Bridge:AddWorldSweepReward(sweepIndex, table.unpack(reward))
+        end
+    end
+    if message.Remaining ~= 0 then fail("World/320 op=6 unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:BeginRewardUpdate(#rewards)
+    for _, reward in ipairs(rewards) do Bridge:AddRewardRecord(table.unpack(reward)) end
+    Bridge:ApplyWorldSweep(stageId, sweepCount)
+    Bridge:ShowWorldSweepResult(sweepCount)
+end
+
+local function readReset(message)
+    local stageId = message:ReadUInt()
+    local success = message:ReadByte()
+    if success == 0 then
+        fail("World/320 op=7 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown"))
+        return
+    end
+    local usedResets = message:ReadByte()
+    local cost = message:ReadWord()
+    if message.Remaining ~= 0 then fail("World/320 op=7 unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:ApplyWorldReset(stageId, usedResets, cost)
+    requestChapter(Bridge:GetWorldSelectedChapterId())
 end
 
 function M.onPacket(command, message)
     if command ~= Protocol.WORLD_STAGE then return false end
     local op = message:ReadByte()
+    -- Local initialization also emits the one-byte legacy achievement marker
+    -- (`/320 op=2`).  It has no chapter payload and must not be confused with
+    -- a requested chapter response.
+    -- A real op=2 result needs mapType(1), chapterId(4), success(1), an
+    -- encoded name and the star-box count, i.e. at least 10 bytes after op.
+    -- Shorter packets are the initialization marker, not a chapter reply.
+    if op == 2 and message.Remaining < 10 then return true end
     -- The legacy server consumes op=27 before echoing the request fields, so
     -- node-query responses begin with mapType and contain exactly 11 bytes more.
     if op == 1 and message.Remaining == 11 then readStage(message, op)
@@ -224,7 +407,13 @@ function M.onPacket(command, message)
     elseif op == 2 then readChapter(message)
     elseif op == 5 then
         message:ReadByte(); message:ReadUInt(); message:ReadUInt()
-        if message.Remaining ~= 0 then fail("World/320 op=5 unread bytes: " .. tostring(message.Remaining)) end
+        -- `op=5` only acknowledges the fast-fight start. The server emits its
+        -- authoritative stars, attempt count and rewards separately in op=8;
+        -- these trailing legacy start bytes have no World-store meaning.
+        while message.Remaining > 0 do message:ReadByte() end
+    elseif op == 4 then readBoxAward(message)
+    elseif op == 6 then readSweep(message)
+    elseif op == 7 then readReset(message)
     elseif op == 8 then readBattleResult(message)
     elseif op == 27 then readStage(message)
     else return true end

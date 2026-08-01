@@ -110,7 +110,11 @@ namespace ProjectX.Core
         private LuaFunction onWorldRequestStage;
         private LuaFunction onWorldOpenPreferredStage;
         private LuaFunction onWorldChallenge;
+        private LuaFunction onWorldSweep;
+        private LuaFunction onWorldReset;
+        private LuaFunction onWorldClaimBox;
         private LuaFunction onWorldRefresh;
+        private LuaFunction onWorldValidateIsolation;
         private LuaFunction onWelfareClicked;
         private LuaFunction onWelfareClaimSign;
         private LuaFunction onActivityClicked;
@@ -165,6 +169,7 @@ namespace ProjectX.Core
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
         private readonly List<RewardRecord> pendingRewards = new List<RewardRecord>();
+        private readonly List<List<RewardRecord>> pendingWorldSweepGroups = new List<List<RewardRecord>>();
         private CocosUiView heroFrameView;
         private CocosUiView heroListView;
         private CocosUiView heroDetailView;
@@ -271,9 +276,15 @@ namespace ProjectX.Core
         private readonly List<GuildRecord> pendingGuildRecords = new List<GuildRecord>();
         private readonly List<GuildMemberRecord> pendingGuildMembers = new List<GuildMemberRecord>();
         private CocosUiView worldView;
+        private CocosUiView worldStageView;
         private CocosUiView worldMapView;
         private CocosUiView worldDetailView;
+        private CocosUiView worldSweepView;
+        private CocosUiView worldBattleResultView;
+        private CocosUiView worldBattleStatisticsView;
+        private CocosUiView worldBoxAwardView;
         private WorldPresenter worldPresenter;
+        private WorldOutcomePresenter worldOutcomePresenter;
         private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
         private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
         private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
@@ -281,6 +292,21 @@ namespace ProjectX.Core
         private byte pendingWorldMapType;
         private uint pendingWorldChapterId;
         private string pendingWorldChapterName;
+        private uint worldG4StageId;
+        private uint worldG4ChapterId;
+        private int worldG4RewardCount;
+        private bool worldG4PrimarySettled;
+        private bool worldG4ReconnectVerified;
+        private bool worldG4DetailCloseValidated;
+        private bool worldG4FormationValidated;
+        private bool worldG4StageCloseValidated;
+        private bool worldG4StarBoxValidated;
+        private bool worldG4NormalBoxValidated;
+        private bool worldG4SweepValidated;
+        private bool worldG4ResetValidated;
+        private bool worldG4BattleStatisticsValidated;
+        private bool worldG4BattleReplayValidated;
+        private uint selectedWorldBoxStageId;
         private CocosUiView welfareView;
         private CocosUiView welfareSignView;
         private CocosUiView welfareOnlineView;
@@ -535,7 +561,8 @@ namespace ProjectX.Core
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
-                if (services.Options.ManualReconnectValidation || services.Options.DrawClosureValidation)
+                if (services.Options.ManualReconnectValidation || services.Options.DrawClosureValidation
+                    || services.Options.WorldBattleValidation)
                     services.Config.AutoReconnect = false;
                 services.Network.StateChanged += HandleNetworkState;
                 services.Network.Disconnected += HandleDisconnected;
@@ -609,7 +636,11 @@ namespace ProjectX.Core
                 onWorldRequestStage = services.Lua.GetFunction("OnWorldRequestStage");
                 onWorldOpenPreferredStage = services.Lua.GetFunction("OnWorldOpenPreferredStage");
                 onWorldChallenge = services.Lua.GetFunction("OnWorldChallenge");
+                onWorldSweep = services.Lua.GetFunction("OnWorldSweep");
+                onWorldReset = services.Lua.GetFunction("OnWorldReset");
+                onWorldClaimBox = services.Lua.GetFunction("OnWorldClaimBox");
                 onWorldRefresh = services.Lua.GetFunction("OnWorldRefresh");
+                onWorldValidateIsolation = services.Lua.GetFunction("OnWorldValidateIsolation");
                 onWelfareClicked = services.Lua.GetFunction("OnWelfareClicked");
                 onWelfareClaimSign = services.Lua.GetFunction("OnWelfareClaimSign");
                 onActivityClicked = services.Lua.GetFunction("OnActivityClicked");
@@ -731,7 +762,11 @@ namespace ProjectX.Core
             onWorldRequestStage?.Dispose();
             onWorldOpenPreferredStage?.Dispose();
             onWorldChallenge?.Dispose();
+            onWorldSweep?.Dispose();
+            onWorldReset?.Dispose();
+            onWorldClaimBox?.Dispose();
             onWorldRefresh?.Dispose();
+            onWorldValidateIsolation?.Dispose();
             onWelfareClicked?.Dispose();
             onWelfareClaimSign?.Dispose();
             onActivityClicked?.Dispose();
@@ -783,6 +818,7 @@ namespace ProjectX.Core
             teamPresenter?.Dispose();
             guildPresenter?.Dispose();
             worldPresenter?.Dispose();
+            worldOutcomePresenter?.Dispose();
             welfarePresenter?.Dispose();
             activityPresenter?.Dispose();
             drawPresenter?.Dispose();
@@ -2802,6 +2838,10 @@ namespace ProjectX.Core
         public double GetFirstWorldChapterId() => services.World.Chapters.FirstOrDefault()?.Id ?? 0;
         public double GetWorldSelectedChapterId() => services.World.SelectedChapterId;
         public double GetWorldPreferredStageId() => services.World.SelectedStageId;
+        // Lua controls must use the stage currently opened by the player.  Keep
+        // the older name above for existing callers while making that contract
+        // explicit for new World interactions.
+        public double GetWorldSelectedStageId() => services.World.SelectedStageId;
 
         public void BeginWorldStageList(int mapType, double chapterId, string chapterName, int expectedCount)
         {
@@ -2832,11 +2872,12 @@ namespace ProjectX.Core
             };
         }
 
-        public void AddWorldStageReward(int type, double id, double amount, string name, int picture, int quality)
+        public void AddWorldStageReward(int type, double id, double amount, string name, int picture, int quality,
+            bool isCurrency)
         {
             if (pendingWorldStage == null) throw new InvalidOperationException("World stage reward arrived without a stage.");
             pendingWorldStage.AddReward(new RewardRecord(type, checked((uint)id), checked((uint)amount),
-                name, picture, quality));
+                name, picture, quality), isCurrency);
         }
 
         public void EndWorldStage()
@@ -2883,6 +2924,84 @@ namespace ProjectX.Core
             SetStatus($"World/320 PvE result: stage={checked((uint)foughtStageId)}, stars={stars}, next={checked((uint)unlockedStageId)}, box={checked((uint)unlockedBoxId)}/{checked((uint)unlockedStarBoxId)}.");
         }
 
+        public void ApplyWorldSweep(double stageId, int count)
+        {
+            services.World.ApplySweep(checked((uint)stageId), checked((byte)count));
+            SetStatus($"World/320 sweep: stage={checked((uint)stageId)}, count={count}.");
+        }
+
+        public void BeginWorldSweepRewards(int sweepCount)
+        {
+            pendingWorldSweepGroups.Clear();
+            for (int index = 0; index < sweepCount; index++)
+                pendingWorldSweepGroups.Add(new List<RewardRecord>());
+        }
+
+        public void AddWorldSweepReward(int sweepIndex, int type, double id, double amount,
+            string name, int picture, int quality)
+        {
+            int index = sweepIndex - 1;
+            if (index < 0 || index >= pendingWorldSweepGroups.Count)
+                throw new InvalidOperationException($"World sweep reward group is out of range: {sweepIndex}/{pendingWorldSweepGroups.Count}.");
+            pendingWorldSweepGroups[index].Add(new RewardRecord(type, checked((uint)id), checked((uint)amount),
+                name, picture, quality));
+        }
+
+        public void ShowWorldSweepResult(int sweepCount)
+        {
+            services.Rewards.Replace("扫荡结算", pendingRewards);
+            EnsureWorldOutcomePresenter();
+            worldOutcomePresenter.ShowSweep(sweepCount, pendingWorldSweepGroups);
+            SetStatus($"World sweep result active: {services.Rewards.Count} rewards.");
+        }
+
+        public void ShowWorldBattleResult(int stars)
+        {
+            services.Rewards.Replace("关卡结算", pendingRewards);
+            EnsureWorldOutcomePresenter();
+            worldOutcomePresenter.ShowBattle(stars);
+            SetStatus($"World battle result active: stars={stars}, rewards={services.Rewards.Count}.");
+        }
+
+        public void ApplyWorldReset(double stageId, int usedResets, int cost)
+        {
+            services.World.ApplyReset(checked((uint)stageId), checked((byte)usedResets));
+            SetStatus($"World/320 reset: stage={checked((uint)stageId)}, used={usedResets}, cost={cost}.");
+        }
+
+        private void ShowWorldBattleStatisticsUnavailable()
+        {
+            EnsureErrorPresenter();
+            errorPresenter.Show("战斗统计不可用", "当前 /320 结算包未下发逐单位战报，不能以本地假数据填充。");
+        }
+
+        private void ShowWorldBattleReviveUnavailable()
+        {
+            EnsureErrorPresenter();
+            errorPresenter.Show("复活不可用", "当前世界副本 /320 未定义复活请求，不能以本地扣费或假结果代替。");
+        }
+
+        public void ApplyWorldBoxClaim(double chapterId, double boxId)
+        {
+            services.World.ApplyClaimedBox(checked((uint)chapterId), checked((uint)boxId));
+            SetStatus($"World/320 box claimed: chapter={checked((uint)chapterId)}, box={checked((uint)boxId)}.");
+        }
+
+        private void ShowWorldResetConfirmation(WorldStageRecord stage)
+        {
+            if (stage == null) return;
+            if (stage.RemainingAttempts > 0) { SetWorldError("还有挑战次数，暂不能重置。"); return; }
+            if (stage.RemainingResets == 0) { SetWorldError("今日重置次数已用尽。"); return; }
+            EnsureErrorPresenter();
+            errorPresenter.ShowConfirmation("提示",
+                $"您是否要花费{stage.ResetCost}元宝重置关卡\n<color=#ff2a20>今日还可重置{stage.RemainingResets}次</color>",
+                () =>
+                {
+                    if (services.Options.WorldBattleValidation) MarkValidationControl("WORLD-17-RESET-CONFIRM");
+                    InvokeLuaOrFail(onWorldReset, "World.Reset", (double)stage.Id);
+                }, "确认", "取消", true);
+        }
+
         public void SetWorldError(string message) { ShowToast(message, 3f); SetStatus(message); }
         public void CaptureWorldMapAndContinue() => StartCoroutine(CaptureWorldMap());
         public void CaptureWorldDetailAndChallenge() => StartCoroutine(CaptureWorldDetail());
@@ -2891,17 +3010,132 @@ namespace ProjectX.Core
         public void CompleteWorldBattleValidation(double expectedStageId, int expectedRewardCount)
         {
             EnsureWorldPresenter();
+            EnsureWorldOutcomePresenter();
             uint stageId = checked((uint)expectedStageId);
+            int visibleRewardCount = services.Rewards.Count;
             WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.Id == stageId);
             if (GetLocalUserId() == 1 || !IsWorldOpen || stage == null || stage.Stars == 0 || stage.Stars == byte.MaxValue
                 || services.World.ChapterCount == 0 || services.World.StageCount == 0
-                || worldPresenter.RenderedRewardCount == 0 || expectedRewardCount <= 0)
+                || worldPresenter.RenderedRewardCount == 0 || visibleRewardCount <= 0)
             {
-                Fail($"World final state mismatch: user={GetLocalUserId()}, open={IsWorldOpen}, chapter={services.World.ChapterCount}, stages={services.World.StageCount}, stage={stageId}, stars={stage?.Stars ?? 255}, fought={stage?.FoughtCount ?? 0}, rewards={expectedRewardCount}/{worldPresenter.RenderedRewardCount}.");
+                Fail($"World final state mismatch: user={GetLocalUserId()}, open={IsWorldOpen}, chapter={services.World.ChapterCount}, stages={services.World.StageCount}, stage={stageId}, stars={stage?.Stars ?? 255}, fought={stage?.FoughtCount ?? 0}, rewards={visibleRewardCount}/{worldPresenter.RenderedRewardCount}.");
                 return;
             }
-            rewardPresenter?.Hide();
-            Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {stageId} -> op=8 settlement -> persisted stars={stage.Stars}, server fight count={stage.FoughtCount}; isolated user={GetLocalUserId()}");
+            if (!services.Options.WorldBattleValidation)
+            {
+                Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {stageId} -> op=8 settlement -> persisted stars={stage.Stars}, server fight count={stage.FoughtCount}; isolated user={GetLocalUserId()}");
+                return;
+            }
+            if (!worldG4PrimarySettled)
+            {
+                worldG4PrimarySettled = true;
+                worldG4StageId = stageId;
+                worldG4ChapterId = services.World.SelectedChapterId;
+                worldG4RewardCount = visibleRewardCount;
+                RecordValidationSemantic("world-authority", true,
+                    $"/320 op=1/2/27 stage={stageId} and op=8 visible rewards={visibleRewardCount}");
+                RecordValidationSemantic("world-battle", true,
+                    $"authoritative stage={stageId} settled with stars={stage.Stars}");
+                StartCoroutine(ValidateWorldReconnect());
+                return;
+            }
+            if (!worldG4ReconnectVerified)
+            {
+                if (stageId != worldG4StageId || stage.Stars == 0 || visibleRewardCount != worldG4RewardCount)
+                {
+                    Fail($"World reconnect persistence mismatch: stage={stageId}/{worldG4StageId}, stars={stage.Stars}, rewards={visibleRewardCount}/{worldG4RewardCount}.");
+                    return;
+                }
+                worldG4ReconnectVerified = true;
+                RecordValidationSemantic("world-reconnect", true,
+                    $"reloaded stage={stageId} stars={stage.Stars} rewards={visibleRewardCount}");
+                StartCoroutine(ValidateWorldAccountIsolation());
+                return;
+            }
+            Fail("World validation received an unexpected extra persistence completion.");
+        }
+
+        private IEnumerator ValidateWorldReconnect()
+        {
+            // The result "continue" action has just requested the authoritative
+            // world refresh. Do not sever its response mid-dispatch: a stale
+            // chapter callback would otherwise send a stage query after the
+            // deliberate disconnect.
+            float settleDeadline = Time.realtimeSinceStartup + 5f;
+            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < settleDeadline)
+                yield return null;
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail("World reconnect could not reach a quiescent protocol state before disconnect.");
+                yield break;
+            }
+            services.Network.Disconnect();
+            HandleDisconnected("World G4 deliberate disconnect");
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (services.Network.State != NetworkState.Disconnected || services.World.ChapterCount != 0
+                || services.World.StageCount != 0 || IsWorldOpen)
+            {
+                Fail($"World reconnect cleanup mismatch: network={services.Network.State}, chapters={services.World.ChapterCount}, stages={services.World.StageCount}, open={IsWorldOpen}.");
+                yield break;
+            }
+            Reconnect();
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while ((services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main
+                || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main)
+            {
+                Fail("World reconnect timed out.");
+                yield break;
+            }
+            ShowWorld();
+            InvokeLuaOrFail(onWorldRefresh, "World.ReconnectRefresh");
+        }
+
+        private IEnumerator ValidateWorldAccountIsolation()
+        {
+            uint isolationUserId = services.Options.WorldIsolationUserId;
+            if (isolationUserId == 0 || isolationUserId == GetLocalUserId())
+            {
+                Fail("World validation requires a distinct -projectXWorldIsolationUserId.");
+                yield break;
+            }
+            services.Config.LocalUserId = isolationUserId;
+            ReturnToLogin();
+            yield return new WaitForSecondsRealtime(0.25f);
+            if (!IsLoginVisible || services.World.ChapterCount != 0 || services.World.StageCount != 0)
+            {
+                Fail($"World account-switch cleanup mismatch: login={IsLoginVisible}, chapters={services.World.ChapterCount}, stages={services.World.StageCount}.");
+                yield break;
+            }
+            Reconnect();
+            float deadline = Time.realtimeSinceStartup + 20f;
+            while ((services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main
+                || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.Network.State != NetworkState.Connected || CurrentAppState != AppState.Main
+                || GetLocalUserId() != isolationUserId)
+            {
+                Fail($"World alternate-account login failed: expected={isolationUserId}, actual={GetLocalUserId()}.");
+                yield break;
+            }
+            ShowWorld();
+            InvokeLuaOrFail(onWorldValidateIsolation, "World.AccountIsolation");
+        }
+
+        public void CompleteWorldAccountIsolationValidation(double chapterId, double stageId, int stars)
+        {
+            if (!services.Options.WorldBattleValidation || services.Options.WorldIsolationUserId == 0
+                || GetLocalUserId() != services.Options.WorldIsolationUserId
+                || (checked((uint)chapterId) == worldG4ChapterId && checked((uint)stageId) == worldG4StageId) || stars != 0)
+            {
+                Fail($"World alternate-account isolation mismatch: user={GetLocalUserId()}, chapter={chapterId}, stage={stageId}/{worldG4StageId}, stars={stars}.");
+                return;
+            }
+            RecordValidationSemantic("world-account-isolation", true,
+                $"alternate user={GetLocalUserId()} stage={stageId} has stars={stars}");
+            Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {worldG4StageId} -> op=8 settlement -> reconnect persistence -> alternate account {GetLocalUserId()} isolation.");
         }
 
         public void BeginWelfareSignUpdate(bool signedToday, int signedDays, int expectedCount)
@@ -4804,6 +5038,14 @@ namespace ProjectX.Core
             shopPresenter?.ResetTransientState();
             services.GameplayShops.Clear();
             gameplayShopsPresenter?.ResetTransientState();
+            services.World.Clear();
+            if (IsWorldOpen) services.UiStack.Pop();
+            worldView?.SetVisible(false);
+            worldMapView?.SetVisible(false);
+            worldDetailView?.SetVisible(false);
+            worldSweepView?.SetVisible(false);
+            worldBattleResultView?.SetVisible(false);
+            worldBattleStatisticsView?.SetVisible(false);
             errorPresenter?.Hide();
             rewardPresenter?.Hide();
             if (IsShopOpen) services.UiStack.Pop();
@@ -4946,7 +5188,11 @@ namespace ProjectX.Core
 
         private void HandleWorldClick()
         {
-            try { CallLua(onWorldClicked, "World.OnClicked"); }
+            try
+            {
+                CallLua(onWorldClicked, "World.OnClicked");
+                if (services.Options.WorldBattleValidation) MarkValidationControl("WORLD-01-MAIN-ENTRY");
+            }
             catch (Exception exception) { Fail($"World open failed: {exception.Message}"); }
         }
 
@@ -5422,10 +5668,169 @@ namespace ProjectX.Core
                 Fail($"World map state mismatch: open={IsWorldOpen}, chapters={services.World.ChapterCount}, stages={services.World.StageCount}, rendered={worldPresenter.RenderedCount}.");
                 yield break;
             }
+            if (services.Options.WorldBattleValidation && !worldG4StageCloseValidated)
+            {
+                Button stageClose = worldMapView.Binding.Find("Layer/Title/CloseBtn")?.GetComponent<Button>();
+                if (stageClose == null || !stageClose.interactable)
+                {
+                    Fail("World stage-map close control is unavailable.");
+                    yield break;
+                }
+                stageClose.onClick.Invoke();
+                yield return null;
+                if (!IsWorldOpen || worldStageView.GameObject.activeSelf || worldDetailView.GameObject.activeSelf)
+                {
+                    Fail($"World stage-map close did not return to the world chapter page: open={IsWorldOpen}, current={services.UiStack.Current?.GameObject?.name ?? string.Empty}, world={worldView.GameObject.activeSelf}, stage={worldMapView.GameObject.activeSelf}, detail={worldDetailView.GameObject.activeSelf}.");
+                    yield break;
+                }
+                worldG4StageCloseValidated = true;
+                // G5 WORLD-MAP is the Cocos world/chapter page reached by this
+                // exact close action. Capturing after ShowStages paired two
+                // different semantic states despite using the same filename.
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-map.png"));
+                yield return new WaitForSecondsRealtime(0.75f);
+                // Restore the already server-backed chapter data solely so this
+                // one run can continue to validate the remaining controls.
+                worldPresenter.ShowStages();
+                if (!worldMapView.GameObject.activeSelf)
+                {
+                    Fail("World stage-map did not restore after the close-control probe.");
+                    yield break;
+                }
+            }
+            if (services.Options.WorldBattleValidation && !ValidateWorldPassiveG4Controls())
+                yield break;
+            if (services.Options.WorldBattleValidation && !worldG4StarBoxValidated)
+            {
+                yield return ValidateWorldStarBoxControl();
+                if (!worldG4StarBoxValidated) yield break;
+            }
+            if (services.Options.WorldBattleValidation && !worldG4NormalBoxValidated)
+            {
+                yield return ValidateWorldNormalBoxControl();
+                if (!worldG4NormalBoxValidated) yield break;
+            }
             yield return new WaitForEndOfFrame();
-            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world.png"));
+            // This counterpart is deliberately after the real chest claims.
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-chest.png"));
             yield return new WaitForSecondsRealtime(0.75f);
+            if (services.Options.WorldBattleValidation)
+            {
+                yield return ValidateWorldChapterAndStageControls();
+                yield break;
+            }
             InvokeLuaOrFail(onWorldOpenPreferredStage, "World.OpenPreferredStage");
+        }
+
+        private IEnumerator ValidateWorldChapterAndStageControls()
+        {
+            uint currentChapterId = services.World.SelectedChapterId;
+            Button next = worldView.Binding.Find("Layer/Button_2")?.GetComponent<Button>();
+            Button previous = worldView.Binding.Find("Layer/Button_1")?.GetComponent<Button>();
+            if (next == null || previous == null || !next.interactable || !previous.interactable)
+            {
+                Fail("World chapter navigation controls are unavailable.");
+                yield break;
+            }
+            int currentChapterIndex = services.World.Chapters.ToList()
+                .FindIndex(value => value.Id == currentChapterId);
+            if (currentChapterIndex < 0 || services.World.Chapters.Count < 2)
+            {
+                Fail("World chapter navigation has no authoritative adjacent chapter.");
+                yield break;
+            }
+            bool previousFirst = currentChapterIndex > 0;
+            Button firstNavigation = previousFirst ? previous : next;
+            Button secondNavigation = previousFirst ? next : previous;
+            firstNavigation.onClick.Invoke();
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == currentChapterId)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == currentChapterId)
+            {
+                Fail($"World {(previousFirst ? "previous" : "next")} chapter control did not return an authoritative chapter.");
+                yield break;
+            }
+            secondNavigation.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+            {
+                Fail($"World {(previousFirst ? "next" : "previous")} chapter control did not return to the authoritative current chapter.");
+                yield break;
+            }
+            Button chapterNode = currentChapterIndex >= 0
+                ? worldView.Binding.Find($"Layer/chapterPage/btn_{currentChapterIndex + 1}")?.GetComponent<Button>()
+                : null;
+            if (chapterNode == null || !chapterNode.interactable)
+            {
+                Fail("World current chapter node control is unavailable.");
+                yield break;
+            }
+            chapterNode.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+            {
+                Fail("World chapter node did not preserve the authoritative current chapter.");
+                yield break;
+            }
+            Button dropdown = worldMapView.Binding.Find("Layer/Panel_zuoshang/Button_xiala")?.GetComponent<Button>();
+            if (dropdown == null || !dropdown.interactable)
+            {
+                Fail("World chapter dropdown control is unavailable.");
+                yield break;
+            }
+            dropdown.onClick.Invoke();
+            yield return null;
+            Transform virtualContent = worldMapView.Binding.Find("Layer/Popup/ListView")?.transform.Find("VirtualContent");
+            int selectedChapterIndex = services.World.Chapters.ToList()
+                .FindIndex(value => value.Id == services.World.CurrentChapterId);
+            int probeChapterIndex = selectedChapterIndex > 0 ? selectedChapterIndex - 1 : selectedChapterIndex + 1;
+            Button chapter = probeChapterIndex >= 0
+                ? virtualContent?.GetComponentsInChildren<Button>(false).ElementAtOrDefault(probeChapterIndex)
+                : null;
+            if (chapter != null && !chapter.interactable) chapter = null;
+            if (chapter == null)
+            {
+                Fail("World chapter dropdown did not render an enabled dynamic row.");
+                yield break;
+            }
+            uint chapterBefore = services.World.SelectedChapterId;
+            chapter.onClick.Invoke();
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == chapterBefore)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || services.World.StageCount == 0
+                || services.World.SelectedChapterId == chapterBefore)
+            {
+                Fail("World chapter-row click did not return an authoritative stage list.");
+                yield break;
+            }
+            InvokeLuaOrFail(onWorldRequestChapter, "World.RestoreCurrentChapter", (double)currentChapterId);
+            deadline = Time.realtimeSinceStartup + 8f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+            {
+                Fail("World current chapter did not return after the real chapter-row probe.");
+                yield break;
+            }
+            ScrollRect stageMap = GetWorldStageMapScroll();
+            uint preferredStageId = services.World.Stages.FirstOrDefault(value => value.RewardBoxId != 0)?.Id
+                ?? (services.World.Stages.Any(value => value.Id == services.World.CurrentStageId)
+                    ? services.World.CurrentStageId
+                    : services.World.Stages.FirstOrDefault(value => value.IsUnlocked)?.Id ?? 0);
+            Button stage = stageMap?.content.Find("Stage_" + preferredStageId)?.GetComponent<Button>();
+            if (stage != null && !stage.interactable) stage = null;
+            if (stage == null)
+            {
+                Fail("World stage map did not render an enabled dynamic stage node.");
+                yield break;
+            }
+            stage.onClick.Invoke();
         }
 
         private IEnumerator CaptureWorldDetail()
@@ -5439,25 +5844,276 @@ namespace ProjectX.Core
                 Fail($"World detail state mismatch: detail={worldPresenter.DetailVisible}, stage={stage?.Id ?? 0}, unlocked={stage?.IsUnlocked ?? false}, rewards={worldPresenter.RenderedRewardCount}.");
                 yield break;
             }
+            if (services.Options.WorldBattleValidation && !worldG4FormationValidated)
+            {
+                Button formationButton = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Buzhen")?.GetComponent<Button>();
+                if (formationButton == null || !formationButton.interactable)
+                {
+                    Fail("World pre-challenge formation control is unavailable.");
+                    yield break;
+                }
+                formationButton.onClick.Invoke();
+                float formationDeadline = Time.realtimeSinceStartup + 10f;
+                while ((!IsHeroOpen || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < formationDeadline)
+                    yield return null;
+                if (!IsHeroOpen || services.Heroes.Count == 0 || services.Formation.Formations.Count == 0)
+                {
+                    Fail($"World pre-challenge formation did not open authoritative formation data: open={IsHeroOpen}, heroes={services.Heroes.Count}, formations={services.Formation.Formations.Count}.");
+                    yield break;
+                }
+                if (!InvokeHeroCloseForValidation() || !worldPresenter.DetailVisible)
+                {
+                    Fail("World pre-challenge formation did not return to the current stage detail.");
+                    yield break;
+                }
+                worldG4FormationValidated = true;
+            }
+            // Exercise the imported detail close control before the authoritative
+            // battle request.  Re-selecting the same stage must return to the
+            // same server-backed detail state; this is deliberately not a local
+            // visibility-only assertion.
+            if (services.Options.WorldBattleValidation && !worldG4DetailCloseValidated)
+            {
+                Button close = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Close")?.GetComponent<Button>();
+                if (close == null || !close.interactable)
+                {
+                    Fail("World detail close control is unavailable.");
+                    yield break;
+                }
+                uint stageId = stage.Id;
+                close.onClick.Invoke();
+                if (worldPresenter.DetailVisible)
+                {
+                    Fail("World detail close control did not hide the imported detail layer.");
+                    yield break;
+                }
+                worldG4DetailCloseValidated = true;
+                ScrollRect stageMap = GetWorldStageMapScroll();
+                Button stageNode = stageMap?.content.Find("Stage_" + stageId)?.GetComponent<Button>();
+                if (stageNode == null || !stageNode.interactable)
+                {
+                    Fail("World detail close did not restore the selected stage node.");
+                    yield break;
+                }
+                stageNode.onClick.Invoke();
+                float reopenDeadline = Time.realtimeSinceStartup + 8f;
+                while ((services.ProtocolRegistry.PendingCount != 0 || !worldPresenter.DetailVisible
+                    || services.World.SelectedStageId != stageId) && Time.realtimeSinceStartup < reopenDeadline)
+                    yield return null;
+                if (services.ProtocolRegistry.PendingCount != 0 || !worldPresenter.DetailVisible
+                    || services.World.SelectedStageId != stageId)
+                {
+                    Fail("World detail close did not reopen the same authoritative stage.");
+                    yield break;
+                }
+                stage = services.World.SelectedStage;
+            }
+            // Preserve the detail state before sweep/reset changes its attempt count.
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-detail.png"));
             yield return new WaitForSecondsRealtime(0.75f);
-            InvokeLuaOrFail(onWorldChallenge, "World.Challenge");
+            if (services.Options.WorldBattleValidation && !worldG4SweepValidated)
+            {
+                yield return ValidateWorldSweepControls(stage);
+                if (!worldG4SweepValidated) yield break;
+                stage = services.World.SelectedStage;
+            }
+            if (services.Options.WorldBattleValidation && !worldG4ResetValidated)
+            {
+                yield return ValidateWorldResetControls(stage);
+                if (!worldG4ResetValidated) yield break;
+                stage = services.World.SelectedStage;
+            }
+            Button challenge = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_2")?.GetComponent<Button>();
+            if (challenge == null || !challenge.interactable)
+            {
+                Fail($"World challenge Prefab control is unavailable for the authoritative stage: stage={stage.Id}, stars={stage.Stars}, attempts={stage.RemainingAttempts}, unlocked={stage.IsUnlocked}, button={(challenge == null ? "missing" : "disabled")}, detail={worldPresenter.DetailVisible}.");
+                yield break;
+            }
+            challenge.onClick.Invoke();
+        }
+
+        private IEnumerator ValidateWorldSweepControls(WorldStageRecord stage)
+        {
+            if (stage == null || stage.Stars == 0 || stage.RemainingAttempts == 0)
+            {
+                Fail($"World sweep fixture is not eligible: stage={stage?.Id ?? 0}, stars={stage?.Stars ?? 0}, attempts={stage?.RemainingAttempts ?? 0}.");
+                yield break;
+            }
+            EnsureWorldOutcomePresenter();
+            Button sweep = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_3")?.GetComponent<Button>();
+            if (sweep == null || !sweep.interactable)
+            {
+                Fail("World sweep control is unavailable for the authoritative stage.");
+                yield break;
+            }
+            int beforeAttempts = stage.RemainingAttempts;
+            sweep.onClick.Invoke();
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || !worldOutcomePresenter.IsSweepVisible)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || !worldOutcomePresenter.IsSweepVisible
+                || stage.RemainingAttempts >= beforeAttempts || services.Rewards.Count == 0)
+            {
+                Fail($"World sweep did not reach authoritative settlement: pending={services.ProtocolRegistry.PendingCount}, visible={worldOutcomePresenter.IsSweepVisible}, attempts={stage.RemainingAttempts}/{beforeAttempts}, rewards={services.Rewards.Count}.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-sweep.png"));
+            yield return new WaitForSecondsRealtime(0.75f);
+            Button close = worldSweepView.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>();
+            if (close == null || !close.interactable)
+            {
+                Fail("World sweep result close control is unavailable.");
+                yield break;
+            }
+            close.onClick.Invoke();
+            if (worldOutcomePresenter.IsSweepVisible)
+            {
+                Fail("World sweep result close control did not hide the imported settlement layer.");
+                yield break;
+            }
+            Button again = worldSweepView.Binding.Find("Layer/bg/Image/Button1")?.GetComponent<Button>();
+            if (again == null || !again.interactable)
+            {
+                Fail("World sweep-again control was not available after an authoritative sweep result.");
+                yield break;
+            }
+            again.onClick.Invoke();
+            // A sweep consumes every currently available attempt (up to five).
+            // The legacy server still returns an authoritative zero-count
+            // settlement for "continue sweep"; it must remain visibly empty,
+            // not reuse rewards from the preceding settlement.
+            deadline = Time.realtimeSinceStartup + 6f;
+            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || !worldOutcomePresenter.IsSweepVisible
+                || worldOutcomePresenter.RenderedRewardCount != 0 || services.Rewards.Count != 0
+                || stage.RemainingAttempts != 0)
+            {
+                Fail($"World sweep-again zero-count settlement mismatch: pending={services.ProtocolRegistry.PendingCount}, visible={worldOutcomePresenter.IsSweepVisible}, rendered={worldOutcomePresenter.RenderedRewardCount}, rewards={services.Rewards.Count}, attempts={stage.RemainingAttempts}.");
+                yield break;
+            }
+            close = worldSweepView.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>();
+            close?.onClick.Invoke();
+            if (worldOutcomePresenter.IsSweepVisible)
+            {
+                Fail("World zero-count sweep result did not close.");
+                yield break;
+            }
+            worldG4SweepValidated = true;
+        }
+
+        private IEnumerator ValidateWorldResetControls(WorldStageRecord stage)
+        {
+            if (stage == null || stage.RemainingAttempts != 0 || stage.RemainingResets == 0)
+            {
+                Fail($"World reset fixture is not eligible: stage={stage?.Id ?? 0}, attempts={stage?.RemainingAttempts ?? 0}, resets={stage?.RemainingResets ?? 0}.");
+                yield break;
+            }
+            Button reset = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/TimesBg/AddBtn")?.GetComponent<Button>();
+            if (reset == null || !reset.interactable)
+            {
+                Fail("World reset-attempts control is unavailable after the authoritative sweep.");
+                yield break;
+            }
+            reset.onClick.Invoke();
+            yield return null;
+            if (errorPresenter == null || !errorPresenter.IsVisible)
+            {
+                Fail("World reset-attempts control did not open the real confirmation.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-reset.png"));
+            yield return new WaitForSecondsRealtime(0.75f);
+            if (!errorPresenter.InvokeConfirmation())
+            {
+                Fail("World reset confirmation control was unavailable.");
+                yield break;
+            }
+            float deadline = Time.realtimeSinceStartup + 10f;
+            WorldStageRecord reloaded = null;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                reloaded = services.World.Stages.FirstOrDefault(value => value.Id == stage.Id)
+                    ?? services.World.SelectedStage;
+                if (services.ProtocolRegistry.PendingCount == 0 && reloaded != null
+                    && reloaded.RemainingAttempts > 0) break;
+                yield return null;
+            }
+            if (services.ProtocolRegistry.PendingCount != 0 || reloaded == null || reloaded.RemainingAttempts == 0)
+            {
+                Fail($"World reset confirmation did not restore authoritative attempts: pending={services.ProtocolRegistry.PendingCount}, attempts={reloaded?.RemainingAttempts ?? 0}.");
+                yield break;
+            }
+            worldG4ResetValidated = true;
         }
 
         private IEnumerator CaptureWorldBattleResult(int rewardCount)
         {
             yield return new WaitForSecondsRealtime(1.25f);
-            if (!ValidateRewardPresentation(rewardCount, false))
+            EnsureWorldOutcomePresenter();
+            int visibleRewardCount = services.Rewards.Count;
+            if (!worldOutcomePresenter.IsBattleVisible || visibleRewardCount <= 0
+                || worldOutcomePresenter.RenderedRewardCount != visibleRewardCount)
             {
-                Fail($"World settlement reward presentation mismatch: expected={rewardCount}, actual={services.Rewards.Count}.");
+                Fail($"World settlement result mismatch: packet={rewardCount}, visible={visibleRewardCount}/{worldOutcomePresenter.RenderedRewardCount}, battleVisible={worldOutcomePresenter.IsBattleVisible}.");
                 yield break;
             }
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-result.png"));
             yield return new WaitForSecondsRealtime(0.75f);
-            rewardPresenter?.Hide();
-            InvokeLuaOrFail(onWorldRefresh, "World.RefreshAfterBattle");
+            if (services.Options.WorldBattleValidation && !worldG4BattleStatisticsValidated)
+            {
+                Button statistics = worldBattleResultView.Binding.Find("Layer/Panel/victorypanel/Button_tongji")?.GetComponent<Button>();
+                if (statistics == null || !statistics.interactable)
+                {
+                    Fail("World battle-statistics control was unavailable.");
+                    yield break;
+                }
+                statistics.onClick.Invoke();
+                yield return null;
+                if (!worldOutcomePresenter.IsStatisticsVisible || errorPresenter == null || !errorPresenter.IsVisible)
+                {
+                    Fail("World battle-statistics control did not expose the authoritative-data boundary.");
+                    yield break;
+                }
+                Button closeStatistics = worldBattleStatisticsView.Binding.Find("Layer/Panel")?.GetComponent<Button>();
+                if (closeStatistics == null || !closeStatistics.interactable)
+                {
+                    Fail("World battle-statistics close control was unavailable.");
+                    yield break;
+                }
+                closeStatistics.onClick.Invoke();
+                if (worldOutcomePresenter.IsStatisticsVisible || !worldOutcomePresenter.IsBattleVisible)
+                {
+                    Fail("World battle-statistics close did not return to the current result.");
+                    yield break;
+                }
+                errorPresenter.Hide();
+                worldG4BattleStatisticsValidated = true;
+            }
+            if (services.Options.WorldBattleValidation && !worldG4BattleReplayValidated)
+            {
+                Button replay = worldBattleResultView.Binding.Find("Layer/Panel/victorypanel/Button_Replay")?.GetComponent<Button>();
+                if (replay == null || !replay.interactable)
+                {
+                    Fail("World battle replay control was unavailable.");
+                    yield break;
+                }
+                replay.onClick.Invoke();
+                worldG4BattleReplayValidated = true;
+                yield break;
+            }
+            Button continueButton = worldBattleResultView.Binding.Find("Layer/Panel")?.GetComponent<Button>();
+            if (continueButton == null || !continueButton.interactable)
+            {
+                Fail("World settlement continue control was not available.");
+                yield break;
+            }
+            continueButton.onClick.Invoke();
         }
 
         private static string BuildUiMigrationPath(string fileName)
@@ -5467,6 +6123,125 @@ namespace ProjectX.Core
             string path = Path.Combine(repositoryRoot, "build", "ui-migration", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             return path;
+        }
+
+        private ScrollRect GetWorldStageMapScroll() =>
+            (worldStageView ?? worldMapView)?.GameObject.GetComponentsInChildren<ScrollRect>(true)
+                .FirstOrDefault(value => value.gameObject.name == "RuntimeStageMapViewport");
+
+        private bool ValidateWorldPassiveG4Controls()
+        {
+            ScrollRect stageScroll = GetWorldStageMapScroll();
+            if (stageScroll == null || stageScroll.content == null || stageScroll.viewport == null)
+            {
+                Fail("World stage map ScrollView is not backed by a clipped ScrollRect.");
+                return false;
+            }
+            Vector2 before = stageScroll.normalizedPosition;
+            stageScroll.normalizedPosition = new Vector2(1f, 0f);
+            Vector2 after = stageScroll.normalizedPosition;
+            stageScroll.normalizedPosition = before;
+            if (after.x < 0.99f)
+            {
+                Fail("World stage map ScrollView did not accept a real scroll position.");
+                return false;
+            }
+            MarkValidationControl("WORLD-09-STAGE-MAP-SCROLL");
+
+            bool hidden = worldMapView.Binding.Find("Layer/Panel_youxia/Button_zhuxianchengjiu")?.gameObject.activeSelf == false
+                && worldView.Binding.Find("Layer/Panel_youxia/Button_fengshenshilian")?.gameObject.activeSelf == false
+                && worldMapView.Binding.Find("Layer/Panel_1/Button_paihangbang")?.gameObject.activeSelf == false;
+            if (!hidden)
+            {
+                Fail("World excluded achievement, FengShen, or rank entry remains visible.");
+                return false;
+            }
+            MarkValidationControl("WORLD-25-ACHIEVEMENT-ENTRY");
+            MarkValidationControl("WORLD-26-FENGSHEN-ENTRY");
+            MarkValidationControl("WORLD-27-RANK-ENTRY");
+            RecordValidationSemantic("world-exclusions", true,
+                "achievement, FengShen trial, and rank entries are hidden pending their own modules");
+            return true;
+        }
+
+        private IEnumerator ValidateWorldStarBoxControl()
+        {
+            int slot = services.World.StarBoxes.ToList().FindIndex(value => value.State == 1);
+            if (slot < 0 || slot >= 3)
+            {
+                Fail("World fixture did not expose a claimable authoritative star box.");
+                yield break;
+            }
+            uint rewardId = services.World.StarBoxes[slot].RewardId;
+            Button box = worldMapView.Binding.Find($"Layer/Panel_1/Box{slot + 1}/Button1")?.GetComponent<Button>();
+            if (box == null || !box.gameObject.activeInHierarchy || !box.interactable)
+            {
+                Fail($"World star-box Prefab control is unavailable: slot={slot + 1}, reward={rewardId}, button={(box == null ? "missing" : "disabled")}.");
+                yield break;
+            }
+            box.onClick.Invoke();
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((services.ProtocolRegistry.PendingCount != 0
+                    || services.World.StarBoxes.ElementAtOrDefault(slot)?.State != 2)
+                   && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            WorldStarBoxRecord claimed = services.World.StarBoxes.ElementAtOrDefault(slot);
+            if (services.ProtocolRegistry.PendingCount != 0 || claimed == null || claimed.RewardId != rewardId || claimed.State != 2)
+            {
+                Fail($"World star-box click did not produce an authoritative claimed state: reward={rewardId}, actual={claimed?.RewardId ?? 0}/{claimed?.State ?? 0}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            // The /320 box acknowledgement may also reach the shared reward
+            // presenter.  Cocos returns directly to the stage map after this
+            // claim; retaining that unrelated overlay corrupts every later World
+            // state while adding no World control semantics.
+            rewardPresenter?.Hide();
+            worldG4StarBoxValidated = true;
+        }
+
+        private IEnumerator ValidateWorldNormalBoxControl()
+        {
+            WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.RewardBoxId != 0 && value.RewardBoxState == 1);
+            if (stage == null)
+            {
+                Fail("World fixture did not expose a claimable authoritative normal box.");
+                yield break;
+            }
+            Button box = worldPresenter?.FindNormalBoxButton(stage.Id);
+            if (box == null || !box.gameObject.activeInHierarchy || !box.interactable)
+            {
+                Fail($"World normal-box dynamic Cocos control is unavailable: stage={stage.Id}, box={stage.RewardBoxId}, button={(box == null ? "missing" : "disabled")}.");
+                yield break;
+            }
+            box.onClick.Invoke();
+            yield return null;
+            EnsureWorldBoxAwardView();
+            if (!worldBoxAwardView.GameObject.activeSelf)
+            {
+                Fail("World normal-box click did not open the imported box-award confirmation.");
+                yield break;
+            }
+            Button confirm = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Button")?.GetComponent<Button>();
+            if (confirm == null || !confirm.gameObject.activeInHierarchy || !confirm.interactable)
+            {
+                Fail("World normal-box imported confirmation button is unavailable.");
+                yield break;
+            }
+            uint boxId = stage.RewardBoxId;
+            confirm.onClick.Invoke();
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((services.ProtocolRegistry.PendingCount != 0
+                    || services.World.Stages.FirstOrDefault(value => value.Id == stage.Id)?.RewardBoxState != 2)
+                   && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            WorldStageRecord claimed = services.World.Stages.FirstOrDefault(value => value.Id == stage.Id);
+            if (services.ProtocolRegistry.PendingCount != 0 || claimed == null || claimed.RewardBoxId != boxId || claimed.RewardBoxState != 2)
+            {
+                Fail($"World normal-box confirmation did not produce an authoritative claimed state: stage={stage.Id}, box={boxId}, actual={claimed?.RewardBoxId ?? 0}/{claimed?.RewardBoxState ?? 0}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            rewardPresenter?.Hide();
+            worldG4NormalBoxValidated = true;
         }
 
         private void EnsureBagPresenter()
@@ -6963,16 +7738,108 @@ namespace ProjectX.Core
         private void EnsureWorldPresenter()
         {
             worldView = worldView ?? services.UiRouter.FindBySource("fuben/WorldMapNewLayer");
+            worldStageView = worldStageView ?? services.UiRouter.FindBySource("fuben/kapaiguaiwuLayer");
             worldMapView = worldMapView ?? services.UiRouter.FindBySource("fuben/DadituuiLayer");
             worldDetailView = worldDetailView ?? services.UiRouter.FindBySource("fuben/guanqiaxiangxiLayer");
-            if (worldView == null || worldMapView == null || worldDetailView == null)
+            if (worldView == null || worldStageView == null || worldMapView == null || worldDetailView == null)
                 throw new InvalidOperationException("World imported CocosUiBindings were not found.");
-            worldPresenter = worldPresenter ?? new WorldPresenter(worldView, worldMapView, worldDetailView,
-                services.World, services.Heroes, services.Formation, services.Resources,
+            worldPresenter = worldPresenter ?? new WorldPresenter(worldView, worldStageView, worldMapView, worldDetailView,
+                services.World, services.Heroes, services.Formation, services.Player, services.Resources, services.Currencies,
+                services.ShopCatalog, services.EquipmentCatalog,
                 id => InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)id),
                 id => { services.World.SelectStage(id); InvokeLuaOrFail(onWorldRequestStage, "World.RequestStage", (double)id); },
                 () => InvokeLuaOrFail(onWorldChallenge, "World.Challenge"),
-                () => HandleBack());
+                () => InvokeLuaOrFail(onWorldSweep, "World.Sweep"),
+                ShowWorldResetConfirmation,
+                id => InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)id),
+                ShowWorldNormalBox,
+                HandleFormationClick,
+                () => HandleBack(),
+                ShowWorld,
+                controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); });
+        }
+
+        private void EnsureWorldBoxAwardView()
+        {
+            EnsureWorldPresenter();
+            worldBoxAwardView = worldBoxAwardView ?? services.UiRouter.FindBySource("guaiwubaoxiangLayer");
+            if (worldBoxAwardView == null) throw new InvalidOperationException("World box award imported CocosUiBinding was not found.");
+            if (worldBoxAwardView.GameObject.transform.parent != worldView.GameObject.transform)
+            {
+                worldBoxAwardView.GameObject.transform.SetParent(worldView.GameObject.transform, false);
+                RectTransform rect = worldBoxAwardView.GameObject.transform as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchorMin = Vector2.zero;
+                    rect.anchorMax = Vector2.one;
+                    rect.offsetMin = rect.offsetMax = Vector2.zero;
+                    rect.localScale = Vector3.one;
+                }
+            }
+            BindWorldBoxButton("Layer/Cangbaotu/bg/Title/Button_1", HideWorldBoxAward);
+            BindWorldBoxButton("Layer/Cangbaotu/bg/ButtonOwn", HideWorldBoxAward);
+            BindWorldBoxButton("Layer/Cangbaotu/bg/Button", ClaimSelectedWorldBox);
+        }
+
+        private void BindWorldBoxButton(string path, Action action)
+        {
+            Button button = worldBoxAwardView.Binding.Find(path)?.GetComponent<Button>();
+            if (button == null) throw new InvalidOperationException($"World box award control is missing: {path}");
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+        }
+
+        private void ShowWorldNormalBox(WorldStageRecord stage)
+        {
+            if (stage == null || stage.RewardBoxId == 0) return;
+            EnsureWorldBoxAwardView();
+            selectedWorldBoxStageId = stage.Id;
+            bool claimable = stage.RewardBoxState == 1;
+            bool claimed = stage.RewardBoxState >= 2;
+            Text title = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Title/TitleBg")?.GetComponentInChildren<Text>(true);
+            if (title != null) title.text = "关卡宝箱";
+            Text hint = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Image_bg/Text_2")?.GetComponent<Text>();
+            if (hint != null) hint.text = claimable ? $"{stage.Name} 宝箱可领取" : claimed ? "该宝箱已领取" : $"通关 {stage.Name} 后可领取";
+            GameObject claim = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Button");
+            GameObject close = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/ButtonOwn");
+            if (claim != null) claim.SetActive(claimable);
+            if (close != null) close.SetActive(!claimable);
+            worldBoxAwardView.GameObject.SetActive(true);
+            worldBoxAwardView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void ClaimSelectedWorldBox()
+        {
+            WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.Id == selectedWorldBoxStageId);
+            if (stage == null || stage.RewardBoxId == 0 || stage.RewardBoxState != 1)
+            {
+                SetWorldError("该宝箱当前不可领取。");
+                return;
+            }
+            HideWorldBoxAward();
+            InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)stage.RewardBoxId);
+        }
+
+        private void HideWorldBoxAward()
+        {
+            if (worldBoxAwardView != null) worldBoxAwardView.GameObject.SetActive(false);
+        }
+
+        private void EnsureWorldOutcomePresenter()
+        {
+            EnsureWorldPresenter();
+            worldSweepView = worldSweepView ?? services.UiRouter.FindBySource("fuben/saodangLayer");
+            worldBattleResultView = worldBattleResultView ?? services.UiRouter.FindBySource("common/zhandoujiesuanLayer");
+            worldBattleStatisticsView = worldBattleStatisticsView ?? services.UiRouter.FindBySource("common/zhandoutongji");
+            if (worldSweepView == null || worldBattleResultView == null || worldBattleStatisticsView == null)
+                throw new InvalidOperationException("World result CocosUiBindings were not found.");
+            worldOutcomePresenter = worldOutcomePresenter ?? new WorldOutcomePresenter(worldView, worldSweepView,
+                worldBattleResultView, worldBattleStatisticsView, services.Rewards, services.Resources, services.Player,
+                () => InvokeLuaOrFail(onWorldSweep, "World.SweepAgain"),
+                () => InvokeLuaOrFail(onWorldRefresh, "World.Continue"),
+                () => InvokeLuaOrFail(onWorldChallenge, "World.Replay"),
+                ShowWorldBattleStatisticsUnavailable, ShowWorldBattleReviveUnavailable,
+                controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); });
         }
 
         private void EnsureWelfarePresenter()

@@ -7,20 +7,24 @@ namespace ProjectX.Core
     {
         private readonly HashSet<string> flags;
 
-        private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId, uint drawIsolationUserId)
+        private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId, uint drawIsolationUserId,
+            uint worldIsolationUserId)
         {
             this.flags = flags;
             LocalUserId = localUserId;
             TeamPeerRoleId = teamPeerRoleId;
             DrawIsolationUserId = drawIsolationUserId;
+            WorldIsolationUserId = worldIsolationUserId;
         }
 
         public uint LocalUserId { get; }
         public uint TeamPeerRoleId { get; }
         public uint DrawIsolationUserId { get; }
+        public uint WorldIsolationUserId { get; }
         public bool Automation => HasFlag("-projectXAutomation");
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
         public bool DrawClosureValidation => HasFlag("-projectXDrawClosureValidation");
+        public bool WorldBattleValidation => HasFlag("-projectXWorldBattleValidation");
         public bool UseItemValidation => HasFlag("-projectXUseItemValidation");
         public bool SettingsValidation => HasFlag("-projectXSettingsValidation");
         public bool TaskValidation => HasFlag("-projectXTaskValidation") || HasFlag("-projectXTaskG4Validation");
@@ -34,6 +38,7 @@ namespace ProjectX.Core
             uint localUserId = 1;
             uint teamPeerRoleId = 0;
             uint drawIsolationUserId = 0;
+            uint worldIsolationUserId = 0;
             foreach (string raw in arguments ?? Array.Empty<string>())
             {
                 string argument = raw ?? string.Empty;
@@ -53,8 +58,13 @@ namespace ProjectX.Core
                     && uint.TryParse(argument.Substring(drawIsolationPrefix.Length), out uint isolationValue)
                     && isolationValue > 0)
                     drawIsolationUserId = isolationValue;
+                const string worldIsolationPrefix = "-projectXWorldIsolationUserId=";
+                if (argument.StartsWith(worldIsolationPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(worldIsolationPrefix.Length), out uint worldIsolationValue)
+                    && worldIsolationValue > 0)
+                    worldIsolationUserId = worldIsolationValue;
             }
-            return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId, drawIsolationUserId);
+            return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId, drawIsolationUserId, worldIsolationUserId);
         }
 
         public static AppLaunchOptions Current() => Parse(Environment.GetCommandLineArgs());

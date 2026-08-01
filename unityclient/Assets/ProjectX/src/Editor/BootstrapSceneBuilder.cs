@@ -62,8 +62,13 @@ namespace ProjectX.Editor
         private const string GuildMemberPrefab = "Assets/ProjectX/res/csd/Prefabs/bangpai/GangsMemberLayer.prefab";
         private const string GuildCreatePrefab = "Assets/ProjectX/res/csd/Prefabs/bangpai/GangsfoundLayer.prefab";
         private const string WorldPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/WorldMapNewLayer.prefab";
+        private const string WorldStagePrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/kapaiguaiwuLayer.prefab";
         private const string WorldMapPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/DadituuiLayer.prefab";
         private const string WorldDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/guanqiaxiangxiLayer.prefab";
+        private const string WorldSweepPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/saodangLayer.prefab";
+        private const string WorldBattleResultPrefab = "Assets/ProjectX/res/csd/Prefabs/common/zhandoujiesuanLayer.prefab";
+        private const string WorldBattleStatisticsPrefab = "Assets/ProjectX/res/csd/Prefabs/common/zhandoutongji.prefab";
+        private const string WorldBoxAwardPrefab = "Assets/ProjectX/res/csd/Prefabs/guaiwubaoxiangLayer.prefab";
         private const string WelfarePrefab = "Assets/ProjectX/res/csd/Prefabs/WelfareLayer.prefab";
         private const string WelfareSignPrefab = "Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab";
         private const string WelfareOnlinePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab";
@@ -148,8 +153,13 @@ namespace ProjectX.Editor
             new PrefabSpec(GuildMemberPrefab, false),
             new PrefabSpec(GuildCreatePrefab, false),
             new PrefabSpec(WorldPrefab, false),
+            new PrefabSpec(WorldStagePrefab, false),
             new PrefabSpec(WorldMapPrefab, false),
             new PrefabSpec(WorldDetailPrefab, false),
+            new PrefabSpec(WorldSweepPrefab, false),
+            new PrefabSpec(WorldBattleResultPrefab, false),
+            new PrefabSpec(WorldBattleStatisticsPrefab, false),
+            new PrefabSpec(WorldBoxAwardPrefab, false),
             new PrefabSpec(WelfarePrefab, false),
             new PrefabSpec(WelfareSignPrefab, false),
             new PrefabSpec(WelfareOnlinePrefab, false),
@@ -214,6 +224,46 @@ namespace ProjectX.Editor
         private static void EnsureDrawDynamicResources()
         {
             string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            string cocosRoot = Path.Combine(repositoryRoot, "client", "ProjectX");
+            // World still draws from the original Cocos bitmaps.  Keep these
+            // runtime copies small and explicit instead of substituting screenshots.
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/Icon/ui_map_icon/ditu_shijie_worldmap.png",
+                "Assets/ProjectX/Resources/WorldUI/worldmap.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_zhandou/ui_jiesuan_shengli_bg.png",
+                "Assets/ProjectX/Resources/WorldUI/battle_victory_bg.png");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/ui_zhandou/ui_jiesuan_shengli.png",
+                "Assets/ProjectX/Resources/WorldUI/battle_victory.png");
+            CopyResourceIfChanged(
+                Path.Combine(cocosRoot, "res", "res", "UI", "ui_zhandou", "bg0.jpg"),
+                "Assets/ProjectX/Resources/WorldUI/battle_scene_bg.jpg");
+            foreach (string configName in new[]
+                     {
+                         "bigmap_dat", "map_res_dat", "maplist_dat", "fight_config_dat",
+                         "monster_boss_basic_dat", "exp_dat"
+                     })
+            {
+                CopyResourceIfChanged(
+                    Path.Combine(cocosRoot, "src", "ConfigData", configName + ".lua"),
+                    $"Assets/ProjectX/Resources/WorldUI/Config/{configName}.txt");
+            }
+            for (int map = 1; map <= 6; map++)
+            {
+                for (int tile = 1; tile <= 12; tile++)
+                {
+                    CopyResourceIfChanged(
+                        Path.Combine(cocosRoot, "res", "fuben", $"map_{map}", $"map_{tile}.jpg"),
+                        $"Assets/ProjectX/Resources/WorldUI/Maps/map_{map}/map_{tile}.jpg");
+                }
+            }
+            for (int world = 1; world <= 3; world++)
+            {
+                CopyResourceIfChanged(
+                    Path.Combine(cocosRoot, "res", "res", "UI", "Icon", "ui_map_icon", $"fuben_map{world}.png"),
+                    $"Assets/ProjectX/Resources/WorldUI/Chapters/fuben_map{world}.png");
+            }
             CopyResourceIfChanged(
                 Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", "skill_641.png"),
                 "Assets/ProjectX/Resources/HeroUI/skill_641.png");
@@ -240,7 +290,7 @@ namespace ProjectX.Editor
                 ? sourcePath : Path.GetFullPath(sourcePath);
             string absoluteDestination = Path.GetFullPath(destinationAssetPath);
             if (!File.Exists(absoluteSource))
-                throw new FileNotFoundException($"Draw dynamic resource is missing: {absoluteSource}");
+                throw new FileNotFoundException($"Runtime dynamic resource is missing: {absoluteSource}");
             byte[] source = File.ReadAllBytes(absoluteSource);
             bool changed = !File.Exists(absoluteDestination)
                 || !source.SequenceEqual(File.ReadAllBytes(absoluteDestination));

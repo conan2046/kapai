@@ -1,14 +1,33 @@
 # 世界/战斗/副本模块
 
-> 状态：第一阶段完成。主线地图只读链路与一次隔离 PvE 进入/结算闭环已验证；战斗表现深化后置。
+> 状态：G0-G6 passed（2026-08-01）。旧“第一阶段完成”、旧截图、旧 Runner 和旧 Bootstrap SHA 全部仅作历史线索，不作为本轮证据。
 
-## 范围
+## G0 范围冻结
+
+- 唯一入口：`UImainLayer_new/Layer/Main_UI/btn_fuben → MainUI:FuBenTouchCallback → Utils:OpenFunction(EMID_KAPAI_ZHUXIANFUBEN) → FuBenMap.NormalFuBenUI`。
+- 本轮包含：世界章节地图、章节关卡地图、关卡详情、主线 `/320 op=1/2/4/5/6/7/8/27`、挑战、扫荡、次数重置、普通/星级宝箱、战斗结算与其可达弹窗。
+- 本轮状态：正常、未解锁、体力不足、次数用尽、重置次数用尽、宝箱不可领/可领/已领、挑战成功/失败、重拉、重进、断线重连、切号和精确恢复。
+- 冻结 `27` 项源码审计对象：`25` 个实际控件完成 G6，另 `WORLD-07-WORLD-CLOSE`、`WORLD-24-BATTLE-REVIVE` 两项经源码证明不属于独立 World 控件；完整矩阵：`docs/unityclient/matrices/WORLD_CONTROLS.json`。
+- 排除但必须在 Unity 明确隐藏/禁用：支线、帮派副本、封神试炼、排行榜、主线成就、商城加币、体力补给、非 `/320` PvP；旧 `/21-/23` 战斗表现流无当前服务端闭环，不得用假数据或静态图替代。
+- 固定验证账号冻结为 `userId=7200057 / roleId=1000115`，终态隔离账号冻结为 `userId=705213 / roleId=1000006`；Fixture 适配器、快照表与 G5 状态对必须先在 G1/G2 以服务端实际数据确定，G3 后启动 Unity 前执行 `Run-UnityFixedAccountValidation.ps1 -Module World -DataPreflightOnly`。
+- 当前环境：Cocos、`kapai.exe`、Unity 和工作区 MySQL 均已停止；固定账号已精确恢复。
+
+## G1 Cocos 运行取证（passed）
+
+- 电脑操作已切换为用户指定的 Computer Use 链路；不再使用项目窗口脚本驱动 Cocos。该链路实际完成：`主界面 → btn_fuben → 世界地图 → 第3章解救妲己 → 3-3 黄飞虎详情 → 返回`。
+- 当前原生证据均由该工具取得、再裁去窗口边框为 `1334×750`：`WORLD-00` 主界面、`01` 世界地图、`02` 第三章、`03` 3-3 详情、`05` 章节下拉、`06/09` 宝箱领取前后、`07` 真实扫荡、`08` 三星结算、`10` 次数重置确认；目录 `.local/ui-fidelity/World/cocos/g1-20260731-cua/`，`capture-manifest.json` 记录固定账号、窗口和裁切边界。
+- 服务端同一会话实际触发 `/320 op=1/2/4/5/6/7/8/27`；`op=6` 扣 25 体力并产出五次扫荡奖励，`op=7` 消耗 50 元宝重置，`op=5→8` 进入真实 PvE 后返回三星结算，`op=4` 后宝箱打开。协议静态提取为 `.local/protocol-evidence/320.md`。
+- 可逆数据面：`Invoke-WorldCocosFixture.ps1` 快照 `guan_qia/package/save_data/save_val/user_spirit/mission/角色与账户货币`；两轮操作后均恢复 `1fe6274907b6aef8f631994fa0a7c4d9b17e19fe30e7a5b54ae2a6aca0eca11d`，Fixture 表残留 `0`。启动期 `rank_list_save` 缺列已在本地最小 schema 修复并以固定账号协议 smoke 回归，无该 SQL 错误。
+- 前次项目窗口脚本的后台/前台点击失败仅作为工具选择错误，不构成本轮 G1 结论，也不作为证据。
+- G1 结论：入口、列表、详情、扫荡、重置、战斗与宝箱的当前 Cocos 证据及 Lua→`/320` 链路齐全。断线重连、切号和异常分支保留 G4 的真实 Unity 验收，不用旧 Runner 或 Unity 假数据替代。
+
+## 历史第一阶段范围（非本轮证据）
 
 - 已完成：世界地图入口、章节列表、章节关卡列表、关卡状态、详情、挑战次数/体力、阵容摘要、奖励预览、一次本地主线挑战、结算奖励、刷新后星级持久化。
 - 复用：`HeroStore`、`FormationStore`、`RewardRecord/RewardStore/RewardPresenter`、`ResourceService`、`VirtualList`、`UiStack` 和通用弹窗。
 - 不包含：PvP、完整战斗表现、技能特效、自动战斗、数值平衡、扫荡、重置和宝箱领取。
 
-## 三方证据
+## G0 静态链路（已由 G1/G2 复核）
 
 ### 协议与服务端
 
@@ -21,7 +40,10 @@
 | 1 | C→S→C | 请求 `type:u8`；响应章节数量、章节 `id/name/openLv/maxStars`、当前章/关及各章星数/宝箱状态 |
 | 2 | C→S→C | 请求 `type:u8,mapId:u32`；响应关卡 `id/name/stars/remainingAttempts/spirit/resets/resetCost/next/box`、货币/物品奖励、星级宝箱 |
 | 27 | C→S→C | 查询 `type,mapId,nodeId`；响应 `stars/fightCnt/resetCnt`，`stars=255` 表示未开启 |
+| 4 | C→S→C | 领取普通/星级宝箱 `type,mapId,fixId`；状态 `1→2` 后按 `MUT_GuanQiaFix` 发权威奖励 |
 | 5 | C→S→C | 挑战 `type,mapId,nodeId`；服务端进入本地 PvE 处理 |
+| 6 | C→S→C | 扫荡 `type,mapId,nodeId`；按当前体力及剩余次数取 `0..5` 次，发多段奖励并写次数 |
+| 7 | C→S→C | 重置 `nodeId`；按 50/50/100/100/200 元宝梯度扣款、清挑战次数、递增重置次数 |
 | 8 | S→C | 结算推送：`alreadyFightTimes,stageId,unlockedChapter,unlockedStage,box,starBox,stars,rewardCount,rewards` |
 
 - 通用奖励三元组为 `type:u16,id:u32,amount:u32`。货币奖励可使用 `type=600xx,id=0`；显示层保留权威 `id=0`，仅用 `type` 查询现有 `ItemCatalog`。
@@ -37,7 +59,46 @@
 - Prefab：`fuben/WorldMapNewLayer`、`fuben/DadituuiLayer`、`fuben/guanqiaxiangxiLayer`；结算复用 `common/tanchuangjiangli`，`common/zhandoujiesuanLayer` 只保留为后续战斗表现证据。
 - 取证草稿：`.local/protocol-evidence/320.md`。
 
-## 实现
+## G2 迁移设计（passed）
+
+- 权威边界：`LuaNetSendMsg → /320 → CPackageDeal::DealGuanQia → CUserGuanQia` 是唯一数据和扣费边界；Unity `WorldStore` 只能在 `WorldController.lua.txt` 收到完整成功包后渲染，禁止先写本地扣体力、次数、宝箱或奖励。
+- 资源语义：`WorldMapNewLayer` 是世界底图，`DadituuiLayer` 是章节地图（含动态关卡/宝箱和 Timeline），`guanqiaxiangxiLayer` 是关卡详情；扫荡结果为 `FuBenMap.SaoDangResultUI`，战斗结算是当前 Cocos 战斗流结果页，不能用静态奖励弹窗替代。
+- 现有 Unity 缺口：`WorldPresenter` 只绑定章节、关闭、详情关闭和挑战，且主动隐藏 `Button_1/Button_3`；`WorldController` 只解析 `op=1/2/5/8/27`。G3 必须补齐 `op=4/6/7`、普通/星级箱状态、扫荡结果、重置确认/失败、真实阵容入口、返回栈、断线重拉与切号清理；排除入口（封神试炼、排行榜、主线成就、商城加币）必须隐藏，不可留空壳。
+- 可逆策略：`Invoke-WorldCocosFixture.ps1` 在服务端离线时快照 `guan_qia/package/save_data/save_val/user_spirit/mission/角色与账户货币`，并用整体 SHA-256、恢复后重登与 `unity_validation_world_fixture=0` 断言。G3 后必须先跑 `Run-UnityFixedAccountValidation.ps1 -Module World -DataPreflightOnly`。
+
+- G2 结论：控件矩阵、`/320` 全操作码、服务端实现、资源语义、固定账号与恢复合同已对齐；静态实现只可消费服务端成功包。
+
+## G3 静态实现（passed）
+
+- `/320 op=4/6/7` 的请求与成功/失败包解析已接入；章节、详情、宝箱、扫荡、重置和布阵已连接到现有导入 Prefab。
+- 扫荡结果 `fuben/saodangLayer`、战斗结算 `common/zhandoujiesuanLayer`、统计页 `common/zhandoutongji` 已由 `WorldOutcomePresenter` 接入 Bootstrap；结算页只消费 `/320` 成功包，通用 `RewardPresenter` 不再替代 World 结算。
+- 继续通过结算页真实 `Panel` 控件触发 `/320 op=1` 重拉；回放通过真实 `Button_Replay` 重新发送 `/320 op=5`。`/320 op=8` 未下发逐单位战报、未定义复活请求，统计/复活以真实导入控件给出明确不可用边界，未写入本地假数据。
+- 重置成功后立即 `/320 op=2` 重拉权威次数，未再假设最大次数。扫荡可见性遵循当前 Cocos `stars > 0`，而不是自行提高到三星。
+- Unity `BuildBatch` 第二轮干净通过，严重错误 `0`；固定账号 `-DataPreflightOnly` 通过 4 项前置、精确恢复与 Fixture 残留清零。实现、编译和预检证据：`.local/unity-validation/world-g3-implementation.md`。
+- G3 结论：25 项实际控件的静态路由、真实 Prefab、Lua 协议路由与 C# 渲染桥接已接入；本阶段未以静态实现冒充动态通过。
+
+## G4 固定账号动态验收（passed）
+
+- 固定账号 `7200057/1000115` 由可逆 Fixture 提供可领普通/星级宝箱、可扫荡关卡、次数用尽与可重置状态；终态隔离账号为 `705213/1000006`。
+- 当前 Runner 从真实 `btn_fuben` 进入，覆盖 `/320 op=1/2/4/5/6/7/8/27`、章节前后切换/下拉/动态行、关卡滚动/详情/布阵、扫荡/再次扫荡、重置、两类宝箱、挑战、结算继续/回放/统计边界、重连与切号。
+- 结果：`25/25` 控件、`5/5` 语义断言、6 张互异 `1334×750` 截图、严重异常 0。快照、恢复后和重登录哈希均为 `1fe6274907b6aef8f631994fa0a7c4d9b17e19fe30e7a5b54ae2a6aca0eca11d`，Fixture 残留 0。
+- 证据：`.local/unity-validation/world-fixed-account-latest.json`。
+
+## G5 双端视觉验收（passed）
+
+- 世界地图、关卡详情、扫荡、重置确认、战斗结算、宝箱状态共 `6/6` 当前双端原图、并排、叠加和差异报告通过人工验收；证据 `.local/ui-fidelity/World/compare/g5-20260731-cua/`。
+- Cocos `FuBenDetailUI` 对 `MapPanel` 使用 `750/1080` 缩放；Unity 补齐同一语义后，详情和宝箱布局恢复到同一坐标体系。
+- 按用户 2026-08-01 最终要求，扫荡页不按每次战斗分组，而展示“扫荡 N 次收益汇总”，以协议 `{type,id}` 合并所有次数的同类收益；标题和再次扫荡按钮均显示实际 `N`。
+- 服务端当前可返回 `type=4603,id=0`，共享 `item_dat.lua/item.json` 缺少 `4601–4604`。World 展示层依据 `equip_dat.lua` 的 `1001–1004` 素心装备和紧邻的 `4605–4608` 青罗碎片连续编号，受控显示“碎片素心衣”及 `petequip_2103` 图标；共享掉落配置未修改。
+
+## G6 收口（passed）
+
+- `WORLD_CONTROLS.json`：25/25 控件 `complete`，逐控件关联当前 Cocos/Unity `1334×750` 证据；占位、重复 UID、严重异常均为 0。
+- `Test-UnityMigrationHardGates.ps1 -Module World -Phase G6` 通过；固定摘要与终态隔离身份分别校验，不再错误要求同一账号。
+- `BootstrapSceneBuilder.BuildBatch` 连续执行两次，均报告语义签名未变化并跳过重建；两次 Bootstrap SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`。
+- G6 已登记到 `tools/unity-migration/migration-gates.json`；World 当前状态为 `G0-G6 passed / 25/25 complete`。
+
+## G0 前既有 Unity 实现（历史基线）
 
 - `WorldStore.cs`：章节、关卡、星级宝箱、选中态、挑战状态和结算合并；奖励直接使用 `RewardRecord`。
 - `WorldPresenter.cs`：运行时绑定三个只读导入 Prefab；`VirtualList` 渲染关卡，详情复用现有阵容与资源能力。
@@ -45,7 +106,7 @@
 - `GameServices/ProjectXApp/ProtocolRegistry/BootstrapSceneBuilder/BootstrapAppRunner`：服务注入、入口、协议登记、场景装配和批处理验收。
 - `RewardPresenter`：运行时修正导入 `ItemList` 的异常锚点；未修改导入 Prefab。
 
-## 验证
+## 历史验证（非本轮证据）
 
 - 命令：`pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module World`。
 - 最终隔离账号：`userId=7200008`；阶段账号不再复用。`7200004-7200007` 为启动失败、门禁修正或视觉修正过程账号，不作为最终证据。
@@ -55,8 +116,14 @@
 - Unity BatchMode 编译/运行通过；严重日志匹配 `0`；UI 转换测试 `10/10`；迁移文档门禁通过。
 - 数据边界：变更只落在一次性账号 `7200008`，不复用 Team/Guild 账号，不领取章节/星级宝箱，不执行扫荡或重置。
 
-## 遗留
+## 本轮已执行门禁
 
-- 第二阶段再处理扫荡、挑战重置、普通/星级宝箱、支线与更多章节状态。
-- 战斗表现需先补齐 `/21-23` 服务端分发及资源证据，再接战斗场景、技能和自动战斗。
-- 本地服务首次挑战计数字段仍为 `0`，若后续业务依赖次数限制，应先修复/补证服务端状态语义。
+1. G0-G2 已复核服务端 `/320`、配置、Cocos 动态节点和 Unity Transform，并冻结固定账号、重连/切号合同。
+2. G3 已按矩阵绑定真实 Prefab、Lua Controller 与 C# Render Bridge，排除入口保持隐藏。
+3. G4-G6 已完成数据预检、动态验收、双端视觉、逐控件证据和双次 BuildBatch。
+
+## 历史遗留
+
+- 支线、帮派副本、封神试炼、排行榜、主线成就按独立模块从 G0 开始，不并入本次 World 结论。
+- 完整战斗表现仍需先补齐 `/21-23` 服务端分发及资源证据，再接战斗场景、技能和自动战斗。
+- 本地服务首次挑战计数字段仍可能为 `0`；若后续独立战斗模块依赖该字段，应先修复并补服务端语义证据。

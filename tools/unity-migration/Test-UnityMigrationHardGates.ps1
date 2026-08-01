@@ -78,8 +78,15 @@ $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $result -Name
 Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $expectedUserId
 $runtimeCoverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
     -ControlMatrix $controlMatrix
-if ([uint32]$summary.userId -ne [uint32]$result.userId -or [uint32]$summary.roleId -ne [uint32]$result.roleId) {
-    throw "Validation summary identity does not match the Unity result."
+$contractEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/module-evidence-contracts.json"
+$contractMatches = @($contractEntry.Value.modules | Where-Object { $_.module -ieq $Module })
+$fixedAccount = if ($contractMatches.Count -eq 1) {
+    Get-UnityMigrationPropertyValue -Object $contractMatches[0] -Name "fixedAccount" -Default $null
+} else { $null }
+$identityFailures = @(Get-UnityMigrationSummaryIdentityFailures -Summary $summary -Result $result `
+    -FixedAccount $fixedAccount)
+if ($identityFailures.Count -gt 0) {
+    throw "Validation identity failed: $($identityFailures -join '; ')"
 }
 if (@($summary.captureStates).Count -ne $captureStates.Count -or
     (@($summary.captureStates) -join "`n") -ne ($captureStates -join "`n")) {

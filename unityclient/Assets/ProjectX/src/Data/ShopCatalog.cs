@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using ProjectX.Diagnostics;
 using UnityEngine;
@@ -41,6 +42,8 @@ namespace ProjectX.Data
     {
         private readonly Dictionary<ushort, ShopDefinition> shops = new Dictionary<ushort, ShopDefinition>();
         private readonly Dictionary<int, ShopItemDefinition> items = new Dictionary<int, ShopItemDefinition>();
+        private readonly Dictionary<int, ShopItemDefinition> cocosItems = new Dictionary<int, ShopItemDefinition>();
+        private bool cocosItemsLoaded;
         private readonly Dictionary<int, SynthesisDefinition> synthesis =
             new Dictionary<int, SynthesisDefinition>();
         private readonly Dictionary<int, int> synthesisCosts = new Dictionary<int, int>();
@@ -72,6 +75,88 @@ namespace ProjectX.Data
 
         public int GetSynthesisCost(int itemId) =>
             synthesisCosts.TryGetValue(itemId, out int cost) ? cost : 0;
+
+        public RewardRecord DescribeReward(int type, int id, uint amount)
+        {
+            EnsureCocosItems();
+            int displayId = id > 0 ? id : type;
+            ShopItemDefinition item = FindCocosItem(displayId) ?? FindCocosItem(type)
+                ?? FindItem(displayId) ?? FindItem(type);
+            return new RewardRecord(type, checked((uint)Math.Max(0, id)), amount,
+                NonEmpty(item?.Name, $"奖励 #{(id > 0 ? id : type)}"), item?.Picture ?? 0,
+                item?.Quality ?? 0);
+        }
+
+        public bool IsCocosHeroSoul(int itemId)
+        {
+            EnsureCocosItems();
+            ShopItemDefinition item = FindCocosItem(itemId);
+            return item != null && item.Type == 2;
+        }
+
+        private ShopItemDefinition FindCocosItem(int id) =>
+            cocosItems.TryGetValue(id, out ShopItemDefinition value) ? value : null;
+
+        private void EnsureCocosItems()
+        {
+            if (cocosItemsLoaded) return;
+            cocosItemsLoaded = true;
+            TextAsset asset = Resources.Load<TextAsset>("Lua/Data/ItemCatalog.lua")
+                ?? Resources.Load<TextAsset>("Lua/Data/ItemCatalog");
+            if (asset == null) return;
+            foreach (string entry in SplitLuaEntries(asset.text))
+            {
+                Match idMatch = Regex.Match(entry, @"\bid\s*=\s*(-?\d+)");
+                Match nameMatch = Regex.Match(entry, @"\bname\s*=\s*""([^""]*)""");
+                Match pictureMatch = Regex.Match(entry, @"\bpic\s*=\s*(-?\d+)");
+                Match qualityMatch = Regex.Match(entry, @"\bquality\s*=\s*(-?\d+)");
+                Match typeMatch = Regex.Match(entry, @"\btype\s*=\s*(-?\d+)");
+                if (!idMatch.Success) continue;
+                int itemId = int.Parse(idMatch.Groups[1].Value);
+                cocosItems[itemId] = new ShopItemDefinition
+                {
+                    Id = itemId,
+                    Name = nameMatch.Success ? nameMatch.Groups[1].Value : string.Empty,
+                    Picture = pictureMatch.Success ? int.Parse(pictureMatch.Groups[1].Value) : 0,
+                    Quality = qualityMatch.Success ? int.Parse(qualityMatch.Groups[1].Value) : 0,
+                    Type = typeMatch.Success ? int.Parse(typeMatch.Groups[1].Value) : 0
+                };
+            }
+        }
+
+        private static IEnumerable<string> SplitLuaEntries(string source)
+        {
+            int depth = 0;
+            int start = -1;
+            bool inString = false;
+            bool escaped = false;
+            for (int index = 0; index < source.Length; index++)
+            {
+                char value = source[index];
+                if (inString)
+                {
+                    if (escaped) escaped = false;
+                    else if (value == '\\') escaped = true;
+                    else if (value == '"') inString = false;
+                    continue;
+                }
+                if (value == '"') { inString = true; continue; }
+                if (value == '{')
+                {
+                    depth++;
+                    if (depth == 2) start = index;
+                }
+                else if (value == '}')
+                {
+                    if (depth == 2 && start >= 0)
+                    {
+                        yield return source.Substring(start, index - start + 1);
+                        start = -1;
+                    }
+                    if (depth > 0) depth--;
+                }
+            }
+        }
 
         public bool IsShard(int itemId)
         {

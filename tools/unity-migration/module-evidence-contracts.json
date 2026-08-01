@@ -233,6 +233,53 @@
           { "id": "DRAW-FORMATION-MOUNTED", "cocos": "DRAW-FORMATION-MOUNTED.png", "unity": "DRAW-FORMATION-MOUNTED.png" }
         ]
       }
+    },
+    {
+      "module": "World",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 705213,
+        "terminalRoleId": 1000006,
+        "adapter": "tools/unity-migration/Invoke-WorldCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/World/unity/g5-20260731-cua/world-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/World/unity/g5-20260731-cua/world-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": ["-projectXWorldBattleValidation", "-projectXWorldIsolationUserId=705213"],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定 userId 唯一绑定 1000115，终态隔离账号为 705213/1000006" },
+            { "id": "world-authoritative-state", "description": "服务端 guan_qia 解压后具备第3章3-3三星、可扫荡、可重置和至少一个未领取宝箱" },
+            { "id": "world-currency-spirit", "description": "权威 user_spirit 与角色/账户货币足以覆盖扫荡、重置、战斗和领奖，失败分支由真实耗尽状态触发" },
+            { "id": "exact-restore-surface", "description": "快照 guan_qia、package、save_data、save_val、user_spirit、mission、角色经验/等级/货币及账户货币，以整体 SHA-256、重登和 Fixture 零残留复核" }
+          ]
+        },
+        "artifactCopies": [
+          { "source": "build/ui-migration/bootstrap-world-map.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-MAP.png" },
+          { "source": "build/ui-migration/bootstrap-world-detail.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-STAGE-DETAIL.png" },
+          { "source": "build/ui-migration/bootstrap-world-sweep.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-SWEEP.png" },
+          { "source": "build/ui-migration/bootstrap-world-reset.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-RESET.png" },
+          { "source": "build/ui-migration/bootstrap-world-result.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-BATTLE.png" },
+          { "source": "build/ui-migration/bootstrap-world-chest.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-CHEST.png" }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/World/cocos/g5-20260731-cua",
+        "unityDirectory": ".local/ui-fidelity/World/unity/g5-20260731-cua",
+        "compareDirectory": ".local/ui-fidelity/World/compare/g5-20260731-cua",
+        "width": 1334,
+        "height": 750,
+        "pairs": [
+          { "id": "WORLD-MAP", "cocos": "WORLD-MAP.png", "unity": "WORLD-MAP.png" },
+          { "id": "WORLD-STAGE-DETAIL", "cocos": "WORLD-STAGE-DETAIL.png", "unity": "WORLD-STAGE-DETAIL.png" },
+          { "id": "WORLD-SWEEP", "cocos": "WORLD-SWEEP.png", "unity": "WORLD-SWEEP.png" },
+          { "id": "WORLD-RESET", "cocos": "WORLD-RESET.png", "unity": "WORLD-RESET.png" },
+          { "id": "WORLD-BATTLE", "cocos": "WORLD-BATTLE.png", "unity": "WORLD-BATTLE.png" },
+          { "id": "WORLD-CHEST", "cocos": "WORLD-CHEST.png", "unity": "WORLD-CHEST.png" }
+        ]
+      }
     }
   ]
 }

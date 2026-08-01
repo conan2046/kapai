@@ -593,7 +593,7 @@
     {
       "key": "World",
       "displayName": "世界/战斗/副本",
-      "status": "phase1-complete",
+      "status": "g6-complete",
       "protocols": [
         320
       ],
@@ -612,12 +612,15 @@
         "-projectXWorldBattleValidation"
       ],
       "screenshots": [
-        "build/ui-migration/bootstrap-world.png",
+        "build/ui-migration/bootstrap-world-map.png",
         "build/ui-migration/bootstrap-world-detail.png",
+        "build/ui-migration/bootstrap-world-sweep.png",
+        "build/ui-migration/bootstrap-world-reset.png",
         "build/ui-migration/bootstrap-world-result.png",
-        "build/ui-migration/bootstrap-world-final.png"
+        "build/ui-migration/bootstrap-world-chest.png"
       ],
-      "document": "docs/unityclient/modules/WORLD.md"
+      "document": "docs/unityclient/modules/WORLD.md",
+      "controlMatrix": "docs/unityclient/matrices/WORLD_CONTROLS.json"
     },
     {
       "key": "Welfare",
