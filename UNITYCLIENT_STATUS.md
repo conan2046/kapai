@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `12/29 = 41.4%` | 登录与创角、系统设置、主界面 HUD、背包、任务、神将/阵容、装备/法宝、邮件、基础商城、玩法商店、神将招募、世界/战斗/副本已按新标准完成 G0-G6 |
+| Validated | `13/29 = 44.8%` | 登录与创角、系统设置、主界面 HUD、背包、任务、神将/阵容、装备/法宝、邮件、基础商城、玩法商店、神将招募、世界/战斗/副本、玩法大厅已按新标准完成 G0-G6 |
 
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 
@@ -39,11 +39,12 @@
 | 福利 | 第一阶段完成 | `/199、/222、/223` 签到、在线奖励、阶段目标边界/空态、单次签到领取；`/321 op=2` 体力领取三档权威状态 | 在线领取、体力实际领取、七日登录、等级礼包、阶段目标服务端恢复 |
 | 活动 | 第一阶段完成 | 当前入口 `ButtonGroup5/btn_huodong → WelfareActivityFormerUI`；`/222 op=0xFF` 列表、Tab/红点/倒计时、`op=18/1` 每日首充状态与奖励、真实未迁移 Tab 空边界通过 | 累计充值/消费、节日、排行、砸蛋、七日充值、神将折扣、领取与充值 SDK |
 | 抽卡 | `G0-G6 complete` | 当前 `btn_zhaomu → HappyDrawUI → /224`；28/28 控件、三池、免费/券消耗、十连、预览、新/重复结果、Hero 培养、Formation 上阵、重进/重连/切号和精确恢复完成 | 概率公示、支付渠道不在本模块；World 后续单独迁移 |
-| 玩法大厅及首批子页 | `logic-validated-visual-deferred` | 大厅真实布局、游历、封神列传、竞技场、决战昆仑 `/213`、血战 `/323`、法宝搜索 `/319`、七日目标 `/37`、三类玩法商店 `/221`、体力领取 `/321`、资源找回 `/52`、成长/活跃基金 `/222` 均已跑通 | 好友赠送与组队统一后置；继续下一个非社交模块 |
+| 玩法大厅 | `G0-G6 passed / 16/16 complete` | 固定账号完成9/9双端原生视觉、16/16真实控件、12/12语义断言；大厅13项顺序、滚动/裁剪、等级锁、共享红点、13个路由边界、空配置、断线/重连、重进/重启和切号隔离均通过 | 仅拥有大厅显示与路由边界；所有子页仍按独立模块迁移，下一模块为封神列传 |
 | 支付前置/充值/VIP/渠道 | `planned-prerequisite` | `PAYMENT.md` 已冻结现有源码、双宏、服务端测试充值分支、统一按钮接线和门禁；源码未实现 | P2 开始前先完成测试/正式支付前置，再接活动、基金、福利；完整 VIP/渠道与合规继续在 P2 内处理 |
 | 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
 
 ## 3. 最新验证基线
+- Gameplay G0-G6（2026-08-02）：固定账号 `7200057/1000115`、锁定账号 `7200260/1000119`、隔离账号 `705213/1000006`；16/16控件、12/12语义断言、13个权威入口/路由边界通过。9组同账号同数据同步骤的 Cocos/Unity 原生 `1334×750` 视觉完成，MAE `4.71–8.27`；仅批准重连帧早于异步 `/213 op=25` 稳定的时序差，两端稳定态昆仑红点一致。大厅不拥有子页协议，`/65` 与昆仑刷新保持共享所有权；恢复哈希 `9225585d40d2624b11aad0dc8c713a22afc641489307a68c5ea2e405cd3e0a5a`，Fixture变更与残留均为0。两次正式 BuildBatch SHA-256 均为 `BED14CC26A6E055C8C00B4B647E54D7B706B7D0C2651CFF9915D1165094CE4E3`；文档测试29/29、工具链82/82、操作台账未解决0。证据 `.local/unity-validation/gameplay-fixed-account-latest.json`、`.local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json`、`.local/unity-validation/gameplay-retrospective-latest.json`。
 - PlayerHud G0-G6（2026-08-02）：固定账号 `7200057/1000115`、隔离账号 `705213/1000006`；56/56 控件与 Runtime ID 完全一致，14/14 语义断言通过。11 组同账号同数据同步骤的 Cocos/Unity 原生 `1334×750` 截图、并排、50% 叠加、增强差异和报告完成，最大 MAE `17.9779`。HUD 仅消费 `/1004、/18、/26、/62、/65、/199、/206、/220、/222、/226、/321` 的只读显示分支；22 个路由按钮均真实调用，只有已完成设置页实际打开，其余仅给所有权/不可用反馈，未迁移支付、活动、基金、福利、竞技或社交页面。DataPreflight/setup/live assert/restore/cleanup 全通过，恢复精确且 Fixture 残留 0；严重错误 0。SceneBuilder YAML 规范化后，两次真实 `BootstrapSceneBuilder.BuildBatch` SHA-256 均为 `CE9FAD096983A00615EE522019AAC97AE72C8C008F89F097EFCBBAAC0CF256F3`；中央工具回归 `82/82`，自动复盘 `125/125` 已解决、未解决 0。证据 `.local/unity-validation/playerhud-fixed-account-latest.json`、`.local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json`、`.local/unity-validation/playerhud-retrospective-latest.json`。
 - Settings G0-G6（2026-08-01）：固定账号 `7200057/1000115`、隔离账号 `705213/1000006`；21/21 控件、10/10 语义断言、8/8 同账号同数据同步骤 `1334×750` 双端原生视觉通过。设置本体为设备级本地持久化，登记 `no-server-fixture`，服务端 Fixture 残留 0；切号后角色态隔离且 35%/65% 音频偏好保留。Unity 与服务端日志严重错误 0；两次正式 BuildBatch SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`；自动复盘 72/72 已解决、未解决 0。Computer Use 持久化运行时遗漏已补记并关闭，G6 中央硬门禁新增残留检查。证据 `.local/unity-validation/settings-g6-latest.json`、`.local/ui-fidelity/Settings/compare/g5-live-20260801/report.json`、`.local/unity-validation/settings-retrospective-latest.json`。
 - Login G0-G6（2026-08-01）：固定账号 `7200057/1000115`、可逆创角账号 `7300204/T00204`、隔离账号 `705213/1000006`；21/21 控件、10/10 语义断言、17/17 同账号同数据同流程 `1334×750` 双端原生视觉通过。覆盖 `/1001→/1003→/1004`、`/1002`、`/88`、已有角色/无角色、选服、合法/非法/重复名、连接失败/真实超时/断线重连、返回重进及账号隔离。创角夹具已精确恢复且残留 0；两次正式 BuildBatch SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`；自动复盘 62/62 失败均已诊断并解决。证据 `.local/unity-validation/login-fixed-account-latest.json`、`.local/ui-fidelity/Login/compare/g5-live-20260801/report.json`、`.local/unity-validation/login-retrospective-latest.json`。
@@ -56,7 +57,6 @@
 - 背包 G0-G6 收口（2026-07-27）：固定隔离账号 `7200057 / roleId=1000115`、Windows 100%、双端原生 `1334×750`。矩阵 `26/26 complete`；Cocos/Unity 原图、并排、50% 叠加、增强差异、真实控件自动化和人工视觉均 `26/26 passed`。真实 `/8`、`/15` 覆盖全量、增量新增/更新/删除、整理、批量/礼包/直接使用、无效/重复拒绝、重拉、断线重连、持久化和切号清理；严重异常 0，Python UI `16/16`。正式 `BootstrapSceneBuilder.BuildBatch` 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。测试数据只来自可逆本地隔离夹具，不是正式服/生产数据；来源目标模块未迁移时保持 Bag 并记录不可用目标，不再打开无数据神将空壳。证据 `.local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json`、`.local/unity-validation/bag-latest.json`。
 - 装备/法宝 G0-G6收口（2026-07-27）：固定账号 `7200057 / roleId=1000115`、原生 `1334×750`；Cocos/Unity 原图、并排/叠加/差异和人工视觉均 `20/20 passed`，控件矩阵 `33/33`。Unity MCP 真实 Button 覆盖主入口、六槽、背包/碎片、帮助、详情/更换、筛选、强化和关闭；G4穿脱、失败态、断服重连、持久化与切号清理继续有效。强化页补齐真实主角头像，单次强化 UID `2121072641` 本轮 `8→10→12`；缺图0、严重异常0、Console最终0 error/0 warning。正式 `BuildBatch` 经 Unity MCP 连续两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。证据 `.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g6-control-runner.json`。
 - 神将/阵容 G0-G6收口（2026-07-26）：固定账号 `7200057 / roleId=1000115`、同数据、原生 `1334×750` 的 Cocos/Unity 原图、并排/叠加/差异、真实 Button 自动化和人工视觉均 `16/16 passed`。修复范围包括主界面公共层与圆形头像、阵容装备/法宝真实图标、候选页残留、养成页内容与经验条、强化大师、四装备/两法宝独立详情和完整属性弹窗。最终 Runner `build/ui-migration/bootstrap-app-result.json` 于 `2026-07-26T14:31:28.6502368Z` 成功，严重异常0；纳入 `ChatLayer` 后正式 Bootstrap 双批处理幂等 SHA-256 为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`；G5、G6门禁已通过。证据 `.local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.md`。
-- 装备/法宝 G3（2026-07-26）：收口自动详情、隐藏已穿戴、回收、养成入口、法宝碎片、公共帮助、更换筛选、强化装备选择、空槽候选及排除培养区。Unity MCP 强制刷新编译、重建 Bootstrap，六个 HeroEquip View 节点数 `41/99/40/49/34/36`；PlayMode 六引用、Presenter 初始化和装备/法宝/碎片打开通过，Console 0 error / 0 warning。机器门禁 G0-G3 passed。
 - 装备/法宝 G4（2026-07-26）：固定账号 `7200057/1000115` 经 Unity MCP 触发真实 Button，装备强化 `3→5`、穿脱恢复、法宝穿脱恢复、金币不足、非法 UID、重复卸下、断服重启重连、正常断开持久化及切号清理全部通过。修复普通强化误入自动化卸下链、法宝失败包错读 `replacedUid` 两个根因；重启权威回读装备阵位 1/强化 5、法宝阵位 1，缺图 0。
 - 神将/阵容 G0-G2（2026-07-26）：隔离账号 `7200057` 取得原生客户区 `1334×750` 的16/16当前 Cocos真实点击证据；等级1夹具 `7200260` 补齐2/5/11/15级锁定阵位及拒绝提示。协议 `/24 op=1`、`/48 op=1/4`、6个Prefab、3份配置、Lua权威/C#渲染镜像边界、断线重拉和切号清理已冻结，机器门禁 G0-G2 passed。
 - 完成口径纠正（2026-07-19）：用户人工检查确认 Unity 阵容页面大量 Cocos 原有操作按钮无效果。代码复核显示 Cocos `PetZhenRongUI` 已绑定养成、强化大师、替换、空位上阵、`EquipIcon1..6`、详细属性、布阵等回调，而 Unity `HeroPresenter` 仅绑定阵位卡/背包卡选择；旧 Runner 还存在直接调用内部弹窗绕过真实按钮的问题。旧 Functional `约56%`、阵容 `visual-1to1-complete` 及对应 G0-G6 结论全部撤销，Validated 归零。
@@ -95,7 +95,7 @@
 支付前置不单独增加 29 个业务模块的分母；实现范围与硬规则见 `docs/unityclient/modules/PAYMENT.md`。
 
 ## 5. 当前批次
-PlayerHud（主界面 HUD）G0-G6 已通过并收口：56/56 控件、14/14 语义、11/11 双端视觉状态、只读权威显示、路由所有权、生命周期、切号隔离、Fixture 残留 0 和双次 BuildBatch 均通过。严格完成率为 `12/29 = 41.4%`。下一模块按总迁移顺序固定为 P1“玩法大厅”；旧 `logic-validated-visual-deferred`、历史截图与旧 Runner 不能跳过 G0-G6，必须在新任务从 G0 重新冻结。
+Gameplay（玩法大厅）G0-G6 已通过并收口：16/16控件、12/12语义、9/9双端视觉状态、13项权威路由、共享红点所有权、生命周期、切号隔离、Fixture残留0和双次BuildBatch均通过。严格完成率为 `13/29 = 44.8%`。下一模块按总迁移顺序固定为 P1“封神列传”；其历史逻辑结果、截图与旧Runner不能跳过G0-G6，必须在新任务从G0重新冻结。
 
 ## 6. 已知风险
 

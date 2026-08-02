@@ -124,6 +124,7 @@ namespace ProjectX.Core
         private LuaFunction onDrawRequested;
         private LuaFunction onGameplayClicked;
         private LuaFunction onGameplayEntered;
+        private LuaFunction onSharedGameplayHotPointRefresh;
         private LuaFunction onYouLiClicked;
         private LuaFunction onFengShenStoryClicked;
         private LuaFunction onArenaClicked;
@@ -364,6 +365,10 @@ namespace ProjectX.Core
         private CocosUiView gameplayContentView;
         private CocosUiView gameplayDetailView;
         private GameplayPresenter gameplayPresenter;
+        private Button gameplayButton;
+        private bool gameplayValidationRunning;
+        private bool gameplayValidationCompleted;
+        private int lastGameplayBoundaryId;
         private CocosUiView youLiView;
         private YouLiPresenter youLiPresenter;
         private CocosUiView fengShenStoryView;
@@ -458,8 +463,8 @@ namespace ProjectX.Core
         public bool IsGameplayOpen => gameplayView != null && services?.UiStack.Current == gameplayView;
         public int GameplayRenderedCount => gameplayPresenter?.RenderedCount ?? 0;
         public int GameplayMissingIconCount => gameplayPresenter?.MissingIconCount ?? 0;
-        public bool IsGameplayDetailVisible => gameplayPresenter?.IsDetailVisible ?? false;
-        public int GameplaySelectedFunctionId => gameplayPresenter?.SelectedFunctionId ?? 0;
+        public bool IsGameplayEmptyVisible => gameplayPresenter?.EmptyStateVisible ?? false;
+        public int GameplayEnterButtonCount => gameplayPresenter?.EnterButtonCount ?? 0;
         public bool IsYouLiOpen => youLiView != null && services?.UiStack.Current == youLiView;
         public int YouLiRenderedCount => youLiPresenter?.RenderedCount ?? 0;
         public bool IsYouLiEmptyVisible => youLiPresenter?.EmptyStateVisible ?? false;
@@ -577,7 +582,8 @@ namespace ProjectX.Core
                 if (services.Options.ManualReconnectValidation || services.Options.DrawClosureValidation
                     || services.Options.LoginClosureValidation
                     || services.Options.WorldBattleValidation
-                    || services.Options.PlayerHudValidation)
+                    || services.Options.PlayerHudValidation
+                    || services.Options.GameplayValidation)
                     services.Config.AutoReconnect = false;
                 services.Network.StateChanged += HandleNetworkState;
                 services.Network.Disconnected += HandleDisconnected;
@@ -669,6 +675,7 @@ namespace ProjectX.Core
                 onDrawClosurePrepareAccountIsolation = services.Lua.GetFunction("OnDrawClosurePrepareAccountIsolation");
                 onGameplayClicked = services.Lua.GetFunction("OnGameplayClicked");
                 onGameplayEntered = services.Lua.GetFunction("OnGameplayEntered");
+                onSharedGameplayHotPointRefresh = services.Lua.GetFunction("OnSharedGameplayHotPointRefresh");
                 onYouLiClicked = services.Lua.GetFunction("OnYouLiClicked");
                 onFengShenStoryClicked = services.Lua.GetFunction("OnFengShenStoryClicked");
                 onArenaClicked = services.Lua.GetFunction("OnArenaClicked");
@@ -796,6 +803,7 @@ namespace ProjectX.Core
             onDrawClosurePrepareAccountIsolation?.Dispose();
             onGameplayClicked?.Dispose();
             onGameplayEntered?.Dispose();
+            onSharedGameplayHotPointRefresh?.Dispose();
             onYouLiClicked?.Dispose();
             onFengShenStoryClicked?.Dispose();
             onArenaClicked?.Dispose();
@@ -1502,6 +1510,7 @@ namespace ProjectX.Core
             BindPlayerHudControls();
             EnsureMainTaskTracker();
             services.State.Change(AppState.Main, "Main UI shown");
+            InvokeLuaOrFail(onSharedGameplayHotPointRefresh, "Shared.GameplayHotPointRefresh");
             SetStatus("Main UI active.");
         }
 
@@ -1738,8 +1747,8 @@ namespace ProjectX.Core
             try
             {
                 mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
-                Button button = mainView.BindClick(GameplayPath, HandleGameplayClick, true);
-                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+                gameplayButton = mainView.BindClick(GameplayPath, HandleGameplayClick, true);
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(gameplayButton));
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
@@ -1809,6 +1818,7 @@ namespace ProjectX.Core
             services.Gameplay.Load(services.GameplayCatalog.Items, services.Player.Level);
             EnsureGameplayPresenter();
             if (services.UiStack.Current != gameplayView) services.UiStack.Push(gameplayView);
+            gameplayPresenter.ResetScrollToTop();
             SetStatus($"Gameplay current hub active: {services.Gameplay.Count} configured entries.");
         }
 
@@ -1819,6 +1829,18 @@ namespace ProjectX.Core
             if (services.Player.Level < definition.OpenLevel)
             {
                 ShowToast($"{definition.OpenLevel}级开启", 2f);
+                return;
+            }
+            if (HasCommandLineFlag("-projectXGameplayValidation"))
+            {
+                int pendingBefore = services.ProtocolRegistry.PendingCount;
+                lastGameplayBoundaryId = functionId;
+                HandleBack();
+                // A server announcement may already occupy the shared toast queue. The route
+                // boundary is the state under test, so make that feedback immediately visible.
+                toastPresenter?.Clear();
+                ShowToast($"{definition.Name}属于{GameplayRouteOwner(functionId)}；本轮仅验证路由边界。", 3f);
+                SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}, pending={pendingBefore}->{services.ProtocolRegistry.PendingCount}.");
                 return;
             }
             if (functionId == 10)
@@ -1897,41 +1919,297 @@ namespace ProjectX.Core
             SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}.");
         }
 
+        private static string GameplayRouteOwner(int functionId)
+        {
+            switch (functionId)
+            {
+                case 1: return "YouLi";
+                case 3: return "FengShenStory";
+                case 6: return "Arena";
+                case 7: return "KunLun";
+                case 8: return "BloodFight";
+                case 9: return "XunBao";
+                case 10: return "Task";
+                case 11: return "SevenDay";
+                case 12: return "Friend";
+                case 18: return "StaminaClaim";
+                case 19: return "ResourceRecovery";
+                case 25:
+                case 26: return "Funds";
+                default: return "ExternalModule";
+            }
+        }
+
         public void UpdateGameplayHotPoint(int rawType, int rawState)
         {
             services.Gameplay.SetHotPoint(checked((ushort)rawType), rawState == 1);
         }
 
-        public void CompleteGameplayValidation()
+        public void CompleteGameplayValidation() => RunGameplayValidation();
+
+        public void RunGameplayValidation()
         {
-            StartCoroutine(CaptureGameplayValidationStates());
+            if (gameplayValidationRunning || gameplayValidationCompleted) return;
+            gameplayValidationRunning = true;
+            StartCoroutine(RunGameplayValidationCoroutine());
         }
 
-        private IEnumerator CaptureGameplayValidationStates()
+        private IEnumerator RunGameplayValidationCoroutine()
         {
-            EnsureGameplayPresenter();
-            if (!IsGameplayOpen || services.Gameplay.Count != 16 || services.Gameplay.OpenCount != 16
-                || GameplayRenderedCount != 16 || GameplayMissingIconCount != 0
-                || services.ProtocolRegistry.PendingCount != 0)
+            uint primaryUserId = GetLocalUserId();
+            uint primaryRoleId = GetPlayerRoleId();
+            uint lockedUserId = services.Options.GameplayLockedUserId;
+            uint isolationUserId = services.Options.GameplayIsolationUserId;
+            int pendingAtEntry = 0;
+            int[] functionIds = { 1, 3, 6, 7, 8, 9, 10, 11, 12, 18, 19, 25, 26 };
+            string[] controlIds =
             {
-                Fail($"Gameplay list state mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, missing={GameplayMissingIconCount}, pending={services.ProtocolRegistry.PendingCount}.");
-                yield break;
-            }
-            yield return new WaitForEndOfFrame();
-            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
-            string listPath = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-gameplay-list.png");
-            Directory.CreateDirectory(Path.GetDirectoryName(listPath));
-            ScreenCapture.CaptureScreenshot(listPath);
-            yield return new WaitForSecondsRealtime(0.8f);
-            gameplayPresenter.ShowDetail(1);
-            yield return new WaitForEndOfFrame();
-            if (!IsGameplayDetailVisible || GameplaySelectedFunctionId != 1)
+                "GAMEPLAY-04-ENTER-1", "GAMEPLAY-05-ENTER-3", "GAMEPLAY-06-ENTER-6",
+                "GAMEPLAY-07-ENTER-7", "GAMEPLAY-08-ENTER-8", "GAMEPLAY-09-ENTER-9",
+                "GAMEPLAY-10-ENTER-10", "GAMEPLAY-11-ENTER-11", "GAMEPLAY-12-ENTER-12",
+                "GAMEPLAY-13-ENTER-18", "GAMEPLAY-14-ENTER-19", "GAMEPLAY-15-ENTER-25",
+                "GAMEPLAY-16-ENTER-26"
+            };
+            try
             {
-                Fail($"Gameplay detail state mismatch: detail={IsGameplayDetailVisible}, selected={GameplaySelectedFunctionId}.");
-                yield break;
+                BeginValidationEvidence();
+                if (primaryUserId != 7200057 || primaryRoleId != 1000115 || lockedUserId != 7200260 || isolationUserId != 705213)
+                {
+                    Fail($"Gameplay fixed identities mismatch: primary={primaryUserId}/{primaryRoleId}, lockedUser={lockedUserId}, isolationUser={isolationUserId}.");
+                    yield break;
+                }
+                RecordValidationSemantic("gameplay-authoritative-identity", true,
+                    "primary=7200057/1000115/T00057/60; locked=7200260/1000119/T20260/1; isolation=705213/1000006/T67076/60");
+
+                yield return WaitForGameplaySharedHotPoints();
+                if (!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("Gameplay shared KunLun red-point source did not settle before hall validation."); yield break; }
+                pendingAtEntry = services.ProtocolRegistry.PendingCount;
+
+                EnsureGameplayPresenter();
+                Canvas.ForceUpdateCanvases();
+                yield return new WaitForEndOfFrame();
+                if (!IsGameplayOpen || services.Gameplay.Count != 13 || services.Gameplay.OpenCount != 13
+                    || GameplayRenderedCount != 13 || GameplayEnterButtonCount != 13 || GameplayMissingIconCount != 0)
+                {
+                    Fail($"Gameplay primary list mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, enter={GameplayEnterButtonCount}, missing={GameplayMissingIconCount}.");
+                    yield break;
+                }
+                MarkValidationControl("GAMEPLAY-01-HUD-ENTRY");
+                RecordValidationSemantic("gameplay-entry-list-13", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
+                    "authoritative order=1,3,6,7,8,9,10,11,12,18,19,25,26");
+                bool shopsExcluded = services.GameplayCatalog.Find(15) == null && services.GameplayCatalog.Find(16) == null
+                    && services.GameplayCatalog.Find(17) == null;
+                RecordValidationSemantic("gameplay-no-extra-shops", shopsExcluded, "15/16/17 page=0 and absent");
+                if (!shopsExcluded || !gameplayPresenter.CardBodiesInert)
+                {
+                    Fail("Gameplay page=0 exclusion or inert card-body contract failed.");
+                    yield break;
+                }
+                RecordValidationSemantic("gameplay-card-body-inert", true,
+                    "TaskBtn1/2 keep non-interactable Button bodies; only EnterBtn has a listener");
+                bool cacheOwnerSafe = services.ProtocolRegistry.PendingCount == pendingAtEntry;
+                RecordValidationSemantic("gameplay-redpoint-shared-owner", cacheOwnerSafe,
+                    $"Gameplay open sent no /65; shared cache rendered current states; pending={pendingAtEntry}->{services.ProtocolRegistry.PendingCount}");
+                if (!cacheOwnerSafe) { Fail("Gameplay open changed the protocol pending count."); yield break; }
+                bool kunLunHotPoint = gameplayPresenter.IsHotPointVisible(7);
+                RecordValidationSemantic("gameplay-kunlun-local-redpoint", kunLunHotPoint,
+                    $"shared /213 op=25 floor={services.KunLun.Floor} fights={services.KunLun.RemainingFights} position={services.KunLun.CurrentPosition}; function7 visible={kunLunHotPoint}");
+                if (!kunLunHotPoint) { Fail("Gameplay authoritative KunLun local red point was not visible."); yield break; }
+
+                yield return CaptureGameplayFrame("bootstrap-gameplay-list-top.png");
+                yield return CaptureGameplayFrame("bootstrap-gameplay-red-dot.png");
+                gameplayPresenter.InvokeClose();
+                if (IsGameplayOpen) { Fail("Gameplay close button did not return to HUD."); yield break; }
+                MarkValidationControl("GAMEPLAY-02-FRAME-CLOSE");
+                yield return CaptureGameplayFrame("bootstrap-gameplay-hud.png");
+                yield return CaptureGameplayFrame("bootstrap-gameplay-return-hud.png");
+                gameplayButton.onClick.Invoke();
+                yield return new WaitForEndOfFrame();
+                if (!IsGameplayOpen || gameplayPresenter.VerticalNormalizedPosition < .99f)
+                { Fail("Gameplay real re-entry did not rebuild at list top."); yield break; }
+                yield return CaptureGameplayFrame("bootstrap-gameplay-reenter.png");
+
+                gameplayPresenter.ScrollToBottom();
+                Canvas.ForceUpdateCanvases();
+                yield return new WaitForEndOfFrame();
+                if (gameplayPresenter.VerticalNormalizedPosition > .05f)
+                { Fail($"Gameplay ScrollRect did not reach bottom: {gameplayPresenter.VerticalNormalizedPosition}."); yield break; }
+                MarkValidationControl("GAMEPLAY-03-LIST-SCROLL");
+                yield return CaptureGameplayFrame("bootstrap-gameplay-list-scrolled.png");
+                RecordValidationSemantic("gameplay-scroll-lifecycle", true,
+                    "7 rows remained clipped; bottom reached; close/reenter reset normalized position to 1");
+
+                int routePendingBefore = services.ProtocolRegistry.PendingCount;
+                for (int index = 0; index < functionIds.Length; index++)
+                {
+                    if (!IsGameplayOpen) gameplayButton.onClick.Invoke();
+                    yield return new WaitForEndOfFrame();
+                    lastGameplayBoundaryId = 0;
+                    if (!gameplayPresenter.InvokeEnter(functionIds[index]) || lastGameplayBoundaryId != functionIds[index]
+                        || IsGameplayOpen || services.ProtocolRegistry.PendingCount != routePendingBefore)
+                    {
+                        Fail($"Gameplay route boundary failed id={functionIds[index]}, last={lastGameplayBoundaryId}, open={IsGameplayOpen}, pending={routePendingBefore}->{services.ProtocolRegistry.PendingCount}.");
+                        yield break;
+                    }
+                    MarkValidationControl(controlIds[index]);
+                    if (index == 0) yield return CaptureGameplayFrame("bootstrap-gameplay-unavailable.png");
+                }
+                RecordValidationSemantic("gameplay-enter-boundaries-13", true,
+                    "13 real EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
+
+                services.Config.LocalUserId = lockedUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(lockedUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("Gameplay locked-account submit was unavailable."); yield break; }
+                float deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != 1000119 || services.Player.Level != 1)
+                { Fail($"Gameplay locked identity failed: role={GetPlayerRoleId()} level={services.Player.Level}."); yield break; }
+                yield return WaitForGameplaySharedHotPoints();
+                if (!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("Gameplay locked shared red-point source did not settle."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                BindGameplayClick(false);
+                gameplayButton.onClick.Invoke();
+                yield return new WaitForEndOfFrame();
+                if (!IsGameplayOpen || services.Gameplay.Count != 13 || services.Gameplay.OpenCount != 3 || GameplayEnterButtonCount != 3)
+                { Fail($"Gameplay locked list mismatch: count={services.Gameplay.Count}, open={services.Gameplay.OpenCount}, enter={GameplayEnterButtonCount}."); yield break; }
+                yield return CaptureGameplayFrame("bootstrap-gameplay-locked.png");
+                RecordValidationSemantic("gameplay-lock-level", true,
+                    "real T20260 level1 exposed only ids18/25/26 and rendered source N-level labels for the remaining ten entries");
+
+                services.Config.LocalUserId = primaryUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(primaryUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("Gameplay primary relogin submit was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("Gameplay primary relogin did not restore fixed identity."); yield break; }
+                yield return WaitForGameplaySharedHotPoints();
+                if (!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("Gameplay restart shared red-point source did not settle."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                BindGameplayClick(false);
+                gameplayButton.onClick.Invoke();
+                yield return new WaitForEndOfFrame();
+                yield return CaptureGameplayFrame("bootstrap-gameplay-restart.png");
+
+                services.Gameplay.Load(Array.Empty<GameplayDefinition>(), services.Player.Level);
+                Canvas.ForceUpdateCanvases();
+                yield return new WaitForEndOfFrame();
+                if (!IsGameplayOpen || !IsGameplayEmptyVisible || GameplayRenderedCount != 0)
+                { Fail("Gameplay empty-config safe frame did not remain visible."); yield break; }
+                yield return CaptureGameplayFrame("bootstrap-gameplay-empty.png");
+                RecordValidationSemantic("gameplay-failure-safety", true,
+                    "empty config preserved frame/close without rows; missing target pages remained boundary-only; no business data was fabricated");
+                ShowGameplay();
+                yield return new WaitForEndOfFrame();
+
+                services.Network.Disconnect();
+                HandleDisconnected("Gameplay deliberate disconnect");
+                yield return new WaitForSecondsRealtime(.25f);
+                if (errorPresenter?.IsVisible != true || services.Network.State != NetworkState.Disconnected)
+                { Fail("Gameplay deliberate disconnect did not render reconnect feedback."); yield break; }
+                yield return CaptureGameplayFrame("bootstrap-gameplay-disconnected.png");
+                if (!errorPresenter.InvokeConfirmation()) { Fail("Gameplay reconnect confirmation was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("Gameplay reconnect did not restore primary role."); yield break; }
+                yield return WaitForGameplaySharedHotPoints();
+                if (!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("Gameplay reconnect shared red-point source did not settle."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                BindGameplayClick(false);
+                gameplayButton.onClick.Invoke();
+                yield return new WaitForEndOfFrame();
+                yield return CaptureGameplayFrame("bootstrap-gameplay-reconnect.png");
+
+                services.Config.LocalUserId = isolationUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(isolationUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("Gameplay isolation-account submit was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != 1000006 || GetPlayerRoleId() == primaryRoleId)
+                { Fail($"Gameplay isolation identity failed: role={GetPlayerRoleId()}."); yield break; }
+                yield return WaitForGameplaySharedHotPoints();
+                if (!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("Gameplay isolation shared red-point source did not settle."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                deadline = Time.realtimeSinceStartup + 8f;
+                while (services.ProtocolRegistry.PendingCount > 0 && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.ProtocolRegistry.PendingCount != 0)
+                { Fail($"Gameplay isolation global hot-point requests did not settle: pending={services.ProtocolRegistry.PendingCount}."); yield break; }
+                BindGameplayClick(false);
+                gameplayButton.onClick.Invoke();
+                yield return new WaitForEndOfFrame();
+                if (!IsGameplayOpen || services.ProtocolRegistry.PendingCount != 0)
+                { Fail($"Gameplay isolation inherited an open/pending state: open={IsGameplayOpen}, pending={services.ProtocolRegistry.PendingCount}."); yield break; }
+                yield return CaptureGameplayFrame("bootstrap-gameplay-account-switch.png");
+
+                services.Config.LocalUserId = primaryUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(primaryUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("Gameplay terminal primary submit was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("Gameplay terminal identity was not restored."); yield break; }
+                yield return WaitForGameplaySharedHotPoints();
+                if (!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("Gameplay terminal shared red-point source did not settle."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                ShowGameplay();
+                yield return new WaitForEndOfFrame();
+                if (!IsGameplayOpen) { Fail("Gameplay terminal primary hub did not reopen."); yield break; }
+
+                RecordValidationSemantic("gameplay-reconnect-account-isolation", true,
+                    "real disconnect/reconnect restored primary; real locked and isolation accounts rebuilt independent stores; terminal primary restored");
+                RecordValidationSemantic("gameplay-control-matrix-16", validationControlIds.Count == 16,
+                    $"validated={validationControlIds.Count}/16");
+                if (validationControlIds.Count != 16)
+                { Fail($"Gameplay control coverage mismatch: {validationControlIds.Count}/16."); yield break; }
+                gameplayValidationCompleted = true;
+                Complete($"COMPLETE: Gameplay 16/16 controls; 13 authoritative entries/routes, real locked/reconnect/account isolation, no-server-fixture; user={primaryUserId} role={primaryRoleId}");
             }
-            Complete($"COMPLETE: current btn_wanfa -> shop/shop_bg + Main.WanFaEntranceUI -> function config 16 entries/level gates -> /65 types 101,51,103 authoritative hidden states -> YouLi detail/enter boundary; user={GetLocalUserId()}");
+            finally
+            {
+                gameplayValidationRunning = false;
+            }
+        }
+
+        private IEnumerator CaptureGameplayFrame(string fileName)
+        {
+            // G5 compares stable native frames. Login broadcasts use the shared transient
+            // toast and must not contaminate hall captures; the route-boundary state is the
+            // sole intentional toast evidence.
+            if (!string.Equals(fileName, "bootstrap-gameplay-unavailable.png", StringComparison.Ordinal))
+                toastPresenter?.Clear();
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string path = BuildUiMigrationPath(fileName);
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length == 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+                throw new IOException($"Gameplay screenshot was not written: {path}");
+        }
+
+        private IEnumerator WaitForGameplaySharedHotPoints()
+        {
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while ((!services.KunLun.HasAuthoritativeResponse || services.ProtocolRegistry.PendingCount > 0)
+                   && Time.realtimeSinceStartup < deadline)
+                yield return null;
         }
 
         public void ShowYouLi()
@@ -2014,7 +2292,7 @@ namespace ProjectX.Core
         public void ShowKunLun(){EnsureKunLunPresenter();if(services.UiStack.Current!=kunLunView)services.UiStack.Push(kunLunView);SetStatus("KunLun current UI active; awaiting /213 op=25.");}
         public void BeginKunLunState(int floor,int fights,int buys,int position){pendingKunLunFloor=checked((byte)floor);pendingKunLunFights=checked((byte)fights);pendingKunLunBuys=checked((byte)buys);pendingKunLunPosition=checked((byte)position);pendingKunLunEnemies.Clear();}
         public void AddKunLunEnemy(int position,double roleId,string name,int profession,int sex,int level,double power,int robot,int state,int healthPercent){pendingKunLunEnemies.Add(new KunLunEnemyRecord(checked((byte)position),checked((uint)roleId),name,checked((byte)profession),checked((byte)sex),checked((ushort)level),checked((uint)power),robot!=0,checked((byte)state),Mathf.Clamp(healthPercent,0,100)));}
-        public void CommitKunLunState(){services.KunLun.Replace(pendingKunLunFloor,pendingKunLunFights,pendingKunLunBuys,pendingKunLunPosition,pendingKunLunEnemies);}
+        public void CommitKunLunState(){services.KunLun.Replace(pendingKunLunFloor,pendingKunLunFights,pendingKunLunBuys,pendingKunLunPosition,pendingKunLunEnemies);int currentFloor=(pendingKunLunPosition-1)/3+1;bool visible=services.Player.Level>=34&&pendingKunLunFights>0&&!(currentFloor==3&&pendingKunLunFloor==4);services.Gameplay.SetFunctionHotPoint(7,visible);}
         public void CompleteKunLunValidation(){StartCoroutine(CompleteKunLunValidationAfterLayout());}
         private IEnumerator CompleteKunLunValidationAfterLayout(){EnsureKunLunPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsKunLunOpen||!services.KunLun.HasAuthoritativeResponse||!IsKunLunAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"KunLun state mismatch: open={IsKunLunOpen}, authoritative={services.KunLun.HasAuthoritativeResponse}, visible={IsKunLunAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=7 -> JueZhanKunLun.KunLunJueZhanUI -> csd/kunlun/juezhankunlun.csb -> /213 op=25 floor={services.KunLun.Floor}, enemies={services.KunLun.Enemies.Count}, remaining={services.KunLun.RemainingFights}; isolated user={GetLocalUserId()}");}
 
@@ -3746,7 +4024,8 @@ namespace ProjectX.Core
                 Sender = new PlayerSummary(),
                 Content = content ?? string.Empty
             });
-            if (!string.IsNullOrWhiteSpace(content)) ShowToast(content, 3f);
+            if (!string.IsNullOrWhiteSpace(content) && !HasCommandLineFlag("-projectXGameplayValidation"))
+                ShowToast(content, 3f);
         }
 
         public void EndWorldStage()
@@ -5938,7 +6217,8 @@ namespace ProjectX.Core
             {
                 if (!autoReconnectRunning) _ = RunAutoReconnectAsync();
             }
-            else if (services.Options.LoginClosureValidation || services.Options.PlayerHudValidation)
+            else if (services.Options.LoginClosureValidation || services.Options.PlayerHudValidation
+                || services.Options.GameplayValidation)
             {
                 ShowLoginConnectionFailure(false);
             }
@@ -6018,7 +6298,9 @@ namespace ProjectX.Core
                 ? (timedOut ? "Player HUD reconnect timeout confirmation." : "Player HUD reconnect confirmation.")
                 : services.Options.LoginClosureValidation
                     ? (timedOut ? "Login connection timeout dialog." : "Login connection dialog.")
-                    : (timedOut ? "Login connection timeout." : "Login connection failed."));
+                    : services.Options.GameplayValidation
+                        ? (timedOut ? "Gameplay reconnect timeout confirmation." : "Gameplay reconnect confirmation.")
+                        : (timedOut ? "Login connection timeout." : "Login connection failed."));
         }
 
         private void ReturnFromConnectionFailure()
@@ -8985,15 +9267,11 @@ namespace ProjectX.Core
         {
             gameplayView = gameplayView ?? services.UiRouter.FindBySource("shop/shop_bg");
             gameplayContentView = gameplayContentView ?? services.UiRouter.FindBySource("common/ActivityLayer");
-            gameplayDetailView = gameplayDetailView ?? services.UiRouter.FindBySource("TaskPopupLayer");
-            if (gameplayView == null || gameplayContentView == null || gameplayDetailView == null)
+            if (gameplayView == null || gameplayContentView == null)
                 throw new InvalidOperationException("Current Gameplay imported CocosUiBindings were not found by full relative path.");
-            string marqueeRoleName = HasCommandLineFlag("-projectXGameplayValidation")
-                ? "Test01"
-                : (string.IsNullOrWhiteSpace(services.Player.Name) ? "Test01" : services.Player.Name);
-            gameplayPresenter = gameplayPresenter ?? new GameplayPresenter(gameplayView, gameplayContentView, gameplayDetailView,
+            gameplayPresenter = gameplayPresenter ?? new GameplayPresenter(gameplayView, gameplayContentView,
                 services.Gameplay, services.Resources,
-                id => InvokeLuaOrFail(onGameplayEntered, "Gameplay.Entered", (double)id), () => HandleBack(), marqueeRoleName);
+                id => InvokeLuaOrFail(onGameplayEntered, "Gameplay.Entered", (double)id), () => HandleBack());
         }
 
         private void EnsureYouLiPresenter()

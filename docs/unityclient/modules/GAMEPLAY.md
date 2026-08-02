@@ -1,175 +1,180 @@
 # 玩法大厅（Gameplay）迁移证据
 
-## 1. 当前范围
+> 当前门禁：G0-G3 passed；G4-G6 pending。2026-07-18 的截图、Runner、SHA 与 `visual-fixing` 结论仅作历史线索。
 
-- 当前主界面入口：`Layer/Main_UI/btn_wanfa`。该按钮在当前 `UImainLayer_new` 中直接位于 `Main_UI` 下，不是旧注释暗示的 `ButtonGroup3/btn_wanfa`。
-- 当前回调：`MainUI.WanFaCallback → Utils:OpenFunction(AppDef.EModuleID.EMID_WANFA, nil, true)`。
-- 当前 View：`Main.WanFaEntranceUI`，详情页为 `Main.WanFaInfoUI`。
-- 当前资源：`csd/common/ActivityLayer.csb` 与 `csd/TaskPopupLayer.csb`。
-- 当前协议：大厅本身不请求列表协议；竞技场、血战、法宝搜索三个红点查询共用 `PRO_Func_HotPoint / 65`。
-- 第一阶段边界：真实入口、13 个当前配置项、双列滚动、等级锁、详情、进入按钮、三类服务端红点与真实未迁移路由边界。
+## 1. 本轮所有权
 
-旧 `/209 + ActivityLayer` 是仓库另一代“玩法”活动页，既不是当前 `btn_wanfa` 调用链，也不是当前活动系统，继续判废且不计完成率。
+- 本模块拥有：HUD 玩法入口、`PopFirstClassBg + ActivityLayer` 大厅框架、13 项双列列表、滚动/裁剪、等级锁、红点显示、关闭/返回及13个目标路由的边界反馈。
+- 本模块不拥有：13个入口点击后的独立业务页及其协议；尤其不迁移游历三界、封神列传、竞技场、决战昆仑、血战到底、法宝搜索、每日任务、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金。
+- `15/16/17` 玩法商店在当前 `function_dat.lua` 中均为 `page=0`，不属于大厅列表；支付、活动、基金、福利、竞技和社交业务继续排除。
+- 当前卡片主体 `TaskBtn1/2` 的 CSB `touchEnabled=false`；Lua虽添加监听但未启用触摸，新鲜原生单击也未进入详情。因此卡片选择与 `Main.WanFaInfoUI` 当前玩家不可达，排除而不伪迁。
+- 控件矩阵：`docs/unityclient/matrices/GAMEPLAY_CONTROLS.json`，16 个真实控件，`workflowPolicyVersion=1`。
 
-## 2. 当前调用链
+## 2. 当前启动与真实入口闭包
 
 ```text
-UImainLayer_new/Layer/Main_UI/btn_wanfa
+src/main.lua
+→ require("View.LogoScene")
+→ LogoScene / GameScene / LGameLogic 登录选角闭包
+→ /1001 登录、必要时 /1003 创角、/1004 选角进服
+→ LUILogic 初始化 MainUI
+→ csd/common/UImainLayer_new.csb
+→ Layer/Main_UI/btn_wanfa
 → MainUI.WanFaCallback
 → Utils:OpenFunction(EMID_WANFA=270, nil, true)
-→ AppDef.FuncUI[270] = Main.WanFaEntranceUI
-→ cc.CSLoader:createNode("csd/common/ActivityLayer.csb")
-→ WanFaEntranceUI:initData
-→ LDataConstMgr:GetFunctionLevelMap()
-→ function_dat.lua：id < 999 且 page != 0
-→ Panel/ActivityBg/ActivityList 双列生成 13 个入口
+→ AppDef.FuncUI[270] = Main.WanFaEntranceUI, PopFirstClassLayer
+→ PopFirstClassBg 加载 csd/shop/shop_bg.csb
+→ WanFaEntranceUI 加载 csd/common/ActivityLayer.csb
 ```
 
-详情与进入链：
+- `btn_wanfa` 当前直接位于 `Layer/Main_UI`；`tankuang1/btn_wanfa` 是玩法商店子菜单，不是本入口。
+- HUD 回调以 `noCheckOpen=true` 打开大厅；大厅卡片自己的参加按钮仍按各自功能等级显示/隐藏。
+- 原生设计分辨率来自 `src/config.lua = 1334×750`；页面根节点设置 `AppDef.frameSize` 并执行 `ccui.Helper:doLayout`。
+
+## 3. 大厅 View、事件与动态结构
+
+### 3.1 `Main.WanFaEntranceUI`
+
+- `Init`：加载 `csd/common/ActivityLayer.csb`；注册退出回调；向 `PopFirstClassBg` 设置关闭回调与标题 `GUITips.UI_Title_Activity="玩法"`；执行 `initData → UpdateRedDot → initControlUI → RegisterGuide`。
+- `RegistMsgs/ProcessEvent`：当前消息表为空；大厅打开后不订阅刷新事件。
+- `initData`：读取 `JsonConfig.m_functionConfig.getList()`，筛选 `function_id < 999 && ToBool(page)`。
+- `initControlUI`：取 `Panel/ActivityBg/ActivityList` 模板并移除保留；创建垂直 `ccui.ListView`，锚点 `(0,0)`、位置 `(0,0)`、尺寸等于 `ActivityBg`、bounce=true、swallowTouches=false、itemsMargin=2、滚动条隐藏；13项生成7行双列，末项右卡隐藏。
+- `updateItem`：写入名称、图标、等级锁、参加按钮、选择层、红点；`State/win` 恒隐藏。模板 `TaskBtn1/2` 的 `touchEnabled=false`，函数没有调用 `setTouchEnabled(true)`。
+- 参加按钮：`enterFunction(functionId) → Utils:OpenFunction(functionId) → CloseUI`；目标页面属于独立模块，本轮只验证路由边界。
+- `CloseUI/onExit`：删除大厅、注销竞技场/寻宝引导并销毁监听。
+
+### 3.2 `Main.WanFaInfoUI` 不可达旧链
 
 ```text
-玩法卡片点击
-→ WanFaInfoUI.new(functionId)
-→ cc.CSLoader:createNode("csd/TaskPopupLayer.csb")
-→ WanFaInfoUI:updateData
-→ 当前错误读取未填充的 LDataConstMgr.m_pFunctionLevelMap[functionId]
-→ data == nil 提前返回，保留 TaskPopupLayer 默认占位字段
-→ Btn_Enter
-→ Utils:OpenFunction(functionId)
-→ 对应独立子系统 View
+不可达的卡片主体回调
+→ LUILogicEvent.InitUI("Main.WanFaInfoUI", PopWindow, functionId)
+→ csd/TaskPopupLayer.csb
+→ QuestDialogUI/Panel 与 QuestDialogUI/bg/ListView/Btn_1
+→ updateData 读取 LDataConstMgr.m_pFunctionLevelMap[functionId]
+→ m_pFunctionLevelMap 从未由当前 JsonConfig 路径填充
+→ data=nil 提前 return
 ```
 
-红点链：
+- 即使内部调用该链，详情也因提前返回而保留默认占位且 `Btn_1` 无绑定；但当前玩家入口无法触发，旧截图不能作为本轮范围依据。
+- Unity不得把该不可达旧链变成可点击新功能；若未来Cocos修复触摸，须由新的模块/范围变更重新冻结。
+- 当前链无 Timeline、Imod、ANI 或独立特效调用。
 
-```text
-WanFaEntranceUI:UpdateRedDot
-→ ArenaTask(101) / XueZhanDraw(51) / XunBaoTask(103)
-→ SendHotPointMsg(1, type)
-→ /65：op=1 + type:u16
-→ CPackageDeal::FuncHotPointOption
-→ SendHotPointStatus
-→ op + type:u16 + state:u8
-→ LuaNetRecvdMsg.DealFuncHotPoint
-→ WanFaEntranceUI 对应卡片红点更新
-```
+## 4. 当前 13 项配置与路由边界
 
-## 3. 当前配置与子页面
+| id | 名称 | page | 等级 | 图标 | 目标所有者 |
+|---:|---|---:|---:|---|---|
+| 1 | 游历三界 | 1 | 26 | `ui_icon_doushenzhilu` | `WanFa.YouLiMainUI` |
+| 3 | 封神列传 | 1 | 32 | `ui_main_icon_fengshenliezhuan` | `FengShenStory.FengShenStoryMainUI` |
+| 6 | 竞技场 | 1 | 10 | `ui_icon_doushenzhilu` | `WanFa.KaPaiArenaUI` |
+| 7 | 决战昆仑 | 1 | 34 | `ui_main_icon_juezhankunlun` | `JueZhanKunLun.KunLunJueZhanUI` |
+| 8 | 血战到底 | 1 | 24 | `ui_main_icon_xuezhan` | `XueZhan.XueZhanMainUI` 特殊请求分支 |
+| 9 | 法宝搜索 | 1 | 15 | `ui_main_icon_xunbao` | `WanFa.XunBaoMainUI` |
+| 10 | 每日任务 | 1 | 13 | `ui_main_icon_renwu` | `Activity.TaskLayer` |
+| 11 | 七日目标 | 1 | 13 | `ui_icon_qirihuodong` | `OperationalActivity.SevenDay` |
+| 12 | 好友赠送 | 1 | 14 | `ui_main_icon_haoyousong` | `Social.FriendLayer` |
+| 18 | 体力领取 | 3 | 1 | `ui_main_icon_lingtili` | 福利活动子页 |
+| 19 | 资源找回 | 3 | 20 | `ui_icon_zhuangbeihuishou` | 福利活动子页 |
+| 25 | 成长基金 | 3 | 1 | `ui_icon_tujianshuxing` | 基金/支付前置后续模块 |
+| 26 | 活跃基金 | 3 | 1 | `ui_main_icon_renwu` | 基金/支付前置后续模块 |
 
-数据源是当前客户端生成配置 `client/ProjectX/src/ConfigData/function_dat.lua`。服务端源 JSON 在本检出中保留原始非 UTF-8 编码，Unity 快照以当前可运行客户端 Lua 的实际值为准。
+配置源：`client/ProjectX/src/ConfigData/function_dat.lua`；运行时由 `JsonConfig.m_functionConfig` 读取。13项顺序按当前 Lua 数组顺序冻结。
 
-| id | 名称 | page | 开放等级 | 当前路由/归属 |
-|---:|---|---:|---:|---|
-| 1 | 游历三界 | 1 | 26 | `WanFa.YouLiMainUI` |
-| 3 | 封神列传 | 1 | 32 | `FengShenStory.FengShenStoryMainUI` |
-| 6 | 竞技场 | 1 | 10 | `WanFa.KaPaiArenaUI`；红点 type=101 |
-| 7 | 决战昆仑 | 1 | 34 | `JueZhanKunLun.KunLunJueZhanUI`；本地计算红点 |
-| 8 | 血战到底 | 1 | 24 | `XueZhan.XueZhanMainUI`；红点 type=51 |
-| 9 | 法宝搜索 | 1 | 15 | `WanFa.XunBaoMainUI`；红点 type=103 |
-| 10 | 每日任务 | 1 | 13 | `Activity.TaskLayer`；Unity 已有 Task 路由 |
-| 11 | 七日目标 | 1 | 13 | `OperationalActivity.SevenDay` |
-| 12 | 好友赠送 | 1 | 14 | 好友赠送独立页面 |
-| 18 | 体力领取 | 3 | 1 | 福利活动子页 |
-| 19 | 资源找回 | 3 | 20 | 福利活动子页 |
-| 25 | 成长基金 | 3 | 1 | 福利活动子页 |
-| 26 | 活跃基金 | 3 | 1 | 福利活动子页 |
+## 5. 红点与 `/65` 所有权
 
-配置中前五项描述仍含当前客户端已有的占位式文本，其余为空；Unity 忠实显示当前数据，不自行编写业务文案。
+- 大厅 `UpdateRedDot` 只读取 `Utils:GetRedDotState`：昆仑 `ID=501`、竞技场 `ID=512`、血战 `ID=522`、寻宝 `ID=527`。
+- 昆仑红点由全局主界面所有者先请求 `/213 op=25`，再按 `LRedDotCheckMgr.WanFaRedDotCheck` 的 `pos/ceng/zhandou_num` 规则本地计算；大厅只读结果，不拥有或重发 `/213`。
+- `/65` 查询由全局 `LRedDotCheckMgr` 负责：竞技场 `type=101`、血战 `type=51`、寻宝 `type=103`。大厅打开本身不再次发请求。
+- 请求：`cmd:u16=65, op:u8=1, type:u16`。
+- 响应/推送：`op:u8=1(local_test回显)或2(生产), type:u16, state:u8`；客户端 `DealRedPoint` 仅接受 op 1/2，并把 `state==1` 映射为显示。
+- 服务端：`protocol.h PRO_Func_HotPoint=65`；`pack_deal.cpp cmdFun → FuncHotPointOption`；51进入 `CUserBloodFight::SendBFHotPointStatus`，101/103进入 `CMissionManager::SendQuestHotPointStatus`；`SendHotPointStatus` 写 `op=2`。未知type、空子系统、DB/配置失败可静默返回；`local_test=1` 权威返回 `op=1,state=0`。
+- 共享所有权：Unity必须由现有 `Shared/HotPointController` 独占消息游标；Gameplay只消费对应状态，不能抢读或在打开大厅时重复发包。
 
-## 4. `/65` 协议字段
+## 6. CSB/资源/Transform 闭包
 
-### 4.1 请求
+- 框架：`csd/shop/shop_bg.csb`，由 `View/Background/PopFirstClassBg.lua` 创建；标题 `玩法`，关闭按钮 `Popup/Btn_close`。
+- 内容：`csd/common/ActivityLayer.csb` → `Panel/ActivityBg`；导入文档显示裁剪区，模板 `ActivityList` 包含 `TaskBtn1/2`。
+- 卡片：`420×110`；图标 `88×88`；名称使用 `xiaokaiSJ2.ttf`；参加按钮 `120×55`；红点 `20×20`；选择底图默认隐藏。
+- 不可达旧详情资源：`csd/TaskPopupLayer.csb`，只作源码闭包记录，不纳入当前可见/可达控件。
+- 图标根：`res2/Icon/ui_main_icon/<icon>.png`；当前13项引用11个唯一文件（`ui_icon_doushenzhilu` 与 `ui_main_icon_renwu` 分别复用），Cocos与Unity副本逐文件 SHA-256 一致，资源类型保持静态Image。
+- 运行根均设为 `AppDef.frameSize=1334×750` 并 `doLayout`；ActivityBg运行时承载垂直ListView，7行、行距2、顶部/底部裁剪由原生ListView决定；无安全区额外偏移、Timeline、Imod或动画。
 
-| 字段 | 宽度 | 当前值 |
-|---|---:|---|
-| cmd | u16 | 65 |
-| op | u8 | 1 |
-| type | u16 | 101 / 51 / 103 |
+## 7. Unity 当前实现与 G0 缺口
 
-### 4.2 响应
+- 现有：`GameplayCatalog/Store/Presenter`、`GameplayController.lua.txt`、`BootstrapSceneBuilder` 中的 `shop_bg + ActivityLayer + TaskPopupLayer`、旧两图Runner。
+- 缺口A：Unity `gameplay.json` 把15/16/17写为 `page=2`，`GameplayCatalog` 用 `Page != 0` 过滤，实际渲染16项，违反当前Cocos 13项。
+- 缺口B：Unity `GameplayController.onClick()` 主动发 `/65` 101/51/103，违反当前Cocos“全局查询、大厅只读缓存”所有权。
+- 缺口C：旧Runner只截列表/不可达详情并靠 `CompleteGameplayValidation`，没有16控件、锁定、滚动、红点、失败、生命周期和切号覆盖，不能作为G4-G6证据。
+- 缺口D：Manifest仍引用旧截图与旧差异报告；它们只作历史线索，G1/G5必须生成新鲜证据。
+- 在 G0/G1 通过前不修改上述 Unity 实现。
 
-| 字段 | 宽度 | 说明 |
-|---|---:|---|
-| op | u8 | 生产 `SendHotPointStatus` 通常写 2；本地降级回显请求 op=1 |
-| type | u16 | 红点类型 |
-| state | u8 | 0 隐藏，非 0 显示 |
+## 8. G0/G1 验收状态
 
-当前客户端解析器兼容 op=1 与 op=2。字段顺序和宽度来自 `pack_deal.cpp` 写包与当前 Lua 读包的双向核对，不按旧截图推断。
+- Git/dirty基线：`.local/unity-validation/gameplay-dirty-baseline.txt`。
+- G0矩阵：首次冻结30项后被新鲜原生证据推翻；已改为16项真实可达控件。固定账号 `7200057/1000115`、隔离账号 `705213/1000006`、原生客户区 `1334×750`。
+- G0中央门禁已通过：16控件、`workflowPolicyVersion=1`、3条源码证据路径均被接受。
+- G1中央门禁已通过：Computer Use 原生证据台账含10个唯一 target；生成10张本轮 `1334×750` 证据：HUD、顶部、滚动、返回、重进、等级锁、切号后重启、断线、重连、空列表。
+- 证据清单：`.local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md`；逐图身份、步骤、SHA、N/A裁定与finally恢复均已记录。
+- 当前没有页签/分类，也没有玩家可达的卡片选择/详情；大厅打开不发送自有协议，请求失败状态以真实服务端断线/重连覆盖。
+- 空态使用 `tools/unity-migration/Invoke-GameplayCocosFixture.ps1`，仅在模拟器副本把13个非零 `page` 置0；源/运行副本及运行时账号覆盖均已恢复。
+- 操作台账当前 Failed/Blocked 24、Resolved 24、未解决0；`DIAGNOSTIC-USER1-HUD.png` 仅用于错误身份诊断，不纳入验收。
 
-## 5. 服务端分支
+## 9. G2 迁移设计与只读数据合同
 
-- `protocol.h`：`PRO_Func_HotPoint = 65`。
-- `pack_deal.cpp` 注册：`PRO_Func_HotPoint → CPackageDeal::FuncHotPointOption`。
-- type=101：进入竞技场任务红点子系统。
-- type=51：检查血战可领奖状态。
-- type=103：进入法宝搜索任务红点子系统。
-- 支持类型成功时通过 `SendHotPointStatus` 返回 `op=2 + type:u16 + state:u8`。
-- 未支持 type、子系统缺失、部分数据库/配置失败分支可能直接返回，不保证回包；Unity 保留真实超时/空态，禁止伪造成功。
-- 收到请求 op=2 时服务端分支为空。
-- `local_test=1` 因最小库不具备完整红点业务表，明确返回 `op=1 + 原 type + state=0`；这是权威隐藏态，不是 Unity 假数据。
+### 9.1 sourceAudit 四闭包
 
-## 6. CSB、Timeline 与 Imod
+- 入口闭包：`main.lua → LogoScene → GameScene/LGameLogic → MainUI → btn_wanfa → EMID_WANFA=270 → WanFaEntranceUI → shop_bg + ActivityLayer` 已闭合；Unity入口固定 `GameplayPath → OnGameplayClicked → ShowGameplay`。
+- 协议所有权：大厅打开、列表、滚动、锁定、关闭和13个路由边界均不拥有协议；`/65` 由 `Shared.HotPointController` 独占接包，昆仑 `/213 op=25` 也由全局主界面刷新并本地计算 function 7，二者均在大厅进入前稳定，大厅只消费缓存。G3删除 `GameplayController.onClick` 的三次主动查询和 pending 完成条件。
+- 配置→资源闭包：权威ID顺序固定为 `1,3,6,7,8,9,10,11,12,18,19,25,26`；15/16/17必须 `page=0`。11个唯一图标在 Cocos与Unity均唯一存在且逐文件哈希相同；缺图标必须计数并保持安全态，不能临场占位。
+- Transform闭包：根 `1334×750`；`ActivityBg=970×550`、clip=true；运行时纵向弹性ListView；模板行 `940×130`、首行偏移65、行距2；双卡 `420×110`，左右源位置254.364/705.564；图标 `88×88`；参加 `120×55`；红点 `20×20`。卡体 `touchEnabled=false`、参加按钮 `touchEnabled=true`；Unity不得创建详情或选择交互。
 
-| 用途 | 当前完整路径 | 当前调用 |
-|---|---|---|
-| 玩法大厅 | `csd/common/ActivityLayer.csb` | `createNode`；无当前 `createTimeline` 调用 |
-| 玩法详情 | `csd/TaskPopupLayer.csb` | `createNode`；无当前 `createTimeline` 调用 |
-| 入口图标 | `res2/Icon/ui_main_icon/*.png` | `function_dat.lua` 配置驱动，11 个当前实际贴图 |
+### 9.2 Unity实现约束
 
-两个页面当前调用链均没有 Imod ANI。所有路径来自 Lua 非注释调用点和配置完整相对路径，未按 basename 判断版本。
+- `GameplayCatalog` 保持 `<999 && page!=0`，但配置必须精确收敛为13项并保持数组顺序；不按新增业务需求扩张。
+- `GameplayPresenter` 删除 `TaskPopupLayer`、卡体Button、选择层状态与 `ShowDetail`；保留 Frame、裁剪ScrollRect、7行双列、锁定/参加、红点和关闭。
+- 13个参加按钮都必须真实绑定并逐一点击；只记录 `id/name/owner` 路由边界与不可用反馈，不调用目标Controller、不发送子模块协议、不打开目标页。
+- 空配置/缺资源/断线/重连/切号必须清空旧行、旧红点、旧pending与滚动位置；每次重进默认顶部。
+- G3前场景合同已冻结为13个捕获状态、16控件、11条语义断言、7组源码合同；G4-G6只接受标准batch结果。
 
-## 7. Unity 实现与当前 Cocos 对齐
+### 9.3 固定账号与无服务端夹具
 
-- `GameplayCatalog` 从 `Resources/Configs/gameplay.json` 加载当前 13 条配置快照。
-- `GameplayStore` 保存三个权威红点状态和当前选择项；切号时清理。
-- `Shared/HotPointController` 独占 `/65` 消息游标，并同时分发 Task 与 Gameplay，避免两个控制器重复读取同一包。
-- `GameplayController` 发起 101、51、103 查询并处理打开、详情、返回与进入流程。
-- `BootstrapSceneBuilder` 按当前 Lua 栈将 `shop/shop_bg.prefab` 作为框架，`common/ActivityLayer.prefab` 与 `TaskPopupLayer.prefab` 作为其子层；未触碰用户已有 `OneLevelLayer.prefab` 修改。
-- `GameplayPresenter` 复用原框架、列表行、卡片、按钮、图标、字体、详情 NPC/面板；不再生成棕色替代面板或系统字体按钮。
-- Cocos `ListView` 首行按 130 高度顶对齐、行距 2；Unity 使用相同几何，双列卡片中心与 Cocos `254.364/705.564` 对齐。
-- 卡片 CSD 初始 `TouchEnabled=false` 会让 Unity `Selectable` 使用 Disabled 色块；运行时统一卡片 ColorBlock 为白色、零渐变，保持 Cocos 原图亮度和点击语义。
-- 详情右侧信息组修正导入布局的 16px 水平偏移，描述与玩法名称按 Cocos 左对齐。
-- 当前 Cocos 详情数据源存在实际缺陷并显示 Prefab 默认占位内容；Unity 同步保留该可见行为，不擅自显示 `gameplay.json` 文案。
-- 13 个入口全部显示；等级使用当前角色权威等级判断。
-- 第一阶段只有 id=10 接到已迁移的 Task 页面。其他入口明确提示其子系统尚未迁移，不跳到错误旧页面，也不声称子玩法完成。
+- 合同：`shared-readonly + no-server-fixture`；适配器 `tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1`。
+- 主账号：`7200057/1000115/T00057/60`；真实锁定账号：`7200260/1000119/T20260/1`；隔离账号：`705213/1000006/T67076/60`。
+- 六段预演已通过：Setup、AssertSetup、Restore、AssertRestored、Cleanup、AssertCleanup；身份哈希 `9225585d40d2624b11aad0dc8c713a22afc641489307a68c5ea2e405cd3e0a5a`，`mutationCount=0`，源配置哈希 `CDE0C2C7810BE4DFED132D1109E654F1431BBB9B1081ED8ED146C740BB0B8401`。
+- 快照证据：`.local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json`。G2通过后仍必须由 `Run-UnityFixedAccountValidation.ps1 -Module Gameplay -DataPreflightOnly` 生成中央凭证，不能用本次手工预演代替。
+- G2中央门禁已通过：入口、协议所有权、配置资源、运行时Transform四闭包完成；4个既有Unity缺口均以G3处理与源码证据登记。
 
-## 8. 动态验证
+## 10. G3 Unity实现与编辑器证据
 
-命令：
+- `gameplay.json` 已将15/16/17收敛为 `page=0`；运行目录严格只生成13项。
+- `GameplayController` 删除大厅打开时的三次 `/65` 查询；共享红点消息仍由全局控制器独占，大厅只读 `GameplayStore` 缓存。
+- `GameplayPresenter` 不再创建 `TaskPopupLayer`、选择态或详情交互；模板卡体运行时强制不可交互，仅13个真实 `EnterBtn` 绑定路由边界。
+- 13个参加按钮在 Gameplay 验证模式下仅关闭大厅并报告目标所有者，不启动目标 Controller、不发送目标协议；非 Gameplay 模块验证的既有目标路由保持不变，作为回归面。
+- 固定账号 Runner 已覆盖：主账号13项、1级账号3项可参加/10项等级锁、13个参加边界、滚动/返回/重进、空配置安全态、断线重连、隔离账号及最终切回主账号。
+- Unity MCP 编辑器实例 `unityclient@412d45435dc1aa1a` 指向正确工程与 `Bootstrap.unity`；脚本强制刷新/编译完成，Console error为0。
+- MCP读取3个范围内真实Prefab：`shop_bg`、`ActivityLayer`、`FloatNoticeLayer`；`ActivityLayer` 共27个层级对象，包含 `ActivityBg(RectMask2D) / ActivityList / TaskBtn1/2 / Icon / OpenLevel / EnterBtn`，`shop_bg` 包含真实 `Popup/Btn_close`。
+- G3编辑器证据：`.local/unity-validation/gameplay-g3-unity-mcp-evidence.json`；G3文档检查：`.local/unity-validation/gameplay-g3-docs-test.json`。
+- G3中央门禁已通过：batch场景、16控件、11条语义、7组源码合同、13张截图合同和只读夹具均已冻结。
 
-```powershell
-pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Gameplay
-```
+## 11. G4 固定账号逻辑验收
 
-最终证据：
+- 标准 batch 固定账号结果 `success=true`：16/16 真实控件、13个权威入口/路由边界、12/12 语义断言通过。
+- 主账号 `7200057/1000115`、1级锁定账号 `7200260/1000119`、隔离账号 `705213/1000006`；覆盖滚动、13个参加按钮、10项等级锁、空配置、不可用反馈、断线/重连、重进/重启、切号隔离及切回主账号。
+- 大厅不拥有业务子页协议；`/65` 继续由共享红点控制器独占，昆仑 `/213 op=25` 由主界面全局刷新后本地计算，大厅仅消费稳定缓存。
+- `shared-readonly + no-server-fixture` 六段合同通过；恢复哈希 `9225585d40d2624b11aad0dc8c713a22afc641489307a68c5ea2e405cd3e0a5a`，变更数0、残留0。
+- 证据：`.local/unity-validation/gameplay-fixed-account-latest.json`、`.local/unity-validation/gameplay-fixed-account-runner-latest.json`。
 
-- `userId=7200039`；此前视觉迭代账号未复用为最终证据。
-- 结果：`.local/unity-validation/gameplay-latest.json`，`success=true`；结果 UTC `2026-07-18T07:25:18.2818144Z`，脚本检查 UTC `2026-07-18T07:25:20.5817141Z`。
-- `/65` SEND/RECV 各 3 次；日志明确解析 `type=101/51/103`，三者 `state=0`，符合本地服权威隐藏态。
-- COMPLETE 仅由 Gameplay 最终状态写入：当前 `btn_wanfa → WanFaEntranceUI → 13 项列表/等级锁/详情 → /65 三类红点 → 未迁移子页边界`。
-- 截图：`build/ui-migration/bootstrap-gameplay-list.png`、`build/ui-migration/bootstrap-gameplay.png`，均为 `1334×750`。
-- Bootstrap 连续两次 SHA-256：`62995484C85CB3E7585D883608C455322A023C54E96A28EDF2AC660DC3779D09`；第二次输出 `semantic signature unchanged`。
-- 严重异常扫描：`error CS\d+ / LuaException / NullReferenceException / MissingReferenceException / Assertion failed / Fatal Error / Crash!!! = 0`。
-- 本模块 Manifest 为 `mutatesServer=true`，Runner 使用隔离用户且不自动重试；finally 已关闭本批 Unity、`kapai.exe` 与 workspace-local MySQL。
+## 12. G5 双端视觉验收
 
-## 9. 视觉 1:1 记录
+- 当前 Cocos/Unity 原生客户区均为 `1334×750`，9/9状态完成并排、叠加、增强差异和人工验收；大厅状态 MAE `4.71–8.27`。
+- 通过范围：HUD入口/关闭返回、列表顶部/底部滚动、13项顺序与资源、1级锁定、空配置、重启、断线、重连、裁剪、层级及昆仑红点。
+- 批准一项时序差：重连 Cocos 原生帧早于异步 `/213 op=25` 稳定，Unity等待相同权威响应后截图；两端初始与重启稳定帧红点一致。
+- 不可达 `TaskPopupLayer`、伪公告与系统Toast不再污染 Gameplay 稳定帧；未发现剩余错图、遮挡、文本截断或交互阻断。
+- 证据：`.local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json`、`manual-acceptance.json`、`G5_VISUAL_ACCEPTANCE.md`。
 
-- 状态：`visual-fixing`；Cocos 基准、Unity 对照、流程、节点映射和差异报告已建立，但仍有未通过项。
-- 流程：`.local/ui-fidelity/Gameplay/flow.md`。
-- 节点映射：`.local/ui-fidelity/Gameplay/ui-map.json`。
-- Cocos 列表：`.local/ui-fidelity/Gameplay/cocos/list.png`，`1334×750`，SHA-256 `11662B04E28B0079692EC7CE550F60A23B9EA4824B1803769AD82CD64039562C`。
-- Cocos 详情：`.local/ui-fidelity/Gameplay/cocos/detail-valid.png`，`1334×750`，SHA-256 `7058945FE95587F7B27AD23D6F488C8EDF35AE6C63833D741B662AB999808AC3`。
-- Unity 列表：`.local/ui-fidelity/Gameplay/unity/list.png`，SHA-256 `CE18A88C7966BCAA08EF4413368CB137C732D815DB54B9097A56AD9A2FA0BC64`。
-- Unity 详情：`.local/ui-fidelity/Gameplay/unity/detail.png`，SHA-256 `421D28525490408E87FA3BC372B49848A1F5FAE820DF50C53F7313274BC6D92C`。
-- 差异工具：`python tools/unity-migration/compare_ui_fidelity.py`；阈值为单通道最大差 `>8`。
-- 列表全屏差异率 `12.077761%`、模块 ROI `10.139951%`；详情全屏 `10.701549%`、模块 ROI `11.253109%`。
-- 已对齐：框架、标题、关闭、列表裁剪、首行/行距、双列卡片、图标、按钮、字体资源、详情 NPC/底板/选择按钮、Cocos 当前占位字段。
-- 未通过：Cocos 全局竹叶/扇子装饰与滚动公告未进入 Unity 公共层；Unity/Cocos 字体和纹理采样的抗锯齿边缘仍有差异；锁定、红点显示、有效滚动到底三态尚无完整成对截图。
-- 结论：不得标记 `visual-1to1-complete`。
+## 13. G6 收口
 
-## 10. 未完成边界
-
-- Gameplay 主体 UI 已完成本轮结构修复，但上述公共层和状态截图未收口，仍为 `visual-fixing`。
-- 游历三界、封神列传、竞技场已完成首屏逻辑闭环但视觉 1:1 未完成；决战昆仑、血战到底、法宝搜索尚未迁移。
-- 七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金需按各自当前调用链继续迁移。
-- 本地最小库只能动态证明 `/65` 三类隐藏态；生产 `op=2` 红点显示态和无回包分支尚无独立动态证据。
-- Cocos 详情占位内容来自 `WanFaInfoUI` 读取错误数据源，不是 Unity 配置缺失；本阶段只复刻当前可见行为，不擅自修改 Cocos 业务逻辑。
+- 控件矩阵16/16均为 `complete`，真实入口点击、自动化与人工验收全部通过；标准 batch 严重错误0。
+- 两次真实 `BootstrapSceneBuilder.BuildBatch` 均通过，SHA-256 同为 `BED14CC26A6E055C8C00B4B647E54D7B706B7D0C2651CFF9915D1165094CE4E3`。
+- 中央文档测试29/29、迁移工具链回归82/82；操作台账78个失败均有对应 `Resolved + iterationAction + iterationEvidence`，未解决0。
+- Cocos、Unity Editor、服务端、本地MySQL与 Computer Use 残留进程均在收口前清理；模块边界只含大厅与13个路由，不宣称任何子页完成。
+- G6证据：`.local/unity-validation/gameplay-g6-evidence.md`、`.local/unity-validation/gameplay-fixed-account-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`.local/unity-validation/gameplay-retrospective-latest.json`。

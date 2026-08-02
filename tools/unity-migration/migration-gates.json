@@ -16,6 +16,84 @@
   },
   "modules": [
     {
+      "module": "Gameplay",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/GAMEPLAY.md",
+      "note": "Gameplay must restart from current Cocos source and fresh 1334x750 native evidence; all historical screenshots, Runner results, hashes and visual-fixing markers are clues only.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/GAMEPLAY.md",
+          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
+          ".local/unity-validation/gameplay-dirty-baseline.txt"
+        ],
+        "G1": [
+          "docs/unityclient/modules/GAMEPLAY.md",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md",
+          ".local/unity-validation/gameplay-cocos-automation-ledger.json",
+          ".local/unity-validation/gameplay-cocos-config-fixture.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/GAMEPLAY.md",
+          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
+          "tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1",
+          "tools/unity-migration/validation-scenarios.json",
+          "tools/unity-migration/module-evidence-contracts.json",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
+          ".local/unity-validation/gameplay-g2-docs-test.json"
+        ],
+        "G3": [
+          "docs/unityclient/modules/GAMEPLAY.md",
+          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
+          "unityclient/Assets/ProjectX/Resources/Configs/gameplay.json",
+          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
+          "unityclient/Assets/ProjectX/src/Data/GameplayStore.cs",
+          "unityclient/Assets/ProjectX/src/UI/GameplayPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          ".local/unity-validation/gameplay-g3-unity-mcp-evidence.json",
+          ".local/unity-validation/gameplay-g3-docs-test.json"
+        ],
+        "G4": [
+          ".local/unity-validation/gameplay-fixed-account-latest.json",
+          ".local/unity-validation/gameplay-fixed-account-runner-latest.json",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-unity-result.json",
+          ".local/unity-validation/gameplay-operation-ledger.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/contact-side-1.jpg",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/contact-side-2.jpg",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/manual-acceptance.json",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/G5_VISUAL_ACCEPTANCE.md",
+          ".local/unity-validation/gameplay-g5-preflight-latest.json"
+        ],
+        "G6": [
+          ".local/unity-validation/gameplay-g6-evidence.md",
+          ".local/unity-validation/gameplay-fixed-account-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/manual-acceptance.json",
+          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
+          "docs/unityclient/modules/GAMEPLAY.md",
+          "UNITYCLIENT_STATUS.md",
+          "tools/unity-migration/unityclient-modules.json",
+          ".local/unity-validation/gameplay-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-02T12:19:08.0813161Z"
+    },
+    {
       "module": "GameplayShops",
       "gates": {
         "G0": "passed",

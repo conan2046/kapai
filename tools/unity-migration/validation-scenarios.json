@@ -1422,24 +1422,175 @@
     {
       "key": "gameplay-default",
       "module": "Gameplay",
-      "fixture": "isolated-role",
+      "fixture": "shared-readonly",
+      "fixtureContract": "no-server-fixture",
+      "requiredGate": "G3",
       "flags": [
         "-projectXGameplayValidation"
       ],
       "artifacts": [
         {
-          "path": "build/ui-migration/bootstrap-gameplay-list.png",
+          "path": "build/ui-migration/bootstrap-gameplay-hud.png",
           "lifecycle": "runtime"
         },
         {
-          "path": "build/ui-migration/bootstrap-gameplay.png",
+          "path": "build/ui-migration/bootstrap-gameplay-list-top.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-list-scrolled.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-locked.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-red-dot.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-unavailable.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-empty.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-return-hud.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-reenter.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-restart.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-disconnected.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-reconnect.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-account-switch.png",
           "lifecycle": "runtime"
         }
       ],
       "captureStates": [
-        "list",
-        "detail"
-      ]
+        "hud-entry",
+        "list-top",
+        "list-scrolled",
+        "locked",
+        "red-dot",
+        "unavailable",
+        "empty-failure",
+        "return-hud",
+        "reenter",
+        "restart",
+        "disconnected",
+        "reconnect",
+        "account-switch"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "gameplay-authoritative-identity",
+        "gameplay-entry-list-13",
+        "gameplay-no-extra-shops",
+        "gameplay-lock-level",
+        "gameplay-enter-boundaries-13",
+        "gameplay-card-body-inert",
+      "gameplay-scroll-lifecycle",
+      "gameplay-redpoint-shared-owner",
+      "gameplay-kunlun-local-redpoint",
+      "gameplay-failure-safety",
+        "gameplay-reconnect-account-isolation",
+        "gameplay-control-matrix-16"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/Main/WanFaEntranceUI.lua",
+          "contains": [
+            "Utils:ToBool(v.page)",
+            "Utils:GetRedDotState",
+            "ccui.ListView:create"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/ConfigData/function_dat.lua",
+          "contains": [
+            "function_id = 1",
+            "function_id = 26"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/ImproveUI/LRedDotCheckMgr.lua",
+          "contains": [
+            "LuaNetSendMsg:QueryRedDot(RedDotDef.SID.ArenaTask)",
+            "function LRedDotCheckMgr:WanFaRedDotCheck()"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
+          "contains": [
+            "Bridge:ShowGameplay()",
+            "Bridge:EnterGameplay(functionId)",
+            "function M.onHotPoint"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/GameplayPresenter.cs",
+          "contains": [
+            "RuntimeGameplayContent",
+            "Function_",
+            "ConfigureCard"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "ShowGameplay",
+            "EnterGameplay",
+            "UpdateGameplayHotPoint"
+          ]
+        },
+        {
+          "path": "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
+          "contains": [
+            "no-server-fixture",
+            "GAMEPLAY-16-ENTER-26"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true,
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "build/ui-migration/bootstrap-gameplay-list-top.png",
+          "build/ui-migration/bootstrap-gameplay-red-dot.png",
+          "build/ui-migration/bootstrap-gameplay-reenter.png",
+          "build/ui-migration/bootstrap-gameplay-restart.png",
+          "build/ui-migration/bootstrap-gameplay-reconnect.png",
+          "build/ui-migration/bootstrap-gameplay-account-switch.png"
+        ]
+          },
+          {
+            "ids": [
+              "build/ui-migration/bootstrap-gameplay-hud.png",
+              "build/ui-migration/bootstrap-gameplay-return-hud.png"
+            ]
+          }
+        ]
+      }
     },
     {
       "key": "youli-default",

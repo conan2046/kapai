@@ -45,12 +45,20 @@ if ($null -ne $fixed) {
     $copies = @($fixed.artifactCopies)
     $sources = @($copies | ForEach-Object { [string]$_.source })
     $destinations = @($copies | ForEach-Object { [string]$_.destination })
-    if ($copies.Count -ne $pairs.Count) {
-        throw "Module '$Module' fixed artifact count $($copies.Count) does not match G5 pair count $($pairs.Count)."
+    if ($copies.Count -lt $pairs.Count) {
+        throw "Module '$Module' fixed artifact count $($copies.Count) is smaller than G5 pair count $($pairs.Count)."
     }
     if (@($sources | Sort-Object -Unique).Count -ne $sources.Count -or
         @($destinations | Sort-Object -Unique).Count -ne $destinations.Count) {
         throw "Module '$Module' fixed-account screenshot source/destination paths must be unique."
+    }
+    $g5UnityDestinations = @($pairs | ForEach-Object {
+        $unityDirectory = ([string]$g5.unityDirectory).TrimEnd([char[]]@('/', '\'))
+        "$unityDirectory/$([string]$_.unity)"
+    })
+    $missingPairDestinations = @($g5UnityDestinations | Where-Object { $destinations -notcontains $_ })
+    if ($missingPairDestinations.Count -gt 0) {
+        throw "Module '$Module' fixed artifacts do not publish every G5 Unity input: $($missingPairDestinations -join ', ')."
     }
 }
 

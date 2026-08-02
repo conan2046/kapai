@@ -8,7 +8,8 @@ namespace ProjectX.Core
         private readonly HashSet<string> flags;
 
         private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId, uint drawIsolationUserId,
-            uint worldIsolationUserId, uint loginCreateUserId, uint loginIsolationUserId, uint playerHudIsolationUserId)
+            uint worldIsolationUserId, uint loginCreateUserId, uint loginIsolationUserId, uint playerHudIsolationUserId,
+            uint gameplayLockedUserId, uint gameplayIsolationUserId)
         {
             this.flags = flags;
             LocalUserId = localUserId;
@@ -18,6 +19,8 @@ namespace ProjectX.Core
             LoginCreateUserId = loginCreateUserId;
             LoginIsolationUserId = loginIsolationUserId;
             PlayerHudIsolationUserId = playerHudIsolationUserId;
+            GameplayLockedUserId = gameplayLockedUserId;
+            GameplayIsolationUserId = gameplayIsolationUserId;
         }
 
         public uint LocalUserId { get; }
@@ -27,6 +30,8 @@ namespace ProjectX.Core
         public uint LoginCreateUserId { get; }
         public uint LoginIsolationUserId { get; }
         public uint PlayerHudIsolationUserId { get; }
+        public uint GameplayLockedUserId { get; }
+        public uint GameplayIsolationUserId { get; }
         public bool Automation => HasFlag("-projectXAutomation");
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
         public bool DrawClosureValidation => HasFlag("-projectXDrawClosureValidation");
@@ -37,6 +42,7 @@ namespace ProjectX.Core
         public bool SettingsValidation => HasFlag("-projectXSettingsValidation");
         public bool TaskValidation => HasFlag("-projectXTaskValidation") || HasFlag("-projectXTaskG4Validation");
         public bool WelfareValidation => HasFlag("-projectXWelfareValidation");
+        public bool GameplayValidation => HasFlag("-projectXGameplayValidation");
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && flags.Contains(flag);
 
@@ -50,6 +56,8 @@ namespace ProjectX.Core
             uint loginCreateUserId = 0;
             uint loginIsolationUserId = 0;
             uint playerHudIsolationUserId = 0;
+            uint gameplayLockedUserId = 0;
+            uint gameplayIsolationUserId = 0;
             foreach (string raw in arguments ?? Array.Empty<string>())
             {
                 string argument = raw ?? string.Empty;
@@ -89,9 +97,20 @@ namespace ProjectX.Core
                     && uint.TryParse(argument.Substring(playerHudIsolationPrefix.Length), out uint playerHudIsolationValue)
                     && playerHudIsolationValue > 0)
                     playerHudIsolationUserId = playerHudIsolationValue;
+                const string gameplayLockedPrefix = "-projectXGameplayLockedUserId=";
+                if (argument.StartsWith(gameplayLockedPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(gameplayLockedPrefix.Length), out uint gameplayLockedValue)
+                    && gameplayLockedValue > 0)
+                    gameplayLockedUserId = gameplayLockedValue;
+                const string gameplayIsolationPrefix = "-projectXGameplayIsolationUserId=";
+                if (argument.StartsWith(gameplayIsolationPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(gameplayIsolationPrefix.Length), out uint gameplayIsolationValue)
+                    && gameplayIsolationValue > 0)
+                    gameplayIsolationUserId = gameplayIsolationValue;
             }
             return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId, drawIsolationUserId, worldIsolationUserId,
-                loginCreateUserId, loginIsolationUserId, playerHudIsolationUserId);
+                loginCreateUserId, loginIsolationUserId, playerHudIsolationUserId,
+                gameplayLockedUserId, gameplayIsolationUserId);
         }
 
         public static AppLaunchOptions Current() => Parse(Environment.GetCommandLineArgs());

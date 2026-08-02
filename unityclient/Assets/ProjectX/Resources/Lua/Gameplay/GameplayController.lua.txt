@@ -1,21 +1,9 @@
-local Protocol = require("Protocol")
-local M = { validation = false, pending = 0 }
-local HOT_TYPES = { 101, 51, 103 }
-
-local function queryHotPoint(kind)
-    local message = Protocol.newMessage(Protocol.FUNC_HOT_POINT)
-    message:WriteByte(1)
-    message:WriteWord(kind)
-    M.pending = M.pending + 1
-    Bridge:Send(message)
-end
+local M = {}
 
 function M.onClick()
-    M.validation = Bridge:HasCommandLineFlag("-projectXGameplayValidation")
-    M.pending = 0
     Bridge:ShowGameplay()
-    for _, kind in ipairs(HOT_TYPES) do queryHotPoint(kind) end
-    Bridge:SetStatus("Gameplay current hub opened; /65 hot-point queries requested.")
+    Bridge:SetStatus("Gameplay current hub opened; gameplay-redpoint-shared-owner consumes cache only.")
+    if Bridge:HasCommandLineFlag("-projectXGameplayValidation") then Bridge:RunGameplayValidation() end
     if Bridge:HasCommandLineFlag("-projectXYouLiValidation") then Bridge:EnterGameplay(1) end
     if Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") then Bridge:EnterGameplay(3) end
     if Bridge:HasCommandLineFlag("-projectXArenaValidation") then Bridge:EnterGameplay(6) end
@@ -40,11 +28,6 @@ function M.onHotPoint(op, kind, state)
     Bridge:UpdateTaskHotPoint(kind, state)
     Bridge:UpdateGameplayHotPoint(kind, state)
     Bridge:SetStatus("Gameplay /65 recv: op=" .. tostring(op) .. ", type=" .. tostring(kind) .. ", state=" .. tostring(state) .. ".")
-    if M.pending > 0 and op == 1 then M.pending = M.pending - 1 end
-    if M.validation and M.pending == 0 then
-        M.validation = false
-        Bridge:CompleteGameplayValidation()
-    end
 end
 
 return M

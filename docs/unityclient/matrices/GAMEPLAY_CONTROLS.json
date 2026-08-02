@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "module": "Gameplay",
+  "workflowPolicyVersion": 1,
+  "hardGateVersion": 2,
+  "acceptanceExamples": [
+    {
+      "id": "gameplay-authoritative-13-entry-list",
+      "given": "固定账号已到达HUD且function_dat.lua当前page非0条目可用",
+      "when": "从HUD真实点击btn_wanfa并等待大厅稳定帧",
+      "then": "大厅严格显示1/3/6/7/8/9/10/11/12/18/19/25/26共13项并生成7行双列列表；page=0的15/16/17玩法商店不得出现"
+    },
+    {
+      "id": "gameplay-current-interaction-boundary",
+      "given": "ActivityLayer当前TaskBtn1/2的touchEnabled=false且只有EnterBtn可点击",
+      "when": "点击卡片非按钮区域、滚动列表并覆盖13个参加按钮",
+      "then": "卡片主体不产生选择或详情；列表可滚动；参加按钮只验证目标模块、开放条件、路由所有权和不可用反馈，不进入或迁移独立子业务页面"
+    },
+    {
+      "id": "gameplay-lock-and-open",
+      "given": "分别使用低等级锁定样本与60级开放样本",
+      "when": "检查13个入口并点击实际可见参加按钮",
+      "then": "锁定项显示N级开启且参加按钮隐藏；开放项显示参加；大厅不发送子模块协议"
+    },
+    {
+      "id": "gameplay-scroll-lifecycle-isolation",
+      "given": "13项列表已渲染且账号A存在滚动位置和红点缓存",
+      "when": "滚动到底、返回重进、客户端重启、断线重连并切换账号B",
+      "then": "7行列表裁剪与滚动范围正确；重进重建默认顶部；红点只读当前会话权威缓存，账号A状态和pending不得进入账号B"
+    },
+    {
+      "id": "gameplay-failure-boundary",
+      "given": "配置/图标资源缺失、/65失败或静默、网络超时、功能未开放或目标服务不可用",
+      "when": "进入大厅、刷新或点击相应入口",
+      "then": "保持可观测安全态并显示原生锁定或不可用反馈；不崩溃、不造红点、不造业务数据、不发送子模块协议"
+    }
+  ],
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000115,
+    "isolationUserId": 705213,
+    "isolationRoleId": 1000006,
+    "width": 1334,
+    "height": 750,
+    "windowsScalePercent": 100,
+    "serverFixture": "no-server-fixture",
+    "ownedViews": [
+      "csd/shop/shop_bg.csb via PopFirstClassBg",
+      "csd/common/ActivityLayer.csb"
+    ],
+    "excludedOwners": [
+      "TaskBtn1/2 card selection and Main.WanFaInfoUI because current CSB touchEnabled=false makes the chain player-unreachable",
+      "all 13 target business pages and their protocols",
+      "玩法商店15/16/17以及支付、活动、基金、福利、竞技、社交业务"
+    ]
+  },
+  "stateMatrix": [
+    { "id": "GAMEPLAY-STATE-HUD-ENTRY", "description": "HUD玩法入口与权威红点" },
+    { "id": "GAMEPLAY-STATE-LIST-TOP", "description": "13项7行列表顶部稳定帧" },
+    { "id": "GAMEPLAY-STATE-LIST-SCROLLED", "description": "滚动后底部与裁剪" },
+    { "id": "GAMEPLAY-STATE-LOCKED", "description": "低等级N级开启且参加隐藏" },
+    { "id": "GAMEPLAY-STATE-RED-DOT", "description": "昆仑本地红点及/65三类权威显示隐藏" },
+    { "id": "GAMEPLAY-STATE-UNAVAILABLE", "description": "子模块边界不可用反馈且无越权协议" },
+    { "id": "GAMEPLAY-STATE-EMPTY-FAILURE", "description": "空配置缺资源协议失败或超时安全态" },
+    { "id": "GAMEPLAY-STATE-RETURN-HUD", "description": "关闭返回HUD" },
+    { "id": "GAMEPLAY-STATE-REENTER", "description": "返回重进恢复顶部" },
+    { "id": "GAMEPLAY-STATE-RESTART", "description": "客户端重启后重新进入" },
+    { "id": "GAMEPLAY-STATE-RECONNECT", "description": "断线重连无旧pending" },
+    { "id": "GAMEPLAY-STATE-ACCOUNT-SWITCH", "description": "切号隔离" }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "knownGaps": [
+      {
+        "id": "GAMEPLAY-GAP-NATIVE-DETAIL-UNREACHABLE",
+        "handling": "TaskBtn1/2 touchEnabled=false；卡片主体与WanFaInfoUI不进入当前可达范围，保留源码事实而不在Unity造可点击详情",
+        "evidence": "client/ProjectX/src/View/Main/WanFaEntranceUI.lua; unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/ActivityLayer.json"
+      },
+      {
+        "id": "GAMEPLAY-GAP-UNITY-EXTRA-SHOPS",
+        "handling": "G3前把Unity快照收敛为Cocos当前13项；15/16/17在function_dat.lua中page=0，不属于大厅",
+        "evidence": "client/ProjectX/src/ConfigData/function_dat.lua; unityclient/Assets/ProjectX/Resources/Configs/gameplay.json"
+      },
+      {
+        "id": "GAMEPLAY-GAP-UNITY-REDPOINT-OWNERSHIP",
+        "handling": "G3移除大厅onClick主动/65查询；全局主界面所有者刷新/65，并按Cocos相同链路请求/213 op=25计算昆仑function 7；大厅进入前等待共享状态稳定且只读缓存",
+        "evidence": "client/ProjectX/src/View/Main/WanFaEntranceUI.lua; client/ProjectX/src/View/ImproveUI/LRedDotCheckMgr.lua; unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt"
+      },
+      {
+        "id": "GAMEPLAY-GAP-OLD-RUNNER",
+        "handling": "旧Runner只有单截图和内部完成，G3必须重写为16控件真实点击覆盖",
+        "evidence": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs; unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs"
+      }
+    ]
+  },
+  "controls": [
+    { "id":"GAMEPLAY-01-HUD-ENTRY","page":"HUD","path":"Layer/Main_UI/btn_wanfa","visibleCondition":"HUD稳定且EMID_WANFA入口可见","cocosCallback":"MainUI.WanFaCallback -> Utils:OpenFunction(270,nil,true)","protocol":"none; reads existing red-dot cache","unityBinding":"OnGameplayClicked -> ShowGameplay","successEvidence":"新鲜HUD入口到大厅稳定帧","failureEvidence":"目标不可用反馈且不打开空壳","reconnectEvidence":"重连后从新HUD真实点击","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-01-HUD-ENTRY.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-01-HUD-ENTRY.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-02-FRAME-CLOSE","page":"Gameplay","path":"PopFirstClassBg/Popup/Btn_close","visibleCondition":"大厅打开","cocosCallback":"LUIPopFClassBgEvent.SetCloseCallback -> WanFaEntranceUI:CloseUI","protocol":"none","unityBinding":"GameplayPresenter frame close","successEvidence":"返回HUD","failureEvidence":"重复关闭无崩溃","reconnectEvidence":"重连重进后仍可关闭","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-02-FRAME-CLOSE.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-02-FRAME-CLOSE.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-03-LIST-SCROLL","page":"Gameplay","path":"Panel/ActivityBg/runtime ListView","visibleCondition":"13项生成7行且内容高于裁剪区","cocosCallback":"ccui.ListView vertical elastic scroll","protocol":"none","unityBinding":"ActivityBg ScrollRect","successEvidence":"顶部到底部范围与裁剪正确","failureEvidence":"空列表不可越界或崩溃","reconnectEvidence":"重进恢复顶部安全位置","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-03-LIST-SCROLL.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-03-LIST-SCROLL.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-04-ENTER-1","page":"Gameplay","path":"Function_1/EnterBtn","visibleCondition":"level>=26","cocosCallback":"enterFunction(1) -> Utils:OpenFunction(1) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 1","successEvidence":"目标=游历三界且边界反馈","failureEvidence":"未开放/不可用不发子模块协议","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-04-ENTER-1.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-04-ENTER-1.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-05-ENTER-3","page":"Gameplay","path":"Function_3/EnterBtn","visibleCondition":"level>=32","cocosCallback":"enterFunction(3) -> Utils:OpenFunction(3) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 3","successEvidence":"目标=封神列传且边界反馈","failureEvidence":"未开放/不可用不发子模块协议","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-05-ENTER-3.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-05-ENTER-3.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-06-ENTER-6","page":"Gameplay","path":"Function_6/EnterBtn","visibleCondition":"level>=10","cocosCallback":"enterFunction(6) -> Utils:OpenFunction(6) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 6","successEvidence":"目标=竞技场且边界反馈","failureEvidence":"不迁移P3竞技页面","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-06-ENTER-6.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-06-ENTER-6.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-07-ENTER-7","page":"Gameplay","path":"Function_7/EnterBtn","visibleCondition":"level>=34","cocosCallback":"enterFunction(7) -> Utils:OpenFunction(7) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 7","successEvidence":"目标=决战昆仑且边界反馈","failureEvidence":"不迁移P3竞技页面","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-07-ENTER-7.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-07-ENTER-7.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-08-ENTER-8","page":"Gameplay","path":"Function_8/EnterBtn","visibleCondition":"level>=24","cocosCallback":"enterFunction(8) -> Utils:OpenFunction(8) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 8","successEvidence":"目标=血战到底且边界反馈","failureEvidence":"不迁移血战页面","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-08-ENTER-8.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-08-ENTER-8.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-09-ENTER-9","page":"Gameplay","path":"Function_9/EnterBtn","visibleCondition":"level>=15","cocosCallback":"enterFunction(9) -> Utils:OpenFunction(9) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 9","successEvidence":"目标=法宝搜索且边界反馈","failureEvidence":"不迁移法宝搜索页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-09-ENTER-9.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-09-ENTER-9.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-10-ENTER-10","page":"Gameplay","path":"Function_10/EnterBtn","visibleCondition":"level>=13","cocosCallback":"enterFunction(10) -> Utils:OpenFunction(10) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 10","successEvidence":"目标=每日任务且边界反馈","failureEvidence":"本任务不进入已迁移Task页面","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-10-ENTER-10.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-10-ENTER-10.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-11-ENTER-11","page":"Gameplay","path":"Function_11/EnterBtn","visibleCondition":"level>=13","cocosCallback":"enterFunction(11) -> Utils:OpenFunction(11) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 11","successEvidence":"目标=七日目标且边界反馈","failureEvidence":"不迁移七日目标页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-11-ENTER-11.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-11-ENTER-11.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-12-ENTER-12","page":"Gameplay","path":"Function_12/EnterBtn","visibleCondition":"level>=14","cocosCallback":"enterFunction(12) -> Utils:OpenFunction(12) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 12","successEvidence":"目标=好友赠送且边界反馈","failureEvidence":"不迁移社交页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-12-ENTER-12.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-12-ENTER-12.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-13-ENTER-18","page":"Gameplay","path":"Function_18/EnterBtn","visibleCondition":"level>=1","cocosCallback":"enterFunction(18) -> Utils:OpenFunction(18) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 18","successEvidence":"目标=体力领取且边界反馈","failureEvidence":"不迁移福利/支付页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-13-ENTER-18.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-13-ENTER-18.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-14-ENTER-19","page":"Gameplay","path":"Function_19/EnterBtn","visibleCondition":"level>=20","cocosCallback":"enterFunction(19) -> Utils:OpenFunction(19) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 19","successEvidence":"目标=资源找回且边界反馈","failureEvidence":"不迁移资源找回页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-14-ENTER-19.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-14-ENTER-19.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-15-ENTER-25","page":"Gameplay","path":"Function_25/EnterBtn","visibleCondition":"level>=1","cocosCallback":"enterFunction(25) -> Utils:OpenFunction(25) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 25","successEvidence":"目标=成长基金且边界反馈","failureEvidence":"不迁移基金/支付页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-15-ENTER-25.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-15-ENTER-25.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"GAMEPLAY-16-ENTER-26","page":"Gameplay","path":"Function_26/EnterBtn","visibleCondition":"level>=1","cocosCallback":"enterFunction(26) -> Utils:OpenFunction(26) -> close hub","protocol":"target-owned; forbidden in hub validation","unityBinding":"route boundary 26","successEvidence":"目标=活跃基金且边界反馈","failureEvidence":"不迁移基金/支付页","reconnectEvidence":"重连后边界一致","cocosEvidence":".local/ui-fidelity/Gameplay/cocos/g6-control-evidence/GAMEPLAY-16-ENTER-26.png","unityEvidence":".local/ui-fidelity/Gameplay/unity/g6-control-evidence/GAMEPLAY-16-ENTER-26.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true }
+  ],
+  "g6Audit": {
+    "userId": 7200057,
+    "roleId": 1000115,
+    "screenshotSize": "1334x750",
+    "placeholderCount": 0,
+    "duplicateUidCount": 0,
+    "seriousErrorCount": 0,
+    "automationScreenshotCount": 16,
+    "cocosSourceSet": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
+    "unitySourceSet": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
+    "fixedAccountEvidence": ".local/unity-validation/gameplay-fixed-account-latest.json",
+    "fixtureContract": "shared-readonly-no-server-fixture",
+    "fixtureResidueCount": 0
+  }
+}

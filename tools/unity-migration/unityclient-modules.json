@@ -814,7 +814,7 @@
     {
       "key": "Gameplay",
       "displayName": "玩法大厅",
-      "status": "visual-fixing",
+      "status": "migration-complete",
       "protocols": [
         65
       ],
@@ -824,41 +824,69 @@
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/common/ActivityLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/TaskPopupLayer.prefab",
         "unityclient/Assets/ProjectX/Generated/FloatNoticeLayer.prefab"
       ],
       "configs": [
         "client/ProjectX/src/ConfigData/function_dat.lua",
         "unityclient/Assets/ProjectX/Resources/Configs/gameplay.json"
       ],
-      "mutatesServer": true,
+      "mutatesServer": false,
+      "fixtureContract": {
+        "mode": "shared-readonly-no-server-fixture",
+        "serverSnapshotRequired": false,
+        "cleanupAssertion": "fixtureResidueCount=0"
+      },
       "validationFlags": [
         "-projectXGameplayValidation"
       ],
       "screenshots": [
-        "build/ui-migration/bootstrap-gameplay-list.png",
-        "build/ui-migration/bootstrap-gameplay.png"
+        "build/ui-migration/bootstrap-gameplay-hud.png",
+        "build/ui-migration/bootstrap-gameplay-list-top.png",
+        "build/ui-migration/bootstrap-gameplay-list-scrolled.png",
+        "build/ui-migration/bootstrap-gameplay-locked.png",
+        "build/ui-migration/bootstrap-gameplay-red-dot.png",
+        "build/ui-migration/bootstrap-gameplay-unavailable.png",
+        "build/ui-migration/bootstrap-gameplay-empty.png",
+        "build/ui-migration/bootstrap-gameplay-return-hud.png",
+        "build/ui-migration/bootstrap-gameplay-reenter.png",
+        "build/ui-migration/bootstrap-gameplay-restart.png",
+        "build/ui-migration/bootstrap-gameplay-disconnected.png",
+        "build/ui-migration/bootstrap-gameplay-reconnect.png",
+        "build/ui-migration/bootstrap-gameplay-account-switch.png"
       ],
       "visualFidelity": {
-        "status": "visual-fixing",
+        "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/Gameplay/cocos/list.png",
-          ".local/ui-fidelity/Gameplay/cocos/detail-valid.png"
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-HUD-ENTRY.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-LIST-TOP.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-LIST-SCROLLED.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-LOCKED-LEVEL1.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-EMPTY.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-RETURN-HUD.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-RESTART-ACCOUNT-SWITCH-BACK.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-DISCONNECTED.png",
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-RECONNECTED.png"
         ],
         "unityScreenshots": [
-          ".local/ui-fidelity/Gameplay/unity/list.png",
-          ".local/ui-fidelity/Gameplay/unity/detail.png"
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-HUD-ENTRY.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-TOP.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-SCROLLED.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LOCKED-LEVEL1.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-EMPTY.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RETURN-HUD.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RESTART.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-DISCONNECTED.png",
+          ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RECONNECTED.png"
         ],
         "diffReports": [
-          ".local/ui-fidelity/Gameplay/diff/list-full.json",
-          ".local/ui-fidelity/Gameplay/diff/list-module.json",
-          ".local/ui-fidelity/Gameplay/diff/detail-full.json",
-          ".local/ui-fidelity/Gameplay/diff/detail-module.json"
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json",
+          ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/manual-acceptance.json"
         ],
-        "flowEvidence": ".local/ui-fidelity/Gameplay/flow.md",
-        "uiMapping": ".local/ui-fidelity/Gameplay/ui-map.json"
+        "flowEvidence": ".local/unity-validation/gameplay-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json"
       },
-      "document": "docs/unityclient/modules/GAMEPLAY.md"
+      "document": "docs/unityclient/modules/GAMEPLAY.md",
+      "controlMatrix": "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json"
     },
     {
       "key": "YouLi",

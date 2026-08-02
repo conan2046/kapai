@@ -289,6 +289,112 @@
       }
     },
     {
+      "module": "Gameplay",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-unity-result.json",
+        "visualResultEvidence": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-g5-visual-result.json",
+        "visualValidationFlags": [
+          "-projectXGameplayValidation"
+        ],
+        "visualOnlyArtifacts": false,
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXGameplayLockedUserId=7200260",
+          "-projectXGameplayLockedRoleId=1000119",
+          "-projectXGameplayIsolationUserId=705213",
+          "-projectXGameplayIsolationRoleId=1000006"
+        ],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": false,
+          "requirements": [
+            {
+              "id": "gameplay-authoritative-identities",
+              "description": "主账号7200057/1000115/T00057/60级、锁定账号7200260/1000119/T20260/1级、隔离账号705213/1000006/T67076/60级必须唯一绑定"
+            },
+            {
+              "id": "gameplay-readonly-config",
+              "description": "function_dat.lua哈希固定且当前大厅严格为13项；夹具mutationCount必须为0"
+            },
+            {
+              "id": "gameplay-no-owned-server-state",
+              "description": "大厅不拥有业务协议或可变服务端数据；/65由SharedHotPoint所有，参加按钮只验证路由边界"
+            }
+          ]
+        },
+        "artifactCopies": [
+          { "source": "build/ui-migration/bootstrap-gameplay-hud.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-HUD-ENTRY.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-list-top.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-TOP.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-list-scrolled.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-SCROLLED.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-locked.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LOCKED-LEVEL1.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-red-dot.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RED-DOT.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-unavailable.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-UNAVAILABLE.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-empty.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-EMPTY.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-return-hud.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RETURN-HUD.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-reenter.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-REENTER.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-restart.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RESTART.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-disconnected.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-DISCONNECTED.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-reconnect.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RECONNECTED.png" },
+          { "source": "build/ui-migration/bootstrap-gameplay-account-switch.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-ACCOUNT-SWITCH.png" }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
+        "unityDirectory": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
+      "compareDirectory": ".local/ui-fidelity/Gameplay/compare/g5-live-20260802",
+      "width": 1334,
+      "height": 750,
+      "allowedDuplicateGroups": [
+        {
+          "ids": [
+            "GAMEPLAY-STATE-HUD-ENTRY",
+            "GAMEPLAY-STATE-RETURN-HUD"
+          ],
+          "reason": "Closing the Gameplay hub is required to converge exactly on the same authoritative primary-role HUD used for entry; the distinct evidence is the real close-button control step, not a different terminal bitmap.",
+          "sourceEvidence": [
+            "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::GAMEPLAY-02-FRAME-CLOSE",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
+          ]
+        },
+        {
+          "ids": [
+            "GAMEPLAY-STATE-LIST-TOP",
+            "GAMEPLAY-STATE-RESTART"
+          ],
+          "reason": "A client restart must rebuild the same authoritative 13-entry list at the same top scroll position; exact bitmap convergence is the expected lifecycle result.",
+          "sourceEvidence": [
+            "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::gameplay-scroll-lifecycle-isolation",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
+          ]
+        }
+      ],
+      "identity": {
+          "primaryUserId": 7200057,
+          "primaryRoleId": 1000115,
+          "lockedUserId": 7200260,
+          "lockedRoleId": 1000119,
+          "isolationUserId": 705213,
+          "isolationRoleId": 1000006,
+          "fixtureContract": "no-server-fixture"
+        },
+        "pairs": [
+          { "id": "GAMEPLAY-STATE-HUD-ENTRY", "cocos": "GAMEPLAY-STATE-HUD-ENTRY.png", "unity": "GAMEPLAY-STATE-HUD-ENTRY.png" },
+          { "id": "GAMEPLAY-STATE-LIST-TOP", "cocos": "GAMEPLAY-STATE-LIST-TOP.png", "unity": "GAMEPLAY-STATE-LIST-TOP.png" },
+          { "id": "GAMEPLAY-STATE-LIST-SCROLLED", "cocos": "GAMEPLAY-STATE-LIST-SCROLLED.png", "unity": "GAMEPLAY-STATE-LIST-SCROLLED.png" },
+          { "id": "GAMEPLAY-STATE-LOCKED-LEVEL1", "cocos": "GAMEPLAY-STATE-LOCKED-LEVEL1.png", "unity": "GAMEPLAY-STATE-LOCKED-LEVEL1.png" },
+          { "id": "GAMEPLAY-STATE-EMPTY", "cocos": "GAMEPLAY-STATE-EMPTY.png", "unity": "GAMEPLAY-STATE-EMPTY.png" },
+          { "id": "GAMEPLAY-STATE-RETURN-HUD", "cocos": "GAMEPLAY-STATE-RETURN-HUD.png", "unity": "GAMEPLAY-STATE-RETURN-HUD.png" },
+          { "id": "GAMEPLAY-STATE-RESTART", "cocos": "GAMEPLAY-STATE-RESTART-ACCOUNT-SWITCH-BACK.png", "unity": "GAMEPLAY-STATE-RESTART.png" },
+          { "id": "GAMEPLAY-STATE-DISCONNECTED", "cocos": "GAMEPLAY-STATE-DISCONNECTED.png", "unity": "GAMEPLAY-STATE-DISCONNECTED.png" },
+          { "id": "GAMEPLAY-STATE-RECONNECTED", "cocos": "GAMEPLAY-STATE-RECONNECTED.png", "unity": "GAMEPLAY-STATE-RECONNECTED.png" }
+        ]
+      }
+    },
+    {
       "module": "GameplayShops",
       "fixedAccount": {
         "userId": 7200057,

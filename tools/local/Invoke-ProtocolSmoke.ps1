@@ -469,7 +469,7 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
                 raise RuntimeError('expected create-role failure but received: ' + body.hex())
             print('create_role_expected_failure=' + body.hex())
             stop_flag['stop'] = True
-            time.sleep(0.2)
+            th.join(timeout=1.0)
             sys.exit(0)
         if created_role_id['id'] is None:
             body = create_response['body']
@@ -565,7 +565,7 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
             print('case_' + name + '=' + ','.join(str(mt) + ':' + mb.hex() for mt, mb in events))
     time.sleep(4)
     stop_flag['stop'] = True
-    time.sleep(0.2)
+    th.join(timeout=1.0)
 
 print('recv_count=' + str(len(recv_types)))
 print('recv_types=' + ','.join(map(str, recv_types[:200])))

@@ -2,6 +2,13 @@ local Protocol = require("Protocol")
 local GameplayController = require("Gameplay.GameplayController")
 local M = {}
 
+function M.refreshGameplay()
+    local message = Protocol.newMessage(Protocol.CHUANG_GUAN)
+    message:WriteByte(25)
+    Bridge:Send(message)
+    Bridge:SetStatus("Shared Gameplay KunLun red-point source /213 op=25 requested.")
+end
+
 function M.onPacket(command, message)
     if command ~= Protocol.FUNC_HOT_POINT then return false end
     local op = message:ReadByte()

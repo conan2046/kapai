@@ -25,10 +25,10 @@ namespace ProjectX.Data
         };
 
         private readonly List<GameplayRecord> items = new List<GameplayRecord>();
+        private readonly Dictionary<int, bool> hotPointCache = new Dictionary<int, bool>();
 
         public event Action Changed;
         public IReadOnlyList<GameplayRecord> Items => items;
-        public GameplayRecord Selected { get; private set; }
         public int Count => items.Count;
         public int OpenCount => items.Count(value => value.IsOpen);
         public bool HasHotPoint => items.Any(value => value.HasHotPoint);
@@ -37,22 +37,20 @@ namespace ProjectX.Data
         {
             items.Clear();
             if (values != null) items.AddRange(values.Select(value => new GameplayRecord(value, playerLevel)));
-            Selected = null;
+            foreach (GameplayRecord item in items)
+                item.HasHotPoint = hotPointCache.TryGetValue(item.Definition.Id, out bool visible) && visible;
             Changed?.Invoke();
-        }
-
-        public bool Select(int functionId)
-        {
-            GameplayRecord value = items.FirstOrDefault(item => item.Definition.Id == functionId);
-            if (value == null) return false;
-            Selected = value;
-            Changed?.Invoke();
-            return true;
         }
 
         public void SetHotPoint(ushort type, bool visible)
         {
             if (!HotPointToFunction.TryGetValue(type, out int functionId)) return;
+            SetFunctionHotPoint(functionId, visible);
+        }
+
+        public void SetFunctionHotPoint(int functionId, bool visible)
+        {
+            hotPointCache[functionId] = visible;
             GameplayRecord value = items.FirstOrDefault(item => item.Definition.Id == functionId);
             if (value == null || value.HasHotPoint == visible) return;
             value.HasHotPoint = visible;
@@ -62,7 +60,7 @@ namespace ProjectX.Data
         public void Clear()
         {
             items.Clear();
-            Selected = null;
+            hotPointCache.Clear();
             Changed?.Invoke();
         }
     }

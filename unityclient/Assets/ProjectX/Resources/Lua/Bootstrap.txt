@@ -130,6 +130,7 @@ function OnDrawClosurePrepareReconnect() HeroController.prepareDrawClosureReconn
 function OnDrawClosurePrepareAccountIsolation() HeroController.prepareDrawClosureAccountIsolation() end
 function OnGameplayClicked() GameplayController.onClick() end
 function OnGameplayEntered(functionId) GameplayController.enter(functionId) end
+function OnSharedGameplayHotPointRefresh() HotPointController.refreshGameplay() end
 function OnYouLiClicked() YouLiController.onClick() end
 function OnFengShenStoryClicked() FengShenStoryController.onClick() end
 function OnArenaClicked() ArenaController.onClick() end
