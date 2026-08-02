@@ -12,6 +12,7 @@ namespace ProjectX.Data
         public byte Model { get; private set; }
         public byte Head { get; private set; }
         public ushort Level { get; private set; }
+        public byte VipLevel { get; private set; }
         public ulong Experience { get; private set; }
         public ulong Power { get; private set; }
         public uint Potential { get; private set; }
@@ -56,6 +57,12 @@ namespace ProjectX.Data
             Changed?.Invoke();
         }
 
+        public void SetVipLevel(byte value)
+        {
+            VipLevel = value;
+            Changed?.Invoke();
+        }
+
         public void SetPotential(uint value)
         {
             Potential = value;
@@ -74,6 +81,7 @@ namespace ProjectX.Data
             Name = string.Empty;
             Sex = Model = Head = 0;
             Level = 0;
+            VipLevel = 0;
             Experience = Power = 0;
             Potential = Soul = 0;
             PackageCapacity = 0;

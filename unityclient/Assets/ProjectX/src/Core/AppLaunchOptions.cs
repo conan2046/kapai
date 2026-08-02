@@ -8,7 +8,7 @@ namespace ProjectX.Core
         private readonly HashSet<string> flags;
 
         private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId, uint drawIsolationUserId,
-            uint worldIsolationUserId, uint loginCreateUserId, uint loginIsolationUserId)
+            uint worldIsolationUserId, uint loginCreateUserId, uint loginIsolationUserId, uint playerHudIsolationUserId)
         {
             this.flags = flags;
             LocalUserId = localUserId;
@@ -17,6 +17,7 @@ namespace ProjectX.Core
             WorldIsolationUserId = worldIsolationUserId;
             LoginCreateUserId = loginCreateUserId;
             LoginIsolationUserId = loginIsolationUserId;
+            PlayerHudIsolationUserId = playerHudIsolationUserId;
         }
 
         public uint LocalUserId { get; }
@@ -25,11 +26,13 @@ namespace ProjectX.Core
         public uint WorldIsolationUserId { get; }
         public uint LoginCreateUserId { get; }
         public uint LoginIsolationUserId { get; }
+        public uint PlayerHudIsolationUserId { get; }
         public bool Automation => HasFlag("-projectXAutomation");
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
         public bool DrawClosureValidation => HasFlag("-projectXDrawClosureValidation");
         public bool WorldBattleValidation => HasFlag("-projectXWorldBattleValidation");
         public bool LoginClosureValidation => HasFlag("-projectXLoginClosureValidation");
+        public bool PlayerHudValidation => HasFlag("-projectXPlayerHudValidation");
         public bool UseItemValidation => HasFlag("-projectXUseItemValidation");
         public bool SettingsValidation => HasFlag("-projectXSettingsValidation");
         public bool TaskValidation => HasFlag("-projectXTaskValidation") || HasFlag("-projectXTaskG4Validation");
@@ -46,6 +49,7 @@ namespace ProjectX.Core
             uint worldIsolationUserId = 0;
             uint loginCreateUserId = 0;
             uint loginIsolationUserId = 0;
+            uint playerHudIsolationUserId = 0;
             foreach (string raw in arguments ?? Array.Empty<string>())
             {
                 string argument = raw ?? string.Empty;
@@ -80,9 +84,14 @@ namespace ProjectX.Core
                     && uint.TryParse(argument.Substring(loginIsolationPrefix.Length), out uint loginIsolationValue)
                     && loginIsolationValue > 0)
                     loginIsolationUserId = loginIsolationValue;
+                const string playerHudIsolationPrefix = "-projectXPlayerHudIsolationUserId=";
+                if (argument.StartsWith(playerHudIsolationPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(playerHudIsolationPrefix.Length), out uint playerHudIsolationValue)
+                    && playerHudIsolationValue > 0)
+                    playerHudIsolationUserId = playerHudIsolationValue;
             }
             return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId, drawIsolationUserId, worldIsolationUserId,
-                loginCreateUserId, loginIsolationUserId);
+                loginCreateUserId, loginIsolationUserId, playerHudIsolationUserId);
         }
 
         public static AppLaunchOptions Current() => Parse(Environment.GetCommandLineArgs());

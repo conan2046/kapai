@@ -764,6 +764,94 @@
         ]
       },
       "updatedUtc": "2026-08-01T10:09:45.5105768Z"
+    },
+    {
+      "module": "PlayerHud",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/PLAYERHUD.md",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
+          "docs/unityclient/modules/PLAYERHUD.md",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json",
+          "client/ProjectX/res/csd/common/UImainLayer_new.csb",
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/Data/LRoleDataMgr.lua"
+        ],
+        "G1": [
+          ".local/unity-validation/playerhud-cocos-automation-ledger.json",
+          ".local/unity-validation/playerhud-operation-ledger.json",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/01-fixed-first-entry-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/02-wear-expanded-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/03-shop-expanded-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/04-chat-expanded-empty-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/05-return-reenter-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/06-client-restart-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/07-disconnected-unavailable-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/08-reconnected-chat-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/09-chat-expanded-messages-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/10-switch-account-login-native.png",
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/11-isolation-account-native.png"
+        ],
+        "G2": [
+          ".local/unity-validation/playerhud-g2-source-audit.json",
+          "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
+          "docs/unityclient/modules/PLAYERHUD.md",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/ChatLayer.json",
+          "server/src/pack_deal.cpp",
+          "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
+          "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt"
+        ],
+        "G3": [
+          ".local/unity-validation/playerhud-g3-editor-latest.json",
+          ".local/unity-validation/playerhud-fixed-account-data-preflight-latest.json",
+          ".local/playerhud-g3-unity-editor-retry.log",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Data/PlayerStore.cs",
+          "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt",
+          "unityclient/Assets/ProjectX/Resources/Lua/Chat/ChatController.lua.txt",
+          "tools/unity-migration/Invoke-PlayerHudFixture.ps1",
+          "tools/unity-migration/UnityMigration.Common.ps1",
+          "tools/unity-migration/Test-UnityMigrationToolchain.ps1"
+        ],
+        "G4": [
+          ".local/unity-validation/playerhud-fixed-account-latest.json",
+          ".local/unity-validation/playerhud-fixed-account-runner-latest.json",
+          ".local/unity-validation/playerhud-fixed-account-data-preflight-latest.json",
+          ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-fixture-snapshot.json",
+          ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-unity-result.json",
+          "build/ui-migration/unity-playerhud-fixed-account.log",
+          "tools/unity-migration/Test-UnityMigrationToolchain.ps1"
+        ],
+        "G5": [
+          ".local/unity-validation/playerhud-g5-preflight-latest.json",
+          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
+          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/contact-side-1.jpg",
+          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/contact-side-2.jpg",
+          ".local/unity-validation/playerhud-fixed-account-runner-latest.json"
+        ],
+        "G6": [
+          "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
+          ".local/unity-validation/playerhud-fixed-account-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
+          ".local/unity-validation/playerhud-cocos-automation-ledger.json",
+          ".local/unity-validation/playerhud-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-02T04:59:08.1093043Z"
     }
   ]
 }

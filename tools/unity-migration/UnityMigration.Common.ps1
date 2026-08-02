@@ -4,6 +4,18 @@ function Get-UnityMigrationRoot {
     return [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 }
 
+function Get-UnityMigrationShellRoute {
+    param([string]$Root = "")
+    if (-not $Root) { $Root = Get-UnityMigrationRoot }
+    $resolvedRoot = Resolve-UnityMigrationExistingPath -Root $Root -Path "." -PathType Container
+    $escapedRoot = $resolvedRoot.Replace("'", "''")
+    return [pscustomobject][ordered]@{
+        root = $resolvedRoot
+        brokerWorkdirMode = "omit"
+        powerShellPrelude = "Set-Location -LiteralPath '$escapedRoot'"
+    }
+}
+
 function Resolve-UnityMigrationPath {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -13,6 +25,25 @@ function Resolve-UnityMigrationPath {
         return [System.IO.Path]::GetFullPath($Path)
     }
     return [System.IO.Path]::GetFullPath((Join-Path $Root $Path))
+}
+
+function Resolve-UnityMigrationExistingPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [ValidateSet("Any", "Leaf", "Container")][string]$PathType = "Any"
+    )
+    $resolved = Resolve-UnityMigrationPath -Root $Root -Path $Path
+    $exists = if ($PathType -eq "Any") {
+        Test-Path -LiteralPath $resolved
+    }
+    else {
+        Test-Path -LiteralPath $resolved -PathType $PathType
+    }
+    if (-not $exists) {
+        throw "Unity migration path was not resolved to an existing $PathType path: $Path. Resolve it through the manifest, matrix, rg --files, or source references before use. Resolved: $resolved"
+    }
+    return $resolved
 }
 
 function Import-UnityMigrationManifest {
@@ -68,6 +99,152 @@ function Get-UnityMigrationPropertyValue {
     $property = $Object.PSObject.Properties[$Name]
     if ($null -eq $property) { return $Default }
     return $property.Value
+}
+
+function Assert-UnityMigrationRgPathArgument {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    if ([Management.Automation.WildcardPattern]::ContainsWildcardCharacters($Path)) {
+        throw "rg path arguments must be literal on Windows; use a literal directory plus -g for file filters: $Path"
+    }
+    return $Path
+}
+
+function Resolve-UnityMigrationRgPathArguments {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string[]]$Paths
+    )
+    if ($Paths.Count -eq 0) {
+        throw "At least one rg path argument is required."
+    }
+    $resolved = New-Object System.Collections.Generic.List[string]
+    foreach ($path in $Paths) {
+        Assert-UnityMigrationRgPathArgument -Path $path | Out-Null
+        try {
+            $resolved.Add((Resolve-UnityMigrationExistingPath -Root $Root -Path $path -PathType Any))
+        }
+        catch {
+            throw "rg path preflight rejected '$path' before native rg execution. $($_.Exception.Message)"
+        }
+    }
+    return @($resolved)
+}
+
+function Find-UnityMigrationFiles {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$SearchRoot,
+        [Parameter(Mandatory = $true)][string]$Pattern
+    )
+    if ([string]::IsNullOrWhiteSpace($Pattern)) {
+        throw "Unity migration file discovery requires a non-empty regex pattern."
+    }
+    $resolvedRoot = Resolve-UnityMigrationExistingPath -Root $Root -Path $SearchRoot -PathType Container
+    $rg = @(Get-Command rg -CommandType Application -ErrorAction Stop)[0]
+    $files = @(& $rg.Source --files --hidden --glob '!.git/**' -- $resolvedRoot)
+    if ($LASTEXITCODE -ge 2) {
+        throw "rg --files discovery failed for '$SearchRoot' with exit code $LASTEXITCODE."
+    }
+    return @($files | Where-Object { $_ -match $Pattern })
+}
+
+function Find-UnityMigrationJsonNodes {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$JsonPath,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        throw "Unity migration JSON node discovery requires a non-empty node name."
+    }
+    $resolved = Resolve-UnityMigrationExistingPath -Root $Root -Path $JsonPath -PathType Leaf
+    if ($null -eq ('UnityMigrationJsonNodeQuery' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+
+public sealed class UnityMigrationJsonNodeMatch
+{
+    public string Path { get; set; }
+    public bool? Active { get; set; }
+}
+
+public static class UnityMigrationJsonNodeQuery
+{
+    public static UnityMigrationJsonNodeMatch[] Find(string filePath, string requestedName)
+    {
+        using (JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(filePath)))
+        {
+            var matches = new List<UnityMigrationJsonNodeMatch>();
+            Visit(document.RootElement, String.Empty, requestedName, matches);
+            return matches.ToArray();
+        }
+    }
+
+    private static void Visit(JsonElement element, string parentPath, string requestedName,
+        List<UnityMigrationJsonNodeMatch> matches)
+    {
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement child in element.EnumerateArray())
+                Visit(child, parentPath, requestedName, matches);
+            return;
+        }
+        if (element.ValueKind != JsonValueKind.Object)
+            return;
+
+        string name = String.Empty;
+        JsonElement nameElement;
+        if (element.TryGetProperty("name", out nameElement) && nameElement.ValueKind == JsonValueKind.String)
+            name = nameElement.GetString() ?? String.Empty;
+        string currentPath = String.IsNullOrEmpty(name)
+            ? parentPath
+            : (String.IsNullOrEmpty(parentPath) ? name : parentPath + "/" + name);
+        if (String.Equals(name, requestedName, StringComparison.Ordinal))
+        {
+            JsonElement nodePath;
+            if (element.TryGetProperty("nodePath", out nodePath) && nodePath.ValueKind == JsonValueKind.String)
+                currentPath = nodePath.GetString() ?? currentPath;
+            bool? active = ReadBoolean(element, "active");
+            if (!active.HasValue) active = ReadBoolean(element, "visible");
+            matches.Add(new UnityMigrationJsonNodeMatch { Path = currentPath, Active = active });
+        }
+
+        JsonElement root;
+        if (element.TryGetProperty("root", out root))
+            Visit(root, currentPath, requestedName, matches);
+        JsonElement children;
+        if (element.TryGetProperty("children", out children))
+            Visit(children, currentPath, requestedName, matches);
+    }
+
+    private static bool? ReadBoolean(JsonElement element, string propertyName)
+    {
+        JsonElement value;
+        if (!element.TryGetProperty(propertyName, out value)) return null;
+        if (value.ValueKind == JsonValueKind.True) return true;
+        if (value.ValueKind == JsonValueKind.False) return false;
+        return null;
+    }
+}
+'@
+    }
+    return @([UnityMigrationJsonNodeQuery]::Find($resolved, $Name))
+}
+
+function Get-UnityMigrationComputerUseRestartDisposition {
+    param(
+        [Parameter(Mandatory = $true)][string]$ErrorMessage,
+        [Parameter(Mandatory = $true)][ValidateRange(1, 10)][int]$Attempt,
+        [Parameter(Mandatory = $true)][bool]$RuntimeWasVerifiedStopped
+    )
+    if ($RuntimeWasVerifiedStopped -and $Attempt -eq 1 -and
+        $ErrorMessage -match '(?i)transport closed|connection closed') {
+        return 'RetryOnceAfterVerifiedCleanup'
+    }
+    return 'Fail'
 }
 
 function Get-UnityMigrationWorkflowPolicyFailures {
@@ -243,7 +420,7 @@ function Add-UnityMigrationOperationRecord {
         [Parameter(Mandatory = $true)][ValidatePattern('^G[0-6]$')][string]$Gate,
         [Parameter(Mandatory = $true)][string]$Tool,
         [Parameter(Mandatory = $true)][string]$Operation,
-        [Parameter(Mandatory = $true)][ValidateSet("Passed", "Failed", "Blocked", "Resolved")][string]$Outcome,
+        [Parameter(Mandatory = $true)][ValidateSet("Passed", "Failed", "Blocked", "Resolved", "Supplemented")][string]$Outcome,
         [ValidateSet("General", "CocosAutomation", "UnityBatch", "Gate")][string]$Category = "General",
         [string]$ErrorMessage = "",
         [string]$RootCause = "",
@@ -261,6 +438,10 @@ function Add-UnityMigrationOperationRecord {
     if ($Outcome -eq "Resolved" -and
         (-not $RelatedRecordId -or -not $Resolution -or -not $IterationAction -or $IterationEvidence.Count -eq 0)) {
         throw "Resolved operation records require -RelatedRecordId, -Resolution, -IterationAction and -IterationEvidence."
+    }
+    if ($Outcome -eq "Supplemented" -and
+        (-not $RelatedRecordId -or -not $Resolution -or -not $IterationAction -or $IterationEvidence.Count -eq 0)) {
+        throw "Supplemented operation records require -RelatedRecordId, -Resolution, -IterationAction and -IterationEvidence."
     }
     if (-not $Path) { $Path = Get-UnityMigrationOperationLedgerPath -Root $Root -Module $Module }
     $resolvedPath = Resolve-UnityMigrationPath -Root $Root -Path $Path
@@ -288,6 +469,22 @@ function Add-UnityMigrationOperationRecord {
             [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $RelatedRecordId
         }).Count -gt 0) {
             throw "Failure '$RelatedRecordId' already has a resolution record."
+        }
+    }
+    if ($Outcome -eq "Supplemented") {
+        $related = @($ledger.records | Where-Object { [string]$_.recordId -eq $RelatedRecordId })
+        if ($related.Count -ne 1 -or [string]$related[0].outcome -notin @("Failed", "Blocked")) {
+            throw "Supplemented record references no unique Failed/Blocked record: $RelatedRecordId"
+        }
+        if (@($ledger.records | Where-Object {
+            [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $RelatedRecordId
+        }).Count -ne 1) {
+            throw "Failure '$RelatedRecordId' must have one unique resolution before evidence can be supplemented."
+        }
+        if (@($ledger.records | Where-Object {
+            [string]$_.outcome -eq "Supplemented" -and [string]$_.relatedRecordId -eq $RelatedRecordId
+        }).Count -gt 0) {
+            throw "Failure '$RelatedRecordId' already has a retrospective supplement record."
         }
     }
     $recordId = ([Guid]::NewGuid().ToString("N"))
@@ -324,31 +521,139 @@ function Get-UnityMigrationRetrospectiveFailures {
     $records = @((Get-UnityMigrationPropertyValue -Object $Ledger -Name "records" -Default @()))
     foreach ($failed in @($records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") })) {
         $id = [string]$failed.recordId
-        if (-not [string]$failed.error -or -not [string]$failed.rootCause -or [string]$failed.rootCause -eq "pending-diagnosis") {
-            $failures.Add("Failure '$id' has no diagnosed root cause.")
-        }
         $resolved = @($records | Where-Object {
             [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $id
         })
+        $supplements = @($records | Where-Object {
+            [string]$_.outcome -eq "Supplemented" -and [string]$_.relatedRecordId -eq $id
+        })
+        $recordRootCause = [string](Get-UnityMigrationPropertyValue -Object $failed -Name "rootCause" -Default "")
+        $resolvedDiagnosis = if ($resolved.Count -eq 1) {
+            [string](Get-UnityMigrationPropertyValue -Object $resolved[0] -Name "resolution" -Default "")
+        } else { "" }
+        if (-not [string](Get-UnityMigrationPropertyValue -Object $failed -Name "error" -Default "") -or
+            ((-not $recordRootCause -or $recordRootCause -eq "pending-diagnosis") -and -not $resolvedDiagnosis)) {
+            $failures.Add("Failure '$id' has no diagnosed root cause.")
+        }
         if ($resolved.Count -ne 1) {
             $failures.Add("Failure '$id' has no unique resolution and iteration record.")
             continue
         }
+        if ($supplements.Count -gt 1) {
+            $failures.Add("Failure '$id' has more than one retrospective supplement record.")
+            continue
+        }
         $item = $resolved[0]
-        if (-not [string]$item.resolution -or -not [string]$item.iterationAction -or @($item.iterationEvidence).Count -eq 0) {
+        $evidenceReferences = @($item.iterationEvidence)
+        if ($supplements.Count -eq 1) {
+            $evidenceReferences = @($evidenceReferences) + @($supplements[0].iterationEvidence)
+        }
+        if (-not [string]$item.resolution -or -not [string]$item.iterationAction -or $evidenceReferences.Count -eq 0) {
             $failures.Add("Failure '$id' resolution is missing resolution, iterationAction or iterationEvidence.")
         }
         if ($RequireEvidenceFiles) {
             if (-not $Root) { throw "-RequireEvidenceFiles requires -Root." }
-            foreach ($evidencePath in @($item.iterationEvidence)) {
-                $resolvedEvidence = Resolve-UnityMigrationPath -Root $Root -Path ([string]$evidencePath)
-                if (-not (Test-Path -LiteralPath $resolvedEvidence)) {
-                    $failures.Add("Failure '$id' iteration evidence is missing: $evidencePath")
+            $verifiedEvidenceFiles = New-Object System.Collections.Generic.List[string]
+            foreach ($evidencePath in $evidenceReferences) {
+                $reference = [string]$evidencePath
+                $candidates = @($reference)
+                if ($reference -match '^(?<path>.+):\d+(?:-\d+)?$') {
+                    $candidates = @([string]$Matches.path, $reference)
                 }
+                foreach ($candidate in $candidates) {
+                    $resolvedEvidence = Resolve-UnityMigrationPath -Root $Root -Path $candidate
+                    if (Test-Path -LiteralPath $resolvedEvidence -PathType Leaf) {
+                        $verifiedEvidenceFiles.Add($resolvedEvidence)
+                        break
+                    }
+                }
+            }
+            if ($verifiedEvidenceFiles.Count -eq 0) {
+                $failures.Add("Failure '$id' has no verifiable iteration evidence file.")
             }
         }
     }
     return @($failures)
+}
+
+function Get-UnityMigrationOperationResolutionAudit {
+    param(
+        [Parameter(Mandatory = $true)]$Ledger,
+        [string[]]$RecordIds = @()
+    )
+    $records = @((Get-UnityMigrationPropertyValue -Object $Ledger -Name "records" -Default @()))
+    $requestedIds = @($RecordIds | Where-Object { [string]$_ } | Sort-Object -Unique)
+    $failedRecords = @($records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") })
+    if ($requestedIds.Count -gt 0) {
+        $failedRecords = @($failedRecords | Where-Object { [string]$_.recordId -in $requestedIds })
+    }
+    $rows = foreach ($failed in $failedRecords) {
+        $id = [string]$failed.recordId
+        $resolved = @($records | Where-Object {
+            [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $id
+        })
+        [pscustomobject][ordered]@{
+            recordId = $id
+            gate = [string](Get-UnityMigrationPropertyValue -Object $failed -Name "gate" -Default "")
+            operation = [string](Get-UnityMigrationPropertyValue -Object $failed -Name "operation" -Default "")
+            error = [string](Get-UnityMigrationPropertyValue -Object $failed -Name "error" -Default "")
+            rootCause = [string](Get-UnityMigrationPropertyValue -Object $failed -Name "rootCause" -Default "")
+            resolutionCount = $resolved.Count
+            resolution = if ($resolved.Count -eq 1) {
+                [string](Get-UnityMigrationPropertyValue -Object $resolved[0] -Name "resolution" -Default "")
+            } else { "" }
+            iterationAction = if ($resolved.Count -eq 1) {
+                [string](Get-UnityMigrationPropertyValue -Object $resolved[0] -Name "iterationAction" -Default "")
+            } else { "" }
+            iterationEvidence = if ($resolved.Count -eq 1) {
+                @((Get-UnityMigrationPropertyValue -Object $resolved[0] -Name "iterationEvidence" -Default @()))
+            } else { @() }
+        }
+    }
+    return @($rows)
+}
+
+function Get-UnityMigrationValidationResultSummaries {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string[]]$ResultPaths
+    )
+    $paths = @($ResultPaths | Where-Object { [string]$_ })
+    if ($paths.Count -eq 0) { throw "At least one validation result path is required." }
+    $rows = foreach ($path in $paths) {
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $path
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+            throw "Validation result is missing: $path"
+        }
+        $result = Get-Content -LiteralPath $resolved -Raw -Encoding UTF8 | ConvertFrom-Json
+        $semanticAssertions = @(Get-UnityMigrationPropertyValue -Object $result -Name "semanticAssertions" -Default @())
+        $passedSemanticAssertions = @(Get-UnityMigrationPropertyValue -Object $result -Name "passedSemanticAssertions" -Default @())
+        $failedSemanticAssertions = @(Get-UnityMigrationPropertyValue -Object $result -Name "failedSemanticAssertions" -Default @())
+        $semanticAssertionCount = if ($semanticAssertions.Count -gt 0) {
+            $semanticAssertions.Count
+        } else {
+            $passedSemanticAssertions.Count + $failedSemanticAssertions.Count
+        }
+        $failedSemanticAssertionCount = if ($semanticAssertions.Count -gt 0) {
+            @($semanticAssertions | Where-Object {
+                -not [bool](Get-UnityMigrationPropertyValue -Object $_ -Name "passed" -Default $false)
+            }).Count
+        } else {
+            $failedSemanticAssertions.Count
+        }
+        [pscustomobject][ordered]@{
+            path = [IO.Path]::GetRelativePath($Root, $resolved).Replace('\', '/')
+            success = [bool](Get-UnityMigrationPropertyValue -Object $result -Name "success" -Default $false)
+            validatedControlCount = @((Get-UnityMigrationPropertyValue -Object $result -Name "validatedControlIds" -Default @())).Count
+            semanticAssertionCount = $semanticAssertionCount
+            failedSemanticAssertionCount = $failedSemanticAssertionCount
+            screenshotCount = @((Get-UnityMigrationPropertyValue -Object $result -Name "screenshots" -Default @())).Count
+            seriousErrorCount = [int](Get-UnityMigrationPropertyValue -Object $result -Name "seriousErrorCount" -Default 0)
+            fixtureResidualCount = [int](Get-UnityMigrationPropertyValue -Object $result -Name "fixtureResidualCount" -Default 0)
+            message = [string](Get-UnityMigrationPropertyValue -Object $result -Name "message" -Default "")
+        }
+    }
+    return @($rows)
 }
 
 function New-UnityMigrationRetrospective {
@@ -371,6 +676,7 @@ function New-UnityMigrationRetrospective {
         -RequireEvidenceFiles:$RequireEvidenceFiles)
     $failedRecords = @($records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") })
     $resolutionRecords = @($records | Where-Object { [string]$_.outcome -eq "Resolved" })
+    $supplementRecords = @($records | Where-Object { [string]$_.outcome -eq "Supplemented" })
     $summary = [pscustomobject][ordered]@{
         schemaVersion = 1
         module = $Module
@@ -379,6 +685,7 @@ function New-UnityMigrationRetrospective {
         passedCount = @($records | Where-Object { [string]$_.outcome -eq "Passed" }).Count
         failedOrBlockedCount = $failedRecords.Count
         resolvedCount = $resolutionRecords.Count
+        supplementedCount = $supplementRecords.Count
         unresolvedCount = $unresolved.Count
         unresolved = @($unresolved)
         failureGroups = @($failedRecords | Group-Object rootCause | ForEach-Object {
@@ -810,7 +1117,7 @@ function Stop-UnityMigrationCompileChildren {
     if (-not $IsWindows) { return }
     $editorDirectory = Split-Path -Parent $UnityExecutable
     $runtimeDirectory = Join-Path $editorDirectory "Data\NetCoreRuntime"
-    $children = @(Get-Process dotnet,bee_backend -ErrorAction SilentlyContinue | Where-Object {
+    $children = @(Get-Process dotnet,bee_backend,Unity.ILPP.Trigger -ErrorAction SilentlyContinue | Where-Object {
         $_.Path -and $_.Path.StartsWith($editorDirectory, [StringComparison]::OrdinalIgnoreCase)
     })
     if ($children.Count -eq 0) { return }
@@ -887,6 +1194,12 @@ function Invoke-UnityMigrationCompilePreflight {
         catch { }
     }
     $arguments = @("-batchMode", "-quit", "-projectPath", $UnityProject, "-logFile", $logPath)
+    $transientBeeLockPatterns = @(
+        "error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process",
+        "error CS2012:.*Assembly-CSharp(?:-Editor)?\.dll.*being used by another process",
+        "PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process",
+        "IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll"
+    )
     $process = $null
     for ($attempt = 1; $attempt -le 2; $attempt++) {
         if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
@@ -899,19 +1212,15 @@ function Invoke-UnityMigrationCompilePreflight {
         # Unity batchmode may report its exit code before ILPP/Bee release Assembly-CSharp.dll.
         # The child processes are only cleaned after this owned batch process has exited.
         Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
-        if ($process.ExitCode -eq 0) { break }
-        $transientBeeLockPatterns = @(
-            "error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process",
-            "PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process"
-        )
         $transientBeeLock = $attempt -eq 1 -and (Test-Path -LiteralPath $logPath) -and
             (Select-String -LiteralPath $logPath -Pattern $transientBeeLockPatterns -CaseSensitive:$false -Quiet)
+        if ($process.ExitCode -eq 0 -and -not $transientBeeLock) { break }
         if (-not $transientBeeLock) {
             throw "Unity compile preflight failed with exit code $($process.ExitCode); log=$logPath"
         }
         $retryEvidence = "$logPath.transient-bee-lock-attempt1.log"
         Copy-Item -LiteralPath $logPath -Destination $retryEvidence -Force
-        Write-Warning "Unity Bee held Assembly-CSharp.ref.dll during API update; retrying the same compile preflight once. Evidence: $retryEvidence"
+        Write-Warning "Unity held a generated Assembly-CSharp artifact during compile/reload; retrying the same compile preflight once even if Unity recovered with exit code 0. Evidence: $retryEvidence"
         Start-Sleep -Seconds 2
         Assert-NoUnityMigrationBlockingDotNet -Root $Root
     }
@@ -1301,6 +1610,100 @@ function Test-UnityMigrationPort {
     return $null -ne (Get-UnityMigrationTcpListenerPid -Port $Port)
 }
 
+function Get-UnityMigrationMcpSseMessage {
+    param(
+        [Parameter(Mandatory = $true)][string]$Content,
+        [Parameter(Mandatory = $true)][int]$Id
+    )
+    $messages = New-Object System.Collections.Generic.List[object]
+    foreach ($line in @($Content -split "`r?`n")) {
+        if (-not $line.StartsWith("data: ", [StringComparison]::Ordinal)) { continue }
+        try { $messages.Add(($line.Substring(6) | ConvertFrom-Json)) }
+        catch { throw "Unity MCP returned invalid SSE JSON: $line" }
+    }
+    $reply = @($messages | Where-Object {
+        $idProperty = $_.PSObject.Properties["id"]
+        $null -ne $idProperty -and [int]$idProperty.Value -eq $Id
+    }) | Select-Object -Last 1
+    if ($null -eq $reply) { throw "Unity MCP response did not contain JSON-RPC id $Id." }
+    $errorProperty = $reply.PSObject.Properties["error"]
+    if ($null -ne $errorProperty -and $null -ne $errorProperty.Value) {
+        throw "Unity MCP JSON-RPC error: $($errorProperty.Value | ConvertTo-Json -Depth 8 -Compress)"
+    }
+    return $reply
+}
+
+function Invoke-UnityMigrationMcpRequest {
+    param(
+        [Parameter(Mandatory = $true)][uri]$Uri,
+        [Parameter(Mandatory = $true)][string]$Method,
+        [hashtable]$Params = @{},
+        [int]$Id = 1,
+        [string]$SessionId = "",
+        [string]$ProtocolVersion = "2025-03-26",
+        [ValidateRange(1, 120)][int]$TimeoutSeconds = 15,
+        [switch]$Notification
+    )
+    $headers = @{ Accept = "application/json, text/event-stream" }
+    if ($SessionId) {
+        $headers["Mcp-Session-Id"] = $SessionId
+        $headers["MCP-Protocol-Version"] = $ProtocolVersion
+    }
+    $payload = [ordered]@{ jsonrpc = "2.0"; method = $Method; params = $Params }
+    if (-not $Notification) { $payload.id = $Id }
+    $response = Invoke-WebRequest -Uri $Uri -Method Post -Headers $headers -ContentType "application/json" `
+        -Body ($payload | ConvertTo-Json -Depth 12 -Compress) -TimeoutSec $TimeoutSeconds
+    if ($Notification) {
+        return [pscustomobject]@{ statusCode = [int]$response.StatusCode; sessionId = $SessionId; reply = $null }
+    }
+    return [pscustomobject]@{
+        statusCode = [int]$response.StatusCode
+        sessionId = if ($response.Headers["Mcp-Session-Id"]) { [string]$response.Headers["Mcp-Session-Id"] } else { $SessionId }
+        reply = Get-UnityMigrationMcpSseMessage -Content ([string]$response.Content) -Id $Id
+    }
+}
+
+function Connect-UnityMigrationMcpSession {
+    param(
+        [uri]$Uri = "http://127.0.0.1:8080/mcp",
+        [string]$ClientName = "unity-migration",
+        [string]$ProtocolVersion = "2025-03-26",
+        [ValidateRange(1, 120)][int]$TimeoutSeconds = 15
+    )
+    $initialize = Invoke-UnityMigrationMcpRequest -Uri $Uri -Method "initialize" -Id 1 `
+        -TimeoutSeconds $TimeoutSeconds -Params @{
+            protocolVersion = $ProtocolVersion
+            capabilities = @{}
+            clientInfo = @{ name = $ClientName; version = "1.0" }
+        }
+    if (-not $initialize.sessionId) { throw "Unity MCP initialize response did not include Mcp-Session-Id." }
+    Invoke-UnityMigrationMcpRequest -Uri $Uri -Method "notifications/initialized" -Notification `
+        -SessionId $initialize.sessionId -ProtocolVersion $ProtocolVersion -TimeoutSeconds $TimeoutSeconds | Out-Null
+    return [pscustomobject]@{
+        uri = [string]$Uri
+        sessionId = $initialize.sessionId
+        protocolVersion = $ProtocolVersion
+        serverInfo = $initialize.reply.result.serverInfo
+    }
+}
+
+function Read-UnityMigrationMcpResource {
+    param(
+        [Parameter(Mandatory = $true)]$Session,
+        [Parameter(Mandatory = $true)][string]$ResourceUri,
+        [int]$Id = 2,
+        [ValidateRange(1, 120)][int]$TimeoutSeconds = 15
+    )
+    $response = Invoke-UnityMigrationMcpRequest -Uri ([uri]$Session.uri) -Method "resources/read" `
+        -Params @{ uri = $ResourceUri } -Id $Id -SessionId ([string]$Session.sessionId) `
+        -ProtocolVersion ([string]$Session.protocolVersion) -TimeoutSeconds $TimeoutSeconds
+    $contents = @($response.reply.result.contents)
+    if ($contents.Count -eq 0 -or -not [string]$contents[0].text) {
+        throw "Unity MCP resource '$ResourceUri' returned no text content."
+    }
+    return ([string]$contents[0].text | ConvertFrom-Json)
+}
+
 function Assert-UnityMigrationSourceContracts {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -1388,7 +1791,7 @@ function Assert-UnityMigrationDuplicateHashPolicy {
         [Parameter(Mandatory = $true)][string]$Context
     )
     $knownIds = @($Items | ForEach-Object { [string]$_.$IdentifierProperty })
-    $allowedKeys = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
+    $allowedIdSets = New-Object System.Collections.Generic.List[object]
     $claimedIds = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::OrdinalIgnoreCase)
     foreach ($group in @($AllowedDuplicateGroups)) {
         $ids = @(Get-UnityMigrationPropertyValue -Object $group -Name "ids" -Default @() | `
@@ -1398,11 +1801,18 @@ function Assert-UnityMigrationDuplicateHashPolicy {
             if ($knownIds -notcontains $id) { throw "$Context allowed duplicate id is unknown: $id" }
             if (-not $claimedIds.Add($id)) { throw "$Context allowed duplicate id appears in multiple groups: $id" }
         }
-        [void]$allowedKeys.Add((@($ids | Sort-Object) -join "`n"))
+        $allowedIdSets.Add($ids)
     }
     foreach ($duplicate in @($Items | Group-Object -Property $HashProperty | Where-Object Count -gt 1)) {
         $ids = @($duplicate.Group | ForEach-Object { [string]$_.$IdentifierProperty } | Sort-Object)
-        if (-not $allowedKeys.Contains(($ids -join "`n"))) {
+        $isAllowed = $false
+        foreach ($allowedIds in $allowedIdSets) {
+            if (@($ids | Where-Object { $allowedIds -notcontains $_ }).Count -eq 0) {
+                $isAllowed = $true
+                break
+            }
+        }
+        if (-not $isAllowed) {
             throw "$Context contains duplicate screenshot content: $($ids -join ', ')."
         }
     }

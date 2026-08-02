@@ -88,6 +88,11 @@ local function readPublic(channel, message)
 end
 
 function M.onPacket(command, message)
+    if command == Protocol.SYSTEM_INFO then
+        local content = plain(message:ReadString())
+        Bridge:AddSystemChatMessage(content)
+        return true
+    end
     if command ~= Protocol.CHAT then return false end
     local channel = message:ReadByte()
     if channel == 8 then readError(message)

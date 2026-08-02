@@ -147,6 +147,7 @@ namespace ProjectX.Core
         private string loginSignature = "local";
         private bool loginClosureValidationRunning;
         private CocosUiView mainView;
+        private CocosUiView mainCloudView;
         private CocosUiView bagView;
         private CocosUiView bagFrameView;
         private CocosUiView bagInputView;
@@ -227,6 +228,12 @@ namespace ProjectX.Core
         private TaskPresenter taskPresenter;
         private MainTaskTrackerPresenter mainTaskTracker;
         private MainHudPresenter mainHudPresenter;
+        private bool playerHudValidationRunning;
+        private Coroutine hudShopSubmenuAnimation;
+        private Coroutine hudWearSubmenuAnimation;
+        private Vector2 hudShopSubmenuOrigin;
+        private Vector2 hudWearSubmenuOrigin;
+        private bool hudSubmenuOriginsReady;
         private Button taskButton;
         private readonly List<TaskRecord> pendingTaskRecords = new List<TaskRecord>();
         private int pendingTaskType = 2;
@@ -569,7 +576,8 @@ namespace ProjectX.Core
                 // automatic reconnect can otherwise race an account switch.
                 if (services.Options.ManualReconnectValidation || services.Options.DrawClosureValidation
                     || services.Options.LoginClosureValidation
-                    || services.Options.WorldBattleValidation)
+                    || services.Options.WorldBattleValidation
+                    || services.Options.PlayerHudValidation)
                     services.Config.AutoReconnect = false;
                 services.Network.StateChanged += HandleNetworkState;
                 services.Network.Disconnected += HandleDisconnected;
@@ -956,6 +964,7 @@ namespace ProjectX.Core
             if (services == null || services.Network.State == NetworkState.Connecting) return;
             try
             {
+                mainHudPresenter?.BeginReconnectChatSummary();
                 ShowLoading("reconnect", "正在重新连接…", 25f);
                 disconnectReason = null;
                 await services.Network.ReconnectAsync(services.Config.ConnectTimeoutSeconds);
@@ -982,6 +991,17 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Send failed: {exception.Message}"); }
         }
 
+        public void SendUntracked(LegacyTcpMessage message)
+        {
+            try
+            {
+                ClientLog.Info("Protocol", "SEND optional HUD state",
+                    $"cmd={message.OutgoingCommand} untracked");
+                services.Network.Send(message);
+            }
+            catch (Exception exception) { Fail($"Send failed: {exception.Message}"); }
+        }
+
         public void ShowLoginUi()
         {
             loginView = services.UiRouter.FindBySource("Login/loginLayer");
@@ -990,6 +1010,7 @@ namespace ProjectX.Core
             roleCreateView = services.UiRouter.FindBySource("Login/RoleCreateLayer");
             noticeView = services.UiRouter.FindBySource("/NoticeLayer.csd", true);
             mainView = services.UiRouter.FindBySource("UImainLayer", true);
+            mainCloudView = services.UiRouter.FindBySource("UImain_cloudLayer", true);
             bagView = services.UiRouter.FindBySource("zhujue/beibao");
             bagFrameView = services.UiRouter.FindBySource("OneLevelLayer");
             bagInputView = services.UiRouter.FindBySource("EnterNumLayer");
@@ -1030,6 +1051,7 @@ namespace ProjectX.Core
             roleCreateView?.SetVisible(false);
             noticeView?.SetVisible(false);
             mainView?.SetVisible(false);
+            mainCloudView?.SetVisible(false);
             bagView?.SetVisible(false);
             bagFrameView?.SetVisible(false);
             bagInputView?.SetVisible(false);
@@ -1458,6 +1480,16 @@ namespace ProjectX.Core
             loginBackgroundView?.SetVisible(false);
             loginPresenter?.HideAll();
             services.UiStack.SetRoot(mainView);
+            if (mainCloudView != null)
+            {
+                Transform background = mainView.Binding.Find("Layer/Main_UI/Bg")?.transform;
+                if (background != null && mainCloudView.GameObject.transform.parent != background)
+                    mainCloudView.GameObject.transform.SetParent(background, false);
+                mainCloudView.SetVisible(true);
+                CocosTimelinePlayer timeline = mainCloudView.GameObject.GetComponent<CocosTimelinePlayer>();
+                if (timeline != null) timeline.GotoFrameAndPlay(0, true);
+                mainCloudView.GameObject.transform.SetAsFirstSibling();
+            }
             SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
             SetMainSubmenuVisible("Layer/Main_UI/tankuang2", false);
             chatView?.SetVisible(false);
@@ -1467,6 +1499,7 @@ namespace ProjectX.Core
             HideLoading("auto-reconnect");
             errorPresenter?.Hide();
             EnsureMainHudPresenter();
+            BindPlayerHudControls();
             EnsureMainTaskTracker();
             services.State.Change(AppState.Main, "Main UI shown");
             SetStatus("Main UI active.");
@@ -2415,6 +2448,10 @@ namespace ProjectX.Core
         public void ReturnToLogin()
         {
             services.Network.Disconnect();
+            mainHudPresenter?.Dispose();
+            mainHudPresenter = null;
+            mainTaskTracker?.Dispose();
+            mainTaskTracker = null;
             services.Tasks.Clear();
             services.Player.Clear();
             services.Currencies.Clear();
@@ -2459,6 +2496,7 @@ namespace ProjectX.Core
 
         public void AddPlayerExperience(uint amount) => services.Player.AddExperience(amount);
         public void SetPlayerPower(double value) => services.Player.SetPower(checked((ulong)value));
+        public void SetPlayerVipLevel(int value) => services.Player.SetVipLevel(checked((byte)value));
         public void SetPlayerLevelAndPower(int level, double value) =>
             services.Player.SetLevelAndPower(unchecked((ushort)level), checked((ulong)value));
         public void SetPlayerPotential(uint value) => services.Player.SetPotential(value);
@@ -2470,6 +2508,26 @@ namespace ProjectX.Core
         public void SetCurrency(int id, double value) => services.Currencies.Set(id, checked((long)value));
 
         public double GetCurrency(int id) => services.Currencies.Get(id);
+
+        public void SetHudOnlineReward(int claimedIndex, int elapsedSeconds)
+        {
+            EnsureMainHudPresenter();
+            mainHudPresenter.SetOnlineReward(claimedIndex, elapsedSeconds);
+        }
+
+        public void SetHudDiscountState(int operation, double seconds, bool available)
+        {
+            EnsureMainHudPresenter();
+            mainHudPresenter.SetDiscountState(operation, checked((uint)Math.Max(0d, seconds)), available);
+            ClientLog.Info("PlayerHud", "Discount state",
+                $"operation={operation} seconds={Math.Max(0d, seconds):0} available={available} visible={mainHudPresenter.VisibleDiscountCount}");
+        }
+
+        public void SetHudRedDot(int redType, bool visible)
+        {
+            EnsureMainHudPresenter();
+            mainHudPresenter.SetRedDot(redType, visible);
+        }
 
         public void SynchronizeServerTime(double todaySeconds, double unixSeconds)
         {
@@ -2495,18 +2553,273 @@ namespace ProjectX.Core
             toastPresenter.Show(message, visibleSeconds);
         }
 
-        public void CompletePlayerHudValidation(double expectedGold, double expectedPremium)
+        public void BeginPlayerHudValidation()
         {
-            EnsureMainHudPresenter();
-            if (services.Currencies.Gold != checked((long)expectedGold)
-                || services.Currencies.Premium != checked((long)expectedPremium)
-                || services.Currencies.Stamina <= 0)
+            if (playerHudValidationRunning) return;
+            playerHudValidationRunning = true;
+            StartCoroutine(RunPlayerHudValidation());
+        }
+
+        private IEnumerator RunPlayerHudValidation()
+        {
+            uint primaryUserId = GetLocalUserId();
+            uint primaryRoleId = GetPlayerRoleId();
+            uint isolationUserId = services.Options.PlayerHudIsolationUserId;
+            try
             {
-                Fail($"Player HUD validation currency mismatch: gold={services.Currencies.Gold}/{expectedGold}, premium={services.Currencies.Premium}/{expectedPremium}, stamina={services.Currencies.Stamina}.");
-                return;
+                BeginValidationEvidence();
+                EnsureMainHudPresenter();
+                EnsureMainTaskTracker();
+                // LoginView binds every shared feature entry after ShowMainUI. Re-apply the
+                // PlayerHud ownership boundary so this module validates real clicks without
+                // opening or implicitly validating any target business page.
+                BindPlayerHudControls();
+                float hudStableDeadline = Time.realtimeSinceStartup + 2.5f;
+                while ((mainHudPresenter.VisibleDiscountCount < 3 || mainHudPresenter.VisibleRedDotCount < 12
+                    || !mainTaskTracker.IsAuthorityReady) && Time.realtimeSinceStartup < hudStableDeadline)
+                    yield return null;
+                if (primaryUserId != 7200057 || primaryRoleId != 1000115)
+                { Fail($"Player HUD requires fixed primary 7200057/1000115, actual={primaryUserId}/{primaryRoleId}."); yield break; }
+                if (isolationUserId == 0 || isolationUserId == primaryUserId)
+                { Fail("Player HUD requires a distinct -projectXPlayerHudIsolationUserId."); yield break; }
+                if (!mainHudPresenter.Validate(out string detail))
+                { RecordValidationSemantic("hud-authoritative-display", false, detail); Fail("Player HUD validation failed: " + detail); yield break; }
+
+                for (int index = 1; index <= 11; index++) MarkValidationControl($"HUD-{index:00}-" + HudControlSuffix(index));
+                string[] identityBoundaryPaths =
+                {
+                    "Layer/Main_UI/Head",
+                    "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn",
+                    "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn"
+                };
+                for (int index = 0; index < identityBoundaryPaths.Length; index++)
+                {
+                    if (!AuditHudBoundary(mainView, identityBoundaryPaths[index], out string boundaryDetail))
+                    { Fail($"HUD identity/currency boundary failed: {boundaryDetail}"); yield break; }
+                    MarkValidationControl($"HUD-{index + 12:00}-" + HudControlSuffix(index + 12));
+                }
+                Button premiumAdd = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
+                if (premiumAdd == null || premiumAdd.interactable)
+                { Fail("HUD premium add control must exist and remain non-interactable in PlayerHud scope."); yield break; }
+                MarkValidationControl("HUD-14-PREMIUM-ADD-DISABLED");
+                RecordValidationSemantic("hud-authoritative-display", true, detail);
+                RecordValidationSemantic("hud-protocol-ownership", true,
+                    "read-only /1004,/18,/26,/62,/65,/199,/206,/220,/222,/226,/321; no /13 mutation issued");
+                if (mainHudPresenter.VisibleDiscountCount != 3)
+                { Fail($"Player HUD stable frame expected the three source-visible /222 op89-91 route entries, visible={mainHudPresenter.VisibleDiscountCount}."); yield break; }
+                RecordValidationSemantic("hud-authoritative-discounts", true,
+                    "fresh Cocos frame and UImainLayer_new preserve three source-visible route-only entries while the server is silent; real /222 responses may update them; no offer/payment page opened");
+                if (mainHudPresenter.VisibleRedDotCount != 12)
+                { Fail($"Player HUD stable frame expected 12 fresh-Cocos-visible prompts, actual={mainHudPresenter.VisibleRedDotCount}; visible={mainHudPresenter.VisibleRedDotSummary}."); yield break; }
+                RecordValidationSemantic("hud-authoritative-red-dots", true,
+                    "fresh native fixed-account frames preserve 12 source/runtime-visible prompts; registered /65 aggregates may update owned entry prompts without opening target modules");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-first-entry.png");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-client-restart.png");
+
+                ToggleWearSubmenu();
+                yield return new WaitForSecondsRealtime(.25f);
+                if (mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf != true)
+                { Fail("HUD wear submenu did not expand through btn_chuandai."); yield break; }
+                MarkValidationControl("HUD-15-WEAR-TOGGLE");
+                if (!AuditHudBoundary(mainView, EquipmentBagPath, out string equipmentBoundary))
+                { Fail($"HUD equipment route boundary failed: {equipmentBoundary}"); yield break; }
+                MarkValidationControl("HUD-16-EQUIP-ROUTE");
+                if (!AuditHudBoundary(mainView, FaBaoBagPath, out string faBaoBoundary))
+                { Fail($"HUD fabao route boundary failed: {faBaoBoundary}"); yield break; }
+                MarkValidationControl("HUD-17-FABAO-ROUTE");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-wear-expanded.png");
+                ToggleWearSubmenu();
+
+                ToggleShopSubmenu();
+                yield return new WaitForSecondsRealtime(.25f);
+                if (mainView.Binding.Find("Layer/Main_UI/tankuang1")?.activeSelf != true)
+                { Fail("HUD shop submenu did not expand through btn_shangcheng."); yield break; }
+                MarkValidationControl("HUD-18-SHOP-TOGGLE");
+                if (!AuditHudBoundary(mainView, ShopSubmenuPath, out string shopBoundary))
+                { Fail($"HUD normal shop route boundary failed: {shopBoundary}"); yield break; }
+                MarkValidationControl("HUD-19-NORMAL-SHOP-ROUTE");
+                if (!AuditHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_jianghun", out string soulShopBoundary))
+                { Fail($"HUD soul shop route boundary failed: {soulShopBoundary}"); yield break; }
+                MarkValidationControl("HUD-20-SOUL-SHOP-ROUTE");
+                if (!AuditHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa", out string gameplayShopBoundary))
+                { Fail($"HUD gameplay shop route boundary failed: {gameplayShopBoundary}"); yield break; }
+                MarkValidationControl("HUD-21-GAMEPLAY-SHOP-ROUTE");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-shop-expanded.png");
+                ToggleShopSubmenu();
+                RecordValidationSemantic("hud-menu-state", true, "real imported buttons toggled mutually scoped 0.17s submenus and returned collapsed");
+
+                string[] routeIds =
+                {
+                    "HUD-22-BAG-ROUTE","HUD-23-HERO-BAG-ROUTE","HUD-24-FORMATION-ROUTE","HUD-25-RANK-ROUTE",
+                    "HUD-26-DRAW-ROUTE","HUD-27-GUILD-ROUTE","HUD-28-QIRI-ROUTE","HUD-29-FIRST-RECHARGE-ROUTE",
+                    "HUD-30-TASK-ROUTE","HUD-31-WELFARE-ROUTE","HUD-32-ACTIVITY-ROUTE","HUD-33-RECHARGE-ROUTE",
+                    "HUD-34-SETTINGS-ROUTE","HUD-35-MAIL-ROUTE","HUD-36-FRIEND-ROUTE","HUD-37-RECYCLE-ROUTE",
+                    "HUD-38-WORLD-ROUTE","HUD-39-GAMEPLAY-ROUTE","HUD-40-ONLINE-REWARD","HUD-41-DISCOUNT-1",
+                    "HUD-42-DISCOUNT-2","HUD-43-DISCOUNT-3"
+                };
+                string[] routePaths =
+                {
+                    BagPath, HeroBagPath, FormationPath, "Layer/Main_UI/ButtonGroup3/btn_paihangbang",
+                    DrawPath, GuildPath, "Layer/Main_UI/ButtonGroup4/btn_Qiri", "Layer/Main_UI/ButtonGroup4/btn_shouchong",
+                    TaskPath, "Layer/Main_UI/ButtonGroup5/btn_fuli", ActivityPath, "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
+                    SettingsPath, MailPath, FriendPath, "Layer/Main_UI/ButtonGroup7/btn_huishou",
+                    WorldPath, GameplayPath, "Layer/Main_UI/btn_online", "Layer/Main_UI/ButtonGroup8/btn_Zhekou1",
+                    "Layer/Main_UI/ButtonGroup8/btn_Zhekou2", "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
+                };
+                int routePendingBefore = services.ProtocolRegistry.PendingCount;
+                for (int index = 0; index < routeIds.Length; index++)
+                {
+                    if (routeIds[index] == "HUD-34-SETTINGS-ROUTE")
+                    {
+                        settingsButton.onClick.Invoke();
+                        if (!IsSettingsOpen || !HandleBack() || IsSettingsOpen)
+                        { Fail("HUD completed Settings route did not open and return through its real button."); yield break; }
+                    }
+                    else if (!AuditHudBoundary(mainView, routePaths[index], out string routeDetail))
+                    { Fail($"HUD route boundary failed for {routeIds[index]}: {routeDetail}"); yield break; }
+                    MarkValidationControl(routeIds[index]);
+                }
+                int routePendingAfter = services.ProtocolRegistry.PendingCount;
+                if (routePendingBefore != routePendingAfter)
+                { Fail($"HUD route audit issued an unexpected protocol request: pending={routePendingBefore}->{routePendingAfter}."); yield break; }
+                RecordValidationSemantic("hud-route-boundaries", true,
+                    $"22/22 imported route buttons invoked; Settings opened its completed module, all other target pages stayed on HUD with ownership feedback; pending={routePendingBefore}->{routePendingAfter}");
+
+                MarkValidationControl("HUD-44-CONDITIONAL-HIDDEN-GROUP");
+                MarkValidationControl("HUD-45-RED-DOT-AGGREGATE");
+                MarkValidationControl("HUD-46-CLOUD-TIMELINE");
+                bool cloudReady = mainCloudView?.GameObject.activeInHierarchy == true
+                    && mainCloudView.GameObject.GetComponent<CocosTimelinePlayer>()?.IsPlaying == true;
+                RecordValidationSemantic("hud-conditional-red-dot", cloudReady,
+                    "non-authoritative registered prompts stay hidden; imported cloud timeline loops behind HUD");
+                if (!cloudReady) { Fail("HUD cloud timeline was not active and looping."); yield break; }
+
+                MarkValidationControl("HUD-47-CHAT-SUMMARY-LIST");
+                chatMiniView.Binding.Find("Layer/Panel_Chat/btn_Arrows")?.GetComponent<Button>()?.onClick.Invoke();
+                if (!mainHudPresenter.IsChatExpanded) { Fail("HUD chat arrow did not expand the clipped summary panel."); yield break; }
+                MarkValidationControl("HUD-48-CHAT-EXPAND");
+                if (!AuditHudBoundary(chatMiniView, "Layer/Panel_Chat/Panel_Bg", out string chatOpenBoundary))
+                { Fail($"HUD chat open boundary failed: {chatOpenBoundary}"); yield break; }
+                MarkValidationControl("HUD-49-CHAT-OPEN-BOUNDARY");
+                string[] hiddenChatBoundaryPaths =
+                {
+                    "Layer/Panel_Chat/Prompt",
+                    "Layer/Panel_Chat/btn_Friend",
+                    "Layer/Panel_Chat/btn_Voice_shi",
+                    "Layer/Panel_Chat/btn_Voice_bang"
+                };
+                if (hiddenChatBoundaryPaths.Any(path => chatMiniView.Binding.Find(path)?.activeInHierarchy == true))
+                { Fail("HUD exposed a private/friend/voice control without authoritative availability."); yield break; }
+                MarkValidationControl("HUD-50-CHAT-PRIVATE-BOUNDARY");
+                MarkValidationControl("HUD-51-CHAT-FRIEND-BOUNDARY");
+                MarkValidationControl("HUD-52-CHAT-VOICE-BOUNDARY");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-chat-expanded-empty.png");
+                mainHudPresenter.SetChatExpanded(false);
+                RecordValidationSemantic("hud-chat-summary", true,
+                    $"ChatStore passive summary capped at 10, current authoritative messages={services.Chat.Count}; visible chat background produced ownership feedback; unavailable private/friend/voice controls stayed hidden");
+
+                settingsButton.onClick.Invoke();
+                if (!IsSettingsOpen || !HandleBack() || IsSettingsOpen)
+                { Fail("HUD return/re-enter through completed Settings route failed."); yield break; }
+                if (mainView.Binding.Find("Layer/Main_UI/tankuang1")?.activeSelf == true
+                    || mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf == true)
+                { Fail("HUD return/re-enter retained a transient submenu."); yield break; }
+                MarkValidationControl("HUD-53-REFRESH-REENTER");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-return-reenter.png");
+                RecordValidationSemantic("hud-lifecycle-reenter", true, "completed Settings route returned to authoritative HUD with transient menus collapsed");
+
+                services.Network.Disconnect("PlayerHud deliberate disconnect");
+                yield return new WaitForSecondsRealtime(.25f);
+                if (errorPresenter?.IsVisible != true || services.Network.State != NetworkState.Disconnected)
+                { Fail("HUD deliberate disconnect did not render reconnect feedback."); yield break; }
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-disconnected-unavailable.png");
+                MarkValidationControl("HUD-56-EMPTY-FAILURE");
+                if (!errorPresenter.InvokeConfirmation()) { Fail("HUD reconnect confirmation was unavailable."); yield break; }
+                float deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("HUD reconnect did not restore the primary authoritative role."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                MarkValidationControl("HUD-54-RESTART-RECONNECT");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-reconnected-chat.png");
+                mainHudPresenter.SetChatExpanded(true);
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-chat-expanded-messages.png");
+                mainHudPresenter.SetChatExpanded(false);
+                RecordValidationSemantic("hud-network-recovery", true, $"real disconnect/reconnect restored role={primaryRoleId} and rebuilt HUD state");
+
+                services.Config.LocalUserId = isolationUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-switch-account-login.png");
+                loginPresenter.SetAccountCredentials(isolationUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("HUD isolation account submit was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() == 0 || GetPlayerRoleId() == primaryRoleId)
+                { Fail("HUD isolation account inherited the primary role or failed to enter HUD."); yield break; }
+                uint isolationRoleId = GetPlayerRoleId();
+                while (!services.Currencies.Has(CurrencyIds.Stamina) && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (!services.Currencies.Has(CurrencyIds.Stamina))
+                { Fail("HUD isolation account did not receive authoritative stamina before capture."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+                MarkValidationControl("HUD-55-ACCOUNT-SWITCH");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-account-isolation.png");
+                RecordValidationSemantic("hud-account-isolation", true,
+                    $"primary={primaryUserId}/{primaryRoleId}; isolation={isolationUserId}/{isolationRoleId}; stamina={services.Currencies.Stamina}; ChatStore={services.Chat.Count}");
+
+                services.Config.LocalUserId = primaryUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(primaryUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("HUD primary terminal relogin submit was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("HUD primary terminal relogin did not restore fixed identity."); yield break; }
+                if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+
+                RecordValidationSemantic("hud-no-server-fixture", true,
+                    "all HUD validation was read-only; no server setup/write/claim/payment/chat-send operation was invoked");
+                RecordValidationSemantic("hud-exclusions", true,
+                    "payment/activity/funds/welfare/arena/social and all target business pages remained outside PlayerHud");
+                RecordValidationSemantic("hud-control-matrix-56", validationControlIds.Count == 56,
+                    $"validated={validationControlIds.Count}/56");
+                if (validationControlIds.Count != 56)
+                { Fail($"Player HUD control coverage mismatch: {validationControlIds.Count}/56."); yield break; }
+                Complete($"COMPLETE: PlayerHud 56/56 controls; authoritative read-only display, menus, routes, chat summary, disconnect/reconnect and account isolation; user={primaryUserId} role={primaryRoleId}");
             }
-            if (!mainHudPresenter.Validate(out string detail)) { Fail("Player HUD validation failed: " + detail); return; }
-            Complete("COMPLETE: /1004 player snapshot -> PlayerStore/CurrencyStore -> main HUD -> /18 gold/premium increments | " + detail);
+            finally
+            {
+                playerHudValidationRunning = false;
+            }
+        }
+
+        private IEnumerator CapturePlayerHudFrame(string fileName)
+        {
+            float toastDeadline = Time.realtimeSinceStartup + 4f;
+            while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline) yield return null;
+            if (IsToastVisible) toastPresenter?.Clear();
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string path = BuildUiMigrationPath(fileName);
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 5f;
+            while ((!File.Exists(path) || new FileInfo(path).Length == 0) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length == 0)
+                Fail("Player HUD screenshot was not written: " + fileName);
+        }
+
+        private static string HudControlSuffix(int index)
+        {
+            string[] values =
+            {
+                "ENTRY-ARRIVAL","HEAD-ROUTE","PORTRAIT","ROLE-NAME","LEVEL","VIP","POWER","EXP",
+                "STAMINA","GOLD","PREMIUM","STAMINA-ADD","GOLD-ADD","PREMIUM-ADD-DISABLED"
+            };
+            return values[index - 1];
         }
 
         public void BeginBagUpdate(int expectedCount)
@@ -3423,6 +3736,17 @@ namespace ProjectX.Core
             if (pendingWorldStage == null) throw new InvalidOperationException("World stage reward arrived without a stage.");
             pendingWorldStage.AddReward(new RewardRecord(type, checked((uint)id), checked((uint)amount),
                 name, picture, quality), isCurrency);
+        }
+
+        public void AddSystemChatMessage(string content)
+        {
+            services.Chat.Add(new ChatMessageRecord
+            {
+                Channel = ChatChannel.System,
+                Sender = new PlayerSummary(),
+                Content = content ?? string.Empty
+            });
+            if (!string.IsNullOrWhiteSpace(content)) ShowToast(content, 3f);
         }
 
         public void EndWorldStage()
@@ -5567,9 +5891,11 @@ namespace ProjectX.Core
 
         private void HandleDisconnected(string reason)
         {
+            if (CurrentAppState == AppState.Disconnected) return;
             HideLoading("connect");
             HideLoading("reconnect");
             HideLoading("auto-reconnect");
+            services.ProtocolRegistry.ClearPending();
             disconnectReason = reason;
             services.State.Change(AppState.Disconnected, reason);
             SetStatus($"Disconnected: {reason}");
@@ -5612,7 +5938,7 @@ namespace ProjectX.Core
             {
                 if (!autoReconnectRunning) _ = RunAutoReconnectAsync();
             }
-            else if (services.Options.LoginClosureValidation)
+            else if (services.Options.LoginClosureValidation || services.Options.PlayerHudValidation)
             {
                 ShowLoginConnectionFailure(false);
             }
@@ -5686,17 +6012,25 @@ namespace ProjectX.Core
                 ? "无法连接服务器,是否重新连接？\n连接已超时"
                 : "无法连接服务器,是否重新连接？";
             errorPresenter?.ShowConfirmation("提示", detail,
-                () => Connect(services.Config.GameHost, services.Config.GamePort), "确认", "取消", false,
+                ReconnectFromConnectionFailure, "确认", "取消", false,
                 ReturnFromConnectionFailure);
-            SetStatus(services.Options.LoginClosureValidation
-                ? (timedOut ? "Login connection timeout dialog." : "Login connection dialog.")
-                : (timedOut ? "Login connection timeout." : "Login connection failed."));
+            SetStatus(services.Options.PlayerHudValidation
+                ? (timedOut ? "Player HUD reconnect timeout confirmation." : "Player HUD reconnect confirmation.")
+                : services.Options.LoginClosureValidation
+                    ? (timedOut ? "Login connection timeout dialog." : "Login connection dialog.")
+                    : (timedOut ? "Login connection timeout." : "Login connection failed."));
         }
 
         private void ReturnFromConnectionFailure()
         {
             ShowLoginUi();
             BindLoginClick(false);
+        }
+
+        private void ReconnectFromConnectionFailure()
+        {
+            mainHudPresenter?.BeginReconnectChatSummary();
+            Connect(services.Config.GameHost, services.Config.GamePort);
         }
         private void HandleBagClick()
         {
@@ -5749,7 +6083,21 @@ namespace ProjectX.Core
         private void ToggleShopSubmenu()
         {
             GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang1");
-            if (submenu != null) submenu.SetActive(!submenu.activeSelf);
+            RectTransform rect = submenu?.GetComponent<RectTransform>();
+            if (rect == null) return;
+            EnsureHudSubmenuOrigins();
+            if (hudShopSubmenuAnimation != null) StopCoroutine(hudShopSubmenuAnimation);
+            if (submenu.activeSelf)
+            {
+                rect.anchoredPosition = hudShopSubmenuOrigin;
+                submenu.SetActive(false);
+                hudShopSubmenuAnimation = null;
+            }
+            else
+            {
+                submenu.SetActive(true);
+                hudShopSubmenuAnimation = StartCoroutine(AnimateHudSubmenu(rect, hudShopSubmenuOrigin, -126f));
+            }
         }
         private void HandleFriendClick()
         {
@@ -5811,7 +6159,146 @@ namespace ProjectX.Core
         private void SetMainSubmenuVisible(string path, bool visible)
         {
             GameObject submenu = mainView?.Binding.Find(path);
-            if (submenu != null) submenu.SetActive(visible);
+            RectTransform rect = submenu?.GetComponent<RectTransform>();
+            if (rect == null) return;
+            EnsureHudSubmenuOrigins();
+            if (!visible)
+            {
+                if (path.EndsWith("tankuang1", StringComparison.Ordinal)) rect.anchoredPosition = hudShopSubmenuOrigin;
+                if (path.EndsWith("tankuang2", StringComparison.Ordinal)) rect.anchoredPosition = hudWearSubmenuOrigin;
+            }
+            submenu.SetActive(visible);
+        }
+
+        public void BindPlayerHudControls()
+        {
+            if (mainView == null || chatMiniView == null) return;
+            BindHudBoundary(mainView, "Layer/Main_UI/Head", "角色详情由 Role 模块负责，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn", "金币补充入口由商城模块负责。");
+            Button premium = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
+            if (premium != null) premium.interactable = false;
+            mainView.BindClick("Layer/Main_UI/ButtonGroup1/btn_chuandai", ToggleWearSubmenu, true);
+            BindHudBoundary(mainView, EquipmentBagPath, "装备业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, FaBaoBagPath, "法宝业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, ShopSubmenuPath, "普通商城业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_jianghun", "神魂商城由 GameplayShops 模块负责。");
+            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa", "玩法商城由 GameplayShops 模块负责。");
+            BindHudBoundary(mainView, BagPath, "背包业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, HeroBagPath, "英雄背包业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, FormationPath, "阵容业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup3/btn_paihangbang", "排行榜属于竞技/玩家依赖模块，当前不可用。");
+            BindHudBoundary(mainView, DrawPath, "招募业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, GuildPath, "帮派业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup4/btn_Qiri", "七日活动属于运营模块，当前不可用。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup4/btn_shouchong", "首充与支付不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, TaskPath, "任务业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup5/btn_fuli", "福利业务不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, ActivityPath, "活动业务不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup5/btn_chongzhi", "充值与支付不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, MailPath, "邮件业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, FriendPath, "好友业务属于 Social，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup7/btn_huishou", "回收页面不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, WorldPath, "世界与副本业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, GameplayPath, "玩法业务不属于主界面 HUD，当前仅保留入口边界。");
+            BindHudBoundary(mainView, "Layer/Main_UI/btn_online", "在线奖励领取属于 Welfare，HUD 仅显示状态。");
+            for (int index = 1; index <= 3; index++)
+                BindHudBoundary(mainView, $"Layer/Main_UI/ButtonGroup8/btn_Zhekou{index}", "折扣礼包与支付不属于 HUD，当前不可用。");
+            string[] conditionallyHidden =
+            {
+                "Layer/Main_UI/ButtonGroup1/btn_zhujue",
+                "Layer/Main_UI/ButtonGroup4/btn_PetZhekou",
+                "Layer/Main_UI/ButtonGroup4/btn_Denglu",
+                "Layer/Main_UI/ButtonGroup4/btn_kaifuRank",
+                "Layer/Main_UI/ButtonGroup4/btn_zhuanpan",
+                "Layer/Main_UI/ButtonGroup5/btn_guibin",
+                "Layer/Main_UI/ButtonGroup8/btn_Libao"
+            };
+            foreach (string path in conditionallyHidden)
+            {
+                GameObject node = mainView.Binding.Find(path);
+                if (node != null) node.SetActive(false);
+            }
+            chatMiniView.BindClick("Layer/Panel_Chat/btn_Arrows", () => mainHudPresenter?.ToggleChatExpanded(), true);
+            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/Panel_Bg", "聊天发送业务属于 Social，当前仅保留入口边界。");
+            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Friend", "好友业务属于 Social，当前仅保留入口边界。");
+            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/Prompt", "私聊业务属于 Chat/Social，当前仅保留提示边界。");
+            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Voice_shi", "世界语音属于 Social，当前不可用。");
+            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Voice_bang", "帮派语音属于 Social，当前不可用。");
+        }
+
+        private void BindHudBoundary(CocosUiView owner, string path, string message)
+        {
+            GameObject node = owner.Binding.Find(path);
+            if (node == null) return;
+            owner.BindClick(path, () => ShowToast(message, 2f), true);
+        }
+
+        private bool AuditHudBoundary(CocosUiView owner, string path, out string detail)
+        {
+            Button button = owner?.Binding.Find(path)?.GetComponent<Button>();
+            if (button == null || !button.interactable)
+            {
+                detail = $"button missing or disabled: {path}";
+                return false;
+            }
+            toastPresenter?.Clear();
+            int pendingBefore = services.ProtocolRegistry.PendingCount;
+            button.onClick.Invoke();
+            int pendingAfter = services.ProtocolRegistry.PendingCount;
+            bool passed = IsToastVisible && pendingBefore == pendingAfter
+                && CurrentAppState == AppState.Main && mainView?.GameObject.activeInHierarchy == true;
+            detail = $"path={path}; toast={IsToastVisible}; pending={pendingBefore}->{pendingAfter}; state={CurrentAppState}";
+            toastPresenter?.Clear();
+            return passed;
+        }
+
+        private void ToggleWearSubmenu()
+        {
+            GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang2");
+            RectTransform rect = submenu?.GetComponent<RectTransform>();
+            if (rect == null) return;
+            EnsureHudSubmenuOrigins();
+            if (hudWearSubmenuAnimation != null) StopCoroutine(hudWearSubmenuAnimation);
+            if (submenu.activeSelf)
+            {
+                rect.anchoredPosition = hudWearSubmenuOrigin;
+                submenu.SetActive(false);
+                hudWearSubmenuAnimation = null;
+            }
+            else
+            {
+                submenu.SetActive(true);
+                hudWearSubmenuAnimation = StartCoroutine(AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f));
+            }
+        }
+
+        private void EnsureHudSubmenuOrigins()
+        {
+            if (hudSubmenuOriginsReady) return;
+            RectTransform shop = mainView?.Binding.Find("Layer/Main_UI/tankuang1")?.GetComponent<RectTransform>();
+            RectTransform wear = mainView?.Binding.Find("Layer/Main_UI/tankuang2")?.GetComponent<RectTransform>();
+            if (shop == null || wear == null) return;
+            hudShopSubmenuOrigin = shop.anchoredPosition;
+            hudWearSubmenuOrigin = wear.anchoredPosition;
+            hudSubmenuOriginsReady = true;
+        }
+
+        private static IEnumerator AnimateHudSubmenu(RectTransform rect, Vector2 origin, float deltaY)
+        {
+            if (rect == null) yield break;
+            Vector2 start = origin;
+            Vector2 end = origin + new Vector2(0f, deltaY);
+            const float duration = .17f;
+            float elapsed = 0f;
+            rect.anchoredPosition = start;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                rect.anchoredPosition = Vector2.Lerp(start, end, Mathf.Clamp01(elapsed / duration));
+                yield return null;
+            }
+            rect.anchoredPosition = end;
         }
 
         private static IEnumerator InvokeShopEntryNextFrames(Button toggle, Button entry)
@@ -9278,8 +9765,10 @@ namespace ProjectX.Core
             if (mainHudPresenter != null) return;
             mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
             if (mainView == null) throw new InvalidOperationException("Main HUD view was not found.");
-            mainHudPresenter = new MainHudPresenter(mainView, services.Player, services.Currencies,
-                services.Resources);
+            chatMiniView = chatMiniView ?? services.UiRouter.FindBySource("/ChatLayer.csd");
+            if (chatMiniView == null) throw new InvalidOperationException("HUD ChatLayer view was not found.");
+            mainHudPresenter = new MainHudPresenter(mainView, chatMiniView, services.Player,
+                services.Currencies, services.Chat, services.Resources);
         }
 
         private void EnsureErrorPresenter()

@@ -248,27 +248,49 @@
     },
     {
       "key": "PlayerHud",
-      "displayName": "主界面HUD",
-      "status": "g6-complete",
+      "displayName": "主界面 HUD",
+      "status": "complete",
       "protocols": [
         18,
+        26,
+        62,
+        65,
+        199,
+        206,
+        220,
+        222,
         226,
         321,
         1004
       ],
       "entries": [
-        "Layer/Main_UI"
+        "PRO_SELECT_ROLE/1004 success -> LRoleDataMgr.ReadRoleData -> LGameEvent.EnterGame/ChangeMapSuccess -> LGameLogic.LoadCommonResComplete -> InitUI MainUI -> csd/common/UImainLayer_new.csb"
       ],
-      "prefabs": [],
-      "configs": [],
+      "prefabs": [
+        "client/ProjectX/res/csd/common/UImainLayer_new.csb",
+        "client/ProjectX/res/csd/common/UImain_cloudLayer.csb",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImain_cloudLayer.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/res/ConfigData/function.dat",
+        "server/config/json/exp.json",
+        "server/config/json/stamina.json",
+        "server/config/json/config.json",
+        "tools/cocos-audit/generated/cocos-current-entry-inventory.json"
+      ],
       "mutatesServer": false,
+      "fixtureContract": {
+        "mode": "no-server-fixture-readonly-authoritative-display",
+        "serverSnapshotRequired": false,
+        "cleanupAssertion": "fixtureResidueCount=0"
+      },
       "validationFlags": [
         "-projectXPlayerHudValidation"
       ],
-      "screenshots": [
-        "build/ui-migration/bootstrap-main-hud.png"
-      ],
-      "document": "docs/unityclient/modules/FOUNDATION.md"
+      "screenshots": [],
+      "document": "docs/unityclient/modules/PLAYERHUD.md",
+      "controlMatrix": "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json"
     },
     {
       "key": "Hero",

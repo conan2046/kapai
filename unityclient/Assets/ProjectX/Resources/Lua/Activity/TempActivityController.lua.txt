@@ -1,10 +1,51 @@
+local Protocol = require("Protocol")
 local ActivityController = require("Activity.ActivityController")
 local WelfareController = require("Welfare.WelfareController")
 
 local M = {}
 
+function M.requestHudState()
+    local online = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+    online:WriteByte(4)
+    online:WriteByte(1)
+    Bridge:Send(online)
+    for operation = 89, 91 do
+        local discount = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+        discount:WriteByte(operation)
+        discount:WriteByte(1)
+        -- The legacy server intentionally stays silent when this rotating offer is
+        -- inactive. HUD only owns the optional entry state, so absence is not a
+        -- tracked protocol failure and must not block the module runner.
+        Bridge:SendUntracked(discount)
+    end
+end
+
+local function readHudDiscount(operation, message)
+    local operationType = message:ReadByte()
+    if operationType ~= 1 then
+        if message.Remaining > 0 then message:ReadByte() end
+        if message.Remaining > 0 then message:ReadString() end
+        Bridge:SetHudDiscountState(operation, 0, false)
+        return true
+    end
+    local success = message:ReadByte()
+    if success == 0 then
+        if message.Remaining > 0 then message:ReadString() end
+        Bridge:SetHudDiscountState(operation, 0, false)
+        return true
+    end
+    local leftTime = message:ReadUInt()
+    message:ReadByte()
+    message:ReadUInt()
+    message:ReadUInt()
+    local bought = message:ReadByte() ~= 0
+    Bridge:SetHudDiscountState(operation, leftTime, not bought)
+    return true
+end
+
 function M.onPacket(message)
     local operation = message:ReadByte()
+    if operation >= 89 and operation <= 91 then return readHudDiscount(operation, message) end
     if ActivityController.onTempActivity(operation, message) then return true end
     if WelfareController.onTempActivity(operation, message) then return true end
     Bridge:SetStatus("Unhandled /222 operation: " .. tostring(operation))

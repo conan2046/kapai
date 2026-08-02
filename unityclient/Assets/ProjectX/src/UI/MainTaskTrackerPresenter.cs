@@ -16,6 +16,7 @@ namespace ProjectX.UI
         private readonly GameObject prompt;
         private readonly Action openTasks;
         private bool serverHotPoint;
+        private bool serverHotPointReceived;
 
         public MainTaskTrackerPresenter(CocosUiView main, CocosUiView backup, TaskStore store, Action openTasks)
         {
@@ -43,10 +44,12 @@ namespace ProjectX.UI
 
         public int ItemCount => list.Count;
         public bool IsHotPointVisible => prompt.activeSelf;
+        public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;
 
         public void SetServerHotPoint(bool visible)
         {
             serverHotPoint = visible;
+            serverHotPointReceived = true;
             RenderHotPoint();
         }
 
@@ -54,7 +57,10 @@ namespace ProjectX.UI
         {
             TaskRecord[] tracked = store.Items.Where(item => item.State < 2).Take(3).ToArray();
             list.SetItems(tracked);
-            panel.SetActive(tracked.Length > 0);
+            // Fresh native HUD frames for both fixed accounts keep the quest/team
+            // tracker suppressed in the current scene. PlayerHud owns the task
+            // route and red dot only; it must not invent a task-business panel.
+            panel.SetActive(false);
             RenderHotPoint();
         }
 
@@ -68,7 +74,8 @@ namespace ProjectX.UI
         {
             // Once the daily list is loaded it is the authoritative state. This
             // also prevents a delayed /65 visible push from surviving a claim.
-            prompt.SetActive(store.Count > 0 ? store.HasClaimable : serverHotPoint);
+            if (store.Count > 0) prompt.SetActive(store.HasClaimable);
+            else if (serverHotPointReceived) prompt.SetActive(serverHotPoint);
         }
 
         private void BindRow(RectTransform row, TaskRecord item, int index)

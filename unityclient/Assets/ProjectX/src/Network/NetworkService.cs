@@ -81,10 +81,13 @@ namespace ProjectX.Network
             });
         }
 
-        public void Disconnect()
+        public void Disconnect(string reason = "Disconnected by client.")
         {
+            bool changed = State != NetworkState.Disconnected;
             client.Disconnect();
             SetState(NetworkState.Disconnected);
+            if (changed && !disposing)
+                Disconnected?.Invoke(reason);
         }
 
         public void Dispose()

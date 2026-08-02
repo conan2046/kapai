@@ -98,6 +98,29 @@ $pwshExecutable = Get-UnityMigrationPowerShellExecutable
 $pythonExecutable = Get-UnityMigrationPythonExecutable
 Assert-ToolchainTest (Test-Path -LiteralPath $pwshExecutable -PathType Leaf) "PowerShell executable resolution failed."
 Assert-ToolchainTest (Test-Path -LiteralPath $pythonExecutable -PathType Leaf) "Python executable resolution failed."
+$shellRoute = Get-UnityMigrationShellRoute -Root $root
+Assert-ToolchainTest (
+    [string]$shellRoute.brokerWorkdirMode -eq "omit" -and
+    [string]$shellRoute.root -eq [IO.Path]::GetFullPath($root) -and
+    [string]$shellRoute.powerShellPrelude -eq "Set-Location -LiteralPath '$([IO.Path]::GetFullPath($root))'"
+) "Shell route no longer enforces literal in-process workspace selection without a broker workdir argument."
+
+$resolvedBootstrapRunner = Resolve-UnityMigrationExistingPath -Root $root `
+    -Path "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs" -PathType Leaf
+Assert-ToolchainTest (
+    $resolvedBootstrapRunner -eq [IO.Path]::GetFullPath((Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs"))
+) "Existing migration source path resolution failed."
+$unresolvedMigrationPathRejected = $false
+try {
+    Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/Tests/Runtime/BootstrapAppRunner.cs" -PathType Leaf | Out-Null
+}
+catch {
+    $unresolvedMigrationPathRejected = $_.Exception.Message -like `
+        "Unity migration path was not resolved to an existing Leaf path:*Resolve it through the manifest, matrix, rg --files, or source references before use.*"
+}
+Assert-ToolchainTest $unresolvedMigrationPathRejected `
+    "Unresolved source paths no longer fail with the manifest/matrix/rg discovery contract."
 
 $rootCommand = "dotnet Unity.ILPP.Runner.dll --project `"$root\unityclient`""
 Assert-ToolchainTest (
@@ -150,6 +173,10 @@ Assert-UnityMigrationDuplicateHashPolicy -Items $duplicateSamples -IdentifierPro
     -HashProperty "sha256" -AllowedDuplicateGroups @([pscustomobject]@{ ids = @("DEFAULT", "CORRUPT") }) `
     -Context "Toolchain duplicate policy sample"
 Assert-ToolchainTest $true "A declared visual-equivalence group was rejected."
+Assert-UnityMigrationDuplicateHashPolicy -Items $duplicateSamples -IdentifierProperty "id" `
+    -HashProperty "sha256" -AllowedDuplicateGroups @([pscustomobject]@{ ids = @("DEFAULT", "CORRUPT", "MUSIC-OFF") }) `
+    -Context "Toolchain duplicate policy subset sample"
+Assert-ToolchainTest $true "A duplicate subset inside one declared visual-equivalence group was rejected."
 $unexpectedDuplicateRejected = $false
 try {
     Assert-UnityMigrationDuplicateHashPolicy -Items $duplicateSamples -IdentifierProperty "id" `
@@ -280,10 +307,36 @@ $operationLedger = [pscustomobject]@{
 Assert-ToolchainTest (
     @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger).Count -eq 0
 ) "Diagnosed and iterated migration failure was rejected."
+$operationLedger.records[0].rootCause = "pending-diagnosis"
+$operationLedger.records[1].iterationEvidence = @(
+    "runtime assertion annotation",
+    "tools/unity-migration/validation-scenarios.json:1-2"
+)
+Assert-ToolchainTest (
+    @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger -Root $root -RequireEvidenceFiles).Count -eq 0
+) "Unique resolved diagnosis or path-with-line iteration evidence was rejected."
+$resolutionAudit = @(Get-UnityMigrationOperationResolutionAudit -Ledger $operationLedger -RecordIds @("failure-1"))
+Assert-ToolchainTest (
+    $resolutionAudit.Count -eq 1 -and
+    [string]$resolutionAudit[0].recordId -eq "failure-1" -and
+    [int]$resolutionAudit[0].resolutionCount -eq 1 -and
+    @($resolutionAudit[0].iterationEvidence).Count -eq 2
+) "Operation resolution audit did not return the requested failure and its unique iteration record."
 $operationLedger.records[1].iterationEvidence = @()
 Assert-ToolchainTest (
     @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger).Count -eq 1
 ) "Failure without iteration evidence did not block retrospective completion."
+$operationLedger.records = @($operationLedger.records) + @(
+    [pscustomobject]@{
+        recordId = "supplement-1"; outcome = "Supplemented"; error = ""; rootCause = ""
+        relatedRecordId = "failure-1"; resolution = "supply durable file evidence"
+        iterationAction = "bind the historical resolution to a current regression artifact"
+        iterationEvidence = @("tools/unity-migration/Test-UnityMigrationToolchain.ps1")
+    }
+)
+Assert-ToolchainTest (
+    @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger -Root $root -RequireEvidenceFiles).Count -eq 0
+) "Append-only retrospective evidence supplement did not satisfy file-backed evidence validation."
 
 $validBatchSummary = [pscustomobject]@{
     executionMode = "batch"
@@ -357,6 +410,14 @@ Assert-ToolchainTest (
     $hardGateSource.Contains("G6 Computer Use runtime must be stopped after Cocos evidence") -and
     $hardGateSource.Contains("OpenAI\\Codex\\runtimes\\cua_node")
 ) "G6 no longer rejects a residual Computer Use runtime after native Cocos evidence collection."
+Assert-ToolchainTest (
+    (Get-UnityMigrationComputerUseRestartDisposition -ErrorMessage 'node_repl/js transport closed' `
+        -Attempt 1 -RuntimeWasVerifiedStopped $true) -eq 'RetryOnceAfterVerifiedCleanup' -and
+    (Get-UnityMigrationComputerUseRestartDisposition -ErrorMessage 'node_repl/js transport closed' `
+        -Attempt 2 -RuntimeWasVerifiedStopped $true) -eq 'Fail' -and
+    (Get-UnityMigrationComputerUseRestartDisposition -ErrorMessage 'unexpected protocol error' `
+        -Attempt 1 -RuntimeWasVerifiedStopped $true) -eq 'Fail'
+) "Computer Use cannot perform one bounded clean restart after its verified runtime cleanup closes the old transport."
 
 $moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") `
     -Raw -Encoding UTF8
@@ -366,8 +427,7 @@ Assert-ToolchainTest (
     $moduleRunnerSource.Contains('"-projectXUserId=<auto-isolated>"')
 ) "Standard Unity runner no longer records batch execution or an accurate preflight account plan."
 
-$bootstrapRunnerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs") -Raw -Encoding UTF8
+$bootstrapRunnerSource = Get-Content -LiteralPath $resolvedBootstrapRunner -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $bootstrapRunnerSource.Contains('settingsValidation && status == "Main UI active."') -and
     $bootstrapRunnerSource.Contains('app.IsSettingsDataReady') -and
@@ -377,6 +437,96 @@ Assert-ToolchainTest (
     $bootstrapRunnerSource.Contains('queued after stable-frame delay') -and
     $bootstrapRunnerSource.Contains('MirrorSettingsIsolationScreenshot')
 ) "Settings batch validation no longer starts from the authoritative Main UI ready state."
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('status.IndexOf("请求超时", StringComparison.Ordinal) >= 0') -and
+    $bootstrapRunnerSource.Contains('Terminal protocol timeout observed; finishing immediately.')
+) "Batch validation no longer fails fast when a concrete protocol-timeout dialog is shown."
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('CompletionStatusKey') -and
+    $bootstrapRunnerSource.Contains('SessionState.GetBool(ScreenshotPendingKey, false)') -and
+    $bootstrapRunnerSource.Contains('completedStatus.StartsWith("COMPLETE:", StringComparison.Ordinal)')
+) "Batch validation no longer latches a terminal COMPLETE status during stable-frame screenshot capture."
+
+$projectXAppSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$networkServiceSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Network/NetworkService.cs") -Raw -Encoding UTF8
+$playerHudTempActivitySource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Activity/TempActivityController.lua.txt") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('public void SendUntracked(LegacyTcpMessage message)') -and
+    $playerHudTempActivitySource.Contains('Bridge:SendUntracked(discount)') -and
+    $projectXAppSource.Contains('if (CurrentAppState == AppState.Disconnected) return;') -and
+    $projectXAppSource.Contains('services.ProtocolRegistry.ClearPending();') -and
+    $networkServiceSource.Contains('public void Disconnect(string reason = "Disconnected by client.")') -and
+    $networkServiceSource.Contains('Disconnected?.Invoke(reason);') -and
+    $projectXAppSource.Contains('services.Network.Disconnect("PlayerHud deliberate disconnect")')
+) "PlayerHud optional silent activity queries or idempotent deliberate-disconnect cleanup regressed."
+
+$mainHudPresenterSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainTaskTrackerSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/src/UI/MainTaskTrackerPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $mainHudPresenterSource.Contains('onlineTimeRoot.SetActive(remaining > 0)') -and
+    $mainHudPresenterSource.Contains('new GameObject("ItemIconLayer.csb"') -and
+    $mainHudPresenterSource.Contains('chatList.gameObject.AddComponent<RectMask2D>()') -and
+    $mainHudPresenterSource.Contains('SetChatControlVisible("Layer/Panel_Chat/Prompt", false);') -and
+    $mainHudPresenterSource.Contains('SetChatControlVisible("Layer/Panel_Chat/btn_Set", false);') -and
+    $mainHudPresenterSource.Contains('UnityEngine.Object.Instantiate(chatTemplate, chatList, false)') -and
+    $mainHudPresenterSource.Contains('tagText.text = record.Channel == ChatChannel.System ? "系统" : "世界";') -and
+    $mainHudPresenterSource.Contains('.Replace("[c/n]", string.Empty)') -and
+    $mainHudPresenterSource.Contains('.Replace("[c/]", string.Empty)') -and
+    $mainHudPresenterSource.Contains('.Replace("[/c]", string.Empty)') -and
+    $mainHudPresenterSource.Contains('const float collapsedListHeight = 100.8287f;') -and
+    $mainHudPresenterSource.Contains('const float expansionOffset = 115.8287f;') -and
+    $mainHudPresenterSource.Contains('const float rowHeight = 58f;') -and
+    $mainHudPresenterSource.Contains('powerRect.localScale = Vector3.one;') -and
+    $mainHudPresenterSource.Contains('public int VisibleDiscountCount =>') -and
+    $mainHudPresenterSource.Contains('public int VisibleRedDotCount =>') -and
+    $mainHudPresenterSource.Contains('public string VisibleRedDotSummary =>') -and
+    $mainHudPresenterSource.Contains('StableVisiblePromptPaths') -and
+    $mainHudPresenterSource.Contains('serverRedDots.Any(entry => RedDotTarget(entry.Key) == target && entry.Value)') -and
+    $mainHudPresenterSource.Contains('native Cocos') -and
+    -not $mainHudPresenterSource.Contains('SetAllRedDots(false);') -and
+    -not $mainHudPresenterSource.Contains('discountButtons[index].SetActive(false);') -and
+    $mainHudPresenterSource.Contains('int visibleCount = chatExpanded ? 4 : 2;') -and
+    $mainHudPresenterSource.Contains('private int chatVisibleStartIndex;') -and
+    $mainHudPresenterSource.Contains('private bool systemChatSummaryVisible;') -and
+    $mainHudPresenterSource.Contains('public void BeginReconnectChatSummary()') -and
+    $mainHudPresenterSource.Contains('chatVisibleStartIndex = 0;') -and
+    $mainHudPresenterSource.Contains('.Where(record => systemChatSummaryVisible || record.Channel != ChatChannel.System)') -and
+    $mainHudPresenterSource.Contains('text.supportRichText = true;') -and
+    $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudShopSubmenuOrigin, -126f)') -and
+    $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f)') -and
+    $projectXAppSource.Contains('while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline)') -and
+    $projectXAppSource.Contains('mainHudPresenter?.BeginReconnectChatSummary();') -and
+    $projectXAppSource.Contains('mainHudPresenter.VisibleRedDotCount < 12') -and
+    $projectXAppSource.Contains('hud-authoritative-discounts') -and
+    $projectXAppSource.Contains('hud-authoritative-red-dots') -and
+    $projectXAppSource.Contains('ReconnectFromConnectionFailure, "确认", "取消", false') -and
+    $projectXAppSource.Contains('mainHudPresenter?.Dispose();') -and
+    $projectXAppSource.Contains('mainHudPresenter = null;') -and
+    $projectXAppSource.Contains('mainTaskTracker?.Dispose();') -and
+    $projectXAppSource.Contains('mainTaskTracker = null;') -and
+    $projectXAppSource.Contains('!mainTaskTracker.IsAuthorityReady') -and
+    $projectXAppSource.Contains('while (!services.Currencies.Has(CurrencyIds.Stamina) && Time.realtimeSinceStartup < deadline)')
+) "PlayerHud native online reward, chat clipping/expansion, submenu animation, or stable-frame capture regressed."
+Assert-ToolchainTest (
+    $mainTaskTrackerSource.Contains('private bool serverHotPointReceived;') -and
+    $mainTaskTrackerSource.Contains('public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;') -and
+    $mainTaskTrackerSource.Contains('else if (serverHotPointReceived) prompt.SetActive(serverHotPoint);') -and
+    -not $mainTaskTrackerSource.Contains('prompt.SetActive(store.Count > 0 ? store.HasClaimable : serverHotPoint);')
+) "PlayerHud task red-dot state can again be overwritten before /65 or TaskStore authority exists."
+$currencyStoreSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/src/Data/CurrencyStore.cs" -PathType Leaf) -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $currencyStoreSource.Contains('A same-account reconnect receives /1004 again') -and
+    -not $currencyStoreSource.Contains("public void Initialize(long gold, long premium, long boundPremium, uint soul, uint guildContribution)`r`n        {`r`n            values.Clear();")
+) "CurrencyStore no longer preserves auxiliary authoritative currencies across same-account reconnect."
 
 $settingsPresenterSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
@@ -395,11 +545,126 @@ Assert-ToolchainTest (
 
 $commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
 Assert-ToolchainTest (
+    (Assert-UnityMigrationRgPathArgument -Path "server/src") -eq "server/src"
+) "Literal rg path arguments are no longer accepted by the shared guard."
+$unsafeRgRejected = $false
+try { Assert-UnityMigrationRgPathArgument -Path "server/src/user.*" | Out-Null }
+catch { $unsafeRgRejected = $_.Exception.Message -like "rg path arguments must be literal on Windows*" }
+Assert-ToolchainTest $unsafeRgRejected "Windows wildcard rg path arguments are no longer rejected by the shared guard."
+$resolvedRgPaths = @(Resolve-UnityMigrationRgPathArguments -Root $root -Paths @(
+    "client/ProjectX/src/ConfigData",
+    "unityclient/Assets/ProjectX/Resources/Config"
+))
+Assert-ToolchainTest (
+    $resolvedRgPaths.Count -eq 2 -and
+    @($resolvedRgPaths | Where-Object { -not (Test-Path -LiteralPath $_) }).Count -eq 0
+) "Existing rg path lists are no longer resolved and validated before execution."
+$missingRgPathRejected = $false
+try {
+    Resolve-UnityMigrationRgPathArguments -Root $root -Paths @(
+        "client/ProjectX/src/ConfigData",
+        "client/ProjectX/res/config"
+    ) | Out-Null
+}
+catch {
+    $missingRgPathRejected = $_.Exception.Message -like `
+        "rg path preflight rejected 'client/ProjectX/res/config' before native rg execution.*Resolve it through the manifest, matrix, rg --files, or source references before use.*"
+}
+Assert-ToolchainTest $missingRgPathRejected `
+    "An rg path list containing a nonexistent directory no longer fails before native rg execution."
+$missingHudPrefabPathRejected = $false
+try {
+    Resolve-UnityMigrationRgPathArguments -Root $root -Paths @(
+        "unityclient/Assets/ProjectX/Prefabs"
+    ) | Out-Null
+}
+catch {
+    $missingHudPrefabPathRejected = $_.Exception.Message -like `
+        "rg path preflight rejected 'unityclient/Assets/ProjectX/Prefabs' before native rg execution.*"
+}
+Assert-ToolchainTest $missingHudPrefabPathRejected `
+    "The repeated PlayerHud guessed-prefab path is no longer rejected by central preflight before native rg execution."
+$discoveredPlayerHudPrefab = @(Find-UnityMigrationFiles -Root $root `
+    -SearchRoot "unityclient/Assets/ProjectX" `
+    -Pattern '[\\/]Prefabs[\\/]common[\\/]UImainLayer_new\.prefab$')
+Assert-ToolchainTest (
+    $discoveredPlayerHudPrefab.Count -eq 1 -and
+    (Test-Path -LiteralPath $discoveredPlayerHudPrefab[0] -PathType Leaf)
+) "Central file discovery no longer resolves the PlayerHud prefab from a verified root without guessed directories."
+$playerHudPromptNodes = @(Find-UnityMigrationJsonNodes -Root $root `
+    -JsonPath "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json" `
+    -Name "Prompt")
+Assert-ToolchainTest (
+    $playerHudPromptNodes.Count -gt 3 -and
+    @($playerHudPromptNodes | Where-Object {
+        $_.Path -match 'btn_Zhekou[1-3]/Prompt$' -and $_.Active -eq $true
+    }).Count -eq 3
+) "Central compiled JSON-node discovery cannot audit large imported UI IR without ConvertFrom-Json traversal."
+Assert-ToolchainTest (
     $commonSource.Contains('error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process') -and
+    $commonSource.Contains('error CS2012:.*Assembly-CSharp(?:-Editor)?\.dll.*being used by another process') -and
     $commonSource.Contains('PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process') -and
+    $commonSource.Contains('IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll') -and
+    $commonSource.Contains('if ($process.ExitCode -eq 0 -and -not $transientBeeLock) { break }') -and
+    $commonSource.Contains('Get-Process dotnet,bee_backend,Unity.ILPP.Trigger') -and
     $commonSource.Contains('transient-bee-lock-attempt1.log') -and
-    $commonSource.Contains('retrying the same compile preflight once')
-) "Compile preflight no longer performs the bounded same-tool retry for the proven transient Unity Bee reference lock."
+    $commonSource.Contains('retrying the same compile preflight once even if Unity recovered with exit code 0')
+) "Compile preflight no longer performs the bounded same-tool retry for proven transient Unity compile/reload locks, including a recovered exit-code-zero run."
+$bootstrapBuilderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs")
+Assert-ToolchainTest (
+    $bootstrapBuilderSource.Contains('NormalizeBootstrapSceneYaml();') -and
+    $bootstrapBuilderSource.Contains("line.TrimEnd(' ', '\t')") -and
+    $bootstrapBuilderSource.Contains('new UTF8Encoding(false)')
+) "BootstrapSceneBuilder no longer normalizes generated Unity YAML trailing whitespace before idempotence and commit checks."
+$resultSummaryPaths = @(
+    ".local/unity-validation/toolchain-result-summary-test-a.json",
+    ".local/unity-validation/toolchain-result-summary-test-b.json"
+)
+try {
+    Write-UnityMigrationUtf8 -Path (Resolve-UnityMigrationPath -Root $root -Path $resultSummaryPaths[0]) -Content @'
+{"success":true,"validatedControlIds":["A","B"],"semanticAssertions":[{"passed":true}],"screenshots":["a.png"],"seriousErrorCount":0,"fixtureResidualCount":0,"message":"ok-a"}
+'@
+    Write-UnityMigrationUtf8 -Path (Resolve-UnityMigrationPath -Root $root -Path $resultSummaryPaths[1]) -Content @'
+{"success":false,"validatedControlIds":["C"],"passedSemanticAssertions":["one"],"failedSemanticAssertions":["two"],"screenshots":[],"seriousErrorCount":1,"fixtureResidualCount":2,"message":"bad-b"}
+'@
+    $resultSummaryRows = @(Get-UnityMigrationValidationResultSummaries -Root $root -ResultPaths $resultSummaryPaths)
+    Assert-ToolchainTest (
+        $resultSummaryRows.Count -eq 2 -and
+        $resultSummaryRows[0].validatedControlCount -eq 2 -and
+        $resultSummaryRows[0].failedSemanticAssertionCount -eq 0 -and
+        $resultSummaryRows[1].semanticAssertionCount -eq 2 -and
+        $resultSummaryRows[1].failedSemanticAssertionCount -eq 1 -and
+        $resultSummaryRows[1].seriousErrorCount -eq 1 -and
+        $resultSummaryRows[1].fixtureResidualCount -eq 2
+    ) "Central multi-result summary no longer materializes foreach output before callers format it."
+}
+finally {
+    foreach ($resultSummaryPath in $resultSummaryPaths) {
+        $resolvedResultSummaryPath = Resolve-UnityMigrationPath -Root $root -Path $resultSummaryPath
+        if (Test-Path -LiteralPath $resolvedResultSummaryPath -PathType Leaf) {
+            Remove-Item -LiteralPath $resolvedResultSummaryPath -Force
+        }
+    }
+}
+$mcpSseFixture = @'
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/message","params":{"level":"info"}}
+
+event: message
+data: {"jsonrpc":"2.0","id":7,"result":{"contents":[{"text":"{}"}]}}
+
+'@
+$mcpSseReply = Get-UnityMigrationMcpSseMessage -Content $mcpSseFixture -Id 7
+Assert-ToolchainTest (
+    [int]$mcpSseReply.id -eq 7 -and
+    @($mcpSseReply.result.contents).Count -eq 1
+) "Unity MCP SSE parsing no longer ignores notifications that precede the matching JSON-RPC response."
+Assert-ToolchainTest (
+    $commonSource.Contains('function Connect-UnityMigrationMcpSession') -and
+    $commonSource.Contains('function Read-UnityMigrationMcpResource') -and
+    $commonSource.Contains('Mcp-Session-Id')
+) "Shared Unity MCP Streamable HTTP readiness helpers are missing."
 
 $g5PreflightSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityModuleG5Preflight.ps1") `
     -Raw -Encoding UTF8

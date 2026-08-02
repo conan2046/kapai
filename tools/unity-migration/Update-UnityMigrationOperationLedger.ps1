@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory = $true)][ValidatePattern('^G[0-6]$')][string]$Gate,
     [Parameter(Mandatory = $true)][string]$Tool,
     [Parameter(Mandatory = $true)][string]$Operation,
-    [Parameter(Mandatory = $true)][ValidateSet("Passed", "Failed", "Blocked", "Resolved")][string]$Outcome,
+    [Parameter(Mandatory = $true)][ValidateSet("Passed", "Failed", "Blocked", "Resolved", "Supplemented")][string]$Outcome,
     [ValidateSet("General", "CocosAutomation", "UnityBatch", "Gate")][string]$Category = "General",
     [string]$ErrorMessage = "",
     [string]$RootCause = "",

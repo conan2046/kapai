@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ProjectX.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -21,6 +22,7 @@ namespace ProjectX.Editor
         private const string RoleCreatePrefab = "Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab";
         private const string NoticePrefab = "Assets/ProjectX/res/csd/Prefabs/NoticeLayer.prefab";
         private const string MainPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
+        private const string MainCloudPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImain_cloudLayer.prefab";
         private const string BackupMainPrefab = "Assets/ProjectX/res/csd/Prefabs/UImainLayer_backup.prefab";
         private const string BagPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab";
         private const string BagInputPrefab = "Assets/ProjectX/res/csd/Prefabs/EnterNumLayer.prefab";
@@ -125,6 +127,7 @@ namespace ProjectX.Editor
             new PrefabSpec(RoleCreatePrefab, false),
             new PrefabSpec(NoticePrefab, false),
             new PrefabSpec(MainPrefab, false),
+            new PrefabSpec(MainCloudPrefab, false),
             new PrefabSpec(BackupMainPrefab, false),
             new PrefabSpec(BagPrefab, false),
             new PrefabSpec(BagInputPrefab, false),
@@ -213,6 +216,7 @@ namespace ProjectX.Editor
             EnsureFloatNoticePrefab();
             if (IsBootstrapSceneCurrent())
             {
+                NormalizeBootstrapSceneYaml();
                 EnsureBuildSettings();
                 Debug.Log("[ProjectXApp] Bootstrap scene semantic signature unchanged; rebuild skipped.");
                 return;
@@ -342,6 +346,7 @@ namespace ProjectX.Editor
 
             Directory.CreateDirectory(Path.GetDirectoryName(BootstrapScene));
             EditorSceneManager.SaveScene(scene, BootstrapScene);
+            NormalizeBootstrapSceneYaml();
             EnsureBuildSettings();
             AssetDatabase.SaveAssets();
             Debug.Log("[ProjectXApp] Bootstrap scene rebuilt and set as build index 0.");
@@ -350,6 +355,18 @@ namespace ProjectX.Editor
         public static void BuildBatch()
         {
             Build();
+        }
+
+        private static void NormalizeBootstrapSceneYaml()
+        {
+            string absolutePath = Path.GetFullPath(BootstrapScene);
+            string content = File.ReadAllText(absolutePath);
+            string newline = content.Contains("\r\n") ? "\r\n" : "\n";
+            string[] lines = content.Replace("\r\n", "\n").Split('\n');
+            string normalized = string.Join(newline, lines.Select(line => line.TrimEnd(' ', '\t')));
+            if (string.Equals(content, normalized, System.StringComparison.Ordinal)) return;
+            File.WriteAllText(absolutePath, normalized, new UTF8Encoding(false));
+            AssetDatabase.ImportAsset(BootstrapScene, ImportAssetOptions.ForceSynchronousImport);
         }
 
         private static GameObject Instantiate(string assetPath, Transform parent, bool active)

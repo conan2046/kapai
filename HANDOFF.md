@@ -1,29 +1,29 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-08-01 Settings G0-G6 passed / 21/21 complete
-> 本节覆盖下方 World、Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。
+> 当前交接：2026-08-02 PlayerHud G0-G6 passed / 56/56 complete
+> 本节覆盖下方 Settings、World、Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。
 
-## 0. 2026-08-01 系统设置收口
+## 0. 2026-08-02 PlayerHud 收口
 
-- 门禁：`G0-G6 passed / 21/21 complete`；唯一状态源严格完成率 `11/29 = 37.9%`。
-- 固定账号 `7200057/1000115`、隔离账号 `705213/1000006`；21/21 真实控件、10/10 语义断言、8/8 双端原生 `1334×750` 状态通过。
-- 设置本体严格登记 `no-server-fixture`：音乐/音效、0/100/中值、默认、开关、返回重进、客户端重启、损坏/不可用回退均走设备本地持久化；切号后角色态隔离而设备音频偏好保留，服务端 Fixture 残留 0。
-- 公告 `/88`、兑换码 `/199 op=18`、金币/体力购买只验证路由边界，未扩展其页面或业务；支付、活动、基金、福利、竞技、社交均未处理。
-- G5：`.local/ui-fidelity/Settings/cocos/g5-20260801/`、`.local/ui-fidelity/Settings/unity/g5-20260801/`、`.local/ui-fidelity/Settings/compare/g5-live-20260801/report.json`。
-- G6：Unity/服务端严重错误 0；两次真实 BuildBatch SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`；自动复盘 72/72 已解决、未解决 0。Computer Use 持久化运行时已补记、关闭并加入 G6 中央残留检查。证据 `.local/unity-validation/settings-g6-latest.json`、`.local/unity-validation/settings-no-server-fixture-latest.json`、`.local/unity-validation/settings-computer-use-lifecycle-latest.json`、`.local/unity-validation/settings-retrospective-latest.json`。
-- Cocos、Computer Use、Unity、Unity MCP、`kapai.exe` 均已停止；既有 workspace-local MySQL 未触碰。未提交改动未暂存、未清理、未提交、未推送。
-- 下一模块固定为“主界面 HUD”，必须新任务从 G0 开始。支付、活动、基金、福利、竞技、社交仍不得提前处理。
+- 门禁：`G0-G6 passed / 56/56 complete`；唯一状态源严格完成率 `12/29 = 41.4%`。
+- 固定账号 `7200057/1000115`、隔离账号 `705213/1000006`；56/56 Runtime 控件 ID 与矩阵完全一致，14/14 语义断言、11/11 双端原生 `1334×750` 状态通过。
+- HUD 只拥有权威身份/资源显示、12 个可见红点、3 个折扣入口、装备/商城双子菜单、被动聊天摘要、云层 Timeline、路由入口和不可用反馈。22 个主路由均真实调用；仅已完成设置模块实际打开，其余目标页未迁移且 Pending 不增加。
+- G5：`.local/ui-fidelity/PlayerHud/cocos/g5-20260801/`、`.local/ui-fidelity/PlayerHud/unity/g5-20260801/`、`.local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json`；11 组原图、并排、50% 叠加、增强差异和报告齐全，最大 MAE `17.9779`。
+- G6：DataPreflight/setup/live assert/restore/cleanup 全通过，Fixture 精确恢复且残留 0；严重错误 0；SceneBuilder YAML 规范化后两次真实 BuildBatch SHA-256 均为 `CE9FAD096983A00615EE522019AAC97AE72C8C008F89F097EFCBBAAC0CF256F3`；自动复盘 125/125 已解决、未解决 0，中央工具回归 82/82。
+- 卡顿治理：看到“网络超时”等终态后不再等待或继续坐标试错；中央工具已补 Unity 退出 0 的恢复型 Assembly-CSharp 锁重试、ILPP child 清理、大 JSON 节点查询和多结果摘要回归。
+- 证据：`.local/unity-validation/playerhud-fixed-account-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`、`docs/unityclient/matrices/PLAYERHUD_CONTROLS.json`。
+- 下一模块按唯一状态源固定为 P1“玩法大厅”；旧 `logic-validated-visual-deferred`、历史截图、旧 Runner 和旧 SHA 均不能跳过 G0-G6。支付、活动、基金、福利、竞技、社交仍不得提前处理。
 
 ### 下一任务新对话内容
 
 ```text
-继续 E:\neiwang_kapai\Game 的 Cocos → Unity 迁移。登录与创角、系统设置已经按新标准完成 G0-G6；本任务只处理 P0 第三个模块“主界面 HUD”。禁止提前处理支付、活动、基金、福利、竞技或社交模块，也不得顺手扩展 HUD 按钮所跳转的其他业务页面。
+继续 E:\neiwang_kapai\Game 的 Cocos → Unity 迁移。登录与创角、系统设置、主界面 HUD 已按新标准完成 G0-G6；本任务只处理 P1 第一个模块“玩法大厅”。禁止提前处理封神列传、体力领取、七日目标、法宝搜索、资源找回、游历三界、血战到底等子模块，也禁止处理支付、活动、基金、福利、竞技或社交模块；大厅按钮只登记目标所有权和不可用反馈，不迁移进入后的业务页面。
 
-先读取 AGENTS.md、UNITYCLIENT_STATUS.md、docs/unityclient/MIGRATION_GUIDE.md、docs/unityclient/modules/README.md、HUD 现有模块文档/矩阵/Manifest/场景/证据，以及 .local/unity-validation/settings-retrospective-latest.json；随后检查 Git，保护全部未提交改动，不得覆盖、清理、还原、暂存或夹带无关文件。
+先读取 AGENTS.md、UNITYCLIENT_STATUS.md、docs/unityclient/MIGRATION_GUIDE.md、docs/unityclient/modules/README.md、HANDOFF.md、玩法大厅现有模块文档/矩阵/Manifest/场景/证据、.local/unity-validation/playerhud-retrospective-latest.json 与 playerhud-operation-ledger.json；随后检查 Git，核对本地 HEAD 与 origin/main，保护全部未提交改动，不得覆盖、清理、还原、重新暂存或夹带无关文件。
 
-主界面 HUD 必须从 G0 重新冻结真实 Cocos 源码链：登录/进服后的真实到达路径、全部常驻 HUD 区域、头像/等级/名称、体力/金币/元宝、经验/战力、菜单组、红点、聊天/公告显示、折叠展开、层级遮挡、分辨率适配、刷新/重进/重连/切号，以及每个入口的所有权边界。对 HUD 按钮只验证本模块负责的显示、状态与路由，不迁移目标业务；旧第一阶段结论、旧截图和旧 Runner 不能跳过 G0-G6。
+玩法大厅必须从 G0 重新冻结真实 Cocos 源码链：HUD 真实入口、Lua 回调与功能开放判断、大厅全部可见区域和控件、列表/分页/滚动/选中态、公告/提示/红点、动态节点、Timeline/Imod、层级/裁剪/安全区、1334×750 锚点缩放，以及首次进入、刷新、返回重进、客户端重启、断线重连、切号、空数据、缺配置、资源缺失、协议失败/超时/不可用分支。旧 `logic-validated-visual-deferred`、历史截图、旧 Runner 与旧 SHA 只作历史参考，不能跳过任何门禁。
 
-严格按门禁顺序推进，上一门禁未通过不得进入下一门禁。先打印 Lua 回调、协议/字段/错误码、CSB/CSD、动态节点、资源、Timeline/Imod 和 Unity 当前缺口；涉及服务端状态必须使用 snapshot → setup → assert → run → relogin → finally restore → cleanup assert 的真实可逆夹具。Cocos 自动化仅用 computer-use@openai-bundled 操作原生 ProjectX.exe / Cocos Simulator，每次观察后只做一个动作；Unity MCP 只可用于 G3，G4-G6 只用标准 batchMode 工具和 Runner。每次失败立即写 HUD operation ledger，G5 取得同账号、同数据、同步骤、1334×750 的新鲜双端截图及并排/叠加/差异报告，G6 覆盖完整控件矩阵、语义、严重错误、重连/切号、零残留和两次真实 BuildBatch。完成后更新唯一状态源并生成 HANDOFF；未经明确要求不提交、不推送。
+严格按门禁顺序推进，上一门禁未通过不得进入下一门禁。编码前打印 Cocos 主入口、Lua 回调/事件、Store/配置/持久化、协议号/字段/错误码、服务端注册/处理/失败分支、CSB/CSD/动态资源/Timeline/Imod、运行时 Transform 与 Unity 当前实现/缺口。涉及服务端状态必须使用 snapshot → setup → assert → run → relogin → finally restore → cleanup assert 的真实可逆夹具；启动 Unity 前先跑 DataPreflightOnly。Cocos 自动化仅用 computer-use@openai-bundled 操作原生 ProjectX.exe / Cocos Simulator，每次观察后只做一个状态派生动作；出现“网络超时”等终态立即停止等待并转查源码、日志、协议。Unity MCP 只可用于 G3，G4-G6 只用标准 batchMode 工具和 Runner。每次失败立即写 Gameplay operation ledger；同根因第二次停模块修中央工具，第三次补自动回归。G5 取得同账号、同数据、同步骤、1334×750 的新鲜双端截图和完整差异报告；G6 覆盖完整矩阵、语义、严重错误、生命周期、零残留、两次真实 BuildBatch、全部运行时关闭和复盘未解决 0。完成后更新唯一状态源并生成 HANDOFF；只有用户明确要求时才按白名单提交推送。
 ```
 
 ## 1. 2026-08-01 World 旧交接

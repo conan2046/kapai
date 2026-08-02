@@ -116,6 +116,7 @@ local function readOnline(message)
     local claimed = message:ReadByte()
     local accumulated = message:ReadUInt()
     if message.Remaining ~= 0 then Bridge:Fail("Welfare /222 online unread bytes: " .. tostring(message.Remaining)); return end
+    Bridge:SetHudOnlineReward(claimed, accumulated)
     Bridge:BeginWelfareOnlineUpdate(claimed, accumulated, #onlineConfig)
     local previous = 0
     for _, value in ipairs(onlineConfig) do

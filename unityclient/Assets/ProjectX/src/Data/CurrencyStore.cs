@@ -35,7 +35,10 @@ namespace ProjectX.Data
 
         public void Initialize(long gold, long premium, long boundPremium, uint soul, uint guildContribution)
         {
-            values.Clear();
+            // A same-account reconnect receives /1004 again before all auxiliary
+            // currency packets. Preserve those authoritative values until their
+            // own protocols refresh them; ReturnToLogin clears the store for a
+            // real account switch, so identities remain isolated.
             values[CurrencyIds.Gold] = gold;
             values[CurrencyIds.Premium] = premium;
             values[CurrencyIds.BoundPremium] = boundPremium;

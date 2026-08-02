@@ -1,8 +1,13 @@
 {
   "schemaVersion": 1,
   "artifactPolicy": {
-    "immutableRoots": [".local/ui-fidelity"],
-    "runtimeRoots": ["build/ui-migration", ".local/unity-validation"],
+    "immutableRoots": [
+      ".local/ui-fidelity"
+    ],
+    "runtimeRoots": [
+      "build/ui-migration",
+      ".local/unity-validation"
+    ],
     "defaultLifecycle": "runtime"
   },
   "workflowPolicy": {
@@ -60,23 +65,74 @@
         "-projectXLoginClosureValidation"
       ],
       "artifacts": [
-        { "path": "build/ui-migration/bootstrap-login-local.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-server-list.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-existing-role.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-handover.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-role-male.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-role-female.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-role-random.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-name-invalid.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-name-duplicate.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-role-success.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-notice.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-connect-error.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-connect-timeout.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-disconnect.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-reconnected.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-return-reenter.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-login-account-isolation.png", "lifecycle": "runtime" }
+        {
+          "path": "build/ui-migration/bootstrap-login-local.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-server-list.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-existing-role.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-handover.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-role-male.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-role-female.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-role-random.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-name-invalid.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-name-duplicate.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-role-success.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-notice.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-connect-error.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-connect-timeout.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-disconnect.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-reconnected.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-return-reenter.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-login-account-isolation.png",
+          "lifecycle": "runtime"
+        }
       ],
       "captureStates": [
         "login-local",
@@ -113,35 +169,74 @@
       "sourceContracts": [
         {
           "path": "client/ProjectX/src/core/AppDef.lua",
-          "contains": ["AppDef.LOCAL_TEST", "AppDef.LOCAL_TEST_GAME_PORT"]
+          "contains": [
+            "AppDef.LOCAL_TEST",
+            "AppDef.LOCAL_TEST_GAME_PORT"
+          ]
         },
         {
           "path": "client/ProjectX/src/View/Login/LoginUI.lua",
-          "contains": ["Btn_Play", "Btn_Sever", "Btn_handover", "EnterGame"]
+          "contains": [
+            "Btn_Play",
+            "Btn_Sever",
+            "Btn_handover",
+            "EnterGame"
+          ]
         },
         {
           "path": "client/ProjectX/src/View/Login/RoleCreateUI.lua",
-          "contains": ["btn_Random", "btn_Start", "QueryCreateHero"]
+          "contains": [
+            "btn_Random",
+            "btn_Start",
+            "QueryCreateHero"
+          ]
         },
         {
           "path": "server/src/pack_deal.cpp",
-          "contains": ["CPackageDeal::UserLogin", "CPackageDeal::RoleNameOption", "CPackageDeal::CreateRole", "CPackageDeal::SelectRole", "CPackageDeal::QueryGongGao"]
+          "contains": [
+            "CPackageDeal::UserLogin",
+            "CPackageDeal::RoleNameOption",
+            "CPackageDeal::CreateRole",
+            "CPackageDeal::SelectRole",
+            "CPackageDeal::QueryGongGao"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginController.lua.txt",
-          "contains": ["Protocol.USER_LOGIN", "Protocol.ROLE_NAME_CHECK", "Protocol.CREATE_ROLE", "Protocol.SELECT_ROLE", "Protocol.GAME_NOTICE"]
+          "contains": [
+            "Protocol.USER_LOGIN",
+            "Protocol.ROLE_NAME_CHECK",
+            "Protocol.CREATE_ROLE",
+            "Protocol.SELECT_ROLE",
+            "Protocol.GAME_NOTICE"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/LoginPresenter.cs",
-          "contains": ["LoginPresenter", "ShowHandover", "ShowServerList", "ShowRoleCreate", "InvokeRoleRandom", "InvokeRoleBack"]
+          "contains": [
+            "LoginPresenter",
+            "ShowHandover",
+            "ShowServerList",
+            "ShowRoleCreate",
+            "InvokeRoleRandom",
+            "InvokeRoleBack"
+          ]
         },
         {
           "path": "tools/unity-migration/Invoke-LoginCocosFixture.ps1",
-          "contains": ["fixedDisposableUserId", "Assert-FixedRestored", "Remove-FixedDisposableIdentity"]
+          "contains": [
+            "fixedDisposableUserId",
+            "Assert-FixedRestored",
+            "Remove-FixedDisposableIdentity"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "contains": ["MarkValidationControl", "RecordValidationSemantic", "BeginLoginClosureValidation"]
+          "contains": [
+            "MarkValidationControl",
+            "RecordValidationSemantic",
+            "BeginLoginClosureValidation"
+          ]
         }
       ],
       "visualAssertions": {
@@ -151,7 +246,31 @@
         "requireUniqueHashes": true
       }
     },
-    { "key": "bag-default", "module": "Bag", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXBagG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-bag.png","lifecycle":"runtime"}], "captureStates": ["bag","input","gift","source","equipment-info","source-destination","reload","reconnect"] },
+    {
+      "key": "bag-default",
+      "module": "Bag",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBagG4Validation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-bag.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "bag",
+        "input",
+        "gift",
+        "source",
+        "equipment-info",
+        "source-destination",
+        "reload",
+        "reconnect"
+      ]
+    },
     {
       "key": "settings-default",
       "module": "Settings",
@@ -297,31 +416,1200 @@
         ]
       }
     },
-    { "key": "task-default", "module": "Task", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXTaskG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-task.png","lifecycle":"runtime"}], "captureStates": ["task-populated","task-go","task-claimable","task-claimed","task-scroll-top","task-scroll-bottom","activity-boxes","reward-popup-preview","reward-popup-claimable","reward-popup-claimed","invalid-repeat","reload","reconnect","account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["task-title","task-tab","task-header-currencies","task-action-labels","task-reward-title"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["BTN_NAME_task","EMID_TASK_DALIY"]},{"path":"client/ProjectX/src/View/Activity/HuoyueTaskUI.lua","contains":["QueryGotTaskList","QueryGotTaskAward"]},{"path":"server/src/mission_manager.cpp","contains":["ApplyTaskValidationFixture","GetQuestAward"]},{"path":"server/config/json/daily.json","contains":["\"id\":144","\"type\":0","\"id\":9","\"type\":2"]},{"path":"unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs","contains":["-projectXTaskG4Validation"]},{"path":"unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs","contains":["class TaskPresenter","InvokeActivityBox","ScrollToBottom","HasActionLabel"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["MarkValidationControl","RecordValidationSemantic"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
-    { "key": "player-hud-default", "module": "PlayerHud", "fixture": "shared-readonly", "flags": ["-projectXPlayerHudValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-main-hud.png","lifecycle":"runtime"}], "captureStates": ["main-hud"] },
-    { "key": "hero-g6", "module": "Hero", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXHeroG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-hero.png","lifecycle":"runtime"}], "captureStates": ["formation-list","all-rows-unlocked","empty-slot","replacement","cultivation","enhance-master-open","equipment-slots","fabao-slots","attributes","formation-popup","formation-mutated","formation-restored"] },
-    { "key": "hero-equip-g6", "module": "HeroEquip", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXHeroEquipMutationValidation","-projectXHeroEquipG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-hero.png","lifecycle":"runtime"}], "captureStates": ["hero-detail","equipment-bag","fabao-bag","equipment-detail","fabao-detail","equipment-change-popup","fabao-change-popup","strength-before","strength-after","material-insufficient","illegal-uid","repeat-operation","after-takeoff"] },
-    { "key": "mail-default", "module": "Mail", "fixture": "isolated-role", "requiredGate": "G1", "flags": ["-projectXMailValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-mail-populated.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-mail-scroll-bottom.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-mail-attachment-end.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-mail-detail.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-mail.png","lifecycle":"runtime"}], "captureStates": ["mail-populated","mail-scroll-bottom","mail-selected-unread","mail-selected-read","mail-no-attachment","mail-with-attachment-detail","mail-single-claim","mail-claim-all","mail-single-delete","mail-delete-all","mail-empty","mail-invalid-repeat","mail-reload-reconnect-account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["mail-title","mail-tab","mail-empty-text","mail-action-labels","mail-detail-fields"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["BTN_NAME_mail","EMID_SHEJIAO"]},{"path":"client/ProjectX/src/View/Social/SocialLayer.lua","contains":["View.Mail.MailUI","QueryMails"]},{"path":"client/ProjectX/src/View/Mail/MailUI.lua","contains":["onGetAllClicked","onDeleteAllClicked","TableViewCellSelected"]},{"path":"server/src/pack_deal.cpp","contains":["void CPackageDeal::XinShi","type == 2","type == 3"]},{"path":"unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs","contains":["-projectXMailValidation"]},{"path":"unityclient/Assets/ProjectX/src/UI/MailPresenter.cs","contains":["class MailPresenter"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["MarkValidationControl","RecordValidationSemantic"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
-    { "key": "shop-default", "module": "Shop", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXShopG4Validation"], "artifacts": [{"path":"build/ui-migration/bootstrap-shop-list.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-shop-quantity.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-shop-scroll-bottom.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-shop-confirm.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-shop-reward.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-shop.png","lifecycle":"runtime"}], "captureStates": ["list","quantity","scroll-bottom","confirm","reward","reload-reconnect"], "controlCoverageRequired": true, "semanticAssertionKeys": ["shop-title","shop-tab","shop-details","shop-refresh-config","shop-authority"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["shopTouchCallback","NormalShopBtn","coinAddBtn"]},{"path":"client/ProjectX/src/View/Shop/SelectedGood.lua","contains":["reduseCallback","addCallback","countCallback","buy"]},{"path":"server/src/pack_deal.cpp","contains":["void CPackageDeal::ShopOption"]},{"path":"server/src/user_shop_manage.cpp","contains":["GetShopMsg","BuyShopItem","RefreshGrids"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt","contains":["validationRefresh","validationCount","validationFailure","validationSuccess"]},{"path":"unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs","contains":["InvokeQuantityInput","InvokeBuy","IsRefreshDisabledForBaseShop"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["BeginShopG4Validation","MarkValidationControl","RecordValidationSemantic"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
-    { "key": "gameplay-shops-default", "module": "GameplayShops", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXGameplayShopsValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-gameplay-shop-jianghun.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-gameplay-shop-arena.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-gameplay-shop-blood.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-gameplay-shop-guild.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-gameplay-shop-kunlun.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-gameplay-shop-turntable.png","lifecycle":"runtime"}], "captureStates": ["soul-list","soul-help","soul-item-detail","soul-refresh","soul-purchase","arena-goods","arena-reward","arena-buy-dialog","arena-purchase","blood-tier1","blood-tier2","blood-tier3","blood-reward","blood-purchase","guild-shop","guild-spirit","guild-purchase","kunlun-shop","kunlun-purchase","turntable-locked","turntable-points","turntable-premium","turntable-purchase","failure-insufficient","failure-condition","failure-soldout","failure-invalid-repeat","reload","reconnect","account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["gameplay-shop-title","gameplay-shop-tabs","gameplay-shop-subtabs","gameplay-shop-currencies","gameplay-shop-authority","gameplay-shop-direct-buy","gameplay-shop-quantity-buy","gameplay-shop-failures","gameplay-shop-lifecycle"], "sourceContracts": [{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["BeginGameplayShopsG4Validation","CaptureGameplayShopsValidation"]},{"path":"unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs","contains":["public sealed class GameplayShopsPresenter"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt","contains":["-projectXGameplayShopsValidation","BeginGameplayShopsG4Validation"]},{"path":"unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs","contains":["-projectXGameplayShopsValidation"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
-    { "key": "friend-default", "module": "Friend", "fixture": "isolated-role-friend-peers", "flags": ["-projectXFriendValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-friend-list.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-friend.png","lifecycle":"runtime"}], "captureStates": ["list","detail"] },
-    { "key": "chat-default", "module": "Chat", "fixture": "isolated-role", "flags": ["-projectXChatValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-chat.png","lifecycle":"runtime"}], "captureStates": ["chat"] },
-    { "key": "team-default", "module": "Team", "fixture": "isolated-role-team-peer", "flags": ["-projectXTeamValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-team-members.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-team.png","lifecycle":"runtime"}], "captureStates": ["members","team"] },
-    { "key": "guild-default", "module": "Guild", "fixture": "isolated-role", "flags": ["-projectXGuildValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-guild-members.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-guild.png","lifecycle":"runtime"}], "captureStates": ["members","guild"] },
-    { "key": "world-default", "module": "World", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXWorldBattleValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-world-map.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-detail.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-sweep.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-reset.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-result.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-world-chest.png","lifecycle":"runtime"}], "captureStates": ["world-map","stage-detail","sweep-summary","reset-confirm","battle-result","chest-state"], "controlCoverageRequired": true, "semanticAssertionKeys": ["world-authority","world-battle","world-reconnect","world-account-isolation","world-exclusions"], "sourceContracts": [{"path":"client/ProjectX/src/View/MainUI.lua","contains":["FuBenTouchCallback","EMID_KAPAI_ZHUXIANFUBEN"]},{"path":"server/src/pack_deal.cpp","contains":["MSG_GUANQIA","void CPackageDeal::DealGuanQia"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt","contains":["Protocol.WORLD_STAGE","BeginWorldSweepRewards"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["BeginWorldChapterList","world-account-isolation"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
-    { "key": "welfare-default", "module": "Welfare", "fixture": "isolated-role", "flags": ["-projectXWelfareValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-welfare-sign.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-welfare-online.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-welfare-stage-empty.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-welfare.png","lifecycle":"runtime"}], "captureStates": ["sign","online","stage-empty","welfare"] },
-    { "key": "activity-default", "module": "Activity", "fixture": "isolated-role-global-snapshot", "flags": ["-projectXActivityValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-activity-detail.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-activity-empty.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-activity.png","lifecycle":"runtime"}], "captureStates": ["detail","empty","list"] },
-    { "key": "draw-default", "module": "Draw", "fixture": "isolated-role", "requiredGate": "G3", "flags": ["-projectXDrawClosureValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-draw.png","lifecycle":"runtime"}], "captureStates": ["draw-main","high-free-result","hero-list","hero-cultivation","formation-mounted","reconnect","account-switch"], "controlCoverageRequired": true, "semanticAssertionKeys": ["draw-authority","draw-target-hero","hero-level-up","formation-mounted","draw-reconnect","draw-account-isolation"], "sourceContracts": [{"path":"server/src/chou_ka_manager.cpp","contains":["jilu->allCnt == 0 && type == 2","singleAward.typeId = 64"]},{"path":"server/src/pack_deal.cpp","contains":["void CPackageDeal::PetDraw","void CPackageDeal::ZhenFaOption"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/Draw/DrawController.lua.txt","contains":["Protocol.PET_RANDOM_DRAW","readResult"]},{"path":"unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt","contains":["function M.levelUp","message:WriteByte(3)"]},{"path":"unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","contains":["BeginDrawResult","EndDrawResult"]}], "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true} },
-    { "key": "gameplay-default", "module": "Gameplay", "fixture": "isolated-role", "flags": ["-projectXGameplayValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-gameplay-list.png","lifecycle":"runtime"},{"path":"build/ui-migration/bootstrap-gameplay.png","lifecycle":"runtime"}], "captureStates": ["list","detail"] },
-    { "key": "youli-default", "module": "YouLi", "fixture": "shared-readonly", "flags": ["-projectXYouLiValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-youli.png","lifecycle":"runtime"}], "captureStates": ["youli"] },
-    { "key": "fengshen-story-default", "module": "FengShenStory", "fixture": "isolated-role", "flags": ["-projectXFengShenStoryValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-fengshen-story.png","lifecycle":"runtime"}], "captureStates": ["story"] },
-    { "key": "arena-default", "module": "Arena", "fixture": "isolated-role", "flags": ["-projectXArenaValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-arena.png","lifecycle":"runtime"}], "captureStates": ["arena"] },
-    { "key": "kunlun-default", "module": "KunLun", "fixture": "shared-readonly", "flags": ["-projectXKunLunValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-kunlun.png","lifecycle":"runtime"}], "captureStates": ["kunlun"] },
-    { "key": "blood-fight-default", "module": "BloodFight", "fixture": "shared-readonly", "flags": ["-projectXBloodFightValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-blood-fight.png","lifecycle":"runtime"}], "captureStates": ["blood-fight"] },
-    { "key": "xunbao-default", "module": "XunBao", "fixture": "shared-readonly", "flags": ["-projectXXunBaoValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-xunbao.png","lifecycle":"runtime"}], "captureStates": ["xunbao"] },
-    { "key": "seven-day-default", "module": "SevenDay", "fixture": "shared-readonly", "flags": ["-projectXSevenDayValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-seven-day.png","lifecycle":"runtime"}], "captureStates": ["seven-day"] },
-    { "key": "stamina-claim-default", "module": "StaminaClaim", "fixture": "shared-readonly", "flags": ["-projectXStaminaClaimValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-stamina-claim.png","lifecycle":"runtime"}], "captureStates": ["stamina-claim"] },
-    { "key": "resource-recovery-default", "module": "ResourceRecovery", "fixture": "shared-readonly", "flags": ["-projectXResourceRecoveryValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-resource-recovery.png","lifecycle":"runtime"}], "captureStates": ["resource-recovery"] },
-    { "key": "funds-default", "module": "Funds", "fixture": "shared-readonly", "flags": ["-projectXFundsValidation"], "artifacts": [{"path":"build/ui-migration/bootstrap-funds.png","lifecycle":"runtime"}], "captureStates": ["funds"] }
+    {
+      "key": "task-default",
+      "module": "Task",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXTaskG4Validation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-task.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "task-populated",
+        "task-go",
+        "task-claimable",
+        "task-claimed",
+        "task-scroll-top",
+        "task-scroll-bottom",
+        "activity-boxes",
+        "reward-popup-preview",
+        "reward-popup-claimable",
+        "reward-popup-claimed",
+        "invalid-repeat",
+        "reload",
+        "reconnect",
+        "account-switch"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "task-title",
+        "task-tab",
+        "task-header-currencies",
+        "task-action-labels",
+        "task-reward-title"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "BTN_NAME_task",
+            "EMID_TASK_DALIY"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Activity/HuoyueTaskUI.lua",
+          "contains": [
+            "QueryGotTaskList",
+            "QueryGotTaskAward"
+          ]
+        },
+        {
+          "path": "server/src/mission_manager.cpp",
+          "contains": [
+            "ApplyTaskValidationFixture",
+            "GetQuestAward"
+          ]
+        },
+        {
+          "path": "server/config/json/daily.json",
+          "contains": [
+            "\"id\":144",
+            "\"type\":0",
+            "\"id\":9",
+            "\"type\":2"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs",
+          "contains": [
+            "-projectXTaskG4Validation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs",
+          "contains": [
+            "class TaskPresenter",
+            "InvokeActivityBox",
+            "ScrollToBottom",
+            "HasActionLabel"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "MarkValidationControl",
+            "RecordValidationSemantic"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "player-hud-default",
+      "module": "PlayerHud",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXPlayerHudValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-main-hud.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-first-entry.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-wear-expanded.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-shop-expanded.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-chat-expanded-empty.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-return-reenter.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-client-restart.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-disconnected-unavailable.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-reconnected-chat.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-chat-expanded-messages.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-switch-account-login.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-playerhud-account-isolation.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "first-entry",
+        "wear-expanded",
+        "shop-expanded",
+        "chat-expanded-empty",
+        "return-reenter",
+        "client-restart",
+        "disconnected-unavailable",
+        "reconnected-chat",
+        "chat-expanded-messages",
+        "switch-account-login",
+        "account-isolation"
+      ],
+      "semanticAssertionKeys": [
+        "hud-authoritative-display",
+        "hud-protocol-ownership",
+        "hud-menu-state",
+        "hud-route-boundaries",
+        "hud-conditional-red-dot",
+        "hud-chat-summary",
+        "hud-lifecycle-reenter",
+        "hud-network-recovery",
+        "hud-account-isolation",
+        "hud-no-server-fixture",
+        "hud-exclusions",
+        "hud-control-matrix-56"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "UImainLayer_new.csb",
+            "QueryLingQiButton(20)",
+            "QueryDiscountBag(89, 1)",
+            "tankuang1",
+            "tankuang2"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Chat/ChatMiniShowLayer.lua",
+          "contains": [
+            "createMsg",
+            "addMsgData",
+            "jumpToBottom"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "CPackageDeal::SelectRole",
+            "CPackageDeal::FuncHotPointOption",
+            "CPackageDeal::DealSpirit",
+            "CPackageDeal::UserVIPOption",
+            "CPackageDeal::HuoDongTmpOption"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt",
+          "contains": [
+            "Bridge:BeginPlayerHudValidation()",
+            "Protocol.VIP",
+            "Protocol.STAMINA"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
+          "contains": [
+            "SetChatExpanded",
+            "SetOnlineReward",
+            "SetDiscountState",
+            "SetRedDot",
+            "scroll.content != null",
+            "LegacyRuntime.ttf"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "RunPlayerHudValidation",
+            "HUD-56-EMPTY-FAILURE",
+            "hud-control-matrix-56",
+            "services.Options.PlayerHudValidation",
+            "services.Options.LoginClosureValidation || services.Options.PlayerHudValidation",
+            "Player HUD reconnect confirmation."
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs",
+          "contains": [
+            "PlayerHudValidation",
+            "-projectXPlayerHudValidation",
+            "-projectXPlayerHudIsolationUserId="
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs",
+          "contains": [
+            "MainCloudPrefab",
+            "new PrefabSpec(MainCloudPrefab, false)"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-PlayerHudFixture.ps1",
+          "contains": [
+            "snapshot_hash",
+            "Assert-RestoredState",
+            "AssertCleanup"
+          ]
+        },
+        {
+          "path": "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
+          "contains": [
+            "HUD-01-ENTRY-ARRIVAL",
+            "HUD-56-EMPTY-FAILURE",
+            "protocolCommands"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true,
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "build/ui-migration/bootstrap-main-hud.png",
+              "build/ui-migration/bootstrap-playerhud-first-entry.png",
+              "build/ui-migration/bootstrap-playerhud-client-restart.png",
+              "build/ui-migration/bootstrap-playerhud-return-reenter.png"
+            ],
+            "reason": "All four captures render the same authoritative primary-role HUD after transient menu state is collapsed; the looping cloud Timeline may make only a subset pixel-identical at a given stable frame.",
+            "sourceEvidence": [
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-first-entry.png)",
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-return-reenter.png)",
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-client-restart.png)"
+            ]
+          }
+        ]
+      },
+      "requiredGate": "G3",
+      "controlCoverageRequired": true
+    },
+    {
+      "key": "hero-g6",
+      "module": "Hero",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXHeroG4Validation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-hero.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "formation-list",
+        "all-rows-unlocked",
+        "empty-slot",
+        "replacement",
+        "cultivation",
+        "enhance-master-open",
+        "equipment-slots",
+        "fabao-slots",
+        "attributes",
+        "formation-popup",
+        "formation-mutated",
+        "formation-restored"
+      ]
+    },
+    {
+      "key": "hero-equip-g6",
+      "module": "HeroEquip",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXHeroEquipMutationValidation",
+        "-projectXHeroEquipG4Validation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-hero.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "hero-detail",
+        "equipment-bag",
+        "fabao-bag",
+        "equipment-detail",
+        "fabao-detail",
+        "equipment-change-popup",
+        "fabao-change-popup",
+        "strength-before",
+        "strength-after",
+        "material-insufficient",
+        "illegal-uid",
+        "repeat-operation",
+        "after-takeoff"
+      ]
+    },
+    {
+      "key": "mail-default",
+      "module": "Mail",
+      "fixture": "isolated-role",
+      "requiredGate": "G1",
+      "flags": [
+        "-projectXMailValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-mail-populated.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-mail-scroll-bottom.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-mail-attachment-end.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-mail-detail.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-mail.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "mail-populated",
+        "mail-scroll-bottom",
+        "mail-selected-unread",
+        "mail-selected-read",
+        "mail-no-attachment",
+        "mail-with-attachment-detail",
+        "mail-single-claim",
+        "mail-claim-all",
+        "mail-single-delete",
+        "mail-delete-all",
+        "mail-empty",
+        "mail-invalid-repeat",
+        "mail-reload-reconnect-account-switch"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "mail-title",
+        "mail-tab",
+        "mail-empty-text",
+        "mail-action-labels",
+        "mail-detail-fields"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "BTN_NAME_mail",
+            "EMID_SHEJIAO"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Social/SocialLayer.lua",
+          "contains": [
+            "View.Mail.MailUI",
+            "QueryMails"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Mail/MailUI.lua",
+          "contains": [
+            "onGetAllClicked",
+            "onDeleteAllClicked",
+            "TableViewCellSelected"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "void CPackageDeal::XinShi",
+            "type == 2",
+            "type == 3"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs",
+          "contains": [
+            "-projectXMailValidation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/MailPresenter.cs",
+          "contains": [
+            "class MailPresenter"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "MarkValidationControl",
+            "RecordValidationSemantic"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "shop-default",
+      "module": "Shop",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXShopG4Validation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-shop-list.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-shop-quantity.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-shop-scroll-bottom.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-shop-confirm.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-shop-reward.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-shop.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "list",
+        "quantity",
+        "scroll-bottom",
+        "confirm",
+        "reward",
+        "reload-reconnect"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "shop-title",
+        "shop-tab",
+        "shop-details",
+        "shop-refresh-config",
+        "shop-authority"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "shopTouchCallback",
+            "NormalShopBtn",
+            "coinAddBtn"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Shop/SelectedGood.lua",
+          "contains": [
+            "reduseCallback",
+            "addCallback",
+            "countCallback",
+            "buy"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "void CPackageDeal::ShopOption"
+          ]
+        },
+        {
+          "path": "server/src/user_shop_manage.cpp",
+          "contains": [
+            "GetShopMsg",
+            "BuyShopItem",
+            "RefreshGrids"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
+          "contains": [
+            "validationRefresh",
+            "validationCount",
+            "validationFailure",
+            "validationSuccess"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
+          "contains": [
+            "InvokeQuantityInput",
+            "InvokeBuy",
+            "IsRefreshDisabledForBaseShop"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "BeginShopG4Validation",
+            "MarkValidationControl",
+            "RecordValidationSemantic"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "gameplay-shops-default",
+      "module": "GameplayShops",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXGameplayShopsValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-shop-arena.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-shop-blood.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-shop-guild.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-shop-turntable.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "soul-list",
+        "soul-help",
+        "soul-item-detail",
+        "soul-refresh",
+        "soul-purchase",
+        "arena-goods",
+        "arena-reward",
+        "arena-buy-dialog",
+        "arena-purchase",
+        "blood-tier1",
+        "blood-tier2",
+        "blood-tier3",
+        "blood-reward",
+        "blood-purchase",
+        "guild-shop",
+        "guild-spirit",
+        "guild-purchase",
+        "kunlun-shop",
+        "kunlun-purchase",
+        "turntable-locked",
+        "turntable-points",
+        "turntable-premium",
+        "turntable-purchase",
+        "failure-insufficient",
+        "failure-condition",
+        "failure-soldout",
+        "failure-invalid-repeat",
+        "reload",
+        "reconnect",
+        "account-switch"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "gameplay-shop-title",
+        "gameplay-shop-tabs",
+        "gameplay-shop-subtabs",
+        "gameplay-shop-currencies",
+        "gameplay-shop-authority",
+        "gameplay-shop-direct-buy",
+        "gameplay-shop-quantity-buy",
+        "gameplay-shop-failures",
+        "gameplay-shop-lifecycle"
+      ],
+      "sourceContracts": [
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "BeginGameplayShopsG4Validation",
+            "CaptureGameplayShopsValidation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
+          "contains": [
+            "public sealed class GameplayShopsPresenter"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
+          "contains": [
+            "-projectXGameplayShopsValidation",
+            "BeginGameplayShopsG4Validation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs",
+          "contains": [
+            "-projectXGameplayShopsValidation"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "friend-default",
+      "module": "Friend",
+      "fixture": "isolated-role-friend-peers",
+      "flags": [
+        "-projectXFriendValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-friend-list.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-friend.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "list",
+        "detail"
+      ]
+    },
+    {
+      "key": "chat-default",
+      "module": "Chat",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXChatValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-chat.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "chat"
+      ]
+    },
+    {
+      "key": "team-default",
+      "module": "Team",
+      "fixture": "isolated-role-team-peer",
+      "flags": [
+        "-projectXTeamValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-team-members.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-team.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "members",
+        "team"
+      ]
+    },
+    {
+      "key": "guild-default",
+      "module": "Guild",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXGuildValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-guild-members.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-guild.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "members",
+        "guild"
+      ]
+    },
+    {
+      "key": "world-default",
+      "module": "World",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXWorldBattleValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-world-map.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-world-detail.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-world-sweep.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-world-reset.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-world-result.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-world-chest.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "world-map",
+        "stage-detail",
+        "sweep-summary",
+        "reset-confirm",
+        "battle-result",
+        "chest-state"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "world-authority",
+        "world-battle",
+        "world-reconnect",
+        "world-account-isolation",
+        "world-exclusions"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "FuBenTouchCallback",
+            "EMID_KAPAI_ZHUXIANFUBEN"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "MSG_GUANQIA",
+            "void CPackageDeal::DealGuanQia"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt",
+          "contains": [
+            "Protocol.WORLD_STAGE",
+            "BeginWorldSweepRewards"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "BeginWorldChapterList",
+            "world-account-isolation"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "welfare-default",
+      "module": "Welfare",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXWelfareValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-welfare-sign.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-welfare-online.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-welfare-stage-empty.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-welfare.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "sign",
+        "online",
+        "stage-empty",
+        "welfare"
+      ]
+    },
+    {
+      "key": "activity-default",
+      "module": "Activity",
+      "fixture": "isolated-role-global-snapshot",
+      "flags": [
+        "-projectXActivityValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-activity-detail.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-activity-empty.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-activity.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "detail",
+        "empty",
+        "list"
+      ]
+    },
+    {
+      "key": "draw-default",
+      "module": "Draw",
+      "fixture": "isolated-role",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXDrawClosureValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-draw.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "draw-main",
+        "high-free-result",
+        "hero-list",
+        "hero-cultivation",
+        "formation-mounted",
+        "reconnect",
+        "account-switch"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "draw-authority",
+        "draw-target-hero",
+        "hero-level-up",
+        "formation-mounted",
+        "draw-reconnect",
+        "draw-account-isolation"
+      ],
+      "sourceContracts": [
+        {
+          "path": "server/src/chou_ka_manager.cpp",
+          "contains": [
+            "jilu->allCnt == 0 && type == 2",
+            "singleAward.typeId = 64"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "void CPackageDeal::PetDraw",
+            "void CPackageDeal::ZhenFaOption"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Draw/DrawController.lua.txt",
+          "contains": [
+            "Protocol.PET_RANDOM_DRAW",
+            "readResult"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "contains": [
+            "function M.levelUp",
+            "message:WriteByte(3)"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "BeginDrawResult",
+            "EndDrawResult"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "gameplay-default",
+      "module": "Gameplay",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXGameplayValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-gameplay-list.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-gameplay.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "list",
+        "detail"
+      ]
+    },
+    {
+      "key": "youli-default",
+      "module": "YouLi",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXYouLiValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-youli.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "youli"
+      ]
+    },
+    {
+      "key": "fengshen-story-default",
+      "module": "FengShenStory",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXFengShenStoryValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "story"
+      ]
+    },
+    {
+      "key": "arena-default",
+      "module": "Arena",
+      "fixture": "isolated-role",
+      "flags": [
+        "-projectXArenaValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-arena.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "arena"
+      ]
+    },
+    {
+      "key": "kunlun-default",
+      "module": "KunLun",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXKunLunValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-kunlun.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "kunlun"
+      ]
+    },
+    {
+      "key": "blood-fight-default",
+      "module": "BloodFight",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXBloodFightValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-blood-fight.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "blood-fight"
+      ]
+    },
+    {
+      "key": "xunbao-default",
+      "module": "XunBao",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXXunBaoValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-xunbao.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "xunbao"
+      ]
+    },
+    {
+      "key": "seven-day-default",
+      "module": "SevenDay",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXSevenDayValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-seven-day.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "seven-day"
+      ]
+    },
+    {
+      "key": "stamina-claim-default",
+      "module": "StaminaClaim",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXStaminaClaimValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "stamina-claim"
+      ]
+    },
+    {
+      "key": "resource-recovery-default",
+      "module": "ResourceRecovery",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXResourceRecoveryValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-resource-recovery.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "resource-recovery"
+      ]
+    },
+    {
+      "key": "funds-default",
+      "module": "Funds",
+      "fixture": "shared-readonly",
+      "flags": [
+        "-projectXFundsValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/bootstrap-funds.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "funds"
+      ]
+    }
   ]
 }

@@ -3,12 +3,12 @@ local Protocol = require("Protocol")
 local GOLD = 60000
 local PREMIUM = 60003
 local STAMINA = 60026
-local M = { validationStage = nil, expectedGold = 0, expectedPremium = 0, staminaLoaded = false, currencyValidated = false }
+local M = { validationRequested = false, validationStarted = false, staminaLoaded = false }
 
-local function tryCompleteValidation()
-    if M.currencyValidated and M.staminaLoaded then
-        M.validationStage = nil
-        Bridge:CompletePlayerHudValidation(M.expectedGold, M.expectedPremium)
+local function tryStartValidation()
+    if M.validationRequested and M.staminaLoaded and not M.validationStarted then
+        M.validationStarted = true
+        Bridge:BeginPlayerHudValidation()
     end
 end
 
@@ -18,33 +18,16 @@ function M.requestStamina()
     Bridge:Send(message)
 end
 
-local function sendCurrencyMutation(currency, amount)
-    local message = Protocol.newMessage(Protocol.INTERACT)
-    message:WriteByte(52)
-    message:WriteWord(currency)
-    message:WriteUInt(amount)
-    Bridge:Send(message)
-end
-
 function M.beginValidation()
-    M.expectedGold = Bridge:GetCurrency(GOLD) + 123
-    M.expectedPremium = Bridge:GetCurrency(PREMIUM) + 7
-    M.validationStage = "gold"
-    M.currencyValidated = false
-    sendCurrencyMutation(GOLD, 123)
-    Bridge:SetStatus("Player HUD validation: waiting for /18 gold increment.")
+    M.validationRequested = true
+    Bridge:SetStatus("Player HUD validation: waiting for authoritative /1004 and /321 snapshots.")
+    tryStartValidation()
 end
 
-local function validateIncrement(id, value)
-    if M.validationStage == "gold" and id == GOLD then
-        if value ~= M.expectedGold then Bridge:Fail("Gold increment mismatch: " .. tostring(value)); return end
-        M.validationStage = "premium"
-        sendCurrencyMutation(PREMIUM, 7)
-    elseif M.validationStage == "premium" and id == PREMIUM then
-        if value ~= M.expectedPremium then Bridge:Fail("Premium increment mismatch: " .. tostring(value)); return end
-        M.currencyValidated = true
-        tryCompleteValidation()
-    end
+function M.requestVip()
+    local message = Protocol.newMessage(Protocol.VIP)
+    message:WriteByte(1)
+    Bridge:Send(message)
 end
 
 
@@ -61,7 +44,7 @@ local function readStamina(message)
     message:ReadUInt()
     Bridge:SetCurrency(STAMINA, value)
     M.staminaLoaded = true
-    tryCompleteValidation()
+    tryStartValidation()
 end
 
 local function readCharacterUpdate(message)
@@ -73,8 +56,8 @@ local function readCharacterUpdate(message)
             local value = (kind == 507 or kind == 513) and message:ReadULongInt() or message:ReadUInt()
             if kind == 501 then Bridge:SetPlayerPotential(value)
             elseif kind == 502 then Bridge:AddPlayerExperience(value)
-            elseif kind == 504 then Bridge:SetCurrency(GOLD, value); validateIncrement(GOLD, value)
-            elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value); validateIncrement(PREMIUM, value)
+            elseif kind == 504 then Bridge:SetCurrency(GOLD, value)
+            elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)
             elseif kind == 513 then Bridge:SetPlayerPower(value)
             elseif kind == 514 then Bridge:SetPlayerSoul(value) end
         end
@@ -83,11 +66,23 @@ local function readCharacterUpdate(message)
         local value = message:ReadUInt()
         Bridge:SetCurrency(id, value)
         if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end
-        validateIncrement(id == 60001 and PREMIUM or id, value)
     elseif updateType == 3 then
         local count = message:ReadByte()
         for _ = 1, count do message:ReadWord(); message:ReadUInt() end
     end
+end
+
+local function readVip(message)
+    local operation = message:ReadByte()
+    if operation ~= 4 then return end
+    local vipLevel = message:ReadByte()
+    Bridge:SetPlayerVipLevel(vipLevel)
+    if message.Remaining >= 4 then message:ReadUInt() end
+    if message.Remaining >= 4 then message:ReadUInt() end
+    local cardType = message.Remaining > 0 and message:ReadByte() or 0
+    if message.Remaining > 0 then message:ReadByte() end
+    if message.Remaining >= 4 then message:ReadUInt() end
+    if cardType >= 8 and message.Remaining >= 4 then message:ReadUInt() end
 end
 
 local function readLevelUp(message)
@@ -107,6 +102,7 @@ function M.onPacket(command, message)
     if command == Protocol.UPDATE_CHAR then readCharacterUpdate(message); return true end
     if command == Protocol.LEVEL_UP then readLevelUp(message); return true end
     if command == Protocol.STAMINA then readStamina(message); return true end
+    if command == Protocol.VIP then readVip(message); return true end
     return false
 end
 

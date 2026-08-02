@@ -3,6 +3,7 @@ local LoginProtocol = require("Login.LoginProtocol")
 local LoginView = require("Login.LoginView")
 local PlayerController = require("Player.PlayerController")
 local ServerTimeController = require("Time.ServerTimeController")
+local TempActivityController = require("Activity.TempActivityController")
 local M = { roleId = 0, createdRole = false }
 
 function M.begin()
@@ -88,6 +89,8 @@ function M.onPacket(command, message)
         LoginProtocol.requestGameNotice()
         ServerTimeController.request()
         PlayerController.requestStamina()
+        PlayerController.requestVip()
+        TempActivityController.requestHudState()
         if Bridge:HasCommandLineFlag("-projectXLoginValidation") and not Bridge:HasCommandLineFlag("-projectXRequireNoticeResponse") then
             Bridge:CompleteLoginValidation(M.createdRole)
         end

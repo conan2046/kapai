@@ -10,7 +10,7 @@
 |---|---|---|
 | 底层/登录 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过 |
 | 系统设置 | `SETTINGS.md` | `G0-G6 passed / 21/21 complete`；设备级持久化、切号隔离、`no-server-fixture`、8/8 双端视觉和 Bootstrap 幂等通过 |
-| 主界面 HUD | `FOUNDATION.md` | 下一模块；必须在新任务从 G0 开始 |
+| 主界面 HUD | `PLAYERHUD.md` | `G0-G6 passed / 56/56 complete`；11/11 双端视觉、14/14 语义、只读权威显示、路由边界、生命周期与 Bootstrap 幂等通过 |
 | 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；双端视觉、真实协议、生命周期与幂等门禁通过 |
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `partial-interactive-audit-required`；矩阵0/16，等待真实按钮逐项重审 |
@@ -30,7 +30,7 @@
 | 福利 | `WELFARE.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 活动 | `ACTIVITY.md` | 功能第一阶段完成；视觉 1:1 待重验；旧 `/209` 判废 |
 | 神将招募 | `DRAW.md` | 功能第一阶段完成；视觉 1:1 待重验；旧 LuckyDraw 排除 |
-| 玩法大厅 | `GAMEPLAY.md` | 真实主布局与公共公告已接；细节视觉按用户要求延后 |
+| 玩法大厅 | `GAMEPLAY.md` | 下一模块；旧 `logic-validated-visual-deferred` 只作历史参考，必须在新任务从 G0 重新冻结并执行 G0-G6 |
 | 决战昆仑 | `KUNLUN.md` | `/213 op=25`、真实背景/九宫格、权威空匹配状态已通过；战斗与动态模型延后 |
 | 血战到底 | `BLOOD_FIGHT.md` | `/323 op=1`、真实主布局与权威空状态已通过；排行、战斗与特效延后 |
 | 游历三界 | `YOULI.md` | 逻辑通过；Cocos 基准与差异报告缺失，视觉待修 |

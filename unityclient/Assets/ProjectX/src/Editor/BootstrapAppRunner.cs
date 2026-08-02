@@ -18,6 +18,7 @@ namespace ProjectX.Editor
         private const string ReconnectPhaseKey = "ProjectX.BootstrapApp.ReconnectPhase";
         private const string ScreenshotPendingKey = "ProjectX.BootstrapApp.ScreenshotPending";
         private const string ScreenshotStartKey = "ProjectX.BootstrapApp.ScreenshotStart";
+        private const string CompletionStatusKey = "ProjectX.BootstrapApp.CompletionStatus";
         private const string SettingsPhaseKey = "ProjectX.BootstrapApp.SettingsPhase";
         private const string SettingsVisualPhaseKey = "ProjectX.BootstrapApp.SettingsVisualPhase";
         private const string SettingsVisualPreparedKey = "ProjectX.BootstrapApp.SettingsVisualPrepared";
@@ -75,6 +76,7 @@ namespace ProjectX.Editor
             SessionState.SetString(StartTimeKey, EditorApplication.timeSinceStartup.ToString("R"));
             SessionState.SetInt(ReconnectPhaseKey, 0);
             SessionState.SetBool(ScreenshotPendingKey, false);
+            SessionState.SetString(CompletionStatusKey, string.Empty);
             SessionState.SetInt(SettingsPhaseKey, 0);
             SessionState.SetInt(SettingsVisualPhaseKey, 0);
             SessionState.SetBool(SettingsVisualPreparedKey, false);
@@ -138,6 +140,14 @@ namespace ProjectX.Editor
 
             ProjectXApp app = ProjectXApp.Instance;
             string status = app?.Status ?? "Waiting for ProjectXApp...";
+            if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
+                SessionState.SetString(CompletionStatusKey, status);
+            else if (SessionState.GetBool(ScreenshotPendingKey, false))
+            {
+                string completedStatus = SessionState.GetString(CompletionStatusKey, string.Empty);
+                if (completedStatus.StartsWith("COMPLETE:", StringComparison.Ordinal))
+                    status = completedStatus;
+            }
             bool reconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXReconnectValidation") >= 0;
             bool manualReconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXManualReconnectValidation") >= 0;
             bool bagG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBagG4Validation") >= 0;
@@ -238,6 +248,14 @@ namespace ProjectX.Editor
                 SessionState.SetInt(LoginPhaseKey, 3);
                 Debug.Log("[BootstrapAppRunner] RoleCreateLayer and Create_5/Create_4 animations validated.");
                 app.InvokeRoleCreateForValidation();
+                return;
+            }
+            if (status.IndexOf("请求超时", StringComparison.Ordinal) >= 0
+                || status.IndexOf("request timed out", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                WriteResult(false, status);
+                Debug.LogError("[BootstrapAppRunner] Terminal protocol timeout observed; finishing immediately.");
+                Finish(false);
                 return;
             }
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
@@ -738,6 +756,7 @@ namespace ProjectX.Editor
         private static void Finish(bool success)
         {
             SessionState.SetBool(ArmedKey, false);
+            SessionState.SetString(CompletionStatusKey, string.Empty);
             EditorApplication.Exit(success ? 0 : 1);
         }
 

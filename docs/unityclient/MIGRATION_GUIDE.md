@@ -150,7 +150,7 @@
 
 截图必须为原生客户区 `1334×750`，Windows 100%缩放，禁止桌面截图或二次放大。`Image`、CSB Timeline、Imod 不可互相替代；`CreateAnimModel + PlayStand` 必须迁真实资源、动作号、循环、缩放和挂点。
 
-Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从最新 `ProjectX.exe / Cocos Simulator` 状态派生一个动作，执行后立即刷新，不复用旧坐标、旧截图 ID 或旧元素索引。常规项目内点击、拖动、滚动和截图已预授权；首次未进入目标页立即记失败并转查 Lua 回调、客户端日志、协议回包。无法到达的页面保留 `pending`，不得用 AdsPower 浏览器页、桌面截图、旧截图或 Unity 单端证据替代。
+Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从最新 `ProjectX.exe / Cocos Simulator` 状态派生一个动作，执行后立即刷新，不复用旧坐标、旧截图 ID 或旧元素索引。常规项目内点击、拖动、滚动和截图已预授权；首次未进入目标页立即记失败并转查 Lua 回调、客户端日志、协议回包。出现“网络超时”、协议失败、账号不可用等明确终态时，本次等待立即结束并记账，禁止继续等待或坐标试错。无法到达的页面保留 `pending`，不得用 AdsPower 浏览器页、桌面截图、旧截图或 Unity 单端证据替代。
 
 退出条件：所有状态双端证据齐全；无错误图片、占位文字、截断重叠、公共层遮挡或未解释差异。
 
@@ -217,7 +217,7 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
 
-动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`、实际触发控件 ID 和语义断言结果；声明 `controlCoverageRequired` 的场景必须与控件矩阵 ID 集合完全一致。验证器按 30 秒心跳区分总运行超时与无进展超时。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。Cocos 证据采集结束后必须重置 Computer Use Node 内核并确认 `cua_node`/`node_repl.exe` 残留为 0；G6 硬门禁会拒绝仍存活的 Computer Use 运行时。
+动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`、实际触发控件 ID 和语义断言结果；声明 `controlCoverageRequired` 的场景必须与控件矩阵 ID 集合完全一致。验证器按 30 秒心跳区分总运行超时与无进展超时。Unity 编译预检既检查退出码也扫描最终日志；即使 Unity 退出 0，若出现恢复型 `Assembly-CSharp.dll` 共享锁，也必须归档首轮、关闭 owned ILPP/Bee child、只重跑同一预检一次，并要求最终日志严重错误为 0。批量读取验证结果统一使用共享 `Get-UnityMigrationValidationResultSummaries`；禁止临场拼接 `foreach {...} |`。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。Cocos 证据采集结束后必须重置 Computer Use Node 内核并确认 `cua_node`/`node_repl.exe` 残留为 0；G6 硬门禁会拒绝仍存活的 Computer Use 运行时。
 
 提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。固定账号和 G5 状态对统一登记在 `module-evidence-contracts.json`；夹具必须有注入前快照、`setupAssertSql/cleanupAssertSql` 或等价硬断言、`finally` 恢复及重登录后复核。固定账号模块在 G3 后、启动 Unity 前必须运行 `Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly`，按 `dataPreflight.requirements` 完成数据快照、确定性准备、硬断言、精确恢复和残留清零；完整验证只接受账号、适配器 SHA 和数据需求指纹匹配的预演凭证。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
 
@@ -236,6 +236,7 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 | GameplayShops | `VisualOnly` 结果缺截图，随后靠人工合并造成反复 | 只有账号、角色、源码/G5指纹和逐图 SHA 全匹配才允许复用视觉产物 |
 | Draw | 可选合同字段、终态切号身份和随机抽取导致假阻塞 | 可选字段统一安全读取；终态身份显式登记；随机业务必须先找确定性服务端条件 |
 | World | 猜 `-DryRun`、资产路径和扫荡展示语义；共享 `/320` 被提前消费 | 先查工具参数和源码链；G0 写结果示例；资源缺口只做可证模块兼容；共享协议不匹配必须恢复游标 |
+| PlayerHud | 网络超时终态仍等待；路由只登记 ID 未逐个真实调用；Unity 退出 0 的恢复型 DLL 锁污染最终日志；重复拼接 `foreach {...} |` | 终态立即停止；G6 路由逐按钮调用并断言不越界；中央编译按脏日志限次重跑；多结果摘要只走共享函数和 81 项回归 |
 
 | 问题 | 处理 |
 |---|---|
@@ -248,6 +249,7 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ### 6.6 失败台账、自动复盘与迭代
 
 - 标准路径：`.local/unity-validation/<module>-operation-ledger.json`。失败发生即记录，不允许迁移完成后凭记忆补写。
+- Windows 下 `rg` 的路径参数必须是已解析的字面目录/文件；文件筛选统一写成 `rg <pattern> <literal-directory> -g '*.ps1'`，禁止把 `*.ps1`、`user.*` 等通配符直接作为路径参数。中央回归 `Assert-UnityMigrationRgPathArgument` 会拒绝此类参数。
 - `Failed/Blocked` 必须包含原始错误和根因；根因暂未知时只能写 `pending-diagnosis`，该状态会阻塞 G6。
 - 修复后用同一工具追加 `Resolved`，关联失败 `recordId`，并填写解决方式、可复用迭代动作及证据。迭代优先进入中央脚本、`validation-scenarios.json`、`AGENTS.md` 和工具链回归测试；模块特例进入矩阵/场景。
 - G6 自动生成 `.local/unity-validation/<module>-retrospective-latest.json`，按根因聚类所有失败及迭代；任一失败未诊断、未解决或证据缺失时门禁失败。

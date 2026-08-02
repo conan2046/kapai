@@ -134,6 +134,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(18, "PRO_UPDATE_CHAR", "Player", expectsResponse: false));
             registry.Register(new ProtocolDefinition(24, "PRO_PET", "Hero"));
             registry.Register(new ProtocolDefinition(26, "PRO_MSG_CHAT", "Chat", expectsResponse: false));
+            registry.Register(new ProtocolDefinition(62, "PRO_SYSTEM_INFO", "System/Hud", expectsResponse: false));
             registry.Register(new ProtocolDefinition(27, "PRO_FRIEND", "Friend"));
             registry.Register(new ProtocolDefinition(29, "PRO_USER_TEAM", "Team"));
             registry.Register(new ProtocolDefinition(30, "PRO_UPDATE_TEAM", "Team", expectsResponse: false));
@@ -147,6 +148,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(128, "MSG_CLIENT_XINSHI", "Mail"));
             registry.Register(new ProtocolDefinition(199, "MSG_HUODONG_OPTION", "Welfare"));
             registry.Register(new ProtocolDefinition(206, "MSG_SYNC_TIME", "Core"));
+            registry.Register(new ProtocolDefinition(220, "MSG_VIP_OPTION", "VIP/Hud", expectsResponse: false));
             registry.Register(new ProtocolDefinition(221, "MSG_SHOP", "Shop"));
             registry.Register(new ProtocolDefinition(222, "MSG_TMP_HUODONG", "Welfare/Activity"));
             registry.Register(new ProtocolDefinition(223, "MSG_STAGE_GOAL", "Welfare"));

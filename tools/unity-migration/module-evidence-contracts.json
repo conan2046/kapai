@@ -12,7 +12,9 @@
         "snapshot": ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-unity-result.json",
         "visualResultEvidence": ".local/ui-fidelity/Login/unity/g5-20260801/login-g5-visual-result.json",
-        "visualValidationFlags": ["-projectXLoginVisualValidation"],
+        "visualValidationFlags": [
+          "-projectXLoginVisualValidation"
+        ],
         "visualOnlyArtifacts": true,
         "reloginRequired": true,
         "extraFlags": [
@@ -24,31 +26,97 @@
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            {"id":"primary-account-role-link","description":"固定 userId=7200057 必须唯一绑定 roleId=1000115/T00057"},
-            {"id":"alternate-account-role-link","description":"隔离 userId=705213 必须唯一绑定 roleId=1000006/T67076"},
-            {"id":"disposable-account-absent","description":"可逆创角 userId=7300204 在运行前必须无任何身份残留"},
-            {"id":"notice-authority","description":"临时插入唯一 /88 公告，运行后精确删除并恢复原始行数"},
-            {"id":"exact-restore-surface","description":"主账号和隔离账号身份哈希不变，可逆创角和公告残留均为 0"}
+            {
+              "id": "primary-account-role-link",
+              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115/T00057"
+            },
+            {
+              "id": "alternate-account-role-link",
+              "description": "隔离 userId=705213 必须唯一绑定 roleId=1000006/T67076"
+            },
+            {
+              "id": "disposable-account-absent",
+              "description": "可逆创角 userId=7300204 在运行前必须无任何身份残留"
+            },
+            {
+              "id": "notice-authority",
+              "description": "临时插入唯一 /88 公告，运行后精确删除并恢复原始行数"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "主账号和隔离账号身份哈希不变，可逆创角和公告残留均为 0"
+            }
           ]
         },
         "artifactCopies": [
-          {"source":"build/ui-migration/bootstrap-login-local.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png"},
-          {"source":"build/ui-migration/bootstrap-login-server-list.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/SERVER-LIST.png"},
-          {"source":"build/ui-migration/bootstrap-login-existing-role.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/EXISTING-ROLE.png"},
-          {"source":"build/ui-migration/bootstrap-login-handover.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/HANDOVER.png"},
-          {"source":"build/ui-migration/bootstrap-login-role-male.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-MALE.png"},
-          {"source":"build/ui-migration/bootstrap-login-role-female.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-FEMALE.png"},
-          {"source":"build/ui-migration/bootstrap-login-role-random.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-RANDOM.png"},
-          {"source":"build/ui-migration/bootstrap-login-name-invalid.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-INVALID.png"},
-          {"source":"build/ui-migration/bootstrap-login-name-duplicate.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-DUPLICATE.png"},
-          {"source":"build/ui-migration/bootstrap-login-role-success.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ROLE-SUCCESS.png"},
-          {"source":"build/ui-migration/bootstrap-login-notice.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/NOTICE.png"},
-          {"source":"build/ui-migration/bootstrap-login-connect-error.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/CONNECT-ERROR.png"},
-          {"source":"build/ui-migration/bootstrap-login-connect-timeout.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/CONNECT-TIMEOUT.png"},
-          {"source":"build/ui-migration/bootstrap-login-disconnect.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/DISCONNECT.png"},
-          {"source":"build/ui-migration/bootstrap-login-reconnected.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/RECONNECTED.png"},
-          {"source":"build/ui-migration/bootstrap-login-return-reenter.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/RETURN-REENTER.png"},
-          {"source":"build/ui-migration/bootstrap-login-account-isolation.png","destination":".local/ui-fidelity/Login/unity/g5-20260801/ACCOUNT-ISOLATION.png"}
+          {
+            "source": "build/ui-migration/bootstrap-login-local.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-server-list.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/SERVER-LIST.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-existing-role.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/EXISTING-ROLE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-handover.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/HANDOVER.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-role-male.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-MALE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-role-female.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-FEMALE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-role-random.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-RANDOM.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-name-invalid.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-INVALID.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-name-duplicate.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-DUPLICATE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-role-success.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ROLE-SUCCESS.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-notice.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/NOTICE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-connect-error.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/CONNECT-ERROR.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-connect-timeout.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/CONNECT-TIMEOUT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-disconnect.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/DISCONNECT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-reconnected.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/RECONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-return-reenter.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/RETURN-REENTER.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-login-account-isolation.png",
+            "destination": ".local/ui-fidelity/Login/unity/g5-20260801/ACCOUNT-ISOLATION.png"
+          }
         ]
       },
       "g5": {
@@ -58,23 +126,91 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          {"id":"LOGIN-LOCAL","cocos":"LOGIN-LOCAL.png","unity":"LOGIN-LOCAL.png"},
-          {"id":"SERVER-LIST","cocos":"SERVER-LIST.png","unity":"SERVER-LIST.png"},
-          {"id":"EXISTING-ROLE","cocos":"EXISTING-ROLE.png","unity":"EXISTING-ROLE.png"},
-          {"id":"HANDOVER","cocos":"HANDOVER.png","unity":"HANDOVER.png"},
-          {"id":"ROLE-MALE","cocos":"ROLE-MALE.png","unity":"ROLE-MALE.png"},
-          {"id":"ROLE-FEMALE","cocos":"ROLE-FEMALE.png","unity":"ROLE-FEMALE.png"},
-          {"id":"ROLE-RANDOM","cocos":"ROLE-RANDOM.png","unity":"ROLE-RANDOM.png"},
-          {"id":"ROLE-INVALID","cocos":"ROLE-INVALID.png","unity":"ROLE-INVALID.png"},
-          {"id":"ROLE-DUPLICATE","cocos":"ROLE-DUPLICATE.png","unity":"ROLE-DUPLICATE.png"},
-          {"id":"ROLE-SUCCESS","cocos":"ROLE-SUCCESS.png","unity":"ROLE-SUCCESS.png"},
-          {"id":"NOTICE","cocos":"NOTICE.png","unity":"NOTICE.png"},
-          {"id":"CONNECT-ERROR","cocos":"CONNECT-ERROR.png","unity":"CONNECT-ERROR.png"},
-          {"id":"CONNECT-TIMEOUT","cocos":"CONNECT-TIMEOUT.png","unity":"CONNECT-TIMEOUT.png"},
-          {"id":"DISCONNECT","cocos":"DISCONNECT.png","unity":"DISCONNECT.png"},
-          {"id":"RECONNECTED","cocos":"RECONNECTED.png","unity":"RECONNECTED.png"},
-          {"id":"RETURN-REENTER","cocos":"RETURN-REENTER.png","unity":"RETURN-REENTER.png"},
-          {"id":"ACCOUNT-ISOLATION","cocos":"ACCOUNT-ISOLATION.png","unity":"ACCOUNT-ISOLATION.png"}
+          {
+            "id": "LOGIN-LOCAL",
+            "cocos": "LOGIN-LOCAL.png",
+            "unity": "LOGIN-LOCAL.png"
+          },
+          {
+            "id": "SERVER-LIST",
+            "cocos": "SERVER-LIST.png",
+            "unity": "SERVER-LIST.png"
+          },
+          {
+            "id": "EXISTING-ROLE",
+            "cocos": "EXISTING-ROLE.png",
+            "unity": "EXISTING-ROLE.png"
+          },
+          {
+            "id": "HANDOVER",
+            "cocos": "HANDOVER.png",
+            "unity": "HANDOVER.png"
+          },
+          {
+            "id": "ROLE-MALE",
+            "cocos": "ROLE-MALE.png",
+            "unity": "ROLE-MALE.png"
+          },
+          {
+            "id": "ROLE-FEMALE",
+            "cocos": "ROLE-FEMALE.png",
+            "unity": "ROLE-FEMALE.png"
+          },
+          {
+            "id": "ROLE-RANDOM",
+            "cocos": "ROLE-RANDOM.png",
+            "unity": "ROLE-RANDOM.png"
+          },
+          {
+            "id": "ROLE-INVALID",
+            "cocos": "ROLE-INVALID.png",
+            "unity": "ROLE-INVALID.png"
+          },
+          {
+            "id": "ROLE-DUPLICATE",
+            "cocos": "ROLE-DUPLICATE.png",
+            "unity": "ROLE-DUPLICATE.png"
+          },
+          {
+            "id": "ROLE-SUCCESS",
+            "cocos": "ROLE-SUCCESS.png",
+            "unity": "ROLE-SUCCESS.png"
+          },
+          {
+            "id": "NOTICE",
+            "cocos": "NOTICE.png",
+            "unity": "NOTICE.png"
+          },
+          {
+            "id": "CONNECT-ERROR",
+            "cocos": "CONNECT-ERROR.png",
+            "unity": "CONNECT-ERROR.png"
+          },
+          {
+            "id": "CONNECT-TIMEOUT",
+            "cocos": "CONNECT-TIMEOUT.png",
+            "unity": "CONNECT-TIMEOUT.png"
+          },
+          {
+            "id": "DISCONNECT",
+            "cocos": "DISCONNECT.png",
+            "unity": "DISCONNECT.png"
+          },
+          {
+            "id": "RECONNECTED",
+            "cocos": "RECONNECTED.png",
+            "unity": "RECONNECTED.png"
+          },
+          {
+            "id": "RETURN-REENTER",
+            "cocos": "RETURN-REENTER.png",
+            "unity": "RETURN-REENTER.png"
+          },
+          {
+            "id": "ACCOUNT-ISOLATION",
+            "cocos": "ACCOUNT-ISOLATION.png",
+            "unity": "ACCOUNT-ISOLATION.png"
+          }
         ]
       }
     },
@@ -87,8 +223,18 @@
         "width": 1334,
         "height": 750,
         "allowedDuplicateGroups": [
-          {"ids": ["SETTINGS-DEFAULT", "SETTINGS-CORRUPT-FALLBACK"]},
-          {"ids": ["SETTINGS-MUSIC-MID", "SETTINGS-RESTART"]}
+          {
+            "ids": [
+              "SETTINGS-DEFAULT",
+              "SETTINGS-CORRUPT-FALLBACK"
+            ]
+          },
+          {
+            "ids": [
+              "SETTINGS-MUSIC-MID",
+              "SETTINGS-RESTART"
+            ]
+          }
         ],
         "identity": {
           "primaryUserId": 7200057,
@@ -99,27 +245,61 @@
           "fixtureContract": "no-server-fixture"
         },
         "pairs": [
-          { "id": "SETTINGS-DEFAULT", "cocos": "SETTINGS-DEFAULT.png", "unity": "SETTINGS-DEFAULT.png" },
-          { "id": "SETTINGS-MUSIC-MID", "cocos": "SETTINGS-MUSIC-MID.png", "unity": "SETTINGS-MUSIC-MID.png" },
-          { "id": "SETTINGS-MUSIC-OFF", "cocos": "SETTINGS-MUSIC-OFF.png", "unity": "SETTINGS-MUSIC-OFF.png" },
-          { "id": "SETTINGS-BOTH-OFF", "cocos": "SETTINGS-BOTH-OFF.png", "unity": "SETTINGS-BOTH-OFF.png" },
-          { "id": "SETTINGS-RESTART", "cocos": "SETTINGS-RESTART.png", "unity": "SETTINGS-RESTART.png" },
-          { "id": "SETTINGS-SWITCH-ACCOUNT", "cocos": "SETTINGS-SWITCH-ACCOUNT-MID.png", "unity": "SETTINGS-SWITCH-ACCOUNT.png" },
-          { "id": "SETTINGS-ACCOUNT-ISOLATION", "cocos": "SETTINGS-ACCOUNT-ISOLATION-MID.png", "unity": "SETTINGS-ACCOUNT-ISOLATION.png" },
-          { "id": "SETTINGS-CORRUPT-FALLBACK", "cocos": "SETTINGS-CORRUPT-FALLBACK.png", "unity": "SETTINGS-CORRUPT-FALLBACK.png" }
+          {
+            "id": "SETTINGS-DEFAULT",
+            "cocos": "SETTINGS-DEFAULT.png",
+            "unity": "SETTINGS-DEFAULT.png"
+          },
+          {
+            "id": "SETTINGS-MUSIC-MID",
+            "cocos": "SETTINGS-MUSIC-MID.png",
+            "unity": "SETTINGS-MUSIC-MID.png"
+          },
+          {
+            "id": "SETTINGS-MUSIC-OFF",
+            "cocos": "SETTINGS-MUSIC-OFF.png",
+            "unity": "SETTINGS-MUSIC-OFF.png"
+          },
+          {
+            "id": "SETTINGS-BOTH-OFF",
+            "cocos": "SETTINGS-BOTH-OFF.png",
+            "unity": "SETTINGS-BOTH-OFF.png"
+          },
+          {
+            "id": "SETTINGS-RESTART",
+            "cocos": "SETTINGS-RESTART.png",
+            "unity": "SETTINGS-RESTART.png"
+          },
+          {
+            "id": "SETTINGS-SWITCH-ACCOUNT",
+            "cocos": "SETTINGS-SWITCH-ACCOUNT-MID.png",
+            "unity": "SETTINGS-SWITCH-ACCOUNT.png"
+          },
+          {
+            "id": "SETTINGS-ACCOUNT-ISOLATION",
+            "cocos": "SETTINGS-ACCOUNT-ISOLATION-MID.png",
+            "unity": "SETTINGS-ACCOUNT-ISOLATION.png"
+          },
+          {
+            "id": "SETTINGS-CORRUPT-FALLBACK",
+            "cocos": "SETTINGS-CORRUPT-FALLBACK.png",
+            "unity": "SETTINGS-CORRUPT-FALLBACK.png"
+          }
         ]
       }
     },
     {
       "module": "GameplayShops",
       "fixedAccount": {
-    "userId": 7200057,
-    "roleId": 1000115,
+        "userId": 7200057,
+        "roleId": 1000115,
         "adapter": "tools/unity-migration/Invoke-GameplayShopsCocosFixture.ps1",
         "snapshot": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
         "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
-        "visualValidationFlags": ["-projectXGameplayShopsVisualValidation"],
+        "visualValidationFlags": [
+          "-projectXGameplayShopsVisualValidation"
+        ],
         "visualOnlyArtifacts": true,
         "reloginRequired": true,
         "extraFlags": [],
@@ -127,21 +307,57 @@
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
-            { "id": "twelve-authoritative-pages", "description": "以确定性 zlib 商店二进制准备 type 2,3,4,5,6,7,8,23,25,26,27,28，登录后逐页指纹必须不变" },
-            { "id": "turntable-level-unlock", "description": "固定角色临时提升到 99 级，覆盖转盘解锁后的 type 27/28，同时保留 G1 的 60 级锁定证据" },
-            { "id": "refresh-and-purchase", "description": "准备将魂六格与免费刷新、转盘绑定元宝商品及空购买计数，供真实 op 2/3/4 断言；Unity 内部硬断言变更，外层 finally 精确恢复" },
-            { "id": "failure-state-matrix", "description": "保留条件未达、售罄、余额不足与非法重复请求的真实服务端失败分支" },
-            { "id": "exact-restore-surface", "description": "快照 level,package,mysteryShop,shenhunShop,save_data,mission,role money,user money,bd_money 并以整体 SHA256 复核恢复和残留清零" }
+            {
+              "id": "account-role-link",
+              "description": "固定 userId 必须唯一绑定目标 roleId"
+            },
+            {
+              "id": "twelve-authoritative-pages",
+              "description": "以确定性 zlib 商店二进制准备 type 2,3,4,5,6,7,8,23,25,26,27,28，登录后逐页指纹必须不变"
+            },
+            {
+              "id": "turntable-level-unlock",
+              "description": "固定角色临时提升到 99 级，覆盖转盘解锁后的 type 27/28，同时保留 G1 的 60 级锁定证据"
+            },
+            {
+              "id": "refresh-and-purchase",
+              "description": "准备将魂六格与免费刷新、转盘绑定元宝商品及空购买计数，供真实 op 2/3/4 断言；Unity 内部硬断言变更，外层 finally 精确恢复"
+            },
+            {
+              "id": "failure-state-matrix",
+              "description": "保留条件未达、售罄、余额不足与非法重复请求的真实服务端失败分支"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "快照 level,package,mysteryShop,shenhunShop,save_data,mission,role money,user money,bd_money 并以整体 SHA256 复核恢复和残留清零"
+            }
           ]
         },
         "artifactCopies": [
-          { "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-SOUL.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-shop-arena.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-ARENA.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-shop-blood.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-BLOOD.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-shop-guild.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-GUILD.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-KUNLUN.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-shop-turntable.png", "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-TURNTABLE.png" }
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-SOUL.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-shop-arena.png",
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-ARENA.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-shop-blood.png",
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-BLOOD.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-shop-guild.png",
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-GUILD.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-KUNLUN.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-shop-turntable.png",
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-TURNTABLE.png"
+          }
         ]
       },
       "g5": {
@@ -151,12 +367,36 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          { "id": "GAMEPLAY-SOUL", "cocos": "GAMEPLAY-SOUL.jpg", "unity": "GAMEPLAY-SOUL.png" },
-          { "id": "GAMEPLAY-ARENA", "cocos": "GAMEPLAY-ARENA.jpg", "unity": "GAMEPLAY-ARENA.png" },
-          { "id": "GAMEPLAY-BLOOD", "cocos": "GAMEPLAY-BLOOD.jpg", "unity": "GAMEPLAY-BLOOD.png" },
-          { "id": "GAMEPLAY-GUILD", "cocos": "GAMEPLAY-GUILD.jpg", "unity": "GAMEPLAY-GUILD.png" },
-          { "id": "GAMEPLAY-KUNLUN", "cocos": "GAMEPLAY-KUNLUN.jpg", "unity": "GAMEPLAY-KUNLUN.png" },
-          { "id": "GAMEPLAY-TURNTABLE", "cocos": "GAMEPLAY-TURNTABLE.jpg", "unity": "GAMEPLAY-TURNTABLE.png" }
+          {
+            "id": "GAMEPLAY-SOUL",
+            "cocos": "GAMEPLAY-SOUL.jpg",
+            "unity": "GAMEPLAY-SOUL.png"
+          },
+          {
+            "id": "GAMEPLAY-ARENA",
+            "cocos": "GAMEPLAY-ARENA.jpg",
+            "unity": "GAMEPLAY-ARENA.png"
+          },
+          {
+            "id": "GAMEPLAY-BLOOD",
+            "cocos": "GAMEPLAY-BLOOD.jpg",
+            "unity": "GAMEPLAY-BLOOD.png"
+          },
+          {
+            "id": "GAMEPLAY-GUILD",
+            "cocos": "GAMEPLAY-GUILD.jpg",
+            "unity": "GAMEPLAY-GUILD.png"
+          },
+          {
+            "id": "GAMEPLAY-KUNLUN",
+            "cocos": "GAMEPLAY-KUNLUN.jpg",
+            "unity": "GAMEPLAY-KUNLUN.png"
+          },
+          {
+            "id": "GAMEPLAY-TURNTABLE",
+            "cocos": "GAMEPLAY-TURNTABLE.jpg",
+            "unity": "GAMEPLAY-TURNTABLE.png"
+          }
         ]
       }
     },
@@ -174,18 +414,45 @@
         "dataPreflight": {
           "requiresLogin": false,
           "requirements": [
-            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
-            { "id": "purchase-currencies", "description": "准备元宝、绑定元宝和角色货币的确定性购买余额" },
-            { "id": "base-shop-state", "description": "基础商城 type=1 从空持久化状态由服务端确定性初始化" }
+            {
+              "id": "account-role-link",
+              "description": "固定 userId 必须唯一绑定目标 roleId"
+            },
+            {
+              "id": "purchase-currencies",
+              "description": "准备元宝、绑定元宝和角色货币的确定性购买余额"
+            },
+            {
+              "id": "base-shop-state",
+              "description": "基础商城 type=1 从空持久化状态由服务端确定性初始化"
+            }
           ]
         },
         "artifactCopies": [
-          { "source": "build/ui-migration/bootstrap-shop-list.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-LIST.png" },
-          { "source": "build/ui-migration/bootstrap-shop-quantity.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-QUANTITY.png" },
-          { "source": "build/ui-migration/bootstrap-shop-scroll-bottom.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-SCROLL-BOTTOM.png" },
-          { "source": "build/ui-migration/bootstrap-shop-confirm.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-CONFIRM.png" },
-          { "source": "build/ui-migration/bootstrap-shop-reward.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-REWARD.png" },
-          { "source": "build/ui-migration/bootstrap-shop.png", "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-RELOAD.png" }
+          {
+            "source": "build/ui-migration/bootstrap-shop-list.png",
+            "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-LIST.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-shop-quantity.png",
+            "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-QUANTITY.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-shop-scroll-bottom.png",
+            "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-SCROLL-BOTTOM.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-shop-confirm.png",
+            "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-CONFIRM.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-shop-reward.png",
+            "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-REWARD.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-shop.png",
+            "destination": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-RELOAD.png"
+          }
         ]
       },
       "g5": {
@@ -195,12 +462,36 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          { "id": "SHOP-LIST", "cocos": "05-shop-list.png", "unity": "SHOP-LIST.png" },
-          { "id": "SHOP-QUANTITY", "cocos": "08-shop-quantity-input.png", "unity": "SHOP-QUANTITY.png" },
-          { "id": "SHOP-SCROLL-BOTTOM", "cocos": "06-shop-list-scrolled.png", "unity": "SHOP-SCROLL-BOTTOM.png" },
-          { "id": "SHOP-CONFIRM", "cocos": "13-success-reward.png", "unity": "SHOP-CONFIRM.png" },
-          { "id": "SHOP-REWARD", "cocos": "13-success-reward.png", "unity": "SHOP-REWARD.png" },
-          { "id": "SHOP-RELOAD", "cocos": "22-relogin-shop-restored-native.png", "unity": "SHOP-RELOAD.png" }
+          {
+            "id": "SHOP-LIST",
+            "cocos": "05-shop-list.png",
+            "unity": "SHOP-LIST.png"
+          },
+          {
+            "id": "SHOP-QUANTITY",
+            "cocos": "08-shop-quantity-input.png",
+            "unity": "SHOP-QUANTITY.png"
+          },
+          {
+            "id": "SHOP-SCROLL-BOTTOM",
+            "cocos": "06-shop-list-scrolled.png",
+            "unity": "SHOP-SCROLL-BOTTOM.png"
+          },
+          {
+            "id": "SHOP-CONFIRM",
+            "cocos": "13-success-reward.png",
+            "unity": "SHOP-CONFIRM.png"
+          },
+          {
+            "id": "SHOP-REWARD",
+            "cocos": "13-success-reward.png",
+            "unity": "SHOP-REWARD.png"
+          },
+          {
+            "id": "SHOP-RELOAD",
+            "cocos": "22-relogin-shop-restored-native.png",
+            "unity": "SHOP-RELOAD.png"
+          }
         ]
       }
     },
@@ -218,9 +509,18 @@
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
-            { "id": "task-fixture-row", "description": "准备可由服务端登录阶段应用的任务快照和活跃度夹具" },
-            { "id": "task-reward-state", "description": "登录后断言任务、奖励货币和可领取状态已注入" }
+            {
+              "id": "account-role-link",
+              "description": "固定 userId 必须唯一绑定目标 roleId"
+            },
+            {
+              "id": "task-fixture-row",
+              "description": "准备可由服务端登录阶段应用的任务快照和活跃度夹具"
+            },
+            {
+              "id": "task-reward-state",
+              "description": "登录后断言任务、奖励货币和可领取状态已注入"
+            }
           ]
         },
         "artifactCopies": []
@@ -232,17 +532,61 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          { "id": "TASK-01-POPULATED", "cocos": "12-task-populated-claimable-native.png", "unity": "TASK-01-POPULATED.png" },
-          { "id": "TASK-02-RELOAD", "cocos": "12-task-populated-claimable-native.png", "unity": "TASK-02-RELOAD.png" },
-          { "id": "TASK-07-SCROLL-BOTTOM", "cocos": "23-task-scroll-bottom-claimed-native.png", "unity": "TASK-07-SCROLL-BOTTOM.png" },
-          { "id": "TASK-09-GO-GUILD", "cocos": "17-task-go-guild-native.png", "unity": "TASK-09-GO-GUILD.png" },
-          { "id": "TASK-10-DAILY-CLAIMED-REWARD", "cocos": "13-daily-claim-reward-popup-native.png", "unity": "TASK-10-DAILY-CLAIMED-REWARD.png" },
-          { "id": "TASK-10-DAILY-CLAIMED-ROW", "cocos": "23-task-scroll-bottom-claimed-native.png", "unity": "TASK-10-DAILY-CLAIMED-ROW.png" },
-          { "id": "TASK-11-BOX-CLAIMABLE", "cocos": "18-active-box-claimable-popup-native.png", "unity": "TASK-11-BOX-CLAIMABLE.png" },
-          { "id": "TASK-12-BOX-CONFIRMED", "cocos": "20-active-box-claimed-rewards-native.png", "unity": "TASK-12-BOX-CONFIRMED.png" },
-          { "id": "TASK-13-BOX-CLOSE", "cocos": "19-active-box-popup-closed-native.png", "unity": "TASK-13-BOX-CLOSE.png" },
-          { "id": "TASK-14-BOX-OPENED", "cocos": "21-active-box-claimed-native.png", "unity": "TASK-11-BOX-OPENED.png" },
-          { "id": "TASK-15-RECONNECT", "cocos": "24-restored-relogin-native.png", "unity": "TASK-01-RECONNECT.png" }
+          {
+            "id": "TASK-01-POPULATED",
+            "cocos": "12-task-populated-claimable-native.png",
+            "unity": "TASK-01-POPULATED.png"
+          },
+          {
+            "id": "TASK-02-RELOAD",
+            "cocos": "12-task-populated-claimable-native.png",
+            "unity": "TASK-02-RELOAD.png"
+          },
+          {
+            "id": "TASK-07-SCROLL-BOTTOM",
+            "cocos": "23-task-scroll-bottom-claimed-native.png",
+            "unity": "TASK-07-SCROLL-BOTTOM.png"
+          },
+          {
+            "id": "TASK-09-GO-GUILD",
+            "cocos": "17-task-go-guild-native.png",
+            "unity": "TASK-09-GO-GUILD.png"
+          },
+          {
+            "id": "TASK-10-DAILY-CLAIMED-REWARD",
+            "cocos": "13-daily-claim-reward-popup-native.png",
+            "unity": "TASK-10-DAILY-CLAIMED-REWARD.png"
+          },
+          {
+            "id": "TASK-10-DAILY-CLAIMED-ROW",
+            "cocos": "23-task-scroll-bottom-claimed-native.png",
+            "unity": "TASK-10-DAILY-CLAIMED-ROW.png"
+          },
+          {
+            "id": "TASK-11-BOX-CLAIMABLE",
+            "cocos": "18-active-box-claimable-popup-native.png",
+            "unity": "TASK-11-BOX-CLAIMABLE.png"
+          },
+          {
+            "id": "TASK-12-BOX-CONFIRMED",
+            "cocos": "20-active-box-claimed-rewards-native.png",
+            "unity": "TASK-12-BOX-CONFIRMED.png"
+          },
+          {
+            "id": "TASK-13-BOX-CLOSE",
+            "cocos": "19-active-box-popup-closed-native.png",
+            "unity": "TASK-13-BOX-CLOSE.png"
+          },
+          {
+            "id": "TASK-14-BOX-OPENED",
+            "cocos": "21-active-box-claimed-native.png",
+            "unity": "TASK-11-BOX-OPENED.png"
+          },
+          {
+            "id": "TASK-15-RECONNECT",
+            "cocos": "24-restored-relogin-native.png",
+            "unity": "TASK-01-RECONNECT.png"
+          }
         ]
       }
     },
@@ -256,20 +600,43 @@
         "resultEvidence": ".local/ui-fidelity/Mail/unity/g5-20260727/mail-fixed-unity-result.json",
         "reloginRequired": true,
         "skipPostValidationFixtureAssert": true,
-        "extraFlags": ["-projectXMailSkipInjection"],
+        "extraFlags": [
+          "-projectXMailSkipInjection"
+        ],
         "dataPreflight": {
           "requiresLogin": false,
           "requirements": [
-            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
-            { "id": "mail-state-matrix", "description": "准备 14 封可见邮件和 1 封已领取隐藏邮件" },
-            { "id": "mail-attachments", "description": "准备无附件、单附件和九附件的确定性邮件状态" }
+            {
+              "id": "account-role-link",
+              "description": "固定 userId 必须唯一绑定目标 roleId"
+            },
+            {
+              "id": "mail-state-matrix",
+              "description": "准备 14 封可见邮件和 1 封已领取隐藏邮件"
+            },
+            {
+              "id": "mail-attachments",
+              "description": "准备无附件、单附件和九附件的确定性邮件状态"
+            }
           ]
         },
         "artifactCopies": [
-          { "source": "build/ui-migration/bootstrap-mail-populated.png", "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-01-POPULATED.png" },
-          { "source": "build/ui-migration/bootstrap-mail-scroll-bottom.png", "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-05-LIST-SCROLL-BOTTOM.png" },
-          { "source": "build/ui-migration/bootstrap-mail-attachment-end.png", "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-08-ATTACHMENT-END.png" },
-          { "source": "build/ui-migration/bootstrap-mail-detail.png", "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-09-ATTACHMENT-DETAIL.png" }
+          {
+            "source": "build/ui-migration/bootstrap-mail-populated.png",
+            "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-01-POPULATED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-mail-scroll-bottom.png",
+            "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-05-LIST-SCROLL-BOTTOM.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-mail-attachment-end.png",
+            "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-08-ATTACHMENT-END.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-mail-detail.png",
+            "destination": ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-09-ATTACHMENT-DETAIL.png"
+          }
         ]
       },
       "g5": {
@@ -279,49 +646,119 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          { "id": "MAIL-01-POPULATED", "cocos": "mail-multi-attachment-five-visible.png", "unity": "MAIL-01-POPULATED.png" },
-          { "id": "MAIL-05-LIST-SCROLL-BOTTOM", "cocos": "mail-list-hardware-drag-final.png", "unity": "MAIL-05-LIST-SCROLL-BOTTOM.png" },
-          { "id": "MAIL-08-ATTACHMENT-END", "cocos": "mail-attachment-scroll-end.png", "unity": "MAIL-08-ATTACHMENT-END.png" },
-          { "id": "MAIL-09-ATTACHMENT-DETAIL", "cocos": "mail-attachment-detail.png", "unity": "MAIL-09-ATTACHMENT-DETAIL.png" }
+          {
+            "id": "MAIL-01-POPULATED",
+            "cocos": "mail-multi-attachment-five-visible.png",
+            "unity": "MAIL-01-POPULATED.png"
+          },
+          {
+            "id": "MAIL-05-LIST-SCROLL-BOTTOM",
+            "cocos": "mail-list-hardware-drag-final.png",
+            "unity": "MAIL-05-LIST-SCROLL-BOTTOM.png"
+          },
+          {
+            "id": "MAIL-08-ATTACHMENT-END",
+            "cocos": "mail-attachment-scroll-end.png",
+            "unity": "MAIL-08-ATTACHMENT-END.png"
+          },
+          {
+            "id": "MAIL-09-ATTACHMENT-DETAIL",
+            "cocos": "mail-attachment-detail.png",
+            "unity": "MAIL-09-ATTACHMENT-DETAIL.png"
+          }
         ]
       }
     },
     {
       "module": "Draw",
-  "fixedAccount": {
-    "userId": 7200057,
-    "roleId": 1000115,
-    "terminalUserId": 705213,
-    "terminalRoleId": 1000006,
-    "adapter": "tools/unity-migration/Invoke-DrawCocosFixture.ps1",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 705213,
+        "terminalRoleId": 1000006,
+        "adapter": "tools/unity-migration/Invoke-DrawCocosFixture.ps1",
         "snapshot": ".local/ui-fidelity/Draw/unity/g3/draw-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/Draw/unity/g6/draw-fixed-unity-result.json",
         "reloginRequired": true,
-        "extraFlags": ["-projectXDrawClosureValidation", "-projectXDrawIsolationUserId=705213"],
+        "extraFlags": [
+          "-projectXDrawClosureValidation",
+          "-projectXDrawIsolationUserId=705213"
+        ],
         "skipPostValidationFixtureAssert": true,
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            { "id": "account-role-link", "description": "固定 userId 必须唯一绑定目标 roleId" },
-            { "id": "deterministic-first-high-draw", "description": "服务端夹具把高级池累计次数设为 0、免费次数设为 1，首个真实 /224 高级单抽权威返回神将 64" },
-            { "id": "target-hero-initial-state", "description": "夹具中移除神将 64、保留神将 57 与合法原始阵位，确保目标只能由本次招募产生" },
-            { "id": "draw-resource-state", "description": "准备基础、高级、友情招募券及免费次数，覆盖免费、单抽、十连和资源不足分支" },
-            { "id": "hero-level-material", "description": "准备初级神将内丹 834 及其服务端模板 type=3/sub_value=60006,200，供真实 /24 op=3 培养并验证资源扣除与属性刷新；模板原值须随夹具精确恢复" },
-            { "id": "legal-formation-replacement", "description": "保留可替换的合法阵位与既有神将，目标神将可经真实 /48 op=4 上阵" },
-            { "id": "alternate-account-isolation", "description": "准备独立只读 userId=705213/roleId=1000006，并硬断言其初始神将列表不存在目标 64；闭环末尾必须真实切换并重拉 /24,/48 验证隔离" },
-            { "id": "exact-restore-surface", "description": "快照 level、package、pet、chou_ka、zhenfa、save_data、角色货币与战力、账户货币及 834 模板，以整体 SHA256、模板原值和 fixture 零残留验证精确恢复" }
+            {
+              "id": "account-role-link",
+              "description": "固定 userId 必须唯一绑定目标 roleId"
+            },
+            {
+              "id": "deterministic-first-high-draw",
+              "description": "服务端夹具把高级池累计次数设为 0、免费次数设为 1，首个真实 /224 高级单抽权威返回神将 64"
+            },
+            {
+              "id": "target-hero-initial-state",
+              "description": "夹具中移除神将 64、保留神将 57 与合法原始阵位，确保目标只能由本次招募产生"
+            },
+            {
+              "id": "draw-resource-state",
+              "description": "准备基础、高级、友情招募券及免费次数，覆盖免费、单抽、十连和资源不足分支"
+            },
+            {
+              "id": "hero-level-material",
+              "description": "准备初级神将内丹 834 及其服务端模板 type=3/sub_value=60006,200，供真实 /24 op=3 培养并验证资源扣除与属性刷新；模板原值须随夹具精确恢复"
+            },
+            {
+              "id": "legal-formation-replacement",
+              "description": "保留可替换的合法阵位与既有神将，目标神将可经真实 /48 op=4 上阵"
+            },
+            {
+              "id": "alternate-account-isolation",
+              "description": "准备独立只读 userId=705213/roleId=1000006，并硬断言其初始神将列表不存在目标 64；闭环末尾必须真实切换并重拉 /24,/48 验证隔离"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "快照 level、package、pet、chou_ka、zhenfa、save_data、角色货币与战力、账户货币及 834 模板，以整体 SHA256、模板原值和 fixture 零残留验证精确恢复"
+            }
           ]
         },
         "artifactCopies": [
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-MAIN.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-MAIN.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-REWARD-PREVIEW.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-REWARD-PREVIEW.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-NEW.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-NEW.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-DUPLICATE.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-DUPLICATE.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESOURCE-INSUFFICIENT.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESOURCE-INSUFFICIENT.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-LIST.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-LIST.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-CULTIVATE.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-CULTIVATE.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-SELECTION.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-SELECTION.png" },
-          { "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png", "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-MOUNTED.png" }
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-MAIN.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-MAIN.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-REWARD-PREVIEW.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-REWARD-PREVIEW.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-NEW.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-NEW.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-DUPLICATE.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-DUPLICATE.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESOURCE-INSUFFICIENT.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESOURCE-INSUFFICIENT.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-LIST.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-LIST.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-CULTIVATE.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-CULTIVATE.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-SELECTION.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-SELECTION.png"
+          },
+          {
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-MOUNTED.png"
+          }
         ]
       },
       "g5": {
@@ -331,15 +768,51 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          { "id": "DRAW-MAIN", "cocos": "DRAW-MAIN.png", "unity": "DRAW-MAIN.png" },
-          { "id": "DRAW-REWARD-PREVIEW", "cocos": "DRAW-REWARD-PREVIEW.png", "unity": "DRAW-REWARD-PREVIEW.png" },
-          { "id": "DRAW-RESULT-NEW", "cocos": "DRAW-RESULT-NEW.png", "unity": "DRAW-RESULT-NEW.png" },
-          { "id": "DRAW-RESULT-DUPLICATE", "cocos": "DRAW-RESULT-DUPLICATE.png", "unity": "DRAW-RESULT-DUPLICATE.png" },
-          { "id": "DRAW-RESOURCE-INSUFFICIENT", "cocos": "DRAW-RESOURCE-INSUFFICIENT.png", "unity": "DRAW-RESOURCE-INSUFFICIENT.png" },
-          { "id": "DRAW-HERO-LIST", "cocos": "DRAW-HERO-LIST.png", "unity": "DRAW-HERO-LIST.png" },
-          { "id": "DRAW-HERO-CULTIVATE", "cocos": "DRAW-HERO-CULTIVATE.png", "unity": "DRAW-HERO-CULTIVATE.png" },
-          { "id": "DRAW-FORMATION-SELECTION", "cocos": "DRAW-FORMATION-SELECTION.png", "unity": "DRAW-FORMATION-SELECTION.png" },
-          { "id": "DRAW-FORMATION-MOUNTED", "cocos": "DRAW-FORMATION-MOUNTED.png", "unity": "DRAW-FORMATION-MOUNTED.png" }
+          {
+            "id": "DRAW-MAIN",
+            "cocos": "DRAW-MAIN.png",
+            "unity": "DRAW-MAIN.png"
+          },
+          {
+            "id": "DRAW-REWARD-PREVIEW",
+            "cocos": "DRAW-REWARD-PREVIEW.png",
+            "unity": "DRAW-REWARD-PREVIEW.png"
+          },
+          {
+            "id": "DRAW-RESULT-NEW",
+            "cocos": "DRAW-RESULT-NEW.png",
+            "unity": "DRAW-RESULT-NEW.png"
+          },
+          {
+            "id": "DRAW-RESULT-DUPLICATE",
+            "cocos": "DRAW-RESULT-DUPLICATE.png",
+            "unity": "DRAW-RESULT-DUPLICATE.png"
+          },
+          {
+            "id": "DRAW-RESOURCE-INSUFFICIENT",
+            "cocos": "DRAW-RESOURCE-INSUFFICIENT.png",
+            "unity": "DRAW-RESOURCE-INSUFFICIENT.png"
+          },
+          {
+            "id": "DRAW-HERO-LIST",
+            "cocos": "DRAW-HERO-LIST.png",
+            "unity": "DRAW-HERO-LIST.png"
+          },
+          {
+            "id": "DRAW-HERO-CULTIVATE",
+            "cocos": "DRAW-HERO-CULTIVATE.png",
+            "unity": "DRAW-HERO-CULTIVATE.png"
+          },
+          {
+            "id": "DRAW-FORMATION-SELECTION",
+            "cocos": "DRAW-FORMATION-SELECTION.png",
+            "unity": "DRAW-FORMATION-SELECTION.png"
+          },
+          {
+            "id": "DRAW-FORMATION-MOUNTED",
+            "cocos": "DRAW-FORMATION-MOUNTED.png",
+            "unity": "DRAW-FORMATION-MOUNTED.png"
+          }
         ]
       }
     },
@@ -354,24 +827,57 @@
         "snapshot": ".local/ui-fidelity/World/unity/g5-20260731-cua/world-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/World/unity/g5-20260731-cua/world-fixed-unity-result.json",
         "reloginRequired": true,
-        "extraFlags": ["-projectXWorldBattleValidation", "-projectXWorldIsolationUserId=705213"],
+        "extraFlags": [
+          "-projectXWorldBattleValidation",
+          "-projectXWorldIsolationUserId=705213"
+        ],
         "skipPostValidationFixtureAssert": false,
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            { "id": "account-role-link", "description": "固定 userId 唯一绑定 1000115，终态隔离账号为 705213/1000006" },
-            { "id": "world-authoritative-state", "description": "服务端 guan_qia 解压后具备第3章3-3三星、可扫荡、可重置和至少一个未领取宝箱" },
-            { "id": "world-currency-spirit", "description": "权威 user_spirit 与角色/账户货币足以覆盖扫荡、重置、战斗和领奖，失败分支由真实耗尽状态触发" },
-            { "id": "exact-restore-surface", "description": "快照 guan_qia、package、save_data、save_val、user_spirit、mission、角色经验/等级/货币及账户货币，以整体 SHA-256、重登和 Fixture 零残留复核" }
+            {
+              "id": "account-role-link",
+              "description": "固定 userId 唯一绑定 1000115，终态隔离账号为 705213/1000006"
+            },
+            {
+              "id": "world-authoritative-state",
+              "description": "服务端 guan_qia 解压后具备第3章3-3三星、可扫荡、可重置和至少一个未领取宝箱"
+            },
+            {
+              "id": "world-currency-spirit",
+              "description": "权威 user_spirit 与角色/账户货币足以覆盖扫荡、重置、战斗和领奖，失败分支由真实耗尽状态触发"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "快照 guan_qia、package、save_data、save_val、user_spirit、mission、角色经验/等级/货币及账户货币，以整体 SHA-256、重登和 Fixture 零残留复核"
+            }
           ]
         },
         "artifactCopies": [
-          { "source": "build/ui-migration/bootstrap-world-map.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-MAP.png" },
-          { "source": "build/ui-migration/bootstrap-world-detail.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-STAGE-DETAIL.png" },
-          { "source": "build/ui-migration/bootstrap-world-sweep.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-SWEEP.png" },
-          { "source": "build/ui-migration/bootstrap-world-reset.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-RESET.png" },
-          { "source": "build/ui-migration/bootstrap-world-result.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-BATTLE.png" },
-          { "source": "build/ui-migration/bootstrap-world-chest.png", "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-CHEST.png" }
+          {
+            "source": "build/ui-migration/bootstrap-world-map.png",
+            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-MAP.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-world-detail.png",
+            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-STAGE-DETAIL.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-world-sweep.png",
+            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-SWEEP.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-world-reset.png",
+            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-RESET.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-world-result.png",
+            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-BATTLE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-world-chest.png",
+            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-CHEST.png"
+          }
         ]
       },
       "g5": {
@@ -381,12 +887,211 @@
         "width": 1334,
         "height": 750,
         "pairs": [
-          { "id": "WORLD-MAP", "cocos": "WORLD-MAP.png", "unity": "WORLD-MAP.png" },
-          { "id": "WORLD-STAGE-DETAIL", "cocos": "WORLD-STAGE-DETAIL.png", "unity": "WORLD-STAGE-DETAIL.png" },
-          { "id": "WORLD-SWEEP", "cocos": "WORLD-SWEEP.png", "unity": "WORLD-SWEEP.png" },
-          { "id": "WORLD-RESET", "cocos": "WORLD-RESET.png", "unity": "WORLD-RESET.png" },
-          { "id": "WORLD-BATTLE", "cocos": "WORLD-BATTLE.png", "unity": "WORLD-BATTLE.png" },
-          { "id": "WORLD-CHEST", "cocos": "WORLD-CHEST.png", "unity": "WORLD-CHEST.png" }
+          {
+            "id": "WORLD-MAP",
+            "cocos": "WORLD-MAP.png",
+            "unity": "WORLD-MAP.png"
+          },
+          {
+            "id": "WORLD-STAGE-DETAIL",
+            "cocos": "WORLD-STAGE-DETAIL.png",
+            "unity": "WORLD-STAGE-DETAIL.png"
+          },
+          {
+            "id": "WORLD-SWEEP",
+            "cocos": "WORLD-SWEEP.png",
+            "unity": "WORLD-SWEEP.png"
+          },
+          {
+            "id": "WORLD-RESET",
+            "cocos": "WORLD-RESET.png",
+            "unity": "WORLD-RESET.png"
+          },
+          {
+            "id": "WORLD-BATTLE",
+            "cocos": "WORLD-BATTLE.png",
+            "unity": "WORLD-BATTLE.png"
+          },
+          {
+            "id": "WORLD-CHEST",
+            "cocos": "WORLD-CHEST.png",
+            "unity": "WORLD-CHEST.png"
+          }
+        ]
+      }
+    },
+    {
+      "module": "PlayerHud",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-PlayerHudFixture.ps1",
+        "snapshot": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXPlayerHudValidation",
+          "-projectXPlayerHudIsolationUserId=705213"
+        ],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "primary-account-role-link",
+              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115/T00057"
+            },
+            {
+              "id": "isolation-account-role-link",
+              "description": "隔离 userId=705213 必须唯一绑定 roleId=1000006/T67076"
+            },
+            {
+              "id": "authoritative-hud-display",
+              "description": "角色等级/经验/战力/金币/元宝和持久化体力满足 HUD 确定性展示"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "role_info 金币/经验/等级/战力/体力与 user_info1 元宝字段使用整体 SHA-256 精确恢复"
+            },
+            {
+              "id": "fixture-zero-residue",
+              "description": "unity_validation_playerhud_fixture 最终残留必须为 0"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-first-entry.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-FIRST-ENTRY.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-wear-expanded.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-WEAR-EXPANDED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-shop-expanded.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-SHOP-EXPANDED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-chat-expanded-empty.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-CHAT-EXPANDED-EMPTY.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-return-reenter.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-RETURN-REENTER.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-client-restart.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-CLIENT-RESTART.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-disconnected-unavailable.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-DISCONNECTED-UNAVAILABLE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-reconnected-chat.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-RECONNECTED-CHAT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-chat-expanded-messages.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-CHAT-EXPANDED-MESSAGES.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-switch-account-login.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-SWITCH-ACCOUNT-LOGIN.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-playerhud-account-isolation.png",
+            "destination": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-ACCOUNT-ISOLATION.png"
+          }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/PlayerHud/cocos/g5-20260801",
+        "unityDirectory": ".local/ui-fidelity/PlayerHud/unity/g5-20260801",
+        "compareDirectory": ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801",
+        "width": 1334,
+        "height": 750,
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "PLAYERHUD-FIRST-ENTRY",
+              "PLAYERHUD-CLIENT-RESTART",
+              "PLAYERHUD-RETURN-REENTER"
+            ],
+            "reason": "These lifecycle states intentionally converge on the same authoritative primary-role HUD after transient menus are collapsed; the looping cloud Timeline can make any subset pixel-identical.",
+            "sourceEvidence": [
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame lifecycle captures",
+              "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json::HUD-53-REFRESH-REENTER,HUD-54-RESTART-RECONNECT"
+            ]
+          }
+        ],
+        "identity": {
+          "primaryUserId": 7200057,
+          "primaryRoleId": 1000115,
+          "isolationUserId": 705213,
+          "isolationRoleId": 1000006,
+          "persistence": "authoritative-account-scoped-plus-session-local-transients",
+          "fixtureContract": "snapshot-setup-assert-run-relogin-finally-restore-cleanup-assert"
+        },
+        "pairs": [
+          {
+            "id": "PLAYERHUD-FIRST-ENTRY",
+            "cocos": "PLAYERHUD-FIRST-ENTRY-STABLE.png",
+            "unity": "PLAYERHUD-FIRST-ENTRY.png"
+          },
+          {
+            "id": "PLAYERHUD-WEAR-EXPANDED",
+            "cocos": "PLAYERHUD-WEAR-EXPANDED.png",
+            "unity": "PLAYERHUD-WEAR-EXPANDED.png"
+          },
+          {
+            "id": "PLAYERHUD-SHOP-EXPANDED",
+            "cocos": "PLAYERHUD-SHOP-EXPANDED.png",
+            "unity": "PLAYERHUD-SHOP-EXPANDED.png"
+          },
+          {
+            "id": "PLAYERHUD-CHAT-EXPANDED-EMPTY",
+            "cocos": "PLAYERHUD-CHAT-EXPANDED-EMPTY.png",
+            "unity": "PLAYERHUD-CHAT-EXPANDED-EMPTY.png"
+          },
+          {
+            "id": "PLAYERHUD-RETURN-REENTER",
+            "cocos": "PLAYERHUD-RETURN-REENTER-STABLE.png",
+            "unity": "PLAYERHUD-RETURN-REENTER.png"
+          },
+          {
+            "id": "PLAYERHUD-CLIENT-RESTART",
+            "cocos": "PLAYERHUD-CLIENT-RESTART-STABLE.png",
+            "unity": "PLAYERHUD-CLIENT-RESTART.png"
+          },
+          {
+            "id": "PLAYERHUD-DISCONNECTED-UNAVAILABLE",
+            "cocos": "PLAYERHUD-DISCONNECTED-UNAVAILABLE.png",
+            "unity": "PLAYERHUD-DISCONNECTED-UNAVAILABLE.png"
+          },
+          {
+            "id": "PLAYERHUD-RECONNECTED-CHAT",
+            "cocos": "PLAYERHUD-RECONNECTED-CHAT.png",
+            "unity": "PLAYERHUD-RECONNECTED-CHAT.png"
+          },
+          {
+            "id": "PLAYERHUD-CHAT-EXPANDED-MESSAGES",
+            "cocos": "PLAYERHUD-CHAT-EXPANDED-MESSAGES.png",
+            "unity": "PLAYERHUD-CHAT-EXPANDED-MESSAGES.png"
+          },
+          {
+            "id": "PLAYERHUD-SWITCH-ACCOUNT-LOGIN",
+            "cocos": "PLAYERHUD-SWITCH-ACCOUNT-LOGIN.png",
+            "unity": "PLAYERHUD-SWITCH-ACCOUNT-LOGIN.png"
+          },
+          {
+            "id": "PLAYERHUD-ACCOUNT-ISOLATION",
+            "cocos": "PLAYERHUD-ACCOUNT-ISOLATION-FRESH.png",
+            "unity": "PLAYERHUD-ACCOUNT-ISOLATION.png"
+          }
         ]
       }
     }
