@@ -838,8 +838,14 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 	if(localTest == "1" && roleId > 0)
 	{
 		const uint32 localTestMoney = 1000000;
-		const uint32 localTestTongBao = 100000;
-		const uint32 localTestBdTongBao = 100000;
+		const string localTestTongBaoText = gyu::util::CIniFile::GetValue(
+			"local_test_tongbao", "server", gConfigFile);
+		const string localTestBdTongBaoText = gyu::util::CIniFile::GetValue(
+			"local_test_bd_tongbao", "server", gConfigFile);
+		const uint32 localTestTongBao = localTestTongBaoText.empty()
+			? 100000 : (uint32)strtoul(localTestTongBaoText.c_str(), NULL, 10);
+		const uint32 localTestBdTongBao = localTestBdTongBaoText.empty()
+			? 100000 : (uint32)strtoul(localTestBdTongBaoText.c_str(), NULL, 10);
 		const uint32 preserveLevelUserId = (uint32)atoi(
 			gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
 		if(preserveLevelUserId > 0 && preserveLevelUserId == userId)
@@ -861,8 +867,10 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 			"update %s set money=greatest(money,%u),bd_money=greatest(bd_money,%u) where id=%u",
 			userTab.c_str(), localTestTongBao, localTestBdTongBao, userId);
 		pDb->Query(sql);
-		YB = localTestTongBao;
-		bangYB = localTestBdTongBao;
+		// The local-test values are floors, not replacements. Preserve a
+		// fixture's exact non-zero balance when the configured floor is zero.
+		YB = std::max(YB, localTestTongBao);
+		bangYB = std::max(bangYB, localTestBdTongBao);
 		pUser->SetTongBao(YB,0);
 		pUser->SetTongBao(bangYB,1);
 	}

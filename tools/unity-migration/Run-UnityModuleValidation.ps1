@@ -33,6 +33,7 @@ $scenarioEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migrat
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 $fixtureEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-fixtures.json"
 if ($null -eq $scenario) { throw "Module '$($moduleConfig.key)' has no central validation scenario." }
+$scenarioRuntimeFlags = @(Get-UnityMigrationScenarioRuntimeFlags -Scenario $scenario)
 $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
 $fixtureMatches = @($fixtureEntry.Value.profiles | Where-Object { $_.key -ieq ([string]$scenario.fixture) })
 if ($fixtureMatches.Count -ne 1) { throw "Scenario '$($scenario.key)' fixture '$($scenario.fixture)' was not found exactly once." }
@@ -107,7 +108,7 @@ $unityArguments = @(
     "-projectXAutomation",
     $userArgument
 )
-$unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($scenario.flags) })
+$unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($scenarioRuntimeFlags) })
 $unityArguments += "-projectXValidationScenario=$($scenario.key)"
 $unityArguments += "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds"
 $unityArguments += @($ExtraFlags)

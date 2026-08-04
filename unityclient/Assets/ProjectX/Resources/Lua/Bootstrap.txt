@@ -133,12 +133,15 @@ function OnGameplayEntered(functionId) GameplayController.enter(functionId) end
 function OnSharedGameplayHotPointRefresh() HotPointController.refreshGameplay() end
 function OnYouLiClicked() YouLiController.onClick() end
 function OnFengShenStoryClicked() FengShenStoryController.onClick() end
+function OnFengShenStoryChallengeClicked() FengShenStoryController.challenge() end
 function OnArenaClicked() ArenaController.onClick() end
 function OnKunLunClicked() KunLunController.onClick() end
 function OnBloodFightClicked() BloodFightController.onClick() end
 function OnXunBaoClicked() XunBaoController.onClick() end
 function OnSevenDayClicked() SevenDayController.onClick() end
 function OnStaminaClaimClicked() StaminaClaimController.onClick() end
+function OnStaminaClaimRequest(index, paid) StaminaClaimController.claim(index, paid) end
+function OnStaminaClaimRefresh() StaminaClaimController.refresh() end
 function OnResourceRecoveryClicked() ResourceRecoveryController.onClick() end
 function OnFundsClicked(functionId) FundsController.onClick(functionId) end
 function OnPacket(command, message)

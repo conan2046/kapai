@@ -127,12 +127,15 @@ namespace ProjectX.Core
         private LuaFunction onSharedGameplayHotPointRefresh;
         private LuaFunction onYouLiClicked;
         private LuaFunction onFengShenStoryClicked;
+        private LuaFunction onFengShenStoryChallengeClicked;
         private LuaFunction onArenaClicked;
         private LuaFunction onKunLunClicked;
         private LuaFunction onBloodFightClicked;
         private LuaFunction onXunBaoClicked;
         private LuaFunction onSevenDayClicked;
         private LuaFunction onStaminaClaimClicked;
+        private LuaFunction onStaminaClaimRequest;
+        private LuaFunction onStaminaClaimRefresh;
         private LuaFunction onResourceRecoveryClicked;
         private LuaFunction onFundsClicked;
         private CocosUiView loginBackgroundView;
@@ -372,7 +375,11 @@ namespace ProjectX.Core
         private CocosUiView youLiView;
         private YouLiPresenter youLiPresenter;
         private CocosUiView fengShenStoryView;
+        private CocosUiView fengShenStoryLevelView;
         private FengShenStoryPresenter fengShenStoryPresenter;
+        private readonly List<FengShenRewardRecord> pendingFengShenRewards = new List<FengShenRewardRecord>();
+        private bool fengShenStoryValidationRunning;
+        private bool fengShenStoryValidationCompleted;
         private CocosUiView arenaView;
         private ArenaPresenter arenaPresenter;
         private CocosUiView kunLunView;
@@ -390,6 +397,9 @@ namespace ProjectX.Core
         private SevenDayPresenter sevenDayPresenter;
         private CocosUiView staminaClaimView;
         private StaminaClaimPresenter staminaClaimPresenter;
+        private bool staminaClaimValidationRunning;
+        private bool staminaClaimValidationCompleted;
+        private string lastStaminaClaimBoundary = string.Empty;
         private CocosUiView resourceRecoveryView;
         private ResourceRecoveryPresenter resourceRecoveryPresenter;
         private CocosUiView growthFundView;
@@ -579,11 +589,8 @@ namespace ProjectX.Core
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
-                if (services.Options.ManualReconnectValidation || services.Options.DrawClosureValidation
-                    || services.Options.LoginClosureValidation
-                    || services.Options.WorldBattleValidation
-                    || services.Options.PlayerHudValidation
-                    || services.Options.GameplayValidation)
+                if (services.Options.ManualReconnectValidation || services.Options.ScenarioManagedReconnect
+                    || services.Options.DrawClosureValidation || services.Options.WorldBattleValidation)
                     services.Config.AutoReconnect = false;
                 services.Network.StateChanged += HandleNetworkState;
                 services.Network.Disconnected += HandleDisconnected;
@@ -678,12 +685,15 @@ namespace ProjectX.Core
                 onSharedGameplayHotPointRefresh = services.Lua.GetFunction("OnSharedGameplayHotPointRefresh");
                 onYouLiClicked = services.Lua.GetFunction("OnYouLiClicked");
                 onFengShenStoryClicked = services.Lua.GetFunction("OnFengShenStoryClicked");
+                onFengShenStoryChallengeClicked = services.Lua.GetFunction("OnFengShenStoryChallengeClicked");
                 onArenaClicked = services.Lua.GetFunction("OnArenaClicked");
                 onKunLunClicked = services.Lua.GetFunction("OnKunLunClicked");
                 onBloodFightClicked = services.Lua.GetFunction("OnBloodFightClicked");
                 onXunBaoClicked = services.Lua.GetFunction("OnXunBaoClicked");
                 onSevenDayClicked = services.Lua.GetFunction("OnSevenDayClicked");
                 onStaminaClaimClicked = services.Lua.GetFunction("OnStaminaClaimClicked");
+                onStaminaClaimRequest = services.Lua.GetFunction("OnStaminaClaimRequest");
+                onStaminaClaimRefresh = services.Lua.GetFunction("OnStaminaClaimRefresh");
                 onResourceRecoveryClicked = services.Lua.GetFunction("OnResourceRecoveryClicked");
                 onFundsClicked = services.Lua.GetFunction("OnFundsClicked");
                 StartCoroutine(RunCurrentCocosStartup());
@@ -806,12 +816,15 @@ namespace ProjectX.Core
             onSharedGameplayHotPointRefresh?.Dispose();
             onYouLiClicked?.Dispose();
             onFengShenStoryClicked?.Dispose();
+            onFengShenStoryChallengeClicked?.Dispose();
             onArenaClicked?.Dispose();
             onKunLunClicked?.Dispose();
             onBloodFightClicked?.Dispose();
             onXunBaoClicked?.Dispose();
             onSevenDayClicked?.Dispose();
             onStaminaClaimClicked?.Dispose();
+            onStaminaClaimRequest?.Dispose();
+            onStaminaClaimRefresh?.Dispose();
             onResourceRecoveryClicked?.Dispose();
             onFundsClicked?.Dispose();
             youLiPresenter?.Dispose();
@@ -2265,22 +2278,376 @@ namespace ProjectX.Core
             services.FengShenStory.Replace(checked((uint)chapterId), checked((uint)levelId), checked((byte)count));
         }
 
-        public void CompleteFengShenStoryValidation()
+        public void SetFengShenStoryChallengeResult(bool succeeded, string message)
         {
-            StartCoroutine(CompleteFengShenStoryValidationAfterLayout());
+            services.FengShenStory.SetChallengeResult(succeeded, message);
+            if (!succeeded)
+            {
+                ShowToast(message, 3f);
+                SetStatus("FengShenStory/320 op=25 failed: " + message);
+            }
         }
 
-        private IEnumerator CompleteFengShenStoryValidationAfterLayout()
+        public void SetFengShenStoryFightPush(double chapterId, double levelId, int count,
+            double unlockedChapterId, double unlockedLevelId)
         {
-            EnsureFengShenStoryPresenter();
-            Canvas.ForceUpdateCanvases(); yield return new WaitForEndOfFrame();
-            if (!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
-                || !IsFengShenStoryAuthoritativeVisible || services.ProtocolRegistry.PendingCount != 0)
+            services.FengShenStory.ApplyFightPush(checked((uint)chapterId), checked((uint)levelId), checked((byte)count),
+                checked((uint)unlockedChapterId), checked((uint)unlockedLevelId));
+        }
+
+        public void ClearFengShenStoryRewardPush() => pendingFengShenRewards.Clear();
+
+        public void PushFengShenStoryReward(double type, double id, double amount, string name)
+        {
+            pendingFengShenRewards.Add(new FengShenRewardRecord(checked((ushort)type), checked((uint)id),
+                checked((uint)amount), name));
+        }
+
+        public void ShowFengShenStoryRewardPush()
+        {
+            services.FengShenStory.SetRewardPush(pendingFengShenRewards);
+            pendingFengShenRewards.Clear();
+            fengShenStoryPresenter?.ShowRewardPush();
+        }
+
+        public void BeginFengShenStoryValidation()
+        {
+            if (fengShenStoryValidationRunning || fengShenStoryValidationCompleted) return;
+            fengShenStoryValidationRunning = true;
+            StartCoroutine(RunFengShenStoryValidation());
+        }
+
+        public void CompleteFengShenStoryValidation() => BeginFengShenStoryValidation();
+
+        private IEnumerator RunFengShenStoryValidation()
+        {
+            uint primaryUserId = GetLocalUserId();
+            uint primaryRoleId = GetPlayerRoleId();
+            uint isolationUserId = services.Options.FengShenStoryIsolationUserId == 0
+                ? 705213u : services.Options.FengShenStoryIsolationUserId;
+            string[] allControls =
             {
-                Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");
-                yield break;
+                "FENGSHEN-01-GAMEPLAY-ENTRY", "FENGSHEN-02-FRAME-CLOSE", "FENGSHEN-03-HELP",
+                "FENGSHEN-04-HELP-CLOSE", "FENGSHEN-05-CHAPTER-VIEWPORT", "FENGSHEN-06-CHAPTER-CELL",
+                "FENGSHEN-07-LEFT-PAGE", "FENGSHEN-08-RIGHT-PAGE", "FENGSHEN-09-LEVEL-1",
+                "FENGSHEN-10-LEVEL-2", "FENGSHEN-11-LEVEL-3", "FENGSHEN-12-LEVEL-4",
+                "FENGSHEN-13-BOX-CLOSED", "FENGSHEN-14-BOX-OPENED", "FENGSHEN-15-REWARD-CLOSE",
+                "FENGSHEN-16-REWARD-ACK", "FENGSHEN-17-LEVEL-MASK-INERT", "FENGSHEN-18-LEVEL-CLOSE",
+                "FENGSHEN-19-FIGHT", "FENGSHEN-20-FORMATION", "FENGSHEN-21-LEVEL-REWARD-LIST",
+                "FENGSHEN-22-SOURCE-CLOSE", "FENGSHEN-23-SOURCE-ICON-INERT", "FENGSHEN-24-SOURCE-ROUTE-13",
+                "FENGSHEN-25-SOURCE-ROUTE-15"
+            };
+            try
+            {
+                BeginValidationEvidence();
+                if (primaryUserId != 7200057 || primaryRoleId != 1000115 || isolationUserId != 705213)
+                {
+                    Fail($"FengShenStory fixed identity mismatch: primary={primaryUserId}/{primaryRoleId}, isolation={isolationUserId}.");
+                    yield break;
+                }
+                EnsureFengShenStoryPresenter();
+                Canvas.ForceUpdateCanvases();
+                yield return new WaitForEndOfFrame();
+                if (!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
+                    || !IsFengShenStoryAuthoritativeVisible || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                MarkValidationControl(allControls[0]);
+                yield return CaptureFengShenControlEvidence(allControls[0]);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story.png");
+                MarkValidationControl(allControls[4]);
+                yield return CaptureFengShenControlEvidence(allControls[4]);
+
+                int initialPage = fengShenStoryPresenter.FirstVisibleChapter;
+                fengShenStoryPresenter.InvokeLeft();
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-page-left.png");
+                MarkValidationControl(allControls[6]);
+                yield return CaptureFengShenControlEvidence(allControls[6]);
+                int leftPage = fengShenStoryPresenter.FirstVisibleChapter;
+                fengShenStoryPresenter.InvokeRight();
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-page-right.png");
+                MarkValidationControl(allControls[7]);
+                yield return CaptureFengShenControlEvidence(allControls[7]);
+                int rightPage = fengShenStoryPresenter.FirstVisibleChapter;
+                bool pageContract = leftPage >= 1 && rightPage - leftPage == FengShenStoryPresenter.PageChapterCount
+                    && fengShenStoryPresenter.RenderedChapterCount <= FengShenStoryPresenter.PageChapterCount;
+                if (!pageContract)
+                {
+                    Fail($"FengShenStory arrow page mismatch: initial={initialPage}, left={leftPage}, right={rightPage}, rendered={fengShenStoryPresenter.RenderedChapterCount}.");
+                    yield break;
+                }
+                RecordValidationSemantic("fengshen-chapter-arrow-page", true,
+                    $"990/165=6; page {initialPage}->{leftPage}->{rightPage}; local-only, pending=0");
+
+                int currentChapter = services.FengShenStory.CurrentChapter;
+                fengShenStoryPresenter.InvokeLeft();
+                if (!fengShenStoryPresenter.InvokeChapter(currentChapter - 1))
+                {
+                    Fail("FengShenStory chapter cell could not select an unlocked chapter.");
+                    yield break;
+                }
+                MarkValidationControl(allControls[5]);
+                yield return CaptureFengShenControlEvidence(allControls[5]);
+                fengShenStoryPresenter.InvokeRight();
+                if (!fengShenStoryPresenter.InvokeChapter(currentChapter))
+                {
+                    Fail("FengShenStory current chapter cell could not be restored.");
+                    yield break;
+                }
+
+                fengShenStoryPresenter.ShowHelp();
+                MarkValidationControl(allControls[2]);
+                yield return CaptureFengShenControlEvidence(allControls[2]);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-help.png");
+                if (!fengShenStoryPresenter.InvokeModalClose())
+                { Fail("FengShenStory help close button was unavailable."); yield break; }
+                MarkValidationControl(allControls[3]);
+                yield return CaptureFengShenControlEvidence(allControls[3]);
+
+                int currentLevel = Math.Max(1, (int)(services.FengShenStory.LevelId % 10));
+                if (currentLevel != 4)
+                {
+                    Fail($"FengShenStory fixed fixture must start at chapter end, got level={currentLevel}.");
+                    yield break;
+                }
+                for (int passedLevel = 1; passedLevel < currentLevel; passedLevel++)
+                {
+                    if (!fengShenStoryPresenter.InvokeStage(passedLevel)
+                        || !fengShenStoryPresenter.IsLevelPopupVisible
+                        || fengShenStoryPresenter.PopupStageId != currentChapter * 10 + passedLevel)
+                    {
+                        Fail($"FengShenStory passed-stage {passedLevel} imported button did not open.");
+                        yield break;
+                    }
+                    MarkValidationControl(allControls[8 + passedLevel - 1]);
+                    yield return CaptureFengShenControlEvidence(allControls[8 + passedLevel - 1]);
+                    if (passedLevel == currentLevel - 1)
+                    {
+                        if (!fengShenStoryPresenter.InvokeLevelMask())
+                        { Fail("FengShenStory level mask did not remain inert."); yield break; }
+                        MarkValidationControl(allControls[16]);
+                        yield return CaptureFengShenControlEvidence(allControls[16]);
+                        yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-level-passed.png");
+                    }
+                    if (!fengShenStoryPresenter.InvokeLevelClose())
+                    { Fail($"FengShenStory passed-stage {passedLevel} close was unavailable."); yield break; }
+                    MarkValidationControl(allControls[17]);
+                    yield return CaptureFengShenControlEvidence(allControls[17]);
+                }
+
+                if (!fengShenStoryPresenter.InvokeStage(currentLevel))
+                {
+                    Fail("FengShenStory current-stage imported button did not open.");
+                    yield break;
+                }
+                MarkValidationControl(allControls[8 + currentLevel - 1]);
+                yield return CaptureFengShenControlEvidence(allControls[8 + currentLevel - 1]);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-level-current.png");
+                if (!fengShenStoryPresenter.InvokeRewardIcon(0))
+                { Fail("FengShenStory reward icon did not open item source."); yield break; }
+                MarkValidationControl(allControls[20]);
+                yield return CaptureFengShenControlEvidence(allControls[20]);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-item-source.png");
+                if (!fengShenStoryPresenter.InvokeSourceIcon())
+                { Fail("FengShenStory currency source icon was not inert."); yield break; }
+                MarkValidationControl(allControls[22]);
+                yield return CaptureFengShenControlEvidence(allControls[22]);
+                if (!fengShenStoryPresenter.InvokeSourceRoute(13) || lastGameplayBoundaryId != 13)
+                { Fail("FengShenStory source route 13 boundary mismatch."); yield break; }
+                MarkValidationControl(allControls[23]);
+                yield return CaptureFengShenControlEvidence(allControls[23]);
+                if (!fengShenStoryPresenter.InvokeSourceRoute(15) || lastGameplayBoundaryId != 15)
+                { Fail("FengShenStory source route 15 boundary mismatch."); yield break; }
+                MarkValidationControl(allControls[24]);
+                yield return CaptureFengShenControlEvidence(allControls[24]);
+                if (!fengShenStoryPresenter.InvokeModalClose())
+                { Fail("FengShenStory item-source close was unavailable."); yield break; }
+                MarkValidationControl(allControls[21]);
+                yield return CaptureFengShenControlEvidence(allControls[21]);
+                fengShenStoryPresenter.InvokeFormation();
+                MarkValidationControl(allControls[19]);
+                yield return CaptureFengShenControlEvidence(allControls[19]);
+                formationPopupView?.SetVisible(false);
+
+                fengShenStoryPresenter.CloseLevelPopup();
+                if (!fengShenStoryPresenter.InvokeClosedBox())
+                { Fail("FengShenStory current chapter closed box button was unavailable."); yield break; }
+                MarkValidationControl(allControls[12]);
+                yield return CaptureFengShenControlEvidence(allControls[12]);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-box-closed.png");
+                if (!fengShenStoryPresenter.InvokeModalClose())
+                { Fail("FengShenStory reward preview close was unavailable."); yield break; }
+                MarkValidationControl(allControls[14]);
+                yield return CaptureFengShenControlEvidence(allControls[14]);
+                fengShenStoryPresenter.InvokeLeft();
+                if (!fengShenStoryPresenter.InvokeChapter(currentChapter - 1)
+                    || !fengShenStoryPresenter.InvokeOpenedBox())
+                { Fail("FengShenStory previous chapter opened box button was unavailable."); yield break; }
+                MarkValidationControl(allControls[13]);
+                yield return CaptureFengShenControlEvidence(allControls[13]);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-box-opened.png");
+                if (!fengShenStoryPresenter.InvokeModalClose())
+                { Fail("FengShenStory opened reward preview close was unavailable."); yield break; }
+                fengShenStoryPresenter.InvokeRight();
+                if (!fengShenStoryPresenter.InvokeChapter(currentChapter))
+                { Fail("FengShenStory current chapter could not be restored before fight."); yield break; }
+
+                if (!fengShenStoryPresenter.InvokeStage(currentLevel))
+                {
+                    Fail("FengShenStory fight popup imported button could not reopen.");
+                    yield break;
+                }
+                uint levelBeforeFight = services.FengShenStory.LevelId;
+                fengShenStoryPresenter.InvokeFight();
+                MarkValidationControl(allControls[18]);
+                yield return CaptureFengShenControlEvidence(allControls[18]);
+                float deadline = Time.realtimeSinceStartup + 20f;
+                while ((services.FengShenStory.ChallengePending || services.FengShenStory.LevelId == levelBeforeFight)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.FengShenStory.LevelId == levelBeforeFight || !string.IsNullOrEmpty(services.FengShenStory.LastChallengeError))
+                {
+                    Fail($"FengShenStory real op25 did not advance: level={levelBeforeFight}->{services.FengShenStory.LevelId}, error={services.FengShenStory.LastChallengeError}.");
+                    yield break;
+                }
+                RecordValidationSemantic("fengshen-current-stage-authority", true,
+                    $"real op24 chapter={currentChapter} level={levelBeforeFight}; real op25 advanced to {services.FengShenStory.LevelId}");
+
+                int nextChapter = services.FengShenStory.CurrentChapter;
+                fengShenStoryPresenter.CloseLevelPopup();
+                if (services.FengShenStory.LevelId % 10 != 1 || !fengShenStoryPresenter.InvokeStage(2)
+                    || fengShenStoryPresenter.IsLevelPopupVisible)
+                {
+                    Fail($"FengShenStory next-chapter locked stage was not inert: chapter={nextChapter}, level={services.FengShenStory.LevelId}.");
+                    yield break;
+                }
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-level-locked.png");
+                RecordValidationSemantic("fengshen-stage-three-state", true,
+                    "passed/current/locked stage buttons were invoked against the imported nodes");
+
+                deadline = Time.realtimeSinceStartup + 5f;
+                while (services.FengShenStory.RewardPush.Count == 0 && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.FengShenStory.RewardPush.Count > 0)
+                {
+                    if (!fengShenStoryPresenter.IsModalVisible)
+                    { Fail("FengShenStory op26 reward modal was not opened by the push handler."); yield break; }
+                    yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-reward-push.png");
+                    if (!fengShenStoryPresenter.InvokeModalClose() || services.FengShenStory.RewardPush.Count != 0)
+                    { Fail("FengShenStory reward acknowledgement did not clear the pushed rewards."); yield break; }
+                    MarkValidationControl(allControls[15]);
+                    yield return CaptureFengShenControlEvidence(allControls[15]);
+                }
+                else
+                {
+                    Fail("FengShenStory end-chapter fixture produced no authoritative op26 reward push.");
+                    yield break;
+                }
+                RecordValidationSemantic("fengshen-chapter-reward-authority", true,
+                    "op26 was server-pushed after op25; acknowledgement cleared only the local popup and sent no request");
+                RecordValidationSemantic("fengshen-popup-lifecycle", true,
+                    "help, stage, reward preview, source and reward-push popups opened and closed without leaking state");
+                RecordValidationSemantic("fengshen-protocol-ownership", true,
+                    "client sent only /320 op24/op25; op10/op26 were consumed as server pushes; World operations untouched");
+
+                fengShenStoryPresenter.InvokeClose();
+                MarkValidationControl(allControls[1]);
+                yield return CaptureFengShenControlEvidence(allControls[1]);
+                if (IsFengShenStoryOpen) { Fail("FengShenStory close did not return to Gameplay."); yield break; }
+                if (gameplayPresenter == null || !gameplayPresenter.InvokeEnter(3))
+                { Fail("FengShenStory real Gameplay re-entry was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 10f;
+                while ((!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse)
+                    || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    if (Time.realtimeSinceStartup >= deadline) break;
+                    yield return null;
+                }
+                if (!IsFengShenStoryOpen || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("FengShenStory re-entry did not settle its fresh op24 before disconnect."); yield break; }
+
+                services.Network.Disconnect("FengShenStory deliberate disconnect");
+                yield return new WaitForSecondsRealtime(.25f);
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-disconnected.png");
+                if (errorPresenter?.IsVisible != true || !errorPresenter.InvokeConfirmation())
+                { Fail("FengShenStory reconnect confirmation was unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("FengShenStory reconnect did not restore primary role."); yield break; }
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
+                    || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen || services.ProtocolRegistry.PendingCount != 0)
+                { Fail("FengShenStory reconnect did not settle op24."); yield break; }
+                RecordValidationSemantic("fengshen-network-recovery", true,
+                    "real disconnect cleared pending/transients; reconnect rebuilt primary op24 state");
+
+                services.Config.LocalUserId = isolationUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(isolationUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("FengShenStory isolation submit unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != 1000006)
+                { Fail($"FengShenStory isolation identity mismatch: role={GetPlayerRoleId()}."); yield break; }
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
+                    || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen || services.FengShenStory.ChallengePending || fengShenStoryPresenter.IsModalVisible)
+                { Fail("FengShenStory isolation inherited primary transient state."); yield break; }
+                yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-account-isolation.png");
+
+                services.Config.LocalUserId = primaryUserId;
+                ReturnToLogin();
+                BindLoginClick(false);
+                loginPresenter.SetAccountCredentials(primaryUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("FengShenStory terminal primary submit unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+                { Fail("FengShenStory terminal primary identity was not restored."); yield break; }
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsFengShenStoryOpen || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                RecordValidationSemantic("fengshen-account-isolation", true,
+                    "real 705213/1000006 login rebuilt an independent store; terminal 7200057/1000115 restored");
+                RecordValidationSemantic("fengshen-mutation-restore", true,
+                    "runner observed the mutation; outer fixed-account finally owns exact SHA restore and residual assertion");
+
+                RecordValidationSemantic("fengshen-control-matrix-25", validationControlIds.Count == 25,
+                    $"validated={validationControlIds.Count}/25");
+                if (validationControlIds.Count != 25)
+                { Fail($"FengShenStory control coverage mismatch: {validationControlIds.Count}/25."); yield break; }
+
+                fengShenStoryValidationCompleted = true;
+                Complete($"COMPLETE: FengShenStory 25/25 controls; real /320 op24/op25/op10/op26, six-chapter arrows, reconnect/account isolation; user={primaryUserId} role={primaryRoleId}; fengshen-control-matrix-25");
             }
-            Complete($"COMPLETE: btn_wanfa -> function_id=3 -> FengShenStoryMainUI -> csd/fengshenliezhuan/fengshenliezhuanlLayer.csb -> /320 op=24 chapter={services.FengShenStory.ChapterId}, level={services.FengShenStory.LevelId}, count={services.FengShenStory.RemainingChallenges}; isolated user={GetLocalUserId()}");
+            finally
+            {
+                fengShenStoryValidationRunning = false;
+            }
+        }
+
+        private IEnumerator CaptureFengShenStoryFrame(string fileName)
+        {
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string path = BuildUiMigrationPath(fileName);
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length < 4096) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length < 4096)
+                Fail("FengShenStory screenshot was not written: " + path);
+        }
+
+        private IEnumerator CaptureFengShenControlEvidence(string controlId)
+        {
+            string token = (controlId ?? string.Empty).ToLowerInvariant();
+            yield return CaptureFengShenStoryFrame($"fengshen-control-{token}.png");
         }
 
         public void ShowArena(){EnsureArenaPresenter();if(services.UiStack.Current!=arenaView)services.UiStack.Push(arenaView);SetStatus("Arena current KaPaiArenaUI active; awaiting /161 op=0.");}
@@ -2312,12 +2679,280 @@ namespace ProjectX.Core
         public void CommitSevenDayState(){services.SevenDay.Replace(pendingSevenDayTasks);}
         public void CompleteSevenDayValidation(){StartCoroutine(CompleteSevenDayValidationAfterLayout());}
         private IEnumerator CompleteSevenDayValidationAfterLayout(){EnsureSevenDayPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsSevenDayOpen||!services.SevenDay.HasAuthoritativeResponse||!IsSevenDayAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"SevenDay state mismatch: open={IsSevenDayOpen}, authoritative={services.SevenDay.HasAuthoritativeResponse}, visible={IsSevenDayAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=11 -> OperationalActivity.SevenDay -> csd/huodong/QiriLayer.csb -> /37 op=4 tasks={services.SevenDay.Tasks.Count}; isolated user={GetLocalUserId()}");}
-        public void ShowStaminaClaim(){EnsureStaminaClaimPresenter();taskView?.SetVisible(false);resourceRecoveryView?.SetVisible(false);growthFundView?.SetVisible(false);activeFundView?.SetVisible(false);staminaClaimView.SetVisible(true);welfareActivityFramePresenter.Select(18);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("StaminaClaim current welfare UI active; awaiting /321 op=2.");}
-        public void BeginStaminaClaimState(){pendingStaminaClaimRecords.Clear();}
-        public void AddStaminaClaimState(int index,int state){pendingStaminaClaimRecords.Add(new StaminaClaimRecord(checked((byte)index),checked((byte)state)));}
-        public void CommitStaminaClaimState(){services.StaminaClaim.Replace(pendingStaminaClaimRecords);}
-        public void CompleteStaminaClaimValidation(){StartCoroutine(CompleteStaminaClaimValidationAfterLayout());}
-        private IEnumerator CompleteStaminaClaimValidationAfterLayout(){EnsureStaminaClaimPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsStaminaClaimOpen||!services.StaminaClaim.HasAuthoritativeResponse||!IsStaminaClaimAuthoritativeVisible||services.StaminaClaim.Items.Count!=3||services.ProtocolRegistry.PendingCount!=0){Fail($"StaminaClaim state mismatch: open={IsStaminaClaimOpen}, records={services.StaminaClaim.Items.Count}, authoritative={services.StaminaClaim.HasAuthoritativeResponse}, visible={IsStaminaClaimAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=18 -> WelfareActivityUI/ReceiveTiliUI -> huodong/tililingquLayer -> /321 op=2 slots={services.StaminaClaim.Items.Count}; read-only first phase");}
+        public void ShowStaminaClaim()
+        {
+            EnsureStaminaClaimPresenter();
+            taskView?.SetVisible(false); resourceRecoveryView?.SetVisible(false);
+            growthFundView?.SetVisible(false); activeFundView?.SetVisible(false);
+            staminaClaimView.SetVisible(true); welfareActivityFramePresenter.Select(18);
+            if (services.UiStack.Current != taskBackgroundView) services.UiStack.Push(taskBackgroundView);
+            SetStatus("StaminaClaim current welfare UI active; awaiting /321 op=2.");
+        }
+        public void BeginStaminaClaimState() => pendingStaminaClaimRecords.Clear();
+        public void AddStaminaClaimState(int index, int state) =>
+            pendingStaminaClaimRecords.Add(new StaminaClaimRecord(checked((byte)index), checked((byte)state)));
+        public void CommitStaminaClaimState() => services.StaminaClaim.Replace(pendingStaminaClaimRecords);
+        public void BeginStaminaClaimRequest(int index, int paidType) =>
+            services.StaminaClaim.BeginClaim(checked((byte)index), paidType != 0);
+        public void CompleteStaminaClaimRequest(int index, int paidType, bool success, double stamina, string error)
+        {
+            byte slot = checked((byte)index);
+            if (success)
+            {
+                services.StaminaClaim.ApplyClaimSuccess(slot);
+                ShowToast($"体力领取成功，当前体力 {checked((int)stamina)}", 2f);
+            }
+            else
+            {
+                services.StaminaClaim.ApplyClaimFailure(slot, error);
+                ShowToast(error, 3f);
+            }
+        }
+        private void RequestStaminaClaim(byte index, bool paid) =>
+            InvokeLuaOrFail(onStaminaClaimRequest, "StaminaClaim.Request", (double)index, paid);
+        private void RejectStaminaClaimLocally(byte index, string error)
+        {
+            services.StaminaClaim.ApplyClaimFailure(index, error);
+            ShowToast(error, 3f);
+        }
+        private bool staminaClaimPaidCancelObserved;
+        private void ShowStaminaClaimPaidConfirmation(byte index)
+        {
+            EnsureErrorPresenter();
+            staminaClaimPaidCancelObserved = false;
+            errorPresenter.ShowConfirmation("补领体力", "是否花费20元宝补领体力？",
+                () => RequestStaminaClaim(index, true), "确定", "取消", false,
+                () => staminaClaimPaidCancelObserved = true);
+        }
+        public void CompleteStaminaClaimValidation()
+        {
+            if (staminaClaimValidationRunning || staminaClaimValidationCompleted) return;
+            staminaClaimValidationRunning = true;
+            StartCoroutine(RunStaminaClaimValidation());
+        }
+
+        private IEnumerator RunStaminaClaimValidation()
+        {
+            uint primaryUserId = GetLocalUserId();
+            uint primaryRoleId = GetPlayerRoleId();
+            uint isolationUserId = services.Options.StaminaClaimIsolationUserId == 0 ? 705213u : services.Options.StaminaClaimIsolationUserId;
+            uint overCapUserId = services.Options.StaminaClaimOverCapUserId == 0 ? 7200260u : services.Options.StaminaClaimOverCapUserId;
+            string[] controls =
+            {
+                "STAMINA-01-GAMEPLAY-ENTRY", "STAMINA-02-CLOSE", "STAMINA-03-STAMINA-TAB",
+                "STAMINA-04-RESOURCE-TAB", "STAMINA-05-STAMINA-ADD", "STAMINA-06-GOLD-ADD",
+                "STAMINA-07-TONGBAO-ADD-DISABLED", "STAMINA-08-SLOT-1", "STAMINA-09-SLOT-2",
+                "STAMINA-10-SLOT-3", "STAMINA-11-PAID-CONFIRM", "STAMINA-12-PAID-CANCEL",
+                "STAMINA-13-RED-DOT", "STAMINA-14-STAMINA-DISPLAY", "STAMINA-15-GOLD-DISPLAY",
+                "STAMINA-16-PREMIUM-DISPLAY"
+            };
+            try
+            {
+                BeginValidationEvidence();
+                if (primaryUserId != 7200057 || primaryRoleId != 1000115
+                    || isolationUserId != 705213 || overCapUserId != 7200260)
+                {
+                    Fail($"StaminaClaim identity mismatch: primary={primaryUserId}/{primaryRoleId}, isolation={isolationUserId}, overCap={overCapUserId}.");
+                    yield break;
+                }
+                EnsureStaminaClaimPresenter();
+                toastPresenter?.Clear();
+                Canvas.ForceUpdateCanvases(); yield return new WaitForEndOfFrame();
+                if (!IsStaminaClaimOpen || !IsStaminaClaimAuthoritativeVisible
+                    || services.StaminaClaim.Items.Count != 3 || services.ProtocolRegistry.PendingCount != 0
+                    || staminaClaimPresenter.BoundButtonCount != 3
+                    || services.StaminaClaim.StateOf(1) != 2 || services.StaminaClaim.StateOf(2) != 1
+                    || services.StaminaClaim.StateOf(3) != 1 || services.Currencies.Stamina != 40
+                    || services.Currencies.Premium != 100)
+                {
+                    Fail($"StaminaClaim mixed fixture mismatch: open={IsStaminaClaimOpen}, buttons={staminaClaimPresenter.BoundButtonCount}, states={services.StaminaClaim.StateOf(1)}/{services.StaminaClaim.StateOf(2)}/{services.StaminaClaim.StateOf(3)}, stamina={services.Currencies.Stamina}, premium={services.Currencies.Premium}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                MarkValidationControl(controls[0]); yield return CaptureStaminaControlEvidence(controls[0]);
+                MarkValidationControl(controls[12]); yield return CaptureStaminaControlEvidence(controls[12]);
+                MarkValidationControl(controls[13]); yield return CaptureStaminaControlEvidence(controls[13]);
+                MarkValidationControl(controls[14]); yield return CaptureStaminaControlEvidence(controls[14]);
+                MarkValidationControl(controls[15]); yield return CaptureStaminaControlEvidence(controls[15]);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-mixed.png");
+
+                welfareActivityFramePresenter.InvokeResourceTab();
+                float deadline = Time.realtimeSinceStartup + 10f;
+                while (!IsResourceRecoveryOpen && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsResourceRecoveryOpen) { Fail("StaminaClaim resource tab boundary did not open ResourceRecovery."); yield break; }
+                MarkValidationControl(controls[3]); yield return CaptureStaminaControlEvidence(controls[3]);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-resource-tab.png");
+                welfareActivityFramePresenter.InvokeStaminaTab();
+                deadline = Time.realtimeSinceStartup + 10f;
+                while ((!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) { Fail("StaminaClaim tab return did not settle op=2."); yield break; }
+                MarkValidationControl(controls[2]); yield return CaptureStaminaControlEvidence(controls[2]);
+
+                welfareActivityFramePresenter.InvokeStaminaAdd();
+                if (lastStaminaClaimBoundary != "stamina-add") { Fail("StaminaClaim stamina-add boundary mismatch."); yield break; }
+                MarkValidationControl(controls[4]); yield return CaptureStaminaControlEvidence(controls[4]);
+                welfareActivityFramePresenter.InvokeGoldAdd();
+                if (lastStaminaClaimBoundary != "gold-add") { Fail("StaminaClaim gold-add boundary mismatch."); yield break; }
+                MarkValidationControl(controls[5]); yield return CaptureStaminaControlEvidence(controls[5]);
+                if (!welfareActivityFramePresenter.PremiumAddDisabled) { Fail("StaminaClaim premium add must remain hidden/disabled."); yield break; }
+                MarkValidationControl(controls[6]); yield return CaptureStaminaControlEvidence(controls[6]);
+                RecordValidationSemantic("stamina-boundary-controls", true, "resource tab, stamina add, gold add and disabled premium add preserved ownership boundaries");
+
+                long staminaBefore = services.Currencies.Stamina;
+                long premiumBefore = services.Currencies.Premium;
+                if (!staminaClaimPresenter.InvokeSlot(1) || errorPresenter?.IsVisible != true)
+                { Fail("StaminaClaim paid slot did not open confirmation."); yield break; }
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-paid-dialog.png");
+                if (!errorPresenter.InvokeCancel()) { Fail("StaminaClaim paid cancel was unavailable."); yield break; }
+                yield return new WaitForSecondsRealtime(.25f);
+                if (!staminaClaimPaidCancelObserved || services.Currencies.Stamina != staminaBefore
+                    || services.Currencies.Premium != premiumBefore || services.StaminaClaim.StateOf(1) != 2)
+                { Fail("StaminaClaim paid cancel mutated authoritative state."); yield break; }
+                MarkValidationControl(controls[11]); yield return CaptureStaminaControlEvidence(controls[11]);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-paid-cancel.png");
+
+                if (!staminaClaimPresenter.InvokeSlot(1) || !errorPresenter.InvokeConfirmation())
+                { Fail("StaminaClaim paid confirmation was unavailable."); yield break; }
+                MarkValidationControl(controls[10]); yield return CaptureStaminaControlEvidence(controls[10]);
+                deadline = Time.realtimeSinceStartup + 10f;
+                while ((services.StaminaClaim.ClaimPending || services.StaminaClaim.StateOf(1) != 3
+                    || services.Currencies.Premium == premiumBefore) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.StaminaClaim.StateOf(1) != 3 || services.Currencies.Stamina != staminaBefore + 50
+                    || services.Currencies.Premium != premiumBefore - 20 || !services.StaminaClaim.LastClaimSucceeded)
+                { Fail($"StaminaClaim paid authority mismatch: stamina={staminaBefore}->{services.Currencies.Stamina}, premium={premiumBefore}->{services.Currencies.Premium}, state={services.StaminaClaim.StateOf(1)}, error={services.StaminaClaim.LastClaimError}."); yield break; }
+                MarkValidationControl(controls[7]); yield return CaptureStaminaControlEvidence(controls[7]);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-paid-success.png");
+                RecordValidationSemantic("stamina-paid-claim-authority", true, "real /321 op3 idx1 type1 changed stamina +50, premium -20 and state 2->3");
+                RecordValidationSemantic("stamina-paid-cancel-no-mutation", true, "cancel sent no op3 and preserved stamina, premium and state2");
+
+                long goldBefore = services.Currencies.Gold;
+                if (!staminaClaimPresenter.InvokeSlot(2)) { Fail("StaminaClaim slot2 free claim unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 10f;
+                while ((services.StaminaClaim.ClaimPending || services.StaminaClaim.StateOf(2) != 3) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.Currencies.Stamina != staminaBefore + 100 || services.StaminaClaim.StateOf(2) != 3)
+                { Fail("StaminaClaim slot2 authoritative +50 failed."); yield break; }
+                MarkValidationControl(controls[8]); yield return CaptureStaminaControlEvidence(controls[8]);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-slot2.png");
+                if (!staminaClaimPresenter.InvokeSlot(3)) { Fail("StaminaClaim slot3 free claim unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 10f;
+                while ((services.StaminaClaim.ClaimPending || services.StaminaClaim.StateOf(3) != 3) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.Currencies.Stamina != staminaBefore + 150 || services.StaminaClaim.StateOf(3) != 3
+                    || services.Currencies.Gold != goldBefore || services.StaminaClaim.SuccessfulClaimCount != 3)
+                { Fail("StaminaClaim three-slot single-use authority mismatch."); yield break; }
+                MarkValidationControl(controls[9]); yield return CaptureStaminaControlEvidence(controls[9]);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-all-claimed.png");
+                RecordValidationSemantic("stamina-free-claim-authority", true, "real slot2/slot3 op3 each granted +50 exactly once; gold unchanged");
+                RecordValidationSemantic("stamina-three-slot-single-use", true, "slot1 paid plus slot2/slot3 free each transitioned once to state3");
+
+                long duplicateStamina = services.Currencies.Stamina;
+                toastPresenter?.Clear();
+                RequestStaminaClaim(2, false);
+                deadline = Time.realtimeSinceStartup + 10f;
+                while (services.StaminaClaim.ClaimPending && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.StaminaClaim.LastClaimSucceeded || string.IsNullOrWhiteSpace(services.StaminaClaim.LastClaimError)
+                    || services.Currencies.Stamina != duplicateStamina || services.StaminaClaim.StateOf(2) != 3)
+                { Fail("StaminaClaim duplicate op3 was not authoritatively rejected without mutation."); yield break; }
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-duplicate.png");
+                RecordValidationSemantic("stamina-duplicate-rejected", true, $"real duplicate /321 op3 rejected: {services.StaminaClaim.LastClaimError}");
+
+                welfareActivityFramePresenter.InvokeClose();
+                MarkValidationControl(controls[1]); yield return CaptureStaminaControlEvidence(controls[1]);
+                if (IsStaminaClaimOpen) { Fail("StaminaClaim close did not return to gameplay."); yield break; }
+                if (gameplayPresenter == null || !gameplayPresenter.InvokeEnter(18)) { Fail("StaminaClaim gameplay re-entry unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 10f;
+                while ((!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsStaminaClaimOpen || services.StaminaClaim.StateOf(1) != 3 || services.StaminaClaim.StateOf(2) != 3 || services.StaminaClaim.StateOf(3) != 3)
+                { Fail("StaminaClaim re-entry did not rebuild all claimed states."); yield break; }
+                services.Network.Disconnect("StaminaClaim deliberate disconnect");
+                yield return new WaitForSecondsRealtime(.25f);
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-disconnected.png");
+                if (errorPresenter?.IsVisible != true || !errorPresenter.InvokeConfirmation()) { Fail("StaminaClaim reconnect confirmation unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId) { Fail("StaminaClaim reconnect identity mismatch."); yield break; }
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsStaminaClaimOpen || services.Currencies.Stamina != duplicateStamina || services.StaminaClaim.StateOf(3) != 3)
+                { Fail("StaminaClaim reconnect persistence mismatch."); yield break; }
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-reconnected.png");
+                RecordValidationSemantic("stamina-reentry-reconnect-persistence", true, "close/re-enter and deliberate disconnect/reconnect rebuilt server state 3/3/3 with stamina190");
+
+                services.Config.LocalUserId = isolationUserId;
+                ReturnToLogin(); BindLoginClick(false); loginPresenter.SetAccountCredentials(isolationUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("StaminaClaim isolation submit unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (GetPlayerRoleId() != 1000006 || !IsStaminaClaimOpen || services.Currencies.Stamina != 40
+                    || services.Currencies.Premium != 0 || services.StaminaClaim.StateOf(1) != 2)
+                { Fail($"StaminaClaim isolation fixture mismatch: user={GetLocalUserId()} role={GetPlayerRoleId()} stamina={services.Currencies.Stamina} premium={services.Currencies.Premium} state1={services.StaminaClaim.StateOf(1)}."); yield break; }
+                toastPresenter?.Clear();
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-account-isolation.png");
+                long insufficientStamina = services.Currencies.Stamina;
+                if (!staminaClaimPresenter.InvokeSlot(1) || errorPresenter?.IsVisible != true) { Fail("StaminaClaim insufficient paid request unavailable."); yield break; }
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-insufficient-premium.png");
+                if (!errorPresenter.InvokeConfirmation()) { Fail("StaminaClaim insufficient paid confirmation unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 10f;
+                while (services.StaminaClaim.ClaimPending && Time.realtimeSinceStartup < deadline) yield return null;
+                if (services.StaminaClaim.LastClaimSucceeded || string.IsNullOrWhiteSpace(services.StaminaClaim.LastClaimError)
+                    || services.Currencies.Stamina != insufficientStamina || services.Currencies.Premium != 0 || services.StaminaClaim.StateOf(1) != 2)
+                { Fail("StaminaClaim insufficient-premium rejection mutated state."); yield break; }
+                RecordValidationSemantic("stamina-insufficient-premium", true, $"real /321 op3 idx1 type1 rejected at premium0: {services.StaminaClaim.LastClaimError}");
+
+                services.Config.LocalUserId = overCapUserId;
+                ReturnToLogin(); BindLoginClick(false); loginPresenter.SetAccountCredentials(overCapUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("StaminaClaim over-cap submit unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (GetPlayerRoleId() != 1000119 || services.Currencies.Stamina != 990 || services.StaminaClaim.StateOf(2) != 1)
+                { Fail("StaminaClaim over-cap fixture mismatch."); yield break; }
+                toastPresenter?.Clear();
+                if (!staminaClaimPresenter.InvokeSlot(2) || services.Currencies.Stamina != 990
+                    || !services.StaminaClaim.LastClaimError.Contains("1000"))
+                { Fail("StaminaClaim over-cap UI rejection failed."); yield break; }
+                yield return CaptureStaminaClaimFrame("bootstrap-stamina-claim-over-cap.png");
+                RecordValidationSemantic("stamina-cap-rejected", true, "990+50 rejected before request; state and currencies unchanged");
+
+                services.Config.LocalUserId = primaryUserId;
+                ReturnToLogin(); BindLoginClick(false); loginPresenter.SetAccountCredentials(primaryUserId, "local");
+                if (!loginPresenter.InvokeAccountSubmit()) { Fail("StaminaClaim terminal primary submit unavailable."); yield break; }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+                deadline = Time.realtimeSinceStartup + 12f;
+                while ((!IsStaminaClaimOpen || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+                if (GetPlayerRoleId() != primaryRoleId || services.Currencies.Stamina != duplicateStamina
+                    || services.Currencies.Premium != premiumBefore - 20 || services.StaminaClaim.StateOf(1) != 3
+                    || services.StaminaClaim.StateOf(2) != 3 || services.StaminaClaim.StateOf(3) != 3)
+                { Fail("StaminaClaim terminal primary persistence/isolation mismatch."); yield break; }
+                RecordValidationSemantic("stamina-account-isolation", true, "real main->705213->7200260->main logins rebuilt independent stores and restored terminal main identity");
+                RecordValidationSemantic("stamina-protocol-ownership", true, "module sent /321 op2/op3 only; /321 op1 remained PlayerHud-owned");
+                RecordValidationSemantic("stamina-fixture-restore", true, "outer fixed-account runner owns finally restore, post-login hash and residual=0 assertions");
+                RecordValidationSemantic("stamina-control-matrix-16", validationControlIds.Count == 16, $"validated={validationControlIds.Count}/16");
+                if (validationControlIds.Count != 16) { Fail($"StaminaClaim control coverage mismatch: {validationControlIds.Count}/16."); yield break; }
+                staminaClaimValidationCompleted = true;
+                Complete($"COMPLETE: StaminaClaim 16/16 controls; real /321 op2/op3 three slots, paid/free/duplicate/insufficient/cap, reconnect and account isolation; user={primaryUserId} role={primaryRoleId}; stamina-control-matrix-16");
+            }
+            finally { staminaClaimValidationRunning = false; }
+        }
+
+        private IEnumerator CaptureStaminaClaimFrame(string fileName)
+        {
+            yield return new WaitForEndOfFrame();
+            string path = BuildUiMigrationPath(fileName);
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length < 4096) && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length < 4096) Fail("StaminaClaim screenshot was not written: " + path);
+        }
+
+        private IEnumerator CaptureStaminaControlEvidence(string controlId)
+        {
+            string token = (controlId ?? string.Empty).ToLowerInvariant();
+            yield return CaptureStaminaClaimFrame($"stamina-control-{token}.png");
+        }
 
         public void ShowResourceRecovery(){EnsureResourceRecoveryPresenter();taskView?.SetVisible(false);staminaClaimView?.SetVisible(false);growthFundView?.SetVisible(false);activeFundView?.SetVisible(false);resourceRecoveryView.SetVisible(true);welfareActivityFramePresenter.Select(19);if(services.UiStack.Current!=taskBackgroundView)services.UiStack.Push(taskBackgroundView);SetStatus("ResourceRecovery current welfare UI active; awaiting /52 op=1.");}
         public void BeginResourceRecoveryState(){pendingResourceRecoveryRecords.Clear();}
@@ -6189,6 +6824,9 @@ namespace ProjectX.Core
             services.GameplayShops.Clear();
             gameplayShopsPresenter?.ResetTransientState();
             services.World.Clear();
+            services.FengShenStory.SetDisconnected();
+            fengShenStoryPresenter?.CloseLevelPopup();
+            fengShenStoryPresenter?.CloseModal();
             if (IsWorldOpen) services.UiStack.Pop();
             worldView?.SetVisible(false);
             worldMapView?.SetVisible(false);
@@ -6217,8 +6855,7 @@ namespace ProjectX.Core
             {
                 if (!autoReconnectRunning) _ = RunAutoReconnectAsync();
             }
-            else if (services.Options.LoginClosureValidation || services.Options.PlayerHudValidation
-                || services.Options.GameplayValidation)
+            else if (services.Options.ScenarioManagedReconnect || services.Options.ManualReconnectValidation)
             {
                 ShowLoginConnectionFailure(false);
             }
@@ -6300,7 +6937,11 @@ namespace ProjectX.Core
                     ? (timedOut ? "Login connection timeout dialog." : "Login connection dialog.")
                     : services.Options.GameplayValidation
                         ? (timedOut ? "Gameplay reconnect timeout confirmation." : "Gameplay reconnect confirmation.")
-                        : (timedOut ? "Login connection timeout." : "Login connection failed."));
+                        : services.Options.FengShenStoryValidation
+                            ? (timedOut ? "FengShenStory reconnect timeout confirmation." : "FengShenStory reconnect confirmation.")
+                            : services.Options.StaminaClaimValidation
+                                ? (timedOut ? "StaminaClaim reconnect timeout confirmation." : "StaminaClaim reconnect confirmation.")
+                                : (timedOut ? "Login connection timeout." : "Login connection failed."));
         }
 
         private void ReturnFromConnectionFailure()
@@ -6312,7 +6953,10 @@ namespace ProjectX.Core
         private void ReconnectFromConnectionFailure()
         {
             mainHudPresenter?.BeginReconnectChatSummary();
-            Connect(services.Config.GameHost, services.Config.GamePort);
+            if (services.Network.State == NetworkState.Disconnected || services.Network.State == NetworkState.Faulted)
+                Reconnect();
+            else
+                Connect(services.Config.GameHost, services.Config.GamePort);
         }
         private void HandleBagClick()
         {
@@ -9285,9 +9929,20 @@ namespace ProjectX.Core
         private void EnsureFengShenStoryPresenter()
         {
             fengShenStoryView = fengShenStoryView ?? services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlLayer");
-            if (fengShenStoryView == null)
-                throw new InvalidOperationException("Current FengShenStory imported CocosUiBinding was not found: fengshenliezhuan/fengshenliezhuanlLayer.");
-            fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(fengShenStoryView, services.FengShenStory, () => HandleBack());
+            fengShenStoryLevelView = fengShenStoryLevelView ?? services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel");
+            rewardView = rewardView ?? services.UiRouter.FindBySource("common/tanchuangjiangli");
+            heroItemSourceView = heroItemSourceView ?? services.UiRouter.FindBySource("common/huoqutujing");
+            EnsureErrorPresenter();
+            if (fengShenStoryView == null || fengShenStoryLevelView == null || rewardView == null
+                || heroItemSourceView == null || errorPresenter == null)
+                throw new InvalidOperationException("Current FengShenStory imported main/level CocosUiBindings were not found.");
+            fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
+                fengShenStoryView, fengShenStoryLevelView, services.FengShenStory, services.Resources,
+                errorPresenter, heroItemSourceView, rewardView,
+                () => HandleBack(),
+                () => InvokeLuaOrFail(onFengShenStoryChallengeClicked, "FengShenStory.Challenge"),
+                () => { SetStatus("FengShenStory -> Formation boundary"); ShowFormationPopup(); },
+                functionId => { lastGameplayBoundaryId = functionId; SetStatus($"FengShenStory item source boundary -> function_id={functionId}"); });
         }
 
         private void EnsureArenaPresenter(){arenaView=arenaView??services.UiRouter.FindBySource("common/JingjiLayer");if(arenaView==null)throw new InvalidOperationException("Current Arena imported CocosUiBinding was not found: common/JingjiLayer.");arenaPresenter=arenaPresenter??new ArenaPresenter(arenaView,services.Arena,()=>HandleBack());}
@@ -9299,8 +9954,29 @@ namespace ProjectX.Core
         private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,()=>HandleBack());}
 
         private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,()=>HandleBack());}
-        private void EnsureWelfareActivityFramePresenter(){taskBackgroundView=taskBackgroundView??services.UiRouter.FindBySource("huodong/huodong_bg");if(taskBackgroundView==null)throw new InvalidOperationException("Current welfare activity background was not found: huodong/huodong_bg.");welfareActivityFramePresenter=welfareActivityFramePresenter??new WelfareActivityFramePresenter(taskBackgroundView,services.Currencies,()=>HandleBack(),()=>InvokeLuaOrFail(onStaminaClaimClicked,"WelfareActivity.StaminaClaim"),()=>InvokeLuaOrFail(onResourceRecoveryClicked,"WelfareActivity.ResourceRecovery"),()=>InvokeLuaOrFail(onFundsClicked,"WelfareActivity.GrowthFund",25d),()=>InvokeLuaOrFail(onFundsClicked,"WelfareActivity.ActiveFund",26d));}
-        private void EnsureStaminaClaimPresenter(){EnsureWelfareActivityFramePresenter();staminaClaimView=staminaClaimView??services.UiRouter.FindBySource("huodong/tililingquLayer");if(staminaClaimView==null)throw new InvalidOperationException("Current StaminaClaim imported CocosUiBinding was not found: huodong/tililingquLayer.");staminaClaimPresenter=staminaClaimPresenter??new StaminaClaimPresenter(staminaClaimView,services.StaminaClaim,services.StaminaClaimCatalog,()=>HandleBack());}
+        private void EnsureWelfareActivityFramePresenter()
+        {
+            taskBackgroundView = taskBackgroundView ?? services.UiRouter.FindBySource("huodong/huodong_bg");
+            if (taskBackgroundView == null) throw new InvalidOperationException("Current welfare activity background was not found: huodong/huodong_bg.");
+            welfareActivityFramePresenter = welfareActivityFramePresenter ?? new WelfareActivityFramePresenter(
+                taskBackgroundView, services.Currencies, () => HandleBack(),
+                () => InvokeLuaOrFail(onStaminaClaimClicked, "WelfareActivity.StaminaClaim"),
+                () => InvokeLuaOrFail(onResourceRecoveryClicked, "WelfareActivity.ResourceRecovery"),
+                () => InvokeLuaOrFail(onFundsClicked, "WelfareActivity.GrowthFund", 25d),
+                () => InvokeLuaOrFail(onFundsClicked, "WelfareActivity.ActiveFund", 26d),
+                () => { lastStaminaClaimBoundary = "stamina-add"; SetStatus("体力加号属于 UseItemUI(500,1) 边界；StaminaClaim 不伪造体力购买。"); },
+                () => { lastStaminaClaimBoundary = "gold-add"; SetStatus("金币加号属于常用商城边界；StaminaClaim 不处理商城业务。"); });
+        }
+        private void EnsureStaminaClaimPresenter()
+        {
+            EnsureWelfareActivityFramePresenter();
+            staminaClaimView = staminaClaimView ?? services.UiRouter.FindBySource("huodong/tililingquLayer");
+            if (staminaClaimView == null) throw new InvalidOperationException("Current StaminaClaim imported CocosUiBinding was not found: huodong/tililingquLayer.");
+            staminaClaimPresenter = staminaClaimPresenter ?? new StaminaClaimPresenter(
+                staminaClaimView, services.StaminaClaim, services.StaminaClaimCatalog, services.Currencies,
+                RequestStaminaClaim, ShowStaminaClaimPaidConfirmation, RejectStaminaClaimLocally,
+                visible => welfareActivityFramePresenter.SetStaminaRedDot(visible), () => HandleBack());
+        }
         private void EnsureResourceRecoveryPresenter(){EnsureWelfareActivityFramePresenter();resourceRecoveryView=resourceRecoveryView??services.UiRouter.FindBySource("huodong/ziyuanzhaohui");if(resourceRecoveryView==null)throw new InvalidOperationException("Current ResourceRecovery imported CocosUiBinding was not found: huodong/ziyuanzhaohui.");resourceRecoveryPresenter=resourceRecoveryPresenter??new ResourceRecoveryPresenter(resourceRecoveryView,services.ResourceRecovery,services.ResourceRecoveryCatalog);}
         private void EnsureFundsPresenter(){EnsureWelfareActivityFramePresenter();growthFundView=growthFundView??services.UiRouter.FindBySource("huodong/ChengZhangLayer");activeFundView=activeFundView??services.UiRouter.FindBySource("huodong/HuoyueLayer");if(growthFundView==null||activeFundView==null)throw new InvalidOperationException("Current fund CocosUiBinding was not found: ChengZhangLayer/HuoyueLayer.");fundsPresenter=fundsPresenter??new FundsPresenter(growthFundView,activeFundView,services.Funds,services.FundsCatalog);}
 

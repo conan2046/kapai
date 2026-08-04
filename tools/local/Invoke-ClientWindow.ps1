@@ -55,6 +55,11 @@ public static class CodexClientWindow {
     [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
     [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern IntPtr SetActiveWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool attach);
+    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
     [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
@@ -108,6 +113,35 @@ public static class CodexClientWindow {
         System.Threading.Thread.Sleep(150);
     }
 
+    public static bool ActivateWindow(IntPtr hWnd) {
+        IntPtr foreground = GetForegroundWindow();
+        uint ignored;
+        uint currentThread = GetCurrentThreadId();
+        uint targetThread = GetWindowThreadProcessId(hWnd, out ignored);
+        uint foregroundThread = foreground == IntPtr.Zero ? 0 : GetWindowThreadProcessId(foreground, out ignored);
+        bool attachedTarget = false;
+        bool attachedForeground = false;
+        try {
+            if (targetThread != 0 && targetThread != currentThread) {
+                attachedTarget = AttachThreadInput(currentThread, targetThread, true);
+            }
+            if (foregroundThread != 0 && foregroundThread != currentThread && foregroundThread != targetThread) {
+                attachedForeground = AttachThreadInput(currentThread, foregroundThread, true);
+            }
+            ShowWindow(hWnd, 9);
+            BringWindowToTop(hWnd);
+            SetForegroundWindow(hWnd);
+            SetActiveWindow(hWnd);
+            SetFocus(hWnd);
+            System.Threading.Thread.Sleep(150);
+            return GetForegroundWindow() == hWnd;
+        }
+        finally {
+            if (attachedForeground) AttachThreadInput(currentThread, foregroundThread, false);
+            if (attachedTarget) AttachThreadInput(currentThread, targetThread, false);
+        }
+    }
+
     public static IntPtr FindGameWindow(int processId) {
         IntPtr best = IntPtr.Zero;
         long bestScore = -1;
@@ -146,16 +180,19 @@ if ($windowHandle -eq [IntPtr]::Zero) {
 }
 
 $foregroundBefore = [CodexClientWindow]::GetForegroundWindow()
+$activationSucceeded = $false
 if ($RestoreNoActivate) {
     # SW_SHOWNOACTIVATE restores a minimized window without assigning focus.
     [CodexClientWindow]::ShowWindow($windowHandle, 4) | Out-Null
 }
 if ($ActivateForeground) {
-    # Explicitly allowed interactive mode. PostMessage remains handle-relative;
-    # -RealClick additionally moves and restores the real cursor.
-    [CodexClientWindow]::ShowWindow($windowHandle, 9) | Out-Null
-    [CodexClientWindow]::SetForegroundWindow($windowHandle) | Out-Null
-    Start-Sleep -Milliseconds 150
+    # A background pwsh process cannot assume SetForegroundWindow succeeded.
+    # Attach input queues, focus the exact ProjectX window, and fail closed
+    # before sending any real cursor input when activation is denied.
+    $activationSucceeded = [CodexClientWindow]::ActivateWindow($windowHandle)
+    if (-not $activationSucceeded) {
+        throw "ProjectX did not become the foreground window; input was not sent"
+    }
 }
 if ($ClickX.HasValue -or $ClickY.HasValue) {
     if (-not $ClickX.HasValue -or -not $ClickY.HasValue) {
@@ -397,6 +434,7 @@ $foregroundAfter = [CodexClientWindow]::GetForegroundWindow()
     ClientWidth = $clientWidth
     ClientHeight = $clientHeight
     ForegroundActivated = $ActivateForeground.IsPresent
+    ActivationSucceeded = $activationSucceeded
     ForegroundRestored = $foregroundRestored
     RealClick = $RealClick.IsPresent
     MessageDrag = $MessageDrag.IsPresent

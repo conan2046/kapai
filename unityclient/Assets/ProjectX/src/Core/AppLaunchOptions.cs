@@ -9,7 +9,8 @@ namespace ProjectX.Core
 
         private AppLaunchOptions(HashSet<string> flags, uint localUserId, uint teamPeerRoleId, uint drawIsolationUserId,
             uint worldIsolationUserId, uint loginCreateUserId, uint loginIsolationUserId, uint playerHudIsolationUserId,
-            uint gameplayLockedUserId, uint gameplayIsolationUserId)
+            uint gameplayLockedUserId, uint gameplayIsolationUserId, uint fengShenStoryIsolationUserId,
+            uint staminaClaimIsolationUserId, uint staminaClaimOverCapUserId)
         {
             this.flags = flags;
             LocalUserId = localUserId;
@@ -21,6 +22,9 @@ namespace ProjectX.Core
             PlayerHudIsolationUserId = playerHudIsolationUserId;
             GameplayLockedUserId = gameplayLockedUserId;
             GameplayIsolationUserId = gameplayIsolationUserId;
+            FengShenStoryIsolationUserId = fengShenStoryIsolationUserId;
+            StaminaClaimIsolationUserId = staminaClaimIsolationUserId;
+            StaminaClaimOverCapUserId = staminaClaimOverCapUserId;
         }
 
         public uint LocalUserId { get; }
@@ -32,8 +36,12 @@ namespace ProjectX.Core
         public uint PlayerHudIsolationUserId { get; }
         public uint GameplayLockedUserId { get; }
         public uint GameplayIsolationUserId { get; }
+        public uint FengShenStoryIsolationUserId { get; }
+        public uint StaminaClaimIsolationUserId { get; }
+        public uint StaminaClaimOverCapUserId { get; }
         public bool Automation => HasFlag("-projectXAutomation");
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
+        public bool ScenarioManagedReconnect => HasFlag("-projectXScenarioManagedReconnect");
         public bool DrawClosureValidation => HasFlag("-projectXDrawClosureValidation");
         public bool WorldBattleValidation => HasFlag("-projectXWorldBattleValidation");
         public bool LoginClosureValidation => HasFlag("-projectXLoginClosureValidation");
@@ -43,6 +51,8 @@ namespace ProjectX.Core
         public bool TaskValidation => HasFlag("-projectXTaskValidation") || HasFlag("-projectXTaskG4Validation");
         public bool WelfareValidation => HasFlag("-projectXWelfareValidation");
         public bool GameplayValidation => HasFlag("-projectXGameplayValidation");
+        public bool FengShenStoryValidation => HasFlag("-projectXFengShenStoryValidation");
+        public bool StaminaClaimValidation => HasFlag("-projectXStaminaClaimValidation");
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && flags.Contains(flag);
 
@@ -58,6 +68,9 @@ namespace ProjectX.Core
             uint playerHudIsolationUserId = 0;
             uint gameplayLockedUserId = 0;
             uint gameplayIsolationUserId = 0;
+            uint fengShenStoryIsolationUserId = 0;
+            uint staminaClaimIsolationUserId = 0;
+            uint staminaClaimOverCapUserId = 0;
             foreach (string raw in arguments ?? Array.Empty<string>())
             {
                 string argument = raw ?? string.Empty;
@@ -107,10 +120,26 @@ namespace ProjectX.Core
                     && uint.TryParse(argument.Substring(gameplayIsolationPrefix.Length), out uint gameplayIsolationValue)
                     && gameplayIsolationValue > 0)
                     gameplayIsolationUserId = gameplayIsolationValue;
+                const string fengShenStoryIsolationPrefix = "-projectXFengShenStoryIsolationUserId=";
+                if (argument.StartsWith(fengShenStoryIsolationPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(fengShenStoryIsolationPrefix.Length), out uint fengShenStoryIsolationValue)
+                    && fengShenStoryIsolationValue > 0)
+                    fengShenStoryIsolationUserId = fengShenStoryIsolationValue;
+                const string staminaClaimIsolationPrefix = "-projectXStaminaClaimIsolationUserId=";
+                if (argument.StartsWith(staminaClaimIsolationPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(staminaClaimIsolationPrefix.Length), out uint staminaClaimIsolationValue)
+                    && staminaClaimIsolationValue > 0)
+                    staminaClaimIsolationUserId = staminaClaimIsolationValue;
+                const string staminaClaimOverCapPrefix = "-projectXStaminaClaimOverCapUserId=";
+                if (argument.StartsWith(staminaClaimOverCapPrefix, StringComparison.OrdinalIgnoreCase)
+                    && uint.TryParse(argument.Substring(staminaClaimOverCapPrefix.Length), out uint staminaClaimOverCapValue)
+                    && staminaClaimOverCapValue > 0)
+                    staminaClaimOverCapUserId = staminaClaimOverCapValue;
             }
             return new AppLaunchOptions(parsedFlags, localUserId, teamPeerRoleId, drawIsolationUserId, worldIsolationUserId,
                 loginCreateUserId, loginIsolationUserId, playerHudIsolationUserId,
-                gameplayLockedUserId, gameplayIsolationUserId);
+                gameplayLockedUserId, gameplayIsolationUserId, fengShenStoryIsolationUserId,
+                staminaClaimIsolationUserId, staminaClaimOverCapUserId);
         }
 
         public static AppLaunchOptions Current() => Parse(Environment.GetCommandLineArgs());

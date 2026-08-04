@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "module": "StaminaClaim",
+  "workflowPolicyVersion": 1,
+  "hardGateVersion": 1,
+  "acceptanceExamples": [
+    {
+      "id": "stamina-free-claim-authority",
+      "given": "固定主账号体力为40，第1档处于12:00-14:00且状态为1",
+      "when": "从玩法大厅真实进入并点击第1档领取按钮",
+      "then": "客户端发送/321 op=3,idx=1,type=0；服务端返回成功后体力40→90、第1档1→3、奖励提示显示50体力且红点按剩余可领档刷新"
+    },
+    {
+      "id": "stamina-paid-claim-authority",
+      "given": "固定主账号体力为40、元宝为100，第1档已过领取时段且状态为2",
+      "when": "点击第1档并在20元宝补领确认框选择确定",
+      "then": "客户端发送/321 op=3,idx=1,type=1；服务端成功后体力40→90、元宝100→80、第1档2→3，UI只在权威回包后更新"
+    },
+    {
+      "id": "stamina-paid-cancel-no-mutation",
+      "given": "任一档状态为2且补领确认框已显示20元宝成本",
+      "when": "点击取消或关闭确认框",
+      "then": "不发送/321 op=3，体力、元宝、领取状态与红点均不变化"
+    },
+    {
+      "id": "stamina-duplicate-rejected",
+      "given": "第1档已通过真实op=3领取并持久状态为3",
+      "when": "再次对第1档发起领取并回查op=2",
+      "then": "服务端明确拒绝重复领取，体力与元宝不再变化，回查仍为3，Unity显示失败反馈而不伪造奖励"
+    },
+    {
+      "id": "stamina-cap-rejected",
+      "given": "账号当前体力加50超过服务端MAX_SPIRIT",
+      "when": "点击状态1或2的领取按钮",
+      "then": "客户端或服务端以原生上限提示拒绝，op=3不得产生奖励、扣款或状态3"
+    },
+    {
+      "id": "stamina-reentry-reconnect-persistence",
+      "given": "第1档领取成功且主账号已正常保存",
+      "when": "关闭返回、重新进入、断线重连并重新登录",
+      "then": "op=2持续返回第1档状态3，体力和扣款与服务端持久值一致，无重复监听、重复奖励或旧页面残留"
+    },
+    {
+      "id": "stamina-account-isolation-restore",
+      "given": "主账号与隔离账号均已独立快照且只有主账号执行领取",
+      "when": "切换到隔离账号回查，再恢复两账号并重登录计算哈希",
+      "then": "隔离账号不继承主账号三档/体力/元宝状态；两账号恢复哈希等于各自快照且Fixture残留为0"
+    }
+  ],
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000115,
+    "isolationUserId": 705213,
+    "isolationRoleId": 1000006,
+    "resolution": "1334x750",
+    "windowsScale": "100%",
+    "included": [
+      "function_id=18 real entry",
+      "huodong_bg public frame",
+      "tililingquLayer three slots",
+      "/321 op=2/3",
+      "free and paid claim",
+      "success and all relevant failure states",
+      "reentry reconnect persistence account isolation exact restore"
+    ],
+    "excluded": [
+      "/321 op=1 stamina regeneration deepening",
+      "stamina use or purchase business",
+      "common shop business",
+      "resource recovery business"
+    ]
+  },
+  "stateMatrix": [
+    {"id":"initial-mixed","states":[1,0,0],"meaning":"当前时段可免费领取，其余未到时不可领取"},
+    {"id":"past-window-paid","states":[2,0,0],"meaning":"已过时段可20元宝补领"},
+    {"id":"claimed","states":[3,0,0],"meaning":"领取成功后该档已领取"},
+    {"id":"all-state-coverage","states":[0,1,2,3],"meaning":"三档分别跨Fixture覆盖全部服务端状态"},
+    {"id":"over-cap","meaning":"体力+50超过上限，真实拒绝且无副作用"},
+    {"id":"insufficient-premium","meaning":"状态2但元宝不足20，真实拒绝且无副作用"},
+    {"id":"duplicate","meaning":"状态3重复领取真实拒绝"},
+    {"id":"lifecycle","meaning":"返回重进、断线重连、重登录、切号隔离与精确恢复"}
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "evidence": {
+      "entry": ".local/unity-validation/staminaclaim-g2-source-audit.json#entryClosure",
+      "protocols": ".local/unity-validation/staminaclaim-g2-source-audit.json#protocolOwnership",
+      "configsAssets": ".local/unity-validation/staminaclaim-g2-source-audit.json#configAssetClosure",
+      "transforms": ".local/unity-validation/staminaclaim-g2-source-audit.json#runtimeTransformClosure",
+      "unityGap": ".local/unity-validation/staminaclaim-g2-source-audit.json#unityCurrentImplementation"
+    },
+    "knownGaps": [
+      {
+        "id": "STAMINA-GAP-FUNCTION-18-ENUM-COLLISION",
+        "handling": "G1原生复现活动空列表Toast；只在WanFaEntranceUI/WanFaInfoUI两条玩法入口定向WelfareActivityUI(openTab=1)，保留主HUD活动18语义。",
+        "evidence": "client/ProjectX/src/core/AppDef.lua; client/ProjectX/src/Common/Utils.lua; client/ProjectX/src/View/Main/WanFaEntranceUI.lua; client/ProjectX/src/View/Main/WanFaInfoUI.lua"
+      },
+      {
+        "id": "STAMINA-GAP-OLD-UNITY-READONLY",
+        "handling": "G3前移除只读完成口径，接入真实op=3、确认框、失败、持久化和切号生命周期。",
+        "evidence": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs; unityclient/Assets/ProjectX/src/UI/StaminaClaimPresenter.cs"
+      },
+      {
+        "id": "STAMINA-GAP-CLIENT-SERVER-REWARD-DIFFERENCE",
+        "handling": "Cocos生成配置与可见文案显示100，而服务端权威配置/op=3实际发放50；Unity视觉保留当前Cocos文案100，体力变化只采用服务端响应并断言+50，禁止客户端乐观加值。",
+        "evidence": "client/ProjectX/src/ConfigData/stamina_dat.lua; server/config/json/stamina.json; server/src/user_spirit.cpp"
+      }
+    ]
+  },
+  "controls": [
+    {"id":"STAMINA-01-GAMEPLAY-ENTRY","page":"玩法大厅","path":"Function_18/EnterBtn and WanFaInfoUI/EnterBtn","visibleCondition":"function_id=18已开放","cocosCallback":"玩法大厅两条入口对function_id=18定向Utils:InitUI(WelfareActivityUI,SpecialLayer,1)，避免与EMID_HUODONG=18冲突","protocol":"进入后/321 op=2","unityBinding":"Gameplay Function_18 -> StaminaClaim controller","successEvidence":"current Cocos real-entry and Unity batch evidence","failureEvidence":"低等级锁定不发送/321；活动空列表不得再截断玩法入口","reconnectEvidence":"重连后从大厅重新真实点击","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-01-GAMEPLAY-ENTRY-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-01-gameplay-entry.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-02-CLOSE","page":"福利活动框","path":"Panel_1/Title/CloseBtn","visibleCondition":"体力领取页打开","cocosCallback":"WelfareActivityUI:RemoveUI","protocol":"none","unityBinding":"public frame close -> UiStack back","successEvidence":"current Cocos close/re-entry and Unity batch evidence","failureEvidence":"关闭后不得残留页面/监听","reconnectEvidence":"重进重新发op=2","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-02-CLOSE-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-02-close.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-03-STAMINA-TAB","page":"福利活动框","path":"Panel_1/Btn_ListView/Stamina/Button","visibleCondition":"公共页签可见；当前选中时禁用","cocosCallback":"WelfareActivityUI:TabBtnClicked(1)","protocol":"切回后/321 op=2","unityBinding":"stamina tab select/disabled state","successEvidence":"current Cocos tab and Unity batch evidence","failureEvidence":"当前页签不可重复点击且不重复请求","reconnectEvidence":"重进默认选中","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-03-STAMINA-TAB-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-03-stamina-tab.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-04-RESOURCE-TAB","page":"福利活动框","path":"Panel_1/Btn_ListView/ResourceRecovery/Button","visibleCondition":"资源找回页签可见","cocosCallback":"WelfareActivityUI:TabBtnClicked(2)","protocol":"resource module boundary /52 op=1","unityBinding":"route boundary to ResourceRecovery and back","successEvidence":"current Cocos route-boundary and Unity batch evidence","failureEvidence":"不得串改StaminaClaim状态","reconnectEvidence":"切回体力页重拉op=2","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-04-RESOURCE-TAB-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-04-resource-tab.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-05-STAMINA-ADD","page":"福利活动框","path":"Panel_1/GoldCheck/GoldIcon1/AddBtn","visibleCondition":"顶部体力栏可见","cocosCallback":"WelfareActivityUI:onTiliClicked -> Utils:OpenUseUI(500,1)","protocol":"owned boundary; no /321 op=3","unityBinding":"route boundary to stamina use UI","successEvidence":"current Cocos route-boundary and Unity batch evidence","failureEvidence":"返回不得丢失三档状态","reconnectEvidence":"重进权威刷新","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-05-STAMINA-ADD-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-05-stamina-add.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-06-GOLD-ADD","page":"福利活动框","path":"Panel_1/GoldCheck/GoldIcon3/AddBtn","visibleCondition":"顶部金币栏可见","cocosCallback":"WelfareActivityUI:onMoneyClicked -> Utils:OpenFunction(EMID_SCCHANGYONG)","protocol":"common shop boundary","unityBinding":"route boundary to common shop","successEvidence":"current Cocos route-boundary and Unity batch evidence","failureEvidence":"返回不得串页或改变领取态","reconnectEvidence":"重进权威刷新","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-06-GOLD-ADD-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-06-gold-add.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-07-TONGBAO-ADD-DISABLED","page":"福利活动框","path":"Panel_1/GoldCheck/GoldIcon4/AddBtn","visibleCondition":"源节点隐藏并setEnabled(false)","cocosCallback":"none","protocol":"none","unityBinding":"hidden/disabled parity","successEvidence":"current Cocos hidden/disabled and Unity batch evidence","failureEvidence":"不得触发任何路由或协议","reconnectEvidence":"仍隐藏禁用","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-07-PREMIUM-NO-ADD-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-07-tongbao-add-disabled.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-08-SLOT-1","page":"体力领取","path":"Panel_lingtili/Panel_3/Button_bg","visibleCondition":"第1档按0/1/2/3切换盖子、免费/补领文案与按钮","cocosCallback":"ReceiveTiliUI:GetTiliEvent(tag=1)","protocol":"/321 op=3 idx=1 type=0/1","unityBinding":"slot1 real button and authoritative render","successEvidence":"current Cocos free/paid/claimed and Unity batch evidence","failureEvidence":"未到时/上限/不足/重复真实反馈","reconnectEvidence":"op=2重建状态","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-SLOT1-CLAIMED-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-08-slot-1.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-09-SLOT-2","page":"体力领取","path":"Panel_lingtili/Panel_4/Button_bg","visibleCondition":"第2档按0/1/2/3切换","cocosCallback":"ReceiveTiliUI:GetTiliEvent(tag=2)","protocol":"/321 op=3 idx=2 type=0/1","unityBinding":"slot2 real button and authoritative render","successEvidence":"current Cocos free/claimed and Unity batch evidence","failureEvidence":"未到时/上限/不足/重复真实反馈","reconnectEvidence":"op=2重建状态","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-SLOT2-CLAIMED-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-09-slot-2.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-10-SLOT-3","page":"体力领取","path":"Panel_lingtili/Panel_5/Button_bg","visibleCondition":"第3档按0/1/2/3切换","cocosCallback":"ReceiveTiliUI:GetTiliEvent(tag=3)","protocol":"/321 op=3 idx=3 type=0/1","unityBinding":"slot3 real button and authoritative render","successEvidence":"current Cocos free/claimed and Unity batch evidence","failureEvidence":"未到时/上限/不足/重复真实反馈","reconnectEvidence":"op=2重建状态","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-SLOT3-CLAIMED-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-10-slot-3.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-11-PAID-CONFIRM","page":"补领确认框","path":"MessageBox/Confirm","visibleCondition":"所点档状态2","cocosCallback":"ShowBuyTiliDialog OKCallback","protocol":"/321 op=3 idx type=1","unityBinding":"common confirmation confirm","successEvidence":"current Cocos paid confirmation, exact mutation and Unity batch evidence","failureEvidence":"余额不足/上限/重复显示服务端失败","reconnectEvidence":"成功后op=2为3","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-11-PAID-CONFIRM-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-11-paid-confirm.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-12-PAID-CANCEL","page":"补领确认框","path":"MessageBox/CancelOrClose","visibleCondition":"所点档状态2","cocosCallback":"dialog cancel/close","protocol":"none","unityBinding":"common confirmation cancel","successEvidence":"current Cocos cancel/no-mutation and Unity batch evidence","failureEvidence":"不得发送op=3","reconnectEvidence":"状态保持2","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-12-PAID-CANCEL-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-12-paid-cancel.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-13-RED-DOT","page":"福利活动框","path":"StaminaTab/Prompt","visibleCondition":"任一档状态1或2","cocosCallback":"ReceiveTiliUI:CheckTiliRedDot -> Fuli_Tili","protocol":"/65 shared display plus /321 state","unityBinding":"authoritative red-dot mirror","successEvidence":"current Cocos all-open/claimed state and Unity batch evidence","failureEvidence":"全部0/3时隐藏","reconnectEvidence":"重拉后重建","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-STATE-ALL-OPEN-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-13-red-dot.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-14-STAMINA-DISPLAY","page":"福利活动框","path":"GoldIcon1/GoldNumBg/Num","visibleCondition":"公共顶部栏可见","cocosCallback":"WelfareActivityUI:ShowTili","protocol":"/321 op=1/op=3 result","unityBinding":"Currency/Player authority display","successEvidence":"current Cocos +50 exact-change and Unity batch evidence","failureEvidence":"失败时不变化","reconnectEvidence":"重登录回读一致","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-14-STAMINA-DISPLAY-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-14-stamina-display.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-15-GOLD-DISPLAY","page":"福利活动框","path":"GoldIcon3/GoldNumBg/Num","visibleCondition":"公共顶部栏可见","cocosCallback":"WelfareActivityUI:ShowMoney","protocol":"shared currency authority","unityBinding":"authoritative gold display","successEvidence":"current Cocos unchanged-gold and Unity batch evidence","failureEvidence":"领取不得改变金币","reconnectEvidence":"重登录一致","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-15-GOLD-DISPLAY-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-15-gold-display.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"STAMINA-16-PREMIUM-DISPLAY","page":"福利活动框","path":"GoldIcon4/GoldNumBg/Num","visibleCondition":"公共顶部栏可见","cocosCallback":"WelfareActivityUI:ShowTongbao","protocol":"op=3 paid claim causes -20 premium","unityBinding":"authoritative premium display","successEvidence":"current Cocos exact -20/no-mutation rejection and Unity batch evidence","failureEvidence":"取消/拒绝不变化","reconnectEvidence":"重登录一致","cocosEvidence":".local/ui-fidelity/StaminaClaim/cocos/g1-20260804/STAMINA-16-PREMIUM-DISPLAY-UID7200057.png","unityEvidence":"build/ui-migration/stamina-control-stamina-16-premium-display.png","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true}
+  ],
+  "g6Audit": {
+    "userId": 7200057,
+    "roleId": 1000115,
+    "screenshotSize": "1334x750",
+    "placeholderCount": 0,
+    "duplicateUidCount": 0,
+    "seriousErrorCount": 0,
+    "automationScreenshotCount": 16,
+    "summary": ".local/unity-validation/staminaclaim-fixed-account-latest.json",
+    "visualReport": ".local/ui-fidelity/StaminaClaim/compare/g5-20260804/report.json",
+    "fixtureContract": "reversible-stamina-claim-fixed-account",
+    "fixtureResidueCount": 0,
+    "bootstrapIdempotenceSha256": "FA73F3DB609F18F054EE5CDB3699A3BDEED12A607F97EF4638317DC29E01DDA3",
+    "checkedUtc": "2026-08-04T06:22:58.2905346Z"
+  }
+}

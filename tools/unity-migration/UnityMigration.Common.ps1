@@ -265,6 +265,8 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($cocos, "mode", "observe-one-action-refresh-then-diagnose"),
         @($cocos, "approvalMode", "routine-project-actions-preapproved"),
         @($cocos, "ledgerWriter", "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1"),
+        @($cocos, "evidenceLifecycleTool", "tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1"),
+        @($cocos, "standardClientCrop", "1,26,1334,750,no-scale"),
         @($unity, "standardRunner", "tools/unity-migration/Run-UnityModuleValidation.ps1"),
         @($unity, "fixedAccountRunner", "tools/unity-migration/Run-UnityFixedAccountValidation.ps1"),
         @($unity, "runtimeValidationMode", "batch-only"),
@@ -287,6 +289,9 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($cocos, "forbidPowerShellUiAutomationMix"),
         @($cocos, "routineActionsPreapproved"),
         @($cocos, "highRiskConfirmationsRemain"),
+        @($cocos, "requireTransportPreflightBeforeServices"),
+        @($cocos, "requireFixedIdentityBeforeCapture"),
+        @($cocos, "freezeReusableG1Baseline"),
         @($unity, "requireRegisteredArtifactsBeforeG3"),
         @($unity, "requireDataPreflightBeforeFullRun"),
         @($sequence, "requireCurrentCocosBeforeG2"),
@@ -295,11 +300,15 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($sequence, "requireG5ContractBeforeFullRun"),
         @($sequence, "visualReplayIsNotG5Evidence"),
         @($sequence, "requireTwoBuildBatchRunsForG6"),
+        @($sequence, "reuseG1CocosAtG5ByDefault"),
+        @($sequence, "recaptureOnlyInvalidatedCocosStates"),
         @($iteration, "recordEveryFailure"),
         @($iteration, "requireFailureRootCause"),
         @($iteration, "requireResolutionAndIterationEvidenceBeforeG6"),
         @($iteration, "autoSummarizeAtG6"),
-        @($iteration, "requireToolchainTestForPolicyIteration")
+        @($iteration, "requireToolchainTestForPolicyIteration"),
+        @($iteration, "requireFileBackedEvidenceAtResolution"),
+        @($iteration, "retrospectiveUsesEffectiveRootCause")
     )) {
         $value = Get-UnityMigrationPropertyValue -Object $rule[0] -Name $rule[1] -Default $null
         if ($value -isnot [bool] -or -not $value) {
@@ -413,6 +422,29 @@ function Get-UnityMigrationOperationLedgerPath {
     return Join-Path $Root ".local/unity-validation/$($Module.ToLowerInvariant())-operation-ledger.json"
 }
 
+function Get-UnityMigrationVerifiedEvidenceFiles {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string[]]$References
+    )
+    $verified = New-Object System.Collections.Generic.List[string]
+    foreach ($evidencePath in @($References)) {
+        $reference = [string]$evidencePath
+        $candidates = @($reference)
+        if ($reference -match '^(?<path>.+):\d+(?:-\d+)?$') {
+            $candidates = @([string]$Matches.path, $reference)
+        }
+        foreach ($candidate in $candidates) {
+            $resolved = Resolve-UnityMigrationPath -Root $Root -Path $candidate
+            if (Test-Path -LiteralPath $resolved -PathType Leaf) {
+                $verified.Add($resolved)
+                break
+            }
+        }
+    }
+    return @($verified)
+}
+
 function Add-UnityMigrationOperationRecord {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -442,6 +474,12 @@ function Add-UnityMigrationOperationRecord {
     if ($Outcome -eq "Supplemented" -and
         (-not $RelatedRecordId -or -not $Resolution -or -not $IterationAction -or $IterationEvidence.Count -eq 0)) {
         throw "Supplemented operation records require -RelatedRecordId, -Resolution, -IterationAction and -IterationEvidence."
+    }
+    if ($Outcome -in @("Resolved", "Supplemented")) {
+        $verifiedEvidence = @(Get-UnityMigrationVerifiedEvidenceFiles -Root $Root -References $IterationEvidence)
+        if ($verifiedEvidence.Count -ne $IterationEvidence.Count) {
+            throw "$Outcome operation records require every -IterationEvidence item to resolve to an existing file. Text-only evidence must be written to a durable artifact first."
+        }
     }
     if (-not $Path) { $Path = Get-UnityMigrationOperationLedgerPath -Root $Root -Module $Module }
     $resolvedPath = Resolve-UnityMigrationPath -Root $Root -Path $Path
@@ -553,27 +591,29 @@ function Get-UnityMigrationRetrospectiveFailures {
         }
         if ($RequireEvidenceFiles) {
             if (-not $Root) { throw "-RequireEvidenceFiles requires -Root." }
-            $verifiedEvidenceFiles = New-Object System.Collections.Generic.List[string]
-            foreach ($evidencePath in $evidenceReferences) {
-                $reference = [string]$evidencePath
-                $candidates = @($reference)
-                if ($reference -match '^(?<path>.+):\d+(?:-\d+)?$') {
-                    $candidates = @([string]$Matches.path, $reference)
-                }
-                foreach ($candidate in $candidates) {
-                    $resolvedEvidence = Resolve-UnityMigrationPath -Root $Root -Path $candidate
-                    if (Test-Path -LiteralPath $resolvedEvidence -PathType Leaf) {
-                        $verifiedEvidenceFiles.Add($resolvedEvidence)
-                        break
-                    }
-                }
-            }
+            $verifiedEvidenceFiles = @(Get-UnityMigrationVerifiedEvidenceFiles -Root $Root -References $evidenceReferences)
             if ($verifiedEvidenceFiles.Count -eq 0) {
                 $failures.Add("Failure '$id' has no verifiable iteration evidence file.")
             }
         }
     }
     return @($failures)
+}
+
+function Get-UnityMigrationEffectiveRootCause {
+    param(
+        [Parameter(Mandatory = $true)]$FailedRecord,
+        [Parameter(Mandatory = $true)][object[]]$ResolutionRecords
+    )
+    $recordRootCause = [string](Get-UnityMigrationPropertyValue -Object $FailedRecord -Name "rootCause" -Default "")
+    $resolved = @($ResolutionRecords | Where-Object {
+        [string]$_.relatedRecordId -eq [string]$FailedRecord.recordId
+    })
+    if (($recordRootCause -eq "pending-diagnosis" -or -not $recordRootCause) -and
+        $resolved.Count -eq 1 -and [string]$resolved[0].resolution) {
+        return [string]$resolved[0].resolution
+    }
+    return $recordRootCause
 }
 
 function Get-UnityMigrationOperationResolutionAudit {
@@ -677,6 +717,16 @@ function New-UnityMigrationRetrospective {
     $failedRecords = @($records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") })
     $resolutionRecords = @($records | Where-Object { [string]$_.outcome -eq "Resolved" })
     $supplementRecords = @($records | Where-Object { [string]$_.outcome -eq "Supplemented" })
+    $failureRows = @($failedRecords | ForEach-Object {
+        $failed = $_
+        $recordRootCause = [string](Get-UnityMigrationPropertyValue -Object $failed -Name "rootCause" -Default "")
+        $effectiveRootCause = Get-UnityMigrationEffectiveRootCause -FailedRecord $failed -ResolutionRecords $resolutionRecords
+        [pscustomobject]@{
+            recordId = [string]$failed.recordId
+            rootCause = $recordRootCause
+            effectiveRootCause = $effectiveRootCause
+        }
+    })
     $summary = [pscustomobject][ordered]@{
         schemaVersion = 1
         module = $Module
@@ -686,9 +736,12 @@ function New-UnityMigrationRetrospective {
         failedOrBlockedCount = $failedRecords.Count
         resolvedCount = $resolutionRecords.Count
         supplementedCount = $supplementRecords.Count
+        pendingDiagnosisCount = @($failureRows | Where-Object {
+            -not [string]$_.effectiveRootCause -or [string]$_.effectiveRootCause -eq "pending-diagnosis"
+        }).Count
         unresolvedCount = $unresolved.Count
         unresolved = @($unresolved)
-        failureGroups = @($failedRecords | Group-Object rootCause | ForEach-Object {
+        failureGroups = @($failureRows | Group-Object effectiveRootCause | ForEach-Object {
             [pscustomobject]@{ rootCause = $_.Name; count = $_.Count; recordIds = @($_.Group.recordId) }
         })
         iterations = @($resolutionRecords | ForEach-Object {
@@ -1608,6 +1661,146 @@ function Invoke-UnityMigrationValidationData {
 function Test-UnityMigrationPort {
     param([Parameter(Mandatory = $true)][int]$Port)
     return $null -ne (Get-UnityMigrationTcpListenerPid -Port $Port)
+}
+
+function Get-UnityMigrationScenarioRuntimeFlags {
+    param([Parameter(Mandatory = $true)]$Scenario)
+    $flags = New-Object System.Collections.Generic.List[string]
+    foreach ($flag in @((Get-UnityMigrationPropertyValue -Object $Scenario -Name "flags" -Default @()))) {
+        if ([string]$flag -and -not $flags.Contains([string]$flag)) { $flags.Add([string]$flag) }
+    }
+    $network = Get-UnityMigrationPropertyValue -Object $Scenario -Name "networkValidation" -Default $null
+    if ($null -ne $network) {
+        $disableAutoReconnect = Get-UnityMigrationPropertyValue -Object $network -Name "disableAutoReconnect" -Default $false
+        $showReconnectDialog = Get-UnityMigrationPropertyValue -Object $network -Name "showReconnectDialog" -Default $false
+        if (($disableAutoReconnect -isnot [bool]) -or ($showReconnectDialog -isnot [bool])) {
+            throw "Scenario networkValidation flags must be boolean."
+        }
+        if ($disableAutoReconnect -or $showReconnectDialog) {
+            $managedFlag = "-projectXScenarioManagedReconnect"
+            if (-not $flags.Contains($managedFlag)) { $flags.Add($managedFlag) }
+        }
+    }
+    return @($flags)
+}
+
+function Get-UnityMigrationCocosPreflightFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Evidence,
+        [Parameter(Mandatory = $true)][string]$Module
+    )
+    $failures = New-Object System.Collections.Generic.List[string]
+    if ([string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "module" -Default "") -ine $Module) {
+        $failures.Add("Cocos preflight module mismatch.")
+    }
+    foreach ($name in @("transportReady", "windowListed", "inputReady")) {
+        if (-not [bool](Get-UnityMigrationPropertyValue -Object $Evidence -Name $name -Default $false)) {
+            $failures.Add("Cocos preflight $name must be true.")
+        }
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "tool" -Default "") -ne "computer-use@openai-bundled" -or
+        [string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "targetProcess" -Default "") -ne "ProjectX.exe" -or
+        [string](Get-UnityMigrationPropertyValue -Object $Evidence -Name "targetWindow" -Default "") -notlike "*Cocos Simulator*") {
+        $failures.Add("Cocos preflight must identify the official Computer Use ProjectX.exe/Cocos Simulator target.")
+    }
+    $crop = Get-UnityMigrationPropertyValue -Object $Evidence -Name "captureContract" -Default $null
+    if ($null -eq $crop -or [string]$crop.mode -ne "window-client-crop-no-scale" -or
+        [int]$crop.clientX -ne 1 -or [int]$crop.clientY -ne 26 -or
+        [int]$crop.width -ne 1334 -or [int]$crop.height -ne 750 -or -not [bool]$crop.noScale) {
+        $failures.Add("Cocos preflight must freeze the current Simulator 1,26 -> 1334x750 no-scale client crop.")
+    }
+    return @($failures)
+}
+
+function Assert-UnityMigrationCocosPreflight {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+    $entry = Import-UnityMigrationJson -Root $Root -Path $Path
+    $failures = @(Get-UnityMigrationCocosPreflightFailures -Evidence $entry.Value -Module $Module)
+    if ($failures.Count -gt 0) { throw "Cocos Computer Use preflight is invalid: $($failures -join '; ')" }
+    return $entry.Value
+}
+
+function Assert-UnityMigrationCocosIdentityEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Matrix
+    )
+    $entry = Import-UnityMigrationJson -Root $Root -Path $Path
+    $scope = Get-UnityMigrationPropertyValue -Object $Matrix -Name "scope" -Default $null
+    $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
+    $expectedRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    if ($expectedUserId -eq 0 -or $expectedRoleId -eq 0) {
+        throw "Module '$Module' matrix scope must freeze fixedUserId/fixedRoleId before G1."
+    }
+    if ([string]$entry.Value.module -ine $Module -or -not [bool]$entry.Value.success -or
+        [uint32]$entry.Value.userId -ne $expectedUserId -or [uint32]$entry.Value.roleId -ne $expectedRoleId) {
+        throw "Cocos identity evidence does not prove the frozen $expectedUserId/$expectedRoleId identity."
+    }
+    return $entry.Value
+}
+
+function Get-UnityMigrationCocosBaselineFingerprint {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$G5
+    )
+    $lines = New-Object System.Collections.Generic.List[string]
+    foreach ($path in @((Get-UnityMigrationPropertyValue -Object $G5 -Name "cocosBaselineInputs" -Default @()))) {
+        $reference = [string]$path
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $reference
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+            throw "Cocos baseline input is missing: $reference"
+        }
+        $lines.Add("$reference=$((Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash)")
+    }
+    if ($lines.Count -eq 0) { throw "G5 contract must freeze non-empty cocosBaselineInputs before G1." }
+    $bytes = [Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))
+    $stream = [IO.MemoryStream]::new($bytes)
+    try { return (Get-FileHash -Algorithm SHA256 -InputStream $stream).Hash }
+    finally { $stream.Dispose() }
+}
+
+function Assert-UnityMigrationCocosBaseline {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [switch]$RequireCurrentInputs
+    )
+    $entry = Import-UnityMigrationJson -Root $Root -Path $Path
+    $contracts = (Import-UnityMigrationJson -Root $Root -Path "tools/unity-migration/module-evidence-contracts.json").Value
+    $matches = @($contracts.modules | Where-Object { $_.module -ieq $Module })
+    if ($matches.Count -ne 1 -or $null -eq $matches[0].g5) { throw "Module '$Module' has no unique G5 contract." }
+    $g5 = $matches[0].g5
+    if ([string]$entry.Value.module -ine $Module -or [string]$entry.Value.sourceGate -ne "G1" -or
+        -not [bool]$entry.Value.reuseEligible) {
+        throw "Cocos baseline must be a G1 reusable baseline for module '$Module'."
+    }
+    if ([uint32]$entry.Value.userId -eq 0 -or [uint32]$entry.Value.roleId -eq 0) {
+        throw "Cocos baseline has no frozen identity."
+    }
+    $states = @($entry.Value.states)
+    if ($states.Count -ne @($g5.pairs).Count) { throw "Cocos baseline state count does not match the G5 pair contract." }
+    foreach ($state in $states) {
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path ([string]$state.path)
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) { throw "Cocos baseline image is missing: $($state.path)" }
+        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash -ne [string]$state.sha256) {
+            throw "Cocos baseline image changed after G1: $($state.path)"
+        }
+    }
+    if ($RequireCurrentInputs) {
+        $current = Get-UnityMigrationCocosBaselineFingerprint -Root $Root -G5 $g5
+        if ([string]$entry.Value.inputFingerprint -ne $current) {
+            throw "Cocos baseline inputs changed after G1; recapture only the invalidated Cocos states and freeze a new baseline."
+        }
+    }
+    return $entry.Value
 }
 
 function Get-UnityMigrationMcpSseMessage {

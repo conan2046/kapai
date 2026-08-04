@@ -18,7 +18,7 @@
 | 邮件 | `MAIL.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 商城 | `SHOP.md` | 功能第一阶段完成；视觉 1:1 待重验 |
 | 玩法商店 | `GAMEPLAY_SHOPS.md` | `G0-G6 passed / 59/59 complete`；12 类 `/221` 商店、6 组双端视觉、固定账号恢复与 Bootstrap 幂等通过；父玩法资源产出链不在本模块声明内 |
-| 体力领取 | `STAMINACLAIM.md` | `/321 op=2` 三档权威状态已通过门禁；领取写操作禁用 |
+| 体力领取 | `STAMINACLAIM.md` | `G0-G6 passed / 16/16 complete`；真实 `/321 op=2/3`、三档单次领取、补领/拒绝、13/13 语义、8 组双端视觉、三账号精确恢复与 Bootstrap 幂等通过 |
 | 资源找回 | `RESOURCERECOVERY.md` | `/52 op=1` 七条权威记录已通过门禁；找回写操作禁用 |
 | 支付前置 | `PAYMENT.md` | P2 首个前置；仅完成设计冻结，源码尚未实现 |
 | 全部基金 | `FUNDS.md` | 成长/活跃基金 `/222 op=83/94` 双页权威状态已通过；购买/领取写操作禁用 |
@@ -34,7 +34,7 @@
 | 决战昆仑 | `KUNLUN.md` | `/213 op=25`、真实背景/九宫格、权威空匹配状态已通过；战斗与动态模型延后 |
 | 血战到底 | `BLOOD_FIGHT.md` | `/323 op=1`、真实主布局与权威空状态已通过；排行、战斗与特效延后 |
 | 游历三界 | `YOULI.md` | 逻辑通过；Cocos 基准与差异报告缺失，视觉待修 |
-| 封神列传 | `FENGSHEN_STORY.md` | 逻辑通过；Cocos 基准与差异报告缺失，视觉待修 |
+| 封神列传 | `FENGSHEN_STORY.md` | `G0-G6 passed / 25/25 complete`；真实挑战/奖励、12 组双端视觉、精确恢复与 Bootstrap 幂等通过 |
 | 竞技场 | `ARENA.md` | 逻辑 Runner 已通过；Cocos 基准与差异报告缺失，视觉待修 |
 | Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |
 | ImodAnim 兼容播放 | `IMOD_ANIMATION.md` / `IMOD_ANIMATION_CALLS.md` | 885 个可播放资源全动作验证；7 个源资产缺口 |

@@ -148,7 +148,14 @@ function WanFaEntranceUI:enterFunction( sender )
     -- body
     local functionId = sender:getTag()
     print("enterFunction", functionId)
-    Utils:OpenFunction(functionId)
+    -- function_id=18 collides with the main HUD activity enum. The gameplay
+    -- entry owns the stamina-claim destination and must bypass the activity
+    -- list empty check in Utils:OpenFunction(18).
+    if functionId == AppDef.EModuleID.EMID_ACTIVITY_Tili_REVERT then
+        Utils:InitUI("WelfareActivity.WelfareActivityUI", AppDef.UIType.SpecialLayer, 1)
+    else
+        Utils:OpenFunction(functionId)
+    end
     self:CloseUI()
 end
 

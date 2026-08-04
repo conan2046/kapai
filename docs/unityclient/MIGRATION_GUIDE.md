@@ -122,13 +122,15 @@
 
 ### G1 Cocos 运行链取证
 
-打印 `入口 → Lua回调 → Utils:OpenFunction/InitUI → View/Controller → CSB/CSD → 动态节点/Timeline/Imod → 协议`。从真实入口取得每个关键状态的 Cocos 截图/视频和日志。迁移操作统一走 `computer-use@openai-bundled`；用户入口可显示为 AdsPower Browser 插件链接，但自动化目标必须唯一匹配原生 `ProjectX.exe / Cocos Simulator`，不得操作 AdsPower 浏览器窗口。每次观察后只执行一个状态派生动作并立即刷新；首次未到达立即记录失败并转源码、日志和协议诊断。
+打印 `入口 → Lua回调 → Utils:OpenFunction/InitUI → View/Controller → CSB/CSD → 动态节点/Timeline/Imod → 协议`。从真实入口取得每个关键状态的 Cocos 截图/视频和日志。迁移操作统一走 `computer-use@openai-bundled`；用户入口可显示为 AdsPower Browser 插件链接，但自动化目标必须唯一匹配原生 `ProjectX.exe / Cocos Simulator`，不得操作 AdsPower 浏览器窗口。启动 MySQL、夹具和客户端前先落 Computer Use transport preflight；再按矩阵 `fixedUserId/fixedRoleId` 启动固定身份客户端，并由本轮新增服务端日志回读确认身份。窗口取证必须完成唯一 `ProjectX.exe`、当前 `WindowId`、输入可用和原始 `1336×777` 检查，统一无缩放裁切 `(1,26,1334,750)`。每次观察后只执行一个状态派生动作并立即刷新；首次未到达立即记录失败并转源码、日志和协议诊断。
 
-退出条件：所有冻结状态有有效 Cocos 证据；截图窗口、标题、账号、角色、步骤、分辨率和目标节点一致；无猜测链路；G1 门禁已校验 `-CocosAutomationLedgerPath`。
+G1 一次采齐预计进入 G5 的全部 Cocos 状态后，用中央生命周期工具冻结图片 SHA、状态输入和固定身份指纹。该基线属于本轮新鲜证据，不等同于历史截图；只要源码、资源、账号、夹具、步骤、分辨率和稳定帧输入指纹未变化，G5 默认直接复用，不再重复操作 Cocos。
+
+退出条件：所有冻结状态有有效 Cocos 证据；截图窗口、标题、账号、角色、步骤、分辨率和目标节点一致；无猜测链路；G1 门禁同时校验操作台账、Computer Use preflight、固定身份回读和可复用基线。
 
 ### G2 迁移设计
 
-确认旧 Lua 权威数据、协议/op/字段/错误码、服务端处理、配置和资源、Unity Transform 映射、Lua/C#边界、重连与切号策略。控件矩阵 `sourceAudit` 必须分别关闭入口闭包、共享协议所有权、配置→资源闭包和运行时 Transform 四项检查；源码确实缺失的内容逐项登记 `id/handling/evidence`，不得靠猜路径或临场占位。
+确认旧 Lua 权威数据、协议/op/字段/错误码、服务端处理、配置和资源、Unity Transform 映射、Lua/C#边界、重连与切号策略。控件矩阵 `sourceAudit` 必须分别关闭入口闭包、共享协议所有权、配置→资源闭包和运行时 Transform 四项检查；源码确实缺失的内容逐项登记 `id/handling/evidence`，不得靠猜路径或临场占位。若 G1 后变更了任一 Cocos 基线输入，必须显式失效受影响状态并只补拍这些状态；未受影响状态继续复用原 SHA。
 
 退出条件：三方证据齐全；资源类型与播放语义明确；每个控件都有实现与验证设计；`sourceAudit` 机器门禁通过。
 
@@ -146,7 +148,7 @@
 
 ### G5 视觉对照
 
-固定同账号、同数据、同步骤、同分辨率和同稳定帧。生成 Cocos/Unity 原图、并排图、50%叠加图、增强差异图和差异报告；逐项核对文字、图片、位置、尺寸、层级、裁剪、动画、点击态和反馈。
+固定同账号、同数据、同步骤、同分辨率和同稳定帧。G5 首先校验 G1 基线的图片 SHA 与状态输入指纹；通过则直接复用该轮 Cocos 原图，只重新取得 Unity 稳定帧并生成并排图、50%叠加图、增强差异图和差异报告。仅当具体状态的源码、资源、账号、夹具、步骤、分辨率或稳定帧输入改变时，才重新取得该状态的 Cocos 原图并刷新基线；不得为了形式重复跑一遍全部 Cocos。逐项核对文字、图片、位置、尺寸、层级、裁剪、动画、点击态和反馈。
 
 截图必须为原生客户区 `1334×750`，Windows 100%缩放，禁止桌面截图或二次放大。`Image`、CSB Timeline、Imod 不可互相替代；`CreateAnimModel + PlayStand` 必须迁真实资源、动作号、循环、缩放和挂点。
 
@@ -186,6 +188,7 @@ Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失�
 |---|---|
 | `Get-ProtocolEvidence.ps1` | 提取服务端、Cocos、Unity、smoke协议证据 |
 | `New-UnityMigrationModule.ps1` | 默认生成规划文档、控件矩阵和 pending 门禁；`-IncludeImplementationSkeleton` 受 G2 前置门禁保护 |
+| `Invoke-UnityMigrationCocosEvidence.ps1` | 落 Computer Use transport/窗口预检、固定身份回读及可复用 G1 Cocos 基线 |
 | `Invoke-UnityMigrationGate.ps1` | 检查/落账 G0-G6 |
 | `Run-UnityModuleValidation.ps1` | 场景、夹具、Watchdog、结果和清理 |
 | `Run-UnityFixedAccountValidation.ps1` | 按模块契约执行固定账号快照、注入、真控件验证、精确恢复和重登录复核 |
@@ -207,8 +210,12 @@ Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失�
 python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-audit/generated
 ./tools/unity-migration/Get-ProtocolEvidence.ps1 -Module <Module>
 ./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0
+./tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1 -Module <Module> -Action RecordTransportPreflight
+./tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1 -Module <Module> -Action StartFixedClient
+./tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1 -Module <Module> -Action RecordWindowPreflight -WindowId <ComputerUseWindowId> -RawWidth 1336 -RawHeight 777 -InputReady
 ./tools/unity-migration/Update-UnityMigrationOperationLedger.ps1 -Module <Module> -Gate G1 -Category CocosAutomation -Tool computer-use@openai-bundled -Operation capture-control -Outcome Passed -TargetId <ControlId> -CapturePath .local/ui-fidelity/<Module>/cocos/<ControlId>.png -Width 1334 -Height 750 -Evidence .local/ui-fidelity/<Module>/cocos/<ControlId>.png
-./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G1 -Complete -CocosAutomationLedgerPath .local/unity-validation/<module>-cocos-automation-ledger.json -Evidence @('<module-doc>','<ledger>')
+./tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1 -Module <Module> -Action FreezeG1Baseline
+./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G1 -Complete -CocosAutomationLedgerPath .local/unity-validation/<module>-cocos-automation-ledger.json -CocosPreflightPath .local/unity-validation/<module>-cocos-preflight-latest.json -CocosIdentityPath .local/unity-validation/<module>-cocos-identity-latest.json -CocosBaselinePath .local/unity-validation/<module>-cocos-baseline-latest.json -Evidence @('<module-doc>','<ledger>','<preflight>','<identity>','<baseline>')
 ./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -ValidationMode Preflight
 ./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly
 ./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module>
@@ -217,7 +224,7 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
 
-动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`、实际触发控件 ID 和语义断言结果；声明 `controlCoverageRequired` 的场景必须与控件矩阵 ID 集合完全一致。验证器按 30 秒心跳区分总运行超时与无进展超时。Unity 编译预检既检查退出码也扫描最终日志；即使 Unity 退出 0，若出现恢复型 `Assembly-CSharp.dll` 共享锁，也必须归档首轮、关闭 owned ILPP/Bee child、只重跑同一预检一次，并要求最终日志严重错误为 0。批量读取验证结果统一使用共享 `Get-UnityMigrationValidationResultSummaries`；禁止临场拼接 `foreach {...} |`。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。Cocos 证据采集结束后必须重置 Computer Use Node 内核并确认 `cua_node`/`node_repl.exe` 残留为 0；G6 硬门禁会拒绝仍存活的 Computer Use 运行时。
+动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`、实际触发控件 ID 和语义断言结果；声明 `controlCoverageRequired` 的场景必须与控件矩阵 ID 集合完全一致。断线/重连不再维护 C# 模块名白名单，统一由场景 `networkValidation` 能力生成运行参数。验证器按 30 秒心跳区分总运行超时与无进展超时。Unity 编译预检既检查退出码也扫描最终日志；即使 Unity 退出 0，若出现恢复型 `Assembly-CSharp.dll` 共享锁，也必须归档首轮、关闭 owned ILPP/Bee child、只重跑同一预检一次，并要求最终日志严重错误为 0。批量读取验证结果统一使用共享 `Get-UnityMigrationValidationResultSummaries`；禁止临场拼接 `foreach {...} |`。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。Cocos 证据采集结束后必须重置 Computer Use Node 内核并确认 `cua_node`/`node_repl.exe` 残留为 0；G6 硬门禁会拒绝仍存活的 Computer Use 运行时。
 
 提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。固定账号和 G5 状态对统一登记在 `module-evidence-contracts.json`；夹具必须有注入前快照、`setupAssertSql/cleanupAssertSql` 或等价硬断言、`finally` 恢复及重登录后复核。固定账号模块在 G3 后、启动 Unity 前必须运行 `Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly`，按 `dataPreflight.requirements` 完成数据快照、确定性准备、硬断言、精确恢复和残留清零；完整验证只接受账号、适配器 SHA 和数据需求指纹匹配的预演凭证。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
 
@@ -251,8 +258,8 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 - 标准路径：`.local/unity-validation/<module>-operation-ledger.json`。失败发生即记录，不允许迁移完成后凭记忆补写。
 - Windows 下 `rg` 的路径参数必须是已解析的字面目录/文件；文件筛选统一写成 `rg <pattern> <literal-directory> -g '*.ps1'`，禁止把 `*.ps1`、`user.*` 等通配符直接作为路径参数。中央回归 `Assert-UnityMigrationRgPathArgument` 会拒绝此类参数。
 - `Failed/Blocked` 必须包含原始错误和根因；根因暂未知时只能写 `pending-diagnosis`，该状态会阻塞 G6。
-- 修复后用同一工具追加 `Resolved`，关联失败 `recordId`，并填写解决方式、可复用迭代动作及证据。迭代优先进入中央脚本、`validation-scenarios.json`、`AGENTS.md` 和工具链回归测试；模块特例进入矩阵/场景。
-- G6 自动生成 `.local/unity-validation/<module>-retrospective-latest.json`，按根因聚类所有失败及迭代；任一失败未诊断、未解决或证据缺失时门禁失败。
+- 修复后用同一工具追加 `Resolved`，关联失败 `recordId`，并填写解决方式、可复用迭代动作及已存在的文件证据；纯文字说明或事后承诺路径在写账时立即失败。迭代优先进入中央脚本、`validation-scenarios.json`、`AGENTS.md` 和工具链回归测试；模块特例进入矩阵/场景。
+- G6 自动生成 `.local/unity-validation/<module>-retrospective-latest.json`，按解决记录的有效根因聚类所有失败及迭代，不再沿用失败初记的 `pending-diagnosis`；任一失败未形成有效诊断、未解决或文件证据缺失时门禁失败。
 - 下一模块 G0 先读取上一模块复盘；命中同类根因时直接执行已固化路径，不再重复试错。
 | 到 Unity 阶段才发现账号无数据 | G3 前登记固定账号合同；Full 前强制 `-DataPreflightOnly` 凭证 |
 | 小改一次就重跑完整闭环 | 先批量收敛视觉差异；Preflight/VisualReplay 分流，最终只跑计划内 Full、G5、G6 |

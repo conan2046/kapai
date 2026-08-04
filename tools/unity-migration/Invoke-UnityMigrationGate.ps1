@@ -5,6 +5,9 @@ param(
     [string[]]$Evidence = @(),
     [string]$ControlMatrixPath = "",
     [string]$CocosAutomationLedgerPath = "",
+    [string]$CocosPreflightPath = "",
+    [string]$CocosIdentityPath = "",
+    [string]$CocosBaselinePath = "",
     [string]$SummaryPath = "",
     [switch]$Complete,
     [string]$RegistryPath = "tools/unity-migration/migration-gates.json"
@@ -75,9 +78,23 @@ if ($Gate -eq "G1") {
     if (-not (Test-GateEvidenceContainsPath $CocosAutomationLedgerPath)) {
         throw "G1 Evidence must include the Cocos automation ledger path."
     }
+    foreach ($required in @(
+        @("CocosPreflightPath", $CocosPreflightPath),
+        @("CocosIdentityPath", $CocosIdentityPath),
+        @("CocosBaselinePath", $CocosBaselinePath)
+    )) {
+        if (-not [string]$required[1]) { throw "Completing G1 requires -$($required[0])." }
+        if (-not (Test-GateEvidenceContainsPath ([string]$required[1])) {
+            throw "G1 Evidence must include -$($required[0])."
+        }
+    }
     $attemptCount = Assert-UnityMigrationCocosAutomationLedger -Root $root -Module $Module `
         -Path $CocosAutomationLedgerPath
-    Write-Host "$Module G1 Cocos automation ledger passed: $attemptCount unique target(s)."
+    $matrix = (Import-UnityMigrationJson -Root $root -Path ([string]$moduleConfig.controlMatrix)).Value
+    Assert-UnityMigrationCocosPreflight -Root $root -Module $Module -Path $CocosPreflightPath | Out-Null
+    Assert-UnityMigrationCocosIdentityEvidence -Root $root -Module $Module -Path $CocosIdentityPath -Matrix $matrix | Out-Null
+    $baseline = Assert-UnityMigrationCocosBaseline -Root $root -Module $Module -Path $CocosBaselinePath -RequireCurrentInputs
+    Write-Host "$Module G1 Cocos evidence passed: controls=$attemptCount reusableG5States=$(@($baseline.states).Count)."
 }
 if ($Gate -eq "G2") {
     $declaredMatrix = [string](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "controlMatrix" -Default "")
@@ -120,6 +137,9 @@ if ($Gate -eq "G6") {
     $retrospective = New-UnityMigrationRetrospective -Root $root -Module $Module -RequireEvidenceFiles
     if ([int]$retrospective.Summary.unresolvedCount -gt 0) {
         throw "G6 retrospective has unresolved failures: $($retrospective.Summary.unresolved -join '; ')"
+    }
+    if ([int]$retrospective.Summary.pendingDiagnosisCount -gt 0) {
+        throw "G6 retrospective still contains pending effective diagnoses: $($retrospective.Summary.pendingDiagnosisCount)"
     }
     $retrospectiveRelative = [IO.Path]::GetRelativePath($root, $retrospective.Path).Replace('\', '/')
     $Evidence = @($Evidence) + @($retrospectiveRelative)

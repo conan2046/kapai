@@ -932,7 +932,7 @@
     {
       "key": "FengShenStory",
       "displayName": "封神列传",
-      "status": "logic-validated-visual-pending",
+      "status": "g0-g6-passed",
       "protocols": [
         320
       ],
@@ -941,11 +941,18 @@
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlevel.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/fengshenliezhuan/fengshenliezhuanlevel.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/MessageBoxLayer.prefab"
       ],
       "configs": [
-        "server/config/json/function.json"
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/bigmap_dat.lua",
+        "client/ProjectX/src/ConfigData/maplist_dat.lua",
+        "client/ProjectX/src/core/AppUIDef.lua"
       ],
+      "controlMatrix": "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
       "mutatesServer": true,
       "validationFlags": [
         "-projectXFengShenStoryValidation"
@@ -954,14 +961,18 @@
         "build/ui-migration/bootstrap-fengshen-story.png"
       ],
       "visualFidelity": {
-        "status": "pending-cocos-baseline",
-        "cocosScreenshots": [],
-        "unityScreenshots": [
-          "build/ui-migration/bootstrap-fengshen-story.png"
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/FengShenStory/cocos/g1-20260802"
         ],
-        "diffReports": [],
-        "flowEvidence": "",
-        "uiMapping": ""
+        "unityScreenshots": [
+          ".local/ui-fidelity/FengShenStory/unity/g5-20260804"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/FengShenStory/compare/g5-20260804/report.json"
+        ],
+        "flowEvidence": ".local/unity-validation/fengshenstory-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json"
       },
       "document": "docs/unityclient/modules/FENGSHEN_STORY.md"
     },
@@ -1147,7 +1158,7 @@
     {
       "key": "StaminaClaim",
       "displayName": "体力领取",
-      "status": "logic-validated-visual-deferred",
+      "status": "g0-g6-passed",
       "protocols": [
         321
       ],
@@ -1161,12 +1172,24 @@
       "configs": [
         "server/config/json/stamina.json"
       ],
-      "mutatesServer": false,
+      "controlMatrix": "docs/unityclient/matrices/STAMINA_CLAIM_CONTROLS.json",
+      "mutatesServer": true,
       "validationFlags": [
         "-projectXStaminaClaimValidation"
       ],
       "screenshots": [
-        "build/ui-migration/bootstrap-stamina-claim.png"
+        "build/ui-migration/bootstrap-stamina-claim-mixed.png",
+        "build/ui-migration/bootstrap-stamina-claim-resource-tab.png",
+        "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png",
+        "build/ui-migration/bootstrap-stamina-claim-paid-success.png",
+        "build/ui-migration/bootstrap-stamina-claim-slot2.png",
+        "build/ui-migration/bootstrap-stamina-claim-all-claimed.png",
+        "build/ui-migration/bootstrap-stamina-claim-duplicate.png",
+        "build/ui-migration/bootstrap-stamina-claim-disconnected.png",
+        "build/ui-migration/bootstrap-stamina-claim-reconnected.png",
+        "build/ui-migration/bootstrap-stamina-claim-account-isolation.png",
+        "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png",
+        "build/ui-migration/bootstrap-stamina-claim-over-cap.png"
       ],
       "document": "docs/unityclient/modules/STAMINACLAIM.md"
     },

@@ -5,6 +5,8 @@
     { "key": "isolated-role", "roleMode": "isolated", "mutatesServer": true, "cleanup": "disposable-role" },
     { "key": "isolated-role-friend-peers", "roleMode": "isolated", "mutatesServer": true, "cleanup": "disposable-role", "adapter": "Friend" },
     { "key": "isolated-role-team-peer", "roleMode": "isolated", "mutatesServer": true, "cleanup": "disposable-role", "adapter": "Team" },
-    { "key": "isolated-role-global-snapshot", "roleMode": "isolated", "mutatesServer": true, "cleanup": "manifest-snapshot-rollback" }
+    { "key": "isolated-role-global-snapshot", "roleMode": "isolated", "mutatesServer": true, "cleanup": "manifest-snapshot-rollback" },
+    { "key": "reversible-fengshen-story-fixed-account", "roleMode": "fixed-account", "mutatesServer": true, "cleanup": "snapshot-relogin-restore-cleanup-assert", "adapter": "FengShenStory" },
+    { "key": "reversible-stamina-claim-fixed-account", "roleMode": "fixed-account", "mutatesServer": true, "cleanup": "snapshot-relogin-restore-cleanup-assert", "adapter": "StaminaClaim" }
   ]
 }

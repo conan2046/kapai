@@ -1,32 +1,71 @@
 local Protocol = require("Protocol")
-local M = { validation = false }
+local M = { validation = false, validationStarted = false }
+
+local function sendOperation(op)
+    local message = Protocol.newMessage(Protocol.WORLD_STAGE)
+    message:WriteByte(op)
+    Bridge:Send(message)
+end
 
 function M.onClick()
-    M.validation = Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation")
+    M.validation = Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") and not M.validationStarted
     Bridge:ShowFengShenStory()
-    local message = Protocol.newMessage(Protocol.WORLD_STAGE)
-    message:WriteByte(24)
-    Bridge:Send(message)
+    sendOperation(24)
     Bridge:SetStatus("FengShenStory/320 op=24 requested from current WanFa route.")
+end
+
+function M.challenge()
+    sendOperation(25)
+    Bridge:SetStatus("FengShenStory/320 op=25 challenge requested from the current stage popup.")
 end
 
 function M.onPacket(command, message)
     if command ~= Protocol.WORLD_STAGE then return false end
     local startPosition = message.Position
     local op = message:ReadByte()
-    if op ~= 24 then
-        -- /320 is shared with World.  Leave unmatched packets intact for the
-        -- next controller instead of consuming their operation byte.
-        message.Position = startPosition
-        return false
+    if op == 24 then
+        local chapterId = message:ReadUInt()
+        local levelId = message:ReadUInt()
+        local count = message:ReadByte()
+        Bridge:SetFengShenStoryState(chapterId, levelId, count)
+        Bridge:SetStatus("FengShenStory/320 op=24 recv: chapter=" .. tostring(chapterId) .. ", level=" .. tostring(levelId) .. ", count=" .. tostring(count) .. ".")
+        if M.validation then
+            M.validation = false
+            M.validationStarted = true
+            Bridge:BeginFengShenStoryValidation()
+        end
+        return true
+    elseif op == 25 then
+        local succeeded = message:ReadByte() ~= 0
+        local errorMessage = ""
+        if not succeeded then errorMessage = message:ReadString() end
+        Bridge:SetFengShenStoryChallengeResult(succeeded, errorMessage)
+        return true
+    elseif op == 10 then
+        local chapterId = message:ReadUInt()
+        local levelId = message:ReadUInt()
+        local count = message:ReadByte()
+        local unlockedChapterId = message:ReadUInt()
+        local unlockedLevelId = message:ReadUInt()
+        Bridge:SetFengShenStoryFightPush(chapterId, levelId, count, unlockedChapterId, unlockedLevelId)
+        return true
+    elseif op == 26 then
+        Bridge:ClearFengShenStoryRewardPush()
+        local count = message:ReadByte()
+        for _ = 1, count do
+            local rewardType = message:ReadWord()
+            local rewardId = message:ReadUInt()
+            local amount = message:ReadUInt()
+            local displayId = rewardId > 0 and rewardId or rewardType
+            Bridge:PushFengShenStoryReward(rewardType, rewardId, amount, "奖励 #" .. tostring(displayId))
+        end
+        Bridge:ShowFengShenStoryRewardPush()
+        return true
     end
-    local chapterId = message:ReadUInt()
-    local levelId = message:ReadUInt()
-    local count = message:ReadByte()
-    Bridge:SetFengShenStoryState(chapterId, levelId, count)
-    Bridge:SetStatus("FengShenStory/320 op=24 recv: chapter=" .. tostring(chapterId) .. ", level=" .. tostring(levelId) .. ", count=" .. tostring(count) .. ".")
-    if M.validation then M.validation = false; Bridge:CompleteFengShenStoryValidation() end
-    return true
+
+    -- /320 is shared with World. Leave unmatched packets untouched.
+    message.Position = startPosition
+    return false
 end
 
 return M

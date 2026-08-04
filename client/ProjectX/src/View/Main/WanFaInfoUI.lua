@@ -106,7 +106,11 @@ function WanFaInfoUI:updateData( ... )
 
     self.m_enterButton:addClickEventListener(function ( sender )
         -- body
-        Utils:OpenFunction(self.m_id)
+        if self.m_id == AppDef.EModuleID.EMID_ACTIVITY_Tili_REVERT then
+            Utils:InitUI("WelfareActivity.WelfareActivityUI", AppDef.UIType.SpecialLayer, 1)
+        else
+            Utils:OpenFunction(self.m_id)
+        end
         self:CloseUI()
         Utils:DeleteUI("Main.WanFaEntranceUI")
     end)

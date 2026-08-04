@@ -20,13 +20,18 @@
       "mode": "observe-one-action-refresh-then-diagnose",
       "approvalMode": "routine-project-actions-preapproved",
       "ledgerWriter": "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1",
+      "evidenceLifecycleTool": "tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1",
       "maximumAttemptsPerTarget": 1,
       "requireAutomationLedger": true,
       "forbidDesktopCapture": true,
       "forbidHistoricalEvidence": true,
       "forbidPowerShellUiAutomationMix": true,
       "routineActionsPreapproved": true,
-      "highRiskConfirmationsRemain": true
+      "highRiskConfirmationsRemain": true,
+      "requireTransportPreflightBeforeServices": true,
+      "requireFixedIdentityBeforeCapture": true,
+      "freezeReusableG1Baseline": true,
+      "standardClientCrop": "1,26,1334,750,no-scale"
     },
     "unity": {
       "standardRunner": "tools/unity-migration/Run-UnityModuleValidation.ps1",
@@ -42,7 +47,9 @@
       "requireControlCoverageBeforeG4": true,
       "requireG5ContractBeforeFullRun": true,
       "visualReplayIsNotG5Evidence": true,
-      "requireTwoBuildBatchRunsForG6": true
+      "requireTwoBuildBatchRunsForG6": true,
+      "reuseG1CocosAtG5ByDefault": true,
+      "recaptureOnlyInvalidatedCocosStates": true
     },
     "iteration": {
       "operationLedgerPattern": ".local/unity-validation/{module}-operation-ledger.json",
@@ -51,7 +58,9 @@
       "requireFailureRootCause": true,
       "requireResolutionAndIterationEvidenceBeforeG6": true,
       "autoSummarizeAtG6": true,
-      "requireToolchainTestForPolicyIteration": true
+      "requireToolchainTestForPolicyIteration": true,
+      "requireFileBackedEvidenceAtResolution": true,
+      "retrospectiveUsesEffectiveRootCause": true
     }
   },
   "scenarios": [
@@ -64,6 +73,10 @@
         "-projectXLoginValidation",
         "-projectXLoginClosureValidation"
       ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-login-local.png",
@@ -522,6 +535,10 @@
       "flags": [
         "-projectXPlayerHudValidation"
       ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-main-hud.png",
@@ -654,7 +671,7 @@
             "HUD-56-EMPTY-FAILURE",
             "hud-control-matrix-56",
             "services.Options.PlayerHudValidation",
-            "services.Options.LoginClosureValidation || services.Options.PlayerHudValidation",
+            "services.Options.ScenarioManagedReconnect",
             "Player HUD reconnect confirmation."
           ]
         },
@@ -1428,6 +1445,10 @@
       "flags": [
         "-projectXGameplayValidation"
       ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-gameplay-hud.png",
@@ -1612,19 +1633,168 @@
     {
       "key": "fengshen-story-default",
       "module": "FengShenStory",
-      "fixture": "isolated-role",
+      "fixture": "reversible-fengshen-story-fixed-account",
+      "requiredGate": "G3",
       "flags": [
         "-projectXFengShenStoryValidation"
       ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-fengshen-story.png",
           "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-page-left.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-page-right.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-level-current.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-level-passed.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-level-locked.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-box-closed.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-box-opened.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-help.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-item-source.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-reward-push.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-disconnected.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-fengshen-story-account-isolation.png",
+          "lifecycle": "runtime"
         }
       ],
       "captureStates": [
-        "story"
-      ]
+        "main-current",
+        "page-left",
+        "page-right",
+        "level-current",
+        "level-passed",
+        "level-locked",
+        "box-closed",
+        "box-opened",
+        "help",
+        "item-source",
+        "reward-push",
+        "disconnected",
+        "account-isolation"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "fengshen-current-stage-authority",
+        "fengshen-mutation-restore",
+        "fengshen-chapter-reward-authority",
+        "fengshen-chapter-arrow-page",
+        "fengshen-protocol-ownership",
+        "fengshen-stage-three-state",
+        "fengshen-popup-lifecycle",
+        "fengshen-network-recovery",
+        "fengshen-account-isolation",
+        "fengshen-control-matrix-25"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/FengShenStory/FengShenStoryMainUI.lua",
+          "contains": [
+            "InitTableView",
+            "TopViewCellTouched",
+            "QueryFengShenStory(24)",
+            "OpenLevelUI"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+          "contains": [
+            "QueryFengShenStory(25)",
+            "PlayStand(0)",
+            "Common.PetFormationUI"
+          ]
+        },
+        {
+          "path": "server/src/user_guanqia.cpp",
+          "contains": [
+            "GetLieZhuanMsg",
+            "TiaoZhanLieZhuan",
+            "(uint8)10",
+            "(uint8)26"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
+          "contains": [
+            "Protocol.WORLD_STAGE",
+            "Bridge:BeginFengShenStoryValidation()",
+            "Bridge:SetFengShenStoryChallengeResult",
+            "Bridge:PushFengShenStoryReward"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
+          "contains": [
+            "PageChapterCount",
+            "SelectChapter",
+            "PageLeft",
+            "PageRight",
+            "ShowLevelPopup"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "BeginFengShenStoryValidation",
+            "RunFengShenStoryValidation",
+            "fengshen-control-matrix-25",
+            "MarkValidationControl",
+            "RecordValidationSemantic"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1",
+          "contains": [
+            "AssertRestored",
+            "AssertCleanup",
+            "snapshotHash"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "arena-default",
@@ -1714,19 +1884,64 @@
     {
       "key": "stamina-claim-default",
       "module": "StaminaClaim",
-      "fixture": "shared-readonly",
+      "fixture": "reversible-stamina-claim-fixed-account",
+      "requiredGate": "G3",
       "flags": [
         "-projectXStaminaClaimValidation"
       ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
       "artifacts": [
-        {
-          "path": "build/ui-migration/bootstrap-stamina-claim.png",
-          "lifecycle": "runtime"
-        }
+        { "path": "build/ui-migration/bootstrap-stamina-claim-mixed.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-resource-tab.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-paid-success.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-slot2.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-all-claimed.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-duplicate.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-disconnected.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-reconnected.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-account-isolation.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/bootstrap-stamina-claim-over-cap.png", "lifecycle": "runtime" }
       ],
       "captureStates": [
-        "stamina-claim"
-      ]
+        "mixed", "resource-tab", "paid-dialog", "paid-success", "slot2",
+        "all-claimed", "duplicate", "disconnected", "reconnected", "account-isolation",
+        "insufficient-premium", "over-cap"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "stamina-paid-claim-authority",
+        "stamina-paid-cancel-no-mutation",
+        "stamina-free-claim-authority",
+        "stamina-three-slot-single-use",
+        "stamina-duplicate-rejected",
+        "stamina-insufficient-premium",
+        "stamina-cap-rejected",
+        "stamina-reentry-reconnect-persistence",
+        "stamina-account-isolation",
+        "stamina-protocol-ownership",
+        "stamina-boundary-controls",
+        "stamina-fixture-restore",
+        "stamina-control-matrix-16"
+      ],
+      "sourceContracts": [
+        { "path": "client/ProjectX/src/View/WelfareActivity/ReceiveTiliUI.lua", "contains": ["QueryTiLiInfo(2)", "QueryTiLiInfo(3, tag,1)", "QueryTiLiInfo(3, tag,0)", "AppDef.Max_TiLi"] },
+        { "path": "server/src/user_spirit.cpp", "contains": ["GetFreeSpirit", "SPIRIT_LINGQU = 50", "case 3:// 已经领取", "SubMaterial"] },
+        { "path": "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt", "contains": ["message:WriteByte(3)", "Bridge:BeginStaminaClaimRequest", "Bridge:CompleteStaminaClaimRequest", "Bridge:SetCurrency(STAMINA, stamina)"] },
+        { "path": "unityclient/Assets/ProjectX/src/UI/StaminaClaimPresenter.cs", "contains": ["requestPaidConfirmation", "AuthoritativeStamina", "InvokeSlot", "体力补充后会超出1000上限"] },
+        { "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs", "contains": ["RunStaminaClaimValidation", "stamina-three-slot-single-use", "stamina-control-matrix-16", "RequestStaminaClaim(2, false)"] },
+        { "path": "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1", "contains": ["Mixed", "InsufficientPremium", "AssertReloginHash", "AssertCleanup", "staminaclaim-server-validation"] }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "resource-recovery-default",

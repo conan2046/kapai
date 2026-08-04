@@ -38,7 +38,22 @@ $simulatorConfigJson | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $Simu
 
 Push-Location $ClientDir
 try {
-    & ".\copy_lua_to_simulator.bat"
+    # XCOPY returns 1 when no files need copying. PowerShell 7 can promote that
+    # benign native exit code to a terminating error under ErrorAction=Stop, so
+    # capture it explicitly and reject only real XCOPY failures (2+).
+    $previousNativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+    try {
+        $PSNativeCommandUseErrorActionPreference = $false
+        & ".\copy_lua_to_simulator.bat"
+        $copyExitCode = $LASTEXITCODE
+    } finally {
+        $PSNativeCommandUseErrorActionPreference = $previousNativeErrorPreference
+    }
+    if ($copyExitCode -gt 1) {
+        throw "copy_lua_to_simulator.bat failed with XCOPY exit code $copyExitCode"
+    }
+    # Do not leak XCOPY's benign no-copy code to the parent pwsh process.
+    $global:LASTEXITCODE = 0
 } finally {
     Pop-Location
 }

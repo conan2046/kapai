@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string]$Module,
     [switch]$RequireInputs,
     [datetime]$FreshAfterUtc = [datetime]::MinValue,
-    [string]$JsonOutput = ""
+    [string]$JsonOutput = "",
+    [string]$CocosBaselinePath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,11 @@ if ($matches.Count -ne 1 -or $null -eq $matches[0].g5) {
 }
 $contract = $matches[0]
 $g5 = $contract.g5
+$baselineInputs = @((Get-UnityMigrationPropertyValue -Object $g5 -Name "cocosBaselineInputs" -Default @()))
+if ($baselineInputs.Count -eq 0) {
+    throw "Module '$Module' G5 contract must freeze cocosBaselineInputs before G1."
+}
+$inputFingerprint = Get-UnityMigrationCocosBaselineFingerprint -Root $root -G5 $g5
 $pairs = @($g5.pairs)
 if ($pairs.Count -eq 0) { throw "Module '$Module' has no G5 state pairs." }
 $ids = @($pairs | ForEach-Object { [string]$_.id })
@@ -96,6 +102,11 @@ foreach ($pair in $pairs) {
     $states.Add([pscustomobject]$state)
 }
 if ($RequireInputs) {
+    if (-not $CocosBaselinePath) {
+        $CocosBaselinePath = ".local/unity-validation/$(([string]$contract.module).ToLowerInvariant())-cocos-baseline-latest.json"
+    }
+    $baseline = Assert-UnityMigrationCocosBaseline -Root $root -Module $Module `
+        -Path $CocosBaselinePath -RequireCurrentInputs
     $allowedDuplicateGroups = @(Get-UnityMigrationPropertyValue -Object $g5 `
         -Name "allowedDuplicateGroups" -Default @())
     Assert-UnityMigrationDuplicateHashPolicy -Items $hashes.ToArray() -IdentifierProperty "id" `
@@ -108,6 +119,8 @@ $result = [ordered]@{
     module = [string]$contract.module
     mode = $(if ($RequireInputs) { "inputs" } else { "contract" })
     contractFingerprint = Get-UnityMigrationG5ContractFingerprint -Contract $contract
+    cocosBaselineInputFingerprint = $inputFingerprint
+    cocosBaselineReused = [bool]$RequireInputs
     stateCount = $pairs.Count
     states = @($states.ToArray())
     checkedUtc = [DateTime]::UtcNow.ToString("O")

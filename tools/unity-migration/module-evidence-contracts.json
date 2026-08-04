@@ -1027,6 +1027,177 @@
       }
     },
     {
+      "module": "FengShenStory",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/fengshenstory-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/FengShenStory/unity/g6/fengshenstory-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXFengShenStoryIsolationUserId=705213"
+        ],
+        "skipPostValidationFixtureAssert": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "account-role-link",
+              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115"
+            },
+            {
+              "id": "chapter-stage-matrix",
+              "description": "固定为第7章末关（chapterIndex=6/nodeId=40074），同一真实状态覆盖四关三态、已开启第6章宝箱、6章箭头翻页及章末发奖"
+            },
+            {
+              "id": "challenge-success-failures",
+              "description": "准备次数、等级、体力、阵容和战斗条件，真实覆盖 op25 成功、次数不足及服务端失败"
+            },
+            {
+              "id": "reward-push-authority",
+              "description": "章末关成功只允许服务端完成发奖并推送 op26；客户端不得发送 op26 请求"
+            },
+            {
+              "id": "alternate-account-isolation",
+              "description": "同一可逆夹具将独立 userId=705213/roleId=1000006 固定为第1章第1关并单独保存/恢复 SHA；切号后不得继承主账号章节选择、弹窗或 pending"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "快照 guan_qia、体力、背包、存档、任务、角色/账号货币及战斗关联数据，以整体 SHA256 和 residual=0 精确恢复"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-MAIN.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-page-right.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-PAGE-RIGHT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-level-current.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-LEVEL-CURRENT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-level-passed.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-LEVEL-PASSED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-level-locked.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-LEVEL-LOCKED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-box-closed.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-BOX-CLOSED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-box-opened.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-BOX-OPENED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-help.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-HELP.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-item-source.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-ITEM-SOURCE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-reward-push.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-REWARD-PUSH.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-disconnected.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-DISCONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fengshen-story-account-isolation.png",
+            "destination": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-ACCOUNT-ISOLATION.png"
+          }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/FengShenStory/cocos/g1-20260802",
+        "unityDirectory": ".local/ui-fidelity/FengShenStory/unity/g5-20260804",
+        "compareDirectory": ".local/ui-fidelity/FengShenStory/compare/g5-20260804",
+        "width": 1334,
+        "height": 750,
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/FengShenStory/FengShenStoryMainUI.lua",
+          "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+          "server/src/user_guanqia.cpp",
+          "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1"
+        ],
+        "pairs": [
+          {
+            "id": "FENGSHEN-MAIN",
+            "cocos": "FENGSHEN-STATE-LATER-END-MAIN.png",
+            "unity": "FENGSHEN-MAIN.png"
+          },
+          {
+            "id": "FENGSHEN-PAGE-RIGHT",
+            "cocos": "FENGSHEN-STATE-LATER-END-RIGHT.png",
+            "unity": "FENGSHEN-PAGE-RIGHT.png"
+          },
+          {
+            "id": "FENGSHEN-LEVEL-CURRENT",
+            "cocos": "FENGSHEN-STATE-LEVEL-CURRENT.png",
+            "unity": "FENGSHEN-LEVEL-CURRENT.png"
+          },
+          {
+            "id": "FENGSHEN-LEVEL-PASSED",
+            "cocos": "FENGSHEN-STATE-LEVEL-PASSED.png",
+            "unity": "FENGSHEN-LEVEL-PASSED.png"
+          },
+          {
+            "id": "FENGSHEN-LEVEL-LOCKED",
+            "cocos": "FENGSHEN-STATE-LEVEL-LOCKED.png",
+            "unity": "FENGSHEN-LEVEL-LOCKED.png"
+          },
+          {
+            "id": "FENGSHEN-BOX-CLOSED",
+            "cocos": "FENGSHEN-CONTROL-BOX-CLOSED.png",
+            "unity": "FENGSHEN-BOX-CLOSED.png"
+          },
+          {
+            "id": "FENGSHEN-BOX-OPENED",
+            "cocos": "FENGSHEN-CONTROL-BOX-OPENED.png",
+            "unity": "FENGSHEN-BOX-OPENED.png"
+          },
+          {
+            "id": "FENGSHEN-HELP",
+            "cocos": "FENGSHEN-STATE-HELP.png",
+            "unity": "FENGSHEN-HELP.png"
+          },
+          {
+            "id": "FENGSHEN-ITEM-SOURCE",
+            "cocos": "FENGSHEN-CONTROL-SOURCE-CLOSE.png",
+            "unity": "FENGSHEN-ITEM-SOURCE.png"
+          },
+          {
+            "id": "FENGSHEN-REWARD-PUSH",
+            "cocos": "FENGSHEN-CONTROL-REWARD-ACK.png",
+            "unity": "FENGSHEN-REWARD-PUSH.png"
+          },
+          {
+            "id": "FENGSHEN-DISCONNECTED",
+            "cocos": "FENGSHEN-STATE-DISCONNECTED.png",
+            "unity": "FENGSHEN-DISCONNECTED.png"
+          },
+          {
+            "id": "FENGSHEN-ACCOUNT-ISOLATION",
+            "cocos": "FENGSHEN-STATE-ACCOUNT-ISOLATION.png",
+            "unity": "FENGSHEN-ACCOUNT-ISOLATION.png"
+          }
+        ]
+      }
+    },
+    {
       "module": "PlayerHud",
       "fixedAccount": {
         "userId": 7200057,
@@ -1198,6 +1369,73 @@
             "cocos": "PLAYERHUD-ACCOUNT-ISOLATION-FRESH.png",
             "unity": "PLAYERHUD-ACCOUNT-ISOLATION.png"
           }
+        ]
+      }
+    },
+    {
+      "module": "StaminaClaim",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/StaminaClaim/unity/g4/staminaclaim-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/StaminaClaim/unity/g6/staminaclaim-fixed-unity-result.json",
+        "serverConfigDirectory": ".local/staminaclaim-server-validation",
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXStaminaClaimIsolationUserId=705213",
+          "-projectXStaminaClaimOverCapUserId=7200260"
+        ],
+        "skipPostValidationFixtureAssert": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            { "id": "account-role-link", "description": "固定主账号7200057唯一绑定角色1000115" },
+            { "id": "mixed-three-slot-state", "description": "隔离服务配置将第1档置为过时补领、第2/3档置为当前免费；三档仍各只能领取一次" },
+            { "id": "paid-and-free-authority", "description": "主账号准备40体力、100元宝，真实覆盖补领-20/+50及两次免费+50" },
+            { "id": "insufficient-premium-account", "description": "独立705213/1000006准备0元宝、40体力，真实覆盖补领失败且无副作用" },
+            { "id": "over-cap-account", "description": "独立7200260/1000119准备990体力，覆盖+50超过1000上限且无副作用" },
+            { "id": "exact-restore-surface", "description": "三账号分别快照user_spirit、角色/账号货币和绑定关系，finally恢复、重登录哈希一致、残留0" }
+          ]
+        },
+        "artifactCopies": [
+          { "source": "build/ui-migration/bootstrap-stamina-claim-mixed.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-MIXED.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-PAID-DIALOG.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-paid-success.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-PAID-SUCCESS.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-all-claimed.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-ALL-CLAIMED.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-duplicate.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-DUPLICATE.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-disconnected.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-DISCONNECTED.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-reconnected.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-RECONNECTED.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-account-isolation.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-ACCOUNT-ISOLATION.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-INSUFFICIENT-PREMIUM.png" },
+          { "source": "build/ui-migration/bootstrap-stamina-claim-over-cap.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-OVER-CAP.png" }
+        ]
+      },
+      "g5": {
+        "cocosDirectory": ".local/ui-fidelity/StaminaClaim/cocos/g5-20260804",
+        "unityDirectory": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804",
+        "compareDirectory": ".local/ui-fidelity/StaminaClaim/compare/g5-20260804",
+        "width": 1334,
+        "height": 750,
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/WelfareActivity/ReceiveTiliUI.lua",
+          "client/ProjectX/src/View/Main/WanFaEntranceUI.lua",
+          "client/ProjectX/src/ConfigData/stamina_dat.lua",
+          "server/config/json/stamina.json",
+          "server/src/user_spirit.cpp",
+          "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1"
+        ],
+        "pairs": [
+          { "id": "STAMINA-MIXED", "cocos": "STAMINA-MIXED.png", "unity": "STAMINA-MIXED.png" },
+          { "id": "STAMINA-PAID-DIALOG", "cocos": "STAMINA-PAID-DIALOG.png", "unity": "STAMINA-PAID-DIALOG.png" },
+          { "id": "STAMINA-PAID-SUCCESS", "cocos": "STAMINA-PAID-SUCCESS.png", "unity": "STAMINA-PAID-SUCCESS.png" },
+          { "id": "STAMINA-ALL-CLAIMED", "cocos": "STAMINA-ALL-CLAIMED.png", "unity": "STAMINA-ALL-CLAIMED.png" },
+          { "id": "STAMINA-DISCONNECTED", "cocos": "STAMINA-DISCONNECTED.png", "unity": "STAMINA-DISCONNECTED.png" },
+          { "id": "STAMINA-RECONNECTED", "cocos": "STAMINA-RECONNECTED.png", "unity": "STAMINA-RECONNECTED.png" },
+          { "id": "STAMINA-INSUFFICIENT-PREMIUM", "cocos": "STAMINA-INSUFFICIENT-PREMIUM.png", "unity": "STAMINA-INSUFFICIENT-PREMIUM.png" },
+          { "id": "STAMINA-OVER-CAP", "cocos": "STAMINA-OVER-CAP.png", "unity": "STAMINA-OVER-CAP.png" }
         ]
       }
     }

@@ -9,6 +9,9 @@ param(
     [string[]]$Prefabs = @(),
     [string[]]$Configs = @(),
     [switch]$Mutation,
+    [uint32]$FixedUserId = 0,
+    [uint32]$FixedRoleId = 0,
+    [string]$FixtureAdapter = "",
     [string]$ValidationFlag = "",
     [string]$DestinationRoot = "",
     [string]$ManifestPath = "",
@@ -25,6 +28,15 @@ if (-not $DestinationRoot) { $DestinationRoot = $repositoryRoot }
 $destination = Resolve-UnityMigrationPath -Root $repositoryRoot -Path $DestinationRoot
 $displayNameProvided = $PSBoundParameters.ContainsKey("DisplayName")
 if (-not $DisplayName) { $DisplayName = $Module }
+$moduleSlug = ($Module -creplace '([a-z0-9])([A-Z])', '$1-$2').ToLowerInvariant()
+if (-not $IncludeImplementationSkeleton -and -not $SkipManifest) {
+    if ($FixedUserId -eq 0 -or $FixedRoleId -eq 0) {
+        throw "Module scaffolding must freeze -FixedUserId and -FixedRoleId at G0."
+    }
+    if ($Mutation -and -not $FixtureAdapter) {
+        throw "Mutating module scaffolding requires -FixtureAdapter for reversible setup/restore/cleanup."
+    }
+}
 
 $files = [ordered]@{}
 if ($IncludeImplementationSkeleton) {
@@ -140,6 +152,10 @@ $files[$matrixPath] = @"
   "schemaVersion": 1,
   "module": "$Module",
   "workflowPolicyVersion": 1,
+  "scope": {
+    "fixedUserId": $FixedUserId,
+    "fixedRoleId": $FixedRoleId
+  },
   "acceptanceExamples": [],
   "sourceAudit": {
     "entryClosureComplete": false,
@@ -231,10 +247,10 @@ if (-not $SkipManifest -and -not $IncludeImplementationSkeleton) {
     $scenarioMatches = @($scenarioEntry.Value.scenarios | Where-Object { $_.module -ieq $Module })
     if ($scenarioMatches.Count -gt 1) { throw "Validation scenario registry contains duplicate module '$Module'." }
     $savedModule = @($manifest.modules | Where-Object { $_.key -eq $Module }) | Select-Object -First 1
-    $fixtureKey = if ([bool]$savedModule.mutatesServer) { "isolated-role" } else { "shared-readonly" }
+    $fixtureKey = if ([bool]$savedModule.mutatesServer) { "reversible-$moduleSlug-fixed-account" } else { "shared-readonly" }
     if ($scenarioMatches.Count -eq 0) {
         $scenarioEntry.Value.scenarios = @($scenarioEntry.Value.scenarios) + @([ordered]@{
-            key = ($Module -creplace '([a-z0-9])([A-Z])', '$1-$2').ToLowerInvariant() + "-default"
+            key = "$moduleSlug-default"
             module = $Module
             fixture = $fixtureKey
             requiredGate = "G3"
@@ -273,6 +289,61 @@ if (-not $SkipManifest -and -not $IncludeImplementationSkeleton) {
     }
     if ($PSCmdlet.ShouldProcess($scenarioEntry.Path, "Update validation scenario registry")) {
         Write-UnityMigrationUtf8 -Path $scenarioEntry.Path -Content (($scenarioEntry.Value | ConvertTo-Json -Depth 12) + "`n")
+    }
+
+    $fixtureEntry = Import-UnityMigrationJson -Root $repositoryRoot -Path "tools/unity-migration/validation-fixtures.json"
+    $fixtureMatches = @($fixtureEntry.Value.profiles | Where-Object { $_.key -ieq $fixtureKey })
+    if ($fixtureMatches.Count -gt 1) { throw "Fixture registry contains duplicate key '$fixtureKey'." }
+    if ($fixtureMatches.Count -eq 0) {
+        $fixtureEntry.Value.profiles = @($fixtureEntry.Value.profiles) + @([ordered]@{
+            key = $fixtureKey
+            roleMode = $(if ($Mutation) { "fixed-account" } else { "shared" })
+            mutatesServer = [bool]$Mutation
+            cleanup = $(if ($Mutation) { "snapshot-relogin-restore-cleanup-assert" } else { "none" })
+            adapter = $FixtureAdapter
+        })
+    }
+    if ($PSCmdlet.ShouldProcess($fixtureEntry.Path, "Register validation fixture atomically")) {
+        Write-UnityMigrationUtf8 -Path $fixtureEntry.Path -Content (($fixtureEntry.Value | ConvertTo-Json -Depth 12) + "`n")
+    }
+
+    $contractEntry = Import-UnityMigrationJson -Root $repositoryRoot -Path "tools/unity-migration/module-evidence-contracts.json"
+    $contractMatches = @($contractEntry.Value.modules | Where-Object { $_.module -ieq $Module })
+    if ($contractMatches.Count -gt 1) { throw "Evidence contract registry contains duplicate module '$Module'." }
+    if ($contractMatches.Count -eq 0) {
+        $newContract = [ordered]@{
+            module = $Module
+            g5 = [ordered]@{
+                width = 1334
+                height = 750
+                cocosDirectory = ".local/ui-fidelity/$Module/cocos/g1"
+                unityDirectory = ".local/ui-fidelity/$Module/unity/g5"
+                compareDirectory = ".local/ui-fidelity/$Module/compare/g5"
+                cocosBaselineInputs = @()
+                pairs = @()
+            }
+        }
+        if ($Mutation) {
+            $newContract.fixedAccount = [ordered]@{
+                userId = $FixedUserId
+                roleId = $FixedRoleId
+                adapter = $FixtureAdapter
+                snapshot = ".local/ui-fidelity/$Module/unity/g5/$moduleSlug-fixed-fixture-snapshot.json"
+                resultEvidence = ".local/ui-fidelity/$Module/unity/g6/$moduleSlug-fixed-unity-result.json"
+                reloginRequired = $true
+                extraFlags = $flags
+                skipPostValidationFixtureAssert = $false
+                dataPreflight = [ordered]@{ requiresLogin = $true; requirements = @() }
+                artifactCopies = @()
+            }
+        }
+        else {
+            $newContract.g5.identity = [ordered]@{ primaryUserId = $FixedUserId; primaryRoleId = $FixedRoleId }
+        }
+        $contractEntry.Value.modules = @($contractEntry.Value.modules) + @($newContract)
+    }
+    if ($PSCmdlet.ShouldProcess($contractEntry.Path, "Register G5 and fixed-account evidence contracts atomically")) {
+        Write-UnityMigrationUtf8 -Path $contractEntry.Path -Content (($contractEntry.Value | ConvertTo-Json -Depth 12) + "`n")
     }
 
     $gateEntry = Import-UnityMigrationJson -Root $repositoryRoot -Path "tools/unity-migration/migration-gates.json"

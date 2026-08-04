@@ -25,6 +25,11 @@ if ($moduleConfig.Count -ne 1 -or $contract.Count -ne 1 -or $null -eq $contract[
 $moduleConfig = $moduleConfig[0]
 $contract = $contract[0]
 $fixed = $contract.fixedAccount
+$serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
+$serverStartArguments = @("-WaitSeconds", "60")
+if ($serverConfigDirectoryValue) {
+    $serverStartArguments += @("-ConfigDirectory", (Resolve-UnityMigrationPath -Root $root -Path $serverConfigDirectoryValue))
+}
 $contractFailures = @(Get-UnityMigrationFixedAccountContractFailures `
     -Root $root -Module ([string]$moduleConfig.key) -FixedAccount $fixed)
 if ($contractFailures.Count -gt 0) {
@@ -32,6 +37,7 @@ if ($contractFailures.Count -gt 0) {
 }
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." }
+$scenarioRuntimeFlags = @(Get-UnityMigrationScenarioRuntimeFlags -Scenario $scenario)
 $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
 $requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }
 $workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }
@@ -154,7 +160,7 @@ try {
             Invoke-FixedAdapter "Setup"
             $fixtureCreated = $true
             if ([bool]$fixed.dataPreflight.requiresLogin) {
-                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
+                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") @serverStartArguments
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight server startup failed." }
                 & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight login failed." }
@@ -203,7 +209,7 @@ try {
     try {
         $serverTiming = Start-UnityMigrationTiming
         try {
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
+            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") @serverStartArguments
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account server startup failed." }
         }
         finally {
@@ -219,7 +225,7 @@ try {
             "-projectXValidationScenario=$($scenario.key)",
             "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds",
             "-logFile", $logPath
-        ) + @($scenario.flags | ForEach-Object { [string]$_ }) `
+        ) + @($scenarioRuntimeFlags) `
           + @($fixed.extraFlags | ForEach-Object { [string]$_ })
         $unityTiming = Start-UnityMigrationTiming
         try {
@@ -318,6 +324,8 @@ try {
                     Invoke-FixedAdapter "AssertRestored"
                 }
                 else {
+                    Invoke-FixedAdapter "Restore"
+                    Invoke-FixedAdapter "AssertRestored"
                     Invoke-FixedAdapter "Cleanup"
                     Invoke-FixedAdapter "AssertCleanup"
                     $fixtureCreated = $false
@@ -333,7 +341,7 @@ try {
         $reloginTiming = Start-UnityMigrationTiming
         $reloginFailure = $null
         try {
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
+            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") @serverStartArguments
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login server startup failed." }
             & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login failed." }

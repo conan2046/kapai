@@ -930,6 +930,136 @@
         ]
       },
       "updatedUtc": "2026-08-02T04:59:08.1093043Z"
+    },
+    {
+      "module": "StaminaClaim",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/STAMINACLAIM.md",
+      "note": "2026-08-04 fresh G0 restart. The 2026-07-18 read-only op=2 result and all old screenshots/runners/completion labels are historical clues only. This run owns real /321 op=3 mutation with reversible fixture and full G0-G6 evidence.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/STAMINACLAIM.md",
+          "docs/unityclient/matrices/STAMINA_CLAIM_CONTROLS.json",
+          ".local/unity-validation/staminaclaim-dirty-baseline.txt"
+        ],
+        "G1": [
+          "docs/unityclient/modules/STAMINACLAIM.md",
+          "docs/unityclient/matrices/STAMINA_CLAIM_CONTROLS.json",
+          ".local/unity-validation/staminaclaim-cocos-automation-ledger.json",
+          ".local/unity-validation/staminaclaim-g1-native-summary.json",
+          ".local/unity-validation/staminaclaim-operation-ledger.json"
+        ],
+        "G2": [
+          "docs/unityclient/matrices/STAMINA_CLAIM_CONTROLS.json",
+          ".local/unity-validation/staminaclaim-g2-source-audit.json",
+          "docs/unityclient/modules/STAMINACLAIM.md"
+        ],
+        "G3": [
+          ".local/unity-validation/unity-compile-preflight-latest.json",
+          ".local/unity-validation/unity-compile-preflight.log",
+          ".local/unity-validation/staminaclaim-fixed-account-data-preflight-latest.json",
+          "tools/unity-migration/validation-scenarios.json",
+          "tools/unity-migration/module-evidence-contracts.json",
+          "unityclient/Assets/ProjectX/src/UI/StaminaClaimPresenter.cs",
+          "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt"
+        ],
+        "G4": [
+          ".local/unity-validation/staminaclaim-fixed-account-latest.json",
+          ".local/ui-fidelity/StaminaClaim/unity/g6/staminaclaim-fixed-unity-result.json",
+          "build/ui-migration/unity-staminaclaim-fixed-account.log"
+        ],
+        "G5": [
+          ".local/ui-fidelity/StaminaClaim/compare/g5-20260804/report.json",
+          ".local/ui-fidelity/StaminaClaim/compare/g5-20260804/contact-side-1.jpg",
+          ".local/ui-fidelity/StaminaClaim/compare/g5-20260804/contact-side-2.jpg"
+        ],
+        "G6": [
+          "docs/unityclient/modules/STAMINACLAIM.md",
+          "docs/unityclient/matrices/STAMINA_CLAIM_CONTROLS.json",
+          ".local/unity-validation/staminaclaim-fixed-account-latest.json",
+          ".local/ui-fidelity/StaminaClaim/unity/g6/staminaclaim-fixed-unity-result.json",
+          ".local/ui-fidelity/StaminaClaim/compare/g5-20260804/report.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/unity-validation/staminaclaim-operation-ledger.json",
+          "build/ui-migration/unity-staminaclaim-fixed-account.log",
+          ".local/unity-validation/staminaclaim-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-04T06:35:38.8041165Z"
+    },
+    {
+      "module": "FengShenStory",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/FENGSHEN_STORY.md",
+      "note": "G0 reopened on 2026-08-04 after user scope change: direct chapter drag fidelity is deferred; Unity left/right arrows must page exactly six chapters with clamped bounds and correct selection/clipping. Historical G0/G1 evidence cannot skip the refreeze. Shared /320 ownership with World must remain isolated.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/FENGSHEN_STORY.md",
+          "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
+          ".local/unity-validation/fengshenstory-dirty-baseline.txt"
+        ],
+        "G1": [
+          "docs/unityclient/modules/FENGSHEN_STORY.md",
+          "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
+          ".local/unity-validation/fengshenstory-cocos-automation-ledger.json",
+          ".local/ui-fidelity/FengShenStory/cocos/g1-20260804/FENGSHEN-CONTROL-CHAPTER-VIEWPORT.png",
+          ".local/ui-fidelity/FengShenStory/cocos/g1-20260804/FENGSHEN-CONTROL-LEFT-NATIVE-NO-CALLBACK.png",
+          ".local/ui-fidelity/FengShenStory/cocos/g1-20260804/FENGSHEN-CONTROL-RIGHT-NATIVE-NO-CALLBACK.png",
+          ".local/ui-fidelity/FengShenStory/cocos/g1-20260804/fengshenstory-fixed-fixture-snapshot.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/FENGSHEN_STORY.md",
+          "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
+          ".local/unity-validation/fengshenstory-g2-source-audit.json",
+          "client/ProjectX/src/View/FengShenStory/FengShenStoryMainUI.lua",
+          "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+          "server/src/user_guanqia.cpp"
+        ],
+        "G3": [
+          "docs/unityclient/modules/FENGSHEN_STORY.md",
+          ".local/unity-validation/fengshenstory-g3-buildbatch-after-license.log",
+          "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs",
+          "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt"
+        ],
+        "G4": [
+          ".local/unity-validation/fengshenstory-fixed-account-latest.json",
+          ".local/unity-validation/fengshenstory-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/fengshenstory-fixed-account-runner-latest.json"
+        ],
+        "G5": [
+          ".local/unity-validation/fengshenstory-g5-preflight-latest.json",
+          ".local/ui-fidelity/FengShenStory/compare/g5-20260804/report.json",
+          ".local/ui-fidelity/FengShenStory/compare/g5-20260804/contact-side-1.jpg",
+          ".local/ui-fidelity/FengShenStory/compare/g5-20260804/contact-side-2.jpg"
+        ],
+        "G6": [
+          ".local/unity-validation/fengshenstory-fixed-account-latest.json",
+          "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
+          ".local/ui-fidelity/FengShenStory/compare/g5-20260804/report.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/unity-validation/fengshenstory-operation-ledger.json",
+          ".local/unity-validation/fengshenstory-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-04T03:54:47.7246261Z"
     }
   ]
 }

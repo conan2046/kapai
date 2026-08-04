@@ -5,6 +5,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
 $passed = 0
+$commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
 
 function Assert-ToolchainTest {
     param(
@@ -252,6 +253,33 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*runtimeValidationMode*batch-only*" }).Count -eq 1
 ) "Non-batch Unity runtime validation was not rejected by workflow policy."
+$networkScenario = [pscustomobject]@{
+    flags = @("-projectXSampleValidation")
+    networkValidation = [pscustomobject]@{ disableAutoReconnect = $true; showReconnectDialog = $true }
+}
+$networkFlags = @(Get-UnityMigrationScenarioRuntimeFlags -Scenario $networkScenario)
+Assert-ToolchainTest (
+    $networkFlags -contains "-projectXSampleValidation" -and
+    $networkFlags -contains "-projectXScenarioManagedReconnect"
+) "Scenario network capability did not produce the generic managed-reconnect runtime flag."
+$validCocosPreflight = [pscustomobject]@{
+    module = "Sample"; tool = "computer-use@openai-bundled"
+    targetProcess = "ProjectX.exe"; targetWindow = "Cocos Simulator"
+    transportReady = $true; windowListed = $true; inputReady = $true
+    captureContract = [pscustomobject]@{
+        mode = "window-client-crop-no-scale"; clientX = 1; clientY = 26
+        width = 1334; height = 750; noScale = $true
+    }
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationCocosPreflightFailures -Evidence $validCocosPreflight -Module "Sample").Count -eq 0
+) "Valid Computer Use transport/window/input preflight and no-scale client crop were rejected."
+$invalidCocosPreflight = $validCocosPreflight | ConvertTo-Json -Depth 5 | ConvertFrom-Json
+$invalidCocosPreflight.inputReady = $false
+$invalidCocosPreflight.captureContract.clientY = 0
+Assert-ToolchainTest (
+    @(Get-UnityMigrationCocosPreflightFailures -Evidence $invalidCocosPreflight -Module "Sample").Count -eq 2
+) "Incomplete Computer Use input preflight or wrong Cocos client crop was not rejected."
 
 $validLedger = [pscustomobject]@{
     schemaVersion = 1
@@ -315,6 +343,34 @@ $operationLedger.records[1].iterationEvidence = @(
 Assert-ToolchainTest (
     @(Get-UnityMigrationRetrospectiveFailures -Ledger $operationLedger -Root $root -RequireEvidenceFiles).Count -eq 0
 ) "Unique resolved diagnosis or path-with-line iteration evidence was rejected."
+Assert-ToolchainTest (
+    (Get-UnityMigrationEffectiveRootCause -FailedRecord $operationLedger.records[0] `
+        -ResolutionRecords @($operationLedger.records[1])) -eq "observe fresh state"
+) "Retrospective did not replace pending-diagnosis with the resolved effective root cause."
+$ledgerTestPath = ".local/unity-validation/toolchain-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
+try {
+    $failedWrite = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
+        -Tool "test" -Operation "fail" -Outcome Failed -ErrorMessage "failure" -RootCause "known" -Path $ledgerTestPath
+    $textOnlyRejected = $false
+    try {
+        Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
+            -Tool "test" -Operation "resolve" -Outcome Resolved `
+            -RelatedRecordId ([string]$failedWrite.Record.recordId) -Resolution "fixed" `
+            -IterationAction "retest" -IterationEvidence @("text-only evidence") -Path $ledgerTestPath | Out-Null
+    }
+    catch { $textOnlyRejected = $_.Exception.Message -like "*every -IterationEvidence item*existing file*" }
+    Assert-ToolchainTest $textOnlyRejected "Resolved operation accepted text-only iteration evidence instead of rejecting it immediately."
+    Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
+        -Tool "test" -Operation "resolve" -Outcome Resolved `
+        -RelatedRecordId ([string]$failedWrite.Record.recordId) -Resolution "fixed" `
+        -IterationAction "retest" -IterationEvidence @("tools/unity-migration/Test-UnityMigrationToolchain.ps1") `
+        -Path $ledgerTestPath | Out-Null
+    Assert-ToolchainTest $true "File-backed resolution could not be written."
+}
+finally {
+    $resolvedLedgerTestPath = Resolve-UnityMigrationPath -Root $root -Path $ledgerTestPath
+    if (Test-Path -LiteralPath $resolvedLedgerTestPath) { Remove-Item -LiteralPath $resolvedLedgerTestPath -Force }
+}
 $resolutionAudit = @(Get-UnityMigrationOperationResolutionAudit -Ledger $operationLedger -RecordIds @("failure-1"))
 Assert-ToolchainTest (
     $resolutionAudit.Count -eq 1 -and
@@ -401,11 +457,18 @@ $hardGateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityM
     -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $gateSource.Contains("Completing G1 requires -CocosAutomationLedgerPath") -and
+    $gateSource.Contains('Completing G1 requires -$($required[0])') -and
+    $gateSource.Contains("Assert-UnityMigrationCocosBaseline") -and
     $gateSource.Contains("Completing G4 requires -SummaryPath") -and
     $gateSource.Contains("Assert-UnityMigrationSourceAudit") -and
     $gateSource.Contains("Test-UnityModuleG5Preflight.ps1") -and
     $gateSource.Contains("New-UnityMigrationRetrospective")
 ) "G1/G2/G4/G5/G6 workflow or automatic retrospective enforcement disappeared from the migration gate."
+Assert-ToolchainTest (
+    $gateSource.Contains("pendingDiagnosisCount") -and
+    $commonSource.Contains("effectiveRootCause") -and
+    $commonSource.Contains("require every -IterationEvidence item to resolve to an existing file")
+) "G6 no longer requires effective diagnoses and file-backed resolution evidence."
 Assert-ToolchainTest (
     $hardGateSource.Contains("G6 Computer Use runtime must be stopped after Cocos evidence") -and
     $hardGateSource.Contains("OpenAI\\Codex\\runtimes\\cua_node")
@@ -686,6 +749,153 @@ Assert-ToolchainTest (
     $scaffoldSource.Contains('RequiredGate G2') -and
     $scaffoldSource.Contains('-not $IncludeImplementationSkeleton')
 ) "New module scaffolding can create implementation code before G2 or rewrite planning registries during implementation scaffolding."
+Assert-ToolchainTest (
+    $scaffoldSource.Contains('[uint32]$FixedUserId') -and
+    $scaffoldSource.Contains('validation-fixtures.json') -and
+    $scaffoldSource.Contains('module-evidence-contracts.json') -and
+    $scaffoldSource.Contains('Register validation fixture atomically')
+) "New module scaffolding no longer atomically freezes identity, fixture profile and evidence contract."
+
+$cocosEvidenceSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-UnityMigrationCocosEvidence.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $cocosEvidenceSource.Contains('RecordTransportPreflight') -and
+    $cocosEvidenceSource.Contains('StartFixedClient') -and
+    $cocosEvidenceSource.Contains('-LocalUserId $userId') -and
+    $cocosEvidenceSource.Contains('FreezeG1Baseline') -and
+    $cocosEvidenceSource.Contains('window-client-crop-no-scale')
+) "Central Cocos lifecycle no longer preflights Computer Use, proves fixed identity or freezes the reusable G1 baseline."
+Assert-ToolchainTest (
+    $g5PreflightSource.Contains('Assert-UnityMigrationCocosBaseline') -and
+    $g5PreflightSource.Contains('cocosBaselineReused') -and
+    $g5PreflightSource.Contains('cocosBaselineInputs')
+) "G5 no longer reuses and fingerprint-validates the G1 Cocos baseline by default."
+
+$startClientSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Start-Client.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $startClientSource.Contains('$PSNativeCommandUseErrorActionPreference = $false') -and
+    $startClientSource.Contains('$copyExitCode = $LASTEXITCODE') -and
+    $startClientSource.Contains('if ($copyExitCode -gt 1)') -and
+    $startClientSource.Contains('$global:LASTEXITCODE = 0')
+) "Start-Client no longer accepts XCOPY exit code 1 when the simulator files are already current."
+
+$clientWindowSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Invoke-ClientWindow.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $clientWindowSource.Contains('public static bool ActivateWindow(IntPtr hWnd)') -and
+    $clientWindowSource.Contains('AttachThreadInput(currentThread, targetThread, true)') -and
+    $clientWindowSource.Contains('return GetForegroundWindow() == hWnd;') -and
+    $clientWindowSource.Contains('throw "ProjectX did not become the foreground window; input was not sent"') -and
+    $clientWindowSource.Contains('ActivationSucceeded = $activationSucceeded')
+) "Invoke-ClientWindow no longer verifies exact ProjectX foreground activation before real input."
+
+$fengShenStoryFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-FengShenStoryCocosFixture.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $fengShenStoryFixtureSource.Contains('($UserId -eq 7200260 -and $RoleId -eq 1000119)') -and
+    $fengShenStoryFixtureSource.Contains('($UserId -eq 705213 -and $RoleId -eq 1000006)') -and
+    $fengShenStoryFixtureSource.Contains('"LockedEntry" { [ordered]@{ count = [byte]5; chapterIndex = [uint32]0; nodeId = [uint32]40011; roleLevel = 1 } }') -and
+    $fengShenStoryFixtureSource.Contains('FengShenStory live fixture role level mismatch.')
+) "FengShenStory locked-entry fixture no longer freezes and verifies the dedicated level-1 identity."
+Assert-ToolchainTest (
+    $fengShenStoryFixtureSource.Contains('$existing[0] -eq "1`t$State"') -and
+    $fengShenStoryFixtureSource.Contains('$sourceColumn = if ($reapplyLiveState) { "r.guan_qia" } else { "f.backup_guan_qia" }')
+) "FengShenStory same-state reapply no longer preserves the original restore snapshot."
+Assert-ToolchainTest (
+    $fengShenStoryFixtureSource.Contains('[string]$State = "LaterEndChapter"') -and
+    $fengShenStoryFixtureSource.Contains('"LaterEndChapter" { [ordered]@{ count = [byte]5; chapterIndex = [uint32]6; nodeId = [uint32]40074; petLevel = [uint16]100 } }')
+) "FengShenStory fixed runner no longer uses one real later-chapter end-stage state for arrows, three-state stages and op26."
+Assert-ToolchainTest (
+    $fengShenStoryFixtureSource.Contains('-UserId 705213 -RoleId 1000006 -EvidencePath $isolationEvidencePath') -and
+    $fengShenStoryFixtureSource.Contains('if ($LASTEXITCODE -ne 0) { throw "FengShenStory isolation fixture action failed: $Action" }')
+) "FengShenStory primary fixture lifecycle no longer snapshots, patches, restores and cleans its isolation account."
+$fengShenStoryRunnerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") `
+    -Raw -Encoding UTF8
+$fengShenStoryPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs") `
+    -Raw -Encoding UTF8
+$fengShenStoryStoreSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs") `
+    -Raw -Encoding UTF8
+$fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Run-UnityFixedAccountValidation.ps1") `
+    -Raw -Encoding UTF8
+$evidenceContracts = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/module-evidence-contracts.json") `
+    -Raw -Encoding UTF8 | ConvertFrom-Json
+$fengShenStoryEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "FengShenStory" })[0]
+Assert-ToolchainTest (
+    -not $fengShenStoryRunnerSource.Contains('foreach (string control in allControls) MarkValidationControl(control);') -and
+    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeRewardIcon(0)') -and
+    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeClosedBox()') -and
+    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeOpenedBox()') -and
+    $fengShenStoryPresenterSource.Contains('public bool InvokeSourceIcon()')
+) "FengShenStory validation regressed to synthetic control marking or direct modal calls instead of actual bound controls."
+Assert-ToolchainTest (
+    $fengShenStoryStoreSource.Contains('(4000 + chapter) * 10 + level') -and
+    $fengShenStoryStoreSource.Contains('SelectedChapter = CurrentChapter;') -and
+    $fengShenStoryPresenterSource.Contains('public bool InvokeFight() => InvokeVisible(fightButton);') -and
+    $fengShenStoryPresenterSource.Contains('public bool InvokeFormation() => InvokeVisible(formationButton);') -and
+    $fengShenStoryRunnerSource.Contains('services.Options.ScenarioManagedReconnect') -and
+    -not $fengShenStoryRunnerSource.Contains('|| services.Options.FengShenStoryValidation') -and
+    $fengShenStoryRunnerSource.Contains('services.Network.State == NetworkState.Disconnected || services.Network.State == NetworkState.Faulted') -and
+    $fengShenStoryRunnerSource.Contains('Reconnect();') -and
+    $fengShenStoryRunnerSource.Contains('FengShenStory re-entry did not settle its fresh op24 before disconnect.') -and
+    $fengShenStoryRunnerSource.Contains('services.Network.Disconnect("FengShenStory deliberate disconnect")')
+) "FengShenStory regressed from raw 400xx node identity or real visible fight/formation button invocation."
+Assert-ToolchainTest (
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        'else\s*\{\s*Invoke-FixedAdapter "Restore"\s*Invoke-FixedAdapter "AssertRestored"\s*Invoke-FixedAdapter "Cleanup"')
+) "Fixed-account validation failure path can clean an applied fixture without first restoring the account snapshot."
+Assert-ToolchainTest (
+    [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalUserId -eq 7200057 -and
+    [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000115 -and
+    @($fengShenStoryEvidenceContract.fixedAccount.extraFlags) -contains '-projectXFengShenStoryIsolationUserId=705213'
+) "FengShenStory evidence contract no longer expects the restored primary terminal identity while retaining the isolation-account run flag."
+
+$startServerSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Start-Server.ps1") -Raw -Encoding UTF8
+$staminaFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1") -Raw -Encoding UTF8
+$staminaRunnerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$staminaControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt") -Raw -Encoding UTF8
+$staminaFrameSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/WelfareActivityFramePresenter.cs") -Raw -Encoding UTF8
+$serverPackDealSource = Get-Content -LiteralPath (Join-Path $root "server/src/pack_deal.cpp") -Raw -Encoding UTF8
+$staminaEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "StaminaClaim" })[0]
+Assert-ToolchainTest (
+    $startServerSource.Contains('[string]$ConfigDirectory') -and
+    $startServerSource.Contains('[IO.Path]::IsPathRooted($ConfigDirectory)') -and
+    $fixedAccountRunnerSource.Contains('serverConfigDirectory') -and
+    $fixedAccountRunnerSource.Contains('@serverStartArguments')
+) "Fixed-account runner no longer supports an isolated module server configuration directory."
+Assert-ToolchainTest (
+    $staminaFixtureSource.Contains('[string]$State = "Mixed"') -and
+    $staminaFixtureSource.Contains('"time":[0,1]') -and
+    $staminaFixtureSource.Contains('"time":[0,2400]') -and
+    $staminaFixtureSource.Contains('-UserId 705213 -RoleId 1000006') -and
+    $staminaFixtureSource.Contains('-UserId 7200260 -RoleId 1000119') -and
+    $staminaFixtureSource.Contains('AssertReloginHash')
+) "StaminaClaim fixture no longer creates the mixed three-slot clock or reversible auxiliary-account states."
+Assert-ToolchainTest (
+    -not $staminaRunnerSource.Contains('foreach (string control in controls) MarkValidationControl(control);') -and
+    $staminaRunnerSource.Contains('RequestStaminaClaim(2, false)') -and
+    $staminaRunnerSource.Contains('stamina-three-slot-single-use') -and
+    $staminaRunnerSource.Contains('services.Options.ScenarioManagedReconnect') -and
+    -not $staminaRunnerSource.Contains('|| services.Options.StaminaClaimValidation)') -and
+    $staminaControllerSource.Contains('message:WriteByte(3)') -and
+    $staminaControllerSource.Contains('Bridge:CompleteStaminaClaimRequest')
+) "StaminaClaim validation regressed to read-only or synthetic control coverage instead of real op=3 interactions."
+Assert-ToolchainTest (
+    $staminaFrameSource.Contains('TitleName")?.transform, "福利"') -and
+    $staminaFrameSource.Contains('$"{currencies.Stamina}/100"') -and
+    $staminaFrameSource.Contains('FormatHeaderCurrency(currencies.Gold)')
+) "StaminaClaim welfare frame regressed from the Cocos title or compact header currency formatting."
+Assert-ToolchainTest (
+    $serverPackDealSource.Contains('YB = std::max(YB, localTestTongBao);') -and
+    $serverPackDealSource.Contains('bangYB = std::max(bangYB, localTestBdTongBao);')
+) "Local-test currency floors again replace exact fixture balances in the in-memory login session."
+Assert-ToolchainTest (
+    [uint32]$staminaEvidenceContract.fixedAccount.terminalUserId -eq 7200057 -and
+    [uint32]$staminaEvidenceContract.fixedAccount.terminalRoleId -eq 1000115 -and
+    [string]$staminaEvidenceContract.fixedAccount.serverConfigDirectory -eq '.local/staminaclaim-server-validation' -and
+    @($staminaEvidenceContract.fixedAccount.extraFlags) -contains '-projectXStaminaClaimIsolationUserId=705213' -and
+    @($staminaEvidenceContract.fixedAccount.extraFlags) -contains '-projectXStaminaClaimOverCapUserId=7200260'
+) "StaminaClaim evidence contract no longer freezes the mixed-clock server config, two auxiliary identities and primary terminal identity."
 
 $manifestForWorkflow = (Import-UnityMigrationManifest -Root $root).Value
 $worldModule = @($manifestForWorkflow.modules | Where-Object { $_.key -eq "World" }) | Select-Object -First 1

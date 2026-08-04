@@ -1,41 +1,77 @@
 local Protocol = require("Protocol")
+local STAMINA = 60026
 local M = { active = false, validation = false }
 
-function M.onClick()
-    M.active = true
-    M.validation = Bridge:HasCommandLineFlag("-projectXStaminaClaimValidation")
-    Bridge:ShowStaminaClaim()
+local function sendQuery()
     local message = Protocol.newMessage(Protocol.STAMINA)
     message:WriteByte(2)
     Bridge:Send(message)
     Bridge:SetStatus("StaminaClaim/321 op=2 requested.")
 end
 
+function M.onClick()
+    M.active = true
+    M.validation = Bridge:HasCommandLineFlag("-projectXStaminaClaimValidation")
+    Bridge:ShowStaminaClaim()
+    sendQuery()
+end
+
+function M.refresh()
+    M.active = true
+    sendQuery()
+end
+
+function M.claim(index, paid)
+    if not M.active then return end
+    local paidType = paid and 1 or 0
+    Bridge:BeginStaminaClaimRequest(index, paidType)
+    local message = Protocol.newMessage(Protocol.STAMINA)
+    message:WriteByte(3)
+    message:WriteByte(index)
+    message:WriteByte(paidType)
+    Bridge:Send(message)
+    Bridge:SetStatus("StaminaClaim/321 op=3 requested: index=" .. tostring(index) .. ", paid=" .. tostring(paidType) .. ".")
+end
+
 function M.onPacket(command, message)
     if command ~= Protocol.STAMINA or not M.active then return false end
     local position = message.Position
     local op = message:ReadByte()
-    if op ~= 2 then message.Position = position; return false end
-    local success = message:ReadByte()
-    if success == 0 then
-        M.active = false
-        local reason = message.Remaining > 0 and message:ReadString() or "server rejected stamina state"
-        Bridge:Fail("StaminaClaim/321 op=2 failed: " .. tostring(reason))
+    if op == 2 then
+        local success = message:ReadByte()
+        if success == 0 then
+            local reason = message.Remaining > 0 and message:ReadString() or "server rejected stamina state"
+            Bridge:Fail("StaminaClaim/321 op=2 failed: " .. tostring(reason))
+            return true
+        end
+        local count = message:ReadByte()
+        Bridge:BeginStaminaClaimState()
+        for _ = 1, count do Bridge:AddStaminaClaimState(message:ReadByte(), message:ReadByte()) end
+        if message.Remaining ~= 0 then
+            Bridge:Fail("StaminaClaim/321 op=2 has " .. tostring(message.Remaining) .. " unread bytes.")
+            return true
+        end
+        Bridge:CommitStaminaClaimState()
+        Bridge:SetStatus("StaminaClaim/321 op=2 recv: slots=" .. tostring(count) .. ".")
+        if M.validation then M.validation = false; Bridge:CompleteStaminaClaimValidation() end
         return true
     end
-    local count = message:ReadByte()
-    Bridge:BeginStaminaClaimState()
-    for _ = 1, count do Bridge:AddStaminaClaimState(message:ReadByte(), message:ReadByte()) end
-    if message.Remaining ~= 0 then
-        M.active = false
-        Bridge:Fail("StaminaClaim/321 op=2 has " .. tostring(message.Remaining) .. " unread bytes.")
+    if op == 3 then
+        local index = message:ReadByte()
+        local paidType = message:ReadByte()
+        local success = message:ReadByte()
+        if success > 0 then
+            local stamina = message:ReadWord()
+            Bridge:SetCurrency(STAMINA, stamina)
+            Bridge:CompleteStaminaClaimRequest(index, paidType, true, stamina, "")
+        else
+            local reason = message.Remaining > 0 and message:ReadString() or "server rejected stamina claim"
+            Bridge:CompleteStaminaClaimRequest(index, paidType, false, 0, reason)
+        end
         return true
     end
-    Bridge:CommitStaminaClaimState()
-    M.active = false
-    Bridge:SetStatus("StaminaClaim/321 op=2 recv: slots=" .. tostring(count) .. ".")
-    if M.validation then M.validation = false; Bridge:CompleteStaminaClaimValidation() end
-    return true
+    message.Position = position
+    return false
 end
 
 return M

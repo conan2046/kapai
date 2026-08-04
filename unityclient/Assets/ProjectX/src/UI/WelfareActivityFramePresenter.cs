@@ -13,9 +13,12 @@ namespace ProjectX.UI
         private readonly GameObject recoveryTab;
         private readonly GameObject growthTab;
         private readonly GameObject activeTab;
+        private readonly Button staminaAddButton;
+        private readonly Button goldAddButton;
+        private readonly Button premiumAddButton;
 
         public WelfareActivityFramePresenter(CocosUiView view, CurrencyStore currencies, Action close,
-            Action stamina, Action recovery, Action growth, Action active)
+            Action stamina, Action recovery, Action growth, Action active, Action staminaAdd, Action goldAdd)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
@@ -41,17 +44,16 @@ namespace ProjectX.UI
             ConfigureTab(recoveryTab.transform, "资源找回", recovery);
             ConfigureTab(growthTab.transform, "成长基金", growth);
             ConfigureTab(activeTab.transform, "活跃基金", active);
-            Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform);
-            Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform);
-            Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.transform);
+            staminaAddButton = Bind(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform, staminaAdd);
+            goldAddButton = Bind(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform, goldAdd);
+            premiumAddButton = Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.transform);
             currencies.Changed += RenderCurrencies;
             RenderCurrencies();
         }
 
         public void Select(int functionId)
         {
-            string title=functionId==19?"资源找回":functionId==25?"成长基金":functionId==26?"活跃基金":"体力领取";
-            SetText(view.Binding.Find("Layer/Panel_1/Title/TitleName")?.transform, title);
+            SetText(view.Binding.Find("Layer/Panel_1/Title/TitleName")?.transform, "福利");
             SetSelected(staminaTab.transform, functionId == 18);
             SetSelected(recoveryTab.transform, functionId == 19);
             SetSelected(growthTab.transform, functionId == 25);
@@ -59,13 +61,27 @@ namespace ProjectX.UI
         }
 
         public void Dispose() => currencies.Changed -= RenderCurrencies;
+        public bool PremiumAddDisabled => premiumAddButton == null || !premiumAddButton.interactable;
+        public void InvokeStaminaTab() => staminaTab.transform.Find("Button")?.GetComponent<Button>()?.onClick.Invoke();
+        public void InvokeResourceTab() => recoveryTab.transform.Find("Button")?.GetComponent<Button>()?.onClick.Invoke();
+        public void InvokeStaminaAdd() => staminaAddButton?.onClick.Invoke();
+        public void InvokeGoldAdd() => goldAddButton?.onClick.Invoke();
+        public void InvokeClose() => view.Binding.Find("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>()?.onClick.Invoke();
+        public void SetStaminaRedDot(bool visible)
+        {
+            Transform prompt = staminaTab.transform.Find("Button/Prompt");
+            if (prompt != null) prompt.gameObject.SetActive(visible);
+        }
 
         private void RenderCurrencies()
         {
-            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform, currencies.Stamina.ToString());
-            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform, currencies.Gold.ToString());
+            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform, $"{currencies.Stamina}/100");
+            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform, FormatHeaderCurrency(currencies.Gold));
             SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/GoldNumBg/Num")?.transform, currencies.Premium.ToString());
         }
+
+        private static string FormatHeaderCurrency(long value) =>
+            value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
 
         private static void ConfigureTab(Transform root, string name, Action action)
         {
@@ -84,18 +100,21 @@ namespace ProjectX.UI
             if (button != null) button.interactable = !selected;
         }
 
-        private static void Bind(Transform target, Action action)
+        private static Button Bind(Transform target, Action action)
         {
             Button button = target?.GetComponent<Button>();
-            if (button == null) return;
+            if (button == null) return null;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action?.Invoke());
+            button.interactable = true;
+            return button;
         }
-        private static void Disable(Transform target)
+        private static Button Disable(Transform target)
         {
             Button button = target?.GetComponent<Button>();
-            if (button == null) return;
+            if (button == null) return null;
             button.onClick.RemoveAllListeners(); button.interactable = false;
+            return button;
         }
         private static void SetText(Transform root, string path, string value)
         {

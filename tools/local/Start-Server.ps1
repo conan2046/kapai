@@ -1,12 +1,21 @@
 param(
     [string]$Configuration = "Debug",
     [string]$ExePath = "",
+    [string]$ConfigDirectory = "",
     [int]$WaitSeconds = 20
 )
 
 $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$WorkDir = Join-Path $Root "server\config"
+$WorkDir = if ($ConfigDirectory) {
+    if ([IO.Path]::IsPathRooted($ConfigDirectory)) { [IO.Path]::GetFullPath($ConfigDirectory) }
+    else { [IO.Path]::GetFullPath((Join-Path $Root $ConfigDirectory)) }
+} else {
+    Join-Path $Root "server\config"
+}
+if (-not (Test-Path -LiteralPath (Join-Path $WorkDir "config") -PathType Leaf)) {
+    throw "Server config directory is invalid: $WorkDir"
+}
 
 function Test-ListenPort([int]$Port) {
     try {
