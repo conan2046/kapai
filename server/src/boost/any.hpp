@@ -11,8 +11,11 @@ namespace boost {
 	{
 	public:
 		any() {}
-		any(const any &other):std::any(other) {}
-		any(any &&other) noexcept:std::any(std::move(other)) {}
+		// Cast to the base explicitly. Passing boost::any directly lets
+		// std::any's value constructor win overload resolution, recursively
+		// wrapping another boost::any.
+		any(const any &other):std::any(static_cast<const std::any &>(other)) {}
+		any(any &&other) noexcept:std::any(static_cast<std::any &&>(other)) {}
 
 		template<typename T>
 		any(const T &value):std::any(value) {}

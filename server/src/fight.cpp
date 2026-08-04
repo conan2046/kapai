@@ -7461,21 +7461,16 @@ bool CFight::FastFightEnd(SFastFightResult &result)
 		}
 		else	// 正常结束
 		{
-			winGroup = CalculateWinGroup();
-			for(uint8 i=0; i < m_groupUser[winGroup].size(); i++)
-			{
-				ShareUserPtr pU = m_groupUser[winGroup][i];
-				if(pU.get() != NULL && pU->GetSock() > 0)
-				{
-					result.win = true;
-					break;
-				}
-			}
+			// Fast-fight callers place the initiator in group 1. The caller wins
+			// only when group 2 is completely dead; mutual destruction is a loss.
+			winGroup = (type == 2) ? EGT_GROUP1 : EGT_GROUP2;
+			result.win = (winGroup == EGT_GROUP1);
 		}
 
 		// 特殊战斗，直接胜利
 		if(m_type == EFT_BangPaiCopy)
 		{
+			winGroup = EGT_GROUP1;
 			result.win = true;
 		}
 		
@@ -7525,7 +7520,7 @@ bool CFight::FastFightEnd(SFastFightResult &result)
 		{
 			for(uint16 j=0; j < m_groupUser[i].size(); j++)
 			{
-				UserFightEnd(m_groupUser[i][j], i, result.win, true);
+				UserFightEnd(m_groupUser[i][j], i, i == winGroup, true);
 			}
 		}
 
