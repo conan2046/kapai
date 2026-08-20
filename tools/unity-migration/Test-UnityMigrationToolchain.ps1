@@ -1120,10 +1120,16 @@ $projectXAppSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 $localServerProbeSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/Editor/LocalServerSupervisorProbe.cs") -Raw -Encoding UTF8
+$editorServerBuildGuardSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/Editor/EditorLocalServerBuildGuard.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('Application.streamingAssetsPath, "ProjectXServer"') -and
     $localServerSupervisorSource.Contains('Application.persistentDataPath, "LocalServer"') -and
-    $localServerSupervisorSource.Contains('!Application.isEditor && !options.HasFlag("-projectXExternalServer")')
+    $localServerSupervisorSource.Contains('if (options.HasFlag("-projectXExternalServer")) return false;') -and
+    $localServerSupervisorSource.Contains('return !Application.isEditor || !Application.isBatchMode;') -and
+    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "build", "server-win", "Debug")') -and
+    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "config")') -and
+    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql")')
 ) "S6 supervisor no longer isolates immutable packaged assets from the writable player database or the external-server validation path."
 Assert-ToolchainTest (
     $projectXAppSource.IndexOf('StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))', [StringComparison]::Ordinal) -ge 0 -and
@@ -1140,8 +1146,18 @@ Assert-ToolchainTest (
     $localServerProbeSource.Contains('maximumConcurrentKapai == 1') -and
     $localServerProbeSource.Contains('ReadyAdopted') -and
     $localServerProbeSource.Contains('crashOwner.State == LocalServerState.Failed') -and
+    $localServerProbeSource.Contains('string runId = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")') -and
+    $localServerProbeSource.Contains('File.Copy(ownedDatabase, crashDatabase, true)') -and
     $localServerProbeSource.Contains('report.residualKapai == 0')
 ) "S6 probe no longer gates duplicate-process prevention, crash detection, and residual-zero cleanup."
+Assert-ToolchainTest (
+    $editorServerBuildGuardSource.Contains('PlayModeStateChange.ExitingEditMode') -and
+    $editorServerBuildGuardSource.Contains('Application.isBatchMode') -and
+    $editorServerBuildGuardSource.Contains('Build-Server.ps1') -and
+    $editorServerBuildGuardSource.Contains('EditorApplication.isPlaying = false') -and
+    $editorServerBuildGuardSource.Contains('-projectXExternalServer') -and
+    $editorServerBuildGuardSource.Contains('File.GetLastWriteTimeUtc(input) > builtAt')
+) "Editor Play no longer auto-builds a missing/stale SQLite server or cancels Play on build failure."
 $steamBuildSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/Editor/SteamWindowsBuild.cs") -Raw -Encoding UTF8
 $serverMainSource = Get-Content -LiteralPath (Join-Path $root "server/src/main.cpp") -Raw -Encoding UTF8

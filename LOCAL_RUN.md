@@ -41,6 +41,8 @@ Tools → ProjectX App → Build Steam Windows Package
 
 若 `Build-Server.ps1` 报 SQLite 静态库缺失，重新执行依赖安装命令；构建脚本会硬失败，禁止生成不含 SQLite 的本地服用于正式打包。
 
+Unity Editor 中直接点击 Play 会先检查 `build/server-win/Debug/kapai.exe`：文件缺失或服务端 C/C++/CMake/构建脚本较新时，自动执行 `Build-Server.ps1`；构建失败会取消 Play 并在 Console 显示错误。构建就绪后自动启动 `kapai.exe + SQLite`，停止 Play 时自动保存并关闭其拥有的服务端。Editor 批处理验收不会隐式启动服务；需要继续联调手工启动的外部服务端时，在 Unity 启动参数中加入 `-projectXExternalServer`。
+
 ## 当前结论
 
 客户端 Win 模拟器已存在，可以启动：

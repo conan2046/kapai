@@ -49,6 +49,7 @@ namespace ProjectX.Editor
                 string config = Path.Combine(root, "server", "config");
                 string schema = Path.Combine(root, "server", "sql", "sqlite", "001_initial_schema.sql");
                 string evidencePath = ResolveEvidencePath(root);
+                string runId = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
                 Directory.CreateDirectory(Path.GetDirectoryName(evidencePath));
                 EnsureNoKapai();
 
@@ -64,7 +65,7 @@ namespace ProjectX.Editor
 
                 conflict = new TcpListener(IPAddress.Loopback, 8711);
                 conflict.Start();
-                using (var blocked = NewSupervisor(root, executable, config, schema, "s6-conflict"))
+                using (var blocked = NewSupervisor(root, executable, config, schema, "s6-conflict-" + runId))
                 {
                     blocked.Start();
                     Require(blocked.State == LocalServerState.Failed && blocked.Detail.Contains("端口 8711"),
@@ -74,7 +75,9 @@ namespace ProjectX.Editor
                 conflict.Stop();
                 conflict = null;
 
-                owner = NewSupervisor(root, executable, config, schema, "s6-owned");
+                string ownedDatabaseName = "s6-owned-" + runId;
+                string crashDatabaseName = "s6-crash-" + runId;
+                owner = NewSupervisor(root, executable, config, schema, ownedDatabaseName);
                 owner.Start();
                 WaitForTerminal(owner, 30f);
                 Require(owner.State == LocalServerState.ReadyOwned && owner.ProcessId > 0,
@@ -102,12 +105,17 @@ namespace ProjectX.Editor
                 Require(File.Exists(owner.LogPath)
                         && File.ReadAllText(owner.LogPath).Contains("graceful shutdown requested by owning client"),
                     "Persistent local-server log did not capture graceful shutdown.");
+                string ownedDatabase = DatabasePath(root, ownedDatabaseName);
+                string crashDatabase = DatabasePath(root, crashDatabaseName);
+                Require(File.Exists(ownedDatabase) && new FileInfo(ownedDatabase).Length > 0,
+                    "Owned startup did not produce a reusable SQLite database fixture.");
+                File.Copy(ownedDatabase, crashDatabase, true);
                 report.gracefulShutdown = "Passed";
                 report.writableLog = "Passed";
                 owner = null;
                 WaitForNoKapai(8f);
 
-                crashOwner = NewSupervisor(root, executable, config, schema, "s6-crash");
+                crashOwner = NewSupervisor(root, executable, config, schema, crashDatabaseName);
                 crashOwner.Start();
                 WaitForTerminal(crashOwner, 30f);
                 Require(crashOwner.State == LocalServerState.ReadyOwned, "Crash probe server was not ready.");
@@ -152,7 +160,10 @@ namespace ProjectX.Editor
 
         private static LocalServerSupervisor NewSupervisor(string root, string executable, string config,
             string schema, string databaseName) => new LocalServerSupervisor(executable, config,
-            Path.Combine(root, ".local", "unity-validation", databaseName + ".db"), schema, 8711, 25f);
+            DatabasePath(root, databaseName), schema, 8711, 25f);
+
+        private static string DatabasePath(string root, string databaseName) =>
+            Path.Combine(root, ".local", "unity-validation", databaseName + ".db");
 
         private static void WaitForTerminal(LocalServerSupervisor supervisor, float timeoutSeconds)
         {

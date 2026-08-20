@@ -72,18 +72,37 @@ namespace ProjectX.Core
         public static bool ShouldRun(AppLaunchOptions options)
         {
             options = options ?? AppLaunchOptions.Current();
-            return !Application.isEditor && !options.HasFlag("-projectXExternalServer");
+            if (options.HasFlag("-projectXExternalServer")) return false;
+            // Interactive Editor Play should match the shipped player's one-click
+            // startup. Batch validations continue to own their server lifecycle.
+            return !Application.isEditor || !Application.isBatchMode;
         }
 
         public static LocalServerSupervisor CreateDefault()
         {
-            string serverRoot = Path.Combine(Application.streamingAssetsPath, "ProjectXServer");
+            string serverRoot;
+            string configRoot;
+            string schemaPath;
+            if (Application.isEditor)
+            {
+                string repositoryRoot = Directory.GetParent(Application.dataPath)?.Parent?.FullName
+                    ?? throw new InvalidOperationException("Repository root could not be resolved for Editor Play.");
+                serverRoot = Path.Combine(repositoryRoot, "build", "server-win", "Debug");
+                configRoot = Path.Combine(repositoryRoot, "server", "config");
+                schemaPath = Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql");
+            }
+            else
+            {
+                serverRoot = Path.Combine(Application.streamingAssetsPath, "ProjectXServer");
+                configRoot = Path.Combine(serverRoot, "config");
+                schemaPath = Path.Combine(serverRoot, "sqlite", "001_initial_schema.sql");
+            }
             string userRoot = Path.Combine(Application.persistentDataPath, "LocalServer");
             return new LocalServerSupervisor(
                 Path.Combine(serverRoot, "kapai.exe"),
-                Path.Combine(serverRoot, "config"),
+                configRoot,
                 Path.Combine(userRoot, "projectx.db"),
-                Path.Combine(serverRoot, "sqlite", "001_initial_schema.sql"));
+                schemaPath);
         }
 
         public void Start()

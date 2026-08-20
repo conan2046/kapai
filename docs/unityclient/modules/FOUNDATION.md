@@ -45,6 +45,7 @@
 - 最终进程：Unity 客户端 + 静态链接 SQLite 的 `kapai.exe`；不再要求玩家安装或启动 MySQL。
 - 最终数据位置：不可变后端资源随包发布；数据库、生成配置、日志、备份和迁移锁位于 `Application.persistentDataPath`。
 - 最终启动顺序：客户端单例 → 数据/版本检查 → SQLite 迁移 → 启动本地服 → 等待 `127.0.0.1:8711` → 构造 `GameServices` → 进入现有登录/主界面链。
+- 开发运行：交互式 Unity Editor 点击 Play 先检查仓库 Debug `kapai.exe`，缺失或服务端编译输入更新时自动调用中央 `Build-Server.ps1`，构建失败取消 Play；就绪后与正式 Player 使用同一 SQLite 自动监管语义，停止 Play 时保存并回收其拥有的服务端。`Application.isBatchMode` 或 `-projectXExternalServer` 保持外部服务端/验收工具自行管理生命周期。
 - S0 证据：`.local/unity-validation/steam-sqlite-s0-baseline-latest.json`、`steam-sqlite-s0-sql-inventory-latest.json` 和 `steam-sqlite-operation-ledger.json`；MySQL Extended/Actions/Mutations/Positive smoke 收到203个响应，错误扫描0，进程残留0。
 - S1 证据：`.local/unity-validation/steam-sqlite-s1-latest.json`；SQLite静态链接、磁盘库增删查/NULL/InsertId通过，`sqlite*.dll=0`，最终 `kapai.exe` 的MySQL Extended/Actions/Mutations/Positive smoke为203响应、错误0、进程残留0。
 - S2 证据：`.local/unity-validation/steam-sqlite-s2-latest.json`；从当前MySQL fallback Schema可重复生成173表/1360列，加入`schema_version`后最终174表、34个显式索引；Python与C++适配层均连续执行两次，`integrity_check=ok`，退出后无WAL/SHM残留。
