@@ -24,11 +24,11 @@ namespace ProjectX.Core
         public const string LoginServerButtonPath = "Layer/Login/Btn_Sever";
         public const string BagPath = "Layer/Main_UI/ButtonGroup1/btn_Bag";
         public const string SettingsPath = "Layer/Main_UI/ButtonGroup7/btn_xitong";
-        public const string TaskPath = "Layer/Main_UI/ButtonGroup5/btn_renwu";
+        public const string TaskPath = "Layer/Main_UI/ButtonGroup1/btn_renwu";
         public const string FormationPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
         public const string HeroBagPath = "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao";
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
-        public const string ShopPath = "Layer/Main_UI/ButtonGroup5/btn_shangcheng";
+        public const string ShopPath = "Layer/Main_UI/ButtonGroup1/btn_shangcheng";
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
         public const string ShopCoinShortcutPath = "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn";
         public const string FriendPath = "Layer/Main_UI/ButtonGroup7/btn_friend";
@@ -37,9 +37,10 @@ namespace ProjectX.Core
         public const string GuildPath = "Layer/Main_UI/ButtonGroup3/btn_bangpai";
         public const string WorldPath = "Layer/Main_UI/btn_fuben";
         public const string WelfareLegacyPath = "Layer/Main_UI/ButtonGroup8/btn_fuli";
-        public const string ActivityPath = "Layer/Main_UI/ButtonGroup5/btn_huodong";
-        public const string DrawPath = "Layer/Main_UI/ButtonGroup3/btn_zhaomu";
-        public const string GameplayPath = "Layer/Main_UI/btn_wanfa";
+        public const string ActivityPath = "Layer/Main_UI/ButtonGroup1/btn_huodong";
+        public const string RankingPath = "Layer/Main_UI/ButtonGroup1/btn_paihangbang";
+        public const string DrawPath = "Layer/Main_UI/ButtonGroup1/btn_zhaomu";
+        public const string GameplayPath = "Layer/Main_UI/ButtonGroup1/btn_wanfa";
         public const string EquipmentBagPath = "Layer/Main_UI/tankuang2/btn_zhuangbei";
         public const string FaBaoBagPath = "Layer/Main_UI/tankuang2/btn_fabao";
         private static readonly HashSet<string> SteamExcludedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -1096,7 +1097,7 @@ namespace ProjectX.Core
             loginServerListView = services.UiRouter.FindBySource("Login/SeverListLayer");
             roleCreateView = services.UiRouter.FindBySource("Login/RoleCreateLayer");
             noticeView = services.UiRouter.FindBySource("/NoticeLayer.csd", true);
-            mainView = services.UiRouter.FindBySource("UImainLayer", true);
+            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             mainCloudView = services.UiRouter.FindBySource("UImain_cloudLayer", true);
             bagView = services.UiRouter.FindBySource("zhujue/beibao");
             bagFrameView = services.UiRouter.FindBySource("OneLevelLayer");
@@ -1563,7 +1564,7 @@ namespace ProjectX.Core
 
         public void ShowMainUi()
         {
-            mainView = services.UiRouter.FindBySource("UImainLayer", true);
+            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             if (mainView == null) { Fail("UImainLayer CocosUiBinding was not found."); return; }
             loginView?.SetVisible(false);
             loginBackgroundView?.SetVisible(false);
@@ -1603,7 +1604,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button button = mainView.BindClick(BagPath, HandleBagClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
@@ -1614,7 +1615,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 settingsButton = mainView.BindClick(SettingsPath, HandleSettingsClick, true);
             }
             catch (Exception exception) { Fail(exception.Message); }
@@ -1624,7 +1625,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 taskButton = mainView.BindClick(TaskPath, HandleTaskClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(taskButton));
             }
@@ -1635,7 +1636,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button formationButton = mainView.BindClick(FormationPath, HandleFormationClick, true);
                 Button bagButton = mainView.BindClick(HeroBagPath, HandleHeroBagClick, true);
                 if (autoInvoke)
@@ -1648,7 +1649,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button button = mainView.BindClick(MailPath, HandleMailClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
@@ -1686,7 +1687,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button toggle = mainView.BindClick(ShopPath, ToggleShopSubmenu, true);
                 Button entry = mainView.BindClick(ShopSubmenuPath, HandleShopClick, true);
                 mainView.BindClick(ShopCoinShortcutPath, HandleShopClick, true);
@@ -1729,7 +1730,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Friend"))
                 {
                     mainView.Binding.Find(FriendPath)?.SetActive(false);
@@ -1745,7 +1746,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Chat"))
                 {
                     mainView.Binding.Find(ChatPath)?.SetActive(false);
@@ -1766,7 +1767,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Team"))
                 {
                     mainView.Binding.Find(TeamLegacyPath)?.SetActive(false);
@@ -1788,7 +1789,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Guild"))
                 {
                     mainView.Binding.Find(GuildPath)?.SetActive(false);
@@ -1804,7 +1805,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button button = mainView.BindClick(WorldPath, HandleWorldClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
@@ -1815,10 +1816,10 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Welfare"))
                 {
-                    mainView.Binding.Find("Layer/Main_UI/ButtonGroup5/btn_fuli")?.SetActive(false);
+                    mainView.Binding.Find("Layer/Main_UI/ButtonGroup1/btn_fuli")?.SetActive(false);
                     mainView.Binding.Find(WelfareLegacyPath)?.SetActive(false);
                     mainView.GameObject.transform.Find("WelfareEntryRuntime")?.gameObject.SetActive(false);
                     mainHudPresenter?.SetWelfareVisible(false);
@@ -1839,7 +1840,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Activity"))
                 {
                     mainView.Binding.Find(ActivityPath)?.SetActive(false);
@@ -1856,7 +1857,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button button = mainView.BindClick(DrawPath, HandleDrawClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
@@ -1867,7 +1868,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 gameplayButton = mainView.BindClick(GameplayPath, HandleGameplayClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(gameplayButton));
             }
@@ -3660,9 +3661,9 @@ namespace ProjectX.Core
                 };
                 string[] routePaths =
                 {
-                    BagPath, HeroBagPath, FormationPath, "Layer/Main_UI/ButtonGroup3/btn_paihangbang",
+                    BagPath, HeroBagPath, FormationPath, RankingPath,
                     DrawPath, GuildPath, "Layer/Main_UI/ButtonGroup4/btn_Qiri", "Layer/Main_UI/ButtonGroup4/btn_shouchong",
-                    TaskPath, "Layer/Main_UI/ButtonGroup5/btn_fuli", ActivityPath, "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
+                    TaskPath, "Layer/Main_UI/ButtonGroup1/btn_fuli", ActivityPath, "Layer/Main_UI/ButtonGroup1/btn_chongzhi",
                     SettingsPath, MailPath, FriendPath, "Layer/Main_UI/ButtonGroup7/btn_huishou",
                     WorldPath, GameplayPath, "Layer/Main_UI/btn_online", "Layer/Main_UI/ButtonGroup8/btn_Zhekou1",
                     "Layer/Main_UI/ButtonGroup8/btn_Zhekou2", "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
@@ -4099,7 +4100,7 @@ namespace ProjectX.Core
             if (!InvokeBagControl("BAG-02-CLOSE") || IsBagOpen)
             { Fail("Bag G4 close button did not return to main."); yield break; }
             yield return CaptureBagG5Evidence("BAG-02-CLOSE");
-            mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+            mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             Button entry = mainView?.Binding.Find(BagPath)?.GetComponent<Button>();
             if (entry == null) { Fail("Bag G4 real main entry was unavailable after close."); yield break; }
             entry.onClick.Invoke();
@@ -6076,7 +6077,7 @@ namespace ProjectX.Core
         public bool InvokeHeroEntryForReconnectValidation()
         {
             if (IsHeroOpen && !InvokeHeroCloseForValidation()) return false;
-            mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+            mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             Button formationButton = mainView?.Binding.Find(FormationPath)?.GetComponent<Button>();
             if (formationButton == null || !formationButton.interactable) return false;
             formationButton.onClick.Invoke();
@@ -6328,7 +6329,7 @@ namespace ProjectX.Core
         {
             try
             {
-                mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 mainView.BindClick(EquipmentBagPath,
                     () => InvokeLuaOrFail(onEquipmentBagClicked, "HeroEquipment.OpenEquipment"), true);
                 mainView.BindClick(FaBaoBagPath,
@@ -7135,6 +7136,7 @@ namespace ProjectX.Core
             RectTransform rect = submenu?.GetComponent<RectTransform>();
             if (rect == null) return;
             EnsureHudSubmenuOrigins();
+            hudShopSubmenuOrigin = CalculateShopSubmenuPosition(rect);
             if (hudShopSubmenuAnimation != null) StopCoroutine(hudShopSubmenuAnimation);
             if (submenu.activeSelf)
             {
@@ -7145,8 +7147,45 @@ namespace ProjectX.Core
             else
             {
                 submenu.SetActive(true);
-                hudShopSubmenuAnimation = StartCoroutine(AnimateHudSubmenu(rect, hudShopSubmenuOrigin, -126f));
+                hudShopSubmenuAnimation = StartCoroutine(
+                    AnimateHudSubmenu(rect, hudShopSubmenuOrigin - new Vector2(0f, 24f), 24f));
             }
+        }
+
+        private Vector2 CalculateShopSubmenuPosition(RectTransform submenu)
+        {
+            RectTransform button = mainView?.Binding.Find(ShopPath)?.GetComponent<RectTransform>();
+            RectTransform parent = submenu.parent as RectTransform;
+            if (button == null || parent == null)
+                return hudShopSubmenuOrigin;
+
+            RectTransform buttonGroup = button.parent as RectTransform;
+            if (buttonGroup != null)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(buttonGroup);
+            Canvas.ForceUpdateCanvases();
+
+            Bounds buttonBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(parent, button);
+            float panelWidth = submenu.rect.width * Mathf.Abs(submenu.localScale.x);
+            float panelHeight = submenu.rect.height * Mathf.Abs(submenu.localScale.y);
+            const float gap = 10f;
+
+            Vector2 pivotPosition = new Vector2(
+                buttonBounds.center.x + (submenu.pivot.x - 0.5f) * panelWidth,
+                buttonBounds.max.y + gap + submenu.pivot.y * panelHeight);
+            Rect parentRect = parent.rect;
+            pivotPosition.x = Mathf.Clamp(
+                pivotPosition.x,
+                parentRect.xMin + submenu.pivot.x * panelWidth,
+                parentRect.xMax - (1f - submenu.pivot.x) * panelWidth);
+            pivotPosition.y = Mathf.Clamp(
+                pivotPosition.y,
+                parentRect.yMin + submenu.pivot.y * panelHeight,
+                parentRect.yMax - (1f - submenu.pivot.y) * panelHeight);
+
+            Vector2 anchorReference = new Vector2(
+                Mathf.Lerp(parentRect.xMin, parentRect.xMax, submenu.anchorMin.x),
+                Mathf.Lerp(parentRect.yMin, parentRect.yMax, submenu.anchorMin.y));
+            return pivotPosition - anchorReference;
         }
         private void HandleFriendClick()
         {
@@ -7236,15 +7275,15 @@ namespace ProjectX.Core
             BindHudBoundary(mainView, BagPath, "背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, HeroBagPath, "英雄背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FormationPath, "阵容业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup3/btn_paihangbang", "排行榜属于竞技/玩家依赖模块，当前不可用。");
+            BindHudBoundary(mainView, RankingPath, "排行榜属于竞技/玩家依赖模块，当前不可用。");
             BindHudBoundary(mainView, DrawPath, "招募业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, GuildPath, "帮派业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup4/btn_Qiri", "七日活动属于运营模块，当前不可用。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup4/btn_shouchong", "首充与支付不属于 HUD，当前不可用。");
             BindHudBoundary(mainView, TaskPath, "任务业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup5/btn_fuli", "福利业务不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup1/btn_fuli", "福利业务不属于 HUD，当前不可用。");
             BindHudBoundary(mainView, ActivityPath, "活动业务不属于 HUD，当前不可用。");
-            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup5/btn_chongzhi", "充值与支付不属于 HUD，当前不可用。");
+            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup1/btn_chongzhi", "充值与支付不属于 HUD，当前不可用。");
             BindHudBoundary(mainView, MailPath, "邮件业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FriendPath, "好友业务属于 Social，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup7/btn_huishou", "回收页面不属于 HUD，当前不可用。");
@@ -7260,7 +7299,7 @@ namespace ProjectX.Core
                 "Layer/Main_UI/ButtonGroup4/btn_Denglu",
                 "Layer/Main_UI/ButtonGroup4/btn_kaifuRank",
                 "Layer/Main_UI/ButtonGroup4/btn_zhuanpan",
-                "Layer/Main_UI/ButtonGroup5/btn_guibin",
+                "Layer/Main_UI/ButtonGroup1/btn_guibin",
                 "Layer/Main_UI/ButtonGroup8/btn_Libao"
             };
             foreach (string path in conditionallyHidden)
@@ -7293,8 +7332,8 @@ namespace ProjectX.Core
                 TeamLegacyPath,
                 "Layer/Main_UI/ButtonGroup4/btn_Qiri",
                 "Layer/Main_UI/ButtonGroup4/btn_shouchong",
-                "Layer/Main_UI/ButtonGroup5/btn_fuli",
-                "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
+                "Layer/Main_UI/ButtonGroup1/btn_fuli",
+                "Layer/Main_UI/ButtonGroup1/btn_chongzhi",
                 WelfareLegacyPath,
                 "Layer/Main_UI/btn_online",
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou1",
@@ -7318,7 +7357,7 @@ namespace ProjectX.Core
             {
                 "Layer/Main_UI/ButtonGroup4/btn_Qiri",
                 "Layer/Main_UI/ButtonGroup4/btn_shouchong",
-                "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
+                "Layer/Main_UI/ButtonGroup1/btn_chongzhi",
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou1",
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou2",
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
@@ -10886,7 +10925,7 @@ namespace ProjectX.Core
         private void EnsureMainTaskTracker()
         {
             if (mainTaskTracker != null) return;
-            mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+            mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             CocosUiView backup = services.UiRouter.FindBySource("UImainLayer_backup");
             if (mainView == null || backup == null)
                 throw new InvalidOperationException("Main or backup main task-tracker view was not found.");
@@ -10896,7 +10935,7 @@ namespace ProjectX.Core
         private void EnsureMainHudPresenter()
         {
             if (mainHudPresenter != null) return;
-            mainView = mainView ?? services.UiRouter.FindBySource("UImainLayer", true);
+            mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             if (mainView == null) throw new InvalidOperationException("Main HUD view was not found.");
             chatMiniView = chatMiniView ?? services.UiRouter.FindBySource("/ChatLayer.csd");
             if (chatMiniView == null) throw new InvalidOperationException("HUD ChatLayer view was not found.");

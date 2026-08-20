@@ -7,6 +7,8 @@ namespace ProjectX.UI
 {
     public sealed class UiRouter
     {
+        public const string MainHudSourceToken = "common/UImainLayer_new";
+
         public CocosUiView FindBySource(string sourceToken, bool excludeBackup = false)
         {
             CocosUiBinding binding = Resources.FindObjectsOfTypeAll<CocosUiBinding>()

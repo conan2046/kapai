@@ -496,12 +496,12 @@
     {
       "id": "HUD-18-SHOP-TOGGLE",
       "page": "菜单",
-      "path": "Layer/Main_UI/ButtonGroup5/btn_shangcheng",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_shangcheng",
       "visibleCondition": "HUD可见",
       "cocosCallback": "MainUI.OnShopButtonClick -> tankuang1 MoveTo Y-126/0.17 + fade",
       "protocol": "无",
       "unityBinding": "HUD local menu state",
-      "successFeedback": "三类商城菜单展开/收起",
+      "successFeedback": "三类商城菜单在当前商城按钮正上方展开/收起；横向布局变化后位置同步更新",
       "failureFeedback": "动画资源缺失时安全切换并诊断",
       "successEvidence": "docs/unityclient/modules/PLAYERHUD.md",
       "failureEvidence": ".local/unity-validation/playerhud-operation-ledger.json",
@@ -636,7 +636,7 @@
     {
       "id": "HUD-25-RANK-ROUTE",
       "page": "常驻入口",
-      "path": "Layer/Main_UI/ButtonGroup3/btn_paihangbang",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_paihangbang",
       "visibleCondition": "HUD可见",
       "cocosCallback": "OpenRankUI(EMID_RANK_Fuben)",
       "protocol": "边界",
@@ -656,7 +656,7 @@
     {
       "id": "HUD-26-DRAW-ROUTE",
       "page": "常驻入口",
-      "path": "Layer/Main_UI/ButtonGroup3/btn_zhaomu",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_zhaomu",
       "visibleCondition": "HUD可见",
       "cocosCallback": "Utils:OpenFunction(EMID_KAPAI_CHOUKA)",
       "protocol": "边界",
@@ -736,7 +736,7 @@
     {
       "id": "HUD-30-TASK-ROUTE",
       "page": "常驻入口",
-      "path": "Layer/Main_UI/ButtonGroup5/btn_renwu",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_renwu",
       "visibleCondition": "HUD可见",
       "cocosCallback": "Utils:OpenFunction(EMID_TASK_DALIY)",
       "protocol": "边界",
@@ -756,7 +756,7 @@
     {
       "id": "HUD-31-WELFARE-ROUTE",
       "page": "运营入口",
-      "path": "Layer/Main_UI/ButtonGroup5/btn_fuli",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_fuli",
       "visibleCondition": "权威状态可见",
       "cocosCallback": "Utils:OpenFunction(EMID_HUODONG)",
       "protocol": "边界",
@@ -776,7 +776,7 @@
     {
       "id": "HUD-32-ACTIVITY-ROUTE",
       "page": "运营入口",
-      "path": "Layer/Main_UI/ButtonGroup5/btn_huodong",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_huodong",
       "visibleCondition": "权威状态可见",
       "cocosCallback": "InitUI(WelfareActivityFormerUI)",
       "protocol": "边界",
@@ -796,7 +796,7 @@
     {
       "id": "HUD-33-RECHARGE-ROUTE",
       "page": "运营入口",
-      "path": "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_chongzhi",
       "visibleCondition": "充值开关与权威状态允许",
       "cocosCallback": "OpenRechargeMainUI",
       "protocol": "边界",
@@ -916,7 +916,7 @@
     {
       "id": "HUD-39-GAMEPLAY-ROUTE",
       "page": "常驻入口",
-      "path": "Layer/Main_UI/btn_wanfa",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_wanfa",
       "visibleCondition": "HUD可见",
       "cocosCallback": "Utils:OpenFunction(EMID_WANFA)",
       "protocol": "边界",
@@ -1016,7 +1016,7 @@
     {
       "id": "HUD-44-CONDITIONAL-HIDDEN-GROUP",
       "page": "条件入口",
-      "path": "Layer/Main_UI/ButtonGroup1/btn_zhujue;Layer/Main_UI/ButtonGroup4/btn_PetZhekou;Layer/Main_UI/ButtonGroup4/btn_Denglu;Layer/Main_UI/ButtonGroup4/btn_kaifuRank;Layer/Main_UI/ButtonGroup4/btn_zhuanpan;Layer/Main_UI/ButtonGroup5/btn_guibin;Layer/Main_UI/ButtonGroup8/btn_Libao",
+      "path": "Layer/Main_UI/ButtonGroup1/btn_zhujue;Layer/Main_UI/ButtonGroup4/btn_PetZhekou;Layer/Main_UI/ButtonGroup4/btn_Denglu;Layer/Main_UI/ButtonGroup4/btn_kaifuRank;Layer/Main_UI/ButtonGroup4/btn_zhuanpan;Layer/Main_UI/ButtonGroup1/btn_guibin;Layer/Main_UI/ButtonGroup8/btn_Libao",
       "visibleCondition": "当前CSB默认隐藏；仅权威事件可开启",
       "cocosCallback": "MainUI conditional visibility handlers",
       "protocol": "/65 and owner status",

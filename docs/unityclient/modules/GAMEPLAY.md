@@ -21,7 +21,7 @@ src/main.lua
 → /1001 登录、必要时 /1003 创角、/1004 选角进服
 → LUILogic 初始化 MainUI
 → csd/common/UImainLayer_new.csb
-→ Layer/Main_UI/btn_wanfa
+→ Layer/Main_UI/ButtonGroup1/btn_wanfa
 → MainUI.WanFaCallback
 → Utils:OpenFunction(EMID_WANFA=270, nil, true)
 → AppDef.FuncUI[270] = Main.WanFaEntranceUI, PopFirstClassLayer

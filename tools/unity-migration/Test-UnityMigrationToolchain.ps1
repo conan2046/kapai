@@ -537,10 +537,32 @@ Assert-ToolchainTest (
 $mainHudPresenterSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
         -Path "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+$cocosUiBindingSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/src/UI/Migration/CocosUiBinding.cs" -PathType Leaf) -Raw -Encoding UTF8
+$uiRouterSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/src/UI/UiRouter.cs" -PathType Leaf) -Raw -Encoding UTF8
+$firstPlayableLoopSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/ProjectX/src/LuaRuntime/FirstPlayableLoopBridge.cs" -PathType Leaf) -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('public const string RankingPath = "Layer/Main_UI/ButtonGroup1/btn_paihangbang";') -and
+    $projectXAppSource.Contains('public const string DrawPath = "Layer/Main_UI/ButtonGroup1/btn_zhaomu";') -and
+    $projectXAppSource.Contains('public const string GameplayPath = "Layer/Main_UI/ButtonGroup1/btn_wanfa";') -and
+    $cocosUiBindingSource.Contains('Transform hierarchyTarget = transform.Find(cocosPath);') -and
+    $cocosUiBindingSource.Contains('cocosPath.StartsWith("Layer/", StringComparison.Ordinal)') -and
+    $cocosUiBindingSource.Contains('transform.Find(cocosPath.Substring("Layer/".Length))') -and
+    $uiRouterSource.Contains('public const string MainHudSourceToken = "common/UImainLayer_new";') -and
+    $projectXAppSource.Contains('FindBySource(UiRouter.MainHudSourceToken, true)') -and
+    -not $projectXAppSource.Contains('FindBySource("UImainLayer", true)') -and
+    $firstPlayableLoopSource.Contains('FindBySource(UiRouter.MainHudSourceToken, true)') -and
+    -not $firstPlayableLoopSource.Contains('FindBySource("UImainLayer", true)')
+) "Unity-authored ButtonGroup1 controls no longer resolve through their current hierarchy paths."
 foreach ($steamHiddenCommercialPath in @(
     'Layer/Main_UI/ButtonGroup4/btn_Qiri',
     'Layer/Main_UI/ButtonGroup4/btn_shouchong',
-    'Layer/Main_UI/ButtonGroup5/btn_chongzhi',
+    'Layer/Main_UI/ButtonGroup1/btn_chongzhi',
     'Layer/Main_UI/ButtonGroup8/btn_Zhekou1',
     'Layer/Main_UI/ButtonGroup8/btn_Zhekou2',
     'Layer/Main_UI/ButtonGroup8/btn_Zhekou3'
@@ -587,7 +609,10 @@ Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('chatVisibleStartIndex = 0;') -and
     $mainHudPresenterSource.Contains('.Where(record => systemChatSummaryVisible || record.Channel != ChatChannel.System)') -and
     $mainHudPresenterSource.Contains('text.supportRichText = true;') -and
-    $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudShopSubmenuOrigin, -126f)') -and
+    $projectXAppSource.Contains('hudShopSubmenuOrigin = CalculateShopSubmenuPosition(rect);') -and
+    $projectXAppSource.Contains('RectTransformUtility.CalculateRelativeRectTransformBounds(parent, button)') -and
+    $projectXAppSource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(buttonGroup)') -and
+    $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudShopSubmenuOrigin - new Vector2(0f, 24f), 24f)') -and
     $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f)') -and
     $projectXAppSource.Contains('while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline)') -and
     $projectXAppSource.Contains('mainHudPresenter?.BeginReconnectChatSummary();') -and

@@ -8,7 +8,7 @@
 
 ### 当前 Cocos 调用链
 
-`Layer/Main_UI/btn_wanfa → Main.WanFaEntranceUI → EnterBtn(function_id=1) → Utils:OpenFunction(1) → WanFa.YouLiMainUI → CreateUINode("csd/youli/youlisanjie.csb") → LuaNetSendMsg:QueryYouLiInfo()`。
+`Layer/Main_UI/ButtonGroup1/btn_wanfa → Main.WanFaEntranceUI → EnterBtn(function_id=1) → Utils:OpenFunction(1) → WanFa.YouLiMainUI → CreateUINode("csd/youli/youlisanjie.csb") → LuaNetSendMsg:QueryYouLiInfo()`。
 
 真实子页面：
 

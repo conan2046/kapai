@@ -10,7 +10,7 @@
 
 ### 入口与界面
 
-`Layer/Main_UI/btn_wanfa` → `Main.WanFaEntranceUI` → `Function_3/EnterBtn` → `Utils:OpenFunction(3)` → `FengShenStory.FengShenStoryMainUI` → `csd/fengshenliezhuan/fengshenliezhuanlLayer.csb` → `/320 op=24`。
+`Layer/Main_UI/ButtonGroup1/btn_wanfa` → `Main.WanFaEntranceUI` → `Function_3/EnterBtn` → `Utils:OpenFunction(3)` → `FengShenStory.FengShenStoryMainUI` → `csd/fengshenliezhuan/fengshenliezhuanlLayer.csb` → `/320 op=24`。
 
 关卡弹窗：`FengShenStoryLevelUI` → `csd/fengshenliezhuan/fengshenliezhuanlevel.csb`。当前关显示挑战与布阵；已过关只显示通过；锁定关卡 `userObject=0`，点击只出原生提示。
 

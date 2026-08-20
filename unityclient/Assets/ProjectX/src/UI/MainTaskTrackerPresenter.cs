@@ -9,7 +9,7 @@ namespace ProjectX.UI
     public sealed class MainTaskTrackerPresenter : IDisposable
     {
         private const string PanelPath = "Layer/Main_UI/Panel_QuestAndTeam";
-        private const string PromptPath = "Layer/Main_UI/ButtonGroup5/btn_renwu/Prompt";
+        private const string PromptPath = "Layer/Main_UI/ButtonGroup1/btn_renwu/Prompt";
         private readonly TaskStore store;
         private readonly VirtualList<TaskRecord> list;
         private readonly GameObject panel;

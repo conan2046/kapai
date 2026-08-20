@@ -26,7 +26,7 @@
 - 云层：`client/ProjectX/res/csd/common/UImain_cloudLayer.csb`，首次进入约 1 秒后挂到根节点 `Bg`，`gotoFrameAndPlay(0,true)` 循环。
 - 聊天摘要：`client/ProjectX/res/csd/ChatLayer.csb`；完整聊天/语音资源为 `MainChatLayer.csb`、`VoiceWindow.csb`，仅前者的被动摘要和展开/收起属于 HUD。
 - Unity 当前 Prefab：`Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab`、`UImain_cloudLayer.prefab`；Bootstrap 场景当前已引用主 Prefab。
-- 主层常驻顶级节点：`ButtonGroup3`、`Head`、`tankuang2`、`ButtonGroup1`、`ButtonGroup4`、`tankuang1`、`ButtonGroup5`、`ButtonGroup6`、`ButtonGroup7`、`ButtonGroup8`、`btn_online`、`btn_fuben`、`btn_wanfa`。
+- 主层常驻顶级节点：`ButtonGroup3`、`Head`、`tankuang2`、`ButtonGroup1`、`ButtonGroup4`、`tankuang1`、`ButtonGroup6`、`ButtonGroup7`、`ButtonGroup8`、`btn_online`、`btn_fuben`、`btn_wanfa`。Unity 中原 `ButtonGroup5` 的按钮已合并到 `ButtonGroup1`，由横向布局自适应排版。
 - 安全区/层级：保持 CSB 的左下坐标、锚点、缩放、ZOrder、裁剪及 1334×750 比例；禁止为了填屏改为自由拉伸。
 - 当前新 CSB 不含可见 serverId 文本、地图名、时钟、公告横幅或旧版 `locker` 折叠按钮；不得凭旧代码或旧截图补造。
 

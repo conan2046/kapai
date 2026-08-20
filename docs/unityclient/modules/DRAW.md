@@ -10,7 +10,7 @@
 
 ## 1. 当前范围
 
-- 当前主界面入口：`Layer/Main_UI/ButtonGroup3/btn_zhaomu`。
+- 当前 Unity 主界面入口：`Layer/Main_UI/ButtonGroup1/btn_zhaomu`。
 - 当前回调：`MainUI:LuckDrawTouchCallback → Utils:OpenFunction(EMID_KAPAI_CHOUKA)`。
 - 当前 View：`View/HappyDraw/HappyDrawUI.lua`，不是旧 `View/LuckyDraw/LuckyDrawUI.lua`。
 - 当前协议：`MSG_PET_RANDOM_DRAW / 224`。
@@ -21,7 +21,7 @@
 ## 2. 当前调用链
 
 ```text
-UImainLayer_new/ButtonGroup3/btn_zhaomu
+UImainLayer_new/ButtonGroup1/btn_zhaomu
 → MainUI:LuckDrawTouchCallback
 → Utils:OpenFunction(EMID_KAPAI_CHOUKA)
 → AppDef.ModuleOpenData[1010].lua = HappyDraw.HappyDrawUI

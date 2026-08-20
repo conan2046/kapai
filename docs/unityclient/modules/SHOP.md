@@ -9,7 +9,7 @@
 ## G0 范围冻结
 
 - 当前产品静态入口：
-  - `Layer/Main_UI/ButtonGroup5/btn_shangcheng`：展开/收起 `tankuang1`。
+  - `Layer/Main_UI/ButtonGroup1/btn_shangcheng`：展开/收起 `tankuang1`。
   - `Layer/Main_UI/tankuang1/btn_shangcheng`：`Utils:OpenFunction(EMID_SCCHANGYONG)`。
   - `AppDef.moduleUI[EMID_SCCHANGYONG] = {lua="Shop.ShopUI", sub=1}`。
   - `ShopUI -> ShopPanel -> csd/shop/shangcheng.csb -> ShopTable/NormalShop/SelectedGood`。

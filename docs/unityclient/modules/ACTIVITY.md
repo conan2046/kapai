@@ -2,7 +2,7 @@
 
 ## 1. 范围与版本结论
 
-- 当前活动入口是 `client/ProjectX/src/View/MainUI.lua` 的 `UImainLayer_new/ButtonGroup5/btn_huodong`。
+- 当前活动入口源自 `client/ProjectX/src/View/MainUI.lua`；Unity 合并后的路径是 `UImainLayer_new/ButtonGroup1/btn_huodong`。
 - 点击回调直接执行 `Utils:InitUI("WelfareActivity.WelfareActivityFormerUI", SpecialLayer, 1)`。
 - 旧 `/209 + View/Activity/ActivityLayer` 属于另一代“玩法”，不在本模块范围，也不计迁移完成度。
 - `/222` 是复用型临时活动协议；本阶段只迁移当前入口首包 `op=0xFF` 和首个真实子页“每日首充” `op=18, subOp=1`。既有福利模块继续使用 `/222 op=4`，由统一 Lua 分发器按首字节路由。
@@ -11,7 +11,7 @@
 
 ```text
 csd/common/UImainLayer_new.csb
-  → MainUI.lua: ButtonGroup5/btn_huodong
+  → MainUI.lua: ButtonGroup1/btn_huodong（Unity 合并路径）
   → WelfareActivity.WelfareActivityFormerUI(openTab=1)
   → csd/huodong/ActivityRankingLayer.csb
   → csd/huodong/ActivityLevelLayer.csb

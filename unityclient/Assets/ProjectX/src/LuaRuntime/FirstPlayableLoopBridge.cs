@@ -116,7 +116,7 @@ namespace ProjectX.LuaRuntime
         {
             loginView = uiRouter.FindBySource("Login/loginLayer");
             loginBackgroundView = uiRouter.FindBySource("Login/LoginBgLayer");
-            mainView = uiRouter.FindBySource("UImainLayer", true);
+            mainView = uiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             loginBackgroundView?.SetVisible(true);
             loginView?.SetVisible(true);
             mainView?.SetVisible(false);
@@ -138,7 +138,7 @@ namespace ProjectX.LuaRuntime
 
         public void ShowMainUi()
         {
-            mainView = uiRouter.FindBySource("UImainLayer", true);
+            mainView = uiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             if (mainView == null) { Fail("UImainLayer CocosUiBinding was not found."); return; }
             mainView.SetVisible(true);
             loginView?.SetVisible(false);
@@ -150,7 +150,7 @@ namespace ProjectX.LuaRuntime
         {
             try
             {
-                mainView = mainView ?? uiRouter.FindBySource("UImainLayer", true);
+                mainView = mainView ?? uiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button button = mainView.BindClick(BagPath, HandleBagClick, true);
                 SetStatus("Main UI ready. Bag click is bound to BagController.");
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));

@@ -39,7 +39,15 @@ namespace ProjectX.UI.Migration
             CocosNodeMetadata metadata = Array.Find(
                 GetComponentsInChildren<CocosNodeMetadata>(true),
                 item => item.CocosPath == cocosPath);
-            return metadata != null ? metadata.gameObject : null;
+            if (metadata != null)
+                return metadata.gameObject;
+
+            // Unity-authored hierarchy moves can intentionally diverge from the
+            // normalized Cocos metadata while retaining the same node names.
+            Transform hierarchyTarget = transform.Find(cocosPath);
+            if (hierarchyTarget == null && cocosPath.StartsWith("Layer/", StringComparison.Ordinal))
+                hierarchyTarget = transform.Find(cocosPath.Substring("Layer/".Length));
+            return hierarchyTarget != null ? hierarchyTarget.gameObject : null;
         }
 
         public GameObject Find(string cocosPath, string cocosNodeType, int cocosActionTag)

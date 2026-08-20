@@ -18,6 +18,12 @@ namespace ProjectX.Editor
             "Assets/ProjectX/res/csd/UnityMigration/unity-import-manifest.json";
         private const string TimelineManifestPath =
             "Assets/ProjectX/res/csd/UnityMigration/unity-import-manifest.timeline.json";
+        private const string MainHudDocumentPath =
+            "Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json";
+        private const string MainHudPrefabPath =
+            "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
+        private const string MainHudPrimaryGroupPath = "Layer/Main_UI/ButtonGroup1";
+        private const string MainHudMergedGroupPath = "Layer/Main_UI/ButtonGroup5";
 
         [Serializable] private sealed class ImportManifest
         {
@@ -146,6 +152,18 @@ namespace ProjectX.Editor
         public static void ImportAllPrefabsBatch()
         {
             ImportBaselines(true);
+        }
+
+        [InitializeOnLoadMethod]
+        private static void ScheduleMainHudLayoutContract()
+        {
+            EditorApplication.delayCall += RebuildMainHudPrefabIfNeeded;
+        }
+
+        [MenuItem("Tools/ProjectX UI/Apply Main HUD Horizontal Layout")]
+        public static void ApplyMainHudHorizontalLayoutMenu()
+        {
+            RebuildMainHudPrefab(true);
         }
 
         public static void ImportTimelinePrefabsBatch()
@@ -690,7 +708,69 @@ namespace ProjectX.Editor
                 File.ReadAllText(ToAbsolutePath(assetPath)));
             if (document?.root == null)
                 throw new InvalidDataException($"Invalid normalized UI document: {assetPath}");
+            NormalizeMainHudDocument(document);
             return document;
+        }
+
+        private static void NormalizeMainHudDocument(UiDocument document)
+        {
+            if (!string.Equals(document.name, "UImainLayer_new", StringComparison.Ordinal))
+                return;
+
+            UiNode primaryGroup = FindNode(document.root, MainHudPrimaryGroupPath);
+            UiNode mergedGroup = FindNode(document.root, MainHudMergedGroupPath);
+            if (primaryGroup == null || mergedGroup == null)
+                return;
+
+            var children = new List<UiNode>(primaryGroup.children ?? Array.Empty<UiNode>());
+            foreach (UiNode child in mergedGroup.children ?? Array.Empty<UiNode>())
+            {
+                RewriteNodePath(child, MainHudMergedGroupPath, MainHudPrimaryGroupPath);
+                children.Add(child);
+            }
+            primaryGroup.children = children.ToArray();
+            RemoveChildNode(document.root, mergedGroup);
+        }
+
+        private static UiNode FindNode(UiNode node, string path)
+        {
+            if (string.Equals(node.nodePath, path, StringComparison.Ordinal))
+                return node;
+            if (node.children == null)
+                return null;
+            foreach (UiNode child in node.children)
+            {
+                UiNode match = FindNode(child, path);
+                if (match != null)
+                    return match;
+            }
+            return null;
+        }
+
+        private static bool RemoveChildNode(UiNode parent, UiNode target)
+        {
+            if (parent.children == null)
+                return false;
+            var children = new List<UiNode>(parent.children);
+            if (children.Remove(target))
+            {
+                parent.children = children.ToArray();
+                return true;
+            }
+            foreach (UiNode child in parent.children)
+                if (RemoveChildNode(child, target))
+                    return true;
+            return false;
+        }
+
+        private static void RewriteNodePath(UiNode node, string oldPrefix, string newPrefix)
+        {
+            if (node.nodePath != null && node.nodePath.StartsWith(oldPrefix, StringComparison.Ordinal))
+                node.nodePath = newPrefix + node.nodePath.Substring(oldPrefix.Length);
+            if (node.children == null)
+                return;
+            foreach (UiNode child in node.children)
+                RewriteNodePath(child, oldPrefix, newPrefix);
         }
 
         private static void ConfigureReferencedTextures(ImportManifest manifest)
@@ -747,10 +827,81 @@ namespace ProjectX.Editor
             var bindings = new List<CocosNodeReference>();
             GameObject root = BuildNode(document.root, null, bindings);
             root.name = document.name;
+            ApplyMainHudHorizontalLayout(document, bindings);
             root.AddComponent<CocosUiBinding>().Initialize(document.source, bindings);
             if (document.animation != null)
                 root.AddComponent<CocosTimelinePlayer>().Initialize(document.animation);
             return root;
+        }
+
+        private static void ApplyMainHudHorizontalLayout(
+            UiDocument document,
+            List<CocosNodeReference> bindings)
+        {
+            if (!string.Equals(document.name, "UImainLayer_new", StringComparison.Ordinal))
+                return;
+
+            GameObject group = bindings.Find(item => item.path == MainHudPrimaryGroupPath)?.target;
+            if (group == null)
+                throw new MissingReferenceException(
+                    $"Main HUD primary button group is missing: {MainHudPrimaryGroupPath}");
+
+            var layout = group.GetComponent<HorizontalLayoutGroup>()
+                         ?? group.AddComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(0, 0, 0, 0);
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.MiddleRight;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            layout.childScaleWidth = false;
+            layout.childScaleHeight = false;
+            layout.reverseArrangement = false;
+
+            var fitter = group.GetComponent<ContentSizeFitter>()
+                         ?? group.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+            RectTransform rect = (RectTransform)group.transform;
+            rect.pivot = new Vector2(1f, 0.5f);
+        }
+
+        private static void RebuildMainHudPrefabIfNeeded()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MainHudPrefabPath);
+            if (prefab == null)
+                return;
+            CocosUiBinding binding = prefab.GetComponent<CocosUiBinding>();
+            bool alreadyMerged = binding != null
+                                 && binding.Find(MainHudMergedGroupPath) == null
+                                 && binding.Find(MainHudPrimaryGroupPath)
+                                     ?.GetComponent<HorizontalLayoutGroup>() != null;
+            if (!alreadyMerged)
+                RebuildMainHudPrefab(false);
+        }
+
+        private static void RebuildMainHudPrefab(bool logCompletion)
+        {
+            UiDocument document = ReadDocument(MainHudDocumentPath);
+            GameObject root = BuildDocument(document);
+            try
+            {
+                GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, MainHudPrefabPath);
+                if (prefab == null)
+                    throw new InvalidOperationException(
+                        $"Failed to save main HUD prefab: {MainHudPrefabPath}");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+            AssetDatabase.SaveAssets();
+            if (logCompletion)
+                Debug.Log("ProjectX main HUD horizontal layout applied.");
         }
 
         private static GameObject BuildNode(
