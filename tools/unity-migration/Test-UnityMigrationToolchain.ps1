@@ -139,7 +139,9 @@ Complete-UnityMigrationTiming -Timings $timings -Name "sample" -Timing $timing
 Assert-ToolchainTest ([long]$timings.sample.durationMs -ge 1) "Timing helper did not record elapsed milliseconds."
 
 $manifest = (Import-UnityMigrationManifest -Root $root).Value
-$unityExecutable = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityExecutable)
+$unityExecutable = Resolve-UnityMigrationUnityExecutable -Root $root -Manifest $manifest
+Assert-ToolchainTest (Test-Path -LiteralPath $unityExecutable -PathType Leaf) `
+    "Portable Unity executable resolution did not return an existing editor."
 $unityProject = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityProject)
 $fingerprintA = Get-UnityMigrationCompileFingerprint -UnityProject $unityProject -UnityExecutable $unityExecutable
 $fingerprintB = Get-UnityMigrationCompileFingerprint -UnityProject $unityProject -UnityExecutable $unityExecutable

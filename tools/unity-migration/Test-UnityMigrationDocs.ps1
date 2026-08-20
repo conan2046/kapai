@@ -62,6 +62,7 @@ function Test-RequiredFile {
 
 $statusPath = Test-RequiredFile "UNITYCLIENT_STATUS.md"
 $guidePath = Test-RequiredFile "docs/unityclient/MIGRATION_GUIDE.md"
+$steamScopePath = Test-RequiredFile "docs/unityclient/STEAM_SCOPE.md"
 $moduleIndexPath = Test-RequiredFile "docs/unityclient/modules/README.md"
 $paymentPath = Test-RequiredFile "docs/unityclient/modules/PAYMENT.md"
 Test-RequiredFile "docs/unityclient/history/README.md" | Out-Null
@@ -93,7 +94,7 @@ if ($statusPath) {
         }
         $lastPriorityIndex = $priorityIndex
     }
-    foreach ($progress in @("12/29 = 41.4%", "20/29 = 69.0%", "23/29 = 79.3%", "25/29 = 86.2%", "29/29 = 100%")) {
+    foreach ($progress in @("12/17 = 70.6%", "16/17 = 94.1%", "17/17 = 100%")) {
         if (-not $status.Contains($progress)) { Add-Failure "STATUS priority progress is missing: $progress" }
     }
     if (-not $status.Contains("PAYMENT.md")) { Add-Failure "STATUS P2 plan no longer references the payment prerequisite." }
@@ -116,6 +117,30 @@ if ($paymentPath) {
 if ($moduleIndexPath) {
     $moduleIndex = Get-Content -Raw -Encoding UTF8 -LiteralPath $moduleIndexPath
     if (-not $moduleIndex.Contains("PAYMENT.md")) { Add-Failure "Module index no longer references PAYMENT.md." }
+    if (-not $moduleIndex.Contains("STEAM_SCOPE.md")) { Add-Failure "Module index no longer references STEAM_SCOPE.md." }
+}
+
+if ($steamScopePath) {
+    $steamScope = Get-Content -Raw -Encoding UTF8 -LiteralPath $steamScopePath
+    foreach ($excludedModule in @($manifest.modules | Where-Object {
+        [bool](Get-UnityMigrationPropertyValue -Object $_ -Name "migrationExcluded" -Default $false)
+    })) {
+        if (-not $steamScope.Contains("``$([string]$excludedModule.key)``")) {
+            Add-Failure "STEAM_SCOPE is missing excluded module: $([string]$excludedModule.key)"
+        }
+    }
+    foreach ($requiredScopeAnchor in @("不得继续迁移", "不得进入 G0-G6", "migrationExcluded=true")) {
+        if (-not $steamScope.Contains($requiredScopeAnchor)) {
+            Add-Failure "STEAM_SCOPE is missing enforcement anchor: $requiredScopeAnchor"
+        }
+    }
+}
+if ($statusPath -and -not $status.Contains("STEAM_SCOPE.md")) {
+    Add-Failure "STATUS no longer references STEAM_SCOPE.md."
+}
+if ($guidePath) {
+    $guideForScope = Get-Content -Raw -Encoding UTF8 -LiteralPath $guidePath
+    if (-not $guideForScope.Contains("STEAM_SCOPE.md")) { Add-Failure "MIGRATION_GUIDE no longer references STEAM_SCOPE.md." }
 }
 
 $currentDocPaths = @($statusPath, $guidePath) | Where-Object { $_ }
@@ -135,6 +160,21 @@ foreach ($path in $currentDocPaths) {
 }
 
 $keys = @($manifest.modules | ForEach-Object { [string]$_.key })
+$manifestUnityExecutable = [string]$manifest.unityExecutable
+if (-not [string]::IsNullOrWhiteSpace($manifestUnityExecutable)) {
+    Add-Failure "Manifest unityExecutable must stay empty; configure PROJECTX_UNITY_EXECUTABLE or .local/unity-migration/settings.json per machine."
+}
+$projectVersionPath = Resolve-UnityMigrationPath -Root $root -Path "unityclient/ProjectSettings/ProjectVersion.txt"
+if (Test-Path -LiteralPath $projectVersionPath -PathType Leaf) {
+    $projectVersionText = Get-Content -LiteralPath $projectVersionPath -Raw -Encoding UTF8
+    $projectVersionMatch = [regex]::Match($projectVersionText, '(?m)^m_EditorVersion:\s*(\S+)')
+    if (-not $projectVersionMatch.Success) {
+        Add-Failure "Unity ProjectVersion.txt does not declare m_EditorVersion."
+    }
+    elseif ([string]$manifest.unityVersion -ne $projectVersionMatch.Groups[1].Value) {
+        Add-Failure "Manifest unityVersion '$($manifest.unityVersion)' does not match ProjectVersion '$($projectVersionMatch.Groups[1].Value)'."
+    }
+}
 $duplicates = @($keys | Group-Object | Where-Object Count -gt 1)
 foreach ($duplicate in $duplicates) { Add-Failure "Duplicate manifest module key: $($duplicate.Name)" }
 $scenarioKeys = @($scenarioEntry.Value.scenarios | ForEach-Object { [string]$_.key })

@@ -2,13 +2,15 @@
 
 > 当前门禁：G0-G3 passed；G4-G6 pending。2026-07-18 的截图、Runner、SHA 与 `visual-fixing` 结论仅作历史线索。
 
+> Steam范围更新（2026-08-20）：`function_id=7/8/11/12/18/19/25/26`（决战昆仑、血战到底、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金）由 `gameplay.json: steamEnabled=false` 排除。当前Steam大厅为5项/8个控件；下文13项/16控件仅描述排除前的历史验收基线。
+
 ## 1. 本轮所有权
 
-- 本模块拥有：HUD 玩法入口、`PopFirstClassBg + ActivityLayer` 大厅框架、13 项双列列表、滚动/裁剪、等级锁、红点显示、关闭/返回及13个目标路由的边界反馈。
+- 本模块拥有：HUD 玩法入口、`PopFirstClassBg + ActivityLayer` 大厅框架、Steam 5 项双列列表、裁剪、等级锁、红点显示、关闭/返回及5个目标路由的边界反馈。
 - 本模块不拥有：13个入口点击后的独立业务页及其协议；尤其不迁移游历三界、封神列传、竞技场、决战昆仑、血战到底、法宝搜索、每日任务、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金。
 - `15/16/17` 玩法商店在当前 `function_dat.lua` 中均为 `page=0`，不属于大厅列表；支付、活动、基金、福利、竞技和社交业务继续排除。
 - 当前卡片主体 `TaskBtn1/2` 的 CSB `touchEnabled=false`；Lua虽添加监听但未启用触摸，新鲜原生单击也未进入详情。因此卡片选择与 `Main.WanFaInfoUI` 当前玩家不可达，排除而不伪迁。
-- 控件矩阵：`docs/unityclient/matrices/GAMEPLAY_CONTROLS.json`，16 个真实控件，`workflowPolicyVersion=1`。
+- 控件矩阵：`docs/unityclient/matrices/GAMEPLAY_CONTROLS.json`，Steam 当前8个真实控件，`workflowPolicyVersion=1`。
 
 ## 2. 当前启动与真实入口闭包
 

@@ -7,9 +7,10 @@
 
 1. `AGENTS.md`：项目和运行约束。
 2. `UNITYCLIENT_STATUS.md`：唯一实时状态、当前批次、阻塞和下一步。
-3. 本文件：唯一稳定流程与完成标准。
-4. `docs/unityclient/modules/README.md`：模块索引。
-5. 当前目标模块文档和 `matrices/*.json`：调用链、协议、控件和证据。
+3. `docs/unityclient/STEAM_SCOPE.md`：Steam模块黑名单；命中 `steam-excluded` 时立即停止。
+4. 本文件：唯一稳定流程与完成标准。
+5. `docs/unityclient/modules/README.md`：模块索引。
+6. 当前目标模块文档和 `matrices/*.json`：调用链、协议、控件和证据。
 
 默认禁止完整读取 `history/`；只有追查旧决策、命令或错误时定点检索。
 
@@ -18,6 +19,7 @@
 | 信息 | 唯一位置 |
 |---|---|
 | 实时完成率、当前批次、下一步 | `UNITYCLIENT_STATUS.md` |
+| Steam平台纳入/排除边界 | `docs/unityclient/STEAM_SCOPE.md` + Manifest `migrationExcluded` |
 | 路线、G0-G6、功能/视觉标准、工具和坑 | 本文件 |
 | 模块调用链、协议、实现与验证 | `docs/unityclient/modules/<MODULE>.md` |
 | 控件验收结果 | `docs/unityclient/matrices/<MODULE>_CONTROLS.json` |
@@ -183,6 +185,26 @@ Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从
 Runner/文档门禁必须读取矩阵并验证在册覆盖、真实点击、失败分支和人工验收。动态列表按正常、空、锁定、选中、禁用至少各验证一次。
 
 ## 12. 工具入口
+
+### Unity 本机路径统一规则
+
+- 仓库 Manifest `tools/unity-migration/unityclient-modules.json` 只提交 `unityVersion`，`unityExecutable` 必须保持空字符串；禁止提交 `C:\...`、`D:\...`、`E:\...` 等个人安装路径。
+- 所有迁移脚本必须通过 `Resolve-UnityMigrationUnityExecutable` 获取 Editor，不得在模块脚本、命令文档或 C# 中另写绝对路径。
+- 解析优先级固定为：命令行 `-UnityExecutable` → 环境变量 `PROJECTX_UNITY_EXECUTABLE` → 本机忽略文件 `.local/unity-migration/settings.json` → Manifest 兜底 → Unity Hub 默认目录 → Unity Hub 次级安装目录 → 各磁盘常见目录。
+- 一般无需配置；Unity Hub 已登记安装位置时会自动找到与 `unityVersion` 相同的 Editor。自动发现失败时，每台电脑只需配置一次，二选一：
+
+```powershell
+# 方案A：当前用户永久环境变量（重新打开终端后生效）
+setx PROJECTX_UNITY_EXECUTABLE "D:\Unity\Hub\Editor\2022.3.62f3c1\Editor\Unity.exe"
+
+# 方案B：仓库本机配置；.local/ 已被 .gitignore 排除，不会提交给其他人
+New-Item -ItemType Directory -Force .local/unity-migration | Out-Null
+'{"unityExecutable":"D:\\Unity\\Hub\\Editor\\2022.3.62f3c1\\Editor\\Unity.exe"}' |
+    Set-Content -Encoding UTF8 .local/unity-migration/settings.json
+```
+
+- 临时指定只用于诊断：`./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -UnityExecutable <Unity.exe>`；不得为此修改仓库文件。
+- `Test-UnityMigrationDocs.ps1` 会拒绝非空 `unityExecutable` 或与 `ProjectVersion.txt` 不一致的 `unityVersion`；`Test-UnityMigrationToolchain.ps1` 会验证解析结果存在且编译指纹稳定。
 
 | 工具 | 用途 |
 |---|---|

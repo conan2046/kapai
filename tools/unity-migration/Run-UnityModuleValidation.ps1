@@ -29,6 +29,9 @@ if ($matches.Count -ne 1) {
     throw "Module '$Module' was not found exactly once in $($manifestEntry.Path)."
 }
 $moduleConfig = $matches[0]
+if ([bool](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "migrationExcluded" -Default $false)) {
+    throw "Module '$($moduleConfig.key)' is excluded from the Steam migration scope: $([string](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name 'exclusionReason' -Default 'platform policy'))."
+}
 $scenarioEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-scenarios.json"
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 $fixtureEntry = Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/validation-fixtures.json"
@@ -51,8 +54,7 @@ if (@($scenario.flags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
     throw "Module '$($moduleConfig.key)' has no runnable validation flag yet."
 }
 
-if (-not $UnityExecutable) { $UnityExecutable = [string]$manifest.unityExecutable }
-$unityExe = Resolve-UnityMigrationPath -Root $root -Path $UnityExecutable
+$unityExe = Resolve-UnityMigrationUnityExecutable -Root $root -Manifest $manifest -ExplicitPath $UnityExecutable
 $unityProject = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityProject)
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
 $pythonExe = if ($SkipPythonTests) { "" } else {

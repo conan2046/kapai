@@ -17,7 +17,8 @@
     "manualAcceptanceRequired": true,
     "requiredControlStatus": "complete"
   },
-  "unityExecutable": "F:/unity/2022.3.62f3c1/Editor/Unity.exe",
+  "unityVersion": "2022.3.62f3c1",
+  "unityExecutable": "",
   "unityProject": "unityclient",
   "executeMethod": "ProjectX.Editor.BootstrapAppRunner.RunBatch",
   "resultFile": "build/ui-migration/bootstrap-app-result.json",
@@ -548,7 +549,10 @@
     {
       "key": "Friend",
       "displayName": "好友",
-      "status": "phase1-complete",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留好友系统。",
       "protocols": [
         27
       ],
@@ -572,7 +576,10 @@
     {
       "key": "Chat",
       "displayName": "聊天",
-      "status": "phase1-complete",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留聊天系统。",
       "protocols": [
         26
       ],
@@ -595,7 +602,10 @@
     {
       "key": "Team",
       "displayName": "队伍",
-      "status": "phase1-complete",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留组队系统。",
       "protocols": [
         29,
         30
@@ -622,7 +632,10 @@
     {
       "key": "Guild",
       "displayName": "帮派",
-      "status": "phase1-complete",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留帮派或宗门系统。",
       "protocols": [
         54
       ],
@@ -681,7 +694,10 @@
     {
       "key": "Welfare",
       "displayName": "福利",
-      "status": "phase1-complete",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留签到、在线奖励等福利系统。",
       "protocols": [
         199,
         222,
@@ -713,7 +729,10 @@
     {
       "key": "Activity",
       "displayName": "活动",
-      "status": "phase1-complete",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "当前活动集合包含全服排行/最强榜等其他玩家数据，同时包含充值活动；Steam版本整体排除。",
       "protocols": [
         222
       ],
@@ -1014,7 +1033,10 @@
     {
       "key": "KunLun",
       "displayName": "决战昆仑",
-      "status": "logic-validated-visual-pending",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "玩法依赖匹配对手数据；用户确认Steam版本排除。",
       "protocols": [
         213
       ],
@@ -1050,7 +1072,10 @@
     {
       "key": "BloodFight",
       "displayName": "血战到底",
-      "status": "logic-validated-visual-pending",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "玩法包含全服血战排行榜与其他玩家排名数据；Steam版本排除。",
       "protocols": [
         323
       ],
@@ -1122,7 +1147,12 @@
     {
       "key": "SevenDay",
       "displayName": "七日目标",
-      "status": "scaffolded",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": [
+        "Steam"
+      ],
+      "exclusionReason": "Steam版本不投放七日目标；保留Cocos和服务端原逻辑，仅从Unity入口、路由和后续验收范围排除。",
       "protocols": [
         37,
         221
@@ -1161,7 +1191,10 @@
     {
       "key": "StaminaClaim",
       "displayName": "体力领取",
-      "status": "g0-g6-passed",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "体力领取属于福利体系；用户确认Steam版本福利整体排除。",
       "protocols": [
         321
       ],
@@ -1199,7 +1232,10 @@
     {
       "key": "ResourceRecovery",
       "displayName": "资源找回",
-      "status": "logic-validated-visual-deferred",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留离线资源找回。",
       "protocols": [
         52
       ],
@@ -1225,7 +1261,10 @@
     {
       "key": "Funds",
       "displayName": "全部基金",
-      "status": "logic-validated-visual-deferred",
+      "status": "steam-excluded",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
+      "exclusionReason": "Steam版本不保留成长基金与活跃基金。",
       "protocols": [
         222
       ],

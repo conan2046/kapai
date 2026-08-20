@@ -19,12 +19,12 @@
       "module": "Gameplay",
       "gates": {
         "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
       "note": "Gameplay must restart from current Cocos source and fresh 1334x750 native evidence; all historical screenshots, Runner results, hashes and visual-fixing markers are clues only.",
@@ -1063,6 +1063,8 @@
     },
     {
       "module": "SevenDay",
+      "migrationExcluded": true,
+      "excludedPlatforms": ["Steam"],
       "gates": {
         "G0": "passed",
         "G1": "passed",
@@ -1073,7 +1075,7 @@
         "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/SEVEN_DAY.md",
-      "note": "2026-08-20 fresh G0 restart. The historical read-only /37 op=4 result is a clue only; this run owns /37 op=6 claim, seven day/category controls, shared /221 discount boundary and full lifecycle evidence. Previous StaminaClaim retrospective was unavailable in both current and source checkouts.",
+      "note": "2026-08-20 user decision: SevenDay is excluded from the Steam build and no longer participates in migration gates or completion denominator. Historical gate evidence is retained for audit only; Cocos/server production logic remains unchanged.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/SEVEN_DAY.md"
@@ -1107,7 +1109,7 @@
           ".local/unity-validation/sevenday-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-20T00:12:26.3719976Z"
+      "updatedUtc": "2026-08-20T01:35:00Z"
     }
   ]
 }

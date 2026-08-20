@@ -46,6 +46,82 @@ function Resolve-UnityMigrationExistingPath {
     return $resolved
 }
 
+function Resolve-UnityMigrationUnityExecutable {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$Manifest,
+        [string]$ExplicitPath = ""
+    )
+
+    $projectVersionPath = Join-Path $Root "unityclient\ProjectSettings\ProjectVersion.txt"
+    $manifestVersionProperty = $Manifest.PSObject.Properties["unityVersion"]
+    $version = if ($null -ne $manifestVersionProperty) { [string]$manifestVersionProperty.Value } else { "" }
+    if (-not $version -and (Test-Path -LiteralPath $projectVersionPath -PathType Leaf)) {
+        $versionMatch = [regex]::Match(
+            (Get-Content -LiteralPath $projectVersionPath -Raw -Encoding UTF8),
+            '(?m)^m_EditorVersion:\s*(\S+)')
+        if ($versionMatch.Success) { $version = $versionMatch.Groups[1].Value }
+    }
+
+    $candidates = New-Object System.Collections.Generic.List[string]
+    $candidateSources = New-Object System.Collections.Generic.List[string]
+    function Add-UnityExecutableCandidate([string]$Path, [string]$Source) {
+        if ([string]::IsNullOrWhiteSpace($Path)) { return }
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $Path
+        if ($candidates -notcontains $resolved) {
+            $candidates.Add($resolved)
+            $candidateSources.Add($Source)
+        }
+    }
+
+    Add-UnityExecutableCandidate -Path $ExplicitPath -Source "command line"
+    Add-UnityExecutableCandidate -Path ([Environment]::GetEnvironmentVariable("PROJECTX_UNITY_EXECUTABLE")) -Source "PROJECTX_UNITY_EXECUTABLE"
+
+    $localSettingsPath = Join-Path $Root ".local\unity-migration\settings.json"
+    if (Test-Path -LiteralPath $localSettingsPath -PathType Leaf) {
+        $localSettings = Get-Content -LiteralPath $localSettingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        $localExecutableProperty = $localSettings.PSObject.Properties["unityExecutable"]
+        if ($null -ne $localExecutableProperty) {
+            Add-UnityExecutableCandidate -Path ([string]$localExecutableProperty.Value) -Source $localSettingsPath
+        }
+    }
+
+    $manifestExecutableProperty = $Manifest.PSObject.Properties["unityExecutable"]
+    if ($null -ne $manifestExecutableProperty) {
+        Add-UnityExecutableCandidate -Path ([string]$manifestExecutableProperty.Value) -Source "manifest fallback"
+    }
+
+    if ($version) {
+        if ($env:ProgramFiles) {
+            Add-UnityExecutableCandidate -Path (Join-Path $env:ProgramFiles "Unity\Hub\Editor\$version\Editor\Unity.exe") -Source "Unity Hub default"
+        }
+        $secondaryInstallPath = Join-Path $env:APPDATA "UnityHub\secondaryInstallPath.json"
+        if (Test-Path -LiteralPath $secondaryInstallPath -PathType Leaf) {
+            $secondaryRoot = (Get-Content -LiteralPath $secondaryInstallPath -Raw -Encoding UTF8).Trim().Trim('"')
+            Add-UnityExecutableCandidate -Path (Join-Path $secondaryRoot "$version\Editor\Unity.exe") -Source "Unity Hub secondary path"
+        }
+        foreach ($drive in @(Get-PSDrive -PSProvider FileSystem)) {
+            foreach ($relative in @(
+                "UnityPro\$version\Editor\Unity.exe",
+                "unity\$version\Editor\Unity.exe",
+                "Unity\Hub\Editor\$version\Editor\Unity.exe"
+            )) {
+                Add-UnityExecutableCandidate -Path (Join-Path $drive.Root $relative) -Source "drive discovery"
+            }
+        }
+    }
+
+    for ($index = 0; $index -lt $candidates.Count; $index++) {
+        if (Test-Path -LiteralPath $candidates[$index] -PathType Leaf) {
+            Write-Host "Unity executable resolved from $($candidateSources[$index]): $($candidates[$index])"
+            return $candidates[$index]
+        }
+    }
+
+    $attempted = if ($candidates.Count -gt 0) { $candidates -join '; ' } else { '<none>' }
+    throw "Unity $version executable was not found. Set PROJECTX_UNITY_EXECUTABLE once or create .local/unity-migration/settings.json with unityExecutable. Attempted: $attempted"
+}
+
 function Import-UnityMigrationManifest {
     param(
         [Parameter(Mandatory = $true)][string]$Root,

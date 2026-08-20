@@ -7,17 +7,11 @@ function M.onClick()
     if Bridge:HasCommandLineFlag("-projectXYouLiValidation") then Bridge:EnterGameplay(1) end
     if Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") then Bridge:EnterGameplay(3) end
     if Bridge:HasCommandLineFlag("-projectXArenaValidation") then Bridge:EnterGameplay(6) end
-    if Bridge:HasCommandLineFlag("-projectXKunLunValidation") then Bridge:EnterGameplay(7) end
-    if Bridge:HasCommandLineFlag("-projectXBloodFightValidation") then Bridge:EnterGameplay(8) end
     if Bridge:HasCommandLineFlag("-projectXXunBaoValidation") then Bridge:EnterGameplay(9) end
-    if Bridge:HasCommandLineFlag("-projectXSevenDayValidation") then Bridge:EnterGameplay(11) end
     if Bridge:HasCommandLineFlag("-projectXGameplayShopsValidation")
         or Bridge:HasCommandLineFlag("-projectXGameplayShopsVisualValidation") then
         Bridge:EnterGameplay(15)
     end
-    if Bridge:HasCommandLineFlag("-projectXStaminaClaimValidation") then Bridge:EnterGameplay(18) end
-    if Bridge:HasCommandLineFlag("-projectXResourceRecoveryValidation") then Bridge:EnterGameplay(19) end
-    if Bridge:HasCommandLineFlag("-projectXFundsValidation") then Bridge:EnterGameplay(25) end
 end
 
 function M.enter(functionId)

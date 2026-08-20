@@ -107,6 +107,22 @@ if ((@($summary.validatedControlIds) -join "`n") -ne (@($runtimeCoverage.validat
 
 if ($Phase -eq "G6") {
     if (-not $controlMatrix) { throw "G6 hard gates require a control matrix." }
+    $visualFidelity = Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "visualFidelity" -Default $null
+    if ($null -eq $visualFidelity -or [string]$visualFidelity.status -ne "passed") {
+        throw "G6 requires visualFidelity.status=passed; current status=$([string](Get-UnityMigrationPropertyValue -Object $visualFidelity -Name 'status' -Default '<missing>'))."
+    }
+    foreach ($evidenceProperty in @("cocosScreenshots", "unityScreenshots", "diffReports")) {
+        $visualEvidence = @(Get-UnityMigrationPropertyValue -Object $visualFidelity -Name $evidenceProperty -Default @())
+        if ($visualEvidence.Count -eq 0) {
+            throw "G6 visual evidence is empty: visualFidelity.$evidenceProperty"
+        }
+        foreach ($visualPath in $visualEvidence) {
+            $resolvedVisualPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$visualPath)
+            if (-not (Test-Path -LiteralPath $resolvedVisualPath -PathType Leaf)) {
+                throw "G6 visual evidence is missing: $visualPath"
+            }
+        }
+    }
     if ($IsWindows) {
         $computerUseRuntimeProcesses = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
             $_.Name -in @("node_repl.exe", "codex-computer-use.exe") -and

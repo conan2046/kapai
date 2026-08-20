@@ -1,6 +1,6 @@
 # 七日目标（SevenDay）
 
-> 状态：2026-08-20 G0-G6 passed / 14/14 complete；旧版只读列表结果仅作历史参考。
+> 状态：`steam-excluded`。2026-08-20 用户确认 Steam 版本不投放七日目标；Unity入口、路由及后续门禁已屏蔽，不计入迁移分母。Cocos与服务端原逻辑保留，本页以下内容仅作历史审计。
 
 ## 范围
 
@@ -28,15 +28,17 @@
 - `SevenDayPresenter` 必须绑定真实进度区、日/分类控件、任务按钮和折扣商品；业务状态仍由 Lua 与服务端权威决定，C# 只渲染。
 - `ProjectXApp.EnterGameplay(11)` 完成大厅进入与关闭/Esc 返回；固定账号 Runner 覆盖真实 `/37 op=4/op=6` 与 `/221 type=10` 购买。
 
-## 验证
+## 2026-08-20 最新提交验收
 
 - 命令：`pwsh -NoProfile -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module SevenDay`
 - 截图：`build/ui-migration/bootstrap-seven-day.png`
-- 结果：服务端权威返回 130 条七日任务；14/14 控件、6/6 语义断言、真实领取/重复拒绝/前往/详情/折扣购买和关闭重进通过。
-- 固定账号验证：主账号 `7200057/1000115`，DataPreflight、可逆 Fixture、精确恢复、重登录哈希和残留清零通过。
-- G5：Cocos/Unity 原生 `1334x750` 状态对与差异报告位于 `.local/ui-fidelity/SevenDay/compare/g5/report.json`。
-- G6：两次 `BootstrapSceneBuilder.BuildBatch` SHA-256 均为 `48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`；自动复盘 16/16 已解决。
+- 功能诊断：服务端权威返回当前配置任务；14/14 控件、7 条运行语义、真实领取/重复拒绝/前往/详情/折扣购买和关闭重进通过。
+- Fixture 修复：本地长期开服导致 `m_hdQuest` 为空，且旧固定角色注册日超过 7 天；现仅在 `local_test` 可逆 Fixture 中按当前配置补种任务并设置 `GetRegDay()=7`，结束后整行恢复。主账号 `7200057/1000115` 的快照/恢复哈希一致。
+- G1 阻塞：本机不存在 `.local/ui-fidelity/SevenDay/cocos/g1/SEVENDAY-LIST.png`、当前 Cocos 自动化台账或冻结基线，不得沿用远端机器未随 Git 交付的 `.local` 结论。
+- G5 失败：新鲜 Unity `1334×750` 截图存在黑色调试条遮挡、累计奖励白块/占位、文字与进度区重叠；同时无 Cocos 原图和差异报告。
+- Bootstrap：本轮两次 `BootstrapSceneBuilder.BuildBatch` SHA-256 均为 `FA73F3DB609F18F054EE5CDB3699A3BDEED12A607F97EF4638317DC29E01DDA3`，仅证明场景幂等，不能替代视觉通过。
 - 控件矩阵：`docs/unityclient/matrices/SEVENDAY_CONTROLS.json`，14 组真实控件（重复节点按同一控件族覆盖）。
 - 固定主账号：`7200057/1000115`；隔离账号：`705213/1000006`；分辨率 `1334x750`、Windows 缩放 `100%`。
 - 前一模块 `StaminaClaim` 的 `.local` 复盘文件在当前仓库与原工程均不存在，本轮仅记录缺失，不从历史推断结论。
-- 证据：`.local/unity-validation/sevenday-fixed-account-latest.json`、`.local/unity-validation/sevenday-retrospective-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`。
+- 当前有效诊断证据：`.local/unity-validation/sevenday-fixed-account-latest.json`、`.local/unity-validation/sevenday-operation-ledger.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`build/ui-migration/bootstrap-seven-day.png`。
+- 精确恢复入口：从 G1 使用官方 Computer Use 取得 Day1-Day7 与 Day7Full 原生 Cocos 状态，冻结 SHA 后再进入 G2；不得直接复用本轮后置功能诊断作为门禁通过证据。

@@ -19,10 +19,16 @@ $contracts = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/module-evidence-contracts.json").Value
 $moduleConfig = @($manifest.modules | Where-Object { $_.key -ieq $Module })
 $contract = @($contracts.modules | Where-Object { $_.module -ieq $Module })
-if ($moduleConfig.Count -ne 1 -or $contract.Count -ne 1 -or $null -eq $contract[0].fixedAccount) {
-    throw "Module '$Module' has no unique fixed-account evidence contract."
+if ($moduleConfig.Count -ne 1) {
+    throw "Module '$Module' was not found exactly once in the migration manifest."
 }
 $moduleConfig = $moduleConfig[0]
+if ([bool](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "migrationExcluded" -Default $false)) {
+    throw "Module '$($moduleConfig.key)' is excluded from the Steam migration scope: $([string](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name 'exclusionReason' -Default 'platform policy'))."
+}
+if ($contract.Count -ne 1 -or $null -eq $contract[0].fixedAccount) {
+    throw "Module '$Module' has no unique fixed-account evidence contract."
+}
 $contract = $contract[0]
 $fixed = $contract.fixedAccount
 $serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
@@ -55,7 +61,7 @@ $dataEvidencePath = Join-Path $root ".local/unity-validation/$(([string]$moduleC
 $dataPreflightFingerprint = Get-UnityMigrationDataPreflightFingerprint -Root $root -FixedAccount $fixed
 $logPath = Join-Path (Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.logDirectory)) `
     "unity-$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account.log"
-$unityExecutable = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityExecutable)
+$unityExecutable = Resolve-UnityMigrationUnityExecutable -Root $root -Manifest $manifest
 $unityProject = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityProject)
 $timingPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-timings-latest.json"
 $timings = [ordered]@{}

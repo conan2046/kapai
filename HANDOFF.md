@@ -1,15 +1,14 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-08-20 SevenDay G0-G6 passed / 14/14 complete
+> 当前交接：2026-08-20 Steam已排除12个模块；仅保留有AI闭环的竞技场
+> 新任务必须先读 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 立即停止，不得进入G0-G6。
 
-## 0. 2026-08-20 SevenDay 收口
+## 0. 2026-08-20 Steam范围调整
 
-- 门禁：`G0-G6 passed / 14/14 complete`；严格完成率 `16/29 = 55.2%`。
-- 固定账号 `7200057/1000115`；真实 `/37 op=4/op=6`、共享 `/221 type=10`、领取/重复拒绝、前往、详情、七天/四分类、资源栏和关闭重进均通过。
-- DataPreflight、快照、Fixture 注入、精确恢复、重登录哈希与残留清零通过；G5 双端原生 `1334×750` 状态对完成。
-- 两次真实 BuildBatch SHA-256 均为 `48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`；自动复盘 16/16 已解决。
-- 证据：`.local/unity-validation/sevenday-fixed-account-latest.json`、`.local/ui-fidelity/SevenDay/compare/g5/report.json`、`.local/unity-validation/sevenday-retrospective-latest.json`。
-- 下一任务从 P1“法宝搜索”重新执行 G0；不得沿用七日目标的 Fixture、协议所有权或视觉结论。
+- 排除：SevenDay、Funds、ResourceRecovery、Welfare、Friend、Chat、Team、Guild、Activity、KunLun、BloodFight、StaminaClaim；不再进入G0-G6，严格完成率改为 `14/17 = 82.4%`。
+- 屏蔽：玩法大厅`7/8/11/12/18/19/25/26`不显示；福利、活动和社交HUD入口/聊天条隐藏；不再请求昆仑共享红点；两个中央Runner读取`migrationExcluded=true`后拒绝执行。
+- 保留：Cocos与服务端线上逻辑、历史实现和审计证据均不删除，避免影响非Steam版本。
+- 后续范围：游历三界、封神列传、法宝搜索均为单人玩法；竞技场因存在40份AI机器人配置及完整机器人挑战链，按用户条件保留。
 
 > 当前交接：2026-08-02 PlayerHud G0-G6 passed / 56/56 complete
 > 本节覆盖下方 Settings、World、Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。

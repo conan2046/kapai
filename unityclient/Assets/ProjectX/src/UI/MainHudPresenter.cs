@@ -60,6 +60,7 @@ namespace ProjectX.UI
         private int chatVisibleStartIndex;
         private bool systemChatSummaryVisible;
         private bool chatExpanded;
+        private bool welfareVisible = true;
 
         public MainHudPresenter(CocosUiView view, CocosUiView chatView, PlayerStore player,
             CurrencyStore currencies, ChatStore chat, Core.ResourceService resources)
@@ -210,6 +211,11 @@ namespace ProjectX.UI
 
         public void SetOnlineReward(int claimedIndex, int elapsedSeconds)
         {
+            if (!welfareVisible)
+            {
+                if (onlineButton != null) onlineButton.SetActive(false);
+                return;
+            }
             if (onlineButton != null) onlineButton.SetActive(true);
             int[] minutes = {3, 8, 15, 25, 40, 60, 85, 120, 150, 180, 210, 240};
             int[] amounts = {50, 100, 150, 200, 250, 1, 300, 1, 350, 1, 1, 1};
@@ -220,6 +226,12 @@ namespace ProjectX.UI
             if (onlineRewardAmount != null) onlineRewardAmount.text = amounts[next].ToString();
             if (onlineTimeRoot != null) onlineTimeRoot.SetActive(remaining > 0);
             if (onlineTimeText != null) onlineTimeText.text = FormatDuration(remaining);
+        }
+
+        public void SetWelfareVisible(bool visible)
+        {
+            welfareVisible = visible;
+            if (onlineButton != null) onlineButton.SetActive(visible);
         }
 
         public void SetDiscountState(int operation, uint seconds, bool available)
