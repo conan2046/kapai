@@ -119,7 +119,8 @@ if ($IncludeBoost) {
         boost-system:x64-windows `
         boost-serialization:x64-windows `
         luajit:x64-windows `
-        zlib:x64-windows
+        zlib:x64-windows `
+        sqlite3:x64-windows-static-md
     if ($LASTEXITCODE -ne 0) { throw "vcpkg dependency install failed" }
 }
 

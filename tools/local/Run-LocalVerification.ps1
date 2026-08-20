@@ -7,6 +7,9 @@ param(
     [switch]$ResetDatabase,
     [switch]$SkipClient,
     [switch]$SkipSmoke,
+    [string]$ServerExe = "",
+    [string]$SqlitePath = "",
+    [string]$SqliteSchemaPath = "",
     [int]$WaitSeconds = 3,
     [int]$LogTailLines = 500
 )
@@ -43,11 +46,14 @@ function Test-ClientRunning {
 
 Push-Location $Root
 try {
+    if($InitDb -and $SqlitePath) {
+        throw "-InitDb is the MySQL bootstrap path and cannot be combined with -SqlitePath."
+    }
     $checkArgs = @()
     if ($SkipClient) { $checkArgs += "-SkipClient" }
     Invoke-Step "Check local environment" (Join-Path $Root "tools\local\Check-LocalEnv.ps1") $checkArgs
 
-    if ($Start -or $InitDb) {
+    if (($Start -or $InitDb) -and -not $SqlitePath) {
         Invoke-Step "Start local MySQL" (Join-Path $Root "tools\local\Start-LocalMySql.ps1")
     }
 
@@ -83,7 +89,11 @@ try {
             Write-Host "Server already listens on 8711; reusing current process. Use -RestartServer to force restart."
         }
         else {
-            Invoke-Step "Start server" (Join-Path $Root "tools\local\Start-Server.ps1")
+            $serverArgs = @()
+            if($ServerExe) { $serverArgs += @("-ExePath", $ServerExe) }
+            if($SqlitePath) { $serverArgs += @("-SqlitePath", $SqlitePath) }
+            if($SqliteSchemaPath) { $serverArgs += @("-SqliteSchemaPath", $SqliteSchemaPath) }
+            Invoke-Step "Start server" (Join-Path $Root "tools\local\Start-Server.ps1") $serverArgs
         }
 
         if (-not $SkipClient) {
@@ -104,10 +114,18 @@ try {
         if (-not (Test-GameServerListening)) {
             throw "Protocol smoke cannot start because no game server is listening on port 8711"
         }
-        $uid = 730000 + (Get-Random -Minimum 100 -Maximum 999)
-        Write-Host "== Protocol smoke userId=$uid =="
+        $uid = Get-Random -Minimum 100000000 -Maximum 2000000000
+        $alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        $nameValue = Get-Random -Minimum 0 -Maximum 60466176
+        $nameSuffix = New-Object char[] 5
+        for ($i = 4; $i -ge 0; $i--) {
+            $nameSuffix[$i] = $alphabet[$nameValue % 36]
+            $nameValue = [Math]::Floor($nameValue / 36)
+        }
+        $roleName = "T" + (-join $nameSuffix)
+        Write-Host "== Protocol smoke userId=$uid roleName=$roleName =="
         & pwsh -ExecutionPolicy Bypass -File (Join-Path $Root "tools\local\Invoke-ProtocolSmoke.ps1") `
-            -UserId $uid -RoleId 0 -AutoCreateRole -Extended -Actions -Mutations -Positive
+            -UserId $uid -RoleId 0 -AutoCreateRole -RoleName $roleName -Extended -Actions -Mutations -Positive
         if ($LASTEXITCODE -ne 0) {
             throw "Protocol smoke failed with exit code $LASTEXITCODE"
         }

@@ -29,3 +29,12 @@
 - 操作步骤：待记录 `btn_wanfa → 竞技场 → 首屏榜单/次数 → 战报 → 返回` 的同账号同数据流程。
 - 缺失证据：Cocos 同状态截图、节点/字体/坐标/列表行映射、叠加/差异图、交互与动画对照。
 - 当前 Unity 截图不得用于标记 `visual-1to1-complete`。
+
+## Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-arena-latest.json`，状态`Passed`；SQLite数据库保留为`steam-sqlite-s5-arena-v6.db`。
+- 双端新隔离角色通过本地夹具建立五人100级阵容，真实执行`/161 op0→op5`挑战排名9696机器人；双方各15个case、108个响应，均从`rank=10000/remaining=20/challenged=0`推进为`rank=9696/remaining=19/challenged=1`，并取得有效`/38`战斗回放帧。
+- Arena机器人选择区间和回放包数为生产随机项，原始包完整保留；等价比较只规范化机器人身份/区间和回放包数，严格验证榜单组成、胜负结果、排名、次数与回放嵌套包边界。
+- 短进程强制停止不会触发生产`CArenaManager::Save()`，会造成竞技排名未落盘而角色次数已保存。本轮新增仅`local_test`可达的`PRO_INTERACT op59`，在重启前调用同一生产Arena快照SQL；重启后双端各33响应并保持`9696/19/1`。
+- `arena_paihang`双方均10000行，玩家行`rank=9696/win_num=1`；`arena_log`均1行且`result=0/rank1=9696/rank2=10001/fightdata=1`。`zhenfa/pet/save_data/mission`逐字节一致，SQLite完整性`ok`。
+- 服务端编译通过，中央工具链`137/137`；只删除两个Arena隔离库，正式`fxl_game_local`及MySQL源码、驱动、构建、Schema、脚本、回归全部保留。S5下一模块为`XunBao`。

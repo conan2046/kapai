@@ -27,6 +27,13 @@
 
 - 命令：`pwsh -NoProfile -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module XunBao`
 - 截图：`build/ui-migration/bootstrap-xunbao.png`
-- 结果：`remaining=30, recoverySeconds=0`；真实 Prefab、权威回包、截图、关闭/Esc 返回全部通过。
+- Unity 历史结果：真实 Prefab、权威回包、截图、关闭/Esc 返回全部通过；旧文档中的 `remaining=30, recoverySeconds=0` 已撤销，生产配置实际为初始 20 次、30 分钟恢复、上限 30 次。
 - 自动化：16/16 Python 测试通过，严重异常 0；状态为 `logic-validated-visual-pending`。
 - 已知边界：法宝清单/碎片数量依赖客户端配置，搜索和合成等变更流程留待后续阶段。
+
+### Steam SQLite S5（2026-08-20）
+
+- SQLite 与隔离 MySQL 均完成两次真实 `/319 op31` 查询及进程重启后复查：运行态各 2 case/46 响应，重启态各 1 case/20 响应，协议结构差异 0、语义一致。
+- `server/config/json/config.json` 的 `fabao_counts=[20,30,30]` 含义冻结为“新角色 20 次、每 30 分钟恢复 1 次、上限 30 次”；回包倒计时属于运行时秒数，保留原始包并仅按有效 `1..1800` 秒窗口归一化比较。
+- 重复查询和重启后次数均为 20，未产生业务状态变更；`mission/save_data/xunbao` 字节一致。`pet_equip` 解压后仅 `m_lastCntTime` 因双端启动相差 40 秒，其余静态字节及 `m_faBaoCnt=20` 一致。
+- 证据：`.local/unity-validation/steam-sqlite-s5-xunbao-latest.json`。隔离库 `fxl_game_xunbao_s5_v1` 已删除；正式 `fxl_game_local`、MySQL 源码/驱动/构建/Schema/脚本/回归继续保留。

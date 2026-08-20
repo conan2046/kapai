@@ -50,6 +50,26 @@ namespace ProjectX.UI
         public bool Completed { get; private set; }
         public int PreloadGroupCount { get; private set; }
 
+        public void ShowServerPreparation(string detail)
+        {
+            if (preloadTexture == null || tipTexture == null)
+                throw new InvalidOperationException("Current Cocos startup textures are incomplete.");
+            root.SetActive(true);
+            background.sprite = MakeSprite(preloadTexture);
+            tipBackground.sprite = MakeSprite(tipTexture, new Vector4(8f, 8f, 8f, 8f));
+            tipBackground.type = Image.Type.Sliced;
+            tipBackground.gameObject.SetActive(true);
+            tip.text = string.IsNullOrWhiteSpace(detail) ? "正在准备本机游戏服务…" : detail;
+        }
+
+        public void ShowServerFailure(string detail)
+        {
+            ShowServerPreparation(string.IsNullOrWhiteSpace(detail)
+                ? "本机游戏服务启动失败，请重新启动客户端。"
+                : detail);
+            tip.color = new Color(1f, 0.82f, 0.72f, 1f);
+        }
+
         public IEnumerator Play()
         {
             if (logoTexture == null || preloadTexture == null || tipTexture == null)

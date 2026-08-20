@@ -150,6 +150,7 @@ namespace ProjectX.Core
         private CocosUiView roleCreateView;
         private CocosUiView noticeView;
         private StartupPresenter startupPresenter;
+        private LocalServerSupervisor localServerSupervisor;
         private LoginPresenter loginPresenter;
         private NoticePresenter noticePresenter;
         private readonly List<NoticeRecord> pendingGameNotices = new List<NoticeRecord>();
@@ -591,9 +592,52 @@ namespace ProjectX.Core
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            AppLaunchOptions launchOptions = AppLaunchOptions.Current();
+            if (LocalServerSupervisor.ShouldRun(launchOptions))
+            {
+                StartCoroutine(PrepareLocalServerThenInitialize(launchOptions));
+                return;
+            }
+            InitializeApplication(launchOptions);
+        }
+
+        private IEnumerator PrepareLocalServerThenInitialize(AppLaunchOptions launchOptions)
+        {
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                Fail("Startup Canvas was not found before local-server preparation.");
+                yield break;
+            }
+            startupPresenter = new StartupPresenter(canvas);
+            startupPresenter.ShowServerPreparation("正在准备本机游戏服务…");
+            localServerSupervisor = LocalServerSupervisor.CreateDefault();
+            localServerSupervisor.Start();
+            while (!localServerSupervisor.IsTerminal)
+            {
+                localServerSupervisor.Tick();
+                startupPresenter.ShowServerPreparation(localServerSupervisor.Detail);
+                yield return null;
+            }
+            if (!localServerSupervisor.IsReady)
+            {
+                string detail = localServerSupervisor.Detail;
+                status = detail;
+                ClientLog.Error("App", detail);
+                startupPresenter.ShowServerFailure(detail);
+                yield break;
+            }
+            startupPresenter.Dispose();
+            startupPresenter = null;
+            localServerSupervisor.Failed += HandleLocalServerFailure;
+            InitializeApplication(launchOptions);
+        }
+
+        private void InitializeApplication(AppLaunchOptions launchOptions)
+        {
             try
             {
-                services = new GameServices(this, AppLaunchOptions.Current());
+                services = new GameServices(this, launchOptions);
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
@@ -715,6 +759,7 @@ namespace ProjectX.Core
 
         private void Update()
         {
+            localServerSupervisor?.Tick();
             services?.Tick();
             loadingPresenter?.Tick();
             toastPresenter?.Tick();
@@ -877,7 +922,18 @@ namespace ProjectX.Core
             noticePresenter?.Dispose();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
+            if (localServerSupervisor != null)
+            {
+                localServerSupervisor.Failed -= HandleLocalServerFailure;
+                localServerSupervisor.Dispose();
+                localServerSupervisor = null;
+            }
             if (Instance == this) Instance = null;
+        }
+
+        private void HandleLocalServerFailure(string detail)
+        {
+            Fail(detail);
         }
 
         private void OnGUI()
@@ -1140,7 +1196,9 @@ namespace ProjectX.Core
                 Button button = loginView.Binding.Find(LoginButtonPath)?.GetComponent<Button>();
                 loginView.BindClick(LoginServerButtonPath, () => loginPresenter.ShowServerList(
                     HandleLoginClick, () => SetStatus("Login UI ready.")));
-                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
+                if (autoInvoke || HasCommandLineFlag("-projectXS8StartupAcceptance")
+                    || HasCommandLineFlag("-projectXSteamHudExclusionAcceptance"))
+                    StartCoroutine(InvokeButtonNextFrame(button));
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
@@ -1532,6 +1590,8 @@ namespace ProjectX.Core
             EnsureMainHudPresenter();
             BindPlayerHudControls();
             ApplySteamFeatureExclusions();
+            if (HasCommandLineFlag("-projectXSteamHudExclusionAcceptance"))
+                StartCoroutine(CaptureSteamHudExclusionAcceptance());
             EnsureMainTaskTracker();
             services.State.Change(AppState.Main, "Main UI shown");
             if (!IsSteamExcludedModule("KunLun"))
@@ -3516,7 +3576,7 @@ namespace ProjectX.Core
                 // opening or implicitly validating any target business page.
                 BindPlayerHudControls();
                 float hudStableDeadline = Time.realtimeSinceStartup + 2.5f;
-                while ((mainHudPresenter.VisibleDiscountCount < 3 || mainHudPresenter.VisibleRedDotCount < 12
+                while ((mainHudPresenter.VisibleDiscountCount != 0 || mainHudPresenter.VisibleRedDotCount < 7
                     || !mainTaskTracker.IsAuthorityReady) && Time.realtimeSinceStartup < hudStableDeadline)
                     yield return null;
                 if (primaryUserId != 7200057 || primaryRoleId != 1000115)
@@ -3545,15 +3605,15 @@ namespace ProjectX.Core
                 MarkValidationControl("HUD-14-PREMIUM-ADD-DISABLED");
                 RecordValidationSemantic("hud-authoritative-display", true, detail);
                 RecordValidationSemantic("hud-protocol-ownership", true,
-                    "read-only /1004,/18,/26,/62,/65,/199,/206,/220,/222,/226,/321; no /13 mutation issued");
-                if (mainHudPresenter.VisibleDiscountCount != 3)
-                { Fail($"Player HUD stable frame expected the three source-visible /222 op89-91 route entries, visible={mainHudPresenter.VisibleDiscountCount}."); yield break; }
-                RecordValidationSemantic("hud-authoritative-discounts", true,
-                    "fresh Cocos frame and UImainLayer_new preserve three source-visible route-only entries while the server is silent; real /222 responses may update them; no offer/payment page opened");
-                if (mainHudPresenter.VisibleRedDotCount != 12)
-                { Fail($"Player HUD stable frame expected 12 fresh-Cocos-visible prompts, actual={mainHudPresenter.VisibleRedDotCount}; visible={mainHudPresenter.VisibleRedDotSummary}."); yield break; }
+                    "read-only /1004,/18,/62,/65,/206,/220,/226,/321; no commercial /222 request and no /13 mutation issued");
+                if (mainHudPresenter.VisibleDiscountCount != 0)
+                { Fail($"Steam HUD expected zero commercial discount entries, visible={mainHudPresenter.VisibleDiscountCount}."); yield break; }
+                RecordValidationSemantic("hud-commercial-entries-excluded", true,
+                    "7日活动、首充、充值、折扣礼包×3 are hidden; Steam HUD does not initiate /222 op4 or op89-91");
+                if (mainHudPresenter.VisibleRedDotCount != 7)
+                { Fail($"Steam HUD stable frame expected 7 retained-entry prompts, actual={mainHudPresenter.VisibleRedDotCount}; visible={mainHudPresenter.VisibleRedDotSummary}."); yield break; }
                 RecordValidationSemantic("hud-authoritative-red-dots", true,
-                    "fresh native fixed-account frames preserve 12 source/runtime-visible prompts; registered /65 aggregates may update owned entry prompts without opening target modules");
+                    "retained Steam entries preserve 7 source/runtime-visible prompts; registered /65 aggregates may update owned entry prompts without opening target modules");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-first-entry.png");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-client-restart.png");
 
@@ -7231,9 +7291,15 @@ namespace ProjectX.Core
                 ActivityPath,
                 ChatPath,
                 TeamLegacyPath,
+                "Layer/Main_UI/ButtonGroup4/btn_Qiri",
+                "Layer/Main_UI/ButtonGroup4/btn_shouchong",
                 "Layer/Main_UI/ButtonGroup5/btn_fuli",
+                "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
                 WelfareLegacyPath,
-                "Layer/Main_UI/btn_online"
+                "Layer/Main_UI/btn_online",
+                "Layer/Main_UI/ButtonGroup8/btn_Zhekou1",
+                "Layer/Main_UI/ButtonGroup8/btn_Zhekou2",
+                "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
             };
             foreach (string path in hiddenPaths)
                 mainView.Binding.Find(path)?.SetActive(false);
@@ -7241,6 +7307,31 @@ namespace ProjectX.Core
                 mainView.GameObject.transform.Find(runtimeName)?.gameObject.SetActive(false);
             chatMiniView?.SetVisible(false);
             mainHudPresenter?.SetWelfareVisible(false);
+            mainHudPresenter?.SetDiscountEntriesEnabled(false);
+        }
+
+        private IEnumerator CaptureSteamHudExclusionAcceptance()
+        {
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
+            string[] paths =
+            {
+                "Layer/Main_UI/ButtonGroup4/btn_Qiri",
+                "Layer/Main_UI/ButtonGroup4/btn_shouchong",
+                "Layer/Main_UI/ButtonGroup5/btn_chongzhi",
+                "Layer/Main_UI/ButtonGroup8/btn_Zhekou1",
+                "Layer/Main_UI/ButtonGroup8/btn_Zhekou2",
+                "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
+            };
+            string[] visible = paths.Where(path => mainView.Binding.Find(path)?.activeInHierarchy == true).ToArray();
+            if (visible.Length != 0)
+            {
+                Fail($"Steam HUD exclusion acceptance failed: visible={string.Join(",", visible)}");
+                yield break;
+            }
+            string screenshot = BuildUiMigrationPath("steam-hud-exclusions.png");
+            ScreenCapture.CaptureScreenshot(screenshot);
+            Debug.Log($"[SteamHudExclusionAcceptance] PASS hidden={paths.Length} screenshot={screenshot}");
         }
 
         private void BindHudBoundary(CocosUiView owner, string path, string message)

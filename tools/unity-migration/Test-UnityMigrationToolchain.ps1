@@ -525,7 +525,8 @@ $playerHudTempActivitySource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Activity/TempActivityController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $projectXAppSource.Contains('public void SendUntracked(LegacyTcpMessage message)') -and
-    $playerHudTempActivitySource.Contains('Bridge:SendUntracked(discount)') -and
+    $playerHudTempActivitySource.Contains('do not initiate /222 op4 or op89-91 from the Steam HUD') -and
+    -not $playerHudTempActivitySource.Contains('Bridge:SendUntracked(discount)') -and
     $projectXAppSource.Contains('if (CurrentAppState == AppState.Disconnected) return;') -and
     $projectXAppSource.Contains('services.ProtocolRegistry.ClearPending();') -and
     $networkServiceSource.Contains('public void Disconnect(string reason = "Disconnected by client.")') -and
@@ -536,6 +537,23 @@ Assert-ToolchainTest (
 $mainHudPresenterSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
         -Path "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+foreach ($steamHiddenCommercialPath in @(
+    'Layer/Main_UI/ButtonGroup4/btn_Qiri',
+    'Layer/Main_UI/ButtonGroup4/btn_shouchong',
+    'Layer/Main_UI/ButtonGroup5/btn_chongzhi',
+    'Layer/Main_UI/ButtonGroup8/btn_Zhekou1',
+    'Layer/Main_UI/ButtonGroup8/btn_Zhekou2',
+    'Layer/Main_UI/ButtonGroup8/btn_Zhekou3'
+)) {
+    Assert-ToolchainTest ($projectXAppSource.Contains('"' + $steamHiddenCommercialPath + '"')) `
+        "Steam HUD no longer hides excluded commercial entry $steamHiddenCommercialPath."
+}
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('mainHudPresenter?.SetDiscountEntriesEnabled(false);') -and
+    $mainHudPresenterSource.Contains('discountEntriesEnabled && available && seconds > 0') -and
+    $projectXAppSource.Contains('HasCommandLineFlag("-projectXSteamHudExclusionAcceptance")') -and
+    $projectXAppSource.Contains('[SteamHudExclusionAcceptance] PASS hidden=')
+) "An authoritative /222 push can reopen Steam-excluded discount entries."
 $mainTaskTrackerSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
         -Path "unityclient/Assets/ProjectX/src/UI/MainTaskTrackerPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
@@ -573,8 +591,8 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f)') -and
     $projectXAppSource.Contains('while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline)') -and
     $projectXAppSource.Contains('mainHudPresenter?.BeginReconnectChatSummary();') -and
-    $projectXAppSource.Contains('mainHudPresenter.VisibleRedDotCount < 12') -and
-    $projectXAppSource.Contains('hud-authoritative-discounts') -and
+    $projectXAppSource.Contains('mainHudPresenter.VisibleRedDotCount < 7') -and
+    $projectXAppSource.Contains('hud-commercial-entries-excluded') -and
     $projectXAppSource.Contains('hud-authoritative-red-dots') -and
     $projectXAppSource.Contains('ReconnectFromConnectionFailure, "确认", "取消", false') -and
     $projectXAppSource.Contains('mainHudPresenter?.Dispose();') -and
@@ -903,6 +921,277 @@ Assert-ToolchainTest (
     @($staminaEvidenceContract.fixedAccount.extraFlags) -contains '-projectXStaminaClaimIsolationUserId=705213' -and
     @($staminaEvidenceContract.fixedAccount.extraFlags) -contains '-projectXStaminaClaimOverCapUserId=7200260'
 ) "StaminaClaim evidence contract no longer freezes the mixed-clock server config, two auxiliary identities and primary terminal identity."
+
+$protocolSmokeSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -Raw -Encoding UTF8
+$protocolCompareSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Compare-ProtocolSmokeReports.ps1") -Raw -Encoding UTF8
+$protocolCoverageSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Export-ProtocolCoverage.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $serverPackDealSource.Contains('if(op == 57)') -and
+    $serverPackDealSource.Contains('pUser->AddExp(experience, false, false);') -and
+    $serverPackDealSource.Contains('local_test')
+) "PlayerHud S5 level-up fixture no longer invokes the production AddExp path behind local_test op57."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$PlayerHudParity') -and
+    $protocolSmokeSource.Contains("('playerhud_levelup', 13, u8(57) + u32(1))") -and
+    $protocolSmokeSource.Contains("'newLevel': struct.unpack('<H', body[17:19])[0]") -and
+    $protocolSmokeSource.Contains("'playerHudParity': {")
+) "PlayerHud S5 smoke no longer freezes the real trigger, uint16 new-level wire layout, and structured report."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$playerHudParityRequested') -and
+    $protocolCompareSource.Contains('PlayerHud = $playerHudParity') -and
+    $protocolCompareSource.Contains('$playerHudParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates PlayerHud semantic equality."
+Assert-ToolchainTest (
+    $protocolCoverageSource.Contains("226 = @('playerhud_levelup-push')")
+) "Steam coverage no longer maps the local level-up trigger to the passive /226 server push."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$HeroParity') -and
+    $protocolSmokeSource.Contains('[switch]$HeroRestartVerify') -and
+    $protocolSmokeSource.Contains("('hero_add_pet_64', 13, u8(55) + u16(64))") -and
+    $protocolSmokeSource.Contains("final_formation['combat'][0:2] != [57, 64]") -and
+    $protocolSmokeSource.Contains("final_formation['members'][0:2] != [64, 57]") -and
+    $protocolSmokeSource.Contains("'heroParity': {")
+) "Hero S5 smoke no longer freezes the production award/formation flow, combat/member distinction, restart mode, and structured report."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$heroParityRequested') -and
+    $protocolCompareSource.Contains('Hero = $heroParity') -and
+    $protocolCompareSource.Contains('$heroParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates Hero runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$HeroEquipParity') -and
+    $protocolSmokeSource.Contains('[switch]$HeroEquipRestartVerify') -and
+    $protocolSmokeSource.Contains("('heroequip_add_equip1001', 13, u8(53) + u8(1) + u16(1001))") -and
+    $protocolSmokeSource.Contains("('heroequip_add_fabao1001', 13, u8(53) + u8(2) + u16(1001))") -and
+    $protocolSmokeSource.Contains("sum(1 for response in owned_responses if response.get('protocol') == 70) < 5") -and
+    $protocolSmokeSource.Contains("'heroEquipParity': {")
+) "HeroEquip S5 smoke no longer freezes the production add/wear/strengthen/takeoff lifecycle, /70 closure, restart mode, and structured report."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$heroEquipParityRequested') -and
+    $protocolCompareSource.Contains('HeroEquip = $heroEquipParity') -and
+    $protocolCompareSource.Contains('$heroEquipParity.status -eq "Passed"') -and
+    $protocolCompareSource.Contains('ConvertTo-Json -Depth 30')
+) "SQLite/MySQL report comparison no longer gates deep HeroEquip runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$MailParity') -and
+    $protocolSmokeSource.Contains('[switch]$MailRestartVerify') -and
+    $protocolSmokeSource.Contains("('mail_create_fixture', 13, u8(54))") -and
+    $protocolSmokeSource.Contains("('mail_claim_reward', 128, b'')") -and
+    $protocolSmokeSource.Contains("('mail_read_plain', 128, b'')") -and
+    $protocolSmokeSource.Contains("final_list.get('count') != 12") -and
+    $protocolSmokeSource.Contains("'mailParity': {")
+) "Mail S5 smoke no longer freezes the production list/claim/read/repeat/restart lifecycle and structured report."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$mailParityRequested') -and
+    $protocolCompareSource.Contains('Mail = $mailParity') -and
+    $protocolCompareSource.Contains('$mailParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates Mail runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $serverPackDealSource.Contains('const uint32 fixtureBaseTime = (uint32)(GetSysTime() / 86400 * 86400 + 43200);') -and
+    $serverPackDealSource.Contains('fixtureBaseTime - index') -and
+    $serverPackDealSource.Contains('? "Unity mail validation long body\n"')
+) "Local-only Mail fixture no longer freezes deterministic expiry and backend-neutral real newline content."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$ShopParity') -and
+    $protocolSmokeSource.Contains('[switch]$ShopRestartVerify') -and
+    $protocolSmokeSource.Contains("('shop_buy_1001_one', 221, u8(2) + u8(1) + u16(1001) + u16(1) + u8(0))") -and
+    $protocolSmokeSource.Contains("('shop_buy_insufficient_1015', 221, u8(2) + u8(1) + u16(1015) + u16(200) + u8(0))") -and
+    $protocolSmokeSource.Contains("('shop_refresh_disabled', 221, u8(3) + u8(1))") -and
+    $protocolSmokeSource.Contains("'shopParity': {")
+) "Shop S5 smoke no longer freezes list/purchase/count/rejection/disabled-refresh/restart semantics and structured evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$shopParityRequested') -and
+    $protocolCompareSource.Contains('Shop = $shopParity') -and
+    $protocolCompareSource.Contains('$shopParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates Shop runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$GameplayShopsParity') -and
+    $protocolSmokeSource.Contains('[switch]$GameplayShopsRestartVerify') -and
+    $protocolSmokeSource.Contains('gameplay_shop_types = (2, 3, 4, 5, 6, 7, 8, 23, 25, 26, 27, 28)') -and
+    $protocolSmokeSource.Contains("('gameplay_shop_buy_type28_28001_x25', 221") -and
+    $protocolSmokeSource.Contains("('gameplay_shop_rebuy_soldout_type28', 221") -and
+    $protocolSmokeSource.Contains("('gameplay_shop_buy_insufficient_type3', 221") -and
+    $protocolSmokeSource.Contains("'gameplayShopsParity': {")
+) "GameplayShops S5 smoke no longer freezes all retained types, type2 refresh, type28 sold-out purchase, rejection, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$gameplayShopsParityRequested') -and
+    $protocolCompareSource.Contains('GameplayShops = $gameplayShopsParity') -and
+    $protocolCompareSource.Contains('$gameplayShopsParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates GameplayShops runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$WorldParity') -and
+    $protocolSmokeSource.Contains('[switch]$WorldRestartVerify') -and
+    $protocolSmokeSource.Contains("('world_fight_10001', 320") -and
+    $protocolSmokeSource.Contains("('world_claim_normal_10000', 320") -and
+    $protocolSmokeSource.Contains("('world_claim_star_20011', 320") -and
+    $protocolSmokeSource.Contains("('world_sweep_10001', 320") -and
+    $protocolSmokeSource.Contains("('world_reset_10001', 320") -and
+    $protocolSmokeSource.Contains("'worldParity': {")
+) "World S5 smoke no longer freezes production fight, chest, sweep, reset, rejection, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$worldParityRequested') -and
+    $protocolCompareSource.Contains('World = $worldParity') -and
+    $protocolCompareSource.Contains('$worldParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates World runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$DrawParity') -and
+    $protocolSmokeSource.Contains('[switch]$DrawRestartVerify') -and
+    $protocolSmokeSource.Contains("('draw_high_free_single', 224") -and
+    $protocolSmokeSource.Contains("('draw_add_high_tickets', 13, u8(50)") -and
+    $protocolSmokeSource.Contains("('draw_high_ten', 224") -and
+    $protocolSmokeSource.Contains("('draw_high_ten_insufficient', 224") -and
+    $protocolSmokeSource.Contains("'drawParity': {")
+) "Draw S5 smoke no longer freezes deterministic free draw, ticket-funded ten draw, rejection, hero ownership, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$drawParityRequested') -and
+    $protocolCompareSource.Contains('Draw = $drawParity') -and
+    $protocolCompareSource.Contains('$drawParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates Draw runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$GameplayParity') -and
+    $protocolSmokeSource.Contains('[switch]$GameplayRestartVerify') -and
+    $protocolSmokeSource.Contains("('gameplay_arena_hotpoint', 65, u8(1) + u16(101))") -and
+    $protocolSmokeSource.Contains("('gameplay_xunbao_hotpoint', 65, u8(1) + u16(103))") -and
+    $protocolSmokeSource.Contains("('gameplay_restart_arena_hotpoint', 65, u8(1) + u16(101))") -and
+    $protocolSmokeSource.Contains("'gameplayParity': {")
+) "Gameplay S5 smoke no longer freezes Steam-owned shared hot-point queries, repeat lifecycle, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$gameplayParityRequested') -and
+    $protocolCompareSource.Contains('Gameplay = $gameplayParity') -and
+    $protocolCompareSource.Contains('$gameplayParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates Gameplay runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$YouLiParity') -and
+    $protocolSmokeSource.Contains('[switch]$YouLiRestartVerify') -and
+    $protocolSmokeSource.Contains("('youli_initial_info', 335, u8(1))") -and
+    $protocolSmokeSource.Contains("('youli_repeat_info', 335, u8(1))") -and
+    $protocolSmokeSource.Contains("('youli_restart_info', 335, u8(1))") -and
+    $protocolSmokeSource.Contains("'youLiParity': {")
+) "YouLi S5 smoke no longer freezes authoritative empty-state query, repeat lifecycle, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$youLiParityRequested') -and
+    $protocolCompareSource.Contains('YouLi = $youLiParity') -and
+    $protocolCompareSource.Contains('$youLiParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates YouLi runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$FengShenStoryParity') -and
+    $protocolSmokeSource.Contains('[switch]$FengShenStoryRestartVerify') -and
+    $protocolSmokeSource.Contains("('fengshen_story_raise_pets', 13, u8(58) + u16(100))") -and
+    $protocolSmokeSource.Contains("('fengshen_story_initial_info', 320, u8(24))") -and
+    $protocolSmokeSource.Contains("('fengshen_story_challenge', 320, u8(25))") -and
+    $protocolSmokeSource.Contains("('fengshen_story_restart_info', 320, u8(24))") -and
+    $protocolSmokeSource.Contains("'fengShenStoryParity': {")
+) "FengShenStory S5 smoke no longer freezes op24 state, production op25/op10 challenge settlement, rewards, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$fengShenStoryParityRequested') -and
+    $protocolCompareSource.Contains('FengShenStory = $fengShenStoryParity') -and
+    $protocolCompareSource.Contains('$fengShenStoryParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates FengShenStory runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$ArenaParity') -and
+    $protocolSmokeSource.Contains('[switch]$ArenaRestartVerify') -and
+    $protocolSmokeSource.Contains("('arena_initial_list', 161, u8(0) + u8(1))") -and
+    $protocolSmokeSource.Contains("('arena_fight_dynamic_robot', 161, b'')") -and
+    $protocolSmokeSource.Contains("('arena_flush_rank_snapshot', 13, u8(59))") -and
+    $protocolSmokeSource.Contains("('arena_restart_list', 161, u8(0) + u8(1))") -and
+    $protocolSmokeSource.Contains("'arenaParity': {")
+) "Arena S5 smoke no longer freezes authoritative rank list, real robot replay, attempt consumption, rank advance, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$arenaParityRequested') -and
+    $protocolCompareSource.Contains('Arena = $arenaParity') -and
+    $protocolCompareSource.Contains('$arenaParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates Arena runtime and restart semantic equality."
+Assert-ToolchainTest (
+    $protocolSmokeSource.Contains('[switch]$XunBaoParity') -and
+    $protocolSmokeSource.Contains('[switch]$XunBaoRestartVerify') -and
+    $protocolSmokeSource.Contains("('xunbao_initial_info', 319, u8(31))") -and
+    $protocolSmokeSource.Contains("('xunbao_repeat_info', 319, u8(31))") -and
+    $protocolSmokeSource.Contains("('xunbao_restart_info', 319, u8(31))") -and
+    $protocolSmokeSource.Contains("'xunBaoParity': {")
+) "XunBao S5 smoke no longer freezes authoritative op31 count/recovery byte state, repeat lifecycle, and restart evidence."
+Assert-ToolchainTest (
+    $protocolCompareSource.Contains('$xunBaoParityRequested') -and
+    $protocolCompareSource.Contains('XunBao = $xunBaoParity') -and
+    $protocolCompareSource.Contains('$xunBaoParity.status -eq "Passed"')
+) "SQLite/MySQL report comparison no longer gates XunBao runtime and restart semantic equality."
+
+$localServerSupervisorSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/Core/LocalServerSupervisor.cs") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$localServerProbeSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/Editor/LocalServerSupervisorProbe.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $localServerSupervisorSource.Contains('Application.streamingAssetsPath, "ProjectXServer"') -and
+    $localServerSupervisorSource.Contains('Application.persistentDataPath, "LocalServer"') -and
+    $localServerSupervisorSource.Contains('!Application.isEditor && !options.HasFlag("-projectXExternalServer")')
+) "S6 supervisor no longer isolates immutable packaged assets from the writable player database or the external-server validation path."
+Assert-ToolchainTest (
+    $projectXAppSource.IndexOf('StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))', [StringComparison]::Ordinal) -ge 0 -and
+    $projectXAppSource.IndexOf('StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))', [StringComparison]::Ordinal) `
+        -lt $projectXAppSource.IndexOf('services = new GameServices(this, launchOptions);', [StringComparison]::Ordinal)
+) "S6 local-server preparation no longer occurs before GameServices construction and network initialization."
+Assert-ToolchainTest (
+    $localServerSupervisorSource.Contains('端口 {port} 已被其他程序占用') -and
+    $localServerSupervisorSource.Contains('秒内未监听 127.0.0.1:{port}') -and
+    $localServerSupervisorSource.Contains('运行中异常退出') -and
+    $localServerSupervisorSource.Contains('ReadyAdopted')
+) "S6 supervisor no longer exposes explicit port-conflict, timeout, crash, and duplicate-start adoption states."
+Assert-ToolchainTest (
+    $localServerProbeSource.Contains('maximumConcurrentKapai == 1') -and
+    $localServerProbeSource.Contains('ReadyAdopted') -and
+    $localServerProbeSource.Contains('crashOwner.State == LocalServerState.Failed') -and
+    $localServerProbeSource.Contains('report.residualKapai == 0')
+) "S6 probe no longer gates duplicate-process prevention, crash detection, and residual-zero cleanup."
+$steamBuildSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/Editor/SteamWindowsBuild.cs") -Raw -Encoding UTF8
+$serverMainSource = Get-Content -LiteralPath (Join-Path $root "server/src/main.cpp") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $serverMainSource.Contains('const char *listenIp = localTest ? "127.0.0.1" : NULL;') -and
+    $serverMainSource.Contains('database.Query("PRAGMA integrity_check")')
+) "S7 server no longer binds local_test to loopback or rejects a failed SQLite integrity check."
+Assert-ToolchainTest (
+    $serverMainSource.Contains('WaitForLocalShutdownCommand') -and
+    $serverMainSource.Contains('SigHandler(SIGTERM);') -and
+    $localServerSupervisorSource.Contains('process.StandardInput.WriteLine("shutdown")') -and
+    $localServerSupervisorSource.Contains('GracefulShutdownCompleted = process.WaitForExit(10000)')
+) "S7 lifecycle no longer requests production save/shutdown before force-kill fallback."
+Assert-ToolchainTest (
+    $localServerSupervisorSource.Contains('Path.Combine(dataRoot, "Logs")') -and
+    $localServerSupervisorSource.Contains('Path.Combine(dataRoot, "Backups")') -and
+    $localServerSupervisorSource.Contains('RetainNewest(backupsDirectory, "projectx-*.db", 3)')
+) "S7 player data no longer writes rotating logs and pre-start backups below persistentDataPath."
+Assert-ToolchainTest (
+    $steamBuildSource.Contains('BuildTarget.StandaloneWindows64') -and
+    $steamBuildSource.Contains('clientEntry = "ProjectX.exe"') -and
+    $steamBuildSource.Contains('RemoveDoNotShipArtifacts(outputDirectory);') -and
+    $steamBuildSource.Contains('ValidateReleaseTree(outputDirectory);') -and
+    $steamBuildSource.Contains('Directory.GetFiles(outputDirectory, "*", SearchOption.AllDirectories)') -and
+    $steamBuildSource.Contains('!string.Equals(Path.GetFullPath(file), Path.GetFullPath(manifestPath)') -and
+    $steamBuildSource.Contains('"mysqld.exe", "pwsh.exe", "powershell.exe"') -and
+    $steamBuildSource.Contains('steam-package-manifest.json')
+) "S7 Steam builder no longer freezes the full Windows x64 release tree, removes DoNotShip artifacts, rejects development dependencies, or hashes every Depot file."
+Assert-ToolchainTest (
+    $localServerSupervisorSource.Contains('new Semaphore(1, 1, "Local\\Xuancai.ProjectX.LocalServer.8711")') -and
+    $localServerSupervisorSource.Contains('leaseHeld = ownershipLease.WaitOne(0)') -and
+    $localServerSupervisorSource.Contains('RecoveredOrphanProcess = true') -and
+    $localServerSupervisorSource.Contains('RecoverOrphan(matching)')
+) "S8 supervisor no longer owns startup through a crash-safe named lease or replaces an orphaned packaged server."
+Assert-ToolchainTest (
+    $steamBuildSource.Contains('ProjectX_Data/StreamingAssets/ProjectXServer') -or
+    ($steamBuildSource.Contains('"ProjectXServer"') -and
+     $steamBuildSource.Contains('steam-package-manifest.json') -and
+     $steamBuildSource.Contains('Path.GetRelativePath'))
+) "S8 Steam package no longer keeps runtime dependencies under the immutable single-entry application tree with a verifiable file manifest."
+Assert-ToolchainTest (
+    $serverPackDealSource.Contains('static bool RepairLocalRoleNullFields(CDatabaseSql *pDb, uint32 roleId)') -and
+    $serverPackDealSource.Contains('"zhenfa", "package", "title", "hots", "bitset", "save_val", "bank_item"') -and
+    $serverPackDealSource.Contains('"state", "exp", "money", "qianneng", "chat_channel", "chat_time", "admin", "login_time"') -and
+    ([regex]::Matches($serverPackDealSource, 'RepairLocalRoleNullFields\(pDb, roleId\)').Count -ge 2)
+) "S8 local role creation no longer normalizes nullable role_info fields for both the default account and explicit role creation paths."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('autoInvoke || HasCommandLineFlag("-projectXS8StartupAcceptance")') -and
+    $projectXAppSource.Contains('StartCoroutine(InvokeButtonNextFrame(button))')
+) "S8 packaged startup acceptance no longer invokes the same bound enter-game Button used by a normal player."
 
 $manifestForWorkflow = (Import-UnityMigrationManifest -Root $root).Value
 $worldModule = @($manifestForWorkflow.modules | Where-Object { $_.key -eq "World" }) | Select-Object -First 1

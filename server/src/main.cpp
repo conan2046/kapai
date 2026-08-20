@@ -18,6 +18,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
 #include <fstream>
+#include <sstream>
 #include <zlib.h>
 #include <boost/thread/thread.hpp>
 #include <boost/format.hpp>
@@ -743,7 +744,8 @@ bool CMainClass::Init(const SServerBasicCfg &cfg)
 		return false;
 
 	cout << "[local] CMainClass::Init: Socket Init port=" << cfg.port << endl;
-	if(!m_socketServer.Init(MAX_CON_USER, true, IntToStr(cfg.port).c_str()))
+	const char *listenIp = localTest ? "127.0.0.1" : NULL;
+	if(!m_socketServer.Init(MAX_CON_USER, true, IntToStr(cfg.port).c_str(), listenIp))
 		return false;
 	ServerCfg tmp;
 	if(cfg.long_port > 0)
@@ -3695,6 +3697,125 @@ void CMainClass::Run()
 }
 
 CMainClass *gpMain;
+
+struct SSqliteStartupOptions
+{
+	bool enabled;
+	string databasePath;
+	string schemaPath;
+	SSqliteStartupOptions():enabled(false) {}
+};
+
+static bool ReadTextFile(const string &path, string &contents)
+{
+	ifstream input(path.c_str(), ios::binary);
+	if(!input)
+		return false;
+	ostringstream buffer;
+	buffer << input.rdbuf();
+	contents = buffer.str();
+	return true;
+}
+
+static bool GetSqliteStartupOptions(int argc, char **argv, SSqliteStartupOptions &options)
+{
+	string driver = gyu::util::CIniFile::GetValue("driver","database",gConfigFile);
+	if(driver == "sqlite" || driver == "SQLite" || driver == "SQLITE")
+	{
+		options.enabled = true;
+		options.databasePath = gyu::util::CIniFile::GetValue("sqlite_path","database",gConfigFile);
+		options.schemaPath = gyu::util::CIniFile::GetValue("sqlite_schema","database",gConfigFile);
+	}
+	for(int i = 1; i < argc; ++i)
+	{
+		if(strcmp(argv[i], "--sqlite") == 0)
+		{
+			if(i + 1 >= argc)
+			{
+				cout << "--sqlite requires a database path" << endl;
+				return false;
+			}
+			options.enabled = true;
+			options.databasePath = argv[++i];
+		}
+		else if(strcmp(argv[i], "--sqlite-schema") == 0)
+		{
+			if(i + 1 >= argc)
+			{
+				cout << "--sqlite-schema requires a schema path" << endl;
+				return false;
+			}
+			options.schemaPath = argv[++i];
+		}
+	}
+	if(options.enabled && (options.databasePath.empty() || options.schemaPath.empty()))
+	{
+		cout << "SQLite startup requires both database path and schema path" << endl;
+		return false;
+	}
+	return true;
+}
+
+static bool PrepareSqliteDatabase(const SSqliteStartupOptions &options)
+{
+	string schema;
+	if(!ReadTextFile(options.schemaPath, schema))
+	{
+		cout << "SQLite schema could not be read: " << options.schemaPath << endl;
+		return false;
+	}
+	CDatabaseSql database;
+	if(!database.ConnectSqlite(options.databasePath.c_str()))
+	{
+		cout << "SQLite database open failed path=" << options.databasePath << " error=" << database.GetErrMsg() << endl;
+		return false;
+	}
+	if(!database.ExecuteScript(schema.c_str()))
+	{
+		cout << "SQLite schema migration failed path=" << options.schemaPath << " error=" << database.GetErrMsg() << endl;
+		return false;
+	}
+	if(!database.Query("select version from schema_version order by version desc limit 1"))
+	{
+		cout << "SQLite schema version query failed: " << database.GetErrMsg() << endl;
+		return false;
+	}
+	char **row = database.GetRow();
+	if(row == NULL || row[0] == NULL || atoi(row[0]) < 1)
+	{
+		cout << "SQLite schema version is missing or invalid" << endl;
+		return false;
+	}
+	string schemaVersion = row[0];
+	if(!database.Query("PRAGMA integrity_check"))
+	{
+		cout << "SQLite integrity check failed to execute: " << database.GetErrMsg() << endl;
+		return false;
+	}
+	row = database.GetRow();
+	if(row == NULL || row[0] == NULL || strcmp(row[0], "ok") != 0)
+	{
+		cout << "SQLite integrity check failed: " << (row && row[0] ? row[0] : "missing result") << endl;
+		return false;
+	}
+	cout << "[local] SQLite ready path=" << options.databasePath << " schema_version=" << schemaVersion << " integrity=ok" << endl;
+	return true;
+}
+
+static void WaitForLocalShutdownCommand()
+{
+	string command;
+	while(sExit && getline(cin, command))
+	{
+		if(command == "shutdown")
+		{
+			cout << "[local] graceful shutdown requested by owning client" << endl;
+			SigHandler(SIGTERM);
+			return;
+		}
+	}
+}
+
 int main(int argc,char **argv)
 {
 	SServerBasicCfg cfg;
@@ -3716,8 +3837,21 @@ int main(int argc,char **argv)
 	srand(time(NULL));
 	cout << "[local] main: CDbPool::CreateInstance" << endl;
 	CDbPool *pPool = CDbPool::CreateInstance(true);
-	cout << "[local] main: SetDbConfigure" << endl;
-	pPool->SetDbConfigure(cfg.dbUser,cfg.dbPwd,cfg.dbHost,cfg.dbName,cfg.dbPort, "utf8");
+	SSqliteStartupOptions sqliteOptions;
+	if(!GetSqliteStartupOptions(argc, argv, sqliteOptions))
+		return -1;
+	if(sqliteOptions.enabled)
+	{
+		cout << "[local] main: Prepare SQLite" << endl;
+		if(!PrepareSqliteDatabase(sqliteOptions))
+			return -1;
+		pPool->SetSqliteConfigure(sqliteOptions.databasePath);
+	}
+	else
+	{
+		cout << "[local] main: SetDbConfigure MySQL" << endl;
+		pPool->SetDbConfigure(cfg.dbUser,cfg.dbPwd,cfg.dbHost,cfg.dbName,cfg.dbPort, "utf8");
+	}
 	
 	cout << "[local] main: InitSysTime" << endl;
 	if (!InitSysTime())
@@ -3728,11 +3862,19 @@ int main(int argc,char **argv)
 	
 	cout << "[local] main: CMainClass::Init" << endl;
 	CMainClass *pMain = new CMainClass;
+	boost::thread *shutdownThread = NULL;
 	if(pMain->Init(cfg))
 	{
 		gpMain = pMain;
+		if(sqliteOptions.enabled)
+			shutdownThread = new boost::thread(&WaitForLocalShutdownCommand);
 		cout << "[local] main: Run" << endl;
 		pMain->Run();
+	}
+	if(shutdownThread != NULL)
+	{
+		shutdownThread->join();
+		delete shutdownThread;
 	}
 
 	cout<<"-- exit"<<endl;

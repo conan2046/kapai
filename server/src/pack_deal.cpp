@@ -48,6 +48,37 @@ extern int mdCheckPort;
 extern std::map<uint16,SkillInfoNode> skillInfoListMap;
 extern vector<uint32> topBangPai;
 
+static bool RepairLocalRoleNullFields(CDatabaseSql *pDb, uint32 roleId)
+{
+	if(pDb == NULL || roleId == 0)
+		return false;
+	static const char *emptyFields[] = {
+		"zhenfa", "package", "title", "hots", "bitset", "save_val", "bank_item", "save_data",
+		"mount", "wing", "bossFightStar", "sg_bitset", "mysteryShop", "xiuxian", "shenqi",
+		"transform", "mission", "clientstring", "shenhunShop", "questIds", "find_res", "xunbao",
+		"pet_equip", "bang_skills", "guan_qia", "user_book", "chou_ka", "blood_fight",
+		"copyData", "user_spirit", "pet", "korea_money_gift", "kuafu_1vs1", "xianyuan"
+	};
+	static const char *zeroFields[] = {
+		"state", "exp", "money", "qianneng", "chat_channel", "chat_time", "admin", "login_time"
+	};
+	std::ostringstream sql;
+	sql << "update role_info set ";
+	bool first = true;
+	for(size_t i = 0; i < sizeof(emptyFields) / sizeof(emptyFields[0]); ++i)
+	{
+		if(!first) sql << ',';
+		first = false;
+		sql << '`' << emptyFields[i] << "`=ifnull(`" << emptyFields[i] << "`,'')";
+	}
+	for(size_t i = 0; i < sizeof(zeroFields) / sizeof(zeroFields[0]); ++i)
+	{
+		sql << ",`" << zeroFields[i] << "`=ifnull(`" << zeroFields[i] << "`,'0')";
+	}
+	sql << ",`level`=ifnull(`level`,'1'),`kuafu_state`=ifnull(`kuafu_state`,'0') where id=" << roleId;
+	return pDb->Query(sql.str().c_str());
+}
+
 extern vector<SChongZhiData> G_CZ_INFO_A;
 extern vector<SChongZhiData> G_CZ_INFO_IOS;
 extern vector<SChongZhiData> G_CZ_INFO_RMBSHOP;
@@ -837,6 +868,15 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 
 	if(localTest == "1" && roleId > 0)
 	{
+		if(!RepairLocalRoleNullFields(pDb, roleId))
+		{
+			cout << "[local] UserLogin: role null-field repair failed roleId=" << roleId
+				<< " error=" << pDb->GetErrMsg() << endl;
+			msg<<PRO_ERROR<<"Local role data repair failed";
+			m_socketServer.SendMsg(sock,msg);
+			m_onlineUser.DelUser(pUser);
+			return;
+		}
 		const uint32 localTestMoney = 1000000;
 		const string localTestTongBaoText = gyu::util::CIniFile::GetValue(
 			"local_test_tongbao", "server", gConfigFile);
@@ -1227,28 +1267,17 @@ void CPackageDeal::CreateRole(CNetMessage *pMsg,int sock)
 	string userTab = GetUserInfoTab(pUser->GetServerId());
 	if(localTest == "1")
 	{
-		const char *emptyFields[] = {
-			"zhenfa", "package", "title", "hots", "bitset", "save_val", "bank_item", "save_data",
-			"mount", "wing", "bossFightStar", "sg_bitset", "mysteryShop", "xiuxian", "shenqi",
-			"transform", "mission", "clientstring", "shenhunShop", "questIds", "find_res", "xunbao",
-			"pet_equip", "bang_skills", "guan_qia", "user_book", "chou_ka", "blood_fight",
-			"copyData", "user_spirit", "pet", "korea_money_gift", "kuafu_1vs1", "xianyuan"
-		};
-		for(size_t i = 0; i < sizeof(emptyFields) / sizeof(emptyFields[0]); ++i)
+		if(!RepairLocalRoleNullFields(pDb, roleId))
 		{
-			snprintf(sql, sizeof(sql), "update role_info set %s=ifnull(%s,'') where id=%u", emptyFields[i], emptyFields[i], roleId);
+			cout << "[local] CreateRole: role null-field repair failed roleId=" << roleId
+				<< " error=" << pDb->GetErrMsg() << endl;
+			snprintf(sql, sizeof(sql), "delete from role_info where id=%u", roleId);
 			pDb->Query(sql);
+			msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_856,TIPS_FAILURE_COLOR);
+			RemoveFastRoleName(sex,name);
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
+			return;
 		}
-		const char *zeroFields[] = {
-			"state", "exp", "money", "qianneng", "chat_channel", "chat_time", "admin", "login_time"
-		};
-		for(size_t i = 0; i < sizeof(zeroFields) / sizeof(zeroFields[0]); ++i)
-		{
-			snprintf(sql, sizeof(sql), "update role_info set %s=ifnull(%s,'0') where id=%u", zeroFields[i], zeroFields[i], roleId);
-			pDb->Query(sql);
-		}
-		snprintf(sql, sizeof(sql), "update role_info set level=ifnull(level,'1'),kuafu_state=ifnull(kuafu_state,'0') where id=%u", roleId);
-		pDb->Query(sql);
 
 		snprintf(sql, sizeof(sql), "insert into %s(id,role0,money,bd_money,ad,del_time0,type,reg_time,mobile_type,mobile_info,new_user) values(%u,%u,%u,%u,%u,0,0,%u,'0','local_test',0) on duplicate key update role0=%u,money=%u,bd_money=%u",
 			userTab.c_str(), pUser->GetUserId(), roleId, initTongBao, initBdTongBao, (uint32)ad, reg_time, roleId, initTongBao, initBdTongBao);
@@ -2020,6 +2049,9 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 			"delete from xin_shi where to_id=%u and message like 'Unity mail validation%%'",
 			pUser->GetRoleId());
 		pDb->Query(sql);
+		// Freeze the local-only fixture to one UTC-day baseline so SQLite and
+		// MySQL emit byte-identical expireAt values even when run minutes apart.
+		const uint32 fixtureBaseTime = (uint32)(GetSysTime() / 86400 * 86400 + 43200);
 		for(int index = 13; index >= 0; --index)
 		{
 			int rewardCount = index == 0 ? 9 : index == 1 ? 2 : index == 2 ? 1 : (index % 3 == 0 ? 0 : 1);
@@ -2035,34 +2067,84 @@ void CPackageDeal::NpcInteract(CNetMessage *pMsg,int sock)
 			string attachment;
 			MakeMailAttachStr(attachment, &mailData);
 			const char *body = index == 3
-				? "Unity mail validation long body\\n"
-				  "01 This paragraph verifies vertical mail body scrolling.\\n"
-				  "02 This paragraph verifies vertical mail body scrolling.\\n"
-				  "03 This paragraph verifies vertical mail body scrolling.\\n"
-				  "04 This paragraph verifies vertical mail body scrolling.\\n"
-				  "05 This paragraph verifies vertical mail body scrolling.\\n"
-				  "06 This paragraph verifies vertical mail body scrolling.\\n"
-				  "07 This paragraph verifies vertical mail body scrolling.\\n"
-				  "08 This paragraph verifies vertical mail body scrolling.\\n"
-				  "09 This paragraph verifies vertical mail body scrolling.\\n"
-				  "10 This paragraph verifies vertical mail body scrolling.\\n"
-				  "11 This paragraph verifies vertical mail body scrolling.\\n"
-				  "12 This paragraph verifies vertical mail body scrolling.\\n"
-				  "13 This paragraph verifies vertical mail body scrolling.\\n"
-				  "14 This paragraph verifies vertical mail body scrolling.\\n"
-				  "15 This paragraph verifies vertical mail body scrolling.\\n"
-				  "16 This paragraph verifies vertical mail body scrolling.\\n"
-				  "17 This paragraph verifies vertical mail body scrolling.\\n"
-				  "18 This paragraph verifies vertical mail body scrolling.\\n"
-				  "19 This paragraph verifies vertical mail body scrolling.\\n"
+				? "Unity mail validation long body\n"
+				  "01 This paragraph verifies vertical mail body scrolling.\n"
+				  "02 This paragraph verifies vertical mail body scrolling.\n"
+				  "03 This paragraph verifies vertical mail body scrolling.\n"
+				  "04 This paragraph verifies vertical mail body scrolling.\n"
+				  "05 This paragraph verifies vertical mail body scrolling.\n"
+				  "06 This paragraph verifies vertical mail body scrolling.\n"
+				  "07 This paragraph verifies vertical mail body scrolling.\n"
+				  "08 This paragraph verifies vertical mail body scrolling.\n"
+				  "09 This paragraph verifies vertical mail body scrolling.\n"
+				  "10 This paragraph verifies vertical mail body scrolling.\n"
+				  "11 This paragraph verifies vertical mail body scrolling.\n"
+				  "12 This paragraph verifies vertical mail body scrolling.\n"
+				  "13 This paragraph verifies vertical mail body scrolling.\n"
+				  "14 This paragraph verifies vertical mail body scrolling.\n"
+				  "15 This paragraph verifies vertical mail body scrolling.\n"
+				  "16 This paragraph verifies vertical mail body scrolling.\n"
+				  "17 This paragraph verifies vertical mail body scrolling.\n"
+				  "18 This paragraph verifies vertical mail body scrolling.\n"
+				  "19 This paragraph verifies vertical mail body scrolling.\n"
 				  "20 End of long mail body."
 				: "Unity mail validation body.";
 			snprintf(sql, sizeof(sql),
 				"insert into xin_shi (money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message) "
 				"values (0,0,0,'%s',0,%u,0,from_unixtime(%u),0,0,'System','Unity mail validation %02d - %s')",
-				attachment.c_str(), pUser->GetRoleId(), (uint32)(GetSysTime() - index), index + 1, body);
+				attachment.c_str(), pUser->GetRoleId(), fixtureBaseTime - index, index + 1, body);
 			pDb->Query(sql);
 		}
+		return;
+	}
+	// Local isolated-role FengShenStory validation: op=58, uint16 petLevel.
+	// Raise only the current disposable role's owned pets, matching the
+	// reversible historical fixture without exposing this path outside
+	// local_test. Normal /320 op25 still owns battle, rewards, and persistence.
+	if(op == 58)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint16 petLevel = 0;
+		msg>>petLevel;
+		if(petLevel == 0 || petLevel > 100)
+			return;
+		vector<uint16> petIds;
+		pUser->GetPetIdList(petIds);
+		for(size_t i = 0; i < petIds.size(); ++i)
+		{
+			SharePetPtr pet = pUser->GetPet(petIds[i]);
+			if(pet.get() == NULL)
+				continue;
+			pet->level = petLevel;
+			pet->exp = 0;
+			pet->Init(pUser);
+		}
+		return;
+	}
+	// Local isolated-role Arena restart validation: op=59.
+	// Flush the production Arena manager snapshot on demand so the short S5
+	// process lifecycle exercises the same SQL path as the scheduled/server
+	// shutdown save instead of waiting for the twice-daily timer.
+	if(op == 59)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		SingletonCArenaManager::instance().Save();
+		return;
+	}
+	// Local isolated-role PlayerHud validation: op=57, uint32 experience.
+	// This invokes the production AddExp/level-up path so /18 and /226 remain
+	// authoritative server pushes. It is unavailable outside local_test.
+	if(op == 57)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+			return;
+		uint32 experience = 0;
+		msg>>experience;
+		if(experience == 0 || experience > 1000000)
+			return;
+		pUser->AddExp(experience, false, false);
 		return;
 	}
 	// Local isolated-role hero fixture: op=55, uint16 petId.

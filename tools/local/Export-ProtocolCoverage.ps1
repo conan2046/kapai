@@ -1,5 +1,6 @@
 param(
-    [string]$OutFile = ""
+    [string]$OutFile = "",
+    [string]$SteamJsonOut = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -7,10 +8,14 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 if (-not $OutFile) {
     $OutFile = Join-Path $Root "PROTOCOL_COVERAGE.md"
 }
+if (-not $SteamJsonOut) {
+    $SteamJsonOut = Join-Path $Root ".local\unity-validation\steam-sqlite-s5-protocol-coverage-latest.json"
+}
 
 $protocolPath = Join-Path $Root "server\src\protocol.h"
 $packDealPath = Join-Path $Root "server\src\pack_deal.cpp"
 $smokePath = Join-Path $Root "tools\local\Invoke-ProtocolSmoke.ps1"
+$moduleManifestPath = Join-Path $Root "tools\unity-migration\unityclient-modules.json"
 
 function Read-Text($Path) {
     return Get-Content -Raw -Encoding UTF8 $Path
@@ -83,9 +88,11 @@ $registered = $registered | Sort-Object Value,Name -Unique
 
 $coveredByValue = @{}
 $coveredByName = @{}
+$caseValueByName = @{}
 [regex]::Matches($smokeText, "\('([^']+)'\s*,\s*(\d+)\s*,") | ForEach-Object {
     $caseName = $_.Groups[1].Value
     $value = [int]$_.Groups[2].Value
+    $caseValueByName[$caseName] = $value
     if (-not $coveredByValue.ContainsKey($value)) { $coveredByValue[$value] = New-Object System.Collections.Generic.List[string] }
     $coveredByValue[$value].Add($caseName)
 }
@@ -96,6 +103,88 @@ $coveredByName = @{}
         $coveredByValue[$value].Add("login/select/create")
     }
 }
+
+$moduleManifest = Get-Content -LiteralPath $moduleManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$steamModules = @($moduleManifest.modules | Where-Object { -not $_.migrationExcluded })
+$steamProtocols = @(
+    $steamModules |
+        ForEach-Object {
+            $steamProperty = $_.PSObject.Properties['steamProtocols']
+            if ($steamProperty) { @($steamProperty.Value) } else { @($_.protocols) }
+        } |
+        ForEach-Object { [int]$_ } |
+        Sort-Object -Unique
+)
+$steamAllowlistMatch = [regex]::Match(
+    $smokeText,
+    "steam_included_names\s*=\s*\{(?<body>.*?)\}\s*smokes\s*=",
+    [System.Text.RegularExpressions.RegexOptions]::Singleline
+)
+if (-not $steamAllowlistMatch.Success) {
+    throw "Steam smoke allowlist was not found in Invoke-ProtocolSmoke.ps1"
+}
+$steamCaseNames = @(
+    [regex]::Matches($steamAllowlistMatch.Groups['body'].Value, "'([^']+)'") |
+        ForEach-Object { $_.Groups[1].Value } |
+        Sort-Object -Unique
+)
+$steamCasesByValue = @{}
+foreach ($caseName in $steamCaseNames) {
+    if (-not $caseValueByName.ContainsKey($caseName)) { continue }
+    $value = [int]$caseValueByName[$caseName]
+    if (-not $steamCasesByValue.ContainsKey($value)) {
+        $steamCasesByValue[$value] = New-Object System.Collections.Generic.List[string]
+    }
+    $steamCasesByValue[$value].Add($caseName)
+}
+$implicitSteamCases = @{
+    226 = @('playerhud_levelup-push')
+    1001 = @('login')
+    1003 = @('create-role')
+    1004 = @('select-role')
+}
+$steamCoverageRows = @(
+    foreach ($value in $steamProtocols) {
+        $moduleKeys = @(
+            $steamModules |
+                Where-Object {
+                    $steamProperty = $_.PSObject.Properties['steamProtocols']
+                    $effectiveProtocols = if ($steamProperty) { @($steamProperty.Value) } else { @($_.protocols) }
+                    $effectiveProtocols -contains $value
+                } |
+                ForEach-Object { $_.key }
+        )
+        $cases = @()
+        if ($steamCasesByValue.ContainsKey($value)) { $cases += @($steamCasesByValue[$value]) }
+        if ($implicitSteamCases.ContainsKey($value)) { $cases += @($implicitSteamCases[$value]) }
+        [pscustomobject]@{
+            protocol = $value
+            name = if ($nameByValue.ContainsKey($value)) { $nameByValue[$value] } else { '' }
+            modules = $moduleKeys
+            requestCases = @($cases | Sort-Object -Unique)
+            coverage = if ($cases.Count -gt 0) { 'request-covered' } else { 'missing-or-passive' }
+        }
+    }
+)
+$steamRequestCovered = @($steamCoverageRows | Where-Object coverage -eq 'request-covered').Count
+$steamMissingOrPassive = @($steamCoverageRows | Where-Object coverage -eq 'missing-or-passive').Count
+$steamReport = [ordered]@{
+    schemaVersion = 1
+    generatedAt = (Get-Date).ToUniversalTime().ToString('o')
+    source = [ordered]@{
+        manifest = 'tools/unity-migration/unityclient-modules.json'
+        smoke = 'tools/local/Invoke-ProtocolSmoke.ps1'
+    }
+    includedModules = @($steamModules | ForEach-Object { $_.key })
+    excludedModules = @($moduleManifest.modules | Where-Object migrationExcluded | ForEach-Object { $_.key })
+    protocolCount = $steamProtocols.Count
+    requestCovered = $steamRequestCovered
+    missingOrPassive = $steamMissingOrPassive
+    protocols = $steamCoverageRows
+}
+$steamJsonDirectory = Split-Path -Parent $SteamJsonOut
+if ($steamJsonDirectory) { New-Item -ItemType Directory -Path $steamJsonDirectory -Force | Out-Null }
+$steamReport | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $SteamJsonOut -Encoding UTF8
 
 foreach ($entry in $registered) {
     if ($null -ne $entry.Value -and $coveredByValue.ContainsKey($entry.Value)) {
@@ -135,6 +224,24 @@ $lines.Add("|---|---:|")
 $lines.Add("| 服务端注册协议 | $total |")
 $lines.Add("| smoke 已覆盖协议号 | $covered |")
 $lines.Add("| 未覆盖注册协议 | $uncovered |")
+$lines.Add("")
+$lines.Add("## Steam SQLite S5 保留范围覆盖")
+$lines.Add("")
+$lines.Add("本节从 ``unityclient-modules.json`` 的非排除模块和 ``Invoke-ProtocolSmoke.ps1 -SteamIncluded`` 白名单生成。``missing-or-passive`` 不能视为失败或通过：它表示尚无主动请求 case，下一步必须区分服务端推送与真实缺口并补结构化断言。")
+$lines.Add("")
+$lines.Add("| 项 | 数量 |")
+$lines.Add("|---|---:|")
+$lines.Add("| Steam 保留模块 | $($steamModules.Count) |")
+$lines.Add("| 模块登记协议 | $($steamProtocols.Count) |")
+$lines.Add("| 已有主动请求 case | $steamRequestCovered |")
+$lines.Add("| 待区分被动推送/真实缺口 | $steamMissingOrPassive |")
+$lines.Add("")
+$lines.Add("| 协议号 | 名称 | 所属模块 | S5主动请求 case | 状态 |")
+$lines.Add("|---:|---|---|---|---|")
+foreach ($entry in $steamCoverageRows) {
+    $cases = if ($entry.requestCases.Count -gt 0) { $entry.requestCases -join ', ' } else { '-' }
+    $lines.Add("| $($entry.protocol) | ``$($entry.name)`` | $($entry.modules -join ', ') | $cases | ``$($entry.coverage)`` |")
+}
 $lines.Add("")
 $lines.Add("## 未覆盖分层统计")
 $lines.Add("")
@@ -197,3 +304,4 @@ foreach ($value in ($coveredByValue.Keys | Sort-Object)) {
 Set-Content -Path $OutFile -Value ($lines -join "`n") -Encoding UTF8
 Write-Host "Protocol coverage written: $OutFile"
 Write-Host "registered=$total covered=$covered uncovered=$uncovered"
+Write-Host "steam_protocols=$($steamProtocols.Count) request_covered=$steamRequestCovered missing_or_passive=$steamMissingOrPassive json=$SteamJsonOut"

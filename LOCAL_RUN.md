@@ -1,5 +1,46 @@
 # 本地测试服运行步骤
 
+## Unity 正式单入口：新成员拉取后自行打包
+
+当前正式 Windows 运行结构为 `ProjectX.exe → 自动监管 kapai.exe + SQLite`。玩家及开发成员不需要手工启动服务端或 MySQL；MySQL 代码和本地回归能力仍保留，但不属于正式玩家启动链。
+
+新成员首次拉取后执行：
+
+```powershell
+git lfs install
+git lfs pull
+pwsh -ExecutionPolicy Bypass -File tools/local/Install-LocalDeps.ps1 -IncludeMySql -IncludeBoost
+pwsh -ExecutionPolicy Bypass -File tools/local/Check-LocalEnv.ps1 -SkipClient
+pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1
+```
+
+然后使用 Unity `2022.3.62f3c1` 打开 `unityclient/`，执行：
+
+```text
+Tools → ProjectX App → Build Steam Windows Package
+```
+
+默认输出：`.local/steam-build/ProjectX/ProjectX.exe`。也可用批处理指定输出：
+
+```powershell
+& "<Unity.exe>" -batchmode -nographics -quit `
+  -projectPath "$PWD\unityclient" `
+  -executeMethod ProjectX.Editor.SteamWindowsBuild.BuildBatch `
+  -projectXSteamBuildPath="$PWD\.local\steam-build\ProjectX\ProjectX.exe" `
+  -logFile "$PWD\.local\unity-steam-build.log"
+```
+
+打包器会自动完成以下工作：
+
+- 生成 Windows x64 `ProjectX.exe`；
+- 将刚构建的 `build/server-win/Debug/kapai.exe`、运行 DLL、服务端配置、Lua 脚本和 SQLite 初始 Schema 放入 `StreamingAssets/ProjectXServer/`；
+- 删除 `DoNotShip` 目录，拒绝 PDB、`mysqld.exe`、PowerShell 等开发文件；
+- 为除 Manifest 自身外的全部发布文件生成 SHA-256 清单。
+
+验收时只双击输出目录中的 `ProjectX.exe`。SQLite 存档与日志写入 `%USERPROFILE%\AppData\LocalLow\Xuancai\ProjectX\LocalServer\`，不写安装目录。不要单独复制 EXE，必须保留整个输出目录。
+
+若 `Build-Server.ps1` 报 SQLite 静态库缺失，重新执行依赖安装命令；构建脚本会硬失败，禁止生成不含 SQLite 的本地服用于正式打包。
+
 ## 当前结论
 
 客户端 Win 模拟器已存在，可以启动：

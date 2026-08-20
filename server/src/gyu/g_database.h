@@ -25,11 +25,13 @@ namespace gyu {
 		class CDbPool;
 		class CDbPoolData;
 		class CGetDbConnect;
+		struct CSqliteState;
 		
 		class CDatabaseSql
 		{
 		public:
 			bool Query(const char *sqlSentence);
+			bool ExecuteScript(const char *sqlScript);
 			char **GetRow();
 			bool GetResult(std::map<std::string,const char*> &);
 			const char *GetErrMsg();	
@@ -37,12 +39,16 @@ namespace gyu {
 			CDatabaseSql();
 			~CDatabaseSql();
 			bool Connect(const char *user,const char *passwd,const char *host,const char *database,int port, const char *pCharacter="utf8");
+			bool ConnectSqlite(const char *databasePath);
 			unsigned int InsertId();
+			bool IsSqlite() const;
 
 		private:
 			CDatabaseSql(const CDatabaseSql &){}
 			MYSQL_RES *m_result;
 			MYSQL	*m_mysql;
+			CSqliteState *m_sqlite;
+			bool m_isSqlite;
 			std::string dbUser;
 			std::string dbPasswd;
 			std::string dbHost;
@@ -65,6 +71,7 @@ namespace gyu {
 		class CDbPoolData
 		{
 		public:
+			CDbPoolData();
 			CDatabaseSql *PopDbConnect();
 			CDatabaseSql *NolockPopDbConnect();
 			void PushDbConnect(CDatabaseSql *db);
@@ -79,6 +86,8 @@ namespace gyu {
 			std::string m_host;
 			std::string m_dbName;
 			std::string m_character;
+			std::string m_sqlitePath;
+			bool m_useSqlite;
 			int m_port;
 		};
 
@@ -86,6 +95,7 @@ namespace gyu {
 		{
 		public:
 			void SetDbConfigure(std::string user, std::string passwd, std::string host, std::string dbname, std::string port, std::string character="utf8");
+			void SetSqliteConfigure(std::string databasePath);
 			bool AddDbConnect();
 			static CDbPool *CreateInstance(bool isMultiThread=false);
 		private:

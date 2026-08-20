@@ -1,0 +1,1235 @@
+{
+  "schemaVersion": 1,
+  "source": "server/sql/local_min_schema.sql",
+  "sourceSha256": "91C71452B603940A96DD35C98EE3B14F383C50A09405BB9871AAD903C311F022",
+  "output": "server/sql/sqlite/001_initial_schema.sql",
+  "outputSha256": "AE52932FEFBBF6281EAE70BC4CF07F7AB27C3943D76917148D186C15BB52FF60",
+  "validation": {
+    "tableCount": 174,
+    "sourceTableCount": 173,
+    "columnCount": 1360,
+    "explicitIndexCount": 34,
+    "schemaVersionRows": [
+      [
+        1,
+        "initial-schema",
+        "91C71452B603940A96DD35C98EE3B14F383C50A09405BB9871AAD903C311F022"
+      ]
+    ],
+    "integrityCheck": "ok",
+    "idempotentExecutions": 2
+  },
+  "tables": [
+    {
+      "name": "admin",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "allows",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "another",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "arena_log",
+      "columnCount": 20,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 3
+    },
+    {
+      "name": "arena_paihang",
+      "columnCount": 18,
+      "autoColumn": "rank",
+      "primary": null,
+      "indexCount": 4
+    },
+    {
+      "name": "arena_paihang_save",
+      "columnCount": 18,
+      "autoColumn": "rank",
+      "primary": null,
+      "indexCount": 4
+    },
+    {
+      "name": "arena_robot",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "array",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "ascii",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "back_libao_info",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bad",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai",
+      "columnCount": 44,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 3
+    },
+    {
+      "name": "bang_pai_guard",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai_log",
+      "columnCount": 9,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai_mission",
+      "columnCount": 9,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai_plant",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai_role",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 2
+    },
+    {
+      "name": "bang_pai_seed_config",
+      "columnCount": 19,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai_shangxian",
+      "columnCount": 12,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_pai_shangxian_mode",
+      "columnCount": 15,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bang_tiaozhan",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "bangzhan",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "bangzhan_role",
+      "columnCount": 5,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 2
+    },
+    {
+      "name": "black_ip",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "boost",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "chat_ignore_word",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "chat_log",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "chong_fanli",
+      "columnCount": 11,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "chongfanli",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "config",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "consideration",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "cz_complete",
+      "columnCount": 14,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "cz_notice",
+      "columnCount": 5,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "cz_to_other_reward",
+      "columnCount": 18,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "dailysign",
+      "columnCount": 9,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "defining",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "dengjilibao",
+      "columnCount": 11,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "doxygen",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "encoding",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "equip",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "fabao",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "fanli_jihuoma",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "festival_award",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "festival_box",
+      "columnCount": 9,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "festival_record",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "fight_cg",
+      "columnCount": 2,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "fight_playback",
+      "columnCount": 7,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "flower_config",
+      "columnCount": 7,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "footprint_config",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "friend_list",
+      "columnCount": 5,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "friend_list_save",
+      "columnCount": 5,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "fuben_richang",
+      "columnCount": 31,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "function_switch",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "game_scene",
+      "columnCount": 14,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "genericreader",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "genericvalue",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "global_variable",
+      "columnCount": 4,
+      "autoColumn": null,
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "happening",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_7ridenglu",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_bang_goods",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_chou_record",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_exchange_drop",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_exchange_list",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_paihang_info",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_paihang_record",
+      "columnCount": 14,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_peizhi_info",
+      "columnCount": 16,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_rand_award",
+      "columnCount": 7,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_save_data",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "hd_show_log",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "help",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "huan_haoli_drop",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "huodong_award",
+      "columnCount": 30,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "huodong_exchange",
+      "columnCount": 41,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "huodong_exp",
+      "columnCount": 133,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "huodong_info",
+      "columnCount": 11,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "huodong_time",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "input",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "integer",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "item",
+      "columnCount": 17,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "item_score_exchange",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "item_template",
+      "columnCount": 25,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "iterator",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "jiaoyi_gold_yuzhi",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "jiaoyi_info",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 2
+    },
+    {
+      "name": "jiaoyi_record",
+      "columnCount": 10,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 3
+    },
+    {
+      "name": "jihuoma",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "jihuoma_fa",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "jump_point",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "kf_config",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "kuafu_1vs1_final_data",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "kuafu_1vs1_final_vote",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "kuafu_1vs1_preliminary",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "kuafu_paihang",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "leitai_paiming",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "level_rank",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "login_log_7",
+      "columnCount": 11,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 2
+    },
+    {
+      "name": "mei_li_history",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "mei_li_paihang",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "mei_li_send_log",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "microsoft",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "mijing_boss_ratio",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "mobai",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "money_giftbag_huodong",
+      "columnCount": 24,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "money_giftbag_pay",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "monster",
+      "columnCount": 35,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "monster_boss_distribution",
+      "columnCount": 25,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "monster_distribution",
+      "columnCount": 10,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "mutable",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "name_reg0",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "name_reg1",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "names",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "non",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "notice",
+      "columnCount": 7,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "notice_login",
+      "columnCount": 7,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "npc_instance",
+      "columnCount": 7,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "npc_template",
+      "columnCount": 5,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "old_account",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "online_user_num",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "operator",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "parsestream",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "plain",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "pointer",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "pre",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "predict",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "primary",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "qiang_hongbao_record",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "qin_mi_log",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "question",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "qunxian_paihang",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "randombox_cfg",
+      "columnCount": 10,
+      "autoColumn": "seq",
+      "primary": "`seq`",
+      "indexCount": 1
+    },
+    {
+      "name": "rank_list",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "rank_list_save",
+      "columnCount": 8,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "read",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "rob",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "role_info",
+      "columnCount": 53,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "role_info_transfer",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "role_mirror",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "role_simple_list",
+      "columnCount": 13,
+      "autoColumn": null,
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "role_simple_list_save",
+      "columnCount": 13,
+      "autoColumn": null,
+      "primary": "`id`",
+      "indexCount": 1
+    },
+    {
+      "name": "role_xiuxian",
+      "columnCount": 61,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "script_save_role",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "server_list",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "shilian_robot",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "shop",
+      "columnCount": 13,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "shop_discount",
+      "columnCount": 34,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "shop_discount_save",
+      "columnCount": 2,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "shop_mystery",
+      "columnCount": 14,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "shop_yaoshi",
+      "columnCount": 16,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "sig_log",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "skill",
+      "columnCount": 6,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "skill_levelup",
+      "columnCount": 5,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "source",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "start",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "stream",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "strtoddiyfp",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "taohuageng_config",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "template",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "text",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "that",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "tongtianta",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "transform",
+      "columnCount": 24,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "user_award",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "user_info",
+      "columnCount": 14,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "user_info1",
+      "columnCount": 21,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "user_record_log",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "value",
+      "columnCount": 1,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "vip_def",
+      "columnCount": 27,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "white_ip",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "xianyuan_card",
+      "columnCount": 11,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "xianyuan_chapter",
+      "columnCount": 16,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "xin_shi",
+      "columnCount": 13,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "zha_dan_info",
+      "columnCount": 10,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    },
+    {
+      "name": "zha_dan_log",
+      "columnCount": 3,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 0
+    }
+  ]
+}

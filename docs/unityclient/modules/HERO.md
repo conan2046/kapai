@@ -112,3 +112,10 @@ Unity数据链固定为：
 ## 下一步
 
 本模块已收口。按项目规则生成HANDOFF并新开任务后，再从 `UNITYCLIENT_STATUS.md` 选择下一个模块；不得在本任务继续扩展神将培养范围。
+
+## Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-hero-latest.json`。
+- 隔离新角色在 SQLite/MySQL 执行相同10-case：查询`/24`、`/48`，经生产AddPet奖励链新增神将64，`/48 op4`上阵，非法神将65535拒绝，`/48 op5`成员换位，再次查询权威快照。
+- 双端运行态均64响应；`/24`三包、`/48`九包逐包字节一致，结构化语义一致。换位后战斗序列保持`[57,64,0,0,0]`，阵法成员序列为`[64,57,0,0,0]`，按服务端真实语义分别冻结。
+- 正常退出后重启，SQLite/MySQL重新登录查询的`/24`、`/48`字节与语义一致；数据库`pet/zhenfa/mission/save_data`四项SHA完全一致。隔离MySQL库已删除，生产`fxl_game_local`、MySQL源码/驱动/构建/Schema/脚本/回归全链路继续保留。

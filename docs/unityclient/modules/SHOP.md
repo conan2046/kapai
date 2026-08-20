@@ -99,6 +99,12 @@
 - 快照、操作后恢复、重登录后恢复的哈希均为 `adabb7fcb1c9784356a98e1246074dad868ebe5c55dbb656230991beea302be0`，夹具残留 `0`。
 - 证据：`.local/ui-fidelity/Shop/compare/g5-live-20260728/`。
 
+## Steam SQLite S5（2026-08-20）
+
+- 已通过：基础商城`type=1`同一8-case流程覆盖17项权威列表、`1001×1`成功购买、`op4`购买次数、重拉、`1015×200`余额不足拒绝、`refresh_count=0`刷新拒绝和最终状态；SQLite/MySQL运行态各55响应，重启拥有`/221`字节与语义一致。
+- 持久化：`mysteryShop/package/mission/role_info.money`规范化哈希一致，`user_info1.money/bd_money`一致；非绑定元宝两端均`100000→99980`，购买次数重启后均为1。Shop隔离配置将登录元宝保底设为0，防止测试登录补款掩盖真实扣费；正式配置和业务分支未改。
+- 清理：只删除隔离库`fxl_game_shop_s5_v1`；正式`fxl_game_local`及MySQL完整链路继续保留。证据：`.local/unity-validation/steam-sqlite-s5-shop-latest.json`。
+
 ## G6 收口
 
 - 控件矩阵 `21/21 complete`，固定账号和隔离账号 Runner 均覆盖 `21/21` 控件与 `5/5` 语义断言。

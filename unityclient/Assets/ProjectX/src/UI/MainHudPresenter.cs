@@ -41,13 +41,8 @@ namespace ProjectX.UI
             "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao/Prompt",
             "Layer/Main_UI/ButtonGroup1/btn_zhenrong/Prompt",
             "Layer/Main_UI/ButtonGroup3/btn_zhaomu/Prompt",
-            "Layer/Main_UI/ButtonGroup5/btn_chongzhi/Prompt",
-            "Layer/Main_UI/ButtonGroup5/btn_fuli/Prompt",
             "Layer/Main_UI/ButtonGroup5/btn_renwu/Prompt",
-            "Layer/Main_UI/ButtonGroup5/btn_shangcheng/Prompt",
-            "Layer/Main_UI/ButtonGroup8/btn_Zhekou1/Prompt",
-            "Layer/Main_UI/ButtonGroup8/btn_Zhekou2/Prompt",
-            "Layer/Main_UI/ButtonGroup8/btn_Zhekou3/Prompt"
+            "Layer/Main_UI/ButtonGroup5/btn_shangcheng/Prompt"
         };
         private readonly List<GameObject> summaryRows = new List<GameObject>();
         private readonly RectTransform chatPanel;
@@ -61,6 +56,7 @@ namespace ProjectX.UI
         private bool systemChatSummaryVisible;
         private bool chatExpanded;
         private bool welfareVisible = true;
+        private bool discountEntriesEnabled = true;
 
         public MainHudPresenter(CocosUiView view, CocosUiView chatView, PlayerStore player,
             CurrencyStore currencies, ChatStore chat, Core.ResourceService resources)
@@ -165,11 +161,9 @@ namespace ProjectX.UI
                 portrait.preserveAspect = true;
                 portrait.color = Color.white;
             }
-            // UImainLayer_new ships the three rotating-offer entries and Prompt
-            // images visible. When /222 is outside its configured activity window
-            // the legacy server intentionally sends no packet, so native Cocos
-            // preserves these imported defaults. Only a real response may update
-            // them; constructor-time hiding would diverge from the stable frame.
+            // UImainLayer_new and native Cocos ship the three rotating-offer entries visible.
+            // The Steam product scope disables them after presenter construction;
+            // later /222 pushes must not make an excluded commercial entry visible.
             // Native ChatMini does not replay messages received before the HUD
             // node exists and suppresses the initial-login system broadcasts.
             // A real reconnect starts a new visible window for the broadcasts
@@ -234,11 +228,20 @@ namespace ProjectX.UI
             if (onlineButton != null) onlineButton.SetActive(visible);
         }
 
+        public void SetDiscountEntriesEnabled(bool enabled)
+        {
+            discountEntriesEnabled = enabled;
+            if (enabled) return;
+            foreach (GameObject button in discountButtons)
+                if (button != null) button.SetActive(false);
+        }
+
         public void SetDiscountState(int operation, uint seconds, bool available)
         {
             int index = operation - 89;
             if (index < 0 || index >= discountButtons.Length) return;
-            if (discountButtons[index] != null) discountButtons[index].SetActive(available && seconds > 0);
+            if (discountButtons[index] != null)
+                discountButtons[index].SetActive(discountEntriesEnabled && available && seconds > 0);
             if (discountTimeTexts[index] != null) discountTimeTexts[index].text = FormatDuration(checked((int)Math.Min(seconds, int.MaxValue)));
         }
 

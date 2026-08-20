@@ -2,6 +2,8 @@ param(
     [string]$Configuration = "Debug",
     [string]$ExePath = "",
     [string]$ConfigDirectory = "",
+    [string]$SqlitePath = "",
+    [string]$SqliteSchemaPath = "",
     [int]$WaitSeconds = 20
 )
 
@@ -51,7 +53,14 @@ $StdOutLog = Join-Path $LocalDir "kapai-current.out"
 $StdErrLog = Join-Path $LocalDir "kapai-current.err"
 Remove-Item -LiteralPath $StdOutLog,$StdErrLog -Force -ErrorAction SilentlyContinue
 
-$process = Start-Process -FilePath $ExePath -WorkingDirectory $WorkDir -WindowStyle Hidden `
+$argumentList = @()
+if($SqlitePath -or $SqliteSchemaPath) {
+    if(-not $SqlitePath -or -not $SqliteSchemaPath) {
+        throw "SQLite startup requires both -SqlitePath and -SqliteSchemaPath."
+    }
+    $argumentList += @("--sqlite", ([IO.Path]::GetFullPath($SqlitePath)), "--sqlite-schema", ([IO.Path]::GetFullPath($SqliteSchemaPath)))
+}
+$process = Start-Process -FilePath $ExePath -ArgumentList $argumentList -WorkingDirectory $WorkDir -WindowStyle Hidden `
     -RedirectStandardOutput $StdOutLog -RedirectStandardError $StdErrLog -PassThru
 Write-Host "Started server: $ExePath"
 Write-Host "Working directory: $WorkDir"

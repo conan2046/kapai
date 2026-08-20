@@ -4,13 +4,13 @@
 
 - G0：通过。已冻结 14 组当前 Cocos 可达控件，见 `docs/unityclient/matrices/TASK_CONTROLS.json`。
 - G1：通过。固定账号 `7200057/1000115` 从真实 `btn_renwu` 入口完成 populated、claimable、claimed、前往、领取、列表滚动、四档活跃宝箱、奖励弹窗确认/关闭和奖励物品的原生 `1334×750` Cocos 取证。
-- G2：通过。Unity 使用 `/37 type=2/type=0`、`/39`、`/65 type=101` 三方契约，Lua 保持权威状态，C# Store 仅作渲染镜像。
+- G2：通过。Unity 使用 `/37 type=2/type=0`、`/65 type=101` 三方契约，Lua 保持权威状态，C# Store 仅作渲染镜像；`/39`仅保留在完整旧协议表，不进入Steam运行范围。
 - G3：通过。真实 `huodong_bg`、`RenwuLayer`、`tanchuangjiangli` Prefab 已接线，Unity 2022.3.62f3c1 编译与标准 Runner 通过。
 - G4：通过。隔离账号完成 `14/14` 真实控件、成功/失败、重复/非法、关闭重载、断线重连、持久化和切号清理。
 - G5：通过。固定账号 `7200057/1000115` 完成 `11/11` 关键状态 Cocos/Unity 原生 `1334×750` 并排、叠加、增强差异和人工视觉验收。
 - G6：通过。矩阵 `14/14 complete`，16/16 UI 解析测试、严重异常扫描和正式 `BuildBatch` 双次幂等均通过。
 - 真实入口链：`MainUI.btn_renwu → EMID_TASK_DALIY → Activity.TaskLayer → View.Activity.HuoyueTaskUI → huodong_bg.csb + RenwuLayer.csb → Common.RewardGetUI`。
-- 进入页面请求 `/37 op=1,type=2` 每日任务和 `/37 op=1,type=0` 活跃奖励；任务领奖为 `/37 op=3,type=2,task_id`，活跃宝箱领奖为 `/37 op=3,type=0,task_id`，增量为 `/39`，红点为 `/65 type=101`。
+- 进入页面请求 `/37 op=1,type=2` 每日任务和 `/37 op=1,type=0` 活跃奖励；任务领奖为 `/37 op=3,type=2,task_id`，活跃宝箱领奖为 `/37 op=3,type=0,task_id`，当前日常任务增量为 `/37 op=2`，红点为 `/65 type=101`。
 - 当前只创建“每日任务”一个页签；通宝加号禁用；“前往”必须读取任务配置 `jump`，不得固定跳神将或显示假数据。
 - G1 证据：`.local/ui-fidelity/Task/cocos/g1-20260727/G1_COCOS_EVIDENCE.md`。夹具快照 SHA-256 `99ccff91ef8285ff80565658ce2366ec615682a30ebc48378f452ac341494d29`，`setupAssertSql/cleanupAssertSql` 均通过，固定账号数据已精确恢复并无夹具重新登录。
 
@@ -21,7 +21,7 @@
 ## 三方证据
 
 - 日常任务：`/37`。
-- 旧主/支线增删：`/39`。
+- 旧主/支线增删：`/39`；服务端相关实现已注释，Cocos注册已注释且处理函数为空，Unity当前Task不消费，故通过`steamProtocols=[37,65]`排除。
 - 功能红点：`/65 type=101`。
 
 ## 实现
@@ -46,6 +46,7 @@
 - G5 共 `11/11` 关键状态，报告 `.local/ui-fidelity/Task/compare/g5-live-20260727/report.json`，人工验收 `.local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json`。
 - 最终隔离回归账号 `7200085/1000140`：14/14 真控件、16/16 Python UI、严重异常 0，见 `.local/unity-validation/task-latest.json`。
 - 正式 `BootstrapSceneBuilder.BuildBatch` 连续两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。
+- Steam SQLite S5：`.local/unity-validation/steam-sqlite-s5-task-latest.json`。隔离新角色在SQLite/MySQL执行相同10-case：`/37 op1/op2/op3`列表、增量、任务领取、活跃箱领取、重复拒绝及`/65 type101`，双端各63响应，`/37` 17/17与`/65` 3/3字节一致；正常退出重启后Task10与活动箱144均保持`state=2`，五项持久字段SHA一致。`/39`经源码审计确认为停用旧链，不属于Steam运行范围。
 
 ## 边界
 

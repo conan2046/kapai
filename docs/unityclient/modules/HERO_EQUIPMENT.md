@@ -196,6 +196,13 @@ G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开�
 
 全部登记图均为本轮现存 `1334×750` PNG；旧缺失文件及历史 SHA 继续只作诊断记录，不计入门禁。
 
+## Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-heroequip-latest.json`。
+- 隔离新角色在 SQLite/MySQL 执行相同20-case：`local_test op53`经生产`AddEquip/AddFaBao`新增模板1001，再用真实`/319 op2/4/3/18/19`完成装备穿戴、非法UID拒绝、强化、卸下、法宝穿戴、重复拒绝和卸下。
+- 双端运行态均94响应；`/319`各25包、`/70`各12包逐包字节一致，20组结构化语义一致。正常退出后重启均21响应，`/319`与`/70`各2包字节/语义一致，装备保留强化等级且装备/法宝均保持卸下。
+- `role_info.pet_equip`仅`m_lastCntTime`随两个服务启动时刻不同；按`CEquipManeger::SaveData`字段边界仅归一该时间戳后结构SHA一致，法宝搜索次数字节一致；`pet/mission/save_data/user_spirit`原始SHA直接一致。隔离MySQL库已删除，生产MySQL全链继续保留。
+
 ## 下一步
 
 1. 在标准 `hero-equip-g6` Runner 中通过真实 `Button.onClick` / EventSystem 操作覆盖 `HERO_EQUIPMENT_CONTROLS.json` 的 33 个控件；排除项必须验证隐藏或禁用，禁止只调用 `MarkValidationControl`。

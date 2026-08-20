@@ -10,7 +10,7 @@
 
 | 模块 | 文档 | 状态 |
 |---|---|---|
-| 底层/登录 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过 |
+| 底层/登录 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过；Steam SQLite 启动前置处于 `S0-S4 passed / S5 current / S6-S8 pending` |
 | 系统设置 | `SETTINGS.md` | `G0-G6 passed / 21/21 complete`；设备级持久化、切号隔离、`no-server-fixture`、8/8 双端视觉和 Bootstrap 幂等通过 |
 | 主界面 HUD | `PLAYERHUD.md` | `G0-G6 passed / 56/56 complete`；11/11 双端视觉、14/14 语义、只读权威显示、路由边界、生命周期与 Bootstrap 幂等通过 |
 | 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；双端视觉、真实协议、生命周期与幂等门禁通过 |

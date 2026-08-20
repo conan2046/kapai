@@ -23,7 +23,7 @@
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
-| 主界面 HUD | `G0-G2 retained / G3-G6 revalidation-required` | 历史 11/11 双端视觉、56/56 控件、14/14 语义保留为诊断基线；当前标准 Preflight 因场景 `isolated-role` 与模块只读合同冲突而失败，完成态已撤销 | 统一场景夹具合同后，从 G3 重新验证编译、运行时、视觉输入和 G6 幂等；不得复用旧完成标签 |
+| 主界面 HUD | `G0-G2 retained / G3-G6 revalidation-required` | 历史 11/11 双端视觉、56/56 控件、14/14 语义仅作诊断；Steam已实包验证隐藏7日活动、首充、充值、折扣礼包×3，且`/222`不能重开 | 统一场景夹具合同后，从 G3 重验其余编译、运行时、视觉输入和 G6 幂等；不得复用旧完成标签 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定隔离账号完成 Cocos/Unity 26/26 原生图、并排/叠加/差异、真实控件、`/8`/`/15`、使用/整理/增删改、重连/持久化/切号及 Bootstrap 幂等 | 当前模块收口；下一任务重新选择一个模块执行 G0 |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
@@ -44,11 +44,13 @@
 | 体力领取 | `steam-excluded` | 历史G0-G6证据保留；Steam按“福利整体排除”隐藏入口、移除路由并拒绝验收 | 后续不迁移；Cocos/服务端保留 |
 | 血战到底 | `steam-excluded` | 包含全服血战排行榜与其他玩家排名数据；玩法大厅不显示，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 决战昆仑 | `steam-excluded` | 依赖匹配对手数据；玩法大厅不显示，不再请求昆仑红点 `/213 op=25`，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
-| 七日目标 | `steam-excluded` | Steam大厅配置不显示，Unity路由不接线，标准Runner拒绝继续验收；Cocos与服务端线上逻辑保留 | 后续不迁移、不验收、不计入28个Steam业务模块分母 |
-| 支付前置/充值/VIP/渠道 | `planned-prerequisite` | `PAYMENT.md` 已冻结现有源码、双宏、服务端测试充值分支、统一按钮接线和门禁；源码未实现 | P2 开始前先完成测试/正式支付前置，再接活动、基金、福利；完整 VIP/渠道与合规继续在 P2 内处理 |
-| 发布/热更/性能 | 后置 | 未开始 | Windows、Android、资源和发布门禁 |
+| 七日目标 | `steam-excluded` | Steam大厅与HUD的7日活动入口均隐藏，Unity路由不接线，标准Runner拒绝继续验收；Cocos与服务端线上逻辑保留 | 后续不迁移、不验收、不计入28个Steam业务模块分母 |
+| 支付前置/充值/VIP/渠道 | `steam-excluded-hud` | 用户确认Steam HUD不需要首充、充值及三类折扣礼包；6个入口固定隐藏，`/222 op89-91`不得重新开启；Cocos、服务端和配置保留 | 当前不迁移对应商业化入口；若未来恢复支付，须由用户重新确认Steam产品范围并重走支付前置门禁 |
+| Steam SQLite/发布/热更/性能 | `S0-S7 passed / S8 local accepted / external deferred` | S5的17模块/25协议闭环；S6-S8已通过单入口启动、崩溃遗留回收、loopback、SQLite存档、中文只读安装、备份/日志/优雅退出及无MySQL依赖本机验收；用户确认当前以Unity可独立双击运行作为收口口径 | 物理干净Windows与真实Steam Depot安装/升级暂不要求；MySQL源码、驱动、构建、Schema、脚本、回归及正式`fxl_game_local`继续保留，未经用户通知不得删除 |
 
 ## 3. 最新验证基线
+- Steam SQLite S6-S8 本机发布闭环（2026-08-20）：Windows Player在网络前监管`kapai.exe + SQLite`；默认角色NULL导致的真实`/1004`超时已修复，当前中文只读x64包以`ProjectX.exe`单入口启动，`/1004=78ms`并进入Main。发布树589文件，除Manifest自身外588文件全部纳入哈希，未登记/不一致/DoNotShip/PDB/MySQL/PowerShell均为0；6个已排除商业入口为零可见且不发送`/222`。缺资源、端口冲突、运行崩溃、第二实例、客户端硬崩溃遗留回收、SQLite存读档、3份备份`integrity=ok/schema=1`、优雅退出`save data end`及残留0均通过，精简PATH实测无需开发环境/MySQL。证据`.local/unity-validation/steam-sqlite-s6-latest.json`至`steam-sqlite-s8-latest.json`；用户确认当前以Unity独立双击运行作为完成口径，物理干净Windows与真实Steam Depot安装/跨版本升级暂缓，不纳入本轮阻塞。
+- Steam SQLite S5 协议/状态等价（2026-08-20）：17模块共25条有效协议，22条主动请求/专用推送触发，`/18、/62、/70`双后端推送已出现；Task旧`/39`确认为停用链并排除。83-case通用套件双端各120响应、单边协议0，公告`/88`与11项持久字段一致；17项模块状态全部为通过或无服务端数据不适用。最后的XunBao双端运行态各2 case/46响应、重启态各1 case/20响应，真实`/319 op31`保持初始20次、30分钟恢复窗口且查询不改业务状态；`mission/save_data/xunbao`字节一致，`pet_equip`仅运行时时钟字段归一化。S5已收口，证据`.local/unity-validation/steam-sqlite-s5-latest.json`及十五个模块latest，下一门禁S6。
 - SevenDay Steam范围决策（2026-08-20）：用户确认Steam版本不投放。Unity `gameplay.json` 以 `steamEnabled=false` 隐藏入口，`EnterGameplay(11)` 路由和自动验收入口已移除，中央Runner对 `migrationExcluded=true` 直接拒绝；历史诊断证据仅留档，不再恢复G1或计入分母。
 - StaminaClaim G0-G6（2026-08-04）：固定主账号 `7200057/1000115`、不足元宝账号 `705213/1000006`、体力上限账号 `7200260/1000119`；16/16控件、13/13语义和8组双端原生 `1334×750` 视觉通过。真实 `/321 op=2/3` 覆盖三档单次领取、补领确认/取消、重复领取、元宝不足、体力上限、奖励/体力变化、重进、断线重连、持久化及切号隔离。三账号恢复 SHA256 为 `195d412daf2bfde2dd0334e15de7d9d80429a7ce29274b158792a43697152347`、`d974b2b8ffb7d9b901b85ac69a66af035c01ddb4e002ee0e83658d9201bcf2dc`、`8ab310364dd2d68a90a816886b6c2883c5233d47f89c6e3708bbb83e2ff7fc4e`，Fixture残留0；两次真实 BuildBatch SHA256 均为 `FA73F3DB609F18F054EE5CDB3699A3BDEED12A607F97EF4638317DC29E01DDA3`。证据 `.local/unity-validation/staminaclaim-fixed-account-latest.json`、`.local/ui-fidelity/StaminaClaim/compare/g5-20260804/report.json`、`.local/unity-validation/staminaclaim-retrospective-latest.json`。
 - FengShenStory G0-G6（2026-08-04）：固定主账号 `7200057/1000115`、隔离账号 `705213/1000006`；25/25控件、10/10语义、12组双端原生 `1334×750` 视觉通过。真实 `/320 op24/op25/op10/op26`、第2-7章初始视窗与6章箭头翻页、四关三态、MonsterBust/Imod、宝箱/帮助/获取途径/章末奖励、返回重进、断线重连和切号隔离均闭环。主/隔离恢复 SHA256 为 `bd12c4e8d2c5bcf7d9bc2213dcadd5181500912778f049681d3b03569d96e7bf`、`9e8abe9c9623389f4b0a5cd0ce446af33e2a3ee2867e8dfd6bfe87c3d282672c`，Fixture残留0；两次真实 BuildBatch SHA256 均为 `FA73F3DB609F18F054EE5CDB3699A3BDEED12A607F97EF4638317DC29E01DDA3`；自动复盘102/102已解决、未解决0。证据 `.local/unity-validation/fengshenstory-fixed-account-latest.json`、`.local/ui-fidelity/FengShenStory/compare/g5-20260804/report.json`、`.local/unity-validation/fengshenstory-retrospective-latest.json`。
@@ -90,12 +92,12 @@
 
 | 阶段 | 模块 | 完成后进度 |
 |---|---|---:|
+| Steam 发布前置 | SQLite S0-S8：基线 → 双后端 → Schema → SQL兼容 → 核心数据 → Steam业务回归 → Unity监管 → 生命周期 → 干净机 | 不改变业务模块分母；通过后解除 Windows 正式发布阻塞 |
 | P0 基础层 | 登录与创角 → 系统设置 → 主界面HUD等基础模块 | `12/17 = 70.6%` |
 | P1 其他单人功能 | 玩法大厅、封神列传、法宝搜索、游历三界 | `16/17 = 94.1%` |
 | P2 运营与商业化 | 无保留活动模块 | `16/17 = 94.1%` |
 | P3 竞技/玩家依赖 | 仅保留有AI机器人闭环的竞技场 | `17/17 = 100%` |
-| P4 社交最后 | 好友、聊天、队伍、帮派/宗门全部排除 | `17/17 = 100%` |
-支付前置不计入17个业务模块；当前Steam范围无活动/基金/福利支付需求，历史边界见`PAYMENT.md`。
+| P4 社交最后 | 好友、聊天、队伍、帮派/宗门全部排除；支付前置不计入17个业务模块，历史边界见`PAYMENT.md` | `17/17 = 100%` |
 ## 5. Steam版本范围待确认
 
 当前冻结：已排除12个模块；撤销 PlayerHud、HeroEquip、GameplayShops、Gameplay、Draw 的旧完成态后，严格完成率 `9/17 = 52.9%`。
@@ -109,6 +111,5 @@
 - Prefab优先运行时绑定；仓库多代UI和38组同名Prefab必须按当前入口调用链归属，禁止按名称或旧截图判断。
 - 保留用户现有xlua `.meta`删除和`.vscode/`；Imod仍缺6整组资源及1个贴图，补齐原始美术前不得报100%。
 ## 7. 状态维护规则
-- 每批只更新：总进度、模块状态、最新验证、当前批次。
-- 协议和实现证据写入 `docs/unityclient/modules/`。
+- 每批只更新总进度、模块状态、最新验证和当前批次；协议与实现证据写入 `docs/unityclient/modules/`。
 - 日期流水写入 `docs/unityclient/history/YYYY-MM.md`；默认读取顺序：`AGENTS.md → 本文件 → MIGRATION_GUIDE.md → modules/README.md → 目标模块文档/矩阵`。

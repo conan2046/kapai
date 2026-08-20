@@ -5,19 +5,9 @@ local WelfareController = require("Welfare.WelfareController")
 local M = {}
 
 function M.requestHudState()
-    local online = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
-    online:WriteByte(4)
-    online:WriteByte(1)
-    Bridge:Send(online)
-    for operation = 89, 91 do
-        local discount = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
-        discount:WriteByte(operation)
-        discount:WriteByte(1)
-        -- The legacy server intentionally stays silent when this rotating offer is
-        -- inactive. HUD only owns the optional entry state, so absence is not a
-        -- tracked protocol failure and must not block the module runner.
-        Bridge:SendUntracked(discount)
-    end
+    -- Steam excludes online welfare and the three rotating commercial offers.
+    -- Keep packet readers for compatibility with an unsolicited legacy push, but
+    -- do not initiate /222 op4 or op89-91 from the Steam HUD.
 end
 
 local function readHudDiscount(operation, message)

@@ -180,3 +180,11 @@ src/main.lua
 - 中央文档测试29/29、迁移工具链回归82/82；操作台账78个失败均有对应 `Resolved + iterationAction + iterationEvidence`，未解决0。
 - Cocos、Unity Editor、服务端、本地MySQL与 Computer Use 残留进程均在收口前清理；模块边界只含大厅与13个路由，不宣称任何子页完成。
 - G6证据：`.local/unity-validation/gameplay-g6-evidence.md`、`.local/unity-validation/gameplay-fixed-account-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`.local/unity-validation/gameplay-retrospective-latest.json`。
+
+## 14. Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-gameplay-latest.json`，状态 `Passed`。
+- Steam当前有效大厅配置严格为`1/3/6/9/10`；共享红点只覆盖竞技场`type=101`与寻宝`type=103`。血战入口`8`已排除，因此`type=51`不属于本轮范围，未被错误带回。
+- SQLite/MySQL新隔离角色均执行两轮`/65 op=1`的`101/103`查询；运行期双方各47响应、重启各21响应，归属回包均为4字节`op=1,type,state=0`且逐字节一致，manifest单边协议0、结构差异0。
+- 大厅继续只消费`Shared/HotPointController`缓存，打开大厅不重发协议、不修改服务器。数据库`mission/xunbao/blood_fight/save_data/hots`、角色等级/经验/货币和账号货币原始值一致，归属写入0。
+- 中央工具链`131/131`；只删除隔离库`fxl_game_gameplay_s5_v1`，正式`fxl_game_local`及MySQL源码/驱动/构建/Schema/脚本/回归全部保留。S5下一模块为`YouLi`。

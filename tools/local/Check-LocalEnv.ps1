@@ -46,6 +46,9 @@ $allSql = Join-Path $Root "server\sql\_all_sql.sql"
 $itemSql = Join-Path $Root "server\sql\item_template.sql"
 $luaInclude = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\include\luajit\lua.h"
 $luaLib = Join-Path $Root "tools\local\vcpkg\installed\x64-windows\lib\lua51.lib"
+$sqliteInclude = Join-Path $Root "tools\local\vcpkg\installed\x64-windows-static-md\include\sqlite3.h"
+$sqliteLib = Join-Path $Root "tools\local\vcpkg\installed\x64-windows-static-md\debug\lib\sqlite3.lib"
+$sqliteSchema = Join-Path $Root "server\sql\sqlite\001_initial_schema.sql"
 
 Write-Host "Local run environment check"
 Write-Host "Root: $Root"
@@ -63,6 +66,9 @@ Write-Check "Data SQL" (Test-Path $allSql) $allSql
 Write-Check "Item SQL" (Test-Path $itemSql) $itemSql
 Write-Check "Server LuaJIT headers" (Test-Path $luaInclude) $luaInclude
 Write-Check "Server LuaJIT library" (Test-Path $luaLib) $luaLib
+Write-Check "Server SQLite headers" (Test-Path $sqliteInclude) $sqliteInclude
+Write-Check "Server SQLite static library" (Test-Path $sqliteLib) $sqliteLib
+Write-Check "Server SQLite initial schema" (Test-Path $sqliteSchema) $sqliteSchema
 
 $roleInfoPattern = "CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+``?role_info``?\s*\("
 $hasBaseSchema = Get-ChildItem (Join-Path $Root "server\sql") -File |

@@ -87,3 +87,11 @@ Runner 会短暂登录隔离账号完成截图和 Store/pending 断言，随后�
 - 旧唯一阻塞 `FENGSHEN-05-CHAPTER-SCROLL` 已因用户范围调整失效：直接拖拽手感后置，原生左右箭头无回调只作为 Cocos 差异证据；Unity 新范围由 `FENGSHEN-05-CHAPTER-VIEWPORT`、`FENGSHEN-07-LEFT-PAGE`、`FENGSHEN-08-RIGHT-PAGE` 承担箭头整块翻页闭环。
 - 工具链回归：`Test-UnityMigrationToolchain.ps1` 86/86；新增低级锁定身份、等级断言、同状态安全重应用，以及 `Invoke-ClientWindow.ps1` 绑定输入线程、精确前台校验和失败闭合回归。
 - 原始证据：`.local/unity-validation/fengshenstory-operation-ledger.json`、`.local/unity-validation/fengshenstory-cocos-automation-ledger.json`、`.local/ui-fidelity/FengShenStory/cocos/g1-20260802/`。旧 Blocked 记录 `8018984aa1414552ac59a7bf49db0bc5` 必须按本次范围变更补充诊断、解决和新迭代证据；重新完成 G0/G1 前不得进入 G2。
+
+## Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-fengshenstory-latest.json`，状态`Passed`；SQLite数据库保留为`steam-sqlite-s5-fengshenstory-v3.db`。
+- SQLite/MySQL均从新隔离角色执行真实`/320 op24→op25`，服务端战斗后主动推送`op10`并再次用`op24`回读；双方各4个case、56个响应，初态`mapIndex=0/node=40011/count=5`一致推进到`node=40012/count=4/star=3`，金币10000、通宝200、材料100、角色经验2400四项奖励一致。
+- 双端正常退出并重启后各20个响应，`op24`仍为`40012/4次`。`guan_qia/pet/package/mission/save_data`长度和SHA-256逐字节一致，角色金币1010000、经验2400、等级60一致；`user_spirit`当前体力80及其余负载一致，仅恢复时间戳因双端串行运行相差约43秒而规范化排除。
+- 新角色初始阵容无法赢得真实列传战斗；本轮在既有`local_test`验收钩子区新增`PRO_INTERACT op58`，只把隔离角色已有神将升至100级，正式配置不可达，战斗、扣体力、推进、奖励和保存仍全部走生产`/320 op25`路径。
+- 服务端编译通过，中央工具链`135/135`、文档`29/29`；只删除隔离库`fxl_game_fengshenstory_s5_v1`。正式`fxl_game_local`和MySQL源码、驱动、构建、Schema、脚本、回归全部保留。S5下一模块为`Arena`。

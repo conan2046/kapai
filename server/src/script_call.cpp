@@ -2760,14 +2760,16 @@ void SetGetAword(CUser *pUser)
 		return;
 	CGetDbConnect getDb;
 	CDatabaseSql *pDb = getDb.GetDbConnect();
-	char sql[128];
-	snprintf(sql,sizeof(sql),"update user_award set get_time=FROM_UNIXTIME(%lu),state=1 where role_id=%d and state!=1 limit 1",
-			 GetSysTime(),pUser->GetRoleId());
-
-	if (pDb != NULL)
-	{
-		pDb->Query(sql);
-	}
+	if(pDb == NULL)
+		return;
+	char sql[256];
+	if(pDb->IsSqlite())
+		snprintf(sql,sizeof(sql),"update user_award set get_time=FROM_UNIXTIME(%u),state=1 where rowid=(select rowid from user_award where role_id=%d and state!=1 limit 1)",
+			(uint32)GetSysTime(),pUser->GetRoleId());
+	else
+		snprintf(sql,sizeof(sql),"update user_award set get_time=FROM_UNIXTIME(%u),state=1 where role_id=%d and state!=1 limit 1",
+			(uint32)GetSysTime(),pUser->GetRoleId());
+	pDb->Query(sql);
 }
 
 int GetSecond()
@@ -3804,7 +3806,8 @@ string GetGlobalVaribleData(int key)
 	}
 	if((row = pDb->GetRow()) == NULL)
 		return data;
-	data = row[0];
+	if(row[0] != NULL)
+		data = row[0];
 	return data;
 }
 

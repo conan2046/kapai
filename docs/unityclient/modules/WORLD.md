@@ -106,6 +106,14 @@
 - `GameServices/ProjectXApp/ProtocolRegistry/BootstrapSceneBuilder/BootstrapAppRunner`：服务注入、入口、协议登记、场景装配和批处理验收。
 - `RewardPresenter`：运行时修正导入 `ItemList` 的异常锚点；未修改导入 Prefab。
 
+## Steam SQLite S5（passed，2026-08-20）
+
+- 双端均从新隔离角色出发，生产路径覆盖`/320 op=1/2/4/5/6/7/8/27`：挑战`10001/10002`、普通箱`10000`领取及重复拒绝、六星箱`20011`、关卡`10001`剩余4次扫荡、首次50元宝重置。
+- 运行态SQLite/MySQL分别收到133/135个响应，拥有`/320`均17包且长度一致；12个确定性查询/领取/拒绝/重置包逐包字节一致。两次战斗结算和扫荡使用生产随机奖励，按关卡、星级、宝箱、4轮且每轮`1`组货币+`2`组物品做语义等价，所有原始包保留。
+- 重启后两端`/320`各4包全部字节一致：`10001`星级保留、挑战次数归零、剩余重置4；`10002`星级与挑战次数1保留。
+- 数据库`guan_qia/save_data/mission`、角色金币/经验/等级、账号元宝/绑定元宝精确一致；体力均为70，仅`lastSpiritTime`因真实执行时刻不同而不同；背包仅随机扫荡掉落不同，确定性奖励更新包一致。
+- 只删除隔离MySQL库`fxl_game_world_s5_v1`；正式`fxl_game_local`、MySQL源码/驱动/构建/Schema/脚本/回归继续保留，直到全部模块完成且用户明确通知删除。证据：`.local/unity-validation/steam-sqlite-s5-world-latest.json`。
+
 ## 历史验证（非本轮证据）
 
 - 命令：`pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module World`。

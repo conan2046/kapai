@@ -64,3 +64,11 @@
 
 - 开始/领取属于变更型操作，需为可控神将与游历存档建立 Manifest 夹具后独立验证。
 - `op=2` 的“部分条目被静默跳过但总体成功”必须在后续 UI 中逐条重拉 `/335 op=1` 确认，不能只看成功字节。
+
+## Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-youli-latest.json`，状态`Passed`。
+- 本轮严格按manifest只验证非变更查询`/335 op=1`；开始游历与领奖仍留在上方变更型遗留边界，不以总体成功包代替逐条状态验证。
+- SQLite/MySQL新隔离角色均重复查询两次并在正常退出后重启复查；运行期双方各45响应、重启各20响应，归属包始终为2字节权威空态`0100`且逐字节一致，manifest单边协议0、结构差异0。
+- 数据库`xunbao/mission/save_data`、角色等级/经验/货币和账号货币原始值一致，游历记录数0、归属写入0。服务端与Unity裁剪配置的5地点`id/name/quality/unlock/show`语义一致，解锁等级为`30/35/40/45/50`。
+- 中央工具链`133/133`；只删除隔离库`fxl_game_youli_s5_v1`，正式`fxl_game_local`及MySQL源码/驱动/构建/Schema/脚本/回归全部保留。S5下一模块为`FengShenStory`。

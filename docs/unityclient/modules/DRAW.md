@@ -194,6 +194,15 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 - 严重异常扫描：`error CS\d+ / LuaException / NullReferenceException / MissingReferenceException / Assertion failed / Fatal Error / Crash!!! = 0`。
 - 验收脚本 finally 已关闭本批 `kapai.exe` 与 workspace-local MySQL；本模块不使用临时 SQL 夹具。
 
+## Steam SQLite S5（2026-08-20）
+
+- 证据：`.local/unity-validation/steam-sqlite-s5-draw-latest.json`，状态 `Passed`。
+- SQLite/MySQL 均使用全新隔离角色执行相同 8-case 运行期流程：三池查询 → 高级首次免费单抽 → 本地验证专用 `/13 op=50` 准备十张 `1001` → 生产 `/224` 十连 → 再次十连券不足拒绝 → `/24` 权威神将查询。
+- 双端首次高级单抽均确定返回神将 `64`；十连均返回 10 个合法结果并把高级池累计次数推进到 `11`。重启 2-case 后高级池仍为 `allCnt=11/freeTimes=0`，`/24` 仍可查询。
+- 数据库 `pet/package/mission/save_data`、角色等级/经验/货币和账号货币原始值一致；两端均持有 `[24,57,64]`，`1001` 余量均为 `0`。`chou_ka` 仅高级免费冷却截止时间因顺序执行相差 52 秒，按真实墙钟语义归一并保留两端原值。
+- 运行期双方各 85 响应、重启各 22 响应，manifest 单边协议 0、结构差异 0；中央工具链 `129/129`。只删除隔离库 `fxl_game_draw_s5_v1`，正式 `fxl_game_local` 与 MySQL 源码/驱动/构建/Schema/脚本/回归全部保留。
+- S5 下一模块：`Gameplay`；这不改变本页既有 G0-G6 视觉/功能完成边界。
+
 ## 8. 完成边界与后续
 
 - Draw 本轮完成；不迁移副本。

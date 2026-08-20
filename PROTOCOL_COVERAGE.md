@@ -1,6 +1,6 @@
 # 协议覆盖矩阵
 
-> 自动生成时间：2026-07-17 22:05:37
+> 自动生成时间：2026-08-20 15:47:46
 > 生成命令：`pwsh -ExecutionPolicy Bypass -File tools/local/Export-ProtocolCoverage.ps1`
 
 当前文件用于跟踪本地测试服协议覆盖，不等同于完整人工 UI 验收。
@@ -10,15 +10,54 @@
 | 项 | 数量 |
 |---|---:|
 | 服务端注册协议 | 143 |
-| smoke 已覆盖协议号 | 128 |
-| 未覆盖注册协议 | 15 |
+| smoke 已覆盖协议号 | 129 |
+| 未覆盖注册协议 | 14 |
+
+## Steam SQLite S5 保留范围覆盖
+
+本节从 `unityclient-modules.json` 的非排除模块和 `Invoke-ProtocolSmoke.ps1 -SteamIncluded` 白名单生成。`missing-or-passive` 不能视为失败或通过：它表示尚无主动请求 case，下一步必须区分服务端推送与真实缺口并补结构化断言。
+
+| 项 | 数量 |
+|---|---:|
+| Steam 保留模块 | 17 |
+| 模块登记协议 | 25 |
+| 已有主动请求 case | 22 |
+| 待区分被动推送/真实缺口 | 3 |
+
+| 协议号 | 名称 | 所属模块 | S5主动请求 case | 状态 |
+|---:|---|---|---|---|
+| 8 | `PRO_ROLE_PACKAGE` | Bag | package | `request-covered` |
+| 15 | `PRO_UPDATE_PACK` | Bag | package_discard_invalid | `request-covered` |
+| 18 | `PRO_UPDATE_CHAR` | PlayerHud | - | `missing-or-passive` |
+| 24 | `PRO_PET` | Hero | pet_all | `request-covered` |
+| 37 | `PRO_TASK_LIST` | Task | mission_daily, mission_main | `request-covered` |
+| 48 | `PRO_ZHEN_FA` | Hero | formation_info | `request-covered` |
+| 62 | `PRO_SYSTEM_INFO` | PlayerHud | - | `missing-or-passive` |
+| 65 | `PRO_Func_HotPoint` | Task, PlayerHud, Gameplay | red_point_func | `request-covered` |
+| 70 | `PRO_UPDATE_PET_INFO` | HeroEquip | - | `missing-or-passive` |
+| 88 | `PRO_GONGGAO` | Login | gonggao_query | `request-covered` |
+| 128 | `MSG_SERVER_XINSHI` | Mail | mail_list | `request-covered` |
+| 161 | `MSG_ARENA` | Arena | arena_fight_dynamic_robot, arena_list, arena_list_only | `request-covered` |
+| 206 | `MSG_SYNC_TIME` | PlayerHud | sys_time | `request-covered` |
+| 220 | `MSG_VIP_OPTION` | PlayerHud | vip_info | `request-covered` |
+| 221 | `MSG_SHOP` | Shop, GameplayShops | shop_buy_stamina_pill_5, shop_buy_type4_tid1, shop_list, shop_refresh_type4 | `request-covered` |
+| 224 | `MSG_PET_RANDOM_DRAW` | Draw | pet_draw_info, pet_draw_single_type1, pet_draw_single_type2 | `request-covered` |
+| 226 | `MSG_UPDATE_USER_LEVELUP_INFO` | PlayerHud | playerhud_levelup-push | `request-covered` |
+| 319 | `PET_EQUIP_OPERATE` | HeroEquip, XunBao | fabao_list, pet_equip_list, pet_equip_master, pet_equip_search_count | `request-covered` |
+| 320 | `MSG_GUANQIA` | World, FengShenStory | fengshen_shilian_info, fengshen_trial_fight_dynamic, fengshen_trial_info_for_fight, fuben_achievement, fuben_fix_empty, fuben_map_main, fuben_node_empty | `request-covered` |
+| 321 | `MSG_SPIRIT` | PlayerHud | tili_info | `request-covered` |
+| 335 | `MSG_YOU_LI` | YouLi | youli_award_1, youli_info, youli_start_pet57 | `request-covered` |
+| 1001 | `PRO_USER_LOGIN` | Login | login | `request-covered` |
+| 1002 | `PRO_ROLE_NAME_CHECK` | Login | role_name_check_smoke, role_name_random_female | `request-covered` |
+| 1003 | `PRO_CREATE_ROLE` | Login | create-role | `request-covered` |
+| 1004 | `PRO_SELECT_ROLE` | Login, PlayerHud | select-role | `request-covered` |
 
 ## 未覆盖分层统计
 
 | 分层 | 未覆盖数量 | 推进方式 |
 |---|---:|---|
 | 人工 UI | 1 | 保留给客户端点击路径、复杂状态机或无法安全脚本化的入口。 |
-| 服务端内部/跨服 | 14 | 默认不进客户端 smoke，除非本地有明确触发入口。 |
+| 服务端内部/跨服 | 13 | 默认不进客户端 smoke，除非本地有明确触发入口。 |
 
 ## 下一批优先补覆盖
 
@@ -29,12 +68,12 @@
 
 | 协议号 | 名称 | smoke case |
 |---:|---|---|
-| 8 | `PRO_ROLE_PACKAGE` | package |
+| 8 | `PRO_ROLE_PACKAGE` | bag_after_direct, bag_final, bag_initial, package |
 | 9 | `PRO_ROLE_MOVE` | npc_move_to_1, npc_move_to_501, role_move_invalid |
 | 10 | `PRO_JUMP_SCENE` | jump_ack_idle, npc_scene_11_ready, npc_scene_ready |
 | 12 | `PRO_OPEN_INTERACT` | npc_open_501, npc_open_option_1, open_interact_invalid |
-| 13 | `PRO_INTERACT` | interact_local_add_item_4, npc_dialog_close, npc_option_close, npc_select_option_802 |
-| 15 | `PRO_UPDATE_PACK` | package_discard_invalid |
+| 13 | `PRO_INTERACT` | bag_add_choice_1111, bag_add_direct_3201, interact_local_add_item_4, npc_dialog_close, npc_option_close, npc_select_option_802, playerhud_levelup, task_trigger_10 |
+| 15 | `PRO_UPDATE_PACK` | bag_sort, bag_use_choice_1111, bag_use_direct_3201, package_discard_invalid |
 | 16 | `PRO_GET_ITEM_INFO` | item_info_self_slot0 |
 | 19 | `PRO_OTHER_ITEM_INFO` | other_item_self_slot0 |
 | 20 | `PRO_IGNORE_DIALOG` | ignore_dialog_idle |
@@ -46,7 +85,7 @@
 | 33 | `PRO_PLYAER_MATCH` | player_match_noop |
 | 34 | `PRO_PLAYER_INFO` | player_info_self |
 | 35 | `PRO_NEAR_PLAYER_LIST` | near_player_list |
-| 37 | `PRO_TASK_LIST` | mission_daily, mission_fund, mission_main |
+| 37 | `PRO_TASK_LIST` | mission_daily, mission_fund, mission_main, task_activity_final, task_activity_initial, task_claim_10, task_claim_10_repeat, task_claim_144, task_claim_144_repeat, task_daily_final, task_daily_initial, task_restart_activity, task_restart_daily |
 | 40 | `PRO_PET_SKILL` | pet_skill_57 |
 | 46 | `PRO_CHONG_ZHI` | charge_panel |
 | 47 | `PRO_USE_ITEM` | use_special_item_missing_rename_card, use_special_item_valid_rename |
@@ -60,7 +99,7 @@
 | 56 | `PRO_BANG_ZHAN` | bangzhan_info |
 | 58 | `PRO_UPDATE_NPC` | npc_state_501, npc_state_invalid |
 | 64 | `PRO_BANGPAI_COPY` | bangpai_copy_buff, bangpai_copy_chapter, bangpai_copy_huoyue |
-| 65 | `PRO_Func_HotPoint` | red_point_func |
+| 65 | `PRO_Func_HotPoint` | red_point_func, task_redpoint, task_restart_redpoint |
 | 68 | `PRO_SKILL_DESC` | skill_desc_1 |
 | 69 | `PRO_OTHER_PET` | other_pet_self_57 |
 | 73 | `PRO_SWITCH_CHANNEL` | chat_channel_close_world, chat_channel_open_world |
@@ -78,6 +117,7 @@
 | 106 | `PRO_TITLE_OPTION` | title_hide_invalid, title_show_bad, title_unuse_invalid |
 | 110 | `MSG_BANGPAI_ZHONGZHI` | bangpai_plant_noop |
 | 117 | `MSG_CLIENT_LIST_FUQI` | fuqi |
+| 128 | `MSG_SERVER_XINSHI` | mail_list |
 | 133 | `GUANZHAN_ENTER_BATTLE` | guanzhan_missing_role |
 | 134 | `LEAVE_GUANZHAN` | leave_guanzhan_idle |
 | 145 | `MSG_CLIENT_SAVE_VAL` | save_val_set |
@@ -154,7 +194,7 @@
 | 331 | `MSG_CLIENT_STRING_DATA_OPRATETION` | client_str_all, client_str_get_one, client_str_one_empty, client_str_set |
 | 332 | `MSG_CLIENT_GETMISSIONAWARD` | mission_award_invalid |
 | 1001 | `PRO_USER_LOGIN` | login/select/create |
-| 1002 | `PRO_ROLE_NAME_CHECK` | role_name_check_smoke |
+| 1002 | `PRO_ROLE_NAME_CHECK` | login/select/create, role_name_check_smoke, role_name_random_female |
 | 1003 | `PRO_CREATE_ROLE` | login/select/create |
 | 1004 | `PRO_SELECT_ROLE` | login/select/create |
 
@@ -164,7 +204,6 @@
 |---:|---|---|
 | 62 | `PRO_SYSTEM_INFO` | 服务端内部/跨服 |
 | 92 | `PRO_SPEC_CHAT` | 服务端内部/跨服 |
-| 128 | `MSG_SERVER_XINSHI` | 服务端内部/跨服 |
 | 334 | `MSG_QUERY_KF_STATE` | 服务端内部/跨服 |
 | 401 | `MSG_SERVER_KF_BANG_PAI` | 服务端内部/跨服 |
 | 402 | `MSG_SERVER_SYSINFO` | 服务端内部/跨服 |

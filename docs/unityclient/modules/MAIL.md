@@ -63,4 +63,10 @@
 - G5：固定账号 `7200057/1000115` 在同一批 14 封邮件上完成 4 组 Cocos/Unity 原图、并排、叠加和差异；人工验收 4/4 通过。数据库两轮精确恢复、重登录复核、夹具残留 0。证据：`.local/ui-fidelity/Mail/compare/g5-live-20260727/`。
 - G6：控件矩阵 13/13；正式 `BootstrapSceneBuilder.BuildBatch` 连续两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。
 - 公共复用：一级框架使用真实 `OneLevelLayer`，附件详情使用真实 `common/huoqutujing`；已移除 Mail 运行时临时标题/关闭按钮。
+
+## Steam SQLite S5（2026-08-20）
+
+- 已通过：同一隔离角色执行空列表、创建14封夹具邮件、领取9附件邮件、重复领取失败、重拉、读取/删除无附件邮件、重复删除失败、最终12封可见邮件；SQLite/MySQL运行态各69响应，重启各21响应，拥有协议`/128 op2/3/4`字节与语义一致。
+- 持久化：`xin_shi` 14行（含两行`deleted=1`）全字段规范化哈希一致；`role_info.package/mission/save_data/user_spirit/money`原始值一致。仅将`local_test`夹具冻结到同日UTC基准并使用真实换行，正式邮件分支未改。
+- 清理：只删除隔离库`fxl_game_mail_s5_v1`；正式`fxl_game_local`、MySQL源码/驱动/构建/Schema/脚本/回归全部保留，直到所有模块验收完成且用户明确通知删除。证据：`.local/unity-validation/steam-sqlite-s5-mail-latest.json`。
 - 视觉修复：系统/活动使者标题、完整日期和删除时间、空态文字、附件视口/间距、列表/正文/附件裁剪和滚动均以真实运行图复核。

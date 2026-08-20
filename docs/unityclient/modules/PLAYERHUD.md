@@ -9,6 +9,7 @@
 - 支付、活动、基金、福利、竞技、社交仅登记边界；本模块不得实现或修改这些页面。
 - 固定验证身份：`userId=7200057 / roleId=1000115`；隔离身份：`userId=705213 / roleId=1000006`；原生客户区固定 `1334x750`。
 - 数据合同：权威数据只读显示，`no-server-fixture`；不得以 Unity 假数据补协议失败、空数据或缺配置。
+- Steam 范围覆盖：`tools/unity-migration/unityclient-modules.json` 的 `steamProtocols` 固定为 `/18、/62、/65、/206、/220、/226、/321、/1004`。聊天摘要及 `/26` 随 Chat 排除；活动/福利入口状态 `/199、/222` 随 Activity/Welfare 排除。下文完整 Cocos 协议表只保留原版所有权证据，不能重新开启这三条 Steam 请求或 UI。
 
 ## 登录到 HUD 的真实链路
 
@@ -59,9 +60,9 @@
 
 - 身份区：头像、角色名、等级、VIP、战力、经验条；点击头像只验证进入角色页的路由边界。
 - 资源区：元宝、金币、体力；元宝加号按源码禁用，金币/体力加号只验证现有商城/使用界面边界。
-- 常驻入口：背包、英雄背包、阵容、排行、招募、帮派、任务、福利、活动、充值、设置、邮件、好友、回收、在线奖励、世界副本、玩法。
+- 常驻入口：背包、英雄背包、阵容、排行、招募、帮派、任务、设置、邮件、好友、回收、世界副本、玩法；Steam 已排除的福利、活动、充值和在线奖励不得显示。
 - 装备子菜单：装备、法宝；商城子菜单：普通商城、神魂商城、玩法商城；HUD 只拥有开合动画及入口反馈。
-- 条件入口：七日、首充、折扣礼包等仅按权威开放/活动状态显隐；当前 CSB 默认隐藏的主角、宠物折扣、登录七日、开服排行、转盘、VIP、礼包节点不得强制显示。
+- 条件入口：Steam 不投放七日、首充、充值、三类折扣礼包，对应 HUD 节点固定隐藏，`/222 op89-91` 也不得重新开启；当前 CSB 默认隐藏的主角、宠物折扣、登录七日、开服排行、转盘、VIP、礼包节点不得强制显示。
 - 红点：由 `LRedDotCheckMgr` 聚合并响应 `/65`；逐入口状态必须可重复刷新，不得把红点静态烘焙进 Prefab。
 - 聊天摘要：最多展示 10 条被动频道摘要，可滚动并自动到底；箭头负责展开/收起。点击背景、私聊、好友、世界/帮派语音只验证社交边界或不可用反馈，不迁移发送/语音业务。
 - 在线奖励：HUD 只显示倒计时/可领取提示；不得在本模块实现领奖或 `/Activity` 业务。
@@ -84,6 +85,8 @@
 - G5：Cocos 与 Unity 均为原生客户区 `1334x750`，同账号、同数据、同步骤、同稳定帧的 11 组原图齐全；并排图、50% 叠加图、增强差异图与报告均生成，最大 MAE `17.9779`。证据：`.local/ui-fidelity/PlayerHud/cocos/g5-20260801/`、`.local/ui-fidelity/PlayerHud/unity/g5-20260801/`、`.local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json`。
 - G6：56/56 控件均有独立路径的 Cocos/Unity 双端证据；DataPreflight/setup/live assert/restore/cleanup 全通过，恢复精确且 Fixture 残留 0。SceneBuilder YAML 规范化后，两次真实 `ProjectX.Editor.BootstrapSceneBuilder.BuildBatch` 的 SHA-256 均为 `CE9FAD096983A00615EE522019AAC97AE72C8C008F89F097EFCBBAAC0CF256F3`；未使用 Force Rebuild。自动复盘 `125/125` 已解决，未解决 0；中央工具回归 `82/82`。
 - 最终证据：`.local/unity-validation/playerhud-fixed-account-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`、`.local/unity-validation/playerhud-operation-ledger.json`。
+- Steam SQLite S5：`.local/unity-validation/steam-sqlite-s5-playerhud-latest.json`。双方角色均冻结为1级59经验，通过仅`local_test`可用的`/13 op57`调用生产`CUser::AddExp`，`/18`十包与`/226`一包全部字节一致；`/226`语义均为1→2级、角色战力13800、出战神将战力12800、神将57品质4。正常退出重启后双端各34响应，等级2、经验0及`mission/user_spirit/save_data/pet/zhenfa`五项SHA一致。实际线格式保留旧等级`uint8`、新等级`uint16`的历史不对称，本阶段未擅改线上协议。
+- Steam 商业入口排除（2026-08-20）：正式 Windows Player 从真实登录按钮进入 Main 后，`7日活动、首充、充值、折扣礼包×3` 六个节点均为非激活；`/222 op89-91`不能重新开启折扣入口。运行截图 `.local/steam-build/build/ui-migration/steam-hud-exclusions.png`，日志 `.local/unity-validation/steam-hud-exclusions-player.log`。
 
 ## 本轮迭代与后续自检
 

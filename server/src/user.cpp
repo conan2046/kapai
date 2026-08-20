@@ -819,11 +819,18 @@ void CUser::InitJiaoYiHangRecord()
 
 		uint32 roleId = GetRoleId();
 		//										0         1         2         3          4      5        6    7
-		snprintf(sql, sizeof(sql), "(select seller_id,seller_name,buyer_id,buyer_name,sell_yb,buy_gold,unix_timestamp(time),state from jiaoyi_record \
-									where (seller_id=%d or buyer_id=%d) and (state = %d or state = %d) order by time desc limit 20) \
-								UNION (select seller_id,seller_name,buyer_id,buyer_name,sell_yb,buy_gold,unix_timestamp(time),state from jiaoyi_record \
-								where (seller_id=%d or buyer_id=%d) and state = %d order by time desc limit 20);",
-									roleId,roleId,CJiaoYiHangManager::CHANNEL_SELL,CJiaoYiHangManager::OVER_TIME,roleId,roleId,CJiaoYiHangManager::SELL);
+		if(pDb->IsSqlite())
+			snprintf(sql, sizeof(sql), "select * from (select seller_id,seller_name,buyer_id,buyer_name,sell_yb,buy_gold,unix_timestamp(time),state from jiaoyi_record "
+				"where (seller_id=%d or buyer_id=%d) and (state = %d or state = %d) order by time desc limit 20) "
+				"UNION select * from (select seller_id,seller_name,buyer_id,buyer_name,sell_yb,buy_gold,unix_timestamp(time),state from jiaoyi_record "
+				"where (seller_id=%d or buyer_id=%d) and state = %d order by time desc limit 20);",
+				roleId,roleId,CJiaoYiHangManager::CHANNEL_SELL,CJiaoYiHangManager::OVER_TIME,roleId,roleId,CJiaoYiHangManager::SELL);
+		else
+			snprintf(sql, sizeof(sql), "(select seller_id,seller_name,buyer_id,buyer_name,sell_yb,buy_gold,unix_timestamp(time),state from jiaoyi_record "
+				"where (seller_id=%d or buyer_id=%d) and (state = %d or state = %d) order by time desc limit 20) "
+				"UNION (select seller_id,seller_name,buyer_id,buyer_name,sell_yb,buy_gold,unix_timestamp(time),state from jiaoyi_record "
+				"where (seller_id=%d or buyer_id=%d) and state = %d order by time desc limit 20);",
+				roleId,roleId,CJiaoYiHangManager::CHANNEL_SELL,CJiaoYiHangManager::OVER_TIME,roleId,roleId,CJiaoYiHangManager::SELL);
 
 		if(!pDb->Query(sql))
 			return;

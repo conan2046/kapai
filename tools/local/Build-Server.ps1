@@ -3,11 +3,14 @@ param(
     [string]$BoostRoot = "",
     [string]$MySqlIncludeDir = "",
     [string]$MySqlLibrary = "",
+    [string]$SqliteIncludeDir = "",
+    [string]$SqliteLibrary = "",
     [string]$LuaIncludeDir = "",
     [string]$LuaLibrary = "",
     [string]$VcpkgRoot = "",
     [string]$BuildDir = "",
-    [switch]$SkipAppLocal
+    [switch]$SkipAppLocal,
+    [switch]$BuildDatabaseSmoke
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,6 +55,15 @@ if ($VcpkgRoot) {
         $candidate = Join-Path $VcpkgRoot "installed\x64-windows\lib\lua51.lib"
         if (Test-Path $candidate) { $LuaLibrary = $candidate }
     }
+    if (-not $SqliteIncludeDir) {
+        $candidate = Join-Path $VcpkgRoot "installed\x64-windows-static-md\include"
+        if (Test-Path (Join-Path $candidate "sqlite3.h")) { $SqliteIncludeDir = $candidate }
+    }
+    if (-not $SqliteLibrary) {
+        $sqliteLibraryDir = if ($Configuration -eq "Debug") { "debug\lib" } else { "lib" }
+        $candidate = Join-Path $VcpkgRoot "installed\x64-windows-static-md\$sqliteLibraryDir\sqlite3.lib"
+        if (Test-Path $candidate) { $SqliteLibrary = $candidate }
+    }
 }
 
 if (-not $MySqlIncludeDir) {
@@ -80,15 +92,21 @@ if (-not $MySqlIncludeDir -or -not $MySqlLibrary) {
 if (-not $LuaIncludeDir -or -not $LuaLibrary) {
     throw "LuaJIT headers/library not found. Run Install-LocalDeps.ps1 -IncludeBoost or pass -LuaIncludeDir/-LuaLibrary."
 }
+if (-not $SqliteIncludeDir -or -not $SqliteLibrary) {
+    throw "SQLite static headers/library not found. Run Install-LocalDeps.ps1 -IncludeBoost or pass -SqliteIncludeDir/-SqliteLibrary."
+}
 
 $configure = @("-S", (Join-Path $Root "server"), "-B", $BuildDir)
 if ($BoostRoot) { $configure += "-DBOOST_ROOT=$BoostRoot" }
 if ($MySqlIncludeDir) { $configure += "-DMYSQL_INCLUDE_DIR=$MySqlIncludeDir" }
 if ($MySqlLibrary) { $configure += "-DMYSQL_LIBRARY=$MySqlLibrary" }
+if ($SqliteIncludeDir) { $configure += "-DSQLITE3_INCLUDE_DIR=$SqliteIncludeDir" }
+if ($SqliteLibrary) { $configure += "-DSQLITE3_LIBRARY=$SqliteLibrary" }
 if ($LuaIncludeDir) { $configure += "-DLUA_INCLUDE_DIR=$LuaIncludeDir" }
 if ($LuaLibrary) { $configure += "-DLUA_LIBRARY=$LuaLibrary" }
 if ($VcpkgRoot) { $configure += "-DCMAKE_TOOLCHAIN_FILE=$(Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake')" }
 if ($SkipAppLocal) { $configure += "-DVCPKG_APPLOCAL_DEPS=OFF" }
+if ($BuildDatabaseSmoke) { $configure += "-DKAPAI_BUILD_DATABASE_SMOKE=ON" }
 
 & $Cmake @configure
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
