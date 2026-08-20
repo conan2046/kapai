@@ -1646,6 +1646,9 @@ function Assert-UnityMigrationRunnerCoverage {
         if (-not $ControlMatrix) { throw "Scenario '$($Scenario.key)' requires runtime control coverage but has no control matrix." }
         $matrix = (Import-UnityMigrationJson -Root $Root -Path $ControlMatrix).Value
         $expectedControls = @($matrix.controls | ForEach-Object { [string]$_.id })
+        if ($expectedControls.Count -gt 0 -and $actualControls.Count -eq 0) {
+            throw "Runtime control coverage mismatch: expected=$($expectedControls.Count) actual=0; diff=$($expectedControls -join ',')"
+        }
         $difference = @(Compare-Object ($expectedControls | Sort-Object) ($actualControls | Sort-Object))
         if ($difference.Count -gt 0) {
             throw "Runtime control coverage mismatch: expected=$($expectedControls.Count) actual=$($actualControls.Count); diff=$($difference.InputObject -join ',')"

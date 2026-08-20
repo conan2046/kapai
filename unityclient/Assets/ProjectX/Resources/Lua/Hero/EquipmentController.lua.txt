@@ -18,6 +18,13 @@ local M = {
     repeatReason = "",
     openKind = 1,
     preloadCallback = nil,
+    attributePushCount = 0,
+    attributePushChanged = false,
+    mutationHeroId = 0,
+    heroPowerBefore = 0,
+    heroAttackBefore = 0,
+    heroHealthBefore = 0,
+    playerPowerBefore = 0,
 }
 
 local function showBusinessError(reason)
@@ -118,7 +125,7 @@ local function selectFormationPosition()
     for position = 1, count do
         if Bridge:GetFormationHeroAt(position) > 0 then return position end
     end
-    return 1
+    return 0
 end
 
 local function inject(kind, templateId)
@@ -169,19 +176,48 @@ local function sendFaBaoTakeOff(uid)
     Bridge:Send(message)
 end
 
+local function completeMutationOrBeginInvalid()
+    if Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation") then
+        M.stage = "await_invalid_equipment"
+        sendEquipmentWear(4294967295, M.formationPosition)
+    else
+        M.stage = nil
+        Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
+            Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid), M.faBaoUid, M.formationPosition, "", "",
+            M.attributePushCount, M.attributePushChanged, M.mutationHeroId, M.heroPowerBefore,
+            M.heroAttackBefore, M.heroHealthBefore, M.playerPowerBefore)
+    end
+end
+
+local function beginFaBaoMutation()
+    M.stage = "await_fabao_wear"
+    sendFaBaoWear(M.faBaoUid, M.formationPosition, 5)
+end
+
 local function startMutation()
     local equipment = EquipmentModel:GetFirstEquipment(true)
     local faBao = EquipmentModel:GetFirstFaBao(true)
     M.equipmentUid = equipment and equipment.uid or 0
     M.faBaoUid = faBao and faBao.uid or 0
     M.formationPosition = selectFormationPosition()
-    if M.equipmentUid == 0 or M.faBaoUid == 0 then
-        Bridge:Fail("Hero equipment mutation requires one unworn equipment and one unworn fabao.")
+    M.mutationHeroId = Bridge:GetFormationHeroAt(M.formationPosition)
+    if M.equipmentUid == 0 or M.faBaoUid == 0 or M.formationPosition == 0 then
+        Bridge:Fail("Hero equipment mutation requires one unworn equipment, one unworn fabao and an occupied formation position.")
         return
     end
+    local originalEquipment = EquipmentModel:GetEquipmentAt(M.formationPosition, equipment.part)
+    local originalFaBao = EquipmentModel:GetFaBaoAt(M.formationPosition, 5)
+    M.originalEquipmentUid = originalEquipment and originalEquipment.uid or 0
+    M.originalFaBaoUid = originalFaBao and originalFaBao.uid or 0
     local strength = 0
     for _, value in ipairs(equipment.cultivation) do if value[1] == 1 then strength = value[2] end end
     M.strengthBefore = strength
+    M.attributePushCount = 0
+    M.attributePushChanged = false
+    M.heroPowerBefore = Bridge:GetHeroPower(M.mutationHeroId)
+    M.heroAttackBefore = Bridge:GetHeroAttack(M.mutationHeroId)
+    M.heroHealthBefore = Bridge:GetHeroHealth(M.mutationHeroId)
+    M.playerPowerBefore = Bridge:GetPlayerPower()
     if Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
         Bridge:SetCurrency(60000, 0)
         local cost = Bridge:GetEquipmentStrengthCost(M.equipmentUid)
@@ -206,7 +242,9 @@ local function finishLists()
         M.stage = nil
         Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
             Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid), M.faBaoUid, M.formationPosition,
-            M.invalidReason, M.repeatReason)
+            M.invalidReason, M.repeatReason, M.attributePushCount, M.attributePushChanged,
+            M.mutationHeroId, M.heroPowerBefore, M.heroAttackBefore, M.heroHealthBefore,
+            M.playerPowerBefore)
         return
     end
     if not Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
@@ -305,8 +343,14 @@ local function readEquipmentWearResponse(message, op)
         M.stage = "await_equipment_strength"
         sendEquipmentStrength(uid)
     elseif M.stage == "await_equipment_takeoff" and op == 3 then
-        M.stage = "await_fabao_wear"
-        sendFaBaoWear(M.faBaoUid, M.formationPosition, 5)
+        if M.originalEquipmentUid > 0 then
+            M.stage = "await_equipment_restore"
+            sendEquipmentWear(M.originalEquipmentUid, M.formationPosition)
+        else
+            beginFaBaoMutation()
+        end
+    elseif M.stage == "await_equipment_restore" and op == 2 then
+        beginFaBaoMutation()
     end
 end
 
@@ -361,6 +405,8 @@ local function readFaBaoWearResponse(message)
     if M.stage == "await_fabao_wear" then
         M.stage = "await_fabao_takeoff"
         sendFaBaoTakeOff(uid)
+    elseif M.stage == "await_fabao_restore" then
+        completeMutationOrBeginInvalid()
     end
 end
 
@@ -381,14 +427,20 @@ local function readFaBaoTakeOffResponse(message)
     EquipmentModel:SetFaBaoFormation(uid, 0, 0, 0)
     syncRenderMirror()
     if M.stage == "await_fabao_takeoff" then
-        if Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation") then
-            M.stage = "await_invalid_equipment"
-            sendEquipmentWear(4294967295, M.formationPosition)
+        if M.originalFaBaoUid > 0 then
+            M.stage = "await_fabao_restore"
+            sendFaBaoWear(M.originalFaBaoUid, M.formationPosition, 5)
         else
-            M.stage = nil
-            Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
-                Bridge:GetHeroEquipmentStrengthLevel(M.equipmentUid), M.faBaoUid, M.formationPosition, "", "")
+            completeMutationOrBeginInvalid()
         end
+    end
+end
+
+function M.onHeroAttributePush(heroId, power, attack, health, currentHealth)
+    if M.stage == nil or heroId ~= M.mutationHeroId then return end
+    M.attributePushCount = M.attributePushCount + 1
+    if power ~= M.heroPowerBefore or attack ~= M.heroAttackBefore or health ~= M.heroHealthBefore then
+        M.attributePushChanged = true
     end
 end
 
@@ -423,10 +475,13 @@ function M.reset()
     M.requested, M.equipmentComplete, M.faBaoComplete = false, false, false
     M.stage, M.injectedEquipment, M.injectedFaBao = nil, false, false
     M.equipmentUid, M.faBaoUid, M.strengthBefore = 0, 0, 0
+    M.originalEquipmentUid, M.originalFaBaoUid = 0, 0
     M.pendingEquipment, M.pendingFaBao = {}, {}
     M.invalidReason, M.repeatReason = "", ""
     M.openKind = 1
     M.preloadCallback = nil
+    M.attributePushCount, M.attributePushChanged, M.mutationHeroId = 0, false, 0
+    M.heroPowerBefore, M.heroAttackBefore, M.heroHealthBefore, M.playerPowerBefore = 0, 0, 0, 0
     EquipmentModel:Reset()
 end
 

@@ -96,16 +96,16 @@
     {
       "module": "GameplayShops",
       "gates": {
-        "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G0": "pending",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-      "note": "GameplayShops G0 re-freezes 59 controls/control families across soul type=2, arena type=3/4, blood type=5/6/7/8, kunlun type=23, guild type=25/26 and turntable type=27/28. G1 uses fresh fixed-account native Cocos evidence and exact mutation recovery; legacy read-only Unity results remain clues only.",
+      "note": "Current checkout is missing all 15 registered formal G5/G4 evidence files. Historical 59-control results are diagnostic only; restart from current source at G0 and regenerate G1-G6 evidence.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
@@ -550,7 +550,7 @@
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "passed"
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/DRAW.md",
       "note": "Draw current HappyDrawUI /224 migration and the real Draw to Hero cultivation to Formation closure are complete. Historical phase1 evidence remains excluded.",
@@ -589,42 +589,13 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
-      "note": "G0-G6 passed under the new standard. Fixed account 7200057/1000115 completed 20/20 native 1334x750 dual-client visual states and 33/33 real controls. Unity MCP flows cover equipment/fabao wear, takeoff, strength, failures, reconnect, persistence and account-switch cleanup; BuildBatch idempotence passed twice.",
+      "note": "Current-source rerun passed G0-G3 and repaired /319 -> PRO_UPDATE_PET_INFO/70 plus the server fabao-takeoff recalculation order. Raw batch semantics pass 6/6, but G4-G6 remain pending until the canonical runner proves all 33 real controls and six current Unity visual states; historical 33/33 and 20-state evidence is diagnostic only.",
       "gateEvidence": {
-        "G0": [
-          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
-          "docs/unityclient/modules/HERO_EQUIPMENT.md"
-        ],
-        "G1": [
-          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
-          "docs/unityclient/modules/HERO_EQUIPMENT.md",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-hero-detail-equipped.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-material-insufficient.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-illegal-uid.png"
-        ],
-        "G2": [
-          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
-          "docs/unityclient/modules/HERO_EQUIPMENT.md",
-          "tools/unity-migration/unityclient-modules.json",
-          "tools/local/Invoke-ProtocolSmoke.ps1",
-          ".local/unity-validation/hero-equip-g2-protocol-evidence.md",
-          "unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
-          "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt"
-        ],
-        "G3": [
-          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
-          "docs/unityclient/modules/HERO_EQUIPMENT.md",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs",
-          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity",
-          ".local/unity-validation/hero-equip-g3-mcp-evidence.md"
-        ],
         "G4": [
           "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json",
           "docs/unityclient/modules/HERO_EQUIPMENT.md",
@@ -641,9 +612,30 @@
           ".local/unity-validation/hero-equip-g6-control-runner.md",
           ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json",
           ".local/unity-validation/bootstrap-idempotence-latest.json"
+        ],
+        "G0": [
+          "docs/unityclient/modules/HERO_EQUIPMENT.md",
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json"
+        ],
+        "G1": [
+          ".local/unity-validation/heroequip-cocos-preflight-latest.json",
+          ".local/unity-validation/heroequip-cocos-identity-latest.json",
+          ".local/unity-validation/heroequip-cocos-baseline-latest.json",
+          ".local/unity-validation/heroequip-cocos-automation-ledger.json",
+          ".local/unity-validation/heroequip-operation-ledger.json"
+        ],
+        "G2": [
+          ".local/unity-validation/heroequip-g2-source-audit.json",
+          "docs/unityclient/modules/HERO_EQUIPMENT.md",
+          "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json"
+        ],
+        "G3": [
+          ".local/unity-validation/heroequip-g3-editor-check.json",
+          ".local/unity-validation/heroequip-fixed-account-data-preflight-latest.json",
+          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity"
         ]
       },
-      "updatedUtc": "2026-07-26T18:23:16.6410299Z"
+      "updatedUtc": "2026-08-20T03:55:19.1978062Z"
     },
     {
       "module": "World",
@@ -849,10 +841,10 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/PLAYERHUD.md",
       "gateEvidence": {
@@ -1064,7 +1056,9 @@
     {
       "module": "SevenDay",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "gates": {
         "G0": "passed",
         "G1": "passed",

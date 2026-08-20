@@ -2,13 +2,12 @@
 
 ## 当前结论
 
-- 状态：`G0-G6 passed / 33/33 complete`。
-- `/319`数据、穿脱、强化、失败态、重连、持久化和切号清理均已由 Unity MCP 触发真实 Button 闭环。
-- 2026-07-26 已新建 `../matrices/HERO_EQUIPMENT_CONTROLS.json`，冻结 33 个真实或必须禁用的可见控件；机器 Preflight 与 DryRun 通过。
-- G1 已按固定账号 `7200057 / roleId=1000115`、Windows 100% DPI、原生客户区 `1334×750` 从玩家真实入口重采 20 张 Cocos 基准；覆盖装备/法宝背包、帮助、碎片、隐藏筛选、六槽总览、详情、更换、单次强化前后、材料不足、非法 UID、重复操作、卸下与恢复。
-- 材料不足和非法 UID 使用可回滚的临时 Cocos 取证注入触发真实按钮回调；两处 Lua 已恢复到仓库原始字节，源码 `git diff` 为 0。取证结束时四件装备和两件法宝均恢复阵位 1，素心刀强化等级为 3。
-- G5 已完成 Cocos/Unity 各 `20/20` 原图及并排、叠加、差异、人工逐项验收；强化页补齐真实主角头像。
-- G6 控件矩阵 `33/33`，缺图0、严重异常0；`BootstrapSceneBuilder.BuildBatch` 经 Unity MCP 连续两次 SHA-256 一致。
+- 状态：`G0-G3 passed / G4-G6 pending`。2026-08-20 已按当前源码重新完成 G0-G3，并修复 `/319` 成功后 `/70 PRO_UPDATE_PET_INFO` 在 Unity 未消费的问题。
+- 当前业务结果：原始固定账号批处理成功；装备 UID `2121073001` 完成穿戴、强化 `0→2`、卸下，法宝 UID `2121073002` 完成穿戴、卸下；收到 `/70` 14 次，6/6 语义断言通过，最终神将属性/气血/战力、HUD 总战力、列表和原穿戴状态均恢复。
+- 当前正式门禁：未通过 G4。标准场景要求 33 个真实 Button/EventSystem 控件运行覆盖，最新 Runner 为 `expected=33 actual=0`，所以标准摘要、G5 Unity 六状态和 G6 复盘均不得生成完成结论。
+- 历史 `33/33` 控件、`20/20` 双端视觉、固定账号、MCP 和 BuildBatch 结果只作诊断基线，不计入本轮门禁。
+- 本轮 G1 只冻结六个当前有效 Cocos 状态：神将装备详情、装备背包、装备详情、强化前、法宝背包、法宝详情；身份为 `userId=7200057 / roleId=1000115`、原生客户区 `1334×750`。
+- G3 当前证据：Unity 编译、Bootstrap 场景、Prefab 引用与 Console `0 error / 0 warning`；Unity MCP 已关闭，运行进程已清理。
 
 ## 当前批次范围
 
@@ -40,7 +39,7 @@
 
 ## 权威数据与协议
 
-统一协议：`/319 PET_EQUIP_OPERATE`。
+主操作协议为 `/319 PET_EQUIP_OPERATE`；所有会改变出战神将属性的成功操作还会触发服务端主动推送 `/70 PRO_UPDATE_PET_INFO`。两条协议共同构成本模块事务闭包。
 
 | op | 用途 |
 |---:|---|
@@ -49,6 +48,13 @@
 | 4 | 装备强化 |
 | 16/22 | 装备/法宝增量 |
 | 18/19 | 法宝穿戴/卸下 |
+
+关联推送：
+
+| 协议 | 服务端来源 | 客户端责任 |
+|---:|---|---|
+| `/70 PRO_UPDATE_PET_INFO` | `WearPetEquip/TakeOffPetEquip/StrongEquip/WearFaBao/TakeOffFaBao → CUser::UpdateZhenFaPetInfo → UpdatePetInfo → SendPetUpdateInfo` | 按原 Cocos `DealUpdatePetInfo` 字段顺序更新目标神将属性、气血和战力；不得只刷新装备槽或强化等级 |
+| 玩家总战力增量 | `UpdatePetInfo → SendUpdateInfo(EUUT_TotalZhanDouLi)` | 继续由 Player/HUD 所有者消费，HeroEquip 验收必须断言其最终变化与重登一致 |
 
 `LegacyEquipmentModel.lua.txt + EquipmentController.lua.txt`保存角色态权威；原始回包先更新Lua，再发布到`HeroEquipmentStore/FaBaoStore`渲染镜像。Bootstrap共享op路由必须只读取一次op。
 
@@ -113,14 +119,14 @@ G2 同时修正 `Invoke-ProtocolSmoke.ps1` 三个旧错误负例：装备穿戴/
 
 G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开第一条详情；隐藏已穿戴、装备行养成、更换筛选、强化左侧装备选择均接入真实控件；回收、五次强化和排除培养区隐藏/禁用；空槽进入兼容候选；法宝碎片改为只读真实 Prefab；公共帮助接入运行时按钮。
 
-### G3 Unity MCP 验证
+### 历史 G3 Unity MCP 验证（仅诊断；当前 G3 证据见本节结论）
 
 - Unity 2022.3.62f3c1 经 MCP 强制刷新脚本，编译错误 0。
 - MCP 执行 `Force Rebuild Bootstrap Scene` 后，场景包含装备背包、详情、更换、培养、强化、法宝碎片六个真实 View；节点数分别为 41、99、40、49、34、36。
 - PlayMode 中 `ProjectXApp` 六个 View 引用均非空，`HeroEquipmentPresenter` 可初始化；装备、法宝及只读碎片页可打开。
 - 运行时 Console 为 0 error / 0 warning。证据：`.local/unity-validation/hero-equip-g3-mcp-evidence.md`。
 
-### G4 联机功能验证
+### 历史 G4 联机功能验证（仅诊断，不计入当前门禁）
 
 - 固定账号 `7200057 / roleId=1000115`，全部 Unity 操作由 MCP 触发真实 `Button.onClick` Listener。
 - 装备：素心刀强化 `3→5`，卸下 `1→0`、重穿 `0→1`；另一件装备的普通强化验证修复后不再自动进入测试卸下链。
@@ -130,20 +136,34 @@ G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开�
 - 设置页真实切号链验证清理：切换前装备/法宝 `4/2`，切换后 `0/0`、网络 `Disconnected`、登录页恢复。
 - G4 发现并修复两处协议控制流根因：普通强化不再无条件进入自动化卸下/法宝链；法宝穿戴失败包不再读取成功包才存在的 `replacedUid`。证据：`.local/unity-validation/hero-equip-g4-mcp-evidence.md`。
 
-### G5 双端视觉验收
+### 历史 G5 双端视觉验收（仅诊断，不计入当前门禁）
 
 - 固定账号 `7200057 / roleId=1000115`、原生 `1334×750`，Cocos/Unity 原图与 comparison set 均 `20/20`。
 - 装备/法宝背包、帮助、详情、更换、碎片、强化、材料不足、非法 UID、重复操作和穿脱恢复人工验收 `20/20 passed`。
 - 同账号后续真实操作导致强化等级/战力高于早先 Cocos 基准，只接受权威状态演进；空白资源、错误层级、截断和错误反馈均未豁免。
 - 证据：`.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g5-mcp-evidence.md`。
 
-### G6 控件与最终硬门禁
+### 历史 G6 控件与最终硬门禁（仅诊断，不计入当前门禁）
 
 - 控件矩阵 `33/33 realEntryClick / automationPassed / manualPassed`；装备碎片、回收、法宝碎片动作、深层培养和五次强化按本批排除要求隐藏或禁用。
 - Unity MCP 本轮真实补跑主入口、帮助、筛选、列表、培养、碎片、六槽、详情、更换、强化选择/单次/关闭；单次强化 UID `2121072641` 权威刷新 `8→10→12`。
 - 最终装备 `4`、法宝 `2`、缺图 `0`、严重异常 `0`、Console `0 error / 0 warning`。
 - `BootstrapSceneBuilder.BuildBatch` 连续两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。
 - 证据：`.local/unity-validation/hero-equip-g6-control-runner.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`。
+
+### 2026-08-20 `/70` 与法宝卸下顺序修复记录
+
+| 项目 | 记录 |
+|---|---|
+| 修改函数 | `CEquipManeger::TakeOffFaBao`；Unity `HeroController.readPetUpdate`、`LegacyFormationModel.ApplyPetUpdate`、`ProjectXApp.CompleteHeroEquipmentMutationValidation` |
+| 修改前行为 | 服务端法宝卸下时先调用 `UpdateZhenFaPetInfo` 推送 `/70` 与玩家总战力，再将 `fabao->fpos/wpos` 清零；最后一轮英雄属性和主界面战力仍是穿戴态。Unity此前又未消费 `/70`，只能刷新装备槽。 |
+| 原始证据 | `server/src/pet_equip_manage.cpp::TakeOffFaBao`、`server/src/user.cpp::UpdateZhenFaPetInfo/UpdatePetInfo/SendPetUpdateInfo`、`client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua::DealMsgUpdatePet`。G4 实测 `/70=10, changed=True, heroRefresh=False, hudPower=False`。 |
+| 修改后行为 | 服务端保存旧阵位/槽位，先清空法宝穿戴状态，再重算阵容属性并推送；Unity按原 Cocos字段宽度消费 `/70`，更新英雄属性、当前气血和战力镜像，玩家 `/18` 总战力仍由 Player/HUD 所有者消费。 |
+| 数据来源 | `/319 PET_EQUIP_OPERATE` op18/19；主动推送 `/70 PRO_UPDATE_PET_INFO`；玩家更新协议中的 `EUUT_TotalZhanDouLi(513)`。 |
+| 影响 | 法宝卸下后的英雄属性、英雄战力和主界面总战力与真实未穿戴状态一致；同时修复 Cocos 与 Unity 共用服务端的错误推送顺序。 |
+| 风险 | 仅调整成功卸下法宝后的清状态/重算先后；失败分支、线上协议结构和存档格式不变。 |
+| 回滚 | 还原 `TakeOffFaBao` 中 `fpos/wpos` 清零位置，并撤销 Unity `/70` 注册与消费；不涉及数据库结构。 |
+| 验证 | 固定账号夹具完整备份 `role_info` 与 `user_info` 分片；G4 必须断言 `/70` 至少 5 次、属性发生变化、最终英雄三项与 HUD 总战力恢复、重登哈希一致、残留 0。 |
 
 ## Unity实现边界
 
@@ -178,6 +198,12 @@ G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开�
 
 ## 下一步
 
-HeroEquip 当前模块已收口；新任务按 `UNITYCLIENT_STATUS.md` 选择下一模块，不在本任务扩展装备深度培养。
+1. 在标准 `hero-equip-g6` Runner 中通过真实 `Button.onClick` / EventSystem 操作覆盖 `HERO_EQUIPMENT_CONTROLS.json` 的 33 个控件；排除项必须验证隐藏或禁用，禁止只调用 `MarkValidationControl`。
+2. 保持现有 6/6 业务语义断言，并由 `Run-UnityFixedAccountValidation.ps1 -Module HeroEquip` 生成正式摘要；当前原始成功结果仅用于诊断，不可直接完成 G4。
+3. 用同账号、同数据、同操作、`1334×750` 生成六张 Unity 状态图，与本轮六张 Cocos 冻结图生成并排、叠加和差异报告。
+4. 依次完成 G4、G5、G6；修复操作台账剩余的控件覆盖与两条缺摘要记录，自动复盘未解决必须为 0。
+5. `ProjectXApp.cs` 拆分属于独立结构重构任务，不与本轮协议/视觉门禁混合。
+
+接手验证基线：文档一致性 29 个模块通过，工具链回归 110 项通过；正式继续前重新执行 DataPreflight，禁止复用旧 Runner、旧截图或旧 SHA。
 
 旧全文：`../history/HERO_EQUIPMENT_FULL_2026-07-19.md`。

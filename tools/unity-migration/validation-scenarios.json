@@ -531,7 +531,8 @@
     {
       "key": "player-hud-default",
       "module": "PlayerHud",
-      "fixture": "isolated-role",
+      "fixture": "shared-readonly",
+      "fixtureContract": "no-server-fixture",
       "flags": [
         "-projectXPlayerHudValidation"
       ],
@@ -766,6 +767,53 @@
       "module": "HeroEquip",
       "fixture": "isolated-role",
       "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "hero-equipment-319-mutation-restored",
+        "hero-update-70-count-at-least-five",
+        "hero-update-70-values-changed-during-mutation",
+        "hero-update-70-final-hero-restored",
+        "player-power-18-final-restored",
+        "invalid-and-repeat-operations-do-not-mutate"
+      ],
+      "sourceContracts": [
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": ["DealPetEquipOperate"]
+        },
+        {
+          "path": "server/src/pet_equip_manage.cpp",
+          "contains": ["WearPetEquip", "TakeOffPetEquip", "StrongEquip", "WearFaBao", "TakeOffFaBao"]
+        },
+        {
+          "path": "server/src/user.cpp",
+          "contains": ["UpdateZhenFaPetInfo", "UpdatePetInfo"]
+        },
+        {
+          "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "contains": ["DealMsgUpdatePet"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "contains": ["readPetUpdate", "Protocol.UPDATE_PET_INFO"]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-HeroEquipFixture.ps1",
+          "contains": ["Add-HeroEquipFixtureItems", "Assert-HeroEquipFixtureItems", "fixtureEquipmentUid", "fixtureFaBaoUid"]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "states": [
+          "hero-detail",
+          "equipment-bag",
+          "equipment-detail",
+          "strength-before",
+          "fabao-bag",
+          "fabao-detail"
+        ]
+      },
       "flags": [
         "-projectXHeroEquipMutationValidation",
         "-projectXHeroEquipG4Validation"

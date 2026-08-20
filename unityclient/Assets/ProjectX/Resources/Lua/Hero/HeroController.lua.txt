@@ -143,6 +143,7 @@ local function readHero(message)
         magicDefense = message:ReadUInt(),
         health = message:ReadULongInt(),
         speed = message:ReadUInt(),
+        currentHealth = 0,
     }
     for _ = 1, 23 do message:ReadUInt() end
     message:ReadByte()
@@ -150,6 +151,7 @@ local function readHero(message)
     for _ = 1, trainingCount do message:ReadByte(); message:ReadWord() end
     local skillCount = message:ReadByte()
     for _ = 1, skillCount do message:ReadByte(); message:ReadWord(); message:ReadWord() end
+    hero.currentHealth = hero.health
     return hero
 end
 
@@ -171,7 +173,7 @@ local function syncRenderMirror()
         local hero = FormationModel.petlist[index]
         Bridge:AddHeroRecord(hero.id, hero.fightPos, hero.name, hero.star, hero.breakLevel, hero.level,
             hero.experience, hero.maxExperience, hero.power, hero.attack, hero.physicalDefense,
-            hero.magicDefense, hero.health, hero.speed)
+            hero.magicDefense, hero.health, hero.speed, hero.currentHealth or hero.health)
     end
     Bridge:EndHeroUpdate()
 
@@ -399,6 +401,41 @@ local function readPositionResponse(message)
     end
 end
 
+local function readPetUpdate(message)
+    local heroId = message:ReadWord()
+    local hero = FormationModel:GetPetById(heroId)
+    local count = message:ReadWord()
+    local values = {}
+    for _ = 1, count do
+        local kind = message:ReadUInt()
+        local value = (kind == 507 or kind == 4) and message:ReadULongInt() or message:ReadUInt()
+        if kind == 1 then values.attack = value
+        elseif kind == 2 then values.physicalDefense = value
+        elseif kind == 3 then values.magicDefense = value
+        elseif kind == 4 then values.health = value
+        elseif kind == 5 then values.speed = value
+        elseif kind == 503 then values.currentHealth = value
+        elseif kind == 507 then values.power = value end
+    end
+    if message.Remaining ~= 0 then
+        Bridge:Fail("Hero/70 has unread bytes: " .. tostring(message.Remaining))
+        return
+    end
+    if hero == nil then
+        -- The original client silently ignores a push received before /24 has
+        -- created this hero. Consuming it avoids leaking a stale packet into a
+        -- later account/session while preserving that lifecycle behavior.
+        Bridge:SetStatus("Hero/70 ignored before hero snapshot: hero=" .. tostring(heroId) .. ".")
+        return
+    end
+    hero = FormationModel:ApplyPetUpdate(heroId, values)
+    syncRenderMirror()
+    EquipmentController.onHeroAttributePush(heroId, hero.power, hero.attack, hero.health,
+        hero.currentHealth or hero.health)
+    Bridge:SetStatus("Hero/70 authoritative attributes applied: hero=" .. tostring(heroId)
+        .. " count=" .. tostring(count) .. ".")
+end
+
 local function readLevelUpResponse(message)
     local success = message:ReadByte()
     if success == 0 then
@@ -413,6 +450,7 @@ local function readLevelUpResponse(message)
 end
 
 function M.onPacket(command, message)
+    if command == Protocol.UPDATE_PET_INFO then readPetUpdate(message); return true end
     if command == Protocol.HERO then
         local op = message:ReadByte()
         if op == 1 then readHeroList(message)

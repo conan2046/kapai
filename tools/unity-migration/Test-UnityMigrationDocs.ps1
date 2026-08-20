@@ -182,6 +182,13 @@ foreach ($duplicate in @($scenarioKeys | Group-Object | Where-Object Count -gt 1
     Add-Failure "Duplicate validation scenario key: $($duplicate.Name)"
 }
 $fixtureKeys = @($fixtureEntry.Value.profiles | ForEach-Object { [string]$_.key })
+$completionStatuses = @(
+    "migration-complete",
+    "g6-complete",
+    "complete",
+    "g6-complete-visual-passed",
+    "g0-g6-passed"
+)
 
 $runnerText = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs")
 $protocolHeader = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "server/src/protocol.h")
@@ -275,6 +282,7 @@ foreach ($module in $modulesToCheck) {
         [string]$manifest.visualFidelityPolicy.completeStatus
     }
     else { "visual-1to1-complete" }
+    $claimsCompletion = $moduleStatus -in $completionStatuses -or $moduleStatus -eq $visualCompleteStatus
     if (($moduleStatus -match 'visual-(pending|fixing)') -and $null -eq $visual) {
         Add-Failure "Module $key declares visual work but has no visualFidelity record."
     }
@@ -284,17 +292,30 @@ foreach ($module in $modulesToCheck) {
             Add-Failure "Module $key has invalid visualFidelity status: $($visual.status)"
         }
     }
-    if ($moduleStatus -eq $visualCompleteStatus) {
+    if ($claimsCompletion) {
+        $completionGateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $key })
+        if ($completionGateRecords.Count -ne 1) {
+            Add-Failure "Module $key claims $moduleStatus without a unique gate record."
+        }
+        else {
+            foreach ($gate in @("G0","G1","G2","G3","G4","G5","G6")) {
+                $gateValue = [string](Get-UnityMigrationPropertyValue `
+                    -Object $completionGateRecords[0].gates -Name $gate -Default "")
+                if ($gateValue -ne "passed") {
+                    Add-Failure "Module $key claims $moduleStatus while $gate is '$gateValue'."
+                }
+            }
+        }
         $controlMatrix = [string](Get-UnityMigrationPropertyValue -Object $module -Name "controlMatrix" -Default "")
         if (-not $controlMatrix) {
-            Add-Failure "Module $key claims $visualCompleteStatus without a controlMatrix."
+            Add-Failure "Module $key claims $moduleStatus without a controlMatrix."
         }
         else {
             try { Assert-UnityMigrationControlMatrix -Root $root -ModuleKey $key -Path $controlMatrix | Out-Null }
             catch { Add-Failure "Module $key controlMatrix failed: $($_.Exception.Message)" }
         }
         if ($null -eq $visual -or [string]$visual.status -ne "passed") {
-            Add-Failure "Module $key claims $visualCompleteStatus without passed visualFidelity evidence."
+            Add-Failure "Module $key claims $moduleStatus without passed visualFidelity evidence."
         }
         else {
             foreach ($field in @("cocosScreenshots", "unityScreenshots", "diffReports")) {

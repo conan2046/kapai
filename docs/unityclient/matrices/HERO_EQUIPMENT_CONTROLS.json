@@ -3,7 +3,8 @@
   "module": "HeroEquip",
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
-    { "id": "hero-equip-mutation", "given": "固定账号具有装备、法宝及强化材料", "when": "穿戴、卸下、强化并触发材料不足和非法UID", "then": "成功与失败均由服务端回包驱动，重连保持且Fixture精确恢复" }
+    { "id": "hero-equip-mutation", "given": "固定账号具有装备、法宝及强化材料", "when": "穿戴、卸下、强化并触发材料不足和非法UID", "then": "成功与失败均由服务端回包驱动，重连保持且Fixture精确恢复" },
+    { "id": "hero-equip-pet-attribute-refresh", "given": "阵位神将已取得/24权威属性快照且服务端装备操作会调用UpdateZhenFaPetInfo", "when": "真实执行/319 op2、op3、op4、op18或op19并收到服务端主动推送/70", "then": "Unity完整解析/70的神将ID、属性集合、气血与战力更新；阵容详情和HUD总战力刷新，失败操作保持原值，重登与服务器权威值一致" }
   ],
   "hardGateVersion": 1,
   "scope": {
@@ -17,6 +18,7 @@
       "装备/法宝详情和更换弹窗",
       "装备穿戴、替换、卸下、单次强化",
       "法宝穿戴、替换、卸下",
+      "装备/法宝操作后的 /70 PRO_UPDATE_PET_INFO 神将属性、气血、神将战力与总战力刷新",
       "空态、材料不足、非法/重复操作、重拉、重连、切号清理"
     ],
     "excludedMustBeHiddenOrDisabled": [
@@ -24,6 +26,36 @@
       "装备精炼、觉醒、神铸",
       "法宝强化、炼化和完整培养",
       "批量/五次强化"
+    ]
+  },
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "evidence": {
+      "entry": ".local/unity-validation/heroequip-g2-source-audit.json#entryClosure",
+      "protocols": ".local/unity-validation/heroequip-g2-source-audit.json#protocolOwnership",
+      "configsAssets": ".local/unity-validation/heroequip-g2-source-audit.json#configAssetClosure",
+      "transforms": ".local/unity-validation/heroequip-g2-source-audit.json#runtimeTransformClosure",
+      "unityGap": ".local/unity-validation/heroequip-g2-source-audit.json#unityCurrentImplementation"
+    },
+    "knownGaps": [
+      {
+        "id": "HERO-EQUIP-GAP-PROTOCOL-70",
+        "handling": "G3 登记并完整解析 /70，以服务器推送覆盖神将属性、气血和神将战力，再刷新阵容详情与 HUD；禁止客户端自行推导。",
+        "evidence": "server/src/user.cpp:7762; client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua:5192; unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt:415"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-FIXED-ACCOUNT-REPLACEMENT",
+        "handling": "当前固定账号没有同槽备用装备，G5 只冻结六个稳定视觉状态；更换、卸下、强化、失败和恢复由 G4 隔离角色可逆验证，不伪造固定账号数据。",
+        "evidence": ".local/unity-validation/heroequip-cocos-baseline-latest.json; tools/unity-migration/validation-scenarios.json#hero-equip-g6"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-LARGE-APP",
+        "handling": "ProjectXApp.cs 拆分单独列为后续结构重构；本次只做 /70 最小接入，避免协议修复与大规模重构混合。",
+        "evidence": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+      }
     ]
   },
   "controls": [
@@ -40,9 +72,9 @@
       "failureEvidence": "pending:G4 locked/disconnected entry",
       "reconnectEvidence": "pending:G4 reconnect entry",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-02-MAIN-FABAO",
@@ -57,9 +89,9 @@
       "failureEvidence": "pending:G4 locked/disconnected entry",
       "reconnectEvidence": "pending:G4 reconnect entry",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-03-BAG-CLOSE",
@@ -74,9 +106,9 @@
       "failureEvidence": "pending:G4 repeated close",
       "reconnectEvidence": "pending:G4 reconnect close",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-04-EQUIPMENT-BAG-TAB",
@@ -91,9 +123,9 @@
       "failureEvidence": "pending:G4 empty list",
       "reconnectEvidence": "pending:G4 equipment tab reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-05-EQUIPMENT-PIECES-DEFERRED",
@@ -108,9 +140,9 @@
       "failureEvidence": "pending:G4 no protocol emitted",
       "reconnectEvidence": "pending:G4 remains disabled after reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-06-EQUIPMENT-HELP",
@@ -125,9 +157,9 @@
       "failureEvidence": "pending:G4 help unavailable feedback",
       "reconnectEvidence": "pending:G4 help lifecycle",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-07-EQUIPMENT-HIDE-WORN",
@@ -142,9 +174,9 @@
       "failureEvidence": "pending:G4 empty filtered list",
       "reconnectEvidence": "pending:G4 filter reset",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-08-EQUIPMENT-LIST-ITEM",
@@ -159,9 +191,9 @@
       "failureEvidence": "pending:G4 missing/removed item",
       "reconnectEvidence": "pending:G4 list item reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-09-EQUIPMENT-CULTIVATE",
@@ -176,9 +208,9 @@
       "failureEvidence": "pending:G4 invalid removed uid",
       "reconnectEvidence": "pending:G4 cultivate reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-10-EQUIPMENT-RECYCLE-DEFERRED",
@@ -193,9 +225,9 @@
       "failureEvidence": "pending:G4 no recycle mutation",
       "reconnectEvidence": "pending:G4 recycle remains disabled",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-11-FABAO-BAG-TAB",
@@ -210,9 +242,9 @@
       "failureEvidence": "pending:G4 fabao empty",
       "reconnectEvidence": "pending:G4 fabao tab reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-12-FABAO-FRAGMENT-TAB",
@@ -227,9 +259,9 @@
       "failureEvidence": "pending:G4 fragment empty",
       "reconnectEvidence": "pending:G4 fragments reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-13-FABAO-HELP",
@@ -244,9 +276,9 @@
       "failureEvidence": "pending:G4 help unavailable feedback",
       "reconnectEvidence": "pending:G4 help lifecycle",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-14-FABAO-LIST-ITEM",
@@ -261,9 +293,9 @@
       "failureEvidence": "pending:G4 missing/removed fabao",
       "reconnectEvidence": "pending:G4 fabao item reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-15-FABAO-FRAGMENT-ACTIONS-DEFERRED",
@@ -278,9 +310,9 @@
       "failureEvidence": "pending:G4 fragment action disabled",
       "reconnectEvidence": "pending:G4 fragment counts reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-16-SLOT-1",
@@ -295,9 +327,9 @@
       "failureEvidence": "pending:G4 slot1 failure",
       "reconnectEvidence": "pending:G4 slot1 reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-17-SLOT-2",
@@ -312,9 +344,9 @@
       "failureEvidence": "pending:G4 slot2 failure",
       "reconnectEvidence": "pending:G4 slot2 reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-18-SLOT-3",
@@ -329,9 +361,9 @@
       "failureEvidence": "pending:G4 slot3 failure",
       "reconnectEvidence": "pending:G4 slot3 reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-19-SLOT-4",
@@ -346,9 +378,9 @@
       "failureEvidence": "pending:G4 slot4 failure",
       "reconnectEvidence": "pending:G4 slot4 reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-20-SLOT-5",
@@ -363,9 +395,9 @@
       "failureEvidence": "pending:G4 slot5 failure",
       "reconnectEvidence": "pending:G4 slot5 reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-21-SLOT-6",
@@ -380,9 +412,9 @@
       "failureEvidence": "pending:G4 duplicate uid/slot6 failure",
       "reconnectEvidence": "pending:G4 slot6 reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-22-DETAIL-CLOSE",
@@ -397,9 +429,9 @@
       "failureEvidence": "pending:G4 repeated close",
       "reconnectEvidence": "pending:G4 detail cleanup",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-23-DETAIL-CHANGE",
@@ -414,9 +446,9 @@
       "failureEvidence": "pending:G4 no candidate",
       "reconnectEvidence": "pending:G4 change reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-24-DETAIL-TAKEOFF",
@@ -431,9 +463,9 @@
       "failureEvidence": "pending:G4 repeat/illegal takeoff",
       "reconnectEvidence": "pending:G4 takeoff persisted",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-25-EQUIPMENT-STRENGTH-ENTRY",
@@ -448,9 +480,9 @@
       "failureEvidence": "pending:G4 stale uid",
       "reconnectEvidence": "pending:G4 strength entry reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-26-DEEP-CULTIVATION-DEFERRED",
@@ -465,9 +497,9 @@
       "failureEvidence": "pending:G4 no deep mutation",
       "reconnectEvidence": "pending:G4 remains disabled",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-27-CHANGE-CLOSE",
@@ -482,9 +514,9 @@
       "failureEvidence": "pending:G4 repeated close",
       "reconnectEvidence": "pending:G4 change cleanup",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-28-CHANGE-HIDE-WORN",
@@ -499,9 +531,9 @@
       "failureEvidence": "pending:G4 filtered empty",
       "reconnectEvidence": "pending:G4 filter reset",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-29-CHANGE-WEAR",
@@ -516,9 +548,9 @@
       "failureEvidence": "pending:G4 invalid/repeat wear",
       "reconnectEvidence": "pending:G4 wear persisted",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-30-STRENGTH-CLOSE",
@@ -533,9 +565,9 @@
       "failureEvidence": "pending:G4 close during pending",
       "reconnectEvidence": "pending:G4 strength close reconnect",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-31-STRENGTH-EQUIPMENT-SELECT",
@@ -550,9 +582,9 @@
       "failureEvidence": "pending:G4 removed target",
       "reconnectEvidence": "pending:G4 selection rebuilt",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-32-STRENGTH-ONCE",
@@ -567,9 +599,9 @@
       "failureEvidence": "pending:G4 material insufficient/invalid",
       "reconnectEvidence": "pending:G4 strength persisted",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     },
     {
       "id": "HE-33-STRENGTH-FIVE-DEFERRED",
@@ -584,9 +616,9 @@
       "failureEvidence": "pending:G4 no batch mutation",
       "reconnectEvidence": "pending:G4 remains disabled",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "status": "passed"
+      "automationPassed": false,
+      "manualPassed": false,
+      "status": "pending-current-rerun"
     }
   ]
 }

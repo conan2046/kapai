@@ -16,6 +16,11 @@ function Assert-ToolchainTest {
     $script:passed++
 }
 
+Assert-ToolchainTest (
+    $commonSource.Contains('$expectedControls.Count -gt 0 -and $actualControls.Count -eq 0') -and
+    $commonSource.Contains('Runtime control coverage mismatch: expected=$($expectedControls.Count) actual=0')
+) "Runtime coverage validation can regress to a Compare-Object null-binding error for empty actual controls."
+
 $valid = [pscustomobject]@{
     userId = 7200057
     roleId = 1000115

@@ -5816,13 +5816,18 @@ namespace ProjectX.Core
 
         public void AddHeroRecord(int id, int fightPosition, string name, int star, int breakLevel, int level,
             double experience, double maxExperience, double power, double attack, double physicalDefense,
-            double magicDefense, double health, double speed)
+            double magicDefense, double health, double speed, double currentHealth)
         {
             pendingHeroes.Add(new HeroRecord(id, fightPosition, name, star, breakLevel, level,
                 checked((uint)experience), checked((uint)maxExperience), checked((ulong)power),
                 checked((uint)attack), checked((uint)physicalDefense), checked((uint)magicDefense),
-                checked((ulong)health), checked((uint)speed)));
+                checked((ulong)health), checked((uint)speed), checked((ulong)currentHealth)));
         }
+
+        public double GetHeroPower(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Power : 0d;
+        public double GetHeroAttack(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Attack : 0d;
+        public double GetHeroHealth(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Health : 0d;
+        public double GetPlayerPower() => services.Player.Power;
 
         public void EndHeroUpdate() => services.Heroes.Replace(pendingFollowHeroId, pendingHeroes);
 
@@ -6469,7 +6474,9 @@ namespace ProjectX.Core
         }
 
         public void CompleteHeroEquipmentMutationValidation(double equipmentUid, int strengthBefore,
-            int strengthAfter, double faBaoUid, int formationPosition, string invalidReason, string repeatReason)
+            int strengthAfter, double faBaoUid, int formationPosition, string invalidReason, string repeatReason,
+            int attributePushCount, bool attributePushChanged, int mutationHeroId, double heroPowerBefore,
+            double heroAttackBefore, double heroHealthBefore, double playerPowerBefore)
         {
             ShowHeroEquipment();
             uint equipmentId = checked((uint)equipmentUid);
@@ -6477,18 +6484,46 @@ namespace ProjectX.Core
             bool restored = services.HeroEquipment.TryGet(equipmentId, out HeroEquipmentRecord equip)
                 && equip.FormationPosition == 0 && equip.GetLevel(1) == strengthAfter
                 && services.FaBao.TryGet(faBaoId, out FaBaoRecord treasure) && treasure.FormationPosition == 0;
+            HeroRecord hero = default;
+            bool heroExists = mutationHeroId > 0 && services.Heroes.TryGet(mutationHeroId, out hero);
+            bool heroRefreshValid = heroExists
+                && hero.Power == checked((ulong)heroPowerBefore)
+                && hero.Attack == checked((uint)heroAttackBefore)
+                && hero.Health == checked((ulong)heroHealthBefore)
+                && hero.CurrentHealth <= hero.Health;
+            bool hudPowerRestored = services.Player.Power == checked((ulong)playerPowerBefore);
+            bool negativeOperationsRejected = !string.IsNullOrEmpty(invalidReason)
+                && !string.IsNullOrEmpty(repeatReason);
             int equipmentMissing = heroEquipmentPresenter.MissingIconCount;
             heroEquipmentPresenter.RenderKind(HeroEquipmentKind.FaBao);
             int faBaoMissing = heroEquipmentPresenter.MissingIconCount;
             heroEquipmentPresenter.RenderKind(HeroEquipmentKind.Equipment);
-            if (!restored || strengthAfter <= strengthBefore || equipmentMissing + faBaoMissing > 0)
+            RecordValidationSemantic("hero-equipment-319-mutation-restored",
+                restored && strengthAfter > strengthBefore,
+                $"restored={restored}; strength={strengthBefore}->{strengthAfter}");
+            RecordValidationSemantic("hero-update-70-count-at-least-five", attributePushCount >= 5,
+                $"pushes={attributePushCount}");
+            RecordValidationSemantic("hero-update-70-values-changed-during-mutation", attributePushChanged,
+                $"changed={attributePushChanged}");
+            RecordValidationSemantic("hero-update-70-final-hero-restored", heroRefreshValid,
+                $"hero={mutationHeroId}");
+            RecordValidationSemantic("player-power-18-final-restored", hudPowerRestored,
+                $"power={playerPowerBefore}->{services.Player.Power}");
+            RecordValidationSemantic("invalid-and-repeat-operations-do-not-mutate", negativeOperationsRejected,
+                $"invalid={invalidReason}; repeat={repeatReason}");
+            if (!restored || strengthAfter <= strengthBefore || equipmentMissing + faBaoMissing > 0
+                || attributePushCount < 5 || !attributePushChanged || !heroRefreshValid || !hudPowerRestored
+                || (HasCommandLineFlag("-projectXHeroEquipG4Validation") && !negativeOperationsRejected))
             {
-                Fail($"Hero equipment mutation mismatch: restored={restored}, strength={strengthBefore}->{strengthAfter}, missingIcons={equipmentMissing + faBaoMissing}.");
+                string heroValues = heroExists
+                    ? $"power={heroPowerBefore}->{hero.Power}, attack={heroAttackBefore}->{hero.Attack}, health={heroHealthBefore}->{hero.Health}, currentHealth={hero.CurrentHealth}"
+                    : $"hero={mutationHeroId} missing";
+                Fail($"Hero equipment mutation mismatch: restored={restored}, strength={strengthBefore}->{strengthAfter}, missingIcons={equipmentMissing + faBaoMissing}, /70={attributePushCount}, changed={attributePushChanged}, heroRefresh={heroRefreshValid} ({heroValues}), hudPower={hudPowerRestored} ({playerPowerBefore}->{services.Player.Power}).");
                 return;
             }
             string failures = string.IsNullOrEmpty(invalidReason) && string.IsNullOrEmpty(repeatReason)
                 ? string.Empty : $"; invalid rejected={invalidReason}; repeat rejected={repeatReason}; final lists reloaded";
-            Complete($"COMPLETE: /319 equipment {equipmentId} wear@{formationPosition} -> strengthen {strengthBefore}->{strengthAfter} -> takeoff; fabao {faBaoId} wear@{formationPosition}/5 -> takeoff; stores/list/detail restored{failures}");
+            Complete($"COMPLETE: /319 equipment {equipmentId} wear@{formationPosition} -> strengthen {strengthBefore}->{strengthAfter} -> takeoff; fabao {faBaoId} wear@{formationPosition}/5 -> takeoff; /70 pushes={attributePushCount}, hero attributes/HP/power and HUD total power refreshed then restored; stores/list/detail restored{failures}");
         }
 
         public void CompleteHeroEquipmentMaterialValidation(double equipmentUid, int strengthBefore, string reason)

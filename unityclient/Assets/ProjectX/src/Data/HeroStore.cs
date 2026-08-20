@@ -8,7 +8,7 @@ namespace ProjectX.Data
     {
         public HeroRecord(int id, int fightPosition, string name, int star, int breakLevel, int level,
             uint experience, uint maxExperience, ulong power, uint attack, uint physicalDefense,
-            uint magicDefense, ulong health, uint speed)
+            uint magicDefense, ulong health, uint speed, ulong currentHealth)
         {
             Id = id;
             FightPosition = fightPosition;
@@ -24,6 +24,7 @@ namespace ProjectX.Data
             MagicDefense = magicDefense;
             Health = health;
             Speed = speed;
+            CurrentHealth = currentHealth;
         }
 
         public int Id { get; }
@@ -40,6 +41,7 @@ namespace ProjectX.Data
         public uint MagicDefense { get; }
         public ulong Health { get; }
         public uint Speed { get; }
+        public ulong CurrentHealth { get; }
     }
 
     public sealed class HeroStore
@@ -70,7 +72,7 @@ namespace ProjectX.Data
                 int position = positions != null && positions.TryGetValue(id, out int value) ? value : 0;
                 records[id] = new HeroRecord(old.Id, position, old.Name, old.Star, old.BreakLevel, old.Level,
                     old.Experience, old.MaxExperience, old.Power, old.Attack, old.PhysicalDefense,
-                    old.MagicDefense, old.Health, old.Speed);
+                    old.MagicDefense, old.Health, old.Speed, old.CurrentHealth);
             }
             Changed?.Invoke();
         }

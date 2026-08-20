@@ -2414,19 +2414,21 @@ void CEquipManeger::TakeOffFaBao(CUser * user, CNetMessage & msg)
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0209, TIPS_FAILURE_COLOR);
 		return;
 	}
-	AllWearEquipSuitMapIt fit = m_formationEquips.find(fabao->fpos);
+	uint8 preFpos = fabao->fpos;
+	uint8 preWpos = fabao->wpos;
+	AllWearEquipSuitMapIt fit = m_formationEquips.find(preFpos);
 	if (fit != m_formationEquips.end())
 	{
 		WearEquipSuit& wes = fit->second;
-		wes.wearEquips[fabao->wpos] = 0;
+		wes.wearEquips[preWpos] = 0;
 	}
-	CheckFBQHDS(fabao->fpos, user);
-	WearEquipSuit* suit = GetWearEquipSuit(fabao->fpos);
-	if (suit != NULL)
-		suit->CalcAttr(*this);
-	user->UpdateZhenFaPetInfo(fabao->fpos);
 	fabao->fpos = 0;
 	fabao->wpos = 0;
+	CheckFBQHDS(preFpos, user);
+	WearEquipSuit* suit = GetWearEquipSuit(preFpos);
+	if (suit != NULL)
+		suit->CalcAttr(*this);
+	user->UpdateZhenFaPetInfo(preFpos);
 	msg << PRO_SUCCESS;
 	return;
 }

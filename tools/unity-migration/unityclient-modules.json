@@ -142,6 +142,21 @@
       "screenshots": [
         "build/ui-migration/bootstrap-bag.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Bag/cocos/g1-20260727/05-bag-default-populated.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Bag/unity/g5-20260727/BAG-01-ENTRY.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Bag/compare/g5-live-20260727/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/unity-validation/bag-latest.json",
+        "uiMapping": "docs/unityclient/matrices/BAG_CONTROLS.json"
+      },
       "controlMatrix": "docs/unityclient/matrices/BAG_CONTROLS.json",
       "document": "docs/unityclient/modules/BAG.md"
     },
@@ -172,6 +187,20 @@
         "-projectXSettingsValidation"
       ],
       "screenshots": [],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Settings/cocos/g1-20260801/01-settings-default-native.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Settings/unity/g5-20260801/SETTINGS-DEFAULT.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Settings/compare/g5-live-20260801/report.json"
+        ],
+        "flowEvidence": ".local/unity-validation/settings-g6-latest.json",
+        "uiMapping": "docs/unityclient/matrices/SETTINGS_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/SETTINGS.md",
       "controlMatrix": "docs/unityclient/matrices/SETTINGS_CONTROLS.json"
     },
@@ -250,7 +279,7 @@
     {
       "key": "PlayerHud",
       "displayName": "主界面 HUD",
-      "status": "complete",
+      "status": "g3-g6-revalidation-required",
       "protocols": [
         18,
         26,
@@ -296,7 +325,7 @@
     {
       "key": "Hero",
       "displayName": "神将与阵容",
-      "status": "partial-interactive-audit-required",
+      "status": "g6-complete",
       "protocols": [
         24,
         48
@@ -326,7 +355,7 @@
         "build/ui-migration/bootstrap-hero.png"
       ],
       "visualFidelity": {
-        "status": "visual-fixing",
+        "status": "passed",
         "cocosScreenshots": [
           ".local/ui-fidelity/Hero/cocos/formation-user7200057-dpi100.png",
           ".local/ui-fidelity/Hero/cocos/hero-bag-user7200057-dpi100.png",
@@ -354,9 +383,10 @@
     {
       "key": "HeroEquip",
       "displayName": "装备与法宝",
-      "status": "g6-complete-visual-passed",
+      "status": "g3-complete-g4-control-coverage-pending",
       "protocols": [
-        319
+        319,
+        70
       ],
       "entries": [
         "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/EquipUI/Bg/bg/EquipIcon1..6",
@@ -388,36 +418,17 @@
         "build/ui-migration/bootstrap-hero.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "visual-fixing",
         "cocosScreenshots": [
-          ".local/ui-fidelity/HeroEquip/cocos/g1-wear-menu-cua.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-hero-detail-equipped.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-bag.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-bag.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-hide-worn.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-fragments.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-help.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-help.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-detail.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-detail.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-strength-before.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-strength-after.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-change-available.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-change-available.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-material-insufficient.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-illegal-uid.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-repeat-operation.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-after-takeoff.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-after-takeoff.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-after-rewear.png"
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-bag.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-detail.png"
         ],
-        "unityScreenshots": [
-          ".local/ui-fidelity/HeroEquip/unity/g5-live-20260726/contact-sheet.png"
-        ],
-        "diffReports": [
-          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/report.json",
-          ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json"
-        ],
+        "unityScreenshots": [],
+        "diffReports": [],
         "flowEvidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
         "uiMapping": "docs/unityclient/modules/HERO_EQUIPMENT.md"
       },
@@ -449,6 +460,21 @@
         "build/ui-migration/bootstrap-mail-detail.png",
         "build/ui-migration/bootstrap-mail.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Mail/cocos/g1-20260727/04-mail-populated-native.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-01-POPULATED.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json",
+          ".local/ui-fidelity/Mail/compare/g5-live-20260727/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/unity-validation/mail-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/MAIL_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/MAIL.md",
       "controlMatrix": "docs/unityclient/matrices/MAIL_CONTROLS.json"
     },
@@ -480,13 +506,28 @@
         "build/ui-migration/bootstrap-shop-confirm.png",
         "build/ui-migration/bootstrap-shop.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/Shop/cocos/g1-20260728/05-shop-list.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-LIST.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/Shop/compare/g5-live-20260728/report.json",
+          ".local/ui-fidelity/Shop/compare/g5-live-20260728/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/unity-validation/shop-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/SHOP_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/SHOP.md",
       "controlMatrix": "docs/unityclient/matrices/SHOP_CONTROLS.json"
     },
     {
       "key": "GameplayShops",
       "displayName": "玩法商店",
-      "status": "g6-complete",
+      "status": "g0-evidence-missing",
       "protocols": [
         221
       ],
@@ -519,7 +560,7 @@
         "build/ui-migration/bootstrap-gameplay-shop-turntable.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "pending-cocos-baseline",
         "cocosScreenshots": [
           ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
           ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
@@ -688,6 +729,20 @@
         "build/ui-migration/bootstrap-world-result.png",
         "build/ui-migration/bootstrap-world-chest.png"
       ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/World/cocos/g1-20260731-cua/WORLD-01-WORLD-MAP.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-MAP.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/World/compare/g5-20260731-cua/report.json"
+        ],
+        "flowEvidence": ".local/unity-validation/world-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/WORLD_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/WORLD.md",
       "controlMatrix": "docs/unityclient/matrices/WORLD_CONTROLS.json"
     },
@@ -784,7 +839,7 @@
     {
       "key": "Draw",
       "displayName": "神将招募",
-      "status": "phase1-complete",
+      "status": "g6-audit-missing",
       "protocols": [
         224
       ],
@@ -833,7 +888,7 @@
     {
       "key": "Gameplay",
       "displayName": "玩法大厅",
-      "status": "migration-complete",
+      "status": "g0-passed-steam-revalidation",
       "protocols": [
         65
       ],
@@ -874,7 +929,7 @@
         "build/ui-migration/bootstrap-gameplay-account-switch.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "pending-cocos-baseline",
         "cocosScreenshots": [
           ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-HUD-ENTRY.png",
           ".local/ui-fidelity/Gameplay/cocos/g1-20260802/GAMEPLAY-STATE-LIST-TOP.png",
@@ -951,7 +1006,7 @@
     {
       "key": "FengShenStory",
       "displayName": "封神列传",
-      "status": "g0-g6-passed",
+      "status": "g6-complete",
       "protocols": [
         320
       ],
@@ -982,10 +1037,10 @@
       "visualFidelity": {
         "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/FengShenStory/cocos/g1-20260802"
+          ".local/ui-fidelity/FengShenStory/cocos/g1-20260802/FENGSHEN-CONTROL-CHAPTER-CELL.png"
         ],
         "unityScreenshots": [
-          ".local/ui-fidelity/FengShenStory/unity/g5-20260804"
+          ".local/ui-fidelity/FengShenStory/unity/g5-20260804/FENGSHEN-MAIN.png"
         ],
         "diffReports": [
           ".local/ui-fidelity/FengShenStory/compare/g5-20260804/report.json"

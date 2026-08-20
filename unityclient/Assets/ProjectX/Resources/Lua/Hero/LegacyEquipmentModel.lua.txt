@@ -88,6 +88,20 @@ function M:GetFirstFaBao(unwornOnly)
     end
 end
 
+function M:GetEquipmentAt(position, part)
+    for _, uid in ipairs(self.equipmentOrder) do
+        local value = self.equipment[uid]
+        if value.fpos == position and value.part == part then return value end
+    end
+end
+
+function M:GetFaBaoAt(position, slot)
+    for _, uid in ipairs(self.faBaoOrder) do
+        local value = self.faBao[uid]
+        if value.fpos == position and value.wpos == slot then return value end
+    end
+end
+
 function M:GetEquipmentCount() return #self.equipmentOrder end
 function M:GetFaBaoCount() return #self.faBaoOrder end
 

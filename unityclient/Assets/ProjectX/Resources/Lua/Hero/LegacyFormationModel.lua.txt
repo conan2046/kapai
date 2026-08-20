@@ -103,6 +103,22 @@ function M:ReplaceFormation(activeId, formations, display, combat)
     end
 end
 
+-- Server /70 is the authoritative incremental equivalent of the shipped
+-- LuaNetRecvdMsg.DealMsgUpdatePet path. Keep it in the Lua model so a later
+-- /48 render sync cannot restore stale pre-equipment attributes.
+function M:ApplyPetUpdate(petId, values)
+    local pet = self:GetPetById(petId)
+    if pet == nil then return nil end
+    if values.attack ~= nil then pet.attack = values.attack end
+    if values.physicalDefense ~= nil then pet.physicalDefense = values.physicalDefense end
+    if values.magicDefense ~= nil then pet.magicDefense = values.magicDefense end
+    if values.health ~= nil then pet.health = values.health end
+    if values.speed ~= nil then pet.speed = values.speed end
+    if values.currentHealth ~= nil then pet.currentHealth = values.currentHealth end
+    if values.power ~= nil then pet.power = values.power end
+    return pet
+end
+
 -- Reuses the shipped LCPet:SortPetList rule: deployed heroes first in lineup
 -- order; undeployed heroes use the rule documented by the old client (power
 -- descending) with id as the deterministic final key.
