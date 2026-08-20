@@ -1526,10 +1526,10 @@
         "gameplay-lock-level",
         "gameplay-enter-boundaries-13",
         "gameplay-card-body-inert",
-      "gameplay-scroll-lifecycle",
-      "gameplay-redpoint-shared-owner",
-      "gameplay-kunlun-local-redpoint",
-      "gameplay-failure-safety",
+        "gameplay-scroll-lifecycle",
+        "gameplay-redpoint-shared-owner",
+        "gameplay-kunlun-local-redpoint",
+        "gameplay-failure-safety",
         "gameplay-reconnect-account-isolation",
         "gameplay-control-matrix-16"
       ],
@@ -1597,12 +1597,12 @@
           {
             "ids": [
               "build/ui-migration/bootstrap-gameplay-list-top.png",
-          "build/ui-migration/bootstrap-gameplay-red-dot.png",
-          "build/ui-migration/bootstrap-gameplay-reenter.png",
-          "build/ui-migration/bootstrap-gameplay-restart.png",
-          "build/ui-migration/bootstrap-gameplay-reconnect.png",
-          "build/ui-migration/bootstrap-gameplay-account-switch.png"
-        ]
+              "build/ui-migration/bootstrap-gameplay-red-dot.png",
+              "build/ui-migration/bootstrap-gameplay-reenter.png",
+              "build/ui-migration/bootstrap-gameplay-restart.png",
+              "build/ui-migration/bootstrap-gameplay-reconnect.png",
+              "build/ui-migration/bootstrap-gameplay-account-switch.png"
+            ]
           },
           {
             "ids": [
@@ -1867,7 +1867,7 @@
     {
       "key": "seven-day-default",
       "module": "SevenDay",
-      "fixture": "shared-readonly",
+      "fixture": "reversible-seven-day-fixed-account",
       "flags": [
         "-projectXSevenDayValidation"
       ],
@@ -1879,7 +1879,30 @@
       ],
       "captureStates": [
         "seven-day"
-      ]
+      ],
+      "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "seven-day-list-authority",
+        "seven-day-claim-authority",
+        "seven-day-claim-rejected",
+        "seven-day-go-route",
+        "seven-day-discount-shop-boundary",
+        "seven-day-lifecycle-isolation-restore"
+      ],
+      "sourceContracts": [
+        { "path": "client/ProjectX/src/View/OperationalActivity/SevenDay.lua", "contains": ["QueryGotQiRiTask", "QueryGotQiRiAward"] },
+        { "path": "server/src/mission_manager.cpp", "contains": ["GetHDQuestMessage", "GetHDQuestAward"] },
+        { "path": "server/src/pack_deal.cpp", "contains": ["miss.GetHDQuestMessage", "miss.GetHDQuestAward"] },
+        { "path": "server/config/json/sevendays.json", "contains": ["\"time\":1", "\"condition\"", "\"reward\""] },
+        { "path": "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab", "contains": ["QiriLayer", "Btn_0"] }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "stamina-claim-default",
@@ -1894,23 +1917,68 @@
         "showReconnectDialog": true
       },
       "artifacts": [
-        { "path": "build/ui-migration/bootstrap-stamina-claim-mixed.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-resource-tab.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-paid-success.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-slot2.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-all-claimed.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-duplicate.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-disconnected.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-reconnected.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-account-isolation.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/bootstrap-stamina-claim-over-cap.png", "lifecycle": "runtime" }
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-mixed.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-resource-tab.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-paid-success.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-slot2.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-all-claimed.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-duplicate.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-disconnected.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-reconnected.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-account-isolation.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-stamina-claim-over-cap.png",
+          "lifecycle": "runtime"
+        }
       ],
       "captureStates": [
-        "mixed", "resource-tab", "paid-dialog", "paid-success", "slot2",
-        "all-claimed", "duplicate", "disconnected", "reconnected", "account-isolation",
-        "insufficient-premium", "over-cap"
+        "mixed",
+        "resource-tab",
+        "paid-dialog",
+        "paid-success",
+        "slot2",
+        "all-claimed",
+        "duplicate",
+        "disconnected",
+        "reconnected",
+        "account-isolation",
+        "insufficient-premium",
+        "over-cap"
       ],
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
@@ -1929,12 +1997,61 @@
         "stamina-control-matrix-16"
       ],
       "sourceContracts": [
-        { "path": "client/ProjectX/src/View/WelfareActivity/ReceiveTiliUI.lua", "contains": ["QueryTiLiInfo(2)", "QueryTiLiInfo(3, tag,1)", "QueryTiLiInfo(3, tag,0)", "AppDef.Max_TiLi"] },
-        { "path": "server/src/user_spirit.cpp", "contains": ["GetFreeSpirit", "SPIRIT_LINGQU = 50", "case 3:// 已经领取", "SubMaterial"] },
-        { "path": "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt", "contains": ["message:WriteByte(3)", "Bridge:BeginStaminaClaimRequest", "Bridge:CompleteStaminaClaimRequest", "Bridge:SetCurrency(STAMINA, stamina)"] },
-        { "path": "unityclient/Assets/ProjectX/src/UI/StaminaClaimPresenter.cs", "contains": ["requestPaidConfirmation", "AuthoritativeStamina", "InvokeSlot", "体力补充后会超出1000上限"] },
-        { "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs", "contains": ["RunStaminaClaimValidation", "stamina-three-slot-single-use", "stamina-control-matrix-16", "RequestStaminaClaim(2, false)"] },
-        { "path": "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1", "contains": ["Mixed", "InsufficientPremium", "AssertReloginHash", "AssertCleanup", "staminaclaim-server-validation"] }
+        {
+          "path": "client/ProjectX/src/View/WelfareActivity/ReceiveTiliUI.lua",
+          "contains": [
+            "QueryTiLiInfo(2)",
+            "QueryTiLiInfo(3, tag,1)",
+            "QueryTiLiInfo(3, tag,0)",
+            "AppDef.Max_TiLi"
+          ]
+        },
+        {
+          "path": "server/src/user_spirit.cpp",
+          "contains": [
+            "GetFreeSpirit",
+            "SPIRIT_LINGQU = 50",
+            "case 3:// 已经领取",
+            "SubMaterial"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt",
+          "contains": [
+            "message:WriteByte(3)",
+            "Bridge:BeginStaminaClaimRequest",
+            "Bridge:CompleteStaminaClaimRequest",
+            "Bridge:SetCurrency(STAMINA, stamina)"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/StaminaClaimPresenter.cs",
+          "contains": [
+            "requestPaidConfirmation",
+            "AuthoritativeStamina",
+            "InvokeSlot",
+            "体力补充后会超出1000上限"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "RunStaminaClaimValidation",
+            "stamina-three-slot-single-use",
+            "stamina-control-matrix-16",
+            "RequestStaminaClaim(2, false)"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1",
+          "contains": [
+            "Mixed",
+            "InsufficientPremium",
+            "AssertReloginHash",
+            "AssertCleanup",
+            "staminaclaim-server-validation"
+          ]
+        }
       ],
       "visualAssertions": {
         "width": 1334,

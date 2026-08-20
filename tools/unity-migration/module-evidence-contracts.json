@@ -327,52 +327,91 @@
           ]
         },
         "artifactCopies": [
-          { "source": "build/ui-migration/bootstrap-gameplay-hud.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-HUD-ENTRY.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-list-top.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-TOP.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-list-scrolled.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-SCROLLED.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-locked.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LOCKED-LEVEL1.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-red-dot.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RED-DOT.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-unavailable.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-UNAVAILABLE.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-empty.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-EMPTY.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-return-hud.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RETURN-HUD.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-reenter.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-REENTER.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-restart.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RESTART.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-disconnected.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-DISCONNECTED.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-reconnect.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RECONNECTED.png" },
-          { "source": "build/ui-migration/bootstrap-gameplay-account-switch.png", "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-ACCOUNT-SWITCH.png" }
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-hud.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-HUD-ENTRY.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-list-top.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-TOP.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-list-scrolled.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LIST-SCROLLED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-locked.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-LOCKED-LEVEL1.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-red-dot.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RED-DOT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-unavailable.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-UNAVAILABLE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-empty.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-EMPTY.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-return-hud.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RETURN-HUD.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-reenter.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-REENTER.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-restart.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RESTART.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-disconnected.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-DISCONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-reconnect.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-RECONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-gameplay-account-switch.png",
+            "destination": ".local/ui-fidelity/Gameplay/unity/g5-20260802/GAMEPLAY-STATE-ACCOUNT-SWITCH.png"
+          }
         ]
       },
       "g5": {
         "cocosDirectory": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
         "unityDirectory": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
-      "compareDirectory": ".local/ui-fidelity/Gameplay/compare/g5-live-20260802",
-      "width": 1334,
-      "height": 750,
-      "allowedDuplicateGroups": [
-        {
-          "ids": [
-            "GAMEPLAY-STATE-HUD-ENTRY",
-            "GAMEPLAY-STATE-RETURN-HUD"
-          ],
-          "reason": "Closing the Gameplay hub is required to converge exactly on the same authoritative primary-role HUD used for entry; the distinct evidence is the real close-button control step, not a different terminal bitmap.",
-          "sourceEvidence": [
-            "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::GAMEPLAY-02-FRAME-CLOSE",
-            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
-          ]
-        },
-        {
-          "ids": [
-            "GAMEPLAY-STATE-LIST-TOP",
-            "GAMEPLAY-STATE-RESTART"
-          ],
-          "reason": "A client restart must rebuild the same authoritative 13-entry list at the same top scroll position; exact bitmap convergence is the expected lifecycle result.",
-          "sourceEvidence": [
-            "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::gameplay-scroll-lifecycle-isolation",
-            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
-          ]
-        }
-      ],
-      "identity": {
+        "compareDirectory": ".local/ui-fidelity/Gameplay/compare/g5-live-20260802",
+        "width": 1334,
+        "height": 750,
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "GAMEPLAY-STATE-HUD-ENTRY",
+              "GAMEPLAY-STATE-RETURN-HUD"
+            ],
+            "reason": "Closing the Gameplay hub is required to converge exactly on the same authoritative primary-role HUD used for entry; the distinct evidence is the real close-button control step, not a different terminal bitmap.",
+            "sourceEvidence": [
+              "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::GAMEPLAY-02-FRAME-CLOSE",
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
+            ]
+          },
+          {
+            "ids": [
+              "GAMEPLAY-STATE-LIST-TOP",
+              "GAMEPLAY-STATE-RESTART"
+            ],
+            "reason": "A client restart must rebuild the same authoritative 13-entry list at the same top scroll position; exact bitmap convergence is the expected lifecycle result.",
+            "sourceEvidence": [
+              "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::gameplay-scroll-lifecycle-isolation",
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
+            ]
+          }
+        ],
+        "identity": {
           "primaryUserId": 7200057,
           "primaryRoleId": 1000115,
           "lockedUserId": 7200260,
@@ -382,15 +421,51 @@
           "fixtureContract": "no-server-fixture"
         },
         "pairs": [
-          { "id": "GAMEPLAY-STATE-HUD-ENTRY", "cocos": "GAMEPLAY-STATE-HUD-ENTRY.png", "unity": "GAMEPLAY-STATE-HUD-ENTRY.png" },
-          { "id": "GAMEPLAY-STATE-LIST-TOP", "cocos": "GAMEPLAY-STATE-LIST-TOP.png", "unity": "GAMEPLAY-STATE-LIST-TOP.png" },
-          { "id": "GAMEPLAY-STATE-LIST-SCROLLED", "cocos": "GAMEPLAY-STATE-LIST-SCROLLED.png", "unity": "GAMEPLAY-STATE-LIST-SCROLLED.png" },
-          { "id": "GAMEPLAY-STATE-LOCKED-LEVEL1", "cocos": "GAMEPLAY-STATE-LOCKED-LEVEL1.png", "unity": "GAMEPLAY-STATE-LOCKED-LEVEL1.png" },
-          { "id": "GAMEPLAY-STATE-EMPTY", "cocos": "GAMEPLAY-STATE-EMPTY.png", "unity": "GAMEPLAY-STATE-EMPTY.png" },
-          { "id": "GAMEPLAY-STATE-RETURN-HUD", "cocos": "GAMEPLAY-STATE-RETURN-HUD.png", "unity": "GAMEPLAY-STATE-RETURN-HUD.png" },
-          { "id": "GAMEPLAY-STATE-RESTART", "cocos": "GAMEPLAY-STATE-RESTART-ACCOUNT-SWITCH-BACK.png", "unity": "GAMEPLAY-STATE-RESTART.png" },
-          { "id": "GAMEPLAY-STATE-DISCONNECTED", "cocos": "GAMEPLAY-STATE-DISCONNECTED.png", "unity": "GAMEPLAY-STATE-DISCONNECTED.png" },
-          { "id": "GAMEPLAY-STATE-RECONNECTED", "cocos": "GAMEPLAY-STATE-RECONNECTED.png", "unity": "GAMEPLAY-STATE-RECONNECTED.png" }
+          {
+            "id": "GAMEPLAY-STATE-HUD-ENTRY",
+            "cocos": "GAMEPLAY-STATE-HUD-ENTRY.png",
+            "unity": "GAMEPLAY-STATE-HUD-ENTRY.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-LIST-TOP",
+            "cocos": "GAMEPLAY-STATE-LIST-TOP.png",
+            "unity": "GAMEPLAY-STATE-LIST-TOP.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-LIST-SCROLLED",
+            "cocos": "GAMEPLAY-STATE-LIST-SCROLLED.png",
+            "unity": "GAMEPLAY-STATE-LIST-SCROLLED.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-LOCKED-LEVEL1",
+            "cocos": "GAMEPLAY-STATE-LOCKED-LEVEL1.png",
+            "unity": "GAMEPLAY-STATE-LOCKED-LEVEL1.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-EMPTY",
+            "cocos": "GAMEPLAY-STATE-EMPTY.png",
+            "unity": "GAMEPLAY-STATE-EMPTY.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-RETURN-HUD",
+            "cocos": "GAMEPLAY-STATE-RETURN-HUD.png",
+            "unity": "GAMEPLAY-STATE-RETURN-HUD.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-RESTART",
+            "cocos": "GAMEPLAY-STATE-RESTART-ACCOUNT-SWITCH-BACK.png",
+            "unity": "GAMEPLAY-STATE-RESTART.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-DISCONNECTED",
+            "cocos": "GAMEPLAY-STATE-DISCONNECTED.png",
+            "unity": "GAMEPLAY-STATE-DISCONNECTED.png"
+          },
+          {
+            "id": "GAMEPLAY-STATE-RECONNECTED",
+            "cocos": "GAMEPLAY-STATE-RECONNECTED.png",
+            "unity": "GAMEPLAY-STATE-RECONNECTED.png"
+          }
         ]
       }
     },
@@ -1392,25 +1467,73 @@
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            { "id": "account-role-link", "description": "固定主账号7200057唯一绑定角色1000115" },
-            { "id": "mixed-three-slot-state", "description": "隔离服务配置将第1档置为过时补领、第2/3档置为当前免费；三档仍各只能领取一次" },
-            { "id": "paid-and-free-authority", "description": "主账号准备40体力、100元宝，真实覆盖补领-20/+50及两次免费+50" },
-            { "id": "insufficient-premium-account", "description": "独立705213/1000006准备0元宝、40体力，真实覆盖补领失败且无副作用" },
-            { "id": "over-cap-account", "description": "独立7200260/1000119准备990体力，覆盖+50超过1000上限且无副作用" },
-            { "id": "exact-restore-surface", "description": "三账号分别快照user_spirit、角色/账号货币和绑定关系，finally恢复、重登录哈希一致、残留0" }
+            {
+              "id": "account-role-link",
+              "description": "固定主账号7200057唯一绑定角色1000115"
+            },
+            {
+              "id": "mixed-three-slot-state",
+              "description": "隔离服务配置将第1档置为过时补领、第2/3档置为当前免费；三档仍各只能领取一次"
+            },
+            {
+              "id": "paid-and-free-authority",
+              "description": "主账号准备40体力、100元宝，真实覆盖补领-20/+50及两次免费+50"
+            },
+            {
+              "id": "insufficient-premium-account",
+              "description": "独立705213/1000006准备0元宝、40体力，真实覆盖补领失败且无副作用"
+            },
+            {
+              "id": "over-cap-account",
+              "description": "独立7200260/1000119准备990体力，覆盖+50超过1000上限且无副作用"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "三账号分别快照user_spirit、角色/账号货币和绑定关系，finally恢复、重登录哈希一致、残留0"
+            }
           ]
         },
         "artifactCopies": [
-          { "source": "build/ui-migration/bootstrap-stamina-claim-mixed.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-MIXED.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-PAID-DIALOG.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-paid-success.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-PAID-SUCCESS.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-all-claimed.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-ALL-CLAIMED.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-duplicate.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-DUPLICATE.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-disconnected.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-DISCONNECTED.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-reconnected.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-RECONNECTED.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-account-isolation.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-ACCOUNT-ISOLATION.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-INSUFFICIENT-PREMIUM.png" },
-          { "source": "build/ui-migration/bootstrap-stamina-claim-over-cap.png", "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-OVER-CAP.png" }
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-mixed.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-MIXED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-paid-dialog.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-PAID-DIALOG.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-paid-success.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-PAID-SUCCESS.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-all-claimed.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-ALL-CLAIMED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-duplicate.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-DUPLICATE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-disconnected.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-DISCONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-reconnected.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-RECONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-account-isolation.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-ACCOUNT-ISOLATION.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-insufficient-premium.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-INSUFFICIENT-PREMIUM.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-stamina-claim-over-cap.png",
+            "destination": ".local/ui-fidelity/StaminaClaim/unity/g5-20260804/STAMINA-OVER-CAP.png"
+          }
         ]
       },
       "g5": {
@@ -1428,14 +1551,103 @@
           "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1"
         ],
         "pairs": [
-          { "id": "STAMINA-MIXED", "cocos": "STAMINA-MIXED.png", "unity": "STAMINA-MIXED.png" },
-          { "id": "STAMINA-PAID-DIALOG", "cocos": "STAMINA-PAID-DIALOG.png", "unity": "STAMINA-PAID-DIALOG.png" },
-          { "id": "STAMINA-PAID-SUCCESS", "cocos": "STAMINA-PAID-SUCCESS.png", "unity": "STAMINA-PAID-SUCCESS.png" },
-          { "id": "STAMINA-ALL-CLAIMED", "cocos": "STAMINA-ALL-CLAIMED.png", "unity": "STAMINA-ALL-CLAIMED.png" },
-          { "id": "STAMINA-DISCONNECTED", "cocos": "STAMINA-DISCONNECTED.png", "unity": "STAMINA-DISCONNECTED.png" },
-          { "id": "STAMINA-RECONNECTED", "cocos": "STAMINA-RECONNECTED.png", "unity": "STAMINA-RECONNECTED.png" },
-          { "id": "STAMINA-INSUFFICIENT-PREMIUM", "cocos": "STAMINA-INSUFFICIENT-PREMIUM.png", "unity": "STAMINA-INSUFFICIENT-PREMIUM.png" },
-          { "id": "STAMINA-OVER-CAP", "cocos": "STAMINA-OVER-CAP.png", "unity": "STAMINA-OVER-CAP.png" }
+          {
+            "id": "STAMINA-MIXED",
+            "cocos": "STAMINA-MIXED.png",
+            "unity": "STAMINA-MIXED.png"
+          },
+          {
+            "id": "STAMINA-PAID-DIALOG",
+            "cocos": "STAMINA-PAID-DIALOG.png",
+            "unity": "STAMINA-PAID-DIALOG.png"
+          },
+          {
+            "id": "STAMINA-PAID-SUCCESS",
+            "cocos": "STAMINA-PAID-SUCCESS.png",
+            "unity": "STAMINA-PAID-SUCCESS.png"
+          },
+          {
+            "id": "STAMINA-ALL-CLAIMED",
+            "cocos": "STAMINA-ALL-CLAIMED.png",
+            "unity": "STAMINA-ALL-CLAIMED.png"
+          },
+          {
+            "id": "STAMINA-DISCONNECTED",
+            "cocos": "STAMINA-DISCONNECTED.png",
+            "unity": "STAMINA-DISCONNECTED.png"
+          },
+          {
+            "id": "STAMINA-RECONNECTED",
+            "cocos": "STAMINA-RECONNECTED.png",
+            "unity": "STAMINA-RECONNECTED.png"
+          },
+          {
+            "id": "STAMINA-INSUFFICIENT-PREMIUM",
+            "cocos": "STAMINA-INSUFFICIENT-PREMIUM.png",
+            "unity": "STAMINA-INSUFFICIENT-PREMIUM.png"
+          },
+          {
+            "id": "STAMINA-OVER-CAP",
+            "cocos": "STAMINA-OVER-CAP.png",
+            "unity": "STAMINA-OVER-CAP.png"
+          }
+        ]
+      }
+    },
+    {
+      "module": "SevenDay",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/SevenDay/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/SevenDay/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/SevenDay/compare/g5",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/OperationalActivity/SevenDay.lua",
+          "client/ProjectX/res/csd/huodong/QiriLayer.csb",
+          "server/config/json/sevendays.json",
+          "server/src/mission_manager.cpp",
+          "tools/unity-migration/Invoke-SevenDayFixture.ps1"
+        ],
+        "pairs": [
+          {
+            "id": "SEVENDAY-LIST",
+            "cocos": "SEVENDAY-LIST.png",
+            "unity": "SEVENDAY-LIST.png"
+          }
+        ]
+      },
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-SevenDayFixture.ps1",
+        "snapshot": ".local/ui-fidelity/SevenDay/unity/g5/seven-day-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/SevenDay/unity/g6/seven-day-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "seven-day-account-exists",
+              "description": "固定账号和角色已由本地登录创建，角色等级满足function_id=11开放条件"
+            },
+            {
+              "id": "seven-day-claimable-task",
+              "description": "op=4至少返回一个state=1且当前注册日允许领取的七日任务"
+            },
+            {
+              "id": "seven-day-exact-restore",
+              "description": "领取前完整快照role_info和user_info分片，验证后恢复并重登录哈希一致"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/bootstrap-seven-day.png",
+            "destination": ".local/ui-fidelity/SevenDay/unity/g5/SEVENDAY-LIST.png"
+          }
         ]
       }
     }

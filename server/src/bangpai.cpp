@@ -7036,6 +7036,13 @@ bool CBangPaiManager::Init()
 		pDb->Query(sql_1.str().c_str());
 	}
 
+	// The minimal local schema intentionally has no guild data. The production
+	// follow-up initializers expect historical guild/battle rows and may
+	// dereference absent legacy payloads, none of which are needed by local
+	// protocol validation. Keep the production path unchanged.
+	if(bangNum == 0 && gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+		return true;
+
 	InitBangZhanData();
 	InitBangPaiShangXian();
 	InitBangPaiMission();

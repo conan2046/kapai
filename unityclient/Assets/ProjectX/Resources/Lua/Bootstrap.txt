@@ -46,6 +46,7 @@ function OnDisconnected(reason)
     MailController.onDisconnected()
     ShopController.onDisconnected()
     GameplayShopController.onDisconnected()
+    SevenDayController.onDisconnected()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
@@ -139,6 +140,7 @@ function OnKunLunClicked() KunLunController.onClick() end
 function OnBloodFightClicked() BloodFightController.onClick() end
 function OnXunBaoClicked() XunBaoController.onClick() end
 function OnSevenDayClicked() SevenDayController.onClick() end
+function OnSevenDayClaim(id) SevenDayController.claim(id) end
 function OnStaminaClaimClicked() StaminaClaimController.onClick() end
 function OnStaminaClaimRequest(index, paid) StaminaClaimController.claim(index, paid) end
 function OnStaminaClaimRefresh() StaminaClaimController.refresh() end
@@ -148,6 +150,7 @@ function OnPacket(command, message)
     if command == Protocol.TASK_LIST then
         local op = message:ReadByte()
         if op == 4 then SevenDayController.onTaskPacket(message)
+        elseif op == 6 then SevenDayController.onClaimPacket(message)
         else TaskController.onTaskPacket(op, message) end
         return
     end

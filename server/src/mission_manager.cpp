@@ -1221,6 +1221,18 @@ void CUserMission::GetHDQuestMessage(CNetMessage& msg)
 	}
 }
 
+void CUserMission::ApplySevenDayValidationFixture(CUser* pUser, uint16 claimableQuestId)
+{
+	if (pUser == NULL)
+		return;
+	UserQuest* quest = GetHDQuest(claimableQuestId);
+	QuestCfg* cfg = sCMissionManager.GetHDQuestCfg(claimableQuestId);
+	if (quest == NULL || cfg == NULL || pUser->GetRegDay() < cfg->hdcnd)
+		return;
+	quest->num = cfg->num;
+	quest->state = 1;
+}
+
 void CUserMission::GetHDQuestAward(CUser* pUser, CNetMessage& msg)
 {
 	uint16 qid;

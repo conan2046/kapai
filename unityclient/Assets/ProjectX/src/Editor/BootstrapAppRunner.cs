@@ -140,6 +140,17 @@ namespace ProjectX.Editor
 
             ProjectXApp app = ProjectXApp.Instance;
             string status = app?.Status ?? "Waiting for ProjectXApp...";
+            if (app == null)
+            {
+                double.TryParse(SessionState.GetString(StartTimeKey, "0"), out double appStartTime);
+                if (EditorApplication.timeSinceStartup - appStartTime > 2d)
+                {
+                    GameObject bootstrapObject = new GameObject("ProjectXApp (Runner Recovery)");
+                    bootstrapObject.AddComponent<ProjectXApp>();
+                    Debug.LogWarning("[BootstrapAppRunner] Recreated the missing Bootstrap scene ProjectXApp component.");
+                }
+                return;
+            }
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
                 SessionState.SetString(CompletionStatusKey, status);
             else if (SessionState.GetBool(ScreenshotPendingKey, false))
@@ -721,6 +732,7 @@ namespace ProjectX.Editor
             // concrete validation failure into a runner timeout.
             if ((drawValidation && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0
                     || !requiresReconnectValidation)
+                && app != null
                 && (app.CurrentAppState == AppState.Failed
                     || status.IndexOf("failed", StringComparison.OrdinalIgnoreCase) >= 0))
             {

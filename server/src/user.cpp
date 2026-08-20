@@ -11333,6 +11333,28 @@ bool CUser::ReadData(uint32 roleId)
 				}
 			}
 		}
+
+		if (gyu::util::CIniFile::GetValue("local_test", "server", "config") == "1" &&
+			pDb->Query("SHOW TABLES LIKE 'unity_validation_seven_day_fixture'") && pDb->GetRow() != NULL)
+		{
+			char sevenDaySql[512];
+			snprintf(sevenDaySql, sizeof(sevenDaySql),
+				"select claimable_quest_id from unity_validation_seven_day_fixture where user_id=%u and enabled=1 and applied=0 and (role_id=0 or role_id=%u) limit 1",
+				GetUserId(), GetRoleId());
+			if (pDb->Query(sevenDaySql))
+			{
+				char** sevenDayRow = pDb->GetRow();
+				if (sevenDayRow != NULL)
+				{
+					uint16 questId = (uint16)atoi(sevenDayRow[0]);
+					m_missList.ApplySevenDayValidationFixture(this, questId);
+					snprintf(sevenDaySql, sizeof(sevenDaySql),
+						"update unity_validation_seven_day_fixture set role_id=%u,applied=1 where user_id=%u",
+						GetRoleId(), GetUserId());
+					pDb->Query(sevenDaySql);
+				}
+			}
+		}
 		ret = true;
 
 		

@@ -1,13 +1,25 @@
 local Protocol=require("Protocol")
-local M={validation=false}
+local itemCatalog=require("Data.ItemCatalog")
+local itemsById={}
+for _,value in ipairs(itemCatalog) do itemsById[value.id]=value end
+local M={validation=false,pendingClaim=0}
 function M.onClick()
  M.validation=Bridge:HasCommandLineFlag("-projectXSevenDayValidation");Bridge:ShowSevenDay()
  local m=Protocol.newMessage(Protocol.TASK_LIST);m:WriteByte(4);Bridge:Send(m);Bridge:SetStatus("SevenDay/37 op=4 requested.")
 end
+function M.claim(id)
+ id=math.floor(tonumber(id) or 0)
+ if id<=0 or M.pendingClaim~=0 or not Bridge:BeginSevenDayClaim(id) then return false end
+ M.pendingClaim=id
+ local m=Protocol.newMessage(Protocol.TASK_LIST);m:WriteByte(6);m:WriteWord(id);Bridge:Send(m)
+ Bridge:SetStatus("SevenDay/37 op=6 requested: id="..tostring(id)..".");return true
+end
 function M.onPacket(command,message)
  if command~=Protocol.TASK_LIST then return false end
- local op=message:ReadByte();if op~=4 then return false end
- M.onTaskPacket(message);return true
+ local op=message:ReadByte()
+ if op==4 then M.onTaskPacket(message);return true end
+ if op==6 then M.onClaimPacket(message);return true end
+ return false
 end
 function M.onTaskPacket(message)
  local count=message:ReadWord();Bridge:BeginSevenDayState()
@@ -15,4 +27,23 @@ function M.onTaskPacket(message)
  Bridge:CommitSevenDayState();Bridge:SetStatus("SevenDay/37 op=4 recv: tasks="..tostring(count)..".")
  if M.validation then M.validation=false;Bridge:CompleteSevenDayValidation() end
 end
+function M.onClaimPacket(message)
+ local id=message:ReadWord();local success=message:ReadByte()
+ if M.pendingClaim==0 or id~=M.pendingClaim then Bridge:Fail("SevenDay/37 op=6 identity mismatch.");return end
+ M.pendingClaim=0
+ if success==0 then
+  local reason=message.Remaining>0 and message:ReadString() or "server rejected seven-day claim"
+  Bridge:CompleteSevenDayClaim(id,false,reason);return
+ end
+ local count=message:ReadByte();Bridge:BeginRewardUpdate(count)
+ for _=1,count do
+  local rewardType=message:ReadWord();local rewardId=message:ReadUInt();local amount=message:ReadUInt()
+  local found=itemsById[rewardId] or itemsById[rewardType] or {}
+  Bridge:AddRewardRecord(rewardType,rewardId,amount,found.name or "",found.pic or 0,found.quality or 0)
+ end
+ if message.Remaining~=0 then Bridge:Fail("SevenDay/37 op=6 has unread bytes="..tostring(message.Remaining)..".");return end
+ Bridge:EndRewardUpdate("七日目标奖励");Bridge:CompleteSevenDayClaim(id,true,"")
+end
+function M.onDisconnected() M.pendingClaim=0;Bridge:ClearSevenDayState() end
+function M.onRequestTimeout() if M.pendingClaim~=0 then local id=M.pendingClaim;M.pendingClaim=0;Bridge:CompleteSevenDayClaim(id,false,"领取请求超时") end end
 return M

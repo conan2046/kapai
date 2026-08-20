@@ -9443,7 +9443,13 @@ void CheckBangPaiId()
 	char **row = NULL;
 	if((row = pDb->GetRow()) == NULL)
 	{
-		snprintf(buf,sizeof(buf)-1,"insert into bang_pai (id) values(%d)",id*1000);
+		// The local empty-schema bootstrap needs an id anchor, not a live guild.
+		// Mark it inactive so the next startup does not deserialize a row whose
+		// required serialized fields were never initialized.
+		if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
+			snprintf(buf,sizeof(buf)-1,"insert into bang_pai (id,state) values(%d,0)",id*1000);
+		else
+			snprintf(buf,sizeof(buf)-1,"insert into bang_pai (id) values(%d)",id*1000);
 		pDb->Query(buf);
 	}
 	else

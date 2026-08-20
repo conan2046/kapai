@@ -17,7 +17,7 @@
     "manualAcceptanceRequired": true,
     "requiredControlStatus": "complete"
   },
-  "unityExecutable": "E:/UnityPro/2022.3.62f3c1/Editor/Unity.exe",
+  "unityExecutable": "F:/unity/2022.3.62f3c1/Editor/Unity.exe",
   "unityProject": "unityclient",
   "executeMethod": "ProjectX.Editor.BootstrapAppRunner.RunBatch",
   "resultFile": "build/ui-migration/bootstrap-app-result.json",
@@ -1122,21 +1122,23 @@
     {
       "key": "SevenDay",
       "displayName": "七日目标",
-      "status": "logic-validated-visual-pending",
+      "status": "scaffolded",
       "protocols": [
-        37
+        37,
+        221
       ],
       "entries": [
-        "Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=11"
+        "Layer/Main_UI/btn_wanfa -> WanFaEntranceUI function_id=11 -> OperationalActivity.SevenDay"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab"
       ],
       "configs": [
         "server/config/json/function.json",
-        "server/config/json/sevendays.json"
+        "server/config/json/sevendays.json",
+        "server/config/json/shop.json"
       ],
-      "mutatesServer": false,
+      "mutatesServer": true,
       "validationFlags": [
         "-projectXSevenDayValidation"
       ],
@@ -1153,7 +1155,8 @@
         "flowEvidence": "",
         "uiMapping": ""
       },
-      "document": "docs/unityclient/modules/SEVEN_DAY.md"
+      "document": "docs/unityclient/modules/SEVEN_DAY.md",
+      "controlMatrix": "docs/unityclient/matrices/SEVENDAY_CONTROLS.json"
     },
     {
       "key": "StaminaClaim",

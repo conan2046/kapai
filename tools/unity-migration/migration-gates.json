@@ -1060,6 +1060,54 @@
         ]
       },
       "updatedUtc": "2026-08-04T03:54:47.7246261Z"
+    },
+    {
+      "module": "SevenDay",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/SEVEN_DAY.md",
+      "note": "2026-08-20 fresh G0 restart. The historical read-only /37 op=4 result is a clue only; this run owns /37 op=6 claim, seven day/category controls, shared /221 discount boundary and full lifecycle evidence. Previous StaminaClaim retrospective was unavailable in both current and source checkouts.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/SEVEN_DAY.md"
+        ],
+        "G1": [
+          ".local/unity-validation/sevenday-cocos-automation-ledger.json",
+          ".local/unity-validation/sevenday-cocos-preflight-latest.json",
+          ".local/unity-validation/sevenday-cocos-identity-latest.json",
+          ".local/unity-validation/sevenday-cocos-baseline-latest.json",
+          ".local/ui-fidelity/SevenDay/cocos/g1/SEVENDAY-LIST.png"
+        ],
+        "G2": [
+          "docs/unityclient/modules/SEVEN_DAY.md",
+          "docs/unityclient/matrices/SEVENDAY_CONTROLS.json",
+          ".local/unity-validation/sevenday-g2-source-audit.json"
+        ],
+        "G3": [
+          ".local/unity-validation/unity-compile-preflight.log",
+          "tools/unity-migration/Invoke-SevenDayFixture.ps1",
+          "unityclient/Assets/ProjectX/src/UI/SevenDayPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+        ],
+        "G4": [
+          ".local/unity-validation/sevenday-fixed-account-latest.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/SevenDay/compare/g5/report.json"
+        ],
+        "G6": [
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/unity-validation/sevenday-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-20T00:12:26.3719976Z"
     }
   ]
 }

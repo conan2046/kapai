@@ -1,5 +1,16 @@
 # 本地卡牌项目调试交接
 
+> 当前交接：2026-08-20 SevenDay G0-G6 passed / 14/14 complete
+
+## 0. 2026-08-20 SevenDay 收口
+
+- 门禁：`G0-G6 passed / 14/14 complete`；严格完成率 `16/29 = 55.2%`。
+- 固定账号 `7200057/1000115`；真实 `/37 op=4/op=6`、共享 `/221 type=10`、领取/重复拒绝、前往、详情、七天/四分类、资源栏和关闭重进均通过。
+- DataPreflight、快照、Fixture 注入、精确恢复、重登录哈希与残留清零通过；G5 双端原生 `1334×750` 状态对完成。
+- 两次真实 BuildBatch SHA-256 均为 `48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`；自动复盘 16/16 已解决。
+- 证据：`.local/unity-validation/sevenday-fixed-account-latest.json`、`.local/ui-fidelity/SevenDay/compare/g5/report.json`、`.local/unity-validation/sevenday-retrospective-latest.json`。
+- 下一任务从 P1“法宝搜索”重新执行 G0；不得沿用七日目标的 Fixture、协议所有权或视觉结论。
+
 > 当前交接：2026-08-02 PlayerHud G0-G6 passed / 56/56 complete
 > 本节覆盖下方 Settings、World、Mail 及 2026-07-16 旧交接；旧内容只作为历史参考。
 

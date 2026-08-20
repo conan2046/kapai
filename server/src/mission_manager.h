@@ -737,6 +737,7 @@ public:
 	void ChechNewQuest();
 	void InitJiJin(CUser* pUser, uint8 type);
 	void ApplyTaskValidationFixture(CUser* pUser, uint32 activeValue);
+	void ApplySevenDayValidationFixture(CUser* pUser, uint16 claimableQuestId);
 
 public:
 	void GetQuestMessage(CUser* pUser, CNetMessage& msg);

@@ -84,7 +84,7 @@ if ($Gate -eq "G1") {
         @("CocosBaselinePath", $CocosBaselinePath)
     )) {
         if (-not [string]$required[1]) { throw "Completing G1 requires -$($required[0])." }
-        if (-not (Test-GateEvidenceContainsPath ([string]$required[1])) {
+        if (-not (Test-GateEvidenceContainsPath ([string]$required[1]))) {
             throw "G1 Evidence must include -$($required[0])."
         }
     }
