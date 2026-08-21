@@ -238,6 +238,8 @@ function M.onPacket(command, message)
     end
 
     local slot = message:ReadWord() + 1
+    local previousItemId = Bridge:GetBagItemId(slot)
+    local previousQuantity = Bridge:GetBagQuantity(slot)
     message:ReadWord()
     message:ReadWord()
     local itemId = message:ReadWord()
@@ -247,6 +249,12 @@ function M.onPacket(command, message)
         local quantity = message:ReadWord()
         if message.Remaining >= 2 then message:ReadWord() end
         addOrUpdate(slot, itemId, quantity, false)
+        local added = previousItemId == itemId and (quantity - previousQuantity) or quantity
+        if added > 0 then
+            local cfg = byId[itemId] or {}
+            Bridge:QueueBagUseReward(itemId, added, cfg.name or "", cfg.pic or 0,
+                cfg.quality or 0, cfg.type or 0)
+        end
     end
     validateIncrementalUpdate(slot, itemId, itemId == 0 and 0 or Bridge:GetBagQuantity(slot))
     if M.g4Stage == "await_batch" and (itemId == 500 or itemId == 0) then

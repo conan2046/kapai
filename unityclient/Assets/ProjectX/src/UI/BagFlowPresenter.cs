@@ -32,6 +32,7 @@ namespace ProjectX.UI
         private readonly EquipmentCatalog equipmentCatalog;
         private readonly Func<int, int> ownedQuantity;
         private readonly Action<BagItemRecord, int, int> useAction;
+        private readonly Action beforeItemJump;
         private readonly Action<int> jumpAction;
         private readonly Func<int, bool> canJump;
         private readonly Action<string> feedback;
@@ -43,9 +44,7 @@ namespace ProjectX.UI
         private int quantity;
         private int maxQuantity;
         private int inputDigitMask;
-        private InputField inputField;
-        private Text inputPlaceholder;
-        private Text inputValue;
+        private Text inputDisplay;
         private Text giftQuantity;
         private RectTransform giftContent;
         private GameObject giftTemplate;
@@ -62,6 +61,7 @@ namespace ProjectX.UI
             EquipmentCatalog equipmentCatalog,
             Func<int, int> ownedQuantity,
             Action<BagItemRecord, int, int> useAction,
+            Action beforeItemJump,
             Action<int> jumpAction,
             Func<int, bool> canJump,
             Action<string> feedback)
@@ -75,6 +75,7 @@ namespace ProjectX.UI
             this.equipmentCatalog = equipmentCatalog ?? throw new ArgumentNullException(nameof(equipmentCatalog));
             this.ownedQuantity = ownedQuantity ?? throw new ArgumentNullException(nameof(ownedQuantity));
             this.useAction = useAction ?? throw new ArgumentNullException(nameof(useAction));
+            this.beforeItemJump = beforeItemJump ?? throw new ArgumentNullException(nameof(beforeItemJump));
             this.jumpAction = jumpAction ?? throw new ArgumentNullException(nameof(jumpAction));
             this.canJump = canJump ?? (_ => false);
             this.feedback = feedback ?? (_ => { });
@@ -90,6 +91,7 @@ namespace ProjectX.UI
         public bool IsSourceOpen => sourceView.GameObject.activeSelf;
         public bool IsEquipmentInfoOpen => equipmentInfoView.GameObject.activeSelf;
         public int Quantity => quantity;
+        public string InputDisplayText => inputDisplay == null ? string.Empty : inputDisplay.text;
         public int ChoiceCount => choices.Count;
         public bool HasSelection => selectedChoice != null;
 
@@ -134,6 +136,7 @@ namespace ProjectX.UI
             }
             if (item.UseJump > 0)
             {
+                beforeItemJump();
                 jumpAction(item.UseJump);
                 return;
             }
@@ -281,33 +284,34 @@ namespace ProjectX.UI
         private void ConfigureInput()
         {
             GameObject inputNode = Require(inputView, "Layer/Panel/Bg/Num/TextField");
-            inputField = inputNode.GetComponent<InputField>();
-            inputValue = inputField?.textComponent
+            InputField inputField = inputNode.GetComponent<InputField>();
+            Text importedValue = inputField?.textComponent
                 ?? inputNode.transform.Find("Text")?.GetComponent<Text>()
                 ?? inputNode.GetComponentsInChildren<Text>(true)
                     .FirstOrDefault(text => text.gameObject.name == "Text");
             Text importedPlaceholder = inputField?.placeholder as Text
                 ?? inputNode.transform.Find("Placeholder")?.GetComponent<Text>();
+            if (inputField != null) inputField.enabled = false;
+            if (importedValue != null) importedValue.gameObject.SetActive(false);
             if (importedPlaceholder != null) importedPlaceholder.gameObject.SetActive(false);
-            GameObject hint = new GameObject("RuntimeInputHint",
+            GameObject display = new GameObject("RuntimeInputDisplay",
                 typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            RectTransform hintRect = hint.GetComponent<RectTransform>();
+            RectTransform displayRect = display.GetComponent<RectTransform>();
             RectTransform inputRect = inputNode.GetComponent<RectTransform>();
-            hintRect.SetParent(inputNode.transform.parent, false);
-            hintRect.anchorMin = inputRect.anchorMin;
-            hintRect.anchorMax = inputRect.anchorMax;
-            hintRect.pivot = inputRect.pivot;
-            hintRect.anchoredPosition = inputRect.anchoredPosition;
-            hintRect.sizeDelta = inputRect.sizeDelta;
-            hintRect.localScale = inputRect.localScale;
-            hintRect.SetAsLastSibling();
-            inputPlaceholder = hint.GetComponent<Text>();
-            inputPlaceholder.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            inputPlaceholder.fontSize = 19;
-            inputPlaceholder.alignment = TextAnchor.MiddleCenter;
-            inputPlaceholder.color = new Color32(245, 235, 221, 255);
-            inputPlaceholder.raycastTarget = false;
-            inputPlaceholder.text = "请输入数量";
+            displayRect.SetParent(inputNode.transform.parent, false);
+            displayRect.anchorMin = inputRect.anchorMin;
+            displayRect.anchorMax = inputRect.anchorMax;
+            displayRect.pivot = inputRect.pivot;
+            displayRect.anchoredPosition = inputRect.anchoredPosition;
+            displayRect.sizeDelta = inputRect.sizeDelta;
+            displayRect.localScale = inputRect.localScale;
+            displayRect.SetAsLastSibling();
+            inputDisplay = display.GetComponent<Text>();
+            inputDisplay.font = importedValue?.font
+                ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            inputDisplay.fontSize = 20;
+            inputDisplay.alignment = TextAnchor.MiddleCenter;
+            inputDisplay.raycastTarget = false;
             for (int digit = 0; digit <= 9; digit++)
             {
                 int value = digit;
@@ -838,13 +842,14 @@ namespace ProjectX.UI
         private void RenderQuantity()
         {
             string numericValue = quantity.ToString(CultureInfo.InvariantCulture);
-            if (inputField != null)
+            if (inputDisplay != null)
             {
-                inputField.text = quantity == 0 ? string.Empty : numericValue;
-                if (inputPlaceholder != null) inputPlaceholder.gameObject.SetActive(quantity == 0);
+                bool empty = quantity == 0;
+                inputDisplay.text = empty ? "请输入数量" : numericValue;
+                inputDisplay.color = empty
+                    ? new Color32(112, 91, 82, 180)
+                    : new Color32(91, 55, 44, 255);
             }
-            else if (inputValue != null)
-                inputValue.text = quantity == 0 ? "请输入数量" : numericValue;
             if (giftQuantity != null) giftQuantity.text = numericValue;
         }
 

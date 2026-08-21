@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -109,7 +110,13 @@ namespace ProjectX.UI
             IReadOnlyList<RewardRecord> items = store.Items;
             RenderedCount = Mathf.Min(items.Count, cells.Length);
             if (title != null) title.text = store.Title;
-            if (tips != null) tips.text = items.Count > cells.Length ? $"另有 {items.Count - cells.Length} 项奖励已发放" : string.Empty;
+            if (tips != null)
+            {
+                tips.text = items.Count > cells.Length
+                    ? "其他获得：" + string.Join("、", items.Skip(cells.Length)
+                        .Select(item => $"{item.Name}×{item.Amount}"))
+                    : string.Empty;
+            }
             for (int index = 0; index < cells.Length; index++)
             {
                 bool occupied = index < items.Count;

@@ -189,6 +189,12 @@ namespace ProjectX.Core
         private CocosUiView rewardView;
         private RewardPresenter rewardPresenter;
         private readonly List<RewardRecord> pendingRewards = new List<RewardRecord>();
+        private readonly Dictionary<int, RewardRecord> pendingBagUseRewards =
+            new Dictionary<int, RewardRecord>();
+        private bool capturingBagUseRewards;
+        private float lastBagUseRewardAt;
+        private float bagUseRewardCaptureUntil;
+        private Coroutine bagUseRewardRoutine;
         private readonly List<List<RewardRecord>> pendingWorldSweepGroups = new List<List<RewardRecord>>();
         private CocosUiView heroFrameView;
         private CocosUiView heroListView;
@@ -288,6 +294,7 @@ namespace ProjectX.Core
         private byte pendingFriendMaximum;
         private CocosUiView chatMiniView;
         private bool restoreChatMiniAfterGameplayShop;
+        private bool restoreBagFrameAfterGameplayShop;
         private CocosUiView chatView;
         private ChatPresenter chatPresenter;
         private CocosUiView teamView;
@@ -1026,6 +1033,11 @@ namespace ProjectX.Core
                 errorPresenter?.Hide();
                 rewardPresenter?.Hide();
                 bagFrameView?.SetVisible(false);
+            }
+            if (IsGameplayShopOpen)
+            {
+                CloseGameplayShops();
+                return true;
             }
             if (IsSettingsOpen) bagFrameView?.SetVisible(false);
             return services?.UiStack.Pop() ?? false;
@@ -3908,11 +3920,65 @@ namespace ProjectX.Core
         public void RemoveBagItem(int slot) => services.Bag.Remove(slot);
         public int GetBagCount() => services.Bag.Count;
         public int GetBagQuantity(int slot) => services.Bag.GetQuantity(slot);
+        public int GetBagItemId(int slot) => services.Bag.TryGet(slot, out BagItemRecord item) ? item.ItemId : 0;
+
+        public void QueueBagUseReward(int itemId, int amount, string itemName, int picture, int quality, int itemType)
+        {
+            if (!capturingBagUseRewards || Time.realtimeSinceStartup > bagUseRewardCaptureUntil)
+            {
+                capturingBagUseRewards = false;
+                pendingBagUseRewards.Clear();
+                return;
+            }
+            if (amount <= 0 || itemId <= 0) return;
+            uint added = checked((uint)amount);
+            if (pendingBagUseRewards.TryGetValue(itemId, out RewardRecord current))
+                added = checked(current.Amount + added);
+            pendingBagUseRewards[itemId] = new RewardRecord(itemType, checked((uint)itemId), added,
+                itemName, picture, quality);
+            lastBagUseRewardAt = Time.realtimeSinceStartup;
+            if (bagUseRewardRoutine == null)
+                bagUseRewardRoutine = StartCoroutine(ShowBagUseRewardsWhenStable());
+        }
+
+        private void BeginBagUseRewardCapture(BagItemRecord item)
+        {
+            if (bagUseRewardRoutine != null)
+            {
+                StopCoroutine(bagUseRewardRoutine);
+                bagUseRewardRoutine = null;
+            }
+            pendingBagUseRewards.Clear();
+            capturingBagUseRewards = item.ItemType == 5;
+            lastBagUseRewardAt = Time.realtimeSinceStartup;
+            bagUseRewardCaptureUntil = lastBagUseRewardAt + 8.5f;
+        }
+
+        private IEnumerator ShowBagUseRewardsWhenStable()
+        {
+            while (capturingBagUseRewards && Time.realtimeSinceStartup - lastBagUseRewardAt < 0.2f)
+                yield return null;
+            bagUseRewardRoutine = null;
+            if (!capturingBagUseRewards || pendingBagUseRewards.Count == 0) yield break;
+            RewardRecord[] rewards = pendingBagUseRewards.Values.OrderBy(value => value.Id).ToArray();
+            pendingBagUseRewards.Clear();
+            capturingBagUseRewards = false;
+            services.Rewards.Replace("开启获得", rewards);
+            EnsureRewardPresenter();
+            rewardPresenter.SetItemClickHandler(reward =>
+            {
+                EnsureErrorPresenter();
+                errorPresenter.Show("奖励详情", $"{reward.Name}\n数量：{reward.Amount}");
+            });
+            rewardPresenter.Show();
+            SetStatus($"Bag box rewards shown: {rewards.Length} types.");
+        }
         public bool IsBagInputOpen => bagFlowPresenter?.IsInputOpen == true;
         public bool IsBagGiftOpen => bagFlowPresenter?.IsGiftOpen == true;
         public bool IsBagSourceOpen => bagFlowPresenter?.IsSourceOpen == true;
         public bool IsBagEquipmentInfoOpen => bagFlowPresenter?.IsEquipmentInfoOpen == true;
         public int BagModalQuantity => bagFlowPresenter?.Quantity ?? 0;
+        public string BagModalDisplayText => bagFlowPresenter?.InputDisplayText ?? string.Empty;
         public int BagChoiceCount => bagFlowPresenter?.ChoiceCount ?? 0;
         public bool BagHasChoice => bagFlowPresenter?.HasSelection == true;
         public bool SelectBagItem(int itemId)
@@ -4032,14 +4098,16 @@ namespace ProjectX.Core
             if (!InvokeBagControl("BAG-07-USE") || !IsBagInputOpen)
             { Fail("Bag G4 batch item did not open EnterNumLayer."); yield break; }
             yield return CaptureBagG5Evidence("BAG-07-USE-BATCH");
-            if (!InvokeBagControl("BAG-08-INPUT-DIGITS") || BagModalQuantity != 10)
-            { Fail($"Bag G4 input digits did not exercise 0-9 and set quantity=10: actual={BagModalQuantity}."); yield break; }
+            if (!InvokeBagControl("BAG-08-INPUT-DIGITS") || BagModalQuantity != 10 || BagModalDisplayText != "10")
+            { Fail($"Bag G4 input digits did not render quantity=10: internal={BagModalQuantity}, display='{BagModalDisplayText}'."); yield break; }
             yield return CaptureBagG5Evidence("BAG-08-INPUT-DIGITS");
             InvokeBagControl("BAG-09-INPUT-DELETE");
-            if (BagModalQuantity != 1) { Fail("Bag G4 input delete did not change 10 to 1."); yield break; }
+            if (BagModalQuantity != 1 || BagModalDisplayText != "1")
+            { Fail($"Bag G4 input delete did not render 10 -> 1: internal={BagModalQuantity}, display='{BagModalDisplayText}'."); yield break; }
             yield return CaptureBagG5Evidence("BAG-09-INPUT-DELETE");
             InvokeBagControl("BAG-09-INPUT-DELETE");
-            if (BagModalQuantity != 0) { Fail("Bag G4 second input delete did not clear quantity."); yield break; }
+            if (BagModalQuantity != 0 || BagModalDisplayText != "请输入数量")
+            { Fail($"Bag G4 second input delete did not clear display: internal={BagModalQuantity}, display='{BagModalDisplayText}'."); yield break; }
             InvokeBagControl("BAG-10-INPUT-CONFIRM");
             if (IsBagInputOpen || GetBagQuantityByItemId(500) != bagG4InitialBatchQuantity)
             { Fail("Bag G4 zero confirmation changed authoritative state."); yield break; }
@@ -4076,6 +4144,38 @@ namespace ProjectX.Core
             RecordValidationSemantic("bag-batch-use-bounds", true,
                 "0-9 callbacks reached; entered 10, deleted to 1 then 0, zero-confirm was inert, authoritative batch consumed exactly 10");
             yield return CaptureBagG5Evidence("BAG-10-BATCH-SUCCESS");
+
+            foreach (int ticketItemId in new[] { 1000, 1001 })
+            {
+                int initialTicketQuantity = GetBagQuantityByItemId(ticketItemId);
+                if (!SelectBagItem(ticketItemId) || !InvokeBagControl("BAG-07-USE") || !IsDrawOpen)
+                {
+                    Fail($"Bag G4 recruit-ticket item {ticketItemId} did not open Draw through use_jump=1010.");
+                    yield break;
+                }
+                if (!HandleBack() || IsBagOpen || IsDrawOpen)
+                {
+                    Fail($"Bag G4 recruit-ticket item {ticketItemId} left Bag in the navigation stack after Draw closed.");
+                    yield break;
+                }
+                if (GetBagQuantityByItemId(ticketItemId) != initialTicketQuantity)
+                {
+                    Fail($"Bag G4 recruit-ticket item {ticketItemId} changed quantity on a pure use_jump route.");
+                    yield break;
+                }
+                // BAG-01 and the initial /8 already prove the real entry and
+                // authoritative store. Reuse that snapshot between the two ticket
+                // cases; issuing another /8 in automation would restart the whole
+                // Bag G4 state machine after its mandatory sort response.
+                if (!ReopenBagForRecruitRouteValidation())
+                {
+                    Fail("Bag G4 recruit-ticket route could not restore Bag from the loaded snapshot.");
+                    yield break;
+                }
+            }
+            RecordValidationSemantic("bag-use-jump-closes-origin", true,
+                "item1000 and item1001 opened current HappyDraw/1010 without consumption; one Draw Back returned to main instead of reopening Bag");
+
             if (!SelectBagItem(1114) || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen)
             { Fail("Bag G4 gift item did not open OpenBox_1Layer."); yield break; }
             yield return CaptureBagG5Evidence("BAG-12-GIFT-OPEN");
@@ -4136,17 +4236,26 @@ namespace ProjectX.Core
             if (!InvokeBagControl("BAG-24-SOURCE-ACTION"))
             { Fail("Bag G4 source action did not invoke its target."); yield break; }
             float sourceDeadline = Time.realtimeSinceStartup + 8f;
-            while (!IsGameplayShopOpen && Time.realtimeSinceStartup < sourceDeadline) yield return null;
-            if (!IsGameplayShopOpen)
-            { Fail("Bag G4 source action did not open the migrated GameplayShops destination."); yield break; }
+            while ((!IsGameplayShopOpen || GameplayShopRenderedCount <= 0)
+                && Time.realtimeSinceStartup < sourceDeadline) yield return null;
+            if (!IsGameplayShopOpen || GameplayShopRenderedCount <= 0)
+            { Fail("Bag G4 source action did not open populated migrated GameplayShops destination."); yield break; }
+            if (bagFrameView.GameObject.activeSelf || bagView.GameObject.activeSelf
+                || bagSourceView.GameObject.activeSelf || bagEquipmentInfoView.GameObject.activeSelf
+                || !bagPopupFrameView.GameObject.activeSelf)
+            {
+                Fail("Bag G4 source action retained a Bag surface behind GameplayShops or omitted its shop frame.");
+                yield break;
+            }
             yield return CaptureBagG5Evidence("BAG-24-SOURCE-ACTION");
             HandleBack();
             yield return null;
-            if (!IsBagOpen || IsBagSourceOpen || IsGameplayShopOpen)
+            if (!IsBagOpen || IsBagSourceOpen || IsGameplayShopOpen
+                || !bagFrameView.GameObject.activeSelf || bagPopupFrameView.GameObject.activeSelf)
             { Fail("Bag G4 source action did not return from GameplayShops to Bag cleanly."); yield break; }
 
             RecordValidationSemantic("bag-source-route-boundary", true,
-                "functionId=17 opened migrated GameplayShops and back returned to Bag");
+                "functionId=17 hid every Bag surface, opened framed GameplayShops, and back restored the framed Bag");
             RecordValidationSemantic("bag-disabled-excluded-target", !CanOpenBagSource(2125),
                 "excluded functionId=2125 is rejected by the shared Bag route availability policy");
 
@@ -4154,6 +4263,19 @@ namespace ProjectX.Core
             InvokeBagControl("BAG-07-USE");
             bagFlowPresenter.SelectGiftChoice(0);
             InvokeBagControl("BAG-18-GIFT-CONFIRM");
+        }
+
+        private bool ReopenBagForRecruitRouteValidation()
+        {
+            if (services?.UiStack.Current != mainView) return false;
+            EnsureBagPresenter();
+            ConfigureBagFrame();
+            bagPresenter.Render();
+            bagFrameView.SetVisible(true);
+            services.UiStack.Push(bagView);
+            bagFrameView.GameObject.transform.SetAsLastSibling();
+            bagView.GameObject.transform.SetAsLastSibling();
+            return IsBagOpen;
         }
 
         public bool RunBagG4DirectUse()
@@ -5301,14 +5423,9 @@ namespace ProjectX.Core
         {
             services.Draw.ReplacePools(pendingDrawPools, services.ServerTime.UnixSeconds);
             EnsureDrawPresenter();
-            // /224 is the authoritative completion of opening recruitment.
-            // Reassert Draw as the active surface after concurrent main-nav
-            // responses have updated their stores.
-            if (drawView != null && services.UiStack.Current != drawView)
-            {
-                services.UiStack.Push(drawView);
-                drawView.GameObject.transform.SetAsLastSibling();
-            }
+            // ShowDraw owns navigation when the request is sent. A delayed /224
+            // response only refreshes authoritative data; it must not reopen Draw
+            // after the user has already closed it or navigated elsewhere.
             RefreshDrawHotPoint();
             SetStatus($"Draw /224 op=1: pools={services.Draw.Count}, free={services.Draw.HasFreeDraw}.");
             if (validation)
@@ -5421,8 +5538,11 @@ namespace ProjectX.Core
             {
                 restoreChatMiniAfterGameplayShop =
                     chatMiniView != null && chatMiniView.GameObject.activeSelf;
+                restoreBagFrameAfterGameplayShop = IsBagOpen
+                    && bagFrameView != null && bagFrameView.GameObject.activeSelf;
             }
             chatMiniView?.SetVisible(false);
+            if (restoreBagFrameAfterGameplayShop) bagFrameView?.SetVisible(false);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
             CocosUiView target = gameplayShopsPresenter.ActiveView;
@@ -8607,8 +8727,12 @@ namespace ProjectX.Core
             bagFlowPresenter = bagFlowPresenter ?? new BagFlowPresenter(
                 bagInputView, bagPopupFrameView, bagGiftView, bagSourceView, bagEquipmentInfoView,
                 services.Resources, services.EquipmentCatalog, services.Bag.GetTotalQuantityByItemId,
-                (item, quantity, target) => InvokeLuaOrFail(onBagUseClicked, "Bag.OnUseClicked",
-                    item.Slot, quantity, target),
+                (item, quantity, target) =>
+                {
+                    BeginBagUseRewardCapture(item);
+                    InvokeLuaOrFail(onBagUseClicked, "Bag.OnUseClicked", item.Slot, quantity, target);
+                },
+                CloseBagForItemJump,
                 HandleBagSourceRoute,
                 CanOpenBagSource,
                 SetStatus);
@@ -8625,6 +8749,16 @@ namespace ProjectX.Core
                     bagFrameView.SetVisible(false);
                     HandleBack();
                 });
+        }
+
+        private void CloseBagForItemJump()
+        {
+            bagFlowPresenter?.CloseAll();
+            bagFrameView?.SetVisible(false);
+            if (services?.UiStack.Current == bagView)
+                services.UiStack.Pop();
+            else
+                bagView?.SetVisible(false);
         }
 
         private static bool CanOpenBagSource(int functionId)
@@ -10013,9 +10147,17 @@ namespace ProjectX.Core
         private void CloseGameplayShops()
         {
             bagPopupFrameView?.SetVisible(false);
-            HandleBack();
+            services?.UiStack.Pop();
+            if (restoreBagFrameAfterGameplayShop && IsBagOpen)
+            {
+                ConfigureBagFrame();
+                bagFrameView?.SetVisible(true);
+                bagFrameView?.GameObject.transform.SetAsLastSibling();
+                bagView?.GameObject.transform.SetAsLastSibling();
+            }
             if (restoreChatMiniAfterGameplayShop) chatMiniView?.SetVisible(true);
             restoreChatMiniAfterGameplayShop = false;
+            restoreBagFrameAfterGameplayShop = false;
         }
 
         private void ConfigureGameplayShopsFrame()
