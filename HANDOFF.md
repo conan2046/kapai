@@ -1,7 +1,18 @@
 # 本地卡牌项目调试交接
 
-> 当前交接：2026-08-20 Steam已排除12个模块；仅保留有AI闭环的竞技场
+> 当前交接：2026-08-21 Bag 已按当前标准重新完成 G0-G6；严格完成率以 `UNITYCLIENT_STATUS.md` 的 `9/17 = 52.9%` 为准
 > 新任务必须先读 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 立即停止，不得进入G0-G6。
+
+## 0. 2026-08-21 Bag 当前重验收口
+
+- 门禁：`G0-G6 passed / 26/26 complete`；当前真实入口为 `Layer/Main_UI/ButtonGroup1/btn_Bag`，旧 2026-07-27 Runner、构建 SHA 和完成结论继续仅作追溯。
+- 固定账号 `7200057/1000115`；26/26 真实控件、14/14 语义断言、10/10 同账号同数据同步骤的双端原生 `1334×750` 状态对照通过。
+- `/8`、`/15` 已覆盖全量、增量新增/更新/删除、整理、直接/批量/任选使用、错误分支、关闭重进、断线重连、持久化、切号和精确恢复；Fixture 残留 0，严重异常 0。
+- 视觉受控差异：Cocos 同 `sort_priority` 项非稳定次序；Cocos 旧长列表基准未实际滚动而 Unity 按冻结矩阵实现真实 ScrollRect；重连底部提示属于 Bag 边界外 PlayerHud。
+- 正式 `BuildBatch` 两次 SHA-256 均为 `090ABA5905E35B4E965C16F044DD19F0D7A3F2E4E7C9DE131E6E2ABC8B426CA4`；自动复盘 52/52 已解决、待诊断 0、未解决 0；工具链 170/170、文档 29 模块一致、Git 范围 unexpected=0。
+- 证据：`.local/unity-validation/bag-fixed-account-latest.json`、`.local/unity-validation/bag-fixed-account-runner-latest.json`、`.local/ui-fidelity/Bag/compare/g5-20260821/report.json`、`.local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json`、`.local/unity-validation/bag-retrospective-latest.json`、`docs/unityclient/matrices/BAG_CONTROLS.json`。
+- 已关闭本轮 workspace-local MySQL、Cocos、Unity、`kapai.exe` 与 Computer Use 运行时；未提交工作树含用户既有改动，禁止 reset、checkout、自动暂存或夹带提交。
+- 下一任务先读 `AGENTS.md`、`UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、`HANDOFF.md` 和 Bag 自动复盘，再从唯一状态源选择一个未完成且未被 Steam 排除的模块，从 G0 开始。只有用户明确要求才提交或推送。
 
 ## 0. 2026-08-20 Steam范围调整
 

@@ -112,13 +112,13 @@
     {
       "key": "Bag",
       "displayName": "背包",
-      "status": "g6-complete",
+      "status": "complete",
       "protocols": [
         8,
         15
       ],
       "entries": [
-        "Layer/Main_UI/ButtonGroup5/btn_beibao"
+        "Layer/Main_UI/ButtonGroup1/btn_Bag"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
@@ -145,16 +145,28 @@
       "visualFidelity": {
         "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/Bag/cocos/g1-20260727/05-bag-default-populated.png"
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-POPULATED.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-GIFT.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-SOURCE.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-EQUIPMENT-INFO.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-DISCONNECTED.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-RECONNECTED.png",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-REENTER.png"
         ],
         "unityScreenshots": [
-          ".local/ui-fidelity/Bag/unity/g5-20260727/BAG-01-ENTRY.png"
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-POPULATED.png",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT.png",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SOURCE.png",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-EQUIPMENT-INFO.png",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-DISCONNECTED.png",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-RECONNECTED.png",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-REENTER.png"
         ],
         "diffReports": [
-          ".local/ui-fidelity/Bag/compare/g5-live-20260727/report.json",
-          ".local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json"
+          ".local/ui-fidelity/Bag/compare/g5-20260821/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json"
         ],
-        "flowEvidence": ".local/unity-validation/bag-latest.json",
+        "flowEvidence": ".local/unity-validation/bag-operation-ledger.json",
         "uiMapping": "docs/unityclient/matrices/BAG_CONTROLS.json"
       },
       "controlMatrix": "docs/unityclient/matrices/BAG_CONTROLS.json",

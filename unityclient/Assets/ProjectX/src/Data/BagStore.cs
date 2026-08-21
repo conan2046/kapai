@@ -47,14 +47,75 @@ namespace ProjectX.Data
         private readonly Dictionary<int, BagItemRecord> bySlot = new Dictionary<int, BagItemRecord>();
         public event Action Changed;
         public int Count => bySlot.Count;
-        public IReadOnlyList<BagItemRecord> Items => bySlot.Values
-            .Where(item => item.ItemId > 0 && item.Quantity > 0)
-            .Where(item => item.ItemType != 2 && item.ItemType != 7
-                && item.ItemType != 13 && item.ItemType != 16)
-            .OrderBy(item => item.SortPriority)
-            .ThenBy(item => item.ItemId)
-            .ThenBy(item => item.Slot)
-            .ToArray();
+        public IReadOnlyList<BagItemRecord> Items
+        {
+            get
+            {
+                List<BagItemRecord> visible = bySlot.Values
+                    .Where(item => item.ItemId > 0 && item.Quantity > 0)
+                    .Where(item => item.ItemType != 2 && item.ItemType != 7
+                        && item.ItemType != 13 && item.ItemType != 16)
+                    .OrderBy(item => item.Slot)
+                    .GroupBy(item => item.ItemId)
+                    .Select(group =>
+                    {
+                        BagItemRecord representative = group.First();
+                        return new BagItemRecord(representative.Slot, representative.ItemId,
+                            group.Sum(item => item.Quantity), representative.Name, representative.Description,
+                            representative.Picture, representative.Quality, representative.UseType,
+                            representative.UseJump, representative.SortPriority, representative.ItemType,
+                            representative.ItemFrom, representative.Choices, representative.Sources);
+                    })
+                    .ToList();
+                LuaPrioritySort(visible, 0, visible.Count - 1);
+                return visible;
+            }
+        }
+
+        // KaPaiBagSubUI.lua uses Lua 5.1 table.sort with only sort_priority in
+        // the comparator. Equal priorities therefore follow Lua's deterministic
+        // quicksort permutation, not itemId order or a stable LINQ tie-breaker.
+        private static void LuaPrioritySort(List<BagItemRecord> items, int lower, int upper)
+        {
+            while (lower < upper)
+            {
+                if (items[upper].SortPriority < items[lower].SortPriority) Swap(items, lower, upper);
+                if (upper - lower == 1) break;
+                int middle = (lower + upper) / 2;
+                if (items[middle].SortPriority < items[lower].SortPriority) Swap(items, middle, lower);
+                else if (items[upper].SortPriority < items[middle].SortPriority) Swap(items, middle, upper);
+                if (upper - lower == 2) break;
+                Swap(items, middle, upper - 1);
+                int left = lower;
+                int right = upper - 1;
+                BagItemRecord pivot = items[upper - 1];
+                while (true)
+                {
+                    while (items[++left].SortPriority < pivot.SortPriority) { }
+                    while (pivot.SortPriority < items[--right].SortPriority) { }
+                    if (right < left) break;
+                    Swap(items, left, right);
+                }
+                Swap(items, left, upper - 1);
+                if (left - lower < upper - left)
+                {
+                    LuaPrioritySort(items, lower, left - 1);
+                    lower = left + 1;
+                }
+                else
+                {
+                    LuaPrioritySort(items, left + 1, upper);
+                    upper = left - 1;
+                }
+            }
+        }
+
+        private static void Swap(List<BagItemRecord> items, int first, int second)
+        {
+            BagItemRecord value = items[first];
+            items[first] = items[second];
+            items[second] = value;
+        }
 
         public void Replace(IEnumerable<BagItemRecord> items)
         {

@@ -47,6 +47,29 @@ if ($controlMatrix) {
 }
 
 if ($Phase -eq "Preflight") {
+    # Preflight must validate the contract implied by the registry state. A stale
+    # module previously passed here with only a control count and eight capture
+    # labels even though its G3 runtime/source contract was absent.
+    Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig -Scenario $scenario -Phase G0 | Out-Null
+    $gateState = @(Get-UnityMigrationGateState -Root $root -ModuleKey ([string]$moduleConfig.key) | Select-Object -First 1)
+    if ($gateState.Count -eq 1) {
+        $g2Passed = [string](Get-UnityMigrationPropertyValue -Object $gateState[0].gates -Name "G2" -Default "pending") -eq "passed"
+        $g3OrLaterPassed = @(3..6 | Where-Object {
+            [string](Get-UnityMigrationPropertyValue -Object $gateState[0].gates -Name "G$_" -Default "pending") -eq "passed"
+        }).Count -gt 0
+        $g6Passed = [string](Get-UnityMigrationPropertyValue -Object $gateState[0].gates -Name "G6" -Default "pending") -eq "passed"
+        if ($g2Passed) {
+            $matrix = (Import-UnityMigrationJson -Root $root -Path $controlMatrix).Value
+            $auditFailures = @(Get-UnityMigrationSourceAuditFailures -Matrix $matrix)
+            if ($auditFailures.Count -gt 0) { throw "Module '$Module' claims G2 passed with incomplete source audit: $($auditFailures -join '; ')" }
+        }
+        if ($g3OrLaterPassed) {
+            Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig -Scenario $scenario -Phase G3 | Out-Null
+        }
+        if ($g6Passed) {
+            Assert-UnityMigrationControlMatrix -Root $root -ModuleKey ([string]$moduleConfig.key) -Path $controlMatrix | Out-Null
+        }
+    }
     Write-Host "Hard gates preflight passed: module=$Module scenario=$($scenario.key) controls=$controlCount captureStates=$($captureStates.Count)"
     exit 0
 }

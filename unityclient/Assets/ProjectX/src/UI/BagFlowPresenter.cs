@@ -30,8 +30,10 @@ namespace ProjectX.UI
         private readonly CocosUiView equipmentInfoView;
         private readonly Core.ResourceService resources;
         private readonly EquipmentCatalog equipmentCatalog;
+        private readonly Func<int, int> ownedQuantity;
         private readonly Action<BagItemRecord, int, int> useAction;
         private readonly Action<int> jumpAction;
+        private readonly Func<int, bool> canJump;
         private readonly Action<string> feedback;
         private readonly List<Choice> choices = new List<Choice>();
         private readonly Dictionary<int, Button> giftChoiceButtons = new Dictionary<int, Button>();
@@ -40,6 +42,7 @@ namespace ProjectX.UI
         private Choice sourceChoice;
         private int quantity;
         private int maxQuantity;
+        private int inputDigitMask;
         private InputField inputField;
         private Text inputPlaceholder;
         private Text inputValue;
@@ -57,8 +60,10 @@ namespace ProjectX.UI
             CocosUiView equipmentInfoView,
             Core.ResourceService resources,
             EquipmentCatalog equipmentCatalog,
+            Func<int, int> ownedQuantity,
             Action<BagItemRecord, int, int> useAction,
             Action<int> jumpAction,
+            Func<int, bool> canJump,
             Action<string> feedback)
         {
             this.inputView = inputView ?? throw new ArgumentNullException(nameof(inputView));
@@ -68,8 +73,10 @@ namespace ProjectX.UI
             this.equipmentInfoView = equipmentInfoView ?? throw new ArgumentNullException(nameof(equipmentInfoView));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.equipmentCatalog = equipmentCatalog ?? throw new ArgumentNullException(nameof(equipmentCatalog));
+            this.ownedQuantity = ownedQuantity ?? throw new ArgumentNullException(nameof(ownedQuantity));
             this.useAction = useAction ?? throw new ArgumentNullException(nameof(useAction));
             this.jumpAction = jumpAction ?? throw new ArgumentNullException(nameof(jumpAction));
+            this.canJump = canJump ?? (_ => false);
             this.feedback = feedback ?? (_ => { });
             ConfigureInput();
             ConfigureGift();
@@ -186,7 +193,15 @@ namespace ProjectX.UI
         {
             switch (controlId)
             {
-                case "BAG-08-INPUT-DIGITS": return Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn1");
+                case "BAG-08-INPUT-DIGITS":
+                    for (int digit = 0; digit <= 9; digit++)
+                        if (!Invoke(inputView, $"Layer/Panel/Bg/BtnList/Btn{digit}")) return false;
+                    bool allDigitsInvoked = inputDigitMask == 0x3ff;
+                    quantity = 0;
+                    RenderQuantity();
+                    bool enteredTen = Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn1")
+                        && Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn0");
+                    return allDigitsInvoked && enteredTen && quantity == Mathf.Min(10, maxQuantity);
                 case "BAG-09-INPUT-DELETE": return Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn10");
                 case "BAG-10-INPUT-CONFIRM": return Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn12");
                 case "BAG-11-INPUT-CLOSE": return Invoke(inputView, "Layer/Panel/Bg/Close");
@@ -298,6 +313,7 @@ namespace ProjectX.UI
                 int value = digit;
                 Bind(inputView, $"Layer/Panel/Bg/BtnList/Btn{digit}", () =>
                 {
+                    inputDigitMask |= 1 << value;
                     int next = quantity * 10 + value;
                     quantity = Mathf.Clamp(next, 0, maxQuantity);
                     RenderQuantity();
@@ -326,6 +342,7 @@ namespace ProjectX.UI
             activeItem = item;
             maxQuantity = Mathf.Min(item.Quantity, 200);
             quantity = 0;
+            inputDigitMask = 0;
             RenderQuantity();
             inputView.SetVisible(true);
             inputView.GameObject.transform.SetAsLastSibling();
@@ -333,7 +350,6 @@ namespace ProjectX.UI
 
         private void ConfigureGift()
         {
-            ConfigureGiftDimmer();
             Text popupTitle = FindText(popupFrameView, "Layer/shopBg/Popup/Title/Title");
             if (popupTitle != null)
             {
@@ -392,9 +408,12 @@ namespace ProjectX.UI
                 {
                     name.text = choice.Name;
                     name.color = QualityColor(choice.Quality);
+                    name.resizeTextForBestFit = true;
+                    name.resizeTextMinSize = 16;
+                    name.resizeTextMaxSize = Mathf.Max(16, name.fontSize);
                 }
                 Text owned = FindDescendant(row.transform, "Num")?.GetComponent<Text>();
-                if (owned != null) owned.text = "拥有:0";
+                if (owned != null) owned.text = $"拥有:{ownedQuantity(choice.Id)}";
                 if (iconBg != null)
                 {
                     Transform grid = iconBg.Find("Bg") ?? iconBg;
@@ -407,8 +426,19 @@ namespace ProjectX.UI
                     }
                     CreateChoiceIcon(grid, resources.LoadItemIcon(choice.Picture));
                 }
-                Button select = row.GetComponent<Button>() ?? row.GetComponentInChildren<Button>(true)
-                    ?? row.AddComponent<Button>();
+                Button select = row.GetComponent<Button>() ?? row.AddComponent<Button>();
+                Toggle importedToggle = FindDescendant(row.transform, "CheckBox")?.GetComponent<Toggle>();
+                if (importedToggle != null)
+                {
+                    importedToggle.interactable = true;
+                    importedToggle.SetIsOnWithoutNotify(false);
+                    importedToggle.onValueChanged.RemoveAllListeners();
+                    importedToggle.onValueChanged.AddListener(isOn =>
+                    {
+                        if (isOn) selectedChoice = choice;
+                        RenderGiftSelection();
+                    });
+                }
                 select.onClick.RemoveAllListeners();
                 select.onClick.AddListener(() => { selectedChoice = choice; RenderGiftSelection(); });
                 giftChoiceButtons[index] = select;
@@ -455,6 +485,8 @@ namespace ProjectX.UI
             foreach (KeyValuePair<int, Button> pair in giftChoiceButtons)
             {
                 bool selected = pair.Key >= 0 && pair.Key < choices.Count && choices[pair.Key] == selectedChoice;
+                Toggle toggle = FindDescendant(pair.Value.transform, "CheckBox")?.GetComponent<Toggle>();
+                if (toggle != null) toggle.SetIsOnWithoutNotify(selected);
                 Transform checkmark = FindDescendant(pair.Value.transform, "__Checkmark");
                 if (checkmark != null) checkmark.gameObject.SetActive(selected);
             }
@@ -499,7 +531,8 @@ namespace ProjectX.UI
                 row.name = $"RuntimeSource{functionId}";
                 row.SetActive(true);
                 SetRowText(row, "Name_1", "来源：" + SourceName(functionId));
-                SetRowText(row, "Name_2", string.Empty);
+                bool available = canJump(functionId);
+                SetRowText(row, "Name_2", available ? string.Empty : "当前版本暂未开放");
                 SetRowText(row, "times", string.Empty);
                 SetRowActive(row, "Button_1", false);
                 SetRowActive(row, "Button_2", false);
@@ -507,7 +540,8 @@ namespace ProjectX.UI
                 SetRowActive(row, "item_icon", false);
                 Button action = FindDescendant(row.transform, "Button_3")?.GetComponent<Button>() ?? row.AddComponent<Button>();
                 action.onClick.RemoveAllListeners();
-                action.onClick.AddListener(() =>
+                action.interactable = available;
+                if (available) action.onClick.AddListener(() =>
                 {
                     sourceView.SetVisible(false);
                     giftView.SetVisible(false);
@@ -533,6 +567,8 @@ namespace ProjectX.UI
 
         private void ConfigureEquipmentInfo()
         {
+            Image mask = equipmentInfoView.Binding.Find("Layer/zhuangbeiInfoUI/Mask")?.GetComponent<Image>();
+            if (mask != null) mask.color = new Color(0f, 0f, 0f, 0.95f);
             Bind(equipmentInfoView, "Layer/zhuangbeiInfoUI/Popup/Btn_close", () =>
             {
                 equipmentInfoView.SetVisible(false);
@@ -777,7 +813,7 @@ namespace ProjectX.UI
                 case 21: name = "治疗率"; break;
                 default: name = $"属性{id}"; break;
             }
-            string suffix = id >= 6 ? $"+{value / 100f:0.##}%" : $"+{value}";
+            string suffix = id > 9 ? $"+{value / 100f:0.##}%" : $"+{value}";
             return name + suffix;
         }
 
@@ -1045,40 +1081,6 @@ namespace ProjectX.UI
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
             rect.SetAsLastSibling();
-        }
-
-        private void ConfigureGiftDimmer()
-        {
-            Transform existing = giftView.GameObject.transform.Find("RuntimeGiftDimmer");
-            GameObject dimmer = existing != null ? existing.gameObject
-                : new GameObject("RuntimeGiftDimmer", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform rect = dimmer.GetComponent<RectTransform>();
-            rect.SetParent(giftView.GameObject.transform, false);
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            Image image = dimmer.GetComponent<Image>();
-            image.color = new Color(0f, 0f, 0f, 0.9f);
-            image.raycastTarget = false;
-            rect.SetAsFirstSibling();
-
-            Transform existingBackdrop = giftView.GameObject.transform.Find("RuntimeGiftBackdrop");
-            GameObject backdrop = existingBackdrop != null ? existingBackdrop.gameObject
-                : new GameObject("RuntimeGiftBackdrop", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform backdropRect = backdrop.GetComponent<RectTransform>();
-            backdropRect.SetParent(giftView.GameObject.transform, false);
-            backdropRect.anchorMin = backdropRect.anchorMax = new Vector2(0.5f, 0.5f);
-            backdropRect.pivot = new Vector2(0.5f, 0.5f);
-            backdropRect.anchoredPosition = new Vector2(0f, -100f);
-            backdropRect.sizeDelta = new Vector2(1060f, 600f);
-            Image backdropImage = backdrop.GetComponent<Image>();
-            Image source = popupFrameView.Binding.Find("Layer/shopBg/Popup/bg/Image1")?.GetComponent<Image>();
-            backdropImage.sprite = source?.sprite;
-            backdropImage.type = source?.type ?? Image.Type.Sliced;
-            backdropImage.color = source != null ? source.color : new Color32(235, 218, 195, 255);
-            backdropImage.raycastTarget = false;
-            backdropRect.SetSiblingIndex(1);
         }
 
         private static Transform FindDescendant(Transform root, string name)

@@ -1682,6 +1682,77 @@
       }
     },
     {
+      "module": "Bag",
+      "fixedAccount": {
+        "userId": 7200057,
+        "roleId": 1000115,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000115,
+        "adapter": "tools/unity-migration/Invoke-BagCocosFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Bag/fixture/bag-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/bag-fixed-account-latest.json",
+        "visualResultEvidence": ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
+        "visualValidationFlags": ["-projectXBagG4Validation"],
+        "visualOnlyArtifacts": false,
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {"id":"bag-fixed-account-link","description":"固定 userId=7200057 必须唯一绑定 roleId=1000115，所有 Cocos/Unity 证据使用同一身份。"},
+            {"id":"bag-deterministic-type-state","description":"可逆 package 夹具同时提供不可用、跳转、直接使用、批量使用、任选礼包、重复槽聚合和超过一屏状态。"},
+            {"id":"bag-authoritative-mutations","description":"真实 /15 覆盖体力丹对 user_spirit、贵族经验、任选礼包奖励与源道具扣除；只在权威回包后刷新。"},
+            {"id":"bag-full-row-exact-restore","description":"Setup 前完整快照 role_info 与所属 user_info 分片行；finally 整行恢复、重登录哈希一致。"},
+            {"id":"bag-fixture-zero-residue","description":"codex_bag_role_backup 与 codex_bag_user_backup 最终必须删除，残留计数为0。"}
+          ]
+        },
+        "artifactCopies": [
+          {"source":"build/ui-migration/bootstrap-bag.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-POPULATED.png"},
+          {"source":"build/ui-migration/bootstrap-bag-scrolled.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SCROLLED.png"},
+          {"source":"build/ui-migration/bootstrap-bag-input.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-INPUT.png"},
+          {"source":"build/ui-migration/bootstrap-bag-gift.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT.png"},
+          {"source":"build/ui-migration/bootstrap-bag-gift-scrolled.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT-SCROLLED.png"},
+          {"source":"build/ui-migration/bootstrap-bag-source.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SOURCE.png"},
+          {"source":"build/ui-migration/bootstrap-bag-equipment-info.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-EQUIPMENT-INFO.png"},
+          {"source":"build/ui-migration/bootstrap-bag-disconnected.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-DISCONNECTED.png"},
+          {"source":"build/ui-migration/bootstrap-bag-reconnected.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-RECONNECTED.png"},
+          {"source":"build/ui-migration/bootstrap-bag-reenter.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-REENTER.png"}
+        ]
+      },
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/Bag/cocos/g1-20260821",
+        "unityDirectory": ".local/ui-fidelity/Bag/unity/g5-20260821",
+        "compareDirectory": ".local/ui-fidelity/Bag/compare/g5-20260821",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/Role/KaPaiBagMainUI.lua",
+          "client/ProjectX/src/View/Role/KaPaiBagSubUI.lua",
+          "client/ProjectX/src/View/Common/GiftChooseUI.lua",
+          "client/ProjectX/src/View/Common/ItemSourceUI.lua",
+          "client/ProjectX/res/csd/zhujue/beibao.csb",
+          "client/ProjectX/src/ConfigData/item_dat.lua",
+          "server/src/pack_deal.cpp",
+          "server/src/user.cpp",
+          "tools/unity-migration/Invoke-BagCocosFixture.ps1"
+        ],
+        "pairs": [
+          {"id":"BAG-POPULATED","cocos":"BAG-POPULATED.png","unity":"BAG-POPULATED.png"},
+          {"id":"BAG-SCROLLED","cocos":"BAG-SCROLLED.png","unity":"BAG-SCROLLED.png"},
+          {"id":"BAG-INPUT","cocos":"BAG-INPUT.png","unity":"BAG-INPUT.png"},
+          {"id":"BAG-GIFT","cocos":"BAG-GIFT.png","unity":"BAG-GIFT.png"},
+          {"id":"BAG-GIFT-SCROLLED","cocos":"BAG-GIFT-SCROLLED.png","unity":"BAG-GIFT-SCROLLED.png"},
+          {"id":"BAG-SOURCE","cocos":"BAG-SOURCE.png","unity":"BAG-SOURCE.png"},
+          {"id":"BAG-EQUIPMENT-INFO","cocos":"BAG-EQUIPMENT-INFO.png","unity":"BAG-EQUIPMENT-INFO.png"},
+          {"id":"BAG-DISCONNECTED","cocos":"BAG-DISCONNECTED.png","unity":"BAG-DISCONNECTED.png"},
+          {"id":"BAG-RECONNECTED","cocos":"BAG-RECONNECTED.png","unity":"BAG-RECONNECTED.png"},
+          {"id":"BAG-REENTER","cocos":"BAG-REENTER.png","unity":"BAG-REENTER.png"}
+        ]
+      }
+    },
+    {
       "module": "SevenDay",
       "g5": {
         "width": 1334,

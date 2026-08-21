@@ -269,6 +269,75 @@ Assert-ToolchainTest (
     $networkFlags -contains "-projectXSampleValidation" -and
     $networkFlags -contains "-projectXScenarioManagedReconnect"
 ) "Scenario network capability did not produce the generic managed-reconnect runtime flag."
+$bootstrapRunnerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('bool scenarioManagedReconnect = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXScenarioManagedReconnect") >= 0;') -and
+    $bootstrapRunnerSource.Contains('reconnectValidation || manualReconnectValidation || scenarioManagedReconnect')
+) "Bootstrap runner no longer honors the generic scenario-managed reconnect flag."
+$bagRunnerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('if (invoked && HasCommandLineFlag("-projectXBagG4Validation"))') -and
+    $bagRunnerSource.Contains('MarkValidationControl("BAG-01-MAIN-ENTRY");') -and
+    $bagRunnerSource.Contains('MarkValidationControl("BAG-04-LIST-ITEM");') -and
+    $bagRunnerSource.Contains('MarkValidationControl(controlId);') -and
+    -not $bagRunnerSource.Contains('foreach (string control in bagControls) MarkValidationControl(control);')
+) "Bag coverage no longer records only controls reached through real entry, item and bound-control callbacks."
+$bagSemanticKeys = @(
+    "bag-current-main-entry", "bag-authoritative-full-and-incremental", "bag-duplicate-slot-aggregation",
+    "bag-type-dispatch", "bag-direct-use-authority", "bag-batch-use-bounds", "bag-choice-use-authority",
+    "bag-source-route-boundary", "bag-disabled-excluded-target", "bag-selection-scroll-refresh",
+    "bag-network-recovery", "bag-account-isolation", "bag-fixture-exact-restore", "bag-control-matrix-26"
+)
+Assert-ToolchainTest (
+    @($bagSemanticKeys | Where-Object { -not $bagRunnerSource.Contains("RecordValidationSemantic(`"$_`"") }).Count -eq 0
+) "Bag runtime no longer records every required semantic at its asserted business checkpoint."
+$bagEvidenceContract = @((Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/module-evidence-contracts.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json).modules | Where-Object { $_.module -eq "Bag" })[0]
+Assert-ToolchainTest (
+    $bagEvidenceContract.fixedAccount.skipPostValidationFixtureAssert -eq $true
+) "Bag fixed-account runner again requires the pristine Setup package after authoritative item consumption."
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('bool preserveBagForScenario = HasCommandLineFlag("-projectXBagG4Validation") && IsBagOpen;') -and
+    $bagRunnerSource.Contains('case "BAG-01-ENTRY": artifactName = "bootstrap-bag.png";') -and
+    $bagRunnerSource.Contains('case "BAG-01-RECONNECT":') -and
+    $bagRunnerSource.Contains('ShowToast("重新连接成功", 2f);') -and
+    $bagRunnerSource.Contains('if (!bagInitialG5DisconnectCaptured)') -and
+    $bagRunnerSource.Contains('if (!bagInitialG5ReconnectCaptured)') -and
+    $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-PERSISTENCE-REENTER")') -and
+    $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-PERSISTENCE-RECONNECT")') -and
+    $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-PERSISTENCE-DISCONNECTED")') -and
+    $bagRunnerSource.Contains('case "BAG-20-EQUIPMENT-SOURCE": artifactName = "bootstrap-bag-source.png";')
+) "Bag G5 capture no longer preserves the Cocos-style disconnected background or distinct entry/reconnect states."
+$bagFlowSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
+$bagStoreSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Data/BagStore.cs") -Raw -Encoding UTF8
+$bootstrapIdempotenceSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Test-BootstrapSceneIdempotence.ps1") -Raw -Encoding UTF8
+$gameErrorSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bagFlowSource.Contains('importedToggle.SetIsOnWithoutNotify(false)') -and
+    $bagFlowSource.Contains('toggle.SetIsOnWithoutNotify(selected)') -and
+    $bagFlowSource.Contains('string suffix = id > 9 ?') -and
+    $bagFlowSource.Contains('name.resizeTextForBestFit = true;') -and
+    $bagFlowSource.Contains('mask.color = new Color(0f, 0f, 0f, 0.95f);')
+) "Bag G5 modal rendering no longer synchronizes gift selection, preserves full names, or darkens equipment stacking like Cocos."
+Assert-ToolchainTest (
+    $gameErrorSource.Contains('message.text.StartsWith("无法连接服务器", StringComparison.Ordinal)')
+) "Connection failure confirmation no longer preserves the Cocos top-left message layout."
+Assert-ToolchainTest (
+    $bagStoreSource.Contains('LuaPrioritySort(visible, 0, visible.Count - 1);') -and
+    $bagStoreSource.Contains('while (items[++left].SortPriority < pivot.SortPriority)') -and
+    -not $bagStoreSource.Contains('.ThenBy(item => item.ItemId)')
+) "Bag equal-priority ordering no longer follows the source Lua 5.1 table.sort permutation."
+Assert-ToolchainTest (
+    $bootstrapIdempotenceSource.Contains('ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process') -and
+    -not $bootstrapIdempotenceSource.Contains("'error CS\d+|Exception:|Compilation failed|Aborting batchmode'")
+) "Bootstrap idempotence again treats Unity's recovered lingering-ILPP cleanup exception as a fatal build error."
 $validCocosPreflight = [pscustomobject]@{
     module = "Sample"; tool = "computer-use@openai-bundled"
     targetProcess = "ProjectX.exe"; targetWindow = "Cocos Simulator"
@@ -481,6 +550,12 @@ Assert-ToolchainTest (
     $hardGateSource.Contains("OpenAI\\Codex\\runtimes\\cua_node")
 ) "G6 no longer rejects a residual Computer Use runtime after native Cocos evidence collection."
 Assert-ToolchainTest (
+    $hardGateSource.Contains('Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig -Scenario $scenario -Phase G0') -and
+    $hardGateSource.Contains('claims G2 passed with incomplete source audit') -and
+    $hardGateSource.Contains('Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig -Scenario $scenario -Phase G3') -and
+    $hardGateSource.Contains('Assert-UnityMigrationControlMatrix -Root $root -ModuleKey')
+) "Hard-gate preflight no longer rejects stale G2/G3/G6 completion claims with weak workflow, source-audit or control contracts."
+Assert-ToolchainTest (
     (Get-UnityMigrationComputerUseRestartDisposition -ErrorMessage 'node_repl/js transport closed' `
         -Attempt 1 -RuntimeWasVerifiedStopped $true) -eq 'RetryOnceAfterVerifiedCleanup' -and
     (Get-UnityMigrationComputerUseRestartDisposition -ErrorMessage 'node_repl/js transport closed' `
@@ -653,7 +728,11 @@ $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-Unit
 Assert-ToolchainTest (
     $fixedRunnerSource.Contains('$requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }') -and
     $fixedRunnerSource.Contains('$workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }') -and
-    $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)')
+    $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)') -and
+    $fixedRunnerSource.Contains('$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"') -and
+    $fixedRunnerSource.Contains('$serverStartParameters = @{ WaitSeconds = 60 }') -and
+    ([regex]::Matches($fixedRunnerSource, '& \$startServerScript @serverStartParameters').Count -eq 3) -and
+    -not $fixedRunnerSource.Contains('& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1")')
 ) "Fixed-account data/compile preflights no longer run after G2 while the full run remains gated by G3."
 
 $commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
@@ -911,7 +990,8 @@ Assert-ToolchainTest (
     $startServerSource.Contains('[string]$ConfigDirectory') -and
     $startServerSource.Contains('[IO.Path]::IsPathRooted($ConfigDirectory)') -and
     $fixedAccountRunnerSource.Contains('serverConfigDirectory') -and
-    $fixedAccountRunnerSource.Contains('@serverStartArguments')
+    $fixedAccountRunnerSource.Contains('$serverStartParameters.ConfigDirectory =') -and
+    $fixedAccountRunnerSource.Contains('@serverStartParameters')
 ) "Fixed-account runner no longer supports an isolated module server configuration directory."
 Assert-ToolchainTest (
     $staminaFixtureSource.Contains('[string]$State = "Mixed"') -and

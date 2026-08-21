@@ -1949,4 +1949,19 @@ INSERT INTO `function_switch` (`id`,`function_type`,`switch_state`)
 SELECT 1,1,1
 WHERE NOT EXISTS (SELECT 1 FROM `function_switch` WHERE `function_type`=1);
 
+-- Every SQLite local-test role starts with the persistent mixed-item fixture used
+-- by Unity bag and item-operation tests. Existing non-empty packages are preserved.
+CREATE TRIGGER IF NOT EXISTS `local_test_seed_role_inventory`
+AFTER INSERT ON `role_info`
+WHEN NEW.`package` IS NULL OR NEW.`package` = ''
+BEGIN
+  UPDATE `role_info`
+  SET `package`='789cedc7b90dc2401440c1ddff36c112486c463b802be0141967256e802a1f1013634417049e6c8ea3268d6bc7a476f4d326cd6a93ee59de593e59fa2c29248744c829e41c7209b986dc42e6c80259222db242d6c806d9223be4813c91d7ef45f6450e45d2603048ffee0b79de27f7',
+      `money`=CASE
+        WHEN CAST(COALESCE(NULLIF(`money`,''),'0') AS INTEGER) < 999999 THEN '999999'
+        ELSE `money`
+      END
+  WHERE `id`=NEW.`id`;
+END;
+
 COMMIT;

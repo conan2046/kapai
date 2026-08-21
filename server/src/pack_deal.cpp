@@ -79,6 +79,46 @@ static bool RepairLocalRoleNullFields(CDatabaseSql *pDb, uint32 roleId)
 	return pDb->Query(sql.str().c_str());
 }
 
+static bool GetLocalChoiceItemAward(uint16 itemId, uint8 target, int& rewardId, int& rewardNum)
+{
+	if(target == 0)
+		return false;
+
+	if(itemId >= 1111 && itemId <= 1113 && target <= 8)
+	{
+		rewardId = 4621 + (itemId - 1111) * 8 + target - 1;
+		rewardNum = 1;
+		return true;
+	}
+
+	static const int formationBooks[] = { 2725, 2726, 2727, 2728, 2729, 2730 };
+	static const int redHeroFragments[] = { 2404, 2405, 2406, 2418, 2419, 2420, 2421, 2422, 2423 };
+	static const int redHeroPair[] = { 2406, 2418 };
+	const int *rewards = NULL;
+	size_t rewardCount = 0;
+	rewardNum = 1;
+	if(itemId == 1114)
+	{
+		rewards = formationBooks;
+		rewardCount = sizeof(formationBooks) / sizeof(formationBooks[0]);
+	}
+	else if(itemId == 1116)
+	{
+		rewards = redHeroFragments;
+		rewardCount = sizeof(redHeroFragments) / sizeof(redHeroFragments[0]);
+		rewardNum = 3300;
+	}
+	else if(itemId == 1120)
+	{
+		rewards = redHeroPair;
+		rewardCount = sizeof(redHeroPair) / sizeof(redHeroPair[0]);
+	}
+	if(rewards == NULL || target > rewardCount)
+		return false;
+	rewardId = rewards[target - 1];
+	return true;
+}
+
 extern vector<SChongZhiData> G_CZ_INFO_A;
 extern vector<SChongZhiData> G_CZ_INFO_IOS;
 extern vector<SChongZhiData> G_CZ_INFO_RMBSHOP;
@@ -10393,6 +10433,17 @@ void CPackageDeal::UpdatePackage(CNetMessage *pMsg,int sock)
 				PetDraw(&tempMsg,pUser->GetSock());
 				return;
 			}
+			if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1"
+				&& pInst->tmplId >= 3201 && pInst->tmplId <= 3203)
+			{
+				static const int vipExperience[] = { 10, 50, 100 };
+				if(pInst->num < num)
+					num = pInst->num;
+				pUser->AddExVipExp(vipExperience[pInst->tmplId - 3201] * num);
+				pUser->DelPackage(pos, num);
+				pUser->UpdateVipInfoEx();
+				return;
+			}
 			pUser->UseItem(pos,NULL,NULL,val,val1,num);
 		}
 		else if(gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1")
@@ -10410,20 +10461,26 @@ void CPackageDeal::UpdatePackage(CNetMessage *pMsg,int sock)
 				<<" type="<<(pItem == NULL ? -1 : (int)pItem->type)
 				<<" awards="<<(pItem == NULL ? 0 : pItem->subAward.size())
 				<<" target="<<(int)target<<endl;
-			if(pInst == NULL || pInst->num == 0 || pItem == NULL)
+			if(pInst == NULL || pInst->num == 0)
 				return;
 			if(pInst->num < num)
 				num = pInst->num;
-			if(pInst->tmplId >= 1111 && pInst->tmplId <= 1113 && target <= 8)
+			int rewardId = 0;
+			int rewardNum = 0;
+			if(GetLocalChoiceItemAward(pInst->tmplId, target, rewardId, rewardNum))
 			{
-				// This checkout's server item DAT predates the shipped client
-				// definitions for the three choice-fragment boxes.
-				const int rewardId = 4621 + (pInst->tmplId - 1111) * 8 + target - 1;
-				pUser->AddBangDingPackage(rewardId, num);
+				// The local server JSON predates all six shipped client choice boxes.
+				// Never consume a box unless its selected reward was actually added.
+				if(!pUser->AddBangDingPackage(rewardId, rewardNum * num))
+				{
+					cout<<"[local] choice item award failed; box preserved pos="<<pos
+						<<" reward="<<rewardId<<" num="<<(rewardNum * num)<<endl;
+					return;
+				}
 			}
 			else
 			{
-				if(pItem->type != 6 || pItem->subAward.size() < target)
+				if(pItem == NULL || pItem->type != 6 || pItem->subAward.size() < target)
 					return;
 				SAwardData award = pItem->subAward[target - 1];
 				award.num *= num;

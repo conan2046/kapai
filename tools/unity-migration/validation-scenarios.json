@@ -262,11 +262,15 @@
     {
       "key": "bag-default",
       "module": "Bag",
-      "fixture": "isolated-role",
+      "fixture": "reversible-bag-fixed-account",
       "requiredGate": "G3",
       "flags": [
         "-projectXBagG4Validation"
       ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-bag.png",
@@ -274,15 +278,85 @@
         }
       ],
       "captureStates": [
-        "bag",
-        "input",
-        "gift",
-        "source",
+        "main-entry",
+        "empty",
+        "populated-aggregated",
+        "list-scrolled",
+        "no-action-item",
+        "direct-use-before",
+        "direct-use-after",
+        "quantity-default",
+        "quantity-bounds",
+        "gift-unselected",
+        "gift-selected",
+        "gift-list-scrolled",
+        "source-list",
+        "source-disabled-target",
         "equipment-info",
-        "source-destination",
-        "reload",
-        "reconnect"
-      ]
+        "incremental-delete",
+        "sort-refresh",
+        "disconnected",
+        "reconnected",
+        "reenter",
+        "account-isolation"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "bag-current-main-entry",
+        "bag-authoritative-full-and-incremental",
+        "bag-duplicate-slot-aggregation",
+        "bag-type-dispatch",
+        "bag-direct-use-authority",
+        "bag-batch-use-bounds",
+        "bag-choice-use-authority",
+        "bag-source-route-boundary",
+        "bag-disabled-excluded-target",
+        "bag-selection-scroll-refresh",
+        "bag-network-recovery",
+        "bag-account-isolation",
+        "bag-fixture-exact-restore",
+        "bag-control-matrix-26"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": ["BTN_NAME_Bag = \"btn_Bag\"", "BagTouchCallback", "EMID_BEIBAO"]
+        },
+        {
+          "path": "client/ProjectX/src/View/Role/KaPaiBagSubUI.lua",
+          "contains": ["SortItemList", "self.m_posList[i].num = self.m_posList[i].num + v.m_num", "UseBtnClicked", "ShowNumInputUI", "Common.GiftChooseUI"]
+        },
+        {
+          "path": "client/ProjectX/src/View/Common/ItemSourceUI.lua",
+          "contains": ["ShowFromList", "JumpCallBack", "SweepCallBack", "OpenInfo"]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": ["PRO_ROLE_PACKAGE", "PRO_UPDATE_PACK", "pUser->UseItem(pos,NULL,NULL,val,val1,num)", "pUser->SortPackage()"]
+        },
+        {
+          "path": "server/src/user.cpp",
+          "contains": ["NoLockUseItem", "HDAT_TiLi", "HDAT_VIP_EXP", "NoLockDelPackage(pos, num)"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/BagPresenter.cs",
+          "contains": ["class BagPresenter", "InvokeControl", "ShowDetails"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/BagStore.cs",
+          "contains": ["class BagStore", "Items", "Replace(IEnumerable<BagItemRecord> items)", "GetTotalQuantityByItemId"]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-BagCocosFixture.ps1",
+          "contains": ["reversible-bag-fixed-account", "AssertReloginHash", "AssertCleanup", "aggregateItem500"]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "settings-default",

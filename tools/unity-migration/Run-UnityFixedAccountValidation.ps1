@@ -32,9 +32,9 @@ if ($contract.Count -ne 1 -or $null -eq $contract[0].fixedAccount) {
 $contract = $contract[0]
 $fixed = $contract.fixedAccount
 $serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
-$serverStartArguments = @("-WaitSeconds", "60")
+$serverStartParameters = @{ WaitSeconds = 60 }
 if ($serverConfigDirectoryValue) {
-    $serverStartArguments += @("-ConfigDirectory", (Resolve-UnityMigrationPath -Root $root -Path $serverConfigDirectoryValue))
+    $serverStartParameters.ConfigDirectory = Resolve-UnityMigrationPath -Root $root -Path $serverConfigDirectoryValue
 }
 $contractFailures = @(Get-UnityMigrationFixedAccountContractFailures `
     -Root $root -Module ([string]$moduleConfig.key) -FixedAccount $fixed)
@@ -54,6 +54,7 @@ if ($UserId -eq 0) { $UserId = [uint32]$fixed.userId }
 if ($RoleId -eq 0) { $RoleId = [uint32]$fixed.roleId }
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
 $adapter = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.adapter)
+$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"
 $snapshot = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.snapshot)
 $resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
 $resultEvidence = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.resultEvidence)
@@ -166,8 +167,8 @@ try {
             Invoke-FixedAdapter "Setup"
             $fixtureCreated = $true
             if ([bool]$fixed.dataPreflight.requiresLogin) {
-                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") @serverStartArguments
-                if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight server startup failed." }
+                & $startServerScript @serverStartParameters
+                if (-not $?) { throw "Fixed-account data preflight server startup failed." }
                 & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight login failed." }
                 Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -215,8 +216,8 @@ try {
     try {
         $serverTiming = Start-UnityMigrationTiming
         try {
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") @serverStartArguments
-            if ($LASTEXITCODE -ne 0) { throw "Fixed-account server startup failed." }
+            & $startServerScript @serverStartParameters
+            if (-not $?) { throw "Fixed-account server startup failed." }
         }
         finally {
             Complete-UnityMigrationTiming -Timings $timings -Name "serverStartup" -Timing $serverTiming
@@ -347,8 +348,8 @@ try {
         $reloginTiming = Start-UnityMigrationTiming
         $reloginFailure = $null
         try {
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1") @serverStartArguments
-            if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login server startup failed." }
+            & $startServerScript @serverStartParameters
+            if (-not $?) { throw "Fixed-account restore-login server startup failed." }
             & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login failed." }
         }

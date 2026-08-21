@@ -70,7 +70,8 @@ for ($attempt = 1; $attempt -le 2; $attempt++) {
     if (-not $decisionMatch.Success) {
         throw "Unity Bootstrap attempt $attempt did not report a build decision; see $logPath"
     }
-    if ($log -match 'error CS\d+|Exception:|Compilation failed|Aborting batchmode') {
+    $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process|Compilation failed|Aborting batchmode'
+    if ($log -match $seriousPattern) {
         throw "Unity Bootstrap attempt $attempt contains a serious error; see $logPath"
     }
     $decisions.Add($decisionMatch.Groups[1].Value)

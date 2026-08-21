@@ -225,7 +225,7 @@ namespace ProjectX.Core
                     Detail = ownsProcess
                         ? $"本机游戏服务已就绪（PID {process.Id}）"
                         : $"已复用本机游戏服务（PID {process.Id}）";
-                    ClientLog.Info("LocalServer", Detail);
+                    //ClientLog.Info("LocalServer", Detail);
                     return;
                 }
                 if (Time.realtimeSinceStartup >= deadline)

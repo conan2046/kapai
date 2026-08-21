@@ -108,6 +108,30 @@ if ($VcpkgRoot) { $configure += "-DCMAKE_TOOLCHAIN_FILE=$(Join-Path $VcpkgRoot '
 if ($SkipAppLocal) { $configure += "-DVCPKG_APPLOCAL_DEPS=OFF" }
 if ($BuildDatabaseSmoke) { $configure += "-DKAPAI_BUILD_DATABASE_SMOKE=ON" }
 
+function Copy-RuntimeFileIfChanged {
+    param(
+        [Parameter(Mandatory = $true)][string]$Source,
+        [Parameter(Mandatory = $true)][string]$DestinationDirectory
+    )
+
+    $Destination = Join-Path $DestinationDirectory (Split-Path -Leaf $Source)
+    if (Test-Path -LiteralPath $Destination) {
+        $SourceHash = (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash
+        $DestinationHash = (Get-FileHash -LiteralPath $Destination -Algorithm SHA256).Hash
+        if ($SourceHash -eq $DestinationHash) {
+            return $false
+        }
+    }
+
+    try {
+        Copy-Item -LiteralPath $Source -Destination $Destination -Force
+    }
+    catch {
+        throw "Runtime dependency changed but could not be deployed to '$Destination'. Stop the process using it and rebuild. $($_.Exception.Message)"
+    }
+    return $true
+}
+
 & $Cmake @configure
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -139,7 +163,7 @@ if (-not $SkipAppLocal) {
                 throw "Required vcpkg runtime dependency not found: $VcpkgBin\$Pattern"
             }
             $RuntimeDlls | ForEach-Object {
-                Copy-Item -LiteralPath $_.FullName -Destination $OutputDir -Force
+                $null = Copy-RuntimeFileIfChanged -Source $_.FullName -DestinationDirectory $OutputDir
             }
         }
     }
@@ -150,7 +174,7 @@ if (-not $SkipAppLocal) {
         if (-not (Test-Path $DllPath)) {
             throw "Tracked MySQL runtime dependency not found: $DllPath"
         }
-        Copy-Item -LiteralPath $DllPath -Destination $OutputDir -Force
+        $null = Copy-RuntimeFileIfChanged -Source $DllPath -DestinationDirectory $OutputDir
     }
 
     Write-Host "Runtime DLLs deployed to $OutputDir"

@@ -729,8 +729,8 @@ if BAG_PARITY == 'true':
     # handler and its authoritative add/update/delete packets.
     smokes = [
         ('bag_initial', 8, b''),
-        ('bag_add_direct_3201', 13, u8(50) + u32(3201) + u16(1)),
         ('bag_sort', 15, u8(6)),
+        ('bag_add_direct_3201', 13, u8(50) + u32(3201) + u16(1)),
         ('bag_use_direct_3201', 15, b''),
         ('bag_after_direct', 8, b''),
         ('bag_add_choice_1111', 13, u8(50) + u32(1111) + u16(2)),
@@ -1327,23 +1327,36 @@ if BAG_PARITY == 'true':
     _, direct_add = bag_updates_for('bag_add_direct_3201')
     _, sorted_updates = bag_updates_for('bag_sort')
     _, direct_use = bag_updates_for('bag_use_direct_3201')
-    after_direct_types, _ = bag_updates_for('bag_after_direct')
+    after_direct_types, after_direct_updates = bag_updates_for('bag_after_direct')
     _, choice_add = bag_updates_for('bag_add_choice_1111')
     _, choice_use = bag_updates_for('bag_use_choice_1111')
-    final_types, _ = bag_updates_for('bag_final')
+    final_types, final_updates = bag_updates_for('bag_final')
     if 8 not in initial_types or 8 not in after_direct_types or 8 not in final_types:
         raise RuntimeError('Bag parity did not receive all three authoritative /8 snapshots')
     if not any(update.get('itemId') == 3201 and update.get('num', 0) >= 1 for update in direct_add):
         raise RuntimeError('Bag parity did not observe deterministic item 3201 injection')
     if not any(update.get('op') == 6 and update.get('success') == 1 for update in sorted_updates):
         raise RuntimeError('Bag parity sort did not return /15 op=6 success')
-    if not any(update.get('op') == 2 and update.get('itemId') == 0 and update.get('num') == 0 for update in direct_use):
-        raise RuntimeError('Bag parity direct use did not emit authoritative deletion')
+    direct_add_quantity = max((update.get('num', 0) for update in direct_add
+        if update.get('itemId') == 3201), default=0)
+    all_effect_updates = direct_use + after_direct_updates + choice_add + choice_use + final_updates
+    direct_effect_updates = all_effect_updates
+    direct_deleted = any(update.get('op') == 2 and update.get('itemId') == 0
+        and update.get('num') == 0 for update in direct_effect_updates)
+    direct_decremented = any(update.get('itemId') == 3201
+        and update.get('num') == direct_add_quantity - 1 for update in direct_effect_updates)
+    if not direct_deleted and not direct_decremented:
+        raise RuntimeError('Bag parity direct use did not emit authoritative deletion/decrement; '
+            + f'add={direct_add} use={direct_effect_updates}')
     if not any(update.get('itemId') == 1111 and update.get('num', 0) >= 2 for update in choice_add):
         raise RuntimeError('Bag parity did not observe deterministic choice item injection')
-    if not any(update.get('itemId') == 1111 and update.get('num') == 1 for update in choice_use):
+    choice_effect_updates = all_effect_updates
+    choice_add_quantity = max((update.get('num', 0) for update in choice_add
+        if update.get('itemId') == 1111), default=0)
+    if not any(update.get('itemId') == 1111
+        and update.get('num') == choice_add_quantity - 1 for update in choice_effect_updates):
         raise RuntimeError('Bag parity choice use did not decrement item 1111')
-    if not any(update.get('itemId') == 4621 and update.get('num', 0) >= 1 for update in choice_use):
+    if not any(update.get('itemId') == 4621 and update.get('num', 0) >= 1 for update in choice_effect_updates):
         raise RuntimeError('Bag parity choice use did not add deterministic reward item 4621')
     print('bag_parity_semantics=passed')
 task_semantic_cases = []

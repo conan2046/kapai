@@ -94,7 +94,9 @@ namespace ProjectX.UI
             ConfigureMessageText();
             title.text = string.IsNullOrEmpty(heading) ? "购买确认" : heading;
             message.text = detail ?? string.Empty;
-            if (alignTopLeft)
+            bool useTopLeft = alignTopLeft
+                || message.text.StartsWith("无法连接服务器", StringComparison.Ordinal);
+            if (useTopLeft)
             {
                 message.alignment = TextAnchor.UpperLeft;
                 message.rectTransform.anchoredPosition = new Vector2(0f, 53f);

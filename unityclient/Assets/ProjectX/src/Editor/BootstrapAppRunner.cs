@@ -161,6 +161,7 @@ namespace ProjectX.Editor
             }
             bool reconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXReconnectValidation") >= 0;
             bool manualReconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXManualReconnectValidation") >= 0;
+            bool scenarioManagedReconnect = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXScenarioManagedReconnect") >= 0;
             bool bagG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBagG4Validation") >= 0;
             bool settingsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSettingsValidation") >= 0;
             bool taskG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskG4Validation") >= 0;
@@ -206,7 +207,7 @@ namespace ProjectX.Editor
             bool fundsValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFundsValidation") >= 0;
             bool loginValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginValidation") >= 0;
             bool loginClosureValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginClosureValidation") >= 0;
-            bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation;
+            bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation || scenarioManagedReconnect;
 
             if (loginValidation && loginClosureValidation && status == "Login UI ready.")
             {

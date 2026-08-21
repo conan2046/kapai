@@ -21,8 +21,12 @@ namespace ProjectX.UI
         private readonly Text detailDescription;
         private readonly Image detailIcon;
         private readonly Button useButton;
+        private readonly Button tabButton;
+        private readonly Button detailButton;
         private RectTransform content;
         private int missingIconCount;
+        private int tabClickCount;
+        private int detailClickCount;
         private readonly Dictionary<int, Button> itemButtons = new Dictionary<int, Button>();
         private readonly Dictionary<int, Transform> itemSlots = new Dictionary<int, Transform>();
         private int selectedSlot;
@@ -44,15 +48,16 @@ namespace ProjectX.UI
             Require("item/Btn_use").SetActive(false);
             rowTemplate.SetActive(false);
             Button close = this.frameView.BindClick("Layer/Panel_12/Title/CloseBtn", closeAction, true);
-            Button tab = this.frameView.BindClick("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1", () => { }, true);
-            tab.interactable = false;
+            tabButton = this.frameView.BindClick("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1",
+                () => tabClickCount++, true);
+            tabButton.interactable = true;
             SetFrameText("Layer/Panel_12/Title/TitleName", "道具背包");
             SetFrameText("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1/BtnName", "全部");
             SetFrameText("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1/ChooseBg/BtnName", "全部");
             GameObject detailTouch = Require("item/Node/Icon");
-            Button detail = detailTouch.GetComponent<Button>() ?? detailTouch.AddComponent<Button>();
-            detail.onClick.RemoveAllListeners();
-            detail.onClick.AddListener(() => { });
+            detailButton = detailTouch.GetComponent<Button>() ?? detailTouch.AddComponent<Button>();
+            detailButton.onClick.RemoveAllListeners();
+            detailButton.onClick.AddListener(() => detailClickCount++);
             ConfigureScrollView();
             store.Changed += Render;
             Render();
@@ -119,7 +124,9 @@ namespace ProjectX.UI
                 case "BAG-02-CLOSE":
                     return Invoke(frameView, "Layer/Panel_12/Title/CloseBtn");
                 case "BAG-03-TAB":
-                    return frameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1") != null;
+                    int tabBefore = tabClickCount;
+                    tabButton.onClick.Invoke();
+                    return tabClickCount == tabBefore + 1;
                 case "BAG-04-LIST-ITEM":
                     foreach (Button button in itemButtons.Values) { button.onClick.Invoke(); return true; }
                     return false;
@@ -129,8 +136,9 @@ namespace ProjectX.UI
                     Canvas.ForceUpdateCanvases();
                     return true;
                 case "BAG-06-DETAIL-ICON":
-                    detailIcon.GetComponent<Button>()?.onClick.Invoke();
-                    return detailIcon != null;
+                    int detailBefore = detailClickCount;
+                    detailButton.onClick.Invoke();
+                    return detailClickCount == detailBefore + 1;
                 case "BAG-07-USE":
                     if (useButton == null || !useButton.gameObject.activeSelf) return false;
                     useButton.onClick.Invoke();
@@ -147,8 +155,10 @@ namespace ProjectX.UI
                 && viewportObject.GetComponent<RectMask2D>() != null && !scroll.horizontal && scroll.vertical;
             bool controls = frameView.Binding.Find("Layer/Panel_12/Title/CloseBtn") != null
                 && frameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1") != null
-                && useButton != null && detailIcon != null;
-            detail = $"items={ItemCount}, buttons={itemButtons.Count}, scroll={structure}, controls={controls}";
+                && useButton != null && detailIcon != null && detailButton != null
+                && tabButton != null && tabButton.interactable;
+            detail = $"items={ItemCount}, buttons={itemButtons.Count}, scroll={structure}, controls={controls}, "
+                + $"tabClicks={tabClickCount}, detailClicks={detailClickCount}";
             return structure && controls && itemButtons.Count == ItemCount;
         }
 
@@ -156,6 +166,9 @@ namespace ProjectX.UI
         {
             RectTransform viewport = viewportObject.GetComponent<RectTransform>();
             if (viewportObject.GetComponent<RectMask2D>() == null) viewportObject.AddComponent<RectMask2D>();
+            Image viewportHitArea = viewportObject.GetComponent<Image>() ?? viewportObject.AddComponent<Image>();
+            viewportHitArea.color = Color.clear;
+            viewportHitArea.raycastTarget = true;
             ScrollRect scroll = viewportObject.GetComponent<ScrollRect>() ?? viewportObject.AddComponent<ScrollRect>();
             GameObject contentObject = new GameObject("RuntimeBagContent", typeof(RectTransform));
             contentObject.transform.SetParent(viewport, false);
@@ -211,18 +224,44 @@ namespace ProjectX.UI
                 ApplyQuality(slot, item.Quality);
                 ApplyIcon(slot.Find("Icon")?.GetComponent<Image>(), item.Picture);
                 AddQuantityLabel(slot, slot.Find("Icon"), item.Quantity);
-                Button button = slot.GetComponent<Button>() ?? slot.gameObject.AddComponent<Button>();
-                button.targetGraphic = slot.GetComponent<Graphic>() ?? slot.GetComponentInChildren<Graphic>();
+                Button button = ConfigureItemHitArea(slot);
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() =>
                 {
                     selectedSlot = capturedItem.Slot;
                     UpdateSelectionVisuals();
                     ShowDetails(capturedItem, true);
+                    Debug.Log($"[BagPresenter] Selected slot={capturedItem.Slot}, itemId={capturedItem.ItemId}, name={capturedItem.Name}.");
                 });
                 itemButtons[item.Slot] = button;
                 itemSlots[item.Slot] = slot;
             }
+        }
+
+        private static Button ConfigureItemHitArea(Transform slot)
+        {
+            foreach (Graphic graphic in slot.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = false;
+
+            Transform existing = slot.Find("RuntimeHitArea");
+            GameObject hitObject = existing != null
+                ? existing.gameObject
+                : new GameObject("RuntimeHitArea", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            hitObject.transform.SetParent(slot, false);
+            hitObject.transform.SetAsLastSibling();
+            RectTransform rect = hitObject.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = hitObject.GetComponent<Image>();
+            image.color = Color.clear;
+            image.raycastTarget = true;
+            Button button = hitObject.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.None;
+            button.interactable = true;
+            return button;
         }
 
         private void ApplyQuality(Transform slot, int quality)

@@ -13,7 +13,7 @@
 | 底层/登录 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过；Steam SQLite 启动前置处于 `S0-S4 passed / S5 current / S6-S8 pending` |
 | 系统设置 | `SETTINGS.md` | `G0-G6 passed / 21/21 complete`；设备级持久化、切号隔离、`no-server-fixture`、8/8 双端视觉和 Bootstrap 幂等通过 |
 | 主界面 HUD | `PLAYERHUD.md` | `G0-G6 passed / 56/56 complete`；11/11 双端视觉、14/14 语义、只读权威显示、路由边界、生命周期与 Bootstrap 幂等通过 |
-| 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；双端视觉、真实协议、生命周期与幂等门禁通过 |
+| 背包 | `BAG.md` | `G0-G1 passed / G2-G6 pending / 0/26 current complete`；当前 `btn_Bag` 与固定账号证据已通过，7张Cocos原图复用、3张缺失生命周期状态新拍，尚未进入Unity实现 |
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `G0-G6 passed / 16/16 complete`；阵容主链保持有效，装备操作后的 `/70` 属性刷新由 HeroEquip 重新开门禁修复 |
 | 装备/法宝 | `HERO_EQUIPMENT.md` | `G0 reopened / protocol-70 gap`；历史33控件/20视觉仅作诊断，补齐 `/319→/70` 属性与战力闭环后重做 G0-G6 |

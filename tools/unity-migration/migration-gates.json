@@ -351,57 +351,63 @@
         "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/BAG.md",
-      "note": "Bag G0 scope freezes 26 current Cocos controls after G1 reverse-audit found the nested equipment-info branch. G1 current Cocos evidence passed; G2-G6 require fresh evidence and cannot inherit legacy phase1 results.",
+      "note": "2026-08-21已从当前ButtonGroup1/btn_Bag入口按hard-gate v2逐门禁重验完成；固定账号可逆夹具、26/26控件、14/14语义、10/10双端状态、精确恢复、零残留和双次BuildBatch幂等均通过。旧20260727 Runner、构建SHA和完成结论仅作追溯。",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/BAG_CONTROLS.json",
           "docs/unityclient/modules/BAG.md",
-          "tools/cocos-audit/generated/cocos-current-entry-inventory.json"
+          ".local/unity-validation/bag-g0-source-audit-20260821.md",
+          ".local/protocol-evidence/bag-g0-8-20260821.md",
+          ".local/protocol-evidence/bag-g0-15-20260821.md",
+          "tools/unity-migration/Invoke-BagCocosFixture.ps1"
         ],
         "G1": [
-          ".local/ui-fidelity/Bag/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/Bag/cocos/g1-20260727/05-bag-default-populated.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260727/28-bag-close-main.png"
+          ".local/unity-validation/bag-cocos-automation-ledger.json",
+          ".local/unity-validation/bag-cocos-preflight-latest.json",
+          ".local/unity-validation/bag-cocos-identity-latest.json",
+          ".local/unity-validation/bag-cocos-baseline-latest.json",
+          ".local/ui-fidelity/Bag/cocos/g1-20260821/reuse-manifest.json"
         ],
         "G2": [
-          "docs/unityclient/modules/BAG.md",
           "docs/unityclient/matrices/BAG_CONTROLS.json",
-          "tools/unity-migration/unityclient-modules.json",
-          ".local/protocol-evidence/8.md",
-          ".local/protocol-evidence/15.md"
+          ".local/unity-validation/bag-g2-source-audit-20260821.md",
+          ".local/protocol-evidence/bag-g0-8-20260821.md",
+          ".local/protocol-evidence/bag-g0-15-20260821.md"
         ],
         "G3": [
-          ".local/unity-validation/bag-latest.json",
-          "build/ui-migration/bootstrap-bag.png",
-          "build/ui-migration/unity-bag-validation.log",
+          ".local/unity-validation/bag-g3-compile-preflight-20260821.log",
+          ".local/unity-validation/bag-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/bag-g3-toolchain-after-runner-fix-20260821.log",
           "docs/unityclient/matrices/BAG_CONTROLS.json"
         ],
         "G4": [
-          ".local/unity-validation/bag-latest.json",
-          "build/ui-migration/bootstrap-bag.png",
-          "build/ui-migration/unity-bag-validation.log",
-          ".local/ui-fidelity/Bag/unity/g5-20260727"
+          ".local/unity-validation/bag-fixed-account-latest.json",
+          ".local/unity-validation/bag-fixed-account-runner-latest.json",
+          "build/ui-migration/unity-bag-fixed-account.log",
+          ".local/unity-validation/bag-fixed-account-data-preflight-latest.json"
         ],
         "G5": [
-          ".local/ui-fidelity/Bag/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/Bag/unity/g5-20260727",
-          ".local/ui-fidelity/Bag/compare/g5-live-20260727/report.json",
-          ".local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260821/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
           "docs/unityclient/matrices/BAG_CONTROLS.json"
         ],
         "G6": [
-          ".local/unity-validation/bag-latest.json",
-          ".local/ui-fidelity/Bag/compare/g5-live-20260727/manual-acceptance.json",
-          ".local/ui-fidelity/Bag/compare/g5-live-20260727/report.json",
+          ".local/unity-validation/bag-fixed-account-latest.json",
+          ".local/unity-validation/bag-fixed-account-runner-latest.json",
+          "build/ui-migration/unity-bag-fixed-account.log",
+          ".local/ui-fidelity/Bag/compare/g5-20260821/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json",
+          ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
           ".local/unity-validation/bootstrap-idempotence-latest.json",
           "build/ui-migration/bootstrap-idempotence-1.log",
           "build/ui-migration/bootstrap-idempotence-2.log",
           "docs/unityclient/matrices/BAG_CONTROLS.json",
-          "UNITYCLIENT_STATUS.md",
-          "docs/unityclient/modules/BAG.md"
+          ".local/unity-validation/bag-computer-use-lifecycle-latest.json",
+          ".local/unity-validation/bag-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-07-27T04:29:02.3950046Z"
+      "updatedUtc": "2026-08-21T05:18:20.8840746Z"
     },
     {
       "module": "Task",
