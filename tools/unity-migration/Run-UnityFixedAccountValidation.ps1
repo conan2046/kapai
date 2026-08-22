@@ -31,6 +31,7 @@ if ($contract.Count -ne 1 -or $null -eq $contract[0].fixedAccount) {
 }
 $contract = $contract[0]
 $fixed = $contract.fixedAccount
+$mutationReloginOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "mutationReloginOracle" -Default $null
 $serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
 $serverStartParameters = @{ WaitSeconds = 60 }
 if ($serverConfigDirectoryValue) {
@@ -248,7 +249,6 @@ try {
             # coverage failures without treating an earlier result as current evidence.
             $runnerCapture = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-runner-latest.json"
             [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($runnerCapture)) | Out-Null
-            Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
             if (-not [bool]$result.success -or [string]$result.status -notlike "COMPLETE:*") {
                 throw "Unity fixed-account validation failed: $($result.status)"
             }
@@ -258,6 +258,78 @@ try {
             if ([uint32]$result.roleId -ne $runnerRoleId) {
                 throw "Unity fixed-account terminal role mismatch: expected=$runnerRoleId actual=$($result.roleId)"
             }
+            if ($null -ne $mutationReloginOracle) {
+                $captureAction = [string](Get-UnityMigrationPropertyValue -Object $mutationReloginOracle -Name "captureAction" -Default "")
+                $assertAction = [string](Get-UnityMigrationPropertyValue -Object $mutationReloginOracle -Name "assertAction" -Default "")
+                $semanticAssertionId = [string](Get-UnityMigrationPropertyValue -Object $mutationReloginOracle -Name "semanticAssertionId" -Default "")
+                if ([string]::IsNullOrWhiteSpace($captureAction) -or [string]::IsNullOrWhiteSpace($assertAction) `
+                    -or [string]::IsNullOrWhiteSpace($semanticAssertionId)) {
+                    throw "Fixed-account mutation relogin oracle contract is incomplete."
+                }
+                Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 2
+                Invoke-FixedAdapter $captureAction
+                & $startServerScript @serverStartParameters
+                if (-not $?) { throw "Fixed-account mutation-relogin server startup failed." }
+                try {
+                    & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
+                    if ($LASTEXITCODE -ne 0) { throw "Fixed-account mutation-relogin failed." }
+                }
+                finally {
+                    Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                    Start-Sleep -Seconds 2
+                }
+                Invoke-FixedAdapter $assertAction
+                $passed = @($result.passedSemanticAssertions | ForEach-Object { [string]$_ }) + $semanticAssertionId |
+                    Sort-Object -Unique
+                $failed = @($result.failedSemanticAssertions | ForEach-Object { [string]$_ } | Where-Object {
+                    $_ -notlike "$semanticAssertionId*"
+                })
+                $result | Add-Member -Force passedSemanticAssertions $passed
+                $result | Add-Member -Force failedSemanticAssertions $failed
+                Write-UnityMigrationUtf8 -Path $resultPath -Content (($result | ConvertTo-Json -Depth 12) + "`n")
+            }
+            $sqlitePersistenceOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "sqlitePersistenceOracle" -Default $null
+            if ($null -ne $sqlitePersistenceOracle) {
+                $sqliteSemanticId = [string](Get-UnityMigrationPropertyValue -Object $sqlitePersistenceOracle -Name "semanticAssertionId" -Default "")
+                if ([string]::IsNullOrWhiteSpace($sqliteSemanticId)) { throw "Fixed-account SQLite persistence oracle has no semanticAssertionId." }
+                $sqliteArtifacts = @(
+                    @("serverExecutable", "serverExecutableSha256"),
+                    @("database", "databaseSha256"),
+                    @("runtimeReport", "runtimeReportSha256"),
+                    @("restartReport", "restartReportSha256")
+                )
+                foreach ($artifact in $sqliteArtifacts) {
+                    $artifactPath = Resolve-UnityMigrationPath -Root $root -Path ([string](Get-UnityMigrationPropertyValue -Object $sqlitePersistenceOracle -Name $artifact[0] -Default ""))
+                    $expectedHash = [string](Get-UnityMigrationPropertyValue -Object $sqlitePersistenceOracle -Name $artifact[1] -Default "")
+                    if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf) -or [string]::IsNullOrWhiteSpace($expectedHash)) {
+                        throw "Fixed-account SQLite persistence oracle artifact is incomplete: $($artifact[0])."
+                    }
+                    $actualHash = (Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash
+                    if ($actualHash -ne $expectedHash) { throw "Fixed-account SQLite persistence oracle hash mismatch: $($artifact[0])." }
+                }
+                $runtimeReportPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$sqlitePersistenceOracle.runtimeReport)
+                $restartReportPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$sqlitePersistenceOracle.restartReport)
+                $sqliteRuntime = Get-Content -LiteralPath $runtimeReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                $sqliteRestart = Get-Content -LiteralPath $restartReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                if ($sqliteRuntime.status -ne "Passed" -or $sqliteRuntime.heroEquipParity.status -ne "Passed" `
+                    -or $sqliteRuntime.heroEquipParity.mode -ne "runtime" -or -not [bool]$sqliteRuntime.flags.heroEquipParity `
+                    -or $sqliteRestart.status -ne "Passed" -or $sqliteRestart.heroEquipParity.status -ne "Passed" `
+                    -or $sqliteRestart.heroEquipParity.mode -ne "restart" -or -not [bool]$sqliteRestart.flags.heroEquipRestartVerify) {
+                    throw "Fixed-account SQLite HeroEquip runtime/restart semantics did not pass."
+                }
+                $databasePath = Resolve-UnityMigrationPath -Root $root -Path ([string]$sqlitePersistenceOracle.database)
+                if ((Test-Path -LiteralPath "$databasePath-wal" -PathType Leaf) `
+                    -or (Test-Path -LiteralPath "$databasePath-shm" -PathType Leaf)) {
+                    throw "Fixed-account SQLite persistence oracle has residual WAL/SHM sidecars."
+                }
+                $passed = @($result.passedSemanticAssertions | ForEach-Object { [string]$_ }) + $sqliteSemanticId | Sort-Object -Unique
+                $failed = @($result.failedSemanticAssertions | ForEach-Object { [string]$_ } | Where-Object { $_ -notlike "$sqliteSemanticId*" })
+                $result | Add-Member -Force passedSemanticAssertions $passed
+                $result | Add-Member -Force failedSemanticAssertions $failed
+                Write-UnityMigrationUtf8 -Path $resultPath -Content (($result | ConvertTo-Json -Depth 12) + "`n")
+            }
+            Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
             $coverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
                 -ControlMatrix ([string]$moduleConfig.controlMatrix)
             if (-not [bool]$fixed.skipPostValidationFixtureAssert) {
@@ -358,6 +430,9 @@ try {
             Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 2
             if ($fixtureCreated) {
+                if ($null -eq $reloginFailure) {
+                    Invoke-FixedAdapter "AssertReloginHash"
+                }
                 Invoke-FixedAdapter "Restore"
                 Invoke-FixedAdapter "AssertRestored"
                 Invoke-FixedAdapter "Cleanup"

@@ -12,7 +12,8 @@ local M = {
     validationQuantity = nil,
     g4Stage = nil,
     drawClosureRequested = false,
-    drawHeaderRequested = false
+    drawHeaderRequested = false,
+    equipmentSnapshotCallback = nil
 }
 
 local function clean(value)
@@ -96,10 +97,19 @@ function M.requestDrawHeaderRefresh()
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
+-- Equipment refinement uses the same authoritative package counts as the
+-- legacy Cocos CountItemNumById path. Refresh /8 before opening equipment so
+-- one-level refinement never falls back to an invented material quantity.
+function M.requestEquipmentSnapshot(callback)
+    M.equipmentSnapshotCallback = callback
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
 function M.onDisconnected()
     M.requested = false
     M.awaitingSort = false
     if M.g4Stage ~= "await_reconnect" then M.g4Stage = nil end
+    M.equipmentSnapshotCallback = nil
 end
 
 function M.onUse(slot, quantity, target)
@@ -156,7 +166,8 @@ local function validateIncrementalUpdate(slot, itemId, quantity)
 end
 
 function M.onPacket(command, message)
-    if command == Protocol.ROLE_PACKAGE and (M.requested or M.drawClosureRequested or M.drawHeaderRequested) then
+    if command == Protocol.ROLE_PACKAGE and (M.requested or M.drawClosureRequested or M.drawHeaderRequested
+        or M.equipmentSnapshotCallback ~= nil) then
         -- A main-screen click can still carry an obsolete package request from
         -- the imported navigation layer. Once Draw is already open, its /8
         -- response is strictly header data and must never replace the Draw UI.
@@ -170,6 +181,12 @@ function M.onPacket(command, message)
         if M.drawClosureRequested then
             M.drawClosureRequested = false
             Bridge:CompleteDrawClosureBagRefresh(serverCount)
+            return true
+        end
+        if M.equipmentSnapshotCallback ~= nil then
+            local callback = M.equipmentSnapshotCallback
+            M.equipmentSnapshotCallback = nil
+            callback(serverCount)
             return true
         end
         M.requested = false

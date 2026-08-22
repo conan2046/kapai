@@ -69,7 +69,9 @@ if ($Gate -eq "G0") {
         -Path $declaredMatrix -RequireLifecycleFields
     Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig `
         -Scenario $scenario -Phase G0 | Out-Null
-    Write-Host "$Module G0 control matrix schema frozen: $declaredCount controls."
+    $matrix = (Import-UnityMigrationJson -Root $root -Path $declaredMatrix).Value
+    $coverage = Assert-UnityMigrationCoverageList -Root $root -ModuleKey $Module -Matrix $matrix
+    Write-Host "$Module G0 scope frozen: $declaredCount controls, $($coverage.BusinessIdCount) business ids from $($coverage.SourceCount) sources."
 }
 if ($Gate -eq "G1") {
     if (-not $CocosAutomationLedgerPath) {

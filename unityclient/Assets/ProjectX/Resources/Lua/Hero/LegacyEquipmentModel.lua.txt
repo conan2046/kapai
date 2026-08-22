@@ -44,10 +44,16 @@ function M:GetFaBao(uid) return self.faBao[uid] end
 function M:SetEquipmentFormation(uid, position)
     local value = self:GetEquipment(uid)
     if not value then return false end
+    local previousPosition = value.fpos
     if position > 0 then
         for _, otherUid in ipairs(self.equipmentOrder) do
             local other = self.equipment[otherUid]
-            if other.uid ~= uid and other.fpos == position and other.part == value.part then other.fpos = 0 end
+            if other.uid ~= uid and other.fpos == position and other.part == value.part then
+                -- The server swaps the displaced equipment back to the incoming
+                -- equipment's former formation position.  Only an unworn source
+                -- leaves the displaced equipment in the bag.
+                other.fpos = previousPosition > 0 and previousPosition or 0
+            end
         end
     end
     value.fpos = position

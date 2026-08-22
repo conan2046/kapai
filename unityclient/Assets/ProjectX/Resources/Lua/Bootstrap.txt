@@ -34,7 +34,7 @@ local HotPointController = require("Shared.HotPointController")
 local ProtocolOpRouter = require("Shared.ProtocolOpRouter")
 
 local PetEquipRouter = ProtocolOpRouter.new(Protocol.PET_EQUIP_OPERATE)
-PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 16, 17, 18, 19, 22 }, EquipmentController.onOperation)
+PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 24, 25, 26 }, EquipmentController.onOperation)
 PetEquipRouter:register("XunBao", { 31 }, XunBaoController.onOperation)
 
 function Begin() LoginController.begin() end
@@ -67,6 +67,14 @@ function OnEquipmentBagClicked() EquipmentController.open(1) end
 function OnFaBaoBagClicked() EquipmentController.open(2) end
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
 function OnHeroEquipmentStrength(uid) EquipmentController.strengthEquipment(uid) end
+function OnHeroEquipmentStrengthAll(position) EquipmentController.strengthAllEquipment(position) end
+function OnHeroEquipmentRefine(uid, itemId, itemCount) EquipmentController.refineEquipment(uid, itemId, itemCount) end
+function OnHeroEquipmentAutoRefine(uid, itemId1, itemCount1, itemId2, itemCount2, itemId3, itemCount3, itemId4, itemCount4)
+    EquipmentController.autoRefineEquipment(uid, itemId1, itemCount1, itemId2, itemCount2, itemId3, itemCount3, itemId4, itemCount4)
+end
+function OnHeroEquipmentAwaken(uid) EquipmentController.awakenEquipment(uid) end
+function OnHeroEquipmentDivine(uid) EquipmentController.divineEquipment(uid) end
+function OnHeroEquipmentCompose(fragmentId) EquipmentController.composeEquipment(fragmentId) end
 function OnFaBaoWear(uid, position) EquipmentController.wearFaBao(uid, position) end
 function OnFaBaoTakeOff(uid) EquipmentController.takeOffFaBao(uid) end
 function OnMailClicked() MailController.onClick() end

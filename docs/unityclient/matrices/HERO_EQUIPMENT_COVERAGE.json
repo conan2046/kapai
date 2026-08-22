@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "module": "HeroEquip",
+  "scopeDecision": {
+    "decision": "方案A：主界面 → 穿戴 → 装备为主体；Hero、Bag、HUD、HuiShou只做共享影响回归；法宝为兄弟入口，不计入本模块完成率。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-08-21"
+  },
+  "scenarios": [
+    { "id": "equip-entry-open", "kind": "success", "given": "功能达到开放等级且主界面稳定", "when": "真实点击穿戴并点击装备", "then": "穿戴弹层按0.17秒动作展开且只打开装备背包" },
+    { "id": "equip-entry-locked-lifecycle", "kind": "failure-boundary", "given": "功能未开放、页面快速关闭或切换", "when": "点击入口或等待0.1秒延迟创建", "then": "显示原版锁定反馈且旧页面不被延迟回调重开" },
+    { "id": "equip-template-render", "kind": "success", "given": "装备实例引用当前模板", "when": "显示列表、详情、更换和养成", "then": "名称、品质、部位、图标、属性和套装均来自对应模板" },
+    { "id": "equip-template-boundary", "kind": "failure-boundary", "given": "空列表、缺图、已删除UID或无行动来源", "when": "刷新或点击动态项", "then": "显示明确空态或安全失败，不串用法宝/通用占位资源" },
+    { "id": "equip-compose-success", "kind": "success", "given": "目标装备合成配置与碎片充足", "when": "真实点击合成", "then": "碎片精确减少、op6新增目标装备、op11最终成功并可重登回读" },
+    { "id": "equip-compose-failure", "kind": "failure-boundary", "given": "碎片不足、配置缺失或重复点击", "when": "真实点击合成", "then": "明确失败且碎片、装备列表和持久化均不变" },
+    { "id": "equip-strength-success", "kind": "success", "given": "强化配置、金币和可强化装备有效", "when": "真实执行一次、五次或全身强化", "then": "金币、等级、暴击、大师、任务、属性和战力按多推送事务收敛" },
+    { "id": "equip-strength-boundary", "kind": "failure-boundary", "given": "满级、金币不足、非法UID、配置缺级或延迟回包", "when": "触发强化", "then": "明确失败或超时，事务原子且关闭页面后不重开" },
+    { "id": "equip-refine-success", "kind": "success", "given": "精炼开放且材料组合有效", "when": "真实执行单次或自动精炼", "then": "选择数量、材料扣除、经验/等级、属性及持久化一致" },
+    { "id": "equip-refine-boundary", "kind": "failure-boundary", "given": "29级以下、满级、材料不足或自动数量越界", "when": "切Tab或确认精炼", "then": "锁定/失败反馈明确且数据不变" },
+    { "id": "equip-awaken-success", "kind": "success", "given": "角色50级且装备品质和材料满足", "when": "真实点击觉醒", "then": "等级、附加属性、材料、金币、成功反馈及重登回读一致" },
+    { "id": "equip-awaken-boundary", "kind": "failure-boundary", "given": "49级、品质不足、满级或材料不足", "when": "进入Tab或点击觉醒", "then": "保持原Tab或明确失败且无资源变化" },
+    { "id": "equip-shenzhu-success", "kind": "success", "given": "角色70级、红色装备及一致的神铸配置", "when": "真实点击神铸或查看特效", "then": "等级、技能效果、材料、金币、Imod反馈和持久化一致" },
+    { "id": "equip-shenzhu-config-boundary", "kind": "failure-boundary", "given": "客户端/服务端等级表不一致、69级、品质不足或材料不足", "when": "进入或执行神铸", "then": "配置差异在G2关闭；未关闭前不得执行写操作或越界显示" },
+    { "id": "equip-master-update", "kind": "success", "given": "阵位装备养成达到大师条件", "when": "强化、精炼、觉醒或神铸改变条件", "then": "op24/26及大师页面按type-level配置更新" },
+    { "id": "equip-master-reconnect", "kind": "failure-boundary", "given": "大师推送延迟、重复、断线或切号", "when": "页面关闭后收到推送或重新登录", "then": "当前账号权威状态唯一且不污染新账号" },
+    { "id": "equip-source-navigation", "kind": "success", "given": "装备具有有效item_source", "when": "真实点击获取来源并返回", "then": "只打开配置指定目标且UI栈无叠层" },
+    { "id": "equip-source-empty", "kind": "failure-boundary", "given": "装备item_source为空或目标不可达", "when": "查看来源", "then": "不伪造跳转、不静默打开错误页面并可安全返回" },
+    { "id": "equip-protocol-transaction", "kind": "success", "given": "请求字段和Fixture满足协议合同", "when": "经真实控件执行装备查询或写操作", "then": "最终回包、全部中间推送、来源/目标资源、SQLite及重登回读全部一致" },
+    { "id": "equip-protocol-failure-timing", "kind": "failure-boundary", "given": "错误码、缺字段、静默、超时、乱序多推送、断线或切号", "when": "真实控件发起操作", "then": "无预改数据、无旧页复活、无流错位且恢复合同通过" },
+    { "id": "equip-sibling-regression", "kind": "success", "given": "装备流程完成或回到主界面", "when": "观察法宝兄弟入口及Hero法宝槽", "then": "法宝入口、槽位和共享/319游标未被装备逻辑污染" },
+    { "id": "equip-sibling-isolation", "kind": "failure-boundary", "given": "装备请求失败、重连或切号", "when": "共享协议收到法宝op", "then": "装备消费者恢复游标并不消费法宝业务数据" }
+  ],
+  "sources": [
+    {
+      "id": "function-entry",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/function_dat.lua", "client/ProjectX/src/core/AppDef.lua", "client/ProjectX/src/Common/Utils.lua"],
+      "recordTotal": 5,
+      "businessIds": ["1110", "1120", "1130", "1140", "1150"],
+      "branchType": "功能入口与等级开放",
+      "mappings": [
+        { "businessIds": ["1110"], "successScenarioIds": ["equip-entry-open"], "failureBoundaryScenarioIds": ["equip-entry-locked-lifecycle"] },
+        { "businessIds": ["1120"], "successScenarioIds": ["equip-strength-success"], "failureBoundaryScenarioIds": ["equip-strength-boundary"] },
+        { "businessIds": ["1130"], "successScenarioIds": ["equip-refine-success"], "failureBoundaryScenarioIds": ["equip-refine-boundary"] },
+        { "businessIds": ["1140"], "successScenarioIds": ["equip-awaken-success"], "failureBoundaryScenarioIds": ["equip-awaken-boundary"] },
+        { "businessIds": ["1150"], "successScenarioIds": ["equip-shenzhu-success"], "failureBoundaryScenarioIds": ["equip-shenzhu-config-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "equip-template",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/equip_dat.lua", "server/config/json/equip.json", "unityclient/Assets/ProjectX/Resources/Configs/equip.json"],
+      "recordTotal": 44,
+      "businessIds": ["1001","1002","1003","1004","1101","1102","1103","1104","1111","1112","1113","1114","1201","1202","1203","1204","1211","1212","1213","1214","1301","1302","1303","1304","1311","1312","1313","1314","1401","1402","1403","1404","1411","1412","1413","1414","1501","1502","1503","1504","1511","1512","1513","1514"],
+      "branchType": "装备模板、部位、品质、套装与图标",
+      "mappings": [
+        { "businessIdRanges": [{"start":1001,"end":1004}], "successScenarioIds": ["equip-template-render"], "failureBoundaryScenarioIds": ["equip-template-boundary"] },
+        { "businessIds": ["1101","1102","1103","1104","1111","1112","1113","1114","1201","1202","1203","1204","1211","1212","1213","1214","1301","1302","1303","1304","1311","1312","1313","1314","1401","1402","1403","1404","1411","1412","1413","1414","1501","1502","1503","1504","1511","1512","1513","1514"], "successScenarioIds": ["equip-template-render"], "failureBoundaryScenarioIds": ["equip-template-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "equip-compose",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/hecheng_dat.lua", "server/config/json/hecheng.json", "unityclient/Assets/ProjectX/Resources/Configs/hecheng.json"],
+      "recordTotal": 40,
+      "businessIdRanges": [{"start":49,"end":88}],
+      "branchType": "type=4装备碎片合成",
+      "mappings": [{ "businessIdRanges": [{"start":49,"end":88}], "successScenarioIds": ["equip-compose-success"], "failureBoundaryScenarioIds": ["equip-compose-failure"] }],
+      "excluded": []
+    },
+    {
+      "id": "equip-strength-level",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/equip_qianghua_dat.lua", "server/config/json/equip_qianghua.json", "unityclient/Assets/ProjectX/Resources/Configs/equip_qianghua.json"],
+      "recordTotal": 240,
+      "businessIdRanges": [{"start":1,"end":240}],
+      "branchType": "强化等级",
+      "mappings": [{ "businessIdRanges": [{"start":1,"end":240}], "successScenarioIds": ["equip-strength-success"], "failureBoundaryScenarioIds": ["equip-strength-boundary"] }],
+      "excluded": []
+    },
+    {
+      "id": "equip-refine-level",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/equip_jinglian_dat.lua", "server/config/json/equip_jinglian.json", "unityclient/Assets/ProjectX/Resources/Configs/equip_jinglian.json"],
+      "recordTotal": 51,
+      "businessIdRanges": [{"start":0,"end":50}],
+      "branchType": "精炼等级",
+      "mappings": [{ "businessIdRanges": [{"start":0,"end":50}], "successScenarioIds": ["equip-refine-success"], "failureBoundaryScenarioIds": ["equip-refine-boundary"] }],
+      "excluded": []
+    },
+    {
+      "id": "equip-quality-refine-ratio",
+      "sourceFiles": ["server/config/json/quality.json", "unityclient/Assets/ProjectX/Resources/Configs/quality.json"],
+      "recordTotal": 7,
+      "businessIds": ["1","2","3","4","5","6","7"],
+      "branchType": "装备品质精炼经验倍率",
+      "mappings": [
+        { "businessIds": ["1","2","3"], "successScenarioIds": ["equip-refine-success"], "failureBoundaryScenarioIds": ["equip-refine-boundary"] },
+        { "businessIds": ["4","5","6","7"], "successScenarioIds": ["equip-refine-success"], "failureBoundaryScenarioIds": ["equip-refine-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "equip-refine-material",
+      "sourceFiles": ["server/config/json/item.json", "unityclient/Assets/ProjectX/Resources/Configs/item.json"],
+      "recordTotal": 4,
+      "businessIds": ["610","611","612","613"],
+      "branchType": "装备精炼材料类型与单件经验",
+      "mappings": [
+        { "businessIds": ["610","611","612","613"], "successScenarioIds": ["equip-refine-success"], "failureBoundaryScenarioIds": ["equip-refine-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "equip-awaken-level",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/equip_juexing_dat.lua", "server/config/json/equip_juexing.json"],
+      "recordTotal": 60,
+      "businessIdRanges": [{"start":1,"end":60}],
+      "branchType": "觉醒等级",
+      "mappings": [{ "businessIdRanges": [{"start":1,"end":60}], "successScenarioIds": ["equip-awaken-success"], "failureBoundaryScenarioIds": ["equip-awaken-boundary"] }],
+      "excluded": []
+    },
+    {
+      "id": "equip-shenzhu-client-level",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/equip_shenzhu_dat.lua"],
+      "recordTotal": 150,
+      "businessIdRanges": [{"start":1,"end":150}],
+      "branchType": "客户端神铸等级",
+      "mappings": [{ "businessIdRanges": [{"start":1,"end":150}], "successScenarioIds": ["equip-shenzhu-success"], "failureBoundaryScenarioIds": ["equip-shenzhu-config-boundary"] }],
+      "excluded": []
+    },
+    {
+      "id": "equip-shenzhu-server-level",
+      "sourceFiles": ["server/config/json/equip_shenzhu.json"],
+      "recordTotal": 155,
+      "businessIdRanges": [{"start":1,"end":155}],
+      "branchType": "服务端神铸等级",
+      "mappings": [
+        { "businessIdRanges": [{"start":1,"end":150}], "successScenarioIds": ["equip-shenzhu-success"], "failureBoundaryScenarioIds": ["equip-shenzhu-config-boundary"] },
+        { "businessIdRanges": [{"start":151,"end":155}], "successScenarioIds": ["equip-shenzhu-config-boundary"], "failureBoundaryScenarioIds": ["equip-shenzhu-config-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "equip-master-type-level",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/master_dat.lua", "server/config/json/master.json"],
+      "recordTotal": 100,
+      "businessIdRanges": [{"prefix":"1:","start":1,"end":25},{"prefix":"2:","start":1,"end":25},{"prefix":"3:","start":1,"end":25},{"prefix":"4:","start":1,"end":25}],
+      "branchType": "装备四类养成大师type:level",
+      "mappings": [{ "businessIdRanges": [{"prefix":"1:","start":1,"end":25},{"prefix":"2:","start":1,"end":25},{"prefix":"3:","start":1,"end":25},{"prefix":"4:","start":1,"end":25}], "successScenarioIds": ["equip-master-update"], "failureBoundaryScenarioIds": ["equip-master-reconnect"] }],
+      "excluded": []
+    },
+    {
+      "id": "equip-item-source",
+      "sourceFiles": ["client/ProjectX/src/ConfigData/equip_dat.lua", "client/ProjectX/src/View/Common/ItemSourceUI.lua"],
+      "recordTotal": 44,
+      "businessIds": ["1001","1002","1003","1004","1101","1102","1103","1104","1111","1112","1113","1114","1201","1202","1203","1204","1211","1212","1213","1214","1301","1302","1303","1304","1311","1312","1313","1314","1401","1402","1403","1404","1411","1412","1413","1414","1501","1502","1503","1504","1511","1512","1513","1514"],
+      "branchType": "来源跳转或空来源",
+      "mappings": [
+        { "businessIds": ["1001","1002","1003","1004","1101"], "successScenarioIds": ["equip-source-navigation"], "failureBoundaryScenarioIds": ["equip-source-empty"] },
+        { "businessIds": ["1102","1103","1104","1111","1112","1113","1114","1201","1202","1203","1204","1211","1212","1213","1214","1301","1302","1303","1304","1311","1312","1313","1314","1401","1402","1403","1404","1411","1412","1413","1414","1501","1502","1503","1504","1511","1512","1513","1514"], "successScenarioIds": ["equip-source-empty"], "failureBoundaryScenarioIds": ["equip-template-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "equip-fragment-item-source",
+      "sourceFiles": ["client/ProjectX/src/View/PetEquip/PetEquipPiecesSubUI.lua", "client/ProjectX/src/ConfigData/hecheng_dat.lua", "client/ProjectX/src/ConfigData/item_dat.lua", "client/ProjectX/src/View/Common/ItemSourceUI.lua"],
+      "recordTotal": 40,
+      "businessIdRanges": [{"start":4605,"end":4644}],
+      "branchType": "type=4装备碎片获取来源",
+      "mappings": [
+        { "businessIdRanges": [{"start":4605,"end":4644}], "successScenarioIds": ["equip-source-navigation"], "failureBoundaryScenarioIds": ["equip-protocol-failure-timing"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "protocol-319-op",
+      "sourceFiles": ["server/src/protocol.h", "server/src/pack_deal.cpp", "server/src/pet_equip_manage.cpp", "client/ProjectX/src/NetWork/LuaNetSendMsg.lua", "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"],
+      "recordTotal": 34,
+      "businessIds": ["1","2","3","4","5","6","7","8","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"],
+      "branchType": "PET_EQUIP_OPERATE请求、响应与主动推送",
+      "mappings": [
+        { "businessIds": ["1","2","3","4","5","6","7","8","11","12","13","14","15","16","24","25","26","32","33"], "successScenarioIds": ["equip-protocol-transaction"], "failureBoundaryScenarioIds": ["equip-protocol-failure-timing"] }
+      ],
+      "excluded": [
+        { "businessIds": ["17","18","19","20","21","22","23","27","28","29","30","31","34","35","36"], "productEvidence": "用户于2026-08-21确认方案A：法宝为兄弟入口，不计入本装备模块完成率；仅执行共享协议游标和状态隔离回归。" }
+      ]
+    }
+  ]
+}

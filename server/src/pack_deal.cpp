@@ -928,29 +928,41 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 			? 100000 : (uint32)strtoul(localTestBdTongBaoText.c_str(), NULL, 10);
 		const uint32 preserveLevelUserId = (uint32)atoi(
 			gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
+		const uint32 preserveBalanceUserId = (uint32)atoi(
+			gyu::util::CIniFile::GetValue("local_preserve_balance_user_id","server",gConfigFile).c_str());
+		const bool preserveLocalBalance = preserveBalanceUserId > 0 && preserveBalanceUserId == userId;
 		if(preserveLevelUserId > 0 && preserveLevelUserId == userId)
 		{
-			snprintf(sql, sizeof(sql),
-				"update role_info set money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
-				localTestMoney, roleId);
 			cout << "[local] UserLogin: preserve role level for fixture userId=" << userId << endl;
+			if(!preserveLocalBalance)
+			{
+				snprintf(sql, sizeof(sql),
+					"update role_info set money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+					localTestMoney, roleId);
+				pDb->Query(sql);
+			}
 		}
 		else
 		{
-			snprintf(sql, sizeof(sql),
-				"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
-				localTestMoney, roleId);
+			if(preserveLocalBalance)
+				snprintf(sql, sizeof(sql),
+					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60) where id=%u", roleId);
+			else
+				snprintf(sql, sizeof(sql),
+					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+					localTestMoney, roleId);
+			pDb->Query(sql);
 		}
-		pDb->Query(sql);
 		string userTab = GetUserInfoTab(serverId);
-		snprintf(sql, sizeof(sql),
-			"update %s set money=greatest(money,%u),bd_money=greatest(bd_money,%u) where id=%u",
-			userTab.c_str(), localTestTongBao, localTestBdTongBao, userId);
-		pDb->Query(sql);
-		// The local-test values are floors, not replacements. Preserve a
-		// fixture's exact non-zero balance when the configured floor is zero.
-		YB = std::max(YB, localTestTongBao);
-		bangYB = std::max(bangYB, localTestBdTongBao);
+		if(!preserveLocalBalance)
+		{
+			snprintf(sql, sizeof(sql),
+				"update %s set money=greatest(money,%u),bd_money=greatest(bd_money,%u) where id=%u",
+				userTab.c_str(), localTestTongBao, localTestBdTongBao, userId);
+			pDb->Query(sql);
+			YB = std::max(YB, localTestTongBao);
+			bangYB = std::max(bangYB, localTestBdTongBao);
+		}
 		pUser->SetTongBao(YB,0);
 		pUser->SetTongBao(bangYB,1);
 	}
@@ -25597,19 +25609,40 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 		equipMgr.EquipHeCheng(pUser, msg);
 		break;
 	case 12:
-		CHECK_SYSTEM_OPEN(SOT_1120)
+		if (!localTest && !sSystemOpenCfgMananger.CheckSystemOpen(pUser, SOT_1120))
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_LLD_0072, TIPS_FAILURE_COLOR);
+			break;
+		}
 		equipMgr.StrongAllEquip(pUser, msg);
 		break;
 	case 13:
-		CHECK_SYSTEM_OPEN(SOT_1130)
+		if (!localTest && !sSystemOpenCfgMananger.CheckSystemOpen(pUser, SOT_1130))
+		{
+			uint32 equipId = 0;
+			uint8 itemSize = 0;
+			msg >> equipId >> itemSize;
+			msg.ReWrite();
+			msg.SetType(PET_EQUIP_OPERATE);
+			msg << (uint8)13 << equipId << PRO_ERROR << MakeStringColor(LANGUAGE_LLD_0072, TIPS_FAILURE_COLOR);
+			break;
+		}
 		equipMgr.JingLianEquip(pUser, msg);
 		break;
 	case 14:
-		CHECK_SYSTEM_OPEN(SOT_1140)
+		if (!localTest && !sSystemOpenCfgMananger.CheckSystemOpen(pUser, SOT_1140))
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_LLD_0072, TIPS_FAILURE_COLOR);
+			break;
+		}
 		equipMgr.JueXingEquip(pUser, msg);
 		break;
 	case 15:
-		CHECK_SYSTEM_OPEN(SOT_1150)
+		if (!localTest && !sSystemOpenCfgMananger.CheckSystemOpen(pUser, SOT_1150))
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_LLD_0072, TIPS_FAILURE_COLOR);
+			break;
+		}
 		equipMgr.ShenZhuEquip(pUser, msg);
 		break;
 		

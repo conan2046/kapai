@@ -48,7 +48,15 @@ namespace ProjectX.Editor
         private const string HeroEquipmentChangePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeigenghuan.prefab";
         private const string HeroEquipmentCultivatePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab";
         private const string HeroEquipmentStrengthPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiqianghua.prefab";
-        private const string HeroEquipmentFragmentPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaosuipianbeibao.prefab";
+        private const string HeroEquipmentRefinePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeijinglian.prefab";
+        private const string HeroEquipmentAwakenPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeijuexing.prefab";
+        private const string HeroEquipmentDivinePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeishenzhu.prefab";
+        private const string HeroEquipmentFragmentPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeisuipian.prefab";
+        private const string HeroEquipmentAutoRefinePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianjinglian.prefab";
+        private const string HeroEquipmentExchangePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianduihuan.prefab";
+        private const string HeroEquipmentAutoStarPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianshengxing.prefab";
+        private const string HeroEquipmentAutoDivinePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianshengceng.prefab";
+        private const string HeroEquipmentDivineEffectPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/shenzhutexiao.prefab";
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
         private const string MailPrefab = "Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab";
         private const string ShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab";
@@ -206,7 +214,15 @@ namespace ProjectX.Editor
             new PrefabSpec(HeroEquipmentChangePrefab, false),
             new PrefabSpec(HeroEquipmentCultivatePrefab, false),
             new PrefabSpec(HeroEquipmentStrengthPrefab, false, HeroEquipmentCultivatePrefab),
-            new PrefabSpec(HeroEquipmentFragmentPrefab, false)
+            new PrefabSpec(HeroEquipmentRefinePrefab, false, HeroEquipmentCultivatePrefab),
+            new PrefabSpec(HeroEquipmentAwakenPrefab, false, HeroEquipmentCultivatePrefab),
+            new PrefabSpec(HeroEquipmentDivinePrefab, false, HeroEquipmentCultivatePrefab),
+            new PrefabSpec(HeroEquipmentFragmentPrefab, false),
+            new PrefabSpec(HeroEquipmentAutoRefinePrefab, false),
+            new PrefabSpec(HeroEquipmentExchangePrefab, false),
+            new PrefabSpec(HeroEquipmentAutoStarPrefab, false),
+            new PrefabSpec(HeroEquipmentAutoDivinePrefab, false),
+            new PrefabSpec(HeroEquipmentDivineEffectPrefab, false)
         };
 
         [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]

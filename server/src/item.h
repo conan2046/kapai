@@ -286,6 +286,24 @@ public:
 		
 		return &it->second;
 	}
+	void ReindexItemType(uint16 id, uint8 previousType, uint8 currentType)
+	{
+		if(previousType == currentType)
+			return;
+		map<uint8, vector<uint16> >::iterator oldIt = m_typeItem.find(previousType);
+		if(oldIt != m_typeItem.end())
+		{
+			vector<uint16>& values = oldIt->second;
+			for(vector<uint16>::iterator it = values.begin(); it != values.end();)
+			{
+				if(*it == id) it = values.erase(it);
+				else ++it;
+			}
+		}
+		vector<uint16>& values = m_typeItem[currentType];
+		if(find(values.begin(), values.end(), id) == values.end())
+			values.push_back(id);
+	}
 private:
     CHashTable<uint16,SItemTemplate*> m_itemTemplate;
 	map<uint8, vector<uint16> > m_typeItem;
@@ -477,4 +495,3 @@ typedef boost::details::pool::singleton_default<CEquipCfgMgr> SingletonCEquipCfg
 
 
 #endif
-

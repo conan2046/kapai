@@ -1,23 +1,23 @@
-# 装备与法宝
+# 装备（法宝边界回归）
 
 ## 当前结论
 
-- 状态：`G0-G3 passed / G4-G6 pending`。2026-08-20 已按当前源码重新完成 G0-G3，并修复 `/319` 成功后 `/70 PRO_UPDATE_PET_INFO` 在 Unity 未消费的问题。
-- 当前业务结果：原始固定账号批处理成功；装备 UID `2121073001` 完成穿戴、强化 `0→2`、卸下，法宝 UID `2121073002` 完成穿戴、卸下；收到 `/70` 14 次，6/6 语义断言通过，最终神将属性/气血/战力、HUD 总战力、列表和原穿戴状态均恢复。
-- 当前正式门禁：未通过 G4。标准场景要求 33 个真实 Button/EventSystem 控件运行覆盖，最新 Runner 为 `expected=33 actual=0`，所以标准摘要、G5 Unity 六状态和 G6 复盘均不得生成完成结论。
-- 历史 `33/33` 控件、`20/20` 双端视觉、固定账号、MCP 和 BuildBatch 结果只作诊断基线，不计入本轮门禁。
-- 本轮 G1 只冻结六个当前有效 Cocos 状态：神将装备详情、装备背包、装备详情、强化前、法宝背包、法宝详情；身份为 `userId=7200057 / roleId=1000115`、原生客户区 `1334×750`。
-- G3 当前证据：Unity 编译、Bootstrap 场景、Prefab 引用与 Console `0 error / 0 warning`；Unity MCP 已关闭，运行进程已清理。
+- 状态：`G0-G2 passed / G3-G6 pending`。2026-08-21 用户确认方案A后，当前分母为14来源/974业务ID/86控件。合成目标解析与先扣料风险已修复；服务端输入变化使旧G1失效后，已用Computer Use仅重拍受影响的装备碎片态并重新冻结13态，当前碎片SHA为`FB2219AD3DB7EEED81858C8BAB6F9C83C8300A45D6F018FB4A48DD76DE6BE443`，Fixture恢复、重登哈希和残留均通过。
+- 完成主体仅为 `主界面 → btn_chuandai → tankuang2/btn_zhuangbei → 装备`。Hero、Bag、HUD、HuiShou只做影响回归；法宝只做兄弟入口、5..6槽和共享`/319`游标隔离，不计入本模块完成率。
+- 当前G0机器分母：`HERO_EQUIPMENT_COVERAGE.json`登记14个源码/配置来源、974个来源记录；控件矩阵登记86项。新增的40项来自真实链 `PetEquipPiecesSubUI:GetBtnClicked → item_dat(4605..4644).item_source`，另有7项品质精炼倍率及4项精炼材料ID 610..613；不得用较小分母替代。
+- G1实机发现：勾选“隐藏已穿戴”后计数与空态文案已切到空态，但四张旧装备卡片仍残留；这是Cocos当前真实显示缺陷，G5必须分别断言计数/空态和不应残留的旧卡片。装备碎片40个“获取”入口均有`item_source={{17}}`，不存在可由本模块真实控件打开的“碎片空来源弹窗”，因此不伪造`source-empty`视觉状态；空来源装备模板仍保留为配置/安全失败覆盖。
+- G2已完成所有权裁决：新增Unity精炼51、觉醒60、神铸155及大师100条服务端权威JSON；客户端神铸150级仅保留为Cocos显示边界。五次强化、自动精炼、Imod 1..9及外部事务重登oracle纳入G3实现合同；源Prefab内一键兑换/一键升星/一键升阶/一键升层四入口均为`m_IsActive=0`且`BtnStateCheck()`为空，对应弹层不可达，Unity必须保持隐藏并在G4/G5同时断言“不应显示”。
+- 历史装备/法宝批处理、`33/33`控件、`20/20`视觉、MCP、BuildBatch、SQLite/MySQL结果全部只作诊断线索，不计入2026-08-21后的任何门禁。
 
 ## 当前批次范围
 
-- 神将详情装备/法宝槽入口。
-- 装备背包、法宝背包、法宝碎片、共享详情和更换弹窗。
-- 装备穿戴、替换、卸下、单次强化和属性刷新。
-- 法宝列表、详情、穿戴、卸下。
-- 空背包、材料不足、非法/重复操作、重拉、重连、切号清理。
+- `btn_chuandai`展开/收起、`btn_zhuangbei`真实入口。
+- 装备背包、碎片、详情、更换、来源及回收边界入口。
+- 穿戴、替换、卸下、合成、分解、一次/五次/全身强化、精炼、觉醒和神铸。
+- 神将详情1..4装备槽，以及`/70`神将属性、`/18`HUD总战力和Bag资源变化。
+- 动态列表正常/空/锁定/选中/禁用，成功/失败/边界、返回/重进、延迟多推送、重连、切号和恢复清理。
 
-排除：装备精炼、觉醒、神铸、合成、分解、回收；法宝强化、炼化和完整培养；批量操作和复杂属性模型。
+排除：法宝完整业务；HuiShou目标页内部业务。排除依据为用户2026-08-21确认方案A，排除项仍须完成边界和共享状态回归。
 
 ## Cocos入口链
 
@@ -105,19 +105,19 @@ G2 同时修正 `Invoke-ProtocolSmoke.ps1` 三个旧错误负例：装备穿戴/
 | 更换弹窗 | `zhuangbeigenghuan` / `Layer/Popup/{Btn_close,CheckBox,TableView}` + `Layer/ItemList/Item1..2/Btn_yangcheng` | 按部位/未穿戴过滤、穿戴、关闭 |
 | 详情弹窗 | `zhuangbeiInfo` / `Layer/zhuangbeiInfoUI/{Popup/Btn_close,zhuangbei/Btn_genghuan,zhuangbei/Btn_xiexia,Info/qianghuashuxing/Btn_qianghua}` | 装备/法宝独立内容；排除培养区隐藏 |
 | 强化 | `zhuangbeiyangcheng` + `zhuangbeiqianghua` / `Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/{qianghuaBtn,qianghua5Btn}` | 左侧装备切换、单次强化；五次强化隐藏 |
-| 法宝碎片 | `fabaosuipianbeibao` / 动态碎片项与 `xunbaoBtn` | 本批只读；合成/寻宝/回收不发包 |
+| 装备碎片 | `zhuangbeisuipian` / `suipianUI/{Bag,Btn_huoqu,Btn_hecheng,recycle}` | 40类碎片、来源、合成和回收边界；Bootstrap旧法宝碎片Prefab路由必须在G3修正 |
 
-配置冻结为 `equip.json` 44 条、`fabao.json` 53 条、`equip_qianghua.json` 240 级。装备图按 `ResourceService.LoadEquipmentIcon` 从 `ItemIcons/<pic>`、`ItemIcons/equip<pic>` 回退加载；法宝图严格从 `FaBaoIcons/<pic>` 加载。当前资源域含 `ItemIcons` 573 张、`FaBaoIcons` 53 张；缺图必须计入 `MissingIconCount`，不得用另一资源域同名图替代。
+配置冻结为装备44、合成40、强化240、精炼51、品质精炼倍率7、精炼材料610..613共4项、觉醒60、神铸客户端150/服务端与Unity 155、大师4类×25级、碎片来源40条。Unity `equip_jinglian/equip_juexing/equip_shenzhu/master/quality/item.json` 与服务端事务源逐字节一致；精炼所需经验按`equip_jinglian.exp × quality.jinglian_ratio / 10000`计算，材料必须为type=4并读取sub_value经验。装备图按 `ResourceService.LoadEquipmentIcon` 从 `ItemIcons/<pic>`、`ItemIcons/equip<pic>` 回退加载；法宝图严格从 `FaBaoIcons/<pic>` 加载，缺图必须计数，不得跨资源域顶替。
 
 ### G2 权威与生命周期规则
 
 1. `LegacyEquipmentModel.lua.txt` 是角色装备/法宝权威；C# Store 仅为完整 Lua 快照的渲染镜像。
 2. 列表分包未完成时不得发布半包；op2/3/4/18/19 失败时不得先改 C# Store。
 3. op16/op22 主动增量先 upsert Lua，再发布镜像；op4 成功不得自行推算强化等级。
-4. 重连必须重发 op1+op17；切号调用 `EquipmentController.reset()`，同时清空 Lua、待处理分包、错误文本和 C# Store。
+4. 装备入口与重连必须先请求`/8`并由`BagController`完整提交`BagStore`，再请求op1+op17；切号调用 `EquipmentController.reset()`，同时清空 Lua、待处理分包、错误文本和 C# Store。精炼缺少权威材料快照时不得回退发送`610×1`。
 5. 主界面入口、阵容槽、列表行、弹窗、强化都必须通过真实 Button Listener；Runner 禁止直接调用 Presenter 私有方法。
 
-G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开第一条详情；隐藏已穿戴、装备行养成、更换筛选、强化左侧装备选择均接入真实控件；回收、五次强化和排除培养区隐藏/禁用；空槽进入兼容候选；法宝碎片改为只读真实 Prefab；公共帮助接入运行时按钮。
+G2静态审计已完成，但不借用历史实现结论。G3必须以矩阵`sourceAudit.knownGaps`为实现清单：补`/8→/319`权威材料快照顺序、碎片可合成优先排序、op11..16与op24/26、完整失败回包、跨阵位双方刷新、卸下fpos校验、装备碎片Prefab路由、源端隐藏控件负向覆盖，以及两阵位可逆Fixture。完成前G3保持pending。
 
 ### 历史 G3 Unity MCP 验证（仅诊断；当前 G3 证据见本节结论）
 
@@ -183,18 +183,23 @@ G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开�
 
 ## G1 Cocos 动态基准
 
-当前冻结基准登记在 `tools/unity-migration/unityclient-modules.json`，关键状态：
+当前冻结基准为固定账号`7200057/1000115`、原生窗口裁切`1334×750`，登记在`.local/unity-validation/heroequip-cocos-baseline-latest.json`，共13态：
 
 - `.local/ui-fidelity/HeroEquip/cocos/g1-hero-detail-equipped.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-wear-popup-open.png`
 - `.local/ui-fidelity/HeroEquip/cocos/g1-equipment-bag.png`
-- `.local/ui-fidelity/HeroEquip/cocos/g1-fabao-bag.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-equipment-bag-empty.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-equipment-pieces.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-equipment-pieces-empty.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-equipment-detail.png`
 - `.local/ui-fidelity/HeroEquip/cocos/g1-strength-before.png`
-- `.local/ui-fidelity/HeroEquip/cocos/g1-strength-after.png`
-- `.local/ui-fidelity/HeroEquip/cocos/g1-equipment-material-insufficient.png`
-- `.local/ui-fidelity/HeroEquip/cocos/g1-illegal-uid.png`
-- `.local/ui-fidelity/HeroEquip/cocos/g1-repeat-operation.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-refine-before.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-awaken-before.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-awaken-locked.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-shenzhu-locked.png`
+- `.local/ui-fidelity/HeroEquip/cocos/g1-source-actionable.png`
 
-全部登记图均为本轮现存 `1334×750` PNG；旧缺失文件及历史 SHA 继续只作诊断记录，不计入门禁。
+当前Computer Use账本为`.local/unity-validation/heroequip-cocos-automation-g1-20260821.json`，13个targetId与截图路径均唯一。Fixture最终`restored=true`、`postLoginHash`等于原始`snapshotHash`、`residualCount=0`；旧缺失文件及历史SHA只作诊断。
 
 ## Steam SQLite S5（2026-08-20）
 
@@ -205,12 +210,8 @@ G2 静态审计冻结的 G3 缺口已全部收口：`Show()` 不再自动打开�
 
 ## 下一步
 
-1. 在标准 `hero-equip-g6` Runner 中通过真实 `Button.onClick` / EventSystem 操作覆盖 `HERO_EQUIPMENT_CONTROLS.json` 的 33 个控件；排除项必须验证隐藏或禁用，禁止只调用 `MarkValidationControl`。
-2. 保持现有 6/6 业务语义断言，并由 `Run-UnityFixedAccountValidation.ps1 -Module HeroEquip` 生成正式摘要；当前原始成功结果仅用于诊断，不可直接完成 G4。
-3. 用同账号、同数据、同操作、`1334×750` 生成六张 Unity 状态图，与本轮六张 Cocos 冻结图生成并排、叠加和差异报告。
-4. 依次完成 G4、G5、G6；修复操作台账剩余的控件覆盖与两条缺摘要记录，自动复盘未解决必须为 0。
-5. `ProjectXApp.cs` 拆分属于独立结构重构任务，不与本轮协议/视觉门禁混合。
-
-接手验证基线：文档一致性 29 个模块通过，工具链回归 110 项通过；正式继续前重新执行 DataPreflight，禁止复用旧 Runner、旧截图或旧 SHA。
+1. 完成G2中央校验与门禁登记；任何未登记源码/配置/资源ID立即撤回G2。
+2. G3只实现`sourceAudit.knownGaps`与86控件合同，并先执行固定账号`-DataPreflightOnly`；不得启动全量Unity后再补Fixture。
+3. G4真实EventSystem+独立Oracle，G5同时断言应显示/不应显示；G6自动化通过后仍等待用户最终真实Play确认。
 
 旧全文：`../history/HERO_EQUIPMENT_FULL_2026-07-19.md`。

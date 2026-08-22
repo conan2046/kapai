@@ -1680,20 +1680,50 @@ void CEquipManeger::EquipHeCheng(CUser* pUser, CNetMessage& msg)
 	msg >> itemId;
 
 	ComposeCfg* cfg = sCItemCfgManager.GetComposeCfg(CPT_EQUIP_HC, itemId);
+	const bool localTest = gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1";
 	if (cfg == NULL)
+	{
+		if (localTest)
+		{
+			ComposeCfgMap* localComposeMap = sCItemCfgManager.GetComposeCfgMap(CPT_EQUIP_HC);
+			cout << "[local][HeroEquip] EquipHeCheng missing config itemId=" << itemId
+				<< " mapSize=" << (localComposeMap == NULL ? 0 : localComposeMap->size()) << endl;
+		}
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
+	if (localTest)
+	{
+		const uint16 targetId = cfg->tar.type < HDAT_MONEY ? cfg->tar.type : cfg->tar.typeId;
+		cout << "[local][HeroEquip] EquipHeCheng request itemId=" << itemId
+			<< " costCount=" << cfg->costs.size() << " target=" << targetId;
+		for (size_t i = 0; i < cfg->costs.size(); ++i)
+			cout << " cost[" << i << "]=" << cfg->costs[i].costType << ":"
+				<< cfg->costs[i].typeId << ":" << cfg->costs[i].costValue;
+		cout << endl;
+	}
+	const uint16 targetId = cfg->tar.type < HDAT_MONEY ? cfg->tar.type : cfg->tar.typeId;
+	if (targetId == 0 || sCItemCfgManager.GetEquipCfg(targetId) == NULL || m_petEquips.size() >= 1000)
+	{
+		if (localTest) cout << "[local][HeroEquip] EquipHeCheng invalid target/capacity target=" << targetId << endl;
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0001, TIPS_FAILURE_COLOR);
+		return;
+	}
 
 	if (!pUser->UseMultiCost(cfg->costs))
 	{
+		if (localTest) cout << "[local][HeroEquip] EquipHeCheng UseMultiCost failed itemId=" << itemId << endl;
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0174, TIPS_FAILURE_COLOR);
 		return;
 	}
 
-	if (!AddEquip(pUser, cfg->tar.typeId))
+	if (!AddEquip(pUser, targetId))
 	{
+		if (localTest) cout << "[local][HeroEquip] EquipHeCheng AddEquip failed target=" << targetId << endl;
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0001, TIPS_FAILURE_COLOR);
 		return;
 	}
+	if (localTest) cout << "[local][HeroEquip] EquipHeCheng success itemId=" << itemId << " target=" << targetId << endl;
 	msg << PRO_SUCCESS;
 	return;
 }
@@ -1789,6 +1819,15 @@ void CEquipManeger::StrongAllEquip(CUser* user, CNetMessage& msg)
 		return;
 	}
 	FormationEquipMap& emap = it->second.wearEquips;
+	for (FormationEquipMapIt eit = emap.begin(); eit != emap.end(); ++eit)
+	{
+		CEquip* equip = GetEqiup(eit->second);
+		if (equip != NULL && sCItemCfgManager.GetEquipCfg(equip->id) == NULL)
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
+			return;
+		}
+	}
 	uint16 maxLevel = user->GetLevel() * 2;
 	uint8 critCnt = 0;
 	msg << PRO_SUCCESS << (uint8)emap.size();
@@ -1808,7 +1847,7 @@ void CEquipManeger::StrongAllEquip(CUser* user, CNetMessage& msg)
 
 		CEquipCfg* ecfg = imgr.GetEquipCfg(equip->id);
 		if (ecfg == NULL)
-			return;
+			continue;
 
 		uint16 curLevel = equip->GetYangChengLevel(EST_QIANGHUA);
 		if (curLevel >= maxLevel)
@@ -1871,18 +1910,34 @@ void CEquipManeger::JingLianEquip(CUser* user, CNetMessage& msg)
 	uint32 id;
 	uint8 itemSize = 0;
 	msg >> id >> itemSize;
+	const bool localTest = gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1";
+	if (localTest)
+		cout << "[local][HeroEquip] JingLian request uid=" << id << " itemSize=" << (uint32)itemSize
+			<< " equipmentCount=" << m_petEquips.size() << endl;
 	static U16tU32Map itemExp;
 	if (itemExp.size() == 0)
 	{
 		vector<uint16>* vec = SingletonItemManager::instance().GetTypeItem(4);
 		if (vec == NULL)
+		{
+			if (localTest) cout << "[local][HeroEquip] JingLian type=4 material config list missing" << endl;
+			msg.ReWrite();
+			msg.SetType(PET_EQUIP_OPERATE);
+			msg << (uint8)13 << id << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 			return;
+		}
 		for (uint8 i = 0; i < vec->size(); ++i)
 		{
 			uint16 itemId = (*vec)[i];
 			SItemTemplate *pItem = SingletonItemManager::instance().GetItem(itemId);
 			if (pItem == NULL)
+			{
+				if (localTest) cout << "[local][HeroEquip] JingLian material config missing itemId=" << itemId << endl;
+				msg.ReWrite();
+				msg.SetType(PET_EQUIP_OPERATE);
+				msg << (uint8)13 << id << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 				return;
+			}
 			itemExp[itemId] = pItem->subValue;
 		}
 	}
@@ -1894,6 +1949,9 @@ void CEquipManeger::JingLianEquip(CUser* user, CNetMessage& msg)
 	for (uint8 si = 0; si < itemSize; ++si)
 	{
 		msg >> itemId >> itemNum;
+		if (localTest)
+			cout << "[local][HeroEquip] JingLian material itemId=" << itemId << " count=" << itemNum
+				<< " owned=" << user->GetMaterial(itemId) << endl;
 		U16tU32MapIt uit = itemExp.find(itemId);
 		if (uit != itemExp.end())
 		{
@@ -1920,13 +1978,21 @@ void CEquipManeger::JingLianEquip(CUser* user, CNetMessage& msg)
 	msg << (uint8)13 << id;
 	CEquip* equip = GetEqiup(id);
 	if (equip == NULL)
+	{
+		if (localTest) cout << "[local][HeroEquip] JingLian equipment uid not found=" << id << endl;
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
 	CItemCfgManager& imgr = sCItemCfgManager;
 	CMissionManager& mmgr = sCMissionManager;
 	sumExp += equip->curExp;
 	CEquipCfg* ecfg = imgr.GetEquipCfg(equip->id);
 	if (ecfg == NULL)
+	{
+		if (localTest) cout << "[local][HeroEquip] JingLian template config missing id=" << equip->id << endl;
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
 	uint16 curLevel = equip->GetYangChengLevel(EST_JINGLIAN);
 	double jxRatio = sCHeroCfgManager.GetJingLianRatio(ecfg->quality);
 	uint16 addlevel = 0;
@@ -1942,6 +2008,10 @@ void CEquipManeger::JingLianEquip(CUser* user, CNetMessage& msg)
 	}
 	if (addlevel == 0)
 	{
+		if (localTest)
+			cout << "[local][HeroEquip] JingLian insufficient exp uid=" << id << " sumExp=" << sumExp
+				<< " currentLevel=" << curLevel << " quality=" << (uint32)ecfg->quality
+				<< " ratio=" << jxRatio << endl;
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0169, TIPS_FAILURE_COLOR);
 		return;
 	}
@@ -1981,11 +2051,17 @@ void CEquipManeger::JueXingEquip(CUser* user, CNetMessage& msg)
 
 	CEquip* equip = GetEqiup(id);
 	if (equip == NULL)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
 
 	CEquipCfg* ecfg = sCItemCfgManager.GetEquipCfg(equip->id);
 	if (ecfg == NULL)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
 	uint16 curLevel = equip->GetYangChengLevel(EST_JUEXING);
 	JueXingCfg* cfg = sCItemCfgManager.GetJueXinCfg(++curLevel);
 	if (cfg == NULL)
@@ -2028,11 +2104,17 @@ void CEquipManeger::ShenZhuEquip(CUser* user, CNetMessage& msg)
 
 	CEquip* equip = GetEqiup(id);
 	if (equip == NULL)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
 
 	CEquipCfg* ecfg = sCItemCfgManager.GetEquipCfg(equip->id);
 	if (ecfg == NULL)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0175, TIPS_FAILURE_COLOR);
 		return;
+	}
 	uint16 curLevel = equip->GetYangChengLevel(EST_SHENZHU);
 	ShenZhuCfg* cfg = sCItemCfgManager.GetShenZhuCfg(++curLevel);
 	if (cfg == NULL)
@@ -2053,9 +2135,9 @@ void CEquipManeger::ShenZhuEquip(CUser* user, CNetMessage& msg)
 	user->SubMaterial(ecfg->szCost, cfg->itemNum);
 	equip->strongLevel[EST_SHENZHU] = curLevel;
 	msg << PRO_SUCCESS << curLevel << (uint8)ecfg->szAttr.size();
-	for (uint8 i = 0; i < ecfg->jlAttr.size(); ++i)
+	for (uint8 i = 0; i < ecfg->szAttr.size(); ++i)
 	{
-		msg << ecfg->jlAttr[i].attrType << ecfg->jlAttr[i].attrValue;
+		msg << ecfg->szAttr[i].attrType << ecfg->szAttr[i].attrValue;
 	}
 	map<uint8, SSkillData>::iterator it = cfg->posSkill.find(ecfg->part);
 	if (it != cfg->posSkill.end())
@@ -2127,7 +2209,10 @@ void CEquipManeger::WearPetEquip(CUser* user, CNetMessage& msg)
 	}
 	if (!sSystemOpenCfgMananger.CheckSystemOpen(user, SOT_1045 + equip->wpos - 1)
 		&& gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) != "1")
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_LLD_0072, TIPS_FAILURE_COLOR);
 		return;
+	}
 	if (fpos == 0 || fpos > 5)
 	{
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_TRANSFORM_1318, TIPS_FAILURE_COLOR);

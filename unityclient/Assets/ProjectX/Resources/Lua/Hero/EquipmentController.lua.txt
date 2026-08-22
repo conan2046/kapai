@@ -1,5 +1,6 @@
 local Protocol = require("Protocol")
 local EquipmentModel = require("Hero.LegacyEquipmentModel")
+local BagController = require("Bag.BagController")
 
 local M = {
     requested = false,
@@ -17,6 +18,7 @@ local M = {
     invalidReason = "",
     repeatReason = "",
     openKind = 1,
+    openPending = false,
     preloadCallback = nil,
     attributePushCount = 0,
     attributePushChanged = false,
@@ -25,6 +27,7 @@ local M = {
     heroAttackBefore = 0,
     heroHealthBefore = 0,
     playerPowerBefore = 0,
+    g4Started = false,
 }
 
 local function showBusinessError(reason)
@@ -152,11 +155,11 @@ local function sendEquipmentTakeOff(uid, position)
     Bridge:Send(message)
 end
 
-local function sendEquipmentStrength(uid)
+local function sendEquipmentStrength(uid, strengthType)
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(4)
     message:WriteUInt(uid)
-    message:WriteByte(0)
+    message:WriteByte(strengthType == 1 and 1 or 0)
     Bridge:Send(message)
 end
 
@@ -173,6 +176,60 @@ local function sendFaBaoTakeOff(uid)
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(19)
     message:WriteUInt(uid)
+    Bridge:Send(message)
+end
+
+local function sendEquipmentStrengthAll(position)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(12)
+    message:WriteByte(position)
+    Bridge:Send(message)
+end
+
+local function sendEquipmentRefine(uid, itemId, itemCount)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(13)
+    message:WriteUInt(uid)
+    message:WriteByte(1)
+    message:WriteWord(itemId)
+    message:WriteWord(itemCount)
+    Bridge:Send(message)
+end
+
+local function sendEquipmentAutoRefine(uid, ...)
+    local values = {...}
+    local pairs = {}
+    for index = 1, 8, 2 do
+        local itemId = tonumber(values[index]) or 0
+        local itemCount = tonumber(values[index + 1]) or 0
+        if itemId > 0 and itemCount > 0 then
+            table.insert(pairs, {itemId, itemCount})
+        end
+    end
+    if #pairs == 0 then return end
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(13)
+    message:WriteUInt(uid)
+    message:WriteByte(#pairs)
+    for _, pair in ipairs(pairs) do
+        message:WriteWord(pair[1])
+        message:WriteWord(pair[2])
+    end
+    Bridge:Send(message)
+end
+
+local function sendEquipmentCultivate(uid, op)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(op)
+    message:WriteUInt(uid)
+    message:WriteWord(1)
+    Bridge:Send(message)
+end
+
+local function sendEquipmentCompose(fragmentId)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(11)
+    message:WriteWord(fragmentId)
     Bridge:Send(message)
 end
 
@@ -238,6 +295,16 @@ local function finishLists()
         callback()
         return
     end
+    if Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation") then
+        if not M.g4Started then
+            M.g4Started = true
+            Bridge:RunHeroEquipmentG4Validation()
+        elseif M.openPending then
+            M.openPending = false
+            Bridge:ShowHeroEquipment(M.openKind)
+        end
+        return
+    end
     if M.stage == "await_final_lists" then
         M.stage = nil
         Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,
@@ -250,7 +317,7 @@ local function finishLists()
     if not Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
         and not Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
         if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation") then Bridge:CompleteHeroEquipmentReadValidation()
-        else Bridge:ShowHeroEquipment(M.openKind) end
+        elseif M.openPending then M.openPending = false; Bridge:ShowHeroEquipment(M.openKind) end
         return
     end
     if Bridge.HeroEquipmentCount == 0 or Bridge.FaBaoCount == 0 then
@@ -298,12 +365,12 @@ end
 
 function M.preload(callback)
     M.preloadCallback = callback
-    requestLists()
+    BagController.requestEquipmentSnapshot(function() requestLists() end)
 end
 
 function M.wearEquipment(uid, position) sendEquipmentWear(uid, position) end
 function M.takeOffEquipment(uid, position) sendEquipmentTakeOff(uid, position) end
-function M.strengthEquipment(uid)
+function M.strengthEquipment(uid, strengthType)
     if not EquipmentModel:GetEquipment(uid) then return end
     local cost = Bridge:GetEquipmentStrengthCost(uid)
     if Bridge:GetCurrency(60000) < cost then
@@ -311,12 +378,31 @@ function M.strengthEquipment(uid)
         Bridge:ShowToast("您的金币不足！", 2.0)
         return
     end
-    sendEquipmentStrength(uid)
+    sendEquipmentStrength(uid, strengthType)
+end
+function M.strengthAllEquipment(position) sendEquipmentStrengthAll(position) end
+function M.refineEquipment(uid, itemId, itemCount)
+    if not EquipmentModel:GetEquipment(uid) or itemId <= 0 or itemCount <= 0 then return end
+    sendEquipmentRefine(uid, itemId, itemCount)
+end
+function M.autoRefineEquipment(uid, ...)
+    if not EquipmentModel:GetEquipment(uid) then return end
+    sendEquipmentAutoRefine(uid, ...)
+end
+function M.awakenEquipment(uid)
+    if EquipmentModel:GetEquipment(uid) then sendEquipmentCultivate(uid, 14) end
+end
+function M.divineEquipment(uid)
+    if EquipmentModel:GetEquipment(uid) then sendEquipmentCultivate(uid, 15) end
+end
+function M.composeEquipment(fragmentId)
+    if fragmentId > 0 then sendEquipmentCompose(fragmentId) end
 end
 
 function M.open(kind)
     M.openKind = kind == 2 and 2 or 1
-    requestLists()
+    M.openPending = true
+    BagController.requestEquipmentSnapshot(function() requestLists() end)
 end
 function M.wearFaBao(uid, position) sendFaBaoWear(uid, position, EquipmentModel:SelectFaBaoSlot(position)) end
 function M.takeOffFaBao(uid) sendFaBaoTakeOff(uid) end
@@ -384,6 +470,66 @@ local function readEquipmentStrengthResponse(message)
         M.stage = "await_equipment_takeoff"
         sendEquipmentTakeOff(uid, M.formationPosition)
     end
+end
+
+local function readSimpleEquipmentCultivationResponse(message, op)
+    local uid = message:ReadUInt()
+    if op == 14 or op == 15 then message:ReadWord() end
+    if message.Remaining < 1 then
+        Bridge:Fail("Equipment cultivation op=" .. tostring(op) .. " returned no result byte.")
+        return
+    end
+    local success = message:ReadByte()
+    if success == 0 then
+        showBusinessError(message.Remaining > 0 and message:ReadString() or "unknown rejection")
+        return
+    end
+    if message.Remaining >= 2 then message:ReadWord() end
+    if message.Remaining >= 1 then
+        local attributeCount = message:ReadByte()
+        for _ = 1, attributeCount do
+            if message.Remaining >= 6 then message:ReadWord(); message:ReadUInt() end
+        end
+    end
+    if op == 15 and message.Remaining >= 4 then message:ReadWord(); message:ReadWord() end
+    Bridge:SetStatus(op == 13 and "装备精炼成功" or op == 14 and "装备觉醒成功" or "装备神铸成功")
+    Bridge:ShowToast(op == 13 and "装备精炼成功" or op == 14 and "装备觉醒成功" or "装备神铸成功", 2.0)
+    -- The cultivation response and the op=16 equipment push are two
+    -- independent packets.  Refresh the authoritative list after a successful
+    -- write so a delayed or missing push cannot leave the Lua owner stale.
+    M.equipmentComplete = false
+    M.faBaoComplete = false
+    sendOp(1)
+end
+
+local function readEquipmentComposeResponse(message)
+    message:ReadWord()
+    if message.Remaining < 1 then Bridge:Fail("Equipment compose returned no result byte."); return end
+    local success = message:ReadByte()
+    if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "unknown rejection"); return end
+    Bridge:SetStatus("装备合成成功")
+    Bridge:ShowToast("装备合成成功", 2.0)
+end
+
+local function readEquipmentStrengthAllResponse(message)
+    message:ReadByte()
+    if message.Remaining < 1 then Bridge:Fail("Equipment strengthen-all returned no result byte."); return end
+    local success = message:ReadByte()
+    if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "unknown rejection"); return end
+    local count = message:ReadByte()
+    for _ = 1, count do message:ReadByte(); message:ReadUInt(); message:ReadByte() end
+    Bridge:SetStatus("一键强化完成")
+end
+
+local function readEquipmentMasterResponse(message, op)
+    local position = message:ReadByte()
+    if op == 24 then
+        local masterType, level = message:ReadByte(), message:ReadByte()
+        Bridge:SetStatus("装备大师更新：阵位" .. tostring(position) .. " 类型" .. tostring(masterType) .. " 等级" .. tostring(level))
+        return
+    end
+    local count = message:ReadByte()
+    for _ = 1, count do message:ReadByte(); message:ReadByte() end
 end
 
 local function readFaBaoWearResponse(message)
@@ -456,6 +602,10 @@ function M.onOperation(op, message)
     elseif op == 16 then EquipmentModel:UpsertEquipment(readEquipmentRecord(message)); syncRenderMirror()
     elseif op == 2 or op == 3 then readEquipmentWearResponse(message, op)
     elseif op == 4 then readEquipmentStrengthResponse(message)
+    elseif op == 11 then readEquipmentComposeResponse(message)
+    elseif op == 12 then readEquipmentStrengthAllResponse(message)
+    elseif op == 13 or op == 14 or op == 15 then readSimpleEquipmentCultivationResponse(message, op)
+    elseif op == 24 or op == 25 or op == 26 then readEquipmentMasterResponse(message, op)
     elseif op == 18 then readFaBaoWearResponse(message)
     elseif op == 19 then readFaBaoTakeOffResponse(message)
     else return false end
@@ -479,9 +629,11 @@ function M.reset()
     M.pendingEquipment, M.pendingFaBao = {}, {}
     M.invalidReason, M.repeatReason = "", ""
     M.openKind = 1
+    M.openPending = false
     M.preloadCallback = nil
     M.attributePushCount, M.attributePushChanged, M.mutationHeroId = 0, false, 0
     M.heroPowerBefore, M.heroAttackBefore, M.heroHealthBefore, M.playerPowerBefore = 0, 0, 0, 0
+    M.g4Started = false
     EquipmentModel:Reset()
 end
 

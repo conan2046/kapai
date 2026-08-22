@@ -731,7 +731,7 @@ Assert-ToolchainTest (
     $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)') -and
     $fixedRunnerSource.Contains('$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"') -and
     $fixedRunnerSource.Contains('$serverStartParameters = @{ WaitSeconds = 60 }') -and
-    ([regex]::Matches($fixedRunnerSource, '& \$startServerScript @serverStartParameters').Count -eq 3) -and
+    ([regex]::Matches($fixedRunnerSource, '& \$startServerScript @serverStartParameters').Count -eq 4) -and
     -not $fixedRunnerSource.Contains('& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1")')
 ) "Fixed-account data/compile preflights no longer run after G2 while the full run remains gated by G3."
 
@@ -973,6 +973,22 @@ Assert-ToolchainTest (
     [regex]::IsMatch($fixedAccountRunnerSource,
         'else\s*\{\s*Invoke-FixedAdapter "Restore"\s*Invoke-FixedAdapter "AssertRestored"\s*Invoke-FixedAdapter "Cleanup"')
 ) "Fixed-account validation failure path can clean an applied fixture without first restoring the account snapshot."
+$heroEquipFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipFixture.ps1") `
+    -Raw -Encoding UTF8
+$heroEquipEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "HeroEquip" })[0]
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('mutationReloginOracle') -and
+    $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter $captureAction') -and
+    $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter $assertAction') -and
+    $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter "AssertReloginHash"') -and
+    $heroEquipFixtureSource.Contains('"CaptureMutationHash"') -and
+    $heroEquipFixtureSource.Contains('"AssertMutationReloginHash"') -and
+    [string]$heroEquipEvidenceContract.fixedAccount.mutationReloginOracle.semanticAssertionId -eq
+        'bag-currency-mission-mysql-relogin-restored' -and
+    [string]$heroEquipEvidenceContract.fixedAccount.sqlitePersistenceOracle.semanticAssertionId -eq
+        'equipment-sqlite-runtime-restart-restored' -and
+    $fixedAccountRunnerSource.Contains('Fixed-account SQLite HeroEquip runtime/restart semantics did not pass.')
+) "HeroEquip fixed-account runner no longer proves the mutated database across relogin before restoring the original snapshot."
 Assert-ToolchainTest (
     [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalUserId -eq 7200057 -and
     [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000115 -and
@@ -1321,5 +1337,15 @@ Assert-ToolchainTest (
     $null -ne (Assert-UnityMigrationModuleWorkflowContract -Root $root `
         -ModuleConfig $worldModule -Scenario $worldScenario -Phase G3)
 ) "The completed World module no longer satisfies the hardened G3 workflow contract."
+
+$heroEquipMatrix = (Import-UnityMigrationJson -Root $root `
+    -Path "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json").Value
+$heroEquipCoverage = Assert-UnityMigrationCoverageList -Root $root -ModuleKey "HeroEquip" -Matrix $heroEquipMatrix
+Assert-ToolchainTest (
+    $heroEquipCoverage.SourceCount -eq 14 -and $heroEquipCoverage.BusinessIdCount -eq 974
+) "HeroEquip G0 coverage denominator no longer reproduces 14 sources and 974 business ids."
+Assert-ToolchainTest (
+    @($heroEquipMatrix.controls).Count -eq 86
+) "HeroEquip scheme-A control denominator no longer reproduces 86 current controls/states."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

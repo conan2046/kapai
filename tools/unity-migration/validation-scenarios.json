@@ -820,6 +820,58 @@
         {
           "path": "build/ui-migration/bootstrap-hero.png",
           "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-hero-detail-equipped.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-wear-popup-open.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-equipment-bag.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-equipment-bag-empty.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-equipment-pieces.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-equipment-pieces-empty.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-equipment-detail.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-strength-before.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-refine-before.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-awaken-before.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-awaken-locked.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-shenzhu-locked.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/g1-source-actionable.png",
+          "lifecycle": "runtime"
         }
       ],
       "captureStates": [
@@ -844,12 +896,17 @@
       "requiredGate": "G3",
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
-        "hero-equipment-319-mutation-restored",
-        "hero-update-70-count-at-least-five",
-        "hero-update-70-values-changed-during-mutation",
-        "hero-update-70-final-hero-restored",
-        "player-power-18-final-restored",
-        "invalid-and-repeat-operations-do-not-mutate"
+        "equipment-coverage-list-all-business-ids",
+        "equipment-86-real-controls-eventsystem",
+        "equipment-wear-replace-source-and-target-restored",
+        "equipment-takeoff-slot-contract-restored",
+        "equipment-compose-source-and-target-restored",
+        "equipment-four-cultivation-transactions-restored",
+        "hero-update-70-source-and-target-authoritative",
+        "player-power-18-authoritative",
+        "bag-currency-mission-mysql-relogin-restored",
+        "equipment-sqlite-runtime-restart-restored",
+        "failure-timing-sibling-isolation-and-zero-residual"
       ],
       "sourceContracts": [
         {
@@ -858,7 +915,7 @@
         },
         {
           "path": "server/src/pet_equip_manage.cpp",
-          "contains": ["WearPetEquip", "TakeOffPetEquip", "StrongEquip", "WearFaBao", "TakeOffFaBao"]
+          "contains": ["WearPetEquip", "TakeOffPetEquip", "EquipHeCheng", "StrongEquip", "StrongAllEquip", "JingLianEquip", "JueXingEquip", "ShenZhuEquip"]
         },
         {
           "path": "server/src/user.cpp",
@@ -874,7 +931,11 @@
         },
         {
           "path": "tools/unity-migration/Invoke-HeroEquipFixture.ps1",
-          "contains": ["Add-HeroEquipFixtureItems", "Assert-HeroEquipFixtureItems", "fixtureEquipmentUid", "fixtureFaBaoUid"]
+          "contains": ["Add-HeroEquipFixtureItems", "Assert-HeroEquipFixtureItems", "fixtureEquipmentUid"]
+        },
+        {
+          "path": "docs/unityclient/matrices/HERO_EQUIPMENT_COVERAGE.json",
+          "contains": ["equip-shenzhu-server-level", "protocol-319-op", "confirmedByUser"]
         }
       ],
       "visualAssertions": {
@@ -882,11 +943,18 @@
         "height": 750,
         "states": [
           "hero-detail",
+          "wear-popup-open",
           "equipment-bag",
+          "equipment-bag-empty",
+          "equipment-pieces",
+          "equipment-pieces-empty",
           "equipment-detail",
           "strength-before",
-          "fabao-bag",
-          "fabao-detail"
+          "refine-before",
+          "awaken-before",
+          "awaken-locked",
+          "shenzhu-locked",
+          "source-actionable"
         ]
       },
       "flags": [
@@ -901,18 +969,32 @@
       ],
       "captureStates": [
         "hero-detail",
+        "wear-popup-open",
         "equipment-bag",
-        "fabao-bag",
+        "equipment-bag-empty",
+        "equipment-pieces",
+        "equipment-pieces-empty",
         "equipment-detail",
-        "fabao-detail",
         "equipment-change-popup",
-        "fabao-change-popup",
         "strength-before",
         "strength-after",
+        "refine-before",
+        "refine-after",
+        "awaken-before",
+        "awaken-locked",
+        "awaken-after",
+        "shenzhu-locked",
+        "shenzhu-after",
+        "source-actionable",
         "material-insufficient",
         "illegal-uid",
         "repeat-operation",
-        "after-takeoff"
+        "after-takeoff",
+        "delayed-reply-after-close",
+        "multi-push-converged",
+        "reconnect-restored",
+        "switch-account-isolated",
+        "fabao-sibling-unchanged"
       ]
     },
     {

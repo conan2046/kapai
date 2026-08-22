@@ -408,16 +408,17 @@
     },
     {
       "key": "HeroEquip",
-      "displayName": "装备与法宝",
-      "status": "g3-complete-g4-control-coverage-pending",
+      "displayName": "装备（法宝边界回归）",
+      "status": "g0-passed-g1-refine-recapture-pending",
       "protocols": [
         319,
-        70
+        70,
+        18
       ],
       "entries": [
-        "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/EquipUI/Bg/bg/EquipIcon1..6",
-        "Layer/Main_UI/tankuang2/btn_zhuangbei",
-        "Layer/Main_UI/tankuang2/btn_fabao"
+        "Layer/Main_UI/ButtonGroup1/btn_chuandai -> tankuang2/btn_zhuangbei",
+        "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/EquipUI/Bg/bg/EquipIcon1..4",
+        "boundary-regression: Layer/Main_UI/tankuang2/btn_fabao and EquipIcon5..6"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
@@ -428,12 +429,27 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiqianghua.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaosuipianbeibao.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeisuipian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeijinglian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeijuexing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeishenzhu.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianjinglian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianduihuan.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianshengxing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianshengceng.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/shenzhutexiao.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/ItemGet.prefab"
       ],
       "configs": [
         "unityclient/Assets/ProjectX/Resources/Configs/equip.json",
-        "unityclient/Assets/ProjectX/Resources/Configs/fabao.json",
-        "unityclient/Assets/ProjectX/Resources/Configs/equip_qianghua.json"
+        "unityclient/Assets/ProjectX/Resources/Configs/equip_qianghua.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/hecheng.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/equip_jinglian.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/equip_juexing.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/equip_shenzhu.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/master.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/quality.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/item.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -447,11 +463,18 @@
         "status": "visual-fixing",
         "cocosScreenshots": [
           ".local/ui-fidelity/HeroEquip/cocos/g1-hero-detail-equipped.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-wear-popup-open.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-bag.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-bag-empty.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-pieces.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-pieces-empty.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-detail.png",
           ".local/ui-fidelity/HeroEquip/cocos/g1-strength-before.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-bag.png",
-          ".local/ui-fidelity/HeroEquip/cocos/g1-fabao-detail.png"
+          ".local/ui-fidelity/HeroEquip/cocos/g1-refine-before.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-awaken-before.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-awaken-locked.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-shenzhu-locked.png",
+          ".local/ui-fidelity/HeroEquip/cocos/g1-source-actionable.png"
         ],
         "unityScreenshots": [],
         "diffReports": [],

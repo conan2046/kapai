@@ -55,12 +55,68 @@ namespace ProjectX.Data
         [JsonProperty("cost")] public int[] Cost { get; set; }
     }
 
+    [Serializable]
+    public sealed class EquipmentComposeDefinition
+    {
+        [JsonProperty("type")] public int Type { get; set; }
+        [JsonProperty("item")] public int[][] Items { get; set; }
+        [JsonProperty("target")] public int[] Target { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentRefineDefinition
+    {
+        [JsonProperty("level")] public int Level { get; set; }
+        [JsonProperty("exp")] public int Experience { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentAwakenDefinition
+    {
+        [JsonProperty("level")] public int Level { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("cost")] public int[][] Cost { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentDivineDefinition
+    {
+        [JsonProperty("level")] public int Level { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("cost_count")] public int FragmentCount { get; set; }
+        [JsonProperty("money")] public int[][] Money { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentMaterialDefinition
+    {
+        [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("type")] public int Type { get; set; }
+        [JsonProperty("sub_value")] public int[][] Values { get; set; }
+        public int RefineExperience => Values != null && Values.Length > 0 && Values[0] != null && Values[0].Length > 1
+            ? Values[0][1] : 0;
+    }
+
+    [Serializable]
+    public sealed class EquipmentQualityDefinition
+    {
+        [JsonProperty("quality")] public int Quality { get; set; }
+        [JsonProperty("jinglian_ratio")] public int RefineRatio { get; set; }
+    }
+
     public sealed class EquipmentCatalog
     {
         private readonly Dictionary<int, EquipmentDefinition> equipment = new Dictionary<int, EquipmentDefinition>();
         private readonly Dictionary<int, EquipmentDefinition> faBao = new Dictionary<int, EquipmentDefinition>();
         private readonly Dictionary<int, EquipmentStrengthDefinition> strength = new Dictionary<int, EquipmentStrengthDefinition>();
         private readonly Dictionary<int, EquipmentSuitDefinition> suits = new Dictionary<int, EquipmentSuitDefinition>();
+        private readonly Dictionary<int, int> equipmentByFragment = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> fragmentComposeCost = new Dictionary<int, int>();
+        private readonly Dictionary<int, EquipmentRefineDefinition> refine = new Dictionary<int, EquipmentRefineDefinition>();
+        private readonly Dictionary<int, EquipmentAwakenDefinition> awaken = new Dictionary<int, EquipmentAwakenDefinition>();
+        private readonly Dictionary<int, EquipmentDivineDefinition> divine = new Dictionary<int, EquipmentDivineDefinition>();
+        private readonly Dictionary<int, EquipmentMaterialDefinition> refineMaterials = new Dictionary<int, EquipmentMaterialDefinition>();
+        private readonly Dictionary<int, EquipmentQualityDefinition> qualities = new Dictionary<int, EquipmentQualityDefinition>();
 
         public EquipmentCatalog()
         {
@@ -68,6 +124,8 @@ namespace ProjectX.Data
             Load("Configs/fabao", faBao);
             LoadStrength();
             LoadSuits();
+            LoadComposition();
+            LoadCultivation();
         }
 
         public EquipmentDefinition GetEquipment(int id)
@@ -80,11 +138,40 @@ namespace ProjectX.Data
 
         public EquipmentDefinition GetEquipmentByFragment(int itemId)
         {
-            EquipmentDefinition result = null;
-            foreach (EquipmentDefinition value in equipment.Values)
-                if (value.DivineCostItemId == itemId && (result == null || value.Id < result.Id))
-                    result = value;
-            return result ?? EquipmentDefinition.Missing(itemId, HeroEquipmentKind.Equipment);
+            return equipmentByFragment.TryGetValue(itemId, out int equipmentId)
+                ? GetEquipment(equipmentId)
+                : EquipmentDefinition.Missing(itemId, HeroEquipmentKind.Equipment);
+        }
+
+        public bool IsEquipmentFragment(int itemId) => equipmentByFragment.ContainsKey(itemId);
+        public int GetEquipmentComposeCost(int itemId)
+            => fragmentComposeCost.TryGetValue(itemId, out int value) ? value : 0;
+
+        public EquipmentRefineDefinition GetRefine(int level)
+            => refine.TryGetValue(level, out EquipmentRefineDefinition value) ? value : null;
+
+        public EquipmentAwakenDefinition GetAwaken(int level)
+            => awaken.TryGetValue(level, out EquipmentAwakenDefinition value) ? value : null;
+
+        public EquipmentDivineDefinition GetDivine(int level)
+            => divine.TryGetValue(level, out EquipmentDivineDefinition value) ? value : null;
+
+        public int GetRefineMaterialExperience(int itemId)
+            => refineMaterials.TryGetValue(itemId, out EquipmentMaterialDefinition value) ? value.RefineExperience : 0;
+
+        public int GetRefineExperience(int level, int quality)
+        {
+            if (!refine.TryGetValue(level, out EquipmentRefineDefinition value)) return 0;
+            int ratio = qualities.TryGetValue(quality, out EquipmentQualityDefinition definition)
+                ? definition.RefineRatio : 10000;
+            return checked(value.Experience * ratio / 10000);
+        }
+
+        public IReadOnlyList<int> GetRefineMaterialIds()
+        {
+            List<int> values = new List<int>(refineMaterials.Keys);
+            values.Sort();
+            return values;
         }
 
         public IReadOnlyList<EquipmentDefinition> GetEquipmentSuit(int suitId)
@@ -110,7 +197,67 @@ namespace ProjectX.Data
 
         public int MaxStrengthLevel => strength.Count;
 
-        public void Clear() { equipment.Clear(); faBao.Clear(); strength.Clear(); suits.Clear(); }
+        public void Clear()
+        {
+            equipment.Clear(); faBao.Clear(); strength.Clear(); suits.Clear(); equipmentByFragment.Clear(); fragmentComposeCost.Clear();
+            refine.Clear(); awaken.Clear(); divine.Clear(); refineMaterials.Clear(); qualities.Clear();
+        }
+
+        private void LoadCultivation()
+        {
+            LoadByLevel("Configs/equip_jinglian", refine);
+            LoadByLevel("Configs/equip_juexing", awaken);
+            LoadByLevel("Configs/equip_shenzhu", divine);
+            TextAsset qualityAsset = Resources.Load<TextAsset>("Configs/quality");
+            if (qualityAsset == null) throw new InvalidOperationException("Equipment quality config is missing: Resources/Configs/quality.json");
+            EquipmentQualityDefinition[] qualityValues = JsonConvert.DeserializeObject<EquipmentQualityDefinition[]>(qualityAsset.text)
+                ?? Array.Empty<EquipmentQualityDefinition>();
+            foreach (EquipmentQualityDefinition value in qualityValues)
+                if (value != null && value.Quality > 0 && value.RefineRatio > 0) qualities[value.Quality] = value;
+            TextAsset asset = Resources.Load<TextAsset>("Configs/item");
+            if (asset == null) throw new InvalidOperationException("Equipment material config is missing: Resources/Configs/item.json");
+            EquipmentMaterialDefinition[] values = JsonConvert.DeserializeObject<EquipmentMaterialDefinition[]>(asset.text)
+                ?? Array.Empty<EquipmentMaterialDefinition>();
+            foreach (EquipmentMaterialDefinition value in values)
+                if (value != null && value.Id > 0 && value.Type == 4 && value.RefineExperience > 0)
+                    refineMaterials[value.Id] = value;
+            ClientLog.Info("Config", "Loaded equipment cultivation configs",
+                $"refine={refine.Count}, awaken={awaken.Count}, divine={divine.Count}, materials={refineMaterials.Count}, qualities={qualities.Count}");
+        }
+
+        private static void LoadByLevel<T>(string resourcePath, IDictionary<int, T> target) where T : class
+        {
+            TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+            if (asset == null) throw new InvalidOperationException($"Equipment cultivation config is missing: Resources/{resourcePath}.json");
+            JArray values = JArray.Parse(asset.text);
+            foreach (JToken token in values)
+            {
+                int level = token.Value<int?>("level") ?? -1;
+                T value = token.ToObject<T>();
+                if (level >= 0 && value != null) target[level] = value;
+            }
+        }
+
+        private void LoadComposition()
+        {
+            TextAsset asset = Resources.Load<TextAsset>("Configs/hecheng");
+            if (asset == null) throw new InvalidOperationException("Equipment composition config is missing: Resources/Configs/hecheng.json");
+            EquipmentComposeDefinition[] values = JsonConvert.DeserializeObject<EquipmentComposeDefinition[]>(asset.text)
+                ?? Array.Empty<EquipmentComposeDefinition>();
+            foreach (EquipmentComposeDefinition value in values)
+            {
+                if (value == null || value.Type != 4 || value.Items == null || value.Items.Length != 1
+                    || value.Items[0] == null || value.Items[0].Length < 3
+                    || value.Target == null || value.Target.Length < 3 || value.Target[0] <= 0) continue;
+                int fragmentId = value.Items[0][0];
+                if (fragmentId > 0)
+                {
+                    equipmentByFragment[fragmentId] = value.Target[0];
+                    fragmentComposeCost[fragmentId] = value.Items[0][2];
+                }
+            }
+            ClientLog.Info("Config", "Loaded equipment fragment composition", $"{equipmentByFragment.Count} records");
+        }
 
         private void LoadSuits()
         {

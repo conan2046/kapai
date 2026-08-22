@@ -1230,12 +1230,32 @@ bool ReadItem()
 			if(LoadJosnValue("item.json", fields, types, sizeof(types) / sizeof(types[0]), d, items))
 			{
 				uint32 addCount = 0;
+				uint32 repairCount = 0;
 				for(rapidjson::SizeType i = 0; i < items.Size(); ++i)
 				{
 					const rapidjson::Value& data = items[i];
 					uint16 itemId = (uint16)data["id"].GetInt();
-					if(SingletonItemManager::instance().GetItem(itemId) != NULL)
+					SItemTemplate *existing = SingletonItemManager::instance().GetItem(itemId);
+					if(existing != NULL)
+					{
+						uint8 jsonType = (uint8)data["type"].GetInt();
+						if(existing->type != jsonType)
+						{
+							uint8 previousType = existing->type;
+							existing->type = jsonType;
+							existing->subValue = 0;
+							const rapidjson::Value& subValues = data["sub_value"];
+							for(rapidjson::SizeType si = 0; si < subValues.Size(); ++si)
+							{
+								if(subValues[si].IsArray() && subValues[si].Size() >= 2
+									&& (jsonType == 3 || jsonType == 4))
+									existing->subValue = subValues[si][1].GetInt();
+							}
+							SingletonItemManager::instance().ReindexItemType(itemId, previousType, jsonType);
+							++repairCount;
+						}
 						continue;
+					}
 
 					SItemTemplate *pItem = new SItemTemplate;
 					pItem->id = itemId;
@@ -1285,7 +1305,8 @@ bool ReadItem()
 					SingletonItemManager::instance().AddItem(pItem);
 					++addCount;
 				}
-				cout << "[local] ReadItem: filled " << addCount << " missing templates from item.json" << endl;
+				cout << "[local] ReadItem: filled " << addCount << " missing templates and repaired "
+					<< repairCount << " stale type indexes from item.json" << endl;
 			}
 		}
 		return true;

@@ -854,6 +854,114 @@ function Get-UnityMigrationBatchSummaryFailures {
     return @($failures)
 }
 
+function Expand-UnityMigrationCoverageIds {
+    param([Parameter(Mandatory = $true)]$Container)
+    $ids = New-Object System.Collections.Generic.List[string]
+    foreach ($id in @((Get-UnityMigrationPropertyValue -Object $Container -Name "businessIds" -Default @()))) {
+        $value = [string]$id
+        if (-not $value) { throw "Coverage businessIds contains an empty value." }
+        $ids.Add($value)
+    }
+    foreach ($range in @((Get-UnityMigrationPropertyValue -Object $Container -Name "businessIdRanges" -Default @()))) {
+        $start = [int](Get-UnityMigrationPropertyValue -Object $range -Name "start" -Default 0)
+        $end = [int](Get-UnityMigrationPropertyValue -Object $range -Name "end" -Default -1)
+        $prefix = [string](Get-UnityMigrationPropertyValue -Object $range -Name "prefix" -Default "")
+        if ($start -gt $end) { throw "Coverage businessIdRanges contains an invalid range $start..$end." }
+        for ($value = $start; $value -le $end; $value++) { $ids.Add("$prefix$value") }
+    }
+    return @($ids)
+}
+
+function Assert-UnityMigrationCoverageList {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$ModuleKey,
+        [Parameter(Mandatory = $true)]$Matrix
+    )
+    $coveragePath = [string](Get-UnityMigrationPropertyValue -Object $Matrix -Name "coverageList" -Default "")
+    if (-not $coveragePath) { throw "Module '$ModuleKey' control matrix has no coverageList." }
+    $coverage = (Import-UnityMigrationJson -Root $Root -Path $coveragePath).Value
+    if ([int](Get-UnityMigrationPropertyValue -Object $coverage -Name "schemaVersion" -Default 0) -ne 1 -or
+        [string](Get-UnityMigrationPropertyValue -Object $coverage -Name "module" -Default "") -ine $ModuleKey) {
+        throw "Invalid coverage list identity: $coveragePath"
+    }
+    $scenarioIds = @($coverage.scenarios | ForEach-Object { [string]$_.id })
+    if ($scenarioIds.Count -eq 0 -or @($scenarioIds | Sort-Object -Unique).Count -ne $scenarioIds.Count) {
+        throw "Coverage list must declare unique scenario ids: $coveragePath"
+    }
+    $sourceIds = New-Object System.Collections.Generic.List[string]
+    $businessCount = 0
+    foreach ($source in @($coverage.sources)) {
+        $sourceId = [string](Get-UnityMigrationPropertyValue -Object $source -Name "id" -Default "")
+        if (-not $sourceId -or $sourceIds.Contains($sourceId)) { throw "Coverage list has an empty or duplicate source id." }
+        $sourceIds.Add($sourceId)
+        if (-not [string](Get-UnityMigrationPropertyValue -Object $source -Name "branchType" -Default "")) {
+            throw "Coverage source '$sourceId' has no branchType."
+        }
+        $sourceFiles = @((Get-UnityMigrationPropertyValue -Object $source -Name "sourceFiles" -Default @()))
+        if ($sourceFiles.Count -eq 0) { throw "Coverage source '$sourceId' has no sourceFiles." }
+        foreach ($sourceFile in $sourceFiles) {
+            $resolved = Resolve-UnityMigrationPath -Root $Root -Path ([string]$sourceFile)
+            if (-not (Test-Path -LiteralPath $resolved)) { throw "Coverage source '$sourceId' file is missing: $sourceFile" }
+        }
+        $ids = @(Expand-UnityMigrationCoverageIds -Container $source)
+        $uniqueIds = @($ids | Sort-Object -Unique)
+        if ($ids.Count -eq 0 -or $uniqueIds.Count -ne $ids.Count) {
+            throw "Coverage source '$sourceId' has no business ids or contains duplicates."
+        }
+        if ([int](Get-UnityMigrationPropertyValue -Object $source -Name "recordTotal" -Default -1) -ne $ids.Count) {
+            throw "Coverage source '$sourceId' recordTotal does not match its $($ids.Count) business ids."
+        }
+        $mapped = New-Object System.Collections.Generic.List[string]
+        foreach ($mapping in @($source.mappings)) {
+            $mappingIds = @(Expand-UnityMigrationCoverageIds -Container $mapping)
+            if ($mappingIds.Count -eq 0) { throw "Coverage source '$sourceId' contains an empty mapping." }
+            $success = @((Get-UnityMigrationPropertyValue -Object $mapping -Name "successScenarioIds" -Default @()))
+            $failure = @((Get-UnityMigrationPropertyValue -Object $mapping -Name "failureBoundaryScenarioIds" -Default @()))
+            if ($success.Count -eq 0 -or $failure.Count -eq 0) {
+                throw "Coverage source '$sourceId' mapping requires success and failure/boundary scenarios."
+            }
+            foreach ($scenarioId in @($success + $failure)) {
+                if ([string]$scenarioId -notin $scenarioIds) {
+                    throw "Coverage source '$sourceId' references unknown scenario '$scenarioId'."
+                }
+            }
+            foreach ($mappingId in $mappingIds) {
+                if ([string]$mappingId -notin $uniqueIds) {
+                    throw "Coverage source '$sourceId' maps unknown business id '$mappingId'."
+                }
+                $mapped.Add([string]$mappingId)
+            }
+        }
+        if (@($mapped | Sort-Object -Unique).Count -ne $mapped.Count) {
+            throw "Coverage source '$sourceId' maps one or more business ids more than once."
+        }
+        $excludedIds = New-Object System.Collections.Generic.List[string]
+        foreach ($excluded in @((Get-UnityMigrationPropertyValue -Object $source -Name "excluded" -Default @()))) {
+            if (-not [string]$excluded.productEvidence) {
+                throw "Coverage source '$sourceId' exclusion requires productEvidence."
+            }
+            foreach ($excludedId in @(Expand-UnityMigrationCoverageIds -Container $excluded)) {
+                if ([string]$excludedId -notin $uniqueIds) {
+                    throw "Coverage source '$sourceId' excludes unknown business id '$excludedId'."
+                }
+                $excludedIds.Add([string]$excludedId)
+            }
+        }
+        if (@($excludedIds | Sort-Object -Unique).Count -ne $excludedIds.Count -or
+            @($excludedIds | Where-Object { $_ -in $mapped }).Count -gt 0) {
+            throw "Coverage source '$sourceId' has duplicate exclusions or maps an excluded business id."
+        }
+        $uncovered = @($uniqueIds | Where-Object { $_ -notin $mapped -and $_ -notin $excludedIds })
+        if ($uncovered.Count -gt 0) {
+            throw "Coverage source '$sourceId' has uncovered business ids: $($uncovered -join ',')."
+        }
+        $businessCount += $ids.Count
+    }
+    if ($sourceIds.Count -eq 0) { throw "Coverage list has no sources: $coveragePath" }
+    return [pscustomobject]@{ SourceCount = $sourceIds.Count; BusinessIdCount = $businessCount; Path = $coveragePath }
+}
+
 function Assert-UnityMigrationModuleWorkflowContract {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -884,6 +992,10 @@ function Assert-UnityMigrationModuleWorkflowContract {
     }
     if (@($exampleIds | Sort-Object -Unique).Count -ne $exampleIds.Count) {
         throw "Module '$($ModuleConfig.key)' acceptanceExamples contains duplicate ids."
+    }
+    $coveragePath = [string](Get-UnityMigrationPropertyValue -Object $matrix -Name "coverageList" -Default "")
+    if ($Phase -eq "G0" -or $coveragePath) {
+        Assert-UnityMigrationCoverageList -Root $Root -ModuleKey ([string]$ModuleConfig.key) -Matrix $matrix | Out-Null
     }
     if ($Phase -eq "G3") {
         if (-not [bool](Get-UnityMigrationPropertyValue -Object $Scenario -Name "controlCoverageRequired" -Default $false)) {

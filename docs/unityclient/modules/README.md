@@ -16,7 +16,7 @@
 | 背包 | `BAG.md` | `G0-G1 passed / G2-G6 pending / 0/26 current complete`；当前 `btn_Bag` 与固定账号证据已通过，7张Cocos原图复用、3张缺失生命周期状态新拍，尚未进入Unity实现 |
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `G0-G6 passed / 16/16 complete`；阵容主链保持有效，装备操作后的 `/70` 属性刷新由 HeroEquip 重新开门禁修复 |
-| 装备/法宝 | `HERO_EQUIPMENT.md` | `G0 reopened / protocol-70 gap`；历史33控件/20视觉仅作诊断，补齐 `/319→/70` 属性与战力闭环后重做 G0-G6 |
+| 装备（法宝边界回归） | `HERO_EQUIPMENT.md` | `G0 passed / G1-G6 pending`；方案A冻结12来源/963业务记录/86控件，含40个装备碎片来源ID；法宝仅作兄弟入口及共享协议隔离回归，历史33控件/20视觉仅作诊断 |
 | 邮件 | `MAIL.md` | `G0-G6 passed / 13/13 complete`；当前证据路径存在 |
 | 商城 | `SHOP.md` | `G0-G6 passed / 21/21 complete`；当前证据路径存在 |
 | 玩法商店 | `GAMEPLAY_SHOPS.md` | `G0 pending / evidence-missing`；登记的15个正式证据路径当前缺失，旧完成态已撤销 |

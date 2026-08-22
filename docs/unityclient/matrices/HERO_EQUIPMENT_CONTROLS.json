@@ -2,9 +2,10 @@
   "schemaVersion": 1,
   "module": "HeroEquip",
   "workflowPolicyVersion": 1,
+  "coverageList": "docs/unityclient/matrices/HERO_EQUIPMENT_COVERAGE.json",
   "acceptanceExamples": [
-    { "id": "hero-equip-mutation", "given": "固定账号具有装备、法宝及强化材料", "when": "穿戴、卸下、强化并触发材料不足和非法UID", "then": "成功与失败均由服务端回包驱动，重连保持且Fixture精确恢复" },
-    { "id": "hero-equip-pet-attribute-refresh", "given": "阵位神将已取得/24权威属性快照且服务端装备操作会调用UpdateZhenFaPetInfo", "when": "真实执行/319 op2、op3、op4、op18或op19并收到服务端主动推送/70", "then": "Unity完整解析/70的神将ID、属性集合、气血与战力更新；阵容详情和HUD总战力刷新，失败操作保持原值，重登与服务器权威值一致" }
+    { "id": "hero-equip-full-transaction", "given": "隔离账号具有两名阵位神将、同部位可替换装备、足够金币和碎片，且已保存MySQL与SQLite权威快照", "when": "从主界面真实点击穿戴→装备并执行穿戴、替换、卸下、合成及四类养成", "then": "全部回包和多推送收敛，来源与目标资源、双方神将属性、HUD战力、SQLite、重登录回读及最终恢复哈希一致" },
+    { "id": "hero-equip-failure-lifecycle", "given": "材料不足、非法UID、功能锁定、静默或延迟回包以及切号状态已准备", "when": "经真实EventSystem触发操作并在请求期间关闭或切换页面", "then": "数据保持原子、失败反馈明确、旧页面不被重开、法宝兄弟状态不受污染且Fixture零残留" }
   ],
   "hardGateVersion": 1,
   "scope": {
@@ -13,19 +14,16 @@
     "screenSize": "1334x750",
     "windowsDpi": "100%",
     "included": [
-      "神将详情六个装备/法宝槽入口",
-      "装备背包与法宝背包",
-      "装备/法宝详情和更换弹窗",
-      "装备穿戴、替换、卸下、单次强化",
-      "法宝穿戴、替换、卸下",
-      "装备/法宝操作后的 /70 PRO_UPDATE_PET_INFO 神将属性、气血、神将战力与总战力刷新",
-      "空态、材料不足、非法/重复操作、重拉、重连、切号清理"
+      "主界面btn_chuandai展开/收起及btn_zhuangbei真实入口",
+      "装备背包、装备碎片、详情、更换、来源和回收边界入口",
+      "装备穿戴、替换、卸下、合成、分解、一次/五次/全身强化、精炼、觉醒和神铸",
+      "神将详情1..4装备槽及装备操作后的/70神将属性和/18总战力刷新",
+      "动态列表正常/空/锁定/选中/禁用、成功/失败/边界、返回/重进、延迟多推送、重连和切号清理",
+      "法宝兄弟入口、5..6槽和共享/319游标仅做隔离回归"
     ],
     "excludedMustBeHiddenOrDisabled": [
-      "装备碎片合成与回收",
-      "装备精炼、觉醒、神铸",
-      "法宝强化、炼化和完整培养",
-      "批量/五次强化"
+      "法宝背包、碎片、详情、穿戴、卸下、搜索、合成、强化、炼化和重生的完整业务验收；用户于2026-08-21确认方案A，仅保留兄弟入口和共享状态隔离回归",
+      "HuiShou目标页内部业务；本模块只验两个回收入口、UI栈返回和装备数据影响"
     ]
   },
   "sourceAudit": {
@@ -34,27 +32,92 @@
     "configAssetClosureComplete": true,
     "runtimeTransformClosureComplete": true,
     "evidence": {
-      "entry": ".local/unity-validation/heroequip-g2-source-audit.json#entryClosure",
-      "protocols": ".local/unity-validation/heroequip-g2-source-audit.json#protocolOwnership",
-      "configsAssets": ".local/unity-validation/heroequip-g2-source-audit.json#configAssetClosure",
-      "transforms": ".local/unity-validation/heroequip-g2-source-audit.json#runtimeTransformClosure",
-      "unityGap": ".local/unity-validation/heroequip-g2-source-audit.json#unityCurrentImplementation"
+      "entry": "client/ProjectX/src/View/MainUI.lua:btn_chuandai/tankuang2/btn_zhuangbei -> OnPetEquipButtonClick -> EMID_KAPAI_EQUIP_BAG=1110 -> PetEquipMainUI；阵容边界为PetZhenRongUI:PosCallBack(1..4)。",
+      "protocols": "server/src/pack_deal.cpp:DealPetEquipOperate；server/src/pet_equip_manage.cpp拥有/319 op1..16；server/src/user.cpp:UpdatePetInfo拥有/70与总战力推送；法宝op17..36仅隔离回归。",
+      "configsAssets": "docs/unityclient/matrices/HERO_EQUIPMENT_COVERAGE.json冻结14来源/974 ID；Unity已登记equip/hecheng/qianghua/jinglian/juexing/shenzhu/master/quality/item，服务端事务JSON与Unity副本逐字节SHA一致；精炼经验必须叠加quality.jinglian_ratio且材料ID610..613必须为type=4；装备图标按equip.pic唯一解析。",
+      "transforms": "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json冻结86控件；Prefabs中的Anchor/Position/Size/Scale/Scroll裁剪、OneLevelLayer叠层、0.1秒子页延迟、主界面0.17秒Timeline与Imod神铸特效均已列入G3/G5断言。",
+      "unityGap": "G2已裁决所有缺口的所有权与G3处理：Lua继续拥有业务；C#只呈现；服务端补完整失败回包；配置以服务端为事务权威并保留Cocos 150级显示差异证据；源Prefab中四个一键入口m_IsActive=0，Unity必须保持隐藏并作负向断言。"
     },
     "knownGaps": [
       {
+        "id": "HERO-EQUIP-GAP-QUALITY-REFINE-RATIO",
+        "handling": "G3由EquipmentCatalog加载服务端quality.json七个品质ID，精炼材料数量按equip_jinglian.exp × jinglian_ratio/10000计算；禁止只按基础经验发包。",
+        "evidence": "server/src/hero_cfg_manager.cpp:93; server/src/pet_equip_manage.cpp:1959; server/config/json/quality.json; unityclient/Assets/ProjectX/Resources/Configs/quality.json"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-LOCAL-REFINE-MATERIAL-INDEX",
+        "handling": "G3仅在local_test=1下用服务端item.json修复最小库已有物品行的过期type索引；610..613必须进入GetTypeItem(4)，正式库和线上初始化路径不变。",
+        "evidence": "server/src/utility.cpp:ReadItem; server/src/item.h:CItemTemplateManager; server/config/json/item.json"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-REFINE-MATERIAL-SNAPSHOT",
+        "handling": "G3装备入口和重连必须先请求/8权威背包快照，由BagController完整写入BagStore后再请求/319；精炼材料数量只能基于610..613真实持有量选择，缺快照或不足时禁止回退发送610×1。",
+        "evidence": "client/ProjectX/src/View/EquipCultivate/CultivateJingLianUI.lua; unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt; unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt; server/src/pet_equip_manage.cpp"
+      },
+      {
         "id": "HERO-EQUIP-GAP-PROTOCOL-70",
-        "handling": "G3 登记并完整解析 /70，以服务器推送覆盖神将属性、气血和神将战力，再刷新阵容详情与 HUD；禁止客户端自行推导。",
+        "handling": "G3完整解析 /70，以服务器推送覆盖神将属性、气血和神将战力，再刷新阵容详情与HUD；禁止客户端自行推导。",
         "evidence": "server/src/user.cpp:7762; client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua:5192; unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt:415"
       },
       {
-        "id": "HERO-EQUIP-GAP-FIXED-ACCOUNT-REPLACEMENT",
-        "handling": "当前固定账号没有同槽备用装备，G5 只冻结六个稳定视觉状态；更换、卸下、强化、失败和恢复由 G4 隔离角色可逆验证，不伪造固定账号数据。",
-        "evidence": ".local/unity-validation/heroequip-cocos-baseline-latest.json; tools/unity-migration/validation-scenarios.json#hero-equip-g6"
+        "id": "HERO-EQUIP-GAP-OPS-11-16",
+        "handling": "G3在Lua权威层补合成、全身强化、精炼、觉醒、神铸及大师op24/26路由；C#不得预改资源。",
+        "evidence": "server/src/pet_equip_manage.cpp; unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt"
       },
       {
-        "id": "HERO-EQUIP-GAP-LARGE-APP",
-        "handling": "ProjectXApp.cs 拆分单独列为后续结构重构；本次只做 /70 最小接入，避免协议修复与大规模重构混合。",
-        "evidence": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+        "id": "HERO-EQUIP-GAP-FAILURE-RESPONSES",
+        "handling": "G3修正非法UID、阵位、槽位、配置缺失和资源不足的静默return，所有写操作必须有可解析失败结果；不改变线上成功路径。",
+        "evidence": "server/src/pet_equip_manage.cpp:1976-2269"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-CROSS-POSITION",
+        "handling": "G3修正跨阵位同部位替换的源/目标装备镜像和双方/70刷新，并校验卸下请求fpos与权威装备fpos一致。",
+        "evidence": "server/src/pet_equip_manage.cpp:2117-2269; unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-SHENZHU-150-155",
+        "handling": "事务配置以服务端155级为权威，Unity加载同SHA JSON；Cocos客户端150级为历史显示上限，151..155只允许权威回读/满级安全态，不由Unity伪造Cocos画面。",
+        "evidence": "client/ProjectX/src/ConfigData/equip_shenzhu_dat.lua; server/config/json/equip_shenzhu.json; unityclient/Assets/ProjectX/Resources/Configs/equip_shenzhu.json"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-FRAGMENT-PREFAB-ROUTE",
+        "handling": "G3把BootstrapSceneBuilder的HeroEquipmentFragmentPrefab从法宝碎片Prefab改为zhuangbeisuipian.prefab，并保持法宝兄弟入口独立。",
+        "evidence": "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs:51; unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeisuipian.prefab"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-FRAGMENT-SORT",
+        "handling": "G3由BagStore权威槽位提供按ItemType=7聚合读取，装备页不得复用主背包会过滤type7的Items视图；随后等价Cocos按可合成、品质、数量、业务ID降序排序，禁止隐藏当前可操作碎片。",
+        "evidence": "client/ProjectX/src/View/PetEquip/PetEquipPiecesSubUI.lua:139-174; unityclient/Assets/ProjectX/src/Data/BagStore.cs; unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs:9632-9678"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-COMPOSE-TARGET-ATOMICITY",
+        "handling": "G3服务端装备合成须按SAwardData通用规则从target[0]/type解析1301等装备ID，不得误取target[1]/typeId=0；目标配置和装备容量必须在扣除碎片前完成预校验，失败不得产生单边扣料。",
+        "evidence": "server/config/json/hecheng.json:type4; server/src/init.cpp:ReadSingleAward; server/src/pet_equip_manage.cpp:CItemCfgManager::InitComposeCfg,EquipHeCheng,AddEquip"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-EMPTY-CONTROLS",
+        "handling": "源Prefab中Btn_yijianduihuan、Btn_yijianshengxing、Btn_yijianshengjie、Btn_yijianshengceng均为m_IsActive=0，BtnStateCheck为空且没有运行时开启路径；对应弹层不可达。G3保持隐藏，G4/G5断言入口及弹层均不应显示，86项分母保留为负向覆盖。",
+        "evidence": "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab:m_IsActive=0; client/ProjectX/src/View/EquipCultivate/EquipCultivateMainUI.lua:154-159,252-254"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-DEEP-PREFAB-WIRING",
+        "handling": "G3将yijianjinglian/yijianduihuan/yijianshengxing/yijianshengceng/shenzhutexiao五个已转换Prefab纳入Bootstrap；恢复op4 type=1五次强化及op13自动精炼，源端仅关闭的兑换/升星/神铸弹窗必须零写包。",
+        "evidence": "client/ProjectX/src/View/EquipCultivate/EquipStrongUpUI.lua; client/ProjectX/src/View/EquipCultivate/AutoJingLianUI.lua; unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs; unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-CULTIVATION-IMOD",
+        "handling": "G3按Cocos effect_zhuangbeiyangcheng_1..9挂点加载对应Imod资源与action0，切Tab停止旧动作，神铸层按当前层级循环；禁止用静态Image替代。",
+        "evidence": "client/ProjectX/src/View/EquipCultivate/EquipCultivateMainUI.lua:625-750; unityclient/Assets/ProjectX/Resources/ProjectXAnimation/catalog.json; unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-MUTATION-RELOGIN-ORACLE",
+        "handling": "G4由中央固定账号Runner在Unity退出并落库后捕获事务哈希，重启服务并真实登录后断言事务哈希不变；随后恢复原始快照，再次重登断言原始哈希与零残留。Unity进程不得自证数据库持久化。",
+        "evidence": "tools/unity-migration/Run-UnityFixedAccountValidation.ps1; tools/unity-migration/Invoke-HeroEquipFixture.ps1; tools/unity-migration/module-evidence-contracts.json"
+      },
+      {
+        "id": "HERO-EQUIP-GAP-FIXTURE-TRANSACTIONS",
+        "handling": "G3前置DataPreflight把现有全行快照扩展为两阵位、同部位两件装备、觉醒/神铸材料和成功/失败边界；finally整行恢复、重登哈希与零残留。",
+        "evidence": "tools/unity-migration/Invoke-HeroEquipFixture.ps1; tools/unity-migration/module-evidence-contracts.json"
       }
     ]
   },
@@ -128,14 +191,14 @@
       "status": "pending-current-rerun"
     },
     {
-      "id": "HE-05-EQUIPMENT-PIECES-DEFERRED",
+      "id": "HE-05-EQUIPMENT-PIECES",
       "page": "装备背包",
       "path": "OneLevelLayer/Layer/Panel_12/Tab/Tab2",
-      "visibleCondition": "Cocos 装备背包框架打开；本批排除",
+      "visibleCondition": "装备背包框架打开",
       "cocosCallback": "PetEquipMainUI:TabClicked(2) -> PetEquipPiecesSubUI",
-      "protocolOp": "碎片/合成链；本批不发送",
-      "unityBinding": "必须隐藏或禁用，禁止空壳可点击",
-      "g2Design": "G3 检查无可点击空壳；G4 验证不会发送协议；G5 记录与本批排除说明一致。",
+      "protocolOp": "读取碎片；合成使用/319 op11并接收op6",
+      "unityBinding": "Tab2 -> 装备碎片真实列表",
+      "g2Design": "覆盖空态、选择、来源、合成、回收边界和0.1秒延迟创建生命周期。",
       "successEvidence": "pending:G3 excluded control hidden",
       "failureEvidence": "pending:G4 no protocol emitted",
       "reconnectEvidence": "pending:G4 remains disabled after reconnect",
@@ -213,14 +276,14 @@
       "status": "pending-current-rerun"
     },
     {
-      "id": "HE-10-EQUIPMENT-RECYCLE-DEFERRED",
+      "id": "HE-10-EQUIPMENT-RECYCLE-ENTRY",
       "page": "装备背包",
       "path": "zhuangbeibeibao/Layer/zhuangbeibeibaoUI/recycle",
-      "visibleCondition": "Cocos 装备列表非空；本批排除",
+      "visibleCondition": "装备列表页可见",
       "cocosCallback": "PetEquipBagSubUI recycle -> HuiShouMainUI(2)",
-      "protocolOp": "回收链；本批不发送",
-      "unityBinding": "必须隐藏或禁用",
-      "g2Design": "验证无可点击空壳、无回收协议、重进/重连仍禁用。",
+      "protocolOp": "进入HuiShou模块；装备数据影响由共享Oracle回读",
+      "unityBinding": "recycle -> HuiShou边界入口",
+      "g2Design": "验目标页打开、原页隐藏、返回栈及装备数据刷新；不宣告HuiShou内部模块完成。",
       "successEvidence": "pending:G3 recycle hidden",
       "failureEvidence": "pending:G4 no recycle mutation",
       "reconnectEvidence": "pending:G4 recycle remains disabled",
@@ -485,14 +548,14 @@
       "status": "pending-current-rerun"
     },
     {
-      "id": "HE-26-DEEP-CULTIVATION-DEFERRED",
+      "id": "HE-26-DEEP-CULTIVATION-ENTRIES",
       "page": "装备/法宝详情",
       "path": "zhuangbeiInfo/Info/{jinglianshuxing,juexingshuxing,shenzhushuxing}/Button",
-      "visibleCondition": "Cocos 装备详情可见；本批排除",
+      "visibleCondition": "装备详情可见并按等级/品质开放",
       "cocosCallback": "EquipInfoUI/FaBaoInfo -> 精炼/觉醒/神铸/法宝培养",
-      "protocolOp": "深培养协议；本批不发送",
-      "unityBinding": "全部隐藏或禁用，法宝培养入口同样处理",
-      "g2Design": "逐节点检查无 Listener 空壳、无协议、重连后不恢复为可点击。",
+      "protocolOp": "/319 op13/op14/op15",
+      "unityBinding": "精炼、觉醒、神铸分别进入真实培养Tab",
+      "g2Design": "逐入口验证功能等级、品质、配置、资源、成功失败和返回栈；细分控件另行登记。",
       "successEvidence": "pending:G3 deep cultivation hidden",
       "failureEvidence": "pending:G4 no deep mutation",
       "reconnectEvidence": "pending:G4 remains disabled",
@@ -604,14 +667,14 @@
       "status": "pending-current-rerun"
     },
     {
-      "id": "HE-33-STRENGTH-FIVE-DEFERRED",
+      "id": "HE-33-STRENGTH-FIVE",
       "page": "装备强化",
       "path": "zhuangbeiqianghua/Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn",
-      "visibleCondition": "Cocos 强化页可见；本批排除",
+      "visibleCondition": "当前装备可强化",
       "cocosCallback": "EquipStrongUpUI:FiveStrongBtnCallback",
-      "protocolOp": "批量强化；本批不发送",
-      "unityBinding": "必须隐藏或禁用",
-      "g2Design": "验证无可点击空壳、无批量消耗、重进/重连仍禁用。",
+      "protocolOp": "/319 op4 type=1 + op16/24/26 + /70 + /18",
+      "unityBinding": "qianghua5Btn -> Lua权威五次强化",
+      "g2Design": "验证五次成本、满级截断、暴击、多推送顺序、材料不足和重复点击原子性。",
       "successEvidence": "pending:G3 five-strength hidden",
       "failureEvidence": "pending:G4 no batch mutation",
       "reconnectEvidence": "pending:G4 remains disabled",
@@ -619,6 +682,59 @@
       "automationPassed": false,
       "manualPassed": false,
       "status": "pending-current-rerun"
-    }
+    },
+    { "id":"HE-00-WEAR-TOGGLE", "page":"主界面", "path":"UImainLayer_new/Layer/Main_UI/ButtonGroup1/btn_chuandai", "visibleCondition":"主界面功能组可见", "cocosCallback":"MainUI btn_chuandai -> PlayEquipAppearAni/PlayEquipDisappearAni", "protocolOp":"无；0.17秒MoveTo+FadeTo", "unityBinding":"btn_chuandai Button -> 穿戴弹层展开/收起", "g2Design":"重复点击、动画中点击、打开装备后返回均保持唯一弹层状态", "successEvidence":"pending:G1 current Cocos", "failureEvidence":"pending:G4 animation/lifecycle", "reconnectEvidence":"pending:G4 main rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-34-PIECES-LIST-ITEM", "page":"装备碎片", "path":"zhuangbeisuipian/suipianUI/Bag/TableView/ItemCell/Item1..2", "visibleCondition":"碎片列表非空", "cocosCallback":"PetEquipPiecesSubUI dynamic Item click -> select", "protocolOp":"无；读取碎片背包", "unityBinding":"动态碎片项 -> 选择并刷新详情", "g2Design":"正常、空、选中、可合成、禁用及滚动复用", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 removed item", "reconnectEvidence":"pending:G4 list rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-35-PIECES-SOURCE", "page":"装备碎片", "path":"zhuangbeisuipian/suipianUI/suipian/Btn_huoqu", "visibleCondition":"已选择碎片", "cocosCallback":"PetEquipPiecesSubUI:GetBtnClicked -> ShowItemSource", "protocolOp":"无；item_dat.item_source跳转", "unityBinding":"Btn_huoqu -> ItemSource边界页", "g2Design":"从40条type=4配方反查碎片ID 4605..4644；当前40项均为来源17。空来源只属于equip_dat模板配置安全边界，不伪造不可达的碎片空来源弹窗", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 invalid target", "reconnectEvidence":"pending:G4 source return", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-36-PIECES-COMPOSE", "page":"装备碎片", "path":"zhuangbeisuipian/suipianUI/suipian/Btn_hecheng", "visibleCondition":"已选择碎片", "cocosCallback":"PetEquipPiecesSubUI:SyntheticBtnClicked -> SendPetEquipHeChengReq", "protocolOp":"/319 op11 + op6", "unityBinding":"Btn_hecheng -> Lua权威合成", "g2Design":"40条type4配方逐等价组覆盖成功、材料不足、缺配置和重复点击", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 compose failure", "reconnectEvidence":"pending:G4 persisted item", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-37-PIECES-RECYCLE-ENTRY", "page":"装备碎片", "path":"zhuangbeisuipian/suipianUI/recycle", "visibleCondition":"碎片页可见", "cocosCallback":"PetEquipPiecesSubUI recycle -> HuiShouMainUI(2)", "protocolOp":"HuiShou边界链", "unityBinding":"recycle -> HuiShou共享页面", "g2Design":"验目标页、原页隐藏、返回栈及碎片回读，不宣告HuiShou完成", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 stack", "reconnectEvidence":"pending:G4 return", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-38-DETAIL-REFINE", "page":"装备详情", "path":"zhuangbeiInfo/Info/jinglianshuxing/Btn_jinglian", "visibleCondition":"详情可见", "cocosCallback":"EquipInfoUI -> OpenFunction(1120,{2,uid})", "protocolOp":"进入后/319 op13", "unityBinding":"Btn_jinglian -> 培养Tab2", "g2Design":"等级30开放与配置闭包", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 level/quality", "reconnectEvidence":"pending:G4 tab", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-39-DETAIL-AWAKEN", "page":"装备详情", "path":"zhuangbeiInfo/Info/juexingshuxing/Btn_juexing", "visibleCondition":"详情可见", "cocosCallback":"EquipInfoUI -> OpenFunction(1120,{3,uid})", "protocolOp":"进入后/319 op14", "unityBinding":"Btn_juexing -> 培养Tab3", "g2Design":"等级50和品质5边界", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 level/quality", "reconnectEvidence":"pending:G4 tab", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-40-DETAIL-SHENZHU", "page":"装备详情", "path":"zhuangbeiInfo/Info/shenzhushuxing/Btn_shenzhu", "visibleCondition":"详情可见", "cocosCallback":"EquipInfoUI -> OpenFunction(1120,{4,uid})", "protocolOp":"进入后/319 op15", "unityBinding":"Btn_shenzhu -> 培养Tab4", "g2Design":"等级70、品质6和150/155配置差异未关闭前禁止写操作", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 config/lock", "reconnectEvidence":"pending:G4 tab", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-41-CULTIVATE-TAB-STRENGTH", "page":"装备养成", "path":"OneLevelLayer/Tab/Button1", "visibleCondition":"养成框架打开", "cocosCallback":"EquipCultivateMainUI:TabClicked(1)", "protocolOp":"后续op4/op12", "unityBinding":"Tab1 -> 强化子页", "g2Design":"0.1秒延迟创建、快速切页和返回", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 lifecycle", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-42-CULTIVATE-TAB-REFINE", "page":"装备养成", "path":"OneLevelLayer/Tab/Button2", "visibleCondition":"养成框架打开", "cocosCallback":"EquipCultivateMainUI:TabClicked(2)", "protocolOp":"后续op13", "unityBinding":"Tab2 -> 精炼子页", "g2Design":"30级开放和延迟创建生命周期", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 locked", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-43-CULTIVATE-TAB-AWAKEN", "page":"装备养成", "path":"OneLevelLayer/Tab/Button3", "visibleCondition":"养成框架打开", "cocosCallback":"EquipCultivateMainUI:TabClicked(3)", "protocolOp":"后续op14", "unityBinding":"Tab3 -> 觉醒子页", "g2Design":"50级、品质5和延迟创建生命周期", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 locked", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-44-CULTIVATE-TAB-SHENZHU", "page":"装备养成", "path":"OneLevelLayer/Tab/Button4", "visibleCondition":"养成框架打开", "cocosCallback":"EquipCultivateMainUI:TabClicked(4)", "protocolOp":"后续op15", "unityBinding":"Tab4 -> 神铸子页", "g2Design":"70级、品质6、Imod和配置差异", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 locked/config", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-45-CULTIVATE-PREV-HERO", "page":"装备养成", "path":"zhuangbeiyangcheng/Panel_zhujue/Button_L", "visibleCondition":"存在其他有装备阵位", "cocosCallback":"EquipCultivateMainUI leftEvent", "protocolOp":"无；切阵位", "unityBinding":"Button_L -> 前一阵位", "g2Design":"跳过空阵位且UID/列表/属性同步", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 no candidate", "reconnectEvidence":"pending:G4 selection", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-46-CULTIVATE-NEXT-HERO", "page":"装备养成", "path":"zhuangbeiyangcheng/Panel_zhujue/Button_R", "visibleCondition":"存在其他有装备阵位", "cocosCallback":"EquipCultivateMainUI rightEvent", "protocolOp":"无；切阵位", "unityBinding":"Button_R -> 后一阵位", "g2Design":"跳过空阵位且UID/列表/属性同步", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 no candidate", "reconnectEvidence":"pending:G4 selection", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-47-STRENGTH-ALL", "page":"装备养成", "path":"zhuangbeiyangcheng/zhuangbei/Btn_yijianqianghua", "visibleCondition":"强化Tab且阵位有装备", "cocosCallback":"EquipCultivateMainUI OneKeyStrongBtnCallback -> SendEquipAutoQiangHua", "protocolOp":"/319 op12", "unityBinding":"Btn_yijianqianghua -> 全身强化", "g2Design":"全部装备、总成本、中途配置缺失原子性及多推送", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 funds/config", "reconnectEvidence":"pending:G4 all persisted", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-48-REFINE-ONCE", "page":"装备精炼", "path":"zhuangbeijinglian/jinglian/jinglianxiaohao/jinglianyijiBtn", "visibleCondition":"精炼可执行", "cocosCallback":"CultivateJingLianUI:JingLianCallBack", "protocolOp":"/319 op13", "unityBinding":"jinglianyijiBtn -> 单次精炼", "g2Design":"材料组合、经验、升级、满级和失败原子性", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 materials/max", "reconnectEvidence":"pending:G4 persisted", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-49-REFINE-AUTO-OPEN", "page":"装备精炼", "path":"zhuangbeijinglian/jinglian/jinglianxiaohao/yijianjinglianBtn", "visibleCondition":"精炼可执行", "cocosCallback":"CultivateJingLianUI:AutoJingLianCallBack -> AutoJingLianUI", "protocolOp":"确认后/319 op13", "unityBinding":"yijianjinglianBtn -> 自动精炼弹窗", "g2Design":"目标等级和材料预览由配置驱动", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 unavailable", "reconnectEvidence":"pending:G4 popup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-50-AUTO-REFINE-PLUS", "page":"自动精炼", "path":"Popup/Panel_1/Btn_Plus", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:AddCallBack", "protocolOp":"无", "unityBinding":"Btn_Plus -> 目标+1", "g2Design":"上下界和成本联动", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 max", "reconnectEvidence":"pending:G4 popup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-51-AUTO-REFINE-PLUS10", "page":"自动精炼", "path":"Popup/Panel_1/Btn_Plus10", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:Add10CallBack", "protocolOp":"无", "unityBinding":"Btn_Plus10 -> 目标+10", "g2Design":"满级截断和成本联动", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 max", "reconnectEvidence":"pending:G4 popup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-52-AUTO-REFINE-MINUS", "page":"自动精炼", "path":"Popup/Panel_1/Btn_Minus", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:SubCallBack", "protocolOp":"无", "unityBinding":"Btn_Minus -> 目标-1", "g2Design":"不低于当前等级", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 min", "reconnectEvidence":"pending:G4 popup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-53-AUTO-REFINE-MINUS10", "page":"自动精炼", "path":"Popup/Panel_1/Btn_Minus10", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:Sub10CallBack", "protocolOp":"无", "unityBinding":"Btn_Minus10 -> 目标-10", "g2Design":"下界截断和成本联动", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 min", "reconnectEvidence":"pending:G4 popup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-54-AUTO-REFINE-CONFIRM", "page":"自动精炼", "path":"Popup/Btn_Confirm", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:OkCallBack -> SendEquipAutoJingLian", "protocolOp":"/319 op13", "unityBinding":"Btn_Confirm -> 权威自动精炼", "g2Design":"完整材料数组、失败原子性和关闭后回包", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 materials", "reconnectEvidence":"pending:G4 persisted", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-55-AUTO-REFINE-CANCEL", "page":"自动精炼", "path":"Popup/Btn_Cancel", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:CancelCallBack", "protocolOp":"无", "unityBinding":"Btn_Cancel -> 关闭", "g2Design":"无资源变化", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 repeated", "reconnectEvidence":"pending:G4 cleanup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-56-AUTO-REFINE-CLOSE", "page":"自动精炼", "path":"Popup/Btn_close", "visibleCondition":"自动精炼弹窗", "cocosCallback":"AutoJingLianUI:CancelCallBack", "protocolOp":"无", "unityBinding":"Btn_close -> 关闭", "g2Design":"与取消一致且栈唯一", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 repeated", "reconnectEvidence":"pending:G4 cleanup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-57-AWAKEN-ONCE", "page":"装备觉醒", "path":"zhuangbeijuexing/juexing/juexingxiaohao/yijianjinglianBtn", "visibleCondition":"等级、品质、材料满足", "cocosCallback":"CultivateJueXingUI:AutoJueXingCallBack", "protocolOp":"/319 op14", "unityBinding":"觉醒按钮 -> 权威觉醒", "g2Design":"60级全表、品质锁、金币材料、成功弹窗", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 lock/material", "reconnectEvidence":"pending:G4 persisted", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-58-AWAKEN-EXCHANGE", "page":"装备觉醒", "path":"zhuangbeiyangcheng/juexing/Btn_yijianduihuan", "visibleCondition":"源Prefab m_IsActive=0，当前源码不可达", "cocosCallback":"BtnStateCheck为空，无运行时开启路径", "protocolOp":"无", "unityBinding":"保持隐藏；G4/G5负向断言", "g2Design":"不得暴露入口或伪报兑换成功", "successEvidence":"pending:G4 hidden assertion", "failureEvidence":"source m_IsActive=0", "reconnectEvidence":"pending:G4 remains hidden", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-59-AWAKEN-AUTO-STAR", "page":"装备觉醒", "path":"zhuangbeiyangcheng/juexing/Btn_yijianshengxing", "visibleCondition":"源Prefab m_IsActive=0，当前源码不可达", "cocosCallback":"BtnStateCheck为空，无运行时开启路径", "protocolOp":"无", "unityBinding":"保持隐藏；G4/G5负向断言", "g2Design":"不得暴露入口或伪报升星成功", "successEvidence":"pending:G4 hidden assertion", "failureEvidence":"source m_IsActive=0", "reconnectEvidence":"pending:G4 remains hidden", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-60-AUTO-STAR-CHECKBOX1", "page":"一键升星", "path":"Popup/CheckBox1", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"分母保留但不生成可达交互", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-61-AUTO-STAR-CHECKBOX2", "page":"一键升星", "path":"Popup/CheckBox2", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"分母保留但不生成可达交互", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-62-AUTO-STAR-CHECKBOX3", "page":"一键升星", "path":"Popup/CheckBox3", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"分母保留但不生成可达交互", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-63-AUTO-STAR-CONFIRM", "page":"一键升星", "path":"Popup/Btn_Confirm", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"不得产出虚假成功反馈", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-64-AUTO-STAR-CANCEL", "page":"一键升星", "path":"Popup/Btn_Cancel", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"无数据变化", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-65-AUTO-STAR-CLOSE", "page":"一键升星", "path":"Popup/Btn_close", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"无数据变化且不得创建额外UI栈", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-66-SHENZHU-ONCE", "page":"装备神铸", "path":"zhuangbeijuexing/shenzhu/juexingxiaohao/Btn_shenzhu", "visibleCondition":"等级70、品质6、配置材料满足", "cocosCallback":"CultivateShenZhuUI:shenZhuCallBack", "protocolOp":"/319 op15", "unityBinding":"Btn_shenzhu -> 权威神铸", "g2Design":"155级服务端与150级客户端差异关闭前不得执行", "successEvidence":"pending:G1", "failureEvidence":"pending:G2 config drift", "reconnectEvidence":"pending:G4 persisted", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"blocked-config-drift" },
+    { "id":"HE-67-SHENZHU-EFFECT-OPEN", "page":"装备神铸", "path":"zhuangbeijuexing/shenzhu/fujiashuxing/Btn_xiangxi", "visibleCondition":"神铸Tab可见", "cocosCallback":"CultivateShenZhuUI -> ShenZhuTeXiaoUI", "protocolOp":"无", "unityBinding":"Btn_xiangxi -> 技能效果列表", "g2Design":"按部位和等级展示技能且无串位", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 missing config", "reconnectEvidence":"pending:G4 popup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-68-SHENZHU-EFFECT-CLOSE", "page":"神铸特效", "path":"Popup/Btn_close", "visibleCondition":"特效弹窗可见", "cocosCallback":"ShenZhuTeXiaoUI:ClickCallback", "protocolOp":"无", "unityBinding":"Btn_close -> 关闭", "g2Design":"无数据变化且栈唯一", "successEvidence":"pending:G1", "failureEvidence":"pending:G4", "reconnectEvidence":"pending:G4", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-69-SHENZHU-AUTO-TIER", "page":"装备神铸", "path":"zhuangbeiyangcheng/shenzhu/Btn_yijianshengjie", "visibleCondition":"源Prefab m_IsActive=0，当前源码不可达", "cocosCallback":"BtnStateCheck为空，无运行时开启路径", "protocolOp":"无", "unityBinding":"保持隐藏；G4/G5负向断言", "g2Design":"不得暴露入口或伪报升阶", "successEvidence":"pending:G4 hidden assertion", "failureEvidence":"source m_IsActive=0", "reconnectEvidence":"pending:G4 remains hidden", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-70-SHENZHU-AUTO-LEVEL", "page":"装备神铸", "path":"zhuangbeiyangcheng/shenzhu/Btn_yijianshengceng", "visibleCondition":"源Prefab m_IsActive=0，当前源码不可达", "cocosCallback":"BtnStateCheck为空，无运行时开启路径", "protocolOp":"无", "unityBinding":"保持隐藏；G4/G5负向断言", "g2Design":"不得暴露入口或伪报升层", "successEvidence":"pending:G4 hidden assertion", "failureEvidence":"source m_IsActive=0", "reconnectEvidence":"pending:G4 remains hidden", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-71-AUTO-SHENZHU-CHECKBOX1", "page":"一键神铸", "path":"Popup/CheckBox1", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"分母保留但不生成可达交互", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-72-AUTO-SHENZHU-CHECKBOX2", "page":"一键神铸", "path":"Popup/CheckBox2", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"分母保留但不生成可达交互", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-73-AUTO-SHENZHU-CHECKBOX3", "page":"一键神铸", "path":"Popup/CheckBox3", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"分母保留但不生成可达交互", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-74-AUTO-SHENZHU-CONFIRM", "page":"一键神铸", "path":"Popup/Btn_Confirm", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"不得产出虚假成功反馈", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-75-AUTO-SHENZHU-CANCEL", "page":"一键神铸", "path":"Popup/Btn_Cancel", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"无数据变化", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-76-AUTO-SHENZHU-CLOSE", "page":"一键神铸", "path":"Popup/Btn_close", "visibleCondition":"入口源端隐藏，弹窗不可达", "cocosCallback":"不可达", "protocolOp":"无", "unityBinding":"不得由Unity暴露；负向断言", "g2Design":"无数据变化且不得创建额外UI栈", "successEvidence":"pending:G4 unreachable assertion", "failureEvidence":"source entry hidden", "reconnectEvidence":"pending:G4 remains absent", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-77-DETAIL-SCROLL", "page":"装备详情", "path":"zhuangbeiInfo/Info/ScrollView", "visibleCondition":"详情内容超出视口", "cocosCallback":"Cocos ScrollView原生拖动", "protocolOp":"无", "unityBinding":"ScrollRect真实拖动", "g2Design":"顶部/底部、裁剪、套装和描述不重叠", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 drag", "reconnectEvidence":"pending:G4 reopen", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-78-SOURCE-DYNAMIC-TARGET", "page":"装备来源", "path":"ItemGet/ListView/dynamic source item", "visibleCondition":"item_source非空", "cocosCallback":"ItemSourceUI dynamic source callback", "protocolOp":"按source type进入目标", "unityBinding":"动态来源项 -> 配置目标", "g2Design":"仅5个有效来源逐ID跳转，目标页打开且原页生命周期正确", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 invalid target", "reconnectEvidence":"pending:G4 return", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-79-SOURCE-CLOSE", "page":"装备来源", "path":"ItemGet/Popup/Btn_close", "visibleCondition":"来源弹窗可见", "cocosCallback":"ItemSourceUI close", "protocolOp":"无", "unityBinding":"Btn_close -> 关闭", "g2Design":"返回详情/碎片且栈唯一", "successEvidence":"pending:G1", "failureEvidence":"pending:G4", "reconnectEvidence":"pending:G4", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-80-BAG-LIST-SCROLL", "page":"装备背包", "path":"zhuangbeibeibao/TableView", "visibleCondition":"列表超过一屏", "cocosCallback":"cc.TableView拖动", "protocolOp":"无", "unityBinding":"装备VirtualList/ScrollRect拖动", "g2Design":"两列复用、顶部底部、过滤后偏移安全", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 drag", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-81-PIECES-LIST-SCROLL", "page":"装备碎片", "path":"zhuangbeisuipian/Bag/TableView", "visibleCondition":"列表超过一屏", "cocosCallback":"cc.TableView拖动", "protocolOp":"无", "unityBinding":"碎片VirtualList/ScrollRect拖动", "g2Design":"两列复用、选择保持、空态和偏移安全", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 drag", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-82-CHANGE-LIST-SCROLL", "page":"装备更换", "path":"zhuangbeigenghuan/Popup/TableView", "visibleCondition":"候选超过一屏", "cocosCallback":"cc.TableView拖动", "protocolOp":"无", "unityBinding":"候选VirtualList/ScrollRect拖动", "g2Design":"按部位过滤、隐藏已穿戴和复用UID正确", "successEvidence":"pending:G1", "failureEvidence":"pending:G4 drag", "reconnectEvidence":"pending:G4 rebuild", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-83-BAG-RED-DOT", "page":"装备背包", "path":"ItemList/Item/Btn_yangcheng/Prompt", "visibleCondition":"装备可养成", "cocosCallback":"LRedDotCheckMgr装备红点刷新", "protocolOp":"读取装备/材料状态", "unityBinding":"装备行Prompt状态", "g2Design":"应显示和不应显示均断言", "successEvidence":"pending:G1", "failureEvidence":"pending:G5 negative", "reconnectEvidence":"pending:G4 refresh", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-84-PIECES-RED-DOT", "page":"装备碎片", "path":"ItemCell/Item/Prompt", "visibleCondition":"碎片可合成", "cocosCallback":"PetEquipPiecesSubUI刷新Prompt", "protocolOp":"读取碎片和hecheng配置", "unityBinding":"碎片项Prompt状态", "g2Design":"可合成显示、不可合成不显示", "successEvidence":"pending:G1", "failureEvidence":"pending:G5 negative", "reconnectEvidence":"pending:G4 refresh", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" },
+    { "id":"HE-85-CULTIVATE-IMOD", "page":"装备养成", "path":"zhuangbeiyangcheng/effect_zhuangbeiyangcheng_1..9", "visibleCondition":"对应培养Tab/状态可见", "cocosCallback":"EquipCultivateMainUI ImodAnim:initAnimWithName/PlayNewAction", "protocolOp":"成功回包驱动一次或循环效果", "unityBinding":"对应Imod资源、动作号、循环、缩放和挂点", "g2Design":"静态图不可替代；切页/关闭停止，失败不得播放成功效果", "successEvidence":"pending:G1", "failureEvidence":"pending:G5 should-not-display", "reconnectEvidence":"pending:G4 cleanup", "realEntryClick":false, "automationPassed":false, "manualPassed":false, "status":"pending" }
   ]
 }

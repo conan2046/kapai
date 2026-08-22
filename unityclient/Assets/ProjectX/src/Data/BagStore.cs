@@ -142,6 +142,23 @@ namespace ProjectX.Data
         public int GetTotalQuantityByItemId(int itemId) => bySlot.Values
             .Where(item => item.ItemId == itemId && item.Quantity > 0)
             .Sum(item => item.Quantity);
+        public IReadOnlyList<BagItemRecord> GetItemsByType(int itemType)
+        {
+            return bySlot.Values
+                .Where(item => item.ItemId > 0 && item.Quantity > 0 && item.ItemType == itemType)
+                .OrderBy(item => item.Slot)
+                .GroupBy(item => item.ItemId)
+                .Select(group =>
+                {
+                    BagItemRecord representative = group.First();
+                    return new BagItemRecord(representative.Slot, representative.ItemId,
+                        group.Sum(item => item.Quantity), representative.Name, representative.Description,
+                        representative.Picture, representative.Quality, representative.UseType,
+                        representative.UseJump, representative.SortPriority, representative.ItemType,
+                        representative.ItemFrom, representative.Choices, representative.Sources);
+                })
+                .ToList();
+        }
 
         public void Clear()
         {

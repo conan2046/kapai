@@ -1603,29 +1603,97 @@
         "snapshot": ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/HeroEquip/unity/g6-current/hero-equip-fixed-unity-result.json",
         "reloginRequired": true,
+        "mutationReloginOracle": {
+          "captureAction": "CaptureMutationHash",
+          "assertAction": "AssertMutationReloginHash",
+          "semanticAssertionId": "bag-currency-mission-mysql-relogin-restored"
+        },
+        "sqlitePersistenceOracle": {
+          "semanticAssertionId": "equipment-sqlite-runtime-restart-restored",
+          "serverExecutable": "build/server-win/Debug/kapai.exe",
+          "serverExecutableSha256": "F38B4B8235BD85D88FB6850E1C4B646855B7DD18DEC6B4E39F05622028A29ECB",
+          "database": ".local/unity-validation/heroequip-sqlite-current-20260822.db",
+          "databaseSha256": "B56CE3B974B37AD7F01228FC77347AED9195B994D56E11EB95F5227A624FCEC3",
+          "runtimeReport": ".local/unity-validation/heroequip-sqlite-runtime-current.json",
+          "runtimeReportSha256": "837E8CD75A9B1421B2D213133259E87FE968E7914B0A6B076A8D1FBD4F65A7B1",
+          "restartReport": ".local/unity-validation/heroequip-sqlite-restart-current.json",
+          "restartReportSha256": "A43AA3D879152B0C126EB16FFFD2E1888E008CE3585AD477CB6AB7E575924828"
+        },
         "extraFlags": [],
-        "skipPostValidationFixtureAssert": false,
+        "skipPostValidationFixtureAssert": true,
         "artifactCopies": [
           {
-            "source": "build/ui-migration/bootstrap-hero.png",
+            "source": "build/ui-migration/g1-hero-detail-equipped.png",
             "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-hero-detail-equipped.png"
+          },
+          {
+            "source": "build/ui-migration/g1-wear-popup-open.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-wear-popup-open.png"
+          },
+          {
+            "source": "build/ui-migration/g1-equipment-bag.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-equipment-bag.png"
+          },
+          {
+            "source": "build/ui-migration/g1-equipment-bag-empty.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-equipment-bag-empty.png"
+          },
+          {
+            "source": "build/ui-migration/g1-equipment-pieces.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-equipment-pieces.png"
+          },
+          {
+            "source": "build/ui-migration/g1-equipment-pieces-empty.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-equipment-pieces-empty.png"
+          },
+          {
+            "source": "build/ui-migration/g1-equipment-detail.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-equipment-detail.png"
+          },
+          {
+            "source": "build/ui-migration/g1-strength-before.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-strength-before.png"
+          },
+          {
+            "source": "build/ui-migration/g1-refine-before.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-refine-before.png"
+          },
+          {
+            "source": "build/ui-migration/g1-awaken-before.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-awaken-before.png"
+          },
+          {
+            "source": "build/ui-migration/g1-awaken-locked.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-awaken-locked.png"
+          },
+          {
+            "source": "build/ui-migration/g1-shenzhu-locked.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-shenzhu-locked.png"
+          },
+          {
+            "source": "build/ui-migration/g1-source-actionable.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-source-actionable.png"
           }
         ],
         "dataPreflight": {
           "requiresLogin": true,
-          "requirements": [
-            {
-              "id": "hero-equip-fixed-account",
-              "description": "固定 userId=7200057 唯一绑定 roleId=1000115 且可读取 /24、/48、/319。"
-            },
-            {
-              "id": "hero-equip-reversible-role-row",
-              "description": "完整备份并恢复 role_info 与所属 user_info 分片，重登哈希一致。"
-            },
-            {
-              "id": "hero-equip-protocol-70",
-              "description": "每个成功装备或法宝变更均收到 /70，失败操作不产生属性变化。"
-            }
+        "requirements": [
+          {
+            "id": "hero-equip-fixed-account",
+            "description": "固定 userId=7200057 唯一绑定 roleId=1000115 且可读取 /24、/48、/319、/70、/18。"
+          },
+          {
+            "id": "hero-equip-reversible-role-row",
+            "description": "完整备份并恢复 role_info 与所属 user_info 分片；显式断言pet_equip、pet、mission、金币/材料、zhanDouLi及SQLite镜像，重登哈希一致。"
+          },
+          {
+            "id": "hero-equip-cross-position-replacement",
+            "description": "至少两名阵位神将、同部位两件可区分装备；可验证源/目标槽、双方/70、HUD /18和被替换装备位置。"
+          },
+          {
+            "id": "hero-equip-cultivation-boundaries",
+            "description": "准备强化、合成、精炼、觉醒、神铸的成功/材料不足/满级/等级与品质锁定数据；所有写操作可逆且零残留。"
+          }
           ]
         }
       },
@@ -1635,50 +1703,97 @@
         "cocosDirectory": ".local/ui-fidelity/HeroEquip/cocos",
         "unityDirectory": ".local/ui-fidelity/HeroEquip/unity/g5-current",
         "compareDirectory": ".local/ui-fidelity/HeroEquip/compare/g5-current",
-        "cocosBaselineInputs": [
-          "client/ProjectX/src/View/MainUI.lua",
-          "client/ProjectX/src/View/PetEquip/PetEquipMainUI.lua",
-          "client/ProjectX/src/View/PetEquip/PetEquipBagSubUI.lua",
-          "client/ProjectX/src/View/PetEquip/EquipInfoUI.lua",
-          "client/ProjectX/src/View/EquipCultivate/EquipStrongUpUI.lua",
-          "client/ProjectX/src/View/FaBao/FaBaoMainUI.lua",
-          "client/ProjectX/src/View/FaBao/FaBaoSubBagUI.lua",
-          "server/src/pack_deal.cpp",
-          "server/src/pet_equip_manage.cpp",
-          "server/src/user.cpp"
-        ],
-        "pairs": [
+      "cocosBaselineInputs": [
+        "client/ProjectX/src/View/MainUI.lua",
+        "client/ProjectX/src/View/PetEquip/PetEquipMainUI.lua",
+        "client/ProjectX/src/View/PetEquip/PetEquipBagSubUI.lua",
+        "client/ProjectX/src/View/PetEquip/PetEquipPiecesSubUI.lua",
+        "client/ProjectX/src/View/PetEquip/EquipInfoUI.lua",
+        "client/ProjectX/src/View/PetEquip/PetEquipChangeUI.lua",
+        "client/ProjectX/src/View/EquipCultivate/EquipCultivateMainUI.lua",
+        "client/ProjectX/src/View/EquipCultivate/EquipStrongUpUI.lua",
+        "client/ProjectX/src/View/EquipCultivate/CultivateJingLianUI.lua",
+        "client/ProjectX/src/View/EquipCultivate/CultivateJueXingUI.lua",
+        "client/ProjectX/src/View/EquipCultivate/CultivateShenZhuUI.lua",
+        "client/ProjectX/src/View/Common/ItemSourceUI.lua",
+        "client/ProjectX/src/ConfigData/equip_dat.lua",
+        "client/ProjectX/src/ConfigData/hecheng_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_qianghua_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_jinglian_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_juexing_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_shenzhu_dat.lua",
+        "server/src/pack_deal.cpp",
+        "server/src/pet_equip_manage.cpp",
+        "server/src/user.cpp",
+        "tools/unity-migration/Invoke-HeroEquipFixture.ps1"
+      ],
+      "pairs": [
           {
             "id": "HERO-EQUIP-HERO-DETAIL",
-            "cocos": "g1-hero-detail-equipped.png",
-            "unity": "g1-hero-detail-equipped.png"
-          },
-          {
-            "id": "HERO-EQUIP-EQUIPMENT-BAG",
-            "cocos": "g1-equipment-bag.png",
-            "unity": "g1-equipment-bag.png"
-          },
-          {
-            "id": "HERO-EQUIP-EQUIPMENT-DETAIL",
-            "cocos": "g1-equipment-detail.png",
-            "unity": "g1-equipment-detail.png"
+          "cocos": "g1-hero-detail-equipped.png",
+          "unity": "g1-hero-detail-equipped.png"
+        },
+        {
+          "id": "HERO-EQUIP-WEAR-POPUP",
+          "cocos": "g1-wear-popup-open.png",
+          "unity": "g1-wear-popup-open.png"
+        },
+        {
+          "id": "HERO-EQUIP-EQUIPMENT-BAG",
+          "cocos": "g1-equipment-bag.png",
+          "unity": "g1-equipment-bag.png"
+        },
+        {
+          "id": "HERO-EQUIP-EQUIPMENT-BAG-EMPTY",
+          "cocos": "g1-equipment-bag-empty.png",
+          "unity": "g1-equipment-bag-empty.png"
+        },
+        {
+          "id": "HERO-EQUIP-EQUIPMENT-PIECES",
+          "cocos": "g1-equipment-pieces.png",
+          "unity": "g1-equipment-pieces.png"
+        },
+        {
+          "id": "HERO-EQUIP-EQUIPMENT-PIECES-EMPTY",
+          "cocos": "g1-equipment-pieces-empty.png",
+          "unity": "g1-equipment-pieces-empty.png"
+        },
+        {
+          "id": "HERO-EQUIP-EQUIPMENT-DETAIL",
+          "cocos": "g1-equipment-detail.png",
+          "unity": "g1-equipment-detail.png"
           },
           {
             "id": "HERO-EQUIP-STRENGTH-BEFORE",
-            "cocos": "g1-strength-before.png",
-            "unity": "g1-strength-before.png"
-          },
-          {
-            "id": "HERO-EQUIP-FABAO-BAG",
-            "cocos": "g1-fabao-bag.png",
-            "unity": "g1-fabao-bag.png"
-          },
-          {
-            "id": "HERO-EQUIP-FABAO-DETAIL",
-            "cocos": "g1-fabao-detail.png",
-            "unity": "g1-fabao-detail.png"
-          }
-        ]
+          "cocos": "g1-strength-before.png",
+          "unity": "g1-strength-before.png"
+        },
+        {
+          "id": "HERO-EQUIP-REFINE-BEFORE",
+          "cocos": "g1-refine-before.png",
+          "unity": "g1-refine-before.png"
+        },
+        {
+          "id": "HERO-EQUIP-AWAKEN-BEFORE",
+          "cocos": "g1-awaken-before.png",
+          "unity": "g1-awaken-before.png"
+        },
+        {
+          "id": "HERO-EQUIP-AWAKEN-LOCKED",
+          "cocos": "g1-awaken-locked.png",
+          "unity": "g1-awaken-locked.png"
+        },
+        {
+          "id": "HERO-EQUIP-SHENZHU-LOCKED",
+          "cocos": "g1-shenzhu-locked.png",
+          "unity": "g1-shenzhu-locked.png"
+        },
+        {
+          "id": "HERO-EQUIP-SOURCE-ACTIONABLE",
+          "cocos": "g1-source-actionable.png",
+          "unity": "g1-source-actionable.png"
+        }
+      ]
       }
     },
     {
