@@ -33,7 +33,8 @@ local M = {
 
 local function showBusinessError(reason)
     local text = tostring(reason or "操作失败")
-    text = string.gsub(text, "%[/?c%]", "")
+    text = string.gsub(text, "%[c%d*%]", "")
+    text = string.gsub(text, "%[/c%]", "")
     Bridge:SetStatus(text)
     Bridge:ShowToast(text, 2.0)
 end
@@ -516,6 +517,10 @@ local function readEquipmentComposeResponse(message)
     if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "unknown rejection"); return end
     Bridge:SetStatus("装备合成成功")
     Bridge:ShowToast("装备合成成功", 2.0)
+    -- Cocos refreshes this page from LUIBagEvent.BagDataChanged. Request the
+    -- same authoritative /8 snapshot so the consumed fragment count and the
+    -- right-side bag grid cannot remain on their pre-compose values.
+    BagController.requestEquipmentSnapshot(function(_) end)
 end
 
 local function readEquipmentStrengthAllResponse(message)

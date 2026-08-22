@@ -47,6 +47,15 @@ namespace ProjectX.UI
 
         public bool IsVisible => root != null && root.activeSelf;
         public int PendingCount => pending.Count;
+        public Transform Parent => root != null ? root.transform.parent : null;
+        public bool IsLastSibling => root != null && root.transform.GetSiblingIndex() == root.transform.parent.childCount - 1;
+
+        public void SetParent(Transform parent)
+        {
+            if (parent == null) throw new ArgumentNullException(nameof(parent));
+            if (root.transform.parent != parent) root.transform.SetParent(parent, false);
+            root.transform.SetAsLastSibling();
+        }
 
         public void Show(string text, float visibleSeconds = 2f)
         {
@@ -58,6 +67,10 @@ namespace ProjectX.UI
         public void Tick()
         {
             if (!IsVisible) return;
+            // Equipment cultivation refreshes its base/subpage siblings after
+            // successful writes. Keep the toast below them in the Hierarchy
+            // (last sibling) for the whole visible lifetime, not only at show time.
+            root.transform.SetAsLastSibling();
             remaining -= Time.unscaledDeltaTime;
             if (remaining <= 0f) { BeginNext(duration); return; }
             float fadeWindow = Mathf.Min(0.25f, duration * 0.25f);

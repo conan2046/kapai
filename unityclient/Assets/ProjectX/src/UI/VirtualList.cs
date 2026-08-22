@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ProjectX.UI
@@ -32,6 +33,14 @@ namespace ProjectX.UI
             scrollRect = viewportObject.GetComponent<ScrollRect>() ?? viewportObject.AddComponent<ScrollRect>();
             RectMask2D mask = viewportObject.GetComponent<RectMask2D>() ?? viewportObject.AddComponent<RectMask2D>();
             _ = mask;
+            Graphic dragSurface = viewportObject.GetComponent<Graphic>();
+            if (dragSurface == null)
+            {
+                Image image = viewportObject.AddComponent<Image>();
+                image.color = new Color(1f, 1f, 1f, 0.001f);
+                dragSurface = image;
+            }
+            dragSurface.raycastTarget = true;
             var contentObject = new GameObject("VirtualContent", typeof(RectTransform));
             content = contentObject.GetComponent<RectTransform>();
             content.SetParent(viewport, false);
@@ -45,6 +54,8 @@ namespace ProjectX.UI
             scrollRect.horizontal = false;
             scrollRect.vertical = true;
             scrollRect.movementType = ScrollRect.MovementType.Clamped;
+            scrollRect.inertia = true;
+            scrollRect.scrollSensitivity = 30f;
             scrollRect.onValueChanged.AddListener(HandleScroll);
             templateObject.SetActive(false);
         }
@@ -77,6 +88,7 @@ namespace ProjectX.UI
                 row.anchorMax = new Vector2(1f, 1f);
                 row.pivot = new Vector2(0.5f, 1f);
                 row.sizeDelta = new Vector2(0f, itemHeight);
+                row.gameObject.AddComponent<VirtualListScrollDragRelay>().Initialize(scrollRect);
                 row.gameObject.SetActive(true);
                 rows.Add(row);
             }
@@ -111,5 +123,24 @@ namespace ProjectX.UI
                 bind(row, items[index], index);
             }
         }
+    }
+
+    internal sealed class VirtualListScrollDragRelay : MonoBehaviour,
+        IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IScrollHandler
+    {
+        private ScrollRect target;
+
+        public void Initialize(ScrollRect value) => target = value;
+
+        public void OnInitializePotentialDrag(PointerEventData eventData)
+            => target?.OnInitializePotentialDrag(eventData);
+
+        public void OnBeginDrag(PointerEventData eventData) => target?.OnBeginDrag(eventData);
+
+        public void OnDrag(PointerEventData eventData) => target?.OnDrag(eventData);
+
+        public void OnEndDrag(PointerEventData eventData) => target?.OnEndDrag(eventData);
+
+        public void OnScroll(PointerEventData eventData) => target?.OnScroll(eventData);
     }
 }

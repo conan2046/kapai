@@ -73,6 +73,8 @@ namespace ProjectX.UI
         private readonly Action<uint, int> wearFaBao;
         private readonly Action<uint> takeOffFaBao;
         private readonly Action<int> showCultivationFrame;
+        private readonly Func<int> getPlayerLevel;
+        private readonly Action<string> showFeedback;
         private readonly VirtualList<DisplayPair> list;
         private readonly VirtualList<DisplayPair> changeList;
         private readonly Text number;
@@ -118,7 +120,8 @@ namespace ProjectX.UI
             Action<uint> strengthEquipment, Action<uint> strengthFiveEquipment, Action<int> strengthAllEquipment,
             Action<uint, int, int> refineEquipment, Action<uint, int[], int[]> autoRefineEquipment,
             Action<uint> awakenEquipment, Action<uint> divineEquipment,
-            Action<uint, int> wearFaBao, Action<uint> takeOffFaBao, Action<int> showCultivationFrame)
+            Action<uint, int> wearFaBao, Action<uint> takeOffFaBao, Action<int> showCultivationFrame,
+            Func<int> getPlayerLevel, Action<string> showFeedback)
         {
             this.listView = listView ?? throw new ArgumentNullException(nameof(listView));
             this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
@@ -151,6 +154,8 @@ namespace ProjectX.UI
             this.wearFaBao = wearFaBao;
             this.takeOffFaBao = takeOffFaBao;
             this.showCultivationFrame = showCultivationFrame;
+            this.getPlayerLevel = getPlayerLevel ?? throw new ArgumentNullException(nameof(getPlayerLevel));
+            this.showFeedback = showFeedback;
 
             GameObject viewport = Require(listView, "Layer/zhuangbeibeibaoUI/TableView");
             GameObject template = Require(listView, "Layer/zhuangbeibeibaoUI/ItemList");
@@ -241,6 +246,9 @@ namespace ProjectX.UI
         public bool ReturnsToListOnDetailClose => returnToListOnDetailClose;
         public bool CultivationImodReady => cultivationEffects.Count == 9
             && cultivationEffects.All(value => value != null && value.IsLoaded);
+        public bool HasActiveCultivationEffect => cultivationEffects.Any(value => value != null && value.gameObject.activeSelf);
+        public bool IsStrengthAllVisible => cultivateView.Binding.Find(
+            "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua")?.activeSelf == true;
 
         public Button GetListItemAction(uint uid)
         {
@@ -629,6 +637,7 @@ namespace ProjectX.UI
 
         private void ShowStrength(DisplayRecord item)
         {
+            if (!CanOpenCultivation(item, 0)) return;
             HideCultivationEffects();
             activeCultivationMode = 0;
             selected = item;
@@ -685,7 +694,7 @@ namespace ProjectX.UI
             if (strengthAllObject != null)
             {
                 Button strengthAll = EnsureClickable(strengthAllObject.transform);
-                strengthAll.gameObject.SetActive(true);
+                strengthAll.gameObject.SetActive(item.FormationPosition > 0);
                 strengthAll.onClick.RemoveAllListeners();
                 strengthAll.onClick.AddListener(() => strengthAllEquipment?.Invoke(formationPosition));
             }
@@ -731,13 +740,18 @@ namespace ProjectX.UI
 
         private void ShowRefine(DisplayRecord item)
         {
+            if (!CanOpenCultivation(item, 1)) return;
             ShowStrength(item);
             activeCultivationMode = 1;
             showCultivationFrame?.Invoke(1);
             int currentLevel = item.RefineLevel;
             EquipmentRefineDefinition config = catalog.GetRefine(currentLevel);
+            int nextLevel = catalog.GetRefine(currentLevel + 1) != null ? currentLevel + 1 : currentLevel;
             SetBoundText(refineView, "Layer/zhuangbeijinglianUI/jinglian/jichushuxing/Level_1", $"{currentLevel}级");
-            SetBoundText(refineView, "Layer/zhuangbeijinglianUI/jinglian/jichushuxing/Level_2", $"{currentLevel + 1}级");
+            SetBoundText(refineView, "Layer/zhuangbeijinglianUI/jinglian/jichushuxing/Level_2", $"{nextLevel}级");
+            BindCultivationAttributes(refineView,
+                "Layer/zhuangbeijinglianUI/jinglian/jichushuxing/ListView/Panel_1",
+                item.Definition.RefineAttributes, currentLevel, nextLevel);
             SetBoundText(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Slider_Bg/Value",
                 $"{item.Experience}/{config?.Experience ?? 0}");
             IReadOnlyList<int> materialIds = catalog.GetRefineMaterialIds();
@@ -752,6 +766,7 @@ namespace ProjectX.UI
             BindRefineMaterials(materialIds);
             refineOnceButton.onClick.RemoveAllListeners();
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
+            SetStrengthAllVisible(false);
             strengthView.SetVisible(false);
             refineView.SetVisible(true);
             refineView.GameObject.transform.SetAsLastSibling();
@@ -759,6 +774,7 @@ namespace ProjectX.UI
 
         private void ShowAwaken(DisplayRecord item)
         {
+            if (!CanOpenCultivation(item, 2)) return;
             ShowStrength(item);
             activeCultivationMode = 2;
             showCultivationFrame?.Invoke(2);
@@ -766,12 +782,20 @@ namespace ProjectX.UI
             cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
             int currentLevel = item.Equipment.GetLevel(3);
             EquipmentAwakenDefinition config = catalog.GetAwaken(currentLevel + 1);
-            SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/jichushuxing/Level_1", $"{currentLevel}级");
-            SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/jichushuxing/Level_2", config?.Name ?? "已满级");
+            int nextLevel = config != null ? currentLevel + 1 : currentLevel;
+            EquipmentAwakenDefinition currentConfig = catalog.GetAwaken(currentLevel);
+            SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/jichushuxing/Level_1",
+                currentConfig?.Name ?? "0星0品");
+            SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/jichushuxing/Level_2",
+                config?.Name ?? currentConfig?.Name ?? "0星0品");
+            BindCultivationAttributes(awakenView,
+                "Layer/zhuangbeijuexingUI/juexing/jichushuxing/ListView/Panel_1",
+                item.Definition.AwakenAttributes, currentLevel, nextLevel);
             int gold = config?.Cost?.FirstOrDefault(value => value != null && value.Length >= 3 && value[0] == 60000)?[2] ?? 0;
             SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/ConsumeBg/Value", gold.ToString());
             awakenOnceButton.onClick.RemoveAllListeners();
             awakenOnceButton.onClick.AddListener(() => awakenEquipment?.Invoke(item.Uid));
+            SetStrengthAllVisible(false);
             strengthView.SetVisible(false);
             awakenView.SetVisible(true);
             awakenView.GameObject.transform.SetAsLastSibling();
@@ -779,6 +803,7 @@ namespace ProjectX.UI
 
         private void ShowDivine(DisplayRecord item)
         {
+            if (!CanOpenCultivation(item, 3)) return;
             ShowStrength(item);
             activeCultivationMode = 3;
             showCultivationFrame?.Invoke(3);
@@ -786,6 +811,15 @@ namespace ProjectX.UI
             cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(true);
             int currentLevel = item.Equipment.GetLevel(4);
             EquipmentDivineDefinition config = catalog.GetDivine(currentLevel + 1);
+            int nextLevel = config != null ? currentLevel + 1 : currentLevel;
+            EquipmentDivineDefinition currentConfig = catalog.GetDivine(currentLevel);
+            SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/Level_1",
+                currentConfig?.Name ?? "0阶0层");
+            SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/Level_2",
+                config?.Name ?? currentConfig?.Name ?? "0阶0层");
+            BindCultivationAttributes(divineView,
+                "Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/ListView/Panel_1",
+                item.Definition.DivineAttributes, currentLevel, nextLevel);
             int divineItemId = item.Definition.DivineCostItemId;
             EquipmentMaterialDefinition divineItem = catalog.GetItem(divineItemId);
             int divineOwned = bag.GetTotalQuantityByItemId(divineItemId);
@@ -806,7 +840,31 @@ namespace ProjectX.UI
             int gold = config?.Money?.FirstOrDefault(value => value != null && value.Length >= 3 && value[0] == 60000)?[2] ?? 0;
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/ConsumeBg/Value", gold.ToString());
             divineOnceButton.onClick.RemoveAllListeners();
-            divineOnceButton.onClick.AddListener(() => divineEquipment?.Invoke(item.Uid));
+            divineOnceButton.onClick.AddListener(() =>
+            {
+                if (config == null)
+                {
+                    showFeedback?.Invoke("神铸已达上限");
+                    return;
+                }
+                if (divineItemId <= 0 || divineItem == null || divineRequired <= 0)
+                {
+                    showFeedback?.Invoke("该装备没有有效的神铸消耗配置");
+                    return;
+                }
+                if (divineOwned < divineRequired)
+                {
+                    showFeedback?.Invoke($"{divineItem.Name}不足");
+                    return;
+                }
+                if (currencies.Gold < gold)
+                {
+                    showFeedback?.Invoke("金币不足");
+                    return;
+                }
+                divineEquipment?.Invoke(item.Uid);
+            });
+            SetStrengthAllVisible(false);
             BindButton(divineView, "Layer/zhuangbeijuexingUI/shenzhu/fujiashuxing/Btn_xiangxi", () =>
             {
                 BindButton(divineEffectView, "Layer/Popup/Btn_close", () => divineEffectView.SetVisible(false));
@@ -866,6 +924,11 @@ namespace ProjectX.UI
                     ?? host.AddComponent<ImodAnimationPlayer>();
                 if (!player.IsLoaded && !player.LoadLegacy($"res2/animation/effect_zhuangbeiyangcheng_{index}"))
                     throw new InvalidOperationException($"Equipment cultivation Imod resource {index} is missing.");
+                player.Completed += _ =>
+                {
+                    player.Stop();
+                    player.gameObject.SetActive(false);
+                };
                 player.Stop();
                 host.SetActive(false);
                 cultivationEffects.Add(player);
@@ -894,6 +957,40 @@ namespace ProjectX.UI
                 player.Stop();
                 player.gameObject.SetActive(false);
             }
+        }
+
+        private bool CanOpenCultivation(DisplayRecord item, int mode)
+        {
+            int minimumLevel = mode == 0 ? 6 : mode == 1 ? 30 : mode == 2 ? 50 : 70;
+            if (getPlayerLevel() < minimumLevel)
+            {
+                showFeedback?.Invoke($"{minimumLevel}级开启");
+                return false;
+            }
+            if (mode == 2 && item.Definition.Quality < 5)
+            {
+                showFeedback?.Invoke("需要橙色以上装备");
+                return false;
+            }
+            if (mode == 3 && item.Definition.Quality < 6)
+            {
+                showFeedback?.Invoke("需要红色以上装备");
+                return false;
+            }
+            if (mode == 3 && (item.Definition.DivineCostItemId <= 0
+                || item.Definition.DivineAttributes == null || item.Definition.DivineAttributes.Length == 0))
+            {
+                showFeedback?.Invoke("该装备没有有效的神铸配置");
+                return false;
+            }
+            return true;
+        }
+
+        private void SetStrengthAllVisible(bool visible)
+        {
+            GameObject strengthAll = cultivateView.Binding.Find(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua");
+            if (strengthAll != null) strengthAll.SetActive(visible);
         }
 
         private void OpenAutoRefine()
@@ -1036,6 +1133,53 @@ namespace ProjectX.UI
                     bag.GetTotalQuantityByItemId(material.Id).ToString());
                 SetBoundText(refineView, path + "/Text", $"经验+{material.RefineExperience}");
                 ApplyMaterialIcon(EnsureMaterialIcon(slot.transform), material);
+            }
+        }
+
+        private static void BindCultivationAttributes(CocosUiView view, string templatePath,
+            IReadOnlyList<int[]> attributes, int currentLevel, int nextLevel)
+        {
+            GameObject templateObject = view.Binding.Find(templatePath);
+            if (templateObject == null) return;
+            Transform template = templateObject.transform;
+            Transform parent = template.parent;
+            foreach (Transform child in parent.Cast<Transform>()
+                .Where(value => value.name.StartsWith("RuntimeCultivationAttribute_", StringComparison.Ordinal))
+                .ToArray())
+            {
+                child.gameObject.SetActive(false);
+                UnityEngine.Object.Destroy(child.gameObject);
+            }
+
+            int[][] validAttributes = attributes == null
+                ? Array.Empty<int[]>()
+                : attributes.Where(value => value != null && value.Length >= 2).ToArray();
+            templateObject.SetActive(validAttributes.Length > 0);
+            if (validAttributes.Length == 0) return;
+
+            RectTransform templateRect = template.GetComponent<RectTransform>();
+            Vector2 start = templateRect != null ? templateRect.anchoredPosition : Vector2.zero;
+            float rowHeight = templateRect != null ? Mathf.Max(1f, templateRect.rect.height) : 35f;
+            bool isMax = nextLevel <= currentLevel;
+            for (int index = 0; index < validAttributes.Length; index++)
+            {
+                Transform row = index == 0 ? template
+                    : UnityEngine.Object.Instantiate(template, parent, false);
+                row.name = index == 0 ? template.name : $"RuntimeCultivationAttribute_{index}";
+                RectTransform rowRect = row.GetComponent<RectTransform>();
+                if (rowRect != null) rowRect.anchoredPosition = start + new Vector2(0f, -rowHeight * index);
+                row.gameObject.SetActive(true);
+
+                int type = validAttributes[index][0];
+                int perLevel = validAttributes[index][1];
+                SetText(row, "Value_0", AttributeName(type));
+                SetText(row, "Value_1", checked(perLevel * currentLevel).ToString());
+                SetText(row, "Value_2", checked(perLevel * nextLevel).ToString());
+                SetText(row, "Value_3", perLevel.ToString());
+                SetActive(row, "Image", !isMax);
+                SetActive(row, "To", !isMax);
+                SetActive(row, "Value_2", !isMax);
+                SetActive(row, "Value_3", !isMax);
             }
         }
 
@@ -1242,8 +1386,27 @@ namespace ProjectX.UI
                 case 3: return "法防";
                 case 4: return "生命";
                 case 5: return "速度";
+                case 6: return "命中";
+                case 7: return "闪避";
+                case 8: return "暴击";
+                case 9: return "抗暴";
+                case 10: return "攻击加成";
+                case 11: return "物防加成";
+                case 12: return "法防加成";
+                case 13: return "生命加成";
+                case 14: return "速度加成";
+                case 15: return "命中率";
+                case 16: return "闪避率";
+                case 17: return "暴击率";
+                case 18: return "抗暴率";
                 default: return "基础属性";
             }
+        }
+
+        private static void SetActive(Transform root, string path, bool value)
+        {
+            Transform target = root.Find(path);
+            if (target != null) target.gameObject.SetActive(value);
         }
 
         private static void SetText(Transform root, string path, string value)

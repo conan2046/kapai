@@ -1387,6 +1387,10 @@ $heroEquipmentBootstrapSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
 $heroEquipmentCatalogSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/Data/EquipmentCatalog.cs") -Raw -Encoding UTF8
+$virtualListSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/UI/VirtualList.cs") -Raw -Encoding UTF8
+$toastPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
 $heroEquipmentServerSource = Get-Content -LiteralPath (Join-Path $root `
     "server/src/pet_equip_manage.cpp") -Raw -Encoding UTF8
 Assert-ToolchainTest (
@@ -1423,12 +1427,34 @@ Assert-ToolchainTest (
 ) "HeroEquip early-play regression: the equipment fragment view can be covered by the outer hero frame."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('RenderHeroEquipmentFragmentRows(binding, fragments);') -and
-    $projectXAppSource.Contains('viewport.Find("RuntimeFragmentContent")') -and
-    $projectXAppSource.Contains('row.anchoredPosition = new Vector2(0f, -rowIndex * rowHeight);') -and
+    $projectXAppSource.Contains('new VirtualList<BagItemRecord[]>(viewport.gameObject') -and
+    $projectXAppSource.Contains('BindHeroEquipmentFragmentRow') -and
+    -not $projectXAppSource.Contains('RuntimeFragmentContent') -and
+    $virtualListSource.Contains('dragSurface.raycastTarget = true;') -and
+    $virtualListSource.Contains('VirtualListScrollDragRelay') -and
+    $projectXAppSource.Contains('fragment bag did not reuse the common VirtualList drag contract') -and
+    $projectXAppSource.Contains('fragment bag accepted drag callbacks but its content did not move') -and
     $projectXAppSource.Contains('progress.fillAmount = required > 0') -and
     $projectXAppSource.Contains('Mathf.Clamp01((float)item.Quantity / required)') -and
     -not $projectXAppSource.Contains('.ThenByDescending(item => item.ItemId)\r\n                .Take(5)')
-) "HeroEquip early-play regression: fragment rows are left in the offscreen Cocos template or progress is not quantity-bound."
+) "HeroEquip regression: fragment rows no longer reuse the common draggable VirtualList or progress is not quantity-bound."
+Assert-ToolchainTest (
+    $heroEquipmentControllerSource.Contains('BagController.requestEquipmentSnapshot(function(_) end)') -and
+    $projectXAppSource.Contains('services.Bag.Changed += HandleHeroEquipmentFragmentBagChanged;') -and
+    $projectXAppSource.Contains('compose did not refresh the consumed fragment quantity') -and
+    $projectXAppSource.Contains('left fragment progress or grid quantity stale')
+) "HeroEquip regression: compose success no longer refreshes the source fragments and the visible page from authoritative bag state."
+Assert-ToolchainTest (
+    $heroEquipmentCatalogSource.Contains('[JsonProperty("attr_jinglian")]') -and
+    $heroEquipmentCatalogSource.Contains('[JsonProperty("attr_juexing")]') -and
+    $heroEquipmentCatalogSource.Contains('[JsonProperty("attr_shenzhu")]') -and
+    $heroEquipmentPresenterSource.Contains('BindCultivationAttributes(') -and
+    $heroEquipmentPresenterSource.Contains('player.gameObject.SetActive(false);') -and
+    $heroEquipmentPresenterSource.Contains('SetStrengthAllVisible(false);') -and
+    $heroEquipmentPresenterSource.Contains('private bool CanOpenCultivation(') -and
+    $toastPresenterSource.Contains('root.transform.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('MaintainHeroEquipmentCultivationState();')
+) "HeroEquip regression: dynamic cultivation attributes, effect cleanup, tab visibility, eligibility, toast order, or exclusive lifecycle was removed."
 Assert-ToolchainTest (
     $heroEquipmentPresenterSource.Contains('BindRefineMaterials(materialIds);') -and
     $heroEquipmentPresenterSource.Contains('ApplyMaterialIcon(EnsureMaterialIcon(slot.transform), material);') -and

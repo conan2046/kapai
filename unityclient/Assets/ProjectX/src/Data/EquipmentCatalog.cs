@@ -22,6 +22,9 @@ namespace ProjectX.Data
         [JsonProperty("equip")] public int CanEquip { get; set; }
         [JsonProperty("attr")] public int[] BaseAttribute { get; set; }
         [JsonProperty("atrr_qianghua")] public JToken StrengthAttributeData { get; set; }
+        [JsonProperty("attr_jinglian")] public int[][] RefineAttributes { get; set; }
+        [JsonProperty("attr_juexing")] public int[][] AwakenAttributes { get; set; }
+        [JsonProperty("attr_shenzhu")] public int[][] DivineAttributes { get; set; }
 
         public int[] GetPrimaryStrengthAttribute()
         {
