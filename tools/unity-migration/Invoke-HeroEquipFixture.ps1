@@ -1,13 +1,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "CaptureMutationHash", "AssertMutationReloginHash", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash")]
+    [ValidateSet("Setup", "AssertSetup", "CaptureMutationHash", "AssertMutationReloginHash", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "AddUserFragments", "RestoreUserFragments")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
     [ValidateSet("Cocos", "Transaction")]
     [string]$Profile = "Transaction",
-    [string]$EvidencePath = ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-fixed-fixture-snapshot.json"
+    [string]$EvidencePath = ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-fixed-fixture-snapshot.json",
+    [string]$UserFragmentEvidencePath = ".local/unity-validation/hero-equip-user-fragments-latest.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -36,10 +37,12 @@ $fixtureFragmentQuantities = if ($Profile -eq "Transaction") {
 } else {
     @([uint16]5, [uint16]30)
 }
+$userFragmentIds = @([uint16]4605, [uint16]4621, [uint16]4622, [uint16]4629)
+$userFragmentQuantities = @([uint16]30, [uint16]60, [uint16]30, [uint16]10)
 $packageSlots = 500
 $serverConfig = Join-Path $root "server/config/config"
 
-if ($UserId -ne 7200057 -or $RoleId -ne 1000115) {
+if ($Action -notin @("AddUserFragments", "RestoreUserFragments") -and ($UserId -ne 7200057 -or $RoleId -ne 1000115)) {
     throw "HeroEquip fixed-account fixture identity must remain 7200057/1000115."
 }
 if (-not (Test-Path -LiteralPath $mysql -PathType Leaf)) { throw "mysql.exe not found: $mysql" }
@@ -56,6 +59,11 @@ function Invoke-HeroEquipSql([string]$Sql) {
 function Assert-ClientsStopped {
     $running = @(Get-Process kapai, ProjectX, Unity -ErrorAction SilentlyContinue)
     if ($running.Count -gt 0) { throw "Stop kapai.exe, ProjectX.exe and Unity.exe before HeroEquip fixture $Action." }
+}
+
+function Assert-RoleClientsStopped {
+    $running = @(Get-Process kapai, ProjectX -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) { throw "Stop kapai.exe and ProjectX.exe before changing persistent HeroEquip user fragments." }
 }
 
 function Get-PreserveBalanceUserId {
@@ -176,6 +184,68 @@ function Assert-HeroEquipPackageFragments {
         $itemId = [int]$fixtureFragmentIds[$index]
         if ([int]$counts[$itemId] -ne [int]$fixtureFragmentQuantities[$index]) { throw "HeroEquip fixture fragment $itemId count mismatch." }
     }
+}
+
+function Get-HeroEquipPackageFragmentCounts([string]$Hex, [uint16[]]$ItemIds) {
+    $wanted = @{}; foreach ($itemId in $ItemIds) { $wanted[[int]$itemId] = 0 }
+    $bytes = Expand-HeroEquipBlob $Hex
+    $position = 0
+    for ($slot = 0; $slot -lt $packageSlots; $slot++) {
+        if ($position + 2 -gt $bytes.Length) { throw "HeroEquip package ended before fragment count slot $slot." }
+        $itemId = [BitConverter]::ToUInt16($bytes, $position); $position += 2
+        if ($itemId -eq 0) { continue }
+        if ($position + 2 -gt $bytes.Length) { throw "HeroEquip package item $itemId has no fragment count quantity." }
+        $quantity = [BitConverter]::ToUInt16($bytes, $position); $position += 2
+        if ($wanted.ContainsKey([int]$itemId)) { $wanted[[int]$itemId] += [int]$quantity }
+    }
+    if ($position -ne $bytes.Length) { throw "HeroEquip package has trailing bytes after fragment count." }
+    $result = [ordered]@{}
+    foreach ($itemId in $ItemIds) { $result[[string][int]$itemId] = [int]$wanted[[int]$itemId] }
+    $result
+}
+
+function Add-HeroEquipUserFragments([string]$Hex) {
+    $bytes = Expand-HeroEquipBlob $Hex
+    $slots = New-Object System.Collections.Generic.List[object]
+    $slotByItemId = @{}
+    $emptySlots = New-Object System.Collections.Generic.Queue[int]
+    $position = 0
+    for ($slot = 0; $slot -lt $packageSlots; $slot++) {
+        if ($position + 2 -gt $bytes.Length) { throw "HeroEquip package ended before user fragment slot $slot." }
+        $itemId = [BitConverter]::ToUInt16($bytes, $position); $position += 2
+        $quantity = 0
+        if ($itemId -ne 0) {
+            if ($position + 2 -gt $bytes.Length) { throw "HeroEquip package item $itemId has no user fragment quantity." }
+            $quantity = [BitConverter]::ToUInt16($bytes, $position); $position += 2
+        }
+        $slots.Add([pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$quantity })
+        if ($itemId -eq 0) { $emptySlots.Enqueue($slot) }
+        elseif (-not $slotByItemId.ContainsKey([int]$itemId)) { $slotByItemId[[int]$itemId] = $slot }
+    }
+    if ($position -ne $bytes.Length) { throw "HeroEquip package has trailing bytes before adding user fragments." }
+    for ($index = 0; $index -lt $userFragmentIds.Count; $index++) {
+        $itemId = [int]$userFragmentIds[$index]
+        $quantity = [int]$userFragmentQuantities[$index]
+        if ($slotByItemId.ContainsKey($itemId)) {
+            $slot = [int]$slotByItemId[$itemId]
+            $total = [int]$slots[$slot].quantity + $quantity
+            if ($total -gt [uint16]::MaxValue) { throw "HeroEquip user fragment $itemId exceeds uint16 quantity." }
+            $slots[$slot] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$total }
+        } else {
+            if ($emptySlots.Count -eq 0) { throw "HeroEquip package has no empty slot for user fragment $itemId." }
+            $slot = $emptySlots.Dequeue()
+            $slots[$slot] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$quantity }
+        }
+    }
+    $output = [IO.MemoryStream]::new(); $writer = [IO.BinaryWriter]::new($output)
+    try {
+        foreach ($entry in $slots) {
+            $writer.Write([uint16]$entry.itemId)
+            if ([uint16]$entry.itemId -ne 0) { $writer.Write([uint16]$entry.quantity) }
+        }
+        Compress-HeroEquipBlob ([byte[]]$output.ToArray())
+    }
+    finally { $writer.Dispose(); $output.Dispose() }
 }
 
 function Set-HeroEquipSecondFormationPosition([string]$Hex) {
@@ -373,6 +443,40 @@ function Read-Evidence {
 
 if ($Action -in @("Setup", "Restore", "Cleanup")) { Assert-ClientsStopped }
 switch ($Action) {
+    "AddUserFragments" {
+        Assert-RoleClientsStopped
+        $userTable = Get-UserTable
+        $rows = @(Invoke-HeroEquipSql "SELECT package FROM role_info WHERE id=$RoleId")
+        if ($rows.Count -ne 1) { throw "HeroEquip user role package is missing for roleId=$RoleId." }
+        $originalPackage = [string]$rows[0]
+        $beforeCounts = Get-HeroEquipPackageFragmentCounts $originalPackage $userFragmentIds
+        $updatedPackage = Add-HeroEquipUserFragments $originalPackage
+        Invoke-HeroEquipSql "UPDATE role_info SET package='$updatedPackage' WHERE id=$RoleId" | Out-Null
+        $afterRows = @(Invoke-HeroEquipSql "SELECT package FROM role_info WHERE id=$RoleId")
+        $afterCounts = Get-HeroEquipPackageFragmentCounts ([string]$afterRows[0]) $userFragmentIds
+        for ($index = 0; $index -lt $userFragmentIds.Count; $index++) {
+            $key = [string][int]$userFragmentIds[$index]
+            if ([int]$afterCounts[$key] -ne [int]$beforeCounts[$key] + [int]$userFragmentQuantities[$index]) {
+                throw "HeroEquip user fragment $key increment assertion failed."
+            }
+        }
+        $userEvidence = if ([IO.Path]::IsPathRooted($UserFragmentEvidencePath)) { $UserFragmentEvidencePath } else { Join-Path $root $UserFragmentEvidencePath }
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($userEvidence)) | Out-Null
+        [IO.File]::WriteAllText($userEvidence, (([ordered]@{
+            action="AddUserFragments"; userId=$UserId; roleId=$RoleId; userTable=$userTable
+            fragmentIds=@($userFragmentIds); fragmentQuantities=@($userFragmentQuantities)
+            beforeCounts=$beforeCounts; afterCounts=$afterCounts; originalPackage=$originalPackage
+            updatedPackageSha256=(Get-HeroEquipSha256 $updatedPackage); createdUtc=[DateTime]::UtcNow.ToString("O")
+        } | ConvertTo-Json -Depth 8) + "`n"), [Text.UTF8Encoding]::new($false))
+    }
+    "RestoreUserFragments" {
+        Assert-RoleClientsStopped
+        $userEvidence = if ([IO.Path]::IsPathRooted($UserFragmentEvidencePath)) { $UserFragmentEvidencePath } else { Join-Path $root $UserFragmentEvidencePath }
+        if (-not (Test-Path -LiteralPath $userEvidence -PathType Leaf)) { throw "HeroEquip user fragment evidence is missing: $userEvidence" }
+        $snapshot = Get-Content -LiteralPath $userEvidence -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ([uint32]$snapshot.userId -ne $UserId -or [uint32]$snapshot.roleId -ne $RoleId) { throw "HeroEquip user fragment restore identity mismatch." }
+        Invoke-HeroEquipSql "UPDATE role_info SET package='$([string]$snapshot.originalPackage)' WHERE id=$RoleId" | Out-Null
+    }
     "Setup" {
         $userTable = Get-UserTable
         $hash = Get-RoleHash

@@ -1772,7 +1772,9 @@ void CEquipManeger::StrongEquip(CUser* user, CNetMessage& msg)
 		if (!user->SubMaterial(cfg->cost.costType, cv, false))
 			break;
 		equip->strongCost += cv;
-		uint8 addLevel = cfg->GetRatioLevel();
+		// 强化按钮按操作次数逐级提升：单次固定 +1，“强化5次”固定最多 +5。
+		// 旧逻辑直接从 crit 配置抽取 2/3/5，遗漏普通 +1，导致单次也会跳级。
+		uint8 addLevel = 1;
 		realLevel += addLevel;
 		si += addLevel;
 		if (addLevel > 1)

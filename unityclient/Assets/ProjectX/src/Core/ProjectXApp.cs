@@ -245,6 +245,7 @@ namespace ProjectX.Core
         private CocosUiView heroEquipmentAutoDivineView;
         private CocosUiView heroEquipmentDivineEffectView;
         private HeroEquipmentPresenter heroEquipmentPresenter;
+        private int selectedHeroEquipmentFragmentId;
         private readonly List<HeroEquipmentRecord> pendingHeroEquipment = new List<HeroEquipmentRecord>();
         private readonly List<FaBaoRecord> pendingFaBao = new List<FaBaoRecord>();
         private readonly List<CultivationLevel> pendingCultivation = new List<CultivationLevel>();
@@ -272,6 +273,7 @@ namespace ProjectX.Core
         private Vector2 hudShopSubmenuOrigin;
         private Vector2 hudWearSubmenuOrigin;
         private bool hudSubmenuOriginsReady;
+        private GameObject hudSubmenuDismissOverlay;
         private Button taskButton;
         private readonly List<TaskRecord> pendingTaskRecords = new List<TaskRecord>();
         private int pendingTaskType = 2;
@@ -1653,8 +1655,7 @@ namespace ProjectX.Core
                 if (timeline != null) timeline.GotoFrameAndPlay(0, true);
                 mainCloudView.GameObject.transform.SetAsFirstSibling();
             }
-            SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
-            SetMainSubmenuVisible("Layer/Main_UI/tankuang2", false);
+            HideHudSubmenus();
             chatView?.SetVisible(false);
             chatMiniView?.SetVisible(true);
             HideLoading("connect");
@@ -3703,7 +3704,10 @@ namespace ProjectX.Core
                 { Fail($"HUD fabao route boundary failed: {faBaoBoundary}"); yield break; }
                 MarkValidationControl("HUD-17-FABAO-ROUTE");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-wear-expanded.png");
-                ToggleWearSubmenu();
+                Button wearDismiss = hudSubmenuDismissOverlay?.GetComponent<Button>();
+                if (!InvokeEventSystemClick(wearDismiss)
+                    || mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf == true)
+                { Fail("HUD wear submenu did not collapse through the blank-area overlay."); yield break; }
 
                 ToggleShopSubmenu();
                 yield return new WaitForSecondsRealtime(.25f);
@@ -3720,8 +3724,12 @@ namespace ProjectX.Core
                 { Fail($"HUD gameplay shop route boundary failed: {gameplayShopBoundary}"); yield break; }
                 MarkValidationControl("HUD-21-GAMEPLAY-SHOP-ROUTE");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-shop-expanded.png");
-                ToggleShopSubmenu();
-                RecordValidationSemantic("hud-menu-state", true, "real imported buttons toggled mutually scoped 0.17s submenus and returned collapsed");
+                Button shopDismiss = hudSubmenuDismissOverlay?.GetComponent<Button>();
+                if (!InvokeEventSystemClick(shopDismiss)
+                    || mainView.Binding.Find("Layer/Main_UI/tankuang1")?.activeSelf == true)
+                { Fail("HUD shop submenu did not collapse through the blank-area overlay."); yield break; }
+                RecordValidationSemantic("hud-menu-state", true,
+                    "real imported buttons opened mutually scoped submenus; blank-area overlay collapsed both without a second toggle click");
 
                 string[] routeIds =
                 {
@@ -6654,12 +6662,14 @@ namespace ProjectX.Core
                 mainView.BindClick(EquipmentBagPath,
                     () =>
                     {
+                        HideHudSubmenus();
                         heroEquipmentOpenPending = true;
                         InvokeLuaOrFail(onEquipmentBagClicked, "HeroEquipment.OpenEquipment");
                     }, true);
                 mainView.BindClick(FaBaoBagPath,
                     () =>
                     {
+                        HideHudSubmenus();
                         heroEquipmentOpenPending = true;
                         InvokeLuaOrFail(onFaBaoBagClicked, "HeroEquipment.OpenFaBao");
                     }, true);
@@ -6720,6 +6730,9 @@ namespace ProjectX.Core
                 pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
                 services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
         }
+
+        public void NotifyHeroEquipmentCultivationSuccess(int operation)
+            => heroEquipmentPresenter?.PlayCultivationSuccess(operation);
 
         public void BeginFaBaoUpdate(int expectedCount)
         {
@@ -8183,7 +8196,7 @@ namespace ProjectX.Core
         }
         private void HandleShopClick()
         {
-            SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
+            HideHudSubmenus();
             try { CallLua(onShopClicked, "Shop.OnClicked"); }
             catch (Exception exception) { Fail($"Shop open failed: {exception.Message}"); }
         }
@@ -8198,13 +8211,13 @@ namespace ProjectX.Core
             if (hudShopSubmenuAnimation != null) StopCoroutine(hudShopSubmenuAnimation);
             if (submenu.activeSelf)
             {
-                rect.anchoredPosition = hudShopSubmenuOrigin;
-                submenu.SetActive(false);
-                hudShopSubmenuAnimation = null;
+                HideHudSubmenus();
             }
             else
             {
+                SetMainSubmenuVisible("Layer/Main_UI/tankuang2", false);
                 submenu.SetActive(true);
+                ShowHudSubmenuDismissOverlay(rect);
                 hudShopSubmenuAnimation = StartCoroutine(
                     AnimateHudSubmenu(rect, hudShopSubmenuOrigin - new Vector2(0f, 24f), 24f));
             }
@@ -8466,15 +8479,54 @@ namespace ProjectX.Core
             if (hudWearSubmenuAnimation != null) StopCoroutine(hudWearSubmenuAnimation);
             if (submenu.activeSelf)
             {
-                rect.anchoredPosition = hudWearSubmenuOrigin;
-                submenu.SetActive(false);
-                hudWearSubmenuAnimation = null;
+                HideHudSubmenus();
             }
             else
             {
+                SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
                 submenu.SetActive(true);
+                ShowHudSubmenuDismissOverlay(rect);
                 hudWearSubmenuAnimation = StartCoroutine(AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f));
             }
+        }
+
+        private void ShowHudSubmenuDismissOverlay(RectTransform submenu)
+        {
+            if (submenu == null || mainView == null) return;
+            if (hudSubmenuDismissOverlay == null)
+            {
+                Transform mainUi = mainView.Binding.Find("Layer/Main_UI")?.transform;
+                if (mainUi == null) return;
+                hudSubmenuDismissOverlay = new GameObject(
+                    "HudSubmenuDismissOverlay", typeof(RectTransform), typeof(Image), typeof(Button));
+                RectTransform overlayRect = hudSubmenuDismissOverlay.GetComponent<RectTransform>();
+                overlayRect.SetParent(mainUi, false);
+                overlayRect.anchorMin = Vector2.zero;
+                overlayRect.anchorMax = Vector2.one;
+                overlayRect.offsetMin = Vector2.zero;
+                overlayRect.offsetMax = Vector2.zero;
+                Image overlayImage = hudSubmenuDismissOverlay.GetComponent<Image>();
+                overlayImage.color = Color.clear;
+                overlayImage.raycastTarget = true;
+                Button overlayButton = hudSubmenuDismissOverlay.GetComponent<Button>();
+                overlayButton.transition = Selectable.Transition.None;
+                overlayButton.targetGraphic = overlayImage;
+                overlayButton.onClick.AddListener(HideHudSubmenus);
+            }
+            hudSubmenuDismissOverlay.SetActive(true);
+            hudSubmenuDismissOverlay.transform.SetAsLastSibling();
+            submenu.SetAsLastSibling();
+        }
+
+        private void HideHudSubmenus()
+        {
+            if (hudShopSubmenuAnimation != null) StopCoroutine(hudShopSubmenuAnimation);
+            if (hudWearSubmenuAnimation != null) StopCoroutine(hudWearSubmenuAnimation);
+            hudShopSubmenuAnimation = null;
+            hudWearSubmenuAnimation = null;
+            SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
+            SetMainSubmenuVisible("Layer/Main_UI/tankuang2", false);
+            if (hudSubmenuDismissOverlay != null) hudSubmenuDismissOverlay.SetActive(false);
         }
 
         private void EnsureHudSubmenuOrigins()
@@ -10144,11 +10196,23 @@ namespace ProjectX.Core
             SelectHeroEquipmentTab(tabs, false);
             heroEquipmentPresenter.HideDetails();
             heroEquipmentListView.SetVisible(false);
-            heroEquipmentFragmentView.SetVisible(true);
-            heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();
             heroFrameView.SetVisible(true);
             heroFrameView.GameObject.transform.SetAsLastSibling();
+            heroEquipmentFragmentView.SetVisible(true);
+            heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();
             RenderHeroEquipmentFragments();
+        }
+
+        private void ShowHeroEquipmentListTab()
+        {
+            EnsureHeroEquipmentPresenter();
+            ConfigureHeroEquipmentFrame(HeroEquipmentKind.Equipment);
+            heroEquipmentPresenter.RenderKind(HeroEquipmentKind.Equipment);
+            heroEquipmentFragmentView.SetVisible(false);
+            heroEquipmentListView.SetVisible(true);
+            heroFrameView.SetVisible(true);
+            heroFrameView.GameObject.transform.SetAsLastSibling();
+            heroEquipmentListView.GameObject.transform.SetAsLastSibling();
         }
 
         private void RenderHeroEquipmentFragments()
@@ -10166,46 +10230,114 @@ namespace ProjectX.Core
                 .ThenByDescending(item => item.Quality)
                 .ThenByDescending(item => item.Quantity)
                 .ThenByDescending(item => item.ItemId)
-                .Take(5)
                 .ToArray();
             CocosUiBinding binding = heroEquipmentFragmentView.Binding;
             GameObject empty = binding.Find("Layer/suipianUI/Point");
             if (empty != null) empty.SetActive(fragments.Length == 0);
-            for (int index = 1; index <= 5; index++)
+
+            BagItemRecord preferred = fragments.FirstOrDefault(item =>
+                item.ItemId == selectedHeroEquipmentFragmentId);
+            if (preferred.ItemId <= 0)
             {
-                GameObject cell = binding.Find($"Layer/suipianUI/Bag/ItemCell/Item{index}");
-                bool hasItem = index <= fragments.Length;
-                if (cell == null) continue;
-                cell.SetActive(hasItem);
-                if (!hasItem) continue;
-                BagItemRecord item = fragments[index - 1];
-                cell.name = $"EquipmentFragment_{item.ItemId}";
-                Image icon = binding.Find($"Layer/suipianUI/Bag/ItemCell/Item{index}/Icon")?.GetComponent<Image>();
-                if (icon != null)
-                {
-                    icon.sprite = services.Resources.LoadItemIcon(item.Picture);
-                    icon.preserveAspect = true;
-                }
-                Text name = binding.Find($"Layer/suipianUI/Bag/ItemCell/Item{index}/Name")?.GetComponent<Text>();
-                if (name != null) name.text = $"{item.Name} ×{item.Quantity}";
-                int required = services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId);
-                GameObject ready = binding.Find($"Layer/suipianUI/Bag/ItemCell/Item{index}/Tips");
-                if (ready != null) ready.SetActive(required > 0 && item.Quantity >= required);
-                GameObject prompt = binding.Find($"Layer/suipianUI/Bag/ItemCell/Item{index}/Prompt");
-                if (prompt != null) prompt.SetActive(required > 0 && item.Quantity >= required);
-                Button button = EnsureRuntimeButton(cell.transform);
-                button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => BindHeroEquipmentFragmentDetail(item));
+                preferred = fragments.FirstOrDefault(item =>
+                    services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId) > 0
+                    && item.Quantity >= services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId));
             }
-            binding.Find("Layer/suipianUI/Bag/ItemCell")?.SetActive(true);
+            if (preferred.ItemId <= 0 && fragments.Length > 0) preferred = fragments[0];
+            selectedHeroEquipmentFragmentId = preferred.ItemId;
+
+            RenderHeroEquipmentFragmentRows(binding, fragments);
             binding.Find("Layer/suipianUI/cell")?.SetActive(false);
             binding.Find("Layer/suipianUI/recycle")?.SetActive(false);
             binding.Find("Layer/suipianUI/suipian")?.SetActive(fragments.Length > 0);
-            BagItemRecord preferred = fragments.FirstOrDefault(item =>
-                services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId) > 0
-                && item.Quantity >= services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId));
-            if (preferred.ItemId <= 0 && fragments.Length > 0) preferred = fragments[0];
             if (preferred.ItemId > 0) BindHeroEquipmentFragmentDetail(preferred);
+        }
+
+        private void RenderHeroEquipmentFragmentRows(CocosUiBinding binding, BagItemRecord[] fragments)
+        {
+            RectTransform template = binding.Find("Layer/suipianUI/Bag/ItemCell")?.GetComponent<RectTransform>();
+            RectTransform viewport = binding.Find("Layer/suipianUI/Bag/TableView")?.GetComponent<RectTransform>();
+            if (template == null || viewport == null) return;
+            template.gameObject.SetActive(false);
+
+            Transform previous = viewport.Find("RuntimeFragmentContent");
+            if (previous != null)
+            {
+                previous.gameObject.SetActive(false);
+                Destroy(previous.gameObject);
+            }
+
+            GameObject contentObject = new GameObject("RuntimeFragmentContent", typeof(RectTransform));
+            contentObject.layer = viewport.gameObject.layer;
+            RectTransform content = contentObject.GetComponent<RectTransform>();
+            content.SetParent(viewport, false);
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.anchoredPosition = Vector2.zero;
+
+            float rowHeight = template.rect.height;
+            int rowCount = Mathf.CeilToInt(fragments.Length / 5f);
+            content.sizeDelta = new Vector2(0f, Mathf.Max(viewport.rect.height, rowCount * rowHeight));
+            if (viewport.GetComponent<RectMask2D>() == null)
+                viewport.gameObject.AddComponent<RectMask2D>();
+            ScrollRect scroll = viewport.GetComponent<ScrollRect>() ?? viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.viewport = viewport;
+            scroll.content = content;
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Clamped;
+            scroll.verticalNormalizedPosition = 1f;
+
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
+            {
+                GameObject rowObject = Instantiate(template.gameObject, content, false);
+                rowObject.name = $"RuntimeFragmentRow_{rowIndex + 1}";
+                rowObject.SetActive(true);
+                RectTransform row = rowObject.GetComponent<RectTransform>();
+                row.anchorMin = new Vector2(0f, 1f);
+                row.anchorMax = new Vector2(0f, 1f);
+                row.pivot = new Vector2(0f, 1f);
+                row.anchoredPosition = new Vector2(0f, -rowIndex * rowHeight);
+                row.sizeDelta = new Vector2(template.rect.width, rowHeight);
+                for (int column = 1; column <= 5; column++)
+                {
+                    int itemIndex = rowIndex * 5 + column - 1;
+                    Transform cell = row.Find($"Item{column}");
+                    if (cell == null) continue;
+                    bool hasItem = itemIndex < fragments.Length;
+                    cell.gameObject.SetActive(hasItem);
+                    if (hasItem) BindHeroEquipmentFragmentCell(cell, fragments[itemIndex]);
+                }
+            }
+        }
+
+        private void BindHeroEquipmentFragmentCell(Transform cell, BagItemRecord item)
+        {
+            cell.name = $"EquipmentFragment_{item.ItemId}";
+            Image icon = cell.Find("Icon")?.GetComponent<Image>();
+            if (icon != null)
+            {
+                icon.sprite = services.Resources.LoadItemIcon(item.Picture);
+                icon.preserveAspect = true;
+            }
+            Text name = cell.Find("Name")?.GetComponent<Text>();
+            if (name != null) name.text = $"{item.Name} ×{item.Quantity}";
+            int required = services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId);
+            bool composable = required > 0 && item.Quantity >= required;
+            GameObject ready = cell.Find("Tips")?.gameObject;
+            if (ready != null) ready.SetActive(composable);
+            GameObject prompt = cell.Find("Prompt")?.gameObject;
+            if (prompt != null) prompt.SetActive(composable);
+            GameObject selected = cell.Find("Choose")?.gameObject;
+            if (selected != null) selected.SetActive(item.ItemId == selectedHeroEquipmentFragmentId);
+            Button button = EnsureRuntimeButton(cell);
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
+            {
+                selectedHeroEquipmentFragmentId = item.ItemId;
+                RenderHeroEquipmentFragments();
+            });
         }
 
         private void BindHeroEquipmentFragmentDetail(BagItemRecord item)
@@ -10216,6 +10348,15 @@ namespace ProjectX.Core
             SetBoundText(heroEquipmentFragmentView, "Layer/suipianUI/suipian/miaoshu/Content", item.Description);
             int required = services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId);
             SetBoundText(heroEquipmentFragmentView, "Layer/suipianUI/suipian/Slider_Bg/Value", $"{item.Quantity}/{required}");
+            Image progress = binding.Find("Layer/suipianUI/suipian/Slider_Bg/LoadingBar")?.GetComponent<Image>();
+            if (progress != null)
+            {
+                progress.type = Image.Type.Filled;
+                progress.fillMethod = Image.FillMethod.Horizontal;
+                progress.fillAmount = required > 0
+                    ? Mathf.Clamp01((float)item.Quantity / required)
+                    : 0f;
+            }
             Image icon = binding.Find("Layer/suipianUI/suipian/Node/Icon")?.GetComponent<Image>();
             if (icon != null)
             {
@@ -10227,7 +10368,7 @@ namespace ProjectX.Core
             if (compose != null)
             {
                 compose.onClick.RemoveAllListeners();
-                compose.interactable = required > 0;
+                compose.interactable = required > 0 && item.Quantity >= required;
                 compose.onClick.AddListener(() => InvokeLuaOrFail(onHeroEquipmentCompose,
                     "HeroEquipment.Compose", item.ItemId));
             }
@@ -10643,12 +10784,17 @@ namespace ProjectX.Core
             Transform panel = tabs.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             if (first == null) return;
+            foreach (Transform cultivationTab in panel.Cast<Transform>()
+                .Where(value => value.name.EndsWith("_StrengthRuntime", StringComparison.Ordinal)))
+                cultivationTab.gameObject.SetActive(false);
             SetTabText(first, kind == HeroEquipmentKind.Equipment ? "装备" : "法宝", true);
             Button firstButton = EnsureRuntimeButton(first);
             firstButton.onClick.RemoveAllListeners();
-            firstButton.onClick.AddListener(() =>
-                InvokeLuaOrFail(kind == HeroEquipmentKind.Equipment ? onEquipmentBagClicked : onFaBaoBagClicked,
-                    kind == HeroEquipmentKind.Equipment ? "HeroEquipment.TabEquipment" : "HeroEquipment.TabFaBao"));
+            if (kind == HeroEquipmentKind.Equipment)
+                firstButton.onClick.AddListener(ShowHeroEquipmentListTab);
+            else
+                firstButton.onClick.AddListener(() =>
+                    InvokeLuaOrFail(onFaBaoBagClicked, "HeroEquipment.TabFaBao"));
             Transform second = panel.Find("Button2_Runtime");
             if (second == null)
             {
@@ -10724,6 +10870,29 @@ namespace ProjectX.Core
         {
             if (target == null) return null;
             Graphic graphic = target.GetComponent<Graphic>();
+            if (graphic != null && !graphic.enabled)
+            {
+                Transform hitArea = target.Find("RuntimeHitArea");
+                if (hitArea == null)
+                {
+                    var hitObject = new GameObject("RuntimeHitArea", typeof(RectTransform), typeof(Image));
+                    RectTransform hitRect = hitObject.GetComponent<RectTransform>();
+                    hitRect.SetParent(target, false);
+                    hitRect.anchorMin = Vector2.zero;
+                    hitRect.anchorMax = Vector2.one;
+                    hitRect.offsetMin = Vector2.zero;
+                    hitRect.offsetMax = Vector2.zero;
+                    hitArea = hitRect;
+                }
+                hitArea.SetAsLastSibling();
+                Image hitImage = hitArea.GetComponent<Image>();
+                hitImage.color = new Color(1f, 1f, 1f, 0.01f);
+                hitImage.raycastTarget = true;
+                Button runtimeButton = target.GetComponent<Button>() ?? target.gameObject.AddComponent<Button>();
+                runtimeButton.enabled = true;
+                runtimeButton.targetGraphic = hitImage;
+                return runtimeButton;
+            }
             if (graphic == null)
             {
                 Image image = target.gameObject.AddComponent<Image>();

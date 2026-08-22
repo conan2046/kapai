@@ -253,6 +253,7 @@ Assert-ToolchainTest (
 $invalidWorkflowPolicy = $workflowPolicy | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $invalidWorkflowPolicy.cocos.maximumAttemptsPerTarget = 2
 $invalidWorkflowPolicy.unity.runtimeValidationMode = "editor-or-batch"
+$invalidWorkflowPolicy.sequence.requireEarlyUserPlayAfterG3BeforeG4 = $false
 $workflowFailures = @(Get-UnityMigrationWorkflowPolicyFailures -Policy $invalidWorkflowPolicy)
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*maximumAttemptsPerTarget*" }).Count -eq 1
@@ -260,6 +261,31 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*runtimeValidationMode*batch-only*" }).Count -eq 1
 ) "Non-batch Unity runtime validation was not rejected by workflow policy."
+Assert-ToolchainTest (
+    @($workflowFailures | Where-Object { $_ -like "*requireEarlyUserPlayAfterG3BeforeG4*" }).Count -eq 1
+) "Missing post-G3 early user Play checkpoint was not rejected by workflow policy."
+$validEarlyUserPlay = [pscustomobject]@{
+    schemaVersion = 1
+    module = "Sample"
+    checkpoint = "post-g3-early-play"
+    userParticipated = $true
+    testedUtc = "2026-08-22T12:00:00+08:00"
+    entryPath = "主界面→功能入口"
+    result = "feedback-captured"
+    feedback = @([pscustomobject]@{
+        id = "EARLY-001"; summary = "返回层级错误"; severity = "blocking"; status = "resolved"
+    })
+    agentRecheck = [pscustomobject]@{ completed = $true; evidence = @("build/ui-migration/bootstrap-app-result.json") }
+}
+Assert-ToolchainTest (
+    @(Get-UnityMigrationEarlyUserPlayFailures -Record $validEarlyUserPlay -ExpectedModule "Sample").Count -eq 0
+) "Valid post-G3 early user Play evidence was rejected."
+$invalidEarlyUserPlay = $validEarlyUserPlay | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$invalidEarlyUserPlay.feedback[0].status = "pending"
+Assert-ToolchainTest (
+    @(Get-UnityMigrationEarlyUserPlayFailures -Record $invalidEarlyUserPlay -ExpectedModule "Sample" |
+        Where-Object { $_ -like "*must be resolved before G4*" }).Count -eq 1
+) "Unresolved blocking early user feedback did not block G4."
 $networkScenario = [pscustomobject]@{
     flags = @("-projectXSampleValidation")
     networkValidation = [pscustomobject]@{ disableAutoReconnect = $true; showReconnectDialog = $true }
@@ -689,6 +715,13 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(buttonGroup)') -and
     $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudShopSubmenuOrigin - new Vector2(0f, 24f), 24f)') -and
     $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f)') -and
+    $projectXAppSource.Contains('"HudSubmenuDismissOverlay", typeof(RectTransform), typeof(Image), typeof(Button)') -and
+    $projectXAppSource.Contains('overlayButton.onClick.AddListener(HideHudSubmenus);') -and
+    $projectXAppSource.Contains('submenu.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('if (graphic != null && !graphic.enabled)') -and
+    $projectXAppSource.Contains('target.Find("RuntimeHitArea")') -and
+    $projectXAppSource.Contains('HUD wear submenu did not collapse through the blank-area overlay.') -and
+    $projectXAppSource.Contains('HUD shop submenu did not collapse through the blank-area overlay.') -and
     $projectXAppSource.Contains('while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline)') -and
     $projectXAppSource.Contains('mainHudPresenter?.BeginReconnectChatSummary();') -and
     $projectXAppSource.Contains('mainHudPresenter.VisibleRedDotCount < 7') -and
@@ -976,6 +1009,12 @@ Assert-ToolchainTest (
 $heroEquipFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipFixture.ps1") `
     -Raw -Encoding UTF8
 $heroEquipEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "HeroEquip" })[0]
+Assert-ToolchainTest (
+    $heroEquipFixtureSource.Contains('"AddUserFragments"') -and
+    $heroEquipFixtureSource.Contains('Add-HeroEquipUserFragments') -and
+    $heroEquipFixtureSource.Contains('originalPackage=$originalPackage') -and
+    $heroEquipFixtureSource.Contains('"RestoreUserFragments"')
+) "HeroEquip local user fragment seeding is no longer additive and recoverable."
 Assert-ToolchainTest (
     $fixedAccountRunnerSource.Contains('mutationReloginOracle') -and
     $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter $captureAction') -and
@@ -1340,6 +1379,70 @@ Assert-ToolchainTest (
 
 $heroEquipMatrix = (Import-UnityMigrationJson -Root $root `
     -Path "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json").Value
+$heroEquipmentPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
+$heroEquipmentControllerSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt") -Raw -Encoding UTF8
+$heroEquipmentBootstrapSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
+$heroEquipmentCatalogSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/src/Data/EquipmentCatalog.cs") -Raw -Encoding UTF8
+$heroEquipmentServerSource = Get-Content -LiteralPath (Join-Path $root `
+    "server/src/pet_equip_manage.cpp") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('firstButton.onClick.AddListener(ShowHeroEquipmentListTab);') -and
+    $projectXAppSource.Contains('value.name.EndsWith("_StrengthRuntime", StringComparison.Ordinal)')
+) "HeroEquip early-play regression: equipment/fragments reverse navigation or cultivation-tab cleanup was removed."
+Assert-ToolchainTest (
+    $heroEquipmentPresenterSource.Contains('public void PlayCultivationSuccess(int operation)') -and
+    -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(1);') -and
+    -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(2);') -and
+    -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(3);') -and
+    -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(effectIndex, currentLevel > 0);')
+) "HeroEquip early-play regression: cultivation page rendering once again starts success effects."
+Assert-ToolchainTest (
+    -not $heroEquipmentPresenterSource.Contains('EnsureButtonLabel(strengthAllObject.transform') -and
+    -not $heroEquipmentPresenterSource.Contains('private static void EnsureButtonLabel(') -and
+    $heroEquipmentPresenterSource.Contains('.Where(value => value.FormationPosition == formationPosition)') -and
+    $heroEquipmentPresenterSource.Contains('.OrderBy(value => value.Slot)')
+) "HeroEquip early-play regression: one-key-strength text is recreated in code or the cultivation strip includes unequipped items."
+Assert-ToolchainTest (
+    $heroEquipmentBootstrapSource.Contains('function OnHeroEquipmentStrength(uid, strengthType)') -and
+    $heroEquipmentBootstrapSource.Contains('EquipmentController.strengthEquipment(uid, strengthType)') -and
+    $heroEquipmentServerSource.Contains('uint8 addLevel = 1;')
+) "HeroEquip early-play regression: the five-strength type is dropped by the Lua bootstrap bridge."
+$fragmentOpenStart = $projectXAppSource.IndexOf('private void ShowHeroEquipmentFragments()', [StringComparison]::Ordinal)
+$fragmentOpenEnd = $projectXAppSource.IndexOf('private void ShowHeroEquipmentListTab()', $fragmentOpenStart, [StringComparison]::Ordinal)
+$fragmentOpenSource = if ($fragmentOpenStart -ge 0 -and $fragmentOpenEnd -gt $fragmentOpenStart) {
+    $projectXAppSource.Substring($fragmentOpenStart, $fragmentOpenEnd - $fragmentOpenStart)
+} else { "" }
+Assert-ToolchainTest (
+    $fragmentOpenSource.IndexOf('heroFrameView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal) -ge 0 -and
+    $fragmentOpenSource.IndexOf('heroFrameView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal) -lt
+        $fragmentOpenSource.IndexOf('heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal)
+) "HeroEquip early-play regression: the equipment fragment view can be covered by the outer hero frame."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('RenderHeroEquipmentFragmentRows(binding, fragments);') -and
+    $projectXAppSource.Contains('viewport.Find("RuntimeFragmentContent")') -and
+    $projectXAppSource.Contains('row.anchoredPosition = new Vector2(0f, -rowIndex * rowHeight);') -and
+    $projectXAppSource.Contains('progress.fillAmount = required > 0') -and
+    $projectXAppSource.Contains('Mathf.Clamp01((float)item.Quantity / required)') -and
+    -not $projectXAppSource.Contains('.ThenByDescending(item => item.ItemId)\r\n                .Take(5)')
+) "HeroEquip early-play regression: fragment rows are left in the offscreen Cocos template or progress is not quantity-bound."
+Assert-ToolchainTest (
+    $heroEquipmentPresenterSource.Contains('BindRefineMaterials(materialIds);') -and
+    $heroEquipmentPresenterSource.Contains('ApplyMaterialIcon(EnsureMaterialIcon(slot.transform), material);') -and
+    $heroEquipmentPresenterSource.Contains('item.Definition.DivineCostItemId') -and
+    $heroEquipmentPresenterSource.Contains('bag.GetTotalQuantityByItemId(divineItemId)') -and
+    $heroEquipmentPresenterSource.Contains('bool showDivineMaterial = divineItemId > 0') -and
+    $heroEquipmentPresenterSource.Contains('SetActive(showDivineMaterial)') -and
+    $heroEquipmentCatalogSource.Contains('public EquipmentMaterialDefinition GetItem(int itemId)')
+) "HeroEquip early-play regression: refine or divine material identity/icon binding was removed."
+Assert-ToolchainTest (
+    $heroEquipmentControllerSource.Contains('Bridge:NotifyHeroEquipmentCultivationSuccess(4)') -and
+    $heroEquipmentControllerSource.Contains('M.pendingCultivationSuccessOp = op') -and
+    $heroEquipmentControllerSource.Contains('Bridge:NotifyHeroEquipmentCultivationSuccess(M.pendingCultivationSuccessOp)')
+) "HeroEquip early-play regression: cultivation effects are no longer gated by successful authoritative responses."
 $heroEquipCoverage = Assert-UnityMigrationCoverageList -Root $root -ModuleKey "HeroEquip" -Matrix $heroEquipMatrix
 Assert-ToolchainTest (
     $heroEquipCoverage.SourceCount -eq 14 -and $heroEquipCoverage.BusinessIdCount -eq 974

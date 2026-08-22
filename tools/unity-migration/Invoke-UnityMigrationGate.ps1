@@ -8,6 +8,7 @@ param(
     [string]$CocosPreflightPath = "",
     [string]$CocosIdentityPath = "",
     [string]$CocosBaselinePath = "",
+    [string]$EarlyUserPlayPath = "",
     [string]$SummaryPath = "",
     [switch]$Complete,
     [string]$RegistryPath = "tools/unity-migration/migration-gates.json"
@@ -109,6 +110,23 @@ if ($Gate -eq "G3") {
     Write-Host "$Module G3 workflow contract passed: batch scenario, coverage, semantics, source, visuals and fixture are frozen."
 }
 if ($Gate -eq "G4") {
+    if (-not $EarlyUserPlayPath) {
+        throw "Completing G4 requires -EarlyUserPlayPath from the post-G3 user Play checkpoint."
+    }
+    if (-not (Test-GateEvidenceContainsPath $EarlyUserPlayPath)) {
+        throw "G4 Evidence must include the post-G3 early user Play record path."
+    }
+    $earlyPlayEntry = Import-UnityMigrationJson -Root $root -Path $EarlyUserPlayPath
+    $earlyPlayFailures = @(Get-UnityMigrationEarlyUserPlayFailures -Record $earlyPlayEntry.Value -ExpectedModule $Module)
+    if ($earlyPlayFailures.Count -gt 0) {
+        throw "G4 early user Play checkpoint failed: $($earlyPlayFailures -join '; ')"
+    }
+    foreach ($recheckEvidence in @($earlyPlayEntry.Value.agentRecheck.evidence)) {
+        $resolvedRecheck = Resolve-UnityMigrationPath -Root $root -Path ([string]$recheckEvidence)
+        if (-not (Test-Path -LiteralPath $resolvedRecheck)) {
+            throw "G4 early user Play agent recheck evidence missing: $recheckEvidence"
+        }
+    }
     if (-not $SummaryPath) {
         throw "Completing G4 requires -SummaryPath from the canonical Unity batch runner."
     }

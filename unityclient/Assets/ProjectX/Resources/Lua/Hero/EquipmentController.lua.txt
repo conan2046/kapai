@@ -28,6 +28,7 @@ local M = {
     heroHealthBefore = 0,
     playerPowerBefore = 0,
     g4Started = false,
+    pendingCultivationSuccessOp = nil,
 }
 
 local function showBusinessError(reason)
@@ -351,6 +352,10 @@ local function readList(message, kind)
         if kind == 1 then EquipmentModel:ReplaceEquipment(M.pendingEquipment); M.equipmentComplete = true
         else EquipmentModel:ReplaceFaBao(M.pendingFaBao); M.faBaoComplete = true end
         syncRenderMirror()
+        if kind == 1 and M.pendingCultivationSuccessOp ~= nil then
+            Bridge:NotifyHeroEquipmentCultivationSuccess(M.pendingCultivationSuccessOp)
+            M.pendingCultivationSuccessOp = nil
+        end
         finishLists()
     end
 end
@@ -466,6 +471,7 @@ local function readEquipmentStrengthResponse(message)
         M.stage = nil
         return
     end
+    Bridge:NotifyHeroEquipmentCultivationSuccess(4)
     if M.stage == "await_equipment_strength" then
         M.stage = "await_equipment_takeoff"
         sendEquipmentTakeOff(uid, M.formationPosition)
@@ -499,6 +505,7 @@ local function readSimpleEquipmentCultivationResponse(message, op)
     -- write so a delayed or missing push cannot leave the Lua owner stale.
     M.equipmentComplete = false
     M.faBaoComplete = false
+    M.pendingCultivationSuccessOp = op
     sendOp(1)
 end
 
@@ -519,6 +526,7 @@ local function readEquipmentStrengthAllResponse(message)
     local count = message:ReadByte()
     for _ = 1, count do message:ReadByte(); message:ReadUInt(); message:ReadByte() end
     Bridge:SetStatus("一键强化完成")
+    Bridge:NotifyHeroEquipmentCultivationSuccess(12)
 end
 
 local function readEquipmentMasterResponse(message, op)
@@ -634,6 +642,7 @@ function M.reset()
     M.attributePushCount, M.attributePushChanged, M.mutationHeroId = 0, false, 0
     M.heroPowerBefore, M.heroAttackBefore, M.heroHealthBefore, M.playerPowerBefore = 0, 0, 0, 0
     M.g4Started = false
+    M.pendingCultivationSuccessOp = nil
     EquipmentModel:Reset()
 end
 

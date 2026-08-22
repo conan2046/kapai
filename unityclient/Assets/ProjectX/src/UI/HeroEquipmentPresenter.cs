@@ -325,6 +325,19 @@ namespace ProjectX.UI
             else ShowStrength(selected);
         }
 
+        public void PlayCultivationSuccess(int operation)
+        {
+            int mode = operation == 13 ? 1 : operation == 14 ? 2 : operation == 15 ? 3 : 0;
+            if (!cultivateView.GameObject.activeSelf || activeCultivationMode != mode) return;
+            int effectIndex = mode + 1;
+            if (mode == 3)
+            {
+                int currentLevel = selected.Equipment.GetLevel(4);
+                effectIndex = currentLevel <= 0 ? 4 : 4 + ((currentLevel - 1) % 5);
+            }
+            ShowCultivationEffect(effectIndex);
+        }
+
         public void Render()
         {
             uint selectedUid = selected.Uid;
@@ -616,6 +629,7 @@ namespace ProjectX.UI
 
         private void ShowStrength(DisplayRecord item)
         {
+            HideCultivationEffects();
             activeCultivationMode = 0;
             selected = item;
             showCultivationFrame?.Invoke(0);
@@ -672,7 +686,6 @@ namespace ProjectX.UI
             {
                 Button strengthAll = EnsureClickable(strengthAllObject.transform);
                 strengthAll.gameObject.SetActive(true);
-                EnsureButtonLabel(strengthAllObject.transform, "一键强化");
                 strengthAll.onClick.RemoveAllListeners();
                 strengthAll.onClick.AddListener(() => strengthAllEquipment?.Invoke(formationPosition));
             }
@@ -697,7 +710,6 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             cultivateView.GameObject.transform.SetAsLastSibling();
             strengthView.GameObject.transform.SetAsLastSibling();
-            ShowCultivationEffect(1);
         }
 
         public bool PrepareDetails(uint uid, int selectedFormationPosition)
@@ -737,12 +749,12 @@ namespace ProjectX.UI
             int remaining = Mathf.Max(1, (requiredExperience > 0 ? requiredExperience : config?.Experience ?? perItem) - (int)item.Experience);
             int requested = Mathf.Max(1, Mathf.CeilToInt(remaining / (float)perItem));
             int count = material.Quantity > 0 ? Mathf.Min(material.Quantity, requested) : 1;
+            BindRefineMaterials(materialIds);
             refineOnceButton.onClick.RemoveAllListeners();
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
             strengthView.SetVisible(false);
             refineView.SetVisible(true);
             refineView.GameObject.transform.SetAsLastSibling();
-            ShowCultivationEffect(2);
         }
 
         private void ShowAwaken(DisplayRecord item)
@@ -763,7 +775,6 @@ namespace ProjectX.UI
             strengthView.SetVisible(false);
             awakenView.SetVisible(true);
             awakenView.GameObject.transform.SetAsLastSibling();
-            ShowCultivationEffect(3);
         }
 
         private void ShowDivine(DisplayRecord item)
@@ -775,8 +786,23 @@ namespace ProjectX.UI
             cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(true);
             int currentLevel = item.Equipment.GetLevel(4);
             EquipmentDivineDefinition config = catalog.GetDivine(currentLevel + 1);
+            int divineItemId = item.Definition.DivineCostItemId;
+            EquipmentMaterialDefinition divineItem = catalog.GetItem(divineItemId);
+            int divineOwned = bag.GetTotalQuantityByItemId(divineItemId);
+            int divineRequired = config?.FragmentCount ?? 0;
+            string divineItemPath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Item";
+            string divineNamePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name";
+            string divineValuePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value";
+            Image divineItemIcon = divineView.Binding.Find(divineItemPath)?.GetComponent<Image>();
+            bool showDivineMaterial = divineItemId > 0 && divineItem != null && divineRequired > 0
+                && ApplyMaterialIcon(divineItemIcon, divineItem);
+            divineView.Binding.Find(divineItemPath)?.SetActive(showDivineMaterial);
+            divineView.Binding.Find(divineNamePath)?.SetActive(showDivineMaterial);
+            divineView.Binding.Find(divineValuePath)?.SetActive(showDivineMaterial);
+            SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name",
+                divineItem?.Name ?? string.Empty);
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value",
-                $"{config?.FragmentCount ?? 0}");
+                $"{divineOwned}/{divineRequired}");
             int gold = config?.Money?.FirstOrDefault(value => value != null && value.Length >= 3 && value[0] == 60000)?[2] ?? 0;
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/ConsumeBg/Value", gold.ToString());
             divineOnceButton.onClick.RemoveAllListeners();
@@ -789,8 +815,6 @@ namespace ProjectX.UI
             strengthView.SetVisible(false);
             divineView.SetVisible(true);
             divineView.GameObject.transform.SetAsLastSibling();
-            int effectIndex = currentLevel <= 0 ? 4 : 4 + ((currentLevel - 1) % 5);
-            ShowCultivationEffect(effectIndex, currentLevel > 0);
         }
 
         private void ConfigureSecondaryControls()
@@ -860,6 +884,15 @@ namespace ProjectX.UI
                 player.gameObject.SetActive(selectedEffect);
                 if (selectedEffect) player.Play(0, repeat);
                 else player.Stop();
+            }
+        }
+
+        private void HideCultivationEffects()
+        {
+            foreach (ImodAnimationPlayer player in cultivationEffects)
+            {
+                player.Stop();
+                player.gameObject.SetActive(false);
             }
         }
 
@@ -946,6 +979,8 @@ namespace ProjectX.UI
         {
             DisplayRecord[] targets = equipment.Items
                 .Select(value => new DisplayRecord(value))
+                .Where(value => value.FormationPosition == formationPosition)
+                .OrderBy(value => value.Slot)
                 .Take(4)
                 .ToArray();
             GameObject template = cultivateView.Binding.Find(
@@ -956,6 +991,11 @@ namespace ProjectX.UI
                 .Where(value => value.name.StartsWith("RuntimeStrengthTarget_", StringComparison.Ordinal))
                 .ToArray())
                 UnityEngine.Object.Destroy(child.gameObject);
+            if (targets.Length == 0)
+            {
+                template.SetActive(false);
+                return;
+            }
             RectTransform templateRect = template.GetComponent<RectTransform>();
             Vector2 start = templateRect != null ? templateRect.anchoredPosition : Vector2.zero;
             for (int index = 0; index < targets.Length; index++)
@@ -979,6 +1019,54 @@ namespace ProjectX.UI
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => ShowStrength(target));
             }
+        }
+
+        private void BindRefineMaterials(IReadOnlyList<int> materialIds)
+        {
+            for (int index = 0; index < 4; index++)
+            {
+                string path = $"Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_{index + 1}";
+                GameObject slot = refineView.Binding.Find(path);
+                if (slot == null) continue;
+                EquipmentMaterialDefinition material = index < materialIds.Count
+                    ? catalog.GetItem(materialIds[index]) : null;
+                slot.SetActive(material != null);
+                if (material == null) continue;
+                SetBoundText(refineView, path + "/Value",
+                    bag.GetTotalQuantityByItemId(material.Id).ToString());
+                SetBoundText(refineView, path + "/Text", $"经验+{material.RefineExperience}");
+                ApplyMaterialIcon(EnsureMaterialIcon(slot.transform), material);
+            }
+        }
+
+        private static Image EnsureMaterialIcon(Transform slot)
+        {
+            Transform existing = slot.Find("RuntimeMaterialIcon");
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject("RuntimeMaterialIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(slot, false);
+            rect.anchorMin = new Vector2(0.08f, 0.08f);
+            rect.anchorMax = new Vector2(0.92f, 0.92f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+            rect.SetAsFirstSibling();
+            Image image = value.GetComponent<Image>();
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private bool ApplyMaterialIcon(Image image, EquipmentMaterialDefinition material)
+        {
+            if (image == null) return false;
+            bool usedPlaceholder = false;
+            Sprite sprite = material != null && material.Picture > 0
+                ? resources.LoadItemIcon(material.Picture, out usedPlaceholder) : null;
+            image.sprite = sprite;
+            image.enabled = sprite != null && !usedPlaceholder;
+            image.preserveAspect = true;
+            return image.enabled;
         }
 
         private bool IsMissing(DisplayRecord item)
@@ -1198,26 +1286,5 @@ namespace ProjectX.UI
             return button;
         }
 
-        private static void EnsureButtonLabel(Transform button, string value)
-        {
-            Text label = button.GetComponentsInChildren<Text>(true).FirstOrDefault();
-            if (label == null)
-            {
-                GameObject labelObject = new GameObject("Text", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-                labelObject.transform.SetParent(button, false);
-                RectTransform rect = labelObject.GetComponent<RectTransform>();
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = rect.offsetMax = Vector2.zero;
-                label = labelObject.GetComponent<Text>();
-                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                label.color = new Color(0.67f, 0.22f, 0.05f, 1f);
-                label.fontSize = 28;
-            }
-            label.text = value;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.horizontalOverflow = HorizontalWrapMode.Overflow;
-            label.verticalOverflow = VerticalWrapMode.Overflow;
-        }
     }
 }

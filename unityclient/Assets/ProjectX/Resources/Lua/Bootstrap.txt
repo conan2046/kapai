@@ -66,7 +66,7 @@ function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(ui
 function OnEquipmentBagClicked() EquipmentController.open(1) end
 function OnFaBaoBagClicked() EquipmentController.open(2) end
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
-function OnHeroEquipmentStrength(uid) EquipmentController.strengthEquipment(uid) end
+function OnHeroEquipmentStrength(uid, strengthType) EquipmentController.strengthEquipment(uid, strengthType) end
 function OnHeroEquipmentStrengthAll(position) EquipmentController.strengthAllEquipment(position) end
 function OnHeroEquipmentRefine(uid, itemId, itemCount) EquipmentController.refineEquipment(uid, itemId, itemCount) end
 function OnHeroEquipmentAutoRefine(uid, itemId1, itemCount1, itemId2, itemCount2, itemId3, itemCount3, itemId4, itemCount4)

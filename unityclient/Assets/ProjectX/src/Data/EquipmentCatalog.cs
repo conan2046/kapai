@@ -91,6 +91,9 @@ namespace ProjectX.Data
     public sealed class EquipmentMaterialDefinition
     {
         [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("pic")] public int Picture { get; set; }
+        [JsonProperty("quality")] public int Quality { get; set; }
         [JsonProperty("type")] public int Type { get; set; }
         [JsonProperty("sub_value")] public int[][] Values { get; set; }
         public int RefineExperience => Values != null && Values.Length > 0 && Values[0] != null && Values[0].Length > 1
@@ -115,6 +118,7 @@ namespace ProjectX.Data
         private readonly Dictionary<int, EquipmentRefineDefinition> refine = new Dictionary<int, EquipmentRefineDefinition>();
         private readonly Dictionary<int, EquipmentAwakenDefinition> awaken = new Dictionary<int, EquipmentAwakenDefinition>();
         private readonly Dictionary<int, EquipmentDivineDefinition> divine = new Dictionary<int, EquipmentDivineDefinition>();
+        private readonly Dictionary<int, EquipmentMaterialDefinition> items = new Dictionary<int, EquipmentMaterialDefinition>();
         private readonly Dictionary<int, EquipmentMaterialDefinition> refineMaterials = new Dictionary<int, EquipmentMaterialDefinition>();
         private readonly Dictionary<int, EquipmentQualityDefinition> qualities = new Dictionary<int, EquipmentQualityDefinition>();
 
@@ -159,6 +163,9 @@ namespace ProjectX.Data
         public int GetRefineMaterialExperience(int itemId)
             => refineMaterials.TryGetValue(itemId, out EquipmentMaterialDefinition value) ? value.RefineExperience : 0;
 
+        public EquipmentMaterialDefinition GetItem(int itemId)
+            => items.TryGetValue(itemId, out EquipmentMaterialDefinition value) ? value : null;
+
         public int GetRefineExperience(int level, int quality)
         {
             if (!refine.TryGetValue(level, out EquipmentRefineDefinition value)) return 0;
@@ -200,7 +207,7 @@ namespace ProjectX.Data
         public void Clear()
         {
             equipment.Clear(); faBao.Clear(); strength.Clear(); suits.Clear(); equipmentByFragment.Clear(); fragmentComposeCost.Clear();
-            refine.Clear(); awaken.Clear(); divine.Clear(); refineMaterials.Clear(); qualities.Clear();
+            refine.Clear(); awaken.Clear(); divine.Clear(); items.Clear(); refineMaterials.Clear(); qualities.Clear();
         }
 
         private void LoadCultivation()
@@ -219,8 +226,12 @@ namespace ProjectX.Data
             EquipmentMaterialDefinition[] values = JsonConvert.DeserializeObject<EquipmentMaterialDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentMaterialDefinition>();
             foreach (EquipmentMaterialDefinition value in values)
-                if (value != null && value.Id > 0 && value.Type == 4 && value.RefineExperience > 0)
+            {
+                if (value == null || value.Id <= 0) continue;
+                items[value.Id] = value;
+                if (value.Type == 4 && value.RefineExperience > 0)
                     refineMaterials[value.Id] = value;
+            }
             ClientLog.Info("Config", "Loaded equipment cultivation configs",
                 $"refine={refine.Count}, awaken={awaken.Count}, divine={divine.Count}, materials={refineMaterials.Count}, qualities={qualities.Count}");
         }

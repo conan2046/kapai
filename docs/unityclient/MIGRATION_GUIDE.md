@@ -185,6 +185,8 @@ G1 一次采齐预计进入 G5 的全部 Cocos 状态后，用中央生命周期
 
 退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查；场景在 G3 前已登记 `requiredGate=G3`、全控件覆盖、语义断言、源码锚点、全部截图状态和 `1334×750` 视觉断言；变更型模块已有固定账号数据合同。
 
+#### G3 早期真实 Play 检查点
+G3 初版 UI、协议和代码可运行后立即暂停，由用户从真实入口进行一次早期 Play，优先发现入口、点击、信息层级、返回、主要反馈和整体体验问题；代理须提前准备固定账号/数据、启动方式、5–15分钟主路径清单和已知限制，不得等到 G4-G6 完成后才让用户首次体验。反馈写入 `.local/unity-validation/<module>-early-user-play-latest.json`，至少包含 `module/checkpoint/userParticipated/testedUtc/entryPath/result/feedback/agentRecheck`；`blocking` 项必须修复并由代理用文件证据复核，`non-blocking` 项必须修复或经用户明确接受。此轮不设置 `manualPassed=true`，不能替代G4自动事务验证或G6最终确认；缺记录、用户未实际参与、代理复核证据缺失或仍有阻塞项时，G4机器门禁拒绝通过。
 ### G4 逻辑动态验收
 
 验证列表/全量/增量、正常写操作、空态、材料不足、非法/重复、超时/断线、重拉、重连、返回、切号。每项必须由真实控件触发，服务端结果与 UI 刷新一致。真实控件触发必须经过实际 EventSystem/输入链，覆盖点击射线、列表项、Toggle、数字键输入/删除/清空、滚轮/拖拽、确认/取消、关闭/返回；直接调用 Presenter、Show/Open/Complete、回调函数或修改内部状态的结果一律无效。G4/G6 运行证据只接受两个标准 Runner 的 Unity `-batchMode` 摘要；Unity MCP 只允许用于 G3 编辑器检查，不得作为动态验收或出证路径。
@@ -211,7 +213,7 @@ Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从
 
 执行真实入口 Runner、用户人工逐控件、异常扫描、16/16 UI、Bootstrap 两次幂等、文档门禁、Git范围检查和清理验证。Runner 禁止调用内部完成方法。
 
-自动化通过后只能报告“G6 自动化通过、用户验收待确认”，模块仍保持 G6 pending。`manualPassed=true` 只能由用户在最后一次影响该模块的代码、Lua、Prefab、场景、资源、服务端、配置或Fixture变更之后，使用真实 Play 路径明确确认；代理自行点击、Runner、MCP、旧人工记录或用户变更前的截图均不得代替。
+自动化通过后只能报告“G6 自动化通过、用户最终确认待完成”，模块仍保持 G6 pending。G3早期Play用于尽早反馈，不等于最终确认；`manualPassed=true` 只能由用户在最后一次影响该模块的代码、Lua、Prefab、场景、资源、服务端、配置或Fixture变更之后，使用真实 Play 路径明确确认。代理自行点击、Runner、MCP、旧人工记录或变更前的早期Play均不得代替。
 
 退出条件：控件矩阵每项 `realEntryClick=true`、`automationPassed=true`、用户确认的 `manualPassed=true`、`status=complete`；覆盖清单未覆盖ID为0；工作区无越界变更；模块才可标记 `migration-complete`。任一相关输入在用户确认后再次变化，自动撤销受影响的 `manualPassed` 和 G4-G6 结论。
 

@@ -372,6 +372,7 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($unity, "requireDataPreflightBeforeFullRun"),
         @($sequence, "requireCurrentCocosBeforeG2"),
         @($sequence, "requireSourceContractsBeforeG3"),
+        @($sequence, "requireEarlyUserPlayAfterG3BeforeG4"),
         @($sequence, "requireControlCoverageBeforeG4"),
         @($sequence, "requireG5ContractBeforeFullRun"),
         @($sequence, "visualReplayIsNotG5Evidence"),
@@ -380,6 +381,7 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($sequence, "recaptureOnlyInvalidatedCocosStates"),
         @($iteration, "recordEveryFailure"),
         @($iteration, "requireFailureRootCause"),
+        @($iteration, "requireEarlyFeedbackResolutionBeforeG4"),
         @($iteration, "requireResolutionAndIterationEvidenceBeforeG6"),
         @($iteration, "autoSummarizeAtG6"),
         @($iteration, "requireToolchainTestForPolicyIteration"),
@@ -390,6 +392,61 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         if ($value -isnot [bool] -or -not $value) {
             $failures.Add("workflowPolicy $($rule[1]) must be boolean true.")
         }
+    }
+    return @($failures)
+}
+
+function Get-UnityMigrationEarlyUserPlayFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Record,
+        [Parameter(Mandatory = $true)][string]$ExpectedModule
+    )
+    $failures = New-Object System.Collections.Generic.List[string]
+    if ([int](Get-UnityMigrationPropertyValue -Object $Record -Name "schemaVersion" -Default 0) -ne 1) {
+        $failures.Add("early user Play schemaVersion must be 1.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Record -Name "module" -Default "") -ine $ExpectedModule) {
+        $failures.Add("early user Play module must be '$ExpectedModule'.")
+    }
+    if ([string](Get-UnityMigrationPropertyValue -Object $Record -Name "checkpoint" -Default "") -ne "post-g3-early-play") {
+        $failures.Add("early user Play checkpoint must be 'post-g3-early-play'.")
+    }
+    if ((Get-UnityMigrationPropertyValue -Object $Record -Name "userParticipated" -Default $false) -ne $true) {
+        $failures.Add("early user Play must record explicit user participation.")
+    }
+    $testedUtc = [string](Get-UnityMigrationPropertyValue -Object $Record -Name "testedUtc" -Default "")
+    $parsedUtc = [DateTime]::MinValue
+    if (-not [DateTime]::TryParse($testedUtc, [ref]$parsedUtc)) {
+        $failures.Add("early user Play testedUtc must be a valid timestamp.")
+    }
+    if (-not [string](Get-UnityMigrationPropertyValue -Object $Record -Name "entryPath" -Default "")) {
+        $failures.Add("early user Play entryPath is required.")
+    }
+    $result = [string](Get-UnityMigrationPropertyValue -Object $Record -Name "result" -Default "")
+    if ($result -notin @("passed-no-blockers", "feedback-captured")) {
+        $failures.Add("early user Play result must be passed-no-blockers or feedback-captured.")
+    }
+    foreach ($feedback in @(Get-UnityMigrationPropertyValue -Object $Record -Name "feedback" -Default @())) {
+        $id = [string](Get-UnityMigrationPropertyValue -Object $feedback -Name "id" -Default "")
+        $summary = [string](Get-UnityMigrationPropertyValue -Object $feedback -Name "summary" -Default "")
+        $severity = [string](Get-UnityMigrationPropertyValue -Object $feedback -Name "severity" -Default "")
+        $status = [string](Get-UnityMigrationPropertyValue -Object $feedback -Name "status" -Default "")
+        if (-not $id -or -not $summary) { $failures.Add("early user Play feedback requires id and summary.") }
+        if ($severity -notin @("blocking", "non-blocking")) {
+            $failures.Add("early user Play feedback '$id' has invalid severity '$severity'.")
+        }
+        if ($status -notin @("resolved", "accepted")) {
+            $failures.Add("early user Play feedback '$id' remains unresolved: status='$status'.")
+        }
+        if ($severity -eq "blocking" -and $status -ne "resolved") {
+            $failures.Add("early user Play blocking feedback '$id' must be resolved before G4.")
+        }
+    }
+    $agentRecheck = Get-UnityMigrationPropertyValue -Object $Record -Name "agentRecheck" -Default $null
+    if ($null -eq $agentRecheck -or
+        (Get-UnityMigrationPropertyValue -Object $agentRecheck -Name "completed" -Default $false) -ne $true -or
+        @(Get-UnityMigrationPropertyValue -Object $agentRecheck -Name "evidence" -Default @()).Count -eq 0) {
+        $failures.Add("early user Play requires completed agentRecheck with file-backed evidence.")
     }
     return @($failures)
 }

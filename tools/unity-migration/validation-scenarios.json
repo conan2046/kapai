@@ -44,6 +44,7 @@
     "sequence": {
       "requireCurrentCocosBeforeG2": true,
       "requireSourceContractsBeforeG3": true,
+      "requireEarlyUserPlayAfterG3BeforeG4": true,
       "requireControlCoverageBeforeG4": true,
       "requireG5ContractBeforeFullRun": true,
       "visualReplayIsNotG5Evidence": true,
@@ -56,6 +57,7 @@
       "retrospectivePattern": ".local/unity-validation/{module}-retrospective-latest.json",
       "recordEveryFailure": true,
       "requireFailureRootCause": true,
+      "requireEarlyFeedbackResolutionBeforeG4": true,
       "requireResolutionAndIterationEvidenceBeforeG6": true,
       "autoSummarizeAtG6": true,
       "requireToolchainTestForPolicyIteration": true,

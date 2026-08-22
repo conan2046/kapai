@@ -53,6 +53,7 @@
 - 失败复盘必须落到可复用迭代：优先修中央工具、配置或规则并补 `Test-UnityMigrationToolchain.ps1` 回归；仅属模块业务差异时写入模块矩阵/场景和证据。下一模块 G0 前先读上一模块自动复盘，禁止再次尝试已判定无效的路径。
 - Cocos 自动化暂时无法进入页面时，先用 Lua/CSB/资源调用链完成可证静态修复，并把“缺有效 Cocos 动态截图”作为门禁保留；不得用 Unity 单端截图、错误历史截图或重复点击伪造视觉通过。
 - Unity G4/G6 的逻辑验证、截图和摘要必须全程通过 `Run-UnityModuleValidation.ps1` 或 `Run-UnityFixedAccountValidation.ps1` 的 `-batchMode` 路径完成；Unity MCP 只可用于 G3 的 Prefab/场景/编译/Console 检查，MCP、手工 PlayMode、内部完成方法或旧 Runner 结果不得作为 G4-G6 证据。
+- G3 初版 UI、协议和代码完成且可运行后必须立即暂停，准备固定账号、启动方式、5–15分钟主路径清单和已知限制，邀请用户进行一次早期真实 Play；不得等到 G4-G6 全部结束后才让用户第一次体验。反馈写入 `.local/unity-validation/<module>-early-user-play-latest.json`；阻塞项修复并由代理提供文件复核证据、非阻塞项修复或经用户明确接受后，G4才允许通过。此轮不设置 `manualPassed=true`，G6仍需最后一次相关变更后的用户最终确认。
 - 变更型模块必须在 G3 前登记固定账号、数据需求、快照/恢复/残留合同；启动 Unity 前先跑 `-DataPreflightOnly`。缺数据时停在当前门禁，禁止等完整 Unity 运行后才补数据或用客户端假数据。
 - G2 必须完成控件矩阵 `sourceAudit`：入口闭包、共享协议所有权、配置到资源闭包、运行时 Transform/缩放/锚点全部核清；缺配置或缺资源只能登记可追溯的模块级处理与源码证据，禁止猜路径、全局补假数据或到 G5 才发现。
 - G1 一次取得 G5 需要的全部 Cocos 状态并冻结 SHA、身份和状态输入指纹；G5 默认复用该轮原图。只有源码、资源、账号、夹具、步骤、分辨率或稳定帧输入变化时，才失效并重拍受影响状态。
