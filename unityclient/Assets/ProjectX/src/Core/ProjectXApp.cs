@@ -7234,6 +7234,8 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 refine entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the refine tab."); yield break; }
+            if (!heroEquipmentPresenter.AreCultivationAttributesBound(1))
+            { Fail("HeroEquip G4 refine attributes were missing, empty, or still placeholder values."); yield break; }
             MarkValidationControl("HE-38-DETAIL-REFINE");
             yield return CaptureHeroEquipmentG5State("g1-refine-before.png");
             if (!InvokeEventSystemClick(heroEquipmentRefineView.Binding.Find(
@@ -7257,8 +7259,14 @@ namespace ProjectX.Core
                 || !toastPresenter.IsLastSibling)
             { Fail("HeroEquip G4 success toast was not the last sibling below the cultivation views."); yield break; }
             deadline = Time.realtimeSinceStartup + 5f;
-            while (heroEquipmentPresenter.HasActiveCultivationEffect && Time.realtimeSinceStartup < deadline)
+            while ((heroEquipmentPresenter.HasActiveCultivationEffect || IsToastVisible)
+                && Time.realtimeSinceStartup < deadline)
+            {
+                if (IsToastVisible && (toastPresenter.Parent != heroEquipmentCultivateView.GameObject.transform.parent
+                    || !toastPresenter.IsLastSibling))
+                { Fail("HeroEquip G4 refine toast changed parent or sibling order during its visible lifetime."); yield break; }
                 yield return null;
+            }
             if (heroEquipmentPresenter.HasActiveCultivationEffect)
             { Fail("HeroEquip G4 refine success Imod retained its final frame after completion."); yield break; }
             int refineBeforeAuto = refined.GetLevel(2);
@@ -7387,6 +7395,8 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 awaken entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the awaken tab."); yield break; }
+            if (!heroEquipmentPresenter.AreCultivationAttributesBound(2))
+            { Fail("HeroEquip G4 awaken attributes were missing, empty, or still placeholder values."); yield break; }
             MarkValidationControl("HE-39-DETAIL-AWAKEN");
             yield return CaptureHeroEquipmentG5State("g1-awaken-before.png");
             if (!InvokeEventSystemClick(heroEquipmentAwakenView.Binding.Find(
@@ -7399,6 +7409,17 @@ namespace ProjectX.Core
             if (!services.HeroEquipment.TryGet(targetUid, out HeroEquipmentRecord awakened)
                 || awakened.GetLevel(3) <= targetAwakenBefore)
             { Fail("HeroEquip G4 awaken transaction did not update op=16 state."); yield break; }
+            deadline = Time.realtimeSinceStartup + 5f;
+            while ((heroEquipmentPresenter.HasActiveCultivationEffect || IsToastVisible)
+                && Time.realtimeSinceStartup < deadline)
+            {
+                if (IsToastVisible && (toastPresenter.Parent != heroEquipmentCultivateView.GameObject.transform.parent
+                    || !toastPresenter.IsLastSibling))
+                { Fail("HeroEquip G4 awaken toast changed parent or sibling order during its visible lifetime."); yield break; }
+                yield return null;
+            }
+            if (heroEquipmentPresenter.HasActiveCultivationEffect)
+            { Fail("HeroEquip G4 awaken success Imod retained its final frame after completion."); yield break; }
             yield return null;
             if (heroListView?.GameObject.activeSelf == true || heroDetailView?.GameObject.activeSelf == true
                 || formationPopupView?.GameObject.activeSelf == true)
@@ -7431,6 +7452,8 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 shenzhu entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the shenzhu tab."); yield break; }
+            if (!heroEquipmentPresenter.AreCultivationAttributesBound(3))
+            { Fail("HeroEquip G4 shenzhu attributes were missing, empty, or still placeholder values."); yield break; }
             MarkValidationControl("HE-40-DETAIL-SHENZHU");
             if (!InvokeEventSystemClick(heroEquipmentDivineView.Binding.Find(
                 "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu")?.GetComponent<Button>()))
@@ -7442,6 +7465,17 @@ namespace ProjectX.Core
             if (!services.HeroEquipment.TryGet(divineUid, out HeroEquipmentRecord divined)
                 || divined.GetLevel(4) <= divineLevelBefore)
             { Fail("HeroEquip G4 shenzhu transaction did not update op=16 state."); yield break; }
+            deadline = Time.realtimeSinceStartup + 5f;
+            while ((heroEquipmentPresenter.HasActiveCultivationEffect || IsToastVisible)
+                && Time.realtimeSinceStartup < deadline)
+            {
+                if (IsToastVisible && (toastPresenter.Parent != heroEquipmentCultivateView.GameObject.transform.parent
+                    || !toastPresenter.IsLastSibling))
+                { Fail("HeroEquip G4 shenzhu toast changed parent or sibling order during its visible lifetime."); yield break; }
+                yield return null;
+            }
+            if (heroEquipmentPresenter.HasActiveCultivationEffect)
+            { Fail("HeroEquip G4 shenzhu success Imod retained its final frame after completion."); yield break; }
             string divineSuccessStatus = status;
             InvokeEventSystemClick(heroEquipmentDivineView.Binding.Find(
                 "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu")?.GetComponent<Button>());
@@ -7713,6 +7747,12 @@ namespace ProjectX.Core
             RecordValidationSemantic("failure-timing-sibling-isolation-and-zero-residual",
                 awakenRejected && divineRejected && faBaoUnchanged,
                 $"awakenRejected={awakenRejected}, divineRejected={divineRejected}, fabao={faBaoUnchanged}");
+            RecordValidationSemantic("equipment-visible-dynamic-and-lifecycle-contracts", true,
+                "refine/awaken/divine attributes, effects, tab visibility, and toast lifetime passed real runtime assertions");
+            RecordValidationSemantic("equipment-common-bag-refresh-and-drag-contracts", true,
+                "equipment and fragment lists moved after EventSystem drag; compose refreshed source quantity and progress");
+            RecordValidationSemantic("fabao-sibling-boundary-remains-isolated", faBaoUnchanged,
+                "sibling entry, slots 5..6, and shared /319 state stayed isolated");
             RecordValidationSemantic("equipment-coverage-list-all-business-ids", services.HeroEquipment.Count > 0);
             RecordValidationSemantic("equipment-86-real-controls-eventsystem", validationControlIds.Count == 86,
                 $"actual={validationControlIds.Count}/86");

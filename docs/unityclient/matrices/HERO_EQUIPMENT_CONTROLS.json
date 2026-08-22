@@ -7,6 +7,25 @@
     { "id": "hero-equip-full-transaction", "given": "隔离账号具有两名阵位神将、同部位可替换装备、足够金币和碎片，且已保存MySQL与SQLite权威快照", "when": "从主界面真实点击穿戴→装备并执行穿戴、替换、卸下、合成及四类养成", "then": "全部回包和多推送收敛，来源与目标资源、双方神将属性、HUD战力、SQLite、重登录回读及最终恢复哈希一致" },
     { "id": "hero-equip-failure-lifecycle", "given": "材料不足、非法UID、功能锁定、静默或延迟回包以及切号状态已准备", "when": "经真实EventSystem触发操作并在请求期间关闭或切换页面", "then": "数据保持原子、失败反馈明确、旧页面不被重开、法宝兄弟状态不受污染且Fixture零残留" }
   ],
+  "processEffectivenessAcceptance": {
+    "sampleModule": "HeroEquip",
+    "scopeBoundary": "装备完整业务；法宝仅验兄弟入口、5..6槽和共享/319隔离，不扩展方案A排除范围",
+    "preUserAgentChecks": [
+      "G2动态包装、事件链、运行时层级和公共组件复用审计完成",
+      "G3 DataPreflight、Unity编译、Console和中央工具链通过",
+      "动态属性、权威背包刷新、特效完成清理、四Tab按钮显隐、Toast全生命周期和公共VirtualList真实位移已由代理自检"
+    ],
+    "freshG4RequiredAssertions": [
+      "精炼、觉醒、神铸动态属性不是占位值且随权威等级显示",
+      "合成后来源碎片扣除且当前页进度和数量同步刷新",
+      "成功特效完成后节点隐藏且不保留末帧",
+      "Btn_yijianqianghua只在强化Tab按资格显示，精炼、觉醒、神铸Tab隐藏",
+      "RuntimeToast可见全生命周期保持在装备养成层父级并为最后Sibling",
+      "装备与碎片背包复用公共VirtualList且真实拖拽后Content实际位移",
+      "法宝兄弟入口、5..6槽和共享/319状态保持隔离"
+    ],
+    "passCondition": "最后一次相关变更后的固定账号G4全部断言通过；G3早测只收体验反馈；G6仍需用户最终确认"
+  },
   "hardGateVersion": 1,
   "scope": {
     "fixedUserId": 7200057,

@@ -250,6 +250,29 @@ namespace ProjectX.UI
         public bool IsStrengthAllVisible => cultivateView.Binding.Find(
             "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua")?.activeSelf == true;
 
+        public bool AreCultivationAttributesBound(int mode)
+        {
+            CocosUiView view = mode == 1 ? refineView : mode == 2 ? awakenView : mode == 3 ? divineView : null;
+            string templatePath = mode == 1
+                ? "Layer/zhuangbeijinglianUI/jinglian/jichushuxing/ListView/Panel_1"
+                : mode == 2
+                    ? "Layer/zhuangbeijuexingUI/juexing/jichushuxing/ListView/Panel_1"
+                    : "Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/ListView/Panel_1";
+            Transform template = view?.Binding.Find(templatePath)?.transform;
+            if (template?.parent == null) return false;
+            Transform[] rows = template.parent.Cast<Transform>()
+                .Where(value => value.gameObject.activeInHierarchy
+                    && (value == template || value.name.StartsWith("RuntimeCultivationAttribute_", StringComparison.Ordinal)))
+                .ToArray();
+            return rows.Length > 0 && rows.All(row =>
+            {
+                string name = row.Find("Value_0")?.GetComponent<Text>()?.text;
+                string current = row.Find("Value_1")?.GetComponent<Text>()?.text;
+                return !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(current)
+                    && current != "123456789";
+            });
+        }
+
         public Button GetListItemAction(uint uid)
         {
             Transform cell = listView.GameObject.GetComponentsInChildren<Transform>(true)

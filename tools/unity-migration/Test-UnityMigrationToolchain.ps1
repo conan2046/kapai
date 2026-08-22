@@ -1393,6 +1393,36 @@ $toastPresenterSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
 $heroEquipmentServerSource = Get-Content -LiteralPath (Join-Path $root `
     "server/src/pet_equip_manage.cpp") -Raw -Encoding UTF8
+$heroEquipModuleSource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/modules/HERO_EQUIPMENT.md") -Raw -Encoding UTF8
+$migrationGuideSource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/MIGRATION_GUIDE.md") -Raw -Encoding UTF8
+$heroEquipScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "HeroEquip"
+$processAcceptance = $heroEquipMatrix.processEffectivenessAcceptance
+Assert-ToolchainTest (
+    $null -ne $processAcceptance -and
+    $processAcceptance.sampleModule -eq "HeroEquip" -and
+    @($processAcceptance.preUserAgentChecks).Count -eq 3 -and
+    @($processAcceptance.freshG4RequiredAssertions).Count -eq 7 -and
+    $processAcceptance.scopeBoundary.Contains("法宝仅验兄弟入口、5..6槽和共享/319隔离") -and
+    $processAcceptance.passCondition.Contains("最后一次相关变更后的固定账号G4全部断言通过") -and
+    @($heroEquipMatrix.scope.excludedMustBeHiddenOrDisabled | Where-Object { $_ -like "法宝背包、碎片、详情、穿戴、卸下、搜索、合成、强化、炼化和重生的完整业务验收*" }).Count -eq 1
+) "HeroEquip process-effectiveness sample no longer freezes pre-user checks, fresh G4 assertions, or scheme-A FaBao boundary."
+Assert-ToolchainTest (
+    $migrationGuideSource.Contains("明显的绑定、刷新、拖拽和生命周期错误不得留给用户首次发现") -and
+    $heroEquipModuleSource.Contains("## 流程改动验收样板（2026-08-22）") -and
+    $heroEquipModuleSource.Contains("Run-UnityFixedAccountValidation.ps1 -Module HeroEquip -DataPreflightOnly") -and
+    $heroEquipModuleSource.Contains("Run-UnityModuleValidation.ps1 -Module HeroEquip -ValidationMode Full")
+) "The central guide or HeroEquip teammate runbook no longer gates user early play behind agent self-checks."
+Assert-ToolchainTest (
+    @($heroEquipScenario.semanticAssertionKeys | Where-Object { $_ -in @(
+        "equipment-visible-dynamic-and-lifecycle-contracts",
+        "equipment-common-bag-refresh-and-drag-contracts",
+        "fabao-sibling-boundary-remains-isolated") }).Count -eq 3 -and
+    $projectXAppSource.Contains('RecordValidationSemantic("equipment-visible-dynamic-and-lifecycle-contracts", true') -and
+    $projectXAppSource.Contains('RecordValidationSemantic("equipment-common-bag-refresh-and-drag-contracts", true') -and
+    $projectXAppSource.Contains('RecordValidationSemantic("fabao-sibling-boundary-remains-isolated", faBaoUnchanged')
+) "HeroEquip Full no longer reports the three process-effectiveness runtime semantics."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('firstButton.onClick.AddListener(ShowHeroEquipmentListTab);') -and
     $projectXAppSource.Contains('value.name.EndsWith("_StrengthRuntime", StringComparison.Ordinal)')
@@ -1449,11 +1479,15 @@ Assert-ToolchainTest (
     $heroEquipmentCatalogSource.Contains('[JsonProperty("attr_juexing")]') -and
     $heroEquipmentCatalogSource.Contains('[JsonProperty("attr_shenzhu")]') -and
     $heroEquipmentPresenterSource.Contains('BindCultivationAttributes(') -and
+    $heroEquipmentPresenterSource.Contains('public bool AreCultivationAttributesBound(int mode)') -and
     $heroEquipmentPresenterSource.Contains('player.gameObject.SetActive(false);') -and
     $heroEquipmentPresenterSource.Contains('SetStrengthAllVisible(false);') -and
     $heroEquipmentPresenterSource.Contains('private bool CanOpenCultivation(') -and
     $toastPresenterSource.Contains('root.transform.SetAsLastSibling();') -and
-    $projectXAppSource.Contains('MaintainHeroEquipmentCultivationState();')
+    $projectXAppSource.Contains('MaintainHeroEquipmentCultivationState();') -and
+    $projectXAppSource.Contains('refine toast changed parent or sibling order during its visible lifetime') -and
+    $projectXAppSource.Contains('awaken toast changed parent or sibling order during its visible lifetime') -and
+    $projectXAppSource.Contains('shenzhu toast changed parent or sibling order during its visible lifetime')
 ) "HeroEquip regression: dynamic cultivation attributes, effect cleanup, tab visibility, eligibility, toast order, or exclusive lifecycle was removed."
 Assert-ToolchainTest (
     $heroEquipmentPresenterSource.Contains('BindRefineMaterials(materialIds);') -and

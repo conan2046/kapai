@@ -9,6 +9,19 @@
 - G2已完成所有权裁决：新增Unity精炼51、觉醒60、神铸155及大师100条服务端权威JSON；客户端神铸150级仅保留为Cocos显示边界。五次强化、自动精炼、Imod 1..9及外部事务重登oracle纳入G3实现合同；源Prefab内一键兑换/一键升星/一键升阶/一键升层四入口均为`m_IsActive=0`且`BtnStateCheck()`为空，对应弹层不可达，Unity必须保持隐藏并在G4/G5同时断言“不应显示”。
 - 历史装备/法宝批处理、`33/33`控件、`20/20`视觉、MCP、BuildBatch、SQLite/MySQL结果全部只作诊断线索，不计入2026-08-21后的任何门禁。
 
+## 流程改动验收样板（2026-08-22）
+
+本样板用于其他协作者拉取 `main` 后检验新流程是否有效，不改变方案A边界：装备验完整链路；法宝只验兄弟入口、5..6槽和共享`/319`隔离。历史结果不得复用为本轮通过证据。
+
+```powershell
+./tools/unity-migration/Test-UnityMigrationDocs.ps1 -TargetModule HeroEquip
+./tools/unity-migration/Test-UnityMigrationToolchain.ps1
+./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module HeroEquip -DataPreflightOnly
+./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module HeroEquip -ValidationMode Full
+```
+
+判定顺序：前三条通过后，代理完成用户早测前专项自检；随后从真实入口进行G3早测，只收体验反馈；最后一次相关变更后必须重新执行固定账号Full，并由场景摘要证明动态属性、碎片权威刷新、特效末帧清理、四Tab按钮显隐、Toast全生命周期、两类背包真实拖拽及法宝边界隔离全部通过。G6仍需用户最终确认。
+
 ## 当前批次范围
 
 - `btn_chuandai`展开/收起、`btn_zhuangbei`真实入口。
