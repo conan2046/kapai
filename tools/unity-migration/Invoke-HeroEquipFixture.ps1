@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "CaptureMutationHash", "AssertMutationReloginHash", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "AddUserFragments", "RestoreUserFragments")]
+    [ValidateSet("Setup", "AssertSetup", "CaptureMutationHash", "AssertMutationReloginHash", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "AddUserFragments", "RestoreUserFragments", "SeedTestInventory")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
@@ -23,6 +23,11 @@ $fixtureShenZhuEquipmentUid = [uint32]2121073003
 $fixtureShenZhuEquipmentTemplateId = [uint16]1401
 $sourceWornEquipmentUid = [uint32]2121072641
 $sourceWornEquipmentTemplateId = [uint16]1001
+$scrollFixtureEquipmentUids = @(
+    [uint32]2121073010, [uint32]2121073011, [uint32]2121073012,
+    [uint32]2121073013, [uint32]2121073014, [uint32]2121073015,
+    [uint32]2121073016, [uint32]2121073017, [uint32]2121073018
+)
 $sourceFormationHeroId = [uint32]57
 $targetFormationHeroId = [uint32]64
 $fixtureFaBaoUid = [uint32]2121073002
@@ -36,6 +41,12 @@ $fixtureFragmentQuantities = if ($Profile -eq "Transaction") {
     @([uint16]5, [uint16]62, [uint16]2, [uint16]1)
 } else {
     @([uint16]5, [uint16]30)
+}
+$fixturePackageItemIds = @($fixtureFragmentIds)
+$fixturePackageItemQuantities = @($fixtureFragmentQuantities)
+if ($Profile -eq "Transaction") {
+    $fixturePackageItemIds += @([uint16]610, [uint16]854)
+    $fixturePackageItemQuantities += @([uint16]500, [uint16]5)
 }
 $userFragmentIds = @([uint16]4605, [uint16]4621, [uint16]4622, [uint16]4629)
 $userFragmentQuantities = @([uint16]30, [uint16]60, [uint16]30, [uint16]10)
@@ -149,11 +160,11 @@ function Add-HeroEquipPackageFragments([string]$Hex) {
         $existing[[int]$itemId] = ([int]($existing[[int]$itemId] ?? 0)) + [int]$quantity
     }
     if ($position -ne $bytes.Length) { throw "HeroEquip package has trailing bytes after 500 slots." }
-    for ($index = 0; $index -lt $fixtureFragmentIds.Count; $index++) {
-        $itemId = [int]$fixtureFragmentIds[$index]
+    for ($index = 0; $index -lt $fixturePackageItemIds.Count; $index++) {
+        $itemId = [int]$fixturePackageItemIds[$index]
         if ($existing.ContainsKey($itemId)) { throw "HeroEquip reserved fragment item already exists: $itemId" }
         if ($emptySlots.Count -le $index) { throw "HeroEquip package has no empty slot for fragment fixture." }
-        $slots[$emptySlots[$index]] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$fixtureFragmentQuantities[$index] }
+        $slots[$emptySlots[$index]] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$fixturePackageItemQuantities[$index] }
     }
     $output = [IO.MemoryStream]::new(); $writer = [IO.BinaryWriter]::new($output)
     try {
@@ -180,9 +191,9 @@ function Assert-HeroEquipPackageFragments {
         $counts[[int]$itemId] = ([int]($counts[[int]$itemId] ?? 0)) + [int]$quantity
     }
     if ($position -ne $bytes.Length) { throw "HeroEquip package has trailing assertion bytes." }
-    for ($index = 0; $index -lt $fixtureFragmentIds.Count; $index++) {
-        $itemId = [int]$fixtureFragmentIds[$index]
-        if ([int]$counts[$itemId] -ne [int]$fixtureFragmentQuantities[$index]) { throw "HeroEquip fixture fragment $itemId count mismatch." }
+    for ($index = 0; $index -lt $fixturePackageItemIds.Count; $index++) {
+        $itemId = [int]$fixturePackageItemIds[$index]
+        if ([int]$counts[$itemId] -ne [int]$fixturePackageItemQuantities[$index]) { throw "HeroEquip fixture package item $itemId count mismatch." }
     }
 }
 
@@ -308,6 +319,7 @@ function Get-HeroEquipBlobLayout([byte[]]$Bytes) {
     $equipmentUids = New-Object System.Collections.Generic.List[uint32]
     $equipmentEntries = New-Object System.Collections.Generic.List[object]
     $faBaoUids = New-Object System.Collections.Generic.List[uint32]
+    $faBaoEntries = New-Object System.Collections.Generic.List[object]
     try {
         $equipmentCount = $reader.ReadUInt16()
         for ($index = 0; $index -lt $equipmentCount; $index++) {
@@ -328,8 +340,9 @@ function Get-HeroEquipBlobLayout([byte[]]$Bytes) {
         $faBaoCount = $reader.ReadUInt16()
         $faBaoStart = [int]$stream.Position
         for ($index = 0; $index -lt $faBaoCount; $index++) {
-            $faBaoUids.Add($reader.ReadUInt32())
-            $reader.ReadUInt16() | Out-Null
+            $uid = $reader.ReadUInt32()
+            $templateId = $reader.ReadUInt16()
+            $faBaoUids.Add($uid)
             $reader.ReadUInt32() | Out-Null
             $reader.ReadByte() | Out-Null
             $reader.ReadByte() | Out-Null
@@ -338,6 +351,7 @@ function Get-HeroEquipBlobLayout([byte[]]$Bytes) {
                 $reader.ReadByte() | Out-Null
                 $reader.ReadByte() | Out-Null
             }
+            $faBaoEntries.Add([pscustomobject]@{ uid=$uid; templateId=$templateId })
         }
         $faBaoEnd = [int]$stream.Position
         if ($Bytes.Length - $faBaoEnd -ne 6) { throw "HeroEquip pet_equip tail length is not uint32+uint16." }
@@ -350,6 +364,7 @@ function Get-HeroEquipBlobLayout([byte[]]$Bytes) {
             faBaoStart = $faBaoStart
             faBaoEnd = $faBaoEnd
             faBaoUids = @($faBaoUids)
+            faBaoEntries = $faBaoEntries.ToArray()
         }
     }
     finally { $reader.Dispose(); $stream.Dispose() }
@@ -358,15 +373,24 @@ function Get-HeroEquipBlobLayout([byte[]]$Bytes) {
 function Add-HeroEquipFixtureItems([string]$Hex) {
     $bytes = Expand-HeroEquipBlob $Hex
     $layout = Get-HeroEquipBlobLayout $bytes
-    if ($fixtureEquipmentUid -in $layout.equipmentUids -or $fixtureShenZhuEquipmentUid -in $layout.equipmentUids -or $fixtureFaBaoUid -in $layout.faBaoUids) {
+    $reservedEquipmentUids = @($sourceWornEquipmentUid, $fixtureEquipmentUid, $fixtureShenZhuEquipmentUid) +
+        @($scrollFixtureEquipmentUids)
+    if (@($reservedEquipmentUids | Where-Object { $_ -in $layout.equipmentUids }).Count -gt 0 -or
+        $fixtureFaBaoUid -in $layout.faBaoUids) {
         throw "HeroEquip reserved fixture UID already exists in the source snapshot."
     }
     $stream = [IO.MemoryStream]::new()
     $writer = [IO.BinaryWriter]::new($stream)
     try {
-        $addedEquipmentCount = if ($Profile -eq "Transaction") { 2 } else { 1 }
+        $addedEquipmentCount = if ($Profile -eq "Transaction") { 3 + $scrollFixtureEquipmentUids.Count } else { 2 }
         $writer.Write([uint16]($layout.equipmentCount + $addedEquipmentCount))
         $writer.Write($bytes, 2, $layout.equipmentEnd - 2)
+        $writer.Write($sourceWornEquipmentUid)
+        $writer.Write($sourceWornEquipmentTemplateId)
+        $writer.Write([uint32]0)
+        $writer.Write([uint32]0)
+        $writer.Write([byte]1)
+        $writer.Write([byte]0)
         $writer.Write($fixtureEquipmentUid)
         $writer.Write($fixtureEquipmentTemplateId)
         $writer.Write([uint32]0)
@@ -380,6 +404,14 @@ function Add-HeroEquipFixtureItems([string]$Hex) {
             $writer.Write([uint32]0)
             $writer.Write([byte]0)
             $writer.Write([byte]0)
+            foreach ($scrollUid in $scrollFixtureEquipmentUids) {
+                $writer.Write($scrollUid)
+                $writer.Write($sourceWornEquipmentTemplateId)
+                $writer.Write([uint32]0)
+                $writer.Write([uint32]0)
+                $writer.Write([byte]0)
+                $writer.Write([byte]0)
+            }
         }
         $writer.Write([uint16]($layout.faBaoCount + 1))
         $writer.Write($bytes, $layout.faBaoStart, $layout.faBaoEnd - $layout.faBaoStart)
@@ -393,6 +425,55 @@ function Add-HeroEquipFixtureItems([string]$Hex) {
         return Compress-HeroEquipBlob ([byte[]]$stream.ToArray())
     }
     finally { $writer.Dispose(); $stream.Dispose() }
+}
+
+function Get-PreserveLevelUserId {
+    $content = Get-Content -LiteralPath $serverConfig -Raw -Encoding UTF8
+    $matches = [regex]::Matches($content, '(?m)^local_preserve_level_user_id=(\d+)\s*$')
+    if ($matches.Count -ne 1) { throw "server config must contain exactly one local_preserve_level_user_id entry." }
+    [uint32]$matches[0].Groups[1].Value
+}
+
+function Set-PreserveLevelUserId([uint32]$Value) {
+    $content = Get-Content -LiteralPath $serverConfig -Raw -Encoding UTF8
+    $updated = [regex]::Replace($content, '(?m)^local_preserve_level_user_id=\d+\s*$', "local_preserve_level_user_id=$Value", 1)
+    [IO.File]::WriteAllText($serverConfig, $updated, [Text.UTF8Encoding]::new($false))
+}
+
+function Add-HeroEquipTestInventory([string]$Hex) {
+    $bytes = Expand-HeroEquipBlob $Hex
+    $layout = Get-HeroEquipBlobLayout $bytes
+    $equipmentTemplates = @([uint16]1401,[uint16]1402,[uint16]1403,[uint16]1404,[uint16]1411,[uint16]1412,[uint16]1413,[uint16]1414)
+    $faBaoTemplates = @([uint16]1301,[uint16]1302,[uint16]1303,[uint16]1304,[uint16]1305,[uint16]1306,[uint16]1307,[uint16]1308,[uint16]1309,[uint16]1310,[uint16]1311,[uint16]1312,[uint16]1313,[uint16]1314)
+    $equipmentBaseUid = [uint32]2121090000
+    $faBaoBaseUid = [uint32]2121091000
+    $existingEquipmentTemplates = @($layout.equipmentEntries | ForEach-Object { [uint16]$_.templateId })
+    $equipmentToAdd = @($equipmentTemplates | Where-Object { $_ -notin $existingEquipmentTemplates })
+    $existingFaBaoTemplates = @($layout.faBaoEntries | ForEach-Object { [uint16]$_.templateId })
+    $faBaoToAdd = @($faBaoTemplates | Where-Object { $_ -notin $existingFaBaoTemplates })
+    $stream = [IO.MemoryStream]::new(); $writer = [IO.BinaryWriter]::new($stream)
+    try {
+        $writer.Write([uint16]($layout.equipmentCount + $equipmentToAdd.Count))
+        $writer.Write($bytes, 2, $layout.equipmentEnd - 2)
+        foreach ($templateId in $equipmentToAdd) {
+            $templateIndex = [Array]::IndexOf($equipmentTemplates, [uint16]$templateId)
+            $uid = [uint32]($equipmentBaseUid + $templateIndex)
+            if ($uid -in $layout.equipmentUids) { throw "HeroEquip test equipment UID $uid is occupied by another template." }
+            $writer.Write($uid); $writer.Write([uint16]$templateId)
+            $writer.Write([uint32]0); $writer.Write([uint32]0); $writer.Write([byte]0); $writer.Write([byte]0)
+        }
+        $writer.Write([uint16]($layout.faBaoCount + $faBaoToAdd.Count))
+        $writer.Write($bytes, $layout.faBaoStart, $layout.faBaoEnd - $layout.faBaoStart)
+        foreach ($templateId in $faBaoToAdd) {
+            $templateIndex = [Array]::IndexOf($faBaoTemplates, [uint16]$templateId)
+            $uid = [uint32]($faBaoBaseUid + $templateIndex)
+            if ($uid -in $layout.faBaoUids) { throw "HeroEquip test FaBao UID $uid is occupied by another template." }
+            $writer.Write($uid); $writer.Write([uint16]$templateId)
+            $writer.Write([uint32]0); $writer.Write([byte]0); $writer.Write([byte]0); $writer.Write([byte]0)
+        }
+        $writer.Write($bytes, $layout.faBaoEnd, $bytes.Length - $layout.faBaoEnd)
+        [ordered]@{ hex = Compress-HeroEquipBlob ([byte[]]$stream.ToArray()); equipmentTemplates=$equipmentTemplates; faBaoTemplates=$faBaoTemplates }
+    } finally { $writer.Dispose(); $stream.Dispose() }
 }
 
 function Assert-HeroEquipFixtureItems {
@@ -414,6 +495,9 @@ function Assert-HeroEquipFixtureItems {
         if ($shenZhuTarget.Count -ne 1 -or $shenZhuTarget[0].templateId -ne $fixtureShenZhuEquipmentTemplateId -or $shenZhuTarget[0].formationPosition -ne 0) {
             throw "HeroEquip transaction shenzhu weapon contract mismatch."
         }
+        if (@($scrollFixtureEquipmentUids | Where-Object { $_ -notin $layout.equipmentUids }).Count -gt 0) {
+            throw "HeroEquip transaction scroll fixture equipment is missing."
+        }
     } elseif ($shenZhuTarget.Count -ne 0) {
         throw "HeroEquip Cocos profile must not add the transaction-only shenzhu weapon."
     }
@@ -426,7 +510,7 @@ function Assert-HeroEquipCultivationContract {
     if ([int]$rows[0] -ne $expectedLevel) { throw "HeroEquip $Profile profile level must be $expectedLevel." }
     if ($Profile -ne "Transaction") { return }
     # 4621=62 supports compose 1301 (60) followed by awaken level 1 (2);
-    # 4622=2 and existing item 854 support awaken, while 4629=1 supports red-weapon shenzhu.
+    # 4622=2 and frozen package item 854=5 support awaken, while 4629=1 supports red-weapon shenzhu.
     if ($fixtureFragmentIds.Count -ne 4 -or $fixtureFragmentQuantities[1] -ne 62 -or $fixtureFragmentQuantities[2] -ne 2 -or $fixtureFragmentQuantities[3] -ne 1) {
         throw "HeroEquip transaction cultivation material sequence is not frozen."
     }
@@ -443,6 +527,24 @@ function Read-Evidence {
 
 if ($Action -in @("Setup", "Restore", "Cleanup")) { Assert-ClientsStopped }
 switch ($Action) {
+    "SeedTestInventory" {
+        Assert-RoleClientsStopped
+        Invoke-HeroEquipSql "CREATE TABLE IF NOT EXISTS codex_local_test_account_backup (role_id INT UNSIGNED NOT NULL PRIMARY KEY,guan_qia MEDIUMTEXT NULL,pet_equip MEDIUMTEXT NULL,level INT NULL,created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; INSERT IGNORE INTO codex_local_test_account_backup(role_id,guan_qia,pet_equip,level) SELECT id,guan_qia,pet_equip,level FROM role_info WHERE id=$RoleId;" | Out-Null
+        $rows = @(Invoke-HeroEquipSql "SELECT pet_equip FROM role_info WHERE id=$RoleId")
+        if ($rows.Count -ne 1 -or [string]::IsNullOrWhiteSpace($rows[0])) { throw "HeroEquip test inventory source is missing." }
+        $seed = Add-HeroEquipTestInventory ([string]$rows[0])
+        Invoke-HeroEquipSql "UPDATE role_info SET pet_equip='$($seed.hex)',level=99 WHERE id=$RoleId" | Out-Null
+        $live = @(Invoke-HeroEquipSql "SELECT pet_equip FROM role_info WHERE id=$RoleId")
+        $layout = Get-HeroEquipBlobLayout (Expand-HeroEquipBlob ([string]$live[0]))
+        $liveEquipmentTemplates = @($layout.equipmentEntries | ForEach-Object { [uint16]$_.templateId })
+        $liveFaBaoTemplates = @($layout.faBaoEntries | ForEach-Object { [uint16]$_.templateId })
+        $missingEquipment = @($seed.equipmentTemplates | Where-Object { $_ -notin $liveEquipmentTemplates })
+        if ($missingEquipment.Count -gt 0) { throw "HeroEquip test red equipment templates are missing: $($missingEquipment -join ',')" }
+        $missingFaBao = @($seed.faBaoTemplates | Where-Object { $_ -notin $liveFaBaoTemplates })
+        if ($missingFaBao.Count -gt 0) { throw "HeroEquip test FaBao templates are missing: $($missingFaBao -join ',')" }
+        Write-Evidence ([ordered]@{ action=$Action; userId=$UserId; roleId=$RoleId; level=99; redEquipmentTemplates=$seed.equipmentTemplates; faBaoTemplates=$seed.faBaoTemplates; equipmentCount=$layout.equipmentCount; faBaoCount=$layout.faBaoCount; backupTable="codex_local_test_account_backup"; createdUtc=[DateTime]::UtcNow.ToString("O") })
+        Write-Host "HeroEquip test inventory seeded: roleId=$RoleId redEquipment=$($seed.equipmentTemplates.Count) faBao=$($seed.faBaoTemplates.Count)"
+    }
     "AddUserFragments" {
         Assert-RoleClientsStopped
         $userTable = Get-UserTable
@@ -481,7 +583,9 @@ switch ($Action) {
         $userTable = Get-UserTable
         $hash = Get-RoleHash
         $originalPreserveBalanceUserId = Get-PreserveBalanceUserId
+        $originalPreserveLevelUserId = Get-PreserveLevelUserId
         Set-PreserveBalanceUserId $UserId
+        Set-PreserveLevelUserId $UserId
         Invoke-HeroEquipSql "DROP TABLE IF EXISTS ``$roleBackup``; CREATE TABLE ``$roleBackup`` LIKE role_info; INSERT INTO ``$roleBackup`` SELECT * FROM role_info WHERE id=$RoleId; DROP TABLE IF EXISTS ``$userBackup``; CREATE TABLE ``$userBackup`` LIKE ``$userTable``; INSERT INTO ``$userBackup`` SELECT * FROM ``$userTable`` WHERE id=$UserId" | Out-Null
         $petEquipRows = @(Invoke-HeroEquipSql "SELECT pet_equip FROM role_info WHERE id=$RoleId")
         if ($petEquipRows.Count -ne 1) { throw "HeroEquip role pet_equip payload is missing." }
@@ -501,6 +605,7 @@ switch ($Action) {
         Write-Evidence ([ordered]@{
             action="Setup"; profile=$Profile; userId=$UserId; roleId=$RoleId; userTable=$userTable; snapshotHash=$hash
             originalPreserveBalanceUserId=$originalPreserveBalanceUserId
+            originalPreserveLevelUserId=$originalPreserveLevelUserId
             fixtureHash=(Get-RoleHash); fixtureEquipmentUid=$fixtureEquipmentUid
             fixtureEquipmentTemplateId=$fixtureEquipmentTemplateId; fixtureFaBaoUid=$fixtureFaBaoUid
             fixtureShenZhuEquipmentUid=$fixtureShenZhuEquipmentUid
@@ -564,11 +669,13 @@ switch ($Action) {
         $userTable = [string]$snapshot.userTable
         Invoke-HeroEquipSql "DELETE FROM role_info WHERE id=$RoleId; INSERT INTO role_info SELECT * FROM ``$roleBackup`` WHERE id=$RoleId; DELETE FROM ``$userTable`` WHERE id=$UserId; INSERT INTO ``$userTable`` SELECT * FROM ``$userBackup`` WHERE id=$UserId" | Out-Null
         Set-PreserveBalanceUserId ([uint32]$snapshot.originalPreserveBalanceUserId)
+        Set-PreserveLevelUserId ([uint32]$snapshot.originalPreserveLevelUserId)
     }
     "AssertRestored" {
         $snapshot = Read-Evidence; $hash = Get-RoleHash
         if ($hash -ne [string]$snapshot.snapshotHash) { throw "HeroEquip restored role hash mismatch." }
         if ((Get-PreserveBalanceUserId) -ne [uint32]$snapshot.originalPreserveBalanceUserId) { throw "HeroEquip preserve-balance config was not restored." }
+        if ((Get-PreserveLevelUserId) -ne [uint32]$snapshot.originalPreserveLevelUserId) { throw "HeroEquip preserve-level config was not restored." }
         $snapshot | Add-Member -Force restoredHash $hash
         $snapshot | Add-Member -Force restored $true
         Write-Evidence $snapshot

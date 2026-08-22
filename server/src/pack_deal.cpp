@@ -946,10 +946,10 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 		{
 			if(preserveLocalBalance)
 				snprintf(sql, sizeof(sql),
-					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60) where id=%u", roleId);
+					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),99) where id=%u", roleId);
 			else
 				snprintf(sql, sizeof(sql),
-					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),60),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),99),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
 					localTestMoney, roleId);
 			pDb->Query(sql);
 		}
@@ -1301,7 +1301,7 @@ void CPackageDeal::CreateRole(CNetMessage *pMsg,int sock)
 		gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
 	const bool preserveLocalLevel = localTest == "1" && preserveLevelUserId > 0 &&
 		preserveLevelUserId == pUser->GetUserId();
-	uint8 initLevel = (localTest == "1" && !preserveLocalLevel) ? 60 : 1;
+	uint8 initLevel = (localTest == "1" && !preserveLocalLevel) ? 99 : 1;
 	uint32 initMoney = (localTest == "1") ? 1000000 : 0;
 	uint32 initTongBao = (localTest == "1") ? 100000 : 0;
 	uint32 initBdTongBao = (localTest == "1") ? 100000 : 0;

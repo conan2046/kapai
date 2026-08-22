@@ -3,6 +3,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Module,
     [uint32]$UserId = 0,
     [uint32]$RoleId = 0,
+    [string]$PythonExecutable = "",
     [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
     [switch]$PreflightOnly,
     [switch]$DataPreflightOnly
@@ -54,6 +55,7 @@ Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleCon
 if ($UserId -eq 0) { $UserId = [uint32]$fixed.userId }
 if ($RoleId -eq 0) { $RoleId = [uint32]$fixed.roleId }
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
+$pythonExecutable = Get-UnityMigrationPythonExecutable -ExplicitPath $PythonExecutable -Root $root
 $adapter = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.adapter)
 $startServerScript = Join-Path $root "tools/local/Start-Server.ps1"
 $snapshot = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.snapshot)
@@ -170,7 +172,8 @@ try {
             if ([bool]$fixed.dataPreflight.requiresLogin) {
                 & $startServerScript @serverStartParameters
                 if (-not $?) { throw "Fixed-account data preflight server startup failed." }
-                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
+                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+                    -UserId $UserId -PythonExecutable $pythonExecutable
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight login failed." }
                 Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 2
@@ -272,7 +275,8 @@ try {
                 & $startServerScript @serverStartParameters
                 if (-not $?) { throw "Fixed-account mutation-relogin server startup failed." }
                 try {
-                    & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
+                    & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+                        -UserId $UserId -PythonExecutable $pythonExecutable
                     if ($LASTEXITCODE -ne 0) { throw "Fixed-account mutation-relogin failed." }
                 }
                 finally {
@@ -422,7 +426,8 @@ try {
         try {
             & $startServerScript @serverStartParameters
             if (-not $?) { throw "Fixed-account restore-login server startup failed." }
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") -UserId $UserId
+            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+                -UserId $UserId -PythonExecutable $pythonExecutable
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login failed." }
         }
         catch { $reloginFailure = $_ }

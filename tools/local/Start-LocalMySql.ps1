@@ -10,6 +10,18 @@ $Root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $DataDir = Join-Path $Root ".local\mysql-data"
 $LogDir = Join-Path $Root ".local\logs"
 $MyCnf = Join-Path $Root ".local\mysql-local.ini"
+$ConfigRoot = [string]$Root
+if ($ConfigRoot -match '[^\x00-\x7F]') {
+    $workspaceAlias = "F:\kapai-workspace"
+    $aliasItem = Get-Item -LiteralPath $workspaceAlias -Force -ErrorAction SilentlyContinue
+    $aliasTarget = if ($aliasItem -and $aliasItem.Target) { [string]$aliasItem.Target } else { "" }
+    if (-not $aliasItem -or -not $aliasItem.PSIsContainer -or
+        [IO.Path]::GetFullPath($aliasTarget) -ne [IO.Path]::GetFullPath([string]$Root)) {
+        throw "MySQL ASCII config path alias is missing or points elsewhere: $workspaceAlias"
+    }
+    $ConfigRoot = $workspaceAlias
+}
+$MyCnf = Join-Path $ConfigRoot ".local\mysql-local.ini"
 
 function Find-KnownFile($Paths) {
     foreach ($p in $Paths) {
@@ -43,13 +55,14 @@ $MySqlRoot = Split-Path (Split-Path $mysqld -Parent) -Parent
 New-Item -ItemType Directory -Force -Path $DataDir | Out-Null
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
-$mysqlErrorLog = Join-Path $LogDir "mysql.err"
-$mysqlPidFile = Join-Path $LogDir "mysql.pid"
-$mysqlSocket = Join-Path $Root ".local\mysql.sock"
+$mysqlErrorLog = Join-Path $ConfigRoot ".local\logs\mysql.err"
+$mysqlPidFile = Join-Path $ConfigRoot ".local\logs\mysql.pid"
+$mysqlSocket = Join-Path $ConfigRoot ".local\mysql.sock"
+$configDataDir = Join-Path $ConfigRoot ".local\mysql-data"
 $myCnfText = @"
 [mysqld]
 basedir=$($MySqlRoot -replace "\\", "/")
-datadir=$($DataDir -replace "\\", "/")
+datadir=$($configDataDir -replace "\\", "/")
 port=$Port
 bind-address=127.0.0.1
 character-set-server=utf8

@@ -35,6 +35,7 @@ local function showBusinessError(reason)
     local text = tostring(reason or "操作失败")
     text = string.gsub(text, "%[c%d*%]", "")
     text = string.gsub(text, "%[/c%]", "")
+    text = string.gsub(text, "%%s", "物品")
     Bridge:SetStatus(text)
     Bridge:ShowToast(text, 2.0)
 end

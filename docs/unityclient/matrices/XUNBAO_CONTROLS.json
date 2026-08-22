@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "module": "XunBao",
+  "workflowPolicyVersion": 1,
+  "acceptanceExamples": [
+    {
+      "id": "xunbao-only",
+      "given": "法宝搜索玩法模块可达且服务端返回 /319 剩余次数",
+      "when": "进入玩法、检查剩余次数与恢复倒计时、尝试点击禁用按钮",
+      "then": "界面为真实法宝搜索骨架，次数和恢复倒计时展示权威值，所有写操作按钮保持禁用且可安全返回"
+    }
+  ],
+  "scope": {
+    "screenSize": "1334x750",
+    "included": [
+      "法宝搜索主入口、次数区、关闭与返回流程、搜索次数展示、添加按钮和合成入口均保持和来源一致",
+      "/319 op=31 协议仅展示 remaining 与 recoverySeconds，功能动作保持禁用"
+    ],
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000115,
+    "windowsDpi": "100%"
+  },
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "knownGaps": [
+      {
+        "id": "xunbao-interactions-boundary",
+        "handling": "rejected",
+        "evidence": "docs/unityclient/modules/XUNBAO.md"
+      }
+    ]
+  },
+  "hardGateVersion": 1,
+  "controls": [
+    {
+      "id": "XUNBAO-01-ENTRY",
+      "page": "主界面",
+      "path": "UImainLayer_new/Main_UI/btn_wanfa",
+      "visibleCondition": "function_id 9 已开放（15级）",
+      "cocosCallback": "MainUI.OnFunctionButtonClick(function_id=9) -> WanFa.XunBaoMainUI",
+      "protocolOp": "无，入口为直接 Cocos 玩法入口",
+      "unityBinding": "真实玩法大厅入口打开法宝搜索场景并触发 /319",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": true,
+      "automationPassed": true,
+      "manualPassed": true
+    },
+    {
+      "id": "XUNBAO-02-CLOSE",
+      "page": "法宝搜索",
+      "path": "Panel/Title/CloseBtn",
+      "visibleCondition": "法宝搜索界面打开",
+      "cocosCallback": "WanFa.XunBaoMainUI.closeCallback -> 返回玩法大厅",
+      "protocolOp": "无",
+      "unityBinding": "一级关闭按钮真实关闭法宝搜索并返回主界面",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": true,
+      "automationPassed": true,
+      "manualPassed": true
+    },
+    {
+      "id": "XUNBAO-03-REMAINING-TIMES",
+      "page": "法宝搜索",
+      "path": "Panel/XunbaoBg/TimesBg/Icon/Num",
+      "visibleCondition": "法宝搜索初始界面渲染完成",
+      "cocosCallback": "updateRemainCount/refreshNum 显示剩余次数",
+      "protocolOp": "/319 op=31 解析 remaining",
+      "unityBinding": "基于 XunBaoStore.remaining 展示权威次数文字",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": false,
+      "automationPassed": true,
+      "manualPassed": true
+    },
+    {
+      "id": "XUNBAO-04-RECOVERY-COUNTDOWN",
+      "page": "法宝搜索",
+      "path": "Panel/XunbaoBg/TimesBg/Tips",
+      "visibleCondition": "法宝搜索界面打开",
+      "cocosCallback": "remaining/recoverySeconds -> 倒计时文本",
+      "protocolOp": "/319 op=31 解析 recoverySeconds",
+      "unityBinding": "倒计时显示“搜索次数已满”或 HH:MM:SS",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": false,
+      "automationPassed": true,
+      "manualPassed": true
+    },
+    {
+      "id": "XUNBAO-05-ADD-TIMES-LOCK",
+      "page": "法宝搜索",
+      "path": "Panel/XunbaoBg/TimesBg/AddBtn",
+      "visibleCondition": "法宝搜索界面打开",
+      "cocosCallback": "addBtn.click（仅展示态）",
+      "protocolOp": "无",
+      "unityBinding": "加次入口禁用，不触发服务端请求",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": false,
+      "automationPassed": true,
+      "manualPassed": true
+    },
+    {
+      "id": "XUNBAO-06-SEARCH-BLOCKED",
+      "page": "法宝搜索",
+      "path": "Panel/XunbaoBg/Btn_1",
+      "visibleCondition": "法宝搜索界面打开",
+      "cocosCallback": "searchBtn 点击仅占位，当前阻断",
+      "protocolOp": "无",
+      "unityBinding": "搜索按钮保持 interactable=false",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": false,
+      "automationPassed": true,
+      "manualPassed": true
+    },
+    {
+      "id": "XUNBAO-07-COMBINE-BLOCKED",
+      "page": "法宝搜索",
+      "path": "Xunbao/Panel/Button_L",
+      "visibleCondition": "法宝搜索界面打开",
+      "cocosCallback": "combineBtn click（占位）",
+      "protocolOp": "无",
+      "unityBinding": "左侧合成按钮保持 interactable=false",
+      "successEvidence": ".local/unity-validation/xunbao-latest.json",
+      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
+      "status": "complete",
+      "realEntryClick": false,
+      "automationPassed": true,
+      "manualPassed": true
+    }
+  ]
+}

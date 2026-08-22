@@ -329,6 +329,6 @@ Get-NetTCPConnection -LocalPort 8711 -State Listen
 
 - 缺 `libssl-3-x64.dll` 时，从 `C:\Program Files\MySQL\MySQL Server 8.4\bin` 复制 `libmysql.dll`、`libssl-3-x64.dll`、`libcrypto-3-x64.dll` 到 `build/server-win/Debug` 或 `server/config`。
 - 本地库不是完整生产库，`local_test=1` 下会放行商店、活动、排行、充值档等非登录关键模块的初始化缺表/缺列错误。
-- `server/config/config` 中 `local_user_id=0` 表示使用登录包传入的 userId；客户端默认仍是 userId=1，会自动绑定 `Test01`，烟测可传入新 `-UserId` 并用 `-AutoCreateRole` 创建隔离角色。本地一次性角色会补齐 `ReadData()` 需要的空字段，并以 60 级和测试货币创建，用于穿过部分正向功能门槛，包括有效创建帮派。
+- `server/config/config` 中 `local_user_id=0` 表示使用登录包传入的 userId；客户端默认仍是 userId=1，会自动绑定 `Test01`，烟测可传入新 `-UserId` 并用 `-AutoCreateRole` 创建隔离角色。本地一次性角色会补齐 `ReadData()` 需要的空字段，并以 99 级和测试货币创建，用于解锁全部等级型本地测试玩法，包括有效创建帮派。
 - 后续手动点击更多功能时，如出现新的 `call:` 脚本错误，优先按日志补 `lua_j_stub.cpp` 的最小绑定或本地测试旁路，不要恢复整套缺失私有 SWIG/登录服链路。
 - 已补本地兜底表字段：`huodong_time`、`qin_mi_log`、`mei_li_history`、`mei_li_paihang`、`cz_to_other_reward`、`zha_dan_info`、`zha_dan_log`、`festival_award`、`hd_bang_goods`、`taohuageng_config`、`hd_paihang_info`、`hd_rand_award`、`item_score_exchange`、`hd_paihang_record`、`money_giftbag_huodong`、`hd_chou_record`、`money_giftbag_pay`、`hd_save_data`、`qiang_hongbao_record`、`notice_login`、`question`、`user_info1`、`role_info`。

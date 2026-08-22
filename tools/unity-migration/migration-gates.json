@@ -658,9 +658,9 @@
         "G4": [
           ".local/unity-validation/heroequip-fixed-account-latest.json",
           ".local/unity-validation/heroequip-fixed-account-runner-latest.json",
-          ".local/unity-validation/heroequip-sqlite-runtime-current.json",
-          ".local/unity-validation/heroequip-sqlite-restart-current.json",
-          ".local/unity-validation/heroequip-sqlite-current-20260822.db"
+          ".local/unity-validation/heroequip-sqlite-runtime-current-v3.json",
+          ".local/unity-validation/heroequip-sqlite-restart-current-v3.json",
+          ".local/unity-validation/heroequip-sqlite-current-20260822-v3.db"
         ]
       },
       "updatedUtc": "2026-08-21T16:20:44.1913790Z"
@@ -1080,6 +1080,33 @@
         ]
       },
       "updatedUtc": "2026-08-04T03:54:47.7246261Z"
+    },
+    {
+      "module": "XunBao",
+      "gates": {
+        "G0": "passed",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/XUNBAO.md",
+      "note": "法宝搜索 /319 只读阶段先冻结控制，后续将补齐共享基线和视觉对账。",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/XUNBAO.md",
+          "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
+        ],
+        "G1": [],
+        "G2": [],
+        "G3": [],
+        "G4": [],
+        "G5": [],
+        "G6": []
+      },
+      "updatedUtc": "2026-08-20T01:02:40.0278457Z"
     },
     {
       "module": "SevenDay",

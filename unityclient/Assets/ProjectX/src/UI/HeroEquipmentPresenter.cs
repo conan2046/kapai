@@ -693,6 +693,8 @@ namespace ProjectX.UI
             }
             SetBoundText(strengthView,
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text", "强化");
+            SetButtonLabel(cultivateView,
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua", "一键强化");
             Text strengthActionLabel = strengthView.Binding.Find(
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text")?.GetComponent<Text>();
             if (strengthActionLabel != null)
@@ -787,6 +789,10 @@ namespace ProjectX.UI
             int requested = Mathf.Max(1, Mathf.CeilToInt(remaining / (float)perItem));
             int count = material.Quantity > 0 ? Mathf.Min(material.Quantity, requested) : 1;
             BindRefineMaterials(materialIds);
+            SetButtonLabel(refineView,
+                "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/yijianjinglianBtn", "一键精炼");
+            SetButtonLabel(refineView,
+                "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn", "精炼一级");
             refineOnceButton.onClick.RemoveAllListeners();
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
             SetStrengthAllVisible(false);
@@ -818,6 +824,8 @@ namespace ProjectX.UI
             SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/ConsumeBg/Value", gold.ToString());
             awakenOnceButton.onClick.RemoveAllListeners();
             awakenOnceButton.onClick.AddListener(() => awakenEquipment?.Invoke(item.Uid));
+            SetButtonLabel(awakenView,
+                "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn", "觉醒");
             SetStrengthAllVisible(false);
             strengthView.SetVisible(false);
             awakenView.SetVisible(true);
@@ -887,6 +895,8 @@ namespace ProjectX.UI
                 }
                 divineEquipment?.Invoke(item.Uid);
             });
+            SetButtonLabel(divineView,
+                "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu", "神铸");
             SetStrengthAllVisible(false);
             BindButton(divineView, "Layer/zhuangbeijuexingUI/shenzhu/fujiashuxing/Btn_xiangxi", () =>
             {
@@ -1019,6 +1029,28 @@ namespace ProjectX.UI
         private void OpenAutoRefine()
         {
             if (selected.Uid == 0 || selected.Kind != HeroEquipmentKind.Equipment) return;
+            SetBoundText(autoRefineView, "Layer/Popup/Panel_1/Name", selected.Definition.Name);
+            ApplyIcon(autoRefineView.Binding.Find("Layer/Popup/Panel_1/Item")?.GetComponent<Image>(), selected);
+            SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Cancel", "取消");
+            SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Confirm", "确定");
+            SetButtonLabel(autoRefineView, "Layer/Popup/Panel_1/Btn_Minus", "-1");
+            SetButtonLabel(autoRefineView, "Layer/Popup/Panel_1/Btn_Minus10", "-10");
+            SetButtonLabel(autoRefineView, "Layer/Popup/Panel_1/Btn_Plus", "+1");
+            SetButtonLabel(autoRefineView, "Layer/Popup/Panel_1/Btn_Plus10", "+10");
+            IReadOnlyList<int> materialIds = catalog.GetRefineMaterialIds();
+            for (int index = 0; index < 4; index++)
+            {
+                string path = $"Layer/Popup/Panel_2/Item_{index + 1}";
+                GameObject slot = autoRefineView.Binding.Find(path);
+                if (slot == null) continue;
+                EquipmentMaterialDefinition material = index < materialIds.Count
+                    ? catalog.GetItem(materialIds[index]) : null;
+                slot.SetActive(material != null);
+                if (material == null) continue;
+                SetBoundText(autoRefineView, path + "/Value",
+                    bag.GetTotalQuantityByItemId(material.Id).ToString());
+                ApplyMaterialIcon(EnsureMaterialIcon(slot.transform), material);
+            }
             autoRefineLevels = 1;
             SetAutoRefineLevels(1);
             ShowPopup(autoRefineView);
@@ -1231,9 +1263,36 @@ namespace ProjectX.UI
             Sprite sprite = material != null && material.Picture > 0
                 ? resources.LoadItemIcon(material.Picture, out usedPlaceholder) : null;
             image.sprite = sprite;
-            image.enabled = sprite != null && !usedPlaceholder;
+            image.enabled = sprite != null;
             image.preserveAspect = true;
             return image.enabled;
+        }
+
+        private static void SetButtonLabel(CocosUiView view, string path, string value)
+        {
+            GameObject target = view?.Binding.Find(path);
+            if (target == null) return;
+            Text label = target.GetComponentsInChildren<Text>(true).FirstOrDefault();
+            if (label == null)
+            {
+                GameObject labelObject = new GameObject("RuntimeLabel",
+                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+                RectTransform rect = labelObject.GetComponent<RectTransform>();
+                rect.SetParent(target.transform, false);
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                label = labelObject.GetComponent<Text>();
+                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                label.fontSize = 24;
+                label.color = new Color(0.55f, 0.18f, 0.04f, 1f);
+            }
+            label.text = value;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            label.verticalOverflow = VerticalWrapMode.Overflow;
+            label.raycastTarget = false;
+            label.gameObject.SetActive(true);
         }
 
         private bool IsMissing(DisplayRecord item)

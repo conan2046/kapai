@@ -2807,7 +2807,7 @@ namespace ProjectX.Core
         public void ShowXunBao(){EnsureXunBaoPresenter();if(services.UiStack.Current!=xunBaoView)services.UiStack.Push(xunBaoView);SetStatus("XunBao current UI active; awaiting /319 op=31.");}
         public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds));}
         public void CompleteXunBaoValidation(){StartCoroutine(CompleteXunBaoValidationAfterLayout());}
-        private IEnumerator CompleteXunBaoValidationAfterLayout(){EnsureXunBaoPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();if(!IsXunBaoOpen||!services.XunBao.HasAuthoritativeResponse||!IsXunBaoAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"XunBao state mismatch: open={IsXunBaoOpen}, authoritative={services.XunBao.HasAuthoritativeResponse}, visible={IsXunBaoAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=9 -> WanFa.XunBaoMainUI -> csd/wanfa/XunbaoLayer.csb -> /319 op=31 remaining={services.XunBao.Remaining}, seconds={services.XunBao.RecoverySeconds}; isolated user={GetLocalUserId()}");}
+        private IEnumerator CompleteXunBaoValidationAfterLayout(){EnsureXunBaoPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();float settleDeadline=Time.realtimeSinceStartup+10f;while(services.ProtocolRegistry.PendingCount!=0&&Time.realtimeSinceStartup<settleDeadline){yield return null;}if(!IsXunBaoOpen||!services.XunBao.HasAuthoritativeResponse||!IsXunBaoAuthoritativeVisible||services.ProtocolRegistry.PendingCount!=0){Fail($"XunBao state mismatch: open={IsXunBaoOpen}, authoritative={services.XunBao.HasAuthoritativeResponse}, visible={IsXunBaoAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}Complete($"COMPLETE: btn_wanfa -> function_id=9 -> WanFa.XunBaoMainUI -> csd/wanfa/XunbaoLayer.csb -> /319 op=31 remaining={services.XunBao.Remaining}, seconds={services.XunBao.RecoverySeconds}; isolated user={GetLocalUserId()}");}
 
         public void ShowSevenDay(){EnsureSevenDayPresenter();if(services.UiStack.Current!=sevenDayView)services.UiStack.Push(sevenDayView);SetStatus("SevenDay current UI active; awaiting /37 op=4.");}
         public void BeginSevenDayState(){pendingSevenDayTasks.Clear();}
@@ -7386,7 +7386,16 @@ namespace ProjectX.Core
             string expectedFragmentProgress = $"{fragmentQuantityAfter}/{fragmentComposeCost}";
             if (fragmentProgress == null || fragmentProgress.text != expectedFragmentProgress
                 || refreshedQuantity == null || refreshedQuantity.text != fragmentQuantityAfter.ToString())
-            { Fail("HeroEquip G4 compose refreshed the bag model but left fragment progress or grid quantity stale."); yield break; }
+            {
+                string matchingCells = string.Join(";", heroEquipmentFragmentView.GameObject
+                    .GetComponentsInChildren<Transform>(true)
+                    .Where(value => value.name == $"EquipmentFragment_{composeFragmentId}")
+                    .Select(value => $"active={value.gameObject.activeInHierarchy},self={value.gameObject.activeSelf},qty={value.Find("RuntimeFragmentQuantity")?.GetComponent<Text>()?.text}"));
+                Fail($"HeroEquip G4 compose refreshed the bag model but left fragment progress or grid quantity stale; "
+                    + $"model={fragmentQuantityAfter}, expected={expectedFragmentProgress}, progress={fragmentProgress?.text}, "
+                    + $"refreshed={refreshedQuantity?.text}, cells={matchingCells}.");
+                yield break;
+            }
             yield return CaptureHeroEquipmentG5State("g1-equipment-pieces-empty.png");
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
@@ -9961,11 +9970,9 @@ namespace ProjectX.Core
             heroLevelUpView = heroLevelUpView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshuxingLayer");
             if (heroCultivationView == null || heroLevelUpView == null)
                 throw new InvalidOperationException("Hero cultivation shell/level-up CocosUiBindings were not found.");
-            heroListView.SetVisible(false);
-            heroDetailView.SetVisible(false);
-            heroBagView.SetVisible(false);
             heroFrameView?.SetVisible(true);
             heroFrameView?.GameObject.transform.SetAsLastSibling();
+            SetHeroFramePageVisibility(false, false, false, true, true);
             heroCultivationView.SetVisible(true);
             heroLevelUpView.SetVisible(true);
             heroCultivationView.GameObject.transform.SetAsLastSibling();
@@ -9988,13 +9995,35 @@ namespace ProjectX.Core
 
         private void RestoreHeroFormationView()
         {
-            heroCultivationView?.SetVisible(false);
-            heroLevelUpView?.SetVisible(false);
-            heroListView?.SetVisible(true);
-            heroDetailView?.SetVisible(true);
-            heroBagView?.SetVisible(false);
+            SetHeroFramePageVisibility(true, true, false, false, false);
             ConfigureHeroFrame(false);
             heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+        }
+
+        private void SetHeroFramePageVisibility(bool list, bool detail, bool bag, bool cultivation, bool levelUp)
+        {
+            heroListView?.SetVisible(list);
+            heroDetailView?.SetVisible(detail);
+            heroBagView?.SetVisible(bag);
+            heroCultivationView?.SetVisible(cultivation);
+            heroLevelUpView?.SetVisible(levelUp);
+
+            // OneLevelLayer is shared by formation, bag and cultivation pages. Resolve every imported
+            // child by its source token as well as the cached view so a stale/duplicate binding cannot
+            // leave the previous formation page visible underneath the cultivation page.
+            if (heroFrameView?.GameObject == null) return;
+            foreach (CocosUiBinding binding in heroFrameView.GameObject.GetComponentsInChildren<CocosUiBinding>(true))
+            {
+                if (binding == heroFrameView.Binding) continue;
+                bool? visible = null;
+                string source = binding.Source ?? string.Empty;
+                if (source.IndexOf("yingxiongListLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = list;
+                else if (source.IndexOf("yingxiongInfoLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = detail;
+                else if (source.IndexOf("yingxiongbeibao", StringComparison.OrdinalIgnoreCase) >= 0) visible = bag;
+                else if (source.IndexOf("yingxiongjueseLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = cultivation;
+                else if (source.IndexOf("yingxiongshuxingLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = levelUp;
+                if (visible.HasValue) binding.gameObject.SetActive(visible.Value);
+            }
         }
 
         private void ShowHeroEnhanceMaster(int formationPosition)
@@ -10406,7 +10435,11 @@ namespace ProjectX.Core
 
         private void HandleHeroEquipmentFragmentBagChanged()
         {
-            if (heroEquipmentFragmentView?.GameObject.activeInHierarchy == true)
+            // A compose response can refresh /8 while a success overlay temporarily
+            // removes the fragment surface from the active hierarchy.  The source
+            // Cocos page still owns the selection in that interval, so refresh its
+            // bound progress/grid whenever the view itself remains selected.
+            if (heroEquipmentFragmentView?.GameObject.activeSelf == true)
                 RenderHeroEquipmentFragments();
         }
 
@@ -10428,9 +10461,15 @@ namespace ProjectX.Core
         private void BindHeroEquipmentFragmentRow(RectTransform row, BagItemRecord[] items, int rowIndex)
         {
             row.gameObject.name = $"RuntimeFragmentRow_{rowIndex + 1}";
+            Transform[] cells = row.Cast<Transform>()
+                .Where(value => value.name.StartsWith("Item", StringComparison.Ordinal)
+                    || value.name.StartsWith("EquipmentFragment_", StringComparison.Ordinal))
+                .OrderBy(value => value.GetSiblingIndex())
+                .Take(5)
+                .ToArray();
             for (int column = 1; column <= 5; column++)
             {
-                Transform cell = row.Find($"Item{column}");
+                Transform cell = column <= cells.Length ? cells[column - 1] : null;
                 if (cell == null) continue;
                 bool hasItem = items != null && column <= items.Length;
                 cell.gameObject.SetActive(hasItem);
@@ -10908,7 +10947,11 @@ namespace ProjectX.Core
                 uid => InvokeLuaOrFail(onFaBaoTakeOff, "FaBao.TakeOff", (double)uid),
                 ConfigureHeroEquipmentCultivationFrame,
                 () => services.Player.Level,
-                message => ShowToast(message, 2f));
+                message =>
+                {
+                    SetStatus(message);
+                    ShowToast(message, 2f);
+                });
             if (!heroEquipmentFragmentBagSubscribed)
             {
                 services.Bag.Changed += HandleHeroEquipmentFragmentBagChanged;

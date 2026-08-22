@@ -70,7 +70,7 @@ namespace ProjectX.UI
             scrollRect.verticalNormalizedPosition = 0f;
             content.anchoredPosition = new Vector2(content.anchoredPosition.x,
                 Math.Max(0f, content.rect.height - viewport.rect.height));
-            RefreshVisible();
+            RefreshVisible(true);
             return true;
         }
 
@@ -95,7 +95,7 @@ namespace ProjectX.UI
             for (int i = required; i < rows.Count; i++) rows[i].gameObject.SetActive(false);
             content.anchoredPosition = new Vector2(content.anchoredPosition.x, 0f);
             lastFirstIndex = -1;
-            RefreshVisible();
+            RefreshVisible(true);
         }
 
         public void Dispose()
@@ -106,11 +106,11 @@ namespace ProjectX.UI
 
         private void HandleScroll(Vector2 _) => RefreshVisible();
 
-        private void RefreshVisible()
+        private void RefreshVisible(bool force = false)
         {
             int maxFirst = Math.Max(0, items.Count - rows.Count);
             int first = Mathf.Clamp(Mathf.FloorToInt(Math.Max(0f, content.anchoredPosition.y) / itemHeight), 0, maxFirst);
-            if (first == lastFirstIndex && rows.Count > 0) return;
+            if (!force && first == lastFirstIndex && rows.Count > 0) return;
             lastFirstIndex = first;
             for (int i = 0; i < rows.Count; i++)
             {

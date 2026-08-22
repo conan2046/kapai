@@ -4,6 +4,8 @@ param(
     [uint32]$UserId = 0,
     [string]$ManifestPath = "",
     [string]$UnityExecutable = "",
+    [string]$SqlitePath = "",
+    [string]$SqliteSchemaPath = "",
     [switch]$NoStartServices,
     [switch]$KeepServices,
     [switch]$SkipPythonTests,
@@ -50,6 +52,12 @@ if ([bool]$fixture.mutatesServer -ne [bool]$moduleConfig.mutatesServer) {
 }
 $validationDataProperty = $moduleConfig.PSObject.Properties["validationData"]
 $moduleValidationData = if ($null -ne $validationDataProperty) { $validationDataProperty.Value } else { $null }
+if ([bool]$SqlitePath -ne [bool]$SqliteSchemaPath) {
+    throw "SQLite validation requires both -SqlitePath and -SqliteSchemaPath."
+}
+if ($SqlitePath -and $null -ne $moduleValidationData) {
+    throw "Module '$($moduleConfig.key)' uses MySQL validationData and cannot run with the SQLite validation backend."
+}
 if (@($scenario.flags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
     throw "Module '$($moduleConfig.key)' has no runnable validation flag yet."
 }
@@ -241,13 +249,15 @@ try {
     $activeTimingName = "servicesAndFixtureSetup"
     $activeTiming = Start-UnityMigrationTiming
     Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "services"
-    $mysqlReady = Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe"
-    if (-not $mysqlReady) {
-        if ($NoStartServices) { throw "MySQL is not listening on 3306 and -NoStartServices was specified." }
-        & $pwshExecutable -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
-        if ($LASTEXITCODE -ne 0) { throw "Start-LocalMySql.ps1 failed with exit code $LASTEXITCODE" }
-        Record-NewWorkspaceProcesses
-        if (-not (Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe")) { throw "Workspace MySQL did not listen on 3306." }
+    if (-not $SqlitePath) {
+        $mysqlReady = Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe"
+        if (-not $mysqlReady) {
+            if ($NoStartServices) { throw "MySQL is not listening on 3306 and -NoStartServices was specified." }
+            & $pwshExecutable -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
+            if ($LASTEXITCODE -ne 0) { throw "Start-LocalMySql.ps1 failed with exit code $LASTEXITCODE" }
+            Record-NewWorkspaceProcesses
+            if (-not (Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe")) { throw "Workspace MySQL did not listen on 3306." }
+        }
     }
 
     $serverReady = Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe"
@@ -273,7 +283,14 @@ try {
 
     if (-not $serverReady) {
         if ($NoStartServices) { throw "kapai.exe is not listening on 8711 and -NoStartServices was specified." }
-        & $pwshExecutable -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-Server.ps1") -WaitSeconds 60
+        $serverArguments = @(
+            "-ExecutionPolicy", "Bypass", "-File", (Join-Path $root "tools/local/Start-Server.ps1"),
+            "-WaitSeconds", "60"
+        )
+        if ($SqlitePath) {
+            $serverArguments += @("-SqlitePath", $SqlitePath, "-SqliteSchemaPath", $SqliteSchemaPath)
+        }
+        & $pwshExecutable @serverArguments
         if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
         Record-NewWorkspaceProcesses
         if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }

@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup")]
+    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "SeedTestProgress")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
@@ -211,6 +211,40 @@ function Set-WorldFixtureClaimableBoxes {
     }
     [ordered]@{ hex = [BitConverter]::ToString($compressed).Replace('-', ''); rawBytes = $bytes.Count; chapterStarCount = [int]$chapter.sumStar; normalBoxId = 10031; starBoxId = 20031 }
 }
+
+function Assert-RoleClientsStopped {
+    $running = @(Get-Process kapai, ProjectX -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) { throw "Stop kapai.exe and ProjectX.exe before changing persistent World test progress." }
+}
+
+function Set-WorldTestProgress {
+    param([Parameter(Mandatory = $true)][string]$GuanQiaHex)
+    $payload = Get-WorldFixturePayload -GuanQiaHex $GuanQiaHex
+    $required = [ordered]@{
+        "1001" = @([uint32]10006)
+        "1002" = @([uint32]10016, [uint32]10019, [uint32]10020)
+    }
+    foreach ($mapIdText in $required.Keys) {
+        $mapId = [uint32]$mapIdText
+        $chapter = @($payload.primary.maps | Where-Object { $_.mapId -eq $mapId })
+        if ($chapter.Count -eq 0) {
+            $chapter = [pscustomobject]@{
+                mapId = $mapId; sumStar = [uint16]0; nodeStars = [ordered]@{}
+                fixIds = [System.Collections.Generic.List[uint32]]::new(); fixStates = [ordered]@{}
+            }
+            $payload.primary.maps.Add($chapter)
+        } elseif ($chapter.Count -eq 1) { $chapter = $chapter[0] }
+        else { throw "World test progress map $mapId is duplicated." }
+        foreach ($nodeId in $required[$mapIdText]) { [void]($chapter.nodeStars[$nodeId] = [byte]3) }
+        $chapter.sumStar = [uint16][Math]::Max([int]$chapter.sumStar, 3 * $chapter.nodeStars.Count)
+    }
+    $bytes = [System.Collections.Generic.List[byte]]::new()
+    Write-WorldGuanQiaSection $bytes $payload.primary
+    Write-WorldGuanQiaSection $bytes $payload.secondary
+    $bytes.AddRange([byte[]]$payload.tail)
+    $compressed = Compress-WorldGuanQia ([byte[]]$bytes.ToArray())
+    [ordered]@{ hex = [BitConverter]::ToString($compressed).Replace('-', ''); stageIds = @(10006,10016,10019,10020) }
+}
 function Get-WorldFixtureRow {
     $rows = @(Invoke-WorldSql -Sql @"
 SELECT REPLACE(TO_BASE64(backup_guan_qia), CHAR(10), ''), snapshot_hash
@@ -263,6 +297,33 @@ WHERE r.id=$RoleId
 }
 
 switch ($Action) {
+    "SeedTestProgress" {
+        Assert-RoleClientsStopped
+        Invoke-WorldSql -Sql @"
+CREATE TABLE IF NOT EXISTS codex_local_test_account_backup (
+ role_id INT UNSIGNED NOT NULL PRIMARY KEY, guan_qia MEDIUMTEXT NULL, pet_equip MEDIUMTEXT NULL,
+ level INT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT IGNORE INTO codex_local_test_account_backup(role_id,guan_qia,pet_equip,level)
+SELECT id,guan_qia,pet_equip,level FROM role_info WHERE id=$RoleId;
+"@
+        $live = Get-WorldLiveGuanQiaHex
+        $seed = Set-WorldTestProgress -GuanQiaHex $live
+        Invoke-WorldSql -Sql "UPDATE role_info SET guan_qia='$($seed.hex)',level=99 WHERE id=$RoleId"
+        $roundTrip = Get-WorldFixturePayload -GuanQiaHex (Get-WorldLiveGuanQiaHex)
+        foreach ($stageId in $seed.stageIds) {
+            $found = @($roundTrip.primary.maps | Where-Object { $_.nodeStars.Contains([uint32]$stageId) })
+            if ($found.Count -ne 1 -or [byte]$found[0].nodeStars[[uint32]$stageId] -ne 3) {
+                $matches = @($roundTrip.primary.maps | ForEach-Object {
+                    $value = if ($_.nodeStars.Contains([uint32]$stageId)) { $_.nodeStars[[uint32]$stageId] } else { "missing" }
+                    "$($_.mapId):$value"
+                })
+                throw "World test progress stage $stageId was not persisted exactly once with three stars; maps=$($matches -join ',')."
+            }
+        }
+        Write-Evidence ([ordered]@{ action=$Action; userId=$UserId; roleId=$RoleId; level=99; unlockedStageIds=$seed.stageIds; backupTable="codex_local_test_account_backup"; createdUtc=[DateTime]::UtcNow.ToString("O") })
+        Write-Host "World test progress seeded: roleId=$RoleId stages=$($seed.stageIds -join ',') level=99"
+    }
     "Setup" {
         Assert-ClientsStopped
         Invoke-WorldSql -Sql $createTableSql

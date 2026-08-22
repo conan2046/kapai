@@ -1611,13 +1611,13 @@
         "sqlitePersistenceOracle": {
           "semanticAssertionId": "equipment-sqlite-runtime-restart-restored",
           "serverExecutable": "build/server-win/Debug/kapai.exe",
-          "serverExecutableSha256": "F38B4B8235BD85D88FB6850E1C4B646855B7DD18DEC6B4E39F05622028A29ECB",
-          "database": ".local/unity-validation/heroequip-sqlite-current-20260822.db",
-          "databaseSha256": "B56CE3B974B37AD7F01228FC77347AED9195B994D56E11EB95F5227A624FCEC3",
-          "runtimeReport": ".local/unity-validation/heroequip-sqlite-runtime-current.json",
-          "runtimeReportSha256": "837E8CD75A9B1421B2D213133259E87FE968E7914B0A6B076A8D1FBD4F65A7B1",
-          "restartReport": ".local/unity-validation/heroequip-sqlite-restart-current.json",
-          "restartReportSha256": "A43AA3D879152B0C126EB16FFFD2E1888E008CE3585AD477CB6AB7E575924828"
+          "serverExecutableSha256": "27C97AD5C81E3BE99C64163F0C3A5C01963AE9307259695A03856296BE19FA8A",
+          "database": ".local/unity-validation/heroequip-sqlite-current-20260822-v3.db",
+          "databaseSha256": "02540A8390CA2443DC88521E7AC11076D55C2C54622633E757501B57487D1261",
+          "runtimeReport": ".local/unity-validation/heroequip-sqlite-runtime-current-v3.json",
+          "runtimeReportSha256": "1AA527C8A3DA0B9A3DA0C0BC15B959E36831BD43CA38AA3A81BF92468B895FA5",
+          "restartReport": ".local/unity-validation/heroequip-sqlite-restart-current-v3.json",
+          "restartReportSha256": "DF843A6DFC4F5D99C5C6EB4C4A8FC59062159BA010E86EB3A42FACCE2CC6F8C4"
         },
         "extraFlags": [],
         "skipPostValidationFixtureAssert": true,
@@ -1864,6 +1864,23 @@
           {"id":"BAG-DISCONNECTED","cocos":"BAG-DISCONNECTED.png","unity":"BAG-DISCONNECTED.png"},
           {"id":"BAG-RECONNECTED","cocos":"BAG-RECONNECTED.png","unity":"BAG-RECONNECTED.png"},
           {"id":"BAG-REENTER","cocos":"BAG-REENTER.png","unity":"BAG-REENTER.png"}
+        ]
+      }
+    },
+    {
+      "module": "XunBao",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/XunBao/cocos/g5",
+        "unityDirectory": ".local/ui-fidelity/XunBao/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/XunBao/compare/g5",
+        "pairs": [
+          {
+            "id": "XUNBAO-MAIN",
+            "cocos": "XUNBAO-MAIN.png",
+            "unity": "XUNBAO-MAIN.png"
+          }
         ]
       }
     },
