@@ -284,9 +284,12 @@ namespace ProjectX.Editor
                     Path.Combine(cocosRoot, "res", "res", "UI", "Icon", "ui_map_icon", $"fuben_map{world}.png"),
                     $"Assets/ProjectX/Resources/WorldUI/Chapters/fuben_map{world}.png");
             }
-            CopyResourceIfChanged(
-                Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", "skill_641.png"),
-                "Assets/ProjectX/Resources/HeroUI/skill_641.png");
+            foreach (int skillId in new[] { 241, 571, 601, 621, 641 })
+            {
+                CopyResourceIfChanged(
+                    Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", $"skill_{skillId}.png"),
+                    $"Assets/ProjectX/Resources/HeroUI/skill_{skillId}.png");
+            }
             CopyResourceIfChanged(
                 "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_A.png",
                 "Assets/ProjectX/Resources/HeroUI/quality_score_A.png");

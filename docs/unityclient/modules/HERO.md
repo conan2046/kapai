@@ -2,11 +2,14 @@
 
 ## 当前结论
 
-- 状态：`G0-G6 passed / 16/16 complete`。
-- 门禁：`G0-G6 passed`；16项真实控件主链、等级锁定拒绝、非法阵位拒绝、权威快照恢复、真实断线重连、双端原图/差异和最终人工视觉均已通过。
-- 旧 `visual-1to1-complete` 和旧 G0-G6 结论已撤销，只保留为历史协议/截图证据。
-- 当前控件矩阵：`../matrices/HERO_CONTROLS.json`，`16/16 complete`。
-- Unity 已由真实 Button 驱动完成16/16项自动验证与截图，并完成真实断线重连复验；同账号 Cocos/Unity `1334×750` 视觉人工验收 `16/16 passed`。
+- 状态：`G0-G3 passed / early user Play feedback repaired, retest pending / G4-G6 pending / 16 controls retained`。
+- 2026-08-23按当前源码重新冻结原16项阵容控件。`btn_zhenrong → MainUI:PetTouchCallback → EMID_KAPAI_SHENJIANG=1030 → KaPaiPet.PetZhenRongUI`入口闭包、`/24 op1`与`/48 op1/2/3/4/5`权威所有权、配置资源和运行时Transform闭包仍成立。
+- 旧G6提交`9baa53fa`之后，`server/src/pack_deal.cpp`、`server/src/user.cpp`、Unity Hero Lua桥和`ProjectXApp.cs`均发生变化；当前24项输入综合SHA-256为`01B1B953CFA8163D8C72BB3905CAA57E5A523F58F955645F2BCA1DFCD2A35FE3`。因此旧Cocos/Unity原图、Runner、人工视觉、固定账号结果和BuildBatch哈希全部只作诊断线索。
+- 当前控件矩阵：`../matrices/HERO_CONTROLS.json`，分母保持16项；HERO-16布阵复合控件已补五模型和阵法学习/升级/切换。当前审计证据：`.local/unity-validation/hero-g0-current-source-audit.json`。
+- 当前G1：固定账号`7200057 / roleId=1000115`、唯一原生`ProjectX.exe / Cocos Simulator`窗口；16项均由Computer Use采集并裁切为`1334×750`。阵容页当前态为1个已上阵神将、4个空阵位，养成/强化大师/换将、装备槽1-4、法宝槽1-2、详细属性和布阵入口同时可见；关闭按钮已真实返回主界面。冻结证据：`.local/unity-validation/hero-cocos-baseline-latest.json`、`.local/unity-validation/hero-cocos-automation-ledger.json`。
+- 当前G2：入口、`/24 op1`、`/48 op1/2/3/4/5`、`/319`与`/320 op27`兄弟边界、8个Prefab（含共享`OneLevelLayer`）、3份配置、动态`PetTableView`以及Lua/C#生命周期均已按当前文件哈希关闭；中央场景已移除误挂的HeroEquip产物并登记8项Hero语义、16控件视觉契约及可逆固定账号夹具。证据：`.local/unity-validation/hero-g2-source-audit.json`。
+- 当前G3：固定账号数据预检已完成真实登录、整行恢复和备份表残留0；Unity编译指纹`7B96EF64207ABC598CE20493D9A3F2887D93234F8C09F43ABB867FAA628917BD`通过，当前8个Prefab、Lua协议桥、Hero/Formation Presenter和Bootstrap场景构成可运行初版。证据：`.local/unity-validation/hero-g3-initial-playable.json`。
+- 完整神将培养属于后续独立模块；神将背包/碎片属于再后一个独立模块。本轮只回归阵容及其兄弟入口边界，不提前扩展业务分母。当前 Unity 仅有“升级”页初版；“升星/突破/修炼/信息”及共享框架真实页签均未迁移完成。
 
 ## 范围
 
@@ -16,6 +19,12 @@
 - 布阵弹窗、阵位变更、重拉、重连和切号清理。
 
 神将完整培养、进阶、技能培养和图鉴不在当前阵容修复批次；入口可见时仍必须登记并明确隐藏或后置，不能保留空壳。
+
+### 早期 Play 纠偏（2026-08-23）
+
+- 布阵互换服务端按主角等级校验五个逻辑阵位，实际门槛为 `1/6/15/25/30`。固定 SQLite 角色原为 15 级，点击第4/5位会被 `CUser::ZhenFa_ChangeUnitPos` 拒绝并提示“该阵位未开启”；当前夹具已改为30级，且只更新 `projectx.db`，未修改 MySQL。
+- Cocos 养成主界面有五个真实页签：升级、升星、突破、修炼、信息；通过共享框架 `AddTabBtn/SelectTab` 切换。`Button_l/Button_r` 的真实语义是切换前后上阵神将，不是切换培养页。
+- Unity 当前左右箭头仍是提示占位，除升级外四个养成页未迁移，因此养成模块不能标记完整。审计证据：`.local/unity-validation/hero-swap-level-cultivation-audit-latest.json`。
 
 ## Cocos调用链
 
@@ -42,7 +51,10 @@ btn_buzhen → PetZhenRongUI:FormationClicked
 |---|---|---|---|
 | 神将列表/详情 | `/24 op=1` | `CPackageDeal::PetOption → CUser::MakePet` | Lua按旧字段顺序解析完整神将列表；未读字节直接失败 |
 | 阵容查询 | `/48 op=1` | `CPackageDeal::ZhenFaOption → CUser::MakeZhenFaMsg` | 当前阵法、已学阵法、展示位、战斗位完整快照 |
+| 阵法学习/升级 | `/48 op=2 + uint16 zhenfaId` | `CUser::ZhenFaLevelUp` | 服务端校验阵法书与铜钱，成功回传等级；Lua更新权威阵法模型 |
+| 阵法切换 | `/48 op=3 + uint16 zhenfaId` | `CUser::SwitchZhenFa` | 仅已学习阵法可切换；成功回传当前阵法ID |
 | 阵位变更 | `/48 op=4 + uint16 petId + uint8 pos` | `CHECK_SYSTEM_OPEN(SOT_1030+pos) → ZhenFa_SetPetState` | 先处理成功/失败响应，再强制 `/48 op=1`；禁止本地乐观改位 |
+| 布阵互换 | `/48 op=5 + uint8 srcPos + uint8 tarPos` | `CUser::ZhenFa_ChangeUnitPos` | 服务端成功响应后重拉 `/48 op=1`，按权威战斗位快照刷新五个模型；失败保持原位 |
 | 装备槽开放条件 | `/320 op=27 + uint16 mapType + uint16 stageId` | 世界关卡查询 | 旧协议回包会消耗 `op=27`，Lua兼容按剩余11字节解析；槽1-4以服务端关卡状态决定锁定 |
 | 装备/法宝入口 | `/319` 子流程 | 既有装备/法宝处理 | 本模块只接真实槽位入口，穿脱与失败仍由 `EquipmentController` 权威回包驱动 |
 
@@ -85,7 +97,7 @@ Unity数据链固定为：
 
 - `HeroPresenter`：已占用/空/锁定阵位选择、空位上阵、养成、强化大师、替换、6个装备/法宝槽、详细属性、详情渲染与Imod展示。
 - `ProjectXApp.EnsureHeroPresenter`：公共关闭和 `btn_buzhen`；子流程接入真实换将、养成、装备/法宝和详细属性 Prefab。
-- `FormationPopupPresenter`：阵法列表、阵位网格和换位渲染。
+- `FormationPopupPresenter`：五个战斗位Imod、六阵法列表、阵位网格、真实属性/克制/材料/铜钱，`/48 op=2/3`学习升级与切换，以及来源位→目标位的`/48 op=5`互换。
 - G3修复了空位选择在 `Render()` 内被首个神将覆盖的问题；空位选择态现在保留到 `Panel_new/addnew`。
 - G4主链：同账号 `7200057` 从当前主界面真实入口进入，逐项点击占用/空阵位、上阵、养成、强化大师、替换、6个装备/法宝槽、详细属性、布阵，阵位 `1→2→1` 后权威重拉恢复；结果见 `.local/unity-validation/hero-g4-main-user7200057.json`。
 - G4异常：等级1账号锁定阵位拒绝见 `.local/unity-validation/hero-locked.json`；非法 hero `65535` 被服务端拒绝且阵位未变见 `.local/unity-validation/hero-invalid.json`。
@@ -111,7 +123,7 @@ Unity数据链固定为：
 
 ## 下一步
 
-本模块已收口。按项目规则生成HANDOFF并新开任务后，再从 `UNITYCLIENT_STATUS.md` 选择下一个模块；不得在本任务继续扩展神将培养范围。
+当前暂停在早期用户Play。用户完成5-15分钟主路径并反馈后，先把反馈写入`.local/unity-validation/hero-early-user-play-latest.json`；阻塞项修复且文件复核、非阻塞项修复或用户接受后，才允许进入G4。G4仍需补齐8项中央语义记录、失败/重连/切号和当前逐控件证据。
 
 ## Steam SQLite S5（2026-08-20）
 

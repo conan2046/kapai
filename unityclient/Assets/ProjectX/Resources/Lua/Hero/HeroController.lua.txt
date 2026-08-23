@@ -9,6 +9,8 @@ local M = {
     mutationHero = nil,
     originalPosition = nil,
     targetPosition = nil,
+    swapSourceHero = nil,
+    swapTargetHero = nil,
     levelUpHero = nil,
     levelUpBeforeLevel = nil,
     g4RestoreExpected = false,
@@ -81,6 +83,55 @@ function M.moveHero(heroId, position)
         M.mutationStage = "interactive_response"
     end
     sendPosition(heroId, position)
+end
+
+local function sendPositionSwap(sourcePosition, targetPosition)
+    -- Shipped LuaNetSendMsg:QueryFormationChangePos.
+    local message = Protocol.newMessage(Protocol.FORMATION)
+    message:WriteByte(5)
+    message:WriteByte(sourcePosition)
+    message:WriteByte(targetPosition)
+    Bridge:Send(message)
+end
+
+function M.swapFormation(sourcePosition, targetPosition)
+    if M.mutationStage ~= nil or sourcePosition == nil or targetPosition == nil then return end
+    if sourcePosition <= 0 or targetPosition <= 0 or sourcePosition == targetPosition then return end
+    local sourceHero = FormationModel:GetCombatHero(sourcePosition)
+    if sourceHero <= 0 then return end
+    M.mutationHero = sourceHero
+    M.originalPosition, M.targetPosition = sourcePosition, targetPosition
+    M.swapSourceHero = sourceHero
+    M.swapTargetHero = FormationModel:GetCombatHero(targetPosition)
+    if Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
+        M.mutationStage = M.g4RestoreExpected and "g4_restore_response" or "g4_move_response"
+    else
+        M.mutationStage = "interactive_swap_response"
+    end
+    sendPositionSwap(sourcePosition, targetPosition)
+    Bridge:SetStatus("Formation/48 op=5 swap request sent: "
+        .. tostring(sourcePosition) .. "->" .. tostring(targetPosition) .. ".")
+end
+
+local function sendFormationAction(op, formationId)
+    local message = Protocol.newMessage(Protocol.FORMATION)
+    message:WriteByte(op)
+    message:WriteWord(formationId)
+    Bridge:Send(message)
+end
+
+function M.upgradeFormation(formationId)
+    if M.mutationStage ~= nil or formationId == nil or formationId <= 0 then return end
+    M.mutationStage = "formation_upgrade_response"
+    sendFormationAction(2, formationId)
+    Bridge:SetStatus("Formation/48 op=2 upgrade request sent: formation=" .. tostring(formationId) .. ".")
+end
+
+function M.useFormation(formationId)
+    if M.mutationStage ~= nil or formationId == nil or formationId <= 0 then return end
+    M.mutationStage = "formation_use_response"
+    sendFormationAction(3, formationId)
+    Bridge:SetStatus("Formation/48 op=3 use request sent: formation=" .. tostring(formationId) .. ".")
 end
 
 -- The closure uses the same replacement-button path as a player. This only
@@ -242,6 +293,18 @@ local function readFormation(message)
         return
     end
 
+    if M.mutationStage == "interactive_swap_snapshot" then
+        local sourceAfter = FormationModel:GetCombatHero(M.originalPosition)
+        local targetAfter = FormationModel:GetCombatHero(M.targetPosition)
+        if targetAfter ~= M.swapSourceHero or sourceAfter ~= (M.swapTargetHero or 0) then
+            Bridge:Fail("Formation swap did not persist in the authoritative /48 snapshot.")
+            M.mutationStage = nil
+            return
+        end
+        M.mutationStage = nil
+        Bridge:SetStatus("Formation positions swapped by authoritative Lua snapshot.")
+        return
+    end
     if M.mutationStage == "interactive_snapshot" then
         M.mutationStage = nil
         Bridge:SetStatus("Formation position updated by authoritative Lua snapshot.")
@@ -405,6 +468,73 @@ local function readPositionResponse(message)
     end
 end
 
+local function readPositionSwapResponse(message)
+    local sourcePosition = message:ReadByte()
+    local targetPosition = message:ReadByte()
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        M.mutationStage = nil
+        Bridge:SetStatus("Formation swap rejected: " .. tostring(reason))
+        Bridge:ShowToast(reason, 2)
+        return
+    end
+    if M.mutationStage == nil then return end
+    if sourcePosition ~= M.originalPosition or targetPosition ~= M.targetPosition then
+        M.mutationStage = nil
+        Bridge:Fail("Formation swap response position mismatch.")
+        return
+    end
+    if M.mutationStage == "interactive_swap_response" then
+        M.mutationStage = "interactive_swap_snapshot"
+    elseif M.mutationStage == "g4_move_response" then
+        M.mutationStage = "g4_move_snapshot"
+    elseif M.mutationStage == "g4_restore_response" then
+        M.mutationStage = "g4_restore_snapshot"
+    else
+        M.mutationStage = nil
+        Bridge:Fail("Unexpected formation swap response stage.")
+        return
+    end
+    requestFormation()
+end
+
+local function readFormationUpgradeResponse(message)
+    local formationId = message:ReadWord()
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        M.mutationStage = nil
+        Bridge:SetStatus("Formation upgrade rejected: " .. tostring(reason))
+        Bridge:ShowToast(reason, 2)
+        return
+    end
+    local level = message:ReadByte()
+    FormationModel:AddFormation(formationId, level)
+    M.mutationStage = nil
+    syncRenderMirror()
+    Bridge:SetStatus("Formation/48 op=2 persisted: formation=" .. tostring(formationId)
+        .. " level=" .. tostring(level) .. ".")
+    Bridge:ShowToast("阵法升级成功", 2)
+end
+
+local function readFormationUseResponse(message)
+    local formationId = message:ReadWord()
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        M.mutationStage = nil
+        Bridge:SetStatus("Formation switch rejected: " .. tostring(reason))
+        Bridge:ShowToast(reason, 2)
+        return
+    end
+    FormationModel.useId = formationId
+    M.mutationStage = nil
+    syncRenderMirror()
+    Bridge:SetStatus("Formation/48 op=3 persisted: formation=" .. tostring(formationId) .. ".")
+    Bridge:ShowToast("阵法已切换", 2)
+end
+
 local function readPetUpdate(message)
     local heroId = message:ReadWord()
     local hero = FormationModel:GetPetById(heroId)
@@ -465,7 +595,10 @@ function M.onPacket(command, message)
     if command ~= Protocol.FORMATION then return false end
     local op = message:ReadByte()
     if op == 1 then readFormation(message); return true end
+    if op == 2 then readFormationUpgradeResponse(message); return true end
+    if op == 3 then readFormationUseResponse(message); return true end
     if op == 4 then readPositionResponse(message); return true end
+    if op == 5 then readPositionSwapResponse(message); return true end
     return false
 end
 
@@ -474,6 +607,7 @@ function M.reset()
         and (M.closureStage == "await_reconnect" or M.closureStage == "await_account_isolation")
     M.requested, M.mutationStage, M.mutationHero = false, nil, nil
     M.originalPosition, M.targetPosition = nil, nil
+    M.swapSourceHero, M.swapTargetHero = nil, nil
     M.levelUpHero, M.levelUpBeforeLevel, M.levelUpBeforeExperience = nil, nil, nil
     M.g4RestoreExpected = false
     M.equipmentReady, M.formationReady = false, false

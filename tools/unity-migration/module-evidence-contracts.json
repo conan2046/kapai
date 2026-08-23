@@ -1766,6 +1766,119 @@
       }
     },
     {
+      "module": "Hero",
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-HeroFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Hero/fixture/hero-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/hero-fixed-account-latest.json",
+        "visualResultEvidence": ".local/ui-fidelity/Hero/unity/g5-current/hero-g5-visual-result.json",
+        "visualValidationFlags": [
+          "-projectXHeroG4Validation"
+        ],
+        "visualOnlyArtifacts": false,
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "hero-fixed-account-link",
+              "description": "用户Unity测试只使用projectx.db；其中userId=7200057必须唯一绑定SQLite roleId=1000003。"
+            },
+            {
+              "id": "hero-one-occupied-one-empty",
+              "description": "夹具必须提供至少五名可上阵神将，同时保留已上阵位和空阵位，支持逐个补满五人及真实/48 op4往返恢复。"
+            },
+            {
+              "id": "hero-five-rows-unlocked",
+              "description": "固定角色等级必须满足五个阵位全部开放，锁定态由独立低等级场景验证。"
+            },
+            {
+              "id": "hero-six-slot-boundaries",
+              "description": "固定神将提供四件装备与两件法宝入口所需的权威装备、法宝及关卡开放状态。"
+            },
+            {
+              "id": "hero-full-row-exact-restore",
+              "description": "Setup前快照role_info与所属user_info整行；finally恢复并通过重登录哈希。"
+            },
+            {
+              "id": "hero-fixture-zero-residue",
+              "description": "Hero共用可逆夹具备份表最终删除，残留计数必须为0。"
+            }
+          ]
+        },
+        "artifactCopies": [
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-01-CLOSE.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-01-CLOSE.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-02-OCCUPIED-ROW.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-02-OCCUPIED-ROW.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-03-EMPTY-ROW.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-03-EMPTY-ROW.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-04-ALL-ROWS-UNLOCKED.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-04-ALL-ROWS-UNLOCKED.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-05-ADD-HERO.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-05-ADD-HERO.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-06-CULTIVATE.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-06-CULTIVATE.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-07-ENHANCE-MASTER.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-07-ENHANCE-MASTER.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-08-REPLACE.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-08-REPLACE.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-09-EQUIP-SLOT-1.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-09-EQUIP-SLOT-1.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-10-EQUIP-SLOT-2.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-10-EQUIP-SLOT-2.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-11-EQUIP-SLOT-3.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-11-EQUIP-SLOT-3.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-12-EQUIP-SLOT-4.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-12-EQUIP-SLOT-4.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-13-FABAO-SLOT-1.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-13-FABAO-SLOT-1.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-14-FABAO-SLOT-2.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-14-FABAO-SLOT-2.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-15-DETAIL.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-15-DETAIL.png" },
+          { "source": ".local/ui-fidelity/Hero/unity/g5-HERO-16-FORMATION.png", "destination": ".local/ui-fidelity/Hero/unity/g5-current/HERO-16-FORMATION.png" }
+        ]
+      },
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/Hero/cocos/g1-20260823",
+        "unityDirectory": ".local/ui-fidelity/Hero/unity/g5-current",
+        "compareDirectory": ".local/ui-fidelity/Hero/compare/g5-current",
+        "cocosBaselineInputs": [
+          "client/ProjectX/res/csd/OneLevelLayer.csb",
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/core/AppDef.lua",
+          "client/ProjectX/src/Common/Utils.lua",
+          "client/ProjectX/src/View/KaPaiPet/PetZhenRongUI.lua",
+          "client/ProjectX/src/View/KaPaiPet/PetChangeUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/ConfigData/function_dat.lua",
+          "client/ProjectX/src/ConfigData/zhenfa_config_dat.lua",
+          "client/ProjectX/src/ConfigData/zhenfa_level_dat.lua",
+          "server/src/protocol.h",
+          "server/src/pack_deal.cpp",
+          "server/src/user.cpp",
+          "tools/unity-migration/Invoke-HeroFixture.ps1",
+          "tools/unity-migration/Invoke-HeroEquipFixture.ps1"
+        ],
+        "pairs": [
+          { "id": "HERO-01-CLOSE", "cocos": "HERO-01-CLOSE.png", "unity": "HERO-01-CLOSE.png" },
+          { "id": "HERO-02-OCCUPIED-ROW", "cocos": "HERO-02-OCCUPIED-ROW.png", "unity": "HERO-02-OCCUPIED-ROW.png" },
+          { "id": "HERO-03-EMPTY-ROW", "cocos": "HERO-03-EMPTY-ROW.png", "unity": "HERO-03-EMPTY-ROW.png" },
+          { "id": "HERO-04-ALL-ROWS-UNLOCKED", "cocos": "HERO-04-ALL-ROWS-UNLOCKED.png", "unity": "HERO-04-ALL-ROWS-UNLOCKED.png" },
+          { "id": "HERO-05-ADD-HERO", "cocos": "HERO-05-ADD-HERO.png", "unity": "HERO-05-ADD-HERO.png" },
+          { "id": "HERO-06-CULTIVATE", "cocos": "HERO-06-CULTIVATE.png", "unity": "HERO-06-CULTIVATE.png" },
+          { "id": "HERO-07-ENHANCE-MASTER", "cocos": "HERO-07-ENHANCE-MASTER.png", "unity": "HERO-07-ENHANCE-MASTER.png" },
+          { "id": "HERO-08-REPLACE", "cocos": "HERO-08-REPLACE.png", "unity": "HERO-08-REPLACE.png" },
+          { "id": "HERO-09-EQUIP-SLOT-1", "cocos": "HERO-09-EQUIP-SLOT-1.png", "unity": "HERO-09-EQUIP-SLOT-1.png" },
+          { "id": "HERO-10-EQUIP-SLOT-2", "cocos": "HERO-10-EQUIP-SLOT-2.png", "unity": "HERO-10-EQUIP-SLOT-2.png" },
+          { "id": "HERO-11-EQUIP-SLOT-3", "cocos": "HERO-11-EQUIP-SLOT-3.png", "unity": "HERO-11-EQUIP-SLOT-3.png" },
+          { "id": "HERO-12-EQUIP-SLOT-4", "cocos": "HERO-12-EQUIP-SLOT-4.png", "unity": "HERO-12-EQUIP-SLOT-4.png" },
+          { "id": "HERO-13-FABAO-SLOT-1", "cocos": "HERO-13-FABAO-SLOT-1.png", "unity": "HERO-13-FABAO-SLOT-1.png" },
+          { "id": "HERO-14-FABAO-SLOT-2", "cocos": "HERO-14-FABAO-SLOT-2.png", "unity": "HERO-14-FABAO-SLOT-2.png" },
+          { "id": "HERO-15-DETAIL", "cocos": "HERO-15-DETAIL.png", "unity": "HERO-15-DETAIL.png" },
+          { "id": "HERO-16-FORMATION", "cocos": "HERO-16-FORMATION.png", "unity": "HERO-16-FORMATION.png" }
+        ]
+      }
+    },
+    {
       "module": "HeroEquip",
       "fixedAccount": {
         "userId": 7200057,
@@ -1844,27 +1957,31 @@
           {
             "source": "build/ui-migration/g1-source-actionable.png",
             "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-source-actionable.png"
+          },
+          {
+            "source": "build/ui-migration/g1-equipment-hide-worn.png",
+            "destination": ".local/ui-fidelity/HeroEquip/unity/g5-current/g1-equipment-hide-worn.png"
           }
         ],
         "dataPreflight": {
           "requiresLogin": true,
-        "requirements": [
-          {
-            "id": "hero-equip-fixed-account",
-            "description": "固定 userId=7200057 唯一绑定 roleId=1000115 且可读取 /24、/48、/319、/70、/18。"
-          },
-          {
-            "id": "hero-equip-reversible-role-row",
-            "description": "完整备份并恢复 role_info 与所属 user_info 分片；显式断言pet_equip、pet、mission、金币/材料、zhanDouLi及SQLite镜像，重登哈希一致。"
-          },
-          {
-            "id": "hero-equip-cross-position-replacement",
-            "description": "至少两名阵位神将、同部位两件可区分装备；可验证源/目标槽、双方/70、HUD /18和被替换装备位置。"
-          },
-          {
-            "id": "hero-equip-cultivation-boundaries",
-            "description": "准备强化、合成、精炼、觉醒、神铸的成功/材料不足/满级/等级与品质锁定数据；所有写操作可逆且零残留。"
-          }
+          "requirements": [
+            {
+              "id": "hero-equip-fixed-account",
+              "description": "固定 userId=7200057 唯一绑定 roleId=1000115 且可读取 /24、/48、/319、/70、/18。"
+            },
+            {
+              "id": "hero-equip-reversible-role-row",
+              "description": "完整备份并恢复 role_info 与所属 user_info 分片；显式断言pet_equip、pet、mission、金币/材料、zhanDouLi及SQLite镜像，重登哈希一致。"
+            },
+            {
+              "id": "hero-equip-cross-position-replacement",
+              "description": "至少两名阵位神将、同部位两件可区分装备；可验证源/目标槽、双方/70、HUD /18和被替换装备位置。"
+            },
+            {
+              "id": "hero-equip-cultivation-boundaries",
+              "description": "准备强化、合成、精炼、觉醒、神铸的成功/材料不足/满级/等级与品质锁定数据；所有写操作可逆且零残留。"
+            }
           ]
         }
       },
@@ -1874,97 +1991,102 @@
         "cocosDirectory": ".local/ui-fidelity/HeroEquip/cocos",
         "unityDirectory": ".local/ui-fidelity/HeroEquip/unity/g5-current",
         "compareDirectory": ".local/ui-fidelity/HeroEquip/compare/g5-current",
-      "cocosBaselineInputs": [
-        "client/ProjectX/src/View/MainUI.lua",
-        "client/ProjectX/src/View/PetEquip/PetEquipMainUI.lua",
-        "client/ProjectX/src/View/PetEquip/PetEquipBagSubUI.lua",
-        "client/ProjectX/src/View/PetEquip/PetEquipPiecesSubUI.lua",
-        "client/ProjectX/src/View/PetEquip/EquipInfoUI.lua",
-        "client/ProjectX/src/View/PetEquip/PetEquipChangeUI.lua",
-        "client/ProjectX/src/View/EquipCultivate/EquipCultivateMainUI.lua",
-        "client/ProjectX/src/View/EquipCultivate/EquipStrongUpUI.lua",
-        "client/ProjectX/src/View/EquipCultivate/CultivateJingLianUI.lua",
-        "client/ProjectX/src/View/EquipCultivate/CultivateJueXingUI.lua",
-        "client/ProjectX/src/View/EquipCultivate/CultivateShenZhuUI.lua",
-        "client/ProjectX/src/View/Common/ItemSourceUI.lua",
-        "client/ProjectX/src/ConfigData/equip_dat.lua",
-        "client/ProjectX/src/ConfigData/hecheng_dat.lua",
-        "client/ProjectX/src/ConfigData/equip_qianghua_dat.lua",
-        "client/ProjectX/src/ConfigData/equip_jinglian_dat.lua",
-        "client/ProjectX/src/ConfigData/equip_juexing_dat.lua",
-        "client/ProjectX/src/ConfigData/equip_shenzhu_dat.lua",
-        "server/src/pack_deal.cpp",
-        "server/src/pet_equip_manage.cpp",
-        "server/src/user.cpp",
-        "tools/unity-migration/Invoke-HeroEquipFixture.ps1"
-      ],
-      "pairs": [
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/PetEquip/PetEquipMainUI.lua",
+          "client/ProjectX/src/View/PetEquip/PetEquipBagSubUI.lua",
+          "client/ProjectX/src/View/PetEquip/PetEquipPiecesSubUI.lua",
+          "client/ProjectX/src/View/PetEquip/EquipInfoUI.lua",
+          "client/ProjectX/src/View/PetEquip/PetEquipChangeUI.lua",
+          "client/ProjectX/src/View/EquipCultivate/EquipCultivateMainUI.lua",
+          "client/ProjectX/src/View/EquipCultivate/EquipStrongUpUI.lua",
+          "client/ProjectX/src/View/EquipCultivate/CultivateJingLianUI.lua",
+          "client/ProjectX/src/View/EquipCultivate/CultivateJueXingUI.lua",
+          "client/ProjectX/src/View/EquipCultivate/CultivateShenZhuUI.lua",
+          "client/ProjectX/src/View/Common/ItemSourceUI.lua",
+          "client/ProjectX/src/ConfigData/equip_dat.lua",
+          "client/ProjectX/src/ConfigData/hecheng_dat.lua",
+          "client/ProjectX/src/ConfigData/equip_qianghua_dat.lua",
+          "client/ProjectX/src/ConfigData/equip_jinglian_dat.lua",
+          "client/ProjectX/src/ConfigData/equip_juexing_dat.lua",
+          "client/ProjectX/src/ConfigData/equip_shenzhu_dat.lua",
+          "server/src/pack_deal.cpp",
+          "server/src/pet_equip_manage.cpp",
+          "server/src/user.cpp",
+          "tools/unity-migration/Invoke-HeroEquipFixture.ps1"
+        ],
+        "pairs": [
           {
             "id": "HERO-EQUIP-HERO-DETAIL",
-          "cocos": "g1-hero-detail-equipped.png",
-          "unity": "g1-hero-detail-equipped.png"
-        },
-        {
-          "id": "HERO-EQUIP-WEAR-POPUP",
-          "cocos": "g1-wear-popup-open.png",
-          "unity": "g1-wear-popup-open.png"
-        },
-        {
-          "id": "HERO-EQUIP-EQUIPMENT-BAG",
-          "cocos": "g1-equipment-bag.png",
-          "unity": "g1-equipment-bag.png"
-        },
-        {
-          "id": "HERO-EQUIP-EQUIPMENT-BAG-EMPTY",
-          "cocos": "g1-equipment-bag-empty.png",
-          "unity": "g1-equipment-bag-empty.png"
-        },
-        {
-          "id": "HERO-EQUIP-EQUIPMENT-PIECES",
-          "cocos": "g1-equipment-pieces.png",
-          "unity": "g1-equipment-pieces.png"
-        },
-        {
-          "id": "HERO-EQUIP-EQUIPMENT-PIECES-EMPTY",
-          "cocos": "g1-equipment-pieces-empty.png",
-          "unity": "g1-equipment-pieces-empty.png"
-        },
-        {
-          "id": "HERO-EQUIP-EQUIPMENT-DETAIL",
-          "cocos": "g1-equipment-detail.png",
-          "unity": "g1-equipment-detail.png"
+            "cocos": "g1-hero-detail-equipped.png",
+            "unity": "g1-hero-detail-equipped.png"
+          },
+          {
+            "id": "HERO-EQUIP-WEAR-POPUP",
+            "cocos": "g1-wear-popup-open.png",
+            "unity": "g1-wear-popup-open.png"
+          },
+          {
+            "id": "HERO-EQUIP-EQUIPMENT-BAG",
+            "cocos": "g1-equipment-bag.png",
+            "unity": "g1-equipment-bag.png"
+          },
+          {
+            "id": "HERO-EQUIP-EQUIPMENT-BAG-EMPTY",
+            "cocos": "g1-equipment-bag-empty.png",
+            "unity": "g1-equipment-bag-empty.png"
+          },
+          {
+            "id": "HERO-EQUIP-EQUIPMENT-PIECES",
+            "cocos": "g1-equipment-pieces.png",
+            "unity": "g1-equipment-pieces.png"
+          },
+          {
+            "id": "HERO-EQUIP-EQUIPMENT-PIECES-EMPTY",
+            "cocos": "g1-equipment-pieces-empty.png",
+            "unity": "g1-equipment-pieces-empty.png"
+          },
+          {
+            "id": "HERO-EQUIP-EQUIPMENT-DETAIL",
+            "cocos": "g1-equipment-detail.png",
+            "unity": "g1-equipment-detail.png"
           },
           {
             "id": "HERO-EQUIP-STRENGTH-BEFORE",
-          "cocos": "g1-strength-before.png",
-          "unity": "g1-strength-before.png"
-        },
-        {
-          "id": "HERO-EQUIP-REFINE-BEFORE",
-          "cocos": "g1-refine-before.png",
-          "unity": "g1-refine-before.png"
-        },
-        {
-          "id": "HERO-EQUIP-AWAKEN-BEFORE",
-          "cocos": "g1-awaken-before.png",
-          "unity": "g1-awaken-before.png"
-        },
-        {
-          "id": "HERO-EQUIP-AWAKEN-LOCKED",
-          "cocos": "g1-awaken-locked.png",
-          "unity": "g1-awaken-locked.png"
-        },
-        {
-          "id": "HERO-EQUIP-SHENZHU-LOCKED",
-          "cocos": "g1-shenzhu-locked.png",
-          "unity": "g1-shenzhu-locked.png"
-        },
-        {
-          "id": "HERO-EQUIP-SOURCE-ACTIONABLE",
-          "cocos": "g1-source-actionable.png",
-          "unity": "g1-source-actionable.png"
-        }
-      ]
+            "cocos": "g1-strength-before.png",
+            "unity": "g1-strength-before.png"
+          },
+          {
+            "id": "HERO-EQUIP-REFINE-BEFORE",
+            "cocos": "g1-refine-before.png",
+            "unity": "g1-refine-before.png"
+          },
+          {
+            "id": "HERO-EQUIP-AWAKEN-BEFORE",
+            "cocos": "g1-awaken-before.png",
+            "unity": "g1-awaken-before.png"
+          },
+          {
+            "id": "HERO-EQUIP-AWAKEN-LOCKED",
+            "cocos": "g1-awaken-locked.png",
+            "unity": "g1-awaken-locked.png"
+          },
+          {
+            "id": "HERO-EQUIP-SHENZHU-LOCKED",
+            "cocos": "g1-shenzhu-locked.png",
+            "unity": "g1-shenzhu-locked.png"
+          },
+          {
+            "id": "HERO-EQUIP-SOURCE-ACTIONABLE",
+            "cocos": "g1-source-actionable.png",
+            "unity": "g1-source-actionable.png"
+          },
+          {
+            "id": "HERO-EQUIP-HIDE-WORN",
+            "cocos": "g1-equipment-hide-worn.png",
+            "unity": "g1-equipment-hide-worn.png"
+          }
+        ]
       }
     },
     {
@@ -1978,7 +2100,9 @@
         "snapshot": ".local/ui-fidelity/Bag/fixture/bag-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/unity-validation/bag-fixed-account-latest.json",
         "visualResultEvidence": ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
-        "visualValidationFlags": ["-projectXBagG4Validation"],
+        "visualValidationFlags": [
+          "-projectXBagG4Validation"
+        ],
         "visualOnlyArtifacts": false,
         "reloginRequired": true,
         "extraFlags": [],
@@ -1986,24 +2110,69 @@
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            {"id":"bag-fixed-account-link","description":"固定 userId=7200057 必须唯一绑定 roleId=1000115，所有 Cocos/Unity 证据使用同一身份。"},
-            {"id":"bag-deterministic-type-state","description":"可逆 package 夹具同时提供不可用、跳转、直接使用、批量使用、任选礼包、重复槽聚合和超过一屏状态。"},
-            {"id":"bag-authoritative-mutations","description":"真实 /15 覆盖体力丹对 user_spirit、贵族经验、任选礼包奖励与源道具扣除；只在权威回包后刷新。"},
-            {"id":"bag-full-row-exact-restore","description":"Setup 前完整快照 role_info 与所属 user_info 分片行；finally 整行恢复、重登录哈希一致。"},
-            {"id":"bag-fixture-zero-residue","description":"codex_bag_role_backup 与 codex_bag_user_backup 最终必须删除，残留计数为0。"}
+            {
+              "id": "bag-fixed-account-link",
+              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115，所有 Cocos/Unity 证据使用同一身份。"
+            },
+            {
+              "id": "bag-deterministic-type-state",
+              "description": "可逆 package 夹具同时提供不可用、跳转、直接使用、批量使用、任选礼包、重复槽聚合和超过一屏状态。"
+            },
+            {
+              "id": "bag-authoritative-mutations",
+              "description": "真实 /15 覆盖体力丹对 user_spirit、贵族经验、任选礼包奖励与源道具扣除；只在权威回包后刷新。"
+            },
+            {
+              "id": "bag-full-row-exact-restore",
+              "description": "Setup 前完整快照 role_info 与所属 user_info 分片行；finally 整行恢复、重登录哈希一致。"
+            },
+            {
+              "id": "bag-fixture-zero-residue",
+              "description": "codex_bag_role_backup 与 codex_bag_user_backup 最终必须删除，残留计数为0。"
+            }
           ]
         },
         "artifactCopies": [
-          {"source":"build/ui-migration/bootstrap-bag.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-POPULATED.png"},
-          {"source":"build/ui-migration/bootstrap-bag-scrolled.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SCROLLED.png"},
-          {"source":"build/ui-migration/bootstrap-bag-input.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-INPUT.png"},
-          {"source":"build/ui-migration/bootstrap-bag-gift.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT.png"},
-          {"source":"build/ui-migration/bootstrap-bag-gift-scrolled.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT-SCROLLED.png"},
-          {"source":"build/ui-migration/bootstrap-bag-source.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SOURCE.png"},
-          {"source":"build/ui-migration/bootstrap-bag-equipment-info.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-EQUIPMENT-INFO.png"},
-          {"source":"build/ui-migration/bootstrap-bag-disconnected.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-DISCONNECTED.png"},
-          {"source":"build/ui-migration/bootstrap-bag-reconnected.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-RECONNECTED.png"},
-          {"source":"build/ui-migration/bootstrap-bag-reenter.png","destination":".local/ui-fidelity/Bag/unity/g5-20260821/BAG-REENTER.png"}
+          {
+            "source": "build/ui-migration/bootstrap-bag.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-POPULATED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-scrolled.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SCROLLED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-input.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-INPUT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-gift.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-gift-scrolled.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT-SCROLLED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-source.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SOURCE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-equipment-info.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-EQUIPMENT-INFO.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-disconnected.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-DISCONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-reconnected.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-RECONNECTED.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-reenter.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-REENTER.png"
+          }
         ]
       },
       "g5": {
@@ -2025,16 +2194,56 @@
           "tools/unity-migration/Invoke-BagCocosFixture.ps1"
         ],
         "pairs": [
-          {"id":"BAG-POPULATED","cocos":"BAG-POPULATED.png","unity":"BAG-POPULATED.png"},
-          {"id":"BAG-SCROLLED","cocos":"BAG-SCROLLED.png","unity":"BAG-SCROLLED.png"},
-          {"id":"BAG-INPUT","cocos":"BAG-INPUT.png","unity":"BAG-INPUT.png"},
-          {"id":"BAG-GIFT","cocos":"BAG-GIFT.png","unity":"BAG-GIFT.png"},
-          {"id":"BAG-GIFT-SCROLLED","cocos":"BAG-GIFT-SCROLLED.png","unity":"BAG-GIFT-SCROLLED.png"},
-          {"id":"BAG-SOURCE","cocos":"BAG-SOURCE.png","unity":"BAG-SOURCE.png"},
-          {"id":"BAG-EQUIPMENT-INFO","cocos":"BAG-EQUIPMENT-INFO.png","unity":"BAG-EQUIPMENT-INFO.png"},
-          {"id":"BAG-DISCONNECTED","cocos":"BAG-DISCONNECTED.png","unity":"BAG-DISCONNECTED.png"},
-          {"id":"BAG-RECONNECTED","cocos":"BAG-RECONNECTED.png","unity":"BAG-RECONNECTED.png"},
-          {"id":"BAG-REENTER","cocos":"BAG-REENTER.png","unity":"BAG-REENTER.png"}
+          {
+            "id": "BAG-POPULATED",
+            "cocos": "BAG-POPULATED.png",
+            "unity": "BAG-POPULATED.png"
+          },
+          {
+            "id": "BAG-SCROLLED",
+            "cocos": "BAG-SCROLLED.png",
+            "unity": "BAG-SCROLLED.png"
+          },
+          {
+            "id": "BAG-INPUT",
+            "cocos": "BAG-INPUT.png",
+            "unity": "BAG-INPUT.png"
+          },
+          {
+            "id": "BAG-GIFT",
+            "cocos": "BAG-GIFT.png",
+            "unity": "BAG-GIFT.png"
+          },
+          {
+            "id": "BAG-GIFT-SCROLLED",
+            "cocos": "BAG-GIFT-SCROLLED.png",
+            "unity": "BAG-GIFT-SCROLLED.png"
+          },
+          {
+            "id": "BAG-SOURCE",
+            "cocos": "BAG-SOURCE.png",
+            "unity": "BAG-SOURCE.png"
+          },
+          {
+            "id": "BAG-EQUIPMENT-INFO",
+            "cocos": "BAG-EQUIPMENT-INFO.png",
+            "unity": "BAG-EQUIPMENT-INFO.png"
+          },
+          {
+            "id": "BAG-DISCONNECTED",
+            "cocos": "BAG-DISCONNECTED.png",
+            "unity": "BAG-DISCONNECTED.png"
+          },
+          {
+            "id": "BAG-RECONNECTED",
+            "cocos": "BAG-RECONNECTED.png",
+            "unity": "BAG-RECONNECTED.png"
+          },
+          {
+            "id": "BAG-REENTER",
+            "cocos": "BAG-REENTER.png",
+            "unity": "BAG-REENTER.png"
+          }
         ]
       }
     },

@@ -22,5 +22,16 @@ namespace ProjectX.UI
                 .FirstOrDefault();
             return binding == null ? null : new CocosUiView(binding);
         }
+
+        public void SetExclusiveVisibleBySource(string sourceToken, CocosUiView selected, bool visible)
+        {
+            foreach (CocosUiBinding binding in Resources.FindObjectsOfTypeAll<CocosUiBinding>()
+                .Where(item => item != null && item.gameObject.scene.IsValid()
+                    && !string.IsNullOrEmpty(item.Source)
+                    && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                binding.gameObject.SetActive(visible && selected != null && binding == selected.Binding);
+            }
+        }
     }
 }

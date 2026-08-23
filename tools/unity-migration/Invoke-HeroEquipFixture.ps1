@@ -5,7 +5,7 @@ param(
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
-    [ValidateSet("Cocos", "Transaction")]
+    [ValidateSet("Hero", "Cocos", "Transaction")]
     [string]$Profile = "Transaction",
     [string]$EvidencePath = ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-fixed-fixture-snapshot.json",
     [string]$UserFragmentEvidencePath = ".local/unity-validation/hero-equip-user-fragments-latest.json"
@@ -34,11 +34,15 @@ $fixtureFaBaoUid = [uint32]2121073002
 $fixtureFaBaoTemplateId = [uint16]1101
 $fixtureFragmentIds = if ($Profile -eq "Transaction") {
     @([uint16]4605, [uint16]4621, [uint16]4622, [uint16]4629)
+} elseif ($Profile -eq "Hero") {
+    @()
 } else {
     @([uint16]4605, [uint16]4621)
 }
 $fixtureFragmentQuantities = if ($Profile -eq "Transaction") {
     @([uint16]5, [uint16]62, [uint16]2, [uint16]1)
+} elseif ($Profile -eq "Hero") {
+    @()
 } else {
     @([uint16]5, [uint16]30)
 }
@@ -160,11 +164,22 @@ function Add-HeroEquipPackageFragments([string]$Hex) {
         $existing[[int]$itemId] = ([int]($existing[[int]$itemId] ?? 0)) + [int]$quantity
     }
     if ($position -ne $bytes.Length) { throw "HeroEquip package has trailing bytes after 500 slots." }
+    $nextEmptySlot = 0
     for ($index = 0; $index -lt $fixturePackageItemIds.Count; $index++) {
         $itemId = [int]$fixturePackageItemIds[$index]
-        if ($existing.ContainsKey($itemId)) { throw "HeroEquip reserved fragment item already exists: $itemId" }
-        if ($emptySlots.Count -le $index) { throw "HeroEquip package has no empty slot for fragment fixture." }
-        $slots[$emptySlots[$index]] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$fixturePackageItemQuantities[$index] }
+        $matchingSlots = @(for ($slotIndex = 0; $slotIndex -lt $slots.Count; $slotIndex++) {
+            if ([int]$slots[$slotIndex].itemId -eq $itemId) { $slotIndex }
+        })
+        if ($matchingSlots.Count -gt 0) {
+            $slots[$matchingSlots[0]] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$fixturePackageItemQuantities[$index] }
+            foreach ($duplicateSlot in @($matchingSlots | Select-Object -Skip 1)) {
+                $slots[$duplicateSlot] = [pscustomobject]@{ itemId=[uint16]0; quantity=[uint16]0 }
+            }
+            continue
+        }
+        if ($emptySlots.Count -le $nextEmptySlot) { throw "HeroEquip package has no empty slot for fragment fixture." }
+        $slots[$emptySlots[$nextEmptySlot]] = [pscustomobject]@{ itemId=[uint16]$itemId; quantity=[uint16]$fixturePackageItemQuantities[$index] }
+        $nextEmptySlot++
     }
     $output = [IO.MemoryStream]::new(); $writer = [IO.BinaryWriter]::new($output)
     try {
@@ -268,22 +283,25 @@ function Set-HeroEquipSecondFormationPosition([string]$Hex) {
     $position += 3 * $zhenfaCount
     if ($position -ge $bytes.Length) { throw "HeroEquip zhenfa member count is missing." }
     $memberCount = $bytes[$position]; $position++
-    if ($memberCount -lt 2) { throw "HeroEquip fixture requires at least two formation member slots." }
+    $expectedHeroes = @($sourceFormationHeroId, $targetFormationHeroId)
+    if ($memberCount -lt $expectedHeroes.Count) { throw "HeroEquip fixture requires at least $($expectedHeroes.Count) formation member slots." }
     $memberStart = $position
     $position += 5 * $memberCount
     if ($position -ge $bytes.Length) { throw "HeroEquip zhenfa chuzhan count is missing." }
     $chuzhanCount = $bytes[$position]; $position++
-    if ($chuzhanCount -lt 2) { throw "HeroEquip fixture requires at least two chuzhan slots." }
+    if ($chuzhanCount -lt $expectedHeroes.Count) { throw "HeroEquip fixture requires at least $($expectedHeroes.Count) chuzhan slots." }
     if ($position + 2 * $chuzhanCount -ne $bytes.Length) { throw "HeroEquip zhenfa payload length does not match source serialization." }
 
     $firstMemberOffset = $memberStart
     if ($bytes[$firstMemberOffset] -ne 2 -or [BitConverter]::ToUInt32($bytes, $firstMemberOffset + 1) -ne $sourceFormationHeroId) {
         throw "HeroEquip source formation position 1 is not hero $sourceFormationHeroId."
     }
-    $secondMemberOffset = $memberStart + 5
-    $bytes[$secondMemberOffset] = 2
-    [BitConverter]::GetBytes($targetFormationHeroId).CopyTo($bytes, $secondMemberOffset + 1)
-    [BitConverter]::GetBytes([uint16]$targetFormationHeroId).CopyTo($bytes, $position + 2)
+    for ($index = 1; $index -lt $expectedHeroes.Count; $index++) {
+        $memberOffset = $memberStart + 5 * $index
+        $bytes[$memberOffset] = 2
+        [BitConverter]::GetBytes([uint32]$expectedHeroes[$index]).CopyTo($bytes, $memberOffset + 1)
+        [BitConverter]::GetBytes([uint16]$expectedHeroes[$index]).CopyTo($bytes, $position + 2 * $index)
+    }
     Compress-HeroEquipBlob $bytes
 }
 
@@ -296,13 +314,13 @@ function Assert-HeroEquipFormationPositions {
     $zhenfaCount = $bytes[$position]; $position++
     $position += 3 * $zhenfaCount
     $memberCount = $bytes[$position]; $position++
-    if ($memberCount -lt 2) { throw "HeroEquip formation assertion has fewer than two member slots." }
+    $expectedHeroes = @($sourceFormationHeroId, $targetFormationHeroId)
+    if ($memberCount -lt $expectedHeroes.Count) { throw "HeroEquip formation assertion has fewer than $($expectedHeroes.Count) member slots." }
     $memberStart = $position
     $position += 5 * $memberCount
     $chuzhanCount = $bytes[$position]; $position++
-    if ($chuzhanCount -lt 2) { throw "HeroEquip formation assertion has fewer than two chuzhan slots." }
-    $expectedHeroes = @($sourceFormationHeroId, $targetFormationHeroId)
-    for ($index = 0; $index -lt 2; $index++) {
+    if ($chuzhanCount -lt $expectedHeroes.Count) { throw "HeroEquip formation assertion has fewer than $($expectedHeroes.Count) chuzhan slots." }
+    for ($index = 0; $index -lt $expectedHeroes.Count; $index++) {
         $memberOffset = $memberStart + 5 * $index
         if ($bytes[$memberOffset] -ne 2 -or [BitConverter]::ToUInt32($bytes, $memberOffset + 1) -ne $expectedHeroes[$index]) {
             throw "HeroEquip formation member position $($index + 1) mismatch."
@@ -373,11 +391,16 @@ function Get-HeroEquipBlobLayout([byte[]]$Bytes) {
 function Add-HeroEquipFixtureItems([string]$Hex) {
     $bytes = Expand-HeroEquipBlob $Hex
     $layout = Get-HeroEquipBlobLayout $bytes
+    if ($Profile -eq "Hero") { return $Hex }
     $reservedEquipmentUids = @($sourceWornEquipmentUid, $fixtureEquipmentUid, $fixtureShenZhuEquipmentUid) +
         @($scrollFixtureEquipmentUids)
-    if (@($reservedEquipmentUids | Where-Object { $_ -in $layout.equipmentUids }).Count -gt 0 -or
-        $fixtureFaBaoUid -in $layout.faBaoUids) {
-        throw "HeroEquip reserved fixture UID already exists in the source snapshot."
+    $presentEquipmentUids = @($reservedEquipmentUids | Where-Object { $_ -in $layout.equipmentUids })
+    $fixtureFaBaoPresent = $fixtureFaBaoUid -in $layout.faBaoUids
+    if ($presentEquipmentUids.Count -gt 0 -or $fixtureFaBaoPresent) {
+        if ($presentEquipmentUids.Count -eq $reservedEquipmentUids.Count -and $fixtureFaBaoPresent) {
+            return $Hex
+        }
+        throw "HeroEquip reserved fixture UID set is partially occupied in the source snapshot."
     }
     $stream = [IO.MemoryStream]::new()
     $writer = [IO.BinaryWriter]::new($stream)
@@ -480,6 +503,12 @@ function Assert-HeroEquipFixtureItems {
     $rows = @(Invoke-HeroEquipSql "SELECT pet_equip FROM role_info WHERE id=$RoleId")
     if ($rows.Count -ne 1) { throw "HeroEquip role row is missing while asserting fixture items." }
     $layout = Get-HeroEquipBlobLayout (Expand-HeroEquipBlob ([string]$rows[0]))
+    if ($Profile -eq "Hero") {
+        if ($layout.equipmentCount -lt 4 -or $layout.faBaoCount -lt 2) {
+            throw "Hero fixture requires at least four equipment records and two fabao records."
+        }
+        return
+    }
     if ($fixtureEquipmentUid -notin $layout.equipmentUids) { throw "HeroEquip fixture equipment is missing." }
     if ($fixtureFaBaoUid -notin $layout.faBaoUids) { throw "HeroEquip fixture fabao is missing." }
     $source = @($layout.equipmentEntries | Where-Object { $_.uid -eq $sourceWornEquipmentUid })
@@ -506,7 +535,7 @@ function Assert-HeroEquipFixtureItems {
 function Assert-HeroEquipCultivationContract {
     $rows = @(Invoke-HeroEquipSql "SELECT level FROM role_info WHERE id=$RoleId")
     if ($rows.Count -ne 1) { throw "HeroEquip role level is missing while asserting cultivation contract." }
-    $expectedLevel = if ($Profile -eq "Transaction") { 70 } else { 60 }
+    $expectedLevel = if ($Profile -eq "Transaction") { 70 } elseif ($Profile -eq "Hero") { 99 } else { 60 }
     if ([int]$rows[0] -ne $expectedLevel) { throw "HeroEquip $Profile profile level must be $expectedLevel." }
     if ($Profile -ne "Transaction") { return }
     # 4621=62 supports compose 1301 (60) followed by awaken level 1 (2);
@@ -587,6 +616,12 @@ switch ($Action) {
         Set-PreserveBalanceUserId $UserId
         Set-PreserveLevelUserId $UserId
         Invoke-HeroEquipSql "DROP TABLE IF EXISTS ``$roleBackup``; CREATE TABLE ``$roleBackup`` LIKE role_info; INSERT INTO ``$roleBackup`` SELECT * FROM role_info WHERE id=$RoleId; DROP TABLE IF EXISTS ``$userBackup``; CREATE TABLE ``$userBackup`` LIKE ``$userTable``; INSERT INTO ``$userBackup`` SELECT * FROM ``$userTable`` WHERE id=$UserId" | Out-Null
+        Write-Evidence ([ordered]@{
+            action="SetupPending"; profile=$Profile; userId=$UserId; roleId=$RoleId; userTable=$userTable; snapshotHash=$hash
+            originalPreserveBalanceUserId=$originalPreserveBalanceUserId
+            originalPreserveLevelUserId=$originalPreserveLevelUserId
+            createdUtc=[DateTime]::UtcNow.ToString("O")
+        })
         $petEquipRows = @(Invoke-HeroEquipSql "SELECT pet_equip FROM role_info WHERE id=$RoleId")
         if ($petEquipRows.Count -ne 1) { throw "HeroEquip role pet_equip payload is missing." }
         $fixtureBlob = Add-HeroEquipFixtureItems ([string]$petEquipRows[0])
@@ -596,7 +631,7 @@ switch ($Action) {
         $zhenfaRows = @(Invoke-HeroEquipSql "SELECT zhenfa FROM role_info WHERE id=$RoleId")
         if ($zhenfaRows.Count -ne 1) { throw "HeroEquip role zhenfa payload is missing." }
         $fixtureZhenfa = Set-HeroEquipSecondFormationPosition ([string]$zhenfaRows[0])
-        $fixtureLevel = if ($Profile -eq "Transaction") { 70 } else { 60 }
+        $fixtureLevel = if ($Profile -eq "Transaction") { 70 } elseif ($Profile -eq "Hero") { 99 } else { 60 }
         Invoke-HeroEquipSql "UPDATE role_info SET level=$fixtureLevel,pet_equip='$fixtureBlob',package='$fixturePackage',zhenfa='$fixtureZhenfa' WHERE id=$RoleId" | Out-Null
         Assert-HeroEquipFixtureItems
         Assert-HeroEquipPackageFragments

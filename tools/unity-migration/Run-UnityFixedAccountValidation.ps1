@@ -32,11 +32,22 @@ if ($contract.Count -ne 1 -or $null -eq $contract[0].fixedAccount) {
 }
 $contract = $contract[0]
 $fixed = $contract.fixedAccount
+$dataBackend = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "dataBackend" -Default "mysql")
+if ($dataBackend -notin @("mysql", "sqlite")) { throw "Unsupported fixed-account data backend: $dataBackend" }
 $mutationReloginOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "mutationReloginOracle" -Default $null
 $serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
 $serverStartParameters = @{ WaitSeconds = 60 }
 if ($serverConfigDirectoryValue) {
     $serverStartParameters.ConfigDirectory = Resolve-UnityMigrationPath -Root $root -Path $serverConfigDirectoryValue
+}
+$fixedSqlitePath = ""
+if ($dataBackend -eq "sqlite") {
+    $sqliteRelative = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "sqlitePath" -Default "")
+    $sqliteSchemaValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "sqliteSchema" -Default "")
+    if (-not $sqliteRelative -or -not $sqliteSchemaValue) { throw "SQLite fixed-account contract requires sqlitePath and sqliteSchema." }
+    $fixedSqlitePath = if ([IO.Path]::IsPathRooted($sqliteRelative)) { $sqliteRelative } else { Join-Path $env:USERPROFILE $sqliteRelative }
+    $serverStartParameters.SqlitePath = [IO.Path]::GetFullPath($fixedSqlitePath)
+    $serverStartParameters.SqliteSchemaPath = Resolve-UnityMigrationPath -Root $root -Path $sqliteSchemaValue
 }
 $contractFailures = @(Get-UnityMigrationFixedAccountContractFailures `
     -Root $root -Module ([string]$moduleConfig.key) -FixedAccount $fixed)
@@ -89,7 +100,10 @@ try {
     }
 
     function Invoke-FixedAdapter([string]$Action) {
-        & $pwshExecutable -NoProfile -File $adapter -Action $Action -UserId $UserId -RoleId $RoleId -EvidencePath $snapshot
+        $adapterArguments = @("-NoProfile", "-File", $adapter, "-Action", $Action,
+            "-UserId", $UserId, "-RoleId", $RoleId, "-EvidencePath", $snapshot)
+        if ($dataBackend -eq "sqlite") { $adapterArguments += @("-DatabasePath", $fixedSqlitePath) }
+        & $pwshExecutable @adapterArguments
         if ($LASTEXITCODE -ne 0) { throw "Fixed-account adapter action failed: $Action" }
     }
 
@@ -140,24 +154,28 @@ try {
 
     $mysqlTiming = Start-UnityMigrationTiming
     try {
-        $mysqlListenerPid = Get-UnityMigrationTcpListenerPid -Port 3306
-        if ($null -ne $mysqlListenerPid) {
-            $mysqlProcess = Get-Process -Id $mysqlListenerPid -ErrorAction SilentlyContinue
-            if (-not $mysqlProcess -or $mysqlProcess.ProcessName -ne "mysqld" -or
-                -not (Test-Path -LiteralPath (Join-Path $root ".local/mysql-local.ini") -PathType Leaf)) {
-                throw "Port 3306 is not owned by the workspace-local MySQL process."
+        if ($dataBackend -eq "mysql") {
+            $mysqlListenerPid = Get-UnityMigrationTcpListenerPid -Port 3306
+            if ($null -ne $mysqlListenerPid) {
+                $mysqlProcess = Get-Process -Id $mysqlListenerPid -ErrorAction SilentlyContinue
+                if (-not $mysqlProcess -or $mysqlProcess.ProcessName -ne "mysqld" -or
+                    -not (Test-Path -LiteralPath (Join-Path $root ".local/mysql-local.ini") -PathType Leaf)) {
+                    throw "Port 3306 is not owned by the workspace-local MySQL process."
+                }
             }
-        }
-        else {
-            $beforeMySqlIds = @(Get-Process mysqld -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.Id })
-            & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
-            if ($LASTEXITCODE -ne 0) { throw "Fixed-account MySQL startup failed." }
-            foreach ($process in @(Get-Process mysqld -ErrorAction SilentlyContinue)) {
-                if ([int]$process.Id -notin $beforeMySqlIds) { $startedMySqlIds.Add([int]$process.Id) }
+            else {
+                $beforeMySqlIds = @(Get-Process mysqld -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.Id })
+                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
+                if ($LASTEXITCODE -ne 0) { throw "Fixed-account MySQL startup failed." }
+                foreach ($process in @(Get-Process mysqld -ErrorAction SilentlyContinue)) {
+                    if ([int]$process.Id -notin $beforeMySqlIds) { $startedMySqlIds.Add([int]$process.Id) }
+                }
+                if ($null -eq (Get-UnityMigrationTcpListenerPid -Port 3306)) {
+                    throw "Workspace-local MySQL did not listen on 3306."
+                }
             }
-            if ($null -eq (Get-UnityMigrationTcpListenerPid -Port 3306)) {
-                throw "Workspace-local MySQL did not listen on 3306."
-            }
+        } elseif (-not (Test-Path -LiteralPath $fixedSqlitePath -PathType Leaf)) {
+            throw "Fixed-account SQLite database is missing: $fixedSqlitePath"
         }
     }
     finally {
@@ -167,8 +185,17 @@ try {
     if ($DataPreflightOnly) {
         $dataTiming = Start-UnityMigrationTiming
         try {
-            Invoke-FixedAdapter "Setup"
-            $fixtureCreated = $true
+            if (Test-Path -LiteralPath $snapshot -PathType Leaf) {
+                Remove-Item -LiteralPath $snapshot -Force
+            }
+            try {
+                Invoke-FixedAdapter "Setup"
+                $fixtureCreated = $true
+            }
+            catch {
+                $fixtureCreated = Test-Path -LiteralPath $snapshot -PathType Leaf
+                throw
+            }
             if ([bool]$fixed.dataPreflight.requiresLogin) {
                 & $startServerScript @serverStartParameters
                 if (-not $?) { throw "Fixed-account data preflight server startup failed." }
@@ -463,7 +490,8 @@ try {
     Write-Host "Fixed-account validation passed and restored: module=$Module userId=$UserId roleId=$RoleId"
 }
 catch {
-    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate G6 -Category UnityBatch `
+    $failureGate = if ($DataPreflightOnly -or $PreflightOnly) { "G3" } else { "G6" }
+    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $failureGate -Category UnityBatch `
         -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" -Operation "fixed-account-batch-validation" `
         -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
         -Evidence @($timingPath) | Out-Null

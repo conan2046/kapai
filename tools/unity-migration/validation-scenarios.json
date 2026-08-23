@@ -885,66 +885,123 @@
     {
       "key": "hero-g6",
       "module": "Hero",
-      "fixture": "isolated-role",
+      "fixture": "reversible-hero-fixed-account",
       "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "hero-authoritative-entry",
+        "hero-row-state-contract",
+        "hero-formation-mutation-restore",
+        "hero-sibling-boundaries",
+        "hero-network-recovery",
+        "hero-account-isolation",
+        "hero-fixture-exact-restore",
+        "hero-control-matrix-16"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/MainUI.lua",
+          "contains": [
+            "local BTN_NAME_ShenJiang = \"btn_zhenrong\"",
+            "MainUI:PetTouchCallback",
+            "EMID_KAPAI_SHENJIANG"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/KaPaiPet/PetZhenRongUI.lua",
+          "contains": [
+            "KaPaiPet.PetZhenRongUI",
+            "InitTableView",
+            "FormationClicked"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "PRO_PET,boost::bind(&CPackageDeal::PetOption",
+            "PRO_ZHEN_FA,boost::bind(&CPackageDeal::ZhenFaOption",
+            "void CPackageDeal::PetOption",
+            "void CPackageDeal::ZhenFaOption"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "contains": [
+            "local function requestFormation()",
+            "function M.onClick()",
+            "function M.moveHero(heroId, position)",
+            "function M.reset()"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs",
+          "contains": [
+            "class HeroPresenter",
+            "SelectedPosition",
+            "Render()",
+            "deployedHeroId",
+            "skillIcon.enabled = skillIcon.sprite != null",
+            "rowButton.interactable = true",
+            "rowButton.targetGraphic.raycastTarget = true"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/UiRouter.cs",
+          "contains": [
+            "SetExclusiveVisibleBySource",
+            "binding == selected.Binding"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/CocosUiView.cs",
+          "contains": [
+            "button.interactable = true",
+            "button.targetGraphic.raycastTarget = true"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs",
+          "contains": [
+            "button.interactable = true",
+            "button.targetGraphic.raycastTarget = true"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs",
+          "contains": [
+            "class FormationPopupPresenter",
+            "Render()"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-HeroFixture.ps1",
+          "contains": [
+            "Invoke-HeroSqliteFixture.py",
+            "projectx.db",
+            "Hero SQLite fixture adapter failed"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-HeroSqliteFixture.py",
+          "contains": [
+            "five_pet_blob",
+            "assert_setup",
+            "formationOpenLevels"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": false
+      },
       "flags": [
         "-projectXHeroG4Validation"
       ],
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-hero.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-hero-detail-equipped.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-wear-popup-open.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-equipment-bag.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-equipment-bag-empty.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-equipment-pieces.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-equipment-pieces-empty.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-equipment-detail.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-strength-before.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-refine-before.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-awaken-before.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-awaken-locked.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-shenzhu-locked.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/g1-source-actionable.png",
           "lifecycle": "runtime"
         }
       ],

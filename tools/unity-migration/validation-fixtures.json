@@ -68,6 +68,13 @@
       "adapter": "tools/unity-migration/Invoke-BagCocosFixture.ps1"
     },
     {
+      "key": "reversible-hero-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-HeroFixture.ps1"
+    },
+    {
       "key": "reversible-seven-day-fixed-account",
       "roleMode": "fixed-account",
       "mutatesServer": true,

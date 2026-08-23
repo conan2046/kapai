@@ -137,6 +137,13 @@ namespace ProjectX.UI
                 selectedId = firstOccupiedHero > 0 ? firstOccupiedHero : items[0].Id;
                 selectionInitialized = true;
             }
+            else if (selectedId == 0 && selectedPosition > 0
+                && selectedPosition <= formation.CombatHeroes.Count)
+            {
+                int deployedHeroId = formation.CombatHeroes[selectedPosition - 1];
+                if (deployedHeroId > 0 && heroes.TryGet(deployedHeroId, out _))
+                    selectedId = deployedHeroId;
+            }
             var slots = new System.Collections.Generic.List<FormationSlot>(5);
             for (int position = 1; position <= 5; position++)
             {
@@ -174,11 +181,15 @@ namespace ProjectX.UI
             Transform locked = row.Find("bg_Lock");
             int openLevel = FormationOpenLevels[Mathf.Clamp(slot.Position - 1, 0, FormationOpenLevels.Length - 1)];
             bool isLocked = player.Level < openLevel;
+            Text lockLevel = row.Find("bg_Lock/level")?.GetComponent<Text>();
+            if (lockLevel != null) lockLevel.text = openLevel.ToString();
             if (head != null) head.gameObject.SetActive(occupied);
             if (add != null) add.gameObject.SetActive(!occupied && !isLocked);
             if (locked != null) locked.gameObject.SetActive(isLocked);
             Button rowButton = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
             rowButton.targetGraphic = row.GetComponent<Graphic>() ?? row.GetComponentInChildren<Graphic>();
+            rowButton.interactable = true;
+            if (rowButton.targetGraphic != null) rowButton.targetGraphic.raycastTarget = true;
             rowButton.onClick.RemoveAllListeners();
             if (isLocked)
             {
@@ -265,14 +276,17 @@ namespace ProjectX.UI
                 skillName.text = definition.SkillName;
                 skillDescription.text = definition.SkillDescription;
                 if (skillIcon != null)
+                {
                     skillIcon.sprite = definition.SkillId > 0
                         ? resources.LoadFirst($"HeroUI/skill_{definition.SkillId}")
                         : null;
+                    skillIcon.enabled = skillIcon.sprite != null;
+                }
             }
             else
             {
                 attackType.text = skillName.text = skillDescription.text = "";
-                if (skillIcon != null) skillIcon.sprite = null;
+                if (skillIcon != null) { skillIcon.sprite = null; skillIcon.enabled = false; }
             }
             ShowDetailModel(hero.Id);
             RenderEquipmentSlots();
@@ -321,6 +335,8 @@ namespace ProjectX.UI
             GameObject target = Require(detailView, path);
             Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
             button.targetGraphic = target.GetComponent<Graphic>() ?? target.GetComponentInChildren<Graphic>();
+            button.interactable = true;
+            if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action());
         }
@@ -421,6 +437,8 @@ namespace ProjectX.UI
                 }
                 Button button = cell.GetComponent<Button>() ?? cell.gameObject.AddComponent<Button>();
                 button.targetGraphic = cell.GetComponent<Graphic>() ?? cell.GetComponentInChildren<Graphic>();
+                button.interactable = true;
+                if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => { selectedId = hero.Id; Render(); });
             }

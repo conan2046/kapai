@@ -36,6 +36,10 @@ namespace ProjectX.UI
             }
             if (button == null)
                 throw new InvalidOperationException($"Button component was not found: {nodePath}");
+            button.interactable = true;
+            if (button.targetGraphic == null)
+                button.targetGraphic = node.GetComponent<Graphic>() ?? node.GetComponentInChildren<Graphic>(true);
+            if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => callback());
             return button;

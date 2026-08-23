@@ -524,60 +524,51 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HERO.md",
-      "note": "G0-G6 passed after 16/16 real-Button automation, 16/16 same-account Cocos/Unity evidence and 16/16 final manual visual acceptance.",
+      "note": "2026-08-23 current-source G0 retained the original 16 controls. G1 passed with fixed identity 7200057/1000115 and 16 current native 1334x750 Cocos states; historical G2-G6 evidence remains invalid.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/HERO_CONTROLS.json",
-          "tools/cocos-audit/generated/cocos-runtime-reachability.json",
-          ".local/ui-fidelity/Hero/cocos/formation-entry-user7200057-dpi100.jpg"
+          "docs/unityclient/modules/HERO.md",
+          ".local/unity-validation/hero-g0-current-source-audit.json",
+          ".local/unity-validation/hero-operation-ledger.json"
         ],
         "G1": [
-          "docs/unityclient/matrices/HERO_CONTROLS.json",
-          "docs/unityclient/modules/HERO.md",
-          ".local/ui-fidelity/Hero/cocos/g1-locked-row-level1-user7200260.jpg"
+          ".local/unity-validation/hero-cocos-baseline-latest.json",
+          ".local/unity-validation/hero-cocos-automation-ledger.json"
         ],
-        "G2": [
-          "docs/unityclient/matrices/HERO_CONTROLS.json",
-          "docs/unityclient/modules/HERO.md",
-          "tools/unity-migration/unityclient-modules.json",
-          ".local/protocol-evidence/Hero-24.md",
-          ".local/protocol-evidence/Hero-48.md"
-        ],
-        "G3": [
-          "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity",
-          "docs/unityclient/matrices/HERO_CONTROLS.json",
-          "docs/unityclient/modules/HERO.md"
-        ],
+      "G2": [
+        "docs/unityclient/matrices/HERO_CONTROLS.json",
+        "docs/unityclient/modules/HERO.md",
+        "tools/unity-migration/unityclient-modules.json",
+        "tools/unity-migration/validation-scenarios.json",
+        "tools/unity-migration/module-evidence-contracts.json",
+        ".local/unity-validation/hero-g2-source-audit.json"
+      ],
+      "G3": [
+        ".local/unity-validation/hero-g3-initial-playable.json",
+        ".local/unity-validation/unity-compile-preflight-latest.json",
+        ".local/unity-validation/hero-fixed-account-data-preflight-latest.json"
+      ],
         "G4": [
-          ".local/unity-validation/hero-g4-main-user7200057.json",
-          ".local/unity-validation/hero-locked.json",
-          ".local/unity-validation/hero-invalid.json",
-          ".local/unity-validation/hero-g4-reconnect-user7200057.json",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs"
+          ".local/unity-validation/hero-fixed-account-latest.json",
+          ".local/unity-validation/hero-early-user-play-latest.json"
         ],
         "G5": [
-          ".local/ui-fidelity/Hero/cocos/g5-live-20260726",
-          ".local/ui-fidelity/Hero/unity",
-          ".local/ui-fidelity/Hero/compare/g5-live-20260726/report.json",
-          ".local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.json",
-          "docs/unityclient/matrices/HERO_CONTROLS.json"
+          ".local/ui-fidelity/Hero/compare/g5-current/report.json",
+          ".local/ui-fidelity/Hero/compare/g5-current/manual-acceptance.json"
         ],
         "G6": [
-          "build/ui-migration/bootstrap-app-result.json",
-          "build/ui-migration/bootstrap-hero.png",
-          "build/ui-migration/bootstrap-idempotence-1.log",
-          "build/ui-migration/bootstrap-idempotence-2.log"
+          ".local/unity-validation/hero-fixed-account-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/unity-validation/hero-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-07-26T14:50:39.0223283Z"
+      "updatedUtc": "2026-08-23T05:46:23.4311567Z"
     },
     {
       "module": "Draw",

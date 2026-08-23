@@ -1,6 +1,7 @@
 # Codex Project Notes
 
 ## Codex 性能与运行时生命周期
+- 用户参与的 Unity Editor/Player 功能测试只使用 `Application.persistentDataPath/LocalServer/projectx.db`；所有测试账号、角色等级、神将、装备、道具、货币和阵容夹具必须更新该 SQLite 文件。禁止用 workspace-local MySQL 数据替代用户测试数据；MySQL 仅用于离线兼容对照和回归。
 - 本项目只有一套本地服务端：workspace-local MySQL + `kapai.exe`；有两套客户端：Cocos `ProjectX.exe` 与 Unity Editor/Player。
 - 每个任务开始先判断目标是服务端、Cocos 客户端还是 Unity 客户端；只启动当前操作必需的进程，不继承上个任务的运行状态。
 - 文档、代码阅读和静态修改默认不启动 MySQL、`kapai.exe`、Cocos 客户端、Unity 或 Unity MCP。

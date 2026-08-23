@@ -220,10 +220,14 @@ namespace ProjectX.Core
         private CocosUiView heroAttributesView;
         private CocosUiView heroItemSourceView;
         private HeroPresenter heroPresenter;
+        private int activeHeroCultivationId;
         private bool heroG4ControlValidationRunning;
         private CocosUiView formationPopupView;
         private FormationPopupPresenter formationPopupPresenter;
         private LuaFunction onFormationMove;
+        private LuaFunction onFormationSwap;
+        private LuaFunction onFormationUpgrade;
+        private LuaFunction onFormationUse;
         private HeroEntry pendingHeroEntry = HeroEntry.Formation;
         private readonly List<HeroRecord> pendingHeroes = new List<HeroRecord>();
         private readonly List<FormationRecord> pendingFormations = new List<FormationRecord>();
@@ -715,6 +719,9 @@ namespace ProjectX.Core
                 onHeroClicked = services.Lua.GetFunction("OnHeroClicked");
                 onHeroLevelUp = services.Lua.GetFunction("OnHeroLevelUp");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
+                onFormationSwap = services.Lua.GetFunction("OnFormationSwap");
+                onFormationUpgrade = services.Lua.GetFunction("OnFormationUpgrade");
+                onFormationUse = services.Lua.GetFunction("OnFormationUse");
                 onHeroEquipmentWear = services.Lua.GetFunction("OnHeroEquipmentWear");
                 onEquipmentBagClicked = services.Lua.GetFunction("OnEquipmentBagClicked");
                 onFaBaoBagClicked = services.Lua.GetFunction("OnFaBaoBagClicked");
@@ -868,6 +875,9 @@ namespace ProjectX.Core
             onHeroClicked?.Dispose();
             onHeroLevelUp?.Dispose();
             onFormationMove?.Dispose();
+            onFormationSwap?.Dispose();
+            onFormationUpgrade?.Dispose();
+            onFormationUse?.Dispose();
             onHeroEquipmentWear?.Dispose();
             onEquipmentBagClicked?.Dispose();
             onFaBaoBagClicked?.Dispose();
@@ -3587,6 +3597,7 @@ namespace ProjectX.Core
             services.Formation.Clear();
             services.HeroEquipment.Clear();
             services.FaBao.Clear();
+            activeHeroCultivationId = 0;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
             pendingHeroEquipment.Clear();
@@ -6323,10 +6334,21 @@ namespace ProjectX.Core
             services.Heroes.SetFightPositions(positions);
             EnsureHeroPresenter();
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
-            heroListView.SetVisible(!showBag);
-            heroDetailView.SetVisible(!showBag);
-            heroBagView.SetVisible(showBag);
-            ConfigureHeroFrame(showBag);
+            bool preserveCultivation = heroCultivationView?.GameObject.activeSelf == true
+                || heroLevelUpView?.GameObject.activeSelf == true;
+            if (preserveCultivation)
+            {
+                // A successful cultivation operation refreshes /24 and /48.  That
+                // snapshot updates data only; it must not navigate back to the
+                // formation list/detail pages underneath the cultivation shell.
+                SetHeroFramePageVisibility(false, false, false, true, true);
+                RefreshHeroCultivationData(activeHeroCultivationId);
+            }
+            else
+            {
+                SetHeroFramePageVisibility(!showBag, !showBag, showBag, false, false);
+                ConfigureHeroFrame(showBag);
+            }
             if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
             SetStatus(showBag
                 ? $"Hero bag UI active: {services.Heroes.Count} heroes."
@@ -6435,7 +6457,11 @@ namespace ProjectX.Core
         private IEnumerator FinalizeHeroG4ValidationRoutine(int heroId, int restoredPosition, int movedFromPosition)
         {
             Button close = RequireBoundButton(formationPopupView, "Layer/Bg/Popup/Btn_close", "formation popup close");
-            close.onClick.Invoke();
+            if (!InvokeEventSystemClick(close))
+            {
+                Fail("Hero G4 formation popup close did not accept EventSystem pointer input.");
+                yield break;
+            }
             if (IsFormationPopupOpen)
             {
                 Fail("Hero G4 formation close button did not close the popup.");
@@ -6456,7 +6482,7 @@ namespace ProjectX.Core
         {
             if (!IsHeroOpen) return true;
             Button close = RequireBoundButton(heroFrameView, "Layer/Panel_12/Title/CloseBtn", "hero close");
-            close.onClick.Invoke();
+            if (!InvokeEventSystemClick(close)) return false;
             if (!IsHeroOpen)
             {
                 heroFrameView?.SetVisible(false);
@@ -6477,8 +6503,7 @@ namespace ProjectX.Core
             if (IsHeroOpen && !InvokeHeroCloseForValidation()) return false;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             Button formationButton = mainView?.Binding.Find(FormationPath)?.GetComponent<Button>();
-            if (formationButton == null || !formationButton.interactable) return false;
-            formationButton.onClick.Invoke();
+            if (!InvokeEventSystemClick(formationButton)) return false;
             return true;
         }
 
@@ -6512,7 +6537,11 @@ namespace ProjectX.Core
             EnsureHeroPresenter();
             Button occupied = FindRuntimeHeroRowButton($"Hero_{heroId}_");
             if (occupied == null) { Fail($"Hero G4 occupied row button was not found for hero {heroId}."); yield break; }
-            occupied.onClick.Invoke();
+            if (!InvokeEventSystemClick(occupied))
+            {
+                Fail("Hero G4 occupied row did not accept EventSystem pointer input.");
+                yield break;
+            }
             if (heroPresenter.SelectedId != heroId || heroPresenter.SelectedPosition != originalPosition)
             {
                 Fail("Hero G4 occupied row did not update the selected hero/position.");
@@ -6528,7 +6557,11 @@ namespace ProjectX.Core
 
             Button empty = FindRuntimeHeroRowButton($"FormationEmpty_{targetPosition}", true);
             if (empty == null) { Fail($"Hero G4 empty row button was not found at position {targetPosition}."); yield break; }
-            empty.onClick.Invoke();
+            if (!InvokeEventSystemClick(empty))
+            {
+                Fail("Hero G4 empty row did not accept EventSystem pointer input.");
+                yield break;
+            }
             if (heroPresenter.SelectedId != 0 || heroPresenter.SelectedPosition != targetPosition)
             {
                 Fail("Hero G4 empty row did not preserve the empty selected position.");
@@ -6536,7 +6569,7 @@ namespace ProjectX.Core
             }
             yield return CaptureHeroG5Evidence("HERO-03-EMPTY-ROW");
 
-            RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/Panel_new/addnew", "add hero").onClick.Invoke();
+            if (!InvokeHeroPointer(heroDetailView, "Layer/EquipUI/Bg/Panel_new/addnew", "add hero")) yield break;
             if (heroReplacementView?.GameObject.activeSelf != true)
             {
                 Fail("Hero G4 addnew button did not open the replacement view.");
@@ -6545,22 +6578,22 @@ namespace ProjectX.Core
             yield return CaptureHeroG5Evidence("HERO-05-ADD-HERO");
             HandleBack();
 
-            occupied.onClick.Invoke();
-            RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0", "cultivate").onClick.Invoke();
+            if (!InvokeEventSystemClick(occupied)) { Fail("Hero G4 occupied row stopped accepting pointer input."); yield break; }
+            if (!InvokeHeroPointer(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0", "cultivate")) yield break;
             if (heroCultivationView?.GameObject.activeSelf != true || heroLevelUpView?.GameObject.activeSelf != true)
             {
                 Fail("Hero G4 cultivation button did not open the cultivation view.");
                 yield break;
             }
             yield return CaptureHeroG5Evidence("HERO-06-CULTIVATE");
-            RequireBoundButton(heroFrameView, "Layer/Panel_12/Title/CloseBtn", "cultivation return").onClick.Invoke();
+            if (!InvokeHeroPointer(heroFrameView, "Layer/Panel_12/Title/CloseBtn", "cultivation return")) yield break;
             if (heroCultivationView?.GameObject.activeSelf == true || heroLevelUpView?.GameObject.activeSelf == true)
             {
                 Fail("Hero G4 cultivation return did not restore the formation view.");
                 yield break;
             }
 
-            RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Button1", "enhance master").onClick.Invoke();
+            if (!InvokeHeroPointer(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Button1", "enhance master")) yield break;
             if (heroEnhanceMasterView?.GameObject.activeSelf != true)
             {
                 Fail("Hero G4 enhancement master did not open for the full-access equipped fixture.");
@@ -6573,7 +6606,7 @@ namespace ProjectX.Core
                 yield break;
             }
 
-            RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Button2", "replace hero").onClick.Invoke();
+            if (!InvokeHeroPointer(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Button2", "replace hero")) yield break;
             if (heroReplacementView?.GameObject.activeSelf != true)
             {
                 Fail("Hero G4 replace button did not open the replacement view.");
@@ -6594,7 +6627,7 @@ namespace ProjectX.Core
             for (int slot = 1; slot <= 6; slot++)
             {
                 while (IsToastVisible) yield return null;
-                RequireBoundButton(heroDetailView, $"Layer/EquipUI/Bg/bg/EquipIcon{slot}", $"equipment slot {slot}").onClick.Invoke();
+                if (!InvokeHeroPointer(heroDetailView, $"Layer/EquipUI/Bg/bg/EquipIcon{slot}", $"equipment slot {slot}")) yield break;
                 float deadline = Time.realtimeSinceStartup + 12f;
                 while (!IsHeroEquipmentOpen && heroItemSourceView?.GameObject.activeSelf != true && !IsToastVisible
                     && Time.realtimeSinceStartup < deadline && !Status.Contains("failed", StringComparison.OrdinalIgnoreCase))
@@ -6620,24 +6653,31 @@ namespace ProjectX.Core
                 yield return null;
             }
 
-            RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/bg/Btn_xiangxi", "hero attributes").onClick.Invoke();
+            if (!InvokeHeroPointer(heroDetailView, "Layer/EquipUI/Bg/bg/Btn_xiangxi", "hero attributes")) yield break;
             if (heroAttributesView?.GameObject.activeSelf != true)
             {
                 Fail("Hero G4 attributes button did not open the attributes popup.");
                 yield break;
             }
             yield return CaptureHeroG5Evidence("HERO-15-DETAIL");
-            RequireBoundButton(heroAttributesView, "Layer/Mask_close", "attributes close").onClick.Invoke();
+            if (!InvokeHeroPointer(heroAttributesView, "Layer/Mask_close", "attributes close")) yield break;
             if (heroAttributesView.GameObject.activeSelf)
             {
                 Fail("Hero G4 attributes mask did not close the popup.");
                 yield break;
             }
 
-            RequireBoundButton(heroListView, "Layer/shenjiangListUI/List/btn_buzhen", "formation").onClick.Invoke();
+            if (!InvokeHeroPointer(heroListView, "Layer/shenjiangListUI/List/btn_buzhen", "formation")) yield break;
             if (!IsFormationPopupOpen)
             {
                 Fail("Hero G4 btn_buzhen did not open the formation popup.");
+                yield break;
+            }
+            int expectedFormationModels = services.Formation.CombatHeroes.Count(hero => hero > 0);
+            if (formationPopupPresenter == null
+                || formationPopupPresenter.RenderedModelCount != expectedFormationModels)
+            {
+                Fail($"Hero G4 formation model count mismatch: rendered={formationPopupPresenter?.RenderedModelCount ?? -1}, expected={expectedFormationModels}.");
                 yield break;
             }
             yield return CaptureHeroG5Evidence("HERO-16-FORMATION");
@@ -6650,8 +6690,8 @@ namespace ProjectX.Core
             int formationId = services.Formation.ActiveFormationId > 0 ? services.Formation.ActiveFormationId : 1;
             int currentGrid = GetFormationGrid(formationId, currentPosition);
             int targetGrid = GetFormationGrid(formationId, targetPosition);
-            RequireBoundButton(formationPopupView, $"Layer/FormationUI/Show/Formation/Position{currentGrid}", "current formation position").onClick.Invoke();
-            RequireBoundButton(formationPopupView, $"Layer/FormationUI/Show/Formation/Position{targetGrid}", "target formation position").onClick.Invoke();
+            if (!InvokeHeroPointer(formationPopupView, $"Layer/FormationUI/Show/Formation/Position{currentGrid}", "current formation position")) yield break;
+            if (!InvokeHeroPointer(formationPopupView, $"Layer/FormationUI/Show/Formation/Position{targetGrid}", "target formation position")) yield break;
         }
 
         private IEnumerator RunHeroLockedControlValidationRoutine()
@@ -6665,7 +6705,11 @@ namespace ProjectX.Core
                 Fail($"Hero locked-row validation requires a locked row; player level={services.Player.Level}.");
                 yield break;
             }
-            locked.onClick.Invoke();
+            if (!InvokeEventSystemClick(locked))
+            {
+                Fail("Hero locked row did not accept EventSystem pointer input.");
+                yield break;
+            }
             if (heroPresenter.SelectedId != selectedIdBefore)
             {
                 Fail("Hero locked row changed the selected hero.");
@@ -6705,6 +6749,14 @@ namespace ProjectX.Core
             if (button == null || button.onClick.GetPersistentEventCount() == 0 && !button.interactable)
                 throw new InvalidOperationException($"Hero G4 {label} button is missing or disabled: {path}");
             return button;
+        }
+
+        private bool InvokeHeroPointer(CocosUiView view, string path, string label)
+        {
+            Button button = RequireBoundButton(view, path, label);
+            if (InvokeEventSystemClick(button)) return true;
+            Fail($"Hero G4 {label} did not accept EventSystem pointer input: {path}");
+            return false;
         }
 
         private static int GetFormationGrid(int formationId, int combatPosition)
@@ -7833,6 +7885,8 @@ namespace ProjectX.Core
         {
             if (control == null || EventSystem.current == null || !control.gameObject.activeInHierarchy || !control.interactable)
                 return false;
+            if (control is Button button && (button.targetGraphic == null || !button.targetGraphic.raycastTarget))
+                return false;
             PointerEventData data = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left };
             ExecuteEvents.Execute(control.gameObject, data, ExecuteEvents.pointerDownHandler);
             ExecuteEvents.Execute(control.gameObject, data, ExecuteEvents.pointerUpHandler);
@@ -8231,6 +8285,7 @@ namespace ProjectX.Core
             }
             services.HeroEquipment.Clear();
             services.FaBao.Clear();
+            activeHeroCultivationId = 0;
             heroG4ControlValidationRunning = false;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
@@ -9915,8 +9970,12 @@ namespace ProjectX.Core
             if (formationPopupView == null)
                 throw new InvalidOperationException("Formation popup CocosUiBinding was not found.");
             formationPopupPresenter = formationPopupPresenter ?? new FormationPopupPresenter(
-                formationPopupView, services.Formation, services.Heroes, services.Resources,
-                (heroId, position) => InvokeLuaOrFail(onFormationMove, "Hero.FormationMove", (double)heroId, position),
+                formationPopupView, services.Formation, services.Heroes, services.Bag,
+                services.Currencies, services.Resources,
+                (sourcePosition, targetPosition) => InvokeLuaOrFail(onFormationSwap, "Hero.FormationSwap", sourcePosition, targetPosition),
+                formationId => InvokeLuaOrFail(onFormationUpgrade, "Hero.FormationUpgrade", formationId),
+                formationId => InvokeLuaOrFail(onFormationUse, "Hero.FormationUse", formationId),
+                message => ShowToast(message, 2f),
                 () => formationPopupView.SetVisible(false));
             formationPopupPresenter.Render();
             formationPopupView.SetVisible(true);
@@ -9979,6 +10038,8 @@ namespace ProjectX.Core
                 Button action = cell.Find("Button")?.GetComponent<Button>()
                     ?? cell.GetComponent<Button>() ?? cell.gameObject.AddComponent<Button>();
                 action.targetGraphic = action.GetComponent<Graphic>() ?? cell.GetComponentInChildren<Graphic>();
+                action.interactable = true;
+                if (action.targetGraphic != null) action.targetGraphic.raycastTarget = true;
                 action.onClick.RemoveAllListeners();
                 action.onClick.AddListener(() =>
                 {
@@ -10001,6 +10062,7 @@ namespace ProjectX.Core
         private void ShowHeroCultivation(int heroId)
         {
             if (!services.Heroes.TryGet(heroId, out HeroRecord hero)) return;
+            activeHeroCultivationId = heroId;
             heroCultivationView = heroCultivationView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongjueseLayer");
             heroLevelUpView = heroLevelUpView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshuxingLayer");
             if (heroCultivationView == null || heroLevelUpView == null)
@@ -10014,13 +10076,7 @@ namespace ProjectX.Core
             heroLevelUpView.GameObject.transform.SetAsLastSibling();
             Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "升级";
-            SetBoundText(heroCultivationView, "Layer/Node_3/Tips_2", $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}");
-            SetBoundText(heroCultivationView, "Layer/Node_3/bg_zhanli/Value", hero.Power.ToString());
-            if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
-            {
-                ShowRuntimeHeroModel(heroCultivationView.Binding.Find("Layer/Node_3/Node")?.transform, definition.Picture);
-            }
-            BindHeroLevelUp(heroLevelUpView, hero);
+            RefreshHeroCultivationData(heroId);
             heroLevelUpView.BindClick("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji", () =>
                 InvokeLuaOrFail(onHeroLevelUp, "Hero.LevelUp", (double)hero.Id, 834d, 1d), true);
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", RestoreHeroFormationView, true);
@@ -10030,9 +10086,21 @@ namespace ProjectX.Core
 
         private void RestoreHeroFormationView()
         {
+            activeHeroCultivationId = 0;
             SetHeroFramePageVisibility(true, true, false, false, false);
             ConfigureHeroFrame(false);
             heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+        }
+
+        private void RefreshHeroCultivationData(int heroId)
+        {
+            if (heroId <= 0 || heroCultivationView == null || heroLevelUpView == null
+                || !services.Heroes.TryGet(heroId, out HeroRecord hero)) return;
+            SetBoundText(heroCultivationView, "Layer/Node_3/Tips_2", $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}");
+            SetBoundText(heroCultivationView, "Layer/Node_3/bg_zhanli/Value", hero.Power.ToString());
+            if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
+                ShowRuntimeHeroModel(heroCultivationView.Binding.Find("Layer/Node_3/Node")?.transform, definition.Picture);
+            BindHeroLevelUp(heroLevelUpView, hero);
         }
 
         private void SetHeroFramePageVisibility(bool list, bool detail, bool bag, bool cultivation, bool levelUp)
@@ -10042,23 +10110,11 @@ namespace ProjectX.Core
             heroBagView?.SetVisible(bag);
             heroCultivationView?.SetVisible(cultivation);
             heroLevelUpView?.SetVisible(levelUp);
-
-            // OneLevelLayer is shared by formation, bag and cultivation pages. Resolve every imported
-            // child by its source token as well as the cached view so a stale/duplicate binding cannot
-            // leave the previous formation page visible underneath the cultivation page.
-            if (heroFrameView?.GameObject == null) return;
-            foreach (CocosUiBinding binding in heroFrameView.GameObject.GetComponentsInChildren<CocosUiBinding>(true))
-            {
-                if (binding == heroFrameView.Binding) continue;
-                bool? visible = null;
-                string source = binding.Source ?? string.Empty;
-                if (source.IndexOf("yingxiongListLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = list;
-                else if (source.IndexOf("yingxiongInfoLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = detail;
-                else if (source.IndexOf("yingxiongbeibao", StringComparison.OrdinalIgnoreCase) >= 0) visible = bag;
-                else if (source.IndexOf("yingxiongjueseLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = cultivation;
-                else if (source.IndexOf("yingxiongshuxingLayer", StringComparison.OrdinalIgnoreCase) >= 0) visible = levelUp;
-                if (visible.HasValue) binding.gameObject.SetActive(visible.Value);
-            }
+            services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongListLayer", heroListView, list);
+            services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongInfoLayer", heroDetailView, detail);
+            services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongbeibao", heroBagView, bag);
+            services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongjueseLayer", heroCultivationView, cultivation);
+            services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongshuxingLayer", heroLevelUpView, levelUp);
         }
 
         private void ShowHeroEnhanceMaster(int formationPosition)
@@ -12254,6 +12310,15 @@ namespace ProjectX.Core
                 || (afterLevel <= beforeLevel && afterExperience <= beforeExperience))
             {
                 Fail($"Draw closure cultivation snapshot mismatch: hero={heroId}, level={beforeLevel}/{afterLevel}, exp={beforeExperience}/{afterExperience}.");
+                return;
+            }
+            if (heroCultivationView?.GameObject.activeSelf != true
+                || heroLevelUpView?.GameObject.activeSelf != true
+                || heroListView?.GameObject.activeSelf == true
+                || heroDetailView?.GameObject.activeSelf == true
+                || heroBagView?.GameObject.activeSelf == true)
+            {
+                Fail("Draw closure cultivation refresh reopened formation/list layers over the active cultivation UI.");
                 return;
             }
             drawClosureHeroCultivated = true;

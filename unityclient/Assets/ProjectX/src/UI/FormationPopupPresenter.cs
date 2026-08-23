@@ -12,31 +12,40 @@ namespace ProjectX.UI
     {
         private static readonly FormationDefinition[] Definitions =
         {
-            new FormationDefinition(1, "七星阵", new[]{2,4,6,7,9}),
-            new FormationDefinition(2, "玄火阵", new[]{2,4,5,6,8}),
-            new FormationDefinition(3, "急流阵", new[]{1,2,3,5,8}),
-            new FormationDefinition(4, "地绝阵", new[]{2,5,7,8,9}),
-            new FormationDefinition(5, "密林阵", new[]{1,3,4,6,8}),
-            new FormationDefinition(6, "山岳阵", new[]{1,3,5,7,9})
+            new FormationDefinition(1, "七星阵", new[]{2,4,6,7,9}, new[]{3,5}),
+            new FormationDefinition(2, "玄火阵", new[]{2,4,5,6,8}, new[]{1,6}),
+            new FormationDefinition(3, "急流阵", new[]{1,2,3,5,8}, new[]{2,5}),
+            new FormationDefinition(4, "地绝阵", new[]{2,5,7,8,9}, new[]{3,6}),
+            new FormationDefinition(5, "密林阵", new[]{1,3,4,6,8}, new[]{2,4}),
+            new FormationDefinition(6, "山岳阵", new[]{1,3,5,7,9}, new[]{1,3})
         };
 
         private readonly CocosUiView view;
         private readonly FormationStore formation;
         private readonly HeroStore heroes;
+        private readonly BagStore bag;
+        private readonly CurrencyStore currencies;
         private readonly ResourceService resources;
-        private readonly Action<int,int> move;
+        private readonly Action<int,int> swap;
+        private readonly Action<int> upgrade;
+        private readonly Action<int> use;
+        private readonly Action<string> feedback;
         private readonly VirtualList<FormationDefinition> list;
-        private readonly ImodAnimationPlayer model;
+        private readonly ImodAnimationPlayer[] models = new ImodAnimationPlayer[5];
         private readonly Image runtimeDim;
         private readonly Text runtimeTitle;
         private int selectedFormationId;
         private int selectedCombatPosition;
 
         public FormationPopupPresenter(CocosUiView view, FormationStore formation, HeroStore heroes,
-            ResourceService resources, Action<int,int> move, Action close)
+            BagStore bag, CurrencyStore currencies, ResourceService resources,
+            Action<int,int> swap, Action<int> upgrade, Action<int> use,
+            Action<string> feedback, Action close)
         {
             this.view = view; this.formation = formation; this.heroes = heroes;
-            this.resources = resources; this.move = move;
+            this.bag = bag; this.currencies = currencies;
+            this.resources = resources; this.swap = swap; this.upgrade = upgrade; this.use = use;
+            this.feedback = feedback;
             selectedFormationId = formation.ActiveFormationId > 0 ? formation.ActiveFormationId : 1;
             runtimeDim = CreateDim(view.Binding.Find("Layer")?.transform ?? view.Binding.transform);
             runtimeTitle = CreateTitle(view.Binding.Find("Layer")?.transform ?? view.Binding.transform,
@@ -46,7 +55,10 @@ namespace ProjectX.UI
             float height = template.GetComponent<RectTransform>().rect.height;
             list = new VirtualList<FormationDefinition>(viewport, template, height, BindFormation);
             view.BindClick("Layer/Bg/Popup/Btn_close", close, true);
-            model = CreateModel(Require("Layer/FormationUI/Show/Formation/Node_2").transform);
+            for (int combat = 1; combat <= models.Length; combat++)
+                models[combat - 1] = CreateModel(Require($"Layer/FormationUI/Show/Formation/Node_{combat}").transform, combat);
+            view.BindClick("Layer/FormationUI/Show/Info/btn_Upgrade", UpgradeSelectedFormation, true);
+            view.BindClick("Layer/FormationUI/List_Formation/btn_Use", () => use?.Invoke(selectedFormationId), true);
             for (int grid = 1; grid <= 9; grid++)
             {
                 int captured = grid;
@@ -74,19 +86,29 @@ namespace ProjectX.UI
                     if (image != null) image.color = new Color(1f,1f,1f,combat > 0 ? 1f : .4f);
                 }
             }
-            string[] attrs = {"闪避率+3%", "物免率+5%", "法免率+5%", "增伤率+3%", "增伤率+3%"};
+            int currentLevel = GetFormationLevel(definition.Id);
+            int displayLevel = Mathf.Max(1, currentLevel);
+            string[] attrs = BuildAttributes(definition.Id, displayLevel);
             for (int i = 1; i <= 5; i++)
             {
                 Text attribute = Find($"Layer/FormationUI/Show/Info/Attribute{i}/Content")?.GetComponent<Text>();
                 if (attribute != null) { attribute.text = attrs[i-1]; attribute.horizontalOverflow = HorizontalWrapMode.Overflow; }
             }
-            SetText("Layer/FormationUI/Show/Info/Restriction/Content", "急流阵  密林阵");
+            SetText("Layer/FormationUI/Show/Info/Restriction/Content", BuildRestraintText(definition));
             Text restriction = Find("Layer/FormationUI/Show/Info/Restriction/Content")?.GetComponent<Text>();
             if (restriction != null) restriction.horizontalOverflow = HorizontalWrapMode.Overflow;
-            SetText("Layer/FormationUI/Show/Info/CoinBg/Num", "200000");
-            SetText("Layer/FormationUI/Show/Info/btn_Material/Value", "0/3");
-            SetText("Layer/FormationUI/Show/Info/bg_Name/Name", "七星阵法书");
-            SetText("Layer/FormationUI/Show/Info/btn_Upgrade/Text", "升级");
+            bool maxLevel = currentLevel >= 10;
+            int requiredBooks = maxLevel ? 0 : UpgradeBookCosts[Mathf.Clamp(currentLevel, 0, UpgradeBookCosts.Length - 1)];
+            int ownedBooks = GetBagQuantity(2724 + definition.Id);
+            int requiredGold = maxLevel ? 0 : (currentLevel + 1) * 100000;
+            SetText("Layer/FormationUI/Show/Info/CoinBg/Num", maxLevel ? string.Empty : requiredGold.ToString());
+            SetText("Layer/FormationUI/Show/Info/btn_Material/Value", maxLevel ? string.Empty : $"{ownedBooks}/{requiredBooks}");
+            SetText("Layer/FormationUI/Show/Info/bg_Name/Name", definition.Name + "法书");
+            SetText("Layer/FormationUI/Show/Info/btn_Upgrade/Text", currentLevel == 0 ? "学习" : "升级");
+            Text coinValue = Find("Layer/FormationUI/Show/Info/CoinBg/Num")?.GetComponent<Text>();
+            if (coinValue != null) coinValue.color = currencies.Gold >= requiredGold ? Color.white : new Color(.85f,.16f,.12f,1f);
+            Text materialValue = Find("Layer/FormationUI/Show/Info/btn_Material/Value")?.GetComponent<Text>();
+            if (materialValue != null) materialValue.color = ownedBooks >= requiredBooks ? Color.white : new Color(.85f,.16f,.12f,1f);
             Text popupTitle = Find("Layer/Bg/Popup/Title/Title")?.GetComponent<Text>();
             if (popupTitle != null)
             {
@@ -103,35 +125,40 @@ namespace ProjectX.UI
             if (dim != null) dim.color = new Color(0f, 0f, 0f, .9f);
             if (runtimeDim != null) runtimeDim.color = new Color(0f, 0f, 0f, .82f);
             Transform useButton = Find("Layer/FormationUI/List_Formation/btn_Use");
-            if (useButton != null) useButton.gameObject.SetActive(false);
+            if (useButton != null) useButton.gameObject.SetActive(currentLevel > 0 && formation.ActiveFormationId != definition.Id);
+            Transform upgradeButton = Find("Layer/FormationUI/Show/Info/btn_Upgrade");
+            if (upgradeButton != null) upgradeButton.gameObject.SetActive(!maxLevel);
+            Transform coinPanel = Find("Layer/FormationUI/Show/Info/CoinBg");
+            if (coinPanel != null) coinPanel.gameObject.SetActive(!maxLevel);
+            Transform materialButton = Find("Layer/FormationUI/Show/Info/btn_Material");
+            if (materialButton != null) materialButton.gameObject.SetActive(!maxLevel);
+            Transform materialName = Find("Layer/FormationUI/Show/Info/bg_Name");
+            if (materialName != null) materialName.gameObject.SetActive(!maxLevel);
             foreach (Transform child in view.Binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
-            int heroId = 0;
-            int combatPosition = 0;
-            for (int index = 0; index < formation.CombatHeroes.Count; index++)
+            RenderedModelCount = 0;
+            for (int combatPosition = 1; combatPosition <= models.Length; combatPosition++)
             {
-                if (formation.CombatHeroes[index] <= 0) continue;
-                heroId = formation.CombatHeroes[index];
-                combatPosition = index + 1;
-                break;
-            }
-            if (combatPosition > 0 && combatPosition <= definition.GridPositions.Length)
-            {
+                ImodAnimationPlayer model = models[combatPosition - 1];
+                int heroId = combatPosition <= formation.CombatHeroes.Count
+                    ? formation.CombatHeroes[combatPosition - 1] : 0;
                 int grid = definition.GridPositions[combatPosition - 1];
-                Transform host = Find($"Layer/FormationUI/Show/Formation/Position{grid}/Panel");
-                if (host != null)
+                Transform host = Find($"Layer/FormationUI/Show/Formation/Node_{grid}");
+                if (host != null && model.transform.parent != host)
                 {
                     model.transform.SetParent(host, false);
                     model.transform.localScale = new Vector3(.85f, .85f, 1f);
                     if (model.transform is RectTransform modelRect)
-                        modelRect.anchoredPosition = new Vector2(0f, -88f);
+                        modelRect.anchoredPosition = Vector2.zero;
                 }
+                bool loaded = heroId > 0 && HeroCatalog.TryGet(heroId, out HeroDefinition hero)
+                    && model.LoadLegacy($"Monster/btm{hero.Picture}_zd");
+                model.gameObject.SetActive(loaded);
+                if (loaded) { model.Play(1, true); RenderedModelCount++; }
             }
-            bool loaded = heroId > 0 && HeroCatalog.TryGet(heroId, out HeroDefinition hero)
-                && model.LoadLegacy($"Monster/btm{hero.Picture}_zd");
-            model.gameObject.SetActive(loaded);
-            if (loaded) model.Play(1, true);
         }
+
+        public int RenderedModelCount { get; private set; }
 
         public void Dispose() { formation.Changed -= Render; list.Dispose(); }
 
@@ -149,6 +176,8 @@ namespace ProjectX.UI
             Transform prompt = row.Find("Prompt"); if (prompt != null) prompt.gameObject.SetActive(false);
             Button button = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
             button.targetGraphic = row.GetComponent<Graphic>() ?? row.GetComponentInChildren<Graphic>();
+            button.interactable = true;
+            if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
             button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => { selectedFormationId = item.Id; Render(); });
         }
 
@@ -163,14 +192,77 @@ namespace ProjectX.UI
                     selectedCombatPosition = combat;
                 return;
             }
-            int heroId = formation.CombatHeroes[selectedCombatPosition-1];
+            int sourcePosition = selectedCombatPosition;
             selectedCombatPosition = 0;
-            if (heroId > 0 && move != null) move(heroId, combat);
+            if (sourcePosition != combat) swap?.Invoke(sourcePosition, combat);
         }
 
-        private static ImodAnimationPlayer CreateModel(Transform parent)
+        private static readonly int[] UpgradeBookCosts = {1,3,7,13,20,30,45,60,75,100};
+
+        private int GetFormationLevel(int id)
         {
-            var go = new GameObject("RuntimeFormationHero", typeof(RectTransform));
+            foreach (FormationRecord record in formation.Formations) if (record.Id == id) return record.Level;
+            return 0;
+        }
+
+        private int GetBagQuantity(int itemId)
+        {
+            foreach (BagItemRecord item in bag.Items) if (item.ItemId == itemId) return item.Quantity;
+            return 0;
+        }
+
+        private void UpgradeSelectedFormation()
+        {
+            FormationDefinition definition = Array.Find(Definitions, item => item.Id == selectedFormationId);
+            if (definition.Id == 0) return;
+            int level = GetFormationLevel(definition.Id);
+            if (level >= 10) return;
+            int requiredBooks = UpgradeBookCosts[Mathf.Clamp(level, 0, UpgradeBookCosts.Length - 1)];
+            if (GetBagQuantity(2724 + definition.Id) < requiredBooks)
+            {
+                feedback?.Invoke(definition.Name + "法书不足");
+                return;
+            }
+            int requiredGold = (level + 1) * 100000;
+            if (currencies.Gold < requiredGold)
+            {
+                feedback?.Invoke("铜钱不足");
+                return;
+            }
+            upgrade?.Invoke(definition.Id);
+        }
+
+        private static string BuildRestraintText(FormationDefinition definition)
+        {
+            var names = new List<string>();
+            foreach (int id in definition.Restraints)
+            {
+                FormationDefinition target = Array.Find(Definitions, item => item.Id == id);
+                if (target.Id > 0) names.Add(target.Name);
+            }
+            return string.Join("  ", names);
+        }
+
+        private static string[] BuildAttributes(int formationId, int level)
+        {
+            int low = level >= 10 ? 800 : 300 + (level - 1) * 50;
+            int high = level >= 10 ? 1500 : 500 + (level - 1) * 100;
+            switch (formationId)
+            {
+                case 2: return new[]{Ratio("反击率", low), Ratio("暴击率", low), Ratio("命中率", low), Ratio("连击率", low), Ratio("增伤率", high)};
+                case 3: return new[]{Ratio("负面强化", low), Ratio("命中率", high), Ratio("命中率", high), Ratio("物免率", low) + "  " + Ratio("法免率", low), Ratio("增伤率", high)};
+                case 4: return new[]{Ratio("负面抵抗", low), Ratio("增伤率", low), Ratio("负面抵抗", low), Ratio("负面抵抗", low), Ratio("负面抵抗", low)};
+                case 5: return new[]{Ratio("暴击率", low), Ratio("暴击率", low), Ratio("暴击率", low), Ratio("暴击率", low), Ratio("暴击率", low)};
+                case 6: return new[]{Ratio("闪避率", low), Ratio("抗暴率", low), Ratio("命中率", high), Ratio("物免率", high), Ratio("法免率", high)};
+                default: return new[]{Ratio("闪避率", low), Ratio("物免率", high), Ratio("法免率", high), Ratio("增伤率", low), Ratio("增伤率", low)};
+            }
+        }
+
+        private static string Ratio(string name, int basisPoints) => $"{name}+{basisPoints / 100f:0.##}%";
+
+        private static ImodAnimationPlayer CreateModel(Transform parent, int combatPosition)
+        {
+            var go = new GameObject($"RuntimeFormationHero_{combatPosition}", typeof(RectTransform));
             RectTransform rect = go.GetComponent<RectTransform>(); rect.SetParent(parent, false);
             rect.localScale = new Vector3(.85f,.85f,1f);
             return go.AddComponent<ImodAnimationPlayer>();
@@ -211,8 +303,10 @@ namespace ProjectX.UI
 
         private readonly struct FormationDefinition
         {
-            public FormationDefinition(int id, string name, int[] gridPositions) { Id=id; Name=name; GridPositions=gridPositions; }
+            public FormationDefinition(int id, string name, int[] gridPositions, int[] restraints = null)
+            { Id=id; Name=name; GridPositions=gridPositions; Restraints=restraints ?? Array.Empty<int>(); }
             public int Id { get; } public string Name { get; } public int[] GridPositions { get; }
+            public int[] Restraints { get; }
         }
     }
 }

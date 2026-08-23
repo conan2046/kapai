@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "module": "SevenDay",
+  "workflowPolicyVersion": 1,
+  "hardGateVersion": 1,
+  "acceptanceExamples": [
+    {
+      "id": "sevenday-day1-authority",
+      "given": "固定账号的 role_info.reg_time 使 GetRegDay()=1，Day1 每个可见分类至少各有未完成、可领取和已领取任务",
+      "when": "从玩法大厅 function_id=11 真实进入七日目标并读取 /37 op=4",
+      "then": "第一天开放、第二天可预览但不可领取或购买、第三至七天锁定；任务 ID、分类、文案、目标、奖励、排序和红点均来自当前配置与权威回包"
+    },
+    {
+      "id": "sevenday-each-day-real-claim",
+      "given": "Day1 至 Day7 各自有一个 state=1 且日期已开放的真实任务",
+      "when": "每天从对应任务行点击领取按钮发送 /37 op=6",
+      "then": "服务端成功后任务变为 state=2，奖励弹窗、背包或货币变化、红点与排序同步刷新；返回重进、重连和客户端重启后仍持久"
+    },
+    {
+      "id": "sevenday-progress-push",
+      "given": "每一种 sevendays condition 类型至少有一个未完成任务及可触发的真实初始进度",
+      "when": "执行对应业务动作触发服务端 UpdateHDQuestState",
+      "then": "客户端收到 /37 op=5 的 taskId/progress/state 权威更新，对应日期和分类行刷新且达到目标后切为可领取"
+    },
+    {
+      "id": "sevenday-claim-rejections",
+      "given": "分别准备未完成、明日未开放、已领取、非法和不存在任务 ID",
+      "when": "通过真实按钮或协议负向场景发起 /37 op=6",
+      "then": "服务端明确拒绝，任务、奖励、背包、货币、领取记录和红点均不产生伪造变化，Unity展示权威失败反馈"
+    },
+    {
+      "id": "sevenday-day7-full-closure",
+      "given": "固定账号 GetRegDay()=7 且当前完整配置与商店 type=10..16 已加载",
+      "when": "逐日逐分类访问并把所有长列表滚动到底部",
+      "then": "七天、全部分类、全部可见任务和10个折扣商品均可定位，无遗漏、重复、截断、重叠或越界，累计进度区完整"
+    },
+    {
+      "id": "sevenday-purchase-success",
+      "given": "当天已开放、折扣商品仍有次数且固定账号货币足够",
+      "when": "点击真实购买按钮发送 /221 op=2,type=10..16,id,num=1",
+      "then": "服务端成功后按配置扣除折后价、物品到账、次数减少、售罄态与排序刷新，重进和重连保持"
+    },
+    {
+      "id": "sevenday-purchase-rejections",
+      "given": "分别准备明日未开放、货币不足、限购耗尽和重复购买状态",
+      "when": "从对应日期的折扣商店发起购买",
+      "then": "提前购买在客户端不可操作，其余由服务端明确拒绝；货币、背包和购买次数不变化并显示真实失败反馈"
+    },
+    {
+      "id": "sevenday-lifecycle-isolation-restore",
+      "given": "主账号与隔离账号分别完成全字段快照，只有主账号执行领取与购买",
+      "when": "返回重进、断线重连、客户端重启、切换隔离账号，最后执行 finally 恢复并重登录",
+      "then": "两账号数据不串号；恢复后 role_info、任务序列化、背包、货币、领取与购买记录哈希各自等于快照且 Fixture 残留为0"
+    }
+  ],
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000115,
+    "isolationUserId": 705213,
+    "isolationRoleId": 1000006,
+    "resolution": "1334x750",
+    "windowsScale": "100%",
+    "fixtures": [
+      "Day1", "Day2", "Day3", "Day4", "Day5", "Day6", "Day7", "Day7Full",
+      "Incomplete", "Claimable", "Claimed", "ProgressPush", "DuplicateClaim", "InvalidTask",
+      "PurchaseSuccess", "PurchaseInsufficient", "PurchaseLimited"
+    ],
+    "included": [
+      "WanFaEntranceUI function_id=11 and WanFaInfoUI detail entry",
+      "OperationalActivity.SevenDay and QiriLayer full visible lifecycle",
+      "seven day tabs and four category tabs",
+      "all currently visible configured tasks and cumulative rewards",
+      "/37 op=4/op=5/op=6 authoritative query progress and claim",
+      "/221 type=10..16 authoritative discount shop query and purchase",
+      "success failure reentry reconnect restart persistence account isolation exact restore"
+    ],
+    "excluded": [
+      "destination modules reached by task Go buttons beyond SevenDay close-and-route correctness",
+      "common item-source popup business beyond opening and correct item identity",
+      "shared currency shop business beyond SevenDay add-button routing boundary"
+    ]
+  },
+  "stateMatrix": [
+    {"id":"day1-day7","meaning":"逐日验证当天开放、明日预览、后续锁定、完整任务、三态、红点、排序、重进稳定"},
+    {"id":"day7-full","meaning":"七天与全部分类、全部当前配置任务和折扣商品、长列表顶部到底部完整闭包"},
+    {"id":"task-states","states":[0,1,2],"meaning":"未完成、可领取、已领取及领取后排序和红点变化"},
+    {"id":"progress-push","meaning":"每一种 condition 类型的初始进度、真实变化、op=5、完成和 UI 刷新"},
+    {"id":"claim-errors","meaning":"未完成、未开放、重复、非法、不存在任务的真实拒绝"},
+    {"id":"purchase","meaning":"查询、价格、限购、成功、余额不足、耗尽、重复、提前购买拒绝"},
+    {"id":"lifecycle","meaning":"返回重进、断线重连、重启、持久化、切号隔离与完整恢复"},
+    {"id":"empty","meaning":"配置或权威列表为空时稳定空态且无占位任务"}
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": false,
+    "protocolOwnershipComplete": false,
+    "configAssetClosureComplete": false,
+    "runtimeTransformClosureComplete": false,
+    "evidence": {},
+    "knownGaps": [
+      {
+        "id": "SEVENDAY-GAP-CLIENT-SERVER-CONFIG-DIVERGENCE",
+        "handling": "G1 使用当前固定身份原生 Cocos 与真实 op=4 证实实际表现；G2 逐 ID 对齐 client sevendays_dat.lua 与 server sevendays.json，禁止沿用旧 130 条完成口径。",
+        "evidence": "client/ProjectX/src/ConfigData/sevendays_dat.lua; server/config/json/sevendays.json; client/ProjectX/src/Data/JsonConfig.lua"
+      },
+      {
+        "id": "SEVENDAY-GAP-OLD-UNITY-QUERY-ONLY",
+        "handling": "G3 移除旧版只读/禁用边界，接入 op=5/op=6、真实奖励、折扣商店、所有状态和生命周期。",
+        "evidence": "docs/unityclient/modules/SEVEN_DAY.md; unityclient/Assets/ProjectX/src/Data/SevenDayStore.cs; unityclient/Assets/ProjectX/src/UI/SevenDayPresenter.cs; unityclient/Assets/ProjectX/Resources/Lua/Gameplay/SevenDayController.lua.txt"
+      },
+      {
+        "id": "SEVENDAY-GAP-FIXTURE-ADAPTER-MISSING",
+        "handling": "G2 前扩展中央可逆 Fixture adapter，覆盖 reg_time、任务序列化、进度状态、背包货币、奖励与商店次数；G3 前 DataPreflightOnly 必须通过。",
+        "evidence": "tools/unity-migration/validation-fixtures.json; tools/unity-migration/module-evidence-contracts.json"
+      }
+    ]
+  },
+  "controls": [
+    {"id":"SEVENDAY-01-GAMEPLAY-ENTRY","page":"玩法大厅","path":"Function_11/EnterBtn and WanFaInfoUI/EnterBtn","cocosCallback":"Utils:OpenFunction/InitUI(AppDef.EMID_QIRI) -> OperationalActivity.SevenDay","unityBinding":"Gameplay function 11 -> authoritative SevenDay controller","successEvidence":"fresh G1 native real-entry evidence required","failureEvidence":"locked entry shows level feedback and sends no SevenDay protocol","reconnectEvidence":"reconnect then real entry requests op=4 again","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-02-CLOSE","page":"七日目标","path":"Panel/Title/CloseBtn","cocosCallback":"SevenDay:CloseUI","unityBinding":"QiriLayer CloseBtn -> UiStack back","successEvidence":"fresh close-and-return evidence required","failureEvidence":"close leaves no page or listener residue","reconnectEvidence":"reentry rebuilds from op=4","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-03-ESC-BACK","page":"七日目标","path":"Esc/back","cocosCallback":"SpecialLayer back -> SevenDay:CloseUI","unityBinding":"UiStack Esc/back","successEvidence":"fresh Esc return evidence required","failureEvidence":"must not exit client or leave overlay","reconnectEvidence":"reentry requests authority","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-04-DAY1","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_1","cocosCallback":"SevenDay:DayBtnClicked(1)","unityBinding":"day tab 1","successEvidence":"Day1 open/select/state evidence required","failureEvidence":"selection cannot alter server state","reconnectEvidence":"GetRegDay and op=4 restore selection eligibility","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-05-DAY2","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_2","cocosCallback":"SevenDay:DayBtnClicked(2)","unityBinding":"day tab 2","successEvidence":"Day2 open and Day1 tomorrow-preview evidence required","failureEvidence":"preview cannot claim or buy early","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-06-DAY3","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_3","cocosCallback":"SevenDay:DayBtnClicked(3)","unityBinding":"day tab 3","successEvidence":"Day3 open/preview/lock evidence required","failureEvidence":"later lock shows source feedback","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-07-DAY4","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_4","cocosCallback":"SevenDay:DayBtnClicked(4)","unityBinding":"day tab 4","successEvidence":"Day4 open/preview/lock evidence required","failureEvidence":"later lock shows source feedback","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-08-DAY5","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_5","cocosCallback":"SevenDay:DayBtnClicked(5)","unityBinding":"day tab 5","successEvidence":"Day5 open/preview/lock evidence required","failureEvidence":"later lock shows source feedback","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-09-DAY6","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_6","cocosCallback":"SevenDay:DayBtnClicked(6)","unityBinding":"day tab 6","successEvidence":"Day6 open/preview/lock evidence required","failureEvidence":"later lock shows source feedback","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-10-DAY7","page":"七日目标","path":"Panel/Renwu/bg/DaysList/Btn_7","cocosCallback":"SevenDay:DayBtnClicked(7)","unityBinding":"day tab 7","successEvidence":"Day7 and Day7Full evidence required","failureEvidence":"cannot open before tomorrow-preview boundary","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-11-CATEGORY-DAILY","page":"七日目标","path":"Panel/Renwu/bg/Image2/CheckList/Type1","cocosCallback":"SevenDay:TitleBtnClicked(1)","unityBinding":"daily welfare category tab","successEvidence":"all configured type1 rows evidence required","failureEvidence":"empty category shows deterministic empty state","reconnectEvidence":"op=4 rebuilds rows","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-12-CATEGORY-NORMAL","page":"七日目标","path":"Panel/Renwu/bg/Image2/CheckList/Type2","cocosCallback":"SevenDay:TitleBtnClicked(2)","unityBinding":"normal objective category tab","successEvidence":"all configured type2 rows evidence required","failureEvidence":"empty category shows deterministic empty state","reconnectEvidence":"op=4 rebuilds rows","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-13-CATEGORY-GROWTH","page":"七日目标","path":"Panel/Renwu/bg/Image2/CheckList/Type3","cocosCallback":"SevenDay:TitleBtnClicked(3)","unityBinding":"growth objective category tab","successEvidence":"all configured type3 rows evidence required","failureEvidence":"empty category shows deterministic empty state","reconnectEvidence":"op=4 rebuilds rows","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-14-CATEGORY-SHOP","page":"七日目标","path":"Panel/Renwu/bg/Image2/CheckList/Type4","cocosCallback":"SevenDay:TitleBtnClicked(4) -> QueryKaPaiShopUI(1,type10..16)","unityBinding":"discount shop category and /221 query","successEvidence":"all type10..16 products evidence required","failureEvidence":"query error never fabricates products","reconnectEvidence":"reentry requeries current day shop","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-15-CUMULATIVE-PROGRESS","page":"七日目标","path":"Panel/Reward/LoadingBg/LoadingBar and Num","cocosCallback":"SevenDay:updateLeftUI","unityBinding":"authoritative cumulative progress render","successEvidence":"progress and target evidence required","failureEvidence":"missing authority renders zero without fake completion","reconnectEvidence":"op=4 restores progress","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-16-CUMULATIVE-REWARD-1","page":"七日目标","path":"Panel/Reward/LoadingBg/IconBg_1","cocosCallback":"SevenDay:getExtraAwardEvent(1)","unityBinding":"cumulative reward 1 state and claim","successEvidence":"icon/state/real op=6 evidence required","failureEvidence":"nonclaimable click cannot mutate","reconnectEvidence":"claimed state persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-17-CUMULATIVE-REWARD-2","page":"七日目标","path":"Panel/Reward/LoadingBg/IconBg_2","cocosCallback":"SevenDay:getExtraAwardEvent(2)","unityBinding":"cumulative reward 2 state and claim","successEvidence":"icon/state/real op=6 evidence required","failureEvidence":"nonclaimable click cannot mutate","reconnectEvidence":"claimed state persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-18-CUMULATIVE-REWARD-3","page":"七日目标","path":"Panel/Reward/LoadingBg/IconBg_3","cocosCallback":"SevenDay:getExtraAwardEvent(3)","unityBinding":"cumulative reward 3 state and claim","successEvidence":"icon/state/real op=6 evidence required","failureEvidence":"nonclaimable click cannot mutate","reconnectEvidence":"claimed state persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-19-CUMULATIVE-REWARD-4","page":"七日目标","path":"Panel/Reward/LoadingBg/IconBg_4","cocosCallback":"SevenDay:getExtraAwardEvent(4)","unityBinding":"cumulative reward 4 state and claim","successEvidence":"icon/state/real op=6 evidence required","failureEvidence":"nonclaimable click cannot mutate","reconnectEvidence":"claimed state persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-20-CUMULATIVE-REWARD-5","page":"七日目标","path":"Panel/Reward/LoadingBg/IconBg_5","cocosCallback":"SevenDay:getExtraAwardEvent(5)","unityBinding":"cumulative reward 5 state and claim","successEvidence":"icon/state/real op=6 evidence required","failureEvidence":"nonclaimable click cannot mutate","reconnectEvidence":"claimed state persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-21-TASK-LIST-SCROLL","page":"七日目标","path":"Panel/Renwu/bg/Image2/ListView dynamic TableView","cocosCallback":"SevenDay:InitItemList/RefrishPanel","unityBinding":"clipped vertical ScrollView with dynamic rows","successEvidence":"top and bottom complete-list evidence required","failureEvidence":"no overlap truncation duplicate or out-of-bounds rows","reconnectEvidence":"reentry restores deterministic top position","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-22-TASK-REWARD-ICONS","page":"七日目标","path":"dynamic Item/Panel_2/ListView/IconBg[*]","cocosCallback":"SevenDay:ItemCallBack -> Utils:ShowItemSource","unityBinding":"configured reward icon family and item-source route","successEvidence":"all reward identities and quantities closure required","failureEvidence":"missing resource is recorded, never replaced with placeholder","reconnectEvidence":"config-driven icons rebuild","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-23-TASK-GO","page":"七日目标","path":"dynamic Item/Panel_2/Btn","cocosCallback":"SevenDay:GoToEvent","unityBinding":"configured jump route after closing SevenDay","successEvidence":"each distinct jump route boundary required","failureEvidence":"jump<=0 hides button; missing equipment shows source feedback","reconnectEvidence":"return and reentry restore authoritative state","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-24-TASK-CLAIM","page":"七日目标","path":"dynamic Item/Panel_2/Btn_0","cocosCallback":"SevenDay:OwnAwardEvent -> QueryGotQiRiAward(id)","unityBinding":"real /37 op=6 claim button","successEvidence":"daily real claim reward and state evidence required","failureEvidence":"unfinished unopened duplicate invalid and missing IDs reject without mutation","reconnectEvidence":"claimed state and rewards persist","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-25-TASK-CLAIMED","page":"七日目标","path":"dynamic Item/Panel_2/Get","cocosCallback":"SevenDay:SetActivityItemInfo state=2","unityBinding":"claimed visual state","successEvidence":"claimed and sorting evidence required","failureEvidence":"claimed row has no active claim/go button","reconnectEvidence":"op=4 restores state2","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-26-TASK-LOCKED","page":"七日目标","path":"dynamic Item/Panel_2/Panel_weikaiqi","cocosCallback":"SevenDay:SetActivityItemInfo dayIdx>pastDays","unityBinding":"tomorrow-preview locked row state","successEvidence":"preview content visible but actions hidden evidence required","failureEvidence":"no op=6 or destination route","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-27-SHOP-ITEM-ICON","page":"七日目标折扣商店","path":"dynamic Item/Panel_1/Icon_1","cocosCallback":"Utils:GetItemCellValue","unityBinding":"configured shop item icon/name/quantity","successEvidence":"all type10..16 products closure required","failureEvidence":"missing item resource is recorded without placeholder","reconnectEvidence":"shop query rebuilds","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-28-SHOP-BUY","page":"七日目标折扣商店","path":"dynamic Item/Panel_1/Btn","cocosCallback":"SevenDay:ShopDiscountEvent -> QueryBuyProd(2,type,id,1)","unityBinding":"real /221 purchase button","successEvidence":"price deduction item grant and count evidence required","failureEvidence":"insufficient limited duplicate and unopened reject without mutation","reconnectEvidence":"purchase count persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-29-SHOP-BOUGHT","page":"七日目标折扣商店","path":"dynamic Item/Panel_1/Get_0 and Times","cocosCallback":"SevenDay:updateShopState/getShopTaskIsBought","unityBinding":"sold-out remaining count state","successEvidence":"post-purchase state and sorting evidence required","failureEvidence":"sold-out row has no active buy button","reconnectEvidence":"/221 query restores count","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-30-SHOP-LOCKED","page":"七日目标折扣商店","path":"dynamic Item/Panel_1/Panel_weikaiqi","cocosCallback":"SevenDay:SetActivityItemInfo dayIdx>pastDays","unityBinding":"tomorrow-preview shop lock","successEvidence":"preview pricing visible with action hidden evidence required","failureEvidence":"must send no purchase packet","reconnectEvidence":"date eligibility persists","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-31-DAY-RED-DOTS","page":"七日目标","path":"DaysList/Btn_1..7/Prompt","cocosCallback":"SevenDay:updateRedPoint","unityBinding":"day red-dot family from authoritative state1","successEvidence":"claimable and cleared states evidence required","failureEvidence":"future and no-claimable days hide","reconnectEvidence":"op=4 recomputes","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-32-CATEGORY-RED-DOTS","page":"七日目标","path":"CheckList/Type1..4/Prompt","cocosCallback":"SevenDay:UpdateTabRedPoint","unityBinding":"category red-dot family","successEvidence":"selected-day category states evidence required","failureEvidence":"future day all hidden","reconnectEvidence":"op=4 recomputes","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-33-STAMINA-DISPLAY-ADD","page":"七日目标","path":"Panel/GoldCheck/GoldIcon1/Num and AddBtn","cocosCallback":"TiliChanged and Utils:OpenUseUI(500,1)","unityBinding":"authoritative stamina display and route boundary","successEvidence":"display and add-route evidence required","failureEvidence":"route cannot alter SevenDay state","reconnectEvidence":"relogin authority restores value","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-34-GOLD-DISPLAY-ADD","page":"七日目标","path":"Panel/GoldCheck/GoldIcon3/Num and AddBtn","cocosCallback":"MoneyChanged and Utils:OpenFunction(EMID_SCCHANGYONG)","unityBinding":"authoritative gold display and shop route boundary","successEvidence":"display and add-route evidence required","failureEvidence":"route cannot alter SevenDay state","reconnectEvidence":"relogin authority restores value","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-35-PREMIUM-DISPLAY","page":"七日目标","path":"Panel/GoldCheck/GoldIcon4/Num","cocosCallback":"TongBaoChanged","unityBinding":"authoritative premium display","successEvidence":"purchase exact deduction and rejection no-change evidence required","failureEvidence":"claim must not invent premium changes","reconnectEvidence":"relogin authority restores value","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-36-PREMIUM-ADD-HIDDEN","page":"七日目标","path":"Panel/GoldCheck/GoldIcon4/AddBtn","cocosCallback":"setVisible(false)","unityBinding":"hidden disabled parity","successEvidence":"native hidden state evidence required","failureEvidence":"must trigger no route or protocol","reconnectEvidence":"remains hidden","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-37-ACTIVITY-TIP-EMPTY","page":"七日目标","path":"Panel/Renwu/Tips and current dynamic list empty surface","cocosCallback":"SevenDay:updateUI/RefrishPanel","unityBinding":"remaining-day tip and deterministic empty state","successEvidence":"day text and empty state evidence required","failureEvidence":"no placeholder or stale rows","reconnectEvidence":"authority rebuilds","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"SEVENDAY-38-FEEDBACK-SURFACES","page":"七日目标及公共层","path":"reward popup, item-source popup, scroll tips and server error toast","cocosCallback":"ReadRewards/Utils:OpenRewardBox/ShowScrollTips/ShowItemSource","unityBinding":"authoritative success and failure feedback surfaces","successEvidence":"claim purchase route and reward feedback evidence required","failureEvidence":"every invalid operation shows feedback without optimistic mutation","reconnectEvidence":"no stale popup or queued feedback after reentry","status":"frozen-pending-g1","realEntryClick":false,"automationPassed":false,"manualPassed":false}
+  ]
+}

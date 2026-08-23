@@ -388,7 +388,7 @@
     {
       "key": "Hero",
       "displayName": "神将与阵容",
-      "status": "g6-complete",
+      "status": "g3-initial-playable-early-user-play-pending",
       "protocols": [
         24,
         48
@@ -397,6 +397,7 @@
         "Layer/Main_UI/ButtonGroup1/btn_zhenrong"
       ],
       "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxionghuanjiang.prefab",
@@ -418,7 +419,7 @@
         "build/ui-migration/bootstrap-hero.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "visual-fixing",
         "cocosScreenshots": [
           ".local/ui-fidelity/Hero/cocos/formation-user7200057-dpi100.png",
           ".local/ui-fidelity/Hero/cocos/hero-bag-user7200057-dpi100.png",

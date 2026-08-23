@@ -761,6 +761,7 @@ $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-Unit
 Assert-ToolchainTest (
     $fixedRunnerSource.Contains('$requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }') -and
     $fixedRunnerSource.Contains('$workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }') -and
+    $fixedRunnerSource.Contains('$failureGate = if ($DataPreflightOnly -or $PreflightOnly) { "G3" } else { "G6" }') -and
     $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)') -and
     $fixedRunnerSource.Contains('$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"') -and
     $fixedRunnerSource.Contains('$serverStartParameters = @{ WaitSeconds = 60 }') -and

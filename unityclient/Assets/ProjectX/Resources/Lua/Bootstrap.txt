@@ -60,6 +60,9 @@ function OnTaskClicked() TaskController.onClick() end
 function OnTaskClaimClicked(taskType, id) TaskController.claim(taskType, id) end
 function OnHeroClicked() HeroController.onClick() end
 function OnFormationMove(heroId, position) HeroController.moveHero(heroId, position) end
+function OnFormationSwap(sourcePosition, targetPosition) HeroController.swapFormation(sourcePosition, targetPosition) end
+function OnFormationUpgrade(formationId) HeroController.upgradeFormation(formationId) end
+function OnFormationUse(formationId) HeroController.useFormation(formationId) end
 function OnHeroLevelUp(heroId, itemId, itemCount) HeroController.levelUp(heroId, itemId, itemCount) end
 function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
