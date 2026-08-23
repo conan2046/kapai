@@ -474,7 +474,7 @@
           "requirements": [
             {
               "id": "gameplay-authoritative-identities",
-              "description": "主账号7200057/1000115/T00057/60级、锁定账号7200260/1000119/T20260/1级、隔离账号705213/1000006/T67076/60级必须唯一绑定"
+          "description": "主账号7200057/1000115/T00057/99级（全系统测试号）、锁定账号7200260/1000119/T20260/1级、隔离账号705213/1000006/T67076/60级必须唯一绑定"
             },
             {
               "id": "gameplay-readonly-config",
@@ -1065,40 +1065,40 @@
         },
         "artifactCopies": [
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-MAIN.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-MAIN.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-MAIN.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-MAIN.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-REWARD-PREVIEW.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-REWARD-PREVIEW.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-REWARD-PREVIEW.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-REWARD-PREVIEW.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-NEW.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-NEW.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-NEW.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-NEW.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-DUPLICATE.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-DUPLICATE.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESULT-DUPLICATE.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESULT-DUPLICATE.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESOURCE-INSUFFICIENT.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESOURCE-INSUFFICIENT.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-RESOURCE-INSUFFICIENT.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-RESOURCE-INSUFFICIENT.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-LIST.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-LIST.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-LIST.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-LIST.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-CULTIVATE.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-CULTIVATE.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-HERO-CULTIVATE.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-HERO-CULTIVATE.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-SELECTION.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-SELECTION.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-SELECTION.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-SELECTION.png"
           },
           {
-            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png",
-            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-MOUNTED.png"
+            "source": ".local/ui-fidelity/Draw/unity/g5-20260730/run-copy/DRAW-FORMATION-MOUNTED.png",
+            "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png"
           }
         ]
       },
@@ -1108,6 +1108,17 @@
         "compareDirectory": ".local/ui-fidelity/Draw/compare/g5-20260730",
         "width": 1334,
         "height": 750,
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua",
+          "client/ProjectX/src/View/HappyDraw/SingleDrawResultUI.lua",
+          "client/ProjectX/src/View/HappyDraw/TenDrawResultUI.lua",
+          "client/ProjectX/src/View/HappyDraw/DrawRewardMainUI.lua",
+          "client/ProjectX/res/csd/chouka/shenjiangzhaomu.csb",
+          "client/ProjectX/res/csd/chouka/dancichouka.csb",
+          "client/ProjectX/res/csd/chouka/shilianchouka.csb",
+          "client/ProjectX/res/csd/chouka/jiangliyulan.csb",
+          "server/src/chou_ka_manager.cpp"
+        ],
         "pairs": [
           {
             "id": "DRAW-MAIN",
@@ -2028,13 +2039,56 @@
       }
     },
     {
+      "module": "YouLi",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+      "cocosDirectory": ".local/ui-fidelity/YouLi/cocos/g5",
+      "unityDirectory": ".local/ui-fidelity/YouLi/unity/g5",
+      "compareDirectory": ".local/ui-fidelity/YouLi/compare/g5",
+      "cocosBaselineInputs": [
+        "client/ProjectX/src/View/WanFa/YouLiMainUI.lua",
+        "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "client/ProjectX/res/csd/youli/youlisanjie.csb",
+        "server/src/pack_deal.cpp",
+        "server/config/json/sanjie.json"
+      ],
+      "identity": {
+        "primaryUserId": 7200057,
+        "primaryRoleId": 1000115,
+        "fixtureContract": "shared-readonly"
+      },
+        "pairs": [
+          {
+            "id": "YOULI-MAIN",
+            "cocos": "YOULI-MAIN.png",
+            "unity": "YOULI-MAIN.png"
+          }
+        ]
+      }
+    },
+    {
       "module": "XunBao",
       "g5": {
         "width": 1334,
         "height": 750,
-        "cocosDirectory": ".local/ui-fidelity/XunBao/cocos/g5",
-        "unityDirectory": ".local/ui-fidelity/XunBao/unity/g5",
-        "compareDirectory": ".local/ui-fidelity/XunBao/compare/g5",
+      "cocosDirectory": ".local/ui-fidelity/XunBao/cocos/g5",
+      "unityDirectory": ".local/ui-fidelity/XunBao/unity/g5",
+      "compareDirectory": ".local/ui-fidelity/XunBao/compare/g5",
+      "cocosBaselineInputs": [
+        "client/ProjectX/src/View/WanFa/XunBaoMainUI.lua",
+        "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "client/ProjectX/res/csd/wanfa/XunbaoLayer.csb",
+        "server/src/pack_deal.cpp",
+        "server/src/pet_equip_manage.cpp"
+      ],
+      "identity": {
+        "primaryUserId": 7200057,
+        "primaryRoleId": 1000115,
+        "fixtureContract": "xunbao-shared-readonly"
+      },
         "pairs": [
           {
             "id": "XUNBAO-MAIN",

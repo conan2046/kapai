@@ -173,7 +173,7 @@ try {
                 & $startServerScript @serverStartParameters
                 if (-not $?) { throw "Fixed-account data preflight server startup failed." }
                 & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-                    -UserId $UserId -PythonExecutable $pythonExecutable
+                    -UserId $UserId -RoleId $RoleId -PythonExecutable $pythonExecutable
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight login failed." }
                 Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 2
@@ -276,7 +276,7 @@ try {
                 if (-not $?) { throw "Fixed-account mutation-relogin server startup failed." }
                 try {
                     & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-                        -UserId $UserId -PythonExecutable $pythonExecutable
+                        -UserId $UserId -RoleId $RoleId -PythonExecutable $pythonExecutable
                     if ($LASTEXITCODE -ne 0) { throw "Fixed-account mutation-relogin failed." }
                 }
                 finally {
@@ -427,7 +427,7 @@ try {
             & $startServerScript @serverStartParameters
             if (-not $?) { throw "Fixed-account restore-login server startup failed." }
             & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
-                -UserId $UserId -PythonExecutable $pythonExecutable
+                -UserId $UserId -RoleId $RoleId -PythonExecutable $pythonExecutable
             if ($LASTEXITCODE -ne 0) { throw "Fixed-account restore-login failed." }
         }
         catch { $reloginFailure = $_ }

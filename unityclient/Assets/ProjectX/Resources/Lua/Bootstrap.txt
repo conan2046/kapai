@@ -35,7 +35,7 @@ local ProtocolOpRouter = require("Shared.ProtocolOpRouter")
 
 local PetEquipRouter = ProtocolOpRouter.new(Protocol.PET_EQUIP_OPERATE)
 PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 24, 25, 26 }, EquipmentController.onOperation)
-PetEquipRouter:register("XunBao", { 31 }, XunBaoController.onOperation)
+PetEquipRouter:register("XunBao", { 28, 29, 30, 31, 36 }, XunBaoController.onOperation)
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -141,12 +141,18 @@ function OnGameplayClicked() GameplayController.onClick() end
 function OnGameplayEntered(functionId) GameplayController.enter(functionId) end
 function OnSharedGameplayHotPointRefresh() HotPointController.refreshGameplay() end
 function OnYouLiClicked() YouLiController.onClick() end
+function OnYouLiStart(locationId, heroId, mode, durationType) YouLiController.start(locationId, heroId, mode, durationType) end
+function OnYouLiClaim(locationId) YouLiController.claim(locationId) end
 function OnFengShenStoryClicked() FengShenStoryController.onClick() end
 function OnFengShenStoryChallengeClicked() FengShenStoryController.challenge() end
 function OnArenaClicked() ArenaController.onClick() end
 function OnKunLunClicked() KunLunController.onClick() end
 function OnBloodFightClicked() BloodFightController.onClick() end
 function OnXunBaoClicked() XunBaoController.onClick() end
+function OnXunBaoSearch(faBaoId, suiId) XunBaoController.search(faBaoId, suiId) end
+function OnXunBaoSearchAll(faBaoId, autoSign) XunBaoController.searchAll(faBaoId, autoSign) end
+function OnXunBaoCompose(faBaoId) XunBaoController.compose(faBaoId) end
+function OnXunBaoComposeAll() XunBaoController.composeAll() end
 function OnSevenDayClicked() SevenDayController.onClick() end
 function OnSevenDayClaim(id) SevenDayController.claim(id) end
 function OnStaminaClaimClicked() StaminaClaimController.onClick() end

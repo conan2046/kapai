@@ -13,6 +13,7 @@ namespace ProjectX.Data
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("quality")] public byte Quality { get; set; }
         [JsonProperty("unlock")] public ushort UnlockLevel { get; set; }
+        [JsonProperty("pic1")] public string Picture { get; set; }
         [JsonProperty("show")] public uint[][] PreviewRewards { get; set; }
     }
 

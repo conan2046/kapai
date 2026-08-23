@@ -332,7 +332,7 @@
     {
       "key": "PlayerHud",
       "displayName": "主界面 HUD",
-      "status": "g3-g6-revalidation-required",
+      "status": "functional-complete-current-account-validated",
       "protocols": [
         18,
         26,
@@ -930,7 +930,7 @@
     {
       "key": "Draw",
       "displayName": "神将招募",
-      "status": "g6-audit-missing",
+      "status": "g6-complete",
       "protocols": [
         224
       ],
@@ -979,7 +979,7 @@
     {
       "key": "Gameplay",
       "displayName": "玩法大厅",
-      "status": "g0-passed-steam-revalidation",
+      "status": "functional-complete-current-account-validated",
       "protocols": [
         65
       ],
@@ -1056,7 +1056,7 @@
     {
       "key": "YouLi",
       "displayName": "游历三界",
-      "status": "logic-validated-visual-pending",
+      "status": "g6-complete",
       "protocols": [
         335
       ],
@@ -1083,16 +1083,22 @@
         "build/ui-migration/bootstrap-youli.png"
       ],
       "visualFidelity": {
-        "status": "pending-cocos-baseline",
-        "cocosScreenshots": [],
-        "unityScreenshots": [
-          "build/ui-migration/bootstrap-youli.png"
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/YouLi/cocos/g5/YOULI-MAIN.png"
         ],
-        "diffReports": [],
-        "flowEvidence": "",
-        "uiMapping": ""
+        "unityScreenshots": [
+          ".local/ui-fidelity/YouLi/unity/g5/YOULI-MAIN.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/YouLi/compare/g5/report.json",
+          ".local/ui-fidelity/YouLi/compare/g5/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/unity-validation/youli-latest.json",
+        "uiMapping": "docs/unityclient/matrices/YOULI_CONTROLS.json"
       },
       "document": "docs/unityclient/modules/YOULI.md"
+      ,"controlMatrix": "docs/unityclient/matrices/YOULI_CONTROLS.json"
     },
     {
       "key": "FengShenStory",
@@ -1257,7 +1263,7 @@
     {
       "key": "XunBao",
       "displayName": "法宝搜索",
-      "status": "logic-validated-visual-pending",
+      "status": "g6-complete",
       "protocols": [
         319
       ],
@@ -1280,14 +1286,19 @@
       ],
       "controlMatrix": "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
       "visualFidelity": {
-        "status": "pending-cocos-baseline",
-        "cocosScreenshots": [],
-        "unityScreenshots": [
-          "build/ui-migration/bootstrap-xunbao.png"
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-MAIN.png"
         ],
-        "diffReports": [],
-        "flowEvidence": "",
-        "uiMapping": ""
+        "unityScreenshots": [
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-MAIN.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/XunBao/compare/g5/report.json",
+          ".local/ui-fidelity/XunBao/compare/g5/manual-acceptance.json"
+        ],
+        "flowEvidence": ".local/unity-validation/xunbao-latest.json",
+        "uiMapping": "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
       },
       "document": "docs/unityclient/modules/XUNBAO.md"
     },

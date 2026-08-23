@@ -1,6 +1,10 @@
 local Protocol = require("Protocol")
 local M = { validation = false }
 
+local function requestInfo()
+    local message = Protocol.newMessage(Protocol.YOU_LI); message:WriteByte(1); Bridge:Send(message)
+end
+
 local function skipRewardBatch(message)
     local count = message:ReadByte()
     for _ = 1, count do message:ReadWord(); message:ReadUInt(); message:ReadUInt() end
@@ -9,10 +13,21 @@ end
 function M.onClick()
     M.validation = Bridge:HasCommandLineFlag("-projectXYouLiValidation")
     Bridge:ShowYouLi()
-    local message = Protocol.newMessage(Protocol.YOU_LI)
-    message:WriteByte(1)
-    Bridge:Send(message)
+    requestInfo()
     Bridge:SetStatus("YouLi/335 op=1 requested from current WanFa route.")
+end
+
+function M.start(locationId, heroId, mode, durationType)
+    local message = Protocol.newMessage(Protocol.YOU_LI)
+    message:WriteByte(2); message:WriteByte(1); message:WriteWord(heroId)
+    message:WriteByte(locationId); message:WriteByte(mode); message:WriteByte(durationType)
+    Bridge:Send(message); Bridge:SetStatus("YouLi/335 op=2 requested location="..tostring(locationId).." hero="..tostring(heroId)..".")
+end
+
+function M.claim(locationId)
+    local message = Protocol.newMessage(Protocol.YOU_LI)
+    message:WriteByte(3); message:WriteByte(1); message:WriteByte(locationId)
+    Bridge:Send(message); Bridge:SetStatus("YouLi/335 op=3 requested location="..tostring(locationId)..".")
 end
 
 function M.onPacket(command, message)
@@ -35,7 +50,8 @@ function M.onPacket(command, message)
         if M.validation then M.validation = false; Bridge:CompleteYouLiValidation() end
     elseif op == 2 or op == 3 then
         local success = message:ReadByte()
-        if success == 0 and message.Remaining > 0 then Bridge:SetYouLiError(message:ReadString()) end
+        if success == 0 and message.Remaining > 0 then Bridge:SetYouLiError(message:ReadString())
+        else Bridge:SetStatus("YouLi/335 op="..tostring(op).." succeeded; refreshing authoritative state."); requestInfo() end
     end
     return true
 end

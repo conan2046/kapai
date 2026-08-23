@@ -65,12 +65,12 @@
       "module": "Gameplay",
       "gates": {
         "G0": "passed",
-        "G1": "pending",
-        "G2": "pending",
-        "G3": "pending",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
       "note": "Gameplay must restart from current Cocos source and fresh 1334x750 native evidence; all historical screenshots, Runner results, hashes and visual-fixing markers are clues only.",
@@ -85,27 +85,6 @@
           ".local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md",
           ".local/unity-validation/gameplay-cocos-automation-ledger.json",
           ".local/unity-validation/gameplay-cocos-config-fixture.json"
-        ],
-        "G2": [
-          "docs/unityclient/modules/GAMEPLAY.md",
-          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
-          "tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1",
-          "tools/unity-migration/validation-scenarios.json",
-          "tools/unity-migration/module-evidence-contracts.json",
-          ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
-          ".local/unity-validation/gameplay-g2-docs-test.json"
-        ],
-        "G3": [
-          "docs/unityclient/modules/GAMEPLAY.md",
-          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
-          "unityclient/Assets/ProjectX/Resources/Configs/gameplay.json",
-          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
-          "unityclient/Assets/ProjectX/src/Data/GameplayStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/GameplayPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          ".local/unity-validation/gameplay-g3-unity-mcp-evidence.json",
-          ".local/unity-validation/gameplay-g3-docs-test.json"
         ],
         "G4": [
           ".local/unity-validation/gameplay-fixed-account-latest.json",
@@ -135,9 +114,16 @@
           "UNITYCLIENT_STATUS.md",
           "tools/unity-migration/unityclient-modules.json",
           ".local/unity-validation/gameplay-retrospective-latest.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/GAMEPLAY.md",
+          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json"
+        ],
+        "G3": [
+          "build/ui-migration/unity-xunbao-validation.log"
         ]
       },
-      "updatedUtc": "2026-08-02T12:19:08.0813161Z"
+      "updatedUtc": "2026-08-23T12:04:52.0157295Z"
     },
     {
       "module": "GameplayShops",
@@ -602,7 +588,7 @@
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "pending"
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/DRAW.md",
       "note": "Draw current HappyDrawUI /224 migration and the real Draw to Hero cultivation to Formation closure are complete. Historical phase1 evidence remains excluded.",
@@ -632,7 +618,7 @@
           "UNITYCLIENT_STATUS.md"
         ]
       },
-      "updatedUtc": "2026-07-30T07:24:00Z"
+      "updatedUtc": "2026-08-23T11:05:34Z"
     },
     {
       "module": "HeroEquip",
@@ -709,7 +695,7 @@
           ".local/unity-validation/heroequip-sqlite-current-20260822-v3.db"
         ]
       },
-      "updatedUtc": "2026-08-21T16:20:44.1913790Z"
+      "updatedUtc": "2026-08-21T16:20:44.191379Z"
     },
     {
       "module": "World",
@@ -915,10 +901,10 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "pending",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/PLAYERHUD.md",
       "gateEvidence": {
@@ -957,19 +943,6 @@
           "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
           "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt"
         ],
-        "G3": [
-          ".local/unity-validation/playerhud-g3-editor-latest.json",
-          ".local/unity-validation/playerhud-fixed-account-data-preflight-latest.json",
-          ".local/playerhud-g3-unity-editor-retry.log",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Data/PlayerStore.cs",
-          "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt",
-          "unityclient/Assets/ProjectX/Resources/Lua/Chat/ChatController.lua.txt",
-          "tools/unity-migration/Invoke-PlayerHudFixture.ps1",
-          "tools/unity-migration/UnityMigration.Common.ps1",
-          "tools/unity-migration/Test-UnityMigrationToolchain.ps1"
-        ],
         "G4": [
           ".local/unity-validation/playerhud-fixed-account-latest.json",
           ".local/unity-validation/playerhud-fixed-account-runner-latest.json",
@@ -993,9 +966,12 @@
           ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
           ".local/unity-validation/playerhud-cocos-automation-ledger.json",
           ".local/unity-validation/playerhud-retrospective-latest.json"
+        ],
+        "G3": [
+          "build/ui-migration/unity-xunbao-validation.log"
         ]
       },
-      "updatedUtc": "2026-08-02T04:59:08.1093043Z"
+      "updatedUtc": "2026-08-23T11:31:33.9735442Z"
     },
     {
       "module": "StaminaClaim",
@@ -1128,31 +1104,101 @@
       "updatedUtc": "2026-08-04T03:54:47.7246261Z"
     },
     {
+      "module": "YouLi",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/YOULI.md",
+      "note": "2026-08-23 已完成 /335 op1/2/3、8/8 控件、当前 Cocos/Unity 1334x750 空态视觉、双次 BuildBatch 与自动复盘，G0-G6 全部通过。",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/YOULI.md",
+          "docs/unityclient/matrices/YOULI_CONTROLS.json"
+        ],
+        "G1": [
+          "docs/unityclient/modules/YOULI.md",
+          "client/ProjectX/src/View/WanFa/YouLiMainUI.lua"
+        ],
+        "G2": [
+          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt",
+          "server/src/pack_deal.cpp"
+        ],
+        "G3": [
+          ".local/unity-validation/youli-latest.json",
+          "build/ui-migration/bootstrap-youli.png"
+        ],
+        "G4": [
+          ".local/unity-validation/youli-latest.json",
+          "docs/unityclient/matrices/YOULI_CONTROLS.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/YouLi/compare/g5/report.json",
+          ".local/ui-fidelity/YouLi/compare/g5/manual-acceptance.json",
+          ".local/unity-validation/youli-g5-preflight-latest.json"
+        ],
+        "G6": [
+          ".local/unity-validation/youli-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "docs/unityclient/matrices/YOULI_CONTROLS.json",
+          ".local/ui-fidelity/YouLi/compare/g5/report.json",
+          ".local/unity-validation/youli-retrospective-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-23T13:47:15.9543506Z"
+    },
+    {
       "module": "XunBao",
       "gates": {
         "G0": "passed",
-        "G1": "pending",
-        "G2": "pending",
-        "G3": "pending",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/XUNBAO.md",
-      "note": "法宝搜索 /319 只读阶段先冻结控制，后续将补齐共享基线和视觉对账。",
+      "note": "2026-08-23 已完成 /319 op28/29/30/31/36、7/7 控件、当前 Cocos/Unity 1334x750 主状态视觉、双次 BuildBatch 与自动复盘，G0-G6 全部通过。",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/XUNBAO.md",
           "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
         ],
-        "G1": [],
-        "G2": [],
-        "G3": [],
-        "G4": [],
-        "G5": [],
-        "G6": []
+        "G1": [
+          ".local/ui-fidelity/XunBao/cocos/g1-20260823/XUNBAO-MAIN.png"
+        ],
+        "G2": [
+          "docs/unityclient/modules/XUNBAO.md",
+          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt"
+        ],
+        "G3": [
+          ".local/unity-validation/xunbao-latest.json",
+          "build/ui-migration/bootstrap-xunbao.png"
+        ],
+        "G4": [
+          ".local/unity-validation/xunbao-latest.json",
+          "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/XunBao/compare/g5/report.json",
+          ".local/ui-fidelity/XunBao/compare/g5/manual-acceptance.json",
+          ".local/unity-validation/xunbao-g5-preflight-latest.json"
+        ],
+        "G6": [
+          ".local/unity-validation/xunbao-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
+          ".local/ui-fidelity/XunBao/compare/g5/report.json",
+          ".local/unity-validation/xunbao-retrospective-latest.json"
+        ]
       },
-      "updatedUtc": "2026-08-20T01:02:40.0278457Z"
+      "updatedUtc": "2026-08-23T13:45:42.5976553Z"
     },
     {
       "module": "SevenDay",

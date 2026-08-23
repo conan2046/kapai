@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "module": "YouLi",
+  "scopeDecision": { "decision":"补齐游历三界入口、查询、派遣、领取和权威刷新闭环", "confirmedByUser":true, "confirmedDate":"2026-08-23" },
+  "scenarios": [
+    { "id":"youli-success", "kind":"success", "given":"测试号已解锁并拥有神将", "when":"查询、派遣或领取", "then":"服务端成功后重新查询权威地点状态" },
+    { "id":"youli-failure", "kind":"failure-boundary", "given":"无神将、资源不足、未结束、超时或断线", "when":"尝试操作", "then":"显示错误且不伪造游历或奖励状态" }
+  ],
+  "sources": [
+    {
+      "id":"youli-business-ids",
+      "sourceFiles":["client/ProjectX/src/View/WanFa/YouLiMainUI.lua","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","server/src/pack_deal.cpp"],
+      "recordTotal":4,
+      "businessIds":["entry:function-1","335:1","335:2","335:3"],
+      "branchType":"游历三界入口及查询/派遣/领取协议",
+      "mappings":[{"businessIds":["entry:function-1","335:1","335:2","335:3"],"successScenarioIds":["youli-success"],"failureBoundaryScenarioIds":["youli-failure"]}],
+      "excluded":[]
+    }
+  ]
+}

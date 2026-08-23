@@ -736,7 +736,7 @@ function Get-UnityMigrationRetrospectiveFailures {
 function Get-UnityMigrationEffectiveRootCause {
     param(
         [Parameter(Mandatory = $true)]$FailedRecord,
-        [Parameter(Mandatory = $true)][object[]]$ResolutionRecords
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$ResolutionRecords
     )
     $recordRootCause = [string](Get-UnityMigrationPropertyValue -Object $FailedRecord -Name "rootCause" -Default "")
     $resolved = @($ResolutionRecords | Where-Object {

@@ -7,15 +7,15 @@
     {
       "id": "xunbao-only",
       "given": "法宝搜索玩法模块可达且服务端返回 /319 剩余次数",
-      "when": "进入玩法、检查剩余次数与恢复倒计时、尝试点击禁用按钮",
-      "then": "界面为真实法宝搜索骨架，次数和恢复倒计时展示权威值，所有写操作按钮保持禁用且可安全返回"
+      "when": "进入玩法、检查次数/倒计时、切换法宝并执行搜索或合成",
+      "then": "界面展示权威状态；op28/29/30/36 按来源协议发送并按结果更新提示，关闭可安全返回"
     }
   ],
   "scope": {
     "screenSize": "1334x750",
     "included": [
-      "法宝搜索主入口、次数区、关闭与返回流程、搜索次数展示、添加按钮和合成入口均保持和来源一致",
-      "/319 op=31 协议仅展示 remaining 与 recoverySeconds，功能动作保持禁用"
+      "法宝搜索主入口、次数区、关闭返回、法宝切换、碎片搜索、一键搜索、单个/一键合成",
+      "/319 op=28/29/30/31/36 按当前 Cocos 字段顺序收发；变更结果不由客户端预测"
     ],
     "fixedUserId": 7200057,
     "fixedRoleId": 1000115,
@@ -26,13 +26,7 @@
     "protocolOwnershipComplete": true,
     "configAssetClosureComplete": true,
     "runtimeTransformClosureComplete": true,
-    "knownGaps": [
-      {
-        "id": "xunbao-interactions-boundary",
-        "handling": "rejected",
-        "evidence": "docs/unityclient/modules/XUNBAO.md"
-      }
-    ]
+    "knownGaps": []
   },
   "hardGateVersion": 1,
   "controls": [
@@ -80,7 +74,7 @@
       "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "status": "complete",
-      "realEntryClick": false,
+      "realEntryClick": true,
       "automationPassed": true,
       "manualPassed": true
     },
@@ -96,55 +90,55 @@
       "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "status": "complete",
-      "realEntryClick": false,
+      "realEntryClick": true,
       "automationPassed": true,
       "manualPassed": true
     },
     {
-      "id": "XUNBAO-05-ADD-TIMES-LOCK",
+      "id": "XUNBAO-05-ADD-TIMES",
       "page": "法宝搜索",
       "path": "Panel/XunbaoBg/TimesBg/AddBtn",
       "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "addBtn.click（仅展示态）",
-      "protocolOp": "无",
-      "unityBinding": "加次入口禁用，不触发服务端请求",
+      "cocosCallback": "addBtn.click",
+      "protocolOp": "提示次数恢复/搜宝令补充边界",
+      "unityBinding": "真实可点击并给出明确补次数说明",
       "successEvidence": ".local/unity-validation/xunbao-latest.json",
       "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "status": "complete",
-      "realEntryClick": false,
+      "realEntryClick": true,
       "automationPassed": true,
       "manualPassed": true
     },
     {
-      "id": "XUNBAO-06-SEARCH-BLOCKED",
+      "id": "XUNBAO-06-SEARCH",
       "page": "法宝搜索",
       "path": "Panel/XunbaoBg/Btn_1",
       "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "searchBtn 点击仅占位，当前阻断",
-      "protocolOp": "无",
-      "unityBinding": "搜索按钮保持 interactable=false",
+      "cocosCallback": "碎片 Add / 一键搜索",
+      "protocolOp": "/319 op=28、op=29",
+      "unityBinding": "碎片搜索与当前法宝一键搜索均绑定真实协议",
       "successEvidence": ".local/unity-validation/xunbao-latest.json",
       "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "status": "complete",
-      "realEntryClick": false,
+      "realEntryClick": true,
       "automationPassed": true,
       "manualPassed": true
     },
     {
-      "id": "XUNBAO-07-COMBINE-BLOCKED",
+      "id": "XUNBAO-07-COMBINE",
       "page": "法宝搜索",
       "path": "Xunbao/Panel/Button_L",
       "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "combineBtn click（占位）",
-      "protocolOp": "无",
-      "unityBinding": "左侧合成按钮保持 interactable=false",
+      "cocosCallback": "单个合成 / 一键合成",
+      "protocolOp": "/319 op=30、op=36",
+      "unityBinding": "单个与一键合成按钮绑定真实协议并解析成功/失败",
       "successEvidence": ".local/unity-validation/xunbao-latest.json",
       "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
       "status": "complete",
-      "realEntryClick": false,
+      "realEntryClick": true,
       "automationPassed": true,
       "manualPassed": true
     }

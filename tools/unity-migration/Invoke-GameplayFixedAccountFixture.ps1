@@ -55,7 +55,7 @@ function Get-UserRoleId([uint32]$TargetUserId) {
 
 function Get-IdentitySnapshot {
     $identities = @(
-        [ordered]@{ key="primary"; userId=7200057; roleId=1000115; roleName="T00057"; level=60 },
+        [ordered]@{ key="primary"; userId=7200057; roleId=1000115; roleName="T00057"; level=99 },
         [ordered]@{ key="locked"; userId=7200260; roleId=1000119; roleName="T20260"; level=1 },
         [ordered]@{ key="isolation"; userId=705213; roleId=1000006; roleName="T67076"; level=60 }
     )

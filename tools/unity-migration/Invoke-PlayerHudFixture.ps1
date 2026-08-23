@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup")]
+    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "AssertReloginHash", "Cleanup", "AssertCleanup")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
@@ -74,7 +74,7 @@ function Get-LiveHash {
 
 function Assert-SetupState {
     $rows = @(Invoke-HudSql -Sql @"
-SELECT COUNT(*)=1 AND r.name='T00057' AND r.level=60 AND r.exp=0 AND r.zhanDouLi=17240
+SELECT COUNT(*)=1 AND r.name='T00057' AND r.level=99 AND r.exp=0 AND r.zhanDouLi IN (0,13800)
  AND r.money=1000000 AND u.money=100000 AND u.bd_money=100000 AND CHAR_LENGTH(r.user_spirit)>0
 FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId
 JOIN unity_validation_playerhud_fixture f ON f.user_id=u.id AND f.role_id=r.id
@@ -93,6 +93,18 @@ WHERE r.id=$RoleId
     if ($rows.Count -ne 1 -or [int]$rows[0] -ne 1) { throw "PlayerHud fixture exact restore hash assertion failed." }
 }
 
+function Assert-ReloginState {
+    $rows = @(Invoke-HudSql -Sql @"
+SELECT COUNT(*)=1 AND r.money=f.backup_role_money AND r.exp=f.backup_exp AND r.level=f.backup_level
+ AND r.zhanDouLi=13800 AND u.money=f.backup_user_money AND u.bd_money=f.backup_bd_money
+ AND COALESCE(HEX(r.user_spirit),'')=COALESCE(HEX(f.backup_user_spirit),'')
+FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId
+JOIN unity_validation_playerhud_fixture f ON f.user_id=u.id AND f.role_id=r.id
+WHERE r.id=$RoleId
+"@ -ReturnOutput)
+    if ($rows.Count -ne 1 -or [int]$rows[0] -ne 1) { throw "PlayerHud post-relogin normalized state assertion failed." }
+}
+
 switch ($Action) {
     "Setup" {
         Assert-ClientsStopped
@@ -104,7 +116,7 @@ INSERT INTO unity_validation_playerhud_fixture(
  user_id,role_id,backup_role_money,backup_exp,backup_level,backup_power,backup_user_money,backup_bd_money,backup_user_spirit,snapshot_hash,applied)
 SELECT $UserId,$RoleId,r.money,r.exp,r.level,r.zhanDouLi,u.money,u.bd_money,r.user_spirit,$hashExpression,1
 FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId WHERE r.id=$RoleId;
-UPDATE role_info SET money=1000000,exp=0,level=60,zhanDouLi=17240 WHERE id=$RoleId;
+UPDATE role_info SET money=1000000,exp=0,level=99,zhanDouLi=0 WHERE id=$RoleId;
 UPDATE user_info1 SET money=100000,bd_money=100000 WHERE id=$UserId AND role0=$RoleId
 "@
         Assert-SetupState
@@ -112,7 +124,7 @@ UPDATE user_info1 SET money=100000,bd_money=100000 WHERE id=$UserId AND role0=$R
         Write-Evidence ([ordered]@{
             schemaVersion=1; module="PlayerHud"; phase="fixture-applied"; userId=$UserId; roleId=$RoleId
             snapshotHash=[string]$row[0]; spiritBytes=[int]$row[1]
-            deterministic=[ordered]@{name="T00057";level=60;experience=0;power=17240;gold=1000000;premium=100000;boundPremium=100000}
+            deterministic=[ordered]@{name="T00057";level=99;experience=0;powerAfterLogin=13800;gold=1000000;premium=100000;boundPremium=100000}
             setupAssert="passed"; restoreAssert="pending"; cleanupAssert="pending"; createdUtc=[DateTime]::UtcNow.ToString("O")
         })
         Write-Host "PlayerHud fixture snapshot/setup assertion passed: userId=$UserId roleId=$RoleId hash=$($row[0])"
@@ -131,6 +143,7 @@ SET u.money=f.backup_user_money,u.bd_money=f.backup_bd_money WHERE u.id=$UserId 
         Write-Host "PlayerHud fixture restored while retaining snapshot."
     }
     "AssertRestored" { Assert-RestoredState; Write-Host "PlayerHud fixture exact restore assertion passed." }
+    "AssertReloginHash" { Assert-ReloginState; Write-Host "PlayerHud post-relogin normalized state assertion passed." }
     "Cleanup" {
         Assert-ClientsStopped
         & $PSCommandPath -Action Restore -UserId $UserId -RoleId $RoleId -EvidencePath $evidence

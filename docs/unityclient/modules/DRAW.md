@@ -162,7 +162,7 @@ G1 原始窗口截图全部为 `1334×750` PrintWindow 捕获；`kapai-current.o
 - 固定账号闭环另用只读隔离账号 `705213/1000006`：Fixture 建立和预演均解析其真实神将快照并硬断言不存在目标 `64`；Unity 在主账号重连验证后真实切换该账号，再重拉 `/24 → /48` 验证不继承神将、培养或阵容状态。
 - 夹具本地自检已执行“建立 → 初始硬断言 → 精确恢复 → fixture 行为 0、整体 SHA 一致”；完整预演必须再走固定账号脚本的登录、恢复与清理流程，不能以本自检替代。
 
-## 7. 动态验证（2026-07-31 最终）
+## 7. 动态验证（2026-08-23 G6 复验最终）
 
 命令：
 
@@ -178,10 +178,12 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 - `.local/unity-validation/draw-fixed-account-latest.json`：固定账号 28/28 控件、6/6 语义断言通过。
 - `.local/unity-validation/draw-fixed-account-runner-latest.json`：`/224 high free deterministic target 64 → /24 authoritative cultivation → /48 position 1 → reconnect persistence → alternate account 705213 isolation`。
 - `.local/ui-fidelity/Draw/compare/g5-20260730/report.json` 与 `manual-acceptance.json`：9 组 Cocos/Unity 原图、并排、叠加和差异报告通过。
-- 精简后 Unity 编译指纹 `0D5EBD48125F830ADF99CA08E3159DB59BD03C65133379E8CA0C55E0AB576A1E`；冻结工具链仅修复可选 `visual*` 字段与合同终态账号读取，回归 `43/43`。
+- Unity 编译指纹 `7867253031D35333AC77F495C3922F409951D7439C92005DC9BC30BAD449E67A`；固定账号 28/28 控件、6/6 语义和 G6 硬门禁复验通过。
 - Cocos 上阵完成帧未刷新培养后的等级/装备数值；Unity 显示同一服务端权威培养结果。该差异作为原生陈旧显示缺陷保留，不回退 Unity 权威状态。
 - 精确恢复：快照、恢复和重登录哈希一致，Fixture 行 0；严重错误 0。
-- 两次正式 BuildBatch 幂等 SHA-256：`CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。
+- 两次正式 BuildBatch 幂等 SHA-256：`48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`。
+- Cocos 证据按固定账号重新采集为 9 个原生 `1334×750` 状态；`DRAW_CONTROLS.json` 已登记 28 个逐控件双端证据并补齐 `g6Audit`。
+- 好友入口在 Steam 版本明确提示排除；将魂商店在 Gameplay route 15 尚未迁移时明确提示边界，不伪造商城交易。
 
 以下为 2026-07-18 历史 phase1 证据，不计本轮门禁：
 

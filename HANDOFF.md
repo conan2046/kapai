@@ -1,5 +1,54 @@
 # 本地卡牌项目调试交接
 
+> 当前交接：2026-08-23 用户指定序列 1/4/5/6/7 已完成当前功能闭包；2 HeroEquip、3 HeroCultivation 本轮明确跳过。
+> 工作树仍有约 926 项既有 Unity `.meta` 变动；本轮未清理、未暂存、未提交、未推送。
+
+## 0. 2026-08-23 XunBao / YouLi G5-G6 最终收口
+
+- XunBao、YouLi 均为 `G0-G6 passed`；矩阵分别 `7/7`、`8/8`，最新固定账号运行结果均成功，严重异常 0。
+- G5：通过 Computer Use 从原生 `ProjectX.exe / Cocos Simulator` 取得当前 `1334×750` Cocos 主状态；Unity 恢复寻宝法宝图/说明/底部列表及游历 `map_01..05` 原图/战场背景，双端差异报告和人工验收通过。
+- G6：两次正式 `BootstrapSceneBuilder.BuildBatch` SHA-256 均为 `7C0E65C8D6D8E162059B0DC45149B64042CE89EA4D0CB6C944D8E1A678CA8FBA`；XunBao 自动复盘 14/14、YouLi 1/1 均已解决；工具链 190/190。
+- 严格完成率更新为 `14/17 = 82.4%`。HeroEquip 与 HeroCultivation 仍按用户要求跳过，未在本轮迁移。
+- 已关闭本轮 kapai、Unity、Cocos 和 Computer Use 运行时；未提交、未推送，约 926 项既有 Unity `.meta` 变动继续保留。
+- 证据：`.local/ui-fidelity/XunBao/compare/g5/`、`.local/ui-fidelity/YouLi/compare/g5/`、`.local/unity-validation/xunbao-retrospective-latest.json`、`.local/unity-validation/youli-retrospective-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`。
+
+## 0. 2026-08-23 Draw / XunBao / PlayerHud / Gameplay / YouLi 收口
+
+- Draw：G0-G6、28/28 控件、9组双端证据与两次 BuildBatch 已完成（详见下方历史段）。
+- XunBao：由只读 op31 扩展为 `/319 op28/29/30/31/36`；修正搜索结果的嵌套奖励批次和 op36 成功/失败解析。固定账号 `7200057/1000115` 最新真实 op31 返回成功，7控件、1截图、16/16 Python 测试通过。当前 Cocos 主图：`.local/ui-fidelity/XunBao/cocos/g1-20260823/XUNBAO-MAIN.png`。
+- PlayerHud：固定账号脚本已支持 `-RoleId`，99级全解锁主/隔离账号的当前重登归一化哈希、精确恢复与残留0通过；G0-G6恢复 passed。
+- Gameplay：当前 Steam 只保留 1/3/6/9/10 五入口；Runner 改为13控件/13状态，真实账号均99级，锁定态改用只读内存1级投影。最新 `.local/unity-validation/gameplay-latest.json` 通过，断线重连、切号隔离、13张截图、16/16 Python均通过。
+- YouLi：补齐 `/335 op2` 派遣、`op3` 领取和成功后 `op1` 权威重查；开放地点/一键派遣/领取按钮，自动选择首名上阵或拥有神将，默认合法方式/时长1/1。最新 `.local/unity-validation/youli-latest.json` 通过，8控件与1张Unity运行截图有效。
+- 总门禁：`Test-UnityMigrationToolchain.ps1` 190/190；修改JSON全部可解析；`git diff --check`通过。全局文档测试仍被既有 Login 本地图片 `.local/ui-fidelity/Login/g6-controls/cocos/LOGIN-01-SERVER-SELECTOR.png` 缺失阻断，与本轮模块无关。
+- 严格视觉状态：Draw、PlayerHud、Gameplay 为G0-G6；XunBao、YouLi为G0-G4功能完成，G5完整双端多状态视觉对账未伪造为通过。因此总状态源为12/17，不将这两个模块提前计入严格完成分母。
+
+### 下一步
+
+若继续严格迁移验收，只处理 XunBao 与 YouLi 的 G5/G6：用 Computer Use 获取两模块当前 Cocos 同账号多状态截图，生成Unity对应状态、差异/人工验收与复盘；不得回到本轮明确跳过的 HeroEquip/HeroCultivation，除非用户重新指定。
+
+> 当前交接：2026-08-23 Draw 已完成 G0-G6；用户指定的下一项是 XunBao G1-G6，HeroEquip 与 HeroCultivation 本轮跳过
+> 新任务必须继续保护约 926 项既有 Unity `.meta` 变动，不得 reset、checkout、自动暂存或夹带提交。
+
+## 0. 2026-08-23 Draw G6 复验收口
+
+- 门禁：`G0-G6 passed / 28/28 complete`；中央状态已由 `g6-audit-missing` 恢复为 `g6-complete`。
+- 固定账号 `7200057/1000115`、终态隔离账号 `705213/1000006`；28/28 控件、6/6 语义、9/9 双端原生 `1334×750` 状态通过。
+- 主链：`/224` 确定性高级免费招募目标 64 → `/24` 权威培养 → `/48` 阵位1上阵 → 重连持久化 → 切号隔离；夹具恢复哈希 `f5135a4413f2bff65f4c7e55b15818ebd41b6907bd572f24bfe20b15eee0acb4`，残留0。
+- 修复：Draw 主界面截图稳定发布；Friend 的 Steam 排除边界和 Gameplay route 15 未迁移边界均给出明确反馈；夹具补齐 `AssertReloginHash`，重登复核排除服务端按经验派生的 `level`，其余 Draw 持久化字段仍做严格哈希。
+- G5：重新用 Computer Use 从原生 `ProjectX.exe / Cocos Simulator` 采集9张 Cocos 图，生成双端并排/叠加/差异和人工验收；中央合同补齐 Cocos 源基线与运行副本→正式目录发布方向。
+- G6：硬门禁通过；正式编译指纹 `7867253031D35333AC77F495C3922F409951D7439C92005DC9BC30BAD449E67A`；两次 BuildBatch SHA-256 均为 `48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`；工具链 `190/190`。
+- 全局文档测试被与 Draw 无关的本地证据缺失阻断：Login 的 `.local/ui-fidelity/Login/g6-controls/cocos/LOGIN-01-SERVER-SELECTOR.png` 不存在；Draw 自身 G6 硬门禁已独立通过。
+- 证据：`.local/unity-validation/draw-fixed-account-latest.json`、`.local/unity-validation/draw-fixed-account-runner-latest.json`、`.local/ui-fidelity/Draw/compare/g5-20260730/report.json`、`manual-acceptance.json`、`docs/unityclient/matrices/DRAW_CONTROLS.json`。
+- 本轮未提交、未推送。下一任务只处理 XunBao：先读本交接、`UNITYCLIENT_STATUS.md`、`docs/unityclient/modules/XUNBAO.md`、`XUNBAO_CONTROLS.json`、Manifest/合同/现有证据；从 G1 开始，不复做已通过的注册/G0，也不进入 HeroEquip、HeroCultivation、PlayerHud、Gameplay 或 YouLi。
+
+### 下一任务新对话内容
+
+```text
+继续 F:\斗神单机\kapai 的 Cocos → Unity 迁移。本任务只处理用户序列第4项 XunBao（法宝搜索），按现状从 G1 连续完成到 G6；Draw 已在上一任务完成 G0-G6，不得重做。HeroEquip 与 HeroCultivation 本轮明确跳过，也不得提前处理 PlayerHud、Gameplay、YouLi。
+
+先读 AGENTS.md、HANDOFF.md、UNITYCLIENT_STATUS.md、docs/unityclient/modules/XUNBAO.md、docs/unityclient/matrices/XUNBAO_CONTROLS.json、tools/unity-migration/migration-gates.json、unityclient-modules.json、module-evidence-contracts.json 和现有 XunBao 代码/证据。先检查 Git 并保护约926项既有 Unity .meta 变动；不得 reset、checkout、自动暂存、夹带提交或推送。严格按 G1→G6，Cocos 只用 Computer Use 操作原生 ProjectX.exe，Unity 固定账号走中央标准脚本；完成后更新唯一状态源并生成新的中文 HANDOFF。
+```
+
 > 当前交接：2026-08-21 Bag 已按当前标准重新完成 G0-G6；严格完成率以 `UNITYCLIENT_STATUS.md` 的 `9/17 = 52.9%` 为准
 > 新任务必须先读 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 立即停止，不得进入G0-G6。
 

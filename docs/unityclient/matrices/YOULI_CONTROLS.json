@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "module": "YouLi",
+  "coverageList": "docs/unityclient/matrices/YOULI_COVERAGE.json",
+  "workflowPolicyVersion": 1,
+  "hardGateVersion": 1,
+  "acceptanceExamples": [
+    { "id":"youli-flow", "given":"99级全解锁测试号拥有可派遣神将", "when":"玩法大厅进入游历三界、派遣并领取", "then":"5个地点按权威/335状态渲染，写操作成功后必须重新查询op=1，不以总体成功包伪造单条状态" }
+  ],
+  "scope": { "fixedUserId":7200057, "fixedRoleId":1000115, "width":1334, "height":750, "ownedViews":["youli/youlisanjie","youli/youli","youli/yijianyouli","youli/youlifangshi","youli/youlishichang"] },
+  "sourceAudit": { "entryClosureComplete":true, "protocolOwnershipComplete":true, "configAssetClosureComplete":true, "runtimeTransformClosureComplete":true, "knownGaps":[] },
+  "controls": [
+    { "id":"YOULI-01-ENTRY","page":"Gameplay","path":"Function_1/EnterBtn","visibleCondition":"level>=26","cocosCallback":"enterFunction(1) -> YouLiMainUI","protocol":"/335 op=1","unityBinding":"OnYouLiClicked","successEvidence":"权威5地点页面","failureEvidence":"失败不造数据","reconnectEvidence":"重连重新查询","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-02-LOCATION-LIST","page":"YouLi","path":"youliUI/ListView","visibleCondition":"op=1已返回","cocosCallback":"UpdateInfo","protocol":"/335 op=1","unityBinding":"RuntimeYouLiLocations","successEvidence":"5地点同源配置","failureEvidence":"安全空态","reconnectEvidence":"重建列表","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-03-START-LOCATION","page":"YouLi","path":"Item/Btn_youli","visibleCondition":"地点开放且未游历","cocosCallback":"YouLiDetailUI dispatch","protocol":"/335 op=2","unityBinding":"YouLiPresenter start(locationId)","successEvidence":"发送单条派遣并刷新op=1","failureEvidence":"错误串提示","reconnectEvidence":"以op=1为准","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-04-ONEKEY-START","page":"YouLi","path":"youliUI/Btn_youli","visibleCondition":"至少一个开放空闲地点","cocosCallback":"YiJianYouLiUI","protocol":"/335 op=2","unityBinding":"start first available","successEvidence":"不重复派遣","failureEvidence":"无神将时提示","reconnectEvidence":"以op=1为准","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-05-CLAIM","page":"YouLi","path":"youliUI/Btn_lingqu","visibleCondition":"至少一个已完成地点","cocosCallback":"YouLi reward claim","protocol":"/335 op=3","unityBinding":"claim first ready","successEvidence":"领取后刷新op=1","failureEvidence":"未完成不可点击","reconnectEvidence":"奖励状态不重复","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-06-MODE","page":"YouLiDetail","path":"youlifangshi","visibleCondition":"准备派遣","cocosCallback":"mode 1/2/3","protocol":"op=2 mode:u8","unityBinding":"default mode=1","successEvidence":"合法方式字段","failureEvidence":"服务端拒绝提示","reconnectEvidence":"记录回显mode","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-07-DURATION","page":"YouLiDetail","path":"youlishichang","visibleCondition":"准备派遣","cocosCallback":"duration 4/8/12h","protocol":"op=2 duration:u8","unityBinding":"default durationType=1","successEvidence":"合法时长字段","failureEvidence":"服务端拒绝提示","reconnectEvidence":"记录回显duration","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true },
+    { "id":"YOULI-08-AUTHORITATIVE-REFRESH","page":"YouLi","path":"youliUI","visibleCondition":"op=2/3成功","cocosCallback":"QueryYouLiInfo","protocol":"/335 op=1","unityBinding":"success -> requestInfo","successEvidence":"逐条权威状态刷新","failureEvidence":"不依据success伪造","reconnectEvidence":"新会话重新查询","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true }
+  ]
+}

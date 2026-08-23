@@ -865,9 +865,12 @@
               "build/ui-migration/bootstrap-main-hud.png",
               "build/ui-migration/bootstrap-playerhud-first-entry.png",
               "build/ui-migration/bootstrap-playerhud-client-restart.png",
-              "build/ui-migration/bootstrap-playerhud-return-reenter.png"
+              "build/ui-migration/bootstrap-playerhud-return-reenter.png",
+              "build/ui-migration/bootstrap-playerhud-chat-expanded-empty.png",
+              "build/ui-migration/bootstrap-playerhud-reconnected-chat.png",
+              "build/ui-migration/bootstrap-playerhud-chat-expanded-messages.png"
             ],
-            "reason": "All four captures render the same authoritative primary-role HUD after transient menu state is collapsed; the looping cloud Timeline may make only a subset pixel-identical at a given stable frame.",
+            "reason": "Steam excludes Chat ownership, so chat-empty, chat-message and reconnect checkpoints intentionally retain the same authoritative collapsed HUD as first-entry/reentry/restart; the looping cloud Timeline may make only a subset pixel-identical at a given stable frame.",
             "sourceEvidence": [
               "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-first-entry.png)",
               "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-return-reenter.png)",
@@ -1724,10 +1727,6 @@
       "flags": [
         "-projectXGameplayValidation"
       ],
-      "networkValidation": {
-        "disableAutoReconnect": true,
-        "showReconnectDialog": true
-      },
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-gameplay-hud.png",
@@ -1800,17 +1799,16 @@
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
         "gameplay-authoritative-identity",
-        "gameplay-entry-list-13",
+        "gameplay-entry-list-steam-5",
         "gameplay-no-extra-shops",
         "gameplay-lock-level",
-        "gameplay-enter-boundaries-13",
+        "gameplay-enter-boundaries-steam-5",
         "gameplay-card-body-inert",
         "gameplay-scroll-lifecycle",
         "gameplay-redpoint-shared-owner",
-        "gameplay-kunlun-local-redpoint",
         "gameplay-failure-safety",
         "gameplay-reconnect-account-isolation",
-        "gameplay-control-matrix-16"
+        "gameplay-control-matrix-13"
       ],
       "sourceContracts": [
         {
@@ -1876,6 +1874,7 @@
           {
             "ids": [
               "build/ui-migration/bootstrap-gameplay-list-top.png",
+              "build/ui-migration/bootstrap-gameplay-list-scrolled.png",
               "build/ui-migration/bootstrap-gameplay-red-dot.png",
               "build/ui-migration/bootstrap-gameplay-reenter.png",
               "build/ui-migration/bootstrap-gameplay-restart.png",
@@ -1907,7 +1906,33 @@
       ],
       "captureStates": [
         "youli"
-      ]
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "youli-authoritative-list",
+        "youli-write-refresh-contract",
+        "youli-control-matrix-8"
+      ],
+      "sourceContracts": [
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt",
+          "contains": ["function M.start", "function M.claim", "requestInfo()"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/YouLiPresenter.cs",
+          "contains": ["StartFirstAvailable", "ClaimFirstReady", "RuntimeYouLiLocations"]
+        },
+        {
+          "path": "docs/unityclient/matrices/YOULI_CONTROLS.json",
+          "contains": ["YOULI-08-AUTHORITATIVE-REFRESH", "op=2/3成功"]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "fengshen-story-default",
@@ -2141,7 +2166,33 @@
       ],
       "captureStates": [
         "xunbao"
-      ]
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "xunbao-authoritative-state",
+        "xunbao-write-bindings",
+        "xunbao-control-matrix-7"
+      ],
+      "sourceContracts": [
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt",
+          "contains": ["function M.search", "function M.searchAll", "function M.compose", "function M.composeAll"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs",
+          "contains": ["BindAction", "ActionBindingCount", "searchAll", "composeAll"]
+        },
+        {
+          "path": "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
+          "contains": ["XUNBAO-07-COMBINE", "op=28/29/30/31/36"]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "seven-day-default",

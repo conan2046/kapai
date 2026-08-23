@@ -1,14 +1,55 @@
 local Protocol=require("Protocol")
 local M={validation=false}
+local function skipRewardBatch(message)
+ local count=message:ReadByte()
+ for _=1,count do message:ReadWord();message:ReadUInt();message:ReadUInt() end
+end
 function M.onClick()
  M.validation=Bridge:HasCommandLineFlag("-projectXXunBaoValidation");Bridge:ShowXunBao()
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(31);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=31 requested.")
 end
+function M.search(faBaoId,suiId)
+ local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(28);m:WriteWord(faBaoId);m:WriteWord(suiId);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=28 requested.")
+end
+function M.searchAll(faBaoId,autoSign)
+ local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(29);m:WriteByte(autoSign);m:WriteWord(faBaoId);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=29 requested.")
+end
+function M.compose(faBaoId)
+ local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(30);m:WriteWord(faBaoId);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=30 requested.")
+end
+function M.composeAll()
+ local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(36);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=36 requested.")
+end
 function M.onOperation(op,message)
- if op~=31 then return false end
- local remaining=message:ReadWord();local seconds=message:ReadUInt()
- Bridge:SetXunBaoState(remaining,seconds);Bridge:SetStatus("XunBao/319 op=31 recv: remaining="..tostring(remaining)..", seconds="..tostring(seconds)..".")
- if M.validation then M.validation=false;Bridge:CompleteXunBaoValidation() end;return true
+ if op==31 then
+  local remaining=message:ReadWord();local seconds=message:ReadUInt()
+  Bridge:SetXunBaoState(remaining,seconds);Bridge:SetStatus("XunBao/319 op=31 recv: remaining="..tostring(remaining)..", seconds="..tostring(seconds)..".")
+  if M.validation then M.validation=false;Bridge:CompleteXunBaoValidation() end;return true
+ end
+ if op==28 then
+  local faBaoId=message:ReadWord();local suiId=message:ReadWord();local ok=message:ReadByte()
+  if ok==0 then Bridge:SetXunBaoOperationResult(false,"搜索失败",-1,-1);return true end
+  local remaining=message:ReadWord();local count=message:ReadWord();local seconds=message:ReadUInt()
+  for _=1,count do skipRewardBatch(message) end
+  Bridge:SetXunBaoOperationResult(true,"搜索成功：法宝"..tostring(faBaoId).."碎片"..tostring(suiId),remaining,seconds);return true
+ end
+ if op==29 then
+  local auto=message:ReadByte();local faBaoId=message:ReadWord();local ok=message:ReadByte()
+  if ok==0 then Bridge:SetXunBaoOperationResult(false,"一键搜索失败",-1,-1);return true end
+  local count=message:ReadWord();for _=1,count do skipRewardBatch(message) end
+  local remaining=message:ReadWord();local seconds=message:ReadWord();if message.Remaining>=4 then message:ReadUInt() end
+  Bridge:SetXunBaoOperationResult(true,"一键搜索成功",remaining,seconds);return true
+ end
+ if op==30 then
+  local faBaoId=message:ReadWord();local ok=message:ReadByte();local detail=message.Remaining>0 and message:ReadString() or ""
+  Bridge:SetXunBaoOperationResult(ok~=0,(ok~=0 and "法宝合成成功" or "法宝合成失败")..detail,-1,-1);return true
+ end
+ if op==36 then
+  local ok=message:ReadByte()
+  if ok==0 then local detail=message.Remaining>0 and message:ReadString() or "";Bridge:SetXunBaoOperationResult(false,"一键合成失败"..detail,-1,-1);return true end
+  skipRewardBatch(message);Bridge:SetXunBaoOperationResult(true,"一键合成完成",-1,-1);return true
+ end
+ return false
 end
 function M.onPacket(command,message)
  if command~=Protocol.PET_EQUIP_OPERATE then return false end

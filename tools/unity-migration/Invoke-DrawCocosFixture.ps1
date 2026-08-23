@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup","AssertSetup","Restore","AssertRestored","Cleanup","AssertCleanup")]
+    [ValidateSet("Setup","AssertSetup","Restore","AssertRestored","Cleanup","AssertCleanup","AssertReloginHash")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
@@ -322,6 +322,26 @@ SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.
 "@ -ReturnOutput)
         if ([string]$current[-1] -ne [string]$payload.snapshotHash) { throw "Draw restored hash assertion failed." }
         Write-Host "Draw retained snapshot hash assertion passed: $($payload.snapshotHash)"
+    }
+    "AssertReloginHash" {
+        $payload = Read-Evidence
+        $current = @(Invoke-DrawSql -Sql @"
+SELECT SHA2(CONCAT_WS('|',COALESCE(r.package,''),COALESCE(r.pet,''),COALESCE(r.chou_ka,''),
+COALESCE(r.zhenfa,''),COALESCE(r.save_data,''),COALESCE(r.money,''),COALESCE(r.zhanDouLi,''),
+COALESCE(r.petZhanDouLi,''),COALESCE(u.money,''),COALESCE(u.bd_money,'')),256),
+SHA2(CONCAT_WS('|',COALESCE(f.backup_package,''),COALESCE(f.backup_pet,''),COALESCE(f.backup_chou_ka,''),
+COALESCE(f.backup_zhenfa,''),COALESCE(f.backup_save_data,''),COALESCE(f.backup_role_money,''),COALESCE(f.backup_role_power,''),
+COALESCE(f.backup_pet_power,''),COALESCE(f.backup_user_money,''),COALESCE(f.backup_bd_money,'')),256)
+FROM unity_validation_draw_fixture f JOIN role_info r ON r.id=f.role_id
+JOIN user_info1 u ON u.id=f.user_id AND u.role0=f.role_id WHERE f.user_id=$UserId AND f.role_id=$RoleId
+"@ -ReturnOutput)
+        $hashes = $current[-1] -split "`t",2
+        if ($hashes.Count -ne 2 -or [string]$hashes[0] -ne [string]$hashes[1]) { throw "Draw post-login restore hash mismatch." }
+        $payload | Add-Member -Force -NotePropertyName postLoginHash -NotePropertyValue ([string]$hashes[0])
+        $payload | Add-Member -Force -NotePropertyName postLoginHashVerified -NotePropertyValue $true
+        $payload | Add-Member -Force -NotePropertyName postLoginDerivedFields -NotePropertyValue @("level")
+        Write-Evidence $payload
+        Write-Host "Draw post-login restore hash passed (derived level excluded): $($hashes[0])"
     }
     "Cleanup" {
         Assert-ClientsStopped; Invoke-DrawSql -Sql $createTableSql; Ensure-DrawFixtureColumns

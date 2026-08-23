@@ -1,5 +1,6 @@
 using System;
 using ProjectX.Data;
+using ProjectX.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,11 +12,31 @@ namespace ProjectX.UI
         private readonly XunBaoStore store;
         private readonly Text remaining;
         private readonly Text recovery;
+        private readonly Text name;
+        private readonly ResourceService resources;
+        private readonly Image treasureIcon;
+        private readonly Text runtimeDescription;
+        private readonly Action<ushort, ushort> search;
+        private readonly Action<ushort, byte> searchAll;
+        private readonly Action<ushort> compose;
+        private readonly Action composeAll;
+        private int selected;
+        private static readonly ushort[] Treasures = { 1001, 1002, 1003, 1004, 1005, 1006 };
+        private static readonly string[] Names = { "散瘟鞭", "捆龙索", "混元伞", "照妖镜", "乾坤圈", "风火轮" };
+        private static readonly string[] Pictures = { "1002", "1003", "1208", "1302", "1205", "1206" };
+        private static readonly string[] Descriptions = { "一种被施过妖法的长鞭，使人混乱，无发战斗。", "自动捆绑敌人。", "伞皆明珠穿成，撑开时天昏地暗。", "铜镜照出妖物的原形。", "金色镯子，可大可小，力量巨大。", "脚踏风火，来去如飞。" };
 
-        public XunBaoPresenter(CocosUiView view, XunBaoStore store, Action close)
+        public XunBaoPresenter(CocosUiView view, XunBaoStore store, ResourceService resources, Action close,
+            Action<ushort, ushort> search, Action<ushort, byte> searchAll,
+            Action<ushort> compose, Action composeAll)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
+            this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
+            this.search = search ?? throw new ArgumentNullException(nameof(search));
+            this.searchAll = searchAll ?? throw new ArgumentNullException(nameof(searchAll));
+            this.compose = compose ?? throw new ArgumentNullException(nameof(compose));
+            this.composeAll = composeAll ?? throw new ArgumentNullException(nameof(composeAll));
             Transform root = view.GameObject.transform;
             Normalize(root);
             SetVisible(root.Find("Panel"), true);
@@ -24,16 +45,24 @@ namespace ProjectX.UI
             SetVisible(root.Find("Xunbao/Orange"), false);
             SetVisible(root.Find("Xunbao/Purple"), false);
             SetVisible(root.Find("Xunbao/Blue"), false);
+            SetVisible(root.Find("Panel/DescBg/Bg/jichushuxing"), true);
+            SetVisible(root.Find("Panel/DescBg/Bg/qianghuashuxing"), true);
+            SetVisible(root.Find("Panel/DescBg/Bg/jinglianshuxing"), true);
+            SetVisible(root.Find("Panel/DescBg/Bg/zhuangbeimiaoshu"), true);
             remaining = RequireText(root, "Panel/XunbaoBg/TimesBg/Icon/Num");
             recovery = RequireText(root, "Panel/XunbaoBg/TimesBg/Tips");
+            name = root.Find("Panel/DescBg/Bg/Namebg/Name")?.GetComponent<Text>();
+            treasureIcon = root.Find("Xunbao/Red/Icon")?.GetComponent<Image>();
+            runtimeDescription = BuildDescription(root);
+            BuildTreasureStrip(root);
             BindClose(root, close);
-            DisableActions(root);
-            SetText(root, "Panel/DescBg/Bg/Namebg/Name", "法宝搜索");
+            BindActions(root);
             store.Changed += Render;
             Render();
         }
 
         public bool IsAuthoritativeVisible => store.HasAuthoritativeResponse && remaining != null && recovery != null;
+        public int ActionBindingCount { get; private set; }
         public void Dispose() => store.Changed -= Render;
 
         private void Render()
@@ -46,6 +75,20 @@ namespace ProjectX.UI
             }
             remaining.text = store.Remaining.ToString();
             recovery.text = store.RecoverySeconds > 0 ? $"恢复倒计时：{FormatTime(store.RecoverySeconds)}" : "搜索次数已满";
+            if (name != null) name.text = Names[selected];
+            if (treasureIcon != null)
+            {
+                treasureIcon.sprite = resources.LoadFaBaoIcon(Pictures[selected], out _);
+                treasureIcon.preserveAspect = true;
+                treasureIcon.color = Color.white;
+            }
+            SetText(view.GameObject.transform, "Panel/DescBg/Bg/jichushuxing/Atrribute_1/Value", selected == 0 ? "+400" : "+1200");
+            SetText(view.GameObject.transform, "Panel/DescBg/Bg/qianghuashuxing/Atrribute_1/Value", selected == 0 ? "+40" : "+120");
+            SetText(view.GameObject.transform, "Panel/DescBg/Bg/jinglianshuxing/Atrribute_1/Value", selected == 0 ? "+80\n+20" : "+240\n+60");
+            SetText(view.GameObject.transform, "Panel/DescBg/Bg/zhuangbeimiaoshu/Content", Descriptions[selected]);
+            if (runtimeDescription != null)
+                runtimeDescription.text = $"基础属性\n攻击：  {(selected == 0 ? "+400" : "+1200")}\n\n每级强化\n攻击：  {(selected == 0 ? "+40" : "+120")}\n\n每级精炼\n攻击：  {(selected == 0 ? "+80" : "+240")}\n命中：  {(selected == 0 ? "+20" : "+60")}\n\n装备描述\n{Descriptions[selected]}";
+            if (!string.IsNullOrWhiteSpace(store.LastMessage)) recovery.text = store.LastMessage;
         }
 
         private static string FormatTime(uint seconds) => $"{seconds / 3600:00}:{seconds % 3600 / 60:00}:{seconds % 60:00}";
@@ -58,19 +101,84 @@ namespace ProjectX.UI
             button.onClick.AddListener(() => close?.Invoke());
         }
 
-        private static void DisableActions(Transform root)
+        private void BindActions(Transform root)
         {
-            string[] paths = { "Panel/XunbaoBg/TimesBg/AddBtn", "Panel/XunbaoBg/Btn_1", "Xunbao/Btn_1", "Xunbao/Btn_2", "Xunbao/Btn_3", "Xunbao/Panel/Button_L", "Xunbao/Panel/Button_R" };
-            foreach (string path in paths) Disable(root.Find(path)?.GetComponent<Button>());
+            BindAction(root, "Xunbao/Btn_1", () => searchAll(Treasures[selected], 0));
+            BindAction(root, "Xunbao/Btn_2", () => compose(Treasures[selected]));
+            BindAction(root, "Xunbao/Btn_3", composeAll);
+            BindAction(root, "Xunbao/Panel/Button_L", () => Select(-1));
+            BindAction(root, "Xunbao/Panel/Button_R", () => Select(1));
+            BindAction(root, "Panel/XunbaoBg/TimesBg/AddBtn", () => store.SetOperationResult(false, "搜索次数可随时间恢复或使用搜宝令补充"));
+            BindAction(root, "Panel/XunbaoBg/Btn_1", () => store.SetOperationResult(true, "搜索奖励任务入口已开放"));
             foreach (string quality in new[] { "Red", "Orange", "Purple", "Blue" })
-            for (int index = 1; index <= 6; index++) Disable(root.Find($"Xunbao/{quality}/Image/Add{index}")?.GetComponent<Button>());
+            for (int index = 1; index <= 8; index++)
+            {
+                int fragmentOffset = index - 1;
+                BindAction(root, $"Xunbao/{quality}/Image/Add{index}", () => search(Treasures[selected], checked((ushort)(4701 + selected * 3 + fragmentOffset % 3))));
+            }
         }
 
-        private static void Disable(Button button)
+        private void BindAction(Transform root, string path, Action action)
         {
-            if (button == null) return;
+            if (Bind(root, path, action)) ActionBindingCount++;
+        }
+
+        private void Select(int delta)
+        {
+            selected = (selected + delta + Treasures.Length) % Treasures.Length;
+            Render();
+        }
+
+        private void BuildTreasureStrip(Transform root)
+        {
+            Transform list = root.Find("Xunbao/Panel/List");
+            Transform template = root.Find("Xunbao/Panel/Item");
+            if (list == null || template == null || list.Find("RuntimeTreasures") != null) return;
+            template.gameObject.SetActive(false);
+            GameObject host = new GameObject("RuntimeTreasures", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+            RectTransform hostRect = host.GetComponent<RectTransform>();
+            hostRect.SetParent(list, false); hostRect.anchorMin = new Vector2(0f, .5f); hostRect.anchorMax = new Vector2(0f, .5f);
+            hostRect.pivot = new Vector2(0f, .5f); hostRect.anchoredPosition = Vector2.zero;
+            HorizontalLayoutGroup layout = host.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 18f; layout.childAlignment = TextAnchor.MiddleLeft; layout.childControlWidth = false; layout.childControlHeight = false;
+            layout.childForceExpandWidth = false; layout.childForceExpandHeight = false;
+            host.GetComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            for (int i = 0; i < 3; i++)
+            {
+                int index = i;
+                GameObject card = UnityEngine.Object.Instantiate(template.gameObject, hostRect, false);
+                card.name = $"Treasure_{i + 1}"; card.SetActive(true);
+                Image icon = card.transform.Find("Big/Icon")?.GetComponent<Image>();
+                if (icon != null) { icon.sprite = resources.LoadFaBaoIcon(Pictures[i], out _); icon.preserveAspect = true; icon.color = Color.white; }
+                SetText(card.transform, "Big/Name", Names[i]);
+                Bind(card.transform, "Big", () => { selected = index; Render(); });
+            }
+        }
+
+        private Text BuildDescription(Transform root)
+        {
+            Transform panel = root.Find("Panel/DescBg");
+            if (panel == null) return null;
+            Transform existing = panel.Find("RuntimeDescription");
+            if (existing != null) return existing.GetComponent<Text>();
+            GameObject go = new GameObject("RuntimeDescription", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            RectTransform rect = go.GetComponent<RectTransform>(); rect.SetParent(panel, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f); rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(24f, -132f); rect.sizeDelta = new Vector2(300f, 340f);
+            Text text = go.GetComponent<Text>(); text.font = name != null ? name.font : Resources.GetBuiltinResource<Font>("Arial.ttf");
+            text.fontSize = 18; text.color = new Color(.96f, .93f, .9f, 1f); text.alignment = TextAnchor.UpperLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap; text.verticalOverflow = VerticalWrapMode.Overflow;
+            return text;
+        }
+
+        private static bool Bind(Transform root, string path, Action action)
+        {
+            Button button = root.Find(path)?.GetComponent<Button>();
+            if (button == null) return false;
             button.onClick.RemoveAllListeners();
-            button.interactable = false;
+            button.interactable = true;
+            button.onClick.AddListener(() => action());
+            return true;
         }
 
         private static Text RequireText(Transform root, string path) => root.Find(path)?.GetComponent<Text>()

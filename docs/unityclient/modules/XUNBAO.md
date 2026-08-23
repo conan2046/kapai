@@ -5,22 +5,28 @@
 - 入口：玩法大厅 `function_id=9`，15 级开启。
 - Cocos：`WanFa.XunBaoMainUI` → `csd/wanfa/XunbaoLayer.csb`。
 - Unity：导入 `wanfa/XunbaoLayer.prefab`，保持主布局、次数区、法宝合成区与返回路径。
-- 首期只接只读状态；搜索、补次数、合成等消耗操作保持禁用。
+- 已完成搜索、法宝切换、补次数说明、单个/一键合成及权威次数刷新；不再停留在只读骨架。
 
 ## 协议
 
 | 方向 | 协议 | 数据 |
 |---|---|---|
-| C→S | `PET_EQUIP_OPERATE/319 op=31` | 无后续参数 |
-| S→C | `PET_EQUIP_OPERATE/319 op=31` | `remaining:word, recoverySeconds:uint` |
+| C→S | `/319 op=28` | `faBaoId:word, fragmentId:word` |
+| C→S | `/319 op=29` | `auto:byte, faBaoId:word` |
+| C→S | `/319 op=30` | `faBaoId:word` |
+| C→S | `/319 op=31` | 无后续参数 |
+| C→S | `/319 op=36` | 无后续参数 |
+| S→C | `/319 op=28/29` | 成功标记、权威搜索记录、remaining 与 recoverySeconds；每条记录按 `rewardCount:byte + reward(word,uint,uint)[]` 跳读 |
+| S→C | `/319 op=30/36` | 成功/失败与提示；op36 成功包含通用奖励批次 |
+| S→C | `/319 op=31` | `remaining:word, recoverySeconds:uint` |
 
 服务端权威实现：`CEquipManeger::TrapSouSuoCnt`。回包直接使用角色法宝搜索计数与下一次恢复秒数，不修改服务端状态。
 
 ## Unity 实现
 
 - `XunBaoStore` 保存权威次数与恢复秒数。
-- `XunBaoController.lua.txt` 负责 `/319 op=31` 请求与解析。
-- `XunBaoPresenter` 绑定真实 Prefab 次数/倒计时，固定展示一套合成区域并禁用所有变更按钮。
+- `XunBaoController.lua.txt` 负责 `/319 op=28/29/30/31/36` 的字段级收发，奖励批次与当前 Cocos `ReadRewardData` 一致。
+- `XunBaoPresenter` 绑定真实 Prefab 次数/倒计时、法宝切换、碎片搜索、一键搜索、单个/一键合成；操作结果由服务端回包驱动。
 - `ProjectXApp.EnterGameplay(9)` 完成玩法大厅进入，关闭按钮和 Esc 返回玩法大厅。
 
 ## 验证
@@ -28,8 +34,16 @@
 - 命令：`pwsh -NoProfile -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module XunBao`
 - 截图：`build/ui-migration/bootstrap-xunbao.png`
 - Unity 历史结果：真实 Prefab、权威回包、截图、关闭/Esc 返回全部通过；旧文档中的 `remaining=30, recoverySeconds=0` 已撤销，生产配置实际为初始 20 次、30 分钟恢复、上限 30 次。
-- 自动化：16/16 Python 测试通过，严重异常 0；状态为 `logic-validated-visual-pending`。
-- 已知边界：法宝清单/碎片数量依赖客户端配置，搜索和合成等变更流程留待后续阶段。
+- 2026-08-23：固定账号 `7200057/1000115` 的 `/319 op31` 真实查询、Unity 编译、截图与 16/16 Python 测试通过；当前 Cocos 主页面基线保存于 `.local/ui-fidelity/XunBao/cocos/g1-20260823/XUNBAO-MAIN.png`。
+- 写操作闭包已经接通；自动验收只执行无副作用的 op31，op28/29/30/36 的成功与失败分支由当前 Cocos/服务端源码合同和编译门禁覆盖，人工测试时以服务器回包及随后状态为准。
+
+### G5/G6 收口（2026-08-23）
+
+- 恢复中心法宝真实图、属性/描述和底部三法宝条目，稳定帧移除模块外全局滚动提示。
+- Cocos/Unity 同账号 `7200057/1000115`、原生 `1334×750` 主状态完成并排、叠加、差异报告与人工验收；受控差异仅为只读 Fixture 货币值。
+- 7/7 控件、3/3 语义断言、严重异常 0；自动复盘 14/14 失败均已诊断解决。
+- 两次正式 `BootstrapSceneBuilder.BuildBatch` SHA-256 均为 `7C0E65C8D6D8E162059B0DC45149B64042CE89EA4D0CB6C944D8E1A678CA8FBA`，中央工具链 190/190。
+- 最终证据：`.local/ui-fidelity/XunBao/compare/g5/report.json`、`.local/ui-fidelity/XunBao/compare/g5/manual-acceptance.json`、`.local/unity-validation/xunbao-latest.json`、`.local/unity-validation/xunbao-retrospective-latest.json`。
 
 ### Steam SQLite S5（2026-08-20）
 
