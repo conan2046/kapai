@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "module": "Bag",
+  "scopeDecision": {
+    "decision": "补齐中央G0 coverageList机器登记；沿用当前模块矩阵、场景与源码边界，不改变既有完成状态或证据结论。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-08-23"
+  },
+  "scenarios": [
+    {
+      "id": "bag-registered-success",
+      "kind": "success",
+      "given": "当前模块既有入口、协议和固定数据条件满足",
+      "when": "按当前控件矩阵执行已登记主路径",
+      "then": "由既有场景与Runner验证权威成功结果"
+    },
+    {
+      "id": "bag-registered-failure-boundary",
+      "kind": "failure-boundary",
+      "given": "功能锁定、数据不足、非法参数、超时、断线或切号",
+      "when": "执行当前矩阵对应边界操作",
+      "then": "由既有场景验证拒绝、恢复与账号隔离且不伪造成功"
+    }
+  ],
+  "sources": [
+    {
+      "id": "bag-registered-business-ids",
+      "sourceFiles": [
+        "client/ProjectX/src/View/MainUI.lua",
+        "client/ProjectX/src/View/Role/KaPaiBagSubUI.lua",
+        "client/ProjectX/src/View/Common/ItemSourceUI.lua"
+      ],
+      "recordTotal": 3,
+      "businessIds": [
+        "entry:btn_Bag",
+        "8",
+        "15"
+      ],
+      "branchType": "当前Manifest入口与协议业务ID的中央覆盖登记",
+      "mappings": [
+        {
+          "businessIds": [
+            "entry:btn_Bag",
+            "8",
+            "15"
+          ],
+          "successScenarioIds": [
+            "bag-registered-success"
+          ],
+          "failureBoundaryScenarioIds": [
+            "bag-registered-failure-boundary"
+          ]
+        }
+      ],
+      "excluded": []
+    }
+  ]
+}

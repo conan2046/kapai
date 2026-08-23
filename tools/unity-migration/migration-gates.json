@@ -16,6 +16,52 @@
   },
   "modules": [
     {
+      "module": "HeroCultivation",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/HEROCULTIVATION.md",
+      "note": "2026-08-23 current-source G0 freezes 41 controls and passes targeted workflow validation, 30-module docs consistency and 190 central toolchain tests. Hero module A is entry/regression only; historical screenshots, Runner results, hashes and completion claims are invalid for this module.",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/HEROCULTIVATION.md",
+          "docs/unityclient/matrices/HEROCULTIVATION_CONTROLS.json",
+          ".local/unity-validation/hero-cultivation-operation-ledger.json"
+        ],
+        "G2": [
+          ".local/unity-validation/hero-cultivation-g2-source-audit.json"
+        ],
+        "G3": [
+          ".local/unity-validation/hero-cultivation-g3-initial-playable.json",
+          ".local/unity-validation/hero-cultivation-fixed-account-data-preflight-latest.json"
+        ],
+        "G4": [
+          ".local/unity-validation/hero-cultivation-fixed-account-latest.json",
+          ".local/unity-validation/hero-cultivation-early-user-play-latest.json"
+        ],
+        "G5": [
+          ".local/ui-fidelity/HeroCultivation/compare/g5-current/report.json",
+          ".local/ui-fidelity/HeroCultivation/compare/g5-current/manual-acceptance.json"
+        ],
+        "G6": [
+          ".local/unity-validation/hero-cultivation-retrospective-latest.json"
+        ],
+        "G1": [
+          ".local/unity-validation/hero-cultivation-cocos-automation-ledger.json",
+          ".local/unity-validation/herocultivation-cocos-preflight-latest.json",
+          ".local/unity-validation/herocultivation-cocos-identity-latest.json",
+          ".local/unity-validation/herocultivation-cocos-baseline-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-23T09:55:04.4165465Z"
+    },
+    {
       "module": "Gameplay",
       "gates": {
         "G0": "passed",

@@ -40,6 +40,43 @@
   },
   "modules": [
     {
+      "key": "HeroCultivation",
+      "displayName": "神将培养模块 B",
+      "status": "g1-passed-g2-pending",
+      "protocols": [
+        24
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/Btn_3_1_0"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjueseLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshuxingLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengjiScene1.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengxingLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtupoLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxinxiLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/exp_dat.lua",
+        "client/ProjectX/src/ConfigData/hero_dat.lua",
+        "client/ProjectX/src/ConfigData/star_dat.lua",
+        "client/ProjectX/src/ConfigData/break_dat.lua",
+        "client/ProjectX/src/ConfigData/xiulian_dat.lua",
+        "client/ProjectX/src/ConfigData/quality_dat.lua",
+        "client/ProjectX/src/ConfigData/item_dat.lua"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/HEROCULTIVATION_CONTROLS.json",
+      "document": "docs/unityclient/modules/HEROCULTIVATION.md"
+    },
+    {
       "key": "Login",
       "displayName": "登录与创角",
       "status": "migration-complete",

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "module": "HeroCultivation",
+  "scopeDecision": {
+    "decision": "独立迁移升级、升星、突破、修炼、信息五页签及左右切换已上阵神将；模块A仅作入口和返回回归面。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-08-23"
+  },
+  "scenarios": [
+    {"id":"hc-entry-and-tabs","kind":"success","given":"神将阵容与五个培养功能已开放","when":"从真实养成入口依次点击五页签","then":"五个Lua子页按当前神将权威快照渲染"},
+    {"id":"hc-entry-lock-boundary","kind":"failure-boundary","given":"对应培养功能未开放或快照未完成","when":"点击养成入口或锁定页签","then":"显示原生锁定或加载反馈且不写业务状态"},
+    {"id":"hc-level-success","kind":"success","given":"经验材料充足且神将低于主角等级","when":"执行单次或一键升级","then":"/24 op3或op4成功后刷新等级、属性和材料"},
+    {"id":"hc-level-failure","kind":"failure-boundary","given":"材料不足、数量非法、已达主角等级、超时或断线","when":"尝试升级","then":"服务端拒绝或无请求，神将与背包不变"},
+    {"id":"hc-star-success","kind":"success","given":"升星材料与条件满足","when":"点击真实升星按钮","then":"/24 op7成功后刷新星级、属性和技能"},
+    {"id":"hc-star-failure","kind":"failure-boundary","given":"碎片不足、已达上限、超时或断线","when":"尝试升星","then":"保持原权威星级与材料"},
+    {"id":"hc-break-success","kind":"success","given":"神将等级和突破材料满足当前配置","when":"点击真实突破按钮","then":"/24 op5成功后刷新突破层与属性"},
+    {"id":"hc-break-failure","kind":"failure-boundary","given":"等级不足、材料不足、已达上限、超时或断线","when":"尝试突破","then":"显示等价提示且权威数据不变"},
+    {"id":"hc-cultivate-success","kind":"success","given":"修炼丹与修炼或激活条件满足","when":"执行单次、一键、指定次数修炼或激活","then":"/24 op6或op12成功后刷新修炼进度、属性与材料"},
+    {"id":"hc-cultivate-failure","kind":"failure-boundary","given":"功能未开、材料不足、次数非法、不可激活、超时或断线","when":"尝试修炼或激活","then":"显示等价提示且权威数据不变"},
+    {"id":"hc-readonly-info","kind":"success","given":"当前神将/24快照完整","when":"打开信息页、滚动并查看属性或技能详情","then":"完整显示当前神将只读数据且不发写协议"},
+    {"id":"hc-readonly-info-boundary","kind":"failure-boundary","given":"配置、技能图标或快照字段缺失","when":"打开信息页及详情","then":"按当前Cocos缺失语义降级且不伪造业务数据"},
+    {"id":"hc-swap-roundtrip","kind":"success","given":"至少两名不同神将已上阵","when":"右切后左切并遍历五页签","then":"模型与五页数据随fightPos切换并恢复"},
+    {"id":"hc-swap-boundary","kind":"failure-boundary","given":"只有一名上阵神将、当前不在阵位、断线或切号","when":"点击左右箭头","then":"箭头隐藏或保持当前神将且无跨账号残留"}
+  ],
+  "sources": [
+    {
+      "id":"hc-function-open-ids",
+      "sourceFiles":["client/ProjectX/src/core/AppDef.lua","client/ProjectX/src/ConfigData/function_dat.lua","client/ProjectX/src/View/KaPaiPet/PetKaPaiMainUI.lua"],
+      "recordTotal":6,
+      "businessIds":["1030","1060","1061","1070","1080","1085"],
+      "branchType":"真实养成入口、五页签与一键升级开放条件",
+      "mappings":[
+        {"businessIds":["1030","1060","1061","1070","1080","1085"],"successScenarioIds":["hc-entry-and-tabs"],"failureBoundaryScenarioIds":["hc-entry-lock-boundary"]}
+      ],
+      "excluded":[]
+    },
+    {
+      "id":"hc-protocol-24-ops",
+      "sourceFiles":["server/src/protocol.h","server/src/pack_deal.cpp","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"],
+      "recordTotal":7,
+      "businessIds":["24:1","24:3","24:4","24:5","24:6","24:7","24:12"],
+      "branchType":"神将查询、升级、一键升级、突破、修炼、升星与修炼激活权威协议",
+      "mappings":[
+        {"businessIds":["24:1"],"successScenarioIds":["hc-readonly-info","hc-swap-roundtrip"],"failureBoundaryScenarioIds":["hc-readonly-info-boundary","hc-swap-boundary"]},
+        {"businessIds":["24:3","24:4"],"successScenarioIds":["hc-level-success"],"failureBoundaryScenarioIds":["hc-level-failure"]},
+        {"businessIds":["24:5"],"successScenarioIds":["hc-break-success"],"failureBoundaryScenarioIds":["hc-break-failure"]},
+        {"businessIds":["24:6","24:12"],"successScenarioIds":["hc-cultivate-success"],"failureBoundaryScenarioIds":["hc-cultivate-failure"]},
+        {"businessIds":["24:7"],"successScenarioIds":["hc-star-success"],"failureBoundaryScenarioIds":["hc-star-failure"]}
+      ],
+      "excluded":[]
+    }
+  ]
+}

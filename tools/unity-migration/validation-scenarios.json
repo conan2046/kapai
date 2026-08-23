@@ -67,6 +67,75 @@
   },
   "scenarios": [
     {
+      "key": "hero-cultivation-default",
+      "module": "HeroCultivation",
+      "fixture": "reversible-hero-cultivation-sqlite-fixed-account",
+      "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "hero-cultivation-five-tabs",
+        "hero-cultivation-deployed-swap-roundtrip",
+        "hero-cultivation-authoritative-mutations",
+        "hero-cultivation-rejections-no-mutation",
+        "hero-cultivation-network-recovery",
+        "hero-cultivation-account-isolation",
+        "hero-cultivation-sqlite-exact-restore",
+        "hero-cultivation-control-matrix-41"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/KaPaiPet/PetKaPaiMainUI.lua",
+          "contains": [
+            "Button_l",
+            "Button_r",
+            "AddTabBtn",
+            "SelectTab",
+            "PetKaPaiLvUpUI",
+            "PetKaPaiStarUpUI",
+            "HeroBreakUpUI",
+            "PetKaPaiXiuLianUI",
+            "PetKaipaiInfoSubUI"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "void CPackageDeal::PetOption",
+            "case 3:// 神将升级",
+            "case 4:// 神将一键升级",
+            "case 5:// 神将突破",
+            "case 6:// 神将修炼",
+            "case 7:// 神将升星"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      },
+      "flags": [],
+      "artifacts": [],
+      "captureStates": [
+        "level",
+        "star",
+        "break",
+        "cultivate",
+        "info",
+        "previous-deployed",
+        "next-deployed",
+        "one-key-level-popup",
+        "star-detail",
+        "break-detail",
+        "cultivate-help",
+        "attribute-detail",
+        "failure",
+        "reconnected",
+        "reentered"
+      ]
+    },
+    {
       "key": "login-default",
       "module": "Login",
       "fixture": "isolated-role-global-snapshot",

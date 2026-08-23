@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "module": "Hero",
+  "coverageList": "docs/unityclient/matrices/HERO_COVERAGE.json",
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
     { "id": "hero-formation-lifecycle", "given": "固定账号具有可上阵神将和空阵位", "when": "从真实阵容入口更换阵位并重连", "then": "服务端阵容权威更新、重连保持、切号无旧角色残留" }

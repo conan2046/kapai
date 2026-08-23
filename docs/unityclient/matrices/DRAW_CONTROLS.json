@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "module": "Draw",
+  "coverageList": "docs/unityclient/matrices/DRAW_COVERAGE.json",
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
     { "id": "draw-deterministic-closure", "given": "高级池首次计数为零且固定账号资源充足", "when": "真实招募后培养目标神将、加入阵容并重连/切号", "then": "服务端确定性返回目标神将，培养阵容持久化，终态账号隔离且原账号精确恢复" }

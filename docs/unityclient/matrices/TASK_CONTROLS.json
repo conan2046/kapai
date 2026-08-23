@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "module": "Task",
+  "coverageList": "docs/unityclient/matrices/TASK_COVERAGE.json",
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
     { "id": "task-authoritative-claim", "given": "固定账号具有可领取每日任务和活跃宝箱", "when": "从真实任务入口领取并重复操作", "then": "首次权威成功、重复请求失败、重连保持且恢复后数据哈希一致" }

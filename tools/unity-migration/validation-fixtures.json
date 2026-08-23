@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "profiles": [
     {
+      "key": "reversible-hero-cultivation-sqlite-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-HeroCultivationFixture.ps1"
+    },
+    {
       "key": "shared-readonly",
       "roleMode": "shared",
       "mutatesServer": false,

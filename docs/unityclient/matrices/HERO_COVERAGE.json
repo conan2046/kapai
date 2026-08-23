@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "module": "Hero",
+  "scopeDecision": {
+    "decision": "仅回归主界面btn_zhenrong进入的原16项神将/阵容控件；完整培养与神将背包/碎片拆为后续独立模块。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-08-23"
+  },
+  "scenarios": [
+    { "id": "hero-entry-lifecycle", "kind": "success", "given": "1030已开放且主界面稳定", "when": "真实点击btn_zhenrong并关闭重进", "then": "只打开PetZhenRongUI且返回栈、重进与切号无旧页残留" },
+    { "id": "hero-entry-boundary", "kind": "failure-boundary", "given": "功能锁定、无神将、断线或快照未完成", "when": "点击入口或页面控件", "then": "显示原生锁定/加载/空态且不伪造神将或阵容状态" },
+    { "id": "hero-row-selection", "kind": "success", "given": "五个阵位含占用、空位和已开放状态", "when": "选择占用行与空行", "then": "详情与addnew按/24和/48权威快照切换且不预改阵位" },
+    { "id": "hero-row-lock-boundary", "kind": "failure-boundary", "given": "阵位等级未开放", "when": "点击锁定行", "then": "显示准确开放等级并拒绝选择" },
+    { "id": "hero-replace-flow", "kind": "success", "given": "至少两名可区分神将且有开放空位", "when": "从addnew或替换入口选择神将", "then": "下游/48成功后强制op1重拉并在重连后保持" },
+    { "id": "hero-replace-failure", "kind": "failure-boundary", "given": "候选为空、非法heroId、锁位、超时或断线", "when": "尝试上阵或替换", "then": "阵容保持原权威快照且pending被清理" },
+    { "id": "hero-slot-boundary", "kind": "success", "given": "装备1至4和法宝5至6槽具有空、穿戴和开放状态", "when": "逐个点击六槽", "then": "只路由到对应装备/法宝兄弟模块并保持共享状态隔离" },
+    { "id": "hero-slot-lock-boundary", "kind": "failure-boundary", "given": "等级、关卡或法宝功能未开放", "when": "点击对应槽位", "then": "按function_dat和/320 op27显示真实锁定反馈且不进入兄弟业务" },
+    { "id": "hero-formation-mutation", "kind": "success", "given": "布阵开放且阵容具有两名可换位神将", "when": "从btn_buzhen执行阵位变更并恢复", "then": "/48 op4成功后op1重拉，重登保持且最终精确恢复" },
+    { "id": "hero-formation-failure", "kind": "failure-boundary", "given": "非法heroId、非法阵位、锁位、超时或断线", "when": "尝试布阵", "then": "服务端拒绝且客户端不乐观改位、不跨账号残留" }
+  ],
+  "sources": [
+    {
+      "id": "hero-module-entry",
+      "sourceFiles": [
+        "client/ProjectX/src/View/MainUI.lua",
+        "client/ProjectX/src/core/AppDef.lua",
+        "client/ProjectX/src/Common/Utils.lua"
+      ],
+      "recordTotal": 3,
+      "businessIds": ["407", "1030", "1040"],
+      "branchType": "神将阵容入口、换将边界与布阵入口",
+      "mappings": [
+        { "businessIds": ["1030"], "successScenarioIds": ["hero-entry-lifecycle"], "failureBoundaryScenarioIds": ["hero-entry-boundary"] },
+        { "businessIds": ["407"], "successScenarioIds": ["hero-replace-flow"], "failureBoundaryScenarioIds": ["hero-replace-failure"] },
+        { "businessIds": ["1040"], "successScenarioIds": ["hero-formation-mutation"], "failureBoundaryScenarioIds": ["hero-formation-failure"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "hero-formation-position-open",
+      "sourceFiles": [
+        "client/ProjectX/src/core/AppDef.lua",
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/View/KaPaiPet/PetZhenRongUI.lua"
+      ],
+      "recordTotal": 5,
+      "businessIdRanges": [{ "start": 1031, "end": 1035 }],
+      "branchType": "五个阵位占用、空位和等级锁定",
+      "mappings": [
+        { "businessIdRanges": [{ "start": 1031, "end": 1035 }], "successScenarioIds": ["hero-row-selection"], "failureBoundaryScenarioIds": ["hero-row-lock-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "hero-equipment-slot-open",
+      "sourceFiles": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/View/KaPaiPet/PetZhenRongUI.lua"
+      ],
+      "recordTotal": 5,
+      "businessIds": ["1045", "1046", "1047", "1048", "1180"],
+      "branchType": "四个装备槽与两个共享法宝槽的开放边界",
+      "mappings": [
+        { "businessIds": ["1045", "1046", "1047", "1048", "1180"], "successScenarioIds": ["hero-slot-boundary"], "failureBoundaryScenarioIds": ["hero-slot-lock-boundary"] }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "hero-authority-protocols",
+      "sourceFiles": [
+        "server/src/protocol.h",
+        "server/src/pack_deal.cpp",
+        "server/src/user.cpp",
+        "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"
+      ],
+      "recordTotal": 5,
+      "businessIds": ["24:1", "48:1", "48:4", "319:boundary", "320:27"],
+      "branchType": "神将/阵容权威快照、阵位写操作与装备槽兄弟边界",
+      "mappings": [
+        { "businessIds": ["24:1", "48:1"], "successScenarioIds": ["hero-row-selection"], "failureBoundaryScenarioIds": ["hero-entry-boundary"] },
+        { "businessIds": ["48:4"], "successScenarioIds": ["hero-formation-mutation"], "failureBoundaryScenarioIds": ["hero-formation-failure"] },
+        { "businessIds": ["319:boundary", "320:27"], "successScenarioIds": ["hero-slot-boundary"], "failureBoundaryScenarioIds": ["hero-slot-lock-boundary"] }
+      ],
+      "excluded": []
+    }
+  ]
+}
