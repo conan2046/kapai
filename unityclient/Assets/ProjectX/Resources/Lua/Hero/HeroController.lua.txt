@@ -13,11 +13,16 @@ local M = {
     swapTargetHero = nil,
     levelUpHero = nil,
     levelUpBeforeLevel = nil,
+    cultivationOperation = nil,
+    cultivationResponseReady = false,
+    cultivationPushReady = false,
     g4RestoreExpected = false,
     equipmentReady = false,
     formationReady = false,
     closureStage = nil,
 }
+
+local syncRenderMirror
 
 local function requestFormation()
     local message = Protocol.newMessage(Protocol.FORMATION)
@@ -178,6 +183,59 @@ function M.levelUp(heroId, itemId, itemCount)
     Bridge:SetStatus("Hero/24 op=3 level-up request sent for hero " .. tostring(heroId) .. ".")
 end
 
+-- The legacy Cocos controller keeps the selected hero in LCPet. Unity owns the
+-- rendered controls, so every interactive selection must flow back into the
+-- same Lua model before a later /48 snapshot performs mirror validation.
+function M.selectHero(heroId)
+    return FormationModel:SelectHero(tonumber(heroId) or 0)
+end
+
+local function beginCultivationMutation(name, heroId)
+    if M.mutationStage ~= nil or heroId == nil or FormationModel:GetPetById(heroId) == nil then return false end
+    M.mutationStage = "cultivation_response"
+    M.mutationHero = heroId
+    M.cultivationOperation = name
+    M.cultivationResponseReady = false
+    M.cultivationPushReady = false
+    return true
+end
+
+local function sendCultivation(op, heroId, extraWriter)
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(op)
+    message:WriteWord(heroId)
+    if extraWriter ~= nil then extraWriter(message) end
+    Bridge:Send(message)
+    Bridge:SetStatus("Hero/24 " .. tostring(M.cultivationOperation) .. " request sent for hero " .. tostring(heroId) .. ".")
+end
+
+function M.autoLevelUp(heroId, targetLevel)
+    if not beginCultivationMutation("op=4 auto-level", heroId) then return end
+    sendCultivation(4, heroId, function(message) message:WriteWord(targetLevel) end)
+end
+
+function M.breakUp(heroId)
+    if not beginCultivationMutation("op=5 break", heroId) then return end
+    sendCultivation(5, heroId)
+end
+
+function M.cultivate(heroId, count)
+    if not beginCultivationMutation("op=6 cultivate", heroId) then return end
+    sendCultivation(6, heroId, function(message)
+        message:WriteWord(math.max(1, math.min(tonumber(count) or 1, 65535)))
+    end)
+end
+
+function M.starUp(heroId)
+    if not beginCultivationMutation("op=7 star", heroId) then return end
+    sendCultivation(7, heroId)
+end
+
+function M.activateCultivation(heroId)
+    if not beginCultivationMutation("op=12 activate", heroId) then return end
+    sendCultivation(12, heroId)
+end
+
 local function readHero(message)
     local hero = {
         id = message:ReadWord(),
@@ -197,9 +255,13 @@ local function readHero(message)
         currentHealth = 0,
     }
     for _ = 1, 23 do message:ReadUInt() end
-    message:ReadByte()
+    hero.cultivationLevel = message:ReadByte()
+    hero.cultivation = { 0, 0, 0, 0 }
     local trainingCount = message:ReadByte()
-    for _ = 1, trainingCount do message:ReadByte(); message:ReadWord() end
+    for _ = 1, trainingCount do
+        local kind, value = message:ReadByte(), message:ReadWord()
+        if kind >= 1 and kind <= 4 then hero.cultivation[kind] = value end
+    end
     local skillCount = message:ReadByte()
     for _ = 1, skillCount do message:ReadByte(); message:ReadWord(); message:ReadWord() end
     hero.currentHealth = hero.health
@@ -216,15 +278,80 @@ local function readHeroList(message)
     requestFormation()
 end
 
+local function requestCultivationSnapshotIfReady()
+    if M.mutationStage ~= "cultivation_response" or not M.cultivationResponseReady
+        or not M.cultivationPushReady then return end
+    M.mutationStage = "cultivation_snapshot"
+    M.onClick()
+end
+
+local function readCultivationResponse(op, message)
+    local heroId, success, reason = M.mutationHero or 0, 0, ""
+    if op == 4 then
+        success = message:ReadByte()
+        if success > 0 then heroId = message:ReadWord() else reason = message:ReadString() end
+    elseif op == 3 or op == 5 or op == 7 then
+        heroId = message:ReadWord(); success = message:ReadByte()
+        if success == 0 and message.Remaining > 0 then reason = message:ReadString() end
+    elseif op == 6 then
+        heroId = message:ReadWord(); message:ReadWord(); success = message:ReadByte()
+        if success > 0 then
+            local count = message:ReadByte()
+            for _ = 1, count do message:ReadByte(); message:ReadWord() end
+        elseif message.Remaining > 0 then reason = message:ReadString() end
+    elseif op == 12 then
+        heroId = message:ReadWord(); success = message:ReadByte()
+        if success > 0 then
+            message:ReadByte()
+            local count = message:ReadByte()
+            for _ = 1, count do message:ReadByte(); message:ReadWord() end
+        elseif message.Remaining > 0 then reason = message:ReadString() end
+    end
+    if message.Remaining ~= 0 then
+        M.mutationStage = nil
+        Bridge:Fail("Hero/24 op=" .. tostring(op) .. " has unread bytes: " .. tostring(message.Remaining))
+        return
+    end
+    if success == 0 then
+        M.mutationStage = nil
+        Bridge:Fail("Hero cultivation rejected: " .. tostring(reason))
+        return
+    end
+    if heroId ~= M.mutationHero then
+        M.mutationStage = nil
+        Bridge:Fail("Hero cultivation response hero mismatch: " .. tostring(heroId))
+        return
+    end
+    M.cultivationResponseReady = true
+    requestCultivationSnapshotIfReady()
+end
+
+local function readFullPetPush(message)
+    local op = message:ReadByte()
+    if op ~= 2 then return false end
+    local hero = readHero(message)
+    if message.Remaining ~= 0 then Bridge:Fail("Hero/25 has unread bytes: " .. tostring(message.Remaining)); return true end
+    FormationModel:ReplacePet(hero)
+    syncRenderMirror()
+    if M.mutationStage == "cultivation_response" and hero.id == M.mutationHero then
+        M.cultivationPushReady = true
+        requestCultivationSnapshotIfReady()
+    end
+    return true
+end
+
 -- C# stores are now render mirrors only. All authoritative formation state and
 -- ordering is calculated by the Lua model before this snapshot is published.
-local function syncRenderMirror()
+syncRenderMirror = function()
     Bridge:BeginHeroUpdate(FormationModel.followHeroId, FormationModel:GetHeroCount())
     for index = 1, #FormationModel.petlist do
         local hero = FormationModel.petlist[index]
         Bridge:AddHeroRecord(hero.id, hero.fightPos, hero.name, hero.star, hero.breakLevel, hero.level,
             hero.experience, hero.maxExperience, hero.power, hero.attack, hero.physicalDefense,
-            hero.magicDefense, hero.health, hero.speed, hero.currentHealth or hero.health)
+            hero.magicDefense, hero.health, hero.speed, hero.currentHealth or hero.health,
+            hero.cultivationLevel or 0,
+            hero.cultivation[1] or 0, hero.cultivation[2] or 0,
+            hero.cultivation[3] or 0, hero.cultivation[4] or 0)
     end
     Bridge:EndHeroUpdate()
 
@@ -238,6 +365,7 @@ local function syncRenderMirror()
         Bridge:AddFormationCombatHero(index, FormationModel.CombatPosList[index])
     end
     Bridge:EndFormationUpdate()
+    Bridge:SyncHeroSelection(FormationModel:GetSelectedHeroId())
 end
 
 local function readFormation(message)
@@ -276,6 +404,15 @@ local function readFormation(message)
         end
         M.mutationStage = nil
         Bridge:SetStatus("Hero/24 op=3 persisted: hero=" .. tostring(hero.id) .. " level=" .. tostring(hero.level) .. ".")
+        return
+    end
+
+    if M.mutationStage == "cultivation_snapshot" then
+        local operation, heroId = M.cultivationOperation, M.mutationHero
+        M.mutationStage, M.mutationHero, M.cultivationOperation = nil, nil, nil
+        M.cultivationResponseReady, M.cultivationPushReady = false, false
+        Bridge:SetStatus("Hero cultivation authoritative snapshot applied: " .. tostring(operation)
+            .. " hero=" .. tostring(heroId) .. ".")
         return
     end
 
@@ -388,6 +525,8 @@ local function readFormation(message)
             end
         elseif Bridge:HasCommandLineFlag("-projectXHeroLockedValidation") then
             Bridge:RunHeroLockedControlValidation()
+        elseif Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation") then
+            Bridge:RunHeroCultivationG3Validation()
         elseif Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
             if M.equipmentReady then runG4Validation()
             else M.formationReady = true end
@@ -585,10 +724,12 @@ end
 
 function M.onPacket(command, message)
     if command == Protocol.UPDATE_PET_INFO then readPetUpdate(message); return true end
+    if command == Protocol.UPDATE_PET then return readFullPetPush(message) end
     if command == Protocol.HERO then
         local op = message:ReadByte()
         if op == 1 then readHeroList(message)
         elseif op == 3 then readLevelUpResponse(message)
+        elseif op == 4 or op == 5 or op == 6 or op == 7 or op == 12 then readCultivationResponse(op, message)
         else return false end
         return true
     end
@@ -609,6 +750,8 @@ function M.reset()
     M.originalPosition, M.targetPosition = nil, nil
     M.swapSourceHero, M.swapTargetHero = nil, nil
     M.levelUpHero, M.levelUpBeforeLevel, M.levelUpBeforeExperience = nil, nil, nil
+    M.cultivationOperation = nil
+    M.cultivationResponseReady, M.cultivationPushReady = false, false
     M.g4RestoreExpected = false
     M.equipmentReady, M.formationReady = false, false
     M.closureStage = keepClosure and M.closureStage or nil

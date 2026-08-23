@@ -8,7 +8,9 @@ namespace ProjectX.Data
     {
         public HeroRecord(int id, int fightPosition, string name, int star, int breakLevel, int level,
             uint experience, uint maxExperience, ulong power, uint attack, uint physicalDefense,
-            uint magicDefense, ulong health, uint speed, ulong currentHealth)
+            uint magicDefense, ulong health, uint speed, ulong currentHealth, int cultivationLevel = 0,
+            int cultivationAttack = 0, int cultivationPhysicalDefense = 0,
+            int cultivationMagicDefense = 0, int cultivationHealth = 0)
         {
             Id = id;
             FightPosition = fightPosition;
@@ -25,6 +27,11 @@ namespace ProjectX.Data
             Health = health;
             Speed = speed;
             CurrentHealth = currentHealth;
+            CultivationLevel = cultivationLevel;
+            CultivationAttack = cultivationAttack;
+            CultivationPhysicalDefense = cultivationPhysicalDefense;
+            CultivationMagicDefense = cultivationMagicDefense;
+            CultivationHealth = cultivationHealth;
         }
 
         public int Id { get; }
@@ -42,6 +49,11 @@ namespace ProjectX.Data
         public ulong Health { get; }
         public uint Speed { get; }
         public ulong CurrentHealth { get; }
+        public int CultivationLevel { get; }
+        public int CultivationAttack { get; }
+        public int CultivationPhysicalDefense { get; }
+        public int CultivationMagicDefense { get; }
+        public int CultivationHealth { get; }
     }
 
     public sealed class HeroStore
@@ -72,7 +84,9 @@ namespace ProjectX.Data
                 int position = positions != null && positions.TryGetValue(id, out int value) ? value : 0;
                 records[id] = new HeroRecord(old.Id, position, old.Name, old.Star, old.BreakLevel, old.Level,
                     old.Experience, old.MaxExperience, old.Power, old.Attack, old.PhysicalDefense,
-                    old.MagicDefense, old.Health, old.Speed, old.CurrentHealth);
+                    old.MagicDefense, old.Health, old.Speed, old.CurrentHealth, old.CultivationLevel,
+                    old.CultivationAttack, old.CultivationPhysicalDefense,
+                    old.CultivationMagicDefense, old.CultivationHealth);
             }
             Changed?.Invoke();
         }

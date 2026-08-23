@@ -22,6 +22,7 @@ namespace ProjectX.UI
         private readonly Action<int> openEnhanceMaster;
         private readonly Action<int, int> openEquipmentSlot;
         private readonly Action<int> openAttributes;
+        private readonly Action<int> selectHero;
         private readonly Action<string> feedback;
         private readonly VirtualList<FormationSlot> list;
         private readonly VirtualList<HeroBagRow> bagList;
@@ -47,7 +48,7 @@ namespace ProjectX.UI
             HeroEquipmentStore equipment, FaBaoStore faBao, ResourceService resources,
             Action<int, int> openReplacement, Action<int> openCultivation,
             Action<int> openEnhanceMaster, Action<int, int> openEquipmentSlot,
-            Action<int> openAttributes, Action<string> feedback)
+            Action<int> openAttributes, Action<int> selectHero, Action<string> feedback)
         {
             this.heroes = heroes ?? throw new ArgumentNullException(nameof(heroes));
             this.formation = formation ?? throw new ArgumentNullException(nameof(formation));
@@ -61,6 +62,7 @@ namespace ProjectX.UI
             this.openEnhanceMaster = openEnhanceMaster ?? throw new ArgumentNullException(nameof(openEnhanceMaster));
             this.openEquipmentSlot = openEquipmentSlot ?? throw new ArgumentNullException(nameof(openEquipmentSlot));
             this.openAttributes = openAttributes ?? throw new ArgumentNullException(nameof(openAttributes));
+            this.selectHero = selectHero ?? throw new ArgumentNullException(nameof(selectHero));
             this.feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
             GameObject viewport = Require(listView, "Layer/shenjiangListUI/List/Panel");
             RectTransform viewportRect = viewport.GetComponent<RectTransform>();
@@ -87,8 +89,6 @@ namespace ProjectX.UI
             skillDescription.alignment = TextAnchor.UpperLeft;
             skillDescription.horizontalOverflow = HorizontalWrapMode.Wrap;
             skillDescription.verticalOverflow = VerticalWrapMode.Overflow;
-            skillDescription.rectTransform.anchoredPosition = new Vector2(82f, 45.5f);
-            skillDescription.rectTransform.sizeDelta = new Vector2(190f, 115f);
             skillIcon = Require(detailView, "Layer/EquipUI/Bg/Btn_Skill/Icon").GetComponent<Image>();
             GameObject portraitHost = Require(detailView, "Layer/EquipUI/Bg/bg/Image/BaseImage");
             GameObject modelHost = Require(detailView, "Layer/EquipUI/Bg/bg/Image/BaseImage/Node");
@@ -111,6 +111,17 @@ namespace ProjectX.UI
         public int BagItemCount { get; private set; }
         public int SelectedId => selectedId;
         public int SelectedPosition => selectedPosition;
+        public bool HasVisibleSkillIcon => skillIcon != null && skillIcon.enabled && skillIcon.sprite != null;
+
+        public void SelectFromAuthority(int heroId)
+        {
+            if (heroId <= 0 || !heroes.TryGet(heroId, out _)) return;
+            selectedId = heroId;
+            int position = formation.GetCombatPosition(heroId);
+            if (position > 0) selectedPosition = position;
+            selectionInitialized = true;
+            Render();
+        }
 
         public void Render()
         {
@@ -226,13 +237,14 @@ namespace ProjectX.UI
             if (color != null) color.gameObject.SetActive(false);
             Transform choose = row.Find("Choose");
             if (choose != null) choose.gameObject.SetActive(item.Id == selectedId && selectedPosition == slot.Position);
-            rowButton.onClick.AddListener(() =>
-            {
-                selectedPosition = slot.Position;
-                selectedId = item.Id;
-                selectionInitialized = true;
-                Render();
-            });
+                rowButton.onClick.AddListener(() =>
+                {
+                    selectedPosition = slot.Position;
+                    selectedId = item.Id;
+                    selectionInitialized = true;
+                    selectHero(selectedId);
+                    Render();
+                });
             row.gameObject.name = $"Hero_{item.Id}_{index}";
         }
 
@@ -440,7 +452,7 @@ namespace ProjectX.UI
                 button.interactable = true;
                 if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => { selectedId = hero.Id; Render(); });
+                button.onClick.AddListener(() => { selectedId = hero.Id; selectHero(selectedId); Render(); });
             }
         }
 

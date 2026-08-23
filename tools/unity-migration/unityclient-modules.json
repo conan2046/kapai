@@ -40,43 +40,6 @@
   },
   "modules": [
     {
-      "key": "HeroCultivation",
-      "displayName": "神将培养模块 B",
-      "status": "g1-passed-g2-pending",
-      "protocols": [
-        24
-      ],
-      "entries": [
-        "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/Btn_3_1_0"
-      ],
-      "prefabs": [
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjueseLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshuxingLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengjiScene1.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengxingLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtupoLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxinxiLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab"
-      ],
-      "configs": [
-        "client/ProjectX/src/ConfigData/function_dat.lua",
-        "client/ProjectX/src/ConfigData/exp_dat.lua",
-        "client/ProjectX/src/ConfigData/hero_dat.lua",
-        "client/ProjectX/src/ConfigData/star_dat.lua",
-        "client/ProjectX/src/ConfigData/break_dat.lua",
-        "client/ProjectX/src/ConfigData/xiulian_dat.lua",
-        "client/ProjectX/src/ConfigData/quality_dat.lua",
-        "client/ProjectX/src/ConfigData/item_dat.lua"
-      ],
-      "mutatesServer": true,
-      "validationFlags": [],
-      "screenshots": [],
-      "controlMatrix": "docs/unityclient/matrices/HEROCULTIVATION_CONTROLS.json",
-      "document": "docs/unityclient/modules/HEROCULTIVATION.md"
-    },
-    {
       "key": "Login",
       "displayName": "登录与创角",
       "status": "migration-complete",
@@ -386,6 +349,60 @@
       "controlMatrix": "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json"
     },
     {
+      "key": "HeroCultivation",
+      "displayName": "神将培养模块 B",
+      "status": "g2-passed-g3-implementation",
+      "protocols": [
+        24,
+        25,
+        48,
+        70
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/Btn_3_1_0"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjueseLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshuxingLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengjiScene1.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengxingLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtupoLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxinxiLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/EnterNumLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtianfuLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian2.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian3.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/exp_dat.lua",
+        "client/ProjectX/src/ConfigData/hero_dat.lua",
+        "client/ProjectX/src/ConfigData/star_dat.lua",
+        "client/ProjectX/src/ConfigData/break_dat.lua",
+        "client/ProjectX/src/ConfigData/xiulian_dat.lua",
+        "client/ProjectX/src/ConfigData/quality_dat.lua",
+        "client/ProjectX/src/ConfigData/item_dat.lua",
+        "server/config/json/config.json",
+        "server/config/json/hero.json",
+        "server/config/json/star.json",
+        "server/config/json/break.json",
+        "server/config/json/xiulian.json",
+        "server/config/json/quality.json",
+        "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/catalog.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXHeroCultivationG3Validation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/HEROCULTIVATION_CONTROLS.json",
+      "document": "docs/unityclient/modules/HEROCULTIVATION.md"
+    },
+    {
       "key": "Hero",
       "displayName": "神将与阵容",
       "status": "g3-initial-playable-early-user-play-pending",
@@ -648,27 +665,10 @@
       ],
       "visualFidelity": {
         "status": "pending-cocos-baseline",
-        "cocosScreenshots": [
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg"
-        ],
-        "unityScreenshots": [
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-SOUL.png",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-ARENA.png",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-BLOOD.png",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-GUILD.png",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-KUNLUN.png",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-TURNTABLE.png"
-        ],
-        "diffReports": [
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json"
-        ],
-        "flowEvidence": ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+        "cocosScreenshots": [],
+        "unityScreenshots": [],
+        "diffReports": [],
+        "flowEvidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
         "uiMapping": "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json"
       },
       "document": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",

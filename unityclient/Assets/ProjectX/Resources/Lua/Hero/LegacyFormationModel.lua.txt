@@ -82,6 +82,20 @@ function M:ReplaceHeroes(followHeroId, heroes)
     end
 end
 
+function M:ReplacePet(hero)
+    if hero == nil or hero.id == nil then return false end
+    local previous = self.petsById[hero.id]
+    if previous ~= nil then
+        for index = 1, #self.petlist do
+            if self.petlist[index].id == hero.id then self.petlist[index] = hero; break end
+        end
+    else
+        table.insert(self.petlist, hero)
+    end
+    self.petsById[hero.id] = hero
+    return true
+end
+
 function M:ReplaceFormation(activeId, formations, display, combat)
     self.useId = activeId or 0
     self:ResetMyFormations()

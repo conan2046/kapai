@@ -145,6 +145,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(54, "PRO_BANGPAI", "Guild"));
             registry.Register(new ProtocolDefinition(65, "PRO_FUNC_HOT_POINT", "SharedHotPoint", expectsResponse: false));
             registry.Register(new ProtocolDefinition(70, "PRO_UPDATE_PET_INFO", "Hero", expectsResponse: false));
+            registry.Register(new ProtocolDefinition(25, "PRO_UPDATE_PET", "Hero", expectsResponse: false));
             registry.Register(new ProtocolDefinition(88, "PRO_GONGGAO", "LoginMain", expectsResponse: false));
             registry.Register(new ProtocolDefinition(128, "MSG_CLIENT_XINSHI", "Mail"));
             registry.Register(new ProtocolDefinition(199, "MSG_HUODONG_OPTION", "Welfare"));

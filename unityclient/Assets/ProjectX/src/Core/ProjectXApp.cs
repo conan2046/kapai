@@ -63,7 +63,13 @@ namespace ProjectX.Core
         private LuaFunction onTaskClicked;
         private LuaFunction onTaskClaimClicked;
         private LuaFunction onHeroClicked;
+        private LuaFunction onHeroSelected;
         private LuaFunction onHeroLevelUp;
+        private LuaFunction onHeroAutoLevelUp;
+        private LuaFunction onHeroBreakUp;
+        private LuaFunction onHeroCultivate;
+        private LuaFunction onHeroStarUp;
+        private LuaFunction onHeroCultivationActivate;
         private LuaFunction onHeroEquipmentWear;
         private LuaFunction onEquipmentBagClicked;
         private LuaFunction onFaBaoBagClicked;
@@ -216,6 +222,18 @@ namespace ProjectX.Core
         private CocosUiView heroReplacementView;
         private CocosUiView heroCultivationView;
         private CocosUiView heroLevelUpView;
+        private CocosUiView heroAutoLevelUpView;
+        private CocosUiView heroStarUpView;
+        private CocosUiView heroBreakView;
+        private CocosUiView heroCultivateView;
+        private CocosUiView heroInfoView;
+        private CocosUiView heroCultivationTalentView;
+        private CocosUiView heroCultivationHelpFirstView;
+        private CocosUiView heroCultivationHelpSecondView;
+        private CocosUiView heroCultivationAttributeView;
+        private CocosUiView heroCultivationNumberView;
+        private CocosUiView heroCultivationHelpFrameView;
+        private HeroCultivationPresenter heroCultivationPresenter;
         private CocosUiView heroEnhanceMasterView;
         private CocosUiView heroAttributesView;
         private CocosUiView heroItemSourceView;
@@ -717,7 +735,13 @@ namespace ProjectX.Core
                 onTaskClicked = services.Lua.GetFunction("OnTaskClicked");
                 onTaskClaimClicked = services.Lua.GetFunction("OnTaskClaimClicked");
                 onHeroClicked = services.Lua.GetFunction("OnHeroClicked");
+                onHeroSelected = services.Lua.GetFunction("OnHeroSelected");
                 onHeroLevelUp = services.Lua.GetFunction("OnHeroLevelUp");
+                onHeroAutoLevelUp = services.Lua.GetFunction("OnHeroAutoLevelUp");
+                onHeroBreakUp = services.Lua.GetFunction("OnHeroBreakUp");
+                onHeroCultivate = services.Lua.GetFunction("OnHeroCultivate");
+                onHeroStarUp = services.Lua.GetFunction("OnHeroStarUp");
+                onHeroCultivationActivate = services.Lua.GetFunction("OnHeroCultivationActivate");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onFormationSwap = services.Lua.GetFunction("OnFormationSwap");
                 onFormationUpgrade = services.Lua.GetFunction("OnFormationUpgrade");
@@ -873,7 +897,13 @@ namespace ProjectX.Core
             onTaskClicked?.Dispose();
             onTaskClaimClicked?.Dispose();
             onHeroClicked?.Dispose();
+            onHeroSelected?.Dispose();
             onHeroLevelUp?.Dispose();
+            onHeroAutoLevelUp?.Dispose();
+            onHeroBreakUp?.Dispose();
+            onHeroCultivate?.Dispose();
+            onHeroStarUp?.Dispose();
+            onHeroCultivationActivate?.Dispose();
             onFormationMove?.Dispose();
             onFormationSwap?.Dispose();
             onFormationUpgrade?.Dispose();
@@ -992,6 +1022,7 @@ namespace ProjectX.Core
             bagFlowPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
+            heroCultivationPresenter?.Dispose();
             heroEquipmentPresenter?.Dispose();
             taskPresenter?.Dispose();
             mainTaskTracker?.Dispose();
@@ -1216,6 +1247,27 @@ namespace ProjectX.Core
             heroReplacementView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxionghuanjiang");
             heroCultivationView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongjueseLayer");
             heroLevelUpView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshuxingLayer");
+            heroAutoLevelUpView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshengjiScene1");
+            heroStarUpView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshengxingLayer");
+            heroBreakView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongtupoLayer");
+            // Use the full source suffix: the short token also matches
+            // yingxiongxiulian2/3 and can bind the help popup as the main page.
+            heroCultivateView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian.csd");
+            heroInfoView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxinxiLayer");
+            heroCultivationTalentView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongtianfuLayer");
+            heroCultivationHelpFirstView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian2");
+            heroCultivationHelpSecondView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian3");
+            heroCultivationAttributeView = services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
+            heroCultivationNumberView = services.UiRouter.FindBySource("EnterNumLayer");
+            CocosUiView sharedCultivationFrame = services.UiRouter.FindBySource("shop/shop_bg");
+            if (sharedCultivationFrame != null)
+            {
+                CocosUiBinding dedicatedBinding = Instantiate(sharedCultivationFrame.Binding,
+                    sharedCultivationFrame.Binding.transform.parent);
+                dedicatedBinding.gameObject.name = "HeroCultivationHelpFrameRuntime";
+                dedicatedBinding.gameObject.SetActive(false);
+                heroCultivationHelpFrameView = new CocosUiView(dedicatedBinding);
+            }
             heroEnhanceMasterView = services.UiRouter.FindBySource("zhuangbeiyangcheng/qianghuadashi");
             heroAttributesView = services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
             heroItemSourceView = services.UiRouter.FindBySource("common/huoqutujing");
@@ -4002,6 +4054,12 @@ namespace ProjectX.Core
         public void EndBagUpdate()
         {
             services.Bag.Replace(pendingBagItems);
+            if (services.Options.HeroCultivationG3Validation
+                && heroCultivationView?.GameObject.activeSelf == true)
+            {
+                CompleteHeroCultivationG3Validation();
+                return;
+            }
             // /8 is also an authoritative background source for Draw tickets and
             // Hero cultivation materials. A delayed response must update the
             // store without navigating either active business screen to the
@@ -6286,12 +6344,15 @@ namespace ProjectX.Core
 
         public void AddHeroRecord(int id, int fightPosition, string name, int star, int breakLevel, int level,
             double experience, double maxExperience, double power, double attack, double physicalDefense,
-            double magicDefense, double health, double speed, double currentHealth)
+            double magicDefense, double health, double speed, double currentHealth, int cultivationLevel,
+            int cultivationAttack, int cultivationPhysicalDefense, int cultivationMagicDefense,
+            int cultivationHealth)
         {
             pendingHeroes.Add(new HeroRecord(id, fightPosition, name, star, breakLevel, level,
                 checked((uint)experience), checked((uint)maxExperience), checked((ulong)power),
                 checked((uint)attack), checked((uint)physicalDefense), checked((uint)magicDefense),
-                checked((ulong)health), checked((uint)speed), checked((ulong)currentHealth)));
+                checked((ulong)health), checked((uint)speed), checked((ulong)currentHealth), cultivationLevel,
+                cultivationAttack, cultivationPhysicalDefense, cultivationMagicDefense, cultivationHealth));
         }
 
         public double GetHeroPower(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Power : 0d;
@@ -6381,19 +6442,28 @@ namespace ProjectX.Core
                 && luaFormationCount == services.Formation.Formations.Count
                 && luaActiveFormationId == services.Formation.ActiveFormationId
                 && luaSelectedHeroId == heroPresenter.SelectedId;
+            bool requiresSkillIcon = HeroCatalog.TryGet(luaSelectedHeroId, out HeroDefinition selectedDefinition)
+                && selectedDefinition.SkillId > 0;
             if (luaHeroCount <= 0 || luaFormationCount <= 0 || rendered != luaHeroCount
-                || !luaMatchesMirror || !IsHeroOpen)
+                || !luaMatchesMirror || !IsHeroOpen || (requiresSkillIcon && !heroPresenter.HasVisibleSkillIcon))
             {
                 Fail($"Lua formation read mismatch: entry={pendingHeroEntry}, luaHeroes={luaHeroCount}, "
                     + $"mirrorHeroes={services.Heroes.Count}, rendered={rendered}, luaFormations={luaFormationCount}, "
                     + $"mirrorFormations={services.Formation.Formations.Count}, active={luaActiveFormationId}/"
-                    + $"{services.Formation.ActiveFormationId}, selected={luaSelectedHeroId}/{heroPresenter.SelectedId}, open={IsHeroOpen}.");
+                    + $"{services.Formation.ActiveFormationId}, selected={luaSelectedHeroId}/{heroPresenter.SelectedId}, "
+                    + $"skillIcon={heroPresenter.HasVisibleSkillIcon}, required={requiresSkillIcon}, open={IsHeroOpen}.");
                 return;
             }
             if (!showBag && HasCommandLineFlag("-projectXFormationPopupValidation")) ShowFormationPopup();
             Complete(showBag
                 ? $"COMPLETE: Lua formation model -> /24 heroes={luaHeroCount} -> /48 formations={luaFormationCount} -> C# render mirror -> hero bag UI"
                 : $"COMPLETE: main formation button -> legacy Lua model -> /24 heroes={luaHeroCount} -> /48 active={luaActiveFormationId} -> C# render mirror -> formation UI");
+        }
+
+        public void SyncHeroSelection(int heroId)
+        {
+            EnsureHeroPresenter();
+            heroPresenter.SelectFromAuthority(heroId);
         }
 
         public int GetFormationCombatCount() => services.Formation.CombatHeroes.Count;
@@ -9956,7 +10026,8 @@ namespace ProjectX.Core
             heroPresenter = heroPresenter ?? new HeroPresenter(heroListView, heroDetailView, heroBagView,
                 services.Heroes, services.Formation, services.Player, services.HeroEquipment, services.FaBao,
                 services.Resources, ShowHeroReplacement, ShowHeroCultivation, ShowHeroEnhanceMaster,
-                ShowHeroEquipmentSlot, ShowHeroAttributes, message => ShowToast(message, 2f));
+                ShowHeroEquipmentSlot, ShowHeroAttributes,
+                id => InvokeLuaOrFail(onHeroSelected, "Hero.Select", id), message => ShowToast(message, 2f));
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
         }
@@ -10063,30 +10134,70 @@ namespace ProjectX.Core
         {
             if (!services.Heroes.TryGet(heroId, out HeroRecord hero)) return;
             activeHeroCultivationId = heroId;
-            heroCultivationView = heroCultivationView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongjueseLayer");
-            heroLevelUpView = heroLevelUpView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshuxingLayer");
-            if (heroCultivationView == null || heroLevelUpView == null)
-                throw new InvalidOperationException("Hero cultivation shell/level-up CocosUiBindings were not found.");
-            heroFrameView?.SetVisible(true);
-            heroFrameView?.GameObject.transform.SetAsLastSibling();
-            SetHeroFramePageVisibility(false, false, false, true, true);
-            heroCultivationView.SetVisible(true);
-            heroLevelUpView.SetVisible(true);
-            heroCultivationView.GameObject.transform.SetAsLastSibling();
-            heroLevelUpView.GameObject.transform.SetAsLastSibling();
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
-            if (title != null) title.text = "升级";
-            RefreshHeroCultivationData(heroId);
-            heroLevelUpView.BindClick("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji", () =>
-                InvokeLuaOrFail(onHeroLevelUp, "Hero.LevelUp", (double)hero.Id, 834d, 1d), true);
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", RestoreHeroFormationView, true);
-            heroCultivationView.BindClick("Layer/Node_3/Button_l", () => ShowToast("已到首个培养页", 1.5f), true);
-            heroCultivationView.BindClick("Layer/Node_3/Button_r", () => ShowToast("培养子模块按范围后置", 1.5f), true);
+            EnsureHeroCultivationPresenter();
+            SetHeroFramePageVisibility(false, false, false, true, false);
+            heroCultivationPresenter.Show(heroId);
+            // Cocos reads CountItemNumById from the live package cache.  The
+            // cultivation entry therefore needs the same authoritative /8
+            // snapshot before showing material quantities; the SQLite fixture
+            // alone is not a client-side BagStore update.
+            InvokeLuaOrFail(onBagClicked, "HeroCultivation.PackageSnapshot");
+        }
+
+        public void RunHeroCultivationG3Validation()
+        {
+            EnsureHeroPresenter();
+            int[] deployed = services.Formation.CombatHeroes.Where(id => id > 0).ToArray();
+            if (deployed.Length < 2)
+            {
+                Fail($"HeroCultivation G3 requires two deployed heroes; found {deployed.Length}.");
+                return;
+            }
+            ShowHeroCultivation(deployed[0]);
+        }
+
+        public void CompleteHeroCultivationG3Validation()
+        {
+            string detail = heroCultivationPresenter == null ? "presenter is missing" : string.Empty;
+            if (heroCultivationPresenter == null
+                || !heroCultivationPresenter.ValidateEarlyPlayRuntime(out detail))
+            {
+                Fail("HeroCultivation G3 runtime validation failed: " + detail);
+                return;
+            }
+            Complete("COMPLETE: HeroCultivation G3 authoritative values + five EventSystem tabs + deployed roundtrip | " + detail);
+        }
+
+        private void EnsureHeroCultivationPresenter()
+        {
+            if (heroCultivationPresenter != null) return;
+            CocosUiView[] required = { heroFrameView, heroCultivationView, heroLevelUpView,
+                heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView, heroInfoView,
+                heroCultivationTalentView, heroCultivationHelpFirstView, heroCultivationHelpSecondView,
+                heroCultivationAttributeView, heroCultivationNumberView, heroCultivationHelpFrameView };
+            if (required.Any(view => view == null))
+                throw new InvalidOperationException("Hero cultivation G3 CocosUiBindings were not found.");
+            heroCultivationPresenter = new HeroCultivationPresenter(heroFrameView, heroCultivationView,
+                heroLevelUpView, heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView,
+                heroInfoView, heroCultivationTalentView, heroCultivationHelpFirstView,
+                heroCultivationHelpSecondView, heroCultivationAttributeView, heroCultivationNumberView,
+                heroCultivationHelpFrameView, services.Heroes, services.Formation, services.Bag,
+                services.Player, services.Resources,
+                (id, item, count) => InvokeLuaOrFail(onHeroLevelUp, "Hero.LevelUp", id, item, count),
+                (id, level) => InvokeLuaOrFail(onHeroAutoLevelUp, "Hero.AutoLevelUp", id, level),
+                id => InvokeLuaOrFail(onHeroBreakUp, "Hero.BreakUp", id),
+                (id, count) => InvokeLuaOrFail(onHeroCultivate, "Hero.Cultivate", id, count),
+                id => InvokeLuaOrFail(onHeroStarUp, "Hero.StarUp", id),
+                id => InvokeLuaOrFail(onHeroCultivationActivate, "Hero.CultivationActivate", id),
+                RestoreHeroFormationView, message => ShowToast(message, 2f),
+                (parent, picture) => ShowRuntimeHeroModel(parent, picture),
+                id => InvokeLuaOrFail(onHeroSelected, "HeroCultivation.Select", id));
         }
 
         private void RestoreHeroFormationView()
         {
             activeHeroCultivationId = 0;
+            heroCultivationPresenter?.Hide();
             SetHeroFramePageVisibility(true, true, false, false, false);
             ConfigureHeroFrame(false);
             heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
@@ -10094,13 +10205,8 @@ namespace ProjectX.Core
 
         private void RefreshHeroCultivationData(int heroId)
         {
-            if (heroId <= 0 || heroCultivationView == null || heroLevelUpView == null
-                || !services.Heroes.TryGet(heroId, out HeroRecord hero)) return;
-            SetBoundText(heroCultivationView, "Layer/Node_3/Tips_2", $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}");
-            SetBoundText(heroCultivationView, "Layer/Node_3/bg_zhanli/Value", hero.Power.ToString());
-            if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
-                ShowRuntimeHeroModel(heroCultivationView.Binding.Find("Layer/Node_3/Node")?.transform, definition.Picture);
-            BindHeroLevelUp(heroLevelUpView, hero);
+            if (heroId <= 0 || heroCultivationPresenter == null) return;
+            heroCultivationPresenter.Refresh(heroId);
         }
 
         private void SetHeroFramePageVisibility(bool list, bool detail, bool bag, bool cultivation, bool levelUp)
@@ -10110,6 +10216,7 @@ namespace ProjectX.Core
             heroBagView?.SetVisible(bag);
             heroCultivationView?.SetVisible(cultivation);
             heroLevelUpView?.SetVisible(levelUp);
+            if (!cultivation) heroCultivationPresenter?.Hide();
             services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongListLayer", heroListView, list);
             services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongInfoLayer", heroDetailView, detail);
             services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongbeibao", heroBagView, bag);

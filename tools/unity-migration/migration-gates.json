@@ -20,14 +20,14 @@
       "gates": {
         "G0": "passed",
         "G1": "passed",
-        "G2": "pending",
+        "G2": "passed",
         "G3": "pending",
         "G4": "pending",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HEROCULTIVATION.md",
-      "note": "2026-08-23 current-source G0 freezes 41 controls and passes targeted workflow validation, 30-module docs consistency and 190 central toolchain tests. Hero module A is entry/regression only; historical screenshots, Runner results, hashes and completion claims are invalid for this module.",
+      "note": "2026-08-24 G0-G2 passed with 51 controls and 18 current Cocos states. G3 implementation is runnable but remains pending early user Play on the final user-authored Prefab layout; G4-G6 are not entered.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/HEROCULTIVATION.md",
@@ -59,7 +59,7 @@
           ".local/unity-validation/herocultivation-cocos-baseline-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-23T09:55:04.4165465Z"
+      "updatedUtc": "2026-08-23T16:15:00Z"
     },
     {
       "module": "Gameplay",

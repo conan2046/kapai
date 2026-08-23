@@ -50,7 +50,9 @@ namespace ProjectX.Animation
 
         private void OnEnable()
         {
-            if (playOnEnable && IsLoaded) Play(initialAction, loop);
+            if (!IsLoaded) return;
+            EnsureSpriteCache();
+            if (playOnEnable) Play(initialAction, loop);
         }
 
         private void Update()
@@ -259,6 +261,20 @@ namespace ProjectX.Animation
             }
         }
 
+        private void EnsureSpriteCache()
+        {
+            if (data == null || texture == null) return;
+            bool complete = moduleSprites.Count == data.modules.Length;
+            if (complete)
+                for (int index = 0; index < moduleSprites.Count; index++)
+                    if (moduleSprites[index] == null)
+                    {
+                        complete = false;
+                        break;
+                    }
+            if (!complete) BuildSprites();
+        }
+
         private void ClearSprites()
         {
             foreach (Sprite sprite in moduleSprites)
@@ -301,6 +317,10 @@ namespace ProjectX.Animation
             ImodPart part = parts[0];
             if (part.module < 0 || part.module >= data.modules.Length)
                 throw new InvalidOperationException($"Imod frame {frameIndex} has an invalid module.");
+            EnsureSpriteCache();
+            if (part.module >= moduleSprites.Count || moduleSprites[part.module] == null)
+                throw new InvalidOperationException(
+                    $"Imod frame {frameIndex} module {part.module} has no rendered sprite.");
             ImodModule module = data.modules[part.module];
             partImage.enabled = true;
             partImage.sprite = moduleSprites[part.module];

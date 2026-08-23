@@ -22317,6 +22317,11 @@ bool CUser::HeroXiuLian(CNetMessage &msg)
 	uint16 petId;
 	uint16 cnt;
 	msg >> petId >> cnt;
+	if (cnt == 0)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0168, TIPS_FAILURE_COLOR);
+		return true;
+	}
 	CHeroCfgManager& hmgr = sCHeroCfgManager;
 	
 	SPet* pPet = NULL;
@@ -22357,6 +22362,13 @@ bool CUser::HeroXiuLian(CNetMessage &msg)
 			}
 			fullCnts.push_back(fullCnt);
 			lessCnt += fullCnt;
+		}
+		if (cnt > lessCnt)
+			cnt = lessCnt;
+		if (cnt == 0)
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0168, TIPS_FAILURE_COLOR);
+			return true;
 		}
 		NoLockDelPackageById(CHeroCfgManager::g_xlItemId, cnt);
 		if (lessCnt <= cnt)
@@ -22458,11 +22470,6 @@ bool CUser::HeroXiuLianJiHuo(CNetMessage &msg)
 			return true;
 		}
 
-		if (!UseMultiCost(xcfg->costs))
-		{
-			msg << PRO_ERROR << MakeStringColor(LANGUAGE_SSJ_1008, TIPS_FAILURE_COLOR);
-			return true;
-		}
 		U8tU16Map& xlCnts = pPet->curXiuLianCnts;
 		for (U8tU16MapIt uit = CHeroCfgManager::g_xiuLianAttrAdd.begin(); uit != CHeroCfgManager::g_xiuLianAttrAdd.end(); ++uit)
 		{
@@ -22473,6 +22480,11 @@ bool CUser::HeroXiuLianJiHuo(CNetMessage &msg)
 				msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0245, TIPS_FAILURE_COLOR);
 				return true;
 			}
+		}
+		if (!UseMultiCost(xcfg->costs))
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_SSJ_1008, TIPS_FAILURE_COLOR);
+			return true;
 		}
 		pPet->curXiuLianCnts.clear();
 		pPet->xiuLianLevel++;

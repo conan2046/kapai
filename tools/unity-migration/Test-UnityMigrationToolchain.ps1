@@ -1512,4 +1512,61 @@ Assert-ToolchainTest (
     @($heroEquipMatrix.controls).Count -eq 86
 ) "HeroEquip scheme-A control denominator no longer reproduces 86 current controls/states."
 
+$heroCultivationPresenterSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroCultivationPresenter.cs") -Raw -Encoding UTF8
+$imodAnimationPlayerSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs") -Raw -Encoding UTF8
+$heroControllerSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt") -Raw -Encoding UTF8
+$heroLoginSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginView.lua.txt") -Raw -Encoding UTF8
+$appLaunchOptionsSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $appLaunchOptionsSource.Contains('HeroCultivationG3Validation => HasFlag("-projectXHeroCultivationG3Validation")') -and
+    $heroLoginSource.Contains('Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation")') -and
+    $heroControllerSource.Contains('Bridge:RunHeroCultivationG3Validation()') -and
+    $projectXAppSource.Contains('CompleteHeroCultivationG3Validation();')
+) "HeroCultivation G3 flag is no longer wired from login through formation and authoritative package/8 completion."
+Assert-ToolchainTest (
+    $heroCultivationPresenterSource.Contains('ValidateEarlyPlayRuntime(out string detail)') -and
+    $heroCultivationPresenterSource.Contains('missing level materials:') -and
+    $heroCultivationPresenterSource.Contains('retained placeholder') -and
+    $heroCultivationPresenterSource.Contains('tabs=5/5')
+) "HeroCultivation early-play regression: material, placeholder or five-tab runtime assertions were removed."
+Assert-ToolchainTest (
+    $heroCultivationPresenterSource.Contains('EventSystem.current.RaycastAll(data, hits);') -and
+    $heroCultivationPresenterSource.Contains('hits[0].gameObject.GetComponentInParent<Button>() != button') -and
+    $heroCultivationPresenterSource.Contains('ExecuteEvents.pointerClickHandler')
+) "HeroCultivation early-play regression: tab checks no longer require real EventSystem raycast/click semantics."
+Assert-ToolchainTest (
+    $heroCultivationPresenterSource.Contains('right deployed switch failed') -and
+    $heroCultivationPresenterSource.Contains('left deployed restore failed')
+) "HeroCultivation early-play regression: deployed-hero right/left roundtrip assertion was removed."
+Assert-ToolchainTest (
+    $heroCultivationPresenterSource.Contains('GetItemPicture(fragmentId)') -and
+    $heroCultivationPresenterSource.Contains('GetItemPicture(851)') -and
+    $heroCultivationPresenterSource.Contains('star page skill/fragment icon or quality frame is missing') -and
+    $heroCultivationPresenterSource.Contains('break page material icon or quality frame is missing')
+) "HeroCultivation early-play regression: star skill/fragment or break-material icon mapping and runtime assertions were removed."
+Assert-ToolchainTest (
+    $heroCultivationPresenterSource.Contains('duplicate.name = "Button2_Runtime"') -and
+    $heroCultivationPresenterSource.Contains('cultivation tab 2 did not reuse the shared Button2_Runtime slot') -and
+    $heroCultivationPresenterSource.Contains('HeroLevelMaterial{value}Frame') -and
+    $heroCultivationPresenterSource.Contains('HeroStarFragmentFrame') -and
+    $heroCultivationPresenterSource.Contains('HeroBreakMaterialFrame') -and
+    $heroCultivationPresenterSource.Contains('HeroCultivationMaterialFrame')
+) "HeroCultivation early-play regression: duplicate second tab or unified material quality-frame repair was removed."
+Assert-ToolchainTest (
+    $heroCultivationPresenterSource.Contains('CloseTransientPopups();') -and
+    $heroCultivationPresenterSource.Contains('page switch did not close transient popup') -and
+    $heroCultivationPresenterSource.Contains('GetBreakTalentDescriptions') -and
+    $heroCultivationPresenterSource.Contains('PopulateTalentRows')
+) "HeroCultivation early-play regression: source-derived popup descriptions or page-switch cleanup was removed."
+Assert-ToolchainTest (
+    $imodAnimationPlayerSource.Contains('EnsureSpriteCache();') -and
+    $imodAnimationPlayerSource.Contains('moduleSprites.Count == data.modules.Length') -and
+    $imodAnimationPlayerSource.Contains('moduleSprites[part.module] == null')
+) "Imod runtime regression: Play-mode assembly reload no longer rebuilds the generated sprite cache before rendering."
+
 Write-Host "Unity migration toolchain tests passed: $passed"

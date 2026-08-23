@@ -38,6 +38,14 @@ namespace ProjectX.Editor
         private const string HeroReplacementPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxionghuanjiang.prefab";
         private const string HeroCultivationPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjueseLayer.prefab";
         private const string HeroLevelUpPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshuxingLayer.prefab";
+        private const string HeroAutoLevelUpPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengjiScene1.prefab";
+        private const string HeroStarUpPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongshengxingLayer.prefab";
+        private const string HeroBreakUpPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtupoLayer.prefab";
+        private const string HeroTrainingPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian.prefab";
+        private const string HeroInfoPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxinxiLayer.prefab";
+        private const string HeroTalentPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtianfuLayer.prefab";
+        private const string HeroTrainingHelpPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian2.prefab";
+        private const string HeroTrainingAttributePrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongxiulian3.prefab";
         private const string HeroEnhanceMasterPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/qianghuadashi.prefab";
         private const string HeroAttributesPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab";
         private const string HeroItemSourcePrefab = "Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab";
@@ -204,6 +212,14 @@ namespace ProjectX.Editor
             new PrefabSpec(HeroBagPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroCultivationPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroLevelUpPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroAutoLevelUpPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroStarUpPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroBreakUpPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroTrainingPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroInfoPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroTalentPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroTrainingHelpPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroTrainingAttributePrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroEnhanceMasterPrefab, false),
             new PrefabSpec(HeroReplacementPrefab, false),
             new PrefabSpec(HeroAttributesPrefab, false),
@@ -262,7 +278,8 @@ namespace ProjectX.Editor
             foreach (string configName in new[]
                      {
                          "bigmap_dat", "map_res_dat", "maplist_dat", "fight_config_dat",
-                         "monster_boss_basic_dat", "exp_dat"
+                         "monster_boss_basic_dat", "exp_dat", "hero_dat", "star_dat",
+                         "break_dat", "xiulian_dat"
                      })
             {
                 CopyResourceIfChanged(
