@@ -829,6 +829,137 @@ function Get-UnityMigrationValidationResultSummaries {
     return @($rows)
 }
 
+function Get-UnityMigrationHistoricalRootCauseMatches {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [string]$RulesPath = "tools/unity-migration/root-cause-rules.json"
+    )
+    $rulesEntry = Import-UnityMigrationJson -Root $Root -Path $RulesPath
+    $retrospectiveDirectory = Join-Path $Root ".local/unity-validation"
+    if (-not (Test-Path -LiteralPath $retrospectiveDirectory -PathType Container)) { return @() }
+    $ruleMatches = New-Object System.Collections.Generic.List[object]
+    foreach ($file in @(Get-ChildItem -LiteralPath $retrospectiveDirectory -Filter "*-retrospective-latest.json" -File)) {
+        $retrospective = Get-Content -Raw -Encoding UTF8 -LiteralPath $file.FullName | ConvertFrom-Json
+        $sourceModule = [string](Get-UnityMigrationPropertyValue -Object $retrospective -Name "module" -Default "")
+        if (-not $sourceModule -or $sourceModule -ieq $Module) { continue }
+        foreach ($group in @((Get-UnityMigrationPropertyValue -Object $retrospective -Name "failureGroups" -Default @()))) {
+            $rootCause = [string](Get-UnityMigrationPropertyValue -Object $group -Name "rootCause" -Default "")
+            if (-not $rootCause -or $rootCause -eq "pending-diagnosis") { continue }
+            foreach ($rule in @($rulesEntry.Value.rules)) {
+                $matchedPattern = @($rule.rootCausePatterns | Where-Object { $rootCause -match [string]$_ } | Select-Object -First 1)
+                if ($matchedPattern.Count -eq 0) { continue }
+                $ruleMatches.Add([pscustomobject]([ordered]@{
+                    ruleId = [string]$rule.ruleId
+                    title = [string]$rule.title
+                    requiredAction = [string]$rule.requiredAction
+                    sourceModule = $sourceModule
+                    sourceRetrospective = [IO.Path]::GetRelativePath($Root, $file.FullName).Replace('\', '/')
+                    rootCause = $rootCause
+                    occurrenceCount = [int](Get-UnityMigrationPropertyValue -Object $group -Name "count" -Default 0)
+                    matchedPattern = [string]$matchedPattern[0]
+                }))
+            }
+        }
+    }
+    return @($ruleMatches | Sort-Object ruleId, sourceModule, rootCause -Unique)
+}
+
+function New-UnityMigrationG0Draft {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [int[]]$Protocols = @(),
+        [string[]]$Entries = @(),
+        [string[]]$Prefabs = @(),
+        [string[]]$Configs = @(),
+        [string]$InventoryPath = "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
+        [string[]]$ProtocolEvidencePaths = @(),
+        [string]$RulesPath = "tools/unity-migration/root-cause-rules.json"
+    )
+    $inventory = Resolve-UnityMigrationPath -Root $Root -Path $InventoryPath
+    if (-not (Test-Path -LiteralPath $inventory -PathType Leaf)) { throw "G0 inventory is missing: $InventoryPath" }
+    $rules = Resolve-UnityMigrationPath -Root $Root -Path $RulesPath
+    if (-not (Test-Path -LiteralPath $rules -PathType Leaf)) { throw "Root-cause rules are missing: $RulesPath" }
+    $uniqueProtocols = @($Protocols | Sort-Object -Unique)
+    if (@($ProtocolEvidencePaths).Count -ne $uniqueProtocols.Count) {
+        throw "G0 protocol evidence count does not match requested protocols: expected=$($uniqueProtocols.Count) actual=$(@($ProtocolEvidencePaths).Count)"
+    }
+    $protocolIndex = 0
+    $protocolRows = foreach ($path in @($ProtocolEvidencePaths)) {
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $path
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) { throw "Protocol evidence is missing: $path" }
+        [pscustomobject][ordered]@{
+            protocol = [int]$uniqueProtocols[$protocolIndex]
+            path = $path.Replace('\', '/')
+            sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash
+        }
+        $protocolIndex++
+    }
+    $draft = [pscustomobject][ordered]@{
+        schemaVersion = 1
+        module = $Module
+        applicability = "future-modules-only"
+        generatedUtc = [DateTime]::UtcNow.ToString("O")
+        requestedScope = [pscustomobject][ordered]@{
+            protocols = $uniqueProtocols
+            entries = @($Entries | Sort-Object -Unique)
+            prefabs = @($Prefabs | Sort-Object -Unique)
+            configs = @($Configs | Sort-Object -Unique)
+        }
+        currentInventory = [pscustomobject][ordered]@{
+            path = $InventoryPath.Replace('\', '/')
+            sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $inventory).Hash
+        }
+        protocolEvidence = @($protocolRows)
+        rootCauseRules = [pscustomobject][ordered]@{
+            path = $RulesPath.Replace('\', '/')
+            sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $rules).Hash
+        }
+        historicalRootCauseMatches = @(Get-UnityMigrationHistoricalRootCauseMatches -Root $Root -Module $Module -RulesPath $RulesPath)
+        reviewRequired = $true
+        reviewRule = "G0 must confirm additions, exclusions and business-ID mappings; this draft is not a passed gate."
+    }
+    $path = Join-Path $Root ".local/unity-validation/$($Module.ToLowerInvariant())-g0-draft-latest.json"
+    Write-UnityMigrationUtf8 -Path $path -Content (($draft | ConvertTo-Json -Depth 12) + "`n")
+    return [pscustomobject]@{ Path = $path; Draft = $draft }
+}
+
+function Assert-UnityMigrationG0Draft {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+    $entry = Import-UnityMigrationJson -Root $Root -Path $Path
+    $draft = $entry.Value
+    if ([int](Get-UnityMigrationPropertyValue -Object $draft -Name "schemaVersion" -Default 0) -ne 1 -or
+        [string](Get-UnityMigrationPropertyValue -Object $draft -Name "module" -Default "") -ine $Module) {
+        throw "G0 draft identity is invalid: $Path"
+    }
+    foreach ($source in @($draft.currentInventory, $draft.rootCauseRules) + @($draft.protocolEvidence)) {
+        $sourcePath = [string](Get-UnityMigrationPropertyValue -Object $source -Name "path" -Default "")
+        $expectedHash = [string](Get-UnityMigrationPropertyValue -Object $source -Name "sha256" -Default "")
+        if (-not $sourcePath -or -not $expectedHash) { throw "G0 draft has an incomplete source fingerprint." }
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $sourcePath
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) { throw "G0 draft source is missing: $sourcePath" }
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash
+        if ($actualHash -ne $expectedHash) { throw "G0 draft source changed after generation: $sourcePath" }
+    }
+    if ($null -eq $draft.PSObject.Properties["historicalRootCauseMatches"] -or
+        [bool](Get-UnityMigrationPropertyValue -Object $draft -Name "reviewRequired" -Default $false) -ne $true) {
+        throw "G0 draft lacks historical-root-cause review metadata."
+    }
+    $requestedProtocols = @($draft.requestedScope.protocols | ForEach-Object { [int]$_ } | Sort-Object -Unique)
+    $evidenceProtocols = @($draft.protocolEvidence | ForEach-Object { [int]$_.protocol } | Sort-Object -Unique)
+    if ($requestedProtocols.Count -ne $evidenceProtocols.Count -or
+        ($requestedProtocols.Count -gt 0 -and
+            @(Compare-Object -ReferenceObject $requestedProtocols -DifferenceObject $evidenceProtocols).Count -gt 0)) {
+        throw "G0 draft protocol evidence does not cover every requested protocol."
+    }
+    return $entry.Path
+}
+
 function New-UnityMigrationRetrospective {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -860,6 +991,39 @@ function New-UnityMigrationRetrospective {
             effectiveRootCause = $effectiveRootCause
         }
     })
+    $timingSummary = $null
+    $gateRegistry = Import-UnityMigrationJson -Root $Root -Path "tools/unity-migration/migration-gates.json"
+    $gateRecords = @($gateRegistry.Value.modules | Where-Object { $_.module -ieq $Module })
+    if ($gateRecords.Count -eq 1 -and
+        [int](Get-UnityMigrationPropertyValue -Object $gateRecords[0] -Name "timingPolicyVersion" -Default 0) -ge 1) {
+        $policyStartedUtc = [DateTime][string]$gateRecords[0].timingPolicyStartedUtc
+        $machineReports = New-Object System.Collections.Generic.List[object]
+        foreach ($candidate in @(
+            ".local/unity-validation/$($Module.ToLowerInvariant())-timings-latest.json",
+            ".local/unity-validation/$($Module.ToLowerInvariant())-fixed-account-timings-latest.json"
+        )) {
+            $resolvedCandidate = Resolve-UnityMigrationPath -Root $Root -Path $candidate
+            if (-not (Test-Path -LiteralPath $resolvedCandidate -PathType Leaf)) { continue }
+            $report = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedCandidate | ConvertFrom-Json
+            $checkedUtcText = [string](Get-UnityMigrationPropertyValue -Object $report -Name "checkedUtc" -Default "")
+            if (-not $checkedUtcText -or [DateTime]$checkedUtcText -lt $policyStartedUtc) { continue }
+            $machineReports.Add([pscustomobject][ordered]@{
+                path = $candidate
+                mode = [string](Get-UnityMigrationPropertyValue -Object $report -Name "mode" -Default "")
+                status = [string](Get-UnityMigrationPropertyValue -Object $report -Name "status" -Default "")
+                checkedUtc = $checkedUtcText
+                timings = Get-UnityMigrationPropertyValue -Object $report -Name "timings" -Default ([pscustomobject]@{})
+            })
+        }
+        $timingSummary = [pscustomobject][ordered]@{
+            policyVersion = [int]$gateRecords[0].timingPolicyVersion
+            policyStartedUtc = $gateRecords[0].timingPolicyStartedUtc
+            historicalBackfill = $false
+            calendarGateTimings = Get-UnityMigrationPropertyValue -Object $gateRecords[0] -Name "gateTimings" -Default ([pscustomobject]@{})
+            machineTimingReports = @($machineReports)
+            interpretation = "calendarGateTimings include waiting; machineTimingReports contain runner execution time. Neither is human work-hours."
+        }
+    }
     $summary = [pscustomobject][ordered]@{
         schemaVersion = 1
         module = $Module
@@ -885,6 +1049,7 @@ function New-UnityMigrationRetrospective {
                 evidence = @($_.iterationEvidence)
             }
         })
+        timing = $timingSummary
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }
     $summaryPath = Join-Path $Root ".local/unity-validation/$($Module.ToLowerInvariant())-retrospective-latest.json"

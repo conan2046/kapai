@@ -143,6 +143,37 @@ Start-Sleep -Milliseconds 20
 Complete-UnityMigrationTiming -Timings $timings -Name "sample" -Timing $timing
 Assert-ToolchainTest ([long]$timings.sample.durationMs -ge 1) "Timing helper did not record elapsed milliseconds."
 
+$rootCauseRules = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/root-cause-rules.json").Value
+Assert-ToolchainTest (
+    [int]$rootCauseRules.schemaVersion -eq 1 -and @($rootCauseRules.rules).Count -ge 6
+) "Central root-cause rule registry is missing or undersized."
+foreach ($rule in @($rootCauseRules.rules)) {
+    Assert-ToolchainTest (
+        [string]$rule.ruleId -match '^RC-' -and
+        [string]$rule.requiredAction -and
+        @($rule.rootCausePatterns).Count -gt 0
+    ) "Root-cause rule is incomplete: $($rule.ruleId)"
+    foreach ($pattern in @($rule.rootCausePatterns)) {
+        try { [void][regex]::new([string]$pattern) }
+        catch { throw "Root-cause rule '$($rule.ruleId)' has invalid regex '$pattern': $($_.Exception.Message)" }
+    }
+}
+$moduleScaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") -Raw -Encoding UTF8
+$gateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-UnityMigrationGate.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $commonSource.Contains('function New-UnityMigrationG0Draft') -and
+    $commonSource.Contains('function Assert-UnityMigrationG0Draft') -and
+    -not $commonSource.Contains('$matches = New-Object System.Collections.Generic.List[object]') -and
+    $moduleScaffoldSource.Contains('Export-CocosCurrentInventory.py') -and
+    $moduleScaffoldSource.Contains('Get-ProtocolEvidence.ps1')
+) "Future-module G0 draft no longer composes current inventory and protocol evidence."
+Assert-ToolchainTest (
+    $gateSource.Contains('[switch]$StartTiming') -and
+    $gateSource.Contains('Historical gates were not backfilled') -and
+    $commonSource.Contains('historicalBackfill = $false') -and
+    $commonSource.Contains('machineTimingReports')
+) "Future-only gate timing or retrospective timing separation was removed."
+
 $manifest = (Import-UnityMigrationManifest -Root $root).Value
 $unityExecutable = Resolve-UnityMigrationUnityExecutable -Root $root -Manifest $manifest
 Assert-ToolchainTest (Test-Path -LiteralPath $unityExecutable -PathType Leaf) `

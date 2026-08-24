@@ -94,8 +94,15 @@ if ($statusPath) {
         }
         $lastPriorityIndex = $priorityIndex
     }
-    foreach ($progress in @("12/17 = 70.6%", "16/17 = 94.1%", "17/17 = 100%")) {
-        if (-not $status.Contains($progress)) { Add-Failure "STATUS priority progress is missing: $progress" }
+    if (-not $status.Contains("当前 Steam 业务模块分母固定为 17")) {
+        Add-Failure "STATUS no longer declares the single current Steam denominator."
+    }
+    $prioritySectionMatch = [regex]::Match($status, '(?s)## 4\. 总迁移顺序(?<body>.*?)## 5\.')
+    if (-not $prioritySectionMatch.Success) {
+        Add-Failure "STATUS priority section cannot be isolated for duplicate-progress validation."
+    }
+    elseif ($prioritySectionMatch.Groups['body'].Value -match '\d+\s*/\s*17\s*=\s*\d+(?:\.\d+)?%') {
+        Add-Failure "STATUS priority plan must not maintain a second current completion percentage."
     }
     if (-not $status.Contains("PAYMENT.md")) { Add-Failure "STATUS P2 plan no longer references the payment prerequisite." }
 }

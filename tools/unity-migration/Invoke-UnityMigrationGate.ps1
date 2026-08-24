@@ -10,6 +10,7 @@ param(
     [string]$CocosBaselinePath = "",
     [string]$EarlyUserPlayPath = "",
     [string]$SummaryPath = "",
+    [switch]$StartTiming,
     [switch]$Complete,
     [string]$RegistryPath = "tools/unity-migration/migration-gates.json"
 )
@@ -17,6 +18,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
+$gateInvocationTiming = Start-UnityMigrationTiming
 $entry = Import-UnityMigrationJson -Root $root -Path $RegistryPath
 $matches = @($entry.Value.modules | Where-Object { $_.module -ieq $Module })
 if ($matches.Count -ne 1) { throw "Module '$Module' has no unique gate record." }
@@ -52,6 +54,32 @@ if ($gateNumber -gt 0) {
     Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey $Module -RequiredGate ("G{0}" -f ($gateNumber - 1))
 }
 
+if ($StartTiming) {
+    if ($Complete) { throw "-StartTiming and -Complete cannot be used together." }
+    $current = [string](Get-UnityMigrationPropertyValue -Object $record.gates -Name $Gate -Default "pending")
+    if ($current -eq "passed") { throw "Cannot start timing for completed gate $Module $Gate." }
+    $now = [DateTime]::UtcNow.ToString("O")
+    $record | Add-Member -Force -NotePropertyName timingPolicyVersion -NotePropertyValue 1
+    if (-not [string](Get-UnityMigrationPropertyValue -Object $record -Name "timingPolicyStartedUtc" -Default "")) {
+        $record | Add-Member -Force -NotePropertyName timingPolicyStartedUtc -NotePropertyValue $now
+    }
+    if ($null -eq $record.PSObject.Properties["gateTimings"]) {
+        $record | Add-Member -NotePropertyName gateTimings -NotePropertyValue ([pscustomobject]@{})
+    }
+    if ($null -eq $record.gateTimings.PSObject.Properties[$Gate]) {
+        $record.gateTimings | Add-Member -NotePropertyName $Gate -NotePropertyValue ([pscustomobject][ordered]@{
+            startedUtc = $now
+            startSource = "explicit-start"
+        })
+        Write-UnityMigrationUtf8 -Path $entry.Path -Content (($entry.Value | ConvertTo-Json -Depth 12) + "`n")
+        Write-Host "$Module $Gate timing started at $now. Historical gates were not backfilled."
+    }
+    else {
+        Write-Host "$Module $Gate timing already started at $($record.gateTimings.$Gate.startedUtc)."
+    }
+    exit 0
+}
+
 foreach ($path in $Evidence) {
     $resolved = Resolve-UnityMigrationPath -Root $root -Path $path
     if (-not (Test-Path -LiteralPath $resolved)) { throw "Gate evidence missing: $path" }
@@ -72,6 +100,11 @@ if ($Gate -eq "G0") {
         -Scenario $scenario -Phase G0 | Out-Null
     $matrix = (Import-UnityMigrationJson -Root $root -Path $declaredMatrix).Value
     $coverage = Assert-UnityMigrationCoverageList -Root $root -ModuleKey $Module -Matrix $matrix
+    $g0DraftPath = [string](Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "g0Draft" -Default "")
+    if ($g0DraftPath) {
+        Assert-UnityMigrationG0Draft -Root $root -Module $Module -Path $g0DraftPath | Out-Null
+        if (-not (Test-GateEvidenceContainsPath $g0DraftPath)) { $Evidence = @($Evidence) + @($g0DraftPath) }
+    }
     Write-Host "$Module G0 scope frozen: $declaredCount controls, $($coverage.BusinessIdCount) business ids from $($coverage.SourceCount) sources."
 }
 if ($Gate -eq "G1") {
@@ -172,6 +205,34 @@ if ($current -eq "passed") {
 }
 
 $record.gates.$Gate = "passed"
+$completedUtc = [DateTime]::UtcNow
+if ([int](Get-UnityMigrationPropertyValue -Object $record -Name "timingPolicyVersion" -Default 0) -ge 1) {
+    if ($null -eq $record.PSObject.Properties["gateTimings"]) {
+        $record | Add-Member -NotePropertyName gateTimings -NotePropertyValue ([pscustomobject]@{})
+    }
+    $clock = $record.gateTimings.PSObject.Properties[$Gate]
+    if ($null -eq $clock) {
+        $record.gateTimings | Add-Member -NotePropertyName $Gate -NotePropertyValue ([pscustomobject][ordered]@{
+            startedUtc = $completedUtc.ToString("O")
+            startSource = "completion-invocation"
+        })
+    }
+    $gateClock = $record.gateTimings.$Gate
+    $startedUtc = [DateTime][string]$gateClock.startedUtc
+    $gateInvocationTiming.stopwatch.Stop()
+    $gateClock | Add-Member -Force -NotePropertyName completedUtc -NotePropertyValue $completedUtc.ToString("O")
+    $gateClock | Add-Member -Force -NotePropertyName calendarDurationMs -NotePropertyValue ([long]($completedUtc - $startedUtc).TotalMilliseconds)
+    $gateClock | Add-Member -Force -NotePropertyName completionCheckDurationMs -NotePropertyValue ([long]$gateInvocationTiming.stopwatch.ElapsedMilliseconds)
+    if ($gateNumber -lt 6) {
+        $nextGate = "G{0}" -f ($gateNumber + 1)
+        if ($null -eq $record.gateTimings.PSObject.Properties[$nextGate]) {
+            $record.gateTimings | Add-Member -NotePropertyName $nextGate -NotePropertyValue ([pscustomobject][ordered]@{
+                startedUtc = $completedUtc.ToString("O")
+                startSource = "previous-gate-complete"
+            })
+        }
+    }
+}
 $evidenceProperty = $record.PSObject.Properties["gateEvidence"]
 if ($null -eq $evidenceProperty) {
     $record | Add-Member -NotePropertyName gateEvidence -NotePropertyValue ([pscustomobject]@{})
@@ -182,4 +243,7 @@ Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $Gate -Categ
     -Tool "tools/unity-migration/Invoke-UnityMigrationGate.ps1" -Operation "complete-$Gate" `
     -Outcome Passed -Evidence $Evidence | Out-Null
 Write-UnityMigrationUtf8 -Path $entry.Path -Content (($entry.Value | ConvertTo-Json -Depth 12) + "`n")
+if ($Gate -eq "G6" -and [int](Get-UnityMigrationPropertyValue -Object $record -Name "timingPolicyVersion" -Default 0) -ge 1) {
+    New-UnityMigrationRetrospective -Root $root -Module $Module -RequireEvidenceFiles | Out-Null
+}
 Write-Host "$Module $Gate completed with $($Evidence.Count) evidence path(s)."

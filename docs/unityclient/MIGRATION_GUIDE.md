@@ -276,14 +276,14 @@ New-Item -ItemType Directory -Force .local/unity-migration | Out-Null
 | `tools/cocos-audit/Export-CocosCurrentInventory.py` | 当前产品入口闭包和控件候选 |
 | `tools/ui_migration/convert_ui.py` | UI IR、CSB兜底、Prefab准备 |
 | `tools/ui_migration/convert_animations.py` | Imod ANI解析与资源准备 |
-
 工具路由为机器策略，不得临场替换：Cocos 只走 Computer Use 的 `ProjectX.exe / Cocos Simulator` 原生窗口；Unity 逻辑验收走 `Run-UnityModuleValidation.ps1`，固定账号走 `Run-UnityFixedAccountValidation.ps1`；G5 走中央状态对和 `New-UnityModuleG5Evidence.ps1`；G6 走两次 `BuildBatch`。常规 Cocos UI 操作按用户长期授权自动放行，不重复申请；Computer Use 明令要求确认的删除、安装、对外提交等高风险动作不在此授权内。标准工具遇到问题时先形成可复现错误并修工具及测试，禁止换桌面坐标、手工调用内部完成方法、MCP 截图或临时模块脚本绕过门禁。
-
+新模块脚手架会自动刷新当前 Cocos 入口 inventory、按登记协议生成 `Get-ProtocolEvidence` 输出，并把中央 `root-cause-rules.json` 与现有 retrospective 匹配结果写入 `.local/unity-validation/<module>-g0-draft-latest.json`。该文件只是 G0 增删确认初稿，不代表覆盖通过；启用该合同的新模块完成 G0 时必须校验其来源哈希并把初稿纳入证据。
 常用命令：
 
 ```powershell
 python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-audit/generated
-./tools/unity-migration/Get-ProtocolEvidence.ps1 -Module <Module>
+./tools/unity-migration/Get-ProtocolEvidence.ps1 -Protocol <Protocol> -Module <Module>
+./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0 -StartTiming
 ./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0
 ./tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1 -Module <Module> -Action RecordTransportPreflight
 ./tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1 -Module <Module> -Action StartFixedClient
@@ -298,10 +298,9 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ./tools/unity-migration/Test-UnityMigrationDocs.ps1
 ./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
-
 动态验证先运行连接诊断和 `Preflight`。Runner 必须写入场景、`userId`、`roleId`、`1334×750`、实际触发控件 ID 和语义断言结果；声明 `controlCoverageRequired` 的场景必须与控件矩阵 ID 集合完全一致。断线/重连不再维护 C# 模块名白名单，统一由场景 `networkValidation` 能力生成运行参数。验证器按 30 秒心跳区分总运行超时与无进展超时。Unity 编译预检既检查退出码也扫描最终日志；即使 Unity 退出 0，若出现恢复型 `Assembly-CSharp.dll` 共享锁，也必须归档首轮、关闭 owned ILPP/Bee child、只重跑同一预检一次，并要求最终日志严重错误为 0。批量读取验证结果统一使用共享 `Get-UnityMigrationValidationResultSummaries`；禁止临场拼接 `foreach {...} |`。G6 只接受连续两次 `BootstrapSceneBuilder.BuildBatch` 的一致哈希，禁止用 `ForceRebuild` 作为幂等证据。Cocos 证据采集结束后必须重置 Computer Use Node 内核并确认 `cua_node`/`node_repl.exe` 残留为 0；G6 硬门禁会拒绝仍存活的 Computer Use 运行时。
-
 提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。固定账号和 G5 状态对统一登记在 `module-evidence-contracts.json`；夹具必须有注入前快照、`setupAssertSql/cleanupAssertSql` 或等价硬断言、`finally` 恢复及重登录后复核。固定账号模块在 G3 后、启动 Unity 前必须运行 `Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly`，按 `dataPreflight.requirements` 完成数据快照、确定性准备、硬断言、精确恢复和残留清零；完整验证只接受账号、适配器 SHA 和数据需求指纹匹配的预演凭证。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
+计时只从启用 `timingPolicyVersion=1` 的后续模块开始，不追补历史：脚手架自动开始 G0，上一门禁通过后自动开始下一门禁；中途接入时用 `Invoke-UnityMigrationGate.ps1 -StartTiming`。`calendarGateTimings` 包含用户反馈等待和阻塞时间，Runner 的 `*-timings-latest.json` / `*-fixed-account-timings-latest.json` 记录机器执行时间；retrospective 分开汇总，二者都不得冒充人时。累计 2–3 个后续模块样本后再决定是否实现影响集回归，采样前保持现有全量中央回归规则。
 
 ## 13. 高频坑与处理
 
@@ -336,6 +335,7 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 - 修复后用同一工具追加 `Resolved`，关联失败 `recordId`，并填写解决方式、可复用迭代动作及已存在的文件证据；纯文字说明或事后承诺路径在写账时立即失败。迭代优先进入中央脚本、`validation-scenarios.json`、`AGENTS.md` 和工具链回归测试；模块特例进入矩阵/场景。
 - G6 自动生成 `.local/unity-validation/<module>-retrospective-latest.json`，按解决记录的有效根因聚类所有失败及迭代，不再沿用失败初记的 `pending-diagnosis`；任一失败未形成有效诊断、未解决或文件证据缺失时门禁失败。
 - 下一模块 G0 先读取上一模块复盘；命中同类根因时直接执行已固化路径，不再重复试错。
+- `root-cause-rules.json` 为跨模块可执行规则 ID 的唯一目录；新模块 G0 自动扫描现有 retrospective 并输出命中规则、来源模块和必做动作。新增问题族应先补规则 ID 与中央回归，再依赖自动命中，禁止用模糊相似文本直接阻断门禁。
 - 任何已标记完成的模块被用户、运行日志或新证据发现逃逸缺陷时，立即撤销 `migration-complete`，从最早失效门禁重新打开；不得保留“其余G4-G6仍通过”的口头结论，除非输入指纹和独立证据证明不受影响。
 - 逃逸缺陷禁止点修即收口：先确定所属问题族并扩展覆盖清单，再扫描全部同类业务ID和分支。例如一个随机盒断链必须扫描全部随机盒，一个 `use_jump` 生命周期错误必须扫描全部跳转道具，一个反馈缺失必须扫描全部产生资源变化的操作。
 - 同类修复必须进入中央验证规则、场景或工具链回归；在机器门禁尚未自动执行新规则前，模块只能保持对应门禁 pending，禁止用Markdown声明代替可执行证明。

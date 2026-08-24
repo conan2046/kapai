@@ -221,6 +221,7 @@ if (-not $SkipManifest -and -not $IncludeImplementationSkeleton) {
         $existing.status = "scaffolded"
         $existing.document = $documentRelative
         $existing | Add-Member -Force -NotePropertyName controlMatrix -NotePropertyValue $matrixRelative
+        $existing | Add-Member -Force -NotePropertyName g0Draft -NotePropertyValue ".local/unity-validation/$($Module.ToLowerInvariant())-g0-draft-latest.json"
     }
     else {
         $newModule = [ordered]@{
@@ -236,6 +237,7 @@ if (-not $SkipManifest -and -not $IncludeImplementationSkeleton) {
             screenshots = @()
             controlMatrix = $matrixRelative
             document = $documentRelative
+            g0Draft = ".local/unity-validation/$($Module.ToLowerInvariant())-g0-draft-latest.json"
         }
         $manifest.modules = @($manifest.modules) + @($newModule)
     }
@@ -354,11 +356,34 @@ if (-not $SkipManifest -and -not $IncludeImplementationSkeleton) {
             module = $Module
             gates = [ordered]@{ G0 = "pending"; G1 = "pending"; G2 = "pending"; G3 = "pending"; G4 = "pending"; G5 = "pending"; G6 = "pending" }
             evidence = $documentRelative
+            timingPolicyVersion = 1
+            timingPolicyStartedUtc = [DateTime]::UtcNow.ToString("O")
+            gateTimings = [ordered]@{
+                G0 = [ordered]@{ startedUtc = [DateTime]::UtcNow.ToString("O"); startSource = "module-scaffold" }
+            }
         })
         if ($PSCmdlet.ShouldProcess($gateEntry.Path, "Add pending G0-G6 gate record")) {
             Write-UnityMigrationUtf8 -Path $gateEntry.Path -Content (($gateEntry.Value | ConvertTo-Json -Depth 12) + "`n")
         }
     }
+}
+
+if (-not $SkipManifest -and -not $IncludeImplementationSkeleton -and
+    $PSCmdlet.ShouldProcess($repositoryRoot, "Generate current G0 inventory, protocol evidence and historical-root-cause draft")) {
+    $inventoryScript = Join-Path $repositoryRoot "tools/cocos-audit/Export-CocosCurrentInventory.py"
+    & python -X utf8 $inventoryScript --root $repositoryRoot --output (Join-Path $repositoryRoot "tools/cocos-audit/generated")
+    if ($LASTEXITCODE -ne 0) { throw "Cocos current inventory generation failed with exit code $LASTEXITCODE" }
+    $protocolEvidencePaths = New-Object System.Collections.Generic.List[string]
+    foreach ($protocol in @($Protocols | Sort-Object -Unique)) {
+        $relativeEvidence = ".local/protocol-evidence/$moduleSlug-$protocol.md"
+        & pwsh -NoProfile -File (Join-Path $repositoryRoot "tools/unity-migration/Get-ProtocolEvidence.ps1") `
+            -Protocol $protocol -Module $Module -OutputPath $relativeEvidence
+        if ($LASTEXITCODE -ne 0) { throw "Protocol evidence generation failed for /$protocol with exit code $LASTEXITCODE" }
+        $protocolEvidencePaths.Add($relativeEvidence)
+    }
+    $draft = New-UnityMigrationG0Draft -Root $repositoryRoot -Module $Module -Protocols $Protocols `
+        -Entries $Entries -Prefabs $Prefabs -Configs $Configs -ProtocolEvidencePaths @($protocolEvidencePaths)
+    Write-Host "G0 draft: $($draft.Path); historical root-cause matches=$(@($draft.Draft.historicalRootCauseMatches).Count)"
 }
 
 Write-Host "Module scaffold ready: $Module"

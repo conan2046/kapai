@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "ruleId": "RC-WIN-RG-PATH",
+      "title": "Windows rg 路径与通配符",
+      "rootCausePatterns": ["(?i)rg.*(wildcard|通配符)", "(?i)(wildcard|通配符).*rg", "(?i)literal.*wildcard"],
+      "requiredAction": "对字面目录使用 rg -g 过滤；零匹配按诊断语义处理，不把通配符作为路径参数。"
+    },
+    {
+      "ruleId": "RC-STALE-ARTIFACT",
+      "title": "旧结果或错误证据路径",
+      "rootCausePatterns": ["(?i)(stale|old).*(result|artifact|evidence)", "旧(结果|截图|证据|Runner)", "(?i)guessed.*(path|filename|evidence)"],
+      "requiredAction": "运行前删除可变旧结果，使用中央命名函数解析路径，并校验本轮时间戳与输入指纹。"
+    },
+    {
+      "ruleId": "RC-FIXED-ACCOUNT-DATA",
+      "title": "固定账号、身份或夹具数据不足",
+      "rootCausePatterns": ["(?i)(fixed account|fixture|identity).*(missing|wrong|mismatch|insufficient)", "固定账号.*(缺|错|不一致)", "测试数据.*(缺|不足)"],
+      "requiredAction": "G3 后且启动 Unity 前执行 DataPreflightOnly，证明身份、数据准备、快照恢复和残留为零。"
+    },
+    {
+      "ruleId": "RC-INTERNAL-BYPASS",
+      "title": "绕过真实控件调用内部方法",
+      "rootCausePatterns": ["(?i)(internal method|direct call).*(button|control|eventsystem|bypass)", "(内部方法|内部完成).*(绕过|直接调用)", "Runner.*绕过真实"],
+      "requiredAction": "Runner 必须从真实 Button、Item、Tab 或拖拽入口触发，并记录实际控件 ID。"
+    },
+    {
+      "ruleId": "RC-COCOS-BASELINE",
+      "title": "Cocos 基线身份或输入不一致",
+      "rootCausePatterns": ["(?i)cocos.*(baseline|identity|userId).*(missing|wrong|mismatch|invalid)", "Cocos.*(基线|身份|账号).*(缺|错|不一致|失效)"],
+      "requiredAction": "先完成 transport、窗口、固定身份和状态输入预检，再冻结 G1 基线；输入变化只重拍受影响状态。"
+    },
+    {
+      "ruleId": "RC-PROCESS-LIFECYCLE",
+      "title": "重进程或自动化运行时残留",
+      "rootCausePatterns": ["(?i)(residual|orphan|still alive).*(Unity|ProjectX|kapai|node|process)", "(Unity|ProjectX|kapai|Computer Use).*(残留|孤儿|未退出)"],
+      "requiredAction": "按 owned process 生命周期清理，并在门禁前核验 Unity、Cocos、kapai 和 Computer Use 运行时残留为零。"
+    },
+    {
+      "ruleId": "RC-POWERSHELL-MATCHES",
+      "title": "PowerShell 自动变量 Matches 名称碰撞",
+      "rootCausePatterns": ["(?i)(PowerShell|pwsh).*\\$Matches", "(?i)automatic variable.*Matches", "自动变量.*Matches"],
+      "requiredAction": "执行 -match 的函数内禁止把业务集合命名为 $matches；使用语义化变量名并增加回归断言。"
+    }
+  ]
+}
