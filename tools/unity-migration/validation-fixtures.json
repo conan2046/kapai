@@ -80,6 +80,13 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-SevenDayFixture.ps1"
+    },
+    {
+      "key": "reversible-enhance-master-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-EnhanceMasterFixture.ps1"
     }
   ]
 }

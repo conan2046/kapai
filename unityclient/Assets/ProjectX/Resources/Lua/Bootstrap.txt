@@ -34,7 +34,7 @@ local HotPointController = require("Shared.HotPointController")
 local ProtocolOpRouter = require("Shared.ProtocolOpRouter")
 
 local PetEquipRouter = ProtocolOpRouter.new(Protocol.PET_EQUIP_OPERATE)
-PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 24, 25, 26 }, EquipmentController.onOperation)
+PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27 }, EquipmentController.onOperation)
 PetEquipRouter:register("XunBao", { 28, 29, 30, 31, 36 }, XunBaoController.onOperation)
 
 function Begin() LoginController.begin() end
@@ -70,6 +70,7 @@ function OnHeroBreakUp(heroId) HeroController.breakUp(heroId) end
 function OnHeroCultivate(heroId, count) HeroController.cultivate(heroId, count) end
 function OnHeroStarUp(heroId) HeroController.starUp(heroId) end
 function OnHeroCultivationActivate(heroId) HeroController.activateCultivation(heroId) end
+function OnHeroCompose(fragmentId) HeroController.composeHero(fragmentId) end
 function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
 function OnEquipmentBagClicked() EquipmentController.open(1) end
@@ -86,6 +87,10 @@ function OnHeroEquipmentDivine(uid) EquipmentController.divineEquipment(uid) end
 function OnHeroEquipmentCompose(fragmentId) EquipmentController.composeEquipment(fragmentId) end
 function OnFaBaoWear(uid, position) EquipmentController.wearFaBao(uid, position) end
 function OnFaBaoTakeOff(uid) EquipmentController.takeOffFaBao(uid) end
+function OnFaBaoStrength(uid, uid1, uid2, uid3, uid4, uid5, uid6, uid7, uid8)
+    EquipmentController.strengthFaBao(uid, uid1, uid2, uid3, uid4, uid5, uid6, uid7, uid8)
+end
+function OnFaBaoRefine(uid, targetLevel) EquipmentController.refineFaBao(uid, targetLevel) end
 function OnMailClicked() MailController.onClick() end
 function OnMailClaimClicked(id) MailController.claim(id) end
 function OnMailReadClicked(id) MailController.read(id) end

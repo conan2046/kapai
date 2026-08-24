@@ -952,7 +952,8 @@ namespace ProjectX.UI
         {
             if (!HeroCatalog.TryGet(heroId, out HeroDefinition definition)) return;
             string text = $"神将预览 #{heroId}\n品质：{definition.Quality}\n定位：{(string.IsNullOrWhiteSpace(definition.Feature) ? (definition.PhysicalAttack ? "物理" : "法术") : definition.Feature)}";
-            if (!string.IsNullOrWhiteSpace(definition.SkillName)) text += $"\n技能：{definition.SkillName}\n{definition.SkillDescription}";
+            if (!string.IsNullOrWhiteSpace(definition.SkillName))
+                text += $"\n技能：{definition.SkillName}\n{HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1)}";
             showPreviewHero(text);
         }
 

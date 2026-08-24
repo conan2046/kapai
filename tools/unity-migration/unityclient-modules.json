@@ -660,7 +660,9 @@
       "displayName": "好友",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留好友系统。",
       "protocols": [
         27
@@ -687,7 +689,9 @@
       "displayName": "聊天",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留聊天系统。",
       "protocols": [
         26
@@ -713,7 +717,9 @@
       "displayName": "队伍",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留组队系统。",
       "protocols": [
         29,
@@ -743,7 +749,9 @@
       "displayName": "帮派",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留帮派或宗门系统。",
       "protocols": [
         54
@@ -819,7 +827,9 @@
       "displayName": "福利",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留签到、在线奖励等福利系统。",
       "protocols": [
         199,
@@ -854,7 +864,9 @@
       "displayName": "活动",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "当前活动集合包含全服排行/最强榜等其他玩家数据，同时包含充值活动；Steam版本整体排除。",
       "protocols": [
         222
@@ -1079,8 +1091,8 @@
         "flowEvidence": ".local/unity-validation/youli-latest.json",
         "uiMapping": "docs/unityclient/matrices/YOULI_CONTROLS.json"
       },
-      "document": "docs/unityclient/modules/YOULI.md"
-      ,"controlMatrix": "docs/unityclient/matrices/YOULI_CONTROLS.json"
+      "document": "docs/unityclient/modules/YOULI.md",
+      "controlMatrix": "docs/unityclient/matrices/YOULI_CONTROLS.json"
     },
     {
       "key": "FengShenStory",
@@ -1169,7 +1181,9 @@
       "displayName": "决战昆仑",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "玩法依赖匹配对手数据；用户确认Steam版本排除。",
       "protocols": [
         213
@@ -1208,7 +1222,9 @@
       "displayName": "血战到底",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "玩法包含全服血战排行榜与其他玩家排名数据；Steam版本排除。",
       "protocols": [
         323
@@ -1334,7 +1350,9 @@
       "displayName": "体力领取",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "体力领取属于福利体系；用户确认Steam版本福利整体排除。",
       "protocols": [
         321
@@ -1375,7 +1393,9 @@
       "displayName": "资源找回",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留离线资源找回。",
       "protocols": [
         52
@@ -1404,7 +1424,9 @@
       "displayName": "全部基金",
       "status": "steam-excluded",
       "migrationExcluded": true,
-      "excludedPlatforms": ["Steam"],
+      "excludedPlatforms": [
+        "Steam"
+      ],
       "exclusionReason": "Steam版本不保留成长基金与活跃基金。",
       "protocols": [
         222
@@ -1429,6 +1451,61 @@
         "build/ui-migration/bootstrap-funds.png"
       ],
       "document": "docs/unityclient/modules/FUNDS.md"
+    },
+    {
+      "key": "EnhanceMaster",
+      "displayName": "强化大师",
+      "status": "scaffolded",
+      "protocols": [
+        8,
+        15,
+        18,
+        70,
+        319
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup1/btn_zhenrong -> yingxiongInfoLayer/Button1 -> Activity.QiangHuaDaShiUI",
+        "QiangHuaDaShiUI tabs 1..6 -> equipment strength/refine/awaken/shenzhu + fabao strength/refine"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/qianghuadashi.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiqianghua.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeijinglian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeijuexing.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeishenzhu.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianjinglian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/shenzhutexiao.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaoqianghua.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaojinglian.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huishou/Choose_fenjie.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/ConfigData/equip_qianghua_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_jinglian_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_juexing_dat.lua",
+        "client/ProjectX/src/ConfigData/equip_shenzhu_dat.lua",
+        "client/ProjectX/src/ConfigData/fabao_qianghua_dat.lua",
+        "client/ProjectX/src/ConfigData/fabao_jinglian_dat.lua",
+        "client/ProjectX/src/ConfigData/master_dat.lua",
+        "client/ProjectX/src/ConfigData/quality_dat.lua",
+        "server/config/json/equip_qianghua.json",
+        "server/config/json/equip_jinglian.json",
+        "server/config/json/equip_juexing.json",
+        "server/config/json/equip_shenzhu.json",
+        "server/config/json/fabao_qianghua.json",
+        "server/config/json/fabao_jinglian.json",
+        "server/config/json/master.json",
+        "server/config/json/quality.json",
+        "server/config/json/fabao.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXEnhanceMasterG3Validation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json",
+      "document": "docs/unityclient/modules/ENHANCEMASTER.md"
     }
   ]
 }

@@ -4,7 +4,6 @@
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
 ## 1. 总进度
-
 | 口径 | 当前值 | 说明 |
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
@@ -26,6 +25,7 @@
 | 背包 | `G0-G5 passed / G6 final user confirmation pending / 26 controls frozen` | 早期真人Play已通过；标准batch G4完成26控件、18语义、1111×3使用2后剩1且4621增加2、512/513/514真实扣除/奖励/完整弹窗及SQLite精确恢复。中央G5为16/16当前证据，09:52逐图验收权威是来源任务主代理，记`agentAccepted=true/userParticipated=false`；三奖励弹窗为已登记intentional delta；Prefab diff=0 | 仅待最后相关变更后的用户从真实Play路径最终确认；此前不得设置`manualPassed`、不得通过G6或进入培养B |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
+| 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0 passed / G1-G6 pending` | 2026-08-21用户确认方案A：完成主体为“主界面→穿戴→装备”；Hero/Bag/HUD/HuiShou仅影响回归，法宝仅兄弟入口及共享`/319`隔离。新G0机器分母为12个来源、963条业务记录、86项控件，含真实碎片链40个来源ID；旧33控件结论失效 | G1正在重取当前装备主体Cocos证据，已确认隐藏已穿戴的旧卡片残留缺陷；G2关闭神铸150/155配置差异、Unity缺配置、跨角色换装/卸下校验、静默回包及空实现控件后，才允许进入G3。历史20/20、33/33、MCP和旧Runner不得复用 |
 | 邮件 | `G0-G6 passed / 13/13 complete` | 固定账号完成 4/4 双端视觉、13/13 真实控件、`/128 op2/3/4/5`、失败/重拉/重进/断线/切号、账号历史隔离及 Bootstrap 幂等；Cocos 列表不滚和附件数量 0 已按批准差异由 Unity 修复 | 当前模块收口；下一任务重新选择模块执行 G0 |

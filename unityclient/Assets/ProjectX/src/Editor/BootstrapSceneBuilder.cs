@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using ProjectX.Core;
+using ProjectX.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -50,6 +52,9 @@ namespace ProjectX.Editor
         private const string HeroAttributesPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangxiangxishuxing.prefab";
         private const string HeroItemSourcePrefab = "Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab";
         private const string HeroBagPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab";
+        private const string HeroBookPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianLayer.prefab";
+        private const string HeroRecyclePrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab";
+        private const string DynamicUiResourceDirectory = "Assets/ProjectX/Resources/UiPrefabs";
         private const string FormationPopupPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangzhenxingLayer.prefab";
         private const string HeroEquipmentListPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab";
         private const string HeroEquipmentDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab";
@@ -65,6 +70,9 @@ namespace ProjectX.Editor
         private const string HeroEquipmentAutoStarPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianshengxing.prefab";
         private const string HeroEquipmentAutoDivinePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/yijianshengceng.prefab";
         private const string HeroEquipmentDivineEffectPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/shenzhutexiao.prefab";
+        private const string FaBaoStrengthPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaoqianghua.prefab";
+        private const string FaBaoRefinePrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/fabaojinglian.prefab";
+        private const string FaBaoMaterialChooserPrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/Choose_fenjie.prefab";
         private const string LoadingPrefab = "Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab";
         private const string MailPrefab = "Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab";
         private const string ShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab";
@@ -220,30 +228,18 @@ namespace ProjectX.Editor
             new PrefabSpec(HeroTalentPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroTrainingHelpPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroTrainingAttributePrefab, false, HeroFramePrefab),
-            new PrefabSpec(HeroEnhanceMasterPrefab, false),
             new PrefabSpec(HeroReplacementPrefab, false),
             new PrefabSpec(HeroAttributesPrefab, false),
             new PrefabSpec(HeroItemSourcePrefab, false),
-            new PrefabSpec(FormationPopupPrefab, false),
-            new PrefabSpec(HeroEquipmentListPrefab, false),
-            new PrefabSpec(HeroEquipmentDetailPrefab, false),
-            new PrefabSpec(HeroEquipmentChangePrefab, false),
-            new PrefabSpec(HeroEquipmentCultivatePrefab, false),
-            new PrefabSpec(HeroEquipmentStrengthPrefab, false, HeroEquipmentCultivatePrefab),
-            new PrefabSpec(HeroEquipmentRefinePrefab, false, HeroEquipmentCultivatePrefab),
-            new PrefabSpec(HeroEquipmentAwakenPrefab, false, HeroEquipmentCultivatePrefab),
-            new PrefabSpec(HeroEquipmentDivinePrefab, false, HeroEquipmentCultivatePrefab),
-            new PrefabSpec(HeroEquipmentFragmentPrefab, false),
-            new PrefabSpec(HeroEquipmentAutoRefinePrefab, false),
-            new PrefabSpec(HeroEquipmentExchangePrefab, false),
-            new PrefabSpec(HeroEquipmentAutoStarPrefab, false),
-            new PrefabSpec(HeroEquipmentAutoDivinePrefab, false),
-            new PrefabSpec(HeroEquipmentDivineEffectPrefab, false)
+            new PrefabSpec(FormationPopupPrefab, false)
         };
 
         [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]
         public static void Build()
         {
+            // Bootstrap contains only resident roots and currently unmigrated legacy surfaces.
+            // New business screens must be registered as independent dynamic references instead.
+            EnsureDynamicUiReferences();
             EnsureDrawDynamicResources();
             EnsureFloatNoticePrefab();
             if (IsBootstrapSceneCurrent())
@@ -255,6 +251,60 @@ namespace ProjectX.Editor
             }
 
             Rebuild();
+        }
+
+        private static void EnsureDynamicUiReferences()
+        {
+            EnsureAssetFolder(DynamicUiResourceDirectory);
+            EnsureDynamicUiReference("HeroBook", HeroBookPrefab);
+            EnsureDynamicUiReference("HeroRecycle", HeroRecyclePrefab);
+            EnsureDynamicUiReference("HeroEnhanceMaster", HeroEnhanceMasterPrefab);
+            EnsureDynamicUiReference("HeroEquipmentList", HeroEquipmentListPrefab);
+            EnsureDynamicUiReference("HeroEquipmentDetail", HeroEquipmentDetailPrefab);
+            EnsureDynamicUiReference("HeroEquipmentChange", HeroEquipmentChangePrefab);
+            EnsureDynamicUiReference("HeroEquipmentCultivate", HeroEquipmentCultivatePrefab);
+            EnsureDynamicUiReference("HeroEquipmentStrength", HeroEquipmentStrengthPrefab);
+            EnsureDynamicUiReference("HeroEquipmentRefine", HeroEquipmentRefinePrefab);
+            EnsureDynamicUiReference("HeroEquipmentAwaken", HeroEquipmentAwakenPrefab);
+            EnsureDynamicUiReference("HeroEquipmentDivine", HeroEquipmentDivinePrefab);
+            EnsureDynamicUiReference("HeroEquipmentFragment", HeroEquipmentFragmentPrefab);
+            EnsureDynamicUiReference("HeroEquipmentAutoRefine", HeroEquipmentAutoRefinePrefab);
+            EnsureDynamicUiReference("HeroEquipmentExchange", HeroEquipmentExchangePrefab);
+            EnsureDynamicUiReference("HeroEquipmentAutoStar", HeroEquipmentAutoStarPrefab);
+            EnsureDynamicUiReference("HeroEquipmentAutoDivine", HeroEquipmentAutoDivinePrefab);
+            EnsureDynamicUiReference("HeroEquipmentDivineEffect", HeroEquipmentDivineEffectPrefab);
+            EnsureDynamicUiReference("FaBaoStrength", FaBaoStrengthPrefab);
+            EnsureDynamicUiReference("FaBaoRefine", FaBaoRefinePrefab);
+            EnsureDynamicUiReference("FaBaoMaterialChooser", FaBaoMaterialChooserPrefab);
+        }
+
+        private static void EnsureDynamicUiReference(string key, string prefabPath)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (prefab == null) throw new FileNotFoundException($"Dynamic UI prefab is missing: {prefabPath}");
+            string assetPath = $"{DynamicUiResourceDirectory}/{key}.asset";
+            UiPrefabReference reference = AssetDatabase.LoadAssetAtPath<UiPrefabReference>(assetPath);
+            if (reference == null)
+            {
+                reference = ScriptableObject.CreateInstance<UiPrefabReference>();
+                reference.SetPrefab(prefab);
+                AssetDatabase.CreateAsset(reference, assetPath);
+                return;
+            }
+            if (reference.Prefab == prefab) return;
+            reference.SetPrefab(prefab);
+            EditorUtility.SetDirty(reference);
+        }
+
+        private static void EnsureAssetFolder(string path)
+        {
+            string current = "Assets";
+            foreach (string segment in path.Split('/').Skip(1))
+            {
+                string next = current + "/" + segment;
+                if (!AssetDatabase.IsValidFolder(next)) AssetDatabase.CreateFolder(current, segment);
+                current = next;
+            }
         }
 
         private static void EnsureDrawDynamicResources()
@@ -301,11 +351,31 @@ namespace ProjectX.Editor
                     Path.Combine(cocosRoot, "res", "res", "UI", "Icon", "ui_map_icon", $"fuben_map{world}.png"),
                     $"Assets/ProjectX/Resources/WorldUI/Chapters/fuben_map{world}.png");
             }
-            foreach (int skillId in new[] { 241, 571, 601, 621, 641 })
+            string petBasicConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "pet_basic_config.xml");
+            string skillBasicConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "skill_basic.xml");
+            string skillActiveEffectConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "skill_active_effect.xml");
+            string skillAdditiveEffectConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "skill_additive_effect.xml");
+            CopyResourceIfChanged(petBasicConfig, "Assets/ProjectX/Resources/Configs/pet_basic_config.xml");
+            CopyResourceIfChanged(skillBasicConfig, "Assets/ProjectX/Resources/Configs/skill_basic.xml");
+            CopyResourceIfChanged(skillActiveEffectConfig, "Assets/ProjectX/Resources/Configs/skill_active_effect.xml");
+            CopyResourceIfChanged(skillAdditiveEffectConfig, "Assets/ProjectX/Resources/Configs/skill_additive_effect.xml");
+            IEnumerable<int> heroSkillIds = XDocument.Load(petBasicConfig).Root?.Elements("CONTENT")
+                .Select(element => (element.Attribute("skill")?.Value ?? "").Split(';').FirstOrDefault())
+                .Select(value => int.TryParse(value, out int parsed) ? parsed : 0)
+                .Where(value => value > 0)
+                .Distinct()
+                ?? Enumerable.Empty<int>();
+            foreach (int skillId in heroSkillIds)
             {
                 CopyResourceIfChanged(
                     Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", $"skill_{skillId}.png"),
                     $"Assets/ProjectX/Resources/HeroUI/skill_{skillId}.png");
+            }
+            foreach (string configName in new[] { "fabao_qianghua", "fabao_jinglian", "master" })
+            {
+                CopyResourceIfChanged(
+                    Path.Combine(repositoryRoot, "server", "config", "json", configName + ".json"),
+                    $"Assets/ProjectX/Resources/Configs/{configName}.json");
             }
             CopyResourceIfChanged(
                 "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_A.png",
@@ -343,6 +413,8 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]
         public static void ForceRebuild()
         {
+            EnsureDynamicUiReferences();
+            EnsureDrawDynamicResources();
             EnsureFloatNoticePrefab();
             Rebuild();
         }

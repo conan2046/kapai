@@ -16,6 +16,7 @@
 | 背包 | `BAG.md` | `G0-G5 passed / G6 final user confirmation pending / 26 controls frozen`；标准batch G4与中央16状态G5已通过，G5为主代理审图`agentAccepted`且`userParticipated=false`；最终真人确认前不设置`manualPassed` |
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `G0-G6 passed / 16/16 complete`；阵容主链保持有效，装备操作后的 `/70` 属性刷新由 HeroEquip 重新开门禁修复 |
+| 强化大师 | `ENHANCEMASTER.md` | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen`；14个当前Cocos状态、13个Unity G3运行态、六页签及装备/法宝养成路由已通过，等待早期真人Play反馈 |
 | 神将培养模块 B | `HEROCULTIVATION.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen`；18个当前Cocos状态与G3初版已完成，等待用户按最终Prefab布局复测 |
 | 装备（法宝边界回归） | `HERO_EQUIPMENT.md` | `G0 passed / G1-G6 pending`；方案A冻结12来源/963业务记录/86控件，含40个装备碎片来源ID；法宝仅作兄弟入口及共享协议隔离回归，历史33控件/20视觉仅作诊断 |
 | 邮件 | `MAIL.md` | `G0-G6 passed / 13/13 complete`；当前证据路径存在 |

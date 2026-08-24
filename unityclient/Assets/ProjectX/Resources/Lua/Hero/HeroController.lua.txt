@@ -50,15 +50,19 @@ function M.onClick()
     M.requested = true
     M.equipmentReady = false
     M.formationReady = false
-    if Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
-        EquipmentController.preload(function()
-            M.equipmentReady = true
-            if M.formationReady then
-                M.formationReady = false
-                runG4Validation()
-            end
-        end)
-    end
+    -- The formation screen renders equipment slots too. The legacy bag used
+    -- to be the only path requesting /319 op=1/17, so a fresh formation entry
+    -- stayed empty until the player opened the bag. Preload the same
+    -- authoritative lists for every hero entry and refresh the formation
+    -- mirror when both lists arrive.
+    EquipmentController.preload(function()
+        M.equipmentReady = true
+        if M.formationReady then
+            M.formationReady = false
+            syncRenderMirror()
+            if Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then runG4Validation() end
+        end
+    end)
     WorldController.queryHeroEquipmentStages()
     local message = Protocol.newMessage(Protocol.HERO)
     message:WriteByte(1)
@@ -231,6 +235,15 @@ function M.starUp(heroId)
     sendCultivation(7, heroId)
 end
 
+function M.composeHero(fragmentId)
+    if M.mutationStage ~= nil or fragmentId == nil or fragmentId <= 0 then return end
+    M.mutationStage = "compose_response"
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(11)
+    message:WriteWord(fragmentId)
+    Bridge:Send(message)
+end
+
 function M.activateCultivation(heroId)
     if not beginCultivationMutation("op=12 activate", heroId) then return end
     sendCultivation(12, heroId)
@@ -263,7 +276,13 @@ local function readHero(message)
         if kind >= 1 and kind <= 4 then hero.cultivation[kind] = value end
     end
     local skillCount = message:ReadByte()
-    for _ = 1, skillCount do message:ReadByte(); message:ReadWord(); message:ReadWord() end
+    hero.primarySkillLevel = 1
+    for _ = 1, skillCount do
+        local skillPosition = message:ReadByte()
+        message:ReadWord()
+        local skillLevel = message:ReadWord()
+        if skillPosition == 0 then hero.primarySkillLevel = math.max(1, skillLevel) end
+    end
     hero.currentHealth = hero.health
     return hero
 end
@@ -351,7 +370,8 @@ syncRenderMirror = function()
             hero.magicDefense, hero.health, hero.speed, hero.currentHealth or hero.health,
             hero.cultivationLevel or 0,
             hero.cultivation[1] or 0, hero.cultivation[2] or 0,
-            hero.cultivation[3] or 0, hero.cultivation[4] or 0)
+            hero.cultivation[3] or 0, hero.cultivation[4] or 0,
+            hero.primarySkillLevel or 1)
     end
     Bridge:EndHeroUpdate()
 
@@ -384,6 +404,7 @@ local function readFormation(message)
 
     FormationModel:ReplaceFormation(activeId, formations, display, combat)
     syncRenderMirror()
+    M.formationReady = true
 
     if M.mutationStage == "levelup_snapshot" then
         local hero = FormationModel:GetPetById(M.levelUpHero)
@@ -530,7 +551,8 @@ local function readFormation(message)
         elseif Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
             if M.equipmentReady then runG4Validation()
             else M.formationReady = true end
-        elseif Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation") then
+        elseif Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation")
+            or Bridge:HasCommandLineFlag("-projectXEnhanceMasterG3Validation") then
             M.requested = false
             EquipmentController.onHeroReady()
         elseif Bridge:HasCommandLineFlag("-projectXFormationInvalidValidation") then
@@ -722,6 +744,19 @@ local function readLevelUpResponse(message)
     M.onClick()
 end
 
+local function readHeroComposeResponse(message)
+    local fragmentId = message:ReadWord()
+    local success = message:ReadByte()
+    M.mutationStage = nil
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "神将碎片不足"
+        Bridge:ShowToast(reason, 2)
+        return
+    end
+    M.onClick()
+    Bridge:ShowToast("神将合成成功", 2)
+end
+
 function M.onPacket(command, message)
     if command == Protocol.UPDATE_PET_INFO then readPetUpdate(message); return true end
     if command == Protocol.UPDATE_PET then return readFullPetPush(message) end
@@ -730,6 +765,7 @@ function M.onPacket(command, message)
         if op == 1 then readHeroList(message)
         elseif op == 3 then readLevelUpResponse(message)
         elseif op == 4 or op == 5 or op == 6 or op == 7 or op == 12 then readCultivationResponse(op, message)
+        elseif op == 11 then readHeroComposeResponse(message)
         else return false end
         return true
     end

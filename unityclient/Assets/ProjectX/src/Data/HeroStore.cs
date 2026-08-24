@@ -10,7 +10,7 @@ namespace ProjectX.Data
             uint experience, uint maxExperience, ulong power, uint attack, uint physicalDefense,
             uint magicDefense, ulong health, uint speed, ulong currentHealth, int cultivationLevel = 0,
             int cultivationAttack = 0, int cultivationPhysicalDefense = 0,
-            int cultivationMagicDefense = 0, int cultivationHealth = 0)
+            int cultivationMagicDefense = 0, int cultivationHealth = 0, int primarySkillLevel = 1)
         {
             Id = id;
             FightPosition = fightPosition;
@@ -32,6 +32,7 @@ namespace ProjectX.Data
             CultivationPhysicalDefense = cultivationPhysicalDefense;
             CultivationMagicDefense = cultivationMagicDefense;
             CultivationHealth = cultivationHealth;
+            PrimarySkillLevel = Math.Max(1, primarySkillLevel);
         }
 
         public int Id { get; }
@@ -54,6 +55,7 @@ namespace ProjectX.Data
         public int CultivationPhysicalDefense { get; }
         public int CultivationMagicDefense { get; }
         public int CultivationHealth { get; }
+        public int PrimarySkillLevel { get; }
     }
 
     public sealed class HeroStore
@@ -86,7 +88,7 @@ namespace ProjectX.Data
                     old.Experience, old.MaxExperience, old.Power, old.Attack, old.PhysicalDefense,
                     old.MagicDefense, old.Health, old.Speed, old.CurrentHealth, old.CultivationLevel,
                     old.CultivationAttack, old.CultivationPhysicalDefense,
-                    old.CultivationMagicDefense, old.CultivationHealth);
+                    old.CultivationMagicDefense, old.CultivationHealth, old.PrimarySkillLevel);
             }
             Changed?.Invoke();
         }

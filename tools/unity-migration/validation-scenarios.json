@@ -356,51 +356,114 @@
       "sourceContracts": [
         {
           "path": "client/ProjectX/src/View/MainUI.lua",
-          "contains": ["BTN_NAME_Bag = \"btn_Bag\"", "BagTouchCallback", "EMID_BEIBAO"]
+          "contains": [
+            "BTN_NAME_Bag = \"btn_Bag\"",
+            "BagTouchCallback",
+            "EMID_BEIBAO"
+          ]
         },
         {
           "path": "client/ProjectX/src/View/Role/KaPaiBagSubUI.lua",
-          "contains": ["SortItemList", "self.m_posList[i].num = self.m_posList[i].num + v.m_num", "UseBtnClicked", "ShowNumInputUI", "Common.GiftChooseUI"]
+          "contains": [
+            "SortItemList",
+            "self.m_posList[i].num = self.m_posList[i].num + v.m_num",
+            "UseBtnClicked",
+            "ShowNumInputUI",
+            "Common.GiftChooseUI"
+          ]
         },
         {
           "path": "client/ProjectX/src/View/Common/ItemSourceUI.lua",
-          "contains": ["ShowFromList", "JumpCallBack", "SweepCallBack", "OpenInfo"]
+          "contains": [
+            "ShowFromList",
+            "JumpCallBack",
+            "SweepCallBack",
+            "OpenInfo"
+          ]
         },
         {
           "path": "server/src/pack_deal.cpp",
-          "contains": ["PRO_ROLE_PACKAGE", "PRO_UPDATE_PACK", "pUser->UseItem(pos,NULL,NULL,val,val1,num)", "pUser->SortPackage()"]
+          "contains": [
+            "PRO_ROLE_PACKAGE",
+            "PRO_UPDATE_PACK",
+            "pUser->UseItem(pos,NULL,NULL,val,val1,num)",
+            "pUser->SortPackage()"
+          ]
         },
         {
           "path": "server/src/user.cpp",
-          "contains": ["NoLockUseItem", "HDAT_TiLi", "HDAT_VIP_EXP", "NoLockDelPackage(pos, num)"]
+          "contains": [
+            "NoLockUseItem",
+            "HDAT_TiLi",
+            "HDAT_VIP_EXP",
+            "NoLockDelPackage(pos, num)"
+          ]
         },
         {
           "path": "server/config/json/drop_matching.json",
-          "contains": ["\"id\":512", "\"id\":513", "\"id\":514", "\"level_reward_id\":80514"]
+          "contains": [
+            "\"id\":512",
+            "\"id\":513",
+            "\"id\":514",
+            "\"level_reward_id\":80514"
+          ]
         },
         {
           "path": "server/config/json/level_reward.json",
-          "contains": ["\"level_reward_id\":80512", "\"level_reward_id\":80513", "\"level_reward_id\":80514"]
+          "contains": [
+            "\"level_reward_id\":80512",
+            "\"level_reward_id\":80513",
+            "\"level_reward_id\":80514"
+          ]
         },
         {
           "path": "server/config/json/reward.json",
-          "contains": ["\"rewardid\":80512", "[4621,0,1]", "[4637,0,1]", "[4644,0,1]"]
+          "contains": [
+            "\"rewardid\":80512",
+            "[4621,0,1]",
+            "[4637,0,1]",
+            "[4644,0,1]"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/BagPresenter.cs",
-          "contains": ["class BagPresenter", "InvokeControl", "ShowDetails"]
+          "contains": [
+            "class BagPresenter",
+            "InvokeControl",
+            "ShowDetails"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/Data/BagStore.cs",
-          "contains": ["class BagStore", "Items", "Replace(IEnumerable<BagItemRecord> items)", "GetTotalQuantityByItemId"]
+          "contains": [
+            "class BagStore",
+            "Items",
+            "Replace(IEnumerable<BagItemRecord> items)",
+            "GetTotalQuantityByItemId"
+          ]
         },
         {
           "path": "tools/unity-migration/Invoke-BagSqliteFixture.ps1",
-          "contains": ["reversible-bag-sqlite-fixed-account", "LocalServer\\projectx.db", "AssertReloginHash", "AssertCleanup", "Invoke-BagSqliteFixture.py"]
+          "contains": [
+            "reversible-bag-sqlite-fixed-account",
+            "LocalServer\\projectx.db",
+            "AssertReloginHash",
+            "AssertCleanup",
+            "Invoke-BagSqliteFixture.py"
+          ]
         },
         {
           "path": "tools/unity-migration/Invoke-BagSqliteFixture.py",
-          "contains": ["BOX_EXPECTED", "(512, 2)", "(1111, 3)", "(3201, 1)", "FIXTURE_SPIRIT = 50", "UPDATE role_info SET package=?,user_spirit=? WHERE id=?", "snapshotHash", "PRAGMA integrity_check"]
+          "contains": [
+            "BOX_EXPECTED",
+            "(512, 2)",
+            "(1111, 3)",
+            "(3201, 1)",
+            "FIXTURE_SPIRIT = 50",
+            "UPDATE role_info SET package=?,user_spirit=? WHERE id=?",
+            "snapshotHash",
+            "PRAGMA integrity_check"
+          ]
         }
       ],
       "visualAssertions": {
@@ -881,36 +944,133 @@
       "sourceContracts": [
         {
           "path": "client/ProjectX/src/View/KaPaiPet/PetKaPaiMainUI.lua",
-          "contains": ["Button_l", "Button_r", "AddTabBtn", "SelectTab", "PetKaPaiLvUpUI", "PetKaPaiStarUpUI", "HeroBreakUpUI", "PetKaPaiXiuLianUI", "PetKaipaiInfoSubUI"]
+          "contains": [
+            "Button_l",
+            "Button_r",
+            "AddTabBtn",
+            "SelectTab",
+            "PetKaPaiLvUpUI",
+            "PetKaPaiStarUpUI",
+            "HeroBreakUpUI",
+            "PetKaPaiXiuLianUI",
+            "PetKaipaiInfoSubUI"
+          ]
         },
         {
           "path": "server/src/pack_deal.cpp",
-          "contains": ["void CPackageDeal::PetOption", "case 3:// 神将升级", "case 4:// 神将一键升级", "case 5:// 神将突破", "case 6:// 神将修炼", "case 7:// 神将升星"]
+          "contains": [
+            "void CPackageDeal::PetOption",
+            "case 3:// 神将升级",
+            "case 4:// 神将一键升级",
+            "case 5:// 神将突破",
+            "case 6:// 神将修炼",
+            "case 7:// 神将升星"
+          ]
         }
       ],
-      "visualAssertions": {"width":1334,"height":750,"minimumBytes":4096,"requireUniqueHashes":true},
-      "flags": ["-projectXHeroCultivationG3Validation"],
-      "artifacts": [
-        {"path":"build/ui-migration/HC-LEVEL.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-STAR.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-BREAK.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-CULTIVATE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-INFO.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-PREV-DEPLOYED.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-NEXT-DEPLOYED.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-ONEKEY-LEVEL.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-STAR-DETAIL.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-BREAK-DETAIL.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-CULTIVATE-HELP.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-CULTIVATE-HELP-11-20.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-CULTIVATE-HELP-ATTRIBUTE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-CULTIVATE-NUM-INPUT.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-ATTRIBUTE-DETAIL.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-FAILURE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-RECONNECTED.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/HC-REENTERED.png","lifecycle":"runtime"}
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      },
+      "flags": [
+        "-projectXHeroCultivationG3Validation"
       ],
-      "captureStates": ["level","star","break","cultivate","info","previous-deployed","next-deployed","one-key-level-popup","star-detail","break-detail","cultivate-help-1-10","cultivate-help-11-20","cultivate-help-attribute-detail","cultivate-num-input","attribute-detail","failure","reconnected","reentered"]
+      "artifacts": [
+        {
+          "path": "build/ui-migration/HC-LEVEL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-STAR.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-BREAK.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-CULTIVATE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-INFO.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-PREV-DEPLOYED.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-NEXT-DEPLOYED.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-ONEKEY-LEVEL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-STAR-DETAIL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-BREAK-DETAIL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-CULTIVATE-HELP.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-CULTIVATE-HELP-11-20.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-CULTIVATE-HELP-ATTRIBUTE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-CULTIVATE-NUM-INPUT.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-ATTRIBUTE-DETAIL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-FAILURE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-RECONNECTED.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HC-REENTERED.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "level",
+        "star",
+        "break",
+        "cultivate",
+        "info",
+        "previous-deployed",
+        "next-deployed",
+        "one-key-level-popup",
+        "star-detail",
+        "break-detail",
+        "cultivate-help-1-10",
+        "cultivate-help-11-20",
+        "cultivate-help-attribute-detail",
+        "cultivate-num-input",
+        "attribute-detail",
+        "failure",
+        "reconnected",
+        "reentered"
+      ]
     },
     {
       "key": "hero-g6",
@@ -972,7 +1132,8 @@
             "deployedHeroId",
             "skillIcon.enabled = skillIcon.sprite != null",
             "rowButton.interactable = true",
-            "rowButton.targetGraphic.raycastTarget = true"
+            "hitArea.raycastTarget = true",
+            "rowButton.targetGraphic = hitArea"
           ]
         },
         {
@@ -1075,31 +1236,58 @@
       "sourceContracts": [
         {
           "path": "server/src/pack_deal.cpp",
-          "contains": ["DealPetEquipOperate"]
+          "contains": [
+            "DealPetEquipOperate"
+          ]
         },
         {
           "path": "server/src/pet_equip_manage.cpp",
-          "contains": ["WearPetEquip", "TakeOffPetEquip", "EquipHeCheng", "StrongEquip", "StrongAllEquip", "JingLianEquip", "JueXingEquip", "ShenZhuEquip"]
+          "contains": [
+            "WearPetEquip",
+            "TakeOffPetEquip",
+            "EquipHeCheng",
+            "StrongEquip",
+            "StrongAllEquip",
+            "JingLianEquip",
+            "JueXingEquip",
+            "ShenZhuEquip"
+          ]
         },
         {
           "path": "server/src/user.cpp",
-          "contains": ["UpdateZhenFaPetInfo", "UpdatePetInfo"]
+          "contains": [
+            "UpdateZhenFaPetInfo",
+            "UpdatePetInfo"
+          ]
         },
         {
           "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "contains": ["DealMsgUpdatePet"]
+          "contains": [
+            "DealMsgUpdatePet"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
-          "contains": ["readPetUpdate", "Protocol.UPDATE_PET_INFO"]
+          "contains": [
+            "readPetUpdate",
+            "Protocol.UPDATE_PET_INFO"
+          ]
         },
         {
           "path": "tools/unity-migration/Invoke-HeroEquipFixture.ps1",
-          "contains": ["Add-HeroEquipFixtureItems", "Assert-HeroEquipFixtureItems", "fixtureEquipmentUid"]
+          "contains": [
+            "Add-HeroEquipFixtureItems",
+            "Assert-HeroEquipFixtureItems",
+            "fixtureEquipmentUid"
+          ]
         },
         {
           "path": "docs/unityclient/matrices/HERO_EQUIPMENT_COVERAGE.json",
-          "contains": ["equip-shenzhu-server-level", "protocol-319-op", "confirmedByUser"]
+          "contains": [
+            "equip-shenzhu-server-level",
+            "protocol-319-op",
+            "confirmedByUser"
+          ]
         }
       ],
       "visualAssertions": {
@@ -2003,15 +2191,26 @@
       "sourceContracts": [
         {
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt",
-          "contains": ["function M.start", "function M.claim", "requestInfo()"]
+          "contains": [
+            "function M.start",
+            "function M.claim",
+            "requestInfo()"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/YouLiPresenter.cs",
-          "contains": ["StartFirstAvailable", "ClaimFirstReady", "RuntimeYouLiLocations"]
+          "contains": [
+            "StartFirstAvailable",
+            "ClaimFirstReady",
+            "RuntimeYouLiLocations"
+          ]
         },
         {
           "path": "docs/unityclient/matrices/YOULI_CONTROLS.json",
-          "contains": ["YOULI-08-AUTHORITATIVE-REFRESH", "op=2/3成功"]
+          "contains": [
+            "YOULI-08-AUTHORITATIVE-REFRESH",
+            "op=2/3成功"
+          ]
         }
       ],
       "visualAssertions": {
@@ -2263,15 +2462,28 @@
       "sourceContracts": [
         {
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt",
-          "contains": ["function M.search", "function M.searchAll", "function M.compose", "function M.composeAll"]
+          "contains": [
+            "function M.search",
+            "function M.searchAll",
+            "function M.compose",
+            "function M.composeAll"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs",
-          "contains": ["BindAction", "ActionBindingCount", "searchAll", "composeAll"]
+          "contains": [
+            "BindAction",
+            "ActionBindingCount",
+            "searchAll",
+            "composeAll"
+          ]
         },
         {
           "path": "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
-          "contains": ["XUNBAO-07-COMBINE", "op=28/29/30/31/36"]
+          "contains": [
+            "XUNBAO-07-COMBINE",
+            "op=28/29/30/31/36"
+          ]
         }
       ],
       "visualAssertions": {
@@ -2308,11 +2520,42 @@
         "seven-day-lifecycle-isolation-restore"
       ],
       "sourceContracts": [
-        { "path": "client/ProjectX/src/View/OperationalActivity/SevenDay.lua", "contains": ["QueryGotQiRiTask", "QueryGotQiRiAward"] },
-        { "path": "server/src/mission_manager.cpp", "contains": ["GetHDQuestMessage", "GetHDQuestAward"] },
-        { "path": "server/src/pack_deal.cpp", "contains": ["miss.GetHDQuestMessage", "miss.GetHDQuestAward"] },
-        { "path": "server/config/json/sevendays.json", "contains": ["\"time\":1", "\"condition\"", "\"reward\""] },
-        { "path": "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab", "contains": ["QiriLayer", "Btn_0"] }
+        {
+          "path": "client/ProjectX/src/View/OperationalActivity/SevenDay.lua",
+          "contains": [
+            "QueryGotQiRiTask",
+            "QueryGotQiRiAward"
+          ]
+        },
+        {
+          "path": "server/src/mission_manager.cpp",
+          "contains": [
+            "GetHDQuestMessage",
+            "GetHDQuestAward"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "miss.GetHDQuestMessage",
+            "miss.GetHDQuestAward"
+          ]
+        },
+        {
+          "path": "server/config/json/sevendays.json",
+          "contains": [
+            "\"time\":1",
+            "\"condition\"",
+            "\"reward\""
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab",
+          "contains": [
+            "QiriLayer",
+            "Btn_0"
+          ]
+        }
       ],
       "visualAssertions": {
         "width": 1334,
@@ -2510,6 +2753,53 @@
       "captureStates": [
         "funds"
       ]
+    },
+    {
+      "key": "enhance-master-default",
+      "module": "EnhanceMaster",
+      "fixture": "reversible-enhance-master-fixed-account",
+      "requiredGate": "G2",
+      "flags": [
+        "-projectXEnhanceMasterG3Validation"
+      ],
+      "artifacts": [
+        {"path":"build/ui-migration/EM-G3-MASTER-STRENGTH.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-MASTER-REFINE.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-MASTER-AWAKEN.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-MASTER-SHENZHU.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-MASTER-FABAO-STRENGTH.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-MASTER-FABAO-REFINE.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-EQUIP-STRENGTH.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-EQUIP-REFINE.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-EQUIP-AWAKEN.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-EQUIP-SHENZHU.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-FABAO-STRENGTH.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-FABAO-MATERIAL-CHOOSER.png","lifecycle":"runtime"},
+        {"path":"build/ui-migration/EM-G3-FABAO-REFINE.png","lifecycle":"runtime"}
+      ],
+      "captureStates": [
+        "master-strength","master-refine","master-awaken","master-shenzhu","master-fabao-strength","master-fabao-refine",
+        "equipment-strength","equipment-refine","equipment-awaken","equipment-shenzhu",
+        "fabao-strength","fabao-material-chooser","fabao-refine"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "enhance-master-six-tabs","enhance-master-dynamic-prefabs",
+        "enhance-master-fabao-cultivation","enhance-master-hero-skill-equipment-boundary",
+        "enhance-master-control-matrix-40"
+      ],
+      "sourceContracts": [
+        {"path":"client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua","contains":["UpdateEquipItem","UpdateFaBaoItem","TabClicked","onGoUpgradeClicked"]},
+        {"path":"server/src/pack_deal.cpp","contains":["StrongFaBao","JingLianFaBao"]},
+        {"path":"unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs","contains":["ShowFaBaoStrength","ShowFaBaoRefine","OpenFaBaoMaterialChooser"]},
+        {"path":"unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs","contains":["Resources.Load<UiPrefabReference>","Release"]}
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     }
   ]
 }

@@ -1258,6 +1258,41 @@
         ]
       },
       "updatedUtc": "2026-08-20T01:35:00Z"
+    },
+    {
+      "module": "EnhanceMaster",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/ENHANCEMASTER.md",
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json",
+          "docs/unityclient/matrices/ENHANCEMASTER_COVERAGE.json",
+          "docs/unityclient/modules/ENHANCEMASTER.md"
+        ],
+        "G1": [
+          ".local/unity-validation/enhancemaster-cocos-automation-ledger.json",
+          ".local/unity-validation/enhancemaster-cocos-preflight-latest.json",
+          ".local/unity-validation/enhancemaster-cocos-identity-latest.json",
+          ".local/unity-validation/enhancemaster-cocos-baseline-latest.json"
+        ],
+        "G2": [
+          "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json",
+          "docs/unityclient/matrices/ENHANCEMASTER_COVERAGE.json",
+          ".local/unity-validation/enhancemaster-g2-source-audit.json"
+        ],
+        "G3": [
+          ".local/unity-validation/enhancemaster-g3-runtime-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-08-24T12:23:04.0840182Z"
     }
   ]
 }

@@ -253,8 +253,13 @@ try {
                 & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
                     -UserId $UserId -RoleId $RoleId -PythonExecutable $pythonExecutable
                 if ($LASTEXITCODE -ne 0) { throw "Fixed-account data preflight login failed." }
+                # kapai persists role/package data on background save threads.  Give the
+                # authoritative login snapshot time to commit before the local-only hard stop;
+                # otherwise AssertSetup can observe a truncated package blob.
+                Start-Sleep -Seconds 5
                 Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 2
+                Wait-FixedRuntimeRelease
             }
             Invoke-FixedAdapter "AssertSetup"
             Invoke-FixedAdapter "Restore"

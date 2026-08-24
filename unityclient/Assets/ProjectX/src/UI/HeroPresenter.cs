@@ -86,6 +86,7 @@ namespace ProjectX.UI
             attackType = RequireText(detailView, "Layer/EquipUI/Bg/Equip/Text_0");
             skillName = RequireText(detailView, "Layer/EquipUI/Bg/Btn_Skill/Panel_skill/Text");
             skillDescription = RequireText(detailView, "Layer/EquipUI/Bg/Btn_Skill/Panel_skill/ListView/Text_miaoshu");
+            skillDescription.supportRichText = true;
             skillDescription.alignment = TextAnchor.UpperLeft;
             skillDescription.horizontalOverflow = HorizontalWrapMode.Wrap;
             skillDescription.verticalOverflow = VerticalWrapMode.Overflow;
@@ -112,6 +113,9 @@ namespace ProjectX.UI
         public int SelectedId => selectedId;
         public int SelectedPosition => selectedPosition;
         public bool HasVisibleSkillIcon => skillIcon != null && skillIcon.enabled && skillIcon.sprite != null;
+        public string VisibleSkillName => skillName != null ? skillName.text : string.Empty;
+        public int VisibleEquipmentSlotCount => CountVisibleSlotIcons(1, 4);
+        public int VisibleFaBaoSlotCount => CountVisibleSlotIcons(5, 6);
 
         public void SelectFromAuthority(int heroId)
         {
@@ -198,9 +202,12 @@ namespace ProjectX.UI
             if (add != null) add.gameObject.SetActive(!occupied && !isLocked);
             if (locked != null) locked.gameObject.SetActive(isLocked);
             Button rowButton = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
-            rowButton.targetGraphic = row.GetComponent<Graphic>() ?? row.GetComponentInChildren<Graphic>();
+            Image hitArea = row.GetComponent<Image>() ?? row.gameObject.AddComponent<Image>();
+            hitArea.enabled = true;
+            hitArea.color = new Color(1f, 1f, 1f, 0.001f);
+            hitArea.raycastTarget = true;
+            rowButton.targetGraphic = hitArea;
             rowButton.interactable = true;
-            if (rowButton.targetGraphic != null) rowButton.targetGraphic.raycastTarget = true;
             rowButton.onClick.RemoveAllListeners();
             if (isLocked)
             {
@@ -286,7 +293,8 @@ namespace ProjectX.UI
             {
                 attackType.text = definition.PhysicalAttack ? "类型：物" : "类型：法";
                 skillName.text = definition.SkillName;
-                skillDescription.text = definition.SkillDescription;
+                skillDescription.text = HeroCatalog.ResolveSkillDescription(
+                    definition.SkillDescription, hero.PrimarySkillLevel);
                 if (skillIcon != null)
                 {
                     skillIcon.sprite = definition.SkillId > 0
@@ -355,6 +363,8 @@ namespace ProjectX.UI
 
         private void RenderEquipmentSlots()
         {
+            int authorityPosition = selectedId > 0 ? formation.GetCombatPosition(selectedId) : 0;
+            if (authorityPosition > 0) selectedPosition = authorityPosition;
             for (int slot = 1; slot <= 6; slot++)
             {
                 GameObject iconHost = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase");
@@ -362,6 +372,7 @@ namespace ProjectX.UI
                 Text name = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/name")?.GetComponent<Text>();
                 Sprite sprite = null;
                 string label = string.Empty;
+                int quality = 0;
                 if (slot <= 4)
                 {
                     HeroEquipmentRecord item = equipment.Items.FirstOrDefault(value =>
@@ -370,6 +381,7 @@ namespace ProjectX.UI
                     {
                         sprite = resources.LoadEquipmentIcon(item.Definition.Picture);
                         label = item.GetLevel(1) > 0 ? $"{item.Definition.Name}+{item.GetLevel(1)}" : item.Definition.Name;
+                        quality = item.Definition.Quality;
                     }
                 }
                 else
@@ -380,13 +392,26 @@ namespace ProjectX.UI
                     {
                         sprite = resources.LoadFaBaoIcon(item.Definition.Picture, out _);
                         label = item.Definition.Name;
+                        quality = item.Definition.Quality;
                     }
+                }
+                Image qualityFrame = EnsureRuntimeQualityFrame(iconHost, $"EquippedItemQuality{slot}");
+                if (qualityFrame != null)
+                {
+                    qualityFrame.sprite = quality > 0
+                        ? resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}")
+                        : null;
+                    qualityFrame.enabled = qualityFrame.sprite != null;
+                    qualityFrame.gameObject.SetActive(qualityFrame.enabled);
                 }
                 if (icon != null)
                 {
                     icon.sprite = sprite;
                     icon.enabled = sprite != null;
+                    icon.color = Color.white;
                     icon.preserveAspect = true;
+                    icon.canvasRenderer.SetAlpha(1f);
+                    icon.gameObject.SetActive(sprite != null);
                 }
                 if (name != null) name.text = label;
             }
@@ -406,8 +431,41 @@ namespace ProjectX.UI
             rect.offsetMax = new Vector2(-5f, -5f);
             Image image = value.GetComponent<Image>();
             image.raycastTarget = false;
+            image.color = Color.white;
+            image.canvasRenderer.SetAlpha(1f);
             value.transform.SetAsLastSibling();
             return image;
+        }
+
+        private static Image EnsureRuntimeQualityFrame(GameObject host, string name)
+        {
+            if (host == null) return null;
+            Transform existing = host.transform.Find(name);
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(host.transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = value.GetComponent<Image>();
+            image.raycastTarget = false;
+            image.preserveAspect = false;
+            value.transform.SetAsFirstSibling();
+            return image;
+        }
+
+        private int CountVisibleSlotIcons(int first, int last)
+        {
+            int count = 0;
+            for (int slot = first; slot <= last; slot++)
+            {
+                Image image = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase")
+                    ?.transform.Find($"EquippedItemIcon{slot}")?.GetComponent<Image>();
+                if (image != null && image.gameObject.activeInHierarchy && image.enabled && image.sprite != null)
+                    count++;
+            }
+            return count;
         }
 
         private void BindBagRow(RectTransform row, HeroBagRow data, int rowIndex)
@@ -452,7 +510,12 @@ namespace ProjectX.UI
                 button.interactable = true;
                 if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => { selectedId = hero.Id; selectHero(selectedId); Render(); });
+                button.onClick.AddListener(() =>
+                {
+                    selectedId = hero.Id;
+                    selectionInitialized = true;
+                    openCultivation(selectedId);
+                });
             }
         }
 

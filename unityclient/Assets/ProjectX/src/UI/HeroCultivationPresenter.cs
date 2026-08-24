@@ -472,7 +472,8 @@ namespace ProjectX.UI
             if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
             {
                 SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/SkillName", definition.SkillName);
-                SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo", definition.SkillDescription);
+                SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo",
+                    ResolveSkillDescription(hero, definition));
                 Image skill = star.Binding.Find(
                     "Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")?.GetComponent<Image>();
                 if (skill != null)
@@ -556,9 +557,10 @@ namespace ProjectX.UI
             {
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value", definition.Feature);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillName", definition.SkillName);
-                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo", definition.SkillDescription);
+                string skillDescription = ResolveSkillDescription(hero, definition);
+                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo", skillDescription);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/Title", $"升至{hero.Star}星开启");
-                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo", definition.SkillDescription);
+                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo", skillDescription);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/miaoshu/Item/Content", definition.Feature);
             }
             SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu/Item/TalentInfo",
@@ -624,12 +626,16 @@ namespace ProjectX.UI
             }
             else
             {
-                descriptions = Enumerable.Range(1, 8).Select(_ => definition.SkillDescription).ToArray();
+                string description = ResolveSkillDescription(hero, definition);
+                descriptions = Enumerable.Range(1, 8).Select(_ => description).ToArray();
                 titles = Enumerable.Range(1, 8).Select(value => value == 1 ? "默认开启" : $"升至{value - 1}星开启").ToArray();
             }
             PopulateTalentRows(titles, descriptions, breakTalent ? hero.BreakLevel : hero.Star + 1);
             talent.SetVisible(true); talent.GameObject.transform.SetAsLastSibling();
         }
+
+        private static string ResolveSkillDescription(HeroRecord hero, HeroDefinition definition) =>
+            HeroCatalog.ResolveSkillDescription(definition.SkillDescription, hero.PrimarySkillLevel);
 
         private void PopulateTalentRows(IReadOnlyList<string> titles, IReadOnlyList<string> descriptions, int activeLevel)
         {
@@ -998,7 +1004,10 @@ namespace ProjectX.UI
         }
         private static void SetText(CocosUiView view, string path, string value)
         {
-            Text text = view.Binding.Find(path)?.GetComponent<Text>(); if (text != null) text.text = value ?? string.Empty;
+            Text text = view.Binding.Find(path)?.GetComponent<Text>();
+            if (text == null) return;
+            text.supportRichText = true;
+            text.text = value ?? string.Empty;
         }
 
         private static void FitText(CocosUiView view, string path, int minimumSize)

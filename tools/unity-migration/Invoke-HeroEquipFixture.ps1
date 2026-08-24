@@ -392,12 +392,21 @@ function Add-HeroEquipFixtureItems([string]$Hex) {
     $bytes = Expand-HeroEquipBlob $Hex
     $layout = Get-HeroEquipBlobLayout $bytes
     if ($Profile -eq "Hero") { return $Hex }
-    $reservedEquipmentUids = @($sourceWornEquipmentUid, $fixtureEquipmentUid, $fixtureShenZhuEquipmentUid) +
-        @($scrollFixtureEquipmentUids)
-    $presentEquipmentUids = @($reservedEquipmentUids | Where-Object { $_ -in $layout.equipmentUids })
+    $sourceEntries = @($layout.equipmentEntries | Where-Object { $_.uid -eq $sourceWornEquipmentUid })
+    if ($sourceEntries.Count -gt 1 -or ($sourceEntries.Count -eq 1 -and
+        ([uint16]$sourceEntries[0].templateId -ne $sourceWornEquipmentTemplateId -or
+         [byte]$sourceEntries[0].formationPosition -ne 1))) {
+        throw "HeroEquip source worn equipment UID is occupied by an incompatible record."
+    }
+    $sourceNeedsAdd = $sourceEntries.Count -eq 0
+    $fixtureOnlyUids = @($fixtureEquipmentUid)
+    if ($Profile -eq "Transaction") {
+        $fixtureOnlyUids += @($fixtureShenZhuEquipmentUid) + @($scrollFixtureEquipmentUids)
+    }
+    $presentEquipmentUids = @($fixtureOnlyUids | Where-Object { $_ -in $layout.equipmentUids })
     $fixtureFaBaoPresent = $fixtureFaBaoUid -in $layout.faBaoUids
     if ($presentEquipmentUids.Count -gt 0 -or $fixtureFaBaoPresent) {
-        if ($presentEquipmentUids.Count -eq $reservedEquipmentUids.Count -and $fixtureFaBaoPresent) {
+        if ($presentEquipmentUids.Count -eq $fixtureOnlyUids.Count -and $fixtureFaBaoPresent -and -not $sourceNeedsAdd) {
             return $Hex
         }
         throw "HeroEquip reserved fixture UID set is partially occupied in the source snapshot."
@@ -405,15 +414,17 @@ function Add-HeroEquipFixtureItems([string]$Hex) {
     $stream = [IO.MemoryStream]::new()
     $writer = [IO.BinaryWriter]::new($stream)
     try {
-        $addedEquipmentCount = if ($Profile -eq "Transaction") { 3 + $scrollFixtureEquipmentUids.Count } else { 2 }
+        $addedEquipmentCount = $fixtureOnlyUids.Count + $(if ($sourceNeedsAdd) { 1 } else { 0 })
         $writer.Write([uint16]($layout.equipmentCount + $addedEquipmentCount))
         $writer.Write($bytes, 2, $layout.equipmentEnd - 2)
-        $writer.Write($sourceWornEquipmentUid)
-        $writer.Write($sourceWornEquipmentTemplateId)
-        $writer.Write([uint32]0)
-        $writer.Write([uint32]0)
-        $writer.Write([byte]1)
-        $writer.Write([byte]0)
+        if ($sourceNeedsAdd) {
+            $writer.Write($sourceWornEquipmentUid)
+            $writer.Write($sourceWornEquipmentTemplateId)
+            $writer.Write([uint32]0)
+            $writer.Write([uint32]0)
+            $writer.Write([byte]1)
+            $writer.Write([byte]0)
+        }
         $writer.Write($fixtureEquipmentUid)
         $writer.Write($fixtureEquipmentTemplateId)
         $writer.Write([uint32]0)

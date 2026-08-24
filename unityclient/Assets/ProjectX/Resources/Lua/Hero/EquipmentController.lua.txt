@@ -182,6 +182,23 @@ local function sendFaBaoTakeOff(uid)
     Bridge:Send(message)
 end
 
+local function sendFaBaoStrength(uid, materialUids)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(20)
+    message:WriteUInt(uid)
+    message:WriteByte(#materialUids)
+    for _, materialUid in ipairs(materialUids) do message:WriteUInt(materialUid) end
+    Bridge:Send(message)
+end
+
+local function sendFaBaoRefine(uid, targetLevel)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(21)
+    message:WriteUInt(uid)
+    message:WriteByte(targetLevel)
+    Bridge:Send(message)
+end
+
 local function sendEquipmentStrengthAll(position)
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(12)
@@ -298,6 +315,13 @@ local function finishLists()
         callback()
         return
     end
+    if Bridge:HasCommandLineFlag("-projectXEnhanceMasterG3Validation") then
+        if not M.g4Started then
+            M.g4Started = true
+            Bridge:RunEnhanceMasterG3Validation()
+        end
+        return
+    end
     if Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation") then
         if not M.g4Started then
             M.g4Started = true
@@ -372,7 +396,11 @@ end
 
 function M.preload(callback)
     M.preloadCallback = callback
-    BagController.requestEquipmentSnapshot(function() requestLists() end)
+    -- Formation only needs the authoritative worn equipment/FaBao lists.
+    -- Do not request ROLE_PACKAGE here: that response owns the Bag surface and
+    -- requires its dynamically loaded presenter, which is intentionally absent
+    -- when the player enters Formation directly.
+    requestLists()
 end
 
 function M.wearEquipment(uid, position) sendEquipmentWear(uid, position) end
@@ -413,6 +441,21 @@ function M.open(kind)
 end
 function M.wearFaBao(uid, position) sendFaBaoWear(uid, position, EquipmentModel:SelectFaBaoSlot(position)) end
 function M.takeOffFaBao(uid) sendFaBaoTakeOff(uid) end
+function M.strengthFaBao(uid, ...)
+    if not EquipmentModel:GetFaBao(uid) then return end
+    local materials = {}
+    for _, value in ipairs({...}) do
+        value = tonumber(value) or 0
+        if value > 0 and value ~= uid then table.insert(materials, value) end
+    end
+    if #materials == 0 then showBusinessError("请选择强化材料") return end
+    sendFaBaoStrength(uid, materials)
+end
+function M.refineFaBao(uid, targetLevel)
+    local value = EquipmentModel:GetFaBao(uid)
+    if not value then return end
+    sendFaBaoRefine(uid, math.max(1, tonumber(targetLevel) or 1))
+end
 
 local function readEquipmentWearResponse(message, op)
     local position = message:ReadByte()
@@ -596,6 +639,37 @@ local function readFaBaoTakeOffResponse(message)
     end
 end
 
+local function refreshFaBaoAfterCultivation(text)
+    Bridge:SetStatus(text)
+    Bridge:ShowToast(text, 2.0)
+    M.faBaoComplete = false
+    sendOp(17)
+end
+
+local function readFaBaoStrengthResponse(message)
+    if message.Remaining < 1 then Bridge:Fail("FaBao strength returned no result byte."); return end
+    local success = message:ReadByte()
+    if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "法宝强化失败"); return end
+    -- The server rewrites a successful op=20 response. Consume the authoritative
+    -- result fields, then request op=17 instead of predicting client state.
+    if message.Remaining >= 4 then message:ReadUInt() end
+    if message.Remaining >= 1 then message:ReadByte() end
+    if message.Remaining >= 4 then message:ReadUInt() end
+    local removed = message.Remaining >= 1 and message:ReadByte() or 0
+    for _ = 1, removed do if message.Remaining >= 4 then message:ReadUInt() end end
+    refreshFaBaoAfterCultivation("法宝强化成功")
+end
+
+local function readFaBaoRefineResponse(message)
+    if message.Remaining < 6 then Bridge:Fail("FaBao refine response is incomplete."); return end
+    message:ReadUInt()
+    message:ReadByte()
+    local success = message:ReadByte()
+    if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "法宝精炼失败"); return end
+    if message.Remaining >= 1 then message:ReadByte() end
+    refreshFaBaoAfterCultivation("法宝精炼成功")
+end
+
 function M.onHeroAttributePush(heroId, power, attack, health, currentHealth)
     if M.stage == nil or heroId ~= M.mutationHeroId then return end
     M.attributePushCount = M.attributePushCount + 1
@@ -619,9 +693,11 @@ function M.onOperation(op, message)
     elseif op == 11 then readEquipmentComposeResponse(message)
     elseif op == 12 then readEquipmentStrengthAllResponse(message)
     elseif op == 13 or op == 14 or op == 15 then readSimpleEquipmentCultivationResponse(message, op)
-    elseif op == 24 or op == 25 or op == 26 then readEquipmentMasterResponse(message, op)
+    elseif op == 24 or op == 25 or op == 26 or op == 27 then readEquipmentMasterResponse(message, op)
     elseif op == 18 then readFaBaoWearResponse(message)
     elseif op == 19 then readFaBaoTakeOffResponse(message)
+    elseif op == 20 then readFaBaoStrengthResponse(message)
+    elseif op == 21 then readFaBaoRefineResponse(message)
     else return false end
     if M.stage == "await_injection" and M.injectedEquipment and M.injectedFaBao then
         M.stage = "await_injected_lists"

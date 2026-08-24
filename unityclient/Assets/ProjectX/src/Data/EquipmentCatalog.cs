@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ProjectX.Diagnostics;
@@ -20,6 +21,7 @@ namespace ProjectX.Data
         [JsonProperty("item_from")] public string Source { get; set; }
         [JsonProperty("shenzhu_cost")] public int DivineCostItemId { get; set; }
         [JsonProperty("equip")] public int CanEquip { get; set; }
+        [JsonProperty("exp")] public int ExperienceValue { get; set; }
         [JsonProperty("attr")] public int[] BaseAttribute { get; set; }
         [JsonProperty("atrr_qianghua")] public JToken StrengthAttributeData { get; set; }
         [JsonProperty("attr_jinglian")] public int[][] RefineAttributes { get; set; }
@@ -108,6 +110,30 @@ namespace ProjectX.Data
     {
         [JsonProperty("quality")] public int Quality { get; set; }
         [JsonProperty("jinglian_ratio")] public int RefineRatio { get; set; }
+        [JsonProperty("fabao_qianghua")] public int FaBaoStrengthRatio { get; set; }
+    }
+
+    [Serializable]
+    public sealed class FaBaoStrengthDefinition
+    {
+        [JsonProperty("level")] public int Level { get; set; }
+        [JsonProperty("exp")] public int Experience { get; set; }
+    }
+
+    [Serializable]
+    public sealed class FaBaoRefineDefinition
+    {
+        [JsonProperty("level")] public int Level { get; set; }
+        [JsonProperty("cost")] public int[][] Cost { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentMasterDefinition
+    {
+        [JsonProperty("type")] public int Type { get; set; }
+        [JsonProperty("level")] public int Level { get; set; }
+        [JsonProperty("condition")] public int Condition { get; set; }
+        [JsonProperty("attr")] public int[][] Attributes { get; set; }
     }
 
     public sealed class EquipmentCatalog
@@ -124,6 +150,10 @@ namespace ProjectX.Data
         private readonly Dictionary<int, EquipmentMaterialDefinition> items = new Dictionary<int, EquipmentMaterialDefinition>();
         private readonly Dictionary<int, EquipmentMaterialDefinition> refineMaterials = new Dictionary<int, EquipmentMaterialDefinition>();
         private readonly Dictionary<int, EquipmentQualityDefinition> qualities = new Dictionary<int, EquipmentQualityDefinition>();
+        private readonly Dictionary<int, FaBaoStrengthDefinition> faBaoStrength = new Dictionary<int, FaBaoStrengthDefinition>();
+        private readonly Dictionary<int, FaBaoRefineDefinition> faBaoRefine = new Dictionary<int, FaBaoRefineDefinition>();
+        private readonly Dictionary<int, Dictionary<int, EquipmentMasterDefinition>> masters =
+            new Dictionary<int, Dictionary<int, EquipmentMasterDefinition>>();
 
         public EquipmentCatalog()
         {
@@ -133,6 +163,8 @@ namespace ProjectX.Data
             LoadSuits();
             LoadComposition();
             LoadCultivation();
+            LoadFaBaoCultivation();
+            LoadMasters();
         }
 
         public EquipmentDefinition GetEquipment(int id)
@@ -207,10 +239,64 @@ namespace ProjectX.Data
 
         public int MaxStrengthLevel => strength.Count;
 
+        public int MaxFaBaoStrengthLevel => faBaoStrength.Count == 0 ? 0 : faBaoStrength.Keys.Max();
+
+        public int GetFaBaoStrengthExperience(int level, int quality)
+        {
+            if (!faBaoStrength.TryGetValue(level, out FaBaoStrengthDefinition value)) return 0;
+            int ratio = qualities.TryGetValue(quality, out EquipmentQualityDefinition definition)
+                && definition.FaBaoStrengthRatio > 0 ? definition.FaBaoStrengthRatio : 10000;
+            return checked(value.Experience * ratio / 10000);
+        }
+
+        public FaBaoRefineDefinition GetFaBaoRefine(int level)
+            => faBaoRefine.TryGetValue(level, out FaBaoRefineDefinition value) ? value : null;
+
+        public EquipmentMasterDefinition GetMaster(int type, int level)
+            => masters.TryGetValue(type, out Dictionary<int, EquipmentMasterDefinition> values)
+                && values.TryGetValue(level, out EquipmentMasterDefinition value) ? value : null;
+
+        public int GetMasterLevel(int type, int minimumCultivationLevel)
+        {
+            if (!masters.TryGetValue(type, out Dictionary<int, EquipmentMasterDefinition> values)) return 0;
+            int result = 0;
+            foreach (EquipmentMasterDefinition value in values.Values)
+                if (value.Condition <= minimumCultivationLevel && value.Level > result) result = value.Level;
+            return result;
+        }
+
         public void Clear()
         {
             equipment.Clear(); faBao.Clear(); strength.Clear(); suits.Clear(); equipmentByFragment.Clear(); fragmentComposeCost.Clear();
             refine.Clear(); awaken.Clear(); divine.Clear(); items.Clear(); refineMaterials.Clear(); qualities.Clear();
+            faBaoStrength.Clear(); faBaoRefine.Clear(); masters.Clear();
+        }
+
+        private void LoadFaBaoCultivation()
+        {
+            LoadByLevel("Configs/fabao_qianghua", faBaoStrength);
+            LoadByLevel("Configs/fabao_jinglian", faBaoRefine);
+            ClientLog.Info("Config", "Loaded FaBao cultivation configs",
+                $"strength={faBaoStrength.Count}, refine={faBaoRefine.Count}");
+        }
+
+        private void LoadMasters()
+        {
+            TextAsset asset = Resources.Load<TextAsset>("Configs/master");
+            if (asset == null) throw new InvalidOperationException("Equipment master config is missing: Resources/Configs/master.json");
+            EquipmentMasterDefinition[] values = JsonConvert.DeserializeObject<EquipmentMasterDefinition[]>(asset.text)
+                ?? Array.Empty<EquipmentMasterDefinition>();
+            foreach (EquipmentMasterDefinition value in values)
+            {
+                if (value == null || value.Type < 1 || value.Level < 1) continue;
+                if (!masters.TryGetValue(value.Type, out Dictionary<int, EquipmentMasterDefinition> group))
+                {
+                    group = new Dictionary<int, EquipmentMasterDefinition>();
+                    masters[value.Type] = group;
+                }
+                group[value.Level] = value;
+            }
+            ClientLog.Info("Config", "Loaded Configs/master", $"types={masters.Count}, records={values.Length}");
         }
 
         private void LoadCultivation()
