@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using ProjectX.Animation;
 using ProjectX.Data;
 using ProjectX.Diagnostics;
@@ -51,6 +52,7 @@ namespace ProjectX.Core
         };
 
         private GameServices services;
+        private bool bagGraphicCensusWritten;
         private LuaFunction onConnected;
         private LuaFunction onDisconnected;
         private LuaFunction onPacket;
@@ -193,8 +195,10 @@ namespace ProjectX.Core
         private int bagG4InitialGiftQuantity;
         private int bagG4InitialDirectQuantity;
         private int bagG4InitialRewardQuantity;
+        private bool bagG4DirectUseScheduled;
+        private readonly Dictionary<int, int> bagG4InitialBoxQuantities = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> bagG4ExpectedFragmentQuantities = new Dictionary<int, int>();
         private bool bagInitialG5DisconnectCaptured;
-        private bool bagInitialG5ReconnectCaptured;
         private bool bagInitialG5ReenterRequested;
         private bool bagInitialG5ReenterCaptured;
         private uint validationRoleIdSnapshot;
@@ -4097,7 +4101,97 @@ namespace ProjectX.Core
             if (services.UiStack.Current != bagView) services.UiStack.Push(bagView);
             bagFrameView.GameObject.transform.SetAsLastSibling();
             bagView.GameObject.transform.SetAsLastSibling();
+            WriteBagGraphicCensusOnce();
             SetStatus($"Bag UI active: {bagPresenter.ItemCount} item stacks, {bagPresenter.MissingIconCount} missing icons.");
+        }
+
+        private void WriteBagGraphicCensusOnce()
+        {
+            if (bagGraphicCensusWritten
+                || (!HasCommandLineFlag("-projectXBagG3Validation")
+                    && !HasCommandLineFlag("-projectXBagG4Validation"))) return;
+            bagGraphicCensusWritten = true;
+            Canvas.ForceUpdateCanvases();
+
+            string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            string path = Path.Combine(repositoryRoot, ".local", "unity-validation", "bag-runtime-graphic-census-latest.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            Canvas canvas = FindObjectOfType<Canvas>();
+            Graphic[] graphics = canvas == null
+                ? Array.Empty<Graphic>()
+                : canvas.GetComponentsInChildren<Graphic>(true);
+            var entries = graphics.Select(graphic =>
+            {
+                RectTransform rect = graphic.rectTransform;
+                var corners = new Vector3[4];
+                rect.GetWorldCorners(corners);
+                float inheritedAlpha = 1f;
+                for (Transform current = graphic.transform; current != null; current = current.parent)
+                {
+                    CanvasGroup group = current.GetComponent<CanvasGroup>();
+                    if (group != null) inheritedAlpha *= group.alpha;
+                }
+                Image image = graphic as Image;
+                Text text = graphic as Text;
+                Sprite sprite = image == null ? null : image.sprite;
+                Font font = text == null ? null : text.font;
+                Material material = graphic.material;
+                return new
+                {
+                    path = GetTransformPath(graphic.transform, canvas?.transform),
+                    type = graphic.GetType().Name,
+                    activeSelf = graphic.gameObject.activeSelf,
+                    activeInHierarchy = graphic.gameObject.activeInHierarchy,
+                    enabled = graphic.enabled,
+                    colorAlpha = graphic.color.a,
+                    inheritedCanvasAlpha = inheritedAlpha,
+                    canvasRendererCull = graphic.canvasRenderer.cull,
+                    canvasRendererAlpha = graphic.canvasRenderer.GetAlpha(),
+                    siblingIndex = graphic.transform.GetSiblingIndex(),
+                    screenMin = new[] { corners[0].x, corners[0].y },
+                    screenMax = new[] { corners[2].x, corners[2].y },
+                    spriteMissingReference = !ReferenceEquals(sprite, null) && sprite == null,
+                    sprite = sprite == null ? string.Empty : sprite.name,
+                    texture = sprite == null || sprite.texture == null ? string.Empty : sprite.texture.name,
+                    fontMissingReference = !ReferenceEquals(font, null) && font == null,
+                    font = font == null ? string.Empty : font.name,
+                    text = text?.text ?? string.Empty,
+                    materialMissingReference = !ReferenceEquals(material, null) && material == null,
+                    material = material == null ? string.Empty : material.name,
+                    shader = material == null || material.shader == null ? string.Empty : material.shader.name,
+                };
+            }).ToArray();
+            var roots = canvas == null
+                ? Array.Empty<object>()
+                : canvas.transform.Cast<Transform>().Select(root => (object)new
+                {
+                    name = root.name,
+                    activeSelf = root.gameObject.activeSelf,
+                    activeInHierarchy = root.gameObject.activeInHierarchy,
+                    siblingIndex = root.GetSiblingIndex(),
+                    graphicCount = root.GetComponentsInChildren<Graphic>(true).Length,
+                    activeGraphicCount = root.GetComponentsInChildren<Graphic>(false).Length,
+                }).ToArray();
+            File.WriteAllText(path, JsonConvert.SerializeObject(new
+            {
+                schemaVersion = 1,
+                screenWidth = Screen.width,
+                screenHeight = Screen.height,
+                canvasRenderMode = canvas?.renderMode.ToString() ?? string.Empty,
+                canvasSortingOrder = canvas?.sortingOrder ?? 0,
+                roots,
+                graphics = entries,
+                utc = DateTime.UtcNow.ToString("O"),
+            }, Formatting.Indented));
+            Debug.Log($"[BagG5] Runtime graphic census written: {path}; graphics={entries.Length}.");
+        }
+
+        private static string GetTransformPath(Transform target, Transform stop)
+        {
+            var names = new Stack<string>();
+            for (Transform current = target; current != null && current != stop; current = current.parent)
+                names.Push(current.name);
+            return string.Join("/", names);
         }
 
         // HappyDrawUI needs the authoritative recruitment-ticket counts from /8,
@@ -4226,6 +4320,14 @@ namespace ProjectX.Core
                 MarkValidationControl(controlId);
             return invoked;
         }
+
+        private bool InvokeBagInputDigit(int digit)
+        {
+            bool invoked = bagFlowPresenter?.InvokeInputDigit(digit) == true;
+            if (invoked && HasCommandLineFlag("-projectXBagG4Validation"))
+                MarkValidationControl("BAG-08-INPUT-DIGITS");
+            return invoked;
+        }
         public bool ValidateBagStatic(out string detail)
         {
             EnsureBagPresenter();
@@ -4251,9 +4353,11 @@ namespace ProjectX.Core
 
         private IEnumerator BeginBagG4ValidationRoutine()
         {
+            bagG4DirectUseScheduled = false;
             validationRoleIdSnapshot = GetPlayerRoleId();
             bool staticValid = ValidateBagStatic(out string detail);
-            if (GetLocalUserId() == 1 || !IsBagOpen || services.Bag.Count < 20 || !staticValid)
+            if (GetLocalUserId() != 1 || validationRoleIdSnapshot != 1000001
+                || !IsBagOpen || services.Bag.Count < 20 || !staticValid)
             {
                 Fail($"Bag G4 fixture/static mismatch: user={GetLocalUserId()}, open={IsBagOpen}, "
                     + $"count={services.Bag.Count}, detail={detail}.");
@@ -4263,10 +4367,22 @@ namespace ProjectX.Core
             bagG4InitialGiftQuantity = GetBagQuantityByItemId(1111);
             bagG4InitialDirectQuantity = GetBagQuantityByItemId(3201);
             bagG4InitialRewardQuantity = GetBagQuantityByItemId(4621);
-            if (bagG4InitialBatchQuantity < 20 || bagG4InitialGiftQuantity < 1)
+            bagG4InitialBoxQuantities.Clear();
+            foreach (int boxItemId in new[] { 512, 513, 514 })
+                bagG4InitialBoxQuantities[boxItemId] = GetBagQuantityByItemId(boxItemId);
+            bagG4ExpectedFragmentQuantities.Clear();
+            for (int fragmentId = 4621; fragmentId <= 4644; fragmentId++)
+                bagG4ExpectedFragmentQuantities[fragmentId] = GetBagQuantityByItemId(fragmentId);
+            if (bagG4InitialBatchQuantity < 20 || bagG4InitialGiftQuantity != 3)
             {
                 Fail($"Bag G4 fixture lacks batch/gift items: 500={bagG4InitialBatchQuantity}, "
                     + $"1111={bagG4InitialGiftQuantity}.");
+                yield break;
+            }
+            if (bagG4InitialBoxQuantities.Any(pair => pair.Value < 2))
+            {
+                Fail("Bag G4 fixture lacks random equipment boxes: "
+                    + string.Join(",", bagG4InitialBoxQuantities.Select(pair => $"{pair.Key}={pair.Value}")));
                 yield break;
             }
 
@@ -4283,21 +4399,10 @@ namespace ProjectX.Core
             { Fail("Bag G4 entry fixture could not select the Cocos baseline item 500."); yield break; }
             if (!bagInitialG5DisconnectCaptured)
             {
+                yield return WaitForBagTransientOverlayToSettle("BAG-01-ENTRY");
+                if (CurrentAppState == AppState.Failed) yield break;
                 yield return CaptureBagG5Evidence("BAG-01-ENTRY");
                 bagInitialG5DisconnectCaptured = true;
-                services.Network.Disconnect();
-                yield return null;
-                yield return new WaitForSecondsRealtime(0.25f);
-                if (services.Network.State != NetworkState.Disconnected)
-                { Fail($"Bag G5 initial disconnect was not observed: state={services.Network.State}."); yield break; }
-                yield return CaptureBagG5Evidence("BAG-01-DISCONNECTED");
-                Reconnect();
-                yield break;
-            }
-            if (!bagInitialG5ReconnectCaptured)
-            {
-                bagInitialG5ReconnectCaptured = true;
-                yield return CaptureBagG5Evidence("BAG-01-RECONNECT");
                 if (!InvokeBagControl("BAG-02-CLOSE") || IsBagOpen)
                 { Fail("Bag G5 initial reenter setup could not close Bag."); yield break; }
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
@@ -4317,6 +4422,7 @@ namespace ProjectX.Core
             yield return CaptureBagG5Evidence("BAG-03-TAB");
             if (!SelectBagItem(500)) { Fail("Bag G4 could not select batch item 500."); yield break; }
             yield return CaptureBagG5Evidence("BAG-04-LIST-ITEM");
+            if (!SelectBagItem(1001)) { Fail("Bag G5 scrolled state could not select the frozen high recruit ticket 1001."); yield break; }
             if (!InvokeBagControl("BAG-05-LIST-SCROLL")) { Fail("Bag G4 list scroll failed."); yield break; }
             yield return CaptureBagG5Evidence("BAG-05-LIST-SCROLL");
             if (!InvokeBagControl("BAG-06-DETAIL-ICON")) { Fail("Bag G4 detail icon binding failed."); yield break; }
@@ -4324,6 +4430,8 @@ namespace ProjectX.Core
             RecordValidationSemantic("bag-selection-scroll-refresh", true,
                 "real item selection, selected-tab callback, list scroll and detail-icon callback completed without authority mutation");
 
+            if (!SelectBagItem(500))
+            { Fail("Bag G4 could not restore batch item 500 after the frozen scrolled-state capture."); yield break; }
             if (!InvokeBagControl("BAG-07-USE") || !IsBagInputOpen)
             { Fail("Bag G4 batch item did not open EnterNumLayer."); yield break; }
             yield return CaptureBagG5Evidence("BAG-07-USE-BATCH");
@@ -4405,18 +4513,18 @@ namespace ProjectX.Core
             RecordValidationSemantic("bag-use-jump-closes-origin", true,
                 "item1000 and item1001 opened current HappyDraw/1010 without consumption; one Draw Back returned to main instead of reopening Bag");
 
-            if (!SelectBagItem(1114) || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen)
+            if (!SelectBagItem(1111) || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen)
             { Fail("Bag G4 gift item did not open OpenBox_1Layer."); yield break; }
             yield return CaptureBagG5Evidence("BAG-12-GIFT-OPEN");
             InvokeBagControl("BAG-18-GIFT-CONFIRM");
-            if (!IsBagGiftOpen || GetBagQuantityByItemId(1114) != 3)
+            if (!IsBagGiftOpen || GetBagQuantityByItemId(1111) != bagG4InitialGiftQuantity)
             { Fail("Bag G4 no-selection gift confirmation mutated or closed."); yield break; }
             yield return CaptureBagG5Evidence("BAG-18-GIFT-NO-SELECTION");
             InvokeBagControl("BAG-19-GIFT-CLOSE");
             if (IsBagGiftOpen) { Fail("Bag G4 gift close failed."); yield break; }
             yield return CaptureBagG5Evidence("BAG-19-GIFT-CLOSE");
 
-            SelectBagItem(1114);
+            SelectBagItem(1111);
             InvokeBagControl("BAG-07-USE");
             InvokeBagControl("BAG-12-GIFT-OPTION");
             if (!BagHasChoice) { Fail("Bag G4 gift choice did not select."); yield break; }
@@ -4447,14 +4555,17 @@ namespace ProjectX.Core
             yield return CaptureBagG5Evidence("BAG-21-SOURCE-CLOSE");
 
             InvokeBagControl("BAG-19-GIFT-CLOSE");
-            SelectBagItem(1112);
-            InvokeBagControl("BAG-07-USE");
-            if (!InvokeBagControl("BAG-20-GIFT-REWARD-DETAIL")
-                || !IsBagSourceOpen)
-            { Fail("Bag G4 equipment-fragment source setup failed."); yield break; }
+            if (!SelectBagItem(1111)
+                || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen
+                || !InvokeBagControl("BAG-12-GIFT-OPTION")
+                || bagFlowPresenter?.SelectedChoiceId != 4621
+                || !InvokeBagControl("BAG-20-GIFT-REWARD-DETAIL")
+                || !IsBagSourceOpen || bagFlowPresenter.SourceChoiceId != 4621)
+            { Fail("Bag G4 equipment-fragment source did not preserve frozen gift1111 choice0 fragment4621."); yield break; }
             yield return CaptureBagG5Evidence("BAG-20-EQUIPMENT-SOURCE");
-            if (!InvokeBagControl("BAG-22-SOURCE-ICON") || !IsBagEquipmentInfoOpen)
-            { Fail("Bag G4 source icon did not open equipment info."); yield break; }
+            if (!InvokeBagControl("BAG-22-SOURCE-ICON") || !IsBagEquipmentInfoOpen
+                || bagFlowPresenter.SourceChoiceId != 4621)
+            { Fail("Bag G4 source icon did not open equipment info for frozen fragment4621."); yield break; }
             yield return CaptureBagG5Evidence("BAG-22-SOURCE-ICON");
             InvokeBagControl("BAG-26-EQUIP-INFO-SCROLL");
             yield return CaptureBagG5Evidence("BAG-26-EQUIP-INFO-SCROLL");
@@ -4491,6 +4602,9 @@ namespace ProjectX.Core
             SelectBagItem(1111);
             InvokeBagControl("BAG-07-USE");
             bagFlowPresenter.SelectGiftChoice(0);
+            InvokeBagControl("BAG-15-GIFT-ADD-ONE");
+            if (BagModalQuantity != 2)
+            { Fail($"Bag G4 choice quantity did not reach frozen acceptance value 2: {BagModalQuantity}."); yield break; }
             InvokeBagControl("BAG-18-GIFT-CONFIRM");
         }
 
@@ -4509,20 +4623,58 @@ namespace ProjectX.Core
 
         public bool RunBagG4DirectUse()
         {
-            if (GetBagQuantityByItemId(1111) != bagG4InitialGiftQuantity - 1
-                || GetBagQuantityByItemId(4621) <= bagG4InitialRewardQuantity)
+            if (GetBagQuantityByItemId(1111) != bagG4InitialGiftQuantity - 2
+                || GetBagQuantityByItemId(4621) != bagG4InitialRewardQuantity + 2)
             {
                 Fail("Bag G4 gift authority was not confirmed before direct-use validation.");
                 return false;
             }
+            if (bagG4DirectUseScheduled) return true;
+            bagG4DirectUseScheduled = true;
             RecordValidationSemantic("bag-choice-use-authority", true,
                 $"real /15 consumed item1111 and added reward4621={GetBagQuantityByItemId(4621)}");
-            if (!SelectBagItem(3201) || !InvokeBagControl("BAG-07-USE"))
-            {
-                Fail("Bag G4 injected direct-use item could not be used through the real button.");
-                return false;
-            }
+            bagG4ExpectedFragmentQuantities[4621] = GetBagQuantityByItemId(4621);
+            // This entry is invoked from Lua's /15 packet callback. Defer the
+            // real UI interaction until Lua has returned; otherwise the use or
+            // quantity-confirm button re-enters the same Lua state synchronously.
+            StartCoroutine(RunBagG4DirectUseRoutine());
             return true;
+        }
+
+        private IEnumerator RunBagG4DirectUseRoutine()
+        {
+            yield return null;
+            if (!SelectBagItem(3201))
+            {
+                Fail("Bag G4 injected direct-use item could not be selected through the real item button.");
+                yield break;
+            }
+            yield return null;
+            if (!InvokeBagControl("BAG-07-USE"))
+            {
+                Fail("Bag G4 injected direct-use item could not open its use flow through the real button.");
+                yield break;
+            }
+            yield return null;
+            // The reversible fixture intentionally retains one 3201 so injection
+            // proves an authoritative add before consume. Quantity therefore
+            // becomes two and the real Cocos rule opens EnterNumLayer. Confirm
+            // quantity one through imported digit/confirm buttons instead of
+            // bypassing the modal or calling Lua directly. EnterNumLayer starts
+            // at zero, where confirm intentionally closes without sending /15.
+            if (!IsBagInputOpen || !InvokeBagInputDigit(1)
+                || BagModalQuantity != 1 || BagModalDisplayText != "1")
+            {
+                Fail($"Bag G4 injected direct-use item did not enter quantity one through EnterNumLayer: "
+                    + $"open={IsBagInputOpen}, quantity={BagModalQuantity}, display='{BagModalDisplayText}'.");
+                yield break;
+            }
+            yield return null;
+            if (!InvokeBagControl("BAG-10-INPUT-CONFIRM") || IsBagInputOpen)
+            {
+                Fail("Bag G4 injected direct-use item did not confirm quantity one through EnterNumLayer.");
+                yield break;
+            }
         }
 
         public void BeginBagReloadValidation()
@@ -4535,9 +4687,11 @@ namespace ProjectX.Core
             if (GetBagQuantityByItemId(3201) != bagG4InitialDirectQuantity)
             { Fail("Bag G4 direct-use authority did not settle to the original quantity after injection and consume."); yield break; }
             RecordValidationSemantic("bag-direct-use-authority", true,
-                "real injected item3201 was consumed once; repeat request did not mutate the authoritative total");
+                "real injected item3201 quantity changed 1->2->1 through the quantity modal and authoritative /15");
             RecordValidationSemantic("bag-type-dispatch", true,
                 "no-action, quantity input, choice gift, equipment info and direct-use paths were reached through configured item types");
+            yield return ValidateBagRandomEquipmentBoxes();
+            if (CurrentAppState == AppState.Failed) yield break;
             yield return CaptureBagG5Evidence("BAG-18-GIFT-SUCCESS");
             if (!InvokeBagControl("BAG-02-CLOSE") || IsBagOpen)
             { Fail("Bag G4 close button did not return to main."); yield break; }
@@ -4546,6 +4700,101 @@ namespace ProjectX.Core
             Button entry = mainView?.Binding.Find(BagPath)?.GetComponent<Button>();
             if (entry == null) { Fail("Bag G4 real main entry was unavailable after close."); yield break; }
             entry.onClick.Invoke();
+        }
+
+        private IEnumerator ValidateBagRandomEquipmentBoxes()
+        {
+            int[][] pools =
+            {
+                Enumerable.Range(4621, 8).ToArray(),
+                Enumerable.Range(4629, 8).ToArray(),
+                Enumerable.Range(4637, 8).ToArray()
+            };
+            int[] boxItemIds = { 512, 513, 514 };
+            for (int index = 0; index < boxItemIds.Length; index++)
+            {
+                int boxItemId = boxItemIds[index];
+                string prefix = $"BAG-BOX-{boxItemId}";
+                Dictionary<int, int> beforeFragments = Enumerable.Range(4621, 24)
+                    .ToDictionary(fragmentId => fragmentId, GetBagQuantityByItemId);
+                Button itemControl = bagPresenter?.GetItemControl(boxItemId);
+                if (!InvokeEventSystemClick(itemControl))
+                {
+                    Fail($"Bag G4 box {boxItemId} could not traverse its item EventSystem control.");
+                    yield break;
+                }
+                yield return null;
+                if (bagPresenter?.SelectedItemId != boxItemId)
+                {
+                    Fail($"Bag G4 box {boxItemId} selection did not settle before its BEFORE capture: "
+                        + $"selected={bagPresenter?.SelectedItemId ?? 0}.");
+                    yield break;
+                }
+                yield return CaptureBagG5Evidence(prefix + "-BEFORE");
+                if (!InvokeEventSystemClick(bagPresenter?.UseControl))
+                {
+                    Fail($"Bag G4 box {boxItemId} could not traverse its use EventSystem control.");
+                    yield break;
+                }
+                yield return null;
+                if (!IsBagInputOpen
+                    || !InvokeEventSystemClick(bagFlowPresenter?.GetInputDigitControl(1))
+                    || BagModalQuantity != 1 || BagModalDisplayText != "1")
+                {
+                    Fail($"Bag G4 box {boxItemId} did not enter quantity one through the real EventSystem number control: "
+                        + $"open={IsBagInputOpen}, quantity={BagModalQuantity}, display='{BagModalDisplayText}'.");
+                    yield break;
+                }
+                MarkValidationControl("BAG-08-INPUT-DIGITS");
+                yield return null;
+                if (!InvokeEventSystemClick(bagFlowPresenter?.InputConfirmControl) || IsBagInputOpen)
+                {
+                    Fail($"Bag G4 box {boxItemId} did not confirm quantity one through the real EventSystem control.");
+                    yield break;
+                }
+                MarkValidationControl("BAG-10-INPUT-CONFIRM");
+                float deadline = Time.realtimeSinceStartup + 12f;
+                while ((GetBagQuantityByItemId(boxItemId) != bagG4InitialBoxQuantities[boxItemId] - 1
+                        || rewardPresenter?.IsVisible != true)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+
+                Dictionary<int, int> deltas = beforeFragments.ToDictionary(pair => pair.Key,
+                    pair => GetBagQuantityByItemId(pair.Key) - pair.Value);
+                int[] pool = pools[index];
+                bool sourceDeducted = GetBagQuantityByItemId(boxItemId)
+                    == bagG4InitialBoxQuantities[boxItemId] - 1;
+                bool poolDelta = pool.Sum(fragmentId => deltas[fragmentId]) == 1
+                    && pool.Count(fragmentId => deltas[fragmentId] == 1) == 1
+                    && deltas.Where(pair => !pool.Contains(pair.Key)).All(pair => pair.Value == 0)
+                    && deltas.Values.All(value => value == 0 || value == 1);
+                Dictionary<uint, uint> expectedPopup = deltas.Where(pair => pair.Value > 0)
+                    .ToDictionary(pair => checked((uint)pair.Key), pair => checked((uint)pair.Value));
+                string popupDetail = "reward presenter unavailable";
+                bool feedback = rewardPresenter != null
+                    && rewardPresenter.ValidateVisibleRewards("开启获得", expectedPopup, out popupDetail);
+                if (!sourceDeducted || !poolDelta || !feedback)
+                {
+                    Fail($"Bag G4 box {boxItemId} transaction mismatch: source={sourceDeducted}, "
+                        + $"pool={poolDelta}, feedback={feedback}, popup={popupDetail}.");
+                    yield break;
+                }
+                foreach (KeyValuePair<int, int> pair in deltas)
+                    bagG4ExpectedFragmentQuantities[pair.Key] += pair.Value;
+                yield return WaitForBagTransientOverlayToSettle(prefix + "-REWARD");
+                if (CurrentAppState == AppState.Failed) yield break;
+                yield return CaptureBagG5Evidence(prefix + "-REWARD");
+                if (!InvokeEventSystemClick(rewardPresenter.CloseControl) || rewardPresenter.IsVisible)
+                {
+                    Fail($"Bag G4 box {boxItemId} reward popup did not close through EventSystem.");
+                    yield break;
+                }
+            }
+            RecordValidationSemantic("bag-random-equipment-box-authority", true,
+                "real EventSystem use consumed 512/513/514 exactly once and each authoritative /15 result added exactly one in-pool fragment");
+            RecordValidationSemantic("bag-random-equipment-box-feedback", true,
+                "each authoritative box result rendered complete 开启获得 name and quantity, then closed through EventSystem");
+            RecordValidationSemantic("bag-random-equipment-box-config-family", true,
+                "512/513/514 results stayed within 4621-4628/4629-4636/4637-4644 and all out-of-pool fragments were atomic");
         }
 
         public void BeginBagDisconnectValidation()
@@ -4569,6 +4818,9 @@ namespace ProjectX.Core
                 Fail($"Bag G4 disconnect was not observed: state={services.Network.State}.");
                 yield break;
             }
+            yield return WaitForBagTransientOverlayToSettle("BAG-01-PERSISTENCE-DISCONNECTED");
+            if (CurrentAppState == AppState.Failed) yield break;
+            yield return CaptureBagG5Evidence("BAG-01-DISCONNECTED");
             yield return CaptureBagG5Evidence("BAG-01-PERSISTENCE-DISCONNECTED");
             // The Bag gate owns this deliberate disconnect. Trigger the real
             // reconnect entry after the disconnected state is observable instead
@@ -4585,14 +4837,16 @@ namespace ProjectX.Core
         {
             if (!IsBagOpen || services.ProtocolRegistry.PendingCount != 0
                 || GetBagQuantityByItemId(500) != bagG4InitialBatchQuantity - 10
-                || GetBagQuantityByItemId(1111) != bagG4InitialGiftQuantity - 1
+                || GetBagQuantityByItemId(1111) != bagG4InitialGiftQuantity - 2
                 || GetBagQuantityByItemId(3201) != bagG4InitialDirectQuantity
-                || GetBagQuantityByItemId(4621) <= bagG4InitialRewardQuantity
+                || GetBagQuantityByItemId(4621) < bagG4InitialRewardQuantity + 1
+                || bagG4InitialBoxQuantities.Any(pair => GetBagQuantityByItemId(pair.Key) != pair.Value - 1)
+                || bagG4ExpectedFragmentQuantities.Any(pair => GetBagQuantityByItemId(pair.Key) != pair.Value)
                 || IsBagInputOpen || IsBagGiftOpen || IsBagSourceOpen || IsBagEquipmentInfoOpen)
             {
                 Fail($"Bag G4 persisted/reconnect mismatch: open={IsBagOpen}, pending={services.ProtocolRegistry.PendingCount}, "
                     + $"500={GetBagQuantityByItemId(500)}/{bagG4InitialBatchQuantity - 10}, "
-                    + $"1111={GetBagQuantityByItemId(1111)}/{bagG4InitialGiftQuantity - 1}, "
+                    + $"1111={GetBagQuantityByItemId(1111)}/{bagG4InitialGiftQuantity - 2}, "
                     + $"3201={GetBagQuantityByItemId(3201)}/{bagG4InitialDirectQuantity}, "
                     + $"4621={GetBagQuantityByItemId(4621)}/{bagG4InitialRewardQuantity + 1}, "
                     + $"modals={IsBagInputOpen}/{IsBagGiftOpen}/{IsBagSourceOpen}/{IsBagEquipmentInfoOpen}.");
@@ -4629,7 +4883,7 @@ namespace ProjectX.Core
         private IEnumerator CaptureBagG5Evidence(string controlId)
         {
             string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
-            string outputDirectory = Path.Combine(repositoryRoot, ".local", "ui-fidelity", "Bag", "unity", "g5-20260821");
+            string outputDirectory = Path.Combine(repositoryRoot, ".local", "ui-fidelity", "Bag", "unity", "g5-20260824");
             Directory.CreateDirectory(outputDirectory);
             string path = Path.Combine(outputDirectory, controlId + ".png");
             if (File.Exists(path)) File.Delete(path);
@@ -4655,9 +4909,34 @@ namespace ProjectX.Core
                 case "BAG-22-SOURCE-ICON": artifactName = "bootstrap-bag-equipment-info.png"; break;
                 case "BAG-01-DISCONNECTED": artifactName = "bootstrap-bag-disconnected.png"; break;
                 case "BAG-01-REENTER": artifactName = "bootstrap-bag-reenter.png"; break;
+                case "BAG-BOX-512-BEFORE": artifactName = "bootstrap-bag-box-512-before.png"; break;
+                case "BAG-BOX-512-REWARD": artifactName = "bootstrap-bag-box-512-reward.png"; break;
+                case "BAG-BOX-513-BEFORE": artifactName = "bootstrap-bag-box-513-before.png"; break;
+                case "BAG-BOX-513-REWARD": artifactName = "bootstrap-bag-box-513-reward.png"; break;
+                case "BAG-BOX-514-BEFORE": artifactName = "bootstrap-bag-box-514-before.png"; break;
+                case "BAG-BOX-514-REWARD": artifactName = "bootstrap-bag-box-514-reward.png"; break;
             }
             if (!string.IsNullOrEmpty(artifactName))
                 File.Copy(path, BuildUiMigrationPath(artifactName), true);
+        }
+
+        private IEnumerator WaitForBagTransientOverlayToSettle(string captureId)
+        {
+            const float quietSeconds = 0.5f;
+            float deadline = Time.realtimeSinceStartup + 15f;
+            float quietSince = -1f;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                bool obstructed = IsToastVisible
+                    || mainHudPresenter?.HasVisibleSystemChatSummary == true;
+                if (obstructed) quietSince = -1f;
+                else if (quietSince < 0f) quietSince = Time.realtimeSinceStartup;
+                else if (Time.realtimeSinceStartup - quietSince >= quietSeconds) yield break;
+                yield return null;
+            }
+            Fail($"Bag G5 transient overlay did not settle naturally before {captureId}; "
+                + $"toastVisible={IsToastVisible}, "
+                + $"systemChatSummary={mainHudPresenter?.HasVisibleSystemChatSummary == true}.");
         }
 
         public void BeginRewardUpdate(int expectedCount)

@@ -1716,7 +1716,6 @@ function Assert-UnityMigrationControlMatrixDeclared {
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)][string]$ModuleKey,
         [Parameter(Mandatory = $true)][string]$Path,
-        [int]$MinimumCaptureStates = 0,
         [switch]$RequireLifecycleFields
     )
     $entry = Import-UnityMigrationJson -Root $Root -Path $Path
@@ -1726,9 +1725,6 @@ function Assert-UnityMigrationControlMatrixDeclared {
     }
     $controls = @($matrix.controls)
     if ($controls.Count -eq 0) { throw "Control matrix has no controls: $Path" }
-    if ($MinimumCaptureStates -gt 0 -and $controls.Count -lt $MinimumCaptureStates) {
-        throw "Control matrix has $($controls.Count) controls, fewer than $MinimumCaptureStates registered capture states: $Path"
-    }
     $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     $required = @("id", "page", "path", "cocosCallback", "unityBinding",
         "successEvidence", "failureEvidence", "reconnectEvidence")

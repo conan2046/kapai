@@ -264,7 +264,7 @@
     {
       "key": "bag-default",
       "module": "Bag",
-      "fixture": "reversible-bag-fixed-account",
+      "fixture": "reversible-bag-sqlite-fixed-account",
       "requiredGate": "G3",
       "flags": [
         "-projectXBagG4Validation"
@@ -277,6 +277,30 @@
         {
           "path": "build/ui-migration/bootstrap-bag.png",
           "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-bag-box-512-before.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-bag-box-512-reward.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-bag-box-513-before.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-bag-box-513-reward.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-bag-box-514-before.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-bag-box-514-reward.png",
+          "lifecycle": "runtime"
         }
       ],
       "captureStates": [
@@ -287,6 +311,12 @@
         "no-action-item",
         "direct-use-before",
         "direct-use-after",
+        "box-512-before",
+        "box-512-reward",
+        "box-513-before",
+        "box-513-reward",
+        "box-514-before",
+        "box-514-reward",
         "quantity-default",
         "quantity-bounds",
         "gift-unselected",
@@ -309,6 +339,9 @@
         "bag-duplicate-slot-aggregation",
         "bag-type-dispatch",
         "bag-direct-use-authority",
+        "bag-random-equipment-box-authority",
+        "bag-random-equipment-box-feedback",
+        "bag-random-equipment-box-config-family",
         "bag-batch-use-bounds",
         "bag-choice-use-authority",
         "bag-use-jump-closes-origin",
@@ -342,6 +375,18 @@
           "contains": ["NoLockUseItem", "HDAT_TiLi", "HDAT_VIP_EXP", "NoLockDelPackage(pos, num)"]
         },
         {
+          "path": "server/config/json/drop_matching.json",
+          "contains": ["\"id\":512", "\"id\":513", "\"id\":514", "\"level_reward_id\":80514"]
+        },
+        {
+          "path": "server/config/json/level_reward.json",
+          "contains": ["\"level_reward_id\":80512", "\"level_reward_id\":80513", "\"level_reward_id\":80514"]
+        },
+        {
+          "path": "server/config/json/reward.json",
+          "contains": ["\"rewardid\":80512", "[4621,0,1]", "[4637,0,1]", "[4644,0,1]"]
+        },
+        {
           "path": "unityclient/Assets/ProjectX/src/UI/BagPresenter.cs",
           "contains": ["class BagPresenter", "InvokeControl", "ShowDetails"]
         },
@@ -350,8 +395,12 @@
           "contains": ["class BagStore", "Items", "Replace(IEnumerable<BagItemRecord> items)", "GetTotalQuantityByItemId"]
         },
         {
-          "path": "tools/unity-migration/Invoke-BagCocosFixture.ps1",
-          "contains": ["reversible-bag-fixed-account", "AssertReloginHash", "AssertCleanup", "aggregateItem500"]
+          "path": "tools/unity-migration/Invoke-BagSqliteFixture.ps1",
+          "contains": ["reversible-bag-sqlite-fixed-account", "LocalServer\\projectx.db", "AssertReloginHash", "AssertCleanup", "Invoke-BagSqliteFixture.py"]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-BagSqliteFixture.py",
+          "contains": ["BOX_EXPECTED", "(512, 2)", "(1111, 3)", "(3201, 1)", "FIXTURE_SPIRIT = 50", "UPDATE role_info SET package=?,user_spirit=? WHERE id=?", "snapshotHash", "PRAGMA integrity_check"]
         }
       ],
       "visualAssertions": {

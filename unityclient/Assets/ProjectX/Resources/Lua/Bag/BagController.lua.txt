@@ -289,7 +289,6 @@ function M.onPacket(command, message)
         M.g4Stage = "await_direct_consume"
         Bridge:RunBagG4DirectUse()
     elseif M.g4Stage == "await_direct_consume" and slot == M.validationSlot then
-        M.onUse(slot, 1, 0)
         local sortMessage = Protocol.newMessage(Protocol.PACKAGE_UPDATE)
         sortMessage:WriteByte(6)
         M.g4Stage = "await_final_sort"

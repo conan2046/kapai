@@ -2092,16 +2092,30 @@
     {
       "module": "Bag",
       "fixedAccount": {
-        "userId": 7200057,
-        "roleId": 1000115,
-        "terminalUserId": 7200057,
-        "terminalRoleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-BagCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/Bag/fixture/bag-fixed-fixture-snapshot.json",
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 1,
+        "roleId": 1000001,
+        "terminalUserId": 1,
+        "terminalRoleId": 1000001,
+        "adapter": "tools/unity-migration/Invoke-BagSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Bag/fixture/bag-sqlite-fixture-snapshot.json",
         "resultEvidence": ".local/unity-validation/bag-fixed-account-latest.json",
-        "visualResultEvidence": ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
+        "visualResultEvidence": ".local/ui-fidelity/Bag/unity/g5-20260824/bag-g5-visual-result.json",
         "visualValidationFlags": [
           "-projectXBagG4Validation"
+        ],
+        "g3ValidationFlags": [
+          "-projectXBagG3Validation"
+        ],
+        "requiredHydratedRoots": [
+          "unityclient/Assets/ProjectX/Resources/ProjectXStartup",
+          "unityclient/Assets/ProjectX/Resources/ItemIcons",
+          "unityclient/Assets/ProjectX/res/res/UI",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/Sliced",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/Marked",
+          "unityclient/Assets/ProjectX/res/xiaokaiSJ2.ttf"
         ],
         "visualOnlyArtifacts": false,
         "reloginRequired": true,
@@ -2111,8 +2125,12 @@
           "requiresLogin": true,
           "requirements": [
             {
+              "id": "bag-sqlite-only",
+              "description": "用户Unity测试只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL仅作离线源码/配置对照。"
+            },
+            {
               "id": "bag-fixed-account-link",
-              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115，所有 Cocos/Unity 证据使用同一身份。"
+              "description": "固定 userId=1 必须唯一绑定SQLite roleId=1000001；所有Unity事务证据使用该身份。"
             },
             {
               "id": "bag-deterministic-type-state",
@@ -2120,67 +2138,100 @@
             },
             {
               "id": "bag-authoritative-mutations",
-              "description": "真实 /15 覆盖体力丹对 user_spirit、贵族经验、任选礼包奖励与源道具扣除；只在权威回包后刷新。"
+              "description": "真实 /15 覆盖体力丹、贵族经验、任选礼包以及512/513/514源盒扣除与对应碎片增加；只在权威回包后刷新。"
             },
             {
               "id": "bag-full-row-exact-restore",
-              "description": "Setup 前完整快照 role_info 与所属 user_info 分片行；finally 整行恢复、重登录哈希一致。"
+              "description": "Setup前在进程全停状态整库快照；finally恢复SQLite整库、重登录哈希一致且integrity_check=ok。"
             },
             {
               "id": "bag-fixture-zero-residue",
-              "description": "codex_bag_role_backup 与 codex_bag_user_backup 最终必须删除，残留计数为0。"
+              "description": "bag-sqlite-fixture-backup.db最终必须删除，残留计数为0。"
             }
           ]
         },
         "artifactCopies": [
           {
             "source": "build/ui-migration/bootstrap-bag.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-POPULATED.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-POPULATED.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-scrolled.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SCROLLED.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-SCROLLED.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-input.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-INPUT.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-INPUT.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-gift.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-GIFT.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-gift-scrolled.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT-SCROLLED.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-GIFT-SCROLLED.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-source.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SOURCE.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-SOURCE.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-equipment-info.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-EQUIPMENT-INFO.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-EQUIPMENT-INFO.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-disconnected.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-DISCONNECTED.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-DISCONNECTED.png"
           },
           {
-            "source": "build/ui-migration/bootstrap-bag-reconnected.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-RECONNECTED.png"
+        "source": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-01-PERSISTENCE-RECONNECT.png",
+        "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-RECONNECTED.png"
           },
           {
             "source": "build/ui-migration/bootstrap-bag-reenter.png",
-            "destination": ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-REENTER.png"
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-REENTER.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-box-512-before.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-BOX-512-BEFORE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-box-512-reward.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-BOX-512-REWARD.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-box-513-before.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-BOX-513-BEFORE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-box-513-reward.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-BOX-513-REWARD.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-box-514-before.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-BOX-514-BEFORE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-bag-box-514-reward.png",
+            "destination": ".local/ui-fidelity/Bag/unity/g5-20260824/BAG-BOX-514-REWARD.png"
           }
         ]
       },
       "g5": {
         "width": 1334,
         "height": 750,
-        "cocosDirectory": ".local/ui-fidelity/Bag/cocos/g1-20260821",
-        "unityDirectory": ".local/ui-fidelity/Bag/unity/g5-20260821",
-        "compareDirectory": ".local/ui-fidelity/Bag/compare/g5-20260821",
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "BAG-POPULATED",
+              "BAG-REENTER"
+            ],
+            "reason": "Cocos G1 proves that reopening Bag returns to the exact populated terminal bitmap; the distinct evidence is the real close/main-entry route and G4 persistence assertion."
+          }
+        ],
+        "cocosDirectory": ".local/ui-fidelity/Bag/cocos/g1-20260824",
+        "unityDirectory": ".local/ui-fidelity/Bag/unity/g5-20260824",
+        "compareDirectory": ".local/ui-fidelity/Bag/compare/g5-20260824",
         "cocosBaselineInputs": [
           "client/ProjectX/src/View/MainUI.lua",
           "client/ProjectX/src/View/Role/KaPaiBagMainUI.lua",
@@ -2191,6 +2242,10 @@
           "client/ProjectX/src/ConfigData/item_dat.lua",
           "server/src/pack_deal.cpp",
           "server/src/user.cpp",
+          "server/config/json/item.json",
+          "server/config/json/drop_matching.json",
+          "server/config/json/level_reward.json",
+          "server/config/json/reward.json",
           "tools/unity-migration/Invoke-BagCocosFixture.ps1"
         ],
         "pairs": [
@@ -2240,10 +2295,40 @@
             "unity": "BAG-RECONNECTED.png"
           },
           {
-            "id": "BAG-REENTER",
-            "cocos": "BAG-REENTER.png",
-            "unity": "BAG-REENTER.png"
-          }
+          "id": "BAG-REENTER",
+          "cocos": "BAG-REENTER.png",
+          "unity": "BAG-REENTER.png"
+        },
+        {
+          "id": "BAG-BOX-512-BEFORE",
+          "cocos": "BAG-BOX-512-BEFORE.png",
+          "unity": "BAG-BOX-512-BEFORE.png"
+        },
+        {
+          "id": "BAG-BOX-512-REWARD",
+          "cocos": "BAG-BOX-512-REWARD.png",
+          "unity": "BAG-BOX-512-REWARD.png"
+        },
+        {
+          "id": "BAG-BOX-513-BEFORE",
+          "cocos": "BAG-BOX-513-BEFORE.png",
+          "unity": "BAG-BOX-513-BEFORE.png"
+        },
+        {
+          "id": "BAG-BOX-513-REWARD",
+          "cocos": "BAG-BOX-513-REWARD.png",
+          "unity": "BAG-BOX-513-REWARD.png"
+        },
+        {
+          "id": "BAG-BOX-514-BEFORE",
+          "cocos": "BAG-BOX-514-BEFORE.png",
+          "unity": "BAG-BOX-514-BEFORE.png"
+        },
+        {
+          "id": "BAG-BOX-514-REWARD",
+          "cocos": "BAG-BOX-514-REWARD.png",
+          "unity": "BAG-BOX-514-REWARD.png"
+        }
         ]
       }
     },

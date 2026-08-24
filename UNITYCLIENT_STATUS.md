@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-08-23
+> 最后更新：2026-08-24
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `14/17 = 82.4%` | Steam已排除12个模块；本轮 Draw、PlayerHud、Gameplay、XunBao、YouLi 已按当前账号/范围通过 G0-G6。HeroEquip 与 HeroCultivation 依用户决定本轮跳过 |
+| Validated | `13/17 = 76.5%` | Bag 已重验至 G5、G6 最终用户真人确认待完成，仍不计完成集合；HeroCultivation 与 HeroEquip 保持原门禁，历史证据不计当前完成。 |
 
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 ## 2. 模块状态
@@ -23,7 +23,7 @@
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
 | 主界面 HUD | `G0-G6 passed / fixed account revalidated` | 固定账号与隔离账号均为99级全解锁；当前编译、只读权威显示、断线重连、切号隔离、重登归一化哈希、精确恢复与历史11组双端视觉证据通过 | 当前模块收口；Steam排除的聊天/商业入口继续保持隐藏 |
-| 背包 | `G0-G3 retained / equipment-box regression test pending` | 既有 26/26 控件、15/15 语义仍保留；2026-08-21 新增橙/红/金随机装备盒的服务器权威奖励汇总弹窗，并补齐金色盒 `80514 → 4637–4644` 掉落链 | 等用户实机确认 512/513/514 均扣除盒子、发放正确碎片并显示完整“道具名×数量”后，再重跑受影响的 G4-G6 |
+| 背包 | `G0-G5 passed / G6 final user confirmation pending / 26 controls frozen` | 早期真人Play已通过；标准batch G4完成26控件、18语义、1111×3使用2后剩1且4621增加2、512/513/514真实扣除/奖励/完整弹窗及SQLite精确恢复。中央G5为16/16当前证据，09:52逐图验收权威是来源任务主代理，记`agentAccepted=true/userParticipated=false`；三奖励弹窗为已登记intentional delta；Prefab diff=0 | 仅待最后相关变更后的用户从真实Play路径最终确认；此前不得设置`manualPassed`、不得通过G6或进入培养B |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
@@ -66,7 +66,7 @@
 - Shop G0-G6（2026-07-28）：范围固定为基础商城 `type=1`；固定账号 `7200057/1000115` 完成商品列表、数量键盘、滚动、购买确认、奖励、重拉/重登 `6/6` 双端原生 `1334×750` 视觉，控件矩阵 `21/21 complete`。最终隔离账号 `7200123/1000174` 完成 `/221 op1/2/3/4`、21/21 真实控件、5/5 语义断言、余额不足、空态、断线重连和切号清理。修复奖励弹窗层级、商品行高、页签截断及英雄阵容残留；批准购买确认、公共奖励弹窗和 type=1 不可刷新提示三项目标差异。固定账号恢复及重登录哈希均为 `adabb7fcb1c9784356a98e1246074dad868ebe5c55dbb656230991beea302be0`，夹具残留 0；正式 BuildBatch 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/ui-fidelity/Shop/compare/g5-live-20260728/`、`.local/unity-validation/shop-latest.json`。
 - Mail G0-G6（2026-07-27）：固定账号 `7200057/1000115` 同一批 14 封邮件完成 4/4 双端视觉；隔离账号 `7200096/1000151` 完成 13/13 真实控件、5/5 语义断言和 5 张互异原生图。`/128 op2/3/4/5`、重复/非法失败、串行一键领取、无附件已读、账号历史隔离、重进/断线/切号、空态均通过。Cocos 左列表不滚和附件详情数量 0 作为已记录缺陷，Unity 分别修为真实滚动和权威数量。固定账号重登录后精确恢复，夹具残留 0；正式 BuildBatch 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/unity-validation/mail-latest.json`、`.local/ui-fidelity/Mail/compare/g5-live-20260727/`。
 - Task G0-G6 收口（2026-07-27）：固定账号 `7200057/1000115` 从真实 `btn_renwu` 进入，Cocos/Unity 原生 `1334×750` 的 populated、滚动、前往、领取/已领取、四档宝箱、奖励弹窗确认/关闭/物品、重载和重连等 `11/11` 关键状态通过并排/叠加/增强差异与人工验收；控件矩阵 `14/14 complete`。`/37 type=2/type=0`、`/39`、`/65 type=101`、重复/非法拒绝、断线重连、持久化、切号清理均通过。注入前、恢复后及重登录后的固定账号哈希均为 `99ccff91ef8285ff80565658ce2366ec615682a30ebc48378f452ac341494d29`；最终隔离回归 `7200085/1000140`、16/16 Python UI、严重异常0。正式 `BuildBatch` 两次 SHA-256 均为 `B27460DB36051DA396630CFF66EDED1115F3C3CB8148388F9574AA60A92D19AE`。证据 `.local/ui-fidelity/Task/compare/g5-live-20260727/manual-acceptance.json`、`.local/unity-validation/task-latest.json`。
-- 背包 G0-G6（2026-08-21）：从当前真实入口 `Layer/Main_UI/ButtonGroup1/btn_Bag` 重新完成 hard-gate v2。固定账号 `7200057/1000115` 的 26/26 真实控件、15/15 语义断言和 10/10 双端 `1334×750` 状态对照通过；真实 `/8`、`/15` 覆盖全量、增量、整理、直接/批量/任选使用，招募券 `use_jump=1010` 不发 `/15` 且关闭 Bag 后进入招募，装备碎片来源商店与 Bag 页面互斥并可正确返回；错误分支、关闭重进、断线重连、持久化、切号及精确恢复通过。Fixture 与 Computer Use 残留均为0，严重异常0；两次正式 BuildBatch SHA-256 均为 `C02642DCDAB92CE214706768FA3398F7A1D0A8525430EB83AA43674B36FA1760`，自动复盘61/61已解决、未解决0。证据 `.local/unity-validation/bag-fixed-account-latest.json`、`.local/ui-fidelity/Bag/unity/g5-20260821/BAG-24-SOURCE-ACTION.png`、`.local/unity-validation/bag-retrospective-latest.json`。
+- 背包历史 G0-G6（2026-08-21，已失效）：旧链漏掉510-514随机装备盒业务分母，26/26控件、视觉、Runner、人工确认与构建SHA仅作诊断线索；不得作为2026-08-24重开后的当前门禁证据。
 - 装备/法宝 G0-G6收口（2026-07-27）：固定账号 `7200057 / roleId=1000115`、原生 `1334×750`；Cocos/Unity 原图、并排/叠加/差异和人工视觉均 `20/20 passed`，控件矩阵 `33/33`。Unity MCP 真实 Button 覆盖主入口、六槽、背包/碎片、帮助、详情/更换、筛选、强化和关闭；G4穿脱、失败态、断服重连、持久化与切号清理继续有效。强化页补齐真实主角头像，单次强化 UID `2121072641` 本轮 `8→10→12`；缺图0、严重异常0、Console最终0 error/0 warning。正式 `BuildBatch` 经 Unity MCP 连续两次 SHA-256 均为 `188BFD6307DFB0B0F195596D94E95ACE2E103343B8C28057F8AD5A13F580CACB`。证据 `.local/ui-fidelity/HeroEquip/compare/g5-live-20260726/manual-acceptance.json`、`.local/unity-validation/hero-equip-g6-control-runner.json`。
 - 神将/阵容 G0-G6收口（2026-07-26）：固定账号 `7200057 / roleId=1000115`、同数据、原生 `1334×750` 的 Cocos/Unity 原图、并排/叠加/差异、真实 Button 自动化和人工视觉均 `16/16 passed`。修复范围包括主界面公共层与圆形头像、阵容装备/法宝真实图标、候选页残留、养成页内容与经验条、强化大师、四装备/两法宝独立详情和完整属性弹窗。最终 Runner `build/ui-migration/bootstrap-app-result.json` 于 `2026-07-26T14:31:28.6502368Z` 成功，严重异常0；纳入 `ChatLayer` 后正式 Bootstrap 双批处理幂等 SHA-256 为 `408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC`；G5、G6门禁已通过。证据 `.local/ui-fidelity/Hero/compare/g5-live-20260726/manual-acceptance.md`。
 - 装备/法宝 G4（2026-07-26）：固定账号 `7200057/1000115` 经 Unity MCP 触发真实 Button，装备强化 `3→5`、穿脱恢复、法宝穿脱恢复、金币不足、非法 UID、重复卸下、断服重启重连、正常断开持久化及切号清理全部通过。修复普通强化误入自动化卸下链、法宝失败包错读 `replacedUid` 两个根因；重启权威回读装备阵位 1/强化 5、法宝阵位 1，缺图 0。

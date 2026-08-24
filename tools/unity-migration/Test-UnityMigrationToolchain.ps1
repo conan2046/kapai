@@ -220,6 +220,15 @@ Assert-ToolchainTest (
 
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
+$hardGateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityMigrationHardGates.ps1") `
+    -Raw -Encoding UTF8
+$commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $hardGateSource.Contains("Scenario '`$(`$scenario.key)' contains duplicate capture states.") -and
+    -not $hardGateSource.Contains('-MinimumCaptureStates `$captureStates.Count') -and
+    -not $commonSource.Contains('[int]$MinimumCaptureStates')
+) "Hard gates again conflate independent capture-state and control denominators."
 Assert-ToolchainTest (
     $fixedRunnerSource.Contains('Write-UnityMigrationUtf8 -Path $resultPath -Content $previousResultContent')
 ) "Fixed-account runner no longer restores the preceding isolated validation result."
@@ -303,6 +312,8 @@ Assert-ToolchainTest (
 ) "Bootstrap runner no longer honors the generic scenario-managed reconnect flag."
 $bagRunnerSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$bagControllerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $bagRunnerSource.Contains('if (invoked && HasCommandLineFlag("-projectXBagG4Validation"))') -and
     $bagRunnerSource.Contains('MarkValidationControl("BAG-01-MAIN-ENTRY");') -and
@@ -312,7 +323,9 @@ Assert-ToolchainTest (
 ) "Bag coverage no longer records only controls reached through real entry, item and bound-control callbacks."
 $bagSemanticKeys = @(
     "bag-current-main-entry", "bag-authoritative-full-and-incremental", "bag-duplicate-slot-aggregation",
-    "bag-type-dispatch", "bag-direct-use-authority", "bag-batch-use-bounds", "bag-choice-use-authority",
+    "bag-type-dispatch", "bag-direct-use-authority", "bag-random-equipment-box-authority",
+    "bag-random-equipment-box-feedback", "bag-random-equipment-box-config-family",
+    "bag-batch-use-bounds", "bag-choice-use-authority",
     "bag-source-route-boundary", "bag-disabled-excluded-target", "bag-selection-scroll-refresh",
     "bag-network-recovery", "bag-account-isolation", "bag-fixture-exact-restore", "bag-control-matrix-26"
 )
@@ -325,26 +338,134 @@ $bagEvidenceContract = @((Get-Content -LiteralPath `
 Assert-ToolchainTest (
     $bagEvidenceContract.fixedAccount.skipPostValidationFixtureAssert -eq $true
 ) "Bag fixed-account runner again requires the pristine Setup package after authoritative item consumption."
+$fixedAccountRunnerSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Run-UnityFixedAccountValidation.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('[string]$ServerExecutable = ""') -and
+    $fixedAccountRunnerSource.Contains('$serverStartParameters.ExePath = $resolvedServerExecutable') -and
+    $fixedAccountRunnerSource.Contains('Explicit fixed-account server executable is missing:') -and
+    $fixedAccountRunnerSource.Contains('[switch]$G3RuntimeOnly') -and
+    $fixedAccountRunnerSource.Contains('validationMode = "g3-runtime"') -and
+    @($bagEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXBagG3Validation' -and
+    $fixedAccountRunnerSource.Contains('Required Unity assets are unresolved Git LFS pointers:') -and
+    $fixedAccountRunnerSource.Contains('function Wait-FixedRuntimeRelease') -and
+    $fixedAccountRunnerSource.Contains('[IO.FileShare]::None') -and
+    $fixedAccountRunnerSource.Contains('Fixed-account runtime did not release processes/SQLite before restore:') -and
+    $fixedAccountRunnerSource.Contains('try { Invoke-FixedAdapter "AssertReloginHash" }') -and
+    @($bagEvidenceContract.fixedAccount.requiredHydratedRoots).Count -eq 6 -and
+    @($bagEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/res/res/UI' -and
+    @($bagEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/Sliced' -and
+    @($bagEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/Marked' -and
+    @($bagEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/res/xiaokaiSJ2.ttf'
+) "Independent-worktree regression: fixed-account runner cannot use an explicit read-only server runtime binary."
+$bagSqliteAdapterSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-BagSqliteFixture.py") -Raw -Encoding UTF8
+$bagCocosAdapterSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-BagCocosFixture.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bagSqliteAdapterSource.Contains('"packageSha256": hashlib.sha256(role[0].encode("ascii")).hexdigest()') -and
+    $bagSqliteAdapterSource.Contains('elif args.action == "AssertReloginHash":') -and
+    $bagSqliteAdapterSource.Contains('remove_sqlite_sidecars(database)') -and
+    $bagSqliteAdapterSource.Contains('for suffix in ("-wal", "-shm")') -and
+    $bagSqliteAdapterSource.Contains('current["packageSha256"] != expected["packageSha256"]') -and
+    $bagSqliteAdapterSource.Contains('FIXTURE_SPIRIT = 50') -and
+    $bagSqliteAdapterSource.Contains('(1112, 2), (1111, 3), (1114, 3)') -and
+    $bagSqliteAdapterSource.Contains('(3201, 1)') -and
+    $bagCocosAdapterSource.Contains('@(1112, 2), @(1111, 3), @(1114, 3)') -and
+    $bagCocosAdapterSource.Contains('@(3201, 1)') -and
+    $bagCocosAdapterSource.Contains('1111=3;1114=3;3201=1') -and
+    $bagSqliteAdapterSource.Contains('UPDATE role_info SET package=?,user_spirit=? WHERE id=?') -and
+    $bagSqliteAdapterSource.Contains('current["userSpiritSha256"] != expected["userSpiritSha256"]') -and
+    $bagSqliteAdapterSource.Contains('postLoginBusinessStateVerified')
+) "Bag SQLite relogin regression: package or deterministic stamina business state is no longer prepared and restored."
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('if (!SelectBagItem(1111) || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen)') -and
+    -not $bagRunnerSource.Contains('SelectBagItem(1114)') -and
+    $bagRunnerSource.Contains('InvokeBagControl("BAG-15-GIFT-ADD-ONE");') -and
+    $bagRunnerSource.Contains('BagModalQuantity != 2') -and
+    $bagRunnerSource.Contains('bagG4InitialGiftQuantity - 2') -and
+    $bagRunnerSource.Contains('bagG4InitialRewardQuantity + 2')
+) "Bag choice acceptance regression: item1111 quantity3 no longer selects reward4621 and consumes exactly two through real controls."
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('if (!SelectBagItem(1001)) { Fail("Bag G5 scrolled state could not select the frozen high recruit ticket 1001."); yield break; }') -and
+    $bagRunnerSource.IndexOf('SelectBagItem(1001)', [System.StringComparison]::Ordinal) -lt
+        $bagRunnerSource.IndexOf('InvokeBagControl("BAG-05-LIST-SCROLL")', [System.StringComparison]::Ordinal)
+) "Bag G5 scrolled-state regression: Cocos and Unity no longer freeze the same selected business ID before scrolling."
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('if (!SelectBagItem(500))') -and
+    $bagRunnerSource.Contains('Bag G4 could not restore batch item 500 after the frozen scrolled-state capture.') -and
+    $bagRunnerSource.IndexOf('Bag G4 could not restore batch item 500 after the frozen scrolled-state capture.', [System.StringComparison]::Ordinal) -lt
+        $bagRunnerSource.IndexOf('if (!InvokeBagControl("BAG-07-USE") || !IsBagInputOpen)', [System.StringComparison]::Ordinal)
+) "Bag click-state regression: the visual scrolled-state selection leaked into the real batch-use control."
 Assert-ToolchainTest (
     $bagRunnerSource.Contains('bool preserveBagForScenario = HasCommandLineFlag("-projectXBagG4Validation") && IsBagOpen;') -and
     $bagRunnerSource.Contains('case "BAG-01-ENTRY": artifactName = "bootstrap-bag.png";') -and
-    $bagRunnerSource.Contains('case "BAG-01-RECONNECT":') -and
     $bagRunnerSource.Contains('ShowToast("重新连接成功", 2f);') -and
     $bagRunnerSource.Contains('if (!bagInitialG5DisconnectCaptured)') -and
-    $bagRunnerSource.Contains('if (!bagInitialG5ReconnectCaptured)') -and
+    $bagRunnerSource.Contains('WaitForBagTransientOverlayToSettle("BAG-01-ENTRY")') -and
+    $bagRunnerSource.Contains('initialReenter.onClick.Invoke();') -and
     $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-PERSISTENCE-REENTER")') -and
     $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-PERSISTENCE-RECONNECT")') -and
+    $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-DISCONNECTED")') -and
     $bagRunnerSource.Contains('CaptureBagG5Evidence("BAG-01-PERSISTENCE-DISCONNECTED")') -and
+    $bagRunnerSource.Contains('mainHudPresenter?.HasVisibleSystemChatSummary == true') -and
+    -not $bagRunnerSource.Contains('if (!bagInitialG5ReconnectCaptured)') -and
     $bagRunnerSource.Contains('case "BAG-20-EQUIPMENT-SOURCE": artifactName = "bootstrap-bag-source.png";')
-) "Bag G5 capture no longer preserves the Cocos-style disconnected background or distinct entry/reconnect states."
+) "Bag G5 capture no longer keeps normal states before the first reconnect or preserves the distinct final disconnect/reconnect states."
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('StartCoroutine(RunBagG4DirectUseRoutine());') -and
+    $bagRunnerSource.Contains('private IEnumerator RunBagG4DirectUseRoutine()') -and
+    $bagRunnerSource.Contains('yield return null;') -and
+    $bagRunnerSource.Contains('InvokeBagInputDigit(1)') -and
+    $bagRunnerSource.Contains('BagModalQuantity != 1') -and
+    $bagRunnerSource.Contains('if (bagG4DirectUseScheduled) return true;') -and
+    $bagRunnerSource.Contains('bagG4DirectUseScheduled = true;') -and
+    $bagRunnerSource.Contains('InvokeBagControl("BAG-10-INPUT-CONFIRM")') -and
+    $bagRunnerSource.Contains('injected direct-use item did not confirm quantity one through EnterNumLayer')
+) "Bag G4 injected direct-use regression: Lua packet callback again re-enters synchronously or quantity two stalls in EnterNumLayer."
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('if (!InvokeEventSystemClick(itemControl))') -and
+    $bagRunnerSource.Contains('if (!InvokeEventSystemClick(bagPresenter?.UseControl))') -and
+    $bagRunnerSource.Contains('InvokeEventSystemClick(bagFlowPresenter?.GetInputDigitControl(1))') -and
+    $bagRunnerSource.Contains('InvokeEventSystemClick(bagFlowPresenter?.InputConfirmControl)') -and
+    $bagRunnerSource.Contains('box {boxItemId} did not confirm quantity one through the real EventSystem control')
+) "Bag G4 equipment-box regression: quantity-two boxes bypass or omit the real EventSystem quantity-one flow."
+Assert-ToolchainTest (
+    $bagControllerSource.Contains('elseif M.g4Stage == "await_direct_consume" and slot == M.validationSlot then') -and
+    -not [regex]::IsMatch($bagControllerSource,
+        'await_direct_consume" and slot == M\.validationSlot then\s*M\.onUse\(',
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
+) "Bag G4 direct-use regression: the authoritative /15 callback consumes item3201 a second time instead of sorting and reloading."
 $bagFlowSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
+$bagPresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagPresenter.cs") -Raw -Encoding UTF8
+$bagRewardSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/RewardPresenter.cs") -Raw -Encoding UTF8
 $bagStoreSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Data/BagStore.cs") -Raw -Encoding UTF8
 $bootstrapIdempotenceSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Test-BootstrapSceneIdempotence.ps1") -Raw -Encoding UTF8
 $gameErrorSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bagRunnerSource.Contains('bagFlowPresenter?.SelectedChoiceId != 4621') -and
+    $bagRunnerSource.Contains('bagFlowPresenter.SourceChoiceId != 4621') -and
+    $bagRunnerSource.Contains('frozen gift1111 choice0 fragment4621') -and
+    -not $bagRunnerSource.Contains('SelectBagItem(1112);') -and
+    $bagFlowSource.Contains('public int SelectedChoiceId => selectedChoice?.Id ?? 0;') -and
+    $bagFlowSource.Contains('public int SourceChoiceId => sourceChoice?.Id ?? 0;')
+) "Bag G5 business-ID regression: SOURCE and EQUIPMENT-INFO no longer preserve gift1111 choice0 fragment4621."
+Assert-ToolchainTest (
+    $bagPresenterSource.Contains('public int SelectedItemId => store.Items.FirstOrDefault(item => item.Slot == selectedSlot).ItemId;') -and
+    $bagRunnerSource.Contains('bagPresenter?.SelectedItemId != boxItemId') -and
+    $bagRunnerSource.IndexOf('bagPresenter?.SelectedItemId != boxItemId', [System.StringComparison]::Ordinal) -lt
+        $bagRunnerSource.IndexOf('yield return CaptureBagG5Evidence(prefix + "-BEFORE");', [System.StringComparison]::Ordinal)
+) "Bag G5 box BEFORE regression: evidence is captured before the requested box business ID settles."
 Assert-ToolchainTest (
     $bagFlowSource.Contains('importedToggle.SetIsOnWithoutNotify(false)') -and
     $bagFlowSource.Contains('toggle.SetIsOnWithoutNotify(selected)') -and
@@ -360,6 +481,16 @@ Assert-ToolchainTest (
     $bagStoreSource.Contains('while (items[++left].SortPriority < pivot.SortPriority)') -and
     -not $bagStoreSource.Contains('.ThenBy(item => item.ItemId)')
 ) "Bag equal-priority ordering no longer follows the source Lua 5.1 table.sort permutation."
+Assert-ToolchainTest (
+    -not $bagRewardSource.Contains('NormalizeItemListLayout') -and
+    -not $bagRewardSource.Contains('Require("ItemList").GetComponent<RectTransform>()') -and
+    $bagRewardSource.Contains('ValidateVisibleRewards("') -eq $false -and
+    $bagRewardSource.Contains('public bool ValidateVisibleRewards(') -and
+    $bagRunnerSource.Contains('ValidateVisibleRewards("开启获得"') -and
+    $bagRunnerSource.Contains('InvokeEventSystemClick(itemControl)') -and
+    $bagRunnerSource.Contains('GetLocalUserId() != 1 || validationRoleIdSnapshot != 1000001') -and
+    $bagRunnerSource.Contains('g5-20260824')
+) "Bag random-box regression: imported reward layout is overwritten, fixed identity drifted, or 512/513/514 no longer use EventSystem and complete popup assertions."
 Assert-ToolchainTest (
     $bootstrapIdempotenceSource.Contains('ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process') -and
     -not $bootstrapIdempotenceSource.Contains("'error CS\d+|Exception:|Compilation failed|Aborting batchmode'")
@@ -547,6 +678,14 @@ Assert-ToolchainTest (
 
 $operationLedgerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1") `
     -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    @($bagEvidenceContract.g5.allowedDuplicateGroups).Count -eq 1 -and
+    @($bagEvidenceContract.g5.allowedDuplicateGroups[0].ids) -contains 'BAG-POPULATED' -and
+    @($bagEvidenceContract.g5.allowedDuplicateGroups[0].ids) -contains 'BAG-REENTER' -and
+    @($bagEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        $_.source -like '*BAG-01-PERSISTENCE-RECONNECT.png' -and $_.destination -like '*BAG-RECONNECTED.png'
+    }).Count -eq 1
+) "Bag G5 contract again reuses the populated bitmap for reconnect without declaring the proven reenter equivalence."
 Assert-ToolchainTest (
     $operationLedgerSource.Contains('computer-use@openai-bundled') -and
     $operationLedgerSource.Contains('routine-project-actions-preapproved') -and
@@ -759,9 +898,9 @@ Assert-ToolchainTest (
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
 Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('$requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }') -and
+    $fixedRunnerSource.Contains('$requiredGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }') -and
     $fixedRunnerSource.Contains('$workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }') -and
-    $fixedRunnerSource.Contains('$failureGate = if ($DataPreflightOnly -or $PreflightOnly) { "G3" } else { "G6" }') -and
+    $fixedRunnerSource.Contains('$failureGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }') -and
     $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)') -and
     $fixedRunnerSource.Contains('$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"') -and
     $fixedRunnerSource.Contains('$serverStartParameters = @{ WaitSeconds = 60 }') -and

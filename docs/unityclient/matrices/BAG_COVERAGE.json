@@ -2,57 +2,57 @@
   "schemaVersion": 1,
   "module": "Bag",
   "scopeDecision": {
-    "decision": "补齐中央G0 coverageList机器登记；沿用当前模块矩阵、场景与源码边界，不改变既有完成状态或证据结论。",
+    "decision": "按当前客户端 item_dat、服务端 item/drop_matching/level_reward/reward 与 UseItem 源码重新生成背包分支；通用随机装备盒仅纳入交易闭合的 510-514，其他客户端候选保留在分母并显式排除。",
     "confirmedByUser": true,
-    "confirmedDate": "2026-08-23"
+    "confirmedDate": "2026-08-24"
   },
   "scenarios": [
-    {
-      "id": "bag-registered-success",
-      "kind": "success",
-      "given": "当前模块既有入口、协议和固定数据条件满足",
-      "when": "按当前控件矩阵执行已登记主路径",
-      "then": "由既有场景与Runner验证权威成功结果"
-    },
-    {
-      "id": "bag-registered-failure-boundary",
-      "kind": "failure-boundary",
-      "given": "功能锁定、数据不足、非法参数、超时、断线或切号",
-      "when": "执行当前矩阵对应边界操作",
-      "then": "由既有场景验证拒绝、恢复与账号隔离且不伪造成功"
-    }
+    {"id":"bag-entry-full-incremental","kind":"success","given":"当前主界面 btn_Bag 可见且 SQLite 固定账号已登录","when":"真实点击入口并接收 /8、/15","then":"背包只由权威全量与增量刷新，失败时不乐观改数"},
+    {"id":"bag-random-equipment-box-authority","kind":"success","given":"SQLite 固定账号分别持有 512、513、514 各2个","when":"通过真实 EventSystem 使用按钮各开启1个并等待 /15 稳定帧","then":"源盒各减少1；分别只新增 4621-4628、4629-4636、4637-4644 范围内权威碎片；重登录保持"},
+    {"id":"bag-random-equipment-box-feedback","kind":"success","given":"随机装备盒权威 /15 已返回正增量","when":"稳定帧完成奖励聚合","then":"显示标题‘开启获得’的完整奖励弹窗，逐项道具名和数量与权威增量一致且无截断"},
+    {"id":"bag-random-equipment-box-failure-boundary","kind":"failure-boundary","given":"盒子不存在、数量不足、协议失败、超时、断线或切号","when":"尝试开启或恢复会话","then":"不得扣除、预测碎片或显示成功弹窗；重拉后仍以权威状态为准"},
+    {"id":"bag-explicitly-excluded-client-candidates","kind":"failure-boundary","given":"客户端存在 type=5/use_type=2 候选但当前服务端没有通用交易闭包","when":"生成当前产品覆盖分母","then":"候选保留在 excluded 清单且不得伪造可运行验收分支"}
   ],
   "sources": [
     {
-      "id": "bag-registered-business-ids",
-      "sourceFiles": [
-        "client/ProjectX/src/View/MainUI.lua",
-        "client/ProjectX/src/View/Role/KaPaiBagSubUI.lua",
-        "client/ProjectX/src/View/Common/ItemSourceUI.lua"
-      ],
-      "recordTotal": 3,
-      "businessIds": [
-        "entry:btn_Bag",
-        "8",
-        "15"
-      ],
-      "branchType": "当前Manifest入口与协议业务ID的中央覆盖登记",
-      "mappings": [
-        {
-          "businessIds": [
-            "entry:btn_Bag",
-            "8",
-            "15"
-          ],
-          "successScenarioIds": [
-            "bag-registered-success"
-          ],
-          "failureBoundaryScenarioIds": [
-            "bag-registered-failure-boundary"
-          ]
-        }
-      ],
-      "excluded": []
+      "id":"bag-current-entry-and-protocols",
+      "sourceFiles":["client/ProjectX/src/View/MainUI.lua","client/ProjectX/src/View/Role/KaPaiBagSubUI.lua","server/src/pack_deal.cpp","server/src/user.cpp"],
+      "recordTotal":3,
+      "businessIds":["entry:btn_Bag","8","15"],
+      "branchType":"当前入口、全量包裹与增量/使用权威协议",
+      "mappings":[{"businessIds":["entry:btn_Bag","8","15"],"successScenarioIds":["bag-entry-full-incremental"],"failureBoundaryScenarioIds":["bag-random-equipment-box-failure-boundary"]}],
+      "excluded":[]
+    },
+    {
+      "id":"bag-client-random-box-candidates",
+      "sourceFiles":["client/ProjectX/src/ConfigData/item_dat.lua","server/config/json/item.json","server/src/pack_deal.cpp"],
+      "recordTotal":23,
+      "businessIds":["box:510","box:511","box:512","box:513","box:514","box:515","box:516","box:517","box:518","box:550","box:1201","box:1202","box:1203","box:1204","box:1205","box:1206","box:1211","box:1221","box:1222","box:1223","box:3201","box:3202","box:3203"],
+      "branchType":"客户端 type=5/use_type=2 候选与当前服务端产品资格",
+      "mappings":[{"businessIds":["box:510","box:511","box:512","box:513","box:514"],"successScenarioIds":["bag-random-equipment-box-authority","bag-random-equipment-box-feedback"],"failureBoundaryScenarioIds":["bag-random-equipment-box-failure-boundary"]}],
+      "excluded":[
+        {"businessIds":["box:515","box:516","box:517","box:518","box:550"],"productEvidence":"当前 server/config/json/item.json 无对应 itemId，不能形成当前产品服务端交易。"},
+        {"businessIds":["box:1201","box:1202","box:1203","box:1204","box:1205","box:1206","box:1211","box:1221","box:1222","box:1223"],"productEvidence":"客户端遗留候选在当前服务端 item/掉落配置中无通用随机装备盒闭包。"},
+        {"businessIds":["box:3201","box:3202","box:3203"],"productEvidence":"server/src/pack_deal.cpp 将其定义为 local_test 专用直发分支；不属于 item→掉落池通用随机装备盒，3201由既有 direct-use 场景独立覆盖。"}
+      ]
+    },
+    {
+      "id":"bag-random-box-drop-pools",
+      "sourceFiles":["server/config/json/item.json","server/config/json/drop_matching.json","server/config/json/level_reward.json"],
+      "recordTotal":5,
+      "businessIds":["pool:80510","pool:80511","pool:80512","pool:80513","pool:80514"],
+      "branchType":"510-514 对应掉落匹配与等级奖励池",
+      "mappings":[{"businessIds":["pool:80510","pool:80511","pool:80512","pool:80513","pool:80514"],"successScenarioIds":["bag-random-equipment-box-authority"],"failureBoundaryScenarioIds":["bag-random-equipment-box-failure-boundary"]}],
+      "excluded":[]
+    },
+    {
+      "id":"bag-random-box-fragment-rewards",
+      "sourceFiles":["server/config/json/reward.json","server/config/json/item.json"],
+      "recordTotal":40,
+      "businessIdRanges":[{"prefix":"fragment:","start":4605,"end":4644}],
+      "branchType":"510-514 掉落池可达的完整装备碎片奖励分母",
+      "mappings":[{"businessIdRanges":[{"prefix":"fragment:","start":4605,"end":4644}],"successScenarioIds":["bag-random-equipment-box-authority","bag-random-equipment-box-feedback"],"failureBoundaryScenarioIds":["bag-random-equipment-box-failure-boundary"]}],
+      "excluded":[]
     }
   ]
 }

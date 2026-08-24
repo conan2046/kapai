@@ -8,6 +8,7 @@ param(
     [int]$RawWidth = 0,
     [int]$RawHeight = 0,
     [switch]$InputReady,
+    [string]$RuntimeClientRoot = "",
     [ValidateRange(10, 180)][int]$IdentityTimeoutSeconds = 60,
     [string]$PreflightPath = "",
     [string]$IdentityPath = "",
@@ -98,8 +99,15 @@ if ($Action -eq "StartFixedClient") {
     $initialLength = if (Test-Path -LiteralPath $logPath -PathType Leaf) {
         (Get-Item -LiteralPath $logPath).Length
     } else { 0L }
+    $clientRoot = if ($RuntimeClientRoot) { [IO.Path]::GetFullPath($RuntimeClientRoot) } else { $root }
+    $clientLauncher = Join-Path $clientRoot "tools/local/Start-Client.ps1"
+    $clientExe = Join-Path $clientRoot "client/ProjectX/simulator/win32/ProjectX.exe"
+    if (-not (Test-Path -LiteralPath $clientLauncher -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $clientExe -PathType Leaf)) {
+        throw "Cocos runtime client root is incomplete: $clientRoot"
+    }
     $pwsh = Get-UnityMigrationPowerShellExecutable
-    & $pwsh -NoProfile -File (Join-Path $root "tools/local/Start-Client.ps1") -LocalUserId $userId
+    & $pwsh -NoProfile -File $clientLauncher -LocalUserId $userId
     if ($LASTEXITCODE -ne 0) { throw "Start-Client.ps1 failed for fixed userId=$userId." }
     $deadline = [DateTime]::UtcNow.AddSeconds($IdentityTimeoutSeconds)
     $matchedUser = $false
@@ -128,7 +136,8 @@ if ($Action -eq "StartFixedClient") {
         userId = $userId
         roleId = $roleId
         launcher = "tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1"
-        clientLauncher = "tools/local/Start-Client.ps1 -LocalUserId $userId"
+        clientLauncher = "$clientLauncher -LocalUserId $userId"
+        runtimeClientRoot = $clientRoot
         authorityLog = ".local/kapai-current.out"
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }

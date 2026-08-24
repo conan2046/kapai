@@ -1,8 +1,16 @@
 # 背包模块
 
+## 2026-08-24 门禁重开
+
+- 当前状态：`G0-G5 passed / G6 final user confirmation pending / 0/26 manual complete`。
+- 逃逸根因：旧G0只登记 `btn_Bag`、`/8`、`/15`，未把客户端 `type=5/use_type=2` 随机盒候选生成进业务分母。
+- 当前分母：23个客户端候选；仅510-514具备当前服务端通用闭包；对应80510-80514与4605-4644共40个最终碎片。其余18个候选均在 `BAG_COVERAGE.json` 内带产品证据排除。
+- Unity用户测试数据只使用 `Application.persistentDataPath/LocalServer/projectx.db`，固定身份 `userId=1 / roleId=1000001`；MySQL仅作离线对照。
+- 512/513/514必须逐盒证明源盒真实减少、碎片落入各自范围、完整“开启获得”弹窗与重登录保持；旧视觉、Runner、人工确认和26/26结论全部失效。
+
 ## 当前结论
 
-- 当前门禁：`G0-G6 passed / 26/26 complete`。
+- 当前门禁：`G0-G5 passed / G6 final user confirmation pending`；26项均已自动通过，但`manualPassed=false`，不得宣称complete。
 - 固定账号：`userId=7200057 / roleId=1000115`，Windows 100%，原生客户区 `1334×750`。
 - 控件唯一事实：`docs/unityclient/matrices/BAG_CONTROLS.json`，共 26 项。
 - 2026-08-21 已按当前源码、入口、账号、夹具和 hard-gate v2 从 G0 逐门禁重验；旧 2026-07-27 Runner、构建 SHA 与完成结论仍只作问题追溯。
@@ -121,19 +129,29 @@ Unity 边界：
 - G5：按 G1 冻结的 10 个代表性视觉状态采集同账号同数据 Unity 原图，生成逐状态并排、50%叠加、增强差异，并对矩阵 26 个控件逐项人工验收。
 - G6：矩阵 26/26 的 `realEntryClick/automationPassed/manualPassed/status` 全部达标；真实入口 Runner、严重异常、16/16 Python UI、两次正式 `BuildBatch` 幂等、文档与 Git 范围检查通过。
 
-## 2026-08-21 当前重验
+## 2026-08-24 当前门禁
+
+- G0-G2：当前分母、512/513/514 Cocos逐盒状态、三方源码闭包与运行时Transform审计已通过；旧随机盒逃逸结论已撤销。
+- G3：标准 `Run-UnityFixedAccountValidation.ps1 -Module Bag -G3RuntimeOnly` batch通过；固定账号`1/1000001`，原生`1334×750`，28项、28按钮、26控件绑定、3/3滚动与奖励弹窗生命周期通过。证据：`.local/unity-validation/bag-g3-runtime-latest.json`。
+- G3实现未改任何Prefab；已删除 `RewardPresenter` 对导入 `ItemList` 的运行时anchor/pivot/anchoredPosition覆盖，用户布局保持资源原值。
+- 早期真人Play：`.local/unity-validation/bag-early-user-play-latest.json`记录`userParticipated=true`、反馈“通过”；该记录仅满足G3早测，不替代G6最终确认。
+- G4：当前标准Full通过26控件、18语义，明确断言1111初始3、真实使用2后剩1且4621增加2；512/513/514真实扣除、权威奖励与完整弹窗通过，SQLite恢复到基线SHA且残留0。
+- G5：中央16状态证据通过；09:52逐图复核由来源任务主代理完成，`agentAccepted=true/userParticipated=false`。三种Unity完整奖励弹窗是用户要求的intentional delta。该代理审图不是G6真人确认。
+- Fixture最终按整库SHA恢复，`AssertCleanup`通过；操作账本全部Failed/Blocked均有文件证据关联的Resolved记录。
+
+## 2026-08-21 已失效重验（仅用于问题追溯）
 
 - 当前前端、服务端、配置与资源审计：`.local/unity-validation/bag-g0-source-audit-20260821.md`。
 - 当前协议证据：`.local/protocol-evidence/bag-g0-8-20260821.md`、`.local/protocol-evidence/bag-g0-15-20260821.md`。
-- 固定账号夹具：`tools/unity-migration/Invoke-BagCocosFixture.ps1`，准备不可用、跳转、直接使用、批量使用、任选礼包、重复槽聚合和超过一屏状态。
-- 数据恢复合同：Setup 前完整快照 `role_info` 与所属 `user_info` 分片行；真实使用允许改变 `package`、`user_spirit`、贵族经验等账号状态；finally 整行恢复、重登录哈希一致、备份表残留0。
+- 当前Unity固定账号夹具：`tools/unity-migration/Invoke-BagSqliteFixture.ps1`，整库快照/恢复并准备不可用、跳转、直接使用、批量使用、任选礼包、重复槽聚合、510-514及超过一屏状态；旧MySQL Cocos夹具只保留为历史对照。
+- 数据恢复合同：Setup 前完整快照 `role_info` 与所属 `user_info` 分片行；Fixture同时将`package`与`user_spirit=50/当前时间戳`冻结，保证体力丹10个真实使用不受用户原体力漂移影响；真实使用允许改变`package`、`user_spirit`、贵族经验等账号状态；finally整库恢复、重登录业务哈希一致、备份残留0。
 - 当前已确认的 Unity 缺口：旧入口、同 itemId 未聚合、页签与详情图标 Runner 只查节点不点按钮、来源动作统一关闭并显示开发占位、G4/G5 输出目录硬编码旧日期。
 - 当前配置差异：Cocos `item_dat.lua` 把 `1111` 定义为八选一 `type=6`，服务端 `item.json` 仍为 `type=5`；本地测试路径在 `pack_deal.cpp` 对 `1111..1113` 做了受控目标奖励兼容。Unity 必须按 Cocos 显示候选、按服务端权威回包刷新，禁止客户端预测奖励。
 - 当前 G1 证据：`.local/unity-validation/bag-cocos-baseline-latest.json` 已冻结 10/10 状态；其中 7 张为用户批准且 SHA/可见输入等价的 2026-07-27 原图复用，3 张为 2026-08-21 新拍的断线、重连、关闭重进。复用与失效清单见 `.local/ui-fidelity/Bag/cocos/g1-20260821/reuse-manifest.json`。
 - G2：入口闭包、共享协议所有权、配置到资源闭包、运行时 Transform/缩放/锚点均已冻结；已知差异仅保留可追溯模块级处理。
-- G3-G4：固定账号 Runner 成功，26/26 真实控件、15/15 语义断言通过；覆盖 `/8`、`/15` 全量/增量/整理/使用、纯跳转、错误分支、关闭重进、断线重连、持久化、切号和精确恢复，Fixture 残留 0，严重异常 0。
-- G5：当前报告 `.local/ui-fidelity/Bag/compare/g5-20260821/report.json` 完成 10/10 状态对照；人工验收 `.local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json` 完成 26/26。允许差异仅为 Cocos 同 `sort_priority` 项的非稳定次序、Cocos 旧长列表基准未实际滚动而 Unity 按冻结矩阵实现真实 ScrollRect、以及 Bag 边界外的 PlayerHud 重连提示。
-- G6：矩阵 26/26 complete；两次正式 `BuildBatch` SHA-256 均为 `C02642DCDAB92CE214706768FA3398F7A1D0A8525430EB83AA43674B36FA1760`；自动复盘 61/61 已解决，待诊断 0、未解决 0；Computer Use 运行时和固定账号夹具残留均为 0。
+- 旧G3-G4固定账号Runner、15/15语义与事务结论未覆盖当前随机装备盒分母，不能作为当前G4证据。
+- 旧G5报告与26/26人工验收不能作为当前视觉或真人确认；当前G5只认`.local/ui-fidelity/Bag/compare/g5-20260824/`。
+- 旧G6构建SHA、矩阵完成态与复盘只能用于诊断；当前唯一待办是最后相关变更后的G6用户真人确认。
 
 ## 已失效历史（仅用于问题追溯）
 

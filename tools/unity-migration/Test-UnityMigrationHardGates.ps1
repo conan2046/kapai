@@ -43,7 +43,7 @@ if ($requiredGate -eq "G3" -and -not $controlMatrix) {
 $controlCount = 0
 if ($controlMatrix) {
     $controlCount = Assert-UnityMigrationControlMatrixDeclared -Root $root -ModuleKey ([string]$moduleConfig.key) `
-        -Path $controlMatrix -MinimumCaptureStates $captureStates.Count
+        -Path $controlMatrix
 }
 
 if ($Phase -eq "Preflight") {

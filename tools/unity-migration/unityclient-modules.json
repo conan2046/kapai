@@ -112,7 +112,7 @@
     {
       "key": "Bag",
       "displayName": "背包",
-      "status": "complete",
+      "status": "g3-machine-passed-early-user-play-pending",
       "protocols": [
         8,
         15
@@ -143,29 +143,10 @@
         "build/ui-migration/bootstrap-bag.png"
       ],
       "visualFidelity": {
-        "status": "passed",
-        "cocosScreenshots": [
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-POPULATED.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-GIFT.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-SOURCE.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-EQUIPMENT-INFO.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-DISCONNECTED.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-RECONNECTED.png",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/BAG-REENTER.png"
-        ],
-        "unityScreenshots": [
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-POPULATED.png",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-GIFT.png",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-SOURCE.png",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-EQUIPMENT-INFO.png",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-DISCONNECTED.png",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-RECONNECTED.png",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/BAG-REENTER.png"
-        ],
-        "diffReports": [
-          ".local/ui-fidelity/Bag/compare/g5-20260821/report.json",
-          ".local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json"
-        ],
+        "status": "visual-fixing",
+        "cocosScreenshots": [],
+        "unityScreenshots": [],
+        "diffReports": [],
         "flowEvidence": ".local/unity-validation/bag-operation-ledger.json",
         "uiMapping": "docs/unityclient/matrices/BAG_CONTROLS.json"
       },

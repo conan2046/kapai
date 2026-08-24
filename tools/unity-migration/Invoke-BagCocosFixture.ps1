@@ -3,9 +3,10 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash")]
     [string]$Action,
-    [uint32]$UserId = 7200057,
-    [uint32]$RoleId = 1000115,
-    [string]$EvidencePath = ".local/ui-fidelity/Bag/fixture/bag-fixed-fixture-snapshot.json"
+    [uint32]$UserId = 1,
+    [uint32]$RoleId = 1000001,
+    [string]$EvidencePath = ".local/ui-fidelity/Bag/fixture/bag-cocos-g1-fixture-snapshot.json",
+    [ValidateSet("Full", "FocusedBoxes")][string]$Profile = "FocusedBoxes"
 )
 
 # Contract id: reversible-bag-fixed-account
@@ -18,8 +19,8 @@ $roleBackup = "codex_bag_role_backup"
 $userBackup = "codex_bag_user_backup"
 $packageSlots = 500
 
-if ($UserId -ne 7200057 -or $RoleId -ne 1000115) {
-    throw "Bag fixed-account fixture identity must remain 7200057/1000115."
+if ($UserId -ne 1 -or $RoleId -ne 1000001) {
+    throw "Bag current Cocos G1 fixture identity must remain 1/1000001."
 }
 if (-not (Test-Path -LiteralPath $mysql -PathType Leaf)) { throw "mysql.exe not found: $mysql" }
 
@@ -84,22 +85,24 @@ function Read-UInt16([byte[]]$Bytes, [ref]$Position) {
     $value
 }
 
-function New-BagPackage {
+function New-BagPackage([string]$FixtureProfile) {
     # Two independent 500 slots prove the Cocos aggregate-by-itemId behavior.
     # The remaining entries cover no-action, jump, direct-use, choice and overflow states.
     # Preserve the accepted 2026-07-27 Cocos visual data totals so those
     # screenshots remain comparable. Item 500 is split across two authoritative
     # slots while retaining the old displayed total 20, adding aggregation proof
     # without invalidating the visible baseline.
-    $items = @(
+    $items = if ($FixtureProfile -eq "FocusedBoxes") { @(
+        @(512, 2), @(513, 2), @(514, 2)
+    ) } else { @(
         @(614, 1), @(852, 1), @(853, 1), @(855, 1), @(401, 20),
         @(500, 10), @(500, 10),
-        @(510, 2), @(511, 2), @(512, 2), @(513, 2), @(514, 2),
-        @(1111, 2), @(1112, 2), @(1114, 3),
+        @(512, 2), @(513, 2), @(514, 2),
+        @(1112, 2), @(1111, 3), @(1114, 3),
         @(610, 1), @(611, 1), @(612, 1), @(613, 1),
-        @(834, 1), @(835, 1), @(836, 1), @(837, 1),
-        @(851, 1), @(854, 1), @(1000, 1), @(1001, 1), @(1002, 1)
-    )
+        @(851, 1), @(854, 1), @(1000, 1), @(1001, 1),
+        @(3201, 1)
+    ) }
     $bytes = [Collections.Generic.List[byte]]::new()
     foreach ($item in $items) { Add-UInt16 $bytes $item[0]; Add-UInt16 $bytes $item[1] }
     for ($slot = $items.Count; $slot -lt $packageSlots; $slot++) { Add-UInt16 $bytes 0 }
@@ -125,11 +128,12 @@ function Read-Evidence {
     if (-not (Test-Path -LiteralPath $evidence -PathType Leaf)) { throw "Bag fixture evidence is missing: $evidence" }
     Get-Content -LiteralPath $evidence -Raw -Encoding UTF8 | ConvertFrom-Json
 }
-function Assert-BagFixturePackage {
+function Assert-BagFixturePackage([string]$FixtureProfile) {
     $rows = @(Invoke-BagSql "SELECT package FROM role_info WHERE id=$RoleId")
     if ($rows.Count -ne 1) { throw "Bag role package is missing." }
     $counts = Get-BagPackageCounts ([string]$rows[0])
-    foreach ($pair in @{500=20;1111=2;1114=3;401=20;610=1;1000=1}.GetEnumerator()) {
+    $expected = if ($FixtureProfile -eq "FocusedBoxes") { @{512=2;513=2;514=2} } else { @{500=20;1111=3;1114=3;3201=1;401=20;610=1;1000=1;512=2;513=2;514=2} }
+    foreach ($pair in $expected.GetEnumerator()) {
         if ([int]$counts[[int]$pair.Key] -ne [int]$pair.Value) { throw "Bag fixture item $($pair.Key) count mismatch." }
     }
 }
@@ -141,16 +145,16 @@ switch ($Action) {
         $roleHash = Get-RowHash "role_info" "id=$RoleId"
         $userHash = Get-RowHash $userTable "id=$UserId AND role0=$RoleId"
         Invoke-BagSql "DROP TABLE IF EXISTS ``$roleBackup``; CREATE TABLE ``$roleBackup`` LIKE role_info; INSERT INTO ``$roleBackup`` SELECT * FROM role_info WHERE id=$RoleId; DROP TABLE IF EXISTS ``$userBackup``; CREATE TABLE ``$userBackup`` LIKE ``$userTable``; INSERT INTO ``$userBackup`` SELECT * FROM ``$userTable`` WHERE id=$UserId AND role0=$RoleId" | Out-Null
-        $package = New-BagPackage
+        $package = New-BagPackage $Profile
         Invoke-BagSql "UPDATE role_info SET package='$package' WHERE id=$RoleId" | Out-Null
-        Assert-BagFixturePackage
-        Write-Evidence ([ordered]@{action="Setup"; userId=$UserId; roleId=$RoleId; userTable=$userTable; snapshotRoleHash=$roleHash; snapshotUserHash=$userHash; fixtureRoleHash=(Get-RowHash "role_info" "id=$RoleId"); aggregateItem500=20; reusedCocosVisualFixture="2026-07-27 totals with item 500 split across two slots"; createdUtc=[DateTime]::UtcNow.ToString("O")})
+        Assert-BagFixturePackage $Profile
+        Write-Evidence ([ordered]@{action="Setup"; profile=$Profile; userId=$UserId; roleId=$RoleId; userTable=$userTable; snapshotRoleHash=$roleHash; snapshotUserHash=$userHash; fixtureRoleHash=(Get-RowHash "role_info" "id=$RoleId"); aggregateItem500=if($Profile -eq "Full"){20}else{0}; createdUtc=[DateTime]::UtcNow.ToString("O")})
     }
     "AssertSetup" {
         $snapshot = Read-Evidence
         if (@(Invoke-BagSql "SELECT COUNT(*) FROM ``$roleBackup`` WHERE id=$RoleId")[0] -ne "1") { throw "Bag role backup is missing." }
         if (@(Invoke-BagSql "SELECT COUNT(*) FROM ``$userBackup`` WHERE id=$UserId")[0] -ne "1") { throw "Bag user backup is missing." }
-        Assert-BagFixturePackage
+        Assert-BagFixturePackage ([string]$snapshot.profile)
         if ((Get-RowHash $roleBackup "id=$RoleId") -ne [string]$snapshot.snapshotRoleHash) { throw "Bag immutable role backup hash changed." }
         if ((Get-RowHash $userBackup "id=$UserId") -ne [string]$snapshot.snapshotUserHash) { throw "Bag immutable user backup hash changed." }
     }

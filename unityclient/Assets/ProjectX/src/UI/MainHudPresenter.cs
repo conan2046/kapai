@@ -179,6 +179,8 @@ namespace ProjectX.UI
         }
 
         public bool IsChatExpanded => chatExpanded;
+        public bool HasVisibleSystemChatSummary => systemChatSummaryVisible
+            && summaryRows.Any(row => row != null && row.activeInHierarchy);
         public int VisibleDiscountCount => discountButtons.Count(button => button != null && button.activeInHierarchy);
         public int VisibleRedDotCount => StableVisiblePromptPaths.Count(path => view.Binding.Find(path)?.activeInHierarchy == true);
         public string VisibleRedDotSummary => string.Join(",", StableVisiblePromptPaths

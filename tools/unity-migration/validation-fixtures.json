@@ -61,11 +61,11 @@
       "adapter": "StaminaClaim"
     },
     {
-      "key": "reversible-bag-fixed-account",
+      "key": "reversible-bag-sqlite-fixed-account",
       "roleMode": "fixed-account",
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
-      "adapter": "tools/unity-migration/Invoke-BagCocosFixture.ps1"
+      "adapter": "tools/unity-migration/Invoke-BagSqliteFixture.ps1"
     },
     {
       "key": "reversible-hero-fixed-account",

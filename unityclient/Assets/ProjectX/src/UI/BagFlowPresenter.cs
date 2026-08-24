@@ -94,6 +94,13 @@ namespace ProjectX.UI
         public string InputDisplayText => inputDisplay == null ? string.Empty : inputDisplay.text;
         public int ChoiceCount => choices.Count;
         public bool HasSelection => selectedChoice != null;
+        public int SelectedChoiceId => selectedChoice?.Id ?? 0;
+        public int SourceChoiceId => sourceChoice?.Id ?? 0;
+        public Button GetInputDigitControl(int digit) => digit >= 0 && digit <= 9
+            ? inputView.Binding.Find($"Layer/Panel/Bg/BtnList/Btn{digit}")?.GetComponent<Button>()
+            : null;
+        public Button InputConfirmControl =>
+            inputView.Binding.Find("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>();
 
         public bool SelectGiftChoice(int index)
         {
@@ -248,6 +255,12 @@ namespace ProjectX.UI
                     return ScrollToEnd(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView");
                 default: return false;
             }
+        }
+
+        public bool InvokeInputDigit(int digit)
+        {
+            if (digit < 0 || digit > 9 || !IsInputOpen) return false;
+            return Invoke(inputView, $"Layer/Panel/Bg/BtnList/Btn{digit}");
         }
 
         public bool Validate(out string detail)

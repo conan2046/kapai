@@ -15,6 +15,11 @@ namespace ProjectX.UI
         private readonly Text title;
         private readonly Text tips;
         private readonly GameObject[] cells = new GameObject[4];
+        private readonly GameObject[] runtimeCells = new GameObject[4];
+        private readonly Image[] runtimeIcons = new Image[4];
+        private readonly Text[] runtimeNames = new Text[4];
+        private readonly Text[] runtimeAmounts = new Text[4];
+        private readonly GameObject runtimeContent;
         private readonly Core.ResourceService resources;
         private readonly Button confirmButton;
         private readonly Button closeButton;
@@ -28,9 +33,9 @@ namespace ProjectX.UI
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             title = Require("Title/Title_1").GetComponent<Text>();
             tips = Require("tips").GetComponent<Text>();
-            NormalizeItemListLayout();
             for (int index = 0; index < cells.Length; index++)
                 cells[index] = Require($"ItemList/itemlayer_{index + 1}");
+            runtimeContent = CreateRuntimeContentLayer();
             closeButton = BindClose("Btn_close");
             GameObject confirmNode = Require("btn_lingqu");
             confirmButton = confirmNode.GetComponent<Button>() ?? confirmNode.AddComponent<Button>();
@@ -44,8 +49,63 @@ namespace ProjectX.UI
         public bool IsVisible => view.GameObject != null && view.GameObject.activeSelf;
         public int RenderedCount { get; private set; }
         public string TitleText => title?.text ?? string.Empty;
+        public Button CloseControl => closeButton;
+        public IReadOnlyList<RewardRecord> Items => store.Items;
         public bool CanConfirm => confirmButton != null && confirmButton.gameObject.activeSelf
             && confirmButton.interactable;
+
+        public bool ValidateVisibleRewards(string expectedTitle,
+            IReadOnlyDictionary<uint, uint> expected, out string detail)
+        {
+            if (!IsVisible || !string.Equals(TitleText, expectedTitle, StringComparison.Ordinal))
+            {
+                detail = $"visible={IsVisible}, title='{TitleText}'/'{expectedTitle}'";
+                return false;
+            }
+            if (expected == null || expected.Count == 0 || Items.Count != expected.Count
+                || Items.Any(item => !expected.TryGetValue(item.Id, out uint amount) || amount != item.Amount))
+            {
+                string expectedDetail = expected == null ? string.Empty
+                    : string.Join(",", expected.Select(pair => $"{pair.Key}x{pair.Value}"));
+                detail = $"store={string.Join(",", Items.Select(item => $"{item.Id}x{item.Amount}"))}; "
+                    + $"expected={expectedDetail}";
+                return false;
+            }
+            for (int index = 0; index < Math.Min(Items.Count, cells.Length); index++)
+            {
+                RewardRecord item = Items[index];
+                GameObject cell = cells[index];
+                string renderedName = cell.transform.Find("Name")?.GetComponent<Text>()?.text ?? string.Empty;
+                string renderedAmount = cell.transform.Find("RuntimeAmount")?.GetComponent<Text>()?.text ?? string.Empty;
+                if (!cell.activeSelf || renderedName != item.Name || renderedAmount != $"×{item.Amount}")
+                {
+                    detail = $"cell={index}, active={cell.activeSelf}, name='{renderedName}'/'{item.Name}', "
+                        + $"amount='{renderedAmount}'/'×{item.Amount}'";
+                    return false;
+                }
+                string visibleName = runtimeNames[index]?.text ?? string.Empty;
+                string visibleAmount = runtimeAmounts[index]?.text ?? string.Empty;
+                Sprite visibleIcon = runtimeIcons[index]?.sprite;
+                if (runtimeCells[index]?.activeInHierarchy != true || visibleIcon == null
+                    || visibleName != item.Name || visibleAmount != $"×{item.Amount}")
+                {
+                    detail = $"runtimeCell={index}, active={runtimeCells[index]?.activeInHierarchy}, "
+                        + $"icon={visibleIcon != null}, name='{visibleName}'/'{item.Name}', "
+                        + $"amount='{visibleAmount}'/'×{item.Amount}'";
+                    return false;
+                }
+            }
+            foreach (RewardRecord item in Items.Skip(cells.Length))
+            {
+                if (tips == null || !tips.text.Contains($"{item.Name}×{item.Amount}"))
+                {
+                    detail = $"overflow reward missing: {item.Name}×{item.Amount}; tips='{tips?.text}'";
+                    return false;
+                }
+            }
+            detail = string.Join(",", Items.Select(item => $"{item.Name}×{item.Amount}"));
+            return true;
+        }
 
         public void SetItemClickHandler(Action<RewardRecord> callback)
         {
@@ -122,6 +182,8 @@ namespace ProjectX.UI
                 bool occupied = index < items.Count;
                 GameObject cell = cells[index];
                 cell.SetActive(occupied);
+                GameObject runtimeCell = runtimeCells[index];
+                runtimeCell.SetActive(occupied);
                 if (!occupied) continue;
                 RewardRecord item = items[index];
                 Text name = cell.transform.Find("Name")?.GetComponent<Text>();
@@ -139,13 +201,97 @@ namespace ProjectX.UI
                     RewardRecord captured = item;
                     itemButton.onClick.AddListener(() => itemClick(captured));
                 }
+                runtimeNames[index].text = item.Name;
+                runtimeAmounts[index].text = $"×{item.Amount}";
+                ApplyIcon(runtimeIcons[index], item.Picture);
             }
+            LayoutRuntimeCells(RenderedCount);
         }
 
         public void Dispose()
         {
             store.Changed -= Render;
             itemClick = null;
+            if (runtimeContent != null) UnityEngine.Object.Destroy(runtimeContent);
+        }
+
+        private GameObject CreateRuntimeContentLayer()
+        {
+            GameObject listView = Require("ListView");
+            GameObject layer = new GameObject("BagRewardRuntimeContent", typeof(RectTransform));
+            layer.transform.SetParent(listView.transform, false);
+            RectTransform layerRect = layer.GetComponent<RectTransform>();
+            layerRect.anchorMin = Vector2.zero;
+            layerRect.anchorMax = Vector2.one;
+            layerRect.offsetMin = Vector2.zero;
+            layerRect.offsetMax = Vector2.zero;
+
+            Text template = cells[0].transform.Find("Name")?.GetComponent<Text>() ?? tips;
+            for (int index = 0; index < runtimeCells.Length; index++)
+            {
+                GameObject cell = new GameObject($"Reward_{index + 1}", typeof(RectTransform));
+                cell.transform.SetParent(layer.transform, false);
+                runtimeCells[index] = cell;
+
+                GameObject iconObject = new GameObject("Icon", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Image));
+                iconObject.transform.SetParent(cell.transform, false);
+                RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.14f, 0.33f);
+                iconRect.anchorMax = new Vector2(0.86f, 0.98f);
+                iconRect.offsetMin = Vector2.zero;
+                iconRect.offsetMax = Vector2.zero;
+                runtimeIcons[index] = iconObject.GetComponent<Image>();
+
+                runtimeNames[index] = CreateRuntimeText(cell.transform, "Name", template,
+                    new Vector2(0f, 0.03f), new Vector2(1f, 0.33f), TextAnchor.MiddleCenter);
+                runtimeAmounts[index] = CreateRuntimeText(cell.transform, "Amount", template,
+                    new Vector2(0.48f, 0.31f), new Vector2(0.91f, 0.54f), TextAnchor.LowerRight);
+                runtimeAmounts[index].color = Color.white;
+                Shadow shadow = runtimeAmounts[index].gameObject.AddComponent<Shadow>();
+                shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
+                shadow.effectDistance = new Vector2(1f, -1f);
+            }
+            return layer;
+        }
+
+        private static Text CreateRuntimeText(Transform parent, string name, Text template,
+            Vector2 anchorMin, Vector2 anchorMax, TextAnchor alignment)
+        {
+            GameObject textObject = new GameObject(name, typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(Text));
+            textObject.transform.SetParent(parent, false);
+            RectTransform rect = textObject.GetComponent<RectTransform>();
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Text text = textObject.GetComponent<Text>();
+            text.font = template != null ? template.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = template != null ? template.fontSize : 18;
+            text.fontStyle = template != null ? template.fontStyle : FontStyle.Normal;
+            text.color = template != null ? template.color : Color.white;
+            text.alignment = alignment;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = 12;
+            text.resizeTextMaxSize = Mathf.Max(18, text.fontSize);
+            text.raycastTarget = false;
+            return text;
+        }
+
+        private void LayoutRuntimeCells(int count)
+        {
+            int visibleCount = Mathf.Clamp(count, 1, runtimeCells.Length);
+            float cellWidth = 1f / runtimeCells.Length;
+            float start = (1f - cellWidth * visibleCount) * 0.5f;
+            for (int index = 0; index < runtimeCells.Length; index++)
+            {
+                RectTransform rect = runtimeCells[index].GetComponent<RectTransform>();
+                rect.anchorMin = new Vector2(start + cellWidth * index, 0f);
+                rect.anchorMax = new Vector2(start + cellWidth * (index + 1), 1f);
+                rect.offsetMin = new Vector2(5f, 2f);
+                rect.offsetMax = new Vector2(-5f, -2f);
+            }
         }
 
         private Button BindClose(string relativePath)
@@ -188,16 +334,6 @@ namespace ProjectX.UI
             image.sprite = sprite;
             image.enabled = sprite != null;
             image.preserveAspect = true;
-        }
-
-        private void NormalizeItemListLayout()
-        {
-            RectTransform list = Require("ItemList").GetComponent<RectTransform>();
-            if (list == null) return;
-            list.anchorMin = new Vector2(0.5f, 0.5f);
-            list.anchorMax = new Vector2(0.5f, 0.5f);
-            list.pivot = Vector2.zero;
-            list.anchoredPosition = new Vector2(-280f, -70f);
         }
 
         private GameObject Require(string relativePath)

@@ -380,49 +380,19 @@
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "passed"
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/BAG.md",
-      "note": "2026-08-21已从当前ButtonGroup1/btn_Bag入口按hard-gate v2逐门禁重验完成；固定账号可逆夹具、26/26控件、14/14语义、10/10双端状态、精确恢复、零残留和双次BuildBatch幂等均通过。旧20260727 Runner、构建SHA和完成结论仅作追溯。",
+      "note": "2026-08-24 G0-G5已按当前随机装备盒分母通过；早期真人Play已参与并通过，G4标准Full与G5中央16状态证据有效。09:52 G5逐图复核为来源任务主代理agentAccepted，userParticipated=false，不是G6最终真人确认；G6严格pending且manualPassed不得提前设置。",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/BAG_CONTROLS.json",
+          "docs/unityclient/matrices/BAG_COVERAGE.json",
           "docs/unityclient/modules/BAG.md",
-          ".local/unity-validation/bag-g0-source-audit-20260821.md",
-          ".local/protocol-evidence/bag-g0-8-20260821.md",
-          ".local/protocol-evidence/bag-g0-15-20260821.md",
-          "tools/unity-migration/Invoke-BagCocosFixture.ps1"
-        ],
-        "G1": [
-          ".local/unity-validation/bag-cocos-automation-ledger.json",
-          ".local/unity-validation/bag-cocos-preflight-latest.json",
-          ".local/unity-validation/bag-cocos-identity-latest.json",
-          ".local/unity-validation/bag-cocos-baseline-latest.json",
-          ".local/ui-fidelity/Bag/cocos/g1-20260821/reuse-manifest.json"
-        ],
-        "G2": [
-          "docs/unityclient/matrices/BAG_CONTROLS.json",
-          ".local/unity-validation/bag-g2-source-audit-20260821.md",
-          ".local/protocol-evidence/bag-g0-8-20260821.md",
-          ".local/protocol-evidence/bag-g0-15-20260821.md"
-        ],
-        "G3": [
-          ".local/unity-validation/bag-g3-compile-preflight-20260821.log",
-          ".local/unity-validation/bag-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/bag-g3-toolchain-after-runner-fix-20260821.log",
-          "docs/unityclient/matrices/BAG_CONTROLS.json"
-        ],
-        "G4": [
-          ".local/unity-validation/bag-fixed-account-latest.json",
-          ".local/unity-validation/bag-fixed-account-runner-latest.json",
-          "build/ui-migration/unity-bag-fixed-account.log",
-          ".local/unity-validation/bag-fixed-account-data-preflight-latest.json"
-        ],
-        "G5": [
-          ".local/ui-fidelity/Bag/compare/g5-20260821/report.json",
-          ".local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
-          "docs/unityclient/matrices/BAG_CONTROLS.json"
+          ".local/unity-validation/bag-random-box-chain-audit.json",
+          ".local/unity-validation/bag-g0-doc-validation.json",
+          "tools/unity-migration/Invoke-BagSqliteFixture.ps1",
+          "tools/unity-migration/Invoke-BagSqliteFixture.py"
         ],
         "G6": [
           ".local/unity-validation/bag-fixed-account-latest.json",
@@ -437,9 +407,55 @@
           "docs/unityclient/matrices/BAG_CONTROLS.json",
           ".local/unity-validation/bag-computer-use-lifecycle-latest.json",
           ".local/unity-validation/bag-retrospective-latest.json"
+        ],
+        "G1": [
+          ".local/unity-validation/bag-cocos-automation-ledger.json",
+          ".local/unity-validation/bag-cocos-preflight-latest.json",
+          ".local/unity-validation/bag-cocos-identity-latest.json",
+          ".local/unity-validation/bag-cocos-baseline-latest.json",
+          ".local/ui-fidelity/Bag/fixture/bag-cocos-g1-fixture-snapshot.json"
+        ],
+        "G2": [
+          ".local/unity-validation/bag-g2-source-audit-20260824.md",
+          ".local/unity-validation/bag-random-box-chain-audit.json"
+        ],
+        "G3": [
+          ".local/unity-validation/bag-g3-runtime-latest.json",
+          ".local/unity-validation/bag-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/bag-g3-failure-resolution-20260824.md",
+          ".local/unity-validation/bag-g3-assertcleanup-parameter-resolution-20260824.md",
+          "docs/unityclient/matrices/BAG_CONTROLS.json"
+        ],
+        "G4": [
+          ".local/unity-validation/bag-early-user-play-latest.json",
+          ".local/unity-validation/bag-fixed-account-latest.json",
+          ".local/unity-validation/bag-fixed-account-runner-latest.json",
+          ".local/unity-validation/bag-fixed-account-data-preflight-latest.json",
+          ".local/ui-fidelity/Bag/fixture/bag-sqlite-fixture-snapshot.json",
+          "build/ui-migration/unity-bag-fixed-account.log",
+          "build/ui-migration/bootstrap-bag-box-512-before.png",
+          "build/ui-migration/bootstrap-bag-box-512-reward.png",
+          "build/ui-migration/bootstrap-bag-box-513-before.png",
+          "build/ui-migration/bootstrap-bag-box-513-reward.png",
+          "build/ui-migration/bootstrap-bag-box-514-before.png",
+          "build/ui-migration/bootstrap-bag-box-514-reward.png",
+          ".local/unity-validation/bag-g4-runner-timeout-diagnosis-20260824.md",
+          ".local/unity-validation/bag-operation-ledger.json",
+          ".local/unity-validation/bag-g4-doc-validation-20260824.json"
+        ],
+        "G5": [
+          ".local/unity-validation/bag-g5-preflight-latest.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260824/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260824/manual-acceptance.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260824/contact-side-1.jpg",
+          ".local/ui-fidelity/Bag/compare/g5-20260824/contact-side-2.jpg",
+          ".local/ui-fidelity/Bag/compare/g5-20260824/contact-side-3.jpg",
+          ".local/unity-validation/bag-fixed-account-latest.json",
+          ".local/unity-validation/bag-operation-ledger.json",
+          "docs/unityclient/matrices/BAG_CONTROLS.json"
         ]
       },
-      "updatedUtc": "2026-08-21T05:18:20.8840746Z"
+      "updatedUtc": "2026-08-24T01:55:12.7112547Z"
     },
     {
       "module": "Task",
@@ -541,19 +557,19 @@
           ".local/unity-validation/hero-cocos-baseline-latest.json",
           ".local/unity-validation/hero-cocos-automation-ledger.json"
         ],
-      "G2": [
-        "docs/unityclient/matrices/HERO_CONTROLS.json",
-        "docs/unityclient/modules/HERO.md",
-        "tools/unity-migration/unityclient-modules.json",
-        "tools/unity-migration/validation-scenarios.json",
-        "tools/unity-migration/module-evidence-contracts.json",
-        ".local/unity-validation/hero-g2-source-audit.json"
-      ],
-      "G3": [
-        ".local/unity-validation/hero-g3-initial-playable.json",
-        ".local/unity-validation/unity-compile-preflight-latest.json",
-        ".local/unity-validation/hero-fixed-account-data-preflight-latest.json"
-      ],
+        "G2": [
+          "docs/unityclient/matrices/HERO_CONTROLS.json",
+          "docs/unityclient/modules/HERO.md",
+          "tools/unity-migration/unityclient-modules.json",
+          "tools/unity-migration/validation-scenarios.json",
+          "tools/unity-migration/module-evidence-contracts.json",
+          ".local/unity-validation/hero-g2-source-audit.json"
+        ],
+        "G3": [
+          ".local/unity-validation/hero-g3-initial-playable.json",
+          ".local/unity-validation/unity-compile-preflight-latest.json",
+          ".local/unity-validation/hero-fixed-account-data-preflight-latest.json"
+        ],
         "G4": [
           ".local/unity-validation/hero-fixed-account-latest.json",
           ".local/unity-validation/hero-early-user-play-latest.json"

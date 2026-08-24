@@ -66,6 +66,14 @@ namespace ProjectX.UI
         public int ItemCount => store.Items.Count;
         public int MissingIconCount => missingIconCount;
         public int SelectedSlot => selectedSlot;
+        public int SelectedItemId => store.Items.FirstOrDefault(item => item.Slot == selectedSlot).ItemId;
+        public Button UseControl => useButton;
+
+        public Button GetItemControl(int itemId)
+        {
+            BagItemRecord item = store.Items.FirstOrDefault(value => value.ItemId == itemId);
+            return item.ItemId > 0 && itemButtons.TryGetValue(item.Slot, out Button button) ? button : null;
+        }
         public ScrollRect Scroll => viewportObject.GetComponent<ScrollRect>();
 
         public void ResetSelection()

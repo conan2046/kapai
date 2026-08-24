@@ -4,14 +4,16 @@ param(
     [uint32]$UserId = 0,
     [uint32]$RoleId = 0,
     [string]$PythonExecutable = "",
+    [string]$ServerExecutable = "",
     [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
     [switch]$PreflightOnly,
-    [switch]$DataPreflightOnly
+    [switch]$DataPreflightOnly,
+    [switch]$G3RuntimeOnly
 )
 
 $ErrorActionPreference = "Stop"
-if ($PreflightOnly -and $DataPreflightOnly) {
-    throw "-PreflightOnly and -DataPreflightOnly are mutually exclusive."
+if (@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly | Where-Object { $_ }).Count -gt 1) {
+    throw "-PreflightOnly, -DataPreflightOnly and -G3RuntimeOnly are mutually exclusive."
 }
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
@@ -37,6 +39,13 @@ if ($dataBackend -notin @("mysql", "sqlite")) { throw "Unsupported fixed-account
 $mutationReloginOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "mutationReloginOracle" -Default $null
 $serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
 $serverStartParameters = @{ WaitSeconds = 60 }
+if ($ServerExecutable) {
+    $resolvedServerExecutable = [IO.Path]::GetFullPath($ServerExecutable)
+    if (-not (Test-Path -LiteralPath $resolvedServerExecutable -PathType Leaf)) {
+        throw "Explicit fixed-account server executable is missing: $resolvedServerExecutable"
+    }
+    $serverStartParameters.ExePath = $resolvedServerExecutable
+}
 if ($serverConfigDirectoryValue) {
     $serverStartParameters.ConfigDirectory = Resolve-UnityMigrationPath -Root $root -Path $serverConfigDirectoryValue
 }
@@ -54,11 +63,34 @@ $contractFailures = @(Get-UnityMigrationFixedAccountContractFailures `
 if ($contractFailures.Count -gt 0) {
     throw ($contractFailures -join [Environment]::NewLine)
 }
+$unhydratedLfsPointers = New-Object System.Collections.Generic.List[string]
+foreach ($requiredHydratedRoot in @($fixed.requiredHydratedRoots | ForEach-Object { [string]$_ })) {
+    $hydratedPath = Resolve-UnityMigrationPath -Root $root -Path $requiredHydratedRoot
+    if (-not (Test-Path -LiteralPath $hydratedPath)) {
+        throw "Required hydrated asset root is missing: $requiredHydratedRoot"
+    }
+    $hydratedFiles = if (Test-Path -LiteralPath $hydratedPath -PathType Leaf) {
+        @(Get-Item -LiteralPath $hydratedPath)
+    } else {
+        @(Get-ChildItem -LiteralPath $hydratedPath -Recurse -File |
+            Where-Object { $_.Extension -in @('.png', '.jpg', '.jpeg') })
+    }
+    foreach ($hydratedFile in $hydratedFiles) {
+        if ($hydratedFile.Length -le 512 -and
+            (Get-Content -LiteralPath $hydratedFile.FullName -Encoding ASCII -TotalCount 1) `
+                -eq 'version https://git-lfs.github.com/spec/v1') {
+            $unhydratedLfsPointers.Add($hydratedFile.FullName)
+        }
+    }
+}
+if ($unhydratedLfsPointers.Count -gt 0) {
+    throw "Required Unity assets are unresolved Git LFS pointers: count=$($unhydratedLfsPointers.Count); first=$($unhydratedLfsPointers[0])"
+}
 $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleConfig.key)
 if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." }
 $scenarioRuntimeFlags = @(Get-UnityMigrationScenarioRuntimeFlags -Scenario $scenario)
 $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
-$requiredGate = if ($DataPreflightOnly -or $PreflightOnly) { "G2" } else { "G3" }
+$requiredGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }
 $workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }
 Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate $requiredGate
 Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig `
@@ -105,6 +137,25 @@ try {
         if ($dataBackend -eq "sqlite") { $adapterArguments += @("-DatabasePath", $fixedSqlitePath) }
         & $pwshExecutable @adapterArguments
         if ($LASTEXITCODE -ne 0) { throw "Fixed-account adapter action failed: $Action" }
+    }
+
+    function Wait-FixedRuntimeRelease {
+        $deadline = [DateTime]::UtcNow.AddSeconds(15)
+        do {
+            $runtimeProcesses = @(Get-Process Unity,kapai,ProjectX -ErrorAction SilentlyContinue)
+            $databaseReleased = $true
+            if ($dataBackend -eq 'sqlite' -and (Test-Path -LiteralPath $fixedSqlitePath -PathType Leaf)) {
+                try {
+                    $stream = [IO.File]::Open($fixedSqlitePath, [IO.FileMode]::Open,
+                        [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+                    $stream.Dispose()
+                }
+                catch { $databaseReleased = $false }
+            }
+            if ($runtimeProcesses.Count -eq 0 -and $databaseReleased) { return }
+            Start-Sleep -Milliseconds 250
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Fixed-account runtime did not release processes/SQLite before restore: processes=$($runtimeProcesses.Count), sqliteReleased=$databaseReleased"
     }
 
     function Stop-OrphanUnityIlppProcess {
@@ -263,7 +314,9 @@ try {
             "-projectXValidationScenario=$($scenario.key)",
             "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds",
             "-logFile", $logPath
-        ) + @($scenarioRuntimeFlags) `
+        ) + $(if ($G3RuntimeOnly) {
+            @($fixed.g3ValidationFlags | ForEach-Object { [string]$_ })
+        } else { @($scenarioRuntimeFlags) }) `
           + @($fixed.extraFlags | ForEach-Object { [string]$_ })
         $unityTiming = Start-UnityMigrationTiming
         try {
@@ -288,6 +341,35 @@ try {
             if ([uint32]$result.roleId -ne $runnerRoleId) {
                 throw "Unity fixed-account terminal role mismatch: expected=$runnerRoleId actual=$($result.roleId)"
             }
+            if ($G3RuntimeOnly) {
+                if (@($fixed.g3ValidationFlags).Count -eq 0) {
+                    throw "Fixed-account G3 runtime mode requires g3ValidationFlags."
+                }
+                Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
+                $sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
+                $g3Summary = [ordered]@{
+                    schemaVersion = 1
+                    success = $true
+                    executionMode = "batch"
+                    runner = [string]$workflowPolicy.unity.fixedAccountRunner
+                    workflowPolicyVersion = [int]$workflowPolicy.version
+                    module = [string]$moduleConfig.key
+                    scenario = [string]$scenario.key
+                    validationMode = "g3-runtime"
+                    userId = $UserId
+                    roleId = $RoleId
+                    status = [string]$result.status
+                    screenWidth = [int]$result.screenWidth
+                    screenHeight = [int]$result.screenHeight
+                    sourceContractFingerprint = $sourceContractFingerprint
+                    dataPreflightEvidence = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
+                    checkedUtc = [DateTime]::UtcNow.ToString("O")
+                }
+                Write-UnityMigrationUtf8 -Path (Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-g3-runtime-latest.json") `
+                    -Content (($g3Summary | ConvertTo-Json -Depth 8) + "`n")
+                $validationPassed = $true
+            }
+            else {
             if ($null -ne $mutationReloginOracle) {
                 $captureAction = [string](Get-UnityMigrationPropertyValue -Object $mutationReloginOracle -Name "captureAction" -Default "")
                 $assertAction = [string](Get-UnityMigrationPropertyValue -Object $mutationReloginOracle -Name "assertAction" -Default "")
@@ -366,10 +448,12 @@ try {
             if (-not [bool]$fixed.skipPostValidationFixtureAssert) {
                 Invoke-FixedAdapter "AssertSetup"
             }
+            }
         }
         finally {
             Complete-UnityMigrationTiming -Timings $timings -Name "unityValidation" -Timing $unityTiming
         }
+        if (-not $G3RuntimeOnly) {
         $artifactTiming = Start-UnityMigrationTiming
         try {
             foreach ($copy in @($fixed.artifactCopies)) {
@@ -422,12 +506,13 @@ try {
         finally {
             Complete-UnityMigrationTiming -Timings $timings -Name "artifactCapture" -Timing $artifactTiming
         }
+        }
     }
     finally {
         $restoreTiming = Start-UnityMigrationTiming
         try {
             Get-Process Unity,kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
+            Wait-FixedRuntimeRelease
             if ($fixtureCreated) {
                 if ($validationPassed) {
                     Invoke-FixedAdapter "Restore"
@@ -460,16 +545,29 @@ try {
         catch { $reloginFailure = $_ }
         finally {
             Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Start-Sleep -Seconds 2
+            Wait-FixedRuntimeRelease
             if ($fixtureCreated) {
                 if ($null -eq $reloginFailure) {
-                    Invoke-FixedAdapter "AssertReloginHash"
+                    try { Invoke-FixedAdapter "AssertReloginHash" }
+                    catch { $reloginFailure = $_ }
                 }
-                Invoke-FixedAdapter "Restore"
-                Invoke-FixedAdapter "AssertRestored"
-                Invoke-FixedAdapter "Cleanup"
-                Invoke-FixedAdapter "AssertCleanup"
-                $fixtureCreated = $false
+                try {
+                    Invoke-FixedAdapter "Restore"
+                    Invoke-FixedAdapter "AssertRestored"
+                }
+                catch {
+                    if ($null -eq $reloginFailure) { $reloginFailure = $_ }
+                }
+                finally {
+                    try {
+                        Invoke-FixedAdapter "Cleanup"
+                        Invoke-FixedAdapter "AssertCleanup"
+                        $fixtureCreated = $false
+                    }
+                    catch {
+                        if ($null -eq $reloginFailure) { $reloginFailure = $_ }
+                    }
+                }
             }
             Complete-UnityMigrationTiming -Timings $timings -Name "reloginAndCleanup" -Timing $reloginTiming
         }
@@ -490,7 +588,7 @@ try {
     Write-Host "Fixed-account validation passed and restored: module=$Module userId=$UserId roleId=$RoleId"
 }
 catch {
-    $failureGate = if ($DataPreflightOnly -or $PreflightOnly) { "G3" } else { "G6" }
+    $failureGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }
     Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $failureGate -Category UnityBatch `
         -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" -Operation "fixed-account-batch-validation" `
         -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
@@ -531,7 +629,7 @@ finally {
     $timingReport = [ordered]@{
         schemaVersion = 1
         module = $Module
-        mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } else { "full" })
+        mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } elseif ($G3RuntimeOnly) { "g3-runtime" } else { "full" })
         status = $runStatus
         timings = $timings
         checkedUtc = [DateTime]::UtcNow.ToString("O")
