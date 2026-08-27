@@ -413,8 +413,12 @@ Assert-ToolchainTest (
     $bagCocosAdapterSource.Contains('@(3201, 1)') -and
     $bagCocosAdapterSource.Contains('1111=3;1114=3;3201=1') -and
     $bagSqliteAdapterSource.Contains('UPDATE role_info SET package=?,user_spirit=? WHERE id=?') -and
-    $bagSqliteAdapterSource.Contains('current["userSpiritSha256"] != expected["userSpiritSha256"]') -and
-    $bagSqliteAdapterSource.Contains('postLoginBusinessStateVerified')
+    $bagSqliteAdapterSource.Contains('SPIRIT_FULL = 100') -and
+    $bagSqliteAdapterSource.Contains('SPIRIT_REGEN_SECONDS = 360') -and
+    $bagSqliteAdapterSource.Contains('def relogin_spirit_matches(expected, current):') -and
+    $bagSqliteAdapterSource.Contains('or not spirit_matches') -and
+    $bagSqliteAdapterSource.Contains('postLoginBusinessStateVerified') -and
+    $bagSqliteAdapterSource.Contains('postLoginSpiritOracle')
 ) "Bag SQLite relogin regression: package or deterministic stamina business state is no longer prepared and restored."
 Assert-ToolchainTest (
     $bagRunnerSource.Contains('if (!SelectBagItem(1111) || !InvokeBagControl("BAG-07-USE") || !IsBagGiftOpen)') -and
@@ -422,8 +426,14 @@ Assert-ToolchainTest (
     $bagRunnerSource.Contains('InvokeBagControl("BAG-15-GIFT-ADD-ONE");') -and
     $bagRunnerSource.Contains('BagModalQuantity != 2') -and
     $bagRunnerSource.Contains('bagG4InitialGiftQuantity - 2') -and
-    $bagRunnerSource.Contains('bagG4InitialRewardQuantity + 2')
-) "Bag choice acceptance regression: item1111 quantity3 no longer selects reward4621 and consumes exactly two through real controls."
+    $bagRunnerSource.Contains('bagG4InitialRewardQuantity + 2') -and
+    $bagRunnerSource.Contains('bagUseRewardFilterItemId = item.ItemType == 6') -and
+    $bagRunnerSource.Contains('bagFlowPresenter?.SelectedChoiceId ?? 0') -and
+    $bagRunnerSource.Contains('if (bagUseRewardFilterItemId > 0 && itemId != bagUseRewardFilterItemId) return;') -and
+    $bagRunnerSource.Contains('ValidateVisibleRewards("开启获得", expectedChoicePopup, out choicePopupDetail)') -and
+    $bagRunnerSource.Contains('Bag G4 selectable gift reward popup did not close through EventSystem.') -and
+    $bagRunnerSource.Contains('rendered complete 开启获得 name/quantity, and closed through EventSystem')
+) "Bag choice acceptance regression: item1111 quantity3 no longer consumes two, receives reward4621, and proves the authoritative reward popup through real controls."
 Assert-ToolchainTest (
     $bagRunnerSource.Contains('if (!SelectBagItem(1001)) { Fail("Bag G5 scrolled state could not select the frozen high recruit ticket 1001."); yield break; }') -and
     $bagRunnerSource.IndexOf('SelectBagItem(1001)', [System.StringComparison]::Ordinal) -lt
@@ -507,6 +517,13 @@ Assert-ToolchainTest (
     $bagFlowSource.Contains('name.resizeTextForBestFit = true;') -and
     $bagFlowSource.Contains('mask.color = new Color(0f, 0f, 0f, 0.95f);')
 ) "Bag G5 modal rendering no longer synchronizes gift selection, preserves full names, or darkens equipment stacking like Cocos."
+Assert-ToolchainTest (
+    $bagFlowSource.Contains('dragSurface.raycastTarget = true;') -and
+    $bagRunnerSource.Contains('InvokeEventSystemHorizontalDrag(giftScroll)') -and
+    $bagRunnerSource.Contains('giftScroll.content.rect.width <= giftScroll.viewport.rect.width + 1f') -and
+    $bagRunnerSource.Contains('gift list accepted callbacks but did not move horizontally') -and
+    $bagRunnerSource.Contains('EventSystem.current.RaycastAll(data, hits);')
+) "Bag gift-scroll regression: the eight-choice viewport no longer proves a raycastable surface, real EventSystem drag, overflow, and visible horizontal movement."
 Assert-ToolchainTest (
     $gameErrorSource.Contains('message.text.StartsWith("无法连接服务器", StringComparison.Ordinal)')
 ) "Connection failure confirmation no longer preserves the Cocos top-left message layout."

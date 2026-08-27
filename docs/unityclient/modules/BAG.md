@@ -2,7 +2,7 @@
 
 ## 2026-08-24 门禁重开
 
-- 当前状态：`G0-G3 passed / early user Play passed / G4-G6 pending / 0/26 current manual complete`。
+- 当前状态：`G0-G6 passed / 26/26 complete`。
 - 逃逸根因：旧G0只登记 `btn_Bag`、`/8`、`/15`，未把客户端 `type=5/use_type=2` 随机盒候选生成进业务分母。
 - 当前分母：23个客户端候选；仅510-514具备当前服务端通用闭包；对应80510-80514与4605-4644共40个最终碎片。其余18个候选均在 `BAG_COVERAGE.json` 内带产品证据排除。
 - Unity用户测试数据只使用 `Application.persistentDataPath/LocalServer/projectx.db`，固定身份 `userId=1 / roleId=1000001`；MySQL仅作离线对照。
@@ -10,7 +10,7 @@
 
 ## 当前结论
 
-- 当前门禁：`G0-G3 passed / early user Play passed / G4-G6 pending`。2026-08-27 已按当前输入重取16个Cocos状态、重验G2并完成标准SQLite batch G3；可选宝箱奖励弹窗反馈已修复并经用户复测通过，旧26项自动结果与`manualPassed`仍不得用于当前完成结论。
+- 当前门禁：`G0-G6 passed / 26/26 complete`。2026-08-27 已按当前输入完成标准SQLite G4、中央G5及最后相关变更后的G6真人确认；`manualPassed=26/26`。
 - 固定账号：`userId=1 / roleId=1000001`，Windows 100%，原生客户区 `1334×750`。
 - 控件唯一事实：`docs/unityclient/matrices/BAG_CONTROLS.json`，共 26 项。
 - 2026-08-21 已按当前源码、入口、账号、夹具和 hard-gate v2 从 G0 逐门禁重验；旧 2026-07-27 Runner、构建 SHA 与完成结论仍只作问题追溯。
@@ -126,31 +126,33 @@ Unity 边界：
 
 - G3：26 个路径全部绑定真实 Prefab；编译、实例化、滚动结构、排除项隐藏、Console 严重异常通过。
 - G4：真实 Button 覆盖全量、增量新增/更新/删除、整理、普通/批量/任选使用、无选择、空数量、非法/重复、断线、重拉、重连、返回、持久化和切号清理。
-- G5：按 G1 冻结的 10 个代表性视觉状态采集同账号同数据 Unity 原图，生成逐状态并排、50%叠加、增强差异，并对矩阵 26 个控件逐项人工验收。
+- G5：按 G1 冻结的 16 个代表性视觉状态采集同账号同数据 Unity 原图，生成逐状态并排、50%叠加、增强差异，并由代理逐图复核；G6真人验收独立进行。
 - G6：矩阵 26/26 的 `realEntryClick/automationPassed/manualPassed/status` 全部达标；真实入口 Runner、严重异常、16/16 Python UI、两次正式 `BuildBatch` 幂等、文档与 Git 范围检查通过。
 
-## 2026-08-24 历史门禁（2026-08-27 已失效）
+## 2026-08-27 当前 G4-G5
 
-- G0分母仍保留；以下G1-G5记录因证据生成后的输入变化只作诊断，必须从当前G1串行重验。
+- G0-G3及早期真人Play已在本轮前序通过；以下G4-G5均来自当前修复后的最终输入。
 - G3：标准 `Run-UnityFixedAccountValidation.ps1 -Module Bag -G3RuntimeOnly` batch通过；固定账号`1/1000001`，原生`1334×750`，28项、28按钮、26控件绑定、3/3滚动与奖励弹窗生命周期通过。证据：`.local/unity-validation/bag-g3-runtime-latest.json`。
 - G3实现未改任何Prefab；已删除 `RewardPresenter` 对导入 `ItemList` 的运行时anchor/pivot/anchoredPosition覆盖，用户布局保持资源原值。
 - 早期真人Play：`.local/unity-validation/bag-early-user-play-latest.json`记录`userParticipated=true`、反馈“通过”；该记录仅满足G3早测，不替代G6最终确认。
-- G4：当前标准Full通过26控件、18语义，明确断言1111初始3、真实使用2后剩1且4621增加2；512/513/514真实扣除、权威奖励与完整弹窗通过，SQLite恢复到基线SHA且残留0。
-- G5：中央16状态证据通过；09:52逐图复核由来源任务主代理完成，`agentAccepted=true/userParticipated=false`。三种Unity完整奖励弹窗是用户要求的intentional delta。该代理审图不是G6真人确认。
-- Fixture最终按整库SHA恢复，`AssertCleanup`通过；操作账本全部Failed/Blocked均有文件证据关联的Resolved记录。
+- G4：标准Full通过26控件、18语义，明确断言1111初始3、真实使用2后剩1且4621增加2；ItemType=6弹窗精确验证仅含权威选择奖励`4621×2`并由真实EventSystem关闭；512/513/514真实扣除、权威奖励与完整弹窗通过。
+- G4网络与数据：覆盖异常、断线重连、重登持久化、切号清理；背包哈希保持精确，体力只归一化合法的360秒被动恢复；整库恢复到基线SHA，Fixture残留0。
+- G5：中央16状态证据通过；最终三张联系表逐图复核完成，`agentAccepted=true/userParticipated=false`。三种Unity完整奖励弹窗是用户要求的intentional delta；证据目录`.local/ui-fidelity/Bag/compare/g5-20260827/`。该代理审图不是G6真人确认。
+- G6首次最终真人Play反馈“礼包无法所有滑动，其他OK”。根因是运行时ListView虽有8项溢出，但视口无raycastTarget拖拽表面，旧G4只程序设置横向normalizedPosition。现已增加透明拖拽表面，并把G4升级为真实EventSystem横拖且Content必须位移；修复后G4 Full与G5受影响状态均通过，用户单点复测“测试通过”。
+- 两次真实`BootstrapSceneBuilder.BuildBatch` SHA-256均为`7F2EAE1CF7959AF29A59A610816EEA96698A001CDF630E6DB4DD9B5CC008326E`；操作账本未解决0，Fixture残留0。
 
 ## 2026-08-21 已失效重验（仅用于问题追溯）
 
 - 当前前端、服务端、配置与资源审计：`.local/unity-validation/bag-g0-source-audit-20260821.md`。
 - 当前协议证据：`.local/protocol-evidence/bag-g0-8-20260821.md`、`.local/protocol-evidence/bag-g0-15-20260821.md`。
 - 当前Unity固定账号夹具：`tools/unity-migration/Invoke-BagSqliteFixture.ps1`，整库快照/恢复并准备不可用、跳转、直接使用、批量使用、任选礼包、重复槽聚合、510-514及超过一屏状态；旧MySQL Cocos夹具只保留为历史对照。
-- 数据恢复合同：Setup 前完整快照 `role_info` 与所属 `user_info` 分片行；Fixture同时将`package`与`user_spirit=50/当前时间戳`冻结，保证体力丹10个真实使用不受用户原体力漂移影响；真实使用允许改变`package`、`user_spirit`、贵族经验等账号状态；finally整库恢复、重登录业务哈希一致、备份残留0。
+- 数据恢复合同：Setup 前完整快照 `role_info` 与所属 `user_info` 分片行；Fixture同时将`package`与`user_spirit=50/当前时间戳`冻结，保证体力丹10个真实使用不受用户原体力漂移影响；重登录时`package`逐字节一致，`user_spirit`只允许按360秒周期合法被动恢复；finally整库恢复、重登录业务哈希一致、备份残留0。
 - 当前已确认的 Unity 缺口：旧入口、同 itemId 未聚合、页签与详情图标 Runner 只查节点不点按钮、来源动作统一关闭并显示开发占位、G4/G5 输出目录硬编码旧日期。
 - 当前配置差异：Cocos `item_dat.lua` 把 `1111` 定义为八选一 `type=6`，服务端 `item.json` 仍为 `type=5`；本地测试路径在 `pack_deal.cpp` 对 `1111..1113` 做了受控目标奖励兼容。Unity 必须按 Cocos 显示候选、按服务端权威回包刷新，禁止客户端预测奖励。
-- 当前 G1 证据：`.local/unity-validation/bag-cocos-baseline-latest.json` 已冻结 10/10 状态；其中 7 张为用户批准且 SHA/可见输入等价的 2026-07-27 原图复用，3 张为 2026-08-21 新拍的断线、重连、关闭重进。复用与失效清单见 `.local/ui-fidelity/Bag/cocos/g1-20260821/reuse-manifest.json`。
+- 当前 G1 证据：`.local/unity-validation/bag-cocos-baseline-latest.json` 已冻结16个状态；复用与失效清单见当前manifest及`.local/ui-fidelity/Bag/cocos/g1-20260821/reuse-manifest.json`。
 - G2：入口闭包、共享协议所有权、配置到资源闭包、运行时 Transform/缩放/锚点均已冻结；已知差异仅保留可追溯模块级处理。
 - 旧G3-G4固定账号Runner、15/15语义与事务结论未覆盖当前随机装备盒分母，不能作为当前G4证据。
-- 旧G5报告与26/26人工验收不能作为当前视觉或真人确认；当前G5只认`.local/ui-fidelity/Bag/compare/g5-20260824/`。
+- 旧G5报告与26/26人工验收不能作为当前视觉或真人确认；当前G5只认`.local/ui-fidelity/Bag/compare/g5-20260827/`。
 - 旧G6构建SHA、矩阵完成态与复盘只能用于诊断；当前唯一待办是最后相关变更后的G6用户真人确认。
 
 ## 已失效历史（仅用于问题追溯）
@@ -174,5 +176,5 @@ Unity 边界：
 
 ## 当前收口
 
-- 本模块当前G0-G3及早期真人Play通过。G1已按当前固定身份和夹具冻结16个Cocos状态；G2三方闭包通过；G3标准SQLite batch完成26控件、3/3滚动、协议8及精确恢复，工具链222/222；可选宝箱奖励弹窗阻塞项已修复并由用户复测通过。
-- 下一步只处理Bag：进入当前标准G4，再执行当前G5及最终G6真人确认。不得把本轮早测或旧G5代理审图改写为G6用户最终确认。
+- 本模块当前G0-G6通过。G4标准SQLite Full完成26/26控件、18/18语义、真实`/8`与`/15`、ItemType 5/6奖励弹窗、网络/持久化/切号及精确恢复；G5当前16/16视觉通过；G6由用户在滑动修复后最终确认。
+- Bag已收口；下一模块必须重新读取当前状态、矩阵、manifest和操作复盘，从G0串行推进。

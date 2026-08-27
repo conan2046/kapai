@@ -380,10 +380,10 @@
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "pending"
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/BAG.md",
-      "note": "2026-08-24 G0-G5已按当前随机装备盒分母通过；早期真人Play已参与并通过，G4标准Full与G5中央16状态证据有效。09:52 G5逐图复核为来源任务主代理agentAccepted，userParticipated=false，不是G6最终真人确认；G6严格pending且manualPassed不得提前设置。",
+      "note": "2026-08-27 current-input G0-G6 complete. Fixed SQLite identity 1/1000001 passed 26 controls, 18 semantics, 16-state G5, exact restore and final post-change user Play; the gift horizontal drag blocker was fixed and user-confirmed.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/BAG_CONTROLS.json",
@@ -394,37 +394,26 @@
           "tools/unity-migration/Invoke-BagSqliteFixture.ps1",
           "tools/unity-migration/Invoke-BagSqliteFixture.py"
         ],
-        "G6": [
-          ".local/unity-validation/bag-fixed-account-latest.json",
-          ".local/unity-validation/bag-fixed-account-runner-latest.json",
-          "build/ui-migration/unity-bag-fixed-account.log",
-          ".local/ui-fidelity/Bag/compare/g5-20260821/report.json",
-          ".local/ui-fidelity/Bag/compare/g5-20260821/manual-acceptance.json",
-          ".local/ui-fidelity/Bag/unity/g5-20260821/bag-g5-visual-result.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "build/ui-migration/bootstrap-idempotence-1.log",
-          "build/ui-migration/bootstrap-idempotence-2.log",
-          "docs/unityclient/matrices/BAG_CONTROLS.json",
-          ".local/unity-validation/bag-computer-use-lifecycle-latest.json",
-          ".local/unity-validation/bag-retrospective-latest.json"
-        ],
         "G1": [
-          ".local/unity-validation/bag-cocos-automation-ledger.json",
+          "docs/unityclient/modules/BAG.md",
+          ".local/unity-validation/bag-cocos-automation-ledger-20260827.json",
           ".local/unity-validation/bag-cocos-preflight-latest.json",
           ".local/unity-validation/bag-cocos-identity-latest.json",
-          ".local/unity-validation/bag-cocos-baseline-latest.json",
-          ".local/ui-fidelity/Bag/fixture/bag-cocos-g1-fixture-snapshot.json"
+          ".local/unity-validation/bag-cocos-baseline-latest.json"
         ],
         "G2": [
-          ".local/unity-validation/bag-g2-source-audit-20260824.md",
-          ".local/unity-validation/bag-random-box-chain-audit.json"
+          "docs/unityclient/modules/BAG.md",
+          "docs/unityclient/matrices/BAG_CONTROLS.json",
+          ".local/protocol-evidence/bag-g2-8-20260827.md",
+          ".local/protocol-evidence/bag-g2-15-20260827.md",
+          ".local/unity-validation/bag-cocos-baseline-latest.json"
         ],
         "G3": [
-          ".local/unity-validation/bag-g3-runtime-latest.json",
+          "docs/unityclient/modules/BAG.md",
+          "docs/unityclient/matrices/BAG_CONTROLS.json",
           ".local/unity-validation/bag-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/bag-g3-failure-resolution-20260824.md",
-          ".local/unity-validation/bag-g3-assertcleanup-parameter-resolution-20260824.md",
-          "docs/unityclient/matrices/BAG_CONTROLS.json"
+          ".local/unity-validation/bag-g3-runtime-latest.json",
+          ".local/unity-validation/bag-g3-missing-dynamic-equipment-detail-20260827.txt"
         ],
         "G4": [
           ".local/unity-validation/bag-early-user-play-latest.json",
@@ -433,29 +422,35 @@
           ".local/unity-validation/bag-fixed-account-data-preflight-latest.json",
           ".local/ui-fidelity/Bag/fixture/bag-sqlite-fixture-snapshot.json",
           "build/ui-migration/unity-bag-fixed-account.log",
-          "build/ui-migration/bootstrap-bag-box-512-before.png",
-          "build/ui-migration/bootstrap-bag-box-512-reward.png",
-          "build/ui-migration/bootstrap-bag-box-513-before.png",
-          "build/ui-migration/bootstrap-bag-box-513-reward.png",
-          "build/ui-migration/bootstrap-bag-box-514-before.png",
-          "build/ui-migration/bootstrap-bag-box-514-reward.png",
-          ".local/unity-validation/bag-g4-runner-timeout-diagnosis-20260824.md",
-          ".local/unity-validation/bag-operation-ledger.json",
-          ".local/unity-validation/bag-g4-doc-validation-20260824.json"
+          ".local/unity-validation/bag-operation-ledger.json"
         ],
         "G5": [
           ".local/unity-validation/bag-g5-preflight-latest.json",
-          ".local/ui-fidelity/Bag/compare/g5-20260824/report.json",
-          ".local/ui-fidelity/Bag/compare/g5-20260824/manual-acceptance.json",
-          ".local/ui-fidelity/Bag/compare/g5-20260824/contact-side-1.jpg",
-          ".local/ui-fidelity/Bag/compare/g5-20260824/contact-side-2.jpg",
-          ".local/ui-fidelity/Bag/compare/g5-20260824/contact-side-3.jpg",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/manual-acceptance.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/contact-side-1.jpg",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/contact-side-2.jpg",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/contact-side-3.jpg",
           ".local/unity-validation/bag-fixed-account-latest.json",
           ".local/unity-validation/bag-operation-ledger.json",
           "docs/unityclient/matrices/BAG_CONTROLS.json"
+        ],
+        "G6": [
+          ".local/unity-validation/bag-fixed-account-latest.json",
+          ".local/unity-validation/bag-fixed-account-runner-latest.json",
+          "build/ui-migration/unity-bag-fixed-account.log",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/report.json",
+          ".local/ui-fidelity/Bag/compare/g5-20260827/manual-acceptance.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          "build/ui-migration/bootstrap-idempotence-1.log",
+          "build/ui-migration/bootstrap-idempotence-2.log",
+          "docs/unityclient/matrices/BAG_CONTROLS.json",
+          ".local/unity-validation/bag-g6-user-play-invitation-latest.json",
+          ".local/unity-validation/bag-operation-ledger.json",
+          ".local/unity-validation/bag-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-24T01:55:12.7112547Z"
+      "updatedUtc": "2026-08-27T05:45:35.7476661Z"
     },
     {
       "module": "Task",

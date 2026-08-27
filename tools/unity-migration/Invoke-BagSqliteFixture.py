@@ -21,6 +21,8 @@ FIXTURE_ITEMS = (
 )
 BOX_EXPECTED = {512: 2, 513: 2, 514: 2}
 FIXTURE_SPIRIT = 50
+SPIRIT_FULL = 100
+SPIRIT_REGEN_SECONDS = 360
 
 
 def sha256(path):
@@ -79,6 +81,27 @@ def make_user_spirit(value):
         raise RuntimeError("Bag user_spirit is truncated")
     struct.pack_into("<HI", data, 0, FIXTURE_SPIRIT, int(time.time()))
     return zlib.compress(bytes(data), 9).hex()
+
+
+def relogin_spirit_matches(expected, current):
+    if current["userSpiritSha256"] == expected["userSpiritSha256"]:
+        return True, "exact"
+    expected_spirit = int(expected["userSpirit"])
+    expected_time = int(expected["userSpiritLastTime"])
+    current_spirit = int(current["userSpirit"])
+    current_time = int(current["userSpiritLastTime"])
+    if expected_spirit >= SPIRIT_FULL or current_time < expected_time:
+        return False, "invalid-clock"
+    elapsed = current_time - expected_time
+    if elapsed % SPIRIT_REGEN_SECONDS != 0:
+        return False, "non-integral-regeneration"
+    regenerated = elapsed // SPIRIT_REGEN_SECONDS
+    predicted = min(SPIRIT_FULL, expected_spirit + regenerated)
+    if predicted >= SPIRIT_FULL:
+        matched = current_spirit == SPIRIT_FULL and current_time in (0, expected_time + regenerated * SPIRIT_REGEN_SECONDS)
+    else:
+        matched = current_spirit == predicted
+    return matched, "normalized-passive-regeneration" if matched else "unexpected-spirit-change"
 
 
 def state(connection, user_id, role_id):
@@ -215,15 +238,16 @@ def main():
         finally:
             connection.close()
         expected = snapshot["before"]
+        spirit_matches, spirit_oracle = relogin_spirit_matches(expected, current)
         if (current["integrity"] != "ok"
                 or current["packageSha256"] != expected["packageSha256"]
-                or current["userSpiritSha256"] != expected["userSpiritSha256"]
-                or current["userSpirit"] != expected["userSpirit"]
+                or not spirit_matches
                 or current["aggregateItem500"] != expected["aggregateItem500"]
                 or current["boxes"] != expected["boxes"]
                 or current["itemCount"] != expected["itemCount"]):
             raise RuntimeError(f"Bag SQLite relogin business-state mismatch: {current}")
         snapshot["postLoginBusinessStateVerified"] = current
+        snapshot["postLoginSpiritOracle"] = spirit_oracle
         write_json(evidence, snapshot)
     elif args.action == "Cleanup":
         if os.path.isfile(backup):

@@ -218,6 +218,7 @@ namespace ProjectX.Core
         private readonly Dictionary<int, RewardRecord> pendingBagUseRewards =
             new Dictionary<int, RewardRecord>();
         private bool capturingBagUseRewards;
+        private int bagUseRewardFilterItemId;
         private float lastBagUseRewardAt;
         private float bagUseRewardCaptureUntil;
         private Coroutine bagUseRewardRoutine;
@@ -4257,10 +4258,12 @@ namespace ProjectX.Core
             if (!capturingBagUseRewards || Time.realtimeSinceStartup > bagUseRewardCaptureUntil)
             {
                 capturingBagUseRewards = false;
+                bagUseRewardFilterItemId = 0;
                 pendingBagUseRewards.Clear();
                 return;
             }
             if (amount <= 0 || itemId <= 0) return;
+            if (bagUseRewardFilterItemId > 0 && itemId != bagUseRewardFilterItemId) return;
             uint added = checked((uint)amount);
             if (pendingBagUseRewards.TryGetValue(itemId, out RewardRecord current))
                 added = checked(current.Amount + added);
@@ -4310,6 +4313,12 @@ namespace ProjectX.Core
             // post-open feedback. Other direct-use items keep their existing
             // lightweight update behavior.
             capturingBagUseRewards = item.ItemType == 5 || item.ItemType == 6;
+            // A selectable gift has one authoritative selected reward. Restrict
+            // its feedback to that item so unrelated concurrent positive /15
+            // updates cannot pollute the visible reward popup.
+            bagUseRewardFilterItemId = item.ItemType == 6
+                ? bagFlowPresenter?.SelectedChoiceId ?? 0
+                : 0;
             lastBagUseRewardAt = Time.realtimeSinceStartup;
             bagUseRewardCaptureUntil = lastBagUseRewardAt + 8.5f;
         }
@@ -4323,6 +4332,7 @@ namespace ProjectX.Core
             RewardRecord[] rewards = pendingBagUseRewards.Values.OrderBy(value => value.Id).ToArray();
             pendingBagUseRewards.Clear();
             capturingBagUseRewards = false;
+            bagUseRewardFilterItemId = 0;
             services.Rewards.Replace("开启获得", rewards);
             EnsureRewardPresenter();
             rewardPresenter.SetItemClickHandler(reward =>
@@ -4568,7 +4578,39 @@ namespace ProjectX.Core
             InvokeBagControl("BAG-17-GIFT-ADD-TEN");
             yield return CaptureBagG5Evidence("BAG-12-GIFT-OPTION");
             InvokeBagControl("BAG-14-GIFT-SUB-ONE");
-            InvokeBagControl("BAG-13-GIFT-SCROLL");
+            ScrollRect giftScroll = bagGiftView?.Binding.Find(
+                "Layer/OpenBox/Panel/Bg/ListView")?.GetComponent<ScrollRect>();
+            Canvas.ForceUpdateCanvases();
+            if (giftScroll?.content == null || giftScroll.viewport == null
+                || giftScroll.content.rect.width <= giftScroll.viewport.rect.width + 1f)
+            {
+                Fail("Bag G4 gift list did not create horizontal overflow for all eight choices.");
+                yield break;
+            }
+            Graphic giftDragSurface = giftScroll.viewport.GetComponent<Graphic>();
+            if (giftDragSurface == null || !giftDragSurface.raycastTarget)
+            {
+                Fail("Bag G4 gift viewport has no raycast surface for real pointer dragging.");
+                yield break;
+            }
+            float giftScrollStartX = giftScroll.content.anchoredPosition.x;
+            if (!InvokeEventSystemHorizontalDrag(giftScroll))
+            {
+                Fail("Bag G4 gift list did not accept real EventSystem horizontal drag input.");
+                yield break;
+            }
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            if (Mathf.Abs(giftScroll.content.anchoredPosition.x - giftScrollStartX) < 1f)
+            {
+                Fail("Bag G4 gift list accepted callbacks but did not move horizontally.");
+                yield break;
+            }
+            if (!InvokeBagControl("BAG-13-GIFT-SCROLL"))
+            {
+                Fail("Bag G4 gift list could not reach the final choices after real dragging.");
+                yield break;
+            }
             yield return CaptureBagG5Evidence("BAG-13-GIFT-SCROLL");
             bagFlowPresenter.ResetGiftScroll();
             InvokeBagControl("BAG-15-GIFT-ADD-ONE");
@@ -4668,8 +4710,6 @@ namespace ProjectX.Core
             }
             if (bagG4DirectUseScheduled) return true;
             bagG4DirectUseScheduled = true;
-            RecordValidationSemantic("bag-choice-use-authority", true,
-                $"real /15 consumed item1111 and added reward4621={GetBagQuantityByItemId(4621)}");
             bagG4ExpectedFragmentQuantities[4621] = GetBagQuantityByItemId(4621);
             // This entry is invoked from Lua's /15 packet callback. Defer the
             // real UI interaction until Lua has returned; otherwise the use or
@@ -4680,7 +4720,31 @@ namespace ProjectX.Core
 
         private IEnumerator RunBagG4DirectUseRoutine()
         {
-            yield return null;
+            Dictionary<uint, uint> expectedChoicePopup = new Dictionary<uint, uint>
+            {
+                { 4621u, 2u }
+            };
+            float rewardDeadline = Time.realtimeSinceStartup + 12f;
+            while (rewardPresenter?.IsVisible != true && Time.realtimeSinceStartup < rewardDeadline)
+                yield return null;
+            string choicePopupDetail = "reward presenter unavailable";
+            bool choiceFeedback = rewardPresenter != null
+                && rewardPresenter.ValidateVisibleRewards("开启获得", expectedChoicePopup, out choicePopupDetail);
+            if (!choiceFeedback)
+            {
+                Fail($"Bag G4 selectable gift reward popup mismatch: {choicePopupDetail}.");
+                yield break;
+            }
+            yield return WaitForBagTransientOverlayToSettle("BAG-18-GIFT-SUCCESS");
+            if (CurrentAppState == AppState.Failed) yield break;
+            yield return CaptureBagG5Evidence("BAG-18-GIFT-SUCCESS");
+            if (!InvokeEventSystemClick(rewardPresenter.CloseControl) || rewardPresenter.IsVisible)
+            {
+                Fail("Bag G4 selectable gift reward popup did not close through EventSystem.");
+                yield break;
+            }
+            RecordValidationSemantic("bag-choice-use-authority", true,
+                $"real /15 consumed item1111, added reward4621={GetBagQuantityByItemId(4621)}, rendered complete 开启获得 name/quantity, and closed through EventSystem");
             if (!SelectBagItem(3201))
             {
                 Fail("Bag G4 injected direct-use item could not be selected through the real item button.");
@@ -4729,7 +4793,6 @@ namespace ProjectX.Core
                 "no-action, quantity input, choice gift, equipment info and direct-use paths were reached through configured item types");
             yield return ValidateBagRandomEquipmentBoxes();
             if (CurrentAppState == AppState.Failed) yield break;
-            yield return CaptureBagG5Evidence("BAG-18-GIFT-SUCCESS");
             if (!InvokeBagControl("BAG-02-CLOSE") || IsBagOpen)
             { Fail("Bag G4 close button did not return to main."); yield break; }
             yield return CaptureBagG5Evidence("BAG-02-CLOSE");
@@ -8370,6 +8433,41 @@ namespace ProjectX.Core
             ExecuteEvents.Execute(scroll.gameObject, data, ExecuteEvents.dragHandler);
             ExecuteEvents.Execute(scroll.gameObject, data, ExecuteEvents.endDragHandler);
             scroll.verticalNormalizedPosition = Mathf.Clamp01(scroll.verticalNormalizedPosition + normalizedDelta);
+            return true;
+        }
+
+        private static bool InvokeEventSystemHorizontalDrag(ScrollRect scroll)
+        {
+            if (scroll == null || EventSystem.current == null || !scroll.gameObject.activeInHierarchy
+                || !scroll.enabled || !scroll.horizontal || scroll.content == null || scroll.viewport == null)
+                return false;
+            Canvas canvas = scroll.GetComponentInParent<Canvas>();
+            Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            Vector2 start = RectTransformUtility.WorldToScreenPoint(
+                eventCamera, scroll.viewport.TransformPoint(scroll.viewport.rect.center));
+            float distance = Mathf.Max(120f, Mathf.Min(320f, scroll.viewport.rect.width * 0.35f));
+            Vector2 end = start + Vector2.left * distance;
+            PointerEventData data = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = start,
+                pressPosition = start
+            };
+            List<RaycastResult> hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(data, hits);
+            RaycastResult hit = hits.FirstOrDefault(result =>
+                result.gameObject == scroll.gameObject
+                || result.gameObject.transform.IsChildOf(scroll.transform));
+            if (hit.gameObject == null) return false;
+            GameObject dragHandler = ExecuteEvents.ExecuteHierarchy(
+                hit.gameObject, data, ExecuteEvents.beginDragHandler);
+            if (dragHandler == null) return false;
+            data.position = end;
+            data.delta = end - start;
+            ExecuteEvents.Execute(dragHandler, data, ExecuteEvents.dragHandler);
+            ExecuteEvents.Execute(dragHandler, data, ExecuteEvents.endDragHandler);
             return true;
         }
 

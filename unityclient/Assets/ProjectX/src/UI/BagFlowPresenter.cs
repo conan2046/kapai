@@ -916,6 +916,14 @@ namespace ProjectX.UI
         {
             RectTransform viewport = viewportObject.GetComponent<RectTransform>();
             if (viewportObject.GetComponent<RectMask2D>() == null) viewportObject.AddComponent<RectMask2D>();
+            Graphic dragSurface = viewportObject.GetComponent<Graphic>();
+            if (dragSurface == null)
+            {
+                Image transparentSurface = viewportObject.AddComponent<Image>();
+                transparentSurface.color = Color.clear;
+                dragSurface = transparentSurface;
+            }
+            dragSurface.raycastTarget = true;
             Transform old = viewport.Find(name);
             GameObject contentObject = old != null ? old.gameObject : new GameObject(name, typeof(RectTransform));
             RectTransform content = contentObject.GetComponent<RectTransform>();
