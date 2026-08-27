@@ -149,7 +149,7 @@ Steam Windows 正式版的发布目标固定为：玩家只启动 Unity 客户�
 | 9 | 异常分支 | 空态、材料不足、非法、重复、超时、断线、拒绝均正确 |
 | 10 | 生命周期 | 重拉、返回、重进、重连、切号正确，无重复监听和旧角色数据 |
 | 11 | 双端证据 | 同账号、同数据、同步骤、同分辨率的 Cocos/Unity 证据 |
-| 12 | 自动+人工 | Runner 从真实控件触发且断言通过；最后一次相关变更后由用户在真实 Play 路径逐控件确认 |
+| 12 | 自动+人工 | 直接控件由 Runner 从真实控件触发；空态、重启、重连、切号等场景状态由登记的 batch capture state 触发，禁止伪造 `realEntryClick=true`；最后一次相关变更后由用户在真实 Play 路径确认 |
 
 12/12 才能标记单控件 `complete`。页面完成率必须为在册控件 `100%`，模块完成率必须为全部页面、弹窗、Tab、返回和跨页状态 `100%`。
 
@@ -215,7 +215,7 @@ Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从
 
 自动化通过后只能报告“G6 自动化通过、用户最终确认待完成”，模块仍保持 G6 pending。G3早期Play用于尽早反馈，不等于最终确认；`manualPassed=true` 只能由用户在最后一次影响该模块的代码、Lua、Prefab、场景、资源、服务端、配置或Fixture变更之后，使用真实 Play 路径明确确认。代理自行点击、Runner、MCP、旧人工记录或变更前的早期Play均不得代替。
 
-退出条件：控件矩阵每项 `realEntryClick=true`、`automationPassed=true`、用户确认的 `manualPassed=true`、`status=complete`；覆盖清单未覆盖ID为0；工作区无越界变更；模块才可标记 `migration-complete`。任一相关输入在用户确认后再次变化，自动撤销受影响的 `manualPassed` 和 G4-G6 结论。
+退出条件：控件矩阵的直接控件每项 `realEntryClick=true`，场景状态必须以 hard-gate v3 的 `scenarioStateControlIds/scenarioStateContracts` 显式登记、保持 `realEntryClick=false` 并映射到标准 batch `captureStates`；全部条目均须 `automationPassed=true`、用户确认的 `manualPassed=true`、`status=complete`。覆盖清单未覆盖ID为0、工作区无越界变更后，模块才可标记 `migration-complete`。任一相关输入在用户确认后再次变化，自动撤销受影响的 `manualPassed` 和 G4-G6 结论。
 
 ## 10. 状态口径
 
@@ -233,7 +233,7 @@ Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从
 
 ## 11. 控件矩阵固定字段
 
-`页面 | 控件路径 | 可见条件 | Cocos回调 | 协议/op | Unity绑定 | 成功反馈 | 失败反馈 | 重连结果 | Cocos证据 | Unity证据 | 自动结果 | 人工结果 | 状态`
+`条目类型（直接控件/场景状态） | 页面 | 控件路径或场景路径 | 可见条件 | Cocos回调 | 协议/op | Unity绑定 | 成功反馈 | 失败反馈 | 重连结果 | Cocos证据 | Unity证据 | 自动结果 | 人工结果 | 状态`
 
 Runner/文档门禁必须读取矩阵及其覆盖清单，验证分母来源、业务ID全量覆盖、真实点击、失败分支、完整事务、玩家可见反馈和用户人工验收。动态列表按正常、空、锁定、选中、禁用至少各验证一次。
 

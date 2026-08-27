@@ -14,6 +14,8 @@
     "standard": "docs/unityclient/MIGRATION_GUIDE.md",
     "controlMatrixRequired": true,
     "realEntryClickRequired": true,
+    "realEntryClickAppliesTo": "direct-control",
+    "scenarioStateVerification": "registered-batch-capture-state",
     "manualAcceptanceRequired": true,
     "requiredControlStatus": "complete"
   },
@@ -982,7 +984,7 @@
     {
       "key": "Gameplay",
       "displayName": "玩法大厅",
-      "status": "functional-complete-current-account-validated",
+      "status": "g2-passed-g3-startup-assets-pending",
       "protocols": [
         65
       ],

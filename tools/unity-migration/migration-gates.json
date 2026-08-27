@@ -67,24 +67,18 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
-      "note": "Gameplay must restart from current Cocos source and fresh 1334x750 native evidence; all historical screenshots, Runner results, hashes and visual-fixing markers are clues only.",
+      "note": "2026-08-27 current-worktree G1 Cocos evidence and input fingerprint were regenerated and G2 was re-audited. G3 standard batch is pending after startup-texture hydration failure. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/GAMEPLAY.md",
           "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
           ".local/unity-validation/gameplay-dirty-baseline.txt"
-        ],
-        "G1": [
-          "docs/unityclient/modules/GAMEPLAY.md",
-          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md",
-          ".local/unity-validation/gameplay-cocos-automation-ledger.json",
-          ".local/unity-validation/gameplay-cocos-config-fixture.json"
         ],
         "G4": [
           ".local/unity-validation/gameplay-fixed-account-latest.json",
@@ -115,15 +109,27 @@
           "tools/unity-migration/unityclient-modules.json",
           ".local/unity-validation/gameplay-retrospective-latest.json"
         ],
+        "G3": [
+          ".local/unity-validation/gameplay-fixed-account-data-preflight-latest.json",
+          "build/ui-migration/unity-gameplay-fixed-account.log",
+          ".local/unity-validation/gameplay-operation-ledger.json"
+        ],
+        "G1": [
+          ".local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md",
+          ".local/unity-validation/gameplay-cocos-automation-ledger.json",
+          ".local/unity-validation/gameplay-cocos-preflight-latest.json",
+          ".local/unity-validation/gameplay-cocos-identity-latest.json",
+          ".local/unity-validation/gameplay-cocos-baseline-latest.json",
+          ".local/unity-validation/gameplay-cocos-config-fixture.json",
+          ".local/unity-validation/gameplay-operation-ledger.json"
+        ],
         "G2": [
           "docs/unityclient/modules/GAMEPLAY.md",
-          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json"
-        ],
-        "G3": [
-          "build/ui-migration/unity-xunbao-validation.log"
+          "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
+          ".local/unity-validation/gameplay-cocos-baseline-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-23T12:04:52.0157295Z"
+      "updatedUtc": "2026-08-27T06:53:44.8576418Z"
     },
     {
       "module": "GameplayShops",

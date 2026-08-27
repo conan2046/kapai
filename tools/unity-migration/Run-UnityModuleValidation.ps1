@@ -215,7 +215,7 @@ function Assert-WorkspaceListener {
     $processName = if ($process) { "$($process.ProcessName).exe" } else { "unknown" }
     $pathMatchesWorkspace = $process -and $process.Path -match $rootPattern
     $workspaceMySql = $ExpectedName -eq "mysqld.exe" -and
-        (Test-Path -LiteralPath (Join-Path $root ".local\mysql-local.ini") -PathType Leaf)
+        (Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $listenerPid)
     if (-not $process -or $processName -ne $ExpectedName -or (-not $pathMatchesWorkspace -and -not $workspaceMySql)) {
         throw "Port $Port is occupied by a non-workspace process (pid=$listenerPid, name=$processName)."
     }

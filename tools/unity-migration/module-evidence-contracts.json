@@ -460,6 +460,9 @@
         "visualValidationFlags": [
           "-projectXGameplayValidation"
         ],
+        "g3ValidationFlags": [
+          "-projectXGameplayValidation"
+        ],
         "visualOnlyArtifacts": false,
         "reloginRequired": true,
         "extraFlags": [
@@ -542,6 +545,16 @@
         ]
       },
       "g5": {
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/Main/WanFaEntranceUI.lua",
+          "client/ProjectX/src/View/ImproveUI/LRedDotCheckMgr.lua",
+          "client/ProjectX/src/ConfigData/function_dat.lua",
+          "client/ProjectX/src/core/AppDef.lua",
+          "client/ProjectX/res/csd/shop/shop_bg.csb",
+          "client/ProjectX/res/csd/common/ActivityLayer.csb",
+          "tools/unity-migration/Invoke-GameplayCocosFixture.ps1"
+        ],
         "cocosDirectory": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
         "unityDirectory": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
         "compareDirectory": ".local/ui-fidelity/Gameplay/compare/g5-live-20260802",

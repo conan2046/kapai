@@ -44,6 +44,8 @@ $controlCount = 0
 if ($controlMatrix) {
     $controlCount = Assert-UnityMigrationControlMatrixDeclared -Root $root -ModuleKey ([string]$moduleConfig.key) `
         -Path $controlMatrix
+    Assert-UnityMigrationScenarioStateCoverage -Root $root -ModuleKey ([string]$moduleConfig.key) `
+        -Path $controlMatrix -Scenario $scenario | Out-Null
 }
 
 if ($Phase -eq "Preflight") {

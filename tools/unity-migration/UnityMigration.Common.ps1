@@ -1795,6 +1795,24 @@ function Assert-UnityMigrationGatePrerequisite {
     }
 }
 
+function Get-UnityMigrationControlVerificationKind {
+    param(
+        [Parameter(Mandatory = $true)]$Matrix,
+        [Parameter(Mandatory = $true)]$Control
+    )
+    $explicit = [string](Get-UnityMigrationPropertyValue -Object $Control -Name "verificationKind" -Default "")
+    $scenarioIds = @(Get-UnityMigrationPropertyValue -Object $Matrix -Name "scenarioStateControlIds" -Default @())
+    $listedAsScenario = [string]$Control.id -in @($scenarioIds | ForEach-Object { [string]$_ })
+    if ($explicit) {
+        if (($explicit -eq "scenario-state") -ne $listedAsScenario) {
+            throw "Control '$($Control.id)' verificationKind '$explicit' conflicts with scenarioStateControlIds."
+        }
+        return $explicit
+    }
+    if ($listedAsScenario) { return "scenario-state" }
+    return "direct-control"
+}
+
 function Assert-UnityMigrationControlMatrix {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -1809,6 +1827,8 @@ function Assert-UnityMigrationControlMatrix {
     $controls = @($matrix.controls)
     if ($controls.Count -eq 0) { throw "Control matrix has no controls: $Path" }
     $required = @("page", "path", "cocosCallback", "unityBinding", "successEvidence", "failureEvidence", "reconnectEvidence")
+    $hardGateVersion = [int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1)
+    $directControls = New-Object System.Collections.Generic.List[object]
     foreach ($control in $controls) {
         $id = [string](Get-UnityMigrationPropertyValue -Object $control -Name "id" -Default "<missing>")
         foreach ($field in $required) {
@@ -1816,10 +1836,28 @@ function Assert-UnityMigrationControlMatrix {
                 throw "Control '$id' has no $field in $Path"
             }
         }
-        foreach ($field in @("realEntryClick", "automationPassed", "manualPassed")) {
+        foreach ($field in @("automationPassed", "manualPassed")) {
             if (-not [bool](Get-UnityMigrationPropertyValue -Object $control -Name $field -Default $false)) {
                 throw "Control '$id' has not passed $field in $Path"
             }
+        }
+        $verificationKind = Get-UnityMigrationControlVerificationKind -Matrix $matrix -Control $control
+        if ($verificationKind -eq "direct-control") {
+            if (-not [bool](Get-UnityMigrationPropertyValue -Object $control -Name "realEntryClick" -Default $false)) {
+                throw "Control '$id' has not passed realEntryClick in $Path"
+            }
+            $directControls.Add($control)
+        }
+        elseif ($verificationKind -eq "scenario-state") {
+            if ($hardGateVersion -lt 3) {
+                throw "Control '$id' uses scenario-state before hard-gate v3 in $Path"
+            }
+            if ([bool](Get-UnityMigrationPropertyValue -Object $control -Name "realEntryClick" -Default $true)) {
+                throw "Scenario state '$id' must keep realEntryClick=false in $Path"
+            }
+        }
+        else {
+            throw "Control '$id' has invalid verificationKind '$verificationKind' in $Path"
         }
         $status = [string](Get-UnityMigrationPropertyValue -Object $control -Name "status" -Default "")
         if ($status -ne "complete" -and $status -notmatch 'passed$') {
@@ -1827,10 +1865,17 @@ function Assert-UnityMigrationControlMatrix {
         }
     }
 
-    $hardGateVersion = [int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1)
     if ($hardGateVersion -ge 2) {
         $audit = Get-UnityMigrationPropertyValue -Object $matrix -Name "g6Audit"
         if ($null -eq $audit) { throw "Hard-gate v2 matrix has no g6Audit: $Path" }
+        if ($hardGateVersion -ge 3) {
+            if (-not [bool](Get-UnityMigrationPropertyValue -Object $audit -Name "currentEvidence" -Default $false)) {
+                throw "Hard-gate v3 matrix has no current evidence confirmation: $Path"
+            }
+            if (-not [bool](Get-UnityMigrationPropertyValue -Object $audit -Name "manualAcceptanceCurrent" -Default $false)) {
+                throw "Hard-gate v3 matrix has no post-change user manual acceptance: $Path"
+            }
+        }
         if ([uint32](Get-UnityMigrationPropertyValue -Object $audit -Name "userId" -Default 0) -eq 0 -or
             [uint32](Get-UnityMigrationPropertyValue -Object $audit -Name "roleId" -Default 0) -eq 0) {
             throw "Hard-gate v2 matrix has no fixed userId/roleId: $Path"
@@ -1843,13 +1888,13 @@ function Assert-UnityMigrationControlMatrix {
                 throw "Hard-gate v2 matrix $field must be 0: $Path"
             }
         }
-        if ([int](Get-UnityMigrationPropertyValue -Object $audit -Name "automationScreenshotCount" -Default -1) -ne $controls.Count) {
-            throw "Hard-gate v2 matrix automationScreenshotCount must equal control count $($controls.Count): $Path"
+        if ([int](Get-UnityMigrationPropertyValue -Object $audit -Name "automationScreenshotCount" -Default -1) -ne $directControls.Count) {
+            throw "Hard-gate matrix automationScreenshotCount must equal direct-control count $($directControls.Count): $Path"
         }
 
         Add-Type -AssemblyName System.Drawing
         $seenEvidence = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-        foreach ($control in $controls) {
+        foreach ($control in $directControls) {
             $id = [string]$control.id
             foreach ($field in @("cocosEvidence", "unityEvidence")) {
                 $evidence = [string](Get-UnityMigrationPropertyValue -Object $control -Name $field -Default "")
@@ -1890,6 +1935,17 @@ function Assert-UnityMigrationControlMatrixDeclared {
     }
     $controls = @($matrix.controls)
     if ($controls.Count -eq 0) { throw "Control matrix has no controls: $Path" }
+    $hardGateVersion = [int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1)
+    $scenarioStateControlIds = @(Get-UnityMigrationPropertyValue -Object $matrix `
+        -Name "scenarioStateControlIds" -Default @())
+    if ($hardGateVersion -ge 3) {
+        if ($scenarioStateControlIds.Count -eq 0) {
+            throw "Hard-gate v3 matrix has no scenarioStateControlIds: $Path"
+        }
+        if (@($scenarioStateControlIds | Sort-Object -Unique).Count -ne $scenarioStateControlIds.Count) {
+            throw "Hard-gate v3 matrix has duplicate scenarioStateControlIds: $Path"
+        }
+    }
     $ids = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     $required = @("id", "page", "path", "cocosCallback", "unityBinding",
         "successEvidence", "failureEvidence", "reconnectEvidence")
@@ -1911,10 +1967,65 @@ function Assert-UnityMigrationControlMatrixDeclared {
                 }
             }
         }
+        $verificationKind = Get-UnityMigrationControlVerificationKind -Matrix $matrix -Control $control
+        if ($verificationKind -notin @("direct-control", "scenario-state")) {
+            throw "Control matrix entry '$($control.id)' has invalid verificationKind '$verificationKind' in $Path"
+        }
+        if ($verificationKind -eq "scenario-state") {
+            if ($hardGateVersion -lt 3) {
+                throw "Control matrix entry '$($control.id)' uses scenario-state before hard-gate v3 in $Path"
+            }
+            if ([bool](Get-UnityMigrationPropertyValue -Object $control -Name "realEntryClick" -Default $true)) {
+                throw "Scenario state '$($control.id)' must keep realEntryClick=false in $Path"
+            }
+        }
         $id = [string]$control.id
         if (-not $ids.Add($id)) { throw "Duplicate control id '$id' in $Path" }
     }
+    foreach ($scenarioId in $scenarioStateControlIds) {
+        if ([string]$scenarioId -notin @($controls | ForEach-Object { [string]$_.id })) {
+            throw "Hard-gate v3 scenarioStateControlIds references unknown control '$scenarioId' in $Path"
+        }
+    }
     return $controls.Count
+}
+
+function Assert-UnityMigrationScenarioStateCoverage {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$ModuleKey,
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Scenario
+    )
+    $matrix = (Import-UnityMigrationJson -Root $Root -Path $Path).Value
+    if ([int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1) -lt 3) {
+        return 0
+    }
+    $captureStates = @($Scenario.captureStates | ForEach-Object { [string]$_ })
+    $scenarioContracts = @(Get-UnityMigrationPropertyValue -Object $matrix -Name "scenarioStateContracts" -Default @())
+    $scenarioIds = @(Get-UnityMigrationPropertyValue -Object $matrix -Name "scenarioStateControlIds" -Default @())
+    if ($scenarioContracts.Count -ne $scenarioIds.Count) {
+        throw "Hard-gate v3 scenarioStateContracts count must equal scenarioStateControlIds count for module '$ModuleKey'."
+    }
+    $scenarioControls = @($matrix.controls | Where-Object {
+        (Get-UnityMigrationControlVerificationKind -Matrix $matrix -Control $_) -eq "scenario-state"
+    })
+    foreach ($control in $scenarioControls) {
+        $contracts = @($scenarioContracts | Where-Object { [string]$_.controlId -eq [string]$control.id })
+        if ($contracts.Count -ne 1) {
+            throw "Scenario state '$($control.id)' has no unique scenarioStateContracts entry for module '$ModuleKey'."
+        }
+        $states = @($contracts[0].captureStates)
+        if ($states.Count -eq 0 -or @($states | Where-Object { -not [string]$_ }).Count -gt 0) {
+            throw "Scenario state '$($control.id)' has no non-empty captureStates contract for module '$ModuleKey'."
+        }
+        foreach ($scenarioState in $states) {
+            if ([string]$scenarioState -notin $captureStates) {
+                throw "Scenario state '$($control.id)' references unregistered capture state '$scenarioState' for module '$ModuleKey'."
+            }
+        }
+    }
+    return $scenarioControls.Count
 }
 
 function Assert-UnityMigrationBootstrapContract {
@@ -2437,6 +2548,47 @@ function Get-UnityMigrationTcpListenerPid {
         }
     }
     return $null
+}
+
+function Get-UnityMigrationRuntimeRoots {
+    param([Parameter(Mandatory = $true)][string]$Root)
+    $resolvedRoot = [IO.Path]::GetFullPath($Root)
+    $roots = New-Object System.Collections.Generic.List[string]
+    $roots.Add($resolvedRoot)
+    $gitEntry = Join-Path $resolvedRoot ".git"
+    if (Test-Path -LiteralPath $gitEntry -PathType Leaf) {
+        $match = [regex]::Match((Get-Content -LiteralPath $gitEntry -Raw -Encoding UTF8), '(?im)^gitdir:\s*(.+?)\s*$')
+        if ($match.Success) {
+            $gitDir = [IO.Path]::GetFullPath($match.Groups[1].Value.Trim())
+            $marker = "{0}.git{0}worktrees{0}" -f [IO.Path]::DirectorySeparatorChar
+            $markerIndex = $gitDir.IndexOf($marker, [StringComparison]::OrdinalIgnoreCase)
+            if ($markerIndex -gt 0) {
+                $primaryRoot = [IO.Path]::GetFullPath($gitDir.Substring(0, $markerIndex))
+                if (-not $roots.Contains($primaryRoot)) { $roots.Add($primaryRoot) }
+            }
+        }
+    }
+    return @($roots)
+}
+
+function Test-UnityMigrationWorkspaceMySqlOwnership {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][int]$ProcessId
+    )
+    $process = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue
+    if (-not $process -or [string]$process.Name -ine "mysqld.exe" -or -not [string]$process.CommandLine) {
+        return $false
+    }
+    $normalizedCommandLine = ([string]$process.CommandLine).Replace('/', '\')
+    foreach ($runtimeRoot in @(Get-UnityMigrationRuntimeRoots -Root $Root)) {
+        $configPath = [IO.Path]::GetFullPath((Join-Path $runtimeRoot ".local\mysql-local.ini"))
+        if ((Test-Path -LiteralPath $configPath -PathType Leaf) -and
+            $normalizedCommandLine.IndexOf($configPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            return $true
+        }
+    }
+    return $false
 }
 
 function Get-UnityMigrationWorkspaceProcesses {

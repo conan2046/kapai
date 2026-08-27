@@ -6,6 +6,9 @@ $ErrorActionPreference = "Stop"
 $root = Get-UnityMigrationRoot
 $passed = 0
 $commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
+$gameplayFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-GameplayFixedAccountFixture.ps1") -Raw -Encoding UTF8
+$fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") -Raw -Encoding UTF8
+$moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") -Raw -Encoding UTF8
 
 function Assert-ToolchainTest {
     param(
@@ -99,6 +102,21 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($invalidFailures | Where-Object { $_ -like "*duplicate requirement ids*" }).Count -eq 1
 ) "Duplicate data requirement id was not rejected."
+Assert-ToolchainTest (
+    $gameplayFixtureSource.Contains('configMutationCount=0') -and
+    -not $gameplayFixtureSource.Contains('Set-PreserveLevelUserId') -and
+    -not $gameplayFixtureSource.Contains('server\config\config')
+) "Gameplay no-server fixture again mutates the protected C++ server config."
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "requiredHydratedRoots" -Default @()') -and
+    -not $fixedAccountRunnerSource.Contains('$fixed.requiredHydratedRoots | ForEach-Object')
+) "Fixed-account runner again requires optional requiredHydratedRoots and blocks modules without hydrated-root declarations."
+Assert-ToolchainTest (
+    $commonSource.Contains('function Get-UnityMigrationRuntimeRoots') -and
+    $commonSource.Contains('function Test-UnityMigrationWorkspaceMySqlOwnership') -and
+    $fixedAccountRunnerSource.Contains('Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $mysqlListenerPid') -and
+    $moduleRunnerSource.Contains('Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $listenerPid')
+) "Unity validation runners no longer recognize a command-line-proven workspace-local MySQL owned by the primary checkout from a Git worktree."
 
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
 $pythonExecutable = Get-UnityMigrationPythonExecutable
@@ -771,6 +789,42 @@ Assert-ToolchainTest (
     $hardGateSource.Contains('Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig -Scenario $scenario -Phase G3') -and
     $hardGateSource.Contains('Assert-UnityMigrationControlMatrix -Root $root -ModuleKey')
 ) "Hard-gate preflight no longer rejects stale G2/G3/G6 completion claims with weak workflow, source-audit or control contracts."
+$gameplayMatrix = (Import-UnityMigrationJson -Root $root `
+    -Path "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json").Value
+$gameplayEvidenceContract = @((Import-UnityMigrationJson -Root $root `
+    -Path "tools/unity-migration/module-evidence-contracts.json").Value.modules |
+    Where-Object { $_.module -eq "Gameplay" })[0]
+$gameplayScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "Gameplay"
+$gameplayScenarioControlCount = Assert-UnityMigrationScenarioStateCoverage -Root $root -ModuleKey "Gameplay" `
+    -Path "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json" -Scenario $gameplayScenario
+Assert-ToolchainTest (
+    [int]$gameplayMatrix.hardGateVersion -eq 3 -and
+    @($gameplayMatrix.controls | Where-Object {
+        (Get-UnityMigrationControlVerificationKind -Matrix $gameplayMatrix -Control $_) -eq 'direct-control'
+    }).Count -eq 8 -and
+    $gameplayScenarioControlCount -eq 5 -and
+    $commonSource.Contains('manualAcceptanceCurrent') -and
+    $commonSource.Contains('must keep realEntryClick=false') -and
+    @($gameplayMatrix.controls | Where-Object {
+        (Get-UnityMigrationControlVerificationKind -Matrix $gameplayMatrix -Control $_) -eq 'scenario-state' -and
+        $_.realEntryClick -ne $false
+    }).Count -eq 0
+) "Gameplay lifecycle/state entries again require fake realEntryClick=true or drifted from the registered batch capture-state contract."
+Assert-ToolchainTest (
+    @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags).Count -eq 1 -and
+    @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXGameplayValidation'
+) "Gameplay fixed-account contract no longer declares the canonical G3 runtime flag."
+$invalidScenarioState = [pscustomobject]@{ captureStates = @('registered-state') }
+$invalidScenarioRejected = $false
+try {
+    Assert-UnityMigrationScenarioStateCoverage -Root $root -ModuleKey "Gameplay" `
+        -Path "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json" -Scenario $invalidScenarioState | Out-Null
+}
+catch {
+    $invalidScenarioRejected = $_.Exception.Message -like "*references unregistered capture state*"
+}
+Assert-ToolchainTest $invalidScenarioRejected `
+    "Scenario-state verification no longer rejects capture states missing from the canonical batch scenario."
 Assert-ToolchainTest (
     (Get-UnityMigrationComputerUseRestartDisposition -ErrorMessage 'node_repl/js transport closed' `
         -Attempt 1 -RuntimeWasVerifiedStopped $true) -eq 'RetryOnceAfterVerifiedCleanup' -and

@@ -34,7 +34,7 @@
 | 福利 | `WELFARE.md` | `steam-excluded`；含在线奖励和体力领取 |
 | 活动 | `ACTIVITY.md` | `steam-excluded`；充值、排行榜及其他玩家数据活动整体排除 |
 | 神将招募 | `DRAW.md` | `G0-G5 retained / G6 audit missing`；当前控件矩阵缺硬门禁 v2 `g6Audit`，旧 LuckyDraw 排除 |
-| 玩法大厅 | `GAMEPLAY.md` | `G0 passed / G1-G6 pending`；Steam过滤后按5项/8控件重新取证，旧13项/16控件结果只作历史参考 |
+| 玩法大厅 | `GAMEPLAY.md` | `G0-G2 passed / G3-G6 pending`；hard-gate v3已区分8个直接控件与5个场景状态，当前检出已重取G1基线，G3待水合Unity启动资源后重跑 |
 | 七日目标 | `SEVEN_DAY.md` | `steam-excluded`；历史G0/G1诊断只留档 |
 | 决战昆仑 | `KUNLUN.md` | `steam-excluded`；依赖匹配对手数据 |
 | 血战到底 | `BLOOD_FIGHT.md` | `steam-excluded`；依赖全服排行榜数据 |

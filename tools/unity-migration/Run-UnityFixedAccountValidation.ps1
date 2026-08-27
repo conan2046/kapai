@@ -64,7 +64,8 @@ if ($contractFailures.Count -gt 0) {
     throw ($contractFailures -join [Environment]::NewLine)
 }
 $unhydratedLfsPointers = New-Object System.Collections.Generic.List[string]
-foreach ($requiredHydratedRoot in @($fixed.requiredHydratedRoots | ForEach-Object { [string]$_ })) {
+$requiredHydratedRoots = @(Get-UnityMigrationPropertyValue -Object $fixed -Name "requiredHydratedRoots" -Default @())
+foreach ($requiredHydratedRoot in @($requiredHydratedRoots | ForEach-Object { [string]$_ })) {
     $hydratedPath = Resolve-UnityMigrationPath -Root $root -Path $requiredHydratedRoot
     if (-not (Test-Path -LiteralPath $hydratedPath)) {
         throw "Required hydrated asset root is missing: $requiredHydratedRoot"
@@ -208,9 +209,7 @@ try {
         if ($dataBackend -eq "mysql") {
             $mysqlListenerPid = Get-UnityMigrationTcpListenerPid -Port 3306
             if ($null -ne $mysqlListenerPid) {
-                $mysqlProcess = Get-Process -Id $mysqlListenerPid -ErrorAction SilentlyContinue
-                if (-not $mysqlProcess -or $mysqlProcess.ProcessName -ne "mysqld" -or
-                    -not (Test-Path -LiteralPath (Join-Path $root ".local/mysql-local.ini") -PathType Leaf)) {
+                if (-not (Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $mysqlListenerPid)) {
                     throw "Port 3306 is not owned by the workspace-local MySQL process."
                 }
             }
