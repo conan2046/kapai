@@ -1,0 +1,35 @@
+# codebase-memory-mcp static-analysis pilot: source code only.
+# Runtime assets and generated evidence remain available to rg and the formal
+# migration toolchain, but do not add useful call-graph edges.
+/client/ProjectX/res/
+/client/ProjectX/src/ConfigData/
+/unityclient/Assets/ProjectX/res/
+/unityclient/Assets/ProjectX/Resources/
+/docs/unityclient/history/
+/server/config/dat/
+/server/config/xml/
+/server/src/rapidjson/
+/server/src/tinyxml/
+/tmp/
+/unityclient/Assets/XLua/
+
+*.prefab
+*.unity
+*.asset
+*.meta
+*.csb
+*.csd
+*.json
+*.xml
+*.sql
+*.md
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ttf
+*.otf
+*.wav
+*.mp3
+*.mp4
