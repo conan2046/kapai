@@ -404,6 +404,9 @@ Assert-ToolchainTest (
     $bagSqliteAdapterSource.Contains('for suffix in ("-wal", "-shm")') -and
     $bagSqliteAdapterSource.Contains('current["packageSha256"] != expected["packageSha256"]') -and
     $bagSqliteAdapterSource.Contains('FIXTURE_SPIRIT = 50') -and
+    $bagSqliteAdapterSource.Contains('while position < len(data):') -and
+    $bagSqliteAdapterSource.Contains('if len(records) >= 500:') -and
+    $bagSqliteAdapterSource.Contains('while len(records) < 500:') -and
     $bagSqliteAdapterSource.Contains('(1112, 2), (1111, 3), (1114, 3)') -and
     $bagSqliteAdapterSource.Contains('(3201, 1)') -and
     $bagCocosAdapterSource.Contains('@(1112, 2), @(1111, 3), @(1114, 3)') -and
@@ -794,6 +797,11 @@ $networkServiceSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Network/NetworkService.cs") -Raw -Encoding UTF8
 $playerHudTempActivitySource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Activity/TempActivityController.lua.txt") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")') -and
+    $projectXAppSource.Contains('?? UiPrefabLoader.Load("HeroEquipmentDetail", GetDynamicUiRoot());') -and
+    $projectXAppSource.Contains('capturingBagUseRewards = item.ItemType == 5 || item.ItemType == 6;')
+) "Bag lost its dynamic equipment-detail surface or post-open reward feedback for random/selectable boxes."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('public void SendUntracked(LegacyTcpMessage message)') -and
     $playerHudTempActivitySource.Contains('do not initiate /222 op4 or op89-91 from the Steam HUD') -and

@@ -2,7 +2,7 @@
 
 ## 2026-08-24 门禁重开
 
-- 当前状态：`G0-G5 passed / G6 final user confirmation pending / 0/26 manual complete`。
+- 当前状态：`G0-G3 passed / early user Play passed / G4-G6 pending / 0/26 current manual complete`。
 - 逃逸根因：旧G0只登记 `btn_Bag`、`/8`、`/15`，未把客户端 `type=5/use_type=2` 随机盒候选生成进业务分母。
 - 当前分母：23个客户端候选；仅510-514具备当前服务端通用闭包；对应80510-80514与4605-4644共40个最终碎片。其余18个候选均在 `BAG_COVERAGE.json` 内带产品证据排除。
 - Unity用户测试数据只使用 `Application.persistentDataPath/LocalServer/projectx.db`，固定身份 `userId=1 / roleId=1000001`；MySQL仅作离线对照。
@@ -10,11 +10,11 @@
 
 ## 当前结论
 
-- 当前门禁：`G0-G5 passed / G6 final user confirmation pending`；26项均已自动通过，但`manualPassed=false`，不得宣称complete。
-- 固定账号：`userId=7200057 / roleId=1000115`，Windows 100%，原生客户区 `1334×750`。
+- 当前门禁：`G0-G3 passed / early user Play passed / G4-G6 pending`。2026-08-27 已按当前输入重取16个Cocos状态、重验G2并完成标准SQLite batch G3；可选宝箱奖励弹窗反馈已修复并经用户复测通过，旧26项自动结果与`manualPassed`仍不得用于当前完成结论。
+- 固定账号：`userId=1 / roleId=1000001`，Windows 100%，原生客户区 `1334×750`。
 - 控件唯一事实：`docs/unityclient/matrices/BAG_CONTROLS.json`，共 26 项。
 - 2026-08-21 已按当前源码、入口、账号、夹具和 hard-gate v2 从 G0 逐门禁重验；旧 2026-07-27 Runner、构建 SHA 与完成结论仍只作问题追溯。
-- 当前源码提交基线：`6e968f1598249c541d3a908eb70c012434f2df53`；入口必须从 `Layer/Main_UI/ButtonGroup1/btn_Bag` 重新取证。
+- 当前G3源码合同指纹：`0C9A15C34B327E3B294FA7F03066764A009167DC037ECDEFB7871EF2BD1D7B95`；入口从 `Layer/Main_UI/ButtonGroup1/btn_Bag` 取证。
 
 ## 2026-08-21 数字输入回归
 
@@ -37,8 +37,8 @@
 - Cocos `/15` 增量处理会对新增或堆叠增加的物品触发 `ShowFlyItems`；Unity 原实现仅更新 `BagStore`，玩家无法确认随机盒实际产出。
 - 橙色盒 `512 → 80512 → 4621..4628`、红色盒 `513 → 80513 → 4629..4636` 的服务器配置完整；金色盒 514 原先缺少掉落匹配、等级奖励和权重池三段配置。
 - 当前补齐 `514 → 80514 → 4637..4644`，沿用同档八种攻防部位等权、单次数量 1 的现有连续规则。
-- Unity 仅在实际使用 `itemType=5` 随机盒后采集服务器 `/15` 正向背包增量，按 itemId 合并数量并显示“开启获得”；超过四种时，其余奖励以“道具名×数量”文本完整列出。禁止客户端预测或预发奖励。
-- 当前 JSON 结构、三档掉落闭包、Unity 编译与程序集重载已通过；512/513/514 实机使用、扣除、奖励和弹窗仍待本轮用户确认，因此受影响的 G4-G6 暂不沿用旧完成态。
+- Unity 在实际使用 `itemType=5` 随机盒或 `itemType=6` 可选宝箱后采集服务器 `/15` 正向背包增量，按 itemId 合并数量并显示“开启获得”；超过四种时，其余奖励以“道具名×数量”文本完整列出。禁止客户端预测或预发奖励。
+- 当前 JSON 结构、三档掉落闭包、Unity 编译与程序集重载已通过；2026-08-27 用户实测发现可选宝箱缺奖励材料弹窗，修复 `ItemType=6` 捕获条件后复测“OK，通过”。该确认只关闭G3早测阻塞项，G4-G6仍按当前输入重新执行。
 
 ## 范围
 
@@ -129,9 +129,9 @@ Unity 边界：
 - G5：按 G1 冻结的 10 个代表性视觉状态采集同账号同数据 Unity 原图，生成逐状态并排、50%叠加、增强差异，并对矩阵 26 个控件逐项人工验收。
 - G6：矩阵 26/26 的 `realEntryClick/automationPassed/manualPassed/status` 全部达标；真实入口 Runner、严重异常、16/16 Python UI、两次正式 `BuildBatch` 幂等、文档与 Git 范围检查通过。
 
-## 2026-08-24 当前门禁
+## 2026-08-24 历史门禁（2026-08-27 已失效）
 
-- G0-G2：当前分母、512/513/514 Cocos逐盒状态、三方源码闭包与运行时Transform审计已通过；旧随机盒逃逸结论已撤销。
+- G0分母仍保留；以下G1-G5记录因证据生成后的输入变化只作诊断，必须从当前G1串行重验。
 - G3：标准 `Run-UnityFixedAccountValidation.ps1 -Module Bag -G3RuntimeOnly` batch通过；固定账号`1/1000001`，原生`1334×750`，28项、28按钮、26控件绑定、3/3滚动与奖励弹窗生命周期通过。证据：`.local/unity-validation/bag-g3-runtime-latest.json`。
 - G3实现未改任何Prefab；已删除 `RewardPresenter` 对导入 `ItemList` 的运行时anchor/pivot/anchoredPosition覆盖，用户布局保持资源原值。
 - 早期真人Play：`.local/unity-validation/bag-early-user-play-latest.json`记录`userParticipated=true`、反馈“通过”；该记录仅满足G3早测，不替代G6最终确认。
@@ -174,5 +174,5 @@ Unity 边界：
 
 ## 当前收口
 
-- 本模块 G0-G6 已完成；后续若 Cocos/Unity 源码、资源、固定身份、夹具、步骤、分辨率或稳定帧输入变化，按门禁输入哈希只失效并重验受影响阶段。
-- 下一任务重新从 `UNITYCLIENT_STATUS.md` 选择模块执行 G0；不得把本模块证据外推为其他模块完成证明。
+- 本模块当前G0-G3及早期真人Play通过。G1已按当前固定身份和夹具冻结16个Cocos状态；G2三方闭包通过；G3标准SQLite batch完成26控件、3/3滚动、协议8及精确恢复，工具链222/222；可选宝箱奖励弹窗阻塞项已修复并由用户复测通过。
+- 下一步只处理Bag：进入当前标准G4，再执行当前G5及最终G6真人确认。不得把本轮早测或旧G5代理审图改写为G6用户最终确认。

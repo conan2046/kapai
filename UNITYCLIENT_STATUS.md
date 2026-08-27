@@ -22,7 +22,7 @@
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
 | 主界面 HUD | `G0-G6 passed / fixed account revalidated` | 固定账号与隔离账号均为99级全解锁；当前编译、只读权威显示、断线重连、切号隔离、重登归一化哈希、精确恢复与历史11组双端视觉证据通过 | 当前模块收口；Steam排除的聊天/商业入口继续保持隐藏 |
-| 背包 | `G0-G5 passed / G6 final user confirmation pending / 26 controls frozen` | 早期真人Play已通过；标准batch G4完成26控件、18语义、1111×3使用2后剩1且4621增加2、512/513/514真实扣除/奖励/完整弹窗及SQLite精确恢复。中央G5为16/16当前证据，09:52逐图验收权威是来源任务主代理，记`agentAccepted=true/userParticipated=false`；三奖励弹窗为已登记intentional delta；Prefab diff=0 | 仅待最后相关变更后的用户从真实Play路径最终确认；此前不得设置`manualPassed`、不得通过G6或进入培养B |
+| 背包 | `G0-G3 passed / early user Play passed / G4-G6 pending / 26 controls frozen` | 2026-08-27 当前固定身份`1/1000001`完成16个Cocos状态、G2闭包及标准SQLite batch G3；修复497条旧包尾兼容、装备详情动态装配及`ItemType=6`可选宝箱“开启获得”材料弹窗，工具链222/222；用户早期Play复测通过 | 进入当前标准G4；旧早测/G4/G5/G6不得复用，G6仍需最后相关变更后的用户最终确认 |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0-G6 passed / 16/16 complete` | 固定账号7200057全解锁；Cocos/Unity各16/16原图、并排/叠加/差异、真实Button自动链和人工视觉均16/16通过；14项硬缺陷已修复 | 当前模块收口；生成HANDOFF后另开任务再选下一模块 |
 | 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |

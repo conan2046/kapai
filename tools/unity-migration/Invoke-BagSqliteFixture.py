@@ -35,7 +35,10 @@ def parse_package(value):
     data = zlib.decompress(bytes.fromhex(value))
     position = 0
     records = []
-    for slot in range(500):
+    while position < len(data):
+        if len(records) >= 500:
+            raise RuntimeError("Bag package contains more than 500 slots")
+        slot = len(records)
         if position + 2 > len(data):
             raise RuntimeError(f"Bag package truncated at slot {slot}")
         item_id = struct.unpack_from("<H", data, position)[0]
@@ -47,8 +50,10 @@ def parse_package(value):
             quantity = struct.unpack_from("<H", data, position)[0]
             position += 2
         records.append((item_id, quantity))
-    if position != len(data):
-        raise RuntimeError("Bag package has trailing bytes")
+    # The local server zero-fills its 500-slot buffer before loading older
+    # shorter payloads, so an omitted tail is semantically a run of empty slots.
+    while len(records) < 500:
+        records.append((0, 0))
     return records
 
 

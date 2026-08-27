@@ -4305,7 +4305,11 @@ namespace ProjectX.Core
                 bagUseRewardRoutine = null;
             }
             pendingBagUseRewards.Clear();
-            capturingBagUseRewards = item.ItemType == 5;
+            // Both random equipment boxes (type 5) and selectable gift boxes
+            // (type 6) produce authoritative /15 additions that need visible
+            // post-open feedback. Other direct-use items keep their existing
+            // lightweight update behavior.
+            capturingBagUseRewards = item.ItemType == 5 || item.ItemType == 6;
             lastBagUseRewardAt = Time.realtimeSinceStartup;
             bagUseRewardCaptureUntil = lastBagUseRewardAt + 8.5f;
         }
@@ -10293,7 +10297,8 @@ namespace ProjectX.Core
             bagPopupFrameView = bagPopupFrameView ?? services.UiRouter.FindBySource("shop/shop_bg");
             bagGiftView = bagGiftView ?? services.UiRouter.FindBySource("common/OpenBox_1Layer");
             bagSourceView = bagSourceView ?? services.UiRouter.FindBySource("common/huoqutujing");
-            bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
+            bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")
+                ?? UiPrefabLoader.Load("HeroEquipmentDetail", GetDynamicUiRoot());
             if (bagView == null || bagFrameView == null || bagInputView == null || bagPopupFrameView == null
                 || bagGiftView == null || bagSourceView == null || bagEquipmentInfoView == null)
                 throw new InvalidOperationException("Bag required CocosUiBinding was not found.");
