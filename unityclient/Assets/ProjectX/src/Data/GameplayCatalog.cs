@@ -16,6 +16,7 @@ namespace ProjectX.Data
         [JsonProperty("icon")] public string Icon { get; set; }
         [JsonProperty("description")] public string Description { get; set; }
         [JsonProperty("steamEnabled")] public bool? SteamEnabled { get; set; }
+        [JsonProperty("migrationReady")] public bool? MigrationReady { get; set; }
     }
 
     public sealed class GameplayCatalog
@@ -27,7 +28,8 @@ namespace ProjectX.Data
             TextAsset asset = Resources.Load<TextAsset>("Configs/gameplay");
             if (asset == null) throw new InvalidOperationException("Gameplay config is missing: Resources/Configs/gameplay.json");
             items = (JsonConvert.DeserializeObject<GameplayDefinition[]>(asset.text) ?? Array.Empty<GameplayDefinition>())
-                .Where(value => value != null && value.Id < 999 && value.Page != 0 && value.SteamEnabled != false)
+                .Where(value => value != null && value.Id < 999 && value.Page != 0
+                    && value.SteamEnabled != false && value.MigrationReady != false)
                 .OrderBy(value => value.Id)
                 .ToList();
             ClientLog.Info("Config", "Loaded Configs/gameplay", $"{items.Count} records");

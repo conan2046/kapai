@@ -64,7 +64,15 @@ if ($contractFailures.Count -gt 0) {
     throw ($contractFailures -join [Environment]::NewLine)
 }
 $unhydratedLfsPointers = New-Object System.Collections.Generic.List[string]
-$requiredHydratedRoots = @(Get-UnityMigrationPropertyValue -Object $fixed -Name "requiredHydratedRoots" -Default @())
+$requiredHydratedFiles = New-Object System.Collections.Generic.List[System.IO.FileInfo]
+$requiredHydratedFilePaths = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+$fixedAccountDefaults = Get-UnityMigrationPropertyValue -Object $contracts -Name "fixedAccountDefaults" -Default $null
+$globalRequiredHydratedRoots = @(Get-UnityMigrationPropertyValue `
+    -Object $fixedAccountDefaults -Name "requiredHydratedRoots" -Default @())
+$moduleRequiredHydratedRoots = @(Get-UnityMigrationPropertyValue `
+    -Object $fixed -Name "requiredHydratedRoots" -Default @())
+$requiredHydratedRoots = @($globalRequiredHydratedRoots + $moduleRequiredHydratedRoots |
+    ForEach-Object { [string]$_ } | Where-Object { $_ } | Sort-Object -Unique)
 foreach ($requiredHydratedRoot in @($requiredHydratedRoots | ForEach-Object { [string]$_ })) {
     $hydratedPath = Resolve-UnityMigrationPath -Root $root -Path $requiredHydratedRoot
     if (-not (Test-Path -LiteralPath $hydratedPath)) {
@@ -74,14 +82,59 @@ foreach ($requiredHydratedRoot in @($requiredHydratedRoots | ForEach-Object { [s
         @(Get-Item -LiteralPath $hydratedPath)
     } else {
         @(Get-ChildItem -LiteralPath $hydratedPath -Recurse -File |
-            Where-Object { $_.Extension -in @('.png', '.jpg', '.jpeg') })
+            Where-Object { $_.Extension -in @('.png', '.jpg', '.jpeg', '.ttf', '.otf') })
     }
     foreach ($hydratedFile in $hydratedFiles) {
-        if ($hydratedFile.Length -le 512 -and
-            (Get-Content -LiteralPath $hydratedFile.FullName -Encoding ASCII -TotalCount 1) `
-                -eq 'version https://git-lfs.github.com/spec/v1') {
-            $unhydratedLfsPointers.Add($hydratedFile.FullName)
+        if ($requiredHydratedFilePaths.Add($hydratedFile.FullName)) {
+            $requiredHydratedFiles.Add($hydratedFile)
         }
+    }
+}
+$requiredHydratedUiDocuments = @(Get-UnityMigrationPropertyValue `
+    -Object $fixed -Name "requiredHydratedUiDocuments" -Default @())
+function Get-FixedUiDocumentAssetPaths {
+    param([object]$Node)
+    $fontAssetPath = [string](Get-UnityMigrationPropertyValue -Object $Node -Name "fontAssetPath" -Default "")
+    if ($fontAssetPath -and [IO.Path]::GetExtension($fontAssetPath) -in @('.ttf', '.otf')) {
+        $fontAssetPath
+    }
+    foreach ($resource in @(Get-UnityMigrationPropertyValue -Object $Node -Name "resources" -Default @())) {
+        $assetPath = [string](Get-UnityMigrationPropertyValue -Object $resource -Name "assetPath" -Default "")
+        if ($assetPath -and [IO.Path]::GetExtension($assetPath) -in @('.png', '.jpg', '.jpeg', '.ttf', '.otf')) {
+            $assetPath
+        }
+    }
+    foreach ($child in @(Get-UnityMigrationPropertyValue -Object $Node -Name "children" -Default @())) {
+        Get-FixedUiDocumentAssetPaths -Node $child
+    }
+}
+foreach ($requiredHydratedUiDocument in @($requiredHydratedUiDocuments | ForEach-Object { [string]$_ })) {
+    $documentPath = Resolve-UnityMigrationPath -Root $root -Path $requiredHydratedUiDocument
+    if (-not (Test-Path -LiteralPath $documentPath -PathType Leaf)) {
+        throw "Required hydrated UI document is missing: $requiredHydratedUiDocument"
+    }
+    $document = Get-Content -Raw -LiteralPath $documentPath -Encoding UTF8 | ConvertFrom-Json
+    foreach ($unityAssetPath in @(Get-FixedUiDocumentAssetPaths -Node $document.root | Sort-Object -Unique)) {
+        $repoAssetPath = if ($unityAssetPath.StartsWith('Assets/', [StringComparison]::OrdinalIgnoreCase)) {
+            "unityclient/$unityAssetPath"
+        } else {
+            $unityAssetPath
+        }
+        $hydratedPath = Resolve-UnityMigrationPath -Root $root -Path $repoAssetPath
+        if (-not (Test-Path -LiteralPath $hydratedPath -PathType Leaf)) {
+            throw "Required UI document asset is missing: document=$requiredHydratedUiDocument asset=$unityAssetPath"
+        }
+        $hydratedFile = Get-Item -LiteralPath $hydratedPath
+        if ($requiredHydratedFilePaths.Add($hydratedFile.FullName)) {
+            $requiredHydratedFiles.Add($hydratedFile)
+        }
+    }
+}
+foreach ($hydratedFile in $requiredHydratedFiles) {
+    if ($hydratedFile.Length -le 512 -and
+        (Get-Content -LiteralPath $hydratedFile.FullName -Encoding ASCII -TotalCount 1) `
+            -eq 'version https://git-lfs.github.com/spec/v1') {
+        $unhydratedLfsPointers.Add($hydratedFile.FullName)
     }
 }
 if ($unhydratedLfsPointers.Count -gt 0) {

@@ -1,5 +1,12 @@
 {
   "schemaVersion": 2,
+  "steamProgressPolicy": {
+    "denominator": 17,
+    "nonDenominatorSubmodules": [
+      "HeroCultivation",
+      "EnhanceMaster"
+    ]
+  },
   "visualFidelityPolicy": {
     "standard": "docs/unityclient/MIGRATION_GUIDE.md",
     "legacyPhase1MeansLogicOnly": true,
@@ -287,7 +294,7 @@
     {
       "key": "PlayerHud",
       "displayName": "主界面 HUD",
-      "status": "functional-complete-current-account-validated",
+      "status": "g6-complete",
       "protocols": [
         18,
         26,
@@ -337,6 +344,20 @@
         "-projectXPlayerHudValidation"
       ],
       "screenshots": [],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/PlayerHud/cocos/g1-20260801/01-fixed-first-entry-native.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/PlayerHud/unity/g5-20260801/PLAYERHUD-FIRST-ENTRY.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json"
+        ],
+        "flowEvidence": ".local/unity-validation/playerhud-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json"
+      },
       "document": "docs/unityclient/modules/PLAYERHUD.md",
       "controlMatrix": "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json"
     },
@@ -456,7 +477,7 @@
     {
       "key": "HeroEquip",
       "displayName": "装备（法宝边界回归）",
-      "status": "g0-passed-g1-refine-recapture-pending",
+      "status": "g2-passed-g3-early-user-play-pending",
       "protocols": [
         319,
         70,
@@ -935,7 +956,7 @@
     {
       "key": "Draw",
       "displayName": "神将招募",
-      "status": "g6-complete",
+      "status": "g5-passed-g6-evidence-missing",
       "protocols": [
         224
       ],
@@ -984,7 +1005,7 @@
     {
       "key": "Gameplay",
       "displayName": "玩法大厅",
-      "status": "g2-passed-g3-startup-assets-pending",
+      "status": "g3-passed-early-user-play-fix-retest-pending",
       "protocols": [
         65
       ],
@@ -1061,7 +1082,7 @@
     {
       "key": "YouLi",
       "displayName": "游历三界",
-      "status": "g6-complete",
+      "status": "g0-passed-g1-evidence-missing",
       "protocols": [
         335
       ],
@@ -1088,7 +1109,7 @@
         "build/ui-migration/bootstrap-youli.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "pending-cocos-baseline",
         "cocosScreenshots": [
           ".local/ui-fidelity/YouLi/cocos/g5/YOULI-MAIN.png"
         ],
@@ -1155,7 +1176,7 @@
     {
       "key": "Arena",
       "displayName": "竞技场",
-      "status": "logic-validated-visual-pending",
+      "status": "g0-evidence-missing",
       "protocols": [
         161
       ],
@@ -1272,7 +1293,7 @@
     {
       "key": "XunBao",
       "displayName": "法宝搜索",
-      "status": "g6-complete",
+      "status": "g0-passed-g1-evidence-missing",
       "protocols": [
         319
       ],
@@ -1295,7 +1316,7 @@
       ],
       "controlMatrix": "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
       "visualFidelity": {
-        "status": "passed",
+        "status": "pending-cocos-baseline",
         "cocosScreenshots": [
           ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-MAIN.png"
         ],
@@ -1466,7 +1487,7 @@
     {
       "key": "EnhanceMaster",
       "displayName": "强化大师",
-      "status": "scaffolded",
+      "status": "g3-passed-early-user-play-pending",
       "protocols": [
         8,
         15,

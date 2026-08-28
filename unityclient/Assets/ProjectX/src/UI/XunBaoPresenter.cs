@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ProjectX.Data;
 using ProjectX.Core;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace ProjectX.UI
         private readonly ResourceService resources;
         private readonly Image treasureIcon;
         private readonly Text runtimeDescription;
+        private readonly List<GameObject> treasureCards = new List<GameObject>();
         private readonly Action<ushort, ushort> search;
         private readonly Action<ushort, byte> searchAll;
         private readonly Action<ushort> compose;
@@ -89,6 +91,12 @@ namespace ProjectX.UI
             if (runtimeDescription != null)
                 runtimeDescription.text = $"基础属性\n攻击：  {(selected == 0 ? "+400" : "+1200")}\n\n每级强化\n攻击：  {(selected == 0 ? "+40" : "+120")}\n\n每级精炼\n攻击：  {(selected == 0 ? "+80" : "+240")}\n命中：  {(selected == 0 ? "+20" : "+60")}\n\n装备描述\n{Descriptions[selected]}";
             if (!string.IsNullOrWhiteSpace(store.LastMessage)) recovery.text = store.LastMessage;
+            for (int index = 0; index < treasureCards.Count; index++)
+            {
+                Image cardIcon = treasureCards[index]?.transform.Find("Big/Icon")?.GetComponent<Image>();
+                if (cardIcon != null)
+                    cardIcon.color = index == selected ? Color.white : new Color(.58f, .58f, .58f, 1f);
+            }
         }
 
         private static string FormatTime(uint seconds) => $"{seconds / 3600:00}:{seconds % 3600 / 60:00}:{seconds % 60:00}";
@@ -103,9 +111,21 @@ namespace ProjectX.UI
 
         private void BindActions(Transform root)
         {
-            BindAction(root, "Xunbao/Btn_1", () => searchAll(Treasures[selected], 0));
-            BindAction(root, "Xunbao/Btn_2", () => compose(Treasures[selected]));
-            BindAction(root, "Xunbao/Btn_3", composeAll);
+            BindActionWithHitTarget(root, "Xunbao/Btn_1", () =>
+            {
+                store.SetOperationResult(false, "正在一键寻宝…");
+                searchAll(Treasures[selected], 0);
+            });
+            BindActionWithHitTarget(root, "Xunbao/Btn_2", () =>
+            {
+                store.SetOperationResult(false, "正在合成法宝…");
+                compose(Treasures[selected]);
+            });
+            BindActionWithHitTarget(root, "Xunbao/Btn_3", () =>
+            {
+                store.SetOperationResult(false, "正在一键合成…");
+                composeAll();
+            });
             BindAction(root, "Xunbao/Panel/Button_L", () => Select(-1));
             BindAction(root, "Xunbao/Panel/Button_R", () => Select(1));
             BindAction(root, "Panel/XunbaoBg/TimesBg/AddBtn", () => store.SetOperationResult(false, "搜索次数可随时间恢复或使用搜宝令补充"));
@@ -121,6 +141,29 @@ namespace ProjectX.UI
         private void BindAction(Transform root, string path, Action action)
         {
             if (Bind(root, path, action)) ActionBindingCount++;
+        }
+
+        private void BindActionWithHitTarget(Transform root, string path, Action action)
+        {
+            Transform target = root.Find(path);
+            if (target == null) return;
+            BindAction(root, path, action);
+            Transform existing = target.Find("RuntimeActionHit");
+            if (existing != null) UnityEngine.Object.Destroy(existing.gameObject);
+            GameObject hit = new GameObject("RuntimeActionHit", typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            RectTransform rect = hit.GetComponent<RectTransform>();
+            rect.SetParent(target, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = hit.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, .01f);
+            Button button = hit.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(() => action());
+            hit.transform.SetAsLastSibling();
         }
 
         private void Select(int delta)
@@ -148,10 +191,22 @@ namespace ProjectX.UI
                 int index = i;
                 GameObject card = UnityEngine.Object.Instantiate(template.gameObject, hostRect, false);
                 card.name = $"Treasure_{i + 1}"; card.SetActive(true);
+                treasureCards.Add(card);
                 Image icon = card.transform.Find("Big/Icon")?.GetComponent<Image>();
                 if (icon != null) { icon.sprite = resources.LoadFaBaoIcon(Pictures[i], out _); icon.preserveAspect = true; icon.color = Color.white; }
                 SetText(card.transform, "Big/Name", Names[i]);
                 Bind(card.transform, "Big", () => { selected = index; Render(); });
+                GameObject hit = new GameObject("RuntimeSelectHit", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Image), typeof(Button));
+                RectTransform hitRect = hit.GetComponent<RectTransform>();
+                hitRect.SetParent(card.transform, false);
+                hitRect.anchorMin = Vector2.zero; hitRect.anchorMax = Vector2.one;
+                hitRect.offsetMin = Vector2.zero; hitRect.offsetMax = Vector2.zero;
+                Image hitImage = hit.GetComponent<Image>();
+                hitImage.color = new Color(1f, 1f, 1f, .01f);
+                Button hitButton = hit.GetComponent<Button>();
+                hitButton.targetGraphic = hitImage;
+                hitButton.onClick.AddListener(() => { selected = index; Render(); });
             }
         }
 

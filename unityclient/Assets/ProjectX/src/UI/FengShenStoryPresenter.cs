@@ -41,6 +41,7 @@ namespace ProjectX.UI
         private readonly Button openedBoxButton;
         private readonly List<Button> rewardIconButtons = new List<Button>();
         private readonly Dictionary<int, Button> sourceRouteButtons = new Dictionary<int, Button>();
+        private readonly Dictionary<int, Button> stageHitButtons = new Dictionary<int, Button>();
         private GameObject modal;
         private Button modalCloseButton;
         private Button sourceIconButton;
@@ -48,12 +49,13 @@ namespace ProjectX.UI
         private readonly ImodAnimationPlayer enemyModel;
         private readonly Image enemyFallback;
         private GameObject rewardRuntimeRow;
+        private GameObject commonHeader;
         private int popupStageId;
 
         public FengShenStoryPresenter(CocosUiView view, CocosUiView levelView, FengShenStoryStore store,
             ResourceService resources, GameErrorPresenter errorPresenter,
             CocosUiView itemSourceView, CocosUiView rewardView,
-            Action close, Action challenge, Action formation, Action<int> routeBoundary)
+            GameObject commonHeaderTemplate, Action close, Action challenge, Action formation, Action<int> routeBoundary)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.levelView = levelView ?? throw new ArgumentNullException(nameof(levelView));
@@ -70,6 +72,7 @@ namespace ProjectX.UI
             Normalize(view.GameObject.transform);
             Normalize(levelView.GameObject.transform);
             Transform root = view.GameObject.transform;
+            InstallCommonHeader(commonHeaderTemplate);
             SetVisible(root.Find("Panel_1"), true);
             SetVisible(root.Find("Panel_2"), true);
             remaining = RequireText(root, "Panel_1/today/num");
@@ -88,6 +91,7 @@ namespace ProjectX.UI
             closedBoxButton = Bind(root, "Panel_1/Box1/Button1", () => ShowRewardPreview(false));
             openedBoxButton = Bind(root, "Panel_1/Box1/Button", () => ShowRewardPreview(true));
             BindStageButtons(root);
+            InstallStageHitTargets(root);
 
             Transform levelRoot = levelView.GameObject.transform;
             levelCloseButton = Bind(levelRoot, "Popup/Btn_close", () => CloseLevelPopup());
@@ -118,6 +122,7 @@ namespace ProjectX.UI
         {
             store.Changed -= Render;
             if (modal != null) UnityEngine.Object.Destroy(modal);
+            if (commonHeader != null) UnityEngine.Object.Destroy(commonHeader);
         }
 
         public bool SelectChapter(int selectedChapter) => store.SelectChapter(selectedChapter);
@@ -126,24 +131,46 @@ namespace ProjectX.UI
         public bool InvokeLeft() { leftButton.onClick.Invoke(); return true; }
         public bool InvokeRight() { rightButton.onClick.Invoke(); return true; }
         public bool InvokeClose() { close(); return true; }
+
+        private void InstallCommonHeader(GameObject template)
+        {
+            if (template == null)
+                throw new InvalidOperationException("FengShenStory shared FirstClassBg title template was not found.");
+            commonHeader = UnityEngine.Object.Instantiate(template, view.GameObject.transform, false);
+            commonHeader.name = "RuntimeFengShenStoryFirstClassHeader";
+            commonHeader.SetActive(true);
+            commonHeader.transform.SetAsLastSibling();
+            Text title = commonHeader.transform.Find("TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "封神列传";
+            Button closeButton = commonHeader.transform.Find("CloseBtn")?.GetComponent<Button>();
+            if (closeButton == null)
+                throw new InvalidOperationException("FengShenStory shared FirstClassBg close button was not found.");
+            closeButton.interactable = true;
+            closeButton.onClick.RemoveAllListeners();
+            closeButton.onClick.AddListener(() => close());
+            Button helpButton = commonHeader.transform.Find("TitleName/Button_1")?.GetComponent<Button>();
+            if (helpButton != null)
+            {
+                helpButton.gameObject.SetActive(true);
+                helpButton.interactable = true;
+                helpButton.onClick.RemoveAllListeners();
+                helpButton.onClick.AddListener(ShowHelp);
+            }
+        }
         public bool InvokeChapter(int chapterId)
         {
             GameObject cell = chapterCells.FirstOrDefault(value => value != null && value.name == $"chapter_{chapterId}");
             return cell != null && InvokeVisible(cell.GetComponent<Button>());
         }
 
+        public Button GetStageControl(int level) => stageHitButtons.TryGetValue(level, out Button button)
+            ? button
+            : null;
+
         public bool InvokeStage(int level)
         {
             if (level < 1 || level > 4) return false;
-            Transform panel = view.GameObject.transform.Find("Panel_1");
-            if (panel == null) return false;
-            for (int variant = 1; variant <= 3; variant++)
-            {
-                Transform node = panel.Find($"chapter_{level}{variant}");
-                if (node != null && node.gameObject.activeInHierarchy)
-                    return InvokeVisible(node.GetComponent<Button>());
-            }
-            return false;
+            return stageHitButtons.TryGetValue(level, out Button button) && InvokeVisible(button);
         }
 
         public bool ShowLevelPopup(int stageId)
@@ -338,6 +365,7 @@ namespace ProjectX.UI
                         icon.preserveAspect = true;
                         icon.color = state == FengShenStageState.Locked ? Color.gray : Color.white;
                     }
+                    PositionStageHitTarget(level, node);
                 }
             }
         }
@@ -409,8 +437,53 @@ namespace ProjectX.UI
                 Button button = node.GetComponent<Button>() ?? node.gameObject.AddComponent<Button>();
                 button.targetGraphic = node.GetComponent<Graphic>();
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => ShowLevelPopup(store.SelectedChapter * 10 + capturedLevel));
+                button.onClick.AddListener(() => HandleStageClick(capturedLevel));
             }
+        }
+
+        private void InstallStageHitTargets(Transform root)
+        {
+            for (int level = 1; level <= 4; level++)
+            {
+                Transform existing = root.Find($"RuntimeFengShenStageHit_{level}");
+                if (existing != null) UnityEngine.Object.DestroyImmediate(existing.gameObject);
+                GameObject hit = new GameObject($"RuntimeFengShenStageHit_{level}", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Image), typeof(Button));
+                RectTransform rect = hit.GetComponent<RectTransform>();
+                rect.SetParent(root, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
+                Image image = hit.GetComponent<Image>();
+                image.color = new Color(1f, 1f, 1f, .01f);
+                Button button = hit.GetComponent<Button>();
+                button.targetGraphic = image;
+                int capturedLevel = level;
+                button.onClick.AddListener(() => HandleStageClick(capturedLevel));
+                stageHitButtons[level] = button;
+                hit.transform.SetAsLastSibling();
+            }
+        }
+
+        private void PositionStageHitTarget(int level, Transform node)
+        {
+            if (!stageHitButtons.TryGetValue(level, out Button button)) return;
+            RectTransform rect = button.transform as RectTransform;
+            if (rect == null) return;
+            Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(view.GameObject.transform, node);
+            rect.anchoredPosition = bounds.center;
+            rect.sizeDelta = new Vector2(Mathf.Max(140f, bounds.size.x), Mathf.Max(140f, bounds.size.y));
+            button.gameObject.SetActive(node.gameObject.activeInHierarchy);
+            button.transform.SetAsLastSibling();
+        }
+
+        private bool HandleStageClick(int level)
+        {
+            FengShenStageState state = store.GetStageState(store.SelectedChapter, level);
+            if (state == FengShenStageState.Locked)
+            {
+                errorPresenter.Show("提示", "该关卡尚未解锁，请先通关前一关。");
+                return true;
+            }
+            return ShowLevelPopup(store.SelectedChapter * 10 + level);
         }
 
         private void OnFightClicked()

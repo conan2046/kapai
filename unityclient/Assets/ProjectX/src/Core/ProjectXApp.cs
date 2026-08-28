@@ -151,6 +151,7 @@ namespace ProjectX.Core
         private LuaFunction onSharedGameplayHotPointRefresh;
         private LuaFunction onYouLiClicked;
         private LuaFunction onYouLiStart;
+        private LuaFunction onYouLiStartBatch;
         private LuaFunction onYouLiClaim;
         private LuaFunction onFengShenStoryClicked;
         private LuaFunction onFengShenStoryChallengeClicked;
@@ -847,6 +848,7 @@ namespace ProjectX.Core
                 onSharedGameplayHotPointRefresh = services.Lua.GetFunction("OnSharedGameplayHotPointRefresh");
                 onYouLiClicked = services.Lua.GetFunction("OnYouLiClicked");
                 onYouLiStart = services.Lua.GetFunction("OnYouLiStart");
+                onYouLiStartBatch = services.Lua.GetFunction("OnYouLiStartBatch");
                 onYouLiClaim = services.Lua.GetFunction("OnYouLiClaim");
                 onFengShenStoryClicked = services.Lua.GetFunction("OnFengShenStoryClicked");
                 onFengShenStoryChallengeClicked = services.Lua.GetFunction("OnFengShenStoryChallengeClicked");
@@ -1013,6 +1015,7 @@ namespace ProjectX.Core
             onSharedGameplayHotPointRefresh?.Dispose();
             onYouLiClicked?.Dispose();
             onYouLiStart?.Dispose();
+            onYouLiStartBatch?.Dispose();
             onYouLiClaim?.Dispose();
             onFengShenStoryClicked?.Dispose();
             onFengShenStoryChallengeClicked?.Dispose();
@@ -1181,6 +1184,12 @@ namespace ProjectX.Core
             {
                 CloseGameplayShops();
                 return true;
+            }
+            if (IsGameplayOpen)
+            {
+                bool popped = services?.UiStack.Pop() ?? false;
+                SetMainHudSurfaceVisible(true);
+                return popped;
             }
             if (IsSettingsOpen) bagFrameView?.SetVisible(false);
             return services?.UiStack.Pop() ?? false;
@@ -2144,9 +2153,24 @@ namespace ProjectX.Core
         {
             services.Gameplay.Load(services.GameplayCatalog.Items, services.Player.Level);
             EnsureGameplayPresenter();
-            if (services.UiStack.Current != gameplayView) services.UiStack.Push(gameplayView);
+            // Native PopFirstClassBg hides Main_UI controls, but the full-screen
+            // Layer/Bg scene remains underneath the modal frame. Keeping the whole
+            // imported main view active preserves that background instead of exposing
+            // the camera clear colour around shop_bg.
+            SetMainHudSurfaceVisible(false);
+            if (services.UiStack.Current != gameplayView) services.UiStack.Push(gameplayView, false);
             gameplayPresenter.ResetScrollToTop();
             SetStatus($"Gameplay current hub active: {services.Gameplay.Count} configured entries.");
+        }
+
+        private void SetMainHudSurfaceVisible(bool visible)
+        {
+            mainView?.Binding.Find("Layer/Main_UI")?.SetActive(visible);
+            if (!visible)
+            {
+                mainView?.Binding.Find("Layer/Bg")?.SetActive(true);
+                mainCloudView?.SetVisible(true);
+            }
         }
 
         public void EnterGameplay(int functionId)
@@ -2253,10 +2277,10 @@ namespace ProjectX.Core
                 ? 705213u
                 : services.Options.GameplayIsolationUserId;
             int pendingAtEntry = 0;
-            int[] functionIds = { 1, 3, 6, 9, 10 };
+            int[] functionIds = { 1, 3, 9, 10 };
             string[] controlIds =
             {
-                "GAMEPLAY-04-ENTER-1", "GAMEPLAY-05-ENTER-3", "GAMEPLAY-06-ENTER-6",
+                "GAMEPLAY-04-ENTER-1", "GAMEPLAY-05-ENTER-3",
                 "GAMEPLAY-09-ENTER-9", "GAMEPLAY-10-ENTER-10"
             };
             try
@@ -2275,15 +2299,29 @@ namespace ProjectX.Core
                 EnsureGameplayPresenter();
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
-                if (!IsGameplayOpen || services.Gameplay.Count != 5 || services.Gameplay.OpenCount != 5
-                    || GameplayRenderedCount != 5 || GameplayEnterButtonCount != 5 || GameplayMissingIconCount != 0)
+                if (!IsGameplayOpen || services.Gameplay.Count != 4 || services.Gameplay.OpenCount != 4
+                    || GameplayRenderedCount != 4 || GameplayEnterButtonCount != 4 || GameplayMissingIconCount != 0)
                 {
                     Fail($"Gameplay primary list mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, enter={GameplayEnterButtonCount}, missing={GameplayMissingIconCount}.");
                     yield break;
                 }
+                bool backgroundPreserved = mainView?.Binding.Find("Layer/Bg")?.activeInHierarchy == true;
+                bool hudControlsHidden = mainView?.Binding.Find("Layer/Main_UI")?.activeInHierarchy == false;
+                RecordValidationSemantic("gameplay-main-background-preserved", backgroundPreserved && hudControlsHidden,
+                    $"Layer/Bg active={backgroundPreserved}; Layer/Main_UI hidden={hudControlsHidden}");
+                if (!backgroundPreserved || !hudControlsHidden)
+                {
+                    Fail($"Gameplay background layering mismatch: background={backgroundPreserved}, hudHidden={hudControlsHidden}.");
+                    yield break;
+                }
                 MarkValidationControl("GAMEPLAY-01-HUD-ENTRY");
-                RecordValidationSemantic("gameplay-entry-list-steam-5", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
-                    "Steam order=1,3,6,9,10; ids7/8/11/12/18/19/25/26 are platform-excluded");
+                RecordValidationSemantic("gameplay-entry-list-current-ready-4", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
+                    "Current ready order=1,3,9,10; id6 is retained but migrationReady=false; ids7/8/11/12/18/19/25/26 are platform-excluded");
+                bool arenaTemporarilyHidden = services.GameplayCatalog.Find(6) == null;
+                MarkValidationControl("GAMEPLAY-06-ENTER-6");
+                RecordValidationSemantic("gameplay-arena-hidden-until-ready", arenaTemporarilyHidden,
+                    "Arena remains in product scope but migrationReady=false prevents an unfinished entry from being exposed");
+                if (!arenaTemporarilyHidden) { Fail("Gameplay exposed Arena before its migration gate was ready."); yield break; }
                 bool shopsExcluded = services.GameplayCatalog.Find(15) == null && services.GameplayCatalog.Find(16) == null
                     && services.GameplayCatalog.Find(17) == null;
                 RecordValidationSemantic("gameplay-no-extra-shops", shopsExcluded, "15/16/17 page=0 and absent");
@@ -2338,8 +2376,8 @@ namespace ProjectX.Core
                     MarkValidationControl(controlIds[index]);
                     if (index == 0) yield return CaptureGameplayFrame("bootstrap-gameplay-unavailable.png");
                 }
-                RecordValidationSemantic("gameplay-enter-boundaries-steam-5", true,
-                    "5 Steam EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
+                RecordValidationSemantic("gameplay-enter-boundaries-current-ready-4", true,
+                    "4 ready EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
 
                 // All local initial accounts are intentionally level 99 for feature testing.
                 // Preserve the source lock-state visual contract with an isolated in-memory
@@ -2348,7 +2386,7 @@ namespace ProjectX.Core
                 services.Gameplay.Load(services.GameplayCatalog.Items, 1);
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
-                if (!IsGameplayOpen || services.Gameplay.Count != 5 || services.Gameplay.OpenCount != 0 || GameplayEnterButtonCount != 0)
+                if (!IsGameplayOpen || services.Gameplay.Count != 4 || services.Gameplay.OpenCount != 0 || GameplayEnterButtonCount != 0)
                 { Fail($"Gameplay projected locked list mismatch: count={services.Gameplay.Count}, open={services.Gameplay.OpenCount}, enter={GameplayEnterButtonCount}."); yield break; }
                 yield return CaptureGameplayFrame("bootstrap-gameplay-locked.png");
                 RecordValidationSemantic("gameplay-lock-level", true,
@@ -2487,10 +2525,46 @@ namespace ProjectX.Core
         public void SetYouLiError(string message) { ShowToast(message, 3f); SetStatus("YouLi/335 failed: " + message); }
         private void StartYouLi(byte locationId)
         {
-            HeroRecord hero = services.Heroes.Items.FirstOrDefault(value => value.FightPosition > 0);
-            if (hero.Id <= 0) hero = services.Heroes.Items.FirstOrDefault();
-            if (hero.Id <= 0) { SetYouLiError("没有可派遣的神将"); return; }
+            YouLiRecord location = services.YouLi.Items.FirstOrDefault(value => value.Definition.Id == locationId);
+            if (location == null) { SetYouLiError("游历地点不存在"); return; }
+            var dispatchedHeroIds = new HashSet<int>(services.YouLi.Items
+                .Where(value => value.IsActive).Select(value => (int)value.HeroId));
+            HeroRecord hero = services.Heroes.Items
+                .Where(value => !dispatchedHeroIds.Contains(value.Id)
+                    && HeroCatalog.TryGet(value.Id, out HeroDefinition definition)
+                    && definition.Quality <= location.Definition.Quality)
+                .OrderBy(value => value.FightPosition <= 0 ? 1 : 0)
+                .ThenByDescending(value => value.Power)
+                .FirstOrDefault();
+            if (hero.Id <= 0) { SetYouLiError("没有符合该地点品质要求的可派遣神将"); return; }
             InvokeLuaOrFail(onYouLiStart, "YouLi.Start", (double)locationId, (double)hero.Id, 1d, 1d);
+        }
+        private void StartAllYouLi()
+        {
+            var reservedHeroIds = new HashSet<int>(services.YouLi.Items
+                .Where(value => value.IsActive).Select(value => (int)value.HeroId));
+            var assignments = new List<string>();
+            foreach (YouLiRecord location in services.YouLi.Items
+                         .Where(value => services.Player.Level >= value.Definition.UnlockLevel && !value.IsActive)
+                         .OrderBy(value => value.Definition.Quality).ThenBy(value => value.Definition.Id))
+            {
+                HeroRecord hero = services.Heroes.Items
+                    .Where(value => !reservedHeroIds.Contains(value.Id)
+                        && HeroCatalog.TryGet(value.Id, out HeroDefinition definition)
+                        && definition.Quality <= location.Definition.Quality)
+                    .OrderBy(value => value.FightPosition <= 0 ? 1 : 0)
+                    .ThenByDescending(value => value.Power)
+                    .FirstOrDefault();
+                if (hero.Id <= 0) continue;
+                reservedHeroIds.Add(hero.Id);
+                assignments.Add($"{location.Definition.Id},{hero.Id},1,1");
+            }
+            if (assignments.Count == 0)
+            {
+                SetYouLiError("没有可批量派遣的空闲地点或符合要求的神将");
+                return;
+            }
+            InvokeLuaOrFail(onYouLiStartBatch, "YouLi.StartBatch", string.Join(";", assignments));
         }
         private void ClaimYouLi(byte locationId) => InvokeLuaOrFail(onYouLiClaim, "YouLi.Claim", (double)locationId);
 
@@ -2679,7 +2753,7 @@ namespace ProjectX.Core
                 }
                 for (int passedLevel = 1; passedLevel < currentLevel; passedLevel++)
                 {
-                    if (!fengShenStoryPresenter.InvokeStage(passedLevel)
+                    if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(passedLevel))
                         || !fengShenStoryPresenter.IsLevelPopupVisible
                         || fengShenStoryPresenter.PopupStageId != currentChapter * 10 + passedLevel)
                     {
@@ -2702,7 +2776,7 @@ namespace ProjectX.Core
                     yield return CaptureFengShenControlEvidence(allControls[17]);
                 }
 
-                if (!fengShenStoryPresenter.InvokeStage(currentLevel))
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(currentLevel)))
                 {
                     Fail("FengShenStory current-stage imported button did not open.");
                     yield break;
@@ -2759,7 +2833,7 @@ namespace ProjectX.Core
                 if (!fengShenStoryPresenter.InvokeChapter(currentChapter))
                 { Fail("FengShenStory current chapter could not be restored before fight."); yield break; }
 
-                if (!fengShenStoryPresenter.InvokeStage(currentLevel))
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(currentLevel)))
                 {
                     Fail("FengShenStory fight popup imported button could not reopen.");
                     yield break;
@@ -2781,15 +2855,22 @@ namespace ProjectX.Core
 
                 int nextChapter = services.FengShenStory.CurrentChapter;
                 fengShenStoryPresenter.CloseLevelPopup();
-                if (services.FengShenStory.LevelId % 10 != 1 || !fengShenStoryPresenter.InvokeStage(2)
-                    || fengShenStoryPresenter.IsLevelPopupVisible)
+                if (services.FengShenStory.LevelId % 10 != 1
+                    || !InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(2))
+                    || fengShenStoryPresenter.IsLevelPopupVisible
+                    || !fengShenStoryPresenter.IsModalVisible)
                 {
-                    Fail($"FengShenStory next-chapter locked stage was not inert: chapter={nextChapter}, level={services.FengShenStory.LevelId}.");
+                    Fail($"FengShenStory next-chapter locked stage did not return visible feedback: chapter={nextChapter}, level={services.FengShenStory.LevelId}.");
                     yield break;
                 }
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-level-locked.png");
+                if (!fengShenStoryPresenter.InvokeModalClose())
+                {
+                    Fail("FengShenStory locked-stage feedback could not be closed.");
+                    yield break;
+                }
                 RecordValidationSemantic("fengshen-stage-three-state", true,
-                    "passed/current/locked stage buttons were invoked against the imported nodes");
+                    "passed/current/locked stage controls passed the real EventSystem raycast path; locked state returned visible feedback");
 
                 deadline = Time.realtimeSinceStartup + 5f;
                 while (services.FengShenStory.RewardPush.Count == 0 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -12482,7 +12563,8 @@ namespace ProjectX.Core
             taskPresenter = taskPresenter ?? new TaskPresenter(taskView, services.Tasks, services.Resources,
                 HandleTaskGo,
                 item => InvokeLuaOrFail(onTaskClaimClicked, "Task.OnClaimClicked", item.Type, item.Id),
-                ShowTaskBoxPreview);
+                ShowTaskBoxPreview,
+                IsTaskVisibleInCurrentClient);
             ConfigureTaskFrame();
             try
             {
@@ -12491,6 +12573,24 @@ namespace ProjectX.Core
             catch (InvalidOperationException exception)
             {
                 ClientLog.Warning("Task", "Task close button was not bound", exception.Message);
+            }
+        }
+
+        private static bool IsTaskVisibleInCurrentClient(TaskRecord item)
+        {
+            // These destinations are intentionally absent from the current public Unity UI.
+            // Keep the authoritative task payload untouched and filter only its presentation.
+            switch (item.Jump)
+            {
+                case 2:    // 封神试炼
+                case 6:    // 竞技场（保留模块，但当前 migrationReady=false）
+                case 7:    // 决战昆仑
+                case 8:    // 血战
+                case 2120: // 帮派捐献
+                case 2128: // 帮派副本
+                    return false;
+                default:
+                    return true;
             }
         }
 
@@ -13210,7 +13310,11 @@ namespace ProjectX.Core
             youLiView = youLiView ?? services.UiRouter.FindBySource("youli/youlisanjie");
             if (youLiView == null)
                 throw new InvalidOperationException("Current YouLi imported CocosUiBinding was not found: youli/youlisanjie.");
-            youLiPresenter = youLiPresenter ?? new YouLiPresenter(youLiView, services.YouLi, services.Player.Level, services.Resources, StartYouLi, ClaimYouLi, () => HandleBack());
+            gameplayView = gameplayView ?? services.UiRouter.FindBySource("shop/shop_bg");
+            GameObject closeTemplate = gameplayView?.Binding.Find("Layer/shopBg/Popup/Btn_close");
+            youLiPresenter = youLiPresenter ?? new YouLiPresenter(youLiView, services.YouLi, services.Heroes,
+                services.Player.Level, services.Resources, StartYouLi, StartAllYouLi, ClaimYouLi,
+                closeTemplate, () => HandleBack());
         }
 
         private void EnsureFengShenStoryPresenter()
@@ -13223,9 +13327,11 @@ namespace ProjectX.Core
             if (fengShenStoryView == null || fengShenStoryLevelView == null || rewardView == null
                 || heroItemSourceView == null || errorPresenter == null)
                 throw new InvalidOperationException("Current FengShenStory imported main/level CocosUiBindings were not found.");
+            CocosUiView firstClassFrame = services.UiRouter.FindBySource("OneLevelLayer");
+            GameObject commonHeaderTemplate = firstClassFrame?.Binding.Find("Layer/Panel_12/Title");
             fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
                 fengShenStoryView, fengShenStoryLevelView, services.FengShenStory, services.Resources,
-                errorPresenter, heroItemSourceView, rewardView,
+                errorPresenter, heroItemSourceView, rewardView, commonHeaderTemplate,
                 () => HandleBack(),
                 () => InvokeLuaOrFail(onFengShenStoryChallengeClicked, "FengShenStory.Challenge"),
                 () => { SetStatus("FengShenStory -> Formation boundary"); ShowFormationPopup(); },

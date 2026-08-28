@@ -1,5 +1,10 @@
 {
   "schemaVersion": 1,
+  "fixedAccountDefaults": {
+    "requiredHydratedRoots": [
+      "unityclient/Assets/ProjectX"
+    ]
+  },
   "modules": [
     {
       "module": "HeroCultivation",
@@ -457,8 +462,26 @@
         "snapshot": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-unity-result.json",
         "visualResultEvidence": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-g5-visual-result.json",
+        "serverConfigDirectory": ".local/gameplay-server-validation",
         "visualValidationFlags": [
           "-projectXGameplayValidation"
+        ],
+        "requiredHydratedRoots": [
+          "unityclient/Assets/ProjectX/Resources/ProjectXStartup",
+          "unityclient/Assets/ProjectX/Resources/GameplayIcons",
+          "unityclient/Assets/ProjectX/res/res/UI/ui_login",
+          "unityclient/Assets/ProjectX/Resources/RoleBust/5_touxiang.png"
+        ],
+        "requiredHydratedUiDocuments": [
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/LoginBgLayer.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/loginLayer.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/SeverListLayer.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/RoleCreateLayer.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImain_cloudLayer.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/ChatLayer.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shop/shop_bg.json",
+          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/ActivityLayer.json"
         ],
         "g3ValidationFlags": [
           "-projectXGameplayValidation"

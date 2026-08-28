@@ -1,5 +1,7 @@
 # 竞技场（Arena）
 
+> 当前门禁：`G0 pending / legacy logic only`。历史Unity单端Runner与Steam SQLite协议等价仅作诊断；当前Cocos基准、控件分母和G0工作流合同尚未冻结。
+
 ## 当前真实链路
 
 `btn_wanfa` → `Main.WanFaEntranceUI` → `function_id=6` → `WanFa.KaPaiArenaUI` → `cc.CSLoader:createNode("csd/common/JingjiLayer.csb")` → `QueryArenaInfo(1)` → `/161 op=0,type=1`。界面同时请求 `/161 op=3` 战报；首屏核心状态以 `op=0` 闭环。

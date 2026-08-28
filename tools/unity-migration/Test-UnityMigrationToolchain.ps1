@@ -105,12 +105,24 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     $gameplayFixtureSource.Contains('configMutationCount=0') -and
     -not $gameplayFixtureSource.Contains('Set-PreserveLevelUserId') -and
-    -not $gameplayFixtureSource.Contains('server\config\config')
+    -not $gameplayFixtureSource.Contains('server\config\config') -and
+    $gameplayFixtureSource.Contains('.local\gameplay-server-validation') -and
+    $gameplayFixtureSource.Contains('local_preserve_level_user_id') -and
+    $gameplayFixtureSource.Contains('local_preserve_balance_user_id') -and
+    $gameplayFixtureSource.Contains('AssertReloginHash') -and
+    $gameplayFixtureSource.Contains('postLoginHash')
 ) "Gameplay no-server fixture again mutates the protected C++ server config."
 Assert-ToolchainTest (
-    $fixedAccountRunnerSource.Contains('Get-UnityMigrationPropertyValue -Object $fixed -Name "requiredHydratedRoots" -Default @()') -and
-    -not $fixedAccountRunnerSource.Contains('$fixed.requiredHydratedRoots | ForEach-Object')
-) "Fixed-account runner again requires optional requiredHydratedRoots and blocks modules without hydrated-root declarations."
+    $fixedAccountRunnerSource.Contains('-Object $fixed -Name "requiredHydratedRoots" -Default @()') -and
+    -not $fixedAccountRunnerSource.Contains('$fixed.requiredHydratedRoots | ForEach-Object') -and
+    $fixedAccountRunnerSource.Contains('-Object $contracts -Name "fixedAccountDefaults" -Default $null') -and
+    $fixedAccountRunnerSource.Contains('$globalRequiredHydratedRoots + $moduleRequiredHydratedRoots') -and
+    $fixedAccountRunnerSource.Contains('-Name "requiredHydratedUiDocuments" -Default @()') -and
+    $fixedAccountRunnerSource.Contains('Get-FixedUiDocumentAssetPaths') -and
+    $fixedAccountRunnerSource.Contains('$fontAssetPath') -and
+    $fixedAccountRunnerSource.Contains("'.ttf', '.otf'") -and
+    $fixedAccountRunnerSource.Contains('Required UI document asset is missing:')
+) "Fixed-account runner no longer supports optional hydrated roots plus recursive UI image/font dependencies."
 Assert-ToolchainTest (
     $commonSource.Contains('function Get-UnityMigrationRuntimeRoots') -and
     $commonSource.Contains('function Test-UnityMigrationWorkspaceMySqlOwnership') -and
@@ -791,8 +803,9 @@ Assert-ToolchainTest (
 ) "Hard-gate preflight no longer rejects stale G2/G3/G6 completion claims with weak workflow, source-audit or control contracts."
 $gameplayMatrix = (Import-UnityMigrationJson -Root $root `
     -Path "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json").Value
-$gameplayEvidenceContract = @((Import-UnityMigrationJson -Root $root `
-    -Path "tools/unity-migration/module-evidence-contracts.json").Value.modules |
+$allEvidenceContracts = (Import-UnityMigrationJson -Root $root `
+    -Path "tools/unity-migration/module-evidence-contracts.json").Value
+$gameplayEvidenceContract = @($allEvidenceContracts.modules |
     Where-Object { $_.module -eq "Gameplay" })[0]
 $gameplayScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "Gameplay"
 $gameplayScenarioControlCount = Assert-UnityMigrationScenarioStateCoverage -Root $root -ModuleKey "Gameplay" `
@@ -811,9 +824,42 @@ Assert-ToolchainTest (
     }).Count -eq 0
 ) "Gameplay lifecycle/state entries again require fake realEntryClick=true or drifted from the registered batch capture-state contract."
 Assert-ToolchainTest (
+    @($allEvidenceContracts.fixedAccountDefaults.requiredHydratedRoots).Count -eq 1 -and
+    @($allEvidenceContracts.fixedAccountDefaults.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX' -and
     @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags).Count -eq 1 -and
-    @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXGameplayValidation'
-) "Gameplay fixed-account contract no longer declares the canonical G3 runtime flag."
+    @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXGameplayValidation' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots).Count -eq 4 -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/Resources/ProjectXStartup' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/Resources/GameplayIcons' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/res/res/UI/ui_login' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/ProjectX/Resources/RoleBust/5_touxiang.png' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments).Count -eq 9 -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/LoginBgLayer.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/loginLayer.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/SeverListLayer.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/RoleCreateLayer.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImain_cloudLayer.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/ChatLayer.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shop/shop_bg.json' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/ActivityLayer.json' -and
+    [string]$gameplayEvidenceContract.fixedAccount.serverConfigDirectory -eq
+        '.local/gameplay-server-validation'
+) "Global or Gameplay fixed-account contract no longer declares complete Unity art hydration plus the canonical Gameplay runtime flag."
 $invalidScenarioState = [pscustomobject]@{ captureStates = @('registered-state') }
 $invalidScenarioRejected = $false
 try {

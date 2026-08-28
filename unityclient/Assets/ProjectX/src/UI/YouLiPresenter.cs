@@ -4,6 +4,7 @@ using System.Linq;
 using ProjectX.Data;
 using ProjectX.Core;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace ProjectX.UI
@@ -12,23 +13,31 @@ namespace ProjectX.UI
     {
         private readonly CocosUiView view;
         private readonly YouLiStore store;
+        private readonly HeroStore heroes;
         private readonly int playerLevel;
         private readonly ResourceService resources;
         private readonly List<GameObject> cards = new List<GameObject>();
         private readonly Transform template;
         private readonly RectTransform content;
+        private readonly ScrollRect scroll;
         private readonly Action<byte> start;
+        private readonly Action startAll;
         private readonly Action<byte> claim;
         private Button oneKeyStart;
         private Button oneKeyClaim;
+        private GameObject closeControl;
 
-        public YouLiPresenter(CocosUiView view, YouLiStore store, int playerLevel, ResourceService resources, Action<byte> start, Action<byte> claim, Action close)
+        public YouLiPresenter(CocosUiView view, YouLiStore store, HeroStore heroes, int playerLevel,
+            ResourceService resources, Action<byte> start, Action startAll, Action<byte> claim,
+            GameObject closeTemplate, Action close)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
+            this.heroes = heroes ?? throw new ArgumentNullException(nameof(heroes));
             this.playerLevel = playerLevel;
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.start = start ?? throw new ArgumentNullException(nameof(start));
+            this.startAll = startAll ?? throw new ArgumentNullException(nameof(startAll));
             this.claim = claim ?? throw new ArgumentNullException(nameof(claim));
             Normalize(view.GameObject.transform);
             InstallBackground(view.GameObject.transform);
@@ -36,14 +45,16 @@ namespace ProjectX.UI
             Transform root = Require(view.GameObject.transform, "youliUI");
             root.gameObject.SetActive(true);
             InstallTitle(root);
+            InstallClose(closeTemplate, close);
             template = Require(root, "Item");
             template.gameObject.SetActive(false);
             Transform list = Require(root, "ListView");
-            content = CreateContent(list);
+            content = CreateContent(list, out scroll);
 
-            oneKeyStart = Bind(Find(root, "Btn_youli"), StartFirstAvailable);
+            oneKeyStart = Bind(Find(root, "Btn_youli"), startAll);
             oneKeyClaim = Bind(Find(root, "Btn_lingqu"), ClaimFirstReady);
             store.Changed += Render;
+            heroes.Changed += Render;
             Render();
         }
 
@@ -53,7 +64,12 @@ namespace ProjectX.UI
         public bool ClaimBindingReady => oneKeyClaim != null;
         public bool EmptyStateVisible => store.HasAuthoritativeResponse && store.ServerRecordCount == 0;
 
-        public void Dispose() => store.Changed -= Render;
+        public void Dispose()
+        {
+            store.Changed -= Render;
+            heroes.Changed -= Render;
+            if (closeControl != null) UnityEngine.Object.Destroy(closeControl);
+        }
 
         private void Render()
         {
@@ -73,6 +89,20 @@ namespace ProjectX.UI
                 rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.anchoredPosition = Vector2.zero;
                 rect.localScale = Vector3.one;
+                LayoutElement layoutElement = card.GetComponent<LayoutElement>() ?? card.AddComponent<LayoutElement>();
+                float cardWidth = Mathf.Max(1f, rect.rect.width, rect.sizeDelta.x);
+                layoutElement.minWidth = cardWidth;
+                layoutElement.preferredWidth = cardWidth;
+                YouLiHorizontalDragRelay relay = card.GetComponent<YouLiHorizontalDragRelay>()
+                    ?? card.AddComponent<YouLiHorizontalDragRelay>();
+                relay.Initialize(scroll);
+                foreach (Graphic graphic in card.GetComponentsInChildren<Graphic>(true))
+                {
+                    if (!graphic.raycastTarget) continue;
+                    YouLiHorizontalDragRelay graphicRelay = graphic.GetComponent<YouLiHorizontalDragRelay>()
+                        ?? graphic.gameObject.AddComponent<YouLiHorizontalDragRelay>();
+                    graphicRelay.Initialize(scroll);
+                }
 
                 Transform item = Find(card.transform, "Item");
                 bool unlocked = playerLevel >= value.Definition.UnlockLevel;
@@ -111,16 +141,48 @@ namespace ProjectX.UI
                 cards.Add(card);
                 RenderedCount++;
             }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            float requiredWidth = cards.Sum(card =>
+            {
+                RectTransform rect = card != null ? card.GetComponent<RectTransform>() : null;
+                return rect != null ? Mathf.Max(1f, rect.rect.width, rect.sizeDelta.x) : 0f;
+            }) + Mathf.Max(0, cards.Count - 1) * 8f + 8f;
+            content.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, requiredWidth);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
             if (oneKeyStart != null) oneKeyStart.interactable = store.Items.Any(value => playerLevel >= value.Definition.UnlockLevel && !value.IsActive);
             if (oneKeyClaim != null) oneKeyClaim.interactable = store.Items.Any(IsReady);
-            SetVisible(Find(view.GameObject.transform, "youliUI/Panel"), store.ServerRecordCount > 0);
+            RenderActiveHero();
         }
 
         private bool IsReady(YouLiRecord value) => value.IsActive && value.EndTime > 0 && value.EndTime <= (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        private void StartFirstAvailable()
+        private void RenderActiveHero()
         {
-            YouLiRecord value = store.Items.FirstOrDefault(item => playerLevel >= item.Definition.UnlockLevel && !item.IsActive);
-            if (value != null) start(value.Definition.Id);
+            Transform panel = Find(view.GameObject.transform, "youliUI/Panel");
+            YouLiRecord active = store.Items.FirstOrDefault(item => item.IsActive);
+            bool visible = active != null;
+            SetVisible(panel, visible);
+            if (!visible || panel == null) return;
+
+            Transform head = Find(panel, "Head");
+            Image icon = Find(head, "Icon")?.GetComponent<Image>();
+            if (heroes.TryGet(active.HeroId, out HeroRecord hero))
+            {
+                SetText(Find(head, "Level"), hero.Level.ToString());
+                SetText(Find(head, "Name"), hero.Name);
+                if (icon != null && HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
+                {
+                    icon.sprite = resources.LoadHeroPortrait(definition.Picture);
+                    icon.color = Color.white;
+                    icon.preserveAspect = true;
+                    icon.enabled = icon.sprite != null;
+                }
+            }
+            else
+            {
+                SetText(Find(head, "Level"), string.Empty);
+                SetText(Find(head, "Name"), string.Empty);
+                if (icon != null) icon.enabled = false;
+            }
         }
         private void ClaimFirstReady()
         {
@@ -128,12 +190,18 @@ namespace ProjectX.UI
             if (value != null) claim(value.Definition.Id);
         }
 
-        private static RectTransform CreateContent(Transform list)
+        private static RectTransform CreateContent(Transform list, out ScrollRect scroll)
         {
-            ScrollRect scroll = list.GetComponent<ScrollRect>() ?? list.gameObject.AddComponent<ScrollRect>();
+            scroll = list.GetComponent<ScrollRect>() ?? list.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = true;
             scroll.vertical = false;
             scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.inertia = true;
+            scroll.enabled = true;
+            if (list.GetComponent<RectMask2D>() == null) list.gameObject.AddComponent<RectMask2D>();
+            Image viewportRaycast = list.GetComponent<Image>() ?? list.gameObject.AddComponent<Image>();
+            viewportRaycast.color = Color.clear;
+            viewportRaycast.raycastTarget = true;
             GameObject go = new GameObject("RuntimeYouLiLocations", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.SetParent(list, false);
@@ -225,6 +293,30 @@ namespace ProjectX.UI
 
         private static Transform Find(Transform root, string path) => root?.Find(path);
 
+        private void InstallClose(GameObject template, Action close)
+        {
+            if (template == null) throw new InvalidOperationException("YouLi shared first-class close template was not found.");
+            if (close == null) throw new ArgumentNullException(nameof(close));
+            closeControl = UnityEngine.Object.Instantiate(template, view.GameObject.transform, false);
+            closeControl.name = "RuntimeYouLiClose";
+            closeControl.SetActive(true);
+            RectTransform rect = closeControl.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.anchorMin = rect.anchorMax = new Vector2(1f, 1f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(-58f, -58f);
+                rect.localScale = Vector3.one;
+                rect.localRotation = Quaternion.identity;
+            }
+            closeControl.transform.SetAsLastSibling();
+            Button button = closeControl.GetComponent<Button>() ?? closeControl.AddComponent<Button>();
+            button.targetGraphic = closeControl.GetComponent<Graphic>() ?? closeControl.GetComponentInChildren<Graphic>(true);
+            button.interactable = true;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => close());
+        }
+
         private static void Normalize(Transform root)
         {
             if (!(root is RectTransform rect)) return;
@@ -236,5 +328,39 @@ namespace ProjectX.UI
             rect.localScale = Vector3.one;
             rect.localRotation = Quaternion.identity;
         }
+    }
+
+    internal sealed class YouLiHorizontalDragRelay : MonoBehaviour,
+        IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+    {
+        private ScrollRect target;
+
+        public void Initialize(ScrollRect value) => target = value;
+
+        public void OnInitializePotentialDrag(PointerEventData eventData)
+        {
+            if (target != null) target.velocity = Vector2.zero;
+        }
+
+        public void OnBeginDrag(PointerEventData eventData)
+        {
+            if (target != null) target.StopMovement();
+        }
+
+        public void OnDrag(PointerEventData eventData)
+        {
+            RectTransform content = target != null ? target.content : null;
+            RectTransform viewport = target != null ? target.viewport : null;
+            if (content == null || viewport == null) return;
+
+            Canvas canvas = target.GetComponentInParent<Canvas>();
+            float scale = canvas != null ? Mathf.Max(0.01f, canvas.scaleFactor) : 1f;
+            float minX = Mathf.Min(0f, viewport.rect.width - content.rect.width);
+            Vector2 position = content.anchoredPosition;
+            position.x = Mathf.Clamp(position.x + eventData.delta.x / scale, minX, 0f);
+            content.anchoredPosition = position;
+        }
+
+        public void OnEndDrag(PointerEventData eventData) { }
     }
 }

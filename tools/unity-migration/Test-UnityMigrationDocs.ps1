@@ -197,6 +197,64 @@ $completionStatuses = @(
     "g0-g6-passed"
 )
 
+if (-not $TargetModule) {
+    $progressPolicy = Get-UnityMigrationPropertyValue -Object $manifest `
+        -Name "steamProgressPolicy" -Default $null
+    if ($null -eq $progressPolicy) {
+        Add-Failure "Manifest is missing steamProgressPolicy."
+    }
+    else {
+        $declaredDenominator = [int](Get-UnityMigrationPropertyValue -Object $progressPolicy `
+            -Name "denominator" -Default 0)
+        $nonDenominatorSubmodules = @((Get-UnityMigrationPropertyValue -Object $progressPolicy `
+            -Name "nonDenominatorSubmodules" -Default @()) | ForEach-Object { [string]$_ })
+        foreach ($submodule in $nonDenominatorSubmodules) {
+            if ($submodule -notin $keys) {
+                Add-Failure "Steam progress policy references unknown non-denominator submodule: $submodule"
+            }
+        }
+        $eligibleModules = @($manifest.modules | Where-Object {
+            -not [bool](Get-UnityMigrationPropertyValue -Object $_ -Name "migrationExcluded" -Default $false) -and
+            [string]$_.key -notin $nonDenominatorSubmodules
+        })
+        if ($eligibleModules.Count -ne $declaredDenominator) {
+            Add-Failure "Steam progress denominator drifted: declared=$declaredDenominator eligible=$($eligibleModules.Count)."
+        }
+
+        $completedKeys = New-Object System.Collections.Generic.List[string]
+        foreach ($eligibleModule in $eligibleModules) {
+            $eligibleKey = [string]$eligibleModule.key
+            $eligibleGateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $eligibleKey })
+            if ($eligibleGateRecords.Count -ne 1) {
+                Add-Failure "Steam progress module $eligibleKey has no unique gate record."
+                continue
+            }
+            $allGatesPassed = $true
+            foreach ($gate in @("G0","G1","G2","G3","G4","G5","G6")) {
+                if ([string]$eligibleGateRecords[0].gates.$gate -ne "passed") {
+                    $allGatesPassed = $false
+                    break
+                }
+            }
+            $eligibleStatus = [string]$eligibleModule.status
+            $claimsComplete = $eligibleStatus -in $completionStatuses
+            if ($allGatesPassed -ne $claimsComplete) {
+                Add-Failure "Steam progress module $eligibleKey status/gate drift: status=$eligibleStatus allGatesPassed=$allGatesPassed."
+            }
+            if ($allGatesPassed -and $claimsComplete) { $completedKeys.Add($eligibleKey) }
+        }
+
+        if ($statusPath -and $declaredDenominator -gt 0) {
+            $percentage = ([double]$completedKeys.Count / [double]$declaredDenominator * 100.0).ToString(
+                "0.0", [Globalization.CultureInfo]::InvariantCulture)
+            $expectedProgress = "$($completedKeys.Count)/$declaredDenominator = $percentage%"
+            if (-not $status.Contains($expectedProgress)) {
+                Add-Failure "STATUS validated progress drifted; expected '$expectedProgress'."
+            }
+        }
+    }
+}
+
 $runnerText = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs")
 $protocolHeader = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root "server/src/protocol.h")
 foreach ($module in $modulesToCheck) {

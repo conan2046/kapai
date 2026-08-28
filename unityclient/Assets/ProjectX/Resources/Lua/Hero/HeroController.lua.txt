@@ -5,6 +5,7 @@ local WorldController = require("World.WorldController")
 
 local M = {
     requested = false,
+    snapshotOnly = false,
     mutationStage = nil,
     mutationHero = nil,
     originalPosition = nil,
@@ -22,6 +23,7 @@ local M = {
     closureStage = nil,
 }
 
+local syncHeroMirror
 local syncRenderMirror
 
 local function requestFormation()
@@ -68,6 +70,14 @@ function M.onClick()
     message:WriteByte(1)
     Bridge:Send(message)
     Bridge:SetStatus("Hero/24 list request sent by legacy Lua formation model.")
+end
+
+function M.requestSnapshot(owner)
+    M.snapshotOnly = true
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(1)
+    Bridge:Send(message)
+    Bridge:SetStatus("Hero/24 snapshot requested for " .. tostring(owner or "shared consumer") .. ".")
 end
 
 local function sendPosition(heroId, position)
@@ -294,6 +304,11 @@ local function readHeroList(message)
     for index = 1, count do heroes[index] = readHero(message) end
     if message.Remaining ~= 0 then Bridge:Fail("Hero/24 has unread bytes: " .. tostring(message.Remaining)); return end
     FormationModel:ReplaceHeroes(followId, heroes)
+    if M.snapshotOnly then
+        M.snapshotOnly = false
+        syncHeroMirror()
+        return
+    end
     requestFormation()
 end
 
@@ -361,7 +376,7 @@ end
 
 -- C# stores are now render mirrors only. All authoritative formation state and
 -- ordering is calculated by the Lua model before this snapshot is published.
-syncRenderMirror = function()
+syncHeroMirror = function()
     Bridge:BeginHeroUpdate(FormationModel.followHeroId, FormationModel:GetHeroCount())
     for index = 1, #FormationModel.petlist do
         local hero = FormationModel.petlist[index]
@@ -374,7 +389,10 @@ syncRenderMirror = function()
             hero.primarySkillLevel or 1)
     end
     Bridge:EndHeroUpdate()
+end
 
+syncRenderMirror = function()
+    syncHeroMirror()
     Bridge:BeginFormationUpdate(FormationModel.useId, FormationModel:GetFormationCount())
     local formations = FormationModel:GetMyFormations()
     for index = 1, #formations do Bridge:AddFormationRecord(formations[index][1], formations[index][2]) end
@@ -782,7 +800,7 @@ end
 function M.reset()
     local keepClosure = Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
         and (M.closureStage == "await_reconnect" or M.closureStage == "await_account_isolation")
-    M.requested, M.mutationStage, M.mutationHero = false, nil, nil
+    M.requested, M.snapshotOnly, M.mutationStage, M.mutationHero = false, false, nil, nil
     M.originalPosition, M.targetPosition = nil, nil
     M.swapSourceHero, M.swapTargetHero = nil, nil
     M.levelUpHero, M.levelUpBeforeLevel, M.levelUpBeforeExperience = nil, nil, nil

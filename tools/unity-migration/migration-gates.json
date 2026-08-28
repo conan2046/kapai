@@ -67,13 +67,13 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "pending",
+        "G3": "passed",
         "G4": "pending",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
-      "note": "2026-08-27 current-worktree G1 Cocos evidence and input fingerprint were regenerated and G2 was re-audited. G3 standard batch is pending after startup-texture hydration failure. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
+      "note": "2026-08-27 current-worktree G1-G3 passed. The first early user Play exposed a white screen because 28 normal-Editor login images were unresolved LFS pointers; the hydration contract was extended, all 28 objects were hydrated, and toolchain/DataPreflight/G3 batch passed again. User retest is pending before G4. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/GAMEPLAY.md",
@@ -109,11 +109,6 @@
           "tools/unity-migration/unityclient-modules.json",
           ".local/unity-validation/gameplay-retrospective-latest.json"
         ],
-        "G3": [
-          ".local/unity-validation/gameplay-fixed-account-data-preflight-latest.json",
-          "build/ui-migration/unity-gameplay-fixed-account.log",
-          ".local/unity-validation/gameplay-operation-ledger.json"
-        ],
         "G1": [
           ".local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md",
           ".local/unity-validation/gameplay-cocos-automation-ledger.json",
@@ -127,9 +122,16 @@
           "docs/unityclient/modules/GAMEPLAY.md",
           "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
           ".local/unity-validation/gameplay-cocos-baseline-latest.json"
+        ],
+        "G3": [
+          ".local/unity-validation/gameplay-g3-runtime-latest.json",
+          ".local/unity-validation/gameplay-fixed-account-runner-latest.json",
+          ".local/unity-validation/gameplay-fixed-account-data-preflight-latest.json",
+          "build/ui-migration/unity-gameplay-fixed-account.log",
+          ".local/unity-validation/gameplay-operation-ledger.json"
         ]
       },
-      "updatedUtc": "2026-08-27T06:53:44.8576418Z"
+      "updatedUtc": "2026-08-27T09:45:13.1300533Z"
     },
     {
       "module": "GameplayShops",
@@ -596,10 +598,10 @@
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "passed"
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/DRAW.md",
-      "note": "Draw current HappyDrawUI /224 migration and the real Draw to Hero cultivation to Formation closure are complete. Historical phase1 evidence remains excluded.",
+      "note": "2026-08-27 audit retains G0-G5. All 56 control-level Cocos/Unity image paths registered by the G6 matrix are absent in the current checkout, so G6 is pending until real evidence is recovered or recaptured.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/DRAW_CONTROLS.json"
@@ -634,13 +636,13 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
+        "G3": "pending",
+        "G4": "pending",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HERO_EQUIPMENT.md",
-      "note": "2026-08-21 user confirmed scheme A: only Main -> Wear -> Equipment is completion scope; Hero/Bag/HUD/HuiShou are impact regressions and FaBao is sibling isolation only. The old 33-control denominator omitted current reachable equipment branches, so G0-G6 were reopened. Historical evidence remains diagnostic only.",
+      "note": "2026-08-27 audit retains current G0-G2 for the 14-source/974-record/86-control scheme A scope. G3 early user Play has not completed, therefore historical G3-G6 results remain diagnostic only and G3-G6 are pending.",
       "gateEvidence": {
         "G5": [
           ".local/ui-fidelity/HeroEquip/compare/g5-live-20260726/report.json",
@@ -1115,15 +1117,15 @@
       "module": "YouLi",
       "gates": {
         "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/YOULI.md",
-      "note": "2026-08-23 已完成 /335 op1/2/3、8/8 控件、当前 Cocos/Unity 1334x750 空态视觉、双次 BuildBatch 与自动复盘，G0-G6 全部通过。",
+      "note": "2026-08-27 audit retains the implementation and G0 scope only. The registered Cocos/Unity baseline and comparison directory is absent in the current checkout, so G1-G6 must be recaptured serially.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/YOULI.md",
@@ -1164,15 +1166,15 @@
       "module": "XunBao",
       "gates": {
         "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/XUNBAO.md",
-      "note": "2026-08-23 已完成 /319 op28/29/30/31/36、7/7 控件、当前 Cocos/Unity 1334x750 主状态视觉、双次 BuildBatch 与自动复盘，G0-G6 全部通过。",
+      "note": "2026-08-27 audit retains the implementation and G0 scope only. The registered Cocos/Unity baseline and comparison directory is absent in the current checkout, so G1-G6 must be recaptured serially.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/XUNBAO.md",
@@ -1207,6 +1209,22 @@
         ]
       },
       "updatedUtc": "2026-08-23T13:45:42.5976553Z"
+    },
+    {
+      "module": "Arena",
+      "gates": {
+        "G0": "pending",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/ARENA.md",
+      "note": "2026-08-27 audit: historical Unity-only logic and Steam SQLite equivalence are diagnostic. Current Cocos baseline, control denominator and G0 workflow contract are not frozen, so Arena starts at G0 pending.",
+      "gateEvidence": {},
+      "updatedUtc": "2026-08-27T00:00:00Z"
     },
     {
       "module": "SevenDay",

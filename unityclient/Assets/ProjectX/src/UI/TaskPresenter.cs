@@ -19,9 +19,11 @@ namespace ProjectX.UI
         private readonly Action<TaskRecord> go;
         private readonly Action<TaskRecord> claim;
         private readonly Action<TaskRecord> previewBox;
+        private readonly Func<TaskRecord, bool> isVisible;
 
         public TaskPresenter(CocosUiView view, TaskStore store, ResourceService resources,
-            Action<TaskRecord> go, Action<TaskRecord> claim, Action<TaskRecord> previewBox)
+            Action<TaskRecord> go, Action<TaskRecord> claim, Action<TaskRecord> previewBox,
+            Func<TaskRecord, bool> isVisible)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
@@ -29,6 +31,7 @@ namespace ProjectX.UI
             this.go = go ?? throw new ArgumentNullException(nameof(go));
             this.claim = claim ?? throw new ArgumentNullException(nameof(claim));
             this.previewBox = previewBox ?? throw new ArgumentNullException(nameof(previewBox));
+            this.isVisible = isVisible ?? throw new ArgumentNullException(nameof(isVisible));
             GameObject viewport = Require(BasePath + "/Content/ListView");
             GameObject template = Require(BasePath + "/Item");
             float itemHeight = Math.Max(130f, template.GetComponent<RectTransform>()?.rect.height ?? 130f);
@@ -54,14 +57,14 @@ namespace ProjectX.UI
 
         public bool InvokeGo(int jump)
         {
-            foreach (TaskRecord item in store.Items)
+            foreach (TaskRecord item in store.Items.Where(isVisible))
                 if (item.State == 0 && item.Jump == jump) { go(item); return true; }
             return false;
         }
 
         public bool InvokeFirstDailyClaim(out int id)
         {
-            foreach (TaskRecord item in store.Items)
+            foreach (TaskRecord item in store.Items.Where(isVisible))
                 if (item.State == 1) { id = item.Id; claim(item); return true; }
             id = 0;
             return false;
@@ -77,7 +80,7 @@ namespace ProjectX.UI
 
         public void Render()
         {
-            IReadOnlyList<TaskRecord> items = store.Items;
+            IReadOnlyList<TaskRecord> items = store.Items.Where(isVisible).ToArray();
             list.SetItems(items);
             emptyText.gameObject.SetActive(items.Count == 0);
             RenderActivityBoxes();

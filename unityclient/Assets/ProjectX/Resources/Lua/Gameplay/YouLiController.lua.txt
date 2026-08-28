@@ -1,4 +1,5 @@
 local Protocol = require("Protocol")
+local HeroController = require("Hero.HeroController")
 local M = { validation = false }
 
 local function requestInfo()
@@ -13,8 +14,12 @@ end
 function M.onClick()
     M.validation = Bridge:HasCommandLineFlag("-projectXYouLiValidation")
     Bridge:ShowYouLi()
+    -- YouLi can be entered directly from the gameplay hall before the hero
+    -- screen has populated the C# HeroStore.  Load the authoritative /24
+    -- snapshot so location actions can select an eligible owned hero.
+    HeroController.requestSnapshot("YouLi")
     requestInfo()
-    Bridge:SetStatus("YouLi/335 op=1 requested from current WanFa route.")
+    Bridge:SetStatus("YouLi prerequisites /24 and /335 op=1 requested from current WanFa route.")
 end
 
 function M.start(locationId, heroId, mode, durationType)
@@ -22,6 +27,25 @@ function M.start(locationId, heroId, mode, durationType)
     message:WriteByte(2); message:WriteByte(1); message:WriteWord(heroId)
     message:WriteByte(locationId); message:WriteByte(mode); message:WriteByte(durationType)
     Bridge:Send(message); Bridge:SetStatus("YouLi/335 op=2 requested location="..tostring(locationId).." hero="..tostring(heroId)..".")
+end
+
+function M.startBatch(payload)
+    local entries = {}
+    for locationId, heroId, mode, durationType in string.gmatch(payload or "", "(%d+),(%d+),(%d+),(%d+)") do
+        table.insert(entries, {
+            locationId = tonumber(locationId), heroId = tonumber(heroId),
+            mode = tonumber(mode), durationType = tonumber(durationType)
+        })
+    end
+    if #entries == 0 then Bridge:SetYouLiError("没有可批量派遣的神将"); return end
+    local message = Protocol.newMessage(Protocol.YOU_LI)
+    message:WriteByte(2); message:WriteByte(#entries)
+    for _, entry in ipairs(entries) do
+        message:WriteWord(entry.heroId); message:WriteByte(entry.locationId)
+        message:WriteByte(entry.mode); message:WriteByte(entry.durationType)
+    end
+    Bridge:Send(message)
+    Bridge:SetStatus("YouLi/335 op=2 batch requested count="..tostring(#entries)..".")
 end
 
 function M.claim(locationId)

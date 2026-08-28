@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup")]
+    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
@@ -83,6 +83,33 @@ function Write-Evidence($Payload) {
     [IO.File]::WriteAllText($evidence, (($Payload | ConvertTo-Json -Depth 8) + "`n"), [Text.UTF8Encoding]::new($false))
 }
 
+function Initialize-GameplayValidationConfig {
+    $source = Join-Path $root "server\config"
+    $destination = Join-Path $root ".local\gameplay-server-validation"
+    [IO.Directory]::CreateDirectory($destination) | Out-Null
+    Copy-Item -LiteralPath (Join-Path $source "config") -Destination (Join-Path $destination "config") -Force
+    foreach ($directory in @("dat", "json", "xml")) {
+        Copy-Item -LiteralPath (Join-Path $source $directory) -Destination $destination -Recurse -Force
+    }
+    $configPath = Join-Path $destination "config"
+    $configText = [IO.File]::ReadAllText($configPath, [Text.Encoding]::UTF8)
+    $scriptDirectory = ([IO.Path]::GetFullPath((Join-Path $root "server\script")) -replace '\\', '/') + "/"
+    $settings = [ordered]@{
+        script_dir = $scriptDirectory
+        local_preserve_level_user_id = "705213"
+        local_preserve_balance_user_id = "705213"
+    }
+    foreach ($setting in $settings.GetEnumerator()) {
+        $pattern = "(?m)^" + [regex]::Escape([string]$setting.Key) + "\s*=.*$"
+        if ([regex]::Matches($configText, $pattern).Count -ne 1) {
+            throw "Gameplay validation config requires exactly one $($setting.Key) entry."
+        }
+        $configText = [regex]::Replace($configText, $pattern, "$($setting.Key)=$($setting.Value)", 1)
+    }
+    [IO.File]::WriteAllText($configPath, $configText, [Text.UTF8Encoding]::new($false))
+    $configPath
+}
+
 function Assert-Unchanged {
     $payload = Read-Evidence
     $current = Get-IdentitySnapshot
@@ -92,12 +119,15 @@ function Assert-Unchanged {
 switch ($Action) {
     "Setup" {
         Assert-ClientsStopped
+        $validationConfig = Initialize-GameplayValidationConfig
         $snapshot = Get-IdentitySnapshot
         $configHash = (Get-FileHash -LiteralPath (Join-Path $root "client\ProjectX\src\ConfigData\function_dat.lua") -Algorithm SHA256).Hash
         Write-Evidence ([ordered]@{
             schemaVersion=1; module="Gameplay"; fixture="no-server-fixture"; phase="setup-asserted"
             userId=$UserId; roleId=$RoleId; snapshotHash=$snapshot.hash; identityLines=$snapshot.lines
-            configHash=$configHash; mutationCount=0; configMutationCount=0
+            configHash=$configHash; validationConfig=$validationConfig
+            validationConfigHash=(Get-FileHash -LiteralPath $validationConfig -Algorithm SHA256).Hash
+            mutationCount=0; configMutationCount=0
             setupAssert="passed"; restoreAssert="pending"; cleanupAssert="pending"
             createdUtc=[DateTime]::UtcNow.ToString("O")
         })
@@ -112,6 +142,17 @@ switch ($Action) {
         Write-Host "Gameplay read-only fixture restore is a verified no-op."
     }
     "AssertRestored" { Assert-Unchanged; Write-Host "Gameplay exact identity restore assertion passed." }
+    "AssertReloginHash" {
+        $payload = Read-Evidence
+        $current = Get-IdentitySnapshot
+        if ([string]$current.hash -ne [string]$payload.snapshotHash) {
+            throw "Gameplay post-login identity hash mismatch."
+        }
+        $payload | Add-Member -Force -NotePropertyName postLoginHash -NotePropertyValue ([string]$current.hash)
+        $payload | Add-Member -Force -NotePropertyName residualCount -NotePropertyValue 0
+        Write-Evidence $payload
+        Write-Host "Gameplay post-login identity hash passed: $($current.hash)"
+    }
     "Cleanup" {
         Assert-ClientsStopped
         $payload=Read-Evidence

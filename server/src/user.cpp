@@ -21761,6 +21761,9 @@ uint32 CUser::GetMaterial(uint32 type)
 	case HDAT_QIANNENG:
 		return GetQianNeng();
 
+	case HDAT_TiLi:
+		return m_userSpirit.GetCurSpirit();
+
 	case HDAT_BANG_GONG:
 		 return GetBangGong();
 
