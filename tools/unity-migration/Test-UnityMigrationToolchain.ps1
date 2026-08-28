@@ -1528,6 +1528,25 @@ Assert-ToolchainTest (
     $protocolCompareSource.Contains('YouLi = $youLiParity') -and
     $protocolCompareSource.Contains('$youLiParity.status -eq "Passed"')
 ) "SQLite/MySQL report comparison no longer gates YouLi runtime and restart semantic equality."
+$youLiScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "YouLi"
+$youLiSourceContracts = @($youLiScenario.sourceContracts)
+$youLiLuaContract = @($youLiSourceContracts | Where-Object {
+    [string]$_.path -eq 'unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt'
+})[0]
+$youLiAppContract = @($youLiSourceContracts | Where-Object {
+    [string]$_.path -eq 'unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs'
+})[0]
+$youLiPresenterContract = @($youLiSourceContracts | Where-Object {
+    [string]$_.path -eq 'unityclient/Assets/ProjectX/src/UI/YouLiPresenter.cs'
+})[0]
+Assert-ToolchainTest (
+    @($youLiLuaContract.contains) -contains 'function M.startBatch' -and
+    @($youLiAppContract.contains) -contains 'StartAllYouLi' -and
+    @($youLiAppContract.contains) -contains 'onYouLiStartBatch' -and
+    @($youLiPresenterContract.contains) -contains 'Action startAll' -and
+    @($youLiPresenterContract.contains) -contains 'oneKeyStart = Bind(Find(root, "Btn_youli"), startAll)' -and
+    @($youLiPresenterContract.contains) -notcontains 'StartFirstAvailable'
+) "YouLi source contract no longer follows the authoritative one-key batch dispatch chain."
 Assert-ToolchainTest (
     $protocolSmokeSource.Contains('[switch]$FengShenStoryParity') -and
     $protocolSmokeSource.Contains('[switch]$FengShenStoryRestartVerify') -and

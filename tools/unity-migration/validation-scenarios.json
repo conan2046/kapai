@@ -2194,14 +2194,24 @@
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt",
           "contains": [
             "function M.start",
+            "function M.startBatch",
             "function M.claim",
             "requestInfo()"
           ]
         },
         {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "onYouLiStartBatch",
+            "StartAllYouLi",
+            "YouLi.StartBatch"
+          ]
+        },
+        {
           "path": "unityclient/Assets/ProjectX/src/UI/YouLiPresenter.cs",
           "contains": [
-            "StartFirstAvailable",
+            "Action startAll",
+            "oneKeyStart = Bind(Find(root, \"Btn_youli\"), startAll)",
             "ClaimFirstReady",
             "RuntimeYouLiLocations"
           ]
