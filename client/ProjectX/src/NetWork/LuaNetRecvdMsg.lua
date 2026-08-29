@@ -2104,6 +2104,16 @@ function LuaNetRecvdMsg.DealMsgPetEquip(stream)
             return
         end     
         if value.m_uid < 1 or value.m_id < 1 then return end
+        local previous = LRoleDataMgr.Pet.equipList.m_petEquips[value.m_uid]
+        value.affixSeed = previous.affixSeed
+        value.specialAffixId = previous.specialAffixId
+        value.specialAffixTier = previous.specialAffixTier
+        value.affixLockMask = previous.affixLockMask
+        value.specialAffixKey = previous.specialAffixKey
+        value.specialAffixName = previous.specialAffixName
+        value.specialAffixDesc = previous.specialAffixDesc
+        value.specialAffixValue1 = previous.specialAffixValue1
+        value.specialAffixValue2 = previous.specialAffixValue2
         LRoleDataMgr.Pet.equipList.m_petEquips[value.m_uid] = value
         LRoleDataMgr.Pet.equipList.m_curGridNum = LRoleDataMgr.Pet.equipList.m_curGridNum+1
         LGameMsg.m_baseMsgTwo:Change(LUIPetEvent.PetBagEquipChanged,1,value)
@@ -2344,6 +2354,45 @@ function LuaNetRecvdMsg.DealMsgPetEquip(stream)
         end
 		LRedDotCheckMgr:EquipZhenRongRedDotCheck()
 		LRedDotCheckMgr:FaBaoBeiBaoRedDotCheck()
+	elseif op == 40 then
+		-- 装备特殊词条使用独立分包，保持旧装备记录协议不变。
+		local total = stream:ReadWord()
+		if total == 0 then
+			return
+		end
+		local packetCount = stream:ReadByte()
+		local packetIndex = stream:ReadByte()
+		local itemCount = stream:ReadByte()
+		for i = 1, itemCount do
+			local uid = stream:ReadUInt()
+			local seed = stream:ReadUInt()
+			local affixId = stream:ReadWord()
+			local tier = stream:ReadByte()
+			local lockMask = stream:ReadByte()
+			local key = stream:ReadString()
+			local name = stream:ReadString()
+			local desc = stream:ReadString()
+			local value1 = stream:ReadInt()
+			local value2 = stream:ReadInt()
+			local info = LRoleDataMgr.Pet.equipList
+				and LRoleDataMgr.Pet.equipList.m_petEquips
+				and LRoleDataMgr.Pet.equipList.m_petEquips[uid]
+			if info ~= nil then
+				info.affixSeed = seed
+				info.specialAffixId = affixId
+				info.specialAffixTier = tier
+				info.affixLockMask = lockMask
+				info.specialAffixKey = key
+				info.specialAffixName = name
+				info.specialAffixDesc = desc
+				info.specialAffixValue1 = value1
+				info.specialAffixValue2 = value2
+			end
+		end
+		if packetIndex + 1 == packetCount then
+			LGameMsg.m_netDealBaseMsg:ChangeEventId(LUIPetEvent.GotPetEquip)
+			this:SendMsg(LGameMsg.m_netDealBaseMsg)
+		end
     elseif op == 20 then
         --强化法宝
         local errCode = stream:ReadByte()

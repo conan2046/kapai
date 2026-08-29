@@ -306,6 +306,7 @@ namespace ProjectX.Core
         private uint pendingEquipmentBaseAttributeValue;
         private int pendingEquipmentStrengthAttributeType;
         private uint pendingEquipmentStrengthAttributeValue;
+        private HeroEquipmentAffix pendingEquipmentAffix;
         private int pendingFaBaoSlot;
         private CocosUiView settingsView;
         private SettingsPresenter settingsPresenter;
@@ -7449,7 +7450,15 @@ namespace ProjectX.Core
             pendingEquipmentBaseAttributeValue = checked((uint)baseAttributeValue);
             pendingEquipmentStrengthAttributeType = strengthAttributeType;
             pendingEquipmentStrengthAttributeValue = checked((uint)strengthAttributeValue);
+            pendingEquipmentAffix = HeroEquipmentAffix.None;
             pendingCultivation.Clear();
+        }
+
+        public void SetPendingHeroEquipmentAffix(double seed, int id, int tier, int lockMask,
+            string key, string name, string description, int value1, int value2)
+        {
+            pendingEquipmentAffix = new HeroEquipmentAffix(checked((uint)seed), id, tier, lockMask,
+                key, name, description, value1, value2);
         }
 
         public void AddHeroEquipmentCultivation(int type, int level)
@@ -7461,7 +7470,7 @@ namespace ProjectX.Core
                 pendingEquipmentFormationPosition, pendingEquipmentExperience, pendingCultivation.ToArray(),
                 pendingEquipmentBaseAttributeType, pendingEquipmentBaseAttributeValue,
                 pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
-                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
+                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId), pendingEquipmentAffix));
         }
 
         public void EndHeroEquipmentUpdate() => services.HeroEquipment.Replace(pendingHeroEquipment);
@@ -7472,7 +7481,7 @@ namespace ProjectX.Core
                 pendingEquipmentFormationPosition, pendingEquipmentExperience, pendingCultivation.ToArray(),
                 pendingEquipmentBaseAttributeType, pendingEquipmentBaseAttributeValue,
                 pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
-                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
+                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId), pendingEquipmentAffix));
         }
 
         public void NotifyHeroEquipmentCultivationSuccess(int operation)

@@ -537,9 +537,15 @@ namespace ProjectX.UI
             if (popupTitle != null)
                 popupTitle.text = item.Kind == HeroEquipmentKind.FaBao ? "法宝信息" : "装备信息";
             detailName.text = item.Definition.Name;
-            detailDescription.text = string.IsNullOrEmpty(item.Definition.Description)
+            string description = string.IsNullOrEmpty(item.Definition.Description)
                 ? $"模板：{item.Definition.Id}　品质：{item.Definition.Quality}　槽位：{item.Slot}"
                 : item.Definition.Description;
+            if (item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid)
+            {
+                HeroEquipmentAffix affix = item.Equipment.Affix;
+                description += $"\n<color=#D56A30>[特殊词条·T{affix.Tier}] {affix.Name}</color>\n{affix.Description}";
+            }
+            detailDescription.text = description;
             int attrType = item.Kind == HeroEquipmentKind.Equipment
                 ? item.Equipment.BaseAttributeType
                 : item.Definition.BaseAttribute != null && item.Definition.BaseAttribute.Length > 0 ? item.Definition.BaseAttribute[0] : 0;

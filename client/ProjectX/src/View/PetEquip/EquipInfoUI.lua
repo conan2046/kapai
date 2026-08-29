@@ -539,7 +539,14 @@ function EquipInfoUI:ShowDesc()
     if self.m_cfgData == nil then
         return
     end
-    self.m_descLabel:setString(self.m_cfgData.des or "")
+    local desc = self.m_cfgData.des or ""
+    if self.m_info.specialAffixId ~= nil and self.m_info.specialAffixId > 0 then
+        local tierName = ({"T1", "T2", "T3"})[self.m_info.specialAffixTier] or "T?"
+        local affixText = string.format("[特殊词条·%s] %s\n%s", tierName,
+            self.m_info.specialAffixName or "", self.m_info.specialAffixDesc or "")
+        desc = (#desc > 0) and (desc .. "\n" .. affixText) or affixText
+    end
+    self.m_descLabel:setString(desc)
     self.m_descNode:retain()
     self.m_descNode:removeFromParent()
     self.m_listView:pushBackCustomItem(self.m_descNode)

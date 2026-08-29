@@ -14,6 +14,7 @@ local M = {
     formationPosition = 1,
     strengthBefore = 0,
     pendingEquipment = {},
+    pendingAffixes = {},
     pendingFaBao = {},
     invalidReason = "",
     repeatReason = "",
@@ -78,12 +79,20 @@ local function readEquipmentRecord(message)
             end
         end
     end
-    return {
+    local value = {
         uid = uid, templateId = templateId, fpos = formationPosition, experience = experience,
         cultivation = cultivation, baseAttributeType = baseAttributeType,
         baseAttributeValue = baseAttributeValue, part = Bridge:GetEquipmentPart(templateId),
         strengthAttributeType = strengthAttributeType, strengthAttributeValue = strengthAttributeValue,
     }
+    local previous = EquipmentModel:GetEquipment(uid)
+    if previous and previous.affixId and previous.affixId > 0 then
+        for _, key in ipairs({ "affixSeed", "affixId", "affixTier", "affixLockMask", "affixKey",
+            "affixName", "affixDescription", "affixValue1", "affixValue2" }) do
+            value[key] = previous[key]
+        end
+    end
+    return value
 end
 
 local function readFaBaoRecord(message)
@@ -111,6 +120,11 @@ local function syncRenderMirror()
         local value = EquipmentModel.equipment[uid]
         Bridge:BeginHeroEquipmentRecord(value.uid, value.templateId, value.fpos, value.experience,
             value.baseAttributeType, value.baseAttributeValue, value.strengthAttributeType, value.strengthAttributeValue)
+        if value.affixId and value.affixId > 0 then
+            Bridge:SetPendingHeroEquipmentAffix(value.affixSeed or 0, value.affixId, value.affixTier or 0,
+                value.affixLockMask or 0, value.affixKey or "", value.affixName or "", value.affixDescription or "",
+                value.affixValue1 or 0, value.affixValue2 or 0)
+        end
         for _, level in ipairs(value.cultivation) do Bridge:AddHeroEquipmentCultivation(level[1], level[2]) end
         Bridge:EndHeroEquipmentRecord()
     end
@@ -383,6 +397,34 @@ local function readList(message, kind)
             M.pendingCultivationSuccessOp = nil
         end
         finishLists()
+    end
+end
+
+local function readAffixList(message)
+    local total = message:ReadWord()
+    if total == 0 then return end
+    local packetCount = message:ReadByte()
+    local packetIndex = message:ReadByte()
+    local itemCount = message:ReadByte()
+    if packetIndex == 0 then M.pendingAffixes = {} end
+    for _ = 1, itemCount do
+        local value = {
+            uid = message:ReadUInt(), affixSeed = message:ReadUInt(), affixId = message:ReadWord(),
+            affixTier = message:ReadByte(), affixLockMask = message:ReadByte(), affixKey = message:ReadString(),
+            affixName = message:ReadString(), affixDescription = message:ReadString(),
+            affixValue1 = message:ReadInt(), affixValue2 = message:ReadInt(),
+        }
+        M.pendingAffixes[value.uid] = value
+    end
+    if message.Remaining ~= 0 then Bridge:Fail("HeroEquipment/319 affix list has unread bytes: " .. tostring(message.Remaining)); return end
+    if packetIndex == packetCount - 1 then
+        for uid, affix in pairs(M.pendingAffixes) do
+            local equipment = EquipmentModel:GetEquipment(uid)
+            if equipment then
+                for key, value in pairs(affix) do if key ~= "uid" then equipment[key] = value end end
+            end
+        end
+        syncRenderMirror()
     end
 end
 
@@ -681,6 +723,7 @@ end
 function M.onOperation(op, message)
     if op == 1 then readList(message, 1); return true end
     if op == 17 then readList(message, 2); return true end
+    if op == 40 then readAffixList(message); return true end
     if op == 6 then
         EquipmentModel:UpsertEquipment(readEquipmentRecord(message)); syncRenderMirror()
         if M.stage == "await_injection" then M.injectedEquipment = true end
@@ -716,7 +759,7 @@ function M.reset()
     M.stage, M.injectedEquipment, M.injectedFaBao = nil, false, false
     M.equipmentUid, M.faBaoUid, M.strengthBefore = 0, 0, 0
     M.originalEquipmentUid, M.originalFaBaoUid = 0, 0
-    M.pendingEquipment, M.pendingFaBao = {}, {}
+    M.pendingEquipment, M.pendingFaBao, M.pendingAffixes = {}, {}, {}
     M.invalidReason, M.repeatReason = "", ""
     M.openKind = 1
     M.openPending = false

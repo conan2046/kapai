@@ -149,6 +149,15 @@ function LPetEquipInfo:ctor()
     self.jlAttrs = {}
     self.jxAttrs = {}
     self.szAttrs = {}
+    self.affixSeed = 0
+    self.specialAffixId = 0
+    self.specialAffixTier = 0
+    self.affixLockMask = 0
+    self.specialAffixKey = ""
+    self.specialAffixName = ""
+    self.specialAffixDesc = ""
+    self.specialAffixValue1 = 0
+    self.specialAffixValue2 = 0
 end
 
 function LPetEquipInfo:Delete()
@@ -166,6 +175,15 @@ function LPetEquipInfo:Delete()
     self.m_baseValues = nil
     self.m_addTypes = nil
     self.m_addValues = nil
+    self.affixSeed = nil
+    self.specialAffixId = nil
+    self.specialAffixTier = nil
+    self.affixLockMask = nil
+    self.specialAffixKey = nil
+    self.specialAffixName = nil
+    self.specialAffixDesc = nil
+    self.specialAffixValue1 = nil
+    self.specialAffixValue2 = nil
 end
 
 --宠物装备背包信息
