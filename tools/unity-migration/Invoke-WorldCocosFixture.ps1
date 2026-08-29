@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "SeedTestProgress")]
+    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "SeedTestProgress")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
@@ -53,6 +53,21 @@ COALESCE(CAST(u.bd_money AS CHAR),'')
 ),256)
 "@ -replace "\r?\n", ""
 
+# mission, save_val day/week markers, the selected chapter derived from the
+# selected node, and trial availability counters are normalized by the
+# authoritative login path even without a player mutation. Keep every raw
+# field in the exact restore hash. The post-relogin oracle hashes all other
+# fields here and compares those World/save_val fields canonically below.
+$reloginHashExpression = @"
+SHA2(CONCAT_WS('|',
+COALESCE(TO_BASE64(r.package),''),COALESCE(TO_BASE64(r.save_data),''),
+COALESCE(TO_BASE64(r.user_spirit),''),
+COALESCE(CAST(r.money AS CHAR),''),COALESCE(CAST(r.exp AS CHAR),''),
+COALESCE(CAST(r.level AS CHAR),''),COALESCE(CAST(u.money AS CHAR),''),
+COALESCE(CAST(u.bd_money AS CHAR),'')
+),256)
+"@ -replace "\r?\n", ""
+
 $createTableSql = @"
 CREATE TABLE IF NOT EXISTS unity_validation_world_fixture (
  user_id INT UNSIGNED NOT NULL,
@@ -64,7 +79,7 @@ CREATE TABLE IF NOT EXISTS unity_validation_world_fixture (
  backup_user_spirit MEDIUMTEXT NULL, backup_mission MEDIUMTEXT NULL,
  backup_role_money BIGINT NULL, backup_exp BIGINT NULL, backup_level INT NULL,
  backup_user_money BIGINT NULL, backup_bd_money BIGINT NULL,
- snapshot_hash CHAR(64) NULL,
+ snapshot_hash CHAR(64) NULL, stable_snapshot_hash CHAR(64) NULL,
  PRIMARY KEY(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
 "@
@@ -169,6 +184,84 @@ function Get-WorldFixturePayload {
     [pscustomobject]@{ raw = $raw; primary = $primary; secondary = $secondary; tail = $raw[$cursor.Position..($raw.Length - 1)] }
 }
 
+function ConvertTo-WorldCanonicalSection {
+    param($Section, [switch]$IgnoreDerivedCurrentMap)
+    [ordered]@{
+        curMapId = if ($IgnoreDerivedCurrentMap) { $null } else { [uint32]$Section.curMapId }
+        curNodeId = [uint32]$Section.curNodeId
+        maps = @($Section.maps | Sort-Object mapId | ForEach-Object {
+            $map = $_
+            [ordered]@{
+                mapId = [uint32]$map.mapId
+                sumStar = [uint16]$map.sumStar
+                nodeStars = @($map.nodeStars.Keys | Sort-Object | ForEach-Object {
+                    [ordered]@{ id = [uint32]$_; value = [byte]$map.nodeStars[$_] }
+                })
+                fixIds = @($map.fixIds | Sort-Object -Unique | ForEach-Object { [uint32]$_ })
+                fixStates = @($map.fixStates.Keys | Sort-Object | ForEach-Object {
+                    [ordered]@{ id = [uint32]$_; value = [byte]$map.fixStates[$_] }
+                })
+            }
+        })
+    }
+}
+
+function Get-WorldReloginCanonicalGuanQia {
+    param([Parameter(Mandatory = $true)][string]$GuanQiaHex)
+    $payload = Get-WorldFixturePayload -GuanQiaHex $GuanQiaHex
+    $tail = [byte[]]$payload.tail
+    $cursor = [pscustomobject]@{ Position = 0 }
+
+    $attackCounts = @()
+    $attackCount = Read-WorldUInt16 $tail $cursor
+    for ($index = 0; $index -lt $attackCount; $index++) {
+        $attackCounts += [ordered]@{ id = Read-WorldUInt32 $tail $cursor; value = Read-WorldByte $tail $cursor }
+    }
+    $resetCounts = @()
+    $resetCount = Read-WorldUInt16 $tail $cursor
+    for ($index = 0; $index -lt $resetCount; $index++) {
+        $resetCounts += [ordered]@{ id = Read-WorldUInt32 $tail $cursor; value = Read-WorldByte $tail $cursor }
+    }
+    $trials = @()
+    $trialCount = Read-WorldByte $tail $cursor
+    for ($index = 0; $index -lt $trialCount; $index++) {
+        $mapId = Read-WorldUInt32 $tail $cursor
+        [void](Read-WorldByte $tail $cursor) # login-derived current-week attempt count
+        $trials += [ordered]@{
+            mapId = $mapId
+            sweptNodeId = Read-WorldUInt32 $tail $cursor
+            challengeNodeId = Read-WorldUInt32 $tail $cursor
+        }
+    }
+    $lieZhuanCount = Read-WorldByte $tail $cursor
+    $lieZhuanMapIndex = Read-WorldUInt32 $tail $cursor
+    $lieZhuanNodeId = Read-WorldUInt32 $tail $cursor
+    $achievementId = Read-WorldByte $tail $cursor
+    $achievementState = Read-WorldByte $tail $cursor
+    if ($cursor.Position -ne $tail.Length) {
+        throw "World relogin canonical decoder left unexpected tail bytes: consumed=$($cursor.Position) total=$($tail.Length)."
+    }
+
+    ([ordered]@{
+        primary = ConvertTo-WorldCanonicalSection $payload.primary -IgnoreDerivedCurrentMap
+        secondary = ConvertTo-WorldCanonicalSection $payload.secondary
+        attackCounts = @($attackCounts | Sort-Object id)
+        resetCounts = @($resetCounts | Sort-Object id)
+        trials = @($trials | Sort-Object mapId)
+        lieZhuan = [ordered]@{ count = $lieZhuanCount; mapIndex = $lieZhuanMapIndex; nodeId = $lieZhuanNodeId }
+        achievement = [ordered]@{ id = $achievementId; state = $achievementState }
+    } | ConvertTo-Json -Depth 12 -Compress)
+}
+
+function Get-WorldReloginCanonicalSaveVal {
+    param([Parameter(Mandatory = $true)][string]$SaveVal)
+    $parts = @($SaveVal -split '\|')
+    if ($parts.Count -ne 12) { throw "World save_val expected 12 persisted values, found $($parts.Count)." }
+    # MAX_SAVE_NUM-2 and MAX_SAVE_NUM-1 are the server-owned daily and weekly
+    # normalization markers. All business values before them remain strict.
+    ($parts[0..9] -join '|')
+}
+
 function Get-WorldFixturePreconditions {
     param([string]$GuanQiaHex)
     # CUserGuanQia persists zlib bytes. The fixture decodes and reserializes the
@@ -247,14 +340,14 @@ function Set-WorldTestProgress {
 }
 function Get-WorldFixtureRow {
     $rows = @(Invoke-WorldSql -Sql @"
-SELECT REPLACE(TO_BASE64(backup_guan_qia), CHAR(10), ''), snapshot_hash
+SELECT REPLACE(TO_BASE64(backup_guan_qia), CHAR(10), ''), snapshot_hash, stable_snapshot_hash
 FROM unity_validation_world_fixture
 WHERE user_id=$UserId AND role_id=$RoleId AND enabled=1
 "@ -ReturnOutput)
     if ($rows.Count -ne 1) { throw "World fixture row is missing or ambiguous for userId=$UserId roleId=$RoleId." }
-    $parts = $rows[0] -split "`t", 2
-    if ($parts.Count -ne 2 -or [string]::IsNullOrWhiteSpace($parts[1])) { throw "World fixture snapshot is incomplete." }
-    [pscustomobject]@{ guanQiaHex = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($parts[0])); snapshotHash = $parts[1] }
+    $parts = $rows[0] -split "`t", 3
+    if ($parts.Count -ne 3 -or [string]::IsNullOrWhiteSpace($parts[1]) -or [string]::IsNullOrWhiteSpace($parts[2])) { throw "World fixture snapshot is incomplete." }
+    [pscustomobject]@{ guanQiaHex = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($parts[0])); snapshotHash = $parts[1]; stableSnapshotHash = $parts[2] }
 }
 
 function Get-WorldLiveGuanQiaHex {
@@ -296,6 +389,30 @@ WHERE r.id=$RoleId
     if ($restored.Count -ne 1 -or [int]$restored[0] -ne 1) { throw "World fixture exact restore hash assertion failed." }
 }
 
+function Assert-WorldReloginStable {
+    $stable = @(Invoke-WorldSql -Sql @"
+SELECT COUNT(*)=1 AND $reloginHashExpression=f.stable_snapshot_hash AND CHAR_LENGTH(r.mission)>0,
+ REPLACE(TO_BASE64(r.guan_qia), CHAR(10), ''), REPLACE(TO_BASE64(f.backup_guan_qia), CHAR(10), ''),
+ REPLACE(TO_BASE64(r.save_val), CHAR(10), ''), REPLACE(TO_BASE64(f.backup_save_val), CHAR(10), '')
+FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId
+JOIN unity_validation_world_fixture f ON f.user_id=$UserId AND f.role_id=$RoleId
+WHERE r.id=$RoleId
+"@ -ReturnOutput)
+    if ($stable.Count -ne 1) { throw "World fixture post-login stable-state query was missing or ambiguous." }
+    $parts = $stable[0] -split "`t", 5
+    if ($parts.Count -ne 5 -or [int]$parts[0] -ne 1) { throw "World fixture post-login stable-state hash assertion failed." }
+    $liveGuanQia = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($parts[1]))
+    $backupGuanQia = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($parts[2]))
+    if ((Get-WorldReloginCanonicalGuanQia $liveGuanQia) -cne (Get-WorldReloginCanonicalGuanQia $backupGuanQia)) {
+        throw "World fixture post-login canonical guan_qia assertion failed."
+    }
+    $liveSaveVal = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($parts[3]))
+    $backupSaveVal = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($parts[4]))
+    if ((Get-WorldReloginCanonicalSaveVal $liveSaveVal) -cne (Get-WorldReloginCanonicalSaveVal $backupSaveVal)) {
+        throw "World fixture post-login canonical save_val assertion failed."
+    }
+}
+
 switch ($Action) {
     "SeedTestProgress" {
         Assert-RoleClientsStopped
@@ -327,15 +444,19 @@ SELECT id,guan_qia,pet_equip,level FROM role_info WHERE id=$RoleId;
     "Setup" {
         Assert-ClientsStopped
         Invoke-WorldSql -Sql $createTableSql
+        $stableColumn = @(Invoke-WorldSql -Sql "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='fxl_game_local' AND TABLE_NAME='unity_validation_world_fixture' AND COLUMN_NAME='stable_snapshot_hash'" -ReturnOutput)
+        if ([int]$stableColumn[-1] -eq 0) {
+            Invoke-WorldSql -Sql "ALTER TABLE unity_validation_world_fixture ADD COLUMN stable_snapshot_hash CHAR(64) NULL"
+        }
         $existing = @(Invoke-WorldSql -Sql "SELECT COUNT(*) FROM unity_validation_world_fixture WHERE user_id=$UserId" -ReturnOutput)
         if ([int]$existing[-1] -ne 0) { throw "A World fixture row already exists for userId=$UserId. Restore/Cleanup it before a new snapshot." }
         Invoke-WorldSql -Sql @"
 INSERT INTO unity_validation_world_fixture(
  user_id,role_id,enabled,applied,backup_guan_qia,backup_package,backup_save_data,backup_save_val,
- backup_user_spirit,backup_mission,backup_role_money,backup_exp,backup_level,backup_user_money,backup_bd_money,snapshot_hash
+ backup_user_spirit,backup_mission,backup_role_money,backup_exp,backup_level,backup_user_money,backup_bd_money,snapshot_hash,stable_snapshot_hash
 )
 SELECT $UserId,$RoleId,1,1,r.guan_qia,r.package,r.save_data,r.save_val,r.user_spirit,r.mission,
- r.money,r.exp,r.level,u.money,u.bd_money,$hashExpression
+ r.money,r.exp,r.level,u.money,u.bd_money,$hashExpression,$reloginHashExpression
 FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId
 WHERE r.id=$RoleId
 "@
@@ -348,7 +469,7 @@ WHERE r.id=$RoleId
         if ([int]$spirit[0] -le 0) { throw "World fixture requires persisted authoritative spirit data." }
         Write-Evidence ([ordered]@{
             module = "World"; phase = "after-injection"; userId = $UserId; roleId = $RoleId
-            snapshotHash = $fixture.snapshotHash; preconditions = $preconditions
+            snapshotHash = $fixture.snapshotHash; stableSnapshotHash = $fixture.stableSnapshotHash; preconditions = $preconditions
             injection = $injection; injectedState = $injected
             userSpiritLength = [int]$spirit[0]; roleMoney = [long]$spirit[1]; userMoney = [long]$spirit[2]; boundMoney = [long]$spirit[3]
             roleExperience = [long]$spirit[4]; roleLevel = [int]$spirit[5]
@@ -396,5 +517,14 @@ WHERE u.id=$UserId AND u.role0=$RoleId
         $current = @(Invoke-WorldSql -Sql "SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId WHERE r.id=$RoleId" -ReturnOutput)
         if ($current.Count -ne 1 -or [string]$current[0] -ne [string]$payload.snapshotHash) { throw "World fixture post-cleanup hash assertion failed." }
         Write-Host "World fixture cleanup and exact hash assertion passed: userId=$UserId"
+    }
+    "AssertReloginHash" {
+        Assert-WorldReloginStable
+        $payload = Read-Evidence
+        $payload | Add-Member -NotePropertyName residualCount -NotePropertyValue 0 -Force
+        $payload | Add-Member -NotePropertyName postLoginHashVerified -NotePropertyValue $true -Force
+        $payload | Add-Member -NotePropertyName postLoginVerifiedUtc -NotePropertyValue ([DateTime]::UtcNow.ToString("O")) -Force
+        Write-Evidence $payload
+        Write-Host "World fixture post-login stable-state hash assertion passed (mission login normalization allowed): userId=$UserId roleId=$RoleId"
     }
 }

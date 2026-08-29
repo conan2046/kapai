@@ -738,8 +738,9 @@ namespace ProjectX.UI
                 uint stageId = stage.Id;
                 button.onClick.AddListener(() => { requestStage(stageId); showDetail = true; Render(); Mark("WORLD-10-STAGE-NODE"); });
             }
+            float backdropWidth = mapVisual != null ? mapVisual.Size.x * (750f / 1080f) : 0f;
             stageMapContent.sizeDelta = new Vector2(Math.Max(stageMapScroll.viewport.rect.width,
-                store.Stages.Count * width + 16f), stageMapScroll.viewport.rect.height);
+                Math.Max(store.Stages.Count * width + 16f, backdropWidth)), stageMapScroll.viewport.rect.height);
             stageMapScroll.horizontalNormalizedPosition = 0f;
         }
 

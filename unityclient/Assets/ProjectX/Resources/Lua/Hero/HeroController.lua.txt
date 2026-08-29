@@ -421,6 +421,13 @@ local function readFormation(message)
     if message.Remaining ~= 0 then Bridge:Fail("Formation/48 has unread bytes: " .. tostring(message.Remaining)); return end
 
     FormationModel:ReplaceFormation(activeId, formations, display, combat)
+    if M.mutationStage == "interactive_snapshot"
+        and FormationModel:GetCombatHero(M.targetPosition) == M.mutationHero then
+        -- The replacement is only selected after /48 confirms it. Keeping the
+        -- legacy authority aligned prevents the C# render mirror from restoring
+        -- the displaced hero on the next snapshot.
+        FormationModel:SelectHero(M.mutationHero)
+    end
     syncRenderMirror()
     M.formationReady = true
 
@@ -482,6 +489,12 @@ local function readFormation(message)
         return
     end
     if M.mutationStage == "interactive_snapshot" then
+        if FormationModel:GetCombatHero(M.targetPosition) ~= M.mutationHero
+            or FormationModel:GetSelectedHeroId() ~= M.mutationHero then
+            Bridge:Fail("Interactive formation snapshot did not select the authoritative target hero.")
+            M.mutationStage = nil
+            return
+        end
         M.mutationStage = nil
         Bridge:SetStatus("Formation position updated by authoritative Lua snapshot.")
         return
@@ -512,6 +525,7 @@ local function readFormation(message)
     if Bridge:HasCommandLineFlag("-projectXHeroEquipValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipMutationValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation")
+        or Bridge:HasCommandLineFlag("-projectXHeroEquipG5VisualValidation")
         or Bridge:HasCommandLineFlag("-projectXHeroEquipMaterialValidation") then
         M.requested = false
         EquipmentController.onHeroReady()
@@ -570,6 +584,7 @@ local function readFormation(message)
             if M.equipmentReady then runG4Validation()
             else M.formationReady = true end
         elseif Bridge:HasCommandLineFlag("-projectXHeroEquipG4Validation")
+            or Bridge:HasCommandLineFlag("-projectXHeroEquipG5VisualValidation")
             or Bridge:HasCommandLineFlag("-projectXEnhanceMasterG3Validation") then
             M.requested = false
             EquipmentController.onHeroReady()

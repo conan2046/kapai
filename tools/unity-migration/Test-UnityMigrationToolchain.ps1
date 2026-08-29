@@ -1847,8 +1847,24 @@ Assert-ToolchainTest (
     $heroCultivationPresenterSource.Contains('missing level materials:') -and
     $heroCultivationPresenterSource.Contains('retained placeholder') -and
     $heroCultivationPresenterSource.Contains('tabs=5/5')
-) "HeroCultivation early-play regression: material, placeholder or five-tab runtime assertions were removed."
-Assert-ToolchainTest (
+  ) "HeroCultivation early-play regression: material, placeholder or five-tab runtime assertions were removed."
+  $heroPresenterSource = Get-Content -LiteralPath (
+      Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
+  Assert-ToolchainTest (
+      $heroControllerSource.Contains('FormationModel:GetCombatHero(M.targetPosition) == M.mutationHero') -and
+      $heroControllerSource.Contains('FormationModel:SelectHero(M.mutationHero)') -and
+      $heroControllerSource.Contains('FormationModel:GetSelectedHeroId() ~= M.mutationHero') -and
+      $heroPresenterSource.Contains('formation.GetCombatPosition(selectedId) == 0') -and
+      $heroPresenterSource.Contains('int deployedHeroId = formation.CombatHeroes[selectedPosition - 1];')
+  ) "Hero replacement regression: authoritative target selection or stale-detail fallback was removed."
+  $heroEquipmentPresenterSource = Get-Content -LiteralPath (
+      Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
+  Assert-ToolchainTest (
+      $heroEquipmentPresenterSource.Contains('else ShowChange(item, false);') -and
+      $heroEquipmentPresenterSource.Contains('changeHasCurrentEquipped && item.Uid == changeCurrent.Uid ? "已穿戴" : "穿戴"') -and
+      $heroEquipmentPresenterSource.Contains('action.interactable = !changeHasCurrentEquipped || item.Uid != changeCurrent.Uid;')
+  ) "HeroEquipment empty-slot regression: an unequipped candidate can no longer be disabled as the current worn item."
+  Assert-ToolchainTest (
     $heroCultivationPresenterSource.Contains('EventSystem.current.RaycastAll(data, hits);') -and
     $heroCultivationPresenterSource.Contains('hits[0].gameObject.GetComponentInParent<Button>() != button') -and
     $heroCultivationPresenterSource.Contains('ExecuteEvents.pointerClickHandler')

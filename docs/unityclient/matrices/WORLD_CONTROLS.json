@@ -4,27 +4,51 @@
   "coverageList": "docs/unityclient/matrices/WORLD_COVERAGE.json",
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
-    { "id": "world-sweep-aggregate", "given": "固定账号对同一关卡可扫荡N次并获得多类奖励", "when": "点击扫荡N次", "then": "结果标题显示扫荡N次收益汇总，相同type/id合并总量且再次扫荡按钮显示真实N" }
+    { "id": "world-sweep-aggregate", "given": "固定账号对同一关卡可扫荡N次并获得多类奖励", "when": "点击扫荡N次", "then": "结果标题显示扫荡N次收益汇总，相同type/id合并总量且再次扫荡按钮显示真实N" },
+    { "id": "world-authoritative-battle-playback", "given": "点击主线挑战且服务端返回/38 op=5内嵌/21,/22,/23真实战报", "when": "玩家等待战斗过程播放", "then": "Unity先显示真实单位和动作序列，播放完成后才显示/320 op=8权威结算" },
+    { "id": "world-settlement-real-close", "given": "权威结算UI已显示", "when": "玩家真实点击非回放/统计区域", "then": "全屏Panel命中EventSystem射线并关闭结算后重拉/320状态" }
   ],
   "hardGateVersion": 2,
   "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000115,
     "screenSize": "1334x750",
     "windowsDpi": "100%",
     "included": [
       "主界面副本入口、世界章节地图、章节关卡地图、关卡详情、主线挑战、扫荡、重置、普通和星级宝箱、结算及其可达弹窗",
       "正常、未解锁、体力不足、次数用尽、重置次数用尽、宝箱不可领/可领/已领、挑战成功/失败、重拉、重进、断线重连和切号",
       "主线 /320 的 op=1/2/4/5/6/7/8/27；真实服务端权威数据、可逆固定账号 Fixture、精确恢复和残留清零",
+      "服务端 /38 op=5 内嵌 /21进入、/22过程、/23结束的真实战报播放；真实单位身份、动作顺序、胜负和播放后结算",
       "结算页的继续、再战、战斗统计与失败复活；进入 Hero/Formation 只作为跨模块回归，不重开其迁移范围"
     ],
     "excludedMustBeHiddenOrDisabled": [
       "支线、帮派副本、封神试炼、排行榜、主线成就、商城加币和体力补给是独立模块；World 页面中的入口必须明确隐藏或禁用并说明原因",
-      "旧 /21-/23 战斗表现流没有当前服务端可验证分发；不得以假战斗、静态结算图或直接 Store 写入替代",
+      "不得以定时假战斗、静态结算图、直接 Store 写入或只消费 /320 op=8 替代 /38 内嵌真实战报",
       "支付、数值平衡、自动战斗、技能特效和非 /320 的 PvP 不在本模块",
       "共享 zhandoujiesuanLayer 的 Button_reborn 仅由 FirstFightResultUI 在 EMID_KAPAI_WF_XZ（血战）失败时调用 /323 复活；World /320 没有复活协议，World 显示路径必须保持该分支隐藏"
     ],
     "crossModuleRegression": [
       "Draw、Hero、Formation 仅用于挑战前阵容可用性及结算后的返回链回归，不重新迁移",
       "Fixture 必须快照并精确恢复角色关卡存档、挑战/重置计数、宝箱、体力、货币、背包、奖励及关联配置，不保留业务数据或 Fixture"
+    ]
+  },
+  "sourceAudit": {
+    "status": "passed-current-2026-08-28",
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "entryClosure": "btn_fuben -> NormalFuBenUI -> StageInfoUI:challengeEvent -> /320 op=5 -> server /38 op=5 nested /21,/22,/23 -> LBattleLogic -> FirstFightResultUI",
+    "sharedProtocolOwnership": "World owns /320 challenge/result and consumes the shared battle replay envelope /38 only while World is open; no static result or local reward mutation is allowed.",
+    "configurationResourceClosure": "client/ProjectX/res/csd/common/FightLayer.csb supplies the 1334x750 battle HUD and Position/Image_1..18; res2/fx/zhandoukaishi and Monster/btm{picture}_{zd,gj,sf1,bj,sw} supply runtime Imod semantics.",
+    "runtimeTransformClosure": "FightLayer.csb Image_1..18 were decoded from SHA-256 45B119F59AFAA85B9DBFFDAA7AA7875C5001D1ED031DCCC4BB3BF23C16BB0898. Cocos flips source positions 1..9 to displayed 10..18 for the local formation; Unity now applies the same mapping and normalized coordinates.",
+    "textClosure": "Cocos source can display colored unit names, but the current dense 18-slot composition overlaps them. Per current user acceptance Unity hides all persistent unit-foot labels and retains only round/control labels plus transient damage; level and raw current/max HP debug text remain forbidden.",
+    "evidence": [
+      ".local/unity-validation/fightlayer-csb-raw.json",
+      ".local/ui-fidelity/World/cocos/g1-20260828-battle/capture-manifest.json",
+      "client/ProjectX/src/Logic/LBattleLogic.lua",
+      "client/ProjectX/src/View/Battle/BattleUnitNode.lua",
+      "client/ProjectX/src/View/Battle/BattleUI.lua"
     ]
   },
   "sourceAuditExclusions": [
@@ -40,16 +64,16 @@
     }
   ],
   "completion": {
-    "status": "complete",
-    "validatedControls": 25,
-    "totalControls": 25,
-    "semanticAssertionsPassed": 5,
-    "semanticAssertionsTotal": 5,
+    "status": "g3-passed-g4-pending",
+    "validatedControls": 0,
+    "totalControls": 29,
+    "semanticAssertionsPassed": 0,
+    "semanticAssertionsTotal": 7,
     "fixedAccount": "7200057 / 1000115",
     "terminalIsolationAccount": "705213 / 1000006",
     "fixedAccountEvidence": ".local/unity-validation/world-fixed-account-latest.json",
     "visualEvidence": ".local/ui-fidelity/World/compare/g5-20260731-cua/manual-acceptance.md",
-    "snapshotHash": "1fe6274907b6aef8f631994fa0a7c4d9b17e19fe30e7a5b54ae2a6aca0eca11d",
+    "snapshotHash": "a469dc2e6acfc416bfcdc18bc57e7fa42e08c1d92269abc8d43bbf9eba3e8809",
     "fixtureResidualCount": 0,
     "bootstrapSha256": "6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C",
     "sweepPresentation": "扫荡 N 次收益汇总；按 type/id 合并总量"
@@ -269,10 +293,10 @@
       "successEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-14-CHALLENGE.png",
       "failureEvidence": ".local/unity-validation/world-fixed-account-latest.json",
       "reconnectEvidence": ".local/unity-validation/world-fixed-account-latest.json",
-      "status": "complete",
+      "status": "g4-automation-passed-user-retest-pending",
       "realEntryClick": true,
       "automationPassed": true,
-      "manualPassed": true,
+      "manualPassed": false,
       "cocosEvidence": ".local/ui-fidelity/World/g6-controls/cocos/WORLD-14-CHALLENGE.png",
       "unityEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-14-CHALLENGE.png"
     },
@@ -388,10 +412,10 @@
       "successEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-21-BATTLE-RESULT-CONTINUE.png",
       "failureEvidence": ".local/unity-validation/world-fixed-account-latest.json",
       "reconnectEvidence": ".local/unity-validation/world-fixed-account-latest.json",
-      "status": "complete",
+      "status": "g4-automation-passed-user-retest-pending",
       "realEntryClick": true,
       "automationPassed": true,
-      "manualPassed": true,
+      "manualPassed": false,
       "cocosEvidence": ".local/ui-fidelity/World/g6-controls/cocos/WORLD-21-BATTLE-RESULT-CONTINUE.png",
       "unityEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-21-BATTLE-RESULT-CONTINUE.png"
     },
@@ -405,10 +429,10 @@
       "successEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-22-BATTLE-RESULT-REPLAY.png",
       "failureEvidence": ".local/unity-validation/world-fixed-account-latest.json",
       "reconnectEvidence": ".local/unity-validation/world-fixed-account-latest.json",
-      "status": "complete",
+      "status": "g4-automation-passed-user-retest-pending",
       "realEntryClick": true,
       "automationPassed": true,
-      "manualPassed": true,
+      "manualPassed": false,
       "cocosEvidence": ".local/ui-fidelity/World/g6-controls/cocos/WORLD-22-BATTLE-RESULT-REPLAY.png",
       "unityEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-22-BATTLE-RESULT-REPLAY.png"
     },
@@ -479,9 +503,74 @@
       "manualPassed": true,
       "cocosEvidence": ".local/ui-fidelity/World/g6-controls/cocos/WORLD-27-RANK-ENTRY.png",
       "unityEvidence": ".local/ui-fidelity/World/g6-controls/unity/WORLD-27-RANK-ENTRY.png"
+    },
+    {
+      "id": "WORLD-28-BATTLE-PLAYBACK-ENTER",
+      "page": "主线战斗",
+      "path": "server /38 op=5 -> nested /21",
+      "visibleCondition": "挑战请求成功且服务端下发进入战斗包",
+      "cocosCallback": "DealJumpBattle -> ReplayBattle -> RecvEnterBattle",
+      "unityBinding": "LegacyTcpMessage.ReadNestedPacket -> WorldBattleReplayStore.ReadEnter -> WorldBattlePlaybackPresenter.Show",
+      "status": "g4-automation-passed-user-retest-pending",
+      "realEntryClick": true,
+      "automationPassed": true,
+      "manualPassed": false,
+      "cocosEvidence": ".local/ui-fidelity/World/cocos/g1-20260828-battle/02-battle-start.png",
+      "successEvidence": ".local/ui-fidelity/World/unity/final-20260828/FINAL-01-battle-no-unit-names.png",
+      "failureEvidence": ".local/unity-validation/world-foreground-play-latest.json",
+      "reconnectEvidence": ".local/unity-validation/world-foreground-play-latest.json"
+    },
+    {
+      "id": "WORLD-29-BATTLE-UNIT-IDENTITY",
+      "page": "主线战斗",
+      "path": "/21 unit list",
+      "visibleCondition": "战报包含玩家神将与敌方怪物",
+      "cocosCallback": "LBattleLogic:ReadBattleUnitData",
+      "unityBinding": "WorldBattleReplayStore.ReadUnit -> actual name/level/HP/picture -> Imod",
+      "status": "g4-automation-passed-user-retest-pending",
+      "realEntryClick": true,
+      "automationPassed": true,
+      "manualPassed": false,
+      "cocosEvidence": ".local/ui-fidelity/World/cocos/g1-20260828-battle/03-battle-round4.png",
+      "successEvidence": ".local/ui-fidelity/World/unity/final-20260828/FINAL-01-battle-no-unit-names.png",
+      "failureEvidence": ".local/unity-validation/world-foreground-play-latest.json",
+      "reconnectEvidence": ".local/unity-validation/world-foreground-play-latest.json"
+    },
+    {
+      "id": "WORLD-30-BATTLE-ACTION-SEQUENCE",
+      "page": "主线战斗",
+      "path": "/22 op=1 action groups",
+      "visibleCondition": "战报包含至少一组战斗动作",
+      "cocosCallback": "LBattleLogic:RecvDoBattle -> DealBattleAction",
+      "unityBinding": "WorldBattleReplayStore.ReadAction -> WorldBattlePlaybackPresenter.RenderAction",
+      "status": "g4-automation-passed-user-retest-pending",
+      "realEntryClick": true,
+      "automationPassed": true,
+      "manualPassed": false,
+      "cocosEvidence": ".local/ui-fidelity/World/cocos/g1-20260828-battle/03-battle-round4.png",
+      "successEvidence": ".local/ui-fidelity/World/unity/final-20260828/FINAL-03-local-replay-battle.png",
+      "failureEvidence": ".local/unity-validation/world-foreground-play-latest.json",
+      "reconnectEvidence": ".local/unity-validation/world-foreground-play-latest.json"
+    },
+    {
+      "id": "WORLD-31-BATTLE-TO-SETTLEMENT",
+      "page": "主线战斗/结算",
+      "path": "/23 result + /320 op=8",
+      "visibleCondition": "真实战报完成并收到权威关卡结算",
+      "cocosCallback": "RecvBattleOver -> FirstFightResultUI",
+      "unityBinding": "PlayWorldBattleReplay completes -> queued ShowWorldBattleResultNow",
+      "status": "g4-automation-passed-user-retest-pending",
+      "realEntryClick": true,
+      "automationPassed": true,
+      "manualPassed": false,
+      "cocosEvidence": ".local/ui-fidelity/World/cocos/g1-20260828-battle/04-victory-settlement.png",
+      "successEvidence": ".local/ui-fidelity/World/unity/final-20260828/FINAL-02-settlement-before-replay.png",
+      "failureEvidence": ".local/unity-validation/world-foreground-play-latest.json",
+      "reconnectEvidence": ".local/unity-validation/world-foreground-play-latest.json"
     }
   ],
   "g6Audit": {
+    "status": "invalidated-by-2026-08-28-user-play",
     "userId": 7200057,
     "roleId": 1000115,
     "screenshotSize": "1334x750",

@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "module": "World",
   "scopeDecision": {
-    "decision": "补齐中央G0 coverageList机器登记；沿用当前模块矩阵、场景与源码边界，不改变既有完成状态或证据结论。",
+    "decision": "2026-08-28 用户真人Play证明挑战跳过战斗；G0扩入/38内嵌/21-/23真实战报和结算真实关闭，旧G4-G6失效。",
     "confirmedByUser": true,
-    "confirmedDate": "2026-08-23"
+    "confirmedDate": "2026-08-28"
   },
   "scenarios": [
     {
@@ -28,11 +28,19 @@
       "sourceFiles": [
         "client/ProjectX/src/View/MainUI.lua",
         "server/src/pack_deal.cpp",
-        "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt"
+        "server/src/fight.cpp",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "client/ProjectX/src/Logic/LBattleLogic.lua",
+        "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt",
+        "unityclient/Assets/ProjectX/src/Data/WorldBattleReplayStore.cs"
       ],
-      "recordTotal": 2,
+      "recordTotal": 6,
       "businessIds": [
         "entry:btn_fuben",
+        "21",
+        "22",
+        "23",
+        "38",
         "320"
       ],
       "branchType": "当前Manifest入口与协议业务ID的中央覆盖登记",
@@ -40,6 +48,10 @@
         {
           "businessIds": [
             "entry:btn_fuben",
+            "21",
+            "22",
+            "23",
+            "38",
             "320"
           ],
           "successScenarioIds": [

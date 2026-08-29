@@ -1390,6 +1390,10 @@ void CUserGuanQia::TiaoZhanLieZhuan(CUser* pUser, CNetMessage &msg)
 	
 	SFastFightResult result;
 	pFight->BeginFastFight(result, true, pUser->GetSock());
+	// op=25 is a request/ack pair.  The battle result and chapter reward are
+	// separate op=10/op=26 pushes, but the original request still needs its
+	// success byte or DealGuanQia will send an op-only packet to the client.
+	msg << PRO_SUCCESS;
 	int star = 0;
 	if (result.win)
 	{

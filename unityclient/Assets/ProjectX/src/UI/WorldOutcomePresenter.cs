@@ -534,6 +534,27 @@ namespace ProjectX.UI
                 new Vector2(0.145f, 0.035f), new Vector2(0.267f, 0.115f), 28);
             CreateAnchoredBattleText(parent, "ContinueLabel", "点击屏幕继续",
                 new Vector2(0.39f, 0.015f), new Vector2(0.61f, 0.085f), 24);
+            CreateBattleHitTarget(parent, "ReplayHitTarget",
+                new Vector2(0.145f, 0.035f), new Vector2(0.267f, 0.115f),
+                () => { Replay(); Mark("WORLD-22-BATTLE-RESULT-REPLAY"); });
+        }
+
+        private static void CreateBattleHitTarget(Transform parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax, Action action)
+        {
+            GameObject target = new GameObject(name, typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            RectTransform rect = target.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = target.GetComponent<Image>();
+            image.color = new Color(0f, 0f, 0f, 0f);
+            image.raycastTarget = true;
+            Button button = target.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.AddListener(() => action());
         }
 
         private static void CreateBattlePanelShade(Transform parent)
@@ -633,7 +654,15 @@ namespace ProjectX.UI
         {
             GameObject target = Require(view, path);
             Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
-            button.targetGraphic = target.GetComponent<Graphic>() ?? target.GetComponentInChildren<Graphic>(true);
+            Graphic graphic = target.GetComponent<Graphic>();
+            if (graphic == null && path == "Layer/Panel")
+            {
+                Image hitTarget = target.AddComponent<Image>();
+                hitTarget.color = new Color(0f, 0f, 0f, 0f);
+                hitTarget.raycastTarget = true;
+                graphic = hitTarget;
+            }
+            button.targetGraphic = graphic ?? target.GetComponentInChildren<Graphic>(true);
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action());
         }

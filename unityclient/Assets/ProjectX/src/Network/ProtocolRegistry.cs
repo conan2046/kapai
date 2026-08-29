@@ -139,6 +139,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(29, "PRO_USER_TEAM", "Team"));
             registry.Register(new ProtocolDefinition(30, "PRO_UPDATE_TEAM", "Team", expectsResponse: false));
             registry.Register(new ProtocolDefinition(37, "PRO_TASK_LIST", "Task"));
+            registry.Register(new ProtocolDefinition(38, "PRO_FIGHT_OPTION", "WorldBattlePlayback", expectsResponse: false));
             registry.Register(new ProtocolDefinition(39, "PRO_UPDATE_TASK", "Task"));
             registry.Register(new ProtocolDefinition(48, "PRO_ZHEN_FA", "Formation"));
             registry.Register(new ProtocolDefinition(52, "PRO_FIND_RESOURCE", "ResourceRecovery"));

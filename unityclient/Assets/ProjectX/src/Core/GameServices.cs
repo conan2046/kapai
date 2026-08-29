@@ -28,6 +28,7 @@ namespace ProjectX.Core
             Team = new TeamStore();
             Guild = new GuildStore();
             World = new WorldStore();
+            WorldBattleReplay = new WorldBattleReplayStore();
             Welfare = new WelfareStore();
             Activity = new ActivityStore();
             Draw = new DrawStore();
@@ -82,6 +83,7 @@ namespace ProjectX.Core
         public TeamStore Team { get; }
         public GuildStore Guild { get; }
         public WorldStore World { get; }
+        public WorldBattleReplayStore WorldBattleReplay { get; }
         public WelfareStore Welfare { get; }
         public ActivityStore Activity { get; }
         public DrawStore Draw { get; }
@@ -140,6 +142,7 @@ namespace ProjectX.Core
             Team.Clear();
             Guild.Clear();
             World.Clear();
+            WorldBattleReplay.Clear();
             Welfare.Clear();
             Activity.Clear();
             Draw.Clear();

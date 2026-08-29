@@ -111,6 +111,7 @@ namespace ProjectX.UI
         private int missingIconCount;
         private bool hideWorn;
         private bool changeHideWorn;
+        private bool changeHasCurrentEquipped;
         private int autoRefineLevels = 1;
         private int activeCultivationMode = -1;
 
@@ -334,7 +335,7 @@ namespace ProjectX.UI
             if (item.Uid == 0) return false;
             listView.SetVisible(false);
             if (equipped) ShowDetails(item);
-            else ShowChange(item);
+            else ShowChange(item, false);
             return true;
         }
 
@@ -613,9 +614,10 @@ namespace ProjectX.UI
             }
         }
 
-        private void ShowChange(DisplayRecord current)
+        private void ShowChange(DisplayRecord current, bool hasCurrentEquipped = true)
         {
             changeCurrent = current;
+            changeHasCurrentEquipped = hasCurrentEquipped;
             changeHideWorn = false;
             Transform changeViewport = changeView.Binding.Find("Layer/Popup/TableView")?.transform;
             Transform changeBackground = changeView.Binding.Find("Layer/Popup/bg")?.transform;
@@ -673,7 +675,7 @@ namespace ProjectX.UI
             Text label = action.GetComponentInChildren<Text>(true);
             if (label != null)
             {
-                label.text = item.Uid == changeCurrent.Uid ? "已穿戴" : "穿戴";
+                label.text = changeHasCurrentEquipped && item.Uid == changeCurrent.Uid ? "已穿戴" : "穿戴";
                 RectTransform labelRect = label.rectTransform;
                 labelRect.anchorMin = Vector2.zero;
                 labelRect.anchorMax = Vector2.one;
@@ -683,7 +685,7 @@ namespace ProjectX.UI
                 label.horizontalOverflow = HorizontalWrapMode.Overflow;
                 label.verticalOverflow = VerticalWrapMode.Overflow;
             }
-            action.interactable = item.Uid != changeCurrent.Uid;
+            action.interactable = !changeHasCurrentEquipped || item.Uid != changeCurrent.Uid;
             action.onClick.RemoveAllListeners();
             action.onClick.AddListener(() =>
             {

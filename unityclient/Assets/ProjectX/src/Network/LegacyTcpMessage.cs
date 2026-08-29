@@ -139,6 +139,22 @@ namespace ProjectX.Network
             return Encoding.Unicode.GetString(reader.ReadBytes(byteLength));
         }
 
+        public byte[] ReadBytes(int count)
+        {
+            EnsureReadable(count);
+            return reader.ReadBytes(count);
+        }
+
+        public LegacyNestedPacket ReadNestedPacket()
+        {
+            uint bodyLength = ReadUInt();
+            if (bodyLength > int.MaxValue)
+                throw new InvalidDataException($"Nested packet body is too large: {bodyLength} bytes.");
+            ushort command = ReadUShort();
+            byte[] body = ReadBytes(checked((int)bodyLength));
+            return new LegacyNestedPacket(command, body);
+        }
+
         internal byte[] ToPayload()
         {
             EnsureWriter();
@@ -166,5 +182,18 @@ namespace ProjectX.Network
                 throw new EndOfStreamException($"Packet body underflow: need {count} bytes, remaining {Remaining}.");
             }
         }
+    }
+
+    public sealed class LegacyNestedPacket
+    {
+        public LegacyNestedPacket(ushort command, byte[] body)
+        {
+            Command = command;
+            Body = body ?? Array.Empty<byte>();
+        }
+
+        public ushort Command { get; }
+        public byte[] Body { get; }
+        public LegacyTcpMessage OpenBody() => new LegacyTcpMessage(Body);
     }
 }

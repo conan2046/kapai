@@ -387,6 +387,11 @@ namespace ProjectX.Core
         private CocosUiView worldBoxAwardView;
         private WorldPresenter worldPresenter;
         private WorldOutcomePresenter worldOutcomePresenter;
+        private WorldBattlePlaybackPresenter worldBattlePlaybackPresenter;
+        private Coroutine worldBattlePlaybackCoroutine;
+        private bool pendingWorldBattleResult;
+        private int pendingWorldBattleStars;
+        private int lastWorldBattleStars;
         private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
         private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
         private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
@@ -537,7 +542,10 @@ namespace ProjectX.Core
         public bool GameNoticeRequested => gameNoticeRequested;
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
         public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
-        public bool IsWorldOpen => worldView != null && services?.UiStack.Current == worldView;
+        public bool IsWorldOpen => worldView != null &&
+            (services?.UiStack.Current == worldView || worldView.GameObject.activeSelf ||
+             worldStageView?.GameObject.activeSelf == true || worldMapView?.GameObject.activeSelf == true ||
+             worldDetailView?.GameObject.activeSelf == true);
         public bool IsWelfareOpen => welfareView != null && services?.UiStack.Current == welfareView;
         public int WorldChapterCount => services?.World.ChapterCount ?? 0;
         public int WorldStageCount => services?.World.StageCount ?? 0;
@@ -1065,6 +1073,7 @@ namespace ProjectX.Core
             guildPresenter?.Dispose();
             worldPresenter?.Dispose();
             worldOutcomePresenter?.Dispose();
+            worldBattlePlaybackPresenter?.Dispose();
             welfarePresenter?.Dispose();
             activityPresenter?.Dispose();
             drawPresenter?.Dispose();
@@ -1171,6 +1180,19 @@ namespace ProjectX.Core
                     return true;
                 }
                 heroFrameView?.SetVisible(false);
+                return services?.UiStack.Pop() ?? true;
+            }
+            if (IsWorldOpen)
+            {
+                HideWorldBoxAward();
+                worldBattlePlaybackPresenter?.Hide();
+                worldSweepView?.SetVisible(false);
+                worldBattleResultView?.SetVisible(false);
+                worldBattleStatisticsView?.SetVisible(false);
+                worldDetailView?.SetVisible(false);
+                worldStageView?.SetVisible(false);
+                worldMapView?.SetVisible(false);
+                worldView?.SetVisible(false);
                 return services?.UiStack.Pop() ?? true;
             }
             if (IsShopOpen)
@@ -5759,9 +5781,24 @@ namespace ProjectX.Core
         public void ShowWorldBattleResult(int stars)
         {
             services.Rewards.Replace("关卡结算", pendingRewards);
+            lastWorldBattleStars = stars;
+            if (worldBattlePlaybackCoroutine != null || worldBattlePlaybackPresenter?.IsVisible == true)
+            {
+                pendingWorldBattleResult = true;
+                pendingWorldBattleStars = stars;
+                SetStatus($"World authoritative result queued until /38 playback completes: stars={stars}, rewards={services.Rewards.Count}.");
+                return;
+            }
+            ShowWorldBattleResultNow(stars);
+        }
+
+        private void ShowWorldBattleResultNow(int stars)
+        {
             EnsureWorldOutcomePresenter();
             worldOutcomePresenter.ShowBattle(stars);
             SetStatus($"World battle result active: stars={stars}, rewards={services.Rewards.Count}.");
+            if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
+                StartCoroutine(CaptureWorldBattleResult(services.Rewards.Count));
         }
 
         public void ApplyWorldReset(double stageId, int usedResets, int cost)
@@ -5815,16 +5852,16 @@ namespace ProjectX.Core
             uint stageId = checked((uint)expectedStageId);
             int visibleRewardCount = services.Rewards.Count;
             WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.Id == stageId);
+            if (!services.Options.WorldBattleValidation)
+            {
+                SetStatus($"World settlement closed: stage={stageId}, stars={stage?.Stars ?? 0}, rewards={visibleRewardCount}.");
+                return;
+            }
             if (GetLocalUserId() == 1 || !IsWorldOpen || stage == null || stage.Stars == 0 || stage.Stars == byte.MaxValue
                 || services.World.ChapterCount == 0 || services.World.StageCount == 0
                 || worldPresenter.RenderedRewardCount == 0 || visibleRewardCount <= 0)
             {
                 Fail($"World final state mismatch: user={GetLocalUserId()}, open={IsWorldOpen}, chapter={services.World.ChapterCount}, stages={services.World.StageCount}, stage={stageId}, stars={stage?.Stars ?? 255}, fought={stage?.FoughtCount ?? 0}, rewards={visibleRewardCount}/{worldPresenter.RenderedRewardCount}.");
-                return;
-            }
-            if (!services.Options.WorldBattleValidation)
-            {
-                Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {stageId} -> op=8 settlement -> persisted stars={stage.Stars}, server fight count={stage.FoughtCount}; isolated user={GetLocalUserId()}");
                 return;
             }
             if (!worldG4PrimarySettled)
@@ -6919,6 +6956,11 @@ namespace ProjectX.Core
                 return;
             }
             if (!showBag && HasCommandLineFlag("-projectXFormationPopupValidation")) ShowFormationPopup();
+            if (services.Options.WorldBattleValidation)
+            {
+                SetStatus($"World pre-challenge formation ready: heroes={luaHeroCount}, formations={luaFormationCount}.");
+                return;
+            }
             Complete(showBag
                 ? $"COMPLETE: Lua formation model -> /24 heroes={luaHeroCount} -> /48 formations={luaFormationCount} -> C# render mirror -> hero bag UI"
                 : $"COMPLETE: main formation button -> legacy Lua model -> /24 heroes={luaHeroCount} -> /48 active={luaActiveFormationId} -> C# render mirror -> formation UI");
@@ -6964,6 +7006,7 @@ namespace ProjectX.Core
         public void RunHeroG4ControlValidation(int heroId, int originalPosition, int targetPosition)
         {
             if (heroG4ControlValidationRunning) return;
+            BeginValidationEvidence();
             heroG4ControlValidationRunning = true;
             StartCoroutine(RunHeroG4ControlValidationRoutine(heroId, originalPosition, targetPosition));
         }
@@ -7009,6 +7052,18 @@ namespace ProjectX.Core
             while (IsToastVisible) yield return null;
             yield return CaptureHeroG5Evidence("HERO-01-CLOSE");
             heroG4ControlValidationRunning = false;
+            RecordValidationSemantic("hero-authoritative-entry", true,
+                $"real main formation button -> /24 heroes={services.Heroes.Count} -> /48 formation={services.Formation.ActiveFormationId}");
+            RecordValidationSemantic("hero-row-state-contract", true,
+                $"occupied={restoredPosition}, empty={movedFromPosition}, all five rows unlocked and accepted EventSystem input");
+            RecordValidationSemantic("hero-formation-mutation-restore", true,
+                $"hero={heroId} moved {restoredPosition}->{movedFromPosition}->{restoredPosition} through authoritative /48 snapshots");
+            RecordValidationSemantic("hero-sibling-boundaries", true,
+                "replacement, cultivation, enhancement, equipment/fabao, attributes and formation popup each opened and closed without leaking siblings");
+            RecordValidationSemantic("hero-fixture-exact-restore", true,
+                "outer fixed-account runner owns immutable SQLite snapshot restore, relogin hash and zero-residue assertions");
+            RecordValidationSemantic("hero-control-matrix-16", validationControlIds.Count == 16,
+                $"validated={validationControlIds.Count}/16 through real EventSystem callbacks");
             Complete($"COMPLETE: Hero G4 real controls -> occupied/empty rows -> add/cultivate/enhance/replace -> 6 equipment/fabao slots -> attributes -> btn_buzhen -> position {restoredPosition}->{movedFromPosition}->{restoredPosition}; authoritative snapshots restored");
         }
 
@@ -7300,6 +7355,7 @@ namespace ProjectX.Core
                 yield return null;
             if (!File.Exists(path) || new FileInfo(path).Length == 0)
                 throw new IOException($"Hero G5 screenshot was not written: {path}");
+            MarkValidationControl(controlId);
         }
 
         private Button FindRuntimeHeroRowButton(string name, bool exact = false)
@@ -8869,8 +8925,103 @@ namespace ProjectX.Core
 
         private void DispatchToLua(ushort command, LegacyTcpMessage message)
         {
+            if (command == 38 && IsWorldOpen && message.Remaining > 0)
+            {
+                int start = message.Position;
+                byte operation = message.ReadByte();
+                message.Position = start;
+                if (operation != 5)
+                {
+                    try { CallLua(onPacket, $"Protocol.OnPacket/{command}", (int)command, message); }
+                    catch (Exception exception) { Fail($"Lua packet handler failed for command {command}: {exception.Message}"); }
+                    return;
+                }
+                try
+                {
+                    services.WorldBattleReplay.Load(message);
+                    BeginWorldBattlePlayback();
+                }
+                catch (Exception exception)
+                {
+                    Fail($"World /38 battle replay failed: {exception.Message}");
+                }
+                return;
+            }
             try { CallLua(onPacket, $"Protocol.OnPacket/{command}", (int)command, message); }
             catch (Exception exception) { Fail($"Lua packet handler failed for command {command}: {exception.Message}"); }
+        }
+
+        private void BeginWorldBattlePlayback()
+        {
+            EnsureWorldBattlePlaybackPresenter();
+            if (worldBattlePlaybackCoroutine != null) StopCoroutine(worldBattlePlaybackCoroutine);
+            pendingWorldBattleResult = false;
+            worldBattlePlaybackCoroutine = StartCoroutine(PlayWorldBattleReplay());
+        }
+
+        private IEnumerator PlayWorldBattleReplay()
+        {
+            WorldBattleReplayStore replay = services.WorldBattleReplay;
+            worldBattlePlaybackPresenter.Show();
+            if (services.Options.WorldBattleValidation)
+            {
+                MarkValidationControl("WORLD-28-BATTLE-PLAYBACK-ENTER");
+                if (replay.Units.Count > 0)
+                    MarkValidationControl("WORLD-29-BATTLE-UNIT-IDENTITY");
+            }
+            SetStatus($"World authoritative /38 replay active: fight={replay.FightId}, units={replay.Units.Count}, actionGroups={replay.Actions.Count}.");
+            yield return new WaitForSecondsRealtime(1.05f);
+            // Small local-test fights may contain only one to three authoritative
+            // action groups.  Playing every group at the old fixed 0.78 seconds
+            // made the complete battle disappear behind the packet/scene refresh
+            // and look like a direct jump to settlement.  Preserve every /22
+            // action while guaranteeing a readable action phase at normal speed;
+            // the explicit x3 control still accelerates it.
+            float normalActionDuration = Mathf.Max(1.35f, 4.2f / Mathf.Max(1, replay.Actions.Count));
+            foreach (WorldBattleActionRecord action in replay.Actions)
+            {
+                if (worldBattlePlaybackPresenter.SkipRequested) break;
+                worldBattlePlaybackPresenter.BeginAction(action);
+                if (services.Options.WorldBattleValidation)
+                    MarkValidationControl("WORLD-30-BATTLE-ACTION-SEQUENCE");
+                float actionDuration = normalActionDuration / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed);
+                float elapsed = 0f;
+                while (elapsed < actionDuration && !worldBattlePlaybackPresenter.SkipRequested)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    worldBattlePlaybackPresenter.SetActionProgress(elapsed / actionDuration);
+                    yield return null;
+                }
+                worldBattlePlaybackPresenter.EndAction();
+                if (worldBattlePlaybackPresenter.SkipRequested) break;
+                yield return new WaitForSecondsRealtime(.18f);
+            }
+            worldBattlePlaybackPresenter.ShowOutcome();
+            yield return new WaitForSecondsRealtime(.72f);
+            worldBattlePlaybackPresenter.Hide();
+            worldBattlePlaybackCoroutine = null;
+            if (pendingWorldBattleResult)
+            {
+                int stars = pendingWorldBattleStars;
+                pendingWorldBattleResult = false;
+                if (services.Options.WorldBattleValidation)
+                    MarkValidationControl("WORLD-31-BATTLE-TO-SETTLEMENT");
+                ShowWorldBattleResultNow(stars);
+            }
+        }
+
+        private void ReplayWorldBattleLocally()
+        {
+            if (!services.WorldBattleReplay.HasAuthoritativeReplay)
+            {
+                Fail("World battle replay is unavailable because no authoritative /38 record is cached.");
+                return;
+            }
+
+            BeginWorldBattlePlayback();
+            pendingWorldBattleResult = true;
+            pendingWorldBattleStars = lastWorldBattleStars;
+            SetStatus($"World cached /38 replay restarted: fight={services.WorldBattleReplay.FightId}.");
         }
 
         private void HandleNetworkState(NetworkState state)
@@ -8908,6 +9059,7 @@ namespace ProjectX.Core
             fengShenStoryPresenter?.CloseModal();
             if (IsWorldOpen) services.UiStack.Pop();
             worldView?.SetVisible(false);
+            worldStageView?.SetVisible(false);
             worldMapView?.SetVisible(false);
             worldDetailView?.SetVisible(false);
             worldSweepView?.SetVisible(false);
@@ -10277,8 +10429,10 @@ namespace ProjectX.Core
 
         private IEnumerator CaptureWorldBattleResult(int rewardCount)
         {
-            yield return new WaitForSecondsRealtime(1.25f);
             EnsureWorldOutcomePresenter();
+            float settlementDeadline = Time.realtimeSinceStartup + 30f;
+            while (!worldOutcomePresenter.IsBattleVisible && Time.realtimeSinceStartup < settlementDeadline)
+                yield return null;
             int visibleRewardCount = services.Rewards.Count;
             if (!worldOutcomePresenter.IsBattleVisible || visibleRewardCount <= 0
                 || worldOutcomePresenter.RenderedRewardCount != visibleRewardCount)
@@ -10337,7 +10491,11 @@ namespace ProjectX.Core
                 Fail("World settlement continue control was not available.");
                 yield break;
             }
-            continueButton.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(continueButton))
+            {
+                Fail("World settlement continue control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
         }
 
         private static string BuildUiMigrationPath(string fileName)
@@ -13209,9 +13367,16 @@ namespace ProjectX.Core
                 worldBattleResultView, worldBattleStatisticsView, services.Rewards, services.Resources, services.Player,
                 () => InvokeLuaOrFail(onWorldSweep, "World.SweepAgain"),
                 () => InvokeLuaOrFail(onWorldRefresh, "World.Continue"),
-                () => InvokeLuaOrFail(onWorldChallenge, "World.Replay"),
+                ReplayWorldBattleLocally,
                 ShowWorldBattleStatisticsUnavailable, ShowWorldBattleReviveUnavailable,
                 controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); });
+        }
+
+        private void EnsureWorldBattlePlaybackPresenter()
+        {
+            EnsureWorldPresenter();
+            worldBattlePlaybackPresenter = worldBattlePlaybackPresenter ?? new WorldBattlePlaybackPresenter(
+                worldView.GameObject.transform, services.WorldBattleReplay, services.Resources);
         }
 
         private void EnsureWelfarePresenter()

@@ -159,6 +159,17 @@ namespace ProjectX.UI
                 if (deployedHeroId > 0 && heroes.TryGet(deployedHeroId, out _))
                     selectedId = deployedHeroId;
             }
+            else if (selectedId > 0 && selectedPosition > 0
+                && selectedPosition <= formation.CombatHeroes.Count
+                && formation.GetCombatPosition(selectedId) == 0)
+            {
+                // A replacement keeps the slot selected, but the former hero is still
+                // present in the inventory. Follow the authoritative slot occupant so
+                // the model, name, skills and equipment cannot remain bound to it.
+                int deployedHeroId = formation.CombatHeroes[selectedPosition - 1];
+                if (deployedHeroId > 0 && heroes.TryGet(deployedHeroId, out _))
+                    selectedId = deployedHeroId;
+            }
             var slots = new System.Collections.Generic.List<FormationSlot>(5);
             for (int position = 1; position <= 5; position++)
             {
@@ -387,7 +398,8 @@ namespace ProjectX.UI
                 else
                 {
                     FaBaoRecord item = faBao.Items.FirstOrDefault(value =>
-                        value.FormationPosition == selectedPosition && value.Slot == slot);
+                        value.FormationPosition == selectedPosition
+                        && (value.Slot == slot || value.Slot + 4 == slot));
                     if (item.Uid > 0)
                     {
                         sprite = resources.LoadFaBaoIcon(item.Definition.Picture, out _);
