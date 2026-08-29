@@ -836,6 +836,17 @@ private:
 	bool IsSameGroup(uint8 pos1,uint8 pos2);
 	void GetOption(uint8 pos,uint8 &option,int &para,uint8 &target);
 	uint16 GetUnitAISkillId(uint8 pos);
+	uint16 GetHeroId(uint8 pos);
+	bool IsRoleSkillUseful(uint8 pos,uint16 skillId);
+	int GetTeamRage(uint8 pos) const;
+	void AddTeamRage(uint8 pos,int value);
+	int GetTacticCost(uint8 pos,const HeroSkillRoleCfg &roleCfg);
+	int GetAffixTier(uint8 pos,uint16 affixId) const;
+	int GetAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex) const;
+	int GetTeamBestAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex);
+	bool TryTriggerAffix(uint8 pos,uint16 affixId);
+	void InitTeamRageFromAffixes();
+	void GrantDamageTakenRage(uint8 pos);
 	uint8 GetTarget(uint8 pos);
 	bool IsEmpty(uint8 pos)
 	{
@@ -1012,6 +1023,9 @@ private:
 		uint8 skill245UseNum;		
 		uint8 firstCartonType;	// 第一回合战斗动画特效
 		bool killUnit_ext_IsLimit;
+		bool rageDamagedThisAction;
+		uint8 affixTurnCount[49];
+		uint8 affixBattleCount[49];
 
 		uint32 petOwner;		// 神将主人roleId		
 		int para;
@@ -1071,6 +1085,9 @@ private:
 			skill245UseNum = 0;		
 			firstCartonType = 0;
 			killUnit_ext_IsLimit = false;
+			rageDamagedThisAction = false;
+			memset(affixTurnCount,0,sizeof(affixTurnCount));
+			memset(affixBattleCount,0,sizeof(affixBattleCount));
 			nextAITurn = 0;
 			srcHp = 0;
 			type = 0;
@@ -1389,6 +1406,8 @@ private:
 	int m_taskId;
 	int m_zhaoHuanTimes;
 	int m_fightTurn;	//战斗轮次
+	int m_teamRage[2];	// 神将战意，按双方独立结算，范围0~100
+	bool m_tacticUsedThisTurn[2];	// 战法释放后，本回合暂时关闭守势词条
 	int m_cfgFightId;	// 配置表fightId
 	uint32 m_id;
 	uint32 m_beginTurnMask;

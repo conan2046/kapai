@@ -158,7 +158,139 @@ bool CItemCfgManager::InitAllCfg()
 		&& InitQiangHuaCfg()
 		&& InitShenZhuCfg()
 		&& InitFaBaoCfg()
-		&& InitQiangHuaDaShiCfg();
+		&& InitQiangHuaDaShiCfg()
+		&& InitEquipAffixCfg();
+}
+
+bool CItemCfgManager::InitEquipAffixCfg()
+{
+	const string fileName = "./json/equipment_affix.json";
+	std::ifstream f(fileName.c_str());
+	if (!f.is_open())
+	{
+		cout << "CItemCfgManager::InitEquipAffixCfg >> open file error: " << fileName << endl;
+		return false;
+	}
+	std::string jsonStr((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+	f.close();
+	rapidjson::Document d;
+	if (d.Parse(jsonStr.c_str()).HasParseError() || !d.IsArray())
+	{
+		cout << "CItemCfgManager::InitEquipAffixCfg >> invalid JSON array" << endl;
+		return false;
+	}
+
+	m_equipAffixCfgs.clear();
+	for (rapidjson::SizeType i = 0; i < d.Size(); ++i)
+	{
+		const rapidjson::Value& row = d[i];
+		const char* required[] = { "id", "key", "name", "parts", "quality_min", "passive_skill_id",
+			"event", "value1", "value2", "duration", "per_turn_limit", "per_battle_limit",
+			"conflict_group", "desc" };
+		for (size_t k = 0; k < sizeof(required) / sizeof(required[0]); ++k)
+		{
+			if (!row.HasMember(required[k]))
+			{
+				cout << "CItemCfgManager::InitEquipAffixCfg >> missing " << required[k] << " at row " << i << endl;
+				return false;
+			}
+		}
+
+		EquipAffixCfg cfg;
+		cfg.id = row["id"].GetInt();
+		cfg.key = row["key"].GetString();
+		cfg.name = row["name"].GetString();
+		cfg.qualityMin = row["quality_min"].GetInt();
+		cfg.passiveSkillId = row["passive_skill_id"].GetInt();
+		cfg.event = row["event"].GetString();
+		cfg.duration = row["duration"].GetInt();
+		cfg.perTurnLimit = row["per_turn_limit"].GetInt();
+		cfg.perBattleLimit = row["per_battle_limit"].GetInt();
+		cfg.conflictGroup = row["conflict_group"].GetString();
+		cfg.desc = row["desc"].GetString();
+
+		const rapidjson::Value& parts = row["parts"];
+		const rapidjson::Value& value1 = row["value1"];
+		const rapidjson::Value& value2 = row["value2"];
+		if (!parts.IsArray() || parts.Empty() || !value1.IsArray() || value1.Size() != 3
+			|| !value2.IsArray() || value2.Size() != 3 || cfg.id == 0 || cfg.key.empty())
+		{
+			cout << "CItemCfgManager::InitEquipAffixCfg >> invalid array/value at row " << i << endl;
+			return false;
+		}
+		for (rapidjson::SizeType p = 0; p < parts.Size(); ++p)
+		{
+			uint8 part = parts[p].GetInt();
+			if (part < 1 || part > 4)
+			{
+				cout << "CItemCfgManager::InitEquipAffixCfg >> invalid part at row " << i << endl;
+				return false;
+			}
+			cfg.parts.push_back(part);
+		}
+		for (uint8 tier = 0; tier < 3; ++tier)
+		{
+			cfg.value1[tier] = value1[tier].GetInt();
+			cfg.value2[tier] = value2[tier].GetInt();
+		}
+		if (m_equipAffixCfgs.find(cfg.id) != m_equipAffixCfgs.end())
+		{
+			cout << "CItemCfgManager::InitEquipAffixCfg >> duplicate id " << cfg.id << endl;
+			return false;
+		}
+		m_equipAffixCfgs[cfg.id] = cfg;
+	}
+	if (m_equipAffixCfgs.size() != 48)
+	{
+		cout << "CItemCfgManager::InitEquipAffixCfg >> expected 48 rows, got " << m_equipAffixCfgs.size() << endl;
+		return false;
+	}
+	cout << "equipment_affix.json >> loaded 48 special affixes" << endl;
+	return true;
+}
+
+EquipAffixCfg* CItemCfgManager::GetEquipAffixCfg(uint16 id)
+{
+	EquipAffixCfgMapIt it = m_equipAffixCfgs.find(id);
+	return it == m_equipAffixCfgs.end() ? NULL : &it->second;
+}
+
+static bool IsEquipAffixRuntimeEnabledV1(uint16 id)
+{
+	switch (id)
+	{
+	case 4: case 6: case 11: case 12: case 15: case 17: case 20: case 21: case 24:
+	case 25: case 27: case 32: case 35: case 39: case 45: case 46: case 47: case 48:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool CItemCfgManager::RollEquipAffix(uint8 part, uint8 quality, uint32 seed, uint16& affixId, uint8& tier) const
+{
+	affixId = 0;
+	tier = 0;
+	if (quality < 6 || part < 1 || part > 4)
+		return false;
+	vector<uint16> pool;
+	for (EquipAffixCfgMapCIt it = m_equipAffixCfgs.begin(); it != m_equipAffixCfgs.end(); ++it)
+	{
+		if (quality >= it->second.qualityMin && it->second.IsPartAllowed(part)
+			&& IsEquipAffixRuntimeEnabledV1(it->first))
+			pool.push_back(it->first);
+	}
+	if (pool.empty())
+		return false;
+	// 装备UID和模板生成的seed保证旧装备迁移与重登结果可复现。
+	uint32 mixed = seed ^ (seed >> 16) ^ 0x9e3779b9u;
+	affixId = pool[mixed % pool.size()];
+	uint32 tierRoll = (mixed / pool.size()) % 100;
+	if (quality >= 7)
+		tier = tierRoll < 30 ? 3 : 2;
+	else
+		tier = tierRoll < 20 ? 2 : 1;
+	return true;
 }
 
 // 基础信息
@@ -703,12 +835,58 @@ CEquip::CEquip()
 	, fpos(0)
 	, curExp(0)
 	, strongCost(0)
+	, affixSeed(0)
+	, specialAffixId(0)
+	, specialAffixTier(0)
+	, affixLockMask(0)
 {
 	strongLevel.clear();
 	qhAttr.clear();
 	jlAttr.clear();
 	jxAttr.clear();
 	szAttr.clear();
+}
+
+void CEquip::InitSpecialAffix()
+{
+	CItemCfgManager& mgr = sCItemCfgManager;
+	CEquipCfg* equipCfg = mgr.GetEquipCfg(id);
+	if (equipCfg == NULL)
+		return;
+	if (specialAffixId != 0)
+	{
+		EquipAffixCfg* affixCfg = mgr.GetEquipAffixCfg(specialAffixId);
+		if (affixCfg != NULL && equipCfg->quality >= affixCfg->qualityMin
+			&& affixCfg->IsPartAllowed(equipCfg->part)
+			&& IsEquipAffixRuntimeEnabledV1(specialAffixId)
+			&& specialAffixTier >= 1 && specialAffixTier <= 3)
+			return;
+		specialAffixId = 0;
+		specialAffixTier = 0;
+	}
+	if (affixSeed == 0)
+		affixSeed = uid * 2654435761u ^ ((uint32)id * 2246822519u) ^ 0x50415831u;
+	mgr.RollEquipAffix(equipCfg->part, equipCfg->quality, affixSeed, specialAffixId, specialAffixTier);
+}
+
+void CEquip::MakeAffixMsg(CNetMessage& msg) const
+{
+	msg << uid << affixSeed << specialAffixId << specialAffixTier << affixLockMask;
+	EquipAffixCfg* cfg = sCItemCfgManager.GetEquipAffixCfg(specialAffixId);
+	if (cfg == NULL || specialAffixTier == 0)
+	{
+		msg << string("") << string("") << string("") << (int)0 << (int)0;
+		return;
+	}
+	msg << cfg->key << cfg->name << cfg->desc << cfg->GetValue1(specialAffixTier) << cfg->GetValue2(specialAffixTier);
+}
+
+SSkillData CEquip::GetAffixSkill() const
+{
+	EquipAffixCfg* cfg = sCItemCfgManager.GetEquipAffixCfg(specialAffixId);
+	if (cfg == NULL || cfg->passiveSkillId == 0 || specialAffixTier == 0)
+		return SSkillData();
+	return SSkillData(cfg->passiveSkillId, specialAffixTier);
 }
 
 CEquip::~CEquip()
@@ -1375,6 +1553,21 @@ void CEquipManeger::SaveData(string& outStr)
 	}
 	CopyDataToBuf((char *)hexData, &m_lastCntTime, sizeof(m_lastCntTime), pos, maxLen);
 	CopyDataToBuf((char *)hexData, &m_faBaoCnt, sizeof(m_faBaoCnt), pos, maxLen);
+	// PXA1尾部扩展块：旧读取器完成旧主体后会忽略尾部，新读取器按magic/version读取。
+	const char affixMagic[4] = { 'P', 'X', 'A', '1' };
+	CopyDataToBuf((char *)hexData, (void*)affixMagic, sizeof(affixMagic), pos, maxLen);
+	hexData[pos++] = 1;
+	uint16 affixCount = m_petEquips.size();
+	CopyDataToBuf((char *)hexData, &affixCount, sizeof(affixCount), pos, maxLen);
+	for (EquipMapIt pit = m_petEquips.begin(); pit != m_petEquips.end(); ++pit)
+	{
+		CEquip& equip = pit->second;
+		CopyDataToBuf((char *)hexData, &equip.uid, sizeof(equip.uid), pos, maxLen);
+		CopyDataToBuf((char *)hexData, &equip.affixSeed, sizeof(equip.affixSeed), pos, maxLen);
+		CopyDataToBuf((char *)hexData, &equip.specialAffixId, sizeof(equip.specialAffixId), pos, maxLen);
+		hexData[pos++] = equip.specialAffixTier;
+		hexData[pos++] = equip.affixLockMask;
+	}
 	if (!Compress(hexData, pos, outStr))
 		outStr.clear();
 }
@@ -1385,10 +1578,12 @@ void CEquipManeger::LoadData(char* inStr)
 		return;
 	uint32 maxLen = 1024 * 100;
 	uint8 hexData[1024 * 100];
-	if (!UnCompress(inStr, hexData, maxLen))
+	int dataLen = UnCompressEx(inStr, hexData, maxLen);
+	if (dataLen <= 0)
 	{
 		return;
 	}
+	maxLen = (uint32)dataLen;
 	uint16 size = 0;
 	uint32 pos = 0;
 	ReadDataFromBuf((char *)hexData, &size, sizeof(size), pos, maxLen);
@@ -1445,6 +1640,41 @@ void CEquipManeger::LoadData(char* inStr)
 	ReadDataFromBuf((char *)hexData, &m_lastCntTime, sizeof(m_lastCntTime), pos, maxLen);
 	ReadDataFromBuf((char *)hexData, &m_faBaoCnt, sizeof(m_faBaoCnt), pos, maxLen);
 
+	const char affixMagic[4] = { 'P', 'X', 'A', '1' };
+	if (pos + sizeof(affixMagic) + 3 <= maxLen && memcmp(hexData + pos, affixMagic, sizeof(affixMagic)) == 0)
+	{
+		pos += sizeof(affixMagic);
+		uint8 version = hexData[pos++];
+		uint16 affixCount = 0;
+		ReadDataFromBuf((char *)hexData, &affixCount, sizeof(affixCount), pos, maxLen);
+		const uint32 recordSize = sizeof(uint32) + sizeof(uint32) + sizeof(uint16) + sizeof(uint8) + sizeof(uint8);
+		if (version == 1 && pos + recordSize * affixCount <= maxLen)
+		{
+			for (uint16 i = 0; i < affixCount; ++i)
+			{
+				uint32 uid = 0;
+				uint32 seed = 0;
+				uint16 affixId = 0;
+				ReadDataFromBuf((char *)hexData, &uid, sizeof(uid), pos, maxLen);
+				ReadDataFromBuf((char *)hexData, &seed, sizeof(seed), pos, maxLen);
+				ReadDataFromBuf((char *)hexData, &affixId, sizeof(affixId), pos, maxLen);
+				uint8 tier = hexData[pos++];
+				uint8 lockMask = hexData[pos++];
+				CEquip* equip = GetEqiup(uid);
+				if (equip == NULL)
+					continue;
+				equip->affixSeed = seed;
+				equip->specialAffixId = affixId;
+				equip->specialAffixTier = tier;
+				equip->affixLockMask = lockMask;
+				equip->InitSpecialAffix();
+			}
+		}
+	}
+	// 旧存档、缺失记录和失效词条均按UID+模板确定性补齐，不消耗道具且重登结果稳定。
+	for (EquipMapIt it = m_petEquips.begin(); it != m_petEquips.end(); ++it)
+		it->second.InitSpecialAffix();
+
 	InitSuitAndQHDS();
 }
 
@@ -1454,6 +1684,7 @@ void CEquipManeger::GetSuitSkills(uint8 fpos, vector<SSkillData> &skillList)
 	if (suit != NULL)
 	{
 		skillList = suit->skill;
+		map<uint16, uint16> affixSkills;
 		FormationEquipMap& emap = suit->wearEquips;
 		CItemCfgManager& imgr = sCItemCfgManager;
 		for (FormationEquipMapIt eit = emap.begin(); eit != emap.end(); ++eit)
@@ -1462,6 +1693,14 @@ void CEquipManeger::GetSuitSkills(uint8 fpos, vector<SSkillData> &skillList)
 			CEquip* equip = GetEqiup(eit->second);
 			if (equip == NULL)
 				continue;
+			SSkillData affixSkill = equip->GetAffixSkill();
+			if (affixSkill.id != 0)
+			{
+				map<uint16, uint16>::iterator found = affixSkills.find(affixSkill.id);
+				if (found == affixSkills.end() || found->second < affixSkill.level)
+					affixSkills[affixSkill.id] = affixSkill.level;
+			}
+
 			uint16 szLv = equip->GetYangChengLevel(EST_SHENZHU);
 			ShenZhuCfg* cfg = imgr.GetShenZhuCfg(szLv);
 			if (cfg == NULL)
@@ -1471,6 +1710,8 @@ void CEquipManeger::GetSuitSkills(uint8 fpos, vector<SSkillData> &skillList)
 			if (sit != cfg->posSkill.end())
 				skillList.push_back(sit->second);
 		}
+		for (map<uint16, uint16>::iterator it = affixSkills.begin(); it != affixSkills.end(); ++it)
+			skillList.push_back(SSkillData(it->first, it->second));
 	}
 }
 
@@ -1543,6 +1784,7 @@ bool CEquipManeger::AddEquip(CUser* user, uint16 equipId)
 		return false;
 	}
 	equip.uid = MakeUniqueId(user, EIT_PET);
+	equip.InitSpecialAffix();
 	m_petEquips.insert(make_pair(equip.uid, equip));
 
 	CSocketServer &sock = SingletonSocket::instance();
@@ -1551,6 +1793,7 @@ bool CEquipManeger::AddEquip(CUser* user, uint16 equipId)
 	trap.SetType(PET_EQUIP_OPERATE);
 	equip.MakeMsg(trap);
 	sock.SendMsg(user->GetSock(), trap);
+	SendPetEquipAffixList(user);
 	return true;
 }
 
@@ -2171,6 +2414,7 @@ void CEquipManeger::SendPetEquipList(CUser* user, CNetMessage& msg)
 	{
 		msg << (uint16)0;
 		sock.SendMsg(user->GetSock(), msg);
+		SendPetEquipAffixList(user);
 		return;
 	}
 	static uint8 sendMax = 50;
@@ -2195,6 +2439,42 @@ void CEquipManeger::SendPetEquipList(CUser* user, CNetMessage& msg)
 			it->second.MakeMsg(listMsg);
 		}
 		sock.SendMsg(user->GetSock(), listMsg);
+	}
+	SendPetEquipAffixList(user);
+}
+
+void CEquipManeger::SendPetEquipAffixList(CUser* user)
+{
+	if (user == NULL)
+		return;
+	vector<CEquip*> affixed;
+	for (EquipMapIt it = m_petEquips.begin(); it != m_petEquips.end(); ++it)
+	{
+		if (it->second.specialAffixId != 0 && it->second.specialAffixTier != 0)
+			affixed.push_back(&it->second);
+	}
+	CSocketServer& sock = SingletonSocket::instance();
+	if (affixed.empty())
+	{
+		CNetMessage empty;
+		empty.SetType(PET_EQUIP_OPERATE);
+		empty << (uint8)40 << (uint16)0;
+		sock.SendMsg(user->GetSock(), empty);
+		return;
+	}
+	const uint8 sendMax = 20;
+	uint8 packetCount = (uint8)((affixed.size() + sendMax - 1) / sendMax);
+	for (uint8 packet = 0; packet < packetCount; ++packet)
+	{
+		size_t begin = packet * sendMax;
+		size_t remain = affixed.size() - begin;
+		uint8 itemCount = (uint8)(remain > sendMax ? sendMax : remain);
+		CNetMessage out;
+		out.SetType(PET_EQUIP_OPERATE);
+		out << (uint8)40 << (uint16)affixed.size() << packetCount << packet << itemCount;
+		for (uint8 i = 0; i < itemCount; ++i)
+			affixed[begin + i]->MakeAffixMsg(out);
+		sock.SendMsg(user->GetSock(), out);
 	}
 }
 

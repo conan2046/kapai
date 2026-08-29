@@ -40,11 +40,7 @@ enum EFightOptionType
 struct SSkillData
 {
 	SSkillData():id(0),level(0),ratio(100),CD(0),leftCD(0){}
-	SSkillData(uint16 skillId,uint16 skill_lv)
-	{
-		id = skillId;
-		level = skill_lv;
-	}
+	SSkillData(uint16 skillId,uint16 skill_lv):id(skillId),level(skill_lv),ratio(100),CD(0),leftCD(0){}
 	uint16 id;
 	uint16 level;
 	int ratio;
@@ -477,6 +473,18 @@ struct SSkillCfgData
 	vector<SSkillEffectCfg> passiveEffect;	// 被动效果
 };
 
+struct HeroSkillRoleCfg
+{
+	HeroSkillRoleCfg():heroId(0),regularSkillId(0),tacticSkillId(0),tacticCost(0){}
+	uint16 heroId;
+	uint16 regularSkillId;
+	uint16 tacticSkillId;
+	uint8 tacticCost;
+	string buildA;
+	string buildB;
+};
+typedef map<uint16, HeroSkillRoleCfg> HeroSkillRoleCfgMap;
+
 
 
 
@@ -506,6 +514,7 @@ public:
 	}
 
 	bool Init();
+	bool InitHeroSkillRoleCfg();
 	SSkillCfgData *GetSkillCfg(int skillId);
 	SSkillActiveEffect *GetActiveEffectCfg(int effectId);
 	SSkillAdditiveEffect *GetAdditiveEffectCfg(int effectId);
@@ -517,6 +526,8 @@ public:
 	void GetSkillPassiveData(int skillId,uint16 triggerId,vector<int> &passiveList);
 
 	bool IsEnBuff(uint16 buffId);
+	HeroSkillRoleCfg* GetHeroSkillRoleCfg(uint16 heroId);
+	const HeroSkillRoleCfgMap& GetHeroSkillRoleCfgs() const { return m_heroSkillRoles; }
 	
 private:
 	void SetEffectData(SSkillEffectCfg &active,vector<SSkillEffectCfg> &passive,string &str);
@@ -528,6 +539,7 @@ private:
 	vector<int> m_enBuffs;	// buffId
 	vector<int> m_deBuffs;	// buffId
 	vector<int> m_zhongduBuffs;	// buffId
+	HeroSkillRoleCfgMap m_heroSkillRoles;
 };
 
 typedef boost::details::pool::singleton_default<CSkillMgr> SingletonCSkillMgr;

@@ -222,6 +222,53 @@ typedef map<uint8, QiangHuaDaShiCfg>::iterator QHDSCfgMapIt;
 typedef map<uint8, QHDSCfgMap> TypeQHDSCfgMap;
 typedef map<uint8, QHDSCfgMap>::iterator TypeQHDSCfgMapIt;
 
+// 装备特殊词条。T1/T2/T3百分比统一使用万分比保存。
+struct EquipAffixCfg
+{
+	EquipAffixCfg()
+		: id(0)
+		, qualityMin(6)
+		, passiveSkillId(0)
+		, duration(0)
+		, perTurnLimit(0)
+		, perBattleLimit(0)
+	{
+		memset(value1, 0, sizeof(value1));
+		memset(value2, 0, sizeof(value2));
+	}
+
+	bool IsPartAllowed(uint8 part) const
+	{
+		for (size_t i = 0; i < parts.size(); ++i)
+		{
+			if (parts[i] == part)
+				return true;
+		}
+		return false;
+	}
+
+	int GetValue1(uint8 tier) const { return tier >= 1 && tier <= 3 ? value1[tier - 1] : 0; }
+	int GetValue2(uint8 tier) const { return tier >= 1 && tier <= 3 ? value2[tier - 1] : 0; }
+
+	uint16 id;
+	uint8 qualityMin;
+	uint16 passiveSkillId;
+	uint8 duration;
+	uint8 perTurnLimit;
+	uint8 perBattleLimit;
+	string key;
+	string name;
+	string event;
+	string conflictGroup;
+	string desc;
+	vector<uint8> parts;
+	int value1[3];
+	int value2[3];
+};
+typedef map<uint16, EquipAffixCfg> EquipAffixCfgMap;
+typedef map<uint16, EquipAffixCfg>::iterator EquipAffixCfgMapIt;
+typedef map<uint16, EquipAffixCfg>::const_iterator EquipAffixCfgMapCIt;
+
 class CItemCfgManager
 {
 public:
@@ -248,6 +295,8 @@ public:
 	bool InitFaBaoCfg();
 	// 强化大师
 	bool InitQiangHuaDaShiCfg();
+	// 装备特殊词条
+	bool InitEquipAffixCfg();
 public:
 	// 获取装备配置
 	CEquipCfg* GetEquipCfg(uint16 id);
@@ -288,6 +337,9 @@ public:
 	QHDSCfgMap* GetQHDSMap(uint8 type);
 	QiangHuaDaShiCfg* GetQHDSCfg(uint8 type, uint8 lv);
 	QiangHuaDaShiCfg* GetQhdsCfg(QHDSCfgMap* qmap, uint8 lv);
+	EquipAffixCfg* GetEquipAffixCfg(uint16 id);
+	const EquipAffixCfgMap& GetEquipAffixCfgs() const { return m_equipAffixCfgs; }
+	bool RollEquipAffix(uint8 part, uint8 quality, uint32 seed, uint16& affixId, uint8& tier) const;
 	uint8 MaxFaBaoQhLevel() { return m_fbqhMax; }
 	uint8 MaxFaBaoJlLevel() { return m_fbjlMax; }
 	U16tU32Map& GetFaBaoJY() { return m_faBaoJY; }
@@ -309,6 +361,7 @@ private:
 	TypeQHDSCfgMap m_qhdsCfg;
 	U16tU16Map m_faBaoSS;
 	U16tU32Map m_faBaoJY;
+	EquipAffixCfgMap m_equipAffixCfgs;
 
 public:
 	static uint16 CfgFBMaxCnt;
@@ -343,6 +396,9 @@ public:
 	int SaveData(uint8 *outBuf, uint32& pos, uint32 maxLen);
 	int LoadData(uint8 *intBuf, uint32& pos, uint32 maxLen);
 	void MakeMsg(CNetMessage &msg);
+	void InitSpecialAffix();
+	void MakeAffixMsg(CNetMessage &msg) const;
+	SSkillData GetAffixSkill() const;
 
 	uint16 GetYangChengLevel(uint8 type);
 	void GetChongSheng(MultiCost& costs, uint8 sp);
@@ -359,6 +415,10 @@ public:
 	MultiAttr jlAttr;
 	MultiAttr jxAttr;
 	MultiAttr szAttr;
+	uint32 affixSeed;
+	uint16 specialAffixId;
+	uint8 specialAffixTier;
+	uint8 affixLockMask;
 };
 typedef map<uint32, CEquip> EquipMap;
 typedef map<uint32, CEquip>::iterator EquipMapIt;
@@ -478,6 +538,7 @@ public:
 	void ShenZhuEquip(CUser* pUser, CNetMessage& msg);
 	// 发送装备列表
 	void SendPetEquipList(CUser* pUser, CNetMessage& msg);
+	void SendPetEquipAffixList(CUser* pUser);
 	void WearPetEquip(CUser* pUser, CNetMessage& msg);
 	void TakeOffPetEquip(CUser* pUser, CNetMessage& msg);
 	void CFenJiePetEquip(CUser* pUser, CNetMessage& msg);

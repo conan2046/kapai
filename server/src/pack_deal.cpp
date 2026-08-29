@@ -25706,6 +25706,9 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 		CHECK_SYSTEM_OPEN(SOT_1180)
 		equipMgr.AutoHeChengFaBao(pUser, msg);
 		break;
+	case 40:// 装备特殊词条列表（与旧装备列表分包隔离）
+		equipMgr.SendPetEquipAffixList(pUser);
+		return;
 	default:
 		break;
 	}
