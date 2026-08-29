@@ -257,14 +257,8 @@ EquipAffixCfg* CItemCfgManager::GetEquipAffixCfg(uint16 id)
 
 static bool IsEquipAffixRuntimeEnabledV1(uint16 id)
 {
-	switch (id)
-	{
-	case 4: case 6: case 11: case 12: case 15: case 17: case 20: case 21: case 24:
-	case 25: case 27: case 32: case 35: case 39: case 45: case 46: case 47: case 48:
-		return true;
-	default:
-		return false;
-	}
+	// S6事件总线已覆盖完整48条词条，正式池不再保留A/B批白名单差异。
+	return id >= 1 && id <= 48;
 }
 
 bool CItemCfgManager::RollEquipAffix(uint8 part, uint8 quality, uint32 seed, uint16& affixId, uint8& tier) const

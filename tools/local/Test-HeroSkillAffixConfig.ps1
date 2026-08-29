@@ -30,7 +30,7 @@ foreach ($affix in $affixes) {
     Assert-True ((@($affix.parts | Where-Object { $_ -lt 1 -or $_ -gt 4 })).Count -eq 0) "Affix $($affix.key) has invalid part."
     Assert-True (@($affix.value1).Count -eq 3 -and @($affix.value2).Count -eq 3) "Affix $($affix.key) must define T1-T3 values."
 }
-$runtimeEnabled = @(4, 6, 11, 12, 15, 17, 20, 21, 24, 25, 27, 32, 35, 39, 45, 46, 47, 48)
+$runtimeEnabled = @(1..48)
 foreach ($part in 1..4) {
     $pool = @($affixes | Where-Object { $runtimeEnabled -contains [int]$_.id -and @($_.parts) -contains $part })
     Assert-True ($pool.Count -gt 0) "Runtime-enabled affix pool is empty for equipment part $part."
@@ -69,6 +69,13 @@ Assert-True ($serverEquip.Contains("PXA1")) "Equipment save extension magic PXA1
 Assert-True ($serverEquip.Contains("SendPetEquipAffixList")) "Affix query sender is missing."
 Assert-True ($serverEquip.Contains("IsEquipAffixRuntimeEnabledV1")) "Runtime affix allowlist is missing."
 Assert-True ($serverFight.Contains("GetTacticCost")) "Tactic resource runtime is missing."
+foreach ($hook in @(
+    "OnAffixShieldLost", "OnAffixBuffRemoved", "OnAffixControlResisted",
+    "OnAffixUnitDied", "ApplyAffixSummonBonus", "AddAffixHpAction"
+)) {
+    Assert-True ($serverFight.Contains($hook)) "Affix event hook $hook is missing."
+}
+Assert-True ($serverEquip.Contains("return id >= 1 && id <= 48;")) "The complete 48-affix runtime pool is not enabled."
 Assert-True ($cocosProtocol.Contains("elseif op == 40 then")) "Cocos affix protocol parser is missing."
 Assert-True ($unityProtocol.Contains("if op == 40 then readAffixList")) "Unity affix protocol parser is missing."
 
