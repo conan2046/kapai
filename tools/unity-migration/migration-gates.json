@@ -1054,12 +1054,12 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/FENGSHEN_STORY.md",
-      "note": "G0 reopened on 2026-08-04 after user scope change: direct chapter drag fidelity is deferred; Unity left/right arrows must page exactly six chapters with clamped bounds and correct selection/clipping. Historical G0/G1 evidence cannot skip the refreeze. Shared /320 ownership with World must remain isolated.",
+      "note": "2026-08-29 current checkout G0-G3 passed after fresh Cocos evidence, persistentDataPath SQLite preflight and Unity BuildBatch. G4-G6 remain pending until the mandatory post-G3 early user Play retest closes reward, currency-header and challenge-flow feedback; historical G4-G6 evidence is stale.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/FENGSHEN_STORY.md",
@@ -1083,14 +1083,6 @@
           "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
           "server/src/user_guanqia.cpp"
         ],
-        "G3": [
-          "docs/unityclient/modules/FENGSHEN_STORY.md",
-          ".local/unity-validation/fengshenstory-g3-buildbatch-after-license.log",
-          "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt"
-        ],
         "G4": [
           ".local/unity-validation/fengshenstory-fixed-account-latest.json",
           ".local/unity-validation/fengshenstory-fixed-account-data-preflight-latest.json",
@@ -1109,9 +1101,16 @@
           ".local/unity-validation/bootstrap-idempotence-latest.json",
           ".local/unity-validation/fengshenstory-operation-ledger.json",
           ".local/unity-validation/fengshenstory-retrospective-latest.json"
+        ],
+        "G3": [
+          ".local/unity-validation/fengshenstory-g3-buildbatch-final-20260829.log",
+          ".local/unity-validation/fengshenstory-fixed-account-data-preflight-latest.json",
+          "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
+          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
+          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py"
         ]
       },
-      "updatedUtc": "2026-08-04T03:54:47.7246261Z"
+      "updatedUtc": "2026-08-29T02:23:58.9581762Z"
     },
     {
       "module": "YouLi",

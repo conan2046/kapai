@@ -662,6 +662,7 @@ Assert-ToolchainTest (
         -ResolutionRecords @($operationLedger.records[1])) -eq "observe fresh state"
 ) "Retrospective did not replace pending-diagnosis with the resolved effective root cause."
 $ledgerTestPath = ".local/unity-validation/toolchain-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
+$resolvedLegacyLedgerPath = $null
 try {
     $failedWrite = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
         -Tool "test" -Operation "fail" -Outcome Failed -ErrorMessage "failure" -RootCause "known" -Path $ledgerTestPath
@@ -680,10 +681,28 @@ try {
         -IterationAction "retest" -IterationEvidence @("tools/unity-migration/Test-UnityMigrationToolchain.ps1") `
         -Path $ledgerTestPath | Out-Null
     Assert-ToolchainTest $true "File-backed resolution could not be written."
+
+    $legacyLedgerPath = ".local/unity-validation/toolchain-legacy-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
+    $resolvedLegacyLedgerPath = Resolve-UnityMigrationPath -Root $root -Path $legacyLedgerPath
+    [pscustomobject][ordered]@{
+        schemaVersion = 1
+        module = "ToolchainLegacy"
+        updatedUtc = [DateTime]::UtcNow.ToString("O")
+        operations = @([pscustomobject]@{ id = "legacy-1"; status = "Resolved" })
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $resolvedLegacyLedgerPath -Encoding UTF8
+    Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainLegacy" -Gate G4 `
+        -Tool "test" -Operation "append-modern-record" -Outcome Passed -Path $legacyLedgerPath | Out-Null
+    $legacyLedger = Get-Content -LiteralPath $resolvedLegacyLedgerPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-ToolchainTest (
+        @($legacyLedger.operations).Count -eq 1 -and @($legacyLedger.records).Count -eq 1
+    ) "Operation recorder no longer preserves a legacy operations ledger while appending modern records."
 }
 finally {
     $resolvedLedgerTestPath = Resolve-UnityMigrationPath -Root $root -Path $ledgerTestPath
     if (Test-Path -LiteralPath $resolvedLedgerTestPath) { Remove-Item -LiteralPath $resolvedLedgerTestPath -Force }
+    if ($resolvedLegacyLedgerPath -and (Test-Path -LiteralPath $resolvedLegacyLedgerPath)) {
+        Remove-Item -LiteralPath $resolvedLegacyLedgerPath -Force
+    }
 }
 $resolutionAudit = @(Get-UnityMigrationOperationResolutionAudit -Ledger $operationLedger -RecordIds @("failure-1"))
 Assert-ToolchainTest (
@@ -1043,6 +1062,21 @@ Assert-ToolchainTest (
     $currencyStoreSource.Contains('A same-account reconnect receives /1004 again') -and
     -not $currencyStoreSource.Contains("public void Initialize(long gold, long premium, long boundPremium, uint soul, uint guildContribution)`r`n        {`r`n            values.Clear();")
 ) "CurrencyStore no longer preserves auxiliary authoritative currencies across same-account reconnect."
+$playerControllerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $playerControllerSource.Contains('local BOUND_PREMIUM = 60001') -and
+    $playerControllerSource.Contains('elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)') -and
+    $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
+    -not $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
+    -not $playerControllerSource.Contains('if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end')
+) "PlayerHud currency updates can again merge bound premium into regular premium."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('services.Currencies.Changed += RefreshSharedCurrencyHeaders;') -and
+    $projectXAppSource.Contains('services.Currencies.Changed -= RefreshSharedCurrencyHeaders;') -and
+    $projectXAppSource.Contains('RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");') -and
+    $projectXAppSource.Contains('RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");')
+) "Shared FirstClassBg/Task GoldCheck consumers no longer refresh from CurrencyStore changes."
 
 $settingsPresenterSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
@@ -1126,11 +1160,14 @@ Assert-ToolchainTest (
     $commonSource.Contains('error CS2012:.*Assembly-CSharp(?:-Editor)?\.dll.*being used by another process') -and
     $commonSource.Contains('PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process') -and
     $commonSource.Contains('IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll') -and
+    $commonSource.Contains('Copying the file failed:.*另一个程序正在使用此文件') -and
+    $commonSource.Contains('for ($attempt = 1; $attempt -le 4; $attempt++)') -and
+    $commonSource.Contains('$transientBeeLock = $attempt -lt 4') -and
     $commonSource.Contains('if ($process.ExitCode -eq 0 -and -not $transientBeeLock) { break }') -and
-    $commonSource.Contains('Get-Process dotnet,bee_backend,Unity.ILPP.Trigger') -and
-    $commonSource.Contains('transient-bee-lock-attempt1.log') -and
-    $commonSource.Contains('retrying the same compile preflight once even if Unity recovered with exit code 0')
-) "Compile preflight no longer performs the bounded same-tool retry for proven transient Unity compile/reload locks, including a recovered exit-code-zero run."
+    $commonSource.Contains('Get-Process dotnet,bee_backend,Unity.ILPP.Trigger,Unity.ILPP.Runner') -and
+    $commonSource.Contains('transient-bee-lock-attempt$attempt.log') -and
+    $commonSource.Contains('retrying the same compile preflight (attempt $($attempt + 1)/4)')
+) "Compile preflight no longer performs bounded same-tool retries for proven transient Unity compile/reload locks, including localized file-use errors."
 $bootstrapBuilderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs")
 Assert-ToolchainTest (
@@ -1272,13 +1309,35 @@ $fengShenStoryRunnerSource = Get-Content -LiteralPath (Join-Path $root "unitycli
     -Raw -Encoding UTF8
 $fengShenStoryPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs") `
     -Raw -Encoding UTF8
+$worldVisualCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldVisualCatalog.cs") `
+    -Raw -Encoding UTF8
 $fengShenStoryStoreSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs") `
+    -Raw -Encoding UTF8
+$fengShenStoryControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt") `
+    -Raw -Encoding UTF8
+$guanQiaServerSource = Get-Content -LiteralPath (Join-Path $root "server/src/user_guanqia.cpp") `
     -Raw -Encoding UTF8
 $fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
 $evidenceContracts = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/module-evidence-contracts.json") `
     -Raw -Encoding UTF8 | ConvertFrom-Json
 $fengShenStoryEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "FengShenStory" })[0]
+$fengShenStorySqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-FengShenStorySqliteFixture.py") `
+    -Raw -Encoding UTF8
+$xunBaoControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt") -Raw -Encoding UTF8
+$xunBaoPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $xunBaoControllerSource.Contains('Bridge:BeginXunBaoRewardUpdate()') -and
+    $xunBaoControllerSource.Contains('Bridge:AddXunBaoReward(rewardType,rewardId,amount)') -and
+    $xunBaoControllerSource.Contains('Bridge:EndXunBaoRewardUpdate(count)') -and
+    $xunBaoControllerSource.Contains('搜索次数不足，请使用搜宝令补充') -and
+    $xunBaoPresenterSource.Contains('if (store.Remaining == 0)') -and
+    $xunBaoPresenterSource.Contains('RenderFragmentCounts()') -and
+    $xunBaoPresenterSource.Contains('CanComposeSelected()') -and
+    $projectXAppSource.Contains('services.Rewards.Replace("寻宝奖励", pendingXunBaoRewards.Values)') -and
+    $projectXAppSource.Contains('OpenXunBaoSearchTokenBag')
+) "XunBao no longer blocks zero-count requests, renders authoritative fragments, opens result rewards, or routes the search token boundary."
 Assert-ToolchainTest (
     -not $fengShenStoryRunnerSource.Contains('foreach (string control in allControls) MarkValidationControl(control);') -and
     $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeRewardIcon(0)') -and
@@ -1286,6 +1345,19 @@ Assert-ToolchainTest (
     $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeOpenedBox()') -and
     $fengShenStoryPresenterSource.Contains('public bool InvokeSourceIcon()')
 ) "FengShenStory validation regressed to synthetic control marking or direct modal calls instead of actual bound controls."
+Assert-ToolchainTest (
+    $worldVisualCatalogSource.Contains('FirstRewards = ParseTriples(GetBraceField(entry, "first_reward"))') -and
+    $fengShenStoryPresenterSource.Contains('RenderLevelRewards(definition?.FirstRewards)') -and
+    $fengShenStoryPresenterSource.Contains('RewardPicture(reward.Type)') -and
+    -not $fengShenStoryPresenterSource.Contains('RewardPicture(reward.Id)') -and
+    $fengShenStoryPresenterSource.Contains('new GameObject("RuntimeFengShenItemCell"') -and
+    $fengShenStoryPresenterSource.Contains('HeroUI/common_quality_') -and
+    $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, RewardAmount(') -and
+    $fengShenStoryPresenterSource.Contains('commonCurrency.name = "RuntimeFengShenStoryGoldCheck"') -and
+    $fengShenStoryPresenterSource.Contains('currencies.Changed += Render') -and
+    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.RenderedLevelRewardCount != 3') -and
+    $fengShenStoryRunnerSource.Contains('!fengShenStoryPresenter.IsCurrencyHeaderVisible')
+) "FengShenStory no longer guarantees complete ItemCellUI-style rewards or the shared FirstClassBg GoldCheck currency prefab."
 Assert-ToolchainTest (
     $fengShenStoryStoreSource.Contains('(4000 + chapter) * 10 + level') -and
     $fengShenStoryStoreSource.Contains('SelectedChapter = CurrentChapter;') -and
@@ -1299,9 +1371,26 @@ Assert-ToolchainTest (
     $fengShenStoryRunnerSource.Contains('services.Network.Disconnect("FengShenStory deliberate disconnect")')
 ) "FengShenStory regressed from raw 400xx node identity or real visible fight/formation button invocation."
 Assert-ToolchainTest (
+    $fengShenStoryControllerSource.Contains('if message.Remaining == 0 then') -and
+    $fengShenStoryControllerSource.Contains('ignored legacy empty challenge acknowledgement') -and
+    [regex]::IsMatch($guanQiaServerSource,
+        'BeginFastFight\(result, true, pUser->GetSock\(\)\);\s*// op=25[\s\S]*?msg << PRO_SUCCESS;\s*int star = 0;')
+) "FengShenStory op25 success no longer returns a readable acknowledgement or the Unity shared /320 route lacks its legacy empty-packet guard."
+Assert-ToolchainTest (
+    $fengShenStoryPresenterSource.Contains('formationButton = Bind(levelRoot, "Popup/Btn_buzhen", OnFormationClicked);') -and
+    [regex]::IsMatch($fengShenStoryPresenterSource,
+        'private void OnFightClicked\(\)[\s\S]*?store.BeginChallenge\(\);\s*challenge\(\);[\s\S]*?CloseLevelPopup\(\);\s*\}') -and
+    [regex]::IsMatch($fengShenStoryPresenterSource,
+        'private void OnFormationClicked\(\)[\s\S]*?formation\(\);[\s\S]*?CloseLevelPopup\(\);\s*\}')
+) "FengShenStory fight or formation no longer closes the level popup like the current Cocos source."
+Assert-ToolchainTest (
     [regex]::IsMatch($fixedAccountRunnerSource,
         'else\s*\{\s*Invoke-FixedAdapter "Restore"\s*Invoke-FixedAdapter "AssertRestored"\s*Invoke-FixedAdapter "Cleanup"')
 ) "Fixed-account validation failure path can clean an applied fixture without first restoring the account snapshot."
+Assert-ToolchainTest (
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        'if \(\$dataBackend -eq "sqlite"\)[\s\S]*?Get-Process kapai[\s\S]*?Wait-FixedRuntimeRelease[\s\S]*?Invoke-FixedAdapter "AssertSetup"')
+) "SQLite fixed-account post-validation assertion can run while kapai.exe still owns the persistent database."
 $heroEquipFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipFixture.ps1") `
     -Raw -Encoding UTF8
 $heroEquipEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "HeroEquip" })[0]
@@ -1326,8 +1415,9 @@ Assert-ToolchainTest (
 ) "HeroEquip fixed-account runner no longer proves the mutated database across relogin before restoring the original snapshot."
 Assert-ToolchainTest (
     [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalUserId -eq 7200057 -and
-    [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000115 -and
-    @($fengShenStoryEvidenceContract.fixedAccount.extraFlags) -contains '-projectXFengShenStoryIsolationUserId=705213'
+    [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000003 -and
+    @($fengShenStoryEvidenceContract.fixedAccount.extraFlags) -contains '-projectXFengShenStoryIsolationUserId=705213' -and
+    $projectXAppSource.Contains('primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213')
 ) "FengShenStory evidence contract no longer expects the restored primary terminal identity while retaining the isolation-account run flag."
 
 $startServerSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Start-Server.ps1") -Raw -Encoding UTF8

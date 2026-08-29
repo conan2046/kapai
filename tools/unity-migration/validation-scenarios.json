@@ -840,7 +840,10 @@
           "contains": [
             "Bridge:BeginPlayerHudValidation()",
             "Protocol.VIP",
-            "Protocol.STAMINA"
+            "Protocol.STAMINA",
+            "local BOUND_PREMIUM = 60001",
+            "kind == 505 then Bridge:SetCurrency(PREMIUM, value)",
+            "kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)"
           ]
         },
         {
@@ -2360,13 +2363,26 @@
           ]
         },
         {
+          "path": "unityclient/Assets/ProjectX/src/Data/WorldVisualCatalog.cs",
+          "contains": [
+            "FirstRewards",
+            "ParseTriples(GetBraceField(entry, \"first_reward\"))"
+          ]
+        },
+        {
           "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
           "contains": [
             "PageChapterCount",
             "SelectChapter",
             "PageLeft",
             "PageRight",
-            "ShowLevelPopup"
+            "ShowLevelPopup",
+            "RenderLevelRewards(definition?.FirstRewards)",
+            "RewardPicture(reward.Type)",
+            "RuntimeFengShenItemCell",
+            "HeroUI/common_quality_",
+            "RuntimeFengShenStoryGoldCheck",
+            "RenderCurrencyHeader"
           ]
         },
         {
@@ -2380,11 +2396,11 @@
           ]
         },
         {
-          "path": "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1",
+          "path": "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
           "contains": [
             "AssertRestored",
             "AssertCleanup",
-            "snapshotHash"
+            "Application.persistentDataPath/LocalServer/projectx.db"
           ]
         }
       ],
@@ -2475,7 +2491,11 @@
             "function M.search",
             "function M.searchAll",
             "function M.compose",
-            "function M.composeAll"
+            "function M.composeAll",
+            "BeginXunBaoRewardUpdate",
+            "AddXunBaoReward",
+            "EndXunBaoRewardUpdate",
+            "搜索次数不足"
           ]
         },
         {
@@ -2484,7 +2504,10 @@
             "BindAction",
             "ActionBindingCount",
             "searchAll",
-            "composeAll"
+            "composeAll",
+            "store.Remaining == 0",
+            "RenderFragmentCounts",
+            "CanComposeSelected"
           ]
         },
         {

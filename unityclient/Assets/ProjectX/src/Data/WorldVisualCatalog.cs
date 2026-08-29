@@ -36,6 +36,7 @@ namespace ProjectX.Data
         public float MonsterScale { get; set; } = 1f;
         public int Hope { get; set; }
         public int MaxAttempts { get; set; }
+        public WorldConfiguredReward[] FirstRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
         public WorldConfiguredReward[] ShowRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
     }
 
@@ -63,6 +64,7 @@ namespace ProjectX.Data
             public int FightId;
             public int Hope;
             public int MaxAttempts;
+            public WorldConfiguredReward[] FirstRewards;
             public WorldConfiguredReward[] ShowRewards;
         }
 
@@ -166,6 +168,7 @@ namespace ProjectX.Data
                     FightId = fightId,
                     Hope = hope,
                     MaxAttempts = maxAttempts,
+                    FirstRewards = ParseTriples(GetBraceField(entry, "first_reward")),
                     ShowRewards = ParseTriples(GetBraceField(entry, "show_reward"))
                 };
             }
@@ -184,6 +187,7 @@ namespace ProjectX.Data
                     MonsterScale = monster.Scale <= 0f ? 1f : monster.Scale,
                     Hope = pair.Value.Hope,
                     MaxAttempts = pair.Value.MaxAttempts,
+                    FirstRewards = pair.Value.FirstRewards ?? Array.Empty<WorldConfiguredReward>(),
                     ShowRewards = pair.Value.ShowRewards ?? Array.Empty<WorldConfiguredReward>()
                 };
             }

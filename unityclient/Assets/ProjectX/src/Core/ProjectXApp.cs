@@ -218,6 +218,8 @@ namespace ProjectX.Core
         private readonly List<RewardRecord> pendingRewards = new List<RewardRecord>();
         private readonly Dictionary<int, RewardRecord> pendingBagUseRewards =
             new Dictionary<int, RewardRecord>();
+        private readonly Dictionary<(int Type, uint Id), RewardRecord> pendingXunBaoRewards =
+            new Dictionary<(int Type, uint Id), RewardRecord>();
         private bool capturingBagUseRewards;
         private int bagUseRewardFilterItemId;
         private float lastBagUseRewardAt;
@@ -738,6 +740,8 @@ namespace ProjectX.Core
             try
             {
                 services = new GameServices(this, launchOptions);
+                // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
+                services.Currencies.Changed += RefreshSharedCurrencyHeaders;
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
@@ -910,6 +914,8 @@ namespace ProjectX.Core
         private void OnDestroy()
         {
             ReleaseHeroAuxiliaryViews();
+            if (services != null)
+                services.Currencies.Changed -= RefreshSharedCurrencyHeaders;
             if (heroEquipmentFragmentBagSubscribed && services != null)
             {
                 services.Bag.Changed -= HandleHeroEquipmentFragmentBagChanged;
@@ -2701,7 +2707,7 @@ namespace ProjectX.Core
             try
             {
                 BeginValidationEvidence();
-                if (primaryUserId != 7200057 || primaryRoleId != 1000115 || isolationUserId != 705213)
+                if (primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213)
                 {
                     Fail($"FengShenStory fixed identity mismatch: primary={primaryUserId}/{primaryRoleId}, isolation={isolationUserId}.");
                     yield break;
@@ -2710,11 +2716,14 @@ namespace ProjectX.Core
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
                 if (!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
-                    || !IsFengShenStoryAuthoritativeVisible || services.ProtocolRegistry.PendingCount != 0)
+                    || !IsFengShenStoryAuthoritativeVisible || !fengShenStoryPresenter.IsCurrencyHeaderVisible
+                    || services.ProtocolRegistry.PendingCount != 0)
                 {
-                    Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, currencyHeader={fengShenStoryPresenter.IsCurrencyHeaderVisible}, pending={services.ProtocolRegistry.PendingCount}.");
                     yield break;
                 }
+                RecordValidationSemantic("fengshen-first-class-currency-header", true,
+                    "shared OneLevelLayer/GoldCheck prefab is visible and bound to authoritative currencies");
                 MarkValidationControl(allControls[0]);
                 yield return CaptureFengShenControlEvidence(allControls[0]);
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story.png");
@@ -2803,6 +2812,13 @@ namespace ProjectX.Core
                     Fail("FengShenStory current-stage imported button did not open.");
                     yield break;
                 }
+                if (fengShenStoryPresenter.RenderedLevelRewardCount != 3)
+                {
+                    Fail($"FengShenStory current-stage first_reward rendering mismatch: rendered={fengShenStoryPresenter.RenderedLevelRewardCount}, expected=3.");
+                    yield break;
+                }
+                RecordValidationSemantic("fengshen-level-first-reward-visible", true,
+                    "maplist_dat.first_reward rendered three non-empty reward icons with quantities");
                 MarkValidationControl(allControls[8 + currentLevel - 1]);
                 yield return CaptureFengShenControlEvidence(allControls[8 + currentLevel - 1]);
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-level-current.png");
@@ -2980,7 +2996,7 @@ namespace ProjectX.Core
                 while ((!IsFengShenStoryOpen || services.ProtocolRegistry.PendingCount != 0)
                     && Time.realtimeSinceStartup < deadline) yield return null;
                 RecordValidationSemantic("fengshen-account-isolation", true,
-                    "real 705213/1000006 login rebuilt an independent store; terminal 7200057/1000115 restored");
+                    $"real {isolationUserId}/1000006 login rebuilt an independent store; terminal {primaryUserId}/{primaryRoleId} restored");
                 RecordValidationSemantic("fengshen-mutation-restore", true,
                     "runner observed the mutation; outer fixed-account finally owns exact SHA restore and residual assertion");
 
@@ -3039,6 +3055,32 @@ namespace ProjectX.Core
         public void ShowXunBao(){EnsureXunBaoPresenter();if(services.UiStack.Current!=xunBaoView)services.UiStack.Push(xunBaoView);SetStatus("XunBao current UI active; awaiting /319 op=31.");}
         public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds));}
         public void SetXunBaoOperationResult(bool succeeded,string message,double remaining,double recoverySeconds){services.XunBao.SetOperationResult(succeeded,message,remaining>=0?(ushort?)checked((ushort)remaining):null,recoverySeconds>=0?(uint?)checked((uint)recoverySeconds):null);}
+        public void BeginXunBaoRewardUpdate() => pendingXunBaoRewards.Clear();
+        public void AddXunBaoReward(int type, double id, double amount)
+        {
+            uint rewardId = checked((uint)id);
+            uint rewardAmount = checked((uint)amount);
+            if (rewardAmount == 0) return;
+            (int Type, uint Id) key = (type, rewardId);
+            RewardRecord described = services.ShopCatalog.DescribeReward(type, checked((int)rewardId), rewardAmount);
+            if (pendingXunBaoRewards.TryGetValue(key, out RewardRecord current))
+                described = new RewardRecord(described.Type, described.Id, checked(current.Amount + rewardAmount),
+                    described.Name, described.Picture, described.Quality);
+            pendingXunBaoRewards[key] = described;
+        }
+        public void EndXunBaoRewardUpdate(int searchCount)
+        {
+            if (searchCount <= 0 || pendingXunBaoRewards.Count == 0)
+            {
+                pendingXunBaoRewards.Clear();
+                return;
+            }
+            services.Rewards.Replace("寻宝奖励", pendingXunBaoRewards.Values);
+            pendingXunBaoRewards.Clear();
+            EnsureRewardPresenter();
+            rewardPresenter.Show();
+            SetStatus($"XunBao search result active: searches={searchCount}, rewards={services.Rewards.Count}.");
+        }
         public void CompleteXunBaoValidation(){StartCoroutine(CompleteXunBaoValidationAfterLayout());}
         private IEnumerator CompleteXunBaoValidationAfterLayout(){toastPresenter?.Clear();BeginValidationEvidence();EnsureXunBaoPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();float settleDeadline=Time.realtimeSinceStartup+10f;while(services.ProtocolRegistry.PendingCount!=0&&Time.realtimeSinceStartup<settleDeadline){yield return null;}if(!IsXunBaoOpen||!services.XunBao.HasAuthoritativeResponse||!IsXunBaoAuthoritativeVisible||xunBaoPresenter.ActionBindingCount<7||services.ProtocolRegistry.PendingCount!=0){Fail($"XunBao state mismatch: open={IsXunBaoOpen}, authoritative={services.XunBao.HasAuthoritativeResponse}, visible={IsXunBaoAuthoritativeVisible}, actions={xunBaoPresenter.ActionBindingCount}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}foreach(string id in new[]{"XUNBAO-01-ENTRY","XUNBAO-02-CLOSE","XUNBAO-03-REMAINING-TIMES","XUNBAO-04-RECOVERY-COUNTDOWN","XUNBAO-05-ADD-TIMES","XUNBAO-06-SEARCH","XUNBAO-07-COMBINE"})MarkValidationControl(id);RecordValidationSemantic("xunbao-authoritative-state",true,$"user={GetLocalUserId()} role={GetPlayerRoleId()} remaining={services.XunBao.Remaining} seconds={services.XunBao.RecoverySeconds}");RecordValidationSemantic("xunbao-write-bindings",true,$"op28/29/30/36 bindings={xunBaoPresenter.ActionBindingCount}; shared account remains readonly during automation");RecordValidationSemantic("xunbao-control-matrix-7",validationControlIds.Count==7,$"validated={validationControlIds.Count}/7");Complete($"COMPLETE: XunBao 7/7 controls; /319 op31 remaining={services.XunBao.Remaining}, seconds={services.XunBao.RecoverySeconds}; op28/29/30/36 bound; user={GetLocalUserId()} role={GetPlayerRoleId()}");}
 
@@ -12117,14 +12159,7 @@ namespace ProjectX.Core
             }
             Transform second = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
             if (second != null) second.gameObject.SetActive(false);
-            Transform gold3 = binding.Find("Layer/GoldCheck/GoldIcon3")?.transform;
-            Transform gold4 = binding.Find("Layer/GoldCheck/GoldIcon4")?.transform;
-            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = gold3?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = gold4?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
@@ -12168,12 +12203,7 @@ namespace ProjectX.Core
             RectTransform stamina = binding.Find("Layer/GoldCheck/GoldIcon1")?.GetComponent<RectTransform>();
             if (stamina == null) return;
             stamina.gameObject.SetActive(true);
-            Text value = stamina.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (value != null) value.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            Text gold = gold3?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            Text premium = gold4?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
 
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
@@ -12181,6 +12211,23 @@ namespace ProjectX.Core
 
         private static string FormatHeaderCurrency(long value)
             => value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
+
+        private void RefreshSharedCurrencyHeaders()
+        {
+            RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");
+            RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");
+        }
+
+        private void RefreshStandardCurrencyHeader(CocosUiBinding binding, string rootPath)
+        {
+            if (binding == null || services == null) return;
+            Text stamina = binding.Find(rootPath + "/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
+            Text gold = binding.Find(rootPath + "/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
+            Text premium = binding.Find(rootPath + "/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
+            if (stamina != null) stamina.text = $"{services.Currencies.Stamina}/100";
+            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
+            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+        }
 
         private void ConfigureHeroBagTabs(Transform tabs, bool showBag)
         {
@@ -12775,12 +12822,7 @@ namespace ProjectX.Core
                     if (sibling != tabPanel && sibling.name.StartsWith("Panel_", StringComparison.Ordinal))
                         sibling.gameObject.SetActive(false);
 
-            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform,
-                $"{services.Currencies.Get(CurrencyIds.Stamina)}/100");
-            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform,
-                FormatHeaderCurrency(services.Currencies.Gold));
-            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/GoldNumBg/Num")?.transform,
-                services.Currencies.Premium.ToString());
+            RefreshStandardCurrencyHeader(binding, "Layer/Panel_1/GoldCheck");
 
             Transform stamina = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform;
             Transform money = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform;
@@ -13025,12 +13067,7 @@ namespace ProjectX.Core
             if (first != null) SetTabText(first, "邮件", true);
             Transform second = tabs?.Find("Panel_10/Button2_Runtime");
             if (second != null) second.gameObject.SetActive(false);
-            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = binding.Find("Layer/GoldCheck/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = binding.Find("Layer/GoldCheck/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
-            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
@@ -13080,12 +13117,7 @@ namespace ProjectX.Core
             if (tabPanel != null) tabPanel.gameObject.SetActive(false);
             GameObject subTabs = binding.Find("Layer/Panel_12/SubBtnList");
             if (subTabs != null) subTabs.SetActive(false);
-            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = binding.Find("Layer/GoldCheck/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = binding.Find("Layer/GoldCheck/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
-            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon1/AddBtn")?.transform, null, false);
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.transform,
                 HandleShopClick, true);
@@ -13494,13 +13526,17 @@ namespace ProjectX.Core
                 throw new InvalidOperationException("Current FengShenStory imported main/level CocosUiBindings were not found.");
             CocosUiView firstClassFrame = services.UiRouter.FindBySource("OneLevelLayer");
             GameObject commonHeaderTemplate = firstClassFrame?.Binding.Find("Layer/Panel_12/Title");
+            GameObject commonCurrencyTemplate = firstClassFrame?.Binding.Find("Layer/GoldCheck");
             fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
-                fengShenStoryView, fengShenStoryLevelView, services.FengShenStory, services.Resources,
-                errorPresenter, heroItemSourceView, rewardView, commonHeaderTemplate,
+                fengShenStoryView, fengShenStoryLevelView, services.FengShenStory, services.Currencies,
+                services.Resources, errorPresenter, heroItemSourceView, rewardView,
+                commonHeaderTemplate, commonCurrencyTemplate,
                 () => HandleBack(),
                 () => InvokeLuaOrFail(onFengShenStoryChallengeClicked, "FengShenStory.Challenge"),
                 () => { SetStatus("FengShenStory -> Formation boundary"); ShowFormationPopup(); },
-                functionId => { lastGameplayBoundaryId = functionId; SetStatus($"FengShenStory item source boundary -> function_id={functionId}"); });
+                functionId => { lastGameplayBoundaryId = functionId; SetStatus($"FengShenStory item source boundary -> function_id={functionId}"); },
+                () => SetStatus("FengShenStory stamina boundary -> UseItemUI(500,1)"),
+                () => { lastGameplayBoundaryId = 13; SetStatus("FengShenStory gold boundary -> function_id=13"); });
         }
 
         private void EnsureArenaPresenter(){arenaView=arenaView??services.UiRouter.FindBySource("common/JingjiLayer");if(arenaView==null)throw new InvalidOperationException("Current Arena imported CocosUiBinding was not found: common/JingjiLayer.");arenaPresenter=arenaPresenter??new ArenaPresenter(arenaView,services.Arena,()=>HandleBack());}
@@ -13509,7 +13545,20 @@ namespace ProjectX.Core
 
         private void EnsureBloodFightPresenter(){bloodFightView=bloodFightView??services.UiRouter.FindBySource("xuezhan/XuezhanMain");if(bloodFightView==null)throw new InvalidOperationException("Current BloodFight imported CocosUiBinding was not found: xuezhan/XuezhanMain.");bloodFightPresenter=bloodFightPresenter??new BloodFightPresenter(bloodFightView,services.BloodFight,()=>HandleBack());}
 
-        private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,services.Resources,()=>HandleBack(),(faBao,sui)=>InvokeLuaOrFail(onXunBaoSearch,"XunBao.Search",(double)faBao,(double)sui),(faBao,auto)=>InvokeLuaOrFail(onXunBaoSearchAll,"XunBao.SearchAll",(double)faBao,(double)auto),faBao=>InvokeLuaOrFail(onXunBaoCompose,"XunBao.Compose",(double)faBao),()=>InvokeLuaOrFail(onXunBaoComposeAll,"XunBao.ComposeAll"));}
+        private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,services.Bag,services.Resources,()=>HandleBack(),(faBao,sui)=>InvokeLuaOrFail(onXunBaoSearch,"XunBao.Search",(double)faBao,(double)sui),(faBao,auto)=>InvokeLuaOrFail(onXunBaoSearchAll,"XunBao.SearchAll",(double)faBao,(double)auto),faBao=>InvokeLuaOrFail(onXunBaoCompose,"XunBao.Compose",(double)faBao),()=>InvokeLuaOrFail(onXunBaoComposeAll,"XunBao.ComposeAll"),OpenXunBaoSearchTokenBag);}
+
+        private void OpenXunBaoSearchTokenBag()
+        {
+            services.XunBao.SetOperationResult(false, "搜索次数不足，请在背包使用搜宝令");
+            EnsureBagPresenter();
+            ConfigureBagFrame();
+            bagFrameView.SetVisible(true);
+            if (services.UiStack.Current != bagView) services.UiStack.Push(bagView);
+            bagFrameView.GameObject.transform.SetAsLastSibling();
+            bagView.GameObject.transform.SetAsLastSibling();
+            if (!bagPresenter.SelectItem(402))
+                SetStatus("XunBao search token item 402 is not available in the authoritative bag.");
+        }
 
         private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,services.Currencies,services.GameplayShops,RequestSevenDayClaim,RequestSevenDayGo,SelectSevenDayDay,SelectSevenDayCategory,ShowSevenDayItemDetail,RequestSevenDayDiscountBuy,()=>{lastSevenDayBoundary="stamina-add";SetStatus("SevenDay stamina boundary -> UseItemUI(500,1)");},()=>{lastSevenDayBoundary="gold-add";SetStatus("SevenDay gold boundary -> common shop");},()=>HandleBack());}
         private void EnsureWelfareActivityFramePresenter()

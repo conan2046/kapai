@@ -622,6 +622,9 @@ function Add-UnityMigrationOperationRecord {
             [string](Get-UnityMigrationPropertyValue -Object $ledger -Name "module" -Default "") -ine $Module) {
             throw "Operation ledger identity is invalid: $resolvedPath"
         }
+        if ($null -eq $ledger.PSObject.Properties["records"]) {
+            $ledger | Add-Member -NotePropertyName records -NotePropertyValue @()
+        }
     }
     else {
         $ledger = [pscustomobject][ordered]@{
@@ -1580,7 +1583,7 @@ function Stop-UnityMigrationCompileChildren {
     if (-not $IsWindows) { return }
     $editorDirectory = Split-Path -Parent $UnityExecutable
     $runtimeDirectory = Join-Path $editorDirectory "Data\NetCoreRuntime"
-    $children = @(Get-Process dotnet,bee_backend,Unity.ILPP.Trigger -ErrorAction SilentlyContinue | Where-Object {
+    $children = @(Get-Process dotnet,bee_backend,Unity.ILPP.Trigger,Unity.ILPP.Runner -ErrorAction SilentlyContinue | Where-Object {
         $_.Path -and $_.Path.StartsWith($editorDirectory, [StringComparison]::OrdinalIgnoreCase)
     })
     if ($children.Count -eq 0) { return }
@@ -1661,10 +1664,12 @@ function Invoke-UnityMigrationCompilePreflight {
         "error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process",
         "error CS2012:.*Assembly-CSharp(?:-Editor)?\.dll.*being used by another process",
         "PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process",
-        "IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll"
+        "IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll",
+        "Assembly-CSharp(?:-Editor)?\.dll.*另一个程序正在使用此文件",
+        "Copying the file failed:.*另一个程序正在使用此文件"
     )
     $process = $null
-    for ($attempt = 1; $attempt -le 2; $attempt++) {
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
         if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
         $process = Start-Process -FilePath $UnityExecutable -ArgumentList $arguments -WindowStyle Hidden -PassThru
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
@@ -1675,22 +1680,22 @@ function Invoke-UnityMigrationCompilePreflight {
         # Unity batchmode may report its exit code before ILPP/Bee release Assembly-CSharp.dll.
         # The child processes are only cleaned after this owned batch process has exited.
         Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
-        $transientBeeLock = $attempt -eq 1 -and (Test-Path -LiteralPath $logPath) -and
+        $transientBeeLock = $attempt -lt 4 -and (Test-Path -LiteralPath $logPath) -and
             (Select-String -LiteralPath $logPath -Pattern $transientBeeLockPatterns -CaseSensitive:$false -Quiet)
         if ($process.ExitCode -eq 0 -and -not $transientBeeLock) { break }
         if (-not $transientBeeLock) {
             throw "Unity compile preflight failed with exit code $($process.ExitCode); log=$logPath"
         }
-        $retryEvidence = "$logPath.transient-bee-lock-attempt1.log"
+        $retryEvidence = "$logPath.transient-bee-lock-attempt$attempt.log"
         Copy-Item -LiteralPath $logPath -Destination $retryEvidence -Force
-        Write-Warning "Unity held a generated Assembly-CSharp artifact during compile/reload; retrying the same compile preflight once even if Unity recovered with exit code 0. Evidence: $retryEvidence"
-        Start-Sleep -Seconds 2
+        Write-Warning "Unity held a generated Assembly-CSharp artifact during compile/reload; retrying the same compile preflight (attempt $($attempt + 1)/4). Evidence: $retryEvidence"
+        Start-Sleep -Seconds (2 * $attempt)
         Assert-NoUnityMigrationBlockingDotNet -Root $Root
     }
     if ($null -eq $process -or $process.ExitCode -ne 0) {
         throw "Unity compile preflight failed after transient-lock retry; log=$logPath"
     }
-    $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process'
+    $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process|另一个程序正在使用此文件'
     $serious = @(Select-String -LiteralPath $logPath -Pattern $seriousPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)
     if ($serious.Count -gt 0) {
         $sample = ($serious | Select-Object -First 10 | ForEach-Object { "$($_.LineNumber):$($_.Line)" }) -join "`n"

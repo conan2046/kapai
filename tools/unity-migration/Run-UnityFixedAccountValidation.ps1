@@ -503,6 +503,13 @@ try {
             $coverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
                 -ControlMatrix ([string]$moduleConfig.controlMatrix)
             if (-not [bool]$fixed.skipPostValidationFixtureAssert) {
+                if ($dataBackend -eq "sqlite") {
+                    # SQLite adapters reject live readers/writers by contract. The Unity
+                    # batch has exited here, but the external local server remains alive
+                    # until the outer finally block unless we release it explicitly.
+                    Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                    Wait-FixedRuntimeRelease
+                }
                 Invoke-FixedAdapter "AssertSetup"
             }
             }

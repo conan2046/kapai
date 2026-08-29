@@ -185,6 +185,11 @@
         "id": "FENGSHEN-GAP-DIRECT-DRAG-DEFERRED",
         "handling": "原生动态 TableView 支持横向拖动，但直接拖拽手感与惯性按用户要求后置统一修复；本模块以箭头翻页、裁剪、边界与选章闭环验收。",
         "evidence": "client/ProjectX/src/View/FengShenStory/FengShenStoryMainUI.lua:194-242; docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json#acceptanceExamples"
+      },
+      {
+        "id": "FENGSHEN-GAP-20260828-REWARD-HEADER-REGRESSION",
+        "handling": "首轮修复恢复GoldCheck与奖励数量；第二轮真人Play确认图标仍缺失且tanchuangjiangli没有道具底框。Unity现按Cocos ItemCellUI建立品质框、图标、数量复合格；当前货币奖励使用Cocos一致的3品质框，标准G3 batch及用户复测前保持阻塞。",
+        "evidence": ".local/ui-fidelity/FengShenStory/user-feedback/20260828-reward-header-missing.png; .local/ui-fidelity/FengShenStory/user-feedback/20260828-reward-icons-still-missing.png; .local/ui-fidelity/FengShenStory/user-feedback/20260828-reward-popup-item-frame-missing.png; client/ProjectX/src/View/Global/ItemCellUI.lua; unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs"
       }
     ]
   },
@@ -556,14 +561,14 @@
       "visibleCondition": "first_reward 存在，最多三项",
       "cocosCallback": "ShowReward -> Utils:GetItemCellValue -> Common.ItemSourceUI",
       "protocol": "none",
-      "unityBinding": "奖励图标与列表裁剪；真实点击打开获取途径",
+      "unityBinding": "ItemCellUI式品质框、图标、数量复合格与列表裁剪；真实点击打开获取途径",
       "successEvidence": "Computer Use Cocos + canonical Unity batch control frame: FENGSHEN-21-LEVEL-REWARD-LIST",
       "failureEvidence": "缺奖励安全隐藏",
       "reconnectEvidence": "配置与权威关卡一致",
-      "status": "complete",
+      "status": "pending",
       "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
+      "automationPassed": false,
+      "manualPassed": false,
       "cocosEvidence": ".local/ui-fidelity/FengShenStory/cocos/g1-20260802/FENGSHEN-CONTROL-LEVEL-REWARD-LIST.png",
       "unityEvidence": "build/ui-migration/fengshen-control-fengshen-21-level-reward-list.png"
     },

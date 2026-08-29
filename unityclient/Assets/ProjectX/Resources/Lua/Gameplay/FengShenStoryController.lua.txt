@@ -21,6 +21,14 @@ end
 
 function M.onPacket(command, message)
     if command ~= Protocol.WORLD_STAGE then return false end
+    -- Older local servers could emit an op-only /320 response after a
+    -- successful op=25 fight. The transport strips the echoed request op,
+    -- leaving an empty body. Consume it defensively instead of turning the
+    -- entire application state into Failed; current servers send op=25 + 1.
+    if message.Remaining == 0 then
+        Bridge:SetStatus("FengShenStory/320 ignored legacy empty challenge acknowledgement.")
+        return true
+    end
     local startPosition = message.Position
     local op = message:ReadByte()
     if op == 24 then

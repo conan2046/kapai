@@ -1,6 +1,7 @@
 local Protocol = require("Protocol")
 
 local GOLD = 60000
+local BOUND_PREMIUM = 60001
 local PREMIUM = 60003
 local STAMINA = 60026
 local M = { validationRequested = false, validationStarted = false, staminaLoaded = false }
@@ -57,7 +58,8 @@ local function readCharacterUpdate(message)
             if kind == 501 then Bridge:SetPlayerPotential(value)
             elseif kind == 502 then Bridge:AddPlayerExperience(value)
             elseif kind == 504 then Bridge:SetCurrency(GOLD, value)
-            elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)
+            elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)
+            elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)
             elseif kind == 513 then Bridge:SetPlayerPower(value)
             elseif kind == 514 then Bridge:SetPlayerSoul(value) end
         end
@@ -65,7 +67,6 @@ local function readCharacterUpdate(message)
         local id = message:ReadWord()
         local value = message:ReadUInt()
         Bridge:SetCurrency(id, value)
-        if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end
     elseif updateType == 3 then
         local count = message:ReadByte()
         for _ = 1, count do message:ReadWord(); message:ReadUInt() end

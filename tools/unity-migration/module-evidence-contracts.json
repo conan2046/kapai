@@ -1311,12 +1311,15 @@
     {
       "module": "FengShenStory",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
+        "roleId": 1000003,
         "terminalUserId": 7200057,
-        "terminalRoleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/fengshenstory-fixed-fixture-snapshot.json",
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/FengShenStory/fixture/fengshenstory-sqlite-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/FengShenStory/unity/g6/fengshenstory-fixed-unity-result.json",
         "reloginRequired": true,
         "extraFlags": [
@@ -1327,8 +1330,12 @@
           "requiresLogin": true,
           "requirements": [
             {
+              "id": "fengshenstory-sqlite-only",
+              "description": "用户Unity测试只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL不得作为夹具后端。"
+            },
+            {
               "id": "account-role-link",
-              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115"
+              "description": "固定 userId=7200057 必须唯一绑定SQLite roleId=1000003"
             },
             {
               "id": "chapter-stage-matrix",
@@ -1344,11 +1351,11 @@
             },
             {
               "id": "alternate-account-isolation",
-              "description": "同一可逆夹具将独立 userId=705213/roleId=1000006 固定为第1章第1关并单独保存/恢复 SHA；切号后不得继承主账号章节选择、弹窗或 pending"
+              "description": "同一可逆SQLite夹具临时创建独立 userId=705213/roleId=1000006 并固定为第1章第1关；切号后不得继承主账号章节选择、弹窗或 pending"
             },
             {
               "id": "exact-restore-surface",
-              "description": "快照 guan_qia、体力、背包、存档、任务、角色/账号货币及战斗关联数据，以整体 SHA256 和 residual=0 精确恢复"
+              "description": "整库快照 persistentDataPath projectx.db，恢复后整体 SHA256 相等、隔离账号删除且备份 residual=0"
             }
           ]
         },

@@ -11,6 +11,7 @@ namespace ProjectX.UI
     {
         private readonly CocosUiView view;
         private readonly XunBaoStore store;
+        private readonly BagStore bag;
         private readonly Text remaining;
         private readonly Text recovery;
         private readonly Text name;
@@ -22,31 +23,35 @@ namespace ProjectX.UI
         private readonly Action<ushort, byte> searchAll;
         private readonly Action<ushort> compose;
         private readonly Action composeAll;
+        private readonly Action addTimes;
         private int selected;
-        private static readonly ushort[] Treasures = { 1001, 1002, 1003, 1004, 1005, 1006 };
-        private static readonly string[] Names = { "散瘟鞭", "捆龙索", "混元伞", "照妖镜", "乾坤圈", "风火轮" };
-        private static readonly string[] Pictures = { "1002", "1003", "1208", "1302", "1205", "1206" };
-        private static readonly string[] Descriptions = { "一种被施过妖法的长鞭，使人混乱，无发战斗。", "自动捆绑敌人。", "伞皆明珠穿成，撑开时天昏地暗。", "铜镜照出妖物的原形。", "金色镯子，可大可小，力量巨大。", "脚踏风火，来去如飞。" };
+        private static readonly ushort[] Treasures = { 1001, 1002, 1003 };
+        private static readonly string[] Names = { "散瘟鞭", "捆龙索", "混元伞" };
+        private static readonly string[] Pictures = { "1002", "1003", "1001" };
+        private static readonly string[] Descriptions = { "一种被施过妖法的长鞭，使人混乱，无法战斗。", "自动捆绑敌人。", "伞皆明珠穿成，撑开时天昏地暗。" };
 
-        public XunBaoPresenter(CocosUiView view, XunBaoStore store, ResourceService resources, Action close,
+        public XunBaoPresenter(CocosUiView view, XunBaoStore store, BagStore bag,
+            ResourceService resources, Action close,
             Action<ushort, ushort> search, Action<ushort, byte> searchAll,
-            Action<ushort> compose, Action composeAll)
+            Action<ushort> compose, Action composeAll, Action addTimes)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
+            this.bag = bag ?? throw new ArgumentNullException(nameof(bag));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.search = search ?? throw new ArgumentNullException(nameof(search));
             this.searchAll = searchAll ?? throw new ArgumentNullException(nameof(searchAll));
             this.compose = compose ?? throw new ArgumentNullException(nameof(compose));
             this.composeAll = composeAll ?? throw new ArgumentNullException(nameof(composeAll));
+            this.addTimes = addTimes ?? throw new ArgumentNullException(nameof(addTimes));
             Transform root = view.GameObject.transform;
             Normalize(root);
             SetVisible(root.Find("Panel"), true);
             SetVisible(root.Find("Xunbao"), true);
-            SetVisible(root.Find("Xunbao/Red"), true);
+            SetVisible(root.Find("Xunbao/Red"), false);
             SetVisible(root.Find("Xunbao/Orange"), false);
             SetVisible(root.Find("Xunbao/Purple"), false);
-            SetVisible(root.Find("Xunbao/Blue"), false);
+            SetVisible(root.Find("Xunbao/Blue"), true);
             SetVisible(root.Find("Panel/DescBg/Bg/jichushuxing"), true);
             SetVisible(root.Find("Panel/DescBg/Bg/qianghuashuxing"), true);
             SetVisible(root.Find("Panel/DescBg/Bg/jinglianshuxing"), true);
@@ -60,12 +65,17 @@ namespace ProjectX.UI
             BindClose(root, close);
             BindActions(root);
             store.Changed += Render;
+            bag.Changed += Render;
             Render();
         }
 
         public bool IsAuthoritativeVisible => store.HasAuthoritativeResponse && remaining != null && recovery != null;
         public int ActionBindingCount { get; private set; }
-        public void Dispose() => store.Changed -= Render;
+        public void Dispose()
+        {
+            store.Changed -= Render;
+            bag.Changed -= Render;
+        }
 
         private void Render()
         {
@@ -84,6 +94,14 @@ namespace ProjectX.UI
                 treasureIcon.preserveAspect = true;
                 treasureIcon.color = Color.white;
             }
+            foreach (string quality in new[] { "Red", "Orange", "Purple", "Blue" })
+            {
+                Image qualityIcon = view.GameObject.transform.Find($"Xunbao/{quality}/Icon")?.GetComponent<Image>();
+                if (qualityIcon == null) continue;
+                qualityIcon.sprite = resources.LoadFaBaoIcon(Pictures[selected], out _);
+                qualityIcon.preserveAspect = true;
+                qualityIcon.color = Color.white;
+            }
             SetText(view.GameObject.transform, "Panel/DescBg/Bg/jichushuxing/Atrribute_1/Value", selected == 0 ? "+400" : "+1200");
             SetText(view.GameObject.transform, "Panel/DescBg/Bg/qianghuashuxing/Atrribute_1/Value", selected == 0 ? "+40" : "+120");
             SetText(view.GameObject.transform, "Panel/DescBg/Bg/jinglianshuxing/Atrribute_1/Value", selected == 0 ? "+80\n+20" : "+240\n+60");
@@ -91,6 +109,7 @@ namespace ProjectX.UI
             if (runtimeDescription != null)
                 runtimeDescription.text = $"基础属性\n攻击：  {(selected == 0 ? "+400" : "+1200")}\n\n每级强化\n攻击：  {(selected == 0 ? "+40" : "+120")}\n\n每级精炼\n攻击：  {(selected == 0 ? "+80" : "+240")}\n命中：  {(selected == 0 ? "+20" : "+60")}\n\n装备描述\n{Descriptions[selected]}";
             if (!string.IsNullOrWhiteSpace(store.LastMessage)) recovery.text = store.LastMessage;
+            RenderFragmentCounts();
             for (int index = 0; index < treasureCards.Count; index++)
             {
                 Image cardIcon = treasureCards[index]?.transform.Find("Big/Icon")?.GetComponent<Image>();
@@ -113,11 +132,22 @@ namespace ProjectX.UI
         {
             BindActionWithHitTarget(root, "Xunbao/Btn_1", () =>
             {
+                if (store.Remaining == 0)
+                {
+                    store.SetOperationResult(false, "搜索次数不足，请使用搜宝令补充");
+                    addTimes();
+                    return;
+                }
                 store.SetOperationResult(false, "正在一键寻宝…");
                 searchAll(Treasures[selected], 0);
             });
             BindActionWithHitTarget(root, "Xunbao/Btn_2", () =>
             {
+                if (!CanComposeSelected())
+                {
+                    store.SetOperationResult(false, "法宝碎片不足，无法合成");
+                    return;
+                }
                 store.SetOperationResult(false, "正在合成法宝…");
                 compose(Treasures[selected]);
             });
@@ -128,14 +158,49 @@ namespace ProjectX.UI
             });
             BindAction(root, "Xunbao/Panel/Button_L", () => Select(-1));
             BindAction(root, "Xunbao/Panel/Button_R", () => Select(1));
-            BindAction(root, "Panel/XunbaoBg/TimesBg/AddBtn", () => store.SetOperationResult(false, "搜索次数可随时间恢复或使用搜宝令补充"));
+            BindAction(root, "Panel/XunbaoBg/TimesBg/AddBtn", addTimes);
             BindAction(root, "Panel/XunbaoBg/Btn_1", () => store.SetOperationResult(true, "搜索奖励任务入口已开放"));
             foreach (string quality in new[] { "Red", "Orange", "Purple", "Blue" })
             for (int index = 1; index <= 8; index++)
             {
                 int fragmentOffset = index - 1;
-                BindAction(root, $"Xunbao/{quality}/Image/Add{index}", () => search(Treasures[selected], checked((ushort)(4701 + selected * 3 + fragmentOffset % 3))));
+                BindAction(root, $"Xunbao/{quality}/Image/Add{index}", () =>
+                {
+                    if (store.Remaining == 0)
+                    {
+                        store.SetOperationResult(false, "搜索次数不足，请使用搜宝令补充");
+                        addTimes();
+                        return;
+                    }
+                    search(Treasures[selected], checked((ushort)(4701 + selected * 3 + fragmentOffset % 3)));
+                });
             }
+        }
+
+        private void RenderFragmentCounts()
+        {
+            Transform root = view.GameObject.transform;
+            string[] qualities = { "Red", "Orange", "Purple", "Blue" };
+            for (int slot = 1; slot <= 8; slot++)
+            {
+                int fragmentId = 4701 + selected * 3 + (slot - 1) % 3;
+                int quantity = bag.GetTotalQuantityByItemId(fragmentId);
+                foreach (string quality in qualities)
+                {
+                    Transform add = root.Find($"Xunbao/{quality}/Image/Add{slot}");
+                    if (quality == "Blue" && add != null) add.gameObject.SetActive(slot <= 3);
+                    Text count = add?.Find("Num")?.GetComponent<Text>();
+                    if (count != null) count.text = quantity.ToString();
+                }
+            }
+        }
+
+        private bool CanComposeSelected()
+        {
+            int firstFragmentId = 4701 + selected * 3;
+            return bag.GetTotalQuantityByItemId(firstFragmentId) > 0
+                && bag.GetTotalQuantityByItemId(firstFragmentId + 1) > 0
+                && bag.GetTotalQuantityByItemId(firstFragmentId + 2) > 0;
         }
 
         private void BindAction(Transform root, string path, Action action)

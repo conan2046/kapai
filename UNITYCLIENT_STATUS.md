@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-08-27
+> 最后更新：2026-08-29
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
@@ -20,7 +20,7 @@
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
 | 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
-| 主界面 HUD | `G0-G6 passed / fixed account revalidated` | 固定账号与隔离账号均为99级全解锁；当前编译、只读权威显示、断线重连、切号隔离、重登归一化哈希、精确恢复与历史11组双端视觉证据通过 | 当前模块收口；Steam排除的聊天/商业入口继续保持隐藏 |
+| 主界面 HUD | `G0-G3 retained / shared currency regression fixed / user retest pending` | `/18` 增量货币映射已拆分非绑定元宝`505/60003`与绑定元宝`506/60001`；复用`FirstClassBg/GoldCheck`的背包、神将/阵容、装备/法宝、邮件、商城及任务公共栏统一实时刷新 | 当前源码变化已使旧G4-G6失效；先完成用户真人复测，再按标准batch重验 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定身份`1/1000001`完成26/26控件、18/18语义、真实`/8`与`/15`、ItemType 5/6奖励弹窗、异常/重连/重登/切号及精确恢复；G5同账号同数据16/16。G6真人Play发现并关闭礼包横向拖动缺口，用户最终复测“测试通过”；整库恢复、Fixture残留0，两次BuildBatch SHA一致 | 当前模块收口；下一模块按P1顺序从当前G0启动 |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0-G3 passed / early user Play retest pending / G4-G6 pending` | 当前16控件与G3实现保留；旧G4-G6输入已被后续服务端、Lua桥和`ProjectXApp.cs`变化失效 | 先完成当前早期真人复测并关闭反馈，再进入G4 |
@@ -39,10 +39,10 @@
 | 活动 | `steam-excluded` | 当前集合包含全服排行/最强榜等其他玩家数据，也包含充值活动；Steam隐藏入口并由Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 抽卡 | `G0-G5 retained / G6 evidence missing` | G5双端主状态与差异报告仍存在；G6矩阵登记的28组Cocos与28组Unity逐控件图在当前检出全部缺失 | 重取或找回56份真实逐控件证据后重跑G6；禁止复制旧图补路径 |
 | 玩法大厅 | `G0-G3 passed / early user Play fix retest pending / G4-G6 pending` | 当前Steam 5路由、8个直接控件+5个场景状态；首次早测发现普通Editor登录图集仍为28个LFS指针导致白屏，已补水合合同并清零指针，修复后G3标准batch仍为13/13控件、11/11语义断言、精确恢复及残留0 | 用户重新Play确认登录/主界面不再白屏并继续5-15分钟玩法大厅早测；反馈闭环前不进入G4，本轮早测不替代后续G6最终真人确认 |
-| 法宝搜索 | `G0 passed / G1-G6 evidence missing` | `/319 op28/29/30/31/36`实现保留；登记的Cocos/Unity主状态与差异目录当前不存在 | 从当前源码重取G1，后续门禁串行重验；共享测试号自动化仍只读op31 |
+| 法宝搜索 | `G0 passed / G1 implementation fixed, user retest pending / G2-G6 blocked` | 真人Play确认0次仍报一键搜索成功且无结果反馈；已补0次拦截、搜宝令背包边界、op28/29奖励弹窗、权威碎片数与合成前置校验 | 用户复测搜索次数不足、补次数、实际搜索结果和碎片刷新；当前证据目录缺失，仍须从G1串行重验 |
 | 游历三界 | `G0 passed / G1-G6 evidence missing` | `/335 op1/2/3`实现保留；登记的Cocos/Unity空态与差异目录当前不存在 | 从当前源码重取G1，后续门禁串行重验；写操作以op1权威重查为准 |
 | 竞技场 | `G0 pending / legacy logic only / entry hidden` | 历史Unity单端Runner与Steam SQLite协议等价仅作线索；无当前Cocos基准、控件矩阵闭环和正式门禁记录；当前以`migrationReady=false`隐藏大厅入口与对应每日任务，避免暴露空壳 | 从当前源码执行G0，冻结AI机器人竞技场边界后再取G1；正式迁完后再统一开放入口与任务 |
-| 封神列传 | `G0-G6 passed / 25/25 complete` | 固定主/隔离账号完成12组双端原生视觉、25/25逐控件证据、10/10语义；覆盖371章、6章翻页、四关三态、宝箱、帮助、获取途径、真实挑战、章末奖励、重进/重连/切号和精确恢复 | `/320` 仅拥有 op24/op25/op10/op26；完整战斗表现及来源目标页仍由各自模块负责，下一模块为体力领取 |
+| 封神列传 | `G0-G3 passed / early user Play retest pending / G4-G6 pending` | 2026-08-29重取当前Cocos关卡、首通奖励与获取途径原生证据；奖励复合格、公共货币栏、`/320`确认包及挑战/布阵关闭弹窗修复均已通过当前工作树BuildBatch。固定账号已切为Unity persistentDataPath SQLite `7200057/1000003`，预检完成整库精确恢复、隔离账号清理和零残留 | 用户用当前G3构建复测奖励图标/品质框/数量、公共货币栏、真实挑战与布阵返回；反馈闭环前不得进入G4，也不得切换到寻宝 |
 | 体力领取 | `steam-excluded` | 历史G0-G6证据保留；Steam按“福利整体排除”隐藏入口、移除路由并拒绝验收 | 后续不迁移；Cocos/服务端保留 |
 | 血战到底 | `steam-excluded` | 包含全服血战排行榜与其他玩家排名数据；玩法大厅不显示，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 决战昆仑 | `steam-excluded` | 依赖匹配对手数据；玩法大厅不显示，不再请求昆仑红点 `/213 op=25`，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |

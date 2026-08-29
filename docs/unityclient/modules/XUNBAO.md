@@ -1,6 +1,6 @@
 # 法宝搜索（XunBao）
 
-> 当前门禁：`G0 passed / G1-G6 evidence missing`。实现代码保留；登记的Cocos/Unity基准、差异报告与验收目录当前不存在，必须从当前源码串行重取，历史G6仅作线索。
+> 当前门禁：`G0 passed / G1 implementation fixed, user retest pending / G2-G6 blocked`。登记的Cocos/Unity基准、差异报告与验收目录当前不存在，必须从当前源码串行重取，历史G6仅作线索。
 
 ## 范围
 
@@ -30,6 +30,13 @@
 - `XunBaoController.lua.txt` 负责 `/319 op=28/29/30/31/36` 的字段级收发，奖励批次与当前 Cocos `ReadRewardData` 一致。
 - `XunBaoPresenter` 绑定真实 Prefab 次数/倒计时、法宝切换、碎片搜索、一键搜索、单个/一键合成；操作结果由服务端回包驱动。
 - `ProjectXApp.EnterGameplay(9)` 完成玩法大厅进入，关闭按钮和 Esc 返回玩法大厅。
+
+### 2026-08-28 真人Play修复
+
+- 用户截图确认：权威剩余次数为0时，一键搜索仍发送op29并显示“一键搜索成功”，但实际搜索批次为0；Unity没有展示Cocos `XunBaoResultUI`等价结果，也没有用背包权威数据刷新碎片数量。
+- 当前修复：0次时客户端不再发送op28/op29，直接进入搜宝令402的背包使用边界；op28/op29逐条解析通用奖励三元组并打开公共“寻宝奖励”弹窗；主界面碎片数量订阅`BagStore`刷新；三种所需碎片不足时不发送op30。
+- 同时修正初始范围为Cocos默认三个蓝色法宝`1001/1002/1003`及图片`1002/1003/1001`，不再循环到不存在的`1004..1006`。
+- 用户证据：`.local/ui-fidelity/XunBao/user-feedback/20260828-xunbao-actions-ineffective.png`；失败记录：`.local/unity-validation/xunbao-operation-ledger.json`。用户复测与标准门禁前保持未解决。
 
 ## 验证
 
