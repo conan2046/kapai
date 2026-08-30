@@ -25709,6 +25709,22 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 	case 40:// 装备特殊词条列表（与旧装备列表分包隔离）
 		equipMgr.SendPetEquipAffixList(pUser);
 		return;
+	case 41:// 锁定/解锁装备特殊词条
+	{
+		bool changed = equipMgr.ToggleEquipAffixLock(pUser, msg);
+		m_socketServer.SendMsg(sock, msg);
+		if (changed)
+			equipMgr.SendPetEquipAffixList(pUser);
+		return;
+	}
+	case 42:// 重铸装备特殊词条
+	{
+		bool changed = equipMgr.RerollEquipAffix(pUser, msg);
+		m_socketServer.SendMsg(sock, msg);
+		if (changed)
+			equipMgr.SendPetEquipAffixList(pUser);
+		return;
+	}
 	default:
 		break;
 	}

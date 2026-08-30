@@ -172,6 +172,14 @@ local function sendEquipmentTakeOff(uid, position)
     Bridge:Send(message)
 end
 
+local function sendAffixOperation(uid, op)
+    if (op ~= 41 and op ~= 42) or uid == nil or uid < 1 then return end
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(op)
+    message:WriteUInt(uid)
+    Bridge:Send(message)
+end
+
 local function sendEquipmentStrength(uid, strengthType)
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(4)
@@ -428,6 +436,30 @@ local function readAffixList(message)
     end
 end
 
+local function readAffixOperationResponse(message)
+    local success = message:ReadByte()
+    local resultText = message:ReadString()
+    local nextCost = message:ReadUInt()
+    if success == 0 then showBusinessError(resultText); return end
+    local value = {
+        uid = message:ReadUInt(), affixSeed = message:ReadUInt(), affixId = message:ReadWord(),
+        affixTier = message:ReadByte(), affixLockMask = message:ReadByte(), affixKey = message:ReadString(),
+        affixName = message:ReadString(), affixDescription = message:ReadString(),
+        affixValue1 = message:ReadInt(), affixValue2 = message:ReadInt(), affixNextCost = nextCost,
+    }
+    if message.Remaining ~= 0 then
+        Bridge:Fail("HeroEquipment/319 affix operation has unread bytes: " .. tostring(message.Remaining))
+        return
+    end
+    local equipment = EquipmentModel:GetEquipment(value.uid)
+    if equipment then
+        for key, field in pairs(value) do if key ~= "uid" then equipment[key] = field end end
+        syncRenderMirror()
+    end
+    Bridge:SetStatus(resultText)
+    Bridge:ShowToast(resultText, 2.0)
+end
+
 function M.onHeroReady()
     M.requested = true
     M.stage = nil
@@ -447,6 +479,8 @@ end
 
 function M.wearEquipment(uid, position) sendEquipmentWear(uid, position) end
 function M.takeOffEquipment(uid, position) sendEquipmentTakeOff(uid, position) end
+function M.toggleAffixLock(uid) sendAffixOperation(uid, 41) end
+function M.rerollAffix(uid) sendAffixOperation(uid, 42) end
 function M.strengthEquipment(uid, strengthType)
     if not EquipmentModel:GetEquipment(uid) then return end
     local cost = Bridge:GetEquipmentStrengthCost(uid)
@@ -724,6 +758,7 @@ function M.onOperation(op, message)
     if op == 1 then readList(message, 1); return true end
     if op == 17 then readList(message, 2); return true end
     if op == 40 then readAffixList(message); return true end
+    if op == 41 or op == 42 then readAffixOperationResponse(message); return true end
     if op == 6 then
         EquipmentModel:UpsertEquipment(readEquipmentRecord(message)); syncRenderMirror()
         if M.stage == "await_injection" then M.injectedEquipment = true end

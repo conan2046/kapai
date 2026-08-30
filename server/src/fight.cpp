@@ -12377,11 +12377,21 @@ void CFight::AddTeamRage(uint8 pos,int value)
 	if(pos == 0 || pos > MAX_MEMBER || value == 0)
 		return;
 	int group = pos <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2;
+	int before = m_teamRage[group];
 	m_teamRage[group] += value;
 	if(m_teamRage[group] < 0)
 		m_teamRage[group] = 0;
 	else if(m_teamRage[group] > 100)
 		m_teamRage[group] = 100;
+	int changed = m_teamRage[group] - before;
+	if(changed != 0)
+	{
+		char rageText[96];
+		snprintf(rageText,sizeof(rageText),"战意 %s%d（%d/100）",changed > 0 ? "+" : "",changed,m_teamRage[group]);
+		uint16 actionNum = m_extActionMsg.GetType() + 1;
+		m_extActionMsg.SetType(actionNum);
+		m_extActionMsg<<(uint8)EFOT_Passive<<pos<<(uint16)0<<string(rageText)<<(uint8)0;
+	}
 }
 
 int CFight::GetAffixTier(uint8 pos,uint16 affixId) const
@@ -12638,15 +12648,20 @@ void CFight::InitTeamRageFromAffixes()
 		int begin = group == EGT_GROUP1 ? 1 : GROUP2_BEGIN + 1;
 		int end = group == EGT_GROUP1 ? GROUP2_BEGIN : MAX_MEMBER;
 		int bestOpening = 0;
+		uint8 bestPos = 0;
 		for(int pos=begin;pos<=end;pos++)
 		{
 			if(!IsAlive(pos))
 				continue;
 			int opening = GetAffixValue(pos,45,1);
 			if(opening > bestOpening)
+			{
+				bestPos = (uint8)pos;
 				bestOpening = opening;
+			}
 		}
-		m_teamRage[group] = bestOpening;
+		if(bestPos != 0 && bestOpening > 0)
+			AddTeamRage(bestPos,bestOpening);
 	}
 }
 

@@ -63,8 +63,13 @@ foreach ($skillId in 5001..5048) {
 
 $serverEquip = Get-Content -LiteralPath (Join-Path $Root "server\src\pet_equip_manage.cpp") -Raw -Encoding UTF8
 $serverFight = Get-Content -LiteralPath (Join-Path $Root "server\src\fight.cpp") -Raw -Encoding UTF8
+$serverDispatch = Get-Content -LiteralPath (Join-Path $Root "server\src\pack_deal.cpp") -Raw -Encoding UTF8
 $cocosProtocol = Get-Content -LiteralPath (Join-Path $Root "client\ProjectX\src\NetWork\LuaNetRecvdMsg.lua") -Raw -Encoding UTF8
+$cocosSend = Get-Content -LiteralPath (Join-Path $Root "client\ProjectX\src\NetWork\LuaNetSendMsg.lua") -Raw -Encoding UTF8
+$cocosUi = Get-Content -LiteralPath (Join-Path $Root "client\ProjectX\src\View\PetEquip\EquipInfoUI.lua") -Raw -Encoding UTF8
 $unityProtocol = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\ProjectX\Resources\Lua\Hero\EquipmentController.lua.txt") -Raw -Encoding UTF8
+$unityBootstrap = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\ProjectX\Resources\Lua\Bootstrap.txt") -Raw -Encoding UTF8
+$unityUi = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\ProjectX\src\UI\HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
 Assert-True ($serverEquip.Contains("PXA1")) "Equipment save extension magic PXA1 is missing."
 Assert-True ($serverEquip.Contains("SendPetEquipAffixList")) "Affix query sender is missing."
 Assert-True ($serverEquip.Contains("IsEquipAffixRuntimeEnabledV1")) "Runtime affix allowlist is missing."
@@ -78,5 +83,16 @@ foreach ($hook in @(
 Assert-True ($serverEquip.Contains("return id >= 1 && id <= 48;")) "The complete 48-affix runtime pool is not enabled."
 Assert-True ($cocosProtocol.Contains("elseif op == 40 then")) "Cocos affix protocol parser is missing."
 Assert-True ($unityProtocol.Contains("if op == 40 then readAffixList")) "Unity affix protocol parser is missing."
+Assert-True ($serverDispatch.Contains("case 41:") -and $serverDispatch.Contains("case 42:")) "Affix lock/reroll dispatch is missing."
+Assert-True ($serverEquip.Contains("ToggleEquipAffixLock") -and $serverEquip.Contains("RerollEquipAffix")) "Server affix mutation handlers are missing."
+Assert-True ($serverEquip.Contains("EQUIP_AFFIX_REROLL_RED_COST = 30000") -and $serverEquip.Contains("EQUIP_AFFIX_REROLL_GOLD_COST = 50000")) "Affix reroll costs are missing."
+Assert-True ($serverEquip.Contains("rolledId = locked ? oldId : candidateId")) "Locked reroll must preserve the affix id."
+Assert-True ($serverFight.Contains("战意 %s%d（%d/100）") -and $serverFight.Contains("EFOT_Passive<<pos")) "Rage battle visualization is missing."
+Assert-True ($cocosProtocol.Contains("elseif op == 41 or op == 42 then") -and $cocosSend.Contains("SendPetEquipAffixOperateReq")) "Cocos affix mutation protocol is missing."
+Assert-True ($unityProtocol.Contains("if op == 41 or op == 42 then") -and $unityBootstrap.Contains("40, 41, 42")) "Unity affix mutation protocol is missing."
+foreach ($tag in @("SHIELD", "HEAL", "GUARD", "COUNTER", "CRIT", "COMBO", "BREAK", "CONTROL", "DOT", "DEBUFF", "DEATH", "TACTIC")) {
+    Assert-True ($cocosUi.Contains("$tag =")) "Cocos recommendation mapping is missing tag $tag."
+    Assert-True ($unityUi.Contains("case `"$tag`"")) "Unity recommendation mapping is missing tag $tag."
+}
 
-Write-Host "PASS hero-skill-affix config: roles=$($roles.Count), affixes=$($affixes.Count), runtimeEnabled=$($runtimeEnabled.Count), passiveSkills=48, clients=2"
+Write-Host "PASS hero-skill-affix config: roles=$($roles.Count), affixes=$($affixes.Count), runtimeEnabled=$($runtimeEnabled.Count), passiveSkills=48, clients=2, s7=lock+reroll+recommendation+rage-log"

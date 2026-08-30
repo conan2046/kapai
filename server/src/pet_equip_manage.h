@@ -539,6 +539,8 @@ public:
 	// 发送装备列表
 	void SendPetEquipList(CUser* pUser, CNetMessage& msg);
 	void SendPetEquipAffixList(CUser* pUser);
+	bool ToggleEquipAffixLock(CUser* pUser, CNetMessage& msg);
+	bool RerollEquipAffix(CUser* pUser, CNetMessage& msg);
 	void WearPetEquip(CUser* pUser, CNetMessage& msg);
 	void TakeOffPetEquip(CUser* pUser, CNetMessage& msg);
 	void CFenJiePetEquip(CUser* pUser, CNetMessage& msg);

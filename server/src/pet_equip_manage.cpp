@@ -2472,6 +2472,116 @@ void CEquipManeger::SendPetEquipAffixList(CUser* user)
 	}
 }
 
+namespace
+{
+	const uint32 EQUIP_AFFIX_REROLL_RED_COST = 30000;
+	const uint32 EQUIP_AFFIX_REROLL_GOLD_COST = 50000;
+
+	uint32 GetEquipAffixRerollCost(const CEquip* equip)
+	{
+		if (equip == NULL)
+			return 0;
+		CEquipCfg* cfg = sCItemCfgManager.GetEquipCfg(equip->id);
+		if (cfg == NULL || cfg->quality < 6)
+			return 0;
+		uint32 cost = cfg->quality >= 7 ? EQUIP_AFFIX_REROLL_GOLD_COST : EQUIP_AFFIX_REROLL_RED_COST;
+		return (equip->affixLockMask & 0x01) != 0 ? cost * 2 : cost;
+	}
+
+	void MakeEquipAffixOperateResult(CNetMessage& msg, uint8 op, uint8 result,
+		const string& text, uint32 nextCost, const CEquip* equip)
+	{
+		msg.ReWrite();
+		msg.SetType(PET_EQUIP_OPERATE);
+		msg << op << result << text << nextCost;
+		if (result == PRO_SUCCESS && equip != NULL)
+			equip->MakeAffixMsg(msg);
+	}
+}
+
+bool CEquipManeger::ToggleEquipAffixLock(CUser* user, CNetMessage& msg)
+{
+	uint32 uid = 0;
+	msg >> uid;
+	CEquip* equip = GetEqiup(uid);
+	if (user == NULL || equip == NULL || equip->specialAffixId == 0 || equip->specialAffixTier == 0)
+	{
+		MakeEquipAffixOperateResult(msg, 41, PRO_ERROR, "装备没有可锁定的特殊词条", 0, NULL);
+		return false;
+	}
+	CEquipCfg* cfg = sCItemCfgManager.GetEquipCfg(equip->id);
+	if (cfg == NULL || cfg->quality < 6)
+	{
+		MakeEquipAffixOperateResult(msg, 41, PRO_ERROR, "仅红色及以上品质装备可锁定特殊词条", 0, NULL);
+		return false;
+	}
+	equip->affixLockMask ^= 0x01;
+	const bool locked = (equip->affixLockMask & 0x01) != 0;
+	MakeEquipAffixOperateResult(msg, 41, PRO_SUCCESS,
+		locked ? "特殊词条已锁定：重铸时保留词条类型" : "特殊词条已解锁：重铸时重新随机词条",
+		GetEquipAffixRerollCost(equip), equip);
+	return true;
+}
+
+bool CEquipManeger::RerollEquipAffix(CUser* user, CNetMessage& msg)
+{
+	uint32 uid = 0;
+	msg >> uid;
+	CEquip* equip = GetEqiup(uid);
+	if (user == NULL || equip == NULL || equip->specialAffixId == 0 || equip->specialAffixTier == 0)
+	{
+		MakeEquipAffixOperateResult(msg, 42, PRO_ERROR, "装备没有可重铸的特殊词条", 0, NULL);
+		return false;
+	}
+	CEquipCfg* cfg = sCItemCfgManager.GetEquipCfg(equip->id);
+	uint32 cost = GetEquipAffixRerollCost(equip);
+	if (cfg == NULL || cost == 0)
+	{
+		MakeEquipAffixOperateResult(msg, 42, PRO_ERROR, "仅红色及以上品质装备可重铸特殊词条", 0, NULL);
+		return false;
+	}
+	if (user->GetMoney() < cost)
+	{
+		MakeEquipAffixOperateResult(msg, 42, PRO_ERROR, "金币不足，无法重铸特殊词条", cost, NULL);
+		return false;
+	}
+
+	const uint16 oldId = equip->specialAffixId;
+	const uint8 oldTier = equip->specialAffixTier;
+	const bool locked = (equip->affixLockMask & 0x01) != 0;
+	uint16 rolledId = oldId;
+	uint8 rolledTier = oldTier;
+	uint32 seed = equip->affixSeed == 0 ? uid ^ 0x53463731u : equip->affixSeed;
+	for (uint8 attempt = 0; attempt < 12; ++attempt)
+	{
+		seed = seed * 1664525u + 1013904223u;
+		if (seed == 0)
+			seed = 0x53463731u;
+		uint16 candidateId = 0;
+		uint8 candidateTier = 0;
+		if (!sCItemCfgManager.RollEquipAffix(cfg->part, cfg->quality, seed, candidateId, candidateTier))
+			continue;
+		rolledId = locked ? oldId : candidateId;
+		rolledTier = candidateTier;
+		if ((locked && rolledTier != oldTier) || (!locked && (rolledId != oldId || rolledTier != oldTier)))
+			break;
+	}
+	if (locked && rolledTier == oldTier)
+		rolledTier = cfg->quality >= 7 ? (oldTier == 3 ? 2 : 3) : (oldTier == 2 ? 1 : 2);
+
+	user->AddMoney(-static_cast<int>(cost));
+	equip->affixSeed = seed;
+	equip->specialAffixId = rolledId;
+	equip->specialAffixTier = rolledTier;
+	if (equip->fpos > 0)
+		user->UpdateZhenFaPetInfo(equip->fpos);
+	char resultText[160];
+	snprintf(resultText, sizeof(resultText), locked
+		? "重铸成功，已消耗%u金币并保留词条类型" : "重铸成功，已消耗%u金币并生成新词条", cost);
+	MakeEquipAffixOperateResult(msg, 42, PRO_SUCCESS, resultText, GetEquipAffixRerollCost(equip), equip);
+	return true;
+}
+
 void CEquipManeger::WearPetEquip(CUser* user, CNetMessage& msg)
 {
 	uint32 id;

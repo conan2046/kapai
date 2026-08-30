@@ -2354,6 +2354,40 @@ function LuaNetRecvdMsg.DealMsgPetEquip(stream)
         end
 		LRedDotCheckMgr:EquipZhenRongRedDotCheck()
 		LRedDotCheckMgr:FaBaoBeiBaoRedDotCheck()
+	elseif op == 41 or op == 42 then
+		-- 服务端权威返回操作结果及完整的新词条记录，客户端不自行随机。
+		local success = stream:ReadByte()
+		local resultText = stream:ReadString()
+		local nextCost = stream:ReadUInt()
+		if #resultText > 0 then Utils:ShowScrollTips(resultText) end
+		if success == 0 then return end
+		local uid = stream:ReadUInt()
+		local seed = stream:ReadUInt()
+		local affixId = stream:ReadWord()
+		local tier = stream:ReadByte()
+		local lockMask = stream:ReadByte()
+		local key = stream:ReadString()
+		local name = stream:ReadString()
+		local desc = stream:ReadString()
+		local value1 = stream:ReadInt()
+		local value2 = stream:ReadInt()
+		local info = LRoleDataMgr.Pet.equipList
+			and LRoleDataMgr.Pet.equipList.m_petEquips
+			and LRoleDataMgr.Pet.equipList.m_petEquips[uid]
+		if info ~= nil then
+			info.affixSeed = seed
+			info.specialAffixId = affixId
+			info.specialAffixTier = tier
+			info.affixLockMask = lockMask
+			info.specialAffixKey = key
+			info.specialAffixName = name
+			info.specialAffixDesc = desc
+			info.specialAffixValue1 = value1
+			info.specialAffixValue2 = value2
+			info.specialAffixNextCost = nextCost
+		end
+		LGameMsg.m_netDealBaseMsg:ChangeEventId(LUIPetEvent.GotPetEquip)
+		this:SendMsg(LGameMsg.m_netDealBaseMsg)
 	elseif op == 40 then
 		-- 装备特殊词条使用独立分包，保持旧装备记录协议不变。
 		local total = stream:ReadWord()

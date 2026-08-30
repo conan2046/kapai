@@ -345,7 +345,7 @@ create_response = {'body': None}
 battle_target = {'value': None}
 fengshen_trial = {'value': None}
 bag_item_slots = {}
-hero_equip_uids = {'equip': None, 'fabao': None}
+hero_equip_uids = {'equip': None, 'fabao': None, 'redEquip': None}
 mail_fixture_ids = {'reward': None, 'plain': None}
 stop_flag = {'stop': False}
 
@@ -406,7 +406,8 @@ def reader(sock):
                         bag_item_slots[package_item] = package_slot
                 if HERO_EQUIP_PARITY == 'true' and msg_type == 319 and len(body) >= 5:
                     if body[0] == 6:
-                        hero_equip_uids['equip'] = struct.unpack('<I', body[1:5])[0]
+                        template_id = struct.unpack('<H', body[5:7])[0] if len(body) >= 7 else 0
+                        hero_equip_uids['redEquip' if template_id == 1401 else 'equip'] = struct.unpack('<I', body[1:5])[0]
                     elif body[0] == 22:
                         hero_equip_uids['fabao'] = struct.unpack('<I', body[1:5])[0]
                 recv_types.append(msg_type)
@@ -804,6 +805,15 @@ if HERO_EQUIP_PARITY == 'true':
         ('heroequip_after_add_equip', 319, u8(1)),
         ('heroequip_add_fabao1001', 13, u8(53) + u8(2) + u16(1001)),
         ('heroequip_after_add_fabao', 319, u8(17)),
+        ('heroequip_add_red1401', 13, u8(53) + u8(1) + u16(1401)),
+        ('heroequip_affix_initial', 319, u8(40)),
+        ('heroequip_affix_lock', 319, b''),
+        ('heroequip_affix_after_lock', 319, u8(40)),
+        ('heroequip_affix_reroll_locked', 319, b''),
+        ('heroequip_affix_after_locked_reroll', 319, u8(40)),
+        ('heroequip_affix_unlock', 319, b''),
+        ('heroequip_affix_reroll_unlocked', 319, b''),
+        ('heroequip_affix_final', 319, u8(40)),
         ('heroequip_wear_equip', 319, b''),
         ('heroequip_after_wear_equip', 319, u8(1)),
         ('heroequip_invalid_equip', 319, u8(2) + u8(1) + u32(0xffffffff)),
@@ -824,6 +834,7 @@ if HERO_EQUIP_RESTART_VERIFY == 'true':
     smokes = [
         ('heroequip_restart_equip', 319, u8(1)),
         ('heroequip_restart_fabao', 319, u8(17)),
+        ('heroequip_restart_affix', 319, u8(40)),
     ]
 
 if MAIL_PARITY == 'true':
@@ -1171,6 +1182,18 @@ with socket.create_connection((HOST, PORT), timeout=3) as sock:
             else:
                 body = u8(19) + u32(uid)
             print(f'heroequip_mutation case={name} uid={uid}')
+        if HERO_EQUIP_PARITY == 'true' and name in (
+            'heroequip_affix_lock', 'heroequip_affix_reroll_locked',
+            'heroequip_affix_unlock', 'heroequip_affix_reroll_unlocked'):
+            deadline = time.time() + 3.0
+            while hero_equip_uids['redEquip'] is None and time.time() < deadline:
+                time.sleep(0.05)
+            uid = hero_equip_uids['redEquip']
+            if uid is None:
+                raise RuntimeError('HeroEquip parity did not receive the red equipment UID')
+            op = 42 if 'reroll' in name else 41
+            body = u8(op) + u32(uid)
+            print(f'heroequip_affix_mutation case={name} uid={uid} op={op}')
         if MAIL_PARITY == 'true' and name in ('mail_claim_reward', 'mail_claim_repeat', 'mail_read_plain', 'mail_read_repeat'):
             deadline = time.time() + 3.0
             while (mail_fixture_ids['reward'] is None or mail_fixture_ids['plain'] is None) and time.time() < deadline:
@@ -1670,6 +1693,21 @@ if HERO_EQUIP_PARITY == 'true' or HERO_EQUIP_RESTART_VERIFY == 'true':
             cultivate.append({'type': body[pos], 'level': body[pos + 1]}); pos += 2
         return {'uid': uid, 'templateId': template_id, 'fpos': fpos, 'wpos': wpos, 'exp': exp, 'cultivate': cultivate}, pos
 
+    def parse_affix_record(body, pos):
+        if pos + 12 > len(body): raise RuntimeError('HeroEquip affix record is truncated')
+        uid = struct.unpack('<I', body[pos:pos + 4])[0]; pos += 4
+        seed = struct.unpack('<I', body[pos:pos + 4])[0]; pos += 4
+        affix_id = struct.unpack('<H', body[pos:pos + 2])[0]; pos += 2
+        tier = body[pos]; lock_mask = body[pos + 1]; pos += 2
+        key, pos = read_wire_string(body, pos)
+        name, pos = read_wire_string(body, pos)
+        description, pos = read_wire_string(body, pos)
+        if pos + 8 > len(body): raise RuntimeError('HeroEquip affix values are truncated')
+        value1 = struct.unpack('<i', body[pos:pos + 4])[0]
+        value2 = struct.unpack('<i', body[pos + 4:pos + 8])[0]; pos += 8
+        return {'uid': uid, 'seed': seed, 'affixId': affix_id, 'tier': tier, 'lockMask': lock_mask,
+            'key': key, 'name': name, 'description': description, 'value1': value1, 'value2': value2}, pos
+
     def hero_equip_responses_for(case_name):
         case = next((entry for entry in case_responses if entry['case'] == case_name), None)
         if case is None: raise RuntimeError('HeroEquip parity response bucket is missing: ' + case_name)
@@ -1717,6 +1755,28 @@ if HERO_EQUIP_PARITY == 'true' or HERO_EQUIP_RESTART_VERIFY == 'true':
                 if body[7] and len(body) >= 12: value['replacedUid'] = struct.unpack('<I', body[8:12])[0]
             elif body[0] == 19 and len(body) >= 6:
                 value.update({'uid': struct.unpack('<I', body[1:5])[0], 'success': body[5]})
+            elif body[0] == 40:
+                if len(body) < 3: raise RuntimeError('HeroEquip affix list header is truncated')
+                total = struct.unpack('<H', body[1:3])[0]
+                value['total'] = total
+                records = []
+                if total:
+                    if len(body) < 6: raise RuntimeError('HeroEquip affix list page is truncated')
+                    value.update({'packetCount': body[3], 'packetIndex': body[4], 'itemCount': body[5]})
+                    pos = 6
+                    for _ in range(body[5]):
+                        record, pos = parse_affix_record(body, pos); records.append(record)
+                    if pos != len(body): raise RuntimeError('HeroEquip affix list has unread bytes')
+                value['records'] = records
+            elif body[0] in (41, 42):
+                if len(body) < 4: raise RuntimeError('HeroEquip affix operation response is truncated')
+                value['success'] = body[1]
+                result_text, pos = read_wire_string(body, 2)
+                if pos + 4 > len(body): raise RuntimeError('HeroEquip affix operation cost is truncated')
+                value.update({'message': result_text, 'nextCost': struct.unpack('<I', body[pos:pos + 4])[0]}); pos += 4
+                if value['success']:
+                    record, pos = parse_affix_record(body, pos); value['record'] = record
+                if pos != len(body): raise RuntimeError('HeroEquip affix operation has unread bytes')
             parsed.append(value)
         hero_equip_semantic_cases.append({'case': case_name, 'responseTypes': response_types, 'heroEquipResponses': parsed})
         return parsed
@@ -1728,6 +1788,15 @@ if HERO_EQUIP_PARITY == 'true' or HERO_EQUIP_RESTART_VERIFY == 'true':
                     if record.get('templateId') == template_id: return record
         return None
 
+    def affix_record(responses, uid):
+        for response in responses:
+            record = response.get('record')
+            if record is not None and record.get('uid') == uid and response.get('op') in (41, 42): return record
+            if response.get('protocol') == 319 and response.get('op') == 40:
+                for candidate in response.get('records', []):
+                    if candidate.get('uid') == uid: return candidate
+        return None
+
     if HERO_EQUIP_PARITY == 'true':
         initial_equip = hero_equip_responses_for('heroequip_initial_equip')
         initial_fabao = hero_equip_responses_for('heroequip_initial_fabao')
@@ -1735,6 +1804,15 @@ if HERO_EQUIP_PARITY == 'true' or HERO_EQUIP_RESTART_VERIFY == 'true':
         after_add_equip = hero_equip_responses_for('heroequip_after_add_equip')
         added_fabao = hero_equip_responses_for('heroequip_add_fabao1001')
         after_add_fabao = hero_equip_responses_for('heroequip_after_add_fabao')
+        added_red = hero_equip_responses_for('heroequip_add_red1401')
+        affix_initial_responses = hero_equip_responses_for('heroequip_affix_initial')
+        affix_lock_responses = hero_equip_responses_for('heroequip_affix_lock')
+        affix_after_lock_responses = hero_equip_responses_for('heroequip_affix_after_lock')
+        affix_locked_reroll_responses = hero_equip_responses_for('heroequip_affix_reroll_locked')
+        affix_after_locked_reroll_responses = hero_equip_responses_for('heroequip_affix_after_locked_reroll')
+        affix_unlock_responses = hero_equip_responses_for('heroequip_affix_unlock')
+        affix_unlocked_reroll_responses = hero_equip_responses_for('heroequip_affix_reroll_unlocked')
+        affix_final_responses = hero_equip_responses_for('heroequip_affix_final')
         wear_equip = hero_equip_responses_for('heroequip_wear_equip')
         after_wear_equip = hero_equip_responses_for('heroequip_after_wear_equip')
         invalid_equip = hero_equip_responses_for('heroequip_invalid_equip')
@@ -1757,6 +1835,32 @@ if HERO_EQUIP_PARITY == 'true' or HERO_EQUIP_RESTART_VERIFY == 'true':
             raise RuntimeError('HeroEquip fixture did not add FaBao template 1001')
         if list_record(after_add_equip, 1, 1001) is None or list_record(after_add_fabao, 17, 1001) is None:
             raise RuntimeError('HeroEquip authoritative lists did not contain both fixtures')
+        red_uid = hero_equip_uids['redEquip']
+        if red_uid is None or not any(response.get('op') == 6 and response.get('record', {}).get('templateId') == 1401 for response in added_red):
+            raise RuntimeError('HeroEquip fixture did not add red equipment template 1401')
+        initial_affix = affix_record(affix_initial_responses, red_uid)
+        locked_affix = affix_record(affix_after_lock_responses, red_uid)
+        locked_rerolled_affix = affix_record(affix_after_locked_reroll_responses, red_uid)
+        unlocked_affix = affix_record(affix_unlock_responses, red_uid)
+        final_affix = affix_record(affix_final_responses, red_uid)
+        lock_response = next((response for response in affix_lock_responses if response.get('op') == 41), None)
+        locked_reroll_response = next((response for response in affix_locked_reroll_responses if response.get('op') == 42), None)
+        unlock_response = next((response for response in affix_unlock_responses if response.get('op') == 41), None)
+        unlocked_reroll_response = next((response for response in affix_unlocked_reroll_responses if response.get('op') == 42), None)
+        if initial_affix is None or initial_affix.get('affixId', 0) <= 0 or initial_affix.get('tier', 0) <= 0:
+            raise RuntimeError('HeroEquip red equipment received no initial affix')
+        if lock_response is None or lock_response.get('success') != 1 or lock_response.get('nextCost') != 60000 or locked_affix is None or locked_affix.get('lockMask') & 1 == 0:
+            raise RuntimeError('HeroEquip affix lock did not persist or report the locked cost')
+        if locked_reroll_response is None or locked_reroll_response.get('success') != 1 or locked_rerolled_affix is None:
+            raise RuntimeError('HeroEquip locked affix reroll failed')
+        if locked_rerolled_affix.get('affixId') != initial_affix.get('affixId') or locked_rerolled_affix.get('tier') == initial_affix.get('tier') or locked_rerolled_affix.get('seed') == initial_affix.get('seed'):
+            raise RuntimeError('HeroEquip locked reroll did not preserve affix id while changing tier and seed')
+        if unlock_response is None or unlock_response.get('success') != 1 or unlock_response.get('nextCost') != 30000 or unlocked_affix is None or unlocked_affix.get('lockMask') & 1:
+            raise RuntimeError('HeroEquip affix unlock did not persist or report the unlocked cost')
+        if unlocked_reroll_response is None or unlocked_reroll_response.get('success') != 1 or final_affix is None:
+            raise RuntimeError('HeroEquip unlocked affix reroll failed')
+        if final_affix.get('seed') == locked_rerolled_affix.get('seed') or (final_affix.get('affixId'), final_affix.get('tier')) == (locked_rerolled_affix.get('affixId'), locked_rerolled_affix.get('tier')):
+            raise RuntimeError('HeroEquip unlocked reroll did not change seed and outcome')
         if not any(response.get('op') == 2 and response.get('success') == 1 for response in wear_equip):
             raise RuntimeError('HeroEquip equipment wear did not succeed')
         if list_record(after_wear_equip, 1, 1001).get('fpos') != 1:
@@ -1794,12 +1898,16 @@ if HERO_EQUIP_PARITY == 'true' or HERO_EQUIP_RESTART_VERIFY == 'true':
     else:
         restart_equip = hero_equip_responses_for('heroequip_restart_equip')
         restart_fabao = hero_equip_responses_for('heroequip_restart_fabao')
+        restart_affix = hero_equip_responses_for('heroequip_restart_affix')
         equip_record = list_record(restart_equip, 1, 1001)
         fabao_record = list_record(restart_fabao, 17, 1001)
         if equip_record is None or equip_record.get('fpos') != 0 or not any(level['type'] == 1 and level['level'] > 0 for level in equip_record['cultivate']):
             raise RuntimeError('HeroEquip restart did not persist strengthened unequipped equipment')
         if fabao_record is None or fabao_record.get('fpos') != 0 or fabao_record.get('wpos') != 0:
             raise RuntimeError('HeroEquip restart did not persist unequipped FaBao')
+        persisted_affixes = [record for response in restart_affix if response.get('op') == 40 for record in response.get('records', [])]
+        if len(persisted_affixes) != 1 or persisted_affixes[0].get('seed', 0) == 0 or persisted_affixes[0].get('affixId', 0) <= 0 or persisted_affixes[0].get('tier', 0) <= 0 or persisted_affixes[0].get('lockMask') & 1:
+            raise RuntimeError('HeroEquip restart did not persist the final unlocked affix state')
         print('heroequip_restart_semantics=passed')
 mail_semantic_cases = []
 if MAIL_PARITY == 'true' or MAIL_RESTART_VERIFY == 'true':
