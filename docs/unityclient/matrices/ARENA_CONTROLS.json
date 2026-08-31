@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "module": "Arena",
+  "workflowPolicyVersion": 1,
+  "scope": {
+    "fixedUserId": 1,
+    "fixedRoleId": 1000001,
+    "fightType": 44,
+    "symbol": "EFTJingJiChang",
+    "currentCocosReachable": false,
+    "userExcluded": true,
+    "excludedFromCurrentCocosParityDenominator": true,
+    "excludedFlows": [
+      "竞技场对手列表与布阵挑战",
+      "竞技场PVP战斗播放",
+      "竞技场战报、排名与挑战次数刷新"
+    ]
+  },
+  "acceptanceExamples": [
+    {
+      "id": "arena-current-version-exclusion",
+      "given": "当前function_id=6配置show=0，且用户确认当前版本竞技场已屏蔽",
+      "when": "盘点当前需要迁移和验收的战斗类型",
+      "then": "竞技场不进入当前Unity迁移与战斗表现验收分母，不启动动态验收、不修改Unity；未来恢复时从G0重启"
+    }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": false,
+    "runtimeTransformClosureComplete": false,
+    "knownGaps": [
+      "G1-G6按当前屏蔽和用户范围决定停止；这不是功能或视觉通过。",
+      "竞技场遗留资源、运行时Transform与Imod映射未验收，未来恢复时必须重新审计。"
+    ]
+  },
+  "controls": []
+}

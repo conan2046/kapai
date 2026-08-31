@@ -1,4 +1,7 @@
 local Protocol = require("Protocol")
+local itemCatalog = require("Data.ItemCatalog")
+local itemsById = {}
+for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
 local M = { validation = false, validationStarted = false }
 
 local function sendOperation(op)
@@ -9,6 +12,7 @@ end
 
 function M.onClick()
     M.validation = Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") and not M.validationStarted
+    M.battleValidation = Bridge:HasCommandLineFlag("-projectXBattleFengShenStoryValidation") and not M.battleValidationStarted
     Bridge:ShowFengShenStory()
     sendOperation(24)
     Bridge:SetStatus("FengShenStory/320 op=24 requested from current WanFa route.")
@@ -37,7 +41,11 @@ function M.onPacket(command, message)
         local count = message:ReadByte()
         Bridge:SetFengShenStoryState(chapterId, levelId, count)
         Bridge:SetStatus("FengShenStory/320 op=24 recv: chapter=" .. tostring(chapterId) .. ", level=" .. tostring(levelId) .. ", count=" .. tostring(count) .. ".")
-        if M.validation then
+        if M.battleValidation then
+            M.battleValidation = false
+            M.battleValidationStarted = true
+            Bridge:BeginBattleFengShenStoryValidation()
+        elseif M.validation then
             M.validation = false
             M.validationStarted = true
             Bridge:BeginFengShenStoryValidation()
@@ -56,6 +64,24 @@ function M.onPacket(command, message)
         local unlockedChapterId = message:ReadUInt()
         local unlockedLevelId = message:ReadUInt()
         Bridge:SetFengShenStoryFightPush(chapterId, levelId, count, unlockedChapterId, unlockedLevelId)
+        local stars = message:ReadByte()
+        local rewardCount = message:ReadByte()
+        Bridge:BeginRewardUpdate(rewardCount)
+        for _ = 1, rewardCount do
+            local rewardType = message:ReadWord()
+            local rewardId = message:ReadUInt()
+            local amount = message:ReadUInt()
+            local displayId = rewardId > 0 and rewardId or rewardType
+            local found = itemsById[displayId] or {}
+            local name = found.name or ""
+            if name == "" then name = "奖励 #" .. tostring(displayId) end
+            Bridge:AddRewardRecord(rewardType, rewardId, amount, name, found.pic or 0, found.quality or 0)
+        end
+        if message.Remaining ~= 0 then
+            Bridge:Fail("FengShenStory/320 op=10 unread bytes: " .. tostring(message.Remaining))
+            return true
+        end
+        Bridge:ShowFengShenStoryBattleResult(stars)
         return true
     elseif op == 26 then
         Bridge:ClearFengShenStoryRewardPush()
@@ -65,7 +91,11 @@ function M.onPacket(command, message)
             local rewardId = message:ReadUInt()
             local amount = message:ReadUInt()
             local displayId = rewardId > 0 and rewardId or rewardType
-            Bridge:PushFengShenStoryReward(rewardType, rewardId, amount, "奖励 #" .. tostring(displayId))
+            local found = itemsById[displayId] or {}
+            local name = found.name or ""
+            if name == "" then name = "奖励 #" .. tostring(displayId) end
+            Bridge:PushFengShenStoryReward(rewardType, rewardId, amount, name,
+                found.pic or 0, found.quality or 0)
         end
         Bridge:ShowFengShenStoryRewardPush()
         return true

@@ -25,6 +25,7 @@ namespace ProjectX.UI
         private readonly Button closeButton;
         private Action confirmAction;
         private Action<RewardRecord> itemClick;
+        private bool sharedViewRenderingSuspended;
 
         public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources)
         {
@@ -53,6 +54,24 @@ namespace ProjectX.UI
         public IReadOnlyList<RewardRecord> Items => store.Items;
         public bool CanConfirm => confirmButton != null && confirmButton.gameObject.activeSelf
             && confirmButton.interactable;
+        public bool IsSharedViewRenderingSuspended => sharedViewRenderingSuspended;
+
+        public void SuspendSharedViewRendering()
+        {
+            sharedViewRenderingSuspended = true;
+            if (runtimeContent != null) runtimeContent.SetActive(false);
+            foreach (GameObject cell in cells)
+                if (cell != null) cell.SetActive(false);
+        }
+
+        public void ResumeSharedViewRendering()
+        {
+            sharedViewRenderingSuspended = false;
+            if (runtimeContent != null) runtimeContent.SetActive(true);
+            closeButton.onClick.RemoveAllListeners();
+            closeButton.onClick.AddListener(Hide);
+            Render();
+        }
 
         public bool ValidateVisibleRewards(string expectedTitle,
             IReadOnlyDictionary<uint, uint> expected, out string detail)
@@ -143,6 +162,7 @@ namespace ProjectX.UI
 
         public void Show(Action onConfirm, bool allowConfirm)
         {
+            ResumeSharedViewRendering();
             confirmAction = onConfirm;
             confirmButton.gameObject.SetActive(allowConfirm);
             confirmButton.onClick.RemoveAllListeners();
@@ -169,6 +189,7 @@ namespace ProjectX.UI
         {
             IReadOnlyList<RewardRecord> items = store.Items;
             RenderedCount = Mathf.Min(items.Count, cells.Length);
+            if (sharedViewRenderingSuspended) return;
             if (title != null) title.text = store.Title;
             if (tips != null)
             {

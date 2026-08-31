@@ -87,6 +87,27 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-EnhanceMasterFixture.ps1"
+    },
+    {
+      "key": "reversible-battle-meet-monster-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-BattleMeetMonsterFixture.ps1"
+    },
+    {
+      "key": "reversible-battle-feng-shen-story-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1"
+    },
+    {
+      "key": "reversible-arena-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-ArenaSqliteFixture.ps1"
     }
   ]
 }

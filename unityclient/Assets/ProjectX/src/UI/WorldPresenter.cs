@@ -42,6 +42,7 @@ namespace ProjectX.UI
         private readonly VirtualList<ListEntry> list;
         private readonly ScrollRect stageMapScroll;
         private readonly RectTransform stageMapContent;
+        private ImodAnimationPlayer stagePlayerModel;
         private bool showChapters = true;
         private bool showDetail;
         private bool showDropdown;
@@ -137,10 +138,15 @@ namespace ProjectX.UI
             SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen/Image", true);
             SetActive(detailView, "Layer/IconColor", false);
             SetActive(detailView, "Layer/IconBg1", false);
-            SetActive(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", false);
+            SetActive(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", true);
             SetActive(mapView, "Layer/Panel_youxia/Button_fengshenshilian", false);
             SetActive(mapView, "Layer/Panel_youxia/Button_youlisanjie", false);
-            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", false);
+            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", true);
+            // The imported decorative title background overlaps Button_xiala.
+            // Cocos does not treat that ImageView as an input surface, while a
+            // Unity Image defaults to raycastTarget=true and blocks real clicks.
+            Image titleBackground = Find(mapView, "Layer/Title/bg")?.GetComponent<Image>();
+            if (titleBackground != null) titleBackground.raycastTarget = false;
 
             store.Changed += Render;
             heroes.Changed += Render;
@@ -345,7 +351,7 @@ namespace ProjectX.UI
 
         private static string FormatCompact(long value)
         {
-            if (value >= 10000 && value % 10000 == 0) return (value / 10000) + "万";
+            if (value >= 10000) return (value / 10000) + "万";
             return value.ToString();
         }
 
@@ -709,6 +715,8 @@ namespace ProjectX.UI
                 nativeNode.SetActive(stage != null);
                 if (stage != null) RenderNativeStage(nativeNode, stage, index, mapVisual);
             }
+            RenderStagePlayer(mapVisual);
+            PositionStageCamera(mapVisual);
             foreach (Transform child in stageMapContent)
             {
                 // Destroy is deferred until end-of-frame.  Chapter switching and
@@ -812,9 +820,19 @@ namespace ProjectX.UI
                 name.gameObject.SetActive(stage.IsUnlocked);
             }
             Transform speech = node.transform.Find("Image_qipao");
-            if (speech != null) speech.gameObject.SetActive(false);
+            bool currentStage = stage.Id == store.CurrentStageId;
+            if (speech != null)
+            {
+                speech.gameObject.SetActive(currentStage);
+                if (currentStage && WorldVisualCatalog.TryGetStage(stage.Id,
+                    out WorldStageVisualDefinition currentVisual))
+                {
+                    Text speechText = speech.Find("Text_1_4")?.GetComponent<Text>();
+                    if (speechText != null) speechText.text = currentVisual.Description;
+                }
+            }
             Transform battle = node.transform.Find("zhandou");
-            if (battle != null) battle.gameObject.SetActive(stage.Id == store.CurrentStageId);
+            if (battle != null) battle.gameObject.SetActive(currentStage);
             for (int star = 0; star < 3; star++)
             {
                 Transform bright = node.transform.Find("laingxing_" + star);
@@ -842,6 +860,70 @@ namespace ProjectX.UI
 
             CreateNormalBox(node.transform, stage);
             RenderMonsterModel(node.transform, stage.Id);
+        }
+
+        private void RenderStagePlayer(WorldMapVisualDefinition map)
+        {
+            Transform scroll = Find(stageView, "Layer/ScrollPanel")?.transform;
+            if (scroll == null || map == null || map.RoleCoordinates.Length == 0)
+            {
+                if (stagePlayerModel != null) stagePlayerModel.gameObject.SetActive(false);
+                return;
+            }
+            int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
+            if (currentIndex < 0) currentIndex = 0;
+            currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
+
+            GameObject value = stagePlayerModel != null ? stagePlayerModel.gameObject
+                : new GameObject("RuntimeStagePlayer", typeof(RectTransform));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(scroll, false);
+            rect.anchorMin = rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f);
+            rect.sizeDelta = Vector2.zero;
+            rect.localScale = Vector3.one;
+            stagePlayerModel = value.GetComponent<ImodAnimationPlayer>()
+                ?? value.AddComponent<ImodAnimationPlayer>();
+            string legacyPath = player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd";
+            bool loaded = stagePlayerModel.LoadLegacy(legacyPath);
+            value.SetActive(loaded);
+            if (!loaded) return;
+            try { stagePlayerModel.Play(4, true); }
+            catch (ArgumentOutOfRangeException) { stagePlayerModel.Play(0, true); }
+            catch (InvalidOperationException) { stagePlayerModel.Play(0, true); }
+        }
+
+        private void PositionStageCamera(WorldMapVisualDefinition map)
+        {
+            RectTransform scroll = Find(stageView, "Layer/ScrollPanel")?.GetComponent<RectTransform>();
+            if (scroll == null || map == null || map.RoleCoordinates.Length == 0) return;
+            int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
+            if (currentIndex < 0) currentIndex = 0;
+            currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
+            float fightX = map.RoleCoordinates[currentIndex].x;
+            RectTransform root = stageView.GameObject.transform as RectTransform;
+            float halfScreen = root != null && root.rect.width > 0f ? root.rect.width * .5f : 667f;
+            float aimX = -fightX;
+            if (fightX >= halfScreen) aimX += halfScreen;
+            float maximumScroll = Mathf.Max(0f, map.Size.x * (750f / 1080f) - halfScreen * 2f);
+            aimX = Mathf.Clamp(aimX, -maximumScroll, 0f);
+            scroll.anchoredPosition = new Vector2(aimX, -FindStageCameraY(-aimX, map.CameraCoordinates));
+        }
+
+        private static float FindStageCameraY(float x, IReadOnlyList<Vector2> coordinates)
+        {
+            if (coordinates == null || coordinates.Count == 0) return 0f;
+            if (x <= coordinates[0].x) return coordinates[0].y;
+            for (int index = 0; index < coordinates.Count - 1; index++)
+            {
+                Vector2 current = coordinates[index];
+                Vector2 next = coordinates[index + 1];
+                if (x < current.x || x > next.x) continue;
+                float t = Mathf.InverseLerp(current.x, next.x, x);
+                return Mathf.Lerp(current.y, next.y, t);
+            }
+            return coordinates[coordinates.Count - 1].y;
         }
 
         private static void RenderMonsterModel(Transform host, uint stageId)

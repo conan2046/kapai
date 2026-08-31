@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "module": "BattleMeetMonster",
+  "coverageList": "docs/unityclient/matrices/BATTLEMEETMONSTER_COVERAGE.json",
+  "workflowPolicyVersion": 1,
+  "hardGateVersion": 1,
+  "scope": {
+    "screenSize": "1334x750",
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000003,
+    "fightType": 1,
+    "symbol": "EFTMeetMonster",
+    "currentCocosReachable": false,
+    "excludedFromCurrentCocosParityDenominator": true,
+    "exclusionEvidence": ".local/unity-validation/battlemeetmonster-cocos-entry-audit-20260830.json",
+    "included": [
+      "当前Cocos普通场景中移动接触可见野怪",
+      "/184野怪移除与重生、/21进入、/22动作1..7、/23结束",
+      "FightLayer HUD、单位/阵位、动作、血条、飘字、回合、速度、跳过、胜负与返回原场景",
+      "奖励、经验、金钱、任务击杀计数、失败状态、重进、重连和固定账号精确恢复"
+    ],
+    "excluded": [
+      "可见Boss分流、百花/年兽活动分流、捉鬼任务分流、玩家PK与其他58种fightType",
+      "场景系统整体迁移中与本次碰怪战斗无关的NPC、任务、聊天和商业化功能"
+    ]
+  },
+  "acceptanceExamples": [
+    {
+      "id": "battle-meet-monster-current-source",
+      "given": "固定身份7200057/1000003位于当前Cocos普通场景，夹具放置一只可见普通野怪且记录整库快照",
+      "when": "通过真实场景移动输入接触野怪并完整播放EFTMeetMonster=1战斗",
+      "then": "服务端先广播/184移除并重生野怪，再发送fightType=1的/21、权威/22动作与/23结果；双端界面、数据、交互、状态变化和返回场景一致，恢复重登后哈希相同且零残留"
+    }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": false,
+    "runtimeTransformClosureComplete": false,
+    "knownGaps": [
+      "当前正式Cocos没有世界地图/场景移动入口；WorldMapMainUI只能通过MainChatUI开发命令openUI创建。",
+      "因正式入口不可达，不进入G2资源/Transform与Unity实现门禁；未来入口恢复时从G0重启。"
+    ]
+  },
+  "controls": [
+    {
+      "id": "BMM-01-SCENE-MOVE-ENCOUNTER",
+      "page": "普通场景",
+      "path": "GameScene/GameLayer movement surface -> player position intersects visible monster meetDistance",
+      "visibleCondition": "普通场景存在可见非Boss野怪，且未命中百花、年兽或捉鬼分流",
+      "cocosCallback": "真实移动输入 -> 服务端CScene::MeetEnemy -> EFTMeetMonster",
+      "protocolOp": "/184 op3移除、op2重生；随后/21 fightType=1",
+      "unityBinding": "pending-G2，不得用直接内部方法或伪战报绕过真实场景输入",
+      "successEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "failureEvidence": ".local/unity-validation/battlemeetmonster-operation-ledger.json",
+      "reconnectEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "status": "g1-excluded-current-cocos-unreachable",
+      "realEntryClick": true,
+      "automationPassed": false,
+      "manualPassed": false
+    },
+    {
+      "id": "BMM-02-BATTLE-SPEED",
+      "page": "FightLayer",
+      "path": "common/FightLayer/Button_x2",
+      "visibleCondition": "EFTMeetMonster战斗播放中",
+      "cocosCallback": "BattleUI speed control -> LBattleLogic playback rate",
+      "protocolOp": "客户端播放控制，不改服务端战报",
+      "unityBinding": "pending-G2，必须真实EventSystem点击并同步模型、特效、移动、飘字和镜头时间轴",
+      "successEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "failureEvidence": ".local/unity-validation/battlemeetmonster-operation-ledger.json",
+      "reconnectEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "status": "g1-excluded-current-cocos-unreachable",
+      "realEntryClick": true,
+      "automationPassed": false,
+      "manualPassed": false
+    },
+    {
+      "id": "BMM-03-BATTLE-SKIP",
+      "page": "FightLayer",
+      "path": "common/FightLayer/Button_skip",
+      "visibleCondition": "服务端/场景合同允许跳过时可操作；不允许时保持Cocos禁用语义",
+      "cocosCallback": "BattleUI skip control -> LBattleLogic skip gate",
+      "protocolOp": "不得提前伪造/23；只加速或跳过已收到的权威动作",
+      "unityBinding": "pending-G2，必须真实EventSystem点击并证明允许/禁止两态",
+      "successEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "failureEvidence": ".local/unity-validation/battlemeetmonster-operation-ledger.json",
+      "reconnectEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "status": "g1-excluded-current-cocos-unreachable",
+      "realEntryClick": true,
+      "automationPassed": false,
+      "manualPassed": false
+    },
+    {
+      "id": "BMM-04-BATTLE-RETURN-SCENE",
+      "page": "战斗结束/普通场景",
+      "path": "/23 -> LBattleLogic battle end -> original GameScene",
+      "visibleCondition": "EFTMeetMonster胜利或失败结算完成",
+      "cocosCallback": "LBattleLogic退出战斗并恢复进入前场景，服务端写入奖励/失败状态",
+      "protocolOp": "/23以及CFight::OtherTypeUserFightEnd的经验、金钱、任务击杀和失败分支",
+      "unityBinding": "pending-G2，返回原场景且权威状态刷新，不弹用World关卡结算替代",
+      "successEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "failureEvidence": ".local/unity-validation/battlemeetmonster-operation-ledger.json",
+      "reconnectEvidence": ".local/unity-validation/battlemeetmonster-fixed-account-latest.json",
+      "status": "g1-excluded-current-cocos-unreachable",
+      "realEntryClick": false,
+      "automationPassed": false,
+      "manualPassed": false
+    }
+  ]
+}

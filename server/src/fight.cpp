@@ -13292,6 +13292,14 @@ bool CFight::GetFightAllNetMsg(CNetMessage &msg, int type)
 	if(num > 0)
 	{
 		msg.WriteData(pos, &num, sizeof(num));
+		if(m_type == EFT_GuanQia && type == EFPT_PlayBack_2
+			&& gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+		{
+			const std::string *data = msg.GetMsgData();
+			cout << "[local][fight-packet] label=guanqia-replay"
+				<< " len=" << (data == NULL ? 0 : data->size())
+				<< " fnv1a32=" << (data == NULL ? 0 : gyu::util::Fnv1a32(*data)) << endl;
+		}
 		return true;
 	}
 	return false;

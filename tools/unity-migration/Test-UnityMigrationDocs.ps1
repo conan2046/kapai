@@ -81,6 +81,9 @@ foreach ($rule in $lineRules) {
 
 if ($statusPath) {
     $status = Get-Content -Raw -Encoding UTF8 -LiteralPath $statusPath
+    $statusDenominator = [int](Get-UnityMigrationPropertyValue `
+        -Object (Get-UnityMigrationPropertyValue -Object $manifest -Name "steamProgressPolicy" -Default $null) `
+        -Name "denominator" -Default 0)
     $functionalMatches = [regex]::Matches($status, '(?m)^\| Functional \| (`?约?\d+%|`待逐控件重审`)')
     if ($functionalMatches.Count -ne 1) {
         Add-Failure "STATUS must contain exactly one Functional percentage row; found $($functionalMatches.Count)."
@@ -94,14 +97,14 @@ if ($statusPath) {
         }
         $lastPriorityIndex = $priorityIndex
     }
-    if (-not $status.Contains("当前 Steam 业务模块分母固定为 17")) {
+    if ($statusDenominator -le 0 -or -not $status.Contains("当前 Steam 业务模块分母固定为 $statusDenominator")) {
         Add-Failure "STATUS no longer declares the single current Steam denominator."
     }
     $prioritySectionMatch = [regex]::Match($status, '(?s)## 4\. 总迁移顺序(?<body>.*?)## 5\.')
     if (-not $prioritySectionMatch.Success) {
         Add-Failure "STATUS priority section cannot be isolated for duplicate-progress validation."
     }
-    elseif ($prioritySectionMatch.Groups['body'].Value -match '\d+\s*/\s*17\s*=\s*\d+(?:\.\d+)?%') {
+    elseif ($prioritySectionMatch.Groups['body'].Value -match '\d+\s*/\s*\d+\s*=\s*\d+(?:\.\d+)?%') {
         Add-Failure "STATUS priority plan must not maintain a second current completion percentage."
     }
     if (-not $status.Contains("PAYMENT.md")) { Add-Failure "STATUS P2 plan no longer references the payment prerequisite." }
@@ -323,12 +326,27 @@ foreach ($module in $modulesToCheck) {
             Add-Failure "Module $key references missing file: $path"
         }
     }
+    $currentCocosReachable = [bool](Get-UnityMigrationPropertyValue -Object $module `
+        -Name "currentCocosReachable" -Default $true)
+    $excludedFromCurrentCocosParityDenominator = [bool](Get-UnityMigrationPropertyValue -Object $module `
+        -Name "excludedFromCurrentCocosParityDenominator" -Default $false)
+    $currentCocosUnreachable = -not $currentCocosReachable -and $excludedFromCurrentCocosParityDenominator
+    if ($currentCocosUnreachable) {
+        $exclusionEvidence = [string](Get-UnityMigrationPropertyValue -Object $module `
+            -Name "exclusionEvidence" -Default "")
+        if (-not $exclusionEvidence) {
+            Add-Failure "Module $key excludes a current-Cocos-unreachable flow without exclusionEvidence."
+        }
+        else {
+            Test-RequiredFile $exclusionEvidence | Out-Null
+        }
+    }
     foreach ($flag in @($module.validationFlags)) {
         if (-not $flag) { continue }
         if ($flag -notmatch '^-projectX[A-Za-z0-9]+Validation$') {
             Add-Failure "Module $key has invalid validation flag: $flag"
         }
-        elseif ($runnerText -notmatch [Regex]::Escape([string]$flag)) {
+        elseif (-not $currentCocosUnreachable -and $runnerText -notmatch [Regex]::Escape([string]$flag)) {
             Add-Failure "Module $key validation flag is not handled by BootstrapAppRunner: $flag"
         }
     }
@@ -442,17 +460,40 @@ foreach ($contract in @($evidenceContractEntry.Value.modules | Where-Object {
 })) {
     $key = [string]$contract.module
     if ($key -notin $keys) { Add-Failure "Evidence contract references unknown module: $key"; continue }
+    $contractModule = @($manifest.modules | Where-Object { [string]$_.key -ieq $key })[0]
+    $contractMigrationExcluded = $null -ne $contractModule -and
+        [bool](Get-UnityMigrationPropertyValue -Object $contractModule `
+            -Name "migrationExcluded" -Default $false)
     $fixedAccount = Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount" -Default $null
-    if ($null -ne $fixedAccount) {
+    if ($null -ne $fixedAccount -and -not $contractMigrationExcluded) {
         foreach ($contractFailure in @(Get-UnityMigrationFixedAccountContractFailures `
             -Root $root -Module $key -FixedAccount $fixedAccount)) {
             Add-Failure $contractFailure
         }
     }
     if ($null -ne $contract.g5) {
+        $contractCurrentCocosUnreachable = $null -ne $contractModule -and
+            -not [bool](Get-UnityMigrationPropertyValue -Object $contractModule -Name "currentCocosReachable" -Default $true) -and
+            [bool](Get-UnityMigrationPropertyValue -Object $contractModule `
+                -Name "excludedFromCurrentCocosParityDenominator" -Default $false)
         $pairIds = @($contract.g5.pairs | ForEach-Object { [string]$_.id })
-        if ($pairIds.Count -eq 0 -or @($pairIds | Sort-Object -Unique).Count -ne $pairIds.Count) {
+        $supplementalPairs = @(Get-UnityMigrationPropertyValue -Object $contract.g5 `
+            -Name "supplementalReferencePairs" -Default @())
+        $supplementalPairIds = @($supplementalPairs | ForEach-Object { [string]$_.id })
+        $allPairIds = @($pairIds + $supplementalPairIds)
+        if ($contractCurrentCocosUnreachable -and $allPairIds.Count -ne 0) {
+            Add-Failure "Evidence contract $key must not fabricate G5 pairs for a current-Cocos-unreachable flow."
+        }
+        elseif (-not $contractCurrentCocosUnreachable -and
+            ($pairIds.Count -eq 0 -or @($allPairIds | Sort-Object -Unique).Count -ne $allPairIds.Count)) {
             Add-Failure "Evidence contract $key has empty or duplicate G5 pair ids."
+        }
+        foreach ($pair in $supplementalPairs) {
+            if (-not [string]$pair.cocosPath -or -not [string]$pair.unity -or
+                [string]$pair.referenceKind -ne "archived-current-unreachable" -or
+                -not [string]$pair.currentUnreachableReason -or @($pair.evidence).Count -eq 0) {
+                Add-Failure "Evidence contract $key has an invalid supplemental G5 reference pair."
+            }
         }
         if ([int]$contract.g5.width -ne 1334 -or [int]$contract.g5.height -ne 750) {
             Add-Failure "Evidence contract $key G5 size must be 1334x750."

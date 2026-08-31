@@ -1227,8 +1227,7 @@
         "equipment-four-cultivation-transactions-restored",
         "hero-update-70-source-and-target-authoritative",
         "player-power-18-authoritative",
-        "bag-currency-mission-mysql-relogin-restored",
-        "equipment-sqlite-runtime-restart-restored",
+        "equipment-sqlite-mutation-relogin-restored",
         "failure-timing-sibling-isolation-and-zero-residual",
         "equipment-visible-dynamic-and-lifecycle-contracts",
         "equipment-common-bag-refresh-and-drag-contracts",
@@ -1275,11 +1274,11 @@
           ]
         },
         {
-          "path": "tools/unity-migration/Invoke-HeroEquipFixture.ps1",
+          "path": "tools/unity-migration/Invoke-HeroEquipSqliteFixture.py",
           "contains": [
-            "Add-HeroEquipFixtureItems",
-            "Assert-HeroEquipFixtureItems",
-            "fixtureEquipmentUid"
+            "fixture_equipment_blob",
+            "assert_setup",
+            "mutationStableHash"
           ]
         },
         {
@@ -2414,9 +2413,9 @@
     {
       "key": "arena-default",
       "module": "Arena",
-      "fixture": "isolated-role",
+      "fixture": "reversible-arena-fixed-account",
       "flags": [
-        "-projectXArenaValidation"
+        "-projectXArenaBattleValidation"
       ],
       "artifacts": [
         {
@@ -2426,7 +2425,17 @@
       ],
       "captureStates": [
         "arena"
-      ]
+      ],
+      "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "kunlun-default",
@@ -2795,37 +2804,357 @@
         "-projectXEnhanceMasterG3Validation"
       ],
       "artifacts": [
-        {"path":"build/ui-migration/EM-G3-MASTER-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-REFINE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-AWAKEN.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-SHENZHU.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-FABAO-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-FABAO-REFINE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-REFINE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-AWAKEN.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-SHENZHU.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-FABAO-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-FABAO-MATERIAL-CHOOSER.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-FABAO-REFINE.png","lifecycle":"runtime"}
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-REFINE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-AWAKEN.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-SHENZHU.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-FABAO-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-FABAO-REFINE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-REFINE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-AWAKEN.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-SHENZHU.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-FABAO-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-FABAO-MATERIAL-CHOOSER.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-FABAO-REFINE.png",
+          "lifecycle": "runtime"
+        }
       ],
       "captureStates": [
-        "master-strength","master-refine","master-awaken","master-shenzhu","master-fabao-strength","master-fabao-refine",
-        "equipment-strength","equipment-refine","equipment-awaken","equipment-shenzhu",
-        "fabao-strength","fabao-material-chooser","fabao-refine"
+        "master-strength",
+        "master-refine",
+        "master-awaken",
+        "master-shenzhu",
+        "master-fabao-strength",
+        "master-fabao-refine",
+        "equipment-strength",
+        "equipment-refine",
+        "equipment-awaken",
+        "equipment-shenzhu",
+        "fabao-strength",
+        "fabao-material-chooser",
+        "fabao-refine"
       ],
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
-        "enhance-master-six-tabs","enhance-master-dynamic-prefabs",
-        "enhance-master-fabao-cultivation","enhance-master-hero-skill-equipment-boundary",
+        "enhance-master-six-tabs",
+        "enhance-master-dynamic-prefabs",
+        "enhance-master-fabao-cultivation",
+        "enhance-master-hero-skill-equipment-boundary",
         "enhance-master-control-matrix-40"
       ],
       "sourceContracts": [
-        {"path":"client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua","contains":["UpdateEquipItem","UpdateFaBaoItem","TabClicked","onGoUpgradeClicked"]},
-        {"path":"server/src/pack_deal.cpp","contains":["StrongFaBao","JingLianFaBao"]},
-        {"path":"unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs","contains":["ShowFaBaoStrength","ShowFaBaoRefine","OpenFaBaoMaterialChooser"]},
-        {"path":"unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs","contains":["Resources.Load<UiPrefabReference>","Release"]}
+        {
+          "path": "client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua",
+          "contains": [
+            "UpdateEquipItem",
+            "UpdateFaBaoItem",
+            "TabClicked",
+            "onGoUpgradeClicked"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "StrongFaBao",
+            "JingLianFaBao"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
+          "contains": [
+            "ShowFaBaoStrength",
+            "ShowFaBaoRefine",
+            "OpenFaBaoMaterialChooser"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs",
+          "contains": [
+            "Resources.Load<UiPrefabReference>",
+            "Release"
+          ]
+        }
       ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "battle-meet-monster-default",
+      "module": "BattleMeetMonster",
+      "fixture": "reversible-battle-meet-monster-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBattleMeetMonsterValidation"
+      ],
+      "artifacts": [],
+      "captureStates": [],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "battle-feng-shen-story-default",
+      "module": "BattleFengShenStory",
+      "fixture": "reversible-battle-feng-shen-story-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/BFS-BATTLE-START.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-STAND.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SKILL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-MOVE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-STATUS.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-DEATH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-RETURN.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "battle-start",
+        "standing-formation",
+        "skill",
+        "damage-float",
+        "movement",
+        "status",
+        "death",
+        "settlement",
+        "statistics",
+        "return"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "battle-fengshen-authority",
+        "battle-fengshen-presentation",
+        "battle-fengshen-controls"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+          "contains": [
+            "QueryFengShenStory(25)",
+            "PlayStand(0)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "contains": [
+            "封神列传战斗结束推送",
+            "ReadBattleResult(stream,figthData)",
+            "Utils:OpenRewardBox(GUITips.RSI_BOX_TIP2,rewards,true"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Common/RewardGetUI.lua",
+          "contains": [
+            "CreateUINode(\"csd/common/tanchuangjiangli.csb\")",
+            "self.m_tipsLabel:setString(\"\")",
+            "btnLabel:setString(self.m_tips)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Background/PopFirstClassBg.lua",
+          "contains": [
+            "csd/shop/shop_bg.csb",
+            "Btn_close"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/Logic/LBattleLogic.lua",
+          "contains": [
+            "function LBattleLogic:RecvBattleOver",
+            "LRoleDataMgr:UpdateFightDatum",
+            "cc.LayerColor:create(cc.c4b(0,0,0,150))",
+            "cc.DelayTime:create(0.9)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Battle/BattleUnitNode.lua",
+          "contains": [
+            "function BattleUnitNode:ShowQuality",
+            "bgAnim = \"res2/animation/battle/quality3\"",
+            "self.m_pBgAni:PlayActionRepeat(0)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/FuBenMap/FightDatumUI.lua",
+          "contains": [
+            "GetFightDatum",
+            "Panel_zhandoutongji"
+          ]
+        },
+        {
+          "path": "server/src/user_guanqia.cpp",
+          "contains": [
+            "TiaoZhanLieZhuan",
+            "EFTLieZhuanFight"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
+          "contains": [
+            "BeginBattleFengShenStoryValidation",
+            "ShowFengShenStoryBattleResult",
+            "found.pic or 0, found.quality or 0"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginView.lua.txt",
+          "contains": [
+            "-projectXBattleFengShenStoryValidation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
+          "contains": [
+            "-projectXBattleFengShenStoryValidation",
+            "Bridge:EnterGameplay(3)"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/WorldBattleReplayStore.cs",
+          "contains": [
+            "expectedOperation",
+            "HasAuthoritativeReplay"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs",
+          "contains": [
+            "public int Picture",
+            "public int Quality"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
+          "contains": [
+            "ValidateRewardPushPresentation",
+            "ShowImportedReward(\"宝箱奖励\", string.Empty",
+            "SetViewText(rewardView, \"Layer/Popup/btn_lingqu/Text1\", \"确定\")",
+            "rewardDimmer.raycastTarget = true"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs",
+          "contains": [
+            "BattleStartShade",
+            "GammaToLinearSpace",
+            "Mathf.InverseLerp(.9f, 1.1f",
+            "startEffect.transform.SetAsLastSibling()",
+            "ResolvePetQualityEffectResource",
+            "res2/animation/battle/quality3"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "RunBattleFengShenStoryValidation",
+            "battle-fengshen-controls",
+            "BFSB-09-RETURN-REWARD-CONFIRM",
+            "SetBattleStartElapsed(battleStartElapsed)"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "battle-script-default",
+      "module": "BattleScript",
+      "fixture": "shared-readonly",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBattleScriptValidation"
+      ],
+      "artifacts": [],
+      "captureStates": [],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
       "visualAssertions": {
         "width": 1334,
         "height": 750,

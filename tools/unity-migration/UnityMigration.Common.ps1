@@ -411,8 +411,19 @@ function Get-UnityMigrationEarlyUserPlayFailures {
     if ([string](Get-UnityMigrationPropertyValue -Object $Record -Name "checkpoint" -Default "") -ne "post-g3-early-play") {
         $failures.Add("early user Play checkpoint must be 'post-g3-early-play'.")
     }
-    if ((Get-UnityMigrationPropertyValue -Object $Record -Name "userParticipated" -Default $false) -ne $true) {
-        $failures.Add("early user Play must record explicit user participation.")
+    $userParticipated = (Get-UnityMigrationPropertyValue -Object $Record -Name "userParticipated" -Default $false) -eq $true
+    $userDelegatedAgentPlay = (Get-UnityMigrationPropertyValue -Object $Record -Name "userDelegatedAgentPlay" -Default $false) -eq $true
+    if (-not $userParticipated -and -not $userDelegatedAgentPlay) {
+        $failures.Add("early Play must record explicit user participation or explicit user-delegated agent Play.")
+    }
+    if ($userDelegatedAgentPlay) {
+        $delegation = Get-UnityMigrationPropertyValue -Object $Record -Name "delegation" -Default $null
+        if ($null -eq $delegation -or
+            (Get-UnityMigrationPropertyValue -Object $delegation -Name "authorized" -Default $false) -ne $true -or
+            (Get-UnityMigrationPropertyValue -Object $delegation -Name "finalUserConfirmationRequired" -Default $false) -ne $true -or
+            -not [string](Get-UnityMigrationPropertyValue -Object $delegation -Name "evidence" -Default "")) {
+            $failures.Add("delegated early Play requires authorized delegation evidence and must retain final user confirmation.")
+        }
     }
     $testedUtc = [string](Get-UnityMigrationPropertyValue -Object $Record -Name "testedUtc" -Default "")
     $parsedUtc = [DateTime]::MinValue
@@ -1393,6 +1404,11 @@ function Get-UnityMigrationFixedAccountContractFailures {
             $failures.Add("Evidence contract $Module fixedAccount field '$name' must be boolean.")
         }
     }
+    $postValidationAdapterAction = [string](Get-UnityMigrationPropertyValue `
+        -Object $FixedAccount -Name "postValidationAdapterAction" -Default "AssertSetup")
+    if ($postValidationAdapterAction -notmatch '^Assert[A-Za-z0-9]+$') {
+        $failures.Add("Evidence contract $Module fixedAccount postValidationAdapterAction must name an Assert* adapter action.")
+    }
     foreach ($flag in @((Get-UnityMigrationPropertyValue -Object $FixedAccount -Name "extraFlags" -Default @()))) {
         if ([string]::IsNullOrWhiteSpace([string]$flag)) {
             $failures.Add("Evidence contract $Module fixedAccount extraFlags contains an empty value.")
@@ -2270,6 +2286,57 @@ function Assert-UnityMigrationCocosIdentityEvidence {
     return $entry.Value
 }
 
+function Assert-UnityMigrationCocosBaselineStateEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)]$G5,
+        [Parameter(Mandatory = $true)]$Identity
+    )
+    $contract = Get-UnityMigrationPropertyValue -Object $G5 -Name "cocosBaselineStateContract" -Default $null
+    if ($null -eq $contract) { return $null }
+    $evidencePath = [string](Get-UnityMigrationPropertyValue -Object $contract -Name "evidencePath" -Default "")
+    $expected = Get-UnityMigrationPropertyValue -Object $contract -Name "expected" -Default $null
+    if (-not $evidencePath -or $null -eq $expected -or @($expected.PSObject.Properties).Count -eq 0) {
+        throw "Cocos baseline state contract for module '$Module' requires evidencePath and non-empty expected state."
+    }
+    $entry = Import-UnityMigrationJson -Root $Root -Path $evidencePath
+    $evidence = $entry.Value
+    if ([int](Get-UnityMigrationPropertyValue -Object $evidence -Name "schemaVersion" -Default 0) -ne 1 -or
+        [string](Get-UnityMigrationPropertyValue -Object $evidence -Name "module" -Default "") -ine $Module -or
+        -not [bool](Get-UnityMigrationPropertyValue -Object $evidence -Name "success" -Default $false) -or
+        [uint32](Get-UnityMigrationPropertyValue -Object $evidence -Name "userId" -Default 0) -ne [uint32]$Identity.userId -or
+        [uint32](Get-UnityMigrationPropertyValue -Object $evidence -Name "roleId" -Default 0) -ne [uint32]$Identity.roleId) {
+        throw "Cocos baseline state evidence does not prove module '$Module' and frozen identity $($Identity.userId)/$($Identity.roleId)."
+    }
+    $actualState = Get-UnityMigrationPropertyValue -Object $evidence -Name "state" -Default $null
+    if ($null -eq $actualState) { throw "Cocos baseline state evidence has no state object: $evidencePath" }
+    foreach ($property in @($expected.PSObject.Properties)) {
+        $actualProperty = $actualState.PSObject.Properties[[string]$property.Name]
+        if ($null -eq $actualProperty) {
+            throw "Cocos baseline state evidence is missing expected field '$($property.Name)': $evidencePath"
+        }
+        $expectedJson = $property.Value | ConvertTo-Json -Compress -Depth 8
+        $actualJson = $actualProperty.Value | ConvertTo-Json -Compress -Depth 8
+        if ($actualJson -cne $expectedJson) {
+            throw "Cocos baseline state '$($property.Name)' mismatch: expected=$expectedJson actual=$actualJson"
+        }
+    }
+    $evidenceFiles = @((Get-UnityMigrationPropertyValue -Object $evidence -Name "evidenceFiles" -Default @()))
+    if ($evidenceFiles.Count -eq 0) { throw "Cocos baseline state evidence must reference durable evidenceFiles: $evidencePath" }
+    foreach ($reference in $evidenceFiles) {
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path ([string]$reference)
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+            throw "Cocos baseline state evidence file is missing: $reference"
+        }
+    }
+    return [pscustomobject]@{
+        evidencePath = $evidencePath
+        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Path).Hash
+        value = $evidence
+    }
+}
+
 function Get-UnityMigrationCocosBaselineFingerprint {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -2281,6 +2348,15 @@ function Get-UnityMigrationCocosBaselineFingerprint {
         $resolved = Resolve-UnityMigrationPath -Root $Root -Path $reference
         if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
             throw "Cocos baseline input is missing: $reference"
+        }
+        $lines.Add("$reference=$((Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash)")
+    }
+    $stateContract = Get-UnityMigrationPropertyValue -Object $G5 -Name "cocosBaselineStateContract" -Default $null
+    if ($null -ne $stateContract) {
+        $reference = [string](Get-UnityMigrationPropertyValue -Object $stateContract -Name "evidencePath" -Default "")
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $reference
+        if (-not $reference -or -not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+            throw "Cocos baseline state evidence input is missing: $reference"
         }
         $lines.Add("$reference=$((Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash)")
     }
@@ -2309,6 +2385,16 @@ function Assert-UnityMigrationCocosBaseline {
     }
     if ([uint32]$entry.Value.userId -eq 0 -or [uint32]$entry.Value.roleId -eq 0) {
         throw "Cocos baseline has no frozen identity."
+    }
+    $stateContract = Get-UnityMigrationPropertyValue -Object $g5 -Name "cocosBaselineStateContract" -Default $null
+    if ($null -ne $stateContract) {
+        $stateEvidence = Assert-UnityMigrationCocosBaselineStateEvidence -Root $Root -Module $Module -G5 $g5 -Identity $entry.Value
+        if ([string](Get-UnityMigrationPropertyValue -Object $entry.Value -Name "runtimeStateEvidencePath" -Default "") -ne
+            [string]$stateEvidence.evidencePath -or
+            [string](Get-UnityMigrationPropertyValue -Object $entry.Value -Name "runtimeStateFingerprint" -Default "") -ne
+            [string]$stateEvidence.sha256) {
+            throw "Cocos baseline runtime state evidence changed after G1; recapture the affected states."
+        }
     }
     $states = @($entry.Value.states)
     if ($states.Count -ne @($g5.pairs).Count) { throw "Cocos baseline state count does not match the G5 pair contract." }

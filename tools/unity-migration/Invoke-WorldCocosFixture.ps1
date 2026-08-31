@@ -1,17 +1,38 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "SeedTestProgress")]
+    [ValidateSet("Setup", "SetupVisual", "AssertSetup", "AssertPostValidation", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "SeedTestProgress")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
-    [string]$EvidencePath = ".local/ui-fidelity/World/cocos/g1-20260731-cua/world-fixed-fixture-snapshot.json"
+    [string]$EvidencePath = ".local/ui-fidelity/World/cocos/g1-20260731-cua/world-fixed-fixture-snapshot.json",
+    [string]$DatabasePath = ""
 )
 
 $ErrorActionPreference = "Stop"
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
-$mysql = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"
 $evidence = if ([IO.Path]::IsPathRooted($EvidencePath)) { $EvidencePath } else { Join-Path $root $EvidencePath }
+
+if ($DatabasePath) {
+    if (-not [IO.Path]::IsPathRooted($DatabasePath)) { $DatabasePath = Join-Path $root $DatabasePath }
+    $DatabasePath = [IO.Path]::GetFullPath($DatabasePath)
+    if (-not $DatabasePath.EndsWith("LocalServer\projectx.db", [StringComparison]::OrdinalIgnoreCase)) {
+        throw "World fixture only accepts Application.persistentDataPath/LocalServer/projectx.db."
+    }
+    if ($UserId -ne 7200057 -or $RoleId -ne 1000003) {
+        throw "World SQLite fixture identity must remain 7200057/1000003."
+    }
+    $running = @(Get-Process kapai, ProjectX, Unity -ErrorAction SilentlyContinue)
+    if ($running.Count -gt 0) { throw "Stop kapai.exe, ProjectX.exe and Unity.exe before World SQLite fixture $Action." }
+    $backup = Join-Path $root ".local\unity-validation\world-sqlite-fixture-backup.db"
+    & python -X utf8 (Join-Path $PSScriptRoot "Invoke-WorldCocosFixture.py") `
+        --action $Action --database $DatabasePath --backup $backup --evidence $evidence `
+        --user-id $UserId --role-id $RoleId
+    if ($LASTEXITCODE -ne 0) { throw "World SQLite fixture adapter failed: $Action" }
+    return
+}
+
+$mysql = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"
 
 if (-not (Test-Path -LiteralPath $mysql -PathType Leaf)) { throw "mysql.exe not found: $mysql" }
 

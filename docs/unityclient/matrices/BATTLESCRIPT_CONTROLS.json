@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "module": "BattleScript",
+  "workflowPolicyVersion": 1,
+  "scope": {
+    "fixedUserId": 1,
+    "fixedRoleId": 1000001,
+    "fightType": 4,
+    "symbol": "EFTScript",
+    "currentCocosReachable": false,
+    "userExcluded": true,
+    "excludedFromCurrentCocosParityDenominator": true,
+    "excludedFlows": [
+      "师门/周师门脚本战斗",
+      "试炼心魔脚本战斗",
+      "藏宝图/护宝小妖脚本战斗"
+    ]
+  },
+  "acceptanceExamples": [
+    {
+      "id": "battle-script-user-exclusion",
+      "given": "当前源码只保留师门、心魔、藏宝图三组EFTScript遗留入口，且当前任务/道具配置无法形成正式运行链",
+      "when": "用户明确说明这三个流程不需要",
+      "then": "模块不进入当前Unity迁移与战斗表现验收分母，不创建Unity入口、不启动动态验收；未来恢复时从G0重启"
+    }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": false,
+    "knownGaps": [
+      "G1-G6按用户范围决定停止；这不是视觉或功能通过。",
+      "当前CUserMission旧任务实现已注释；正式item配置无2441/2442或script=22441。"
+    ]
+  },
+  "controls": []
+}

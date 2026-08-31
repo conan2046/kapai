@@ -175,9 +175,12 @@ namespace ProjectX.Editor
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroCultivationG3Validation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationInvalidValidation") >= 0;
+            bool heroEquipmentG5VisualValidation = Array.IndexOf(Environment.GetCommandLineArgs(),
+                "-projectXHeroEquipG5VisualValidation") >= 0;
             bool heroEquipmentValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMutationValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipG4Validation") >= 0
+                || heroEquipmentG5VisualValidation
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXEnhanceMasterG3Validation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMaterialValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
@@ -191,14 +194,16 @@ namespace ProjectX.Editor
             bool chatValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXChatValidation") >= 0;
             bool teamValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTeamValidation") >= 0;
             bool guildValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGuildValidation") >= 0;
-            bool worldValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldBattleValidation") >= 0;
+            bool worldValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldBattleValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWorldG3Validation") >= 0;
             bool welfareValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXWelfareValidation") >= 0;
             bool activityValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXActivityValidation") >= 0;
             bool drawValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0;
             bool gameplayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayValidation") >= 0;
             bool youLiValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXYouLiValidation") >= 0;
-            bool fengShenStoryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFengShenStoryValidation") >= 0;
+            bool fengShenStoryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFengShenStoryValidation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBattleFengShenStoryValidation") >= 0;
             bool arenaValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXArenaValidation") >= 0;
             bool kunLunValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXKunLunValidation") >= 0;
             bool bloodFightValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBloodFightValidation") >= 0;
@@ -463,7 +468,7 @@ namespace ProjectX.Editor
                         return;
                     }
                     if (!checkingPlayerHud && (checkingTask ? !app.IsTaskOpen : checkingSettings ? !app.IsSettingsOpen
-                        : checkingHeroEquipment ? !app.IsHeroEquipmentOpen : checkingHero
+                        : checkingHeroEquipment ? heroEquipmentG5VisualValidation ? !app.IsHeroOpen : !app.IsHeroEquipmentOpen : checkingHero
                             ? !app.IsHeroOpen && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") < 0
                         : checkingMail ? !app.IsMailOpen : checkingGameplayShops ? !app.IsGameplayShopOpen : checkingShop ? !app.IsShopOpen
                         : checkingFriend ? !app.IsFriendOpen : checkingChat ? !app.IsChatOpen

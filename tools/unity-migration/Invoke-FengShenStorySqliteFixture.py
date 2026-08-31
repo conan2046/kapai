@@ -114,6 +114,22 @@ def patch_story(value, count, chapter, node):
     return compress(data)
 
 
+def patch_spirit(value, spirit=100):
+    data = expand(value)
+    if len(data) < 6:
+        raise RuntimeError("user_spirit has no complete spirit/time header")
+    struct.pack_into("<HI", data, 0, spirit, 0)
+    return compress(data)
+
+
+def spirit_state(value):
+    data = expand(value)
+    if len(data) < 6:
+        raise RuntimeError("user_spirit has no complete spirit/time header")
+    spirit, last_time = struct.unpack_from("<HI", data, 0)
+    return {"spirit": spirit, "lastSpiritTime": last_time}
+
+
 def story_state(value):
     data = expand(value)
     offset = story_offset(data)
@@ -143,16 +159,63 @@ def patch_pet_levels(value, level):
     return compress(data)
 
 
-def stable_hash(connection, user_id, role_id):
+STABLE_FIELD_NAMES = (
+    "role.guan_qia", "role.pet", "role.package", "role.save_data", "role.user_spirit",
+    "role.money", "role.exp", "role.level", "user.money", "user.bd_money",
+)
+RELOGIN_NORMALIZATION_EXCLUSIONS = (
+    "role.save_val", "role.mission", "role.guan_qia.trial-counts",
+)
+
+
+def canonicalize_guan_qia(value):
+    try:
+        data = expand(value)
+    except (ValueError, zlib.error) as error:
+        raise RuntimeError(f"role.guan_qia is not valid zlib-compressed hex: {error}") from error
+    cursor = [0]
+    skip_stage_section(data, cursor)
+    skip_stage_section(data, cursor)
+    attack_count = read_u16(data, cursor)
+    cursor[0] += 5 * attack_count
+    reset_count = read_u16(data, cursor)
+    cursor[0] += 5 * reset_count
+    trial_count = read_u8(data, cursor)
+    for _ in range(trial_count):
+        cursor[0] += 4
+        # LoadData/ResetGuanQia recomputes ShiLianGuanQia.cnt from the
+        # current weekday openWeek contract. It is unrelated to LieZhuan and
+        # is the only bounded guan_qia relogin normalization allowed here.
+        data[cursor[0]] = 0
+        cursor[0] += 1 + 4 + 4
+    return data.hex()
+
+
+def stable_state(connection, user_id, role_id):
     row = connection.execute(
-        "SELECT r.guan_qia,r.pet,r.package,r.save_data,r.save_val,r.mission,r.money,r.exp,r.level,u.money,u.bd_money "
+        "SELECT r.guan_qia,r.pet,r.package,r.save_data,r.user_spirit,r.money,r.exp,r.level,u.money,u.bd_money "
         "FROM role_info r JOIN user_info1 u ON u.id=? AND CAST(u.role0 AS INTEGER)=r.id WHERE r.id=?",
         (user_id, role_id),
     ).fetchone()
     if row is None:
         raise RuntimeError(f"identity {user_id}/{role_id} is missing")
-    payload = "|".join("" if value is None else str(value) for value in row)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    values = ["" if value is None else str(value) for value in row]
+    # The server rewrites guan_qia through its own zlib stream on a clean
+    # relogin. Different compressed bytes/lengths are not residue when the
+    # complete uncompressed payload is identical, so hash its canonical bytes.
+    values[0] = canonicalize_guan_qia(values[0])
+    fields = {
+        name: {
+            "length": len(value),
+            "sha256": hashlib.sha256(value.encode("utf-8")).hexdigest(),
+        }
+        for name, value in zip(STABLE_FIELD_NAMES, values)
+    }
+    return {
+        "hash": hashlib.sha256("|".join(values).encode("utf-8")).hexdigest(),
+        "fields": fields,
+        "canonicalValues": dict(zip(STABLE_FIELD_NAMES, values)),
+    }
 
 
 def clone_row(connection, table, source_id, target_id, replacements):
@@ -191,15 +254,21 @@ def setup(args):
                    "level": "99"})
         clone_row(connection, "user_info1", args.user_id, ISOLATION_USER_ID,
                   {"role0": str(ISOLATION_ROLE_ID), "name": "local-isolation"})
-        role = connection.execute("SELECT guan_qia,pet FROM role_info WHERE id=?", (args.role_id,)).fetchone()
+        role = connection.execute("SELECT guan_qia,pet,user_spirit FROM role_info WHERE id=?", (args.role_id,)).fetchone()
         connection.execute(
-            "UPDATE role_info SET guan_qia=?,pet=?,level='99' WHERE id=?",
-            (patch_story(role[0], 5, 6, 40074), patch_pet_levels(role[1], 100), args.role_id),
+            "UPDATE role_info SET guan_qia=?,pet=?,user_spirit=?,level='99' WHERE id=?",
+            (patch_story(role[0], 5, 6, 40074), patch_pet_levels(role[1], 100),
+             patch_spirit(role[2], 100), args.role_id),
         )
         connection.commit()
         primary = story_state(connection.execute("SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)).fetchone()[0])
+        primary_spirit = spirit_state(connection.execute("SELECT user_spirit FROM role_info WHERE id=?", (args.role_id,)).fetchone()[0])
         isolation = story_state(connection.execute("SELECT guan_qia FROM role_info WHERE id=?", (ISOLATION_ROLE_ID,)).fetchone()[0])
-        stable = stable_hash(sqlite3.connect(args.backup), args.user_id, args.role_id)
+        backup_connection = sqlite3.connect("file:" + args.backup + "?mode=ro", uri=True)
+        try:
+            stable = stable_state(backup_connection, args.user_id, args.role_id)
+        finally:
+            backup_connection.close()
     except Exception:
         connection.rollback()
         connection.close()
@@ -213,8 +282,11 @@ def setup(args):
         "action": "Setup", "dataBackend": "sqlite", "database": args.database,
         "userId": args.user_id, "roleId": args.role_id,
         "isolationUserId": ISOLATION_USER_ID, "isolationRoleId": ISOLATION_ROLE_ID,
-        "snapshotHash": snapshot_hash, "stableHash": stable,
-        "injected": primary, "isolation": isolation, "createdUtc": utc_now(),
+        "snapshotHash": snapshot_hash, "stableHash": stable["hash"], "stableFields": stable["fields"],
+        "stableCanonicalGuanQia": stable["canonicalValues"]["role.guan_qia"],
+        "reloginNormalizationExclusions": list(RELOGIN_NORMALIZATION_EXCLUSIONS),
+        "injected": primary, "injectedSpirit": primary_spirit,
+        "isolation": isolation, "createdUtc": utc_now(),
     })
 
 
@@ -226,6 +298,11 @@ def assert_setup(args):
         link = connection.execute("SELECT role0 FROM user_info1 WHERE id=?", (ISOLATION_USER_ID,)).fetchone()
         if primary != {"count": 5, "chapterIndex": 6, "nodeId": 40074}:
             raise RuntimeError(f"primary FengShenStory state mismatch: {primary}")
+        spirit = spirit_state(connection.execute(
+            "SELECT user_spirit FROM role_info WHERE id=?", (args.role_id,)
+        ).fetchone()[0])
+        if spirit != {"spirit": 100, "lastSpiritTime": 0}:
+            raise RuntimeError(f"primary FengShenStory spirit mismatch: {spirit}")
         if isolation != {"count": 5, "chapterIndex": 0, "nodeId": 40011} or int(link[0]) != ISOLATION_ROLE_ID:
             raise RuntimeError("isolation FengShenStory state mismatch")
     finally:
@@ -258,11 +335,34 @@ def assert_relogin(args):
     snapshot = read_json(args.evidence)
     connection = sqlite3.connect(args.database)
     try:
-        actual = stable_hash(connection, args.user_id, args.role_id)
+        actual = stable_state(connection, args.user_id, args.role_id)
     finally:
         connection.close()
-    if actual != snapshot["stableHash"]:
-        raise RuntimeError(f"FengShenStory stable relogin hash mismatch: {actual}")
+    if actual["hash"] != snapshot["stableHash"]:
+        expected_fields = snapshot.get("stableFields", {})
+        changed = [
+            name for name in STABLE_FIELD_NAMES
+            if expected_fields.get(name) != actual["fields"].get(name)
+        ]
+        expected_guan_qia = snapshot.get("stableCanonicalGuanQia", "")
+        actual_guan_qia = actual["canonicalValues"].get("role.guan_qia", "")
+        guan_qia_diff_offsets = [
+            index for index, (before, after) in enumerate(zip(
+                bytes.fromhex(expected_guan_qia), bytes.fromhex(actual_guan_qia)
+            )) if before != after
+        ]
+        snapshot.update({
+            "reloginActualHash": actual["hash"],
+            "reloginChangedFields": changed,
+            "reloginActualFields": actual["fields"],
+            "reloginActualCanonicalGuanQia": actual_guan_qia,
+            "reloginGuanQiaDiffOffsets": guan_qia_diff_offsets,
+            "reloginMismatchUtc": utc_now(),
+        })
+        write_json(args.evidence, snapshot)
+        raise RuntimeError(
+            f"FengShenStory stable relogin hash mismatch: {actual['hash']}; changed={','.join(changed)}"
+        )
 
 
 def cleanup(args):

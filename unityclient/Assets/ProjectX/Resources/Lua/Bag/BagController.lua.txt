@@ -235,7 +235,7 @@ function M.onPacket(command, message)
                 elseif Bridge:HasCommandLineFlag("-projectXBagG4Validation") then
                     M.g4Stage = "await_batch"
                     Bridge:BeginBagG4Validation()
-                else
+                elseif not Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
                     Bridge:Complete("COMPLETE: package/8 + package-update/15 sort -> rendered bag UI ("
                         .. tostring(renderedCount) .. " stacks)")
                 end

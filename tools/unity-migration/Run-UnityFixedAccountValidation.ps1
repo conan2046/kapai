@@ -8,12 +8,13 @@ param(
     [ValidateRange(60, 900)][int]$RunnerTimeoutSeconds = 300,
     [switch]$PreflightOnly,
     [switch]$DataPreflightOnly,
-    [switch]$G3RuntimeOnly
+    [switch]$G3RuntimeOnly,
+    [switch]$G5VisualOnly
 )
 
 $ErrorActionPreference = "Stop"
-if (@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly | Where-Object { $_ }).Count -gt 1) {
-    throw "-PreflightOnly, -DataPreflightOnly and -G3RuntimeOnly are mutually exclusive."
+if (@(@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly, $G5VisualOnly) | Where-Object { $_ }).Count -gt 1) {
+    throw "-PreflightOnly, -DataPreflightOnly, -G3RuntimeOnly and -G5VisualOnly are mutually exclusive."
 }
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
@@ -34,6 +35,12 @@ if ($contract.Count -ne 1 -or $null -eq $contract[0].fixedAccount) {
 }
 $contract = $contract[0]
 $fixed = $contract.fixedAccount
+$g3ValidationFlags = @((Get-UnityMigrationPropertyValue -Object $fixed -Name "g3ValidationFlags" -Default @()) |
+    ForEach-Object { [string]$_ })
+$extraFlags = @((Get-UnityMigrationPropertyValue -Object $fixed -Name "extraFlags" -Default @()) |
+    ForEach-Object { [string]$_ })
+$postValidationAdapterAction = [string](Get-UnityMigrationPropertyValue `
+    -Object $fixed -Name "postValidationAdapterAction" -Default "AssertSetup")
 $dataBackend = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "dataBackend" -Default "mysql")
 if ($dataBackend -notin @("mysql", "sqlite")) { throw "Unsupported fixed-account data backend: $dataBackend" }
 $mutationReloginOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "mutationReloginOracle" -Default $null
@@ -144,7 +151,7 @@ $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleCo
 if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." }
 $scenarioRuntimeFlags = @(Get-UnityMigrationScenarioRuntimeFlags -Scenario $scenario)
 $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
-$requiredGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }
+$requiredGate = if ($G5VisualOnly) { "G4" } elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }
 $workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }
 Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate $requiredGate
 Assert-UnityMigrationModuleWorkflowContract -Root $root -ModuleConfig $moduleConfig `
@@ -155,13 +162,19 @@ $pwshExecutable = Get-UnityMigrationPowerShellExecutable
 $pythonExecutable = Get-UnityMigrationPythonExecutable -ExplicitPath $PythonExecutable -Root $root
 $adapter = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.adapter)
 $startServerScript = Join-Path $root "tools/local/Start-Server.ps1"
-$snapshot = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.snapshot)
+$snapshotValue = if ($G5VisualOnly) {
+    [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "g5VisualSnapshot" -Default "")
+} else { [string]$fixed.snapshot }
+if ($G5VisualOnly -and -not $snapshotValue) { throw "Fixed-account G5 visual mode requires g5VisualSnapshot." }
+$snapshot = Resolve-UnityMigrationPath -Root $root -Path $snapshotValue
 $resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
 $resultEvidence = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.resultEvidence)
 $dataEvidencePath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
 $dataPreflightFingerprint = Get-UnityMigrationDataPreflightFingerprint -Root $root -FixedAccount $fixed
 $logPath = Join-Path (Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.logDirectory)) `
     "unity-$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account.log"
+$serverRuntimeEvidence = Get-UnityMigrationPropertyValue -Object $fixed `
+    -Name "serverRuntimeEvidence" -Default $null
 $unityExecutable = Resolve-UnityMigrationUnityExecutable -Root $root -Manifest $manifest
 $unityProject = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.unityProject)
 $timingPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-timings-latest.json"
@@ -228,7 +241,7 @@ try {
         }
     }
 
-    if (-not $PreflightOnly -and -not $DataPreflightOnly) {
+    if (-not $PreflightOnly -and -not $DataPreflightOnly -and -not $G5VisualOnly) {
         if (-not (Test-Path -LiteralPath $dataEvidencePath -PathType Leaf)) {
             throw "Fixed-account data preflight evidence is missing. Run with -DataPreflightOnly before full validation: $dataEvidencePath"
         }
@@ -346,7 +359,11 @@ try {
 
     $fixtureTiming = Start-UnityMigrationTiming
     try {
-        Invoke-FixedAdapter "Setup"
+        $setupAction = if ($G5VisualOnly) {
+            [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "g5VisualSetupAction" -Default "")
+        } else { "Setup" }
+        if (-not $setupAction) { throw "Fixed-account G5 visual mode requires g5VisualSetupAction." }
+        Invoke-FixedAdapter $setupAction
         $fixtureCreated = $true
     }
     finally {
@@ -372,9 +389,12 @@ try {
             "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds",
             "-logFile", $logPath
         ) + $(if ($G3RuntimeOnly) {
-            @($fixed.g3ValidationFlags | ForEach-Object { [string]$_ })
+            @($g3ValidationFlags)
+        } elseif ($G5VisualOnly) {
+            @((Get-UnityMigrationPropertyValue -Object $fixed -Name "g5VisualValidationFlags" -Default @()) |
+                ForEach-Object { [string]$_ })
         } else { @($scenarioRuntimeFlags) }) `
-          + @($fixed.extraFlags | ForEach-Object { [string]$_ })
+          + @($extraFlags)
         $unityTiming = Start-UnityMigrationTiming
         try {
             $process = Start-Process -FilePath $unityExecutable -ArgumentList $arguments `
@@ -392,17 +412,64 @@ try {
             if (-not [bool]$result.success -or [string]$result.status -notlike "COMPLETE:*") {
                 throw "Unity fixed-account validation failed: $($result.status)"
             }
-            $runnerUserId = [uint32](Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId" -Default $UserId)
-            $runnerRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId" -Default $RoleId)
+            $runnerUserId = if ($G3RuntimeOnly -or $G5VisualOnly) { $UserId } else {
+                [uint32](Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalUserId" -Default $UserId)
+            }
+            $runnerRoleId = if ($G3RuntimeOnly -or $G5VisualOnly) { $RoleId } else {
+                [uint32](Get-UnityMigrationPropertyValue -Object $fixed -Name "terminalRoleId" -Default $RoleId)
+            }
             Assert-UnityMigrationRunnerIdentity -Result $result -ScenarioKey ([string]$scenario.key) -ExpectedUserId $runnerUserId
             if ([uint32]$result.roleId -ne $runnerRoleId) {
                 throw "Unity fixed-account terminal role mismatch: expected=$runnerRoleId actual=$($result.roleId)"
             }
             if ($G3RuntimeOnly) {
-                if (@($fixed.g3ValidationFlags).Count -eq 0) {
+                if ($g3ValidationFlags.Count -eq 0) {
                     throw "Fixed-account G3 runtime mode requires g3ValidationFlags."
                 }
                 Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
+                if ([bool](Get-UnityMigrationPropertyValue -Object $fixed -Name "copyArtifactsInG3" -Default $false)) {
+                    foreach ($copy in @($fixed.artifactCopies)) {
+                        $source = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.source)
+                        $destination = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.destination)
+                        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+                            throw "Fixed-account G3 runtime artifact is missing: $source"
+                        }
+                        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
+                        Copy-Item -LiteralPath $source -Destination $destination -Force
+                    }
+                }
+                $serverRuntimeEvidenceReference = ""
+                $serverRuntimeEvidenceSha256 = ""
+                $serverRuntimeFingerprintLines = @()
+                if ($null -ne $serverRuntimeEvidence) {
+                    $serverRuntimeSource = Resolve-UnityMigrationPath -Root $root -Path `
+                        ([string]$serverRuntimeEvidence.source)
+                    $serverRuntimeDestination = Resolve-UnityMigrationPath -Root $root -Path `
+                        ([string]$serverRuntimeEvidence.destination)
+                    if (-not (Test-Path -LiteralPath $serverRuntimeSource -PathType Leaf)) {
+                        throw "Fixed-account server runtime evidence is missing: $serverRuntimeSource"
+                    }
+                    $serverRuntimeContent = Get-Content -LiteralPath $serverRuntimeSource -Raw -Encoding UTF8
+                    foreach ($requiredPattern in @($serverRuntimeEvidence.requiredPatterns)) {
+                        if ($serverRuntimeContent -notmatch [string]$requiredPattern) {
+                            throw "Fixed-account server runtime evidence misses required pattern: $requiredPattern"
+                        }
+                    }
+                    $fingerprintLinePattern = [string](Get-UnityMigrationPropertyValue `
+                        -Object $serverRuntimeEvidence -Name "fingerprintLinePattern" -Default "")
+                    if ($fingerprintLinePattern) {
+                        $serverRuntimeFingerprintLines = @($serverRuntimeContent -split "`r?`n" |
+                            Where-Object { $_ -match $fingerprintLinePattern })
+                        if ($serverRuntimeFingerprintLines.Count -eq 0) {
+                            throw "Fixed-account server runtime evidence has no fingerprint lines."
+                        }
+                    }
+                    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($serverRuntimeDestination)) | Out-Null
+                    Copy-Item -LiteralPath $serverRuntimeSource -Destination $serverRuntimeDestination -Force
+                    $serverRuntimeEvidenceReference = [string]$serverRuntimeEvidence.destination
+                    $serverRuntimeEvidenceSha256 = (Get-FileHash -LiteralPath $serverRuntimeDestination `
+                        -Algorithm SHA256).Hash
+                }
                 $sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
                 $g3Summary = [ordered]@{
                     schemaVersion = 1
@@ -420,10 +487,66 @@ try {
                     screenHeight = [int]$result.screenHeight
                     sourceContractFingerprint = $sourceContractFingerprint
                     dataPreflightEvidence = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
+                    serverRuntimeEvidence = $serverRuntimeEvidenceReference
+                    serverRuntimeEvidenceSha256 = $serverRuntimeEvidenceSha256
+                    serverRuntimeFingerprintLines = @($serverRuntimeFingerprintLines)
                     checkedUtc = [DateTime]::UtcNow.ToString("O")
                 }
                 Write-UnityMigrationUtf8 -Path (Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-g3-runtime-latest.json") `
                     -Content (($g3Summary | ConvertTo-Json -Depth 8) + "`n")
+                $validationPassed = $true
+            }
+            elseif ($G5VisualOnly) {
+                $g5VisualFlags = @(Get-UnityMigrationPropertyValue -Object $fixed `
+                    -Name "g5VisualValidationFlags" -Default @())
+                if ($g5VisualFlags.Count -eq 0) {
+                    throw "Fixed-account G5 visual mode requires g5VisualValidationFlags."
+                }
+                Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                Wait-FixedRuntimeRelease
+                $assertVisualAction = [string](Get-UnityMigrationPropertyValue -Object $fixed `
+                    -Name "g5VisualAssertAction" -Default "")
+                if (-not $assertVisualAction) { throw "Fixed-account G5 visual mode requires g5VisualAssertAction." }
+                Invoke-FixedAdapter $assertVisualAction
+
+                $g5 = Get-UnityMigrationPropertyValue -Object $contract -Name "g5" -Default $null
+                $visualCopies = New-Object System.Collections.Generic.List[object]
+                foreach ($pair in @($g5.pairs)) {
+                    $expectedDestination = (([string]$g5.unityDirectory).TrimEnd([char[]]@('/', '\')) `
+                        + "/" + [string]$pair.unity)
+                    $matches = @($fixed.artifactCopies | Where-Object {
+                        [string]$_.destination -ieq $expectedDestination
+                    })
+                    if ($matches.Count -ne 1) {
+                        throw "Fixed-account G5 visual artifact copy is not unique: $expectedDestination"
+                    }
+                    $visualCopies.Add($matches[0])
+                }
+                foreach ($copy in $visualCopies) {
+                    $source = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.source)
+                    $destination = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.destination)
+                    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+                        throw "Fixed-account G5 visual artifact is missing: $source"
+                    }
+                    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
+                    Copy-Item -LiteralPath $source -Destination $destination -Force
+                }
+                $visualSummary = [ordered]@{
+                    schemaVersion = 1
+                    success = $true
+                    module = [string]$moduleConfig.key
+                    mode = "g5-visual-fixed-identity"
+                    userId = $UserId
+                    roleId = $RoleId
+                    status = [string]$result.status
+                    stateCount = @($g5.pairs).Count
+                    states = @($g5.pairs | ForEach-Object { [string]$_.id })
+                    snapshot = $snapshotValue
+                    checkedUtc = [DateTime]::UtcNow.ToString("O")
+                }
+                $visualSummaryPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-g5-visual-latest.json"
+                Write-UnityMigrationUtf8 -Path $visualSummaryPath `
+                    -Content (($visualSummary | ConvertTo-Json -Depth 8) + "`n")
                 $validationPassed = $true
             }
             else {
@@ -510,14 +633,14 @@ try {
                     Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                     Wait-FixedRuntimeRelease
                 }
-                Invoke-FixedAdapter "AssertSetup"
+                Invoke-FixedAdapter $postValidationAdapterAction
             }
             }
         }
         finally {
             Complete-UnityMigrationTiming -Timings $timings -Name "unityValidation" -Timing $unityTiming
         }
-        if (-not $G3RuntimeOnly) {
+        if (-not $G3RuntimeOnly -and -not $G5VisualOnly) {
         $artifactTiming = Start-UnityMigrationTiming
         try {
             foreach ($copy in @($fixed.artifactCopies)) {
@@ -649,10 +772,11 @@ try {
         }
     }
     $runStatus = "passed"
-    Write-Host "Fixed-account validation passed and restored: module=$Module userId=$UserId roleId=$RoleId"
+    $modeLabel = if ($G5VisualOnly) { "G5 visual" } else { "validation" }
+    Write-Host "Fixed-account $modeLabel passed and restored: module=$Module userId=$UserId roleId=$RoleId"
 }
 catch {
-    $failureGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }
+    $failureGate = if ($G5VisualOnly) { "G5" } elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }
     Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $failureGate -Category UnityBatch `
         -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" -Operation "fixed-account-batch-validation" `
         -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
@@ -693,7 +817,7 @@ finally {
     $timingReport = [ordered]@{
         schemaVersion = 1
         module = $Module
-        mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } elseif ($G3RuntimeOnly) { "g3-runtime" } else { "full" })
+        mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } elseif ($G3RuntimeOnly) { "g3-runtime" } elseif ($G5VisualOnly) { "g5-visual" } else { "full" })
         status = $runStatus
         timings = $timings
         checkedUtc = [DateTime]::UtcNow.ToString("O")
@@ -701,7 +825,8 @@ finally {
     Write-UnityMigrationUtf8 -Path $timingPath -Content (($timingReport | ConvertTo-Json -Depth 8) + "`n")
 }
 if ($runStatus -in @("passed", "preflight-passed", "data-preflight-passed")) {
-    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate G6 -Category UnityBatch `
+    $successGate = if ($G5VisualOnly) { "G5" } elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }
+    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $successGate -Category UnityBatch `
         -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" -Operation "fixed-account-batch-validation" `
         -Outcome Passed -Evidence @($timingPath) | Out-Null
 }

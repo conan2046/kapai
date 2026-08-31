@@ -1,15 +1,15 @@
 # UnityClient 当前状态
-> 最后更新：2026-08-29
+> 最后更新：2026-08-31
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
 ## 1. 总进度
-> 当前 Steam 业务模块分母固定为 17；历史 29 模块口径包含现已排除项，只用于追溯，不再输出当前完成率。
+> 当前 Steam 业务模块分母固定为 16；2026-08-31用户确认竞技场保持屏蔽并移出当前分母。历史 29 模块及旧17模块口径只用于追溯，不再输出当前完成率。
 | 口径 | 当前值 | 说明 |
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `9/17 = 52.9%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的模块。Bag已按当前输入重新收口；Hero、HeroEquip、Draw、Gameplay、YouLi、XunBao、Arena仍按最早缺口降级，历史完成标签不计当前完成。 |
+| Validated | `7/16 = 43.8%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的模块。Bag已按当前输入重新收口；Hero、HeroEquip、Draw、World、Gameplay、YouLi、XunBao、FengShenStory仍按最早缺口降级，历史完成标签不计当前完成；Arena已排除。 |
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 ## 2. 模块状态
 | 模块 | 状态 | 已完成边界 | 后续 |
@@ -34,22 +34,22 @@
 | 聊天 | `steam-excluded` | Steam隐藏聊天入口及HUD聊天条、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 队伍 | `steam-excluded` | Steam不生成队伍入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 帮派 | `steam-excluded` | Steam隐藏帮派/宗门入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
-| 世界/战斗/副本 | `G0-G6 passed / 25/25 complete` | 固定账号完成 6/6 双端视觉、25/25 真实控件、5/5 语义断言、`/320 op=1/2/4/5/6/7/8/27`、扫荡 N 次收益汇总、重置、宝箱、结算、重连/切号、精确恢复及两次正式 BuildBatch | 当前模块收口；支线、帮派副本、封神试炼、排行、完整战斗表现继续按独立模块推进 |
+| 世界/战斗/副本 | `G0-G3 current passed / G4-G6 pending` | 2026-08-31复核固定`7200057/1000003`、关卡`10023`、原生`1334×750`的当前Cocos九状态，输入指纹仍为`C958C45D...C40A7`；G0-G2当前重验通过。Unity当前G3消费真实`/38 op=5`内嵌`/21-/23`，5单位、18动作组，完成普攻、技能、受击、死亡、血条、飘字、结算、逐单位统计、真实EventSystem回放、第二次结算与继续返回。固定种子/包指纹为`20260830 / 1970000362 / 3942185584`，源码合同指纹`5ED9D8C1...7192B`；SQLite Setup、恢复、重登稳定哈希、清理和零残留通过，BuildBatch严重错误0 | 旧G4/G5与代理早测均因共享战斗代码变化失效，已由中央门禁工具重置，不得复用。当前52个`EFightType`已逐项做产品范围审计，现行战斗分母仅`EFT_GuanQia=16`与`EFTLieZhuanFight=19`；其余50种为用户排除、平台排除、当前入口不可达或非产品类型。继续收敛共享表现差异并在两类战斗间回归，仍停在G3。证据`.local/unity-validation/battle-current-denominator-latest.json`、`.local/unity-validation/world-g3-runtime-latest.json`、`.local/unity-validation/world-g3-server-runtime-latest.log` |
 | 福利 | `steam-excluded` | Steam隐藏福利入口、在线奖励和体力领取，禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 活动 | `steam-excluded` | 当前集合包含全服排行/最强榜等其他玩家数据，也包含充值活动；Steam隐藏入口并由Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 抽卡 | `G0-G5 retained / G6 evidence missing` | G5双端主状态与差异报告仍存在；G6矩阵登记的28组Cocos与28组Unity逐控件图在当前检出全部缺失 | 重取或找回56份真实逐控件证据后重跑G6；禁止复制旧图补路径 |
 | 玩法大厅 | `G0-G3 passed / early user Play fix retest pending / G4-G6 pending` | 当前Steam 5路由、8个直接控件+5个场景状态；首次早测发现普通Editor登录图集仍为28个LFS指针导致白屏，已补水合合同并清零指针，修复后G3标准batch仍为13/13控件、11/11语义断言、精确恢复及残留0 | 用户重新Play确认登录/主界面不再白屏并继续5-15分钟玩法大厅早测；反馈闭环前不进入G4，本轮早测不替代后续G6最终真人确认 |
 | 法宝搜索 | `G0 passed / G1 implementation fixed, user retest pending / G2-G6 blocked` | 真人Play确认0次仍报一键搜索成功且无结果反馈；已补0次拦截、搜宝令背包边界、op28/29奖励弹窗、权威碎片数与合成前置校验 | 用户复测搜索次数不足、补次数、实际搜索结果和碎片刷新；当前证据目录缺失，仍须从G1串行重验 |
 | 游历三界 | `G0 passed / G1-G6 evidence missing` | `/335 op1/2/3`实现保留；登记的Cocos/Unity空态与差异目录当前不存在 | 从当前源码重取G1，后续门禁串行重验；写操作以op1权威重查为准 |
-| 竞技场 | `G0 pending / legacy logic only / entry hidden` | 历史Unity单端Runner与Steam SQLite协议等价仅作线索；无当前Cocos基准、控件矩阵闭环和正式门禁记录；当前以`migrationReady=false`隐藏大厅入口与对应每日任务，避免暴露空壳 | 从当前源码执行G0，冻结AI机器人竞技场边界后再取G1；正式迁完后再统一开放入口与任务 |
+| 竞技场 | `steam-excluded / user-confirmed disabled` | 当前以`migrationReady=false`隐藏大厅入口；2026-08-31用户确认竞技场本就屏蔽，不进入当前Unity迁移、战斗表现或16模块分母。历史Unity单端Runner、协议等价和旧截图仅作遗留线索 | 后续不迁移、不验收；若产品恢复竞技场，必须从G0重启并重新取得当前Cocos证据 |
 | 封神列传 | `G0-G3 passed / early user Play retest pending / G4-G6 pending` | 2026-08-29重取当前Cocos关卡、首通奖励与获取途径原生证据；奖励复合格、公共货币栏、`/320`确认包及挑战/布阵关闭弹窗修复均已通过当前工作树BuildBatch。固定账号已切为Unity persistentDataPath SQLite `7200057/1000003`，预检完成整库精确恢复、隔离账号清理和零残留 | 用户用当前G3构建复测奖励图标/品质框/数量、公共货币栏、真实挑战与布阵返回；反馈闭环前不得进入G4，也不得切换到寻宝 |
+| 封神列传战斗表现 | `G0-G3 current passed / user retest ready / G4-G6 pending` | 真人Play发现的章节卷轴无射线、结算返回残留战场已修复；本轮继续按Cocos修正我方/右侧action 1+flip、父节点激活不再重置动作组。加速显示`1/2/3/5/10/15`但实际播放因子`1/2/3/3.5/4/4.5`，模型/品质/技能特效即时同步且回放保持；跳过允许态真实点击通过，拒绝态给Cocos原文提示。当前战报只有`60052主角经验3960`、`60006神将经验0`，界面未造神将经验；未来仅在真实60006时读取`/24`已上阵神将。修复后batch为`9/9`控件、10单位、5动作组，DataPreflight、SQLite精确恢复、重登哈希、Cleanup、零残留、289项工具回归及BuildBatch严重错误0 | 用户复测章节选择、我方与敌方朝向、X2及更高档实际节奏、允许跳过、结算仅主角经验、结算继续→奖励确认返回地图。反馈闭环前不进入G4。状态并发特效相位、结算/统计字体与遮罩明暗、返回页地图/弹窗缩放仍是已知差异；证据`.local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json`、`.local/unity-validation/battlefengshenstory-g3-runtime-latest.json`。最终G6仍只由用户确认 |
 | 体力领取 | `steam-excluded` | 历史G0-G6证据保留；Steam按“福利整体排除”隐藏入口、移除路由并拒绝验收 | 后续不迁移；Cocos/服务端保留 |
 | 血战到底 | `steam-excluded` | 包含全服血战排行榜与其他玩家排名数据；玩法大厅不显示，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 决战昆仑 | `steam-excluded` | 依赖匹配对手数据；玩法大厅不显示，不再请求昆仑红点 `/213 op=25`，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
-| 七日目标 | `steam-excluded` | Steam大厅与HUD的7日活动入口均隐藏，Unity路由不接线，标准Runner拒绝继续验收；Cocos与服务端线上逻辑保留 | 后续不迁移、不验收、不计入当前17个Steam业务模块分母 |
+| 七日目标 | `steam-excluded` | Steam大厅与HUD的7日活动入口均隐藏，Unity路由不接线，标准Runner拒绝继续验收；Cocos与服务端线上逻辑保留 | 后续不迁移、不验收、不计入当前16个Steam业务模块分母 |
 | 支付前置/充值/VIP/渠道 | `steam-excluded-hud` | 用户确认Steam HUD不需要首充、充值及三类折扣礼包；6个入口固定隐藏，`/222 op89-91`不得重新开启；Cocos、服务端和配置保留 | 当前不迁移对应商业化入口；若未来恢复支付，须由用户重新确认Steam产品范围并重走支付前置门禁 |
 | Steam SQLite/发布/热更/性能 | `S0-S7 passed / S8 local accepted / external deferred` | S5的17模块/25协议闭环；S6-S8已通过单入口启动、崩溃遗留回收、loopback、SQLite存档、中文只读安装、备份/日志/优雅退出及无MySQL依赖本机验收；用户确认当前以Unity可独立双击运行作为收口口径 | 物理干净Windows与真实Steam Depot安装/升级暂不要求；MySQL源码、驱动、构建、Schema、脚本、回归及正式`fxl_game_local`继续保留，未经用户通知不得删除 |
-
 ## 3. 最新验证基线
 - Steam SQLite S6-S8 本机发布闭环（2026-08-20）：Windows Player在网络前监管`kapai.exe + SQLite`；默认角色NULL导致的真实`/1004`超时已修复，当前中文只读x64包以`ProjectX.exe`单入口启动，`/1004=78ms`并进入Main。发布树589文件，除Manifest自身外588文件全部纳入哈希，未登记/不一致/DoNotShip/PDB/MySQL/PowerShell均为0；6个已排除商业入口为零可见且不发送`/222`。缺资源、端口冲突、运行崩溃、第二实例、客户端硬崩溃遗留回收、SQLite存读档、3份备份`integrity=ok/schema=1`、优雅退出`save data end`及残留0均通过，精简PATH实测无需开发环境/MySQL。交互式Unity Editor点击Play会先自动构建缺失/过期的仓库Debug服务端，再启动`kapai.exe + SQLite`；构建失败取消Play，停止Play由`ProjectXApp.OnDestroy`保存并回收，批处理及`-projectXExternalServer`仍由外部工具管理。证据`.local/unity-validation/steam-sqlite-s6-latest.json`至`steam-sqlite-s8-latest.json`；用户确认当前以Unity独立双击运行作为完成口径，物理干净Windows与真实Steam Depot安装/跨版本升级暂缓，不纳入本轮阻塞。
 - Steam SQLite S5 协议/状态等价（2026-08-20）：17模块共25条有效协议，22条主动请求/专用推送触发，`/18、/62、/70`双后端推送已出现；Task旧`/39`确认为停用链并排除。83-case通用套件双端各120响应、单边协议0，公告`/88`与11项持久字段一致；17项模块状态全部为通过或无服务端数据不适用。最后的XunBao双端运行态各2 case/46响应、重启态各1 case/20响应，真实`/319 op31`保持初始20次、30分钟恢复窗口且查询不改业务状态；`mission/save_data/xunbao`字节一致，`pet_equip`仅运行时时钟字段归一化。S5已收口，证据`.local/unity-validation/steam-sqlite-s5-latest.json`及十五个模块latest，下一门禁S6。
@@ -97,14 +97,14 @@
 | P0 基础层 | 登录与创角 → 系统设置 → 主界面HUD等基础模块 | 规划顺序，不重复维护完成率 |
 | P1 其他单人功能 | 玩法大厅、封神列传、法宝搜索、游历三界 | 规划顺序，不重复维护完成率 |
 | P2 运营与商业化 | 无保留活动模块 | 规划顺序，不重复维护完成率 |
-| P3 竞技/玩家依赖 | 仅保留有AI机器人闭环的竞技场 | 规划顺序，不重复维护完成率 |
-| P4 社交最后 | 好友、聊天、队伍、帮派/宗门全部排除；支付前置不计入17个业务模块，历史边界见`PAYMENT.md` | 规划顺序，不重复维护完成率 |
+| P3 竞技/玩家依赖 | 当前无保留模块；竞技场保持屏蔽 | 规划顺序，不重复维护完成率 |
+| P4 社交最后 | 好友、聊天、队伍、帮派/宗门全部排除；支付前置不计入16个业务模块，历史边界见`PAYMENT.md` | 规划顺序，不重复维护完成率 |
 ## 5. Steam版本范围待确认
 
 | 建议 | 尚未正式完成的模块 | Steam判断依据 |
 |---|---|---|
-| 已确认排除 | 七日目标、全部基金、资源找回、福利（含体力领取）、好友（含好友赠送）、聊天、队伍、帮派/宗门、活动、决战昆仑、血战到底 | Steam入口、路由、共享刷新、Runner按模块边界屏蔽 |
-| 保留 | 法宝搜索、游历三界、封神列传、竞技场 | 前三项是单人权威状态；竞技场存在40份AI配置、1万名次机器人初始化和真实机器人战斗链，但迁移门禁未完成前暂时隐藏 |
+| 已确认排除 | 七日目标、全部基金、资源找回、福利（含体力领取）、好友（含好友赠送）、聊天、队伍、帮派/宗门、活动、决战昆仑、血战到底、竞技场 | Steam入口、路由、共享刷新、Runner按模块边界屏蔽；竞技场由用户于2026-08-31再次确认保持屏蔽 |
+| 保留 | 法宝搜索、游历三界、封神列传 | 三项均为单人权威状态；法宝搜索`/319`和游历`/335`不属于战斗播放模块 |
 ## 6. 已知风险
 
 - 流程只认 `MIGRATION_GUIDE.md`；配置扣款/奖励以服务端真实结果为准；Runner必须清旧结果、校验时间戳且同一隔离角色不得并发。

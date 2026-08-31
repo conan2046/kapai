@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "module": "BattleMeetMonster",
+  "scopeDecision": {
+    "decision": "当前Cocos正式UI不存在普通场景移动/世界地图入口，EFTMeetMonster=1按遗留服务端fightType排除出当前用户可达战斗迁移分母；若入口恢复必须从G0重启。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-08-30",
+    "currentCocosReachable": false,
+    "productEvidence": ".local/unity-validation/battlemeetmonster-cocos-entry-audit-20260830.json"
+  },
+  "scenarios": [
+    {
+      "id": "bmm-current-success",
+      "kind": "success",
+      "given": "固定身份位于普通场景且夹具放置一只可见普通野怪",
+      "when": "真实移动接触野怪并完整播放战斗",
+      "then": "收到野怪移除/重生、fightType=1的进入/动作/结束包并返回原场景，奖励和任务击杀为服务端权威"
+    },
+    {
+      "id": "bmm-no-encounter-boundary",
+      "kind": "failure-boundary",
+      "given": "无可见野怪、距离未命中或命中Boss/活动/捉鬼分流",
+      "when": "执行场景移动",
+      "then": "不得误触EFTMeetMonster=1，不得生成伪战报或修改奖励状态"
+    },
+    {
+      "id": "bmm-skip-boundary",
+      "kind": "failure-boundary",
+      "given": "当前战斗不允许跳过或权威动作尚未接收完整",
+      "when": "真实点击跳过",
+      "then": "保持Cocos禁用/拒绝语义，不得提前伪造战斗结束"
+    },
+    {
+      "id": "bmm-loss-reconnect",
+      "kind": "failure-boundary",
+      "given": "角色战败、断线、重进或切换隔离账号",
+      "when": "结束或重连后回到场景",
+      "then": "死亡/复活、位置、奖励和账号状态与服务端一致且恢复夹具零残留"
+    }
+  ],
+  "sources": [
+    {
+      "id": "bmm-fight-type-and-packets",
+      "sourceFiles": [
+        "server/src/fight.h",
+        "server/src/scene_manager.cpp",
+        "server/src/fight.cpp",
+        "server/src/protocol.h",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "client/ProjectX/src/Logic/LGameLogic.lua",
+        "client/ProjectX/src/Logic/LBattleLogic.lua",
+        "client/ProjectX/src/View/Battle/BattleUI.lua"
+      ],
+      "recordTotal": 14,
+      "businessIds": [
+        "fightType:1",
+        "184:2",
+        "184:3",
+        "21",
+        "22:1",
+        "22:2",
+        "22:3",
+        "22:4",
+        "22:5",
+        "22:6",
+        "22:7",
+        "23",
+        "speed",
+        "skip"
+      ],
+      "branchType": "普通场景碰怪进入、共享战斗播放、速度/跳过与返回状态合同",
+      "mappings": [],
+      "excluded": [
+        {
+          "businessIds": ["fightType:1", "184:2", "184:3", "21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "skip"],
+          "productEvidence": "当前MainUI与玩法/任务全部正式入口无世界地图或场景移动；WorldMapMainUI唯一创建引用是MainChatUI开发命令openUI。详见battlemeetmonster-cocos-entry-audit-20260830.json。"
+        }
+      ]
+    }
+  ]
+}

@@ -152,6 +152,17 @@ int Random(int min,int max)
 	return min + rand() % (max - min + 1);
 }
 
+unsigned int Fnv1a32(const std::string &value)
+{
+	unsigned int hash = 2166136261u;
+	for(std::string::const_iterator it = value.begin(); it != value.end(); ++it)
+	{
+		hash ^= static_cast<unsigned char>(*it);
+		hash *= 16777619u;
+	}
+	return hash;
+}
+
 bool RandomSequence(int *array,int arrayLen,int max)
 {
 	if(array == NULL || arrayLen < 0 || max < arrayLen)

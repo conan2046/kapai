@@ -5,10 +5,10 @@
 
 ## 当前批次
 
-- Bag：G0-G5 已通过；G6 等待最后相关变更后的用户真实 Play 确认，`manualPassed=false`。
+- Bag：仅G0保留；G1/G4/G5证据后仍有Cocos夹具与Bag运行时代码变化，当前输入指纹失败，G1-G6需串行重验。
 - EnhanceMaster：G0-G3 已通过；等待早期用户 Play，未进入 G4。
 - HeroCultivation：G0-G2 已通过，G3 初版完成；等待用户按最终布局复测，未进入 G4。
-- HeroEquip：仅 G0 通过；G1-G6 保持 pending，旧 33 控件和旧截图不可复用。
+- HeroEquip：G0-G2通过；G3早期真人Play pending，旧G3-G6不可复用。
 - 同一时间只推进用户当前指定的一个模块；上一门禁未通过不得进入下一门禁或下一模块。
 
 ## 当前工作树保护
