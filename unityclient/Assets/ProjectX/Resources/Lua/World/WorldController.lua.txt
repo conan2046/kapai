@@ -32,10 +32,12 @@ local function send(op, write)
 end
 
 local function requestWorld()
+    M.requestedStageId = 0
     send(1, function(message) message:WriteByte(M.mapType) end)
 end
 
 local function requestChapter(chapterId)
+    M.requestedStageId = 0
     send(2, function(message)
         message:WriteByte(M.mapType)
         message:WriteUInt(chapterId)
@@ -90,6 +92,15 @@ local function claimBox(boxId)
     end)
 end
 
+local function requestAchievement()
+    send(11)
+end
+
+local function claimAchievement(index)
+    if index < 1 or index > 6 then return end
+    send(12, function(message) message:WriteByte(index) end)
+end
+
 local function rewardDefinition(id)
     return itemsById[id] or worldMissingFragments[id] or {}
 end
@@ -129,6 +140,8 @@ function M.requestStage(stageId) requestStage(stageId) end
 function M.sweepSelected() sweepStage(Bridge:GetWorldSelectedStageId()) end
 function M.resetStage(stageId) resetStage(stageId) end
 function M.claimBox(boxId) claimBox(boxId) end
+function M.requestAchievement() requestAchievement() end
+function M.claimAchievement(index) claimAchievement(index) end
 function M.queryHeroEquipmentStages()
     Bridge:BeginHeroEquipmentStageChecks()
     local stages = {
@@ -256,12 +269,12 @@ local function readChapter(message)
     elseif M.validationStage == "verify_world" then
         M.validationStage = "verify_stage"
         requestStage(M.validationStageId)
-    elseif M.validationStage ~= "map_capture_running" then
-        -- CaptureWorldMapAndContinue owns the real previous/next/chapter-row
-        -- probes.  Auto-opening a stage for every intermediate op=2 reply lets
-        -- an earlier chapter's op=27 race the final selected chapter and enter
-        -- detail capture with stale data.
-        M.openPreferredStage()
+    else
+        -- A normal /320 op=2 response only opens kapaiguaiwuLayer.  The Cocos
+        -- flow does not request op=27 or show guanqiaxiangxiLayer until the
+        -- player really clicks a stage node.  Keeping requestedStageId at zero
+        -- also prevents a late unrelated op=27 response from opening detail.
+        M.requestedStageId = 0
     end
 end
 
@@ -415,6 +428,23 @@ function M.onPacket(command, message)
     elseif op == 6 then readSweep(message)
     elseif op == 7 then readReset(message)
     elseif op == 8 then readBattleResult(message)
+    elseif op == 11 then
+        local success = message:ReadByte()
+        if success == 0 then fail("World/320 op=11 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown")); return true end
+        local orderType = message:ReadByte()
+        local bitMap = message:ReadByte()
+        if message.Remaining ~= 0 then fail("World/320 op=11 unread bytes: " .. tostring(message.Remaining)); return true end
+        Bridge:SetWorldAchievementState(orderType, bitMap)
+    elseif op == 12 then
+        local index = message:ReadByte()
+        local success = message:ReadByte()
+        if success == 0 then fail("World/320 op=12 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown")); return true end
+        local orderType = message:ReadByte()
+        local bitMap = message:ReadByte()
+        local rewardType = message:ReadWord()
+        local amount = message:ReadUInt()
+        if message.Remaining ~= 0 then fail("World/320 op=12 unread bytes: " .. tostring(message.Remaining)); return true end
+        Bridge:ApplyWorldAchievementClaim(index, orderType, bitMap, rewardType, amount)
     elseif op == 27 then readStage(message)
     else return true end
     return true

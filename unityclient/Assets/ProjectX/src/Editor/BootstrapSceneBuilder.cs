@@ -96,6 +96,7 @@ namespace ProjectX.Editor
         private const string WorldBattleStatisticsPrefab = "Assets/ProjectX/res/csd/Prefabs/common/zhandoutongji.prefab";
         private const string BattleFightLayerPrefab = "Assets/ProjectX/res/csd/Prefabs/common/FightLayer.prefab";
         private const string WorldBoxAwardPrefab = "Assets/ProjectX/res/csd/Prefabs/guaiwubaoxiangLayer.prefab";
+        private const string WorldAchievementPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/zhuxianchengjiu.prefab";
         private const string WelfarePrefab = "Assets/ProjectX/res/csd/Prefabs/WelfareLayer.prefab";
         private const string WelfareSignPrefab = "Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab";
         private const string WelfareOnlinePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab";
@@ -188,6 +189,7 @@ namespace ProjectX.Editor
             new PrefabSpec(WorldBattleResultPrefab, false),
             new PrefabSpec(WorldBattleStatisticsPrefab, false),
             new PrefabSpec(WorldBoxAwardPrefab, false),
+            new PrefabSpec(WorldAchievementPrefab, false),
             new PrefabSpec(WelfarePrefab, false),
             new PrefabSpec(WelfareSignPrefab, false),
             new PrefabSpec(WelfareOnlinePrefab, false),
@@ -351,7 +353,8 @@ namespace ProjectX.Editor
             foreach (string configName in new[]
                      {
                          "bigmap_dat", "map_res_dat", "maplist_dat", "fight_config_dat",
-                         "monster_boss_basic_dat", "exp_dat", "hero_dat", "star_dat",
+                         "monster_boss_basic_dat", "exp_dat", "reward_fixed_dat", "map_achievement_dat",
+                         "hero_dat", "star_dat",
                          "break_dat", "xiulian_dat"
                      })
             {

@@ -2274,10 +2274,12 @@ function Assert-UnityMigrationCocosIdentityEvidence {
     )
     $entry = Import-UnityMigrationJson -Root $Root -Path $Path
     $scope = Get-UnityMigrationPropertyValue -Object $Matrix -Name "scope" -Default $null
-    $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
-    $expectedRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $fallbackUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
+    $fallbackRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedUserId" -Default $fallbackUserId)
+    $expectedRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedRoleId" -Default $fallbackRoleId)
     if ($expectedUserId -eq 0 -or $expectedRoleId -eq 0) {
-        throw "Module '$Module' matrix scope must freeze fixedUserId/fixedRoleId before G1."
+        throw "Module '$Module' matrix scope must freeze a Cocos fixed identity before G1."
     }
     if ([string]$entry.Value.module -ine $Module -or -not [bool]$entry.Value.success -or
         [uint32]$entry.Value.userId -ne $expectedUserId -or [uint32]$entry.Value.roleId -ne $expectedRoleId) {

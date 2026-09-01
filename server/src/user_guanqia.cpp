@@ -893,7 +893,6 @@ void CUserGuanQia::EnterGuanQiaFight(CUser* pUser, uint8 type, uint32 mapId, uin
 	}
 	
 	if (gqScore->nodeStars.find(nodeId) == gqScore->nodeStars.end())
-	if (gqScore == NULL)
 	{
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
 		return;

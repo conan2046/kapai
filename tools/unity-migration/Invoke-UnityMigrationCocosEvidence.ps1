@@ -87,10 +87,12 @@ if ($Action -eq "StartFixedClient") {
     $transport = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedPreflight | ConvertFrom-Json
     if (-not [bool]$transport.transportReady) { throw "Computer Use transport preflight is not ready." }
     $scope = Get-UnityMigrationPropertyValue -Object $matrix -Name "scope" -Default $null
-    $userId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
-    $roleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $fallbackUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
+    $fallbackRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $userId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedUserId" -Default $fallbackUserId)
+    $roleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedRoleId" -Default $fallbackRoleId)
     if ($userId -eq 0 -or $roleId -eq 0) {
-        throw "Module '$Module' matrix scope must freeze fixedUserId/fixedRoleId before G1."
+        throw "Module '$Module' matrix scope must freeze a Cocos fixed identity before G1."
     }
     if (@(Get-Process ProjectX -ErrorAction SilentlyContinue).Count -gt 0) {
         throw "Stop the existing ProjectX.exe before StartFixedClient."

@@ -5,6 +5,7 @@ import os
 import shutil
 import sqlite3
 import struct
+import time
 import zlib
 from datetime import datetime, timezone
 
@@ -154,7 +155,13 @@ def relogin_spirit_matches(expected, current):
     expected_time = int(expected["lastSpiritTime"])
     current_spirit = int(current["spirit"])
     current_time = int(current["lastSpiritTime"])
-    if expected_spirit >= SPIRIT_FULL or current_time < expected_time:
+    if expected_spirit >= SPIRIT_FULL:
+        return False, "invalid-clock"
+    if current_spirit == SPIRIT_FULL and current_time == 0:
+        cap_time = expected_time + (SPIRIT_FULL - expected_spirit) * SPIRIT_REGEN_SECONDS
+        matched = int(time.time()) >= cap_time
+        return matched, "normalized-passive-regeneration-cap" if matched else "premature-full-normalization"
+    if current_time < expected_time:
         return False, "invalid-clock"
     elapsed = current_time - expected_time
     if elapsed % SPIRIT_REGEN_SECONDS != 0:

@@ -15,12 +15,21 @@ ISOLATION_ROLE_ID = 1000006
 TARGET_MAP_ID = 1003
 ADJACENT_MAP_ID = 1002
 TARGET_STAGE_ID = 10023
+FIXTURE_STAGE_STARS = {
+    10021: 3,
+    10022: 3,
+    10023: 3,
+    10024: 1,
+    10025: 0,
+}
 TARGET_BOX_IDS = (10031, 20031)
 COCOS_ROLE_LEVEL = 99
 COCOS_EXP = 0
 COCOS_ZHANDOU_LI = 17240
 COCOS_VISUAL_STAMINA = 101
 COCOS_RETURN_STAMINA = 96
+SPIRIT_FULL = 100
+SPIRIT_REGEN_SECONDS = 360
 COCOS_PET = "78da6362b464606400014606ce17ddfd4f5b573cddbf8081c1012ecaf6b279e2933dcb181800ccdb0b2b"
 COCOS_ZHENFA = "78da63606464606465b264c00e581112000bde0082"
 COCOS_PET_EQUIP = "78da63616064c8ad7bc9cc00041dc20c0c8c8c8cfc0c4c40a15760211060646006f25f23f15980fc37487c262443185991b433b28155c8310000a4f10c00"
@@ -165,8 +174,9 @@ def patch_world(value):
                                 "nodeStars": {}, "fixIds": [], "fixStates": {}})
     primary["curMapId"] = TARGET_MAP_ID
     primary["curNodeId"] = TARGET_STAGE_ID
-    chapter["sumStar"] = max(int(chapter["sumStar"]), 10)
-    chapter["nodeStars"][TARGET_STAGE_ID] = max(int(chapter["nodeStars"].get(TARGET_STAGE_ID, 0)), 3)
+    for stage_id, stars in FIXTURE_STAGE_STARS.items():
+        chapter["nodeStars"][stage_id] = stars
+    chapter["sumStar"] = sum(int(stars) for stars in chapter["nodeStars"].values())
     for fix_id in TARGET_BOX_IDS:
         if fix_id not in chapter["fixIds"]:
             chapter["fixIds"].append(fix_id)
@@ -191,6 +201,11 @@ def world_state(value):
         "stageId": primary["curNodeId"],
         "chapterStars": chapter["sumStar"],
         "stageStars": chapter["nodeStars"].get(TARGET_STAGE_ID, 0),
+        "fixtureStageStars": {
+            str(stage_id): chapter["nodeStars"].get(stage_id)
+            for stage_id in FIXTURE_STAGE_STARS
+        },
+        "computedChapterStars": sum(int(stars) for stars in chapter["nodeStars"].values()),
         "boxStates": {str(fix_id): chapter["fixStates"].get(fix_id, 0) for fix_id in TARGET_BOX_IDS},
     }
 
@@ -200,7 +215,11 @@ def assert_world(value, allow_claimed=True):
     expected_states = ({1, 2} if allow_claimed else {1})
     if (not state.get("chapterPresent") or not state.get("adjacentChapterPresent")
             or state["stageId"] != TARGET_STAGE_ID
+            or state["chapterStars"] != state["computedChapterStars"]
             or state["chapterStars"] < 10 or state["stageStars"] < 3
+            or state["fixtureStageStars"] != {
+                str(stage_id): stars for stage_id, stars in FIXTURE_STAGE_STARS.items()
+            }
             or any(value not in expected_states for value in state["boxStates"].values())):
         raise RuntimeError(f"World injected state mismatch: {state}")
     return state
@@ -293,7 +312,13 @@ def assert_battle_input(connection, role_id):
     return state
 
 
-def stable_hash(connection, user_id, role_id):
+STABLE_COLUMNS = (
+    "package", "save_data", "user_spirit", "role_money", "exp", "level",
+    "pet", "zhenfa", "user_money", "bd_money",
+)
+
+
+def stable_state(connection, user_id, role_id):
     row = connection.execute(
         "SELECT r.package,r.save_data,r.user_spirit,r.money,r.exp,r.level,r.pet,r.zhenfa,u.money,u.bd_money "
         "FROM role_info r JOIN user_info1 u ON u.id=? AND CAST(u.role0 AS INTEGER)=r.id WHERE r.id=?",
@@ -301,8 +326,57 @@ def stable_hash(connection, user_id, role_id):
     ).fetchone()
     if row is None:
         raise RuntimeError(f"World identity {user_id}/{role_id} is missing")
-    payload = "|".join("" if value is None else str(value) for value in row)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest().upper()
+    values = ["" if value is None else str(value) for value in row]
+    spirit = zlib.decompress(bytes.fromhex(values[2]))
+    if len(spirit) < 6:
+        raise RuntimeError("World stable-state user_spirit is truncated")
+    return {
+        "hash": hashlib.sha256("|".join(values).encode("utf-8")).hexdigest().upper(),
+        "fieldHashes": {
+            name: hashlib.sha256(value.encode("utf-8")).hexdigest().upper()
+            for name, value in zip(STABLE_COLUMNS, values)
+        },
+        "userSpirit": {
+            "value": struct.unpack_from("<H", spirit, 0)[0],
+            "lastTime": struct.unpack_from("<I", spirit, 2)[0],
+        },
+    }
+
+
+def stable_hash(connection, user_id, role_id):
+    return stable_state(connection, user_id, role_id)["hash"]
+
+
+def relogin_spirit_matches(expected, current):
+    expected_value = int(expected["value"])
+    expected_time = int(expected["lastTime"])
+    current_value = int(current["value"])
+    current_time = int(current["lastTime"])
+    if expected_value == current_value and expected_time == current_time:
+        return True, "exact"
+    if expected_value >= SPIRIT_FULL:
+        return False, "invalid-clock"
+    # The game server canonicalizes a naturally refilled spirit blob to
+    # value=SPIRIT_FULL,lastTime=0.  Zero no longer carries the elapsed interval,
+    # so prove the cap from the original timestamp and the current wall clock.
+    if current_value == SPIRIT_FULL and current_time == 0:
+        cap_time = expected_time + (SPIRIT_FULL - expected_value) * SPIRIT_REGEN_SECONDS
+        matched = int(time.time()) >= cap_time
+        return matched, "normalized-passive-regeneration-cap" if matched else "premature-full-normalization"
+    if current_time < expected_time:
+        return False, "invalid-clock"
+    elapsed = current_time - expected_time
+    if elapsed % SPIRIT_REGEN_SECONDS != 0:
+        return False, "non-integral-regeneration"
+    regenerated = elapsed // SPIRIT_REGEN_SECONDS
+    predicted = min(SPIRIT_FULL, expected_value + regenerated)
+    if predicted >= SPIRIT_FULL:
+        matched = current_value == SPIRIT_FULL and current_time in (
+            0, expected_time + regenerated * SPIRIT_REGEN_SECONDS,
+        )
+    else:
+        matched = current_value == predicted
+    return matched, "normalized-passive-regeneration" if matched else "unexpected-spirit-change"
 
 
 def clone_row(connection, table, source_id, target_id, replacements):
@@ -343,7 +417,8 @@ def setup(args, visual=False):
     snapshot_hash = file_hash(args.backup)
     backup_connection = sqlite3.connect(args.backup)
     try:
-        stable = stable_hash(backup_connection, args.user_id, args.role_id)
+        stable_snapshot = stable_state(backup_connection, args.user_id, args.role_id)
+        stable = stable_snapshot["hash"]
     finally:
         backup_connection.close()
     connection = sqlite3.connect(args.database)
@@ -391,7 +466,7 @@ def setup(args, visual=False):
         "action": "Setup", "dataBackend": "sqlite", "database": args.database,
         "userId": args.user_id, "roleId": args.role_id,
         "isolationUserId": ISOLATION_USER_ID, "isolationRoleId": ISOLATION_ROLE_ID,
-        "snapshotHash": snapshot_hash, "stableHash": stable,
+        "snapshotHash": snapshot_hash, "stableHash": stable, "stableState": stable_snapshot,
         "visualMode": visual,
         "visualStamina": COCOS_VISUAL_STAMINA if visual else None,
         "injected": injected_state, "battleInput": injected_battle_input, "createdUtc": utc_now(),
@@ -479,12 +554,40 @@ def assert_relogin(args):
     snapshot = read_json(args.evidence)
     connection = sqlite3.connect(args.database)
     try:
-        actual = stable_hash(connection, args.user_id, args.role_id)
+        actual_state = stable_state(connection, args.user_id, args.role_id)
+        actual = actual_state["hash"]
     finally:
         connection.close()
-    if actual != snapshot["stableHash"]:
+    expected_state = snapshot.get("stableState", {})
+    expected_hashes = expected_state.get("fieldHashes", {})
+    current_hashes = actual_state.get("fieldHashes", {})
+    changed_fields = [
+        name for name in STABLE_COLUMNS
+        if expected_hashes.get(name) != current_hashes.get(name)
+    ]
+    spirit_matches, spirit_oracle = relogin_spirit_matches(
+        expected_state.get("userSpirit", {}), actual_state.get("userSpirit", {}),
+    )
+    normalized_match = changed_fields in ([], ["user_spirit"]) and spirit_matches
+    if actual != snapshot["stableHash"] and not normalized_match:
+        snapshot["reloginMismatch"] = {
+            "expectedHash": snapshot["stableHash"],
+            "actualHash": actual,
+            "changedFields": changed_fields,
+            "spiritOracle": spirit_oracle,
+            "expectedState": expected_state,
+            "actualState": actual_state,
+            "diagnosedUtc": utc_now(),
+        }
+        write_json(args.evidence, snapshot)
         raise RuntimeError(f"World SQLite stable relogin hash mismatch: {actual}")
-    snapshot.update({"postLoginHashVerified": True, "postLoginStableHash": actual, "postLoginVerifiedUtc": utc_now()})
+    snapshot.update({
+        "postLoginHashVerified": True,
+        "postLoginStableHash": actual,
+        "postLoginChangedFields": changed_fields,
+        "postLoginSpiritOracle": spirit_oracle,
+        "postLoginVerifiedUtc": utc_now(),
+    })
     write_json(args.evidence, snapshot)
 
 

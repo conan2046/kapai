@@ -1720,6 +1720,9 @@ Assert-ToolchainTest (
     $fengShenStorySqliteFixtureSource.Contains('SPIRIT_FULL = 100') -and
     $fengShenStorySqliteFixtureSource.Contains('SPIRIT_REGEN_SECONDS = 360') -and
     $fengShenStorySqliteFixtureSource.Contains('def relogin_spirit_matches(expected, current):') -and
+    $fengShenStorySqliteFixtureSource.Contains('if current_spirit == SPIRIT_FULL and current_time == 0:') -and
+    $fengShenStorySqliteFixtureSource.Contains('cap_time = expected_time + (SPIRIT_FULL - expected_spirit) * SPIRIT_REGEN_SECONDS') -and
+    $fengShenStorySqliteFixtureSource.Contains('normalized-passive-regeneration-cap') -and
     $fengShenStorySqliteFixtureSource.Contains('changed != ["role.user_spirit"] or not spirit_matches') -and
     $fengShenStorySqliteFixtureSource.Contains('"reloginSpiritOracle": spirit_oracle') -and
     $fengShenStorySqliteFixtureSource.Contains('patch_spirit(role[2], 100)') -and
@@ -2361,6 +2364,10 @@ $battleSkillNameFiles = @(Get-ChildItem -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXBattle/SkillName") -File -Filter '*.png')
 $worldPresenterSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
+$formationPopupSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
+$worldControllerSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
 $worldFixtureSource = Get-Content -LiteralPath (
     Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
 $worldSqliteFixtureSource = Get-Content -LiteralPath (
@@ -2383,6 +2390,8 @@ $worldServerConfigSource = Get-Content -LiteralPath (
 $legacyMessageSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/Network/LegacyTcpMessage.cs") -Raw -Encoding UTF8
 $worldEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "World" })[0]
+$worldControlMatrix = Get-Content -LiteralPath (
+    Join-Path $root "docs/unityclient/matrices/WORLD_CONTROLS.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $worldValidationStart = $projectXAppSource.IndexOf('private IEnumerator CaptureWorldMap()', [StringComparison]::Ordinal)
 $worldValidationEnd = $projectXAppSource.IndexOf('private IEnumerator CaptureWorldBattleResult', [StringComparison]::Ordinal)
 $worldValidationInteractionSource = if ($worldValidationStart -ge 0 -and $worldValidationEnd -gt $worldValidationStart) {
@@ -2414,16 +2423,30 @@ Assert-ToolchainTest (
     $worldEvidenceContract.fixedAccount.sqlitePath -eq 'AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db' -and
     [uint32]$worldEvidenceContract.fixedAccount.userId -eq 7200057 -and
     [uint32]$worldEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    [uint32]$worldControlMatrix.scope.fixedUserId -eq 7200057 -and
+    [uint32]$worldControlMatrix.scope.fixedRoleId -eq 1000003 -and
+    [uint32]$worldControlMatrix.scope.cocosFixedUserId -eq 7200057 -and
+    [uint32]$worldControlMatrix.scope.cocosFixedRoleId -eq 1000115 -and
     $worldEvidenceContract.fixedAccount.postValidationAdapterAction -eq 'AssertPostValidation' -and
     $worldEvidenceContract.fixedAccount.g5VisualSetupAction -eq 'SetupVisual' -and
     $worldEvidenceContract.fixedAccount.g5VisualAssertAction -eq 'AssertPostValidation' -and
     @($worldEvidenceContract.fixedAccount.g5VisualValidationFlags) -contains '-projectXWorldG3Validation' -and
+    @($worldEvidenceContract.g5.cocosBaselineInputs) -contains 'tools/unity-migration/Invoke-WorldCocosFixture.ps1' -and
+    @($worldEvidenceContract.g5.cocosBaselineInputs) -notcontains 'tools/unity-migration/Invoke-WorldCocosFixture.py' -and
     $worldFixtureSource.Contains('[string]$DatabasePath = ""') -and
     $worldFixtureSource.Contains('World fixture only accepts Application.persistentDataPath/LocalServer/projectx.db.') -and
     $worldFixtureSource.Contains('Invoke-WorldCocosFixture.py') -and
     $worldSqliteFixtureSource.Contains('copy_database(args.backup, args.database)') -and
     $worldSqliteFixtureSource.Contains('ADJACENT_MAP_ID = 1002') -and
     $worldSqliteFixtureSource.Contains('TARGET_STAGE_ID = 10023') -and
+    $worldSqliteFixtureSource.Contains('FIXTURE_STAGE_STARS = {') -and
+    $worldSqliteFixtureSource.Contains('10021: 3,') -and
+    $worldSqliteFixtureSource.Contains('10022: 3,') -and
+    $worldSqliteFixtureSource.Contains('10023: 3,') -and
+    $worldSqliteFixtureSource.Contains('10024: 1,') -and
+    $worldSqliteFixtureSource.Contains('10025: 0,') -and
+    $worldSqliteFixtureSource.Contains('chapter["sumStar"] = sum(int(stars) for stars in chapter["nodeStars"].values())') -and
+    $worldSqliteFixtureSource.Contains('state["chapterStars"] != state["computedChapterStars"]') -and
     $worldSqliteFixtureSource.Contains('COCOS_ROLE_LEVEL = 99') -and
     $worldSqliteFixtureSource.Contains('COCOS_VISUAL_STAMINA = 101') -and
     $worldSqliteFixtureSource.Contains('COCOS_RETURN_STAMINA = 96') -and
@@ -2436,6 +2459,13 @@ Assert-ToolchainTest (
     $worldSqliteFixtureSource.Contains('assert_battle_input(connection, args.role_id)') -and
     $worldSqliteFixtureSource.Contains('def assert_post_validation(args):') -and
     $worldSqliteFixtureSource.Contains('"AssertPostValidation": assert_post_validation') -and
+    $worldSqliteFixtureSource.Contains('SPIRIT_REGEN_SECONDS = 360') -and
+    $worldSqliteFixtureSource.Contains('def relogin_spirit_matches(expected, current):') -and
+    $worldSqliteFixtureSource.Contains('if current_value == SPIRIT_FULL and current_time == 0:') -and
+    $worldSqliteFixtureSource.Contains('cap_time = expected_time + (SPIRIT_FULL - expected_value) * SPIRIT_REGEN_SECONDS') -and
+    $worldSqliteFixtureSource.Contains('normalized-passive-regeneration-cap') -and
+    $worldSqliteFixtureSource.Contains('changed_fields in ([], ["user_spirit"])') -and
+    $worldSqliteFixtureSource.Contains('"postLoginSpiritOracle": spirit_oracle') -and
     $worldSqliteFixtureSource.Contains('r.pet,r.zhenfa,u.money,u.bd_money') -and
     $worldSqliteFixtureSource.Contains('assert_world(value, allow_claimed=False)') -and
     $worldSqliteFixtureSource.Contains('remove_sidecars(args.backup)')
@@ -2530,12 +2560,54 @@ Assert-ToolchainTest (
 ) "World reset confirmation regressed to the hidden single-confirm control or a callback-only path."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('worldFormationReturnPending = true;') -and
+    $projectXAppSource.Contains('worldFormationReturnToDetail = returnToDetail;') -and
     $projectXAppSource.IndexOf('if (worldFormationReturnPending && IsHeroOpen)', [StringComparison]::Ordinal) -lt
         $projectXAppSource.IndexOf('if (IsWorldOpen)', [StringComparison]::Ordinal) -and
-    $projectXAppSource.Contains('bool restoreWorldDetail = worldFormationReturnPending && IsHeroOpen;') -and
+    $projectXAppSource.Contains('bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;') -and
     $projectXAppSource.Contains('bool stackPopped = services?.UiStack.Pop() ?? false;') -and
-    $projectXAppSource.Contains('worldPresenter?.ShowSelectedStage();')
-) "World pre-challenge formation close no longer restores the raycastable authoritative stage detail."
+    $projectXAppSource.Contains('formationPopupView?.SetVisible(false);') -and
+    $projectXAppSource.Contains('if (restoreDetail) worldPresenter?.ShowSelectedStage();') -and
+    $projectXAppSource.Contains('else worldPresenter?.ShowStages();') -and
+    $projectXAppSource.Contains('World stage lineup close did not return cleanly to the stage map.') -and
+    $formationPopupSource.Contains('new GameObject("RuntimeFormationClose"') -and
+    $formationPopupSource.Contains('public void RefreshCloseInteraction()') -and
+    $formationPopupSource.Contains('rect.localPosition = new Vector3(') -and
+    $projectXAppSource.Contains('formationPopupPresenter.CloseInteractionButton')
+) "World formation return lost its detail-versus-stage-map origin contract."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('private bool worldFormationPopupRequestPending;') -and
+    $projectXAppSource.Contains('HandleWorldFormationPopupClick,') -and
+    $projectXAppSource.Contains('CallLua(onHeroClicked, "World.FormationPopup")') -and
+    $projectXAppSource.Contains('if (worldFormationPopupRequestPending)') -and
+    $projectXAppSource.Contains('services.Formation.CombatHeroes.Any(heroId => heroId > 0)') -and
+    $projectXAppSource.Contains('formationPopupPresenter.RenderedModelCount != expectedFormationModels') -and
+    $projectXAppSource.IndexOf('formationPopupView.SetVisible(true);', [StringComparison]::Ordinal) -lt
+        $projectXAppSource.IndexOf('formationPopupPresenter.Render();', [StringComparison]::Ordinal)
+) "World stage formation popup no longer guarantees authoritative heroes, Imod models, or active-surface playback."
+Assert-ToolchainTest (
+    [regex]::IsMatch($worldPresenterSource,
+        'Bind\(mapView, "Layer/Title/CloseBtn", \(\) =>[\s\S]*?if \(showChapters\) close\(\);[\s\S]*?else ShowChapterList\(\);[\s\S]*?}, true\);') -and
+    $worldPresenterSource.Contains('public bool ChapterListVisible => showChapters;') -and
+    $projectXAppSource.Contains('worldPresenter.FindInteractionButton("Layer/Title/CloseBtn")') -and
+    $projectXAppSource.Contains('World stage-map close did not return to WorldMapNewLayer:') -and
+    $projectXAppSource.Contains('WorldMapNewLayer close did not return to UImainLayer_new:') -and
+    ([regex]::Matches($worldControllerSource,
+        'local function request(?:World|Chapter)\([^\)]*\)[\s\S]*?M\.requestedStageId = 0').Count -eq 2) -and
+    $worldControllerSource.Contains('A normal /320 op=2 response only opens kapaiguaiwuLayer.') -and
+    -not [regex]::IsMatch($worldControllerSource,
+        'elseif M\.validationStage ~= "map_capture_running" then[\s\S]*?M\.openPreferredStage\(\)')
+) "World stage close, WorldMapNewLayer close, or stale op27 cancellation drifted from the two-step return contract."
+Assert-ToolchainTest (
+    $worldGuanQiaServerSource.Contains('if (gqScore->nodeStars.find(nodeId) == gqScore->nodeStars.end())') -and
+    -not [regex]::IsMatch($worldGuanQiaServerSource,
+        'if \(gqScore->nodeStars\.find\(nodeId\) == gqScore->nodeStars\.end\(\)\)\s*if \(gqScore == NULL\)') -and
+    $worldPresenterSource.Contains('viewportObject.transform.SetAsFirstSibling();') -and
+    $worldPresenterSource.Contains('public Button FindStageButton(uint stageId)') -and
+    $worldPresenterSource.Contains('Image hitSurface = touch.GetComponent<Image>() ?? touch.gameObject.AddComponent<Image>();') -and
+    $worldPresenterSource.Contains('button.targetGraphic = hitSurface;') -and
+    -not $worldPresenterSource.Contains('new GameObject("Stage_" + stage.Id') -and
+    ([regex]::Matches($projectXAppSource, 'worldPresenter\.FindStageButton\(').Count -ge 2)
+) "World stage clicks can drift to an adjacent node or allow a locked node to play without an op=8 settlement."
 Assert-ToolchainTest (
     @($worldEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXWorldG3Validation' -and
     $appLaunchOptionsSource.Contains('public bool WorldG3Validation => HasFlag("-projectXWorldG3Validation");') -and
@@ -2561,6 +2633,9 @@ Assert-ToolchainTest (
     $worldOutcomeSource.Contains('dimmer.transform.SetAsFirstSibling();') -and
     $worldOutcomeSource.Contains('washImage.color = new Color(0f, 0f, 0f, 0.58f);') -and
     $projectXAppSource.Contains('if (!pendingWorldBattleResult) worldBattlePlaybackPresenter.Hide();') -and
+    $projectXAppSource.Contains('pendingWorldBattleResult = false;') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter?.Hide();') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onWorldRefresh, "World.Continue");') -and
     $worldOutcomeSource.Contains('new GameObject("VictoryTitleImod", typeof(RectTransform))') -and
     $worldOutcomeSource.Contains('new Vector2(201.2585f, 283.952f)') -and
     $worldOutcomeSource.Contains('LoadLegacy("res2/animation/effect_zhandoujiesuan_2")') -and
@@ -2619,6 +2694,8 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('Button replay = worldOutcomePresenter.ReplayInteractionButton;') -and
     $projectXAppSource.Contains('// The close click reactivates the result Canvas.') -and
     $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-entry.png")') -and
+    $projectXAppSource -match 'while \(battleStartElapsed < 1\.12f\)[\s\S]*?SetBattleStartElapsed\(battleStartElapsed\);[\s\S]*?BuildUiMigrationPath\("world-battle-entry\.png"\)[\s\S]*?float normalActionDuration' -and
+    $projectXAppSource -match 'worldG4BattleReplayValidated\)[\s\S]*?WaitForSecondsRealtime\(\.15f\)[\s\S]*?BuildUiMigrationPath\("world-battle-replay\.png"\)' -and
     $projectXAppSource.Contains('world-battle-{actionKind}-{actionIndex:D2}.png') -and
     $projectXAppSource.Contains('world-battle-shake-{actionIndex:D2}.png') -and
     $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-outcome.png")') -and
@@ -2637,7 +2714,9 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('// The Cocos result is the CSB victory title plus the 0.7-second') -and
     $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-replay.png")') -and
     $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-return.png")') -and
-    ([regex]::Matches($projectXAppSource, 'services\.Options\.WorldBattleValidation && !services\.Options\.WorldG3Validation').Count -eq 4) -and
+    ([regex]::Matches($projectXAppSource, 'services\.Options\.WorldBattleValidation && !services\.Options\.WorldG3Validation').Count -eq 3) -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(box)') -and
+    -not $projectXAppSource.Contains('box.onClick.Invoke();') -and
     $projectXAppSource.Contains('InvokeEventSystemRaycastClick(continueButton)') -and
     $projectXAppSource.Contains('InvokeEventSystemRaycastClick(statistics)') -and
     $projectXAppSource.Contains('int expectedFriendlyStatistics = services.WorldBattleReplay.Units.Count(value => !value.IsEnemy);') -and
@@ -2861,8 +2940,10 @@ Assert-ToolchainTest (
         'HandleBack\(\)[\s\S]*?if \(IsWorldOpen\)[\s\S]*?worldStageView\?\.SetVisible\(false\);[\s\S]*?worldMapView\?\.SetVisible\(false\);[\s\S]*?worldView\?\.SetVisible\(false\);[\s\S]*?UiStack\.Pop\(\)')
 ) "World back-navigation regression: closing the module leaves reparented chapter/stage surfaces active after the root UiStack pop."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
-        'CompleteHeroLuaReadValidation[\s\S]*?if \(services\.Options\.WorldBattleValidation\)[\s\S]*?World pre-challenge formation ready[\s\S]*?return;[\s\S]*?Complete\(showBag')
+    ([regex]::IsMatch($projectXAppSource,
+        'CompleteHeroLuaReadValidation[\s\S]*?!services\.Options\.WorldBattleValidation\) ShowFormationPopup\(\);[\s\S]*?if \(services\.Options\.WorldBattleValidation\)[\s\S]*?World pre-challenge formation ready[\s\S]*?return;[\s\S]*?Complete\(showBag')) -and
+    ([regex]::Matches($projectXAppSource,
+        '!services\.Options\.WorldBattleValidation\) ShowFormationPopup\(\);').Count -eq 2)
 ) "World cross-module formation probe can again terminate the World runner as a standalone Formation completion."
 Assert-ToolchainTest (
     [regex]::IsMatch($projectXAppSource,

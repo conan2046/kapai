@@ -718,7 +718,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/WORLD.md",
-      "note": "2026-08-29 user invalidated the complete Unity battle presentation. G0 refreezes current Cocos source/resource/protocol/fixture inputs; G1 must recapture current native battle states before G2 is retained or G3 is rebuilt. All prior G1-G6 runtime evidence is historical only.",
+      "note": "2026-09-01 World G0-G3 passed after current-source fixed-account batch and real EventSystem validation. User confirmed the post-fix early Play passed; G4-G6 remain pending, and G6 still requires final post-change user confirmation.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/WORLD_CONTROLS.json",
@@ -733,23 +733,16 @@
           ".local/unity-validation/world-cocos-baseline-latest.json",
           ".local/ui-fidelity/World/cocos/g1-current-battle/world-fixed-fixture-snapshot.json"
         ],
-        "G4": [],
-        "G5": [],
-        "G6": [],
         "G2": [
           "docs/unityclient/matrices/WORLD_CONTROLS.json",
           ".local/unity-validation/world-cocos-baseline-latest.json",
           ".local/unity-validation/world-cocos-automation-ledger.json"
         ],
+        "G4": [],
+        "G5": [],
+        "G6": [],
         "G3": [
-          "docs/unityclient/matrices/WORLD_CONTROLS.json",
-          ".local/unity-validation/world-g3-runtime-latest.json",
-          ".local/unity-validation/world-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/world-fixed-account-runner-latest.json",
-          ".local/unity-validation/world-g3-server-runtime-latest.log",
-          ".local/unity-validation/world-g3-buildbatch-current.log",
-          ".local/unity-validation/world-operation-ledger.json",
-          ".local/unity-validation/world-g3-current-summary.json"
+          ".local/unity-validation/world-g3-runtime-latest.json"
         ]
       },
       "gateRevalidations": {
@@ -781,83 +774,59 @@
           ]
         },
         "G3": {
-          "checkedUtc": "2026-08-30T23:10:23.220803Z",
+          "checkedUtc": "2026-09-01T07:23:04.2719629Z",
           "evidence": [
-            "docs/unityclient/matrices/WORLD_CONTROLS.json",
-            ".local/unity-validation/world-g3-runtime-latest.json",
-            ".local/unity-validation/world-fixed-account-data-preflight-latest.json",
-            ".local/unity-validation/world-fixed-account-runner-latest.json",
-            ".local/unity-validation/world-g3-server-runtime-latest.log",
-            ".local/unity-validation/world-g3-buildbatch-current.log",
-            ".local/unity-validation/world-operation-ledger.json",
-            ".local/unity-validation/world-g3-current-summary.json"
+            ".local/unity-validation/world-fixed-account-latest.json"
           ]
         }
       },
       "gateInvalidations": {
         "G3": {
-          "invalidatedUtc": "2026-08-30T22:40:59.7380124Z",
+          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
           "previousState": "passed",
           "previousEvidence": [
-            "docs/unityclient/matrices/WORLD_CONTROLS.json",
-            ".local/unity-validation/world-g3-runtime-latest.json",
-            ".local/unity-validation/world-fixed-account-data-preflight-latest.json",
-            ".local/unity-validation/world-toolchain-g3-final.log",
-            ".local/unity-validation/world-operation-ledger.json",
-            ".local/unity-validation/world-g3-visual-difference-latest.json",
-            "build/ui-migration/world-battle-entry.png",
-            "build/ui-migration/world-battle-skill-01.png",
-            "build/ui-migration/world-battle-normal-04.png",
-            "build/ui-migration/bootstrap-world-result.png"
+            ".local/unity-validation/world-g3-runtime-latest.json"
           ],
-          "reason": "Shared battle runtime changed after the previous World evidence; current source-contract fingerprint BC473ECB1FE7F3B43B9C8E2ACE24ED697F8841F5A3852359D1172ECB07F80F70 no longer matches prior G3 fingerprint F4ACF9D1EFBDA02AB0E785458C82CC6F63A8ADBC478B6771E88124CB04D8D5EE."
+          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
         },
         "G4": {
-          "invalidatedUtc": "2026-08-30T22:40:59.7380124Z",
-          "previousState": "passed",
-          "previousEvidence": [
-            ".local/unity-validation/world-early-user-play-latest.json",
-            ".local/unity-validation/world-agent-test-delegation-20260830.json",
-            ".local/unity-validation/world-fixed-account-latest.json",
-            ".local/unity-validation/world-fixed-account-data-preflight-latest.json",
-            ".local/unity-validation/world-fixed-account-timings-latest.json"
-          ],
-          "reason": "Shared battle runtime changed after the previous World evidence; current source-contract fingerprint BC473ECB1FE7F3B43B9C8E2ACE24ED697F8841F5A3852359D1172ECB07F80F70 no longer matches prior G3 fingerprint F4ACF9D1EFBDA02AB0E785458C82CC6F63A8ADBC478B6771E88124CB04D8D5EE."
-        },
-        "G5": {
-          "invalidatedUtc": "2026-08-30T22:40:59.7380124Z",
-          "previousState": "passed",
-          "previousEvidence": [
-            ".local/ui-fidelity/World/compare/g5-current-battle/report.json"
-          ],
-          "reason": "Shared battle runtime changed after the previous World evidence; current source-contract fingerprint BC473ECB1FE7F3B43B9C8E2ACE24ED697F8841F5A3852359D1172ECB07F80F70 no longer matches prior G3 fingerprint F4ACF9D1EFBDA02AB0E785458C82CC6F63A8ADBC478B6771E88124CB04D8D5EE."
-        },
-        "G6": {
-          "invalidatedUtc": "2026-08-30T22:40:59.7380124Z",
+          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
           "previousState": "pending",
           "previousEvidence": [],
-          "reason": "Shared battle runtime changed after the previous World evidence; current source-contract fingerprint BC473ECB1FE7F3B43B9C8E2ACE24ED697F8841F5A3852359D1172ECB07F80F70 no longer matches prior G3 fingerprint F4ACF9D1EFBDA02AB0E785458C82CC6F63A8ADBC478B6771E88124CB04D8D5EE."
+          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
         }
       },
       "gateTimings": {
         "G3": {
-          "startedUtc": "2026-08-30T22:40:59.7380124Z",
+          "startedUtc": "2026-09-01T09:04:25.2949715Z",
           "startSource": "invalidation"
         },
         "G4": {
-          "startedUtc": "2026-08-30T22:40:59.7380124Z",
+          "startedUtc": "2026-09-01T09:04:25.2949715Z",
           "startSource": "invalidation"
         },
         "G5": {
-          "startedUtc": "2026-08-30T22:40:59.7380124Z",
+          "startedUtc": "2026-09-01T09:04:25.2949715Z",
           "startSource": "invalidation"
         },
         "G6": {
-          "startedUtc": "2026-08-30T22:40:59.7380124Z",
+          "startedUtc": "2026-09-01T09:04:25.2949715Z",
           "startSource": "invalidation"
         }
       },
-      "updatedUtc": "2026-08-30T23:10:23.2231781Z"
+      "updatedUtc": "2026-09-01T09:18:20.7463652Z"
     },
     {
       "module": "Login",

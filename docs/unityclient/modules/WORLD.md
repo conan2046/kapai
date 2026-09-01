@@ -1,6 +1,6 @@
 # 世界/战斗/副本模块
 
-> 状态：V0 产品边界已收口；A=`16,19`，`47–53`确认移除；World自身当前停在G3，列传19的BattleFengShenStory子模块已完成G0-G6。
+> 状态：V0 产品边界已收口；A=`16,19`，`47–53`确认移除；2026-09-01修复详情自动弹出、关卡点击错位、锁定节点假战斗及孤立星级夹具后，目标10023真实`op=8`结算、连续进度、两级返回与重登恢复重新通过标准G3；用户确认本轮早测通过，G4-G6保持pending。列传19的BattleFengShenStory子模块仍为G0-G6通过。
 
 ## V0 当前 Cocos 产品边界（产品决策已确认）
 
@@ -15,10 +15,24 @@
 
 - 本轮范围只处理世界/副本战斗表现；封神剧情保持 G0-G3 等待用户早期 Play，寻宝与公共货币栏暂停。
 - 当前 `cocosBaselineInputs` 已冻结入口、`/320`、`/38` 内嵌 `/21-/23`、`LBattleLogic`、战斗单位/技能/飘字、FightLayer、Imod语义、服务端战报和结算输入；当前指纹由标准 G5 preflight 生成。
-- G1 已在固定身份 `7200057/1000003`、关卡 `10023`、原生 `1334×750` 下重新取得普攻、技能、受击、死亡、伤害飘字、血条、站位、镜头、前后摇、回合节奏、结算、回放二次结算与继续返回；当前目录 `.local/ui-fidelity/World/cocos/g1-current-battle/`，输入指纹 `C958C45DBE2CADA0BDA14B7703A2D6F27ED70B6C9C852FD65D670B1E92DC40A7`。
+- G1 已在 Cocos MySQL 固定身份 `7200057/1000115`、关卡 `10023`、原生 `1334×750` 下重新取得普攻、技能、受击、死亡、伤害飘字、血条、站位、镜头、前后摇、回合节奏、结算、回放二次结算与继续返回；Unity验证使用独立SQLite身份`7200057/1000003`。当前目录 `.local/ui-fidelity/World/cocos/g1-current-battle/`，输入指纹 `F0468C3D6B8645884BE529BEB0B4CAABF12C0CC1C0AE5A399FE482771590D327`。
 - 用户当前不在电脑旁，并于 2026-08-30 明确委托代理全权测试。代理早测必须保持 `userParticipated=false`、`userDelegatedAgentPlay=true`，使用真实 Unity Editor/GameView/EventSystem 与 persistentDataPath SQLite；最终 G6 用户确认仍保留。
 
-## 2026-08-31 当前 G3 结果
+## 2026-09-01 当前 G3-G5 结果
+
+### 2026-09-01 用户早测阻塞修复
+
+- 当前最终G3证据：`.local/unity-validation/world-stage-progression-runtime.log`、`.local/unity-validation/world-g3-runtime-latest.json`、`.local/unity-validation/world-fixed-account-runner-latest.json`。目标节点10023生成权威`guanqia-result`，普通宝箱及确认按钮走真实EventSystem射线点击；连续节点星级、详情打开时机、两级返回、重登哈希、精确恢复和残留清理全部通过。
+
+- 普通关卡宝箱：接入当前 `reward_fixed_dat.lua`，弹窗渲染真实物品名、图标、品质和数量；可领取态显示“领取”并继续使用权威 `/320 op=4`，未解锁/已领取态保留奖励预览。
+- 两级返回：`DadituuiLayer/Title/CloseBtn` 使用独立真实射线面；在`kapaiguaiwuLayer`点击先返回`WorldMapNewLayer`，再从`WorldMapNewLayer`点击返回`UImainLayer_new`，标准G3以连续两次EventSystem点击验证该逆向层级。
+- 详情打开时机：普通`/320 op=2`只显示`kapaiguaiwuLayer`并清空待消费的`requestedStageId`；不再自动发送`op=27`。只有玩家真实点击关卡节点后才请求`op=27`并显示`guanqiaxiangxiLayer`。
+- 关卡点击与星级：移除覆盖原生非线性节点的等宽透明按钮，真实点击改为对应`Node_N/touchLayer`；服务端同时修复未解锁节点判断，禁止“点击2-3却挑战相邻锁定节点、战斗胜利但没有`/320 op=8`结算”的假成功。权威`op=8`仍按`foughtStageId`更新节点星级并由后续`op=2`持久化回读。
+- 固定账号进度：旧SQLite夹具只写`3-3=3星`并强制章节总星数为10，造成前置节点0星的孤立状态。现改为连续链`3-1=3、3-2=3、3-3=3、3-4=1、3-5=0（已解锁）`，并强制`sumStar`等于所有节点星数之和；夹具断言拒绝再次生成跳关数据。
+- 三个入口按Cocos语义拆分：`duiwu`打开直接布阵弹窗，`btn_zhenrong`打开神将阵容页，`Button_zhuxianchengjiu`打开导入的主线成就页；成就页接入 `/320 op=11`查询和`op=12`领取，并读取`map_achievement_dat.lua`渲染六档奖励。
+- 布阵模型：`duiwu`不再直接显示空数据预制体，先通过现有Lua权威链请求`/24`神将和`/48`阵容快照，再显示`shenjiangzhenxingLayer`；固定账号出战神将57已加载`Monster/btm103_zd`并按Cocos动作1循环，G3断言实际模型数等于权威出战数。
+- 星数进度：`DadituuiLayer/Panel_1/jindutiao.fillAmount`改为`OwnedStars/MaximumStars`，不再保留Prefab默认0.66。
+- 固定账号`7200057/1000003`重新完成G3：真实EventSystem三入口与返回、布阵模型、编译预检、重登稳定哈希、整库精确恢复、Cleanup和残留0通过。用户于2026-09-01确认本轮早测通过；星数排行按用户明确要求暂不处理，后续允许从G4继续。
 
 - G0-G2 已按当前源码、资源、协议、固定身份与动态证据重新通过；旧 World G3-G6 未复用。
 - G3 固定账号 batch 已通过：真实 `/38 op=5` 内嵌 `/21-/23`、5 个单位、18 组动作、多目标 HP/飘字/受击/死亡、结算、统计、关闭统计均执行。真实点击 `Button_Replay` 后先显示章节地图，约 `0.5` 秒后调用缓存战报重播并再次进入结算；第二次结算真实点击继续后返回章节地图。共享战报层不再丢弃召唤、逃跑、被动加扣血和喊话，并按当前 `LBattleLogic.lua` 保留闪避、保护者、反震和反击字段；基础闪避字样、保护者承伤、反震/反击回伤已接入播放层。
@@ -36,18 +50,18 @@
 - 运行时通过 `UiPrefabLoader` 复用导入的 `common/FightLayer`，已显示原版顶部栏、18个阵位圈、X1加速和跳过按钮；不修改源Prefab。顶部双方名称按Cocos左右阵营语义显示，当前神将技能名取权威 `HeroCatalog`。
 - 交互：统计、统计关闭、回放、第二次结算继续均使用真实 EventSystem raycast。当前 Cocos 的 `LBattleLogic → LRoleDataMgr:GetFightDatum → FightDatumUI` 使用播放期逐单位战报；Unity 现按同一 `/38` 数据渲染双方单位伤害、承伤与治疗，不再错误要求“/320 无单位战报”的边界弹窗。
 - 数据：仅使用 `Application.persistentDataPath/LocalServer/projectx.db`；快照、Setup/Assert、Restore、重登稳定哈希、Fixture残留0和精确哈希恢复通过。
-- 原固定30秒结算等待在动作集扩充后提前超时，现已按权威 `/22` 动作数增加播放额度；失败与解决记录均保留在 World operation ledger。当前G3为5单位、18动作组并捕获真实type-1普攻；九态固定文件为 `world-battle-entry/normal-attack/skill/hurt-damage/death/round-rhythm/settlement/replay/return.png`，另保留回放瞬时章节图。当前 Cocos 与 Unity 服务器指纹一致：seed `20260830`、replay FNV1a32 `1970000362`、result FNV1a32 `3942185584`；当前 G3 源合同指纹 `5ED9D8C1E89714C6F7AE4B733530CEE143503E76C4DF1620F9808F8F3097192B`；摘要 `.local/unity-validation/world-g3-runtime-latest.json`。
+- 原固定30秒结算等待在动作集扩充后提前超时，现已按权威 `/22` 动作数增加播放额度；失败与解决记录均保留在 World operation ledger。当前G3为5单位、18动作组并捕获真实type-1普攻；九态固定文件为 `world-battle-entry/normal-attack/skill/hurt-damage/death/round-rhythm/settlement/replay/return.png`，另保留回放瞬时章节图。当前 Cocos 与 Unity 服务器指纹一致：seed `20260830`、replay FNV1a32 `1970000362`、result FNV1a32 `3942185584`；当前 G3 源合同指纹 `C6993BCF26AD28F8346ECF2FDA22E2471B39D1FDCC97D78164CF9FEF4DAAC7E5`；摘要 `.local/unity-validation/world-g3-runtime-latest.json`。
 - Cocos角色的等级99、经验0、战力17240、神将57/64、出战57及pet/zhenfa/pet_equip已冻结到Unity SQLite夹具。G3战斗视觉路径不再先执行5次扫荡，结算经验由旧流程的5940修正为与Cocos一致的`990/419760`；跳过按钮按Cocos合同保持可见，`packetCanSkip=false`只阻止跳过动作。伤害飘字已使用原始 `ui_pk_num.png` 字模及Cocos缩放/停留/上移/淡出时序；胜利结算恢复CSB静态标题与 `effect_zhandoujiesuan_2` 动作0叠加。
 - 动作状态机已按当前 `LBattleLogic` 收敛：移动类型1-12使用当前节点、固定60/35或60/60偏移、行列/阵营中心阵位，位移改为线性`MoveTo`且0.2秒配置不再被钳到0.5秒；零位移模型/特效读取真实Imod帧时长，动作尾部保留Cocos的0.1秒回位间隔，X倍速同步应用到单位Imod。静止`ActSrcPos/TgtSrcPos`特效改为挂在施法者/目标节点，取证从固定45%改为每个动作计算出的命中点；敌方姓名改蓝、己方姓名改紫并缩小取消粗体。
 - 模型挂点与血条已按当前Cocos源闭合：从模拟器有效二进制`hit_monster.dat`解析158组怪物`LBTHitCfg`脚/腰/头/HP坐标，玩家使用当前6组`HeroHitData`职业坐标；服务器单位缩放参与模型与挂点缩放，血条改用导入的原版80×9 `HPNode.prefab`红/绿填充图，不再使用胸前手绘条。单位名恢复`BattleUnitNode.lua`的本地`Y=-20`、字号20；Pet按当前quality映射显示A/S/SS/SSS/SSSS，HP根节点保持Cocos的高层级，使A标覆盖同位的type-3护盾状态图。
 - 回合/阵法HUD已按当前Cocos源闭合：`/21`的`currentTurn`和双方阵法ID/等级不再丢弃，`00/30`通过原`num_lan.png`的60×75位图字渲染，两侧使用6张有效`zhenfa`图标；阵位圈严格执行`LBattleLogic`的“占用位255、阵法有效空位100、无效位隐藏”，并去除导入Unity按钮根节点产生的白色占位底图。
-- 旧 G4/G5 九态报告与代理早测均早于本轮共享战斗代码和统计验证修复，已由中央门禁工具统一失效，禁止作为当前通过证据。当前阶段按任务约束停在新 G3，不进入 G4。
-- 当前G3夹具只使用persistentDataPath SQLite；`Setup/AssertSetup → Restore/AssertRestored → 重登稳定哈希 → Cleanup/AssertCleanup`全部通过，WAL/SHM/备份与隔离账号残留为0。BuildBatch返回0、严重错误0；证据`.local/unity-validation/world-g3-buildbatch-current.log`。
-- 下一阶段：继续按PVE→PVP→特殊HUD串行验收其余57种待核战斗类型，不复用World通过结论；World G4-G6保持 pending，最终G6仍由用户确认。
+- 当前委托代理早期Play已通过：真实Unity Editor/GameView/EventSystem完成主界面→副本→第3章→3-3→挑战→`fightType=16`自然三星结算→继续返回，次数`5/10→4/10`；记录保持`userParticipated=false`、`userDelegatedAgentPlay=true`、`manualPassed=false`。当前G4固定账号完整batch、重登稳定哈希、整库精确恢复、Cleanup与零残留均通过，证据`.local/unity-validation/world-early-user-play-latest.json`、`.local/unity-validation/world-fixed-account-latest.json`。
+- 当前G5九态双端视觉报告已通过：ENTRY MAE=`4.8311`，其余稳定战斗态无阻塞差异；结算/回放与返回的较高差值来自同一非循环结算Timeline和地图Imod站立相位。证据`.local/ui-fidelity/World/compare/g5-current-battle/report.json`、`.local/unity-validation/world-g5-visual-assessment-latest.json`及两张contact sheet。
+- 当前G3-G5夹具只使用persistentDataPath SQLite；`Setup/AssertSetup → Restore/AssertRestored → 重登稳定哈希 → Cleanup/AssertCleanup`全部通过，WAL/SHM/备份与隔离账号残留为0。BattleFengShenStory也已在共享战斗修改后完成9/9完整batch回归。当前产品战斗分母仅`16/19`，其余50种不进入当前验收；World只剩G6用户最终确认，禁止代理冒充通过。
 
-### 历史代理早期 Play（2026-08-30，当前失效）
+### 当前代理早期 Play（2026-09-01）
 
-- 用户明确委托代理全权测试；授权证据 `.local/unity-validation/world-agent-test-delegation-20260830.json`，旧早测记录 `.local/unity-validation/world-early-user-play-latest.json`。记录明确保持 `userParticipated=false`，未冒充用户真人参与；因本轮源码合同已变化，该早测不得推进当前 G4。
+- 用户明确委托代理全权测试；授权证据 `.local/unity-validation/world-agent-test-delegation-20260830.json`，当前早测记录 `.local/unity-validation/world-early-user-play-latest.json`。记录明确保持 `userParticipated=false`、`userDelegatedAgentPlay=true`、`manualPassed=false`，未冒充用户真人参与；该轮已用于关闭G3早测前置并推进G4，不能替代G6用户最终确认。
 - 固定身份：Unity persistentDataPath SQLite `userId=7200057 / roleId=1000003`；从Bootstrap真实登录进入，不使用Runner内部完成方法。
 - 5–15分钟主路径：世界入口 → 第3章/章节下拉 → 3-3详情 → 布阵并返回同一详情 → 扫荡/再次扫荡/关闭 → 重置确认 → 挑战 → 普攻/技能/受击/死亡/飘字/血条/站位/震屏/音效/回合节奏 → 胜利结算 → 统计/关闭 → 回放 → 再次结算并返回章节地图。
 - 代理使用真实 Unity Editor/GameView、Computer Use 与 EventSystem 点击完成副本入口、挑战、战斗、结算、回放、再次结算和继续返回；停止后执行 `AssertSetup → Restore → 重登哈希 → AssertRestored → Cleanup → AssertCleanup`。最终数据库SHA-256恢复为 `7445FEEC27B2BED88164FFBD9CEF426B3559E58AFB6F51A357258AF51701E669`，WAL/SHM/备份、隔离账号和进程残留均为0。
@@ -149,13 +163,13 @@
 - 结算页已按当前 `FirstFightResultUI.lua` 与 `zhandoujiesuanLayer.csb` 收敛：货币为35px图标加纯数量；主角经验使用86px方形头像框、80px头像、460px经验底条；物品奖励为横排88px品质格、右下数量与下方名称；胜利徽章及星级恢复为高-低-高排列。最终截图 `build/ui-migration/world-battle-settlement.png` SHA-256=`6E38FAFE0A095AE71B6B890490996C233E25D655560567C9273CE4D80BE3C2A7`；正式BuildBatch证据 `.local/unity-validation/world-g3-buildbatch-settlement-final2.log`，返回码0、严重错误0、场景SHA不变；工具链268/268。
 - G3 结论：World当前源码合同、SQLite数据合同、29项控件路由和共享战斗播放内核已达到可运行早测版本；当前产品战斗分母已收敛为`16/19`两类，World完成`16`，列传战斗模块完成`19`。其余50个枚举不进入当前分母，范围证据见`.local/unity-validation/battle-current-denominator-latest.json`。
 
-## 历史 G4 固定账号动态验收（当前失效）
+## 历史 G4 固定账号动态验收（已由2026-09-01当前证据替代）
 
 - 旧MySQL账号、旧29/29控件、5/5语义、6张截图和旧恢复哈希全部只作定位线索，不得计入当前门禁。
-- 当前G4必须等待本次G3之后的用户早期Play反馈闭环；当前没有生成 `early-user-play` 记录，也没有设置 `manualPassed=true`。
-- 当前可复用的只有G3机器证据：`.local/unity-validation/world-g3-runtime-latest.json`、`.local/unity-validation/world-fixed-account-data-preflight-latest.json` 和 `.local/unity-validation/world-fixed-account-timings-latest.json`。
+- 当前代理早期Play记录已生成且G4已通过；该记录保持`manualPassed=false`，只满足受委托早测前置，不替代G6用户最终确认。
+- 当前G3-G4机器证据：`.local/unity-validation/world-g3-runtime-latest.json`、`.local/unity-validation/world-fixed-account-data-preflight-latest.json`、`.local/unity-validation/world-fixed-account-timings-latest.json`和`.local/unity-validation/world-fixed-account-latest.json`。
 
-## 历史 G5 双端视觉验收（当前已失效）
+## 历史 G5 双端视觉验收（已由2026-09-01九态报告替代）
 
 - 世界地图、关卡详情、扫荡、重置确认、战斗结算、宝箱状态共 `6/6` 当前双端原图、并排、叠加和差异报告通过人工验收；证据 `.local/ui-fidelity/World/compare/g5-20260731-cua/`。
 - Cocos `FuBenDetailUI` 对 `MapPanel` 使用 `750/1080` 缩放；Unity 补齐同一语义后，详情和宝箱布局恢复到同一坐标体系。
@@ -167,7 +181,7 @@
 - `WORLD_CONTROLS.json`：25/25 控件 `complete`，逐控件关联当前 Cocos/Unity `1334×750` 证据；占位、重复 UID、严重异常均为 0。
 - `Test-UnityMigrationHardGates.ps1 -Module World -Phase G6` 通过；固定摘要与终态隔离身份分别校验，不再错误要求同一账号。
 - `BootstrapSceneBuilder.BuildBatch` 连续执行两次，均报告语义签名未变化并跳过重建；两次 Bootstrap SHA-256 均为 `6A476349E892BF29E845CCA9F37D2292FB0853ADA1868415CAAF982FCD20660C`。
-- G6 已登记到 `tools/unity-migration/migration-gates.json`；World 当前状态为 `G0-G6 passed / 25/25 complete`。
+- 该历史 G6 曾登记到 `tools/unity-migration/migration-gates.json`，但已失效；World当前正式状态为G0-G3 passed、早测通过、G4-G6 pending。
 
 ## G0 前既有 Unity 实现（历史基线）
 
@@ -199,10 +213,10 @@
 
 1. G0-G2 已复核服务端 `/320`、配置、Cocos 动态节点和 Unity Transform，并冻结固定账号、重连/切号合同。
 2. G3 已按矩阵绑定真实 Prefab、Lua Controller 与 C# Render Bridge，排除入口保持隐藏。
-3. 当前停止在G3早期Play前；G4-G6未执行，历史G4-G6证据全部失效，不得提前恢复通过状态。
+3. 当前G3代理早期Play、G4固定账号验收与G5九态双端视觉均已通过；G6未执行，等待用户在当前变更后最终Play确认。
 
 ## 历史遗留
 
 - 支线、帮派副本、封神试炼、排行榜、主线成就按独立模块从 G0 开始，不并入本次 World 结论。
-- 完整战斗表现仍需先补齐 `/21-23` 服务端分发及资源证据，再接战斗场景、技能和自动战斗。
+- `/21-23` 服务端分发、资源和共享战斗场景已在当前G3-G5闭合；后续只在产品分母变化时按新类型从G0补专用夹具。
 - 本地服务首次挑战计数字段仍可能为 `0`；若后续独立战斗模块依赖该字段，应先修复并补服务端语义证据。
