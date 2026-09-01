@@ -1,6 +1,6 @@
 # 世界/战斗/副本模块
 
-> 状态：V0 产品边界已收口；A=`16,19`，`47–53`确认移除；2026-09-01修复详情自动弹出、关卡点击错位、锁定节点假战斗及孤立星级夹具后，目标10023真实`op=8`结算、连续进度、两级返回与重登恢复重新通过标准G3；用户确认本轮早测通过，G4-G6保持pending。列传19的BattleFengShenStory子模块仍为G0-G6通过。
+> 状态：V0 产品边界已收口；A=`16,19`，`47–53`确认移除；用户修改`DadituuiLayer`后的四个底部入口、主线成就和普通宝箱真实射线问题均已闭环，World 当前 G0-G6 全部通过，32/32 控件完成，最终变更后用户 Play 已确认通过。列传19的BattleFengShenStory子模块同为G0-G6通过。
 
 ## V0 当前 Cocos 产品边界（产品决策已确认）
 
@@ -14,11 +14,18 @@
 - Unity列传19已完成G6：SQLite固定身份`7200057/1000003`，真实EventSystem 9/9、`fightType=19`、10单位；自然播放进入权威结算、统计、回放、关闭与返回奖励，主动跳过隐藏播放层并重拉op24直回列传地图且不生成结算。用户确认神将朝向修复；标准batch、十态G5、两次BuildBatch及自动复盘均通过。证据`.local/unity-validation/battlefengshenstory-fixed-account-latest.json`、`.local/ui-fidelity/BattleFengShenStory/compare/g5/report.json`、`.local/unity-validation/battlefengshenstory-retrospective-latest.json`。
 
 - 本轮范围只处理世界/副本战斗表现；封神剧情保持 G0-G3 等待用户早期 Play，寻宝与公共货币栏暂停。
-- 当前 `cocosBaselineInputs` 已冻结入口、`/320`、`/38` 内嵌 `/21-/23`、`LBattleLogic`、战斗单位/技能/飘字、FightLayer、Imod语义、服务端战报和结算输入；当前指纹由标准 G5 preflight 生成。
+- 当前 `cocosBaselineInputs` 已冻结入口、`/320`、`/38` 内嵌 `/21-/23`、`LBattleLogic`、战斗单位/技能/飘字、FightLayer、Imod语义、服务端战报和结算输入；服务端锁定判断修复经影响审计确认不改变九个合法10023视觉状态后，G1基线已按当前输入重新冻结并通过标准G5 preflight。
 - G1 已在 Cocos MySQL 固定身份 `7200057/1000115`、关卡 `10023`、原生 `1334×750` 下重新取得普攻、技能、受击、死亡、伤害飘字、血条、站位、镜头、前后摇、回合节奏、结算、回放二次结算与继续返回；Unity验证使用独立SQLite身份`7200057/1000003`。当前目录 `.local/ui-fidelity/World/cocos/g1-current-battle/`，输入指纹 `F0468C3D6B8645884BE529BEB0B4CAABF12C0CC1C0AE5A399FE482771590D327`。
 - 用户当前不在电脑旁，并于 2026-08-30 明确委托代理全权测试。代理早测必须保持 `userParticipated=false`、`userDelegatedAgentPlay=true`，使用真实 Unity Editor/GameView/EventSystem 与 persistentDataPath SQLite；最终 G6 用户确认仍保留。
 
 ## 2026-09-01 当前 G3-G5 结果
+
+- `DadituuiLayer`底部入口修复检查点：用户Play时的当前`Editor.log`证明阵容与主线成就的屏幕点击实际进入`HandleWorldYouLiClick`，根因是四个独立`RuntimeInteraction`代理发生重叠。现已移除四个外部代理，改为各可见按钮内部全铺的`RuntimeHitSurface`；刷新分支不再把子节点重复换算到地图根坐标，用户Prefab位置与显隐保持不变。
+- 定点回归：标准固定账号场景使用真实EventSystem射线，已依次打开布阵弹窗、神将阵容页、包含配置内容的主线成就页，以及收到`/24 + /335 op=1`的游历三界页，四个回调未再串点。证据`.local/unity-validation/world-stage-utility-live-input-fix-latest.json`与`build/ui-migration/unity-world-fixed-account.log`。
+- 主线成就越界与关闭修复：导入页不再继承`DadituuiLayer`地图变换，运行时改挂屏幕空间World根节点并全屏拉伸；播放Cocos `animation1`后按实际内容Bounds收敛至顶部HUD下方。全屏`Mask`与透明关闭控件均绑定关闭，固定账号真实EventSystem已完成“打开→收到权威`/320 op=11`→显示六档奖励→点击关闭”。当前图为`build/ui-migration/world-main-achievement.png`，定点证据为`.local/unity-validation/world-main-achievement-layout-data-fix-latest.json`。
+- 正式数据核验：`/320 op=11/12`分别进入服务端`CUserGuanQia::GetChengJiuMsg/GetChengJiuAward`，状态读取`m_achId/m_achState`且领奖由服务端校验星数、领取位并发奖。Unity与当前Cocos `map_achievement_dat` SHA-256同为`F8413FEB07D8C81FC8D392157A79081C31F8728F6E36770D61272E5B0EEBD82F`，均为132条、22阶段、每阶段6档；固定账号当前显示10/90星、再获得80，奖励为正式配置的`土行孙神魂`。
+- 普通宝箱确认射线已闭环：导入确认按钮在隐藏态绑定后保持Canvas `depth=-1`，立即点击会得到空射线列表。现按导入按钮Bounds在屏幕空间World根节点创建玩家可见位置一致的透明命中面，显式注册GraphicRegistry并等待稳定渲染帧；完整G3随后通过领取、战斗、回放、结算、返回、重登、SQLite精确恢复和残留0。证据`.local/unity-validation/world-normal-box-raycast-fix-latest.json`。
+- 当前门禁：G3、G4、G5已按当前源码重跑通过；用户于2026-09-02完成变更后最终Play，确认普通宝箱打开/领取/返回地图及主线成就回归均通过。World G6以`.local/unity-validation/world-final-user-play-latest.json`收口。
 
 ### 2026-09-01 用户早测阻塞修复
 
@@ -79,8 +86,8 @@
 - 唯一入口：`UImainLayer_new/Layer/Main_UI/btn_fuben → MainUI:FuBenTouchCallback → Utils:OpenFunction(EMID_KAPAI_ZHUXIANFUBEN) → FuBenMap.NormalFuBenUI`。
 - 本轮包含：世界章节地图、章节关卡地图、关卡详情、主线 `/320 op=1/2/4/5/6/7/8/27`、挑战、扫荡、次数重置、普通/星级宝箱、战斗结算与其可达弹窗。
 - 本轮状态：正常、未解锁、体力不足、次数用尽、重置次数用尽、宝箱不可领/可领/已领、挑战成功/失败、重拉、重进、断线重连、切号和精确恢复。
-- 冻结 `31` 项源码审计对象：`29` 个实际控件进入当前 G4 自动验收，另 `WORLD-07-WORLD-CLOSE`、`WORLD-24-BATTLE-REVIVE` 两项经源码证明不属于独立 World 控件；完整矩阵：`docs/unityclient/matrices/WORLD_CONTROLS.json`。
-- 排除但必须在 Unity 明确隐藏/禁用：支线、帮派副本、封神试炼、排行榜、主线成就、商城加币、体力补给、非 `/320` PvP；`/21-/23` 只允许作为当前 `/38 op=5` 内嵌权威战报消费，不得用假数据或静态图替代。
+- 冻结 `34` 项源码审计对象：`32` 个实际控件进入当前 G4 自动验收，另 `WORLD-07-WORLD-CLOSE`、`WORLD-24-BATTLE-REVIVE` 两项经源码证明不属于独立 World 控件；世界地图与章节关卡地图的两处主线成就入口分别登记，完整矩阵：`docs/unityclient/matrices/WORLD_CONTROLS.json`。
+- 排除但必须在 Unity 明确隐藏/禁用：支线、帮派副本、封神试炼、排行榜、商城加币、体力补给、非 `/320` PvP；主线成就保留并接入`/320 op=11/12`。`/21-/23` 只允许作为当前 `/38 op=5` 内嵌权威战报消费，不得用假数据或静态图替代。
 - Unity 固定验证账号冻结为 `Application.persistentDataPath/LocalServer/projectx.db` 内的 `userId=7200057 / roleId=1000003`，夹具临时创建隔离账号 `userId=705213 / roleId=1000006`；Fixture 必须整库快照、精确恢复并检查 WAL/SHM/备份零残留，G3 启动 Unity 前执行 `Run-UnityFixedAccountValidation.ps1 -Module World -DataPreflightOnly`。
 - 当前环境：Cocos、`kapai.exe`、Unity 和工作区 MySQL 均已停止；固定账号已精确恢复。
 

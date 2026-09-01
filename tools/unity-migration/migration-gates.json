@@ -713,12 +713,12 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/WORLD.md",
-      "note": "2026-09-01 World G0-G3 passed after current-source fixed-account batch and real EventSystem validation. User confirmed the post-fix early Play passed; G4-G6 remain pending, and G6 still requires final post-change user confirmation.",
+      "note": "2026-09-02 World G0-G6 passed after current-source fixed-account batch, real EventSystem validation and final post-change user Play. All 32/32 controls, 5/5 authoritative semantics, reconnect, exact SQLite restore and zero residue passed; the YouLi entry is recorded as a user-approved controlled product difference from the frozen Cocos ranking slot.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/WORLD_CONTROLS.json",
@@ -738,11 +738,31 @@
           ".local/unity-validation/world-cocos-baseline-latest.json",
           ".local/unity-validation/world-cocos-automation-ledger.json"
         ],
-        "G4": [],
-        "G5": [],
-        "G6": [],
         "G3": [
-          ".local/unity-validation/world-g3-runtime-latest.json"
+          ".local/unity-validation/world-g3-runtime-latest.json",
+          ".local/unity-validation/world-main-achievement-layout-data-fix-latest.json",
+          "build/ui-migration/world-main-achievement.png",
+          ".local/unity-validation/world-operation-ledger.json"
+        ],
+        "G4": [
+          ".local/unity-validation/world-fixed-account-latest.json",
+          ".local/unity-validation/world-early-user-play-latest.json",
+          ".local/unity-validation/world-operation-ledger.json"
+        ],
+        "G5": [
+          ".local/unity-validation/world-g5-visual-latest.json",
+          ".local/unity-validation/world-g5-preflight-latest.json",
+          ".local/ui-fidelity/World/compare/g5-current-battle/report.json"
+        ],
+        "G6": [
+          ".local/unity-validation/world-final-user-play-latest.json",
+          ".local/unity-validation/world-fixed-account-latest.json",
+          ".local/unity-validation/world-g5-visual-latest.json",
+          ".local/ui-fidelity/World/compare/g5-current-battle/report.json",
+          "docs/unityclient/matrices/WORLD_CONTROLS.json",
+          ".local/unity-validation/world-operation-ledger.json",
+          ".local/unity-validation/world-youli-g6-evidence-latest.json",
+          ".local/unity-validation/world-retrospective-latest.json"
         ]
       },
       "gateRevalidations": {
@@ -782,51 +802,51 @@
       },
       "gateInvalidations": {
         "G3": {
-          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
           "previousState": "passed",
           "previousEvidence": [
-            ".local/unity-validation/world-g3-runtime-latest.json"
+            ".local/unity-validation/world-stage-utility-live-input-fix-latest.json"
           ],
-          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
         },
         "G4": {
-          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
           "previousState": "pending",
           "previousEvidence": [],
-          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
         },
         "G5": {
-          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
           "previousState": "pending",
           "previousEvidence": [],
-          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
         },
         "G6": {
-          "invalidatedUtc": "2026-09-01T09:04:25.2949715Z",
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
           "previousState": "pending",
           "previousEvidence": [],
-          "reason": "User Play clicked visual 2-3 but runtime overlay sent locked adjacent node 10014; server typo allowed battle without op=8 settlement, leaving gray stars."
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
         }
       },
       "gateTimings": {
         "G3": {
-          "startedUtc": "2026-09-01T09:04:25.2949715Z",
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
           "startSource": "invalidation"
         },
         "G4": {
-          "startedUtc": "2026-09-01T09:04:25.2949715Z",
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
           "startSource": "invalidation"
         },
         "G5": {
-          "startedUtc": "2026-09-01T09:04:25.2949715Z",
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
           "startSource": "invalidation"
         },
         "G6": {
-          "startedUtc": "2026-09-01T09:04:25.2949715Z",
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
           "startSource": "invalidation"
         }
       },
-      "updatedUtc": "2026-09-01T09:18:20.7463652Z"
+      "updatedUtc": "2026-09-01T17:00:24.5940638Z"
     },
     {
       "module": "Login",

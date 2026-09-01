@@ -813,7 +813,7 @@
     {
       "key": "World",
       "displayName": "世界/战斗/副本",
-      "status": "v0-closed-a-16-19-battle19-g3-passed-early-user-play-pending",
+      "status": "v0-closed-a-16-19-world-g6-passed-user-confirmed",
       "protocols": [
         21,
         22,
@@ -844,23 +844,34 @@
         "build/ui-migration/bootstrap-world-chest.png"
       ],
       "visualFidelity": {
-        "status": "visual-fixing",
+        "status": "passed",
         "cocosScreenshots": [
           ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-ENTRY.png",
-          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-SKILL.png",
           ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-NORMAL-ATTACK.png",
-          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-SETTLEMENT.png"
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-SKILL.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-HURT-DAMAGE.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-DEATH.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-ROUND-RHYTHM.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-REPLAY.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-RETURN.png"
         ],
         "unityScreenshots": [
-          "build/ui-migration/world-battle-entry.png",
-          "build/ui-migration/world-battle-skill-01.png",
-          "build/ui-migration/world-battle-normal-04.png",
-          "build/ui-migration/bootstrap-world-result.png"
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-ENTRY.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-NORMAL-ATTACK.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-SKILL.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-HURT-DAMAGE.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-DEATH.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-ROUND-RHYTHM.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-REPLAY.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-RETURN.png"
         ],
         "diffReports": [
-          ".local/unity-validation/world-g3-visual-difference-latest.json"
+          ".local/ui-fidelity/World/compare/g5-current-battle/report.json",
+          ".local/unity-validation/world-g5-visual-assessment-latest.json"
         ],
-        "flowEvidence": ".local/unity-validation/world-g3-runtime-latest.json",
+        "flowEvidence": ".local/unity-validation/world-fixed-account-latest.json",
         "uiMapping": "docs/unityclient/matrices/WORLD_CONTROLS.json"
       },
       "document": "docs/unityclient/modules/WORLD.md",

@@ -34,7 +34,7 @@
 | 聊天 | `steam-excluded` | Steam隐藏聊天入口及HUD聊天条、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 队伍 | `steam-excluded` | Steam不生成队伍入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 帮派 | `steam-excluded` | Steam隐藏帮派/宗门入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
-| 世界/战斗/副本 | `V0 closed / A=16,19 / World G0-G3 passed / early user Play passed / G4-G6 pending` | 2026-09-01复测连续发现两处星级问题：视觉点击2-3被等宽透明代理错发为相邻锁定节点10014，服务端又错误放行导致无`op=8`；G3夹具还孤立写入`3-3=3星/总星10`而未同步前置链。现已恢复原生`touchLayer`、修复锁定判断，并把夹具改为连续且总数一致的第3章节点链；标准G3已按目标10023真实结算、星级更新、重登及恢复通过，用户确认本轮测试通过。 | 早测反馈已闭环，后续可从G4继续；G6仍需全部后续变更完成后的最终确认。星数排行暂不处理。 |
+| 世界/战斗/副本 | `V0 closed / A=16,19 / World G0-G6 passed / 32/32 complete` | 2026-09-02用户先后确认主线成就屏内显示/关闭及普通宝箱打开/领取/返回地图通过；四个底部入口、成就权威`/320 op=11/12`、宝箱真实射线、G3完整链、G4权威交互、G5九态视觉、重登、SQLite精确恢复与残留0全部通过。 | 当前模块收口；证据`.local/unity-validation/world-final-user-play-latest.json`、`.local/unity-validation/world-fixed-account-latest.json`、`.local/ui-fidelity/World/compare/g5-current-battle/report.json`。星数排行保持隐藏。 |
 | 福利 | `steam-excluded` | Steam隐藏福利入口、在线奖励和体力领取，禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 活动 | `steam-excluded` | 当前集合包含全服排行/最强榜等其他玩家数据，也包含充值活动；Steam隐藏入口并由Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 抽卡 | `G0-G5 retained / G6 evidence missing` | G5双端主状态与差异报告仍存在；G6矩阵登记的28组Cocos与28组Unity逐控件图在当前检出全部缺失 | 重取或找回56份真实逐控件证据后重跑G6；禁止复制旧图补路径 |

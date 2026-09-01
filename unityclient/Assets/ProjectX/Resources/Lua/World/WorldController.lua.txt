@@ -400,7 +400,6 @@ local function readReset(message)
     local cost = message:ReadWord()
     if message.Remaining ~= 0 then fail("World/320 op=7 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:ApplyWorldReset(stageId, usedResets, cost)
-    requestChapter(Bridge:GetWorldSelectedChapterId())
 end
 
 function M.onPacket(command, message)

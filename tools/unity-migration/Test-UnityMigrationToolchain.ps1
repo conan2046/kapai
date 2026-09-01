@@ -2368,6 +2368,8 @@ $formationPopupSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
 $worldControllerSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
+$worldStoreSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldStore.cs") -Raw -Encoding UTF8
 $worldFixtureSource = Get-Content -LiteralPath (
     Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
 $worldSqliteFixtureSource = Get-Content -LiteralPath (
@@ -2482,13 +2484,45 @@ Assert-ToolchainTest (
     $worldPresenterSource.Contains('FindStageCameraY(-aimX, map.CameraCoordinates)') -and
     $worldPresenterSource.Contains('speech.gameObject.SetActive(currentStage)') -and
     $worldPresenterSource.Contains('"Layer/Panel_youxia/Button_zhuxianchengjiu", true') -and
-    $worldPresenterSource.Contains('"Layer/Panel_1/Button_paihangbang", true') -and
+    $worldPresenterSource.Contains('UpdateCanvasProxyRect(viewRect, targetRect, proxyRect);') -and
+    $worldPresenterSource.Contains('button.transform.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('AttachWorldAchievementToWorldRoot();') -and
+    $projectXAppSource.Contains('heroFrameView.GameObject.transform.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('worldAchievementView.GameObject.transform.parent != worldView.GameObject.transform') -and
+    $projectXAppSource.Contains('worldAchievementAuthoritativeResponse = true;') -and
+    $projectXAppSource.Contains('World main-achievement close control did not receive a real EventSystem raycast click.') -and
+    $projectXAppSource.Contains('timeline.Play("animation1", false);') -and
+    $projectXAppSource.Contains('FitWorldAchievementToScreen();') -and
+    $projectXAppSource.Contains('RefreshWorldBoxButtonBindings();') -and
+    $projectXAppSource.Contains('button.interactable = true;') -and
+    $projectXAppSource.Contains('CreateWorldBoxRootProxy(target, proxyName, action);') -and
+    $projectXAppSource.Contains('new GameObject(proxyName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button))') -and
+    $projectXAppSource.Contains('image.canvasRenderer.cullTransparentMesh = false;') -and
+    $projectXAppSource.Contains('GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);') -and
+    $projectXAppSource.Contains('Button confirm = worldBoxClaimInteractionButton;') -and
+    $projectXAppSource.Contains('World normal-box player-facing confirmation button is unavailable.') -and
+    $projectXAppSource.Contains('World normal-box confirmation did not receive a real EventSystem raycast click.') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_1/duiwu", () => { openFormation(); Mark("WORLD-32-STAGE-FORMATION"); }, false, true);') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_1/btn_zhenrong", () => { openHeroFormation(false); Mark("WORLD-33-STAGE-LINEUP"); }, false, true);') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);') -and
+    $worldPresenterSource.Contains('if (staleProxy != null) staleProxy.gameObject.SetActive(false);') -and
+    $worldPresenterSource.Contains('if (proxyRect.parent == targetRect)') -and
+    $worldPresenterSource.Contains('proxyRect.offsetMin = Vector2.zero;') -and
+    $worldPresenterSource.Contains('proxyRect.offsetMax = Vector2.zero;') -and
+    $worldPresenterSource.Contains('"Layer/Panel_youxia/Button_youlisanjie", true') -and
+    $worldPresenterSource.Contains('"Layer/Panel_1/Button_paihangbang", false') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onYouLiClicked, "World.YouLi")') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(youLi)') -and
+    $projectXAppSource.Contains('services.YouLi.HasAuthoritativeResponse') -and
+    $projectXAppSource.Contains('MarkValidationControl("WORLD-34-YOULI-ENTRY")') -and
+    -not $projectXAppSource.Contains('MarkValidationControl("WORLD-27-RANK-ENTRY")') -and
     $worldPresenterSource.Contains('if (value >= 10000) return (value / 10000) + "万";') -and
     $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
     $projectXAppSource.Contains('services.Options.WorldBattleValidation && !services.Options.WorldG3Validation') -and
     $projectXAppSource.Contains('&& !worldG4StarBoxValidated') -and
     $projectXAppSource.Contains('&& !worldG4NormalBoxValidated')
-) "World settlement return regressed from the current Cocos player Imod, speech, camera, achievement, and rank presentation."
+) "World settlement return or current DadituuiLayer achievement/YouLi/rank boundary regressed."
 Assert-ToolchainTest (
     $worldServerConfigSource.Contains('local_test_fight_seed=20260830') -and
     $worldGuanQiaServerSource.Contains('ApplyLocalTestFightSeed(nodeId);') -and
@@ -2558,6 +2592,15 @@ Assert-ToolchainTest (
     $gameErrorPresenterSource.Contains('public Button ConfirmationButton => confirmButton;') -and
     $projectXAppSource.Contains('InvokeEventSystemRaycastClick(errorPresenter.ConfirmationButton)')
 ) "World reset confirmation regressed to the hidden single-confirm control or a callback-only path."
+Assert-ToolchainTest (
+    [regex]::IsMatch($worldControllerSource,
+        'local function readReset\(message\)[\s\S]*?Bridge:ApplyWorldReset\(stageId, usedResets, cost\)\s*end') -and
+    -not [regex]::IsMatch($worldControllerSource,
+        'local function readReset\(message\)[\s\S]*?requestChapter\(') -and
+    $worldStoreSource.Contains('WorldVisualCatalog.TryGetStage(stageId, out WorldStageVisualDefinition visual)') -and
+    $worldStoreSource.Contains('stage.RemainingAttempts = checked((byte)Math.Min(byte.MaxValue, visual.MaxAttempts));') -and
+    $worldStoreSource.Contains('if (usedResets > 0 && stage.RemainingResets > 0) stage.RemainingResets--;')
+) "World reset regressed from the Cocos detail-preserving attempt refresh lifecycle."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('worldFormationReturnPending = true;') -and
     $projectXAppSource.Contains('worldFormationReturnToDetail = returnToDetail;') -and

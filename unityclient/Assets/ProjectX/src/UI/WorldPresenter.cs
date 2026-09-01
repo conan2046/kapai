@@ -39,6 +39,7 @@ namespace ProjectX.UI
         private readonly Action openFormation;
         private readonly Action<bool> openHeroFormation;
         private readonly Action openAchievement;
+        private readonly Action openYouLi;
         private readonly Action close;
         private readonly Action<string> validationControl;
         private readonly VirtualList<ListEntry> list;
@@ -56,7 +57,7 @@ namespace ProjectX.UI
             EquipmentCatalog equipmentCatalog,
             Action<uint> requestChapter, Action<uint> requestStage, Action challenge, Action sweep,
             Action<WorldStageRecord> requestReset, Action<uint> claimBox, Action<WorldStageRecord> showNormalBox,
-            Action openFormation, Action<bool> openHeroFormation, Action openAchievement, Action close,
+            Action openFormation, Action<bool> openHeroFormation, Action openAchievement, Action openYouLi, Action close,
             Action<string> validationControl = null)
         {
             this.worldView = worldView ?? throw new ArgumentNullException(nameof(worldView));
@@ -81,6 +82,7 @@ namespace ProjectX.UI
             this.openFormation = openFormation ?? throw new ArgumentNullException(nameof(openFormation));
             this.openHeroFormation = openHeroFormation ?? throw new ArgumentNullException(nameof(openHeroFormation));
             this.openAchievement = openAchievement ?? throw new ArgumentNullException(nameof(openAchievement));
+            this.openYouLi = openYouLi ?? throw new ArgumentNullException(nameof(openYouLi));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.validationControl = validationControl;
 
@@ -136,9 +138,10 @@ namespace ProjectX.UI
             Bind(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_3", () => { sweep(); Mark("WORLD-15-SWEEP"); });
             Bind(detailView, $"{DetailRoot}/Image_bg/Panel_4/TimesBg/AddBtn", () => { requestReset(store.SelectedStage); Mark("WORLD-16-RESET-ATTEMPTS"); });
             Bind(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", () => { openHeroFormation(true); Mark("WORLD-18-PRECHALLENGE-FORMATION"); });
-            Bind(mapView, "Layer/Panel_1/duiwu", () => { openFormation(); Mark("WORLD-32-STAGE-FORMATION"); }, true);
-            Bind(mapView, "Layer/Panel_1/btn_zhenrong", () => { openHeroFormation(false); Mark("WORLD-33-STAGE-LINEUP"); }, true);
-            Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, true);
+            Bind(mapView, "Layer/Panel_1/duiwu", () => { openFormation(); Mark("WORLD-32-STAGE-FORMATION"); }, false, true);
+            Bind(mapView, "Layer/Panel_1/btn_zhenrong", () => { openHeroFormation(false); Mark("WORLD-33-STAGE-LINEUP"); }, false, true);
+            Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);
+            Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_2", "挑战");
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", "布 阵");
             SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_1/Duizhan", false);
@@ -147,8 +150,8 @@ namespace ProjectX.UI
             SetActive(detailView, "Layer/IconBg1", false);
             SetActive(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", true);
             SetActive(mapView, "Layer/Panel_youxia/Button_fengshenshilian", false);
-            SetActive(mapView, "Layer/Panel_youxia/Button_youlisanjie", false);
-            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", true);
+            SetActive(mapView, "Layer/Panel_youxia/Button_youlisanjie", true);
+            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", false);
             // The imported decorative title background overlaps Button_xiala.
             // Cocos does not treat that ImageView as an input surface, while a
             // Unity Image defaults to raycastTarget=true and blocks real clicks.
@@ -1059,7 +1062,8 @@ namespace ProjectX.UI
             label.text = value;
         }
 
-        private void Bind(CocosUiView view, string path, Action action, bool createCanvasProxy = false)
+        private void Bind(CocosUiView view, string path, Action action, bool createCanvasProxy = false,
+            bool trackEmbeddedSurface = false)
         {
             GameObject target = Require(view, path);
             Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
@@ -1100,6 +1104,13 @@ namespace ProjectX.UI
             surfaceButton.onClick.AddListener(() => action());
             if (createCanvasProxy)
                 interactionButtons[path] = CreateCanvasProxy(view, target, path, action);
+            else if (trackEmbeddedSurface)
+            {
+                interactionButtons[path] = surfaceButton;
+                Transform staleProxy = view.GameObject.transform.Find(
+                    "RuntimeInteraction_" + path.Replace('/', '_'));
+                if (staleProxy != null) staleProxy.gameObject.SetActive(false);
+            }
         }
 
         private static Button CreateCanvasProxy(CocosUiView view, GameObject target, string path, Action action)
@@ -1114,13 +1125,7 @@ namespace ProjectX.UI
                 : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             RectTransform rect = proxy.GetComponent<RectTransform>();
             rect.SetParent(viewRect, false);
-            Vector3[] corners = new Vector3[4];
-            targetRect.GetWorldCorners(corners);
-            Vector3 min = viewRect.InverseTransformPoint(corners[0]);
-            Vector3 max = viewRect.InverseTransformPoint(corners[2]);
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
-            rect.anchoredPosition = new Vector2((min.x + max.x) * .5f, (min.y + max.y) * .5f);
-            rect.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
+            UpdateCanvasProxyRect(viewRect, targetRect, rect);
             Image image = proxy.GetComponent<Image>();
             image.color = new Color(1f, 1f, 1f, .001f);
             image.enabled = false;
@@ -1143,14 +1148,48 @@ namespace ProjectX.UI
             return proxyButton;
         }
 
+        private static void UpdateCanvasProxyRect(RectTransform viewRect, RectTransform targetRect, RectTransform proxyRect)
+        {
+            Vector3[] corners = new Vector3[4];
+            targetRect.GetWorldCorners(corners);
+            Vector3 min = viewRect.InverseTransformPoint(corners[0]);
+            Vector3 max = viewRect.InverseTransformPoint(corners[2]);
+            proxyRect.anchorMin = proxyRect.anchorMax = proxyRect.pivot = new Vector2(.5f, .5f);
+            proxyRect.anchoredPosition = new Vector2((min.x + max.x) * .5f, (min.y + max.y) * .5f);
+            proxyRect.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
+        }
+
         public void RefreshInteractionButtons()
         {
             if (!mapView.GameObject.activeInHierarchy) return;
             Canvas.ForceUpdateCanvases();
-            foreach (Button button in interactionButtons.Values)
+            RectTransform viewRect = mapView.GameObject.transform as RectTransform;
+            foreach (KeyValuePair<string, Button> entry in interactionButtons)
             {
+                Button button = entry.Value;
                 Image image = button?.targetGraphic as Image;
                 if (image == null) continue;
+                RectTransform targetRect = Find(mapView, entry.Key)?.transform as RectTransform;
+                RectTransform proxyRect = button.transform as RectTransform;
+                if (targetRect != null && proxyRect != null)
+                {
+                    if (proxyRect.parent == targetRect)
+                    {
+                        // Embedded hit surfaces already inherit the visible button's
+                        // transform. Converting their corners into map-root space a
+                        // second time moves the real raycast point off screen.
+                        proxyRect.anchorMin = Vector2.zero;
+                        proxyRect.anchorMax = Vector2.one;
+                        proxyRect.offsetMin = Vector2.zero;
+                        proxyRect.offsetMax = Vector2.zero;
+                        proxyRect.localScale = Vector3.one;
+                    }
+                    else if (viewRect != null)
+                        UpdateCanvasProxyRect(viewRect, targetRect, proxyRect);
+                }
+                // Dynamic stage nodes and boxes are rebuilt after these proxies.
+                // Keep the player-facing utility hit targets on top each frame.
+                button.transform.SetAsLastSibling();
                 image.enabled = false;
                 image.enabled = true;
                 image.raycastTarget = true;

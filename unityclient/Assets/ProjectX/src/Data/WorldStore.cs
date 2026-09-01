@@ -150,6 +150,10 @@ namespace ProjectX.Data
         {
             WorldStageRecord stage = stages.FirstOrDefault(value => value.Id == stageId);
             if (stage == null) return;
+            if (WorldVisualCatalog.TryGetStage(stageId, out WorldStageVisualDefinition visual)
+                && visual.MaxAttempts > 0)
+                stage.RemainingAttempts = checked((byte)Math.Min(byte.MaxValue, visual.MaxAttempts));
+            if (usedResets > 0 && stage.RemainingResets > 0) stage.RemainingResets--;
             SelectedStageId = stageId;
             Changed?.Invoke();
         }
