@@ -215,7 +215,7 @@ Assert-ToolchainTest (
     $gateSource.Contains('[switch]$StartTiming') -and
     $gateSource.Contains('Historical gates were not backfilled') -and
     $commonSource.Contains('historicalBackfill = $false') -and
-    $commonSource.Contains('machineTimingReports')
+    $commonSource.Contains('machineTimingReports = $machineReports.ToArray()')
 ) "Future-only gate timing or retrospective timing separation was removed."
 Assert-ToolchainTest (
     $docsValidatorSource.Contains('$currentCocosUnreachable = -not $currentCocosReachable -and $excludedFromCurrentCocosParityDenominator') -and
@@ -482,13 +482,39 @@ Assert-ToolchainTest (
 $battleFengShenEvidenceContract = @((Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/module-evidence-contracts.json") -Raw -Encoding UTF8 |
     ConvertFrom-Json).modules | Where-Object { $_.module -eq "BattleFengShenStory" })[0]
+$battleFengShenControlMatrix = Get-Content -LiteralPath `
+    (Join-Path $root "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+Assert-ToolchainTest (
+    [int]$battleFengShenControlMatrix.hardGateVersion -eq 3 -and
+    @($battleFengShenControlMatrix.scenarioStateControlIds).Count -eq 1 -and
+    [string]$battleFengShenControlMatrix.scenarioStateControlIds[0] -eq 'BFSB-03-AUTO' -and
+    @($battleFengShenControlMatrix.controls | Where-Object {
+        [string]$_.id -eq 'BFSB-03-AUTO' -and $_.realEntryClick -eq $false
+    }).Count -eq 1 -and
+    @($battleFengShenControlMatrix.controls | Where-Object {
+        [string]$_.id -ne 'BFSB-03-AUTO' -and $_.realEntryClick -eq $true
+    }).Count -eq 8
+) "BattleFengShenStory hidden AUTO state must remain a scenario assertion while the other eight controls require real clicks."
 Assert-ToolchainTest (
     $battleFengShenEvidenceContract.fixedAccount.copyArtifactsInG3 -eq $true -and
-    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies).Count -eq 10 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies).Count -eq 12 -and
     @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
-        [string]$_.destination -notlike '.local/ui-fidelity/BattleFengShenStory/unity/g3/*'
-    }).Count -eq 0
-) "BattleFengShenStory G3 runtime no longer publishes its ten current screenshots to the G3 evidence directory."
+        [string]$_.source -eq 'build/ui-migration/BFS-BATTLE-SPEED.png'
+    }).Count -eq 1 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.source -eq 'build/ui-migration/BFS-BATTLE-SETTLEMENT.png'
+    }).Count -eq 1 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.source -eq 'build/ui-migration/BFS-BATTLE-SKIP-RETURN.png'
+    }).Count -eq 1 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.destination -like '.local/ui-fidelity/BattleFengShenStory/unity/g5/*'
+    }).Count -eq 10 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.destination -like '.local/ui-fidelity/BattleFengShenStory/unity/g3/*'
+    }).Count -eq 2
+) "BattleFengShenStory current G3 runtime no longer publishes natural-settlement and explicit-skip evidence."
 Assert-ToolchainTest (
     @($battleFengShenEvidenceContract.g5.cocosBaselineInputs) -contains
         'client/ProjectX/src/Data/PetkaPaiManager.lua' -and
@@ -499,6 +525,11 @@ Assert-ToolchainTest (
     @($battleFengShenEvidenceContract.g5.cocosBaselineInputs) -contains
         'server/config/json/config.json'
 ) "BattleFengShenStory G1 input fingerprint no longer covers the current stamina timer, value, header, and 360-second regeneration source chain."
+Assert-ToolchainTest (
+    @($battleFengShenEvidenceContract.g5.cocosBaselineInputs | Where-Object {
+        [string]$_ -match 'Invoke-FengShenStorySqliteFixture\.(ps1|py)$'
+    }).Count -eq 0
+) "BattleFengShenStory Cocos baseline inputs must not include the Unity-only SQLite fixture adapter."
 $bagSqliteAdapterSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Invoke-BagSqliteFixture.py") -Raw -Encoding UTF8
 $bagCocosAdapterSource = Get-Content -LiteralPath `
@@ -1503,7 +1534,7 @@ Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('new GameObject("RuntimeFengShenItemCell"') -and
     $fengShenStoryPresenterSource.Contains('HeroUI/common_quality_') -and
     $cocosItemCellSource.Contains('numLabel:setString(tostring(self.m_pUserDefine.num))') -and
-    $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, amountValue, quality, false)') -and
+    $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, amountValue, visualQuality, false)') -and
     $fengShenStoryPresenterSource.Contains('amount?.text != reward.Amount.ToString()') -and
     -not $fengShenStoryPresenterSource.Contains('amount?.text != $"×{reward.Amount}"') -and
     $fengShenStoryPresenterSource.Contains('commonCurrency.name = "RuntimeFengShenStoryGoldCheck"') -and
@@ -1517,6 +1548,10 @@ Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('public Button GetChapterControl(int chapterId)') -and
     $fengShenStoryPresenterSource.Contains('hitGraphic.raycastTarget = true;') -and
     $fengShenStoryPresenterSource.Contains('button.targetGraphic = hitGraphic;') -and
+    $fengShenStoryPresenterSource.Contains('NormalizeMirroredRaycastButton(leftButton);') -and
+    $fengShenStoryPresenterSource.Contains('Vector3.Dot(rect.forward, Vector3.forward) >= 0f') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.LeftPageControl)') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.RightPageControl)') -and
     $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter - 1))') -and
     $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter))') -and
     $fengShenStoryRunnerSource.Contains('battle-fengshen-entry-chapter-raycast') -and
@@ -1547,6 +1582,28 @@ Assert-ToolchainTest (
     $fengShenStoryRunnerSource.Contains('MarkValidationControl("BFSB-09-RETURN-REWARD-CONFIRM")')
 ) "BattleFengShenStory op26 reward mapping, Cocos RewardGetUI presentation, or real confirmation lifecycle regressed."
 Assert-ToolchainTest (
+    $projectXAppSource.Contains('suppressFengShenSettlementForSkippedPlayback') -and
+    $projectXAppSource.Contains('&& worldBattlePlaybackPresenter.SkipRequested') -and
+    $projectXAppSource.Contains('FengShenStory authoritative result queued until natural playback completes') -and
+    $projectXAppSource.Contains('battle-fengshen-lifecycle-split') -and
+    $projectXAppSource.Contains('natural completion -> authoritative settlement; explicit skip -> direct parent return without settlement')
+) "BattleFengShenStory natural-completion settlement and explicit-skip direct-return branches regressed."
+$battleFengShenFixtureSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py") -Raw -Encoding UTF8
+$battleFengShenFixtureWrapperSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    [string]$battleFengShenEvidenceContract.fixedAccount.postValidationAdapterAction -eq 'AssertMutated' -and
+    [string]$battleFengShenEvidenceContract.fixedAccount.g5VisualSnapshot -eq '.local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-g5-visual-fixture-snapshot.json' -and
+    [string]$battleFengShenEvidenceContract.fixedAccount.g5VisualSetupAction -eq 'Setup' -and
+    [string]$battleFengShenEvidenceContract.fixedAccount.g5VisualAssertAction -eq 'AssertMutated' -and
+    @($battleFengShenEvidenceContract.fixedAccount.g5VisualValidationFlags) -contains '-projectXBattleFengShenStoryValidation' -and
+    $battleFengShenFixtureSource.Contains('def assert_mutated(args):') -and
+    $battleFengShenFixtureSource.Contains('{"count": 3, "chapterIndex": 7, "nodeId": 40082}') -and
+    $battleFengShenFixtureSource.Contains('if spirit["spirit"] != 60:') -and
+    $battleFengShenFixtureWrapperSource.Contains('"AssertSetup", "AssertMutated", "Restore"')
+) "BattleFengShenStory fixed-account G4 no longer asserts the two real challenge mutations before restore."
+Assert-ToolchainTest (
     $worldBattlePlaybackSource.Contains('new GameObject("BattleStartShade"') -and
     $worldBattlePlaybackSource.Contains('150f / 255f') -and
     $worldBattlePlaybackSource.Contains('1f - Mathf.GammaToLinearSpace(1f - 150f / 255f)') -and
@@ -1561,10 +1618,22 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('GameObject rewardLayer = rewardView.Binding.Find("Layer")') -and
     $fengShenStoryPresenterSource.Contains('1f - Mathf.GammaToLinearSpace(1f - 150f / 255f)') -and
-    $fengShenStoryPresenterSource.Contains('rewardDimmer.raycastTarget = true;')
+    $fengShenStoryPresenterSource.Contains('rewardDimmer.raycastTarget = true;') -and
+    $fengShenStoryPresenterSource.Contains('int visualQuality = picture == 3005 ? 3 : quality;') -and
+    $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, amountValue, visualQuality, false);')
 ) "BattleFengShenStory return reward no longer preserves the current Cocos modal dimmer and blocked-background lifecycle."
 Assert-ToolchainTest (
+    $fengShenStoryPresenterSource.Contains('private bool EnsureLevelView()') -and
+    $fengShenStoryPresenterSource.Contains('CocosUiView current = resolveLevelView();') -and
+    $fengShenStoryPresenterSource.Contains('BindLevelView(current);') -and
+    $fengShenStoryPresenterSource.Contains('public bool IsLevelPopupVisible => levelView?.GameObject?.activeSelf == true;') -and
+    $projectXAppSource.Contains('() => services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel")')
+) "FengShenStory real stage clicks no longer recover a rebuilt level view after repeated Editor Play or scene-object refresh."
+Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('formationButton = Bind(levelRoot, "Popup/Btn_buzhen", OnFormationClicked);') -and
+    $fengShenStoryPresenterSource.Contains('SetVisible(node.Find("Image_4"), isCurrent);') -and
+    $fengShenStoryPresenterSource.Contains('public int RenderedCurrentStageMarkerCount => renderedCurrentStageMarkerCount;') -and
+    $projectXAppSource.Contains('battle-fengshen-stage-markers') -and
     [regex]::IsMatch($fengShenStoryPresenterSource,
         'private void OnFightClicked\(\)[\s\S]*?store.BeginChallenge\(\);\s*challenge\(\);[\s\S]*?CloseLevelPopup\(\);\s*\}') -and
     [regex]::IsMatch($fengShenStoryPresenterSource,
@@ -1648,6 +1717,11 @@ Assert-ToolchainTest (
     $fengShenStorySqliteFixtureSource.Contains('attack_count = read_u16(data, cursor)') -and
     $fengShenStorySqliteFixtureSource.Contains('reset_count = read_u16(data, cursor)') -and
     $fengShenStorySqliteFixtureSource.Contains('values[0] = canonicalize_guan_qia(values[0])') -and
+    $fengShenStorySqliteFixtureSource.Contains('SPIRIT_FULL = 100') -and
+    $fengShenStorySqliteFixtureSource.Contains('SPIRIT_REGEN_SECONDS = 360') -and
+    $fengShenStorySqliteFixtureSource.Contains('def relogin_spirit_matches(expected, current):') -and
+    $fengShenStorySqliteFixtureSource.Contains('changed != ["role.user_spirit"] or not spirit_matches') -and
+    $fengShenStorySqliteFixtureSource.Contains('"reloginSpiritOracle": spirit_oracle') -and
     $fengShenStorySqliteFixtureSource.Contains('patch_spirit(role[2], 100)') -and
     $fengShenStorySqliteFixtureSource.Contains('"role.user_spirit"') -and
     $fengShenStorySqliteFixtureSource.Contains('"injectedSpirit": primary_spirit') -and
@@ -2485,6 +2559,7 @@ Assert-ToolchainTest (
     -not $worldOutcomeSource.Contains('CreateBattlePanelShade(layer.transform);') -and
     $worldOutcomeSource.Contains('new GameObject("RuntimeBattleResult_Dimmer", typeof(RectTransform),') -and
     $worldOutcomeSource.Contains('dimmer.transform.SetAsFirstSibling();') -and
+    $worldOutcomeSource.Contains('washImage.color = new Color(0f, 0f, 0f, 0.58f);') -and
     $projectXAppSource.Contains('if (!pendingWorldBattleResult) worldBattlePlaybackPresenter.Hide();') -and
     $worldOutcomeSource.Contains('new GameObject("VictoryTitleImod", typeof(RectTransform))') -and
     $worldOutcomeSource.Contains('new Vector2(201.2585f, 283.952f)') -and
@@ -2513,8 +2588,17 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('private static readonly float[] CocosPlaybackFactors = { 1f, 2f, 3f, 3.5f, 4f, 4.5f };') -and
     $worldPlaybackSource.Contains('unit.Model.Play(ResolveUnitActionIndex(unit), loop);') -and
     $worldPlaybackSource.Contains('return unit?.Data != null && !unit.Data.IsEnemy ? 1 : 0;') -and
+    $worldPlaybackSource.Contains('value.Model.IsFlippedX == ResolveUnitFlipX(value)') -and
+    $worldPlaybackSource.Contains('value.Model.CurrentFrameBelongsToCurrentAction') -and
+    $worldPlaybackSource.Contains('unit.Model.SetFlippedX(ResolveUnitFlipX(unit));') -and
+    $worldPlaybackSource.Contains('public string UnitDirectionalState =>') -and
+    $worldPlaybackSource.Contains('foreach (UnitView unit in units.Values.Where(value => value?.Model != null))') -and
     $worldPlaybackSource.Contains('view.Model.SetPlayOnEnable(false);') -and
     $imodAnimationPlayerSource.Contains('public void SetPlayOnEnable(bool value)') -and
+    $imodAnimationPlayerSource.Contains('public bool IsFlippedX => flippedX;') -and
+    $imodAnimationPlayerSource.Contains('public bool CurrentFrameBelongsToCurrentAction') -and
+    $imodAnimationPlayerSource.Contains('? data.actions[actionIndex].frames[0].frame') -and
+    $imodAnimationPlayerSource.Contains('actionIndex = -1;') -and
     $worldOutcomeSource.Contains('value.Type != 60052 && value.Type != 60006') -and
     $worldOutcomeSource.Contains('.Where(value => value.FightPosition > 0)') -and
     $worldOutcomeSource.Contains('no synthetic general data was rendered') -and

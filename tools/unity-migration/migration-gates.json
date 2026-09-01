@@ -1456,9 +1456,9 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/BATTLEFENGSHENSTORY.md",
       "timingPolicyVersion": 1,
@@ -1486,15 +1486,32 @@
           "completionCheckDurationMs": 149
         },
         "G3": {
-          "startedUtc": "2026-08-30T12:37:30.0205442Z",
-          "startSource": "previous-gate-complete",
-          "completedUtc": "2026-08-30T22:19:27.7192504Z",
-          "calendarDurationMs": 34917719,
-          "completionCheckDurationMs": 296
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:07:20.8238933Z",
+          "calendarDurationMs": 1578824,
+          "completionCheckDurationMs": 249
         },
         "G4": {
-          "startedUtc": "2026-08-30T22:19:27.7192504Z",
-          "startSource": "previous-gate-complete"
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:18:11.7470652Z",
+          "calendarDurationMs": 2229747,
+          "completionCheckDurationMs": 1344
+        },
+        "G5": {
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:26:42.5773719Z",
+          "calendarDurationMs": 2740577,
+          "completionCheckDurationMs": 1985
+        },
+        "G6": {
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:56:44.5639859Z",
+          "calendarDurationMs": 4542564,
+          "completionCheckDurationMs": 7925
         }
       },
       "gateEvidence": {
@@ -1529,21 +1546,49 @@
           "client/ProjectX/src/View/Background/FirstClassBg.lua"
         ],
         "G3": [
-          ".local/unity-validation/battlefengshenstory-g3-current-summary.json",
           ".local/unity-validation/battlefengshenstory-g3-runtime-latest.json",
           ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
           ".local/unity-validation/battlefengshenstory-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
-          ".local/unity-validation/battlefengshenstory-g2-source-audit-current.json",
-          ".local/ui-fidelity/BattleFengShenStory/cocos/g1",
-          ".local/ui-fidelity/BattleFengShenStory/unity/g3",
-          ".local/ui-fidelity/BattleFengShenStory/compare/g3",
-          "unityclient/Assets/ProjectX/src/UI/WorldOutcomePresenter.cs",
+          ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+          "build/ui-migration/BFS-BATTLE-STAND.png",
+          "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+          "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+          "unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs",
           "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "tools/unity-migration/Test-UnityMigrationToolchain.ps1",
-          "docs/unityclient/modules/BATTLEFENGSHENSTORY.md",
-          "UNITYCLIENT_STATUS.md"
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+        ],
+        "G4": [
+          ".local/unity-validation/battlefengshenstory-early-user-play-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-timings-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+          "build/ui-migration/BFS-BATTLE-STAND.png",
+          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py",
+          "unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs",
+          "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs"
+        ],
+        "G5": [
+          ".local/unity-validation/battlefengshenstory-g5-visual-latest.json",
+          ".local/unity-validation/battlefengshenstory-g5-preflight-latest.json",
+          ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-1.jpg",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-2.jpg"
+        ],
+        "G6": [
+          ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+          ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/unity-validation/battlefengshenstory-g6-runtime-cleanup-latest.json",
+          ".local/unity-validation/battlefengshenstory-final-sqlite-state-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+          "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+          ".local/unity-validation/battlefengshenstory-retrospective-latest.json",
+          ".local/unity-validation/battlefengshenstory-retrospective-latest.json"
         ]
       },
       "gateRevalidations": {
@@ -1572,9 +1617,72 @@
             "client/ProjectX/src/Data/PetkaPaiManager.lua",
             "client/ProjectX/src/View/Background/FirstClassBg.lua"
           ]
+        },
+        "G5": {
+          "checkedUtc": "2026-09-01T03:34:12.6523302Z",
+          "evidence": [
+            ".local/unity-validation/battlefengshenstory-g5-visual-latest.json",
+            ".local/unity-validation/battlefengshenstory-g5-preflight-latest.json",
+            ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-1.jpg",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-2.jpg"
+          ]
+        },
+        "G6": {
+          "checkedUtc": "2026-09-01T04:01:10.3875873Z",
+          "evidence": [
+            ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+            ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            ".local/unity-validation/battlefengshenstory-g6-runtime-cleanup-latest.json",
+            ".local/unity-validation/battlefengshenstory-final-sqlite-state-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+            "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+            ".local/unity-validation/battlefengshenstory-retrospective-latest.json",
+            ".local/unity-validation/battlefengshenstory-retrospective-latest.json"
+          ]
         }
       },
-      "updatedUtc": "2026-08-30T22:19:27.7518101Z"
+      "gateInvalidations": {
+        "G3": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/battlefengshenstory-g3-runtime-latest.json",
+            ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
+            ".local/unity-validation/battlefengshenstory-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+            "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+            "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+            "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs"
+          ],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        }
+      },
+      "updatedUtc": "2026-09-01T04:01:10.3881448Z"
     },
     {
       "module": "BattleScript",
@@ -1592,7 +1700,7 @@
       "evidence": "docs/unityclient/modules/BATTLESCRIPT.md",
       "note": "2026-08-31 user decision: Shimen, Xinmo and treasure-map EFTScript flows are excluded from current Unity migration and battle parity denominator. Pending gates are retained as not-run audit state, not passed evidence.",
       "timingPolicyVersion": 1,
-      "timingPolicyStartedUtc": "2026-08-30T23:29:53.3813230Z",
+      "timingPolicyStartedUtc": "2026-08-30T23:29:53.381323Z",
       "gateTimings": {
         "G0": {
           "startedUtc": "2026-08-30T23:29:53.3836637Z",

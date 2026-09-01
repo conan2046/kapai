@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-08-31
+> 最后更新：2026-09-01
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `7/16 = 43.8%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的模块。Bag已按当前输入重新收口；Hero、HeroEquip、Draw、World、Gameplay、YouLi、XunBao、FengShenStory仍按最早缺口降级，历史完成标签不计当前完成；Arena已排除。 |
+| Validated | `5/16 = 31.3%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块。Bag已按当前输入重新收口；BattleFengShenStory作为非分母战斗子模块已独立完成G6，不增加此处16模块分子。Mail、Shop及Hero、HeroEquip、Draw、World、Gameplay、YouLi、XunBao、FengShenStory按当前最早缺口降级；Arena已排除。 |
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 ## 2. 模块状态
 | 模块 | 状态 | 已完成边界 | 后续 |
@@ -27,14 +27,14 @@
 | 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0-G2 passed / G3 early user Play pending / G4-G6 pending` | 方案A冻结14来源、974业务ID、86控件；当前G1碎片态与G2所有权/配置审计保留，旧33控件结论失效 | G3实现完成后从真实入口早测；反馈闭环前不得进入G4，历史G4-G6不得复用 |
-| 邮件 | `G0-G6 passed / 13/13 complete` | 固定账号完成 4/4 双端视觉、13/13 真实控件、`/128 op2/3/4/5`、失败/重拉/重进/断线/切号、账号历史隔离及 Bootstrap 幂等；Cocos 列表不滚和附件数量 0 已按批准差异由 Unity 修复 | 当前模块收口；下一任务重新选择模块执行 G0 |
-| 基础商城 | `G0-G6 passed / 21/21 complete` | 固定账号完成 6/6 双端视觉；真实 `/221 op1/2/3/4`、数量键盘、确认/取消、奖励、限购、余额不足、不可刷新、空态、重拉、重进、断线、切号、精确恢复及 Bootstrap 幂等 | 当前模块收口；下一任务重新选择模块执行 G0 |
+| 邮件 | `G0-G2 passed / G3-G6 pending` | 旧固定账号、4/4双端视觉、13/13控件、`/128 op2/3/4/5`及Bootstrap证据仍保留，但正式门禁登记已降为G0-G2 | 从当前源码重跑G3-G6；旧完成标签不得替代当前门禁。 |
+| 基础商城 | `G0-G4 passed / G5-G6 pending` | 旧6/6双端视觉、21/21控件、`/221 op1/2/3/4`、精确恢复及Bootstrap证据保留，但正式门禁当前只到G4 | 按当前源码重跑G5-G6；旧完成标签不得替代当前门禁。 |
 | 玩法商店 | `G0 pending / evidence-missing` | 历史登记的 6 组 Cocos、6 组 Unity、差异报告、人工验收和固定账号结果共15个路径当前全部缺失，旧 G1-G6 已失效 | 从当前源码重新执行 G0-G6并生成新证据；禁止用历史完成记录替代当前文件 |
 | 好友 | `steam-excluded` | Steam隐藏HUD入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 聊天 | `steam-excluded` | Steam隐藏聊天入口及HUD聊天条、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 队伍 | `steam-excluded` | Steam不生成队伍入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 帮派 | `steam-excluded` | Steam隐藏帮派/宗门入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
-| 世界/战斗/副本 | `G0-G3 current passed / G4-G6 pending` | 2026-08-31复核固定`7200057/1000003`、关卡`10023`、原生`1334×750`的当前Cocos九状态，输入指纹仍为`C958C45D...C40A7`；G0-G2当前重验通过。Unity当前G3消费真实`/38 op=5`内嵌`/21-/23`，5单位、18动作组，完成普攻、技能、受击、死亡、血条、飘字、结算、逐单位统计、真实EventSystem回放、第二次结算与继续返回。固定种子/包指纹为`20260830 / 1970000362 / 3942185584`，源码合同指纹`5ED9D8C1...7192B`；SQLite Setup、恢复、重登稳定哈希、清理和零残留通过，BuildBatch严重错误0 | 旧G4/G5与代理早测均因共享战斗代码变化失效，已由中央门禁工具重置，不得复用。当前52个`EFightType`已逐项做产品范围审计，现行战斗分母仅`EFT_GuanQia=16`与`EFTLieZhuanFight=19`；其余50种为用户排除、平台排除、当前入口不可达或非产品类型。继续收敛共享表现差异并在两类战斗间回归，仍停在G3。证据`.local/unity-validation/battle-current-denominator-latest.json`、`.local/unity-validation/world-g3-runtime-latest.json`、`.local/unity-validation/world-g3-server-runtime-latest.log` |
+| 世界/战斗/副本 | `V0 closed / A=16,19 / Unity G3 + early Play passed / G4 pending` | 当前黑盒A已确认主线`EFT_GuanQia=16`与列传`EFTLieZhuanFight=19`。Unity SQLite`7200057/1000003`重新完成列传G3：真实EventSystem 9/9、10单位；自然结束显示权威结算/统计/回放/关闭/返回奖励，主动跳过直回父地图且不显示结果栈；用户2026-09-01确认两条路径均OK；`47–53`全部不保留并归D。 | 下一门禁G4逻辑与异常恢复回归。证据`.local/unity-validation/cocos-current-version-boundary-v0-latest.json`、`.local/unity-validation/battlefengshenstory-g3-runtime-latest.json`、`.local/unity-validation/battlefengshenstory-early-user-play-latest.json`。 |
 | 福利 | `steam-excluded` | Steam隐藏福利入口、在线奖励和体力领取，禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 活动 | `steam-excluded` | 当前集合包含全服排行/最强榜等其他玩家数据，也包含充值活动；Steam隐藏入口并由Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 抽卡 | `G0-G5 retained / G6 evidence missing` | G5双端主状态与差异报告仍存在；G6矩阵登记的28组Cocos与28组Unity逐控件图在当前检出全部缺失 | 重取或找回56份真实逐控件证据后重跑G6；禁止复制旧图补路径 |
@@ -43,7 +43,7 @@
 | 游历三界 | `G0 passed / G1-G6 evidence missing` | `/335 op1/2/3`实现保留；登记的Cocos/Unity空态与差异目录当前不存在 | 从当前源码重取G1，后续门禁串行重验；写操作以op1权威重查为准 |
 | 竞技场 | `steam-excluded / user-confirmed disabled` | 当前以`migrationReady=false`隐藏大厅入口；2026-08-31用户确认竞技场本就屏蔽，不进入当前Unity迁移、战斗表现或16模块分母。历史Unity单端Runner、协议等价和旧截图仅作遗留线索 | 后续不迁移、不验收；若产品恢复竞技场，必须从G0重启并重新取得当前Cocos证据 |
 | 封神列传 | `G0-G3 passed / early user Play retest pending / G4-G6 pending` | 2026-08-29重取当前Cocos关卡、首通奖励与获取途径原生证据；奖励复合格、公共货币栏、`/320`确认包及挑战/布阵关闭弹窗修复均已通过当前工作树BuildBatch。固定账号已切为Unity persistentDataPath SQLite `7200057/1000003`，预检完成整库精确恢复、隔离账号清理和零残留 | 用户用当前G3构建复测奖励图标/品质框/数量、公共货币栏、真实挑战与布阵返回；反馈闭环前不得进入G4，也不得切换到寻宝 |
-| 封神列传战斗表现 | `G0-G3 current passed / user retest ready / G4-G6 pending` | 真人Play发现的章节卷轴无射线、结算返回残留战场已修复；本轮继续按Cocos修正我方/右侧action 1+flip、父节点激活不再重置动作组。加速显示`1/2/3/5/10/15`但实际播放因子`1/2/3/3.5/4/4.5`，模型/品质/技能特效即时同步且回放保持；跳过允许态真实点击通过，拒绝态给Cocos原文提示。当前战报只有`60052主角经验3960`、`60006神将经验0`，界面未造神将经验；未来仅在真实60006时读取`/24`已上阵神将。修复后batch为`9/9`控件、10单位、5动作组，DataPreflight、SQLite精确恢复、重登哈希、Cleanup、零残留、289项工具回归及BuildBatch严重错误0 | 用户复测章节选择、我方与敌方朝向、X2及更高档实际节奏、允许跳过、结算仅主角经验、结算继续→奖励确认返回地图。反馈闭环前不进入G4。状态并发特效相位、结算/统计字体与遮罩明暗、返回页地图/弹窗缩放仍是已知差异；证据`.local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json`、`.local/unity-validation/battlefengshenstory-g3-runtime-latest.json`。最终G6仍只由用户确认 |
+| 封神列传战斗表现 | `G0-G6 passed / 9/9 complete` | Unity SQLite`7200057/1000003`固定账号完整batch通过9/9控件、自然结算/主动跳过分流、重登、精确恢复与零残留；用户确认苏全忠、姬发、郑伦朝向正确。G5当前十态对比、两次BuildBatch同SHA、G6硬门禁和自动复盘均通过。 | 当前模块收口；复盘241/241已解决、补充证据4、待诊断0、未解决0。证据`.local/unity-validation/battlefengshenstory-fixed-account-latest.json`、`.local/ui-fidelity/BattleFengShenStory/compare/g5/report.json`、`.local/unity-validation/battlefengshenstory-retrospective-latest.json`。 |
 | 体力领取 | `steam-excluded` | 历史G0-G6证据保留；Steam按“福利整体排除”隐藏入口、移除路由并拒绝验收 | 后续不迁移；Cocos/服务端保留 |
 | 血战到底 | `steam-excluded` | 包含全服血战排行榜与其他玩家排名数据；玩法大厅不显示，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 决战昆仑 | `steam-excluded` | 依赖匹配对手数据；玩法大厅不显示，不再请求昆仑红点 `/213 op=25`，Runner拒绝 | 后续不迁移；Cocos/服务端保留 |

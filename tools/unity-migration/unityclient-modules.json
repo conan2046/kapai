@@ -557,7 +557,7 @@
     {
       "key": "Mail",
       "displayName": "邮件",
-      "status": "g6-complete",
+      "status": "g0-g2-passed-g3-g6-pending",
       "protocols": [
         128
       ],
@@ -600,7 +600,7 @@
     {
       "key": "Shop",
       "displayName": "商城",
-      "status": "g6-complete",
+      "status": "g0-g4-passed-g5-g6-pending",
       "protocols": [
         221
       ],
@@ -813,7 +813,7 @@
     {
       "key": "World",
       "displayName": "世界/战斗/副本",
-      "status": "g0-g3-current-passed-early-user-play-pending",
+      "status": "v0-closed-a-16-19-battle19-g3-passed-early-user-play-pending",
       "protocols": [
         21,
         22,
@@ -1170,7 +1170,7 @@
         "build/ui-migration/bootstrap-fengshen-story.png"
       ],
       "visualFidelity": {
-        "status": "early-user-play-pending",
+        "status": "visual-fixing",
         "cocosScreenshots": [
           ".local/ui-fidelity/FengShenStory/cocos/g1-20260802/FENGSHEN-CONTROL-CHAPTER-CELL.png"
         ],
@@ -1570,7 +1570,7 @@
     {
       "key": "BattleMeetMonster",
       "displayName": "野外碰怪战斗",
-      "status": "scaffolded",
+      "status": "v0-boundary-e-awaiting-user-confirmation",
       "currentCocosReachable": false,
       "excludedFromCurrentCocosParityDenominator": true,
       "exclusionReason": "Current MainUI and all production Gameplay/Task entries expose no world-map movement route; WorldMapMainUI is reachable only from the MainChatUI developer command openUI.",
@@ -1609,7 +1609,7 @@
     {
       "key": "BattleFengShenStory",
       "displayName": "封神列传战斗表现",
-      "status": "scaffolded",
+      "status": "g6-complete",
       "protocols": [
         21,
         22,
@@ -1635,7 +1635,53 @@
       "validationFlags": [
         "-projectXBattleFengShenStoryValidation"
       ],
-      "screenshots": [],
+      "screenshots": [
+        "build/ui-migration/BFS-BATTLE-START.png",
+        "build/ui-migration/BFS-BATTLE-STAND.png",
+        "build/ui-migration/BFS-BATTLE-SPEED.png",
+        "build/ui-migration/BFS-BATTLE-SKILL.png",
+        "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+        "build/ui-migration/BFS-BATTLE-MOVE.png",
+        "build/ui-migration/BFS-BATTLE-STATUS.png",
+        "build/ui-migration/BFS-BATTLE-DEATH.png",
+        "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+        "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+        "build/ui-migration/BFS-BATTLE-RETURN.png",
+        "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png"
+      ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-START.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STAND.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-SKILL.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-DAMAGE.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-MOVE.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STATUS.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-DEATH.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STATISTICS.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-RETURN.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SKILL.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATUS.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-RETURN.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md"
+        ],
+        "flowEvidence": ".local/unity-validation/battlefengshenstory-g5-visual-latest.json",
+        "uiMapping": "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json"
+      },
       "controlMatrix": "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
       "document": "docs/unityclient/modules/BATTLEFENGSHENSTORY.md",
       "g0Draft": ".local/unity-validation/battlefengshenstory-g0-draft-latest.json"

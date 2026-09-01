@@ -395,6 +395,7 @@ namespace ProjectX.Core
         private BattlePlaybackContext battlePlaybackContext;
         private Coroutine worldBattlePlaybackCoroutine;
         private bool pendingWorldBattleResult;
+        private bool suppressFengShenSettlementForSkippedPlayback;
         private int pendingWorldBattleStars;
         private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
         private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
@@ -2723,6 +2724,17 @@ namespace ProjectX.Core
             services.FengShenStory.SetRewardPush(pendingFengShenRewards);
             pendingFengShenRewards.Clear();
             if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
+                && (suppressFengShenSettlementForSkippedPlayback
+                    || worldBattlePlaybackPresenter?.SkipRequested == true))
+            {
+                // Explicit skip returns directly to the parent map. Consume a
+                // late op26 state push without resurrecting the result stack.
+                services.FengShenStory.AcknowledgeRewardPush();
+                deferredFengShenRewardPush = false;
+                SetStatus("FengShenStory skipped playback consumed op26 without reopening settlement.");
+                return;
+            }
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
                 && (worldBattlePlaybackCoroutine != null
                     || worldBattlePlaybackPresenter?.IsVisible == true
                     || pendingWorldBattleResult
@@ -2852,9 +2864,10 @@ namespace ProjectX.Core
                 if (worldBattlePlaybackPresenter.DirectionalModelCount <= 0
                     || !worldBattlePlaybackPresenter.UnitDirectionalActionsCorrect)
                 {
-                    Fail($"BattleFengShenStory Cocos side action groups mismatch: models={worldBattlePlaybackPresenter.DirectionalModelCount}, correct={worldBattlePlaybackPresenter.UnitDirectionalActionsCorrect}.");
+                    Fail($"BattleFengShenStory Cocos side action groups mismatch: models={worldBattlePlaybackPresenter.DirectionalModelCount}, correct={worldBattlePlaybackPresenter.UnitDirectionalActionsCorrect}, states=[{worldBattlePlaybackPresenter.UnitDirectionalState}].");
                     yield break;
                 }
+                Debug.Log($"[ProjectX][BattleFengShenStory] Directional states: {worldBattlePlaybackPresenter.UnitDirectionalState}");
                 MarkValidationControl("BFSB-03-AUTO");
                 float speedBefore = worldBattlePlaybackPresenter.PlaybackSpeed;
                 if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SpeedInteractionButton))
@@ -2872,6 +2885,11 @@ namespace ProjectX.Core
                 }
                 MarkValidationControl("BFSB-02-SPEED");
 
+                // Natural completion must enter the authoritative settlement;
+                // explicit skip is validated separately after this full path.
+                bool validateNaturalSettlement = true;
+                if (validateNaturalSettlement)
+                {
                 float playbackAllowance = Mathf.Min(180f, services.WorldBattleReplay.Actions.Count * 4.5f);
                 deadline = Time.realtimeSinceStartup + 30f + playbackAllowance;
                 while (worldOutcomePresenter?.IsBattleVisible != true && Time.realtimeSinceStartup < deadline)
@@ -2978,24 +2996,13 @@ namespace ProjectX.Core
                     Fail($"BattleFengShenStory speed preference did not survive replay: factor={worldBattlePlaybackPresenter.PlaybackSpeed}, label=X{worldBattlePlaybackPresenter.SpeedDisplayMultiplier}.");
                     yield break;
                 }
-                if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SkipInteractionButton))
-                {
-                    Fail("BattleFengShenStory replay/skip control did not reach a real EventSystem click target.");
-                    yield break;
-                }
-                yield return new WaitForEndOfFrame();
-                if (!worldBattlePlaybackPresenter.SkipRequested)
-                {
-                    Fail("BattleFengShenStory skip click was rejected by the authoritative replay state.");
-                    yield break;
-                }
-                MarkValidationControl("BFSB-04-SKIP");
-                deadline = Time.realtimeSinceStartup + 15f;
+                float replayAllowance = Mathf.Min(180f, services.WorldBattleReplay.Actions.Count * 4.5f);
+                deadline = Time.realtimeSinceStartup + 30f + replayAllowance;
                 while (worldOutcomePresenter?.IsBattleVisible != true && Time.realtimeSinceStartup < deadline)
                     yield return null;
                 if (worldOutcomePresenter?.IsBattleVisible != true)
                 {
-                    Fail("BattleFengShenStory skipped replay did not return to settlement.");
+                    Fail("BattleFengShenStory natural replay did not return to settlement.");
                     yield break;
                 }
                 if (!InvokeEventSystemRaycastClick(worldOutcomePresenter.ContinueInteractionButton))
@@ -3053,12 +3060,86 @@ namespace ProjectX.Core
                     yield break;
                 }
                 MarkValidationControl("BFSB-09-RETURN-REWARD-CONFIRM");
+
+                currentChapter = services.FengShenStory.CurrentChapter;
+                currentLevel = Math.Max(1, (int)(services.FengShenStory.LevelId % 10));
+                if (fengShenStoryPresenter.SelectedChapter != currentChapter
+                    && !InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter)))
+                {
+                    Fail("BattleFengShenStory could not select the current chapter for explicit-skip validation.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(currentLevel)))
+                {
+                    Fail("BattleFengShenStory current stage did not receive the second real EventSystem click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!fengShenStoryPresenter.IsLevelPopupVisible
+                    || !InvokeEventSystemRaycastClick(fengShenStoryPresenter.FightControl))
+                {
+                    Fail("BattleFengShenStory second challenge did not receive a real EventSystem click.");
+                    yield break;
+                }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while ((worldBattlePlaybackPresenter?.IsVisible != true
+                    || services.WorldBattleReplay.FightType != 19) && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldBattlePlaybackPresenter?.IsVisible != true
+                    || services.WorldBattleReplay.FightType != 19)
+                {
+                    Fail("BattleFengShenStory explicit-skip validation replay did not start.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SkipInteractionButton))
+                {
+                    Fail("BattleFengShenStory skip control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (!worldBattlePlaybackPresenter.SkipRequested)
+                {
+                    Fail("BattleFengShenStory skip click was rejected by the authoritative replay state.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-04-SKIP");
+                deadline = Time.realtimeSinceStartup + 15f;
+                while ((!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || worldOutcomePresenter?.IsBattleVisible == true
+                    || worldOutcomePresenter?.IsStatisticsVisible == true
+                    || fengShenStoryPresenter.IsModalVisible
+                    || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"BattleFengShenStory explicit-skip direct-return mismatch: parent={IsFengShenStoryOpen}, "
+                        + $"playback={worldBattlePlaybackPresenter?.IsVisible == true}, "
+                        + $"settlement={worldOutcomePresenter?.IsBattleVisible == true}, "
+                        + $"statistics={worldOutcomePresenter?.IsStatisticsVisible == true}, "
+                        + $"modal={fengShenStoryPresenter.IsModalVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                if (fengShenStoryPresenter.RenderedCurrentStageMarkerCount != 1)
+                {
+                    Fail($"BattleFengShenStory parent map current-stage marker mismatch after skip: visible={fengShenStoryPresenter.RenderedCurrentStageMarkerCount}/1.");
+                    yield break;
+                }
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-SKIP-RETURN.png");
                 string[] artifacts =
                 {
                     "BFS-BATTLE-START.png", "BFS-BATTLE-STAND.png", "BFS-BATTLE-SKILL.png",
                     "BFS-BATTLE-DAMAGE.png", "BFS-BATTLE-MOVE.png", "BFS-BATTLE-STATUS.png",
                     "BFS-BATTLE-DEATH.png", "BFS-BATTLE-SETTLEMENT.png",
-                    "BFS-BATTLE-STATISTICS.png", "BFS-BATTLE-RETURN.png"
+                    "BFS-BATTLE-STATISTICS.png", "BFS-BATTLE-RETURN.png",
+                    "BFS-BATTLE-SKIP-RETURN.png"
                 };
                 string[] missing = artifacts.Where(name =>
                 {
@@ -3076,7 +3157,70 @@ namespace ProjectX.Core
                     $"units={services.WorldBattleReplay.Units.Count}, actions={services.WorldBattleReplay.Actions.Count}, ten current semantic states captured");
                 RecordValidationSemantic("battle-fengshen-controls", true,
                     "9/9 controls covered; eight real EventSystem paths plus current-source hidden auto assertion");
-                Complete($"COMPLETE: BattleFengShenStory 9/9 controls; fightType=19; units={services.WorldBattleReplay.Units.Count}; actions={services.WorldBattleReplay.Actions.Count}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+                RecordValidationSemantic("battle-fengshen-lifecycle-split", true,
+                    "natural completion -> authoritative settlement; explicit skip -> direct parent return without settlement");
+                RecordValidationSemantic("battle-fengshen-stage-markers", true,
+                    "exactly one current-stage marker; passed stages remain full color without the current badge");
+                Complete($"COMPLETE: BattleFengShenStory 9/9 controls; natural settlement and explicit-skip direct return; fightType=19; units={services.WorldBattleReplay.Units.Count}; actions={services.WorldBattleReplay.Actions.Count}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+                yield break;
+                }
+
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-SPEED.png");
+                if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SkipInteractionButton))
+                {
+                    Fail("BattleFengShenStory skip control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (!worldBattlePlaybackPresenter.SkipRequested)
+                {
+                    Fail("BattleFengShenStory skip click was rejected by the authoritative replay state.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-04-SKIP");
+                deadline = Time.realtimeSinceStartup + 15f;
+                while ((!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || worldOutcomePresenter?.IsBattleVisible == true
+                    || worldOutcomePresenter?.IsStatisticsVisible == true
+                    || fengShenStoryPresenter.IsModalVisible
+                    || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"BattleFengShenStory direct-return mismatch: parent={IsFengShenStoryOpen}, "
+                        + $"playback={worldBattlePlaybackPresenter?.IsVisible == true}, "
+                        + $"settlement={worldOutcomePresenter?.IsBattleVisible == true}, "
+                        + $"statistics={worldOutcomePresenter?.IsStatisticsVisible == true}, "
+                        + $"modal={fengShenStoryPresenter.IsModalVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                string[] currentArtifacts =
+                {
+                    "BFS-BATTLE-START.png", "BFS-BATTLE-STAND.png",
+                    "BFS-BATTLE-SPEED.png", "BFS-BATTLE-RETURN.png"
+                };
+                string[] currentMissing = currentArtifacts.Where(name =>
+                {
+                    string path = BuildUiMigrationPath(name);
+                    return !File.Exists(path) || new FileInfo(path).Length < 4096;
+                }).ToArray();
+                if (currentMissing.Length > 0)
+                {
+                    Fail("BattleFengShenStory current G3 captures missing: " + string.Join(",", currentMissing));
+                    yield break;
+                }
+                RecordValidationSemantic("battle-fengshen-authority", true,
+                    "real /320 op24/op25 -> /38 op5 -> nested /21 fightType=19 and /22-/23");
+                RecordValidationSemantic("battle-fengshen-presentation", true,
+                    $"units={services.WorldBattleReplay.Units.Count}, actions={services.WorldBattleReplay.Actions.Count}, current FightLayer active");
+                RecordValidationSemantic("battle-fengshen-direct-return", true,
+                    "real speed and skip EventSystem clicks; parent op24 refreshed; no Unity settlement/statistics/replay/reward modal");
+                RecordValidationSemantic("battle-fengshen-controls", true,
+                    "4/4 current controls covered: challenge, speed, hidden auto assertion, skip");
+                Complete($"COMPLETE: BattleFengShenStory current G3 4/4 controls; direct parent return; no settlement; fightType=19; units={services.WorldBattleReplay.Units.Count}; actions={services.WorldBattleReplay.Actions.Count}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
             }
             finally
             {
@@ -3129,12 +3273,14 @@ namespace ProjectX.Core
                 yield return CaptureFengShenControlEvidence(allControls[4]);
 
                 int initialPage = fengShenStoryPresenter.FirstVisibleChapter;
-                fengShenStoryPresenter.InvokeLeft();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.LeftPageControl))
+                { Fail("FengShenStory left page arrow did not receive a real EventSystem raycast click."); yield break; }
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-page-left.png");
                 MarkValidationControl(allControls[6]);
                 yield return CaptureFengShenControlEvidence(allControls[6]);
                 int leftPage = fengShenStoryPresenter.FirstVisibleChapter;
-                fengShenStoryPresenter.InvokeRight();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.RightPageControl))
+                { Fail("FengShenStory right page arrow did not receive a real EventSystem raycast click."); yield break; }
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-page-right.png");
                 MarkValidationControl(allControls[7]);
                 yield return CaptureFengShenControlEvidence(allControls[7]);
@@ -6258,11 +6404,19 @@ namespace ProjectX.Core
         {
             battlePlaybackContext = BattlePlaybackContext.FengShenStory;
             services.Rewards.Replace("封神列传结算", pendingRewards);
+            if (suppressFengShenSettlementForSkippedPlayback
+                || worldBattlePlaybackPresenter?.SkipRequested == true)
+            {
+                pendingWorldBattleResult = false;
+                pendingWorldBattleStars = 0;
+                SetStatus($"FengShenStory skipped playback consumed op10 without presenting settlement: stars={stars}, rewards={services.Rewards.Count}.");
+                return;
+            }
             if (worldBattlePlaybackCoroutine != null || worldBattlePlaybackPresenter?.IsVisible == true)
             {
                 pendingWorldBattleResult = true;
                 pendingWorldBattleStars = stars;
-                SetStatus($"FengShenStory authoritative result queued until /38 playback completes: stars={stars}, rewards={services.Rewards.Count}.");
+                SetStatus($"FengShenStory authoritative result queued until natural playback completes: stars={stars}, rewards={services.Rewards.Count}.");
                 return;
             }
             ShowWorldBattleResultNow(stars);
@@ -9640,6 +9794,7 @@ namespace ProjectX.Core
             chatMiniView?.SetVisible(false);
             toastPresenter?.Clear();
             if (worldBattlePlaybackCoroutine != null) StopCoroutine(worldBattlePlaybackCoroutine);
+            suppressFengShenSettlementForSkippedPlayback = false;
             pendingWorldBattleResult = false;
             worldBattlePlaybackCoroutine = StartCoroutine(PlayWorldBattleReplay());
         }
@@ -9871,6 +10026,34 @@ namespace ProjectX.Core
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-DEATH.png"));
                 fengDeathFrameCaptured = true;
+            }
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
+                && worldBattlePlaybackPresenter.SkipRequested)
+            {
+                // Only an explicit skip returns straight to the parent map.
+                // Natural completion continues below into the authoritative
+                // op10 settlement lifecycle.
+                suppressFengShenSettlementForSkippedPlayback = true;
+                pendingWorldBattleResult = false;
+                pendingWorldBattleStars = 0;
+                deferredFengShenRewardPush = false;
+                services.FengShenStory.AcknowledgeRewardPush();
+                worldBattleResultView?.SetVisible(false);
+                worldBattleStatisticsView?.SetVisible(false);
+                worldBattlePlaybackPresenter.Hide();
+                worldBattlePlaybackCoroutine = null;
+                InvokeLuaOrFail(onFengShenStoryClicked, "FengShenStory.BattleDirectReturn");
+                SetStatus("FengShenStory fightType=19 returned directly to the parent map without Unity settlement.");
+                if (captureFengShenStory)
+                {
+                    yield return new WaitForEndOfFrame();
+                    // Keep the natural settlement return (which owns the op26
+                    // reward popup) distinct from the explicit-skip return.
+                    // Reusing BFS-BATTLE-RETURN here overwrote the G5 state with
+                    // the product-correct skip-without-settlement map frame.
+                    ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-SKIP-RETURN.png"));
+                }
+                yield break;
             }
             worldBattlePlaybackPresenter.ShowOutcome();
             if (services.Options.WorldBattleValidation)
@@ -14660,7 +14843,9 @@ namespace ProjectX.Core
             GameObject commonHeaderTemplate = firstClassFrame?.Binding.Find("Layer/Panel_12/Title");
             GameObject commonCurrencyTemplate = firstClassFrame?.Binding.Find("Layer/GoldCheck");
             fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
-                fengShenStoryView, fengShenStoryLevelView, services.FengShenStory, services.Currencies,
+                fengShenStoryView, fengShenStoryLevelView,
+                () => services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel"),
+                services.FengShenStory, services.Currencies,
                 services.Resources, errorPresenter, heroItemSourceView, rewardView, rewardPresenter,
                 commonHeaderTemplate, commonCurrencyTemplate,
                 () => HandleBack(),

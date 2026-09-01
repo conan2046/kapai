@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 
 ISOLATION_USER_ID = 705213
 ISOLATION_ROLE_ID = 1000006
+SPIRIT_FULL = 100
+SPIRIT_REGEN_SECONDS = 360
 
 
 def utc_now():
@@ -130,6 +132,44 @@ def spirit_state(value):
     return {"spirit": spirit, "lastSpiritTime": last_time}
 
 
+def spirit_relogin_state(value):
+    data = expand(value)
+    if len(data) < 6:
+        raise RuntimeError("user_spirit has no complete spirit/time header")
+    spirit, last_time = struct.unpack_from("<HI", data, 0)
+    return {
+        "spirit": spirit,
+        "lastSpiritTime": last_time,
+        "payloadSha256": hashlib.sha256(str(value).encode("utf-8")).hexdigest(),
+        "tailSha256": hashlib.sha256(bytes(data[6:])).hexdigest(),
+    }
+
+
+def relogin_spirit_matches(expected, current):
+    if current["payloadSha256"] == expected["payloadSha256"]:
+        return True, "exact"
+    if current["tailSha256"] != expected["tailSha256"]:
+        return False, "unexpected-payload-tail-change"
+    expected_spirit = int(expected["spirit"])
+    expected_time = int(expected["lastSpiritTime"])
+    current_spirit = int(current["spirit"])
+    current_time = int(current["lastSpiritTime"])
+    if expected_spirit >= SPIRIT_FULL or current_time < expected_time:
+        return False, "invalid-clock"
+    elapsed = current_time - expected_time
+    if elapsed % SPIRIT_REGEN_SECONDS != 0:
+        return False, "non-integral-regeneration"
+    regenerated = elapsed // SPIRIT_REGEN_SECONDS
+    predicted = min(SPIRIT_FULL, expected_spirit + regenerated)
+    if predicted >= SPIRIT_FULL:
+        matched = current_spirit == SPIRIT_FULL and current_time in (
+            0, expected_time + regenerated * SPIRIT_REGEN_SECONDS,
+        )
+    else:
+        matched = current_spirit == predicted
+    return matched, "normalized-passive-regeneration" if matched else "unexpected-spirit-change"
+
+
 def story_state(value):
     data = expand(value)
     offset = story_offset(data)
@@ -200,6 +240,7 @@ def stable_state(connection, user_id, role_id):
     if row is None:
         raise RuntimeError(f"identity {user_id}/{role_id} is missing")
     values = ["" if value is None else str(value) for value in row]
+    spirit_relogin = spirit_relogin_state(values[4])
     # The server rewrites guan_qia through its own zlib stream on a clean
     # relogin. Different compressed bytes/lengths are not residue when the
     # complete uncompressed payload is identical, so hash its canonical bytes.
@@ -215,6 +256,7 @@ def stable_state(connection, user_id, role_id):
         "hash": hashlib.sha256("|".join(values).encode("utf-8")).hexdigest(),
         "fields": fields,
         "canonicalValues": dict(zip(STABLE_FIELD_NAMES, values)),
+        "spiritReloginState": spirit_relogin,
     }
 
 
@@ -284,6 +326,7 @@ def setup(args):
         "isolationUserId": ISOLATION_USER_ID, "isolationRoleId": ISOLATION_ROLE_ID,
         "snapshotHash": snapshot_hash, "stableHash": stable["hash"], "stableFields": stable["fields"],
         "stableCanonicalGuanQia": stable["canonicalValues"]["role.guan_qia"],
+        "stableSpiritReloginState": stable["spiritReloginState"],
         "reloginNormalizationExclusions": list(RELOGIN_NORMALIZATION_EXCLUSIONS),
         "injected": primary, "injectedSpirit": primary_spirit,
         "isolation": isolation, "createdUtc": utc_now(),
@@ -305,6 +348,68 @@ def assert_setup(args):
             raise RuntimeError(f"primary FengShenStory spirit mismatch: {spirit}")
         if isolation != {"count": 5, "chapterIndex": 0, "nodeId": 40011} or int(link[0]) != ISOLATION_ROLE_ID:
             raise RuntimeError("isolation FengShenStory state mismatch")
+    finally:
+        connection.close()
+
+
+def reset_setup(args):
+    if not os.path.exists(args.backup):
+        raise RuntimeError("FengShenStory SQLite backup is missing; refusing to reset without the original snapshot")
+    checkpoint(args.database)
+    connection = sqlite3.connect(args.database)
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        link = connection.execute("SELECT role0 FROM user_info1 WHERE id=?", (args.user_id,)).fetchone()
+        if link is None or int(link[0]) != args.role_id:
+            raise RuntimeError("FengShenStory primary SQLite identity mismatch")
+        role = connection.execute(
+            "SELECT guan_qia,user_spirit FROM role_info WHERE id=?", (args.role_id,)
+        ).fetchone()
+        if role is None:
+            raise RuntimeError("FengShenStory primary role is missing")
+        connection.execute(
+            "UPDATE role_info SET guan_qia=?,user_spirit=? WHERE id=?",
+            (patch_story(role[0], 5, 6, 40074), patch_spirit(role[1], 100), args.role_id),
+        )
+        connection.commit()
+        primary = story_state(connection.execute(
+            "SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)
+        ).fetchone()[0])
+        primary_spirit = spirit_state(connection.execute(
+            "SELECT user_spirit FROM role_info WHERE id=?", (args.role_id,)
+        ).fetchone()[0])
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    checkpoint(args.database)
+    write_json(args.evidence, {
+        "action": "ResetSetup", "dataBackend": "sqlite", "database": args.database,
+        "userId": args.user_id, "roleId": args.role_id,
+        "preservedBackup": args.backup, "injected": primary,
+        "injectedSpirit": primary_spirit, "createdUtc": utc_now(),
+    })
+
+
+def assert_mutated(args):
+    connection = sqlite3.connect(args.database)
+    try:
+        primary = story_state(connection.execute(
+            "SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)
+        ).fetchone()[0])
+        if primary != {"count": 3, "chapterIndex": 7, "nodeId": 40082}:
+            raise RuntimeError(f"primary FengShenStory mutation mismatch: {primary}")
+        spirit = spirit_state(connection.execute(
+            "SELECT user_spirit FROM role_info WHERE id=?", (args.role_id,)
+        ).fetchone()[0])
+        if spirit["spirit"] != 60:
+            raise RuntimeError(f"primary FengShenStory mutated spirit mismatch: {spirit}")
+        isolation = story_state(connection.execute(
+            "SELECT guan_qia FROM role_info WHERE id=?", (ISOLATION_ROLE_ID,)
+        ).fetchone()[0])
+        if isolation != {"count": 5, "chapterIndex": 0, "nodeId": 40011}:
+            raise RuntimeError(f"isolation FengShenStory state changed: {isolation}")
     finally:
         connection.close()
 
@@ -338,6 +443,9 @@ def assert_relogin(args):
         actual = stable_state(connection, args.user_id, args.role_id)
     finally:
         connection.close()
+    spirit_matches, spirit_oracle = relogin_spirit_matches(
+        snapshot["stableSpiritReloginState"], actual["spiritReloginState"]
+    )
     if actual["hash"] != snapshot["stableHash"]:
         expected_fields = snapshot.get("stableFields", {})
         changed = [
@@ -357,12 +465,22 @@ def assert_relogin(args):
             "reloginActualFields": actual["fields"],
             "reloginActualCanonicalGuanQia": actual_guan_qia,
             "reloginGuanQiaDiffOffsets": guan_qia_diff_offsets,
+            "reloginSpiritState": actual["spiritReloginState"],
+            "reloginSpiritOracle": spirit_oracle,
             "reloginMismatchUtc": utc_now(),
         })
         write_json(args.evidence, snapshot)
-        raise RuntimeError(
-            f"FengShenStory stable relogin hash mismatch: {actual['hash']}; changed={','.join(changed)}"
-        )
+        if changed != ["role.user_spirit"] or not spirit_matches:
+            raise RuntimeError(
+                f"FengShenStory stable relogin hash mismatch: {actual['hash']}; changed={','.join(changed)}; spirit={spirit_oracle}"
+            )
+    snapshot.update({
+        "reloginVerified": True,
+        "reloginSpiritState": actual["spiritReloginState"],
+        "reloginSpiritOracle": spirit_oracle,
+        "reloginVerifiedUtc": utc_now(),
+    })
+    write_json(args.evidence, snapshot)
 
 
 def cleanup(args):
@@ -386,7 +504,9 @@ def main():
     parser.add_argument("--role-id", type=int, required=True)
     args = parser.parse_args()
     if args.action == "Setup": setup(args)
+    elif args.action == "ResetSetup": reset_setup(args)
     elif args.action == "AssertSetup": assert_setup(args)
+    elif args.action == "AssertMutated": assert_mutated(args)
     elif args.action == "Restore": restore(args)
     elif args.action == "AssertRestored": assert_restored(args)
     elif args.action == "AssertReloginHash": assert_relogin(args)

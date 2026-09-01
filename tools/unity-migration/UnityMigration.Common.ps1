@@ -1034,7 +1034,7 @@ function New-UnityMigrationRetrospective {
             policyStartedUtc = $gateRecords[0].timingPolicyStartedUtc
             historicalBackfill = $false
             calendarGateTimings = Get-UnityMigrationPropertyValue -Object $gateRecords[0] -Name "gateTimings" -Default ([pscustomobject]@{})
-            machineTimingReports = @($machineReports)
+            machineTimingReports = $machineReports.ToArray()
             interpretation = "calendarGateTimings include waiting; machineTimingReports contain runner execution time. Neither is human work-hours."
         }
     }

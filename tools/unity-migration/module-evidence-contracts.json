@@ -213,7 +213,7 @@
             }
           ]
         },
-        "artifactCopies": [
+      "artifactCopies": [
           {
             "source": "build/ui-migration/bootstrap-login-local.png",
             "destination": ".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png"
@@ -3063,7 +3063,7 @@
       "g5": {
         "width": 1334,
         "height": 750,
-        "cocosDirectory": ".local/ui-fidelity/BattleFengShenStory/cocos/g1",
+        "cocosDirectory": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture",
         "unityDirectory": ".local/ui-fidelity/BattleFengShenStory/unity/g5",
         "compareDirectory": ".local/ui-fidelity/BattleFengShenStory/compare/g5",
         "cocosBaselineInputs": [
@@ -3087,9 +3087,7 @@
           "server/src/fight.cpp",
           "server/config/json/config.json",
           "server/config/json/fight_config.json",
-          "server/config/json/maplist.json",
-          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
-          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py"
+          "server/config/json/maplist.json"
         ],
         "cocosBaselineStateContract": {
           "evidencePath": ".local/unity-validation/battlefengshenstory-cocos-runtime-input-latest.json",
@@ -3169,10 +3167,17 @@
         "g3ValidationFlags": [
           "-projectXBattleFengShenStoryValidation"
         ],
-        "extraFlags": [
-          "-projectXBattleFengShenStoryValidation"
-        ],
-        "skipPostValidationFixtureAssert": false,
+      "extraFlags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "postValidationAdapterAction": "AssertMutated",
+      "g5VisualSnapshot": ".local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-g5-visual-fixture-snapshot.json",
+      "g5VisualSetupAction": "Setup",
+      "g5VisualAssertAction": "AssertMutated",
+      "g5VisualValidationFlags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "skipPostValidationFixtureAssert": false,
         "copyArtifactsInG3": true,
         "dataPreflight": {
           "requiresLogin": true,
@@ -3194,43 +3199,51 @@
         "artifactCopies": [
           {
             "source": "build/ui-migration/BFS-BATTLE-START.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-START.png"
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png"
           },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-STAND.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-STAND.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-SKILL.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SKILL.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-DAMAGE.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-MOVE.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-MOVE.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-STATUS.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-STATUS.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-DEATH.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-DEATH.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SETTLEMENT.png"
-          },
-          {
-            "source": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-STATISTICS.png"
-          },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-STAND.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-SPEED.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SPEED.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-SKILL.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SKILL.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-MOVE.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-STATUS.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATUS.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-DEATH.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png"
+        },
           {
             "source": "build/ui-migration/BFS-BATTLE-RETURN.png",
-            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-RETURN.png"
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-RETURN.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SKIP-RETURN.png"
           }
         ]
       }

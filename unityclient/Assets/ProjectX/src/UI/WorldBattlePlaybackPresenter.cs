@@ -126,7 +126,16 @@ namespace ProjectX.UI
         public int DirectionalModelCount => units.Values.Count(value => value?.Model != null);
         public bool UnitDirectionalActionsCorrect => units.Values
             .Where(value => value?.Model != null)
-            .All(value => value.Model.CurrentAction == ResolveUnitActionIndex(value));
+            .All(value => value.Model.CurrentAction == ResolveUnitActionIndex(value)
+                && value.Model.IsFlippedX == ResolveUnitFlipX(value)
+                && value.Model.CurrentFrameBelongsToCurrentAction);
+        public string UnitDirectionalState => string.Join("; ", units.Values
+            .Where(value => value?.Model != null)
+            .OrderBy(value => value.Data.Position)
+            .Select(value => $"pos={value.Data.Position},name={value.Data.Name},enemy={value.Data.IsEnemy},"
+                + $"action={value.Model.CurrentAction}/{ResolveUnitActionIndex(value)},"
+                + $"flipX={value.Model.IsFlippedX}/{ResolveUnitFlipX(value)},frame={value.Model.CurrentFrame},"
+                + $"frameInAction={value.Model.CurrentFrameBelongsToCurrentAction},source={value.Model.CurrentAnimationSource}"));
 
         public WorldBattlePlaybackPresenter(Transform parent, WorldBattleReplayStore store, ResourceService resources,
             CocosUiView importedView = null, Action<string> showControlMessage = null,
@@ -459,6 +468,12 @@ namespace ProjectX.UI
             startShade.transform.SetAsLastSibling();
             startEffect.transform.SetAsLastSibling();
             root.SetActive(true);
+            // The imported FightLayer is normally inactive while units are
+            // created. Reassert the Cocos stand group after the hierarchy is
+            // activated so no enable/load transition can leave actionIndex=1
+            // while still displaying action-0 frame 0.
+            foreach (UnitView unit in units.Values.Where(value => value?.Model != null))
+                PlayUnitAnimation(unit, "zd", true);
             root.transform.SetAsLastSibling();
             Canvas.ForceUpdateCanvases();
             foreach (UnitView unit in units.Values) unit.Home = unit.Root.localPosition;
@@ -747,7 +762,7 @@ namespace ProjectX.UI
                 view.AnimationBase = $"Monster/btm{picture}_";
                 view.Model = value.AddComponent<ImodAnimationPlayer>();
                 view.Model.SetPlayOnEnable(false);
-                view.Model.SetFlippedX(!enemy);
+                view.Model.SetFlippedX(ResolveUnitFlipX(view));
                 view.Model.SetVisualScale(unit.ScaleRatio);
                 if (!PlayUnitAnimation(view, "zd", true)) view.Model = null;
             }
@@ -1335,7 +1350,7 @@ namespace ProjectX.UI
         {
             if (unit?.Model == null || string.IsNullOrWhiteSpace(unit.AnimationBase)) return false;
             if (!unit.Model.LoadLegacy(unit.AnimationBase + suffix)) return false;
-            unit.Model.SetFlippedX(!unit.Data.IsEnemy);
+            unit.Model.SetFlippedX(ResolveUnitFlipX(unit));
             unit.Model.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));
             try
             {
@@ -1361,6 +1376,11 @@ namespace ProjectX.UI
             // BattleUnitNode.lua uses action group 0 for the left side and
             // action group 1 plus horizontal flip for the local/right side.
             return unit?.Data != null && !unit.Data.IsEnemy ? 1 : 0;
+        }
+
+        private static bool ResolveUnitFlipX(UnitView unit)
+        {
+            return unit?.Data != null && !unit.Data.IsEnemy;
         }
 
         private static int ResolveDisplayedPosition(int source)

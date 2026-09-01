@@ -30,7 +30,7 @@
 | 聊天 | `CHAT.md` | `steam-excluded`；含HUD聊天条 |
 | 队伍 | `TEAM.md` | `steam-excluded` |
 | 帮派 | `GUILD.md` | `steam-excluded`；含宗门 |
-| 世界/战斗/副本 | `WORLD.md` | `G0-G6 passed / 25/25 complete`；当前证据路径存在 |
+| 世界/战斗/副本 | `WORLD.md` | `V0 closed / A=16,19`；World自身停在G3，BattleFengShenStory子模块已完成G6；`47–53`移除 |
 | 福利 | `WELFARE.md` | `steam-excluded`；含在线奖励和体力领取 |
 | 活动 | `ACTIVITY.md` | `steam-excluded`；充值、排行榜及其他玩家数据活动整体排除 |
 | 神将招募 | `DRAW.md` | `G0-G5 retained / G6 evidence missing`；矩阵已有`g6Audit`，但登记的56份逐控件双端图片当前全部缺失 |
@@ -39,7 +39,7 @@
 | 决战昆仑 | `KUNLUN.md` | `steam-excluded`；依赖匹配对手数据 |
 | 血战到底 | `BLOOD_FIGHT.md` | `steam-excluded`；依赖全服排行榜数据 |
 | 游历三界 | `YOULI.md` | `G0 passed / G1-G6 evidence missing`；实现保留，Cocos/Unity基准与差异目录当前缺失 |
-| 封神列传 | `FENGSHEN_STORY.md` | `G0-G6 passed / 25/25 complete`；真实挑战/奖励、12 组双端视觉、精确恢复与 Bootstrap 幂等通过 |
+| 封神列传 | `FENGSHEN_STORY.md` | 用户确认保留；战斗19的BattleFengShenStory子模块已完成G0-G6；父模块仍按自身门禁推进 |
 | 竞技场 | `ARENA.md` | `G0 pending / legacy logic only`；历史Runner不替代当前Cocos基准与控件闭包 |
 | 法宝搜索 | `XUNBAO.md` | `G0 passed / G1-G6 evidence missing`；实现保留，Cocos/Unity基准与差异目录当前缺失 |
 | Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |

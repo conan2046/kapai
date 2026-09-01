@@ -842,8 +842,7 @@
             "Protocol.VIP",
             "Protocol.STAMINA",
             "local BOUND_PREMIUM = 60001",
-            "kind == 505 then Bridge:SetCurrency(PREMIUM, value)",
-            "kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)"
+            "elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)"
           ]
         },
         {
@@ -2958,6 +2957,10 @@
           "lifecycle": "runtime"
         },
         {
+          "path": "build/ui-migration/BFS-BATTLE-SPEED.png",
+          "lifecycle": "runtime"
+        },
+        {
           "path": "build/ui-migration/BFS-BATTLE-SKILL.png",
           "lifecycle": "runtime"
         },
@@ -2988,24 +2991,32 @@
         {
           "path": "build/ui-migration/BFS-BATTLE-RETURN.png",
           "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+          "lifecycle": "runtime"
         }
       ],
       "captureStates": [
         "battle-start",
         "standing-formation",
+        "speed-control",
         "skill",
-        "damage-float",
-        "movement",
+        "damage",
+        "move",
         "status",
         "death",
         "settlement",
         "statistics",
-        "return"
+        "return",
+        "skip-return"
       ],
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
         "battle-fengshen-authority",
         "battle-fengshen-presentation",
+        "battle-fengshen-lifecycle-split",
+        "battle-fengshen-stage-markers",
         "battle-fengshen-controls"
       ],
       "sourceContracts": [
@@ -3025,21 +3036,6 @@
           ]
         },
         {
-          "path": "client/ProjectX/src/View/Common/RewardGetUI.lua",
-          "contains": [
-            "CreateUINode(\"csd/common/tanchuangjiangli.csb\")",
-            "self.m_tipsLabel:setString(\"\")",
-            "btnLabel:setString(self.m_tips)"
-          ]
-        },
-        {
-          "path": "client/ProjectX/src/View/Background/PopFirstClassBg.lua",
-          "contains": [
-            "csd/shop/shop_bg.csb",
-            "Btn_close"
-          ]
-        },
-        {
           "path": "client/ProjectX/src/Logic/LBattleLogic.lua",
           "contains": [
             "function LBattleLogic:RecvBattleOver",
@@ -3054,13 +3050,6 @@
             "function BattleUnitNode:ShowQuality",
             "bgAnim = \"res2/animation/battle/quality3\"",
             "self.m_pBgAni:PlayActionRepeat(0)"
-          ]
-        },
-        {
-          "path": "client/ProjectX/src/View/FuBenMap/FightDatumUI.lua",
-          "contains": [
-            "GetFightDatum",
-            "Panel_zhandoutongji"
           ]
         },
         {
@@ -3109,6 +3098,8 @@
           "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
           "contains": [
             "ValidateRewardPushPresentation",
+            "RenderedCurrentStageMarkerCount",
+            "SetVisible(node.Find(\"Image_4\"), isCurrent)",
             "ShowImportedReward(\"宝箱奖励\", string.Empty",
             "SetViewText(rewardView, \"Layer/Popup/btn_lingqu/Text1\", \"确定\")",
             "rewardDimmer.raycastTarget = true"
@@ -3130,7 +3121,9 @@
           "contains": [
             "RunBattleFengShenStoryValidation",
             "battle-fengshen-controls",
-            "BFSB-09-RETURN-REWARD-CONFIRM",
+            "FengShenStory.BattleDirectReturn",
+            "natural completion -> authoritative settlement",
+            "explicit skip -> direct parent return without settlement",
             "SetBattleStartElapsed(battleStartElapsed)"
           ]
         }

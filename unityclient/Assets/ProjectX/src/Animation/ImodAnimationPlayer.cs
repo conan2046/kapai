@@ -41,6 +41,18 @@ namespace ProjectX.Animation
         public int CurrentSequenceIndex => sequenceIndex;
         public int CurrentFrame { get; private set; } = -1;
         public float Speed => speed;
+        public bool IsFlippedX => flippedX;
+        public bool IsFlippedY => flippedY;
+        public string CurrentAnimationSource => data?.source ?? string.Empty;
+        public bool CurrentFrameBelongsToCurrentAction
+        {
+            get
+            {
+                if (!IsLoaded || actionIndex < 0 || actionIndex >= data.actions.Length) return false;
+                ImodAction action = data.actions[actionIndex];
+                return action.frames != null && Array.Exists(action.frames, item => item.frame == CurrentFrame);
+            }
+        }
 
         public float GetActionDurationSeconds(int requestedAction = 0)
         {
@@ -134,6 +146,8 @@ namespace ProjectX.Animation
             data = ImodAnimationData.Parse(json.text);
             BuildSprites();
             Stop();
+            actionIndex = -1;
+            sequenceIndex = 0;
             RenderFrame(data.actions.Length > 0 && data.actions[0].frames.Length > 0
                 ? data.actions[0].frames[0].frame : -1);
         }
@@ -230,7 +244,11 @@ namespace ProjectX.Animation
         public void StopCurrentAnimation()
         {
             Stop();
-            RenderFrame(0);
+            int firstFrame = actionIndex >= 0 && actionIndex < data.actions.Length
+                && data.actions[actionIndex].frames != null && data.actions[actionIndex].frames.Length > 0
+                ? data.actions[actionIndex].frames[0].frame
+                : 0;
+            RenderFrame(firstFrame);
             foreach (ImodAnimationPlayer layer in additionalLayers) layer.StopCurrentAnimation();
         }
 

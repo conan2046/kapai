@@ -2,7 +2,7 @@
 
 ## 当前结论
 
-- 当前门禁：`G0-G6 passed`；控件矩阵 `21/21 complete`。
+- 当前正式门禁：`G0-G4 passed / G5-G6 pending`；控件矩阵与旧G5-G6证据保留为重验输入，不再宣称当前收口。
 - 旧“第一阶段完成”、账号 `7172217`、17 件商品、单次购买和旧截图只保留为实现线索，不能继承为本轮证据。
 - 本轮范围固定为 `Shop / 基础商城 / type=1`，控件矩阵 `21` 项：`docs/unityclient/matrices/SHOP_CONTROLS.json`。
 

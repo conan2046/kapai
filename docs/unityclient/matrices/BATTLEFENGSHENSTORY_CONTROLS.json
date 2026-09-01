@@ -3,18 +3,35 @@
   "module": "BattleFengShenStory",
   "coverageList": "docs/unityclient/matrices/BATTLEFENGSHENSTORY_COVERAGE.json",
   "workflowPolicyVersion": 1,
-  "hardGateVersion": 1,
+  "hardGateVersion": 3,
+  "scenarioStateControlIds": [
+    "BFSB-03-AUTO"
+  ],
+  "scenarioStateContracts": [
+    {
+      "controlId": "BFSB-03-AUTO",
+      "captureStates": ["standing-formation"]
+    }
+  ],
+  "v0ProductBoundary": {
+    "status": "closed-class-a-g6-complete",
+    "fightType": 19,
+    "reason": "Current visible entry, op25, fightType 19 battle and both result branches are in scope: natural completion shows the authoritative settlement, while explicit skip returns directly to the parent map without settlement.",
+    "actualCocosIdentity": "7200057/1000115",
+    "evidence": ".local/unity-validation/v0-battlefengshenstory-runtime-latest.json"
+  },
   "scope": {
     "screenSize": "1334x750",
     "fixedUserId": 7200057,
     "fixedRoleId": 1000003,
     "fightType": 19,
     "symbol": "EFTLieZhuanFight",
-    "parentBoundary": "FengShenStory owns list/level/op24; this submodule starts at real op25 and owns battle presentation through settlement return.",
+    "parentBoundary": "FengShenStory owns list/level/op24; this submodule starts at real op25 and owns battle presentation through the accepted direct parent-map return after skip.",
     "included": [
-      "真实列传挑战、fightType=19的/21-/23、/320 op10/op25/op26",
+      "真实列传挑战、fightType=19的/21-/23、/320 op24/op25",
       "FightLayer手动/自动、速度、跳过、单位/动作/血条/飘字/回合/阵法",
-      "结算、统计、回放、关闭返回与次数/体力/奖励状态"
+      "自然完整播放后由op10进入结算、统计、回放、关闭及op26奖励",
+      "主动跳过后直接返回列传地图且迟到op10/op26不得重开结算"
     ],
     "excluded": [
       "列传列表、关卡、宝箱、帮助和布阵页面本身",
@@ -25,8 +42,8 @@
     {
       "id": "battle-fengshenstory-current-success",
       "given": "persistentDataPath SQLite固定身份7200057/1000003已整库快照，列传当前关可挑战且阵容、体力、次数、配置完整",
-      "when": "通过真实入口点击挑战，完整播放EFTLieZhuanFight=19，真实操作速度、跳过、统计、回放和关闭，并验证当前源码默认隐藏的自动按钮不被Unity额外显示",
-      "then": "双端同一权威战报的界面、数据、交互和状态变化一致；恢复重登哈希相同且零残留"
+      "when": "通过真实入口完成一次自然播放并操作结算/统计/回放/关闭，再发起一次挑战真实点击跳过，同时验证当前源码默认隐藏的自动按钮不被Unity额外显示",
+      "then": "自然完成显示权威结算并可返回；主动跳过直接返回列传地图且不显示结算；恢复重登哈希相同且零残留"
     },
     {
       "id": "battle-fengshenstory-failure-boundary",
@@ -41,9 +58,9 @@
     "protocolOwnershipComplete": true,
     "configAssetClosureComplete": true,
     "runtimeTransformClosureComplete": true,
-    "entryClosure": "Gameplay Function_3 -> FengShenStoryLevelUI.OnFightClick -> /320 op25 -> TiaoZhanLieZhuan -> EFTLieZhuanFight=19 -> /38 op5 with nested /21-/23 -> /320 op10/op26 -> FirstFightResultUI -> FengShenStory parent.",
-    "sharedProtocolOwnership": "本模块拥有/320 op25/op10/op26生命周期；/320 op25发起挑战，服务端共享回放统一为/38 op5，只在列传战斗打开期间以内嵌/21 fightType=19消费/21-/23，回放仅重放同一权威战报且不得重发op25。",
-    "configurationResourceClosure": "当前权威server fight_config id=40074闭合至show=12136、index=20/19/20/19/20，即蝠妖/灵兽五单位，模型pic=109/108且均存在zd/gj/sf1/sf2/bj/sw Imod资源；客户端fight_config_dat.lua无40074记录，不得替换为其他本地阵容；FightLayer与列传结算CSB哈希已冻结。",
+    "entryClosure": "Gameplay Function_3 -> FengShenStoryLevelUI.OnFightClick -> /320 op25 -> TiaoZhanLieZhuan -> EFTLieZhuanFight=19 -> /38 op5 with nested /21-/23。自然完成消费op10并进入FirstFightResultUI；主动跳过以SkipRequested直返FengShenStory父界面。",
+    "sharedProtocolOwnership": "本模块只以/320 op25发起挑战，服务端共享回放统一为/38 op5；只在列传战斗打开期间以内嵌/21 fightType=19消费/21-/23。自然完成的op10/op26驱动结算与返回奖励；主动跳过消费迟到op10/op26但不得重开结果栈。",
+    "configurationResourceClosure": "当前权威server fight_config id=40074闭合至show=12136、index=20/19/20/19/20，即蝠妖/灵兽五单位，模型pic=109/108且均存在zd/gj/sf1/sf2/bj/sw Imod资源；客户端fight_config_dat.lua无40074记录，不得替换为其他本地阵容；FightLayer与zhandoujiesuanLayer均进入当前G3运行分母。",
     "runtimeTransformClosure": "当前1334x750 FightLayer的Image_1..18坐标、160x92尺寸、1..9与10..18翻转、模型朝向/动作号、协议scale、血条/打击挂点、按-Y层级和速度/跳过/自动按钮Transform均已核清。",
     "staminaLifecycle": "固定storedSpirit=100/lastSpiritTime=0；40074真实扣20后立即回程80。server config stamina=[100,500,360]，每360秒自然恢复1点；CUserGuanQia::GuanQiaWin -> SubSpirit -> TimeOutUpdateUserData/CheckAddSpirit，客户端DealTili -> LHeroDetailData.setTili -> TiliChanged -> FirstClassBg。延迟取证的82属于两次自然恢复残留，不是战斗合同。",
     "currentSourceCorrection": "btn_Auto在当前CSB visible=false，BattleUI.DoEnterBattle不将其设为可见，G1固定账号也不可见；Unity必须保持隐藏。common/tanchuangjiangli由通用奖励与列传奖励共享，列传op26展示期间必须暂停通用RewardPresenter写入；战斗/结算/回放期间必须隐藏ChatLayer并清除、拒绝公共广播Toast。RETURN必须在首个360秒恢复tick前取证并显示80/100。",
@@ -81,11 +98,13 @@
       "visibleCondition": "32级开启、当前关、次数/体力/等级/配置满足",
       "cocosCallback": "OnFightClick -> QueryFengShenStory(25)",
       "protocolOp": "/320 op25; EFTLieZhuanFight=19; later op10/op26",
-      "unityBinding": "pending-G2; parent real challenge hands authoritative replay to shared presenter",
-      "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+      "unityBinding": "G3 current; parent real challenge hands authoritative /38 replay to shared FightLayer presenter",
+      "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g0-frozen", "realEntryClick": true, "automationPassed": false, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-START.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-02-SPEED",
@@ -98,7 +117,9 @@
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g3-agent-passed-user-retest", "realEntryClick": true, "automationPassed": true, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STAND.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-03-AUTO",
@@ -111,7 +132,7 @@
       "successEvidence": ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g2-current-cocos-hidden", "realEntryClick": false, "automationPassed": false, "manualPassed": false
+      "status": "g3-hidden-assertion-passed", "realEntryClick": false, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-04-SKIP",
@@ -120,11 +141,13 @@
       "visibleCondition": "跳过功能开启；showJumpFlag决定允许或拒绝",
       "cocosCallback": "OnBtnJumpClick -> LBattleEvent.JumpBattle",
       "protocolOp": "showJumpFlag=false不得伪造/23或胜利",
-      "unityBinding": "G3 current; showJumpFlag=true真实EventSystem点击立即结束回放并进入权威结算；false不改SkipRequested并显示Cocos原文‘精英、BOSS关无法跳过！’",
+      "unityBinding": "G3 current; showJumpFlag=true真实EventSystem点击立即结束回放、隐藏战斗层并重拉/320 op24返回列传地图；不生成Unity结算；false不改SkipRequested并显示Cocos原文‘精英、BOSS关无法跳过！’",
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g3-agent-passed-user-retest", "realEntryClick": true, "automationPassed": true, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-MOVE.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-05-SETTLEMENT-STATS",
@@ -133,11 +156,13 @@
       "visibleCondition": "战斗完整结束且存在结算数据",
       "cocosCallback": "OnBtnTongjiClick -> FightDatumUI",
       "protocolOp": "只读权威战报",
-      "unityBinding": "pending-G2; 真实点击打开原统计页",
+      "unityBinding": "G3 current; 自然完整播放后由权威op10打开导入结算，真实EventSystem点击打开统计页",
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g0-frozen", "realEntryClick": true, "automationPassed": false, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-SETTLEMENT.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-06-STATS-CLOSE",
@@ -146,11 +171,13 @@
       "visibleCondition": "统计页已打开",
       "cocosCallback": "FightDatumUI.RemoveUI",
       "protocolOp": "none",
-      "unityBinding": "pending-G2; 返回同一结算且不消费结算",
+      "unityBinding": "G3 current; 真实EventSystem关闭统计并返回同一结算且不消费结算",
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g0-frozen", "realEntryClick": true, "automationPassed": false, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STATISTICS.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-07-REPLAY",
@@ -159,11 +186,13 @@
       "visibleCondition": "结算保留本次m_battleRePlayData",
       "cocosCallback": "OnBtnReplayClick -> LRoleDataMgr:ReplayBattle(true)",
       "protocolOp": "本地重放同一战报；不重发op25、不重复扣费/奖励",
-      "unityBinding": "pending-G2; 同一权威replay store与完整生命周期",
+      "unityBinding": "G3 current; 同一权威replay store本地重放，自然结束后再次返回同一权威结算",
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g0-frozen", "realEntryClick": true, "automationPassed": false, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-DAMAGE.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-08-SETTLEMENT-CLOSE-RETURN",
@@ -172,11 +201,13 @@
       "visibleCondition": "结算展示完成且统计页关闭",
       "cocosCallback": "OnCloseClicked -> ExitBattle -> close result",
       "protocolOp": "op10/op26与后续op24权威状态；无血战复活分支",
-      "unityBinding": "pending-G2; 返回列传并刷新次数/奖励状态",
+      "unityBinding": "G3 current; 真实EventSystem关闭自然结算，隐藏播放层并返回列传刷新次数/奖励状态",
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g0-frozen", "realEntryClick": true, "automationPassed": false, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-DEATH.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     },
     {
       "id": "BFSB-09-RETURN-REWARD-CONFIRM",
@@ -189,7 +220,26 @@
       "successEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
       "failureEvidence": ".local/unity-validation/battlefengshenstory-operation-ledger.json",
       "reconnectEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
-      "status": "g3-implemented-pending-refresh", "realEntryClick": true, "automationPassed": false, "manualPassed": false
+      "cocosEvidence": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-RETURN.png",
+      "unityEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-RETURN.png",
+      "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true
     }
-  ]
+  ],
+  "g6Audit": {
+    "currentEvidence": true,
+    "manualAcceptanceCurrent": true,
+    "userId": 7200057,
+    "roleId": 1000003,
+    "screenshotSize": "1334x750",
+    "placeholderCount": 0,
+    "duplicateUidCount": 0,
+    "seriousErrorCount": 0,
+    "automationScreenshotCount": 8,
+    "cocosSourceSet": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture",
+    "unitySourceSet": ".local/ui-fidelity/BattleFengShenStory/unity/g5",
+    "fixedAccountEvidence": ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+    "finalUserPlayEvidence": ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+    "fixtureContract": "sqlite-whole-database-snapshot-restore-relogin-cleanup",
+    "fixtureResidueCount": 0
+  }
 }

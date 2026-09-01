@@ -5,10 +5,10 @@
 
 ## 当前批次
 
-- Bag：仅G0保留；G1/G4/G5证据后仍有Cocos夹具与Bag运行时代码变化，当前输入指纹失败，G1-G6需串行重验。
-- EnhanceMaster：G0-G3 已通过；等待早期用户 Play，未进入 G4。
-- HeroCultivation：G0-G2 已通过，G3 初版完成；等待用户按最终布局复测，未进入 G4。
-- HeroEquip：G0-G2通过；G3早期真人Play pending，旧G3-G6不可复用。
+- BattleFengShenStory：2026-09-01 当前输入下 G0-G6 全部通过；9/9控件、10态双端视觉、标准固定账号batch、两次BuildBatch与用户最终Play均通过。
+- BattleFengShenStory 自动复盘：失败244、解决244、补充证据4、待诊断0、未解决0；固定账号SQLite `7200057/1000003` 已恢复为40级/1600经验，WAL/SHM均不存在。
+- Mail 已按正式门禁从旧`g6-complete`降为G0-G2 passed；Shop降为G0-G4 passed。旧证据保留，但不得冒充当前门禁。
+- 全局文档校验34模块通过；Validated主模块保持`5/16 = 31.3%`，BattleFengShenStory属于非分母战斗子模块。
 - 同一时间只推进用户当前指定的一个模块；上一门禁未通过不得进入下一门禁或下一模块。
 
 ## 当前工作树保护
@@ -20,7 +20,7 @@
 
 ## 下一步
 
-1. 先读取 `UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、目标模块文档/矩阵及 `migration-gates.json`。
+1. 新任务先由用户指定下一个模块，再读取 `UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、目标模块文档/矩阵及 `migration-gates.json`。
 2. 确认用户当前指定模块和最早 pending 门禁。
 3. 新模块 G0 使用中央脚手架生成当前入口清单、协议证据和历史根因命中报告；不得手写缩小分母。
 4. 后续新模块记录 G0-G6 日历周期和 Runner 机器耗时；不追补历史模块。

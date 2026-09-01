@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "module": "BattleFengShenStory",
   "scopeDecision": {
-    "decision": "只验收当前正式封神列传op25触发的EFTLieZhuanFight=19战斗表现和结算生命周期；父级列表/关卡UI仍归FengShenStory。",
+    "decision": "验收正式封神列传op25触发的EFTLieZhuanFight=19完整生命周期：自然结束显示权威结算、统计、回放、关闭与返回奖励；主动跳过直接返回父地图且不显示结算。",
     "confirmedByUser": true,
     "confirmedDate": "2026-08-30"
   },
@@ -11,8 +11,8 @@
       "id": "bfsb-current-success",
       "kind": "success",
       "given": "固定账号当前列传关卡可挑战",
-      "when": "真实点击挑战并完成战斗、统计、回放和返回",
-      "then": "fightType19的权威战报、FightLayer、结算、次数体力奖励和父级返回双端一致"
+      "when": "真实点击挑战并自然播放至结算，操作统计、回放、关闭与返回奖励后，再次挑战并真实点击跳过",
+      "then": "自然完成进入权威结算；主动跳过直接返回父级且不生成结算，两条生命周期互不串线"
     },
     {
       "id": "bfsb-failure-reconnect",
@@ -42,7 +42,7 @@
       ],
       "recordTotal": 5,
       "businessIds": ["entry:function3", "320:25", "fightType:19", "320:10", "320:26"],
-      "branchType": "当前正式入口、挑战确认、列传战斗及奖励/进度推送",
+      "branchType": "当前正式入口、挑战确认、列传战斗、自然结算与返回奖励",
       "mappings": [
         {
           "businessIds": ["entry:function3", "320:25", "fightType:19", "320:10", "320:26"],
@@ -57,17 +57,15 @@
       "sourceFiles": [
         "client/ProjectX/src/Logic/LBattleLogic.lua",
         "client/ProjectX/src/View/Battle/BattleUI.lua",
-        "client/ProjectX/src/View/FuBenMap/FirstFightResultUI.lua",
-        "client/ProjectX/src/View/FuBenMap/FightDatumUI.lua",
         "server/src/fight.cpp",
         "server/src/fight.h"
       ],
-      "recordTotal": 14,
-      "businessIds": ["21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "auto", "skip", "stats", "replay-return"],
-      "branchType": "共享战斗播放、列传手动选择模式、FightLayer和结算交互",
+      "recordTotal": 16,
+      "businessIds": ["21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "auto", "skip", "settlement", "statistics", "replay", "return"],
+      "branchType": "共享战斗播放、列传手动选择模式、FightLayer控制、自然结算栈与主动跳过直返",
       "mappings": [
         {
-          "businessIds": ["21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "auto", "skip", "stats", "replay-return"],
+          "businessIds": ["21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "auto", "skip", "settlement", "statistics", "replay", "return"],
           "successScenarioIds": ["bfsb-current-success"],
           "failureBoundaryScenarioIds": ["bfsb-failure-reconnect", "bfsb-control-boundary"]
         }

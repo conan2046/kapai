@@ -9,6 +9,21 @@
     { "id": "world-settlement-real-close", "given": "权威结算UI已显示", "when": "玩家真实点击非回放/统计区域", "then": "全屏Panel命中EventSystem射线并关闭结算后重拉/320状态" }
   ],
   "hardGateVersion": 2,
+  "v0ProductBoundary": {
+    "status": "product-boundary-closed-world-16-g3-battle-19-g6",
+    "classificationA": [16, 19],
+    "classificationB": ["/38 op5", "/21-/23", "FightLayer", "LBattleLogic", "Imod", "skill/buff/hit data", "FirstFightResultUI", "FightDatumUI"],
+    "classificationD": [44, 47, 48, 49, 50, 51, 52, 53],
+    "classificationE": [2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 15, 17, 18, 20, 21, 31, 45, 46, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67, 68, 69, 70, 71, 72, 74, 77, 78, 79, 80, 81, 82, 83, 84, 85, 100, 200],
+    "retainedPendingRuntimeClosure": [],
+    "enumCount": 59,
+    "priorAuditClassifiedCount": 52,
+    "actualCocosIdentity": "7200057/1000115",
+    "skipSettlementContract": "列传战斗分流：自然完整结束显示权威结算；只有明确点击跳过才直接返回列传地图且不生成结算",
+    "skipSettlementObserved": "2026-08-31当前Cocos黑盒两轮均直接回列传地图；用户确认接受该行为",
+    "evidence": ".local/unity-validation/cocos-current-version-boundary-v0-latest.json",
+    "note": "Existing fixedRoleId=1000003 below is the Unity SQLite validation identity and must not be reused as the current Cocos MySQL identity."
+  },
   "scope": {
     "fixedUserId": 7200057,
     "fixedRoleId": 1000003,

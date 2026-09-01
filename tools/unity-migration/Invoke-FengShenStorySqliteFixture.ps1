@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "AssertSetup", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash")]
+    [ValidateSet("Setup", "ResetSetup", "AssertSetup", "AssertMutated", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000003,

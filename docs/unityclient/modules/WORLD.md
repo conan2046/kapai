@@ -1,6 +1,17 @@
 # 世界/战斗/副本模块
 
-> 状态：2026-08-31 当前 G0-G3 passed；G4-G6 pending。共享战斗代码变化后的旧 G3-G6、截图、Runner、通过标签与 Bootstrap SHA 全部只作历史线索，本轮未复用。
+> 状态：V0 产品边界已收口；A=`16,19`，`47–53`确认移除；World自身当前停在G3，列传19的BattleFengShenStory子模块已完成G0-G6。
+
+## V0 当前 Cocos 产品边界（产品决策已确认）
+
+- 2026-08-31 从正常登录使用唯一原生 `ProjectX.exe / Cocos Simulator` 黑盒闭合：主界面副本 → 第3章 → 3-3 → 挑战 → `EFT_GuanQia=16` → 跳过后返回地图。固定 Cocos MySQL 身份实际为 `7200057/1000115`，不是 Unity SQLite 的 `7200057/1000003`。
+- 本轮服务端日志明确记录挑战后发送 `/38` 1653 bytes、`/320` 60/16 bytes、`/321`、`/18`、`/15`；当前源码将 `/38 op5`内嵌流交给 `/21-/23 → LBattleLogic → FirstFightResultUI`。
+- A：`EFT_GuanQia=16`与`EFTLieZhuanFight=19`。B：共享`/38`、`/21-/23`、FightLayer、LBattleLogic、Imod等。19已闭合当前入口、op25、战斗、真实跳过和直接返回地图。
+- 当前枚举实际为59项；旧“52项已逐项审计”只覆盖52项并漏分47-53七类。用户确认 `47–53` 均不保留，现转 D：Steam/当前产品不迁移、不验收，后端及源码仅保留追溯。
+- 用户于2026-08-31确认的“跳过后直接返回地图”仅适用于主动跳过。2026-09-01早测确认自然结束仍必须进入权威结算；Unity已按自然结束/主动跳过两条生命周期分流。
+- 机器清单：`.local/unity-validation/cocos-current-version-boundary-v0-latest.json`；本轮窗口证据：`.local/unity-validation/v0-cocos-current-boundary/`；可逆MySQL快照：`.local/unity-validation/v0-world-mysql-snapshot.json`。
+- 列传19当前动态证据：`.local/unity-validation/v0-battlefengshenstory-runtime-latest.json`；两次精确恢复、重登与零残留：`.local/unity-validation/v0-battlefengshenstory-cleanup-latest.json`。
+- Unity列传19已完成G6：SQLite固定身份`7200057/1000003`，真实EventSystem 9/9、`fightType=19`、10单位；自然播放进入权威结算、统计、回放、关闭与返回奖励，主动跳过隐藏播放层并重拉op24直回列传地图且不生成结算。用户确认神将朝向修复；标准batch、十态G5、两次BuildBatch及自动复盘均通过。证据`.local/unity-validation/battlefengshenstory-fixed-account-latest.json`、`.local/ui-fidelity/BattleFengShenStory/compare/g5/report.json`、`.local/unity-validation/battlefengshenstory-retrospective-latest.json`。
 
 - 本轮范围只处理世界/副本战斗表现；封神剧情保持 G0-G3 等待用户早期 Play，寻宝与公共货币栏暂停。
 - 当前 `cocosBaselineInputs` 已冻结入口、`/320`、`/38` 内嵌 `/21-/23`、`LBattleLogic`、战斗单位/技能/飘字、FightLayer、Imod语义、服务端战报和结算输入；当前指纹由标准 G5 preflight 生成。

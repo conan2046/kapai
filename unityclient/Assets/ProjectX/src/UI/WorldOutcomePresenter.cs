@@ -253,6 +253,12 @@ namespace ProjectX.UI
             Text name = side.Find("IconBg_1/Bg/Name")?.GetComponent<Text>();
             if (name != null)
             {
+                // Cocos places the unit name immediately to the right of the
+                // portrait. The imported label retains the source pivot but is
+                // displaced one metric-column width after Unity layout.
+                RectTransform nameRect = name.rectTransform;
+                nameRect.anchoredPosition = new Vector2(
+                    nameRect.anchoredPosition.x - 80f, nameRect.anchoredPosition.y);
                 name.text = unit.Name ?? string.Empty;
                 name.color = StatisticsQualityColor(unit.Quality);
             }
@@ -300,7 +306,7 @@ namespace ProjectX.UI
                 rect.anchorMax = Vector2.one;
                 rect.offsetMin = rect.offsetMax = Vector2.zero;
                 Image image = dimmer.GetComponent<Image>();
-                image.color = new Color(0f, 0f, 0f, 0.72f);
+                image.color = new Color(0f, 0f, 0f, 0.92f);
                 image.raycastTarget = false;
                 dimmer.transform.SetAsFirstSibling();
             }
@@ -937,12 +943,22 @@ namespace ProjectX.UI
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
             layer.transform.SetAsLastSibling();
+            GameObject wash = new GameObject("SettlementWash", typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(Image));
+            RectTransform washRect = wash.GetComponent<RectTransform>();
+            washRect.SetParent(layer.transform, false);
+            washRect.anchorMin = new Vector2(0f, 0.196f);
+            washRect.anchorMax = new Vector2(1f, 0.897f);
+            washRect.offsetMin = washRect.offsetMax = Vector2.zero;
+            Image washImage = wash.GetComponent<Image>();
+            washImage.color = new Color(0f, 0f, 0f, 0.58f);
+            washImage.raycastTarget = false;
             if (background != null)
                 CreateBattleImage(layer.transform, "VictoryCrest", background,
-                    new Vector2(0.035f, 0.22f), new Vector2(0.40f, 0.89f));
+                    new Vector2(0.025f, 0.22f), new Vector2(0.41f, 0.89f));
             if (title != null)
                 CreateBattleImage(layer.transform, "VictoryTitle", title,
-                    new Vector2(0.035f, 0.315f), new Vector2(0.38f, 0.725f));
+                    new Vector2(0.025f, 0.315f), new Vector2(0.39f, 0.725f));
             GameObject titleEffect = new GameObject("VictoryTitleImod", typeof(RectTransform));
             RectTransform titleRect = titleEffect.GetComponent<RectTransform>();
             titleRect.SetParent(layer.transform, false);
