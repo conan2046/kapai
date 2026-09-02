@@ -3,12 +3,13 @@ using ProjectX.Data;
 using ProjectX.LuaRuntime;
 using ProjectX.Network;
 using ProjectX.UI;
+using UnityEngine;
 
 namespace ProjectX.Core
 {
     public sealed class GameServices : IDisposable
     {
-        public GameServices(object luaBridge, AppLaunchOptions options = null)
+        public GameServices(object luaBridge, AppLaunchOptions options = null, Transform uiRoot = null)
         {
             Options = options ?? AppLaunchOptions.Current();
             State = new AppStateMachine();
@@ -58,7 +59,9 @@ namespace ProjectX.Core
             Network = new NetworkService();
             ProtocolRegistry = ProtocolRegistry.CreateDefault();
             Protocols = new ProtocolDispatcher(ProtocolRegistry);
-            UiRouter = new UiRouter();
+            UiAssets = new ResourcesUiAssetProvider(uiRoot);
+            UiPrefabLoader.Configure(UiAssets);
+            UiRouter = new UiRouter(UiAssets);
             UiStack = new UiStack();
             Lua = new LuaRuntimeService(luaBridge);
             Network.PacketReceived += Protocols.Dispatch;
@@ -114,6 +117,7 @@ namespace ProjectX.Core
         public ProtocolRegistry ProtocolRegistry { get; }
         public ProtocolDispatcher Protocols { get; }
         public UiRouter UiRouter { get; }
+        public IUiAssetProvider UiAssets { get; }
         public UiStack UiStack { get; }
         public LuaRuntimeService Lua { get; }
 
@@ -127,6 +131,7 @@ namespace ProjectX.Core
         public void Dispose()
         {
             UiStack.Clear();
+            UiAssets.Dispose();
             ProtocolRegistry.ClearPending();
             Lua.Dispose();
             Network.Dispose();

@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml.Linq;
 using ProjectX.Core;
 using ProjectX.UI;
+using ProjectX.UI.Migration;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -55,6 +56,7 @@ namespace ProjectX.Editor
         private const string HeroBookPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianLayer.prefab";
         private const string HeroRecyclePrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab";
         private const string DynamicUiResourceDirectory = "Assets/ProjectX/Resources/UiPrefabs";
+        private const string DynamicUiCatalog = DynamicUiResourceDirectory + "/Catalog.asset";
         private const string FormationPopupPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangzhenxingLayer.prefab";
         private const string HeroEquipmentListPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeibeibao.prefab";
         private const string HeroEquipmentDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiInfo.prefab";
@@ -237,18 +239,43 @@ namespace ProjectX.Editor
             new PrefabSpec(FormationPopupPrefab, false)
         };
 
+        private static readonly PrefabSpec[] DynamicOnlyPrefabSpecs =
+        {
+            new PrefabSpec(HeroBookPrefab, false),
+            new PrefabSpec(HeroRecyclePrefab, false),
+            new PrefabSpec(HeroEnhanceMasterPrefab, false),
+            new PrefabSpec(HeroEquipmentListPrefab, false),
+            new PrefabSpec(HeroEquipmentDetailPrefab, false),
+            new PrefabSpec(HeroEquipmentChangePrefab, false),
+            new PrefabSpec(HeroEquipmentCultivatePrefab, false),
+            new PrefabSpec(HeroEquipmentStrengthPrefab, false),
+            new PrefabSpec(HeroEquipmentRefinePrefab, false),
+            new PrefabSpec(HeroEquipmentAwakenPrefab, false),
+            new PrefabSpec(HeroEquipmentDivinePrefab, false),
+            new PrefabSpec(HeroEquipmentFragmentPrefab, false),
+            new PrefabSpec(HeroEquipmentAutoRefinePrefab, false),
+            new PrefabSpec(HeroEquipmentExchangePrefab, false),
+            new PrefabSpec(HeroEquipmentAutoStarPrefab, false),
+            new PrefabSpec(HeroEquipmentAutoDivinePrefab, false),
+            new PrefabSpec(HeroEquipmentDivineEffectPrefab, false),
+            new PrefabSpec(FaBaoStrengthPrefab, false),
+            new PrefabSpec(FaBaoRefinePrefab, false),
+            new PrefabSpec(FaBaoMaterialChooserPrefab, false),
+            new PrefabSpec(BattleFightLayerPrefab, false),
+            new PrefabSpec("Assets/ProjectX/res/csd/Prefabs/HPNode.prefab", false)
+        };
+
         [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]
         public static void Build()
         {
-            // Bootstrap contains only resident roots and currently unmigrated legacy surfaces.
-            // New business screens must be registered as independent dynamic references instead.
-            EnsureDynamicUiReferences();
-            EnsureDrawDynamicResources();
             EnsureFloatNoticePrefab();
+            EnsureDynamicUiCatalog();
+            EnsureDrawDynamicResources();
             if (IsBootstrapSceneCurrent())
             {
                 NormalizeBootstrapSceneYaml();
                 EnsureBuildSettings();
+                AssetDatabase.SaveAssets();
                 Debug.Log("[ProjectXApp] Bootstrap scene semantic signature unchanged; rebuild skipped.");
                 return;
             }
@@ -256,34 +283,38 @@ namespace ProjectX.Editor
             Rebuild();
         }
 
-        private static void EnsureDynamicUiReferences()
+        private static void EnsureDynamicUiCatalog()
         {
             EnsureAssetFolder(DynamicUiResourceDirectory);
-            EnsureDynamicUiReference("HeroBook", HeroBookPrefab);
-            EnsureDynamicUiReference("HeroRecycle", HeroRecyclePrefab);
-            EnsureDynamicUiReference("HeroEnhanceMaster", HeroEnhanceMasterPrefab);
-            EnsureDynamicUiReference("HeroEquipmentList", HeroEquipmentListPrefab);
-            EnsureDynamicUiReference("HeroEquipmentDetail", HeroEquipmentDetailPrefab);
-            EnsureDynamicUiReference("HeroEquipmentChange", HeroEquipmentChangePrefab);
-            EnsureDynamicUiReference("HeroEquipmentCultivate", HeroEquipmentCultivatePrefab);
-            EnsureDynamicUiReference("HeroEquipmentStrength", HeroEquipmentStrengthPrefab);
-            EnsureDynamicUiReference("HeroEquipmentRefine", HeroEquipmentRefinePrefab);
-            EnsureDynamicUiReference("HeroEquipmentAwaken", HeroEquipmentAwakenPrefab);
-            EnsureDynamicUiReference("HeroEquipmentDivine", HeroEquipmentDivinePrefab);
-            EnsureDynamicUiReference("HeroEquipmentFragment", HeroEquipmentFragmentPrefab);
-            EnsureDynamicUiReference("HeroEquipmentAutoRefine", HeroEquipmentAutoRefinePrefab);
-            EnsureDynamicUiReference("HeroEquipmentExchange", HeroEquipmentExchangePrefab);
-            EnsureDynamicUiReference("HeroEquipmentAutoStar", HeroEquipmentAutoStarPrefab);
-            EnsureDynamicUiReference("HeroEquipmentAutoDivine", HeroEquipmentAutoDivinePrefab);
-            EnsureDynamicUiReference("HeroEquipmentDivineEffect", HeroEquipmentDivineEffectPrefab);
-            EnsureDynamicUiReference("FaBaoStrength", FaBaoStrengthPrefab);
-            EnsureDynamicUiReference("FaBaoRefine", FaBaoRefinePrefab);
-            EnsureDynamicUiReference("FaBaoMaterialChooser", FaBaoMaterialChooserPrefab);
-            EnsureDynamicUiReference("BattleFightLayer", BattleFightLayerPrefab);
-            EnsureDynamicUiReference("BattleHpNode", "Assets/ProjectX/res/csd/Prefabs/HPNode.prefab");
+            PrefabSpec[] all = PrefabSpecs.Concat(DynamicOnlyPrefabSpecs).ToArray();
+            var entries = new List<UiPrefabCatalogEntry>(all.Length);
+            foreach (PrefabSpec spec in all)
+            {
+                string key = GetDynamicKey(spec.Path);
+                GameObject prefab = EnsureDynamicUiReference(key, spec.Path);
+                CocosUiBinding binding = prefab.GetComponent<CocosUiBinding>()
+                    ?? prefab.GetComponentInChildren<CocosUiBinding>(true);
+                if (binding == null || string.IsNullOrWhiteSpace(binding.Source))
+                    throw new InvalidDataException($"Registered UI prefab has no source binding: {spec.Path}");
+                entries.Add(new UiPrefabCatalogEntry(key, binding.Source,
+                    string.IsNullOrWhiteSpace(spec.ParentPath) ? null : GetDynamicKey(spec.ParentPath),
+                    spec.Active));
+            }
+            string duplicateKey = entries.GroupBy(entry => entry.Key, System.StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(group => group.Count() > 1)?.Key;
+            if (!string.IsNullOrEmpty(duplicateKey))
+                throw new InvalidDataException($"Duplicate UI prefab catalog key: {duplicateKey}");
+            UiPrefabCatalog catalog = AssetDatabase.LoadAssetAtPath<UiPrefabCatalog>(DynamicUiCatalog);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<UiPrefabCatalog>();
+                AssetDatabase.CreateAsset(catalog, DynamicUiCatalog);
+            }
+            catalog.Replace(entries.OrderBy(entry => entry.Key, System.StringComparer.OrdinalIgnoreCase));
+            EditorUtility.SetDirty(catalog);
         }
 
-        private static void EnsureDynamicUiReference(string key, string prefabPath)
+        private static GameObject EnsureDynamicUiReference(string key, string prefabPath)
         {
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             if (prefab == null) throw new FileNotFoundException($"Dynamic UI prefab is missing: {prefabPath}");
@@ -294,11 +325,41 @@ namespace ProjectX.Editor
                 reference = ScriptableObject.CreateInstance<UiPrefabReference>();
                 reference.SetPrefab(prefab);
                 AssetDatabase.CreateAsset(reference, assetPath);
-                return;
+                return prefab;
             }
-            if (reference.Prefab == prefab) return;
-            reference.SetPrefab(prefab);
-            EditorUtility.SetDirty(reference);
+            if (reference.Prefab != prefab)
+            {
+                reference.SetPrefab(prefab);
+                EditorUtility.SetDirty(reference);
+            }
+            return prefab;
+        }
+
+        private static string GetDynamicKey(string prefabPath)
+        {
+            if (prefabPath == HeroBookPrefab) return "HeroBook";
+            if (prefabPath == HeroRecyclePrefab) return "HeroRecycle";
+            if (prefabPath == HeroEnhanceMasterPrefab) return "HeroEnhanceMaster";
+            if (prefabPath == HeroEquipmentListPrefab) return "HeroEquipmentList";
+            if (prefabPath == HeroEquipmentDetailPrefab) return "HeroEquipmentDetail";
+            if (prefabPath == HeroEquipmentChangePrefab) return "HeroEquipmentChange";
+            if (prefabPath == HeroEquipmentCultivatePrefab) return "HeroEquipmentCultivate";
+            if (prefabPath == HeroEquipmentStrengthPrefab) return "HeroEquipmentStrength";
+            if (prefabPath == HeroEquipmentRefinePrefab) return "HeroEquipmentRefine";
+            if (prefabPath == HeroEquipmentAwakenPrefab) return "HeroEquipmentAwaken";
+            if (prefabPath == HeroEquipmentDivinePrefab) return "HeroEquipmentDivine";
+            if (prefabPath == HeroEquipmentFragmentPrefab) return "HeroEquipmentFragment";
+            if (prefabPath == HeroEquipmentAutoRefinePrefab) return "HeroEquipmentAutoRefine";
+            if (prefabPath == HeroEquipmentExchangePrefab) return "HeroEquipmentExchange";
+            if (prefabPath == HeroEquipmentAutoStarPrefab) return "HeroEquipmentAutoStar";
+            if (prefabPath == HeroEquipmentAutoDivinePrefab) return "HeroEquipmentAutoDivine";
+            if (prefabPath == HeroEquipmentDivineEffectPrefab) return "HeroEquipmentDivineEffect";
+            if (prefabPath == FaBaoStrengthPrefab) return "FaBaoStrength";
+            if (prefabPath == FaBaoRefinePrefab) return "FaBaoRefine";
+            if (prefabPath == FaBaoMaterialChooserPrefab) return "FaBaoMaterialChooser";
+            if (prefabPath == BattleFightLayerPrefab) return "BattleFightLayer";
+            if (prefabPath.EndsWith("/HPNode.prefab", System.StringComparison.Ordinal)) return "BattleHpNode";
+            return Path.GetFileNameWithoutExtension(prefabPath);
         }
 
         private static void EnsureAssetFolder(string path)
@@ -452,9 +513,9 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]
         public static void ForceRebuild()
         {
-            EnsureDynamicUiReferences();
-            EnsureDrawDynamicResources();
             EnsureFloatNoticePrefab();
+            EnsureDynamicUiCatalog();
+            EnsureDrawDynamicResources();
             Rebuild();
         }
 
@@ -483,12 +544,6 @@ namespace ProjectX.Editor
             scaler.matchWidthOrHeight = 0.5f;
             new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
-            var instances = new Dictionary<string, GameObject>();
-            foreach (PrefabSpec spec in PrefabSpecs)
-            {
-                Transform parent = spec.ParentPath == null ? canvasObject.transform : instances[spec.ParentPath].transform;
-                instances.Add(spec.Path, Instantiate(spec.Path, parent, spec.Active));
-            }
             new GameObject("ProjectXApp", typeof(ProjectXApp));
 
             Directory.CreateDirectory(Path.GetDirectoryName(BootstrapScene));
@@ -504,6 +559,80 @@ namespace ProjectX.Editor
             Build();
         }
 
+        [MenuItem("Tools/ProjectX App/Validate Resource Foundation", priority = 92)]
+        public static void ValidateResourceFoundationBatch()
+        {
+            Build();
+            UiPrefabCatalog catalog = AssetDatabase.LoadAssetAtPath<UiPrefabCatalog>(DynamicUiCatalog);
+            if (catalog == null) throw new InvalidDataException("ResourceFoundation catalog is missing.");
+            int expectedCount = PrefabSpecs.Length + DynamicOnlyPrefabSpecs.Length;
+            if (catalog.Entries.Count != expectedCount)
+                throw new InvalidDataException($"ResourceFoundation catalog count mismatch: expected={expectedCount}, actual={catalog.Entries.Count}.");
+            string[] keys = catalog.Entries.Select(entry => entry.Key).ToArray();
+            if (keys.Distinct(System.StringComparer.OrdinalIgnoreCase).Count() != keys.Length)
+                throw new InvalidDataException("ResourceFoundation catalog contains duplicate keys.");
+            var keySet = new HashSet<string>(keys, System.StringComparer.OrdinalIgnoreCase);
+            foreach (UiPrefabCatalogEntry entry in catalog.Entries)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Key) || string.IsNullOrWhiteSpace(entry.Source))
+                    throw new InvalidDataException("ResourceFoundation catalog contains incomplete metadata.");
+                if (!string.IsNullOrWhiteSpace(entry.ParentKey) && !keySet.Contains(entry.ParentKey))
+                    throw new InvalidDataException($"ResourceFoundation parent key is missing: {entry.Key} -> {entry.ParentKey}.");
+                string referencePath = $"{DynamicUiResourceDirectory}/{entry.Key}.asset";
+                UiPrefabReference reference = AssetDatabase.LoadAssetAtPath<UiPrefabReference>(referencePath);
+                if (reference == null || reference.Prefab == null)
+                    throw new InvalidDataException($"ResourceFoundation prefab reference is missing: {entry.Key}.");
+            }
+            foreach (string pilot in new[] { "HeroBook", "HeroRecycle" })
+                if (!keySet.Contains(pilot)) throw new InvalidDataException($"ResourceFoundation lifecycle pilot is missing: {pilot}.");
+            if (!IsBootstrapSceneCurrent())
+                throw new InvalidDataException("ResourceFoundation Bootstrap scene is not minimal.");
+            ValidateProviderContracts();
+            long sceneBytes = new FileInfo(BootstrapScene).Length;
+            string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
+            string evidenceDirectory = Path.Combine(repositoryRoot, ".local", "unity-validation");
+            Directory.CreateDirectory(evidenceDirectory);
+            string evidencePath = Path.Combine(evidenceDirectory, "resourcefoundation-latest.json");
+            string json = $"{{\n  \"schemaVersion\": 1,\n  \"status\": \"Passed\",\n  \"rollbackCommit\": \"7422cbd83531b365a4188e36e21999e47d508d5d\",\n  \"catalogEntries\": {expectedCount},\n  \"bootstrapPrefabInstances\": 0,\n  \"bootstrapBytes\": {sceneBytes},\n  \"providerContractsPassed\": true,\n  \"lifecyclePilots\": [\"HeroBook\", \"HeroRecycle\"]\n}}\n";
+            File.WriteAllText(evidencePath, json, new UTF8Encoding(false));
+            Debug.Log($"[ResourceFoundation] PASS catalog={expectedCount}, bootstrapPrefabs=0, sceneBytes={sceneBytes}, rollback=7422cbd83531b365a4188e36e21999e47d508d5d");
+        }
+
+        private static void ValidateProviderContracts()
+        {
+            Scene scene = EditorSceneManager.OpenScene(BootstrapScene, OpenSceneMode.Single);
+            Transform root = scene.GetRootGameObjects().Single(item => item.name == "Canvas").transform;
+            using (var provider = new ResourcesUiAssetProvider(root))
+            {
+                if (provider.LoadedSingletonCount != 0 || provider.LoadedTransientCount != 0)
+                    throw new InvalidDataException("UI provider must start without loaded views.");
+
+                CocosUiView settings = provider.FindOrLoadBySource("zhujue/SystemLayer");
+                CocosUiView settingsAgain = provider.GetOrCreate("SystemLayer");
+                if (settings == null || !ReferenceEquals(settings, settingsAgain) || provider.LoadedSingletonCount != 1)
+                    throw new InvalidDataException("UI provider singleton contract failed for Settings.");
+
+                CocosUiView taskFrame = provider.GetOrCreate("huodong_bg");
+                CocosUiView task = provider.FindOrLoadBySource("huodong/RenwuLayer");
+                if (task == null || taskFrame == null || task.GameObject.transform.parent != taskFrame.GameObject.transform)
+                    throw new InvalidDataException("UI provider parent-child composition contract failed for Task.");
+
+                CocosUiView heroBookA = provider.Instantiate("HeroBook", root);
+                CocosUiView heroBookB = provider.Instantiate("HeroBook", root);
+                if (ReferenceEquals(heroBookA, heroBookB) || provider.LoadedTransientCount != 2)
+                    throw new InvalidDataException("UI provider transient instance contract failed for HeroBook.");
+                if (!provider.Release(heroBookA) || !provider.Release(heroBookB) || provider.LoadedTransientCount != 0)
+                    throw new InvalidDataException("UI provider transient release contract failed for HeroBook.");
+
+                CocosUiView heroRecycle = provider.Instantiate("HeroRecycle", root);
+                if (provider.LoadedTransientCount != 1 || !provider.Release(heroRecycle)
+                    || provider.LoadedTransientCount != 0)
+                    throw new InvalidDataException("UI provider lifecycle contract failed for HeroRecycle.");
+            }
+            if (root.childCount != 0)
+                throw new InvalidDataException($"UI provider disposal left {root.childCount} objects under Bootstrap Canvas.");
+        }
+
         private static void NormalizeBootstrapSceneYaml()
         {
             string absolutePath = Path.GetFullPath(BootstrapScene);
@@ -516,18 +645,27 @@ namespace ProjectX.Editor
             AssetDatabase.ImportAsset(BootstrapScene, ImportAssetOptions.ForceSynchronousImport);
         }
 
-        private static GameObject Instantiate(string assetPath, Transform parent, bool active)
-        {
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-            if (prefab == null) throw new FileNotFoundException($"Bootstrap prefab is missing: {assetPath}");
-            GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-            instance.SetActive(active);
-            return instance;
-        }
-
         private static void EnsureFloatNoticePrefab()
         {
-            if (AssetDatabase.LoadAssetAtPath<GameObject>(GameplayFloatNoticePrefab) != null) return;
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(GameplayFloatNoticePrefab);
+            if (existing != null)
+            {
+                CocosUiBinding existingBinding = existing.GetComponent<CocosUiBinding>();
+                if (existingBinding != null && !string.IsNullOrWhiteSpace(existingBinding.Source)) return;
+                GameObject editable = PrefabUtility.LoadPrefabContents(GameplayFloatNoticePrefab);
+                try
+                {
+                    CocosUiBinding binding = editable.GetComponent<CocosUiBinding>()
+                        ?? editable.AddComponent<CocosUiBinding>();
+                    binding.Initialize("Generated/FloatNoticeLayer", new List<CocosNodeReference>());
+                    PrefabUtility.SaveAsPrefabAsset(editable, GameplayFloatNoticePrefab);
+                }
+                finally
+                {
+                    PrefabUtility.UnloadPrefabContents(editable);
+                }
+                return;
+            }
 
             Sprite background = AssetDatabase.LoadAssetAtPath<Sprite>(FloatNoticeBackground);
             Font font = AssetDatabase.LoadAssetAtPath<Font>(FloatNoticeFont);
@@ -535,6 +673,7 @@ namespace ProjectX.Editor
             if (font == null) throw new FileNotFoundException($"FloatNotice font is missing: {FloatNoticeFont}");
 
             GameObject root = new GameObject("FloatNoticeLayer", typeof(RectTransform));
+            root.AddComponent<CocosUiBinding>().Initialize("Generated/FloatNoticeLayer", new List<CocosNodeReference>());
             RectTransform rootRect = root.GetComponent<RectTransform>();
             rootRect.anchorMin = Vector2.zero;
             rootRect.anchorMax = Vector2.one;
@@ -582,40 +721,11 @@ namespace ProjectX.Editor
             GameObject canvas = roots.SingleOrDefault(root => root.name == "Canvas");
             if (canvas == null || roots.Single(root => root.name == "ProjectXApp").GetComponent<ProjectXApp>() == null) return false;
 
-            PrefabSpec[] actual = canvas.GetComponentsInChildren<Transform>(true)
-                .Where(transform => transform != canvas.transform && PrefabUtility.IsAnyPrefabInstanceRoot(transform.gameObject))
-                .Select(transform => new PrefabSpec(
-                    PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(transform.gameObject),
-                    transform.gameObject.activeSelf,
-                    GetParentPrefabPath(transform.parent)))
-                .ToArray();
-            if (actual.Length != PrefabSpecs.Length)
-            {
-                Debug.LogWarning($"[ProjectXApp] Bootstrap prefab count mismatch: expected={PrefabSpecs.Length}, actual={actual.Length}.");
-                return false;
-            }
-            for (int index = 0; index < PrefabSpecs.Length; index++)
-            {
-                PrefabSpec expected = PrefabSpecs[index];
-                PrefabSpec found = actual[index];
-                if (expected.Path != found.Path || expected.Active != found.Active || expected.ParentPath != found.ParentPath)
-                {
-                    Debug.LogWarning($"[ProjectXApp] Bootstrap prefab mismatch at {index}: expected={expected.Path}|{expected.Active}|{expected.ParentPath}, actual={found.Path}|{found.Active}|{found.ParentPath}.");
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private static string GetParentPrefabPath(Transform parent)
-        {
-            while (parent != null)
-            {
-                if (PrefabUtility.IsAnyPrefabInstanceRoot(parent.gameObject))
-                    return PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(parent.gameObject);
-                parent = parent.parent;
-            }
-            return null;
+            int prefabCount = canvas.GetComponentsInChildren<Transform>(true)
+                .Count(transform => transform != canvas.transform && PrefabUtility.IsAnyPrefabInstanceRoot(transform.gameObject));
+            if (prefabCount != 0)
+                Debug.LogWarning($"[ProjectXApp] Minimal Bootstrap must not contain UI prefab instances: actual={prefabCount}.");
+            return prefabCount == 0;
         }
 
         private static void EnsureBuildSettings()

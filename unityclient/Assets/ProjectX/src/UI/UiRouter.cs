@@ -8,6 +8,16 @@ namespace ProjectX.UI
     public sealed class UiRouter
     {
         public const string MainHudSourceToken = "common/UImainLayer_new";
+        private readonly IUiAssetProvider assets;
+
+        public UiRouter()
+        {
+        }
+
+        public UiRouter(IUiAssetProvider assets)
+        {
+            this.assets = assets ?? throw new ArgumentNullException(nameof(assets));
+        }
 
         public CocosUiView FindBySource(string sourceToken, bool excludeBackup = false)
         {
@@ -20,7 +30,9 @@ namespace ProjectX.UI
                 .OrderByDescending(item => item.gameObject.activeInHierarchy)
                 .ThenBy(item => item.GetInstanceID())
                 .FirstOrDefault();
-            return binding == null ? null : new CocosUiView(binding);
+            return binding == null
+                ? assets?.FindOrLoadBySource(sourceToken, excludeBackup)
+                : new CocosUiView(binding);
         }
 
         public void SetExclusiveVisibleBySource(string sourceToken, CocosUiView selected, bool visible)

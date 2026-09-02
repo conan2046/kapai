@@ -1,0 +1,455 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d47f248375bbcc742944ff975bfff28b, type: 3}
+  m_Name: Catalog
+  m_EditorClassIdentifier: 
+  entries:
+  - key: ActivityLayer
+    source: cocosstudio/csd/common/ActivityLayer.csd
+    parentKey: shop_bg
+    defaultActive: 1
+  - key: ActivityLevelLayer
+    source: cocosstudio/csd/huodong/ActivityLevelLayer.csd
+    parentKey: ActivityRankingLayer
+    defaultActive: 1
+  - key: ActivityRankingLayer
+    source: cocosstudio/csd/huodong/ActivityRankingLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: BattleFightLayer
+    source: cocosstudio/csd/common/FightLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: BattleHpNode
+    source: cocosstudio/csd/HPNode.csd
+    parentKey: 
+    defaultActive: 0
+  - key: beibao
+    source: cocosstudio/csd/zhujue/beibao.csd
+    parentKey: 
+    defaultActive: 0
+  - key: ChatLayer
+    source: cocosstudio/csd/ChatLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: ChengZhangLayer
+    source: cocosstudio/csd/huodong/ChengZhangLayer.csd
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: DadituuiLayer
+    source: cocosstudio/csd/fuben/DadituuiLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: DailyChargeLayer
+    source: cocosstudio/csd/DailyChargeLayer.csd
+    parentKey: ActivityRankingLayer
+    defaultActive: 1
+  - key: dancichouka
+    source: cocosstudio/csd/chouka/dancichouka.csd
+    parentKey: shenjiangzhaomu
+    defaultActive: 1
+  - key: daojuduihuan
+    source: cocosstudio/csd/common/daojuduihuan.csd
+    parentKey: 
+    defaultActive: 0
+  - key: EnterNumLayer
+    source: cocosstudio/csd/EnterNumLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: FaBaoMaterialChooser
+    source: cocosstudio/csd/huishou/Choose_fenjie.csd
+    parentKey: 
+    defaultActive: 0
+  - key: FaBaoRefine
+    source: cocosstudio/csd/zhuangbeiyangcheng/fabaojinglian.csd
+    parentKey: 
+    defaultActive: 0
+  - key: FaBaoStrength
+    source: cocosstudio/csd/zhuangbeiyangcheng/fabaoqianghua.csd
+    parentKey: 
+    defaultActive: 0
+  - key: fengshenliezhuanlevel
+    source: cocosstudio/csd/fengshenliezhuan/fengshenliezhuanlevel.csd
+    parentKey: 
+    defaultActive: 0
+  - key: fengshenliezhuanlLayer
+    source: cocosstudio/csd/fengshenliezhuan/fengshenliezhuanlLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: FloatNoticeLayer
+    source: Generated/FloatNoticeLayer
+    parentKey: shop_bg
+    defaultActive: 0
+  - key: FriendLayer
+    source: cocosstudio/csd/common/FriendLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: GangsApplyLayer
+    source: cocosstudio/csd/bangpai/GangsApplyLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: GangsfoundLayer
+    source: cocosstudio/csd/bangpai/GangsfoundLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: GangsLayer
+    source: cocosstudio/csd/bangpai/GangsLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: GangsMemberLayer
+    source: cocosstudio/csd/bangpai/GangsMemberLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: guaiwubaoxiangLayer
+    source: cocosstudio/csd/guaiwubaoxiangLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: guanqiaxiangxiLayer
+    source: cocosstudio/csd/fuben/guanqiaxiangxiLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBook
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongtujianLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEnhanceMaster
+    source: cocosstudio/csd/zhuangbeiyangcheng/qianghuadashi.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAutoDivine
+    source: cocosstudio/csd/zhuangbeiyangcheng/yijianshengceng.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAutoRefine
+    source: cocosstudio/csd/zhuangbeiyangcheng/yijianjinglian.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAutoStar
+    source: cocosstudio/csd/zhuangbeiyangcheng/yijianshengxing.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAwaken
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeijuexing.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentChange
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeigenghuan.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentCultivate
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeiyangcheng.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentDetail
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeiInfo.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentDivine
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeishenzhu.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentDivineEffect
+    source: cocosstudio/csd/zhuangbeiyangcheng/shenzhutexiao.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentExchange
+    source: cocosstudio/csd/zhuangbeiyangcheng/yijianduihuan.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentFragment
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeisuipian.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentList
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeibeibao.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentRefine
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeijinglian.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentStrength
+    source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeiqianghua.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HeroRecycle
+    source: cocosstudio/csd/huishou/shenjiangchongsheng.csd
+    parentKey: 
+    defaultActive: 0
+  - key: huodong_bg
+    source: cocosstudio/csd/huodong/huodong_bg.csd
+    parentKey: 
+    defaultActive: 0
+  - key: huoqutujing
+    source: cocosstudio/csd/common/huoqutujing.csd
+    parentKey: 
+    defaultActive: 0
+  - key: HuoyueLayer
+    source: cocosstudio/csd/huodong/HuoyueLayer.csd
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: jianghunshop
+    source: cocosstudio/csd/shop/jianghunshop.csd
+    parentKey: 
+    defaultActive: 0
+  - key: jiangliyulan
+    source: cocosstudio/csd/chouka/jiangliyulan.csd
+    parentKey: shenjiangzhaomu
+    defaultActive: 0
+  - key: jiemianjiazai
+    source: cocosstudio/csd/common/jiemianjiazai.csd
+    parentKey: 
+    defaultActive: 0
+  - key: JingjiLayer
+    source: cocosstudio/csd/common/JingjiLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: juezhankunlun
+    source: cocosstudio/csd/kunlun/juezhankunlun.csd
+    parentKey: 
+    defaultActive: 0
+  - key: kapaiguaiwuLayer
+    source: cocosstudio/csd/fuben/kapaiguaiwuLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: LoginBgLayer
+    source: cocosstudio/csd/Login/LoginBgLayer.csd
+    parentKey: 
+    defaultActive: 1
+  - key: LoginGiftLayer
+    source: cocosstudio/csd/huodong/LoginGiftLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: loginLayer
+    source: cocosstudio/csd/Login/loginLayer.csd
+    parentKey: 
+    defaultActive: 1
+  - key: MailLayer
+    source: cocosstudio/csd/MailLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: MainChatLayer
+    source: cocosstudio/csd/MainChatLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: MessageBoxLayer
+    source: cocosstudio/csd/MessageBoxLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: NoticeLayer
+    source: cocosstudio/csd/NoticeLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: OneLevelLayer
+    source: cocosstudio/csd/OneLevelLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: OpenBox_1Layer
+    source: cocosstudio/csd/common/OpenBox_1Layer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: QiriLayer
+    source: cocosstudio/csd/huodong/QiriLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: RenwuLayer
+    source: cocosstudio/csd/huodong/RenwuLayer.csd
+    parentKey: huodong_bg
+    defaultActive: 1
+  - key: RoleCreateLayer
+    source: cocosstudio/csd/Login/RoleCreateLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: saodangLayer
+    source: cocosstudio/csd/fuben/saodangLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: SeverListLayer
+    source: cocosstudio/csd/Login/SeverListLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: shangcheng
+    source: cocosstudio/csd/shop/shangcheng.csd
+    parentKey: 
+    defaultActive: 0
+  - key: shenjiangxiangxishuxing
+    source: cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd
+    parentKey: 
+    defaultActive: 0
+  - key: shenjiangzhaomu
+    source: cocosstudio/csd/chouka/shenjiangzhaomu.csd
+    parentKey: 
+    defaultActive: 0
+  - key: shenjiangzhenxingLayer
+    source: cocosstudio/csd/shenjiangyangcheng/shenjiangzhenxingLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: shilianchouka
+    source: cocosstudio/csd/chouka/shilianchouka.csd
+    parentKey: shenjiangzhaomu
+    defaultActive: 1
+  - key: shop_bg
+    source: cocosstudio/csd/shop/shop_bg.csd
+    parentKey: 
+    defaultActive: 0
+  - key: SignLayer
+    source: cocosstudio/csd/SignLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: SystemLayer
+    source: cocosstudio/csd/zhujue/SystemLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: tanchuangjiangli
+    source: cocosstudio/csd/common/tanchuangjiangli.csd
+    parentKey: 
+    defaultActive: 0
+  - key: TaskPopupLayer
+    source: cocosstudio/csd/TaskPopupLayer.csd
+    parentKey: shop_bg
+    defaultActive: 0
+  - key: TeamInviteListLayer
+    source: cocosstudio/csd/TeamInviteListLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: TeamMembersLayer
+    source: cocosstudio/csd/TeamMembersLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: tililingquLayer
+    source: cocosstudio/csd/huodong/tililingquLayer.csd
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: UImainLayer_backup
+    source: cocosstudio/csd/UImainLayer_backup.csd
+    parentKey: 
+    defaultActive: 0
+  - key: UImainLayer_new
+    source: cocosstudio/csd/common/UImainLayer_new.csd
+    parentKey: 
+    defaultActive: 0
+  - key: UImain_cloudLayer
+    source: cocosstudio/csd/common/UImain_cloudLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: wanfashop
+    source: cocosstudio/csd/shop/wanfashop.csd
+    parentKey: 
+    defaultActive: 0
+  - key: WelfareLayer
+    source: cocosstudio/csd/WelfareLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: WorldMapNewLayer
+    source: cocosstudio/csd/fuben/WorldMapNewLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: XuezhanMain
+    source: cocosstudio/csd/xuezhan/XuezhanMain.csd
+    parentKey: 
+    defaultActive: 0
+  - key: XunbaoLayer
+    source: cocosstudio/csd/wanfa/XunbaoLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: yijianyouli
+    source: cocosstudio/csd/youli/yijianyouli.csd
+    parentKey: 
+    defaultActive: 0
+  - key: yingxiongbeibao
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongbeibao.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxionghuanjiang
+    source: cocosstudio/csd/shenjiangyangcheng/yingxionghuanjiang.csd
+    parentKey: 
+    defaultActive: 0
+  - key: yingxiongInfoLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongInfoLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 1
+  - key: yingxiongjueseLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongListLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongListLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 1
+  - key: yingxiongshengjiScene1
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongshengxingLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongshengxingLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongshuxingLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongtianfuLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongtupoLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongtupoLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxinxiLayer
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongxinxiLayer.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxiulian
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxiulian2
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxiulian3
+    source: cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian3.csd
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: youli
+    source: cocosstudio/csd/youli/youli.csd
+    parentKey: 
+    defaultActive: 0
+  - key: youlifangshi
+    source: cocosstudio/csd/youli/youlifangshi.csd
+    parentKey: 
+    defaultActive: 0
+  - key: youlisanjie
+    source: cocosstudio/csd/youli/youlisanjie.csd
+    parentKey: 
+    defaultActive: 0
+  - key: youlishichang
+    source: cocosstudio/csd/youli/youlishichang.csd
+    parentKey: 
+    defaultActive: 0
+  - key: zhandoujiesuanLayer
+    source: cocosstudio/csd/common/zhandoujiesuanLayer.csd
+    parentKey: 
+    defaultActive: 0
+  - key: zhandoutongji
+    source: cocosstudio/csd/common/zhandoutongji.csd
+    parentKey: 
+    defaultActive: 0
+  - key: zhuxianchengjiu
+    source: cocosstudio/csd/fuben/zhuxianchengjiu.csd
+    parentKey: 
+    defaultActive: 0
+  - key: ziyuanzhaohui
+    source: cocosstudio/csd/huodong/ziyuanzhaohui.csd
+    parentKey: huodong_bg
+    defaultActive: 0

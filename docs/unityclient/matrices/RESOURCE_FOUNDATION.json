@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "module": "ResourceFoundation",
+  "rollbackCommit": "7422cbd83531b365a4188e36e21999e47d508d5d",
+  "bootstrap": {
+    "rootObjects": ["Main Camera", "Directional Light", "Canvas", "EventSystem", "ProjectXApp"],
+    "maximumPrefabInstances": 0
+  },
+  "contracts": [
+    "catalog-metadata-does-not-reference-prefab-objects",
+    "source-router-loads-missing-views-on-demand",
+    "singleton-key-does-not-create-duplicates",
+    "parent-child-active-state-is-restored",
+    "transient-view-requires-explicit-release",
+    "game-services-disposes-all-owned-views",
+    "business-code-does-not-depend-on-resource-backend"
+  ],
+  "lifecyclePilots": ["HeroBook", "HeroRecycle"],
+  "excludedDirtyPaths": [
+    "unityclient/Assets/ProjectX/res/csd/Prefabs/fuben/DadituuiLayer.prefab"
+  ],
+  "validation": {
+    "unityMethod": "ProjectX.Editor.BootstrapSceneBuilder.ValidateResourceFoundationBatch",
+    "staticScript": "tools/unity-migration/Test-ResourceFoundation.ps1",
+    "evidence": ".local/unity-validation/resourcefoundation-latest.json"
+  }
+}

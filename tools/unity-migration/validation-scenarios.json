@@ -2868,8 +2868,17 @@
         {
           "path": "unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs",
           "contains": [
-            "Resources.Load<UiPrefabReference>",
+            "IUiAssetProvider",
+            "provider.Release",
             "Release"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/ResourcesUiAssetProvider.cs",
+          "contains": [
+            "Resources.Load<UiPrefabReference>",
+            "ReleaseSingletonTree",
+            "DestroyOwned"
           ]
         }
       ],

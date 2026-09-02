@@ -18,7 +18,7 @@
 | 登录与创角 | `G0-G6 passed / 21/21 complete` | 固定账号完成 17/17 双端原生视觉、21/21 真实控件、10/10 语义断言；覆盖 LoginBg/loginLayer/SeverListLayer/RoleCreateLayer/NoticeLayer、`/1001→/1003→/1004`、`/1002`、`/88`、已有/无角色、命名合法/非法/重复、失败/超时/断线/重连、返回/重进/切号隔离及精确恢复 | 正式登录服、渠道 SDK、发布配置后置；HUD 已独立完成 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
-| 资源/时间/旧动画 | 第一阶段完成 | ResourceService、ServerTime `/206`、29 处 CSB Timeline；Imod 67 个构造入口/208 个调用已审计，885 个真实资源全动作验证 | 补回 6 个固定调用缺整组资源和 `skill_5_h_l` 缺图；Atlas、内存预算、异步加载 |
+| ResourceFoundation/资源/时间/旧动画 | `R0-R4 passed / agent live smoke passed / user Play pending` | 回退基线`7422cbd8`已冻结；Bootstrap为0业务PrefabInstance；110/110目录项与96个静态Source查询覆盖通过；登录阶段仅5个Source入口按需创建；登录遮挡与递归释放重复清理已修复；设置重复开关、HeroBook/HeroRecycle创建释放及退出Play 0 Error已实跑 | 用户接手复验同一路径并补任务父子组合；YooAsset后端、Atlas和内存预算后置 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
 | 主界面 HUD | `G0-G3 retained / shared currency regression fixed / user retest pending` | `/18` 增量货币映射已拆分非绑定元宝`505/60003`与绑定元宝`506/60001`；复用`FirstClassBg/GoldCheck`的背包、神将/阵容、装备/法宝、邮件、商城及任务公共栏统一实时刷新 | 当前源码变化已使旧G4-G6失效；先完成用户真人复测，再按标准batch重验 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定身份`1/1000001`完成26/26控件、18/18语义、真实`/8`与`/15`、ItemType 5/6奖励弹窗、异常/重连/重登/切号及精确恢复；G5同账号同数据16/16。G6真人Play发现并关闭礼包横向拖动缺口，用户最终复测“测试通过”；整库恢复、Fixture残留0，两次BuildBatch SHA一致 | 当前模块收口；下一模块按P1顺序从当前G0启动 |

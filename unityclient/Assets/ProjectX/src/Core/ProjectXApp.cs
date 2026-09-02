@@ -768,7 +768,9 @@ namespace ProjectX.Core
         {
             try
             {
-                services = new GameServices(this, launchOptions);
+                Canvas canvas = FindObjectOfType<Canvas>();
+                if (canvas == null) throw new InvalidOperationException("Startup Canvas was not found.");
+                services = new GameServices(this, launchOptions, canvas.transform);
                 // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
                 services.Currencies.Changed += RefreshSharedCurrencyHeaders;
                 // These validations intentionally drive every reconnect step and
@@ -1366,73 +1368,11 @@ namespace ProjectX.Core
             loginServerListView = services.UiRouter.FindBySource("Login/SeverListLayer");
             roleCreateView = services.UiRouter.FindBySource("Login/RoleCreateLayer");
             noticeView = services.UiRouter.FindBySource("/NoticeLayer.csd", true);
-            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            mainCloudView = services.UiRouter.FindBySource("UImain_cloudLayer", true);
-            bagView = services.UiRouter.FindBySource("zhujue/beibao");
-            bagFrameView = services.UiRouter.FindBySource("OneLevelLayer");
-            bagInputView = services.UiRouter.FindBySource("EnterNumLayer");
-            bagPopupFrameView = services.UiRouter.FindBySource("shop/shop_bg");
-            bagGiftView = services.UiRouter.FindBySource("common/OpenBox_1Layer");
-            bagSourceView = services.UiRouter.FindBySource("common/huoqutujing");
-            bagEquipmentInfoView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
-            settingsView = services.UiRouter.FindBySource("zhujue/SystemLayer");
-            taskBackgroundView = services.UiRouter.FindBySource("huodong/huodong_bg");
-            taskView = services.UiRouter.FindBySource("huodong/RenwuLayer");
-            staminaClaimView = services.UiRouter.FindBySource("huodong/tililingquLayer");
-            resourceRecoveryView = services.UiRouter.FindBySource("huodong/ziyuanzhaohui");
-            errorView = services.UiRouter.FindBySource("MessageBoxLayer");
-            loadingView = services.UiRouter.FindBySource("common/jiemianjiazai");
-            heroListView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongListLayer");
-            heroDetailView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongInfoLayer");
-            heroReplacementView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxionghuanjiang");
-            heroCultivationView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongjueseLayer");
-            heroLevelUpView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshuxingLayer");
-            heroAutoLevelUpView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshengjiScene1");
-            heroStarUpView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshengxingLayer");
-            heroBreakView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongtupoLayer");
-            // Use the full source suffix: the short token also matches
-            // yingxiongxiulian2/3 and can bind the help popup as the main page.
-            heroCultivateView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian.csd");
-            heroInfoView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxinxiLayer");
-            heroCultivationTalentView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongtianfuLayer");
-            heroCultivationHelpFirstView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian2");
-            heroCultivationHelpSecondView = services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian3");
-            heroCultivationAttributeView = services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
-            heroCultivationNumberView = services.UiRouter.FindBySource("EnterNumLayer");
-            CocosUiView sharedCultivationFrame = services.UiRouter.FindBySource("shop/shop_bg");
-            if (sharedCultivationFrame != null)
-            {
-                CocosUiBinding dedicatedBinding = Instantiate(sharedCultivationFrame.Binding,
-                    sharedCultivationFrame.Binding.transform.parent);
-                dedicatedBinding.gameObject.name = "HeroCultivationHelpFrameRuntime";
-                dedicatedBinding.gameObject.SetActive(false);
-                heroCultivationHelpFrameView = new CocosUiView(dedicatedBinding);
-            }
-            heroEnhanceMasterView = services.UiRouter.FindBySource("zhuangbeiyangcheng/qianghuadashi");
-            heroAttributesView = services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
-            heroItemSourceView = services.UiRouter.FindBySource("common/huoqutujing");
-            heroEquipmentListView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao");
-            heroEquipmentDetailView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo");
-            heroEquipmentChangeView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan");
-            heroEquipmentCultivateView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiyangcheng");
-            heroEquipmentStrengthView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiqianghua");
-            heroEquipmentRefineView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeijinglian");
-            heroEquipmentAwakenView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeijuexing");
-            heroEquipmentDivineView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeishenzhu");
-            heroEquipmentFragmentView = services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeisuipian");
-            heroEquipmentAutoRefineView = services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianjinglian");
-            heroEquipmentExchangeView = services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianduihuan");
-            heroEquipmentAutoStarView = services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianshengxing");
-            heroEquipmentAutoDivineView = services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianshengceng");
-            heroEquipmentDivineEffectView = services.UiRouter.FindBySource("zhuangbeiyangcheng/shenzhutexiao");
-            mailView = services.UiRouter.FindBySource("MailLayer");
-            shopView = services.UiRouter.FindBySource("shop/shangcheng");
-            friendView = services.UiRouter.FindBySource("common/FriendLayer");
-            chatMiniView = services.UiRouter.FindBySource("/ChatLayer.csd");
-            chatView = services.UiRouter.FindBySource("MainChatLayer");
             services.UiStack.Clear();
             loginBackgroundView?.SetVisible(true);
             loginView?.SetVisible(true);
+            loginBackgroundView?.GameObject.transform.SetAsFirstSibling();
+            loginView?.GameObject.transform.SetAsLastSibling();
             loginServerListView?.SetVisible(false);
             roleCreateView?.SetVisible(false);
             noticeView?.SetVisible(false);
@@ -1883,6 +1823,7 @@ namespace ProjectX.Core
         {
             mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             if (mainView == null) { Fail("UImainLayer CocosUiBinding was not found."); return; }
+            mainCloudView = mainCloudView ?? services.UiRouter.FindBySource("UImain_cloudLayer", true);
             loginView?.SetVisible(false);
             loginBackgroundView?.SetVisible(false);
             loginPresenter?.HideAll();
@@ -12592,6 +12533,32 @@ namespace ProjectX.Core
         private void EnsureHeroCultivationPresenter()
         {
             if (heroCultivationPresenter != null) return;
+            heroCultivationView = heroCultivationView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongjueseLayer");
+            heroLevelUpView = heroLevelUpView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshuxingLayer");
+            heroAutoLevelUpView = heroAutoLevelUpView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshengjiScene1");
+            heroStarUpView = heroStarUpView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongshengxingLayer");
+            heroBreakView = heroBreakView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongtupoLayer");
+            // Use the full source suffix: the short token also matches
+            // yingxiongxiulian2/3 and can bind the help popup as the main page.
+            heroCultivateView = heroCultivateView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian.csd");
+            heroInfoView = heroInfoView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxinxiLayer");
+            heroCultivationTalentView = heroCultivationTalentView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongtianfuLayer");
+            heroCultivationHelpFirstView = heroCultivationHelpFirstView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian2");
+            heroCultivationHelpSecondView = heroCultivationHelpSecondView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian3");
+            heroCultivationAttributeView = heroCultivationAttributeView ?? services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
+            heroCultivationNumberView = heroCultivationNumberView ?? services.UiRouter.FindBySource("EnterNumLayer");
+            if (heroCultivationHelpFrameView == null)
+            {
+                CocosUiView sharedCultivationFrame = services.UiRouter.FindBySource("shop/shop_bg");
+                if (sharedCultivationFrame != null)
+                {
+                    CocosUiBinding dedicatedBinding = Instantiate(sharedCultivationFrame.Binding,
+                        sharedCultivationFrame.Binding.transform.parent);
+                    dedicatedBinding.gameObject.name = "HeroCultivationHelpFrameRuntime";
+                    dedicatedBinding.gameObject.SetActive(false);
+                    heroCultivationHelpFrameView = new CocosUiView(dedicatedBinding);
+                }
+            }
             CocosUiView[] required = { heroFrameView, heroCultivationView, heroLevelUpView,
                 heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView, heroInfoView,
                 heroCultivationTalentView, heroCultivationHelpFirstView, heroCultivationHelpSecondView,

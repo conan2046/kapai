@@ -2051,10 +2051,16 @@ Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "config")') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql")')
 ) "S6 supervisor no longer isolates immutable packaged assets from the writable player database or the external-server validation path."
+$localServerPreparationIndex = $projectXAppSource.IndexOf(
+    'StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))',
+    [StringComparison]::Ordinal)
+$gameServicesConstructionIndex = $projectXAppSource.IndexOf(
+    'services = new GameServices(this, launchOptions, canvas.transform);',
+    [StringComparison]::Ordinal)
 Assert-ToolchainTest (
-    $projectXAppSource.IndexOf('StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))', [StringComparison]::Ordinal) -ge 0 -and
-    $projectXAppSource.IndexOf('StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))', [StringComparison]::Ordinal) `
-        -lt $projectXAppSource.IndexOf('services = new GameServices(this, launchOptions);', [StringComparison]::Ordinal)
+    $localServerPreparationIndex -ge 0 -and
+    $gameServicesConstructionIndex -ge 0 -and
+    $localServerPreparationIndex -lt $gameServicesConstructionIndex
 ) "S6 local-server preparation no longer occurs before GameServices construction and network initialization."
 Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('端口 {port} 已被其他程序占用') -and
@@ -2859,8 +2865,9 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('ConfigureImportedFightLayer();') -and
     $worldPlaybackSource.Contains('Layer/FightUI/Position') -and
     $projectXAppSource.Contains('Transform overlayParent = worldView.GameObject.transform.parent ?? worldView.GameObject.transform;') -and
-    $projectXAppSource.Contains('UiPrefabLoader.Load("BattleFightLayer", overlayParent)') -and
-    $bootstrapBuilderSource.Contains('EnsureDynamicUiReference("BattleFightLayer", BattleFightLayerPrefab);') -and
+    $projectXAppSource.Contains('?? UiPrefabLoader.Load("BattleFightLayer", overlayParent);') -and
+    $bootstrapBuilderSource.Contains('new PrefabSpec(BattleFightLayerPrefab, false)') -and
+    $bootstrapBuilderSource.Contains('if (prefabPath == BattleFightLayerPrefab) return "BattleFightLayer";') -and
     (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset')).Contains('guid: d34c6ecec304c9d45840094f7f5ac2bc') -and
     $worldPlaybackSource.Contains('foreach (WorldBattleTargetRecord record in activeAction.Targets)') -and
     $worldReplaySource.Contains('IReadOnlyList<WorldBattleTargetRecord> Targets') -and
@@ -2969,7 +2976,8 @@ Assert-ToolchainTest (
     -not $worldPlaybackSource.Contains('CreateText(rect, "Damage"') -and
     $worldPlaybackSource.Contains('presentationCatalog.ResolveUnitHit(unit.Type') -and
     $worldPlaybackSource.Contains('ResolveHitPoint(attachedUnit, effect.HitPoint)') -and
-    $bootstrapBuilderSource.Contains('EnsureDynamicUiReference("BattleHpNode"') -and
+    $bootstrapBuilderSource.Contains('new PrefabSpec("Assets/ProjectX/res/csd/Prefabs/HPNode.prefab", false)') -and
+    $bootstrapBuilderSource.Contains('return "BattleHpNode";') -and
     $bootstrapBuilderSource.Contains('"ConfigData", "hit_monster.dat"') -and
     $bootstrapBuilderSource.Contains('"ConfigData", "zhenfa_config_dat.lua"') -and
     $bootstrapBuilderSource.Contains('"ImageNum", "num_lan.png"') -and
