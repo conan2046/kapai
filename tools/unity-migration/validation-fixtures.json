@@ -68,6 +68,13 @@
       "adapter": "tools/unity-migration/Invoke-BagSqliteFixture.ps1"
     },
     {
+      "key": "reversible-gameplay-sqlite-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": false,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1"
+    },
+    {
       "key": "reversible-gameplay-shops-sqlite-fixed-account",
       "roleMode": "fixed-account",
       "mutatesServer": true,

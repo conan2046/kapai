@@ -7,8 +7,13 @@ $root = Get-UnityMigrationRoot
 $passed = 0
 $commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
 $gameplayFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-GameplayFixedAccountFixture.ps1") -Raw -Encoding UTF8
+$gameplayFixturePythonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-GameplayFixedAccountFixture.py") -Raw -Encoding UTF8
+$gameplayCocosFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-GameplayCocosFixture.ps1") -Raw -Encoding UTF8
 $fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") -Raw -Encoding UTF8
 $moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$validationFixtures = (Import-UnityMigrationJson -Root $root `
+    -Path "tools/unity-migration/validation-fixtures.json").Value
 
 function Assert-ToolchainTest {
     param(
@@ -111,15 +116,44 @@ Assert-ToolchainTest (
     @($invalidFailures | Where-Object { $_ -like "*duplicate requirement ids*" }).Count -eq 1
 ) "Duplicate data requirement id was not rejected."
 Assert-ToolchainTest (
-    $gameplayFixtureSource.Contains('configMutationCount=0') -and
-    -not $gameplayFixtureSource.Contains('Set-PreserveLevelUserId') -and
+    $gameplayFixtureSource.Contains('Application.persistentDataPath/LocalServer/projectx.db') -and
+    $gameplayFixtureSource.Contains('Gameplay SQLite fixture identity must remain 7200057/1000003') -and
+    $gameplayFixtureSource.Contains('Invoke-GameplayFixedAccountFixture.py') -and
+    -not $gameplayFixtureSource.Contains('mysql.exe') -and
     -not $gameplayFixtureSource.Contains('server\config\config') -and
-    $gameplayFixtureSource.Contains('.local\gameplay-server-validation') -and
-    $gameplayFixtureSource.Contains('local_preserve_level_user_id') -and
-    $gameplayFixtureSource.Contains('local_preserve_balance_user_id') -and
+    $gameplayFixturePythonSource.Contains('ISOLATION_USER_ID = 705213') -and
+    $gameplayFixturePythonSource.Contains('ISOLATION_ROLE_ID = 1000006') -and
+    $gameplayFixturePythonSource.Contains('snapshotHash') -and
+    $gameplayFixturePythonSource.Contains('Gameplay SQLite restore hash mismatch') -and
+    $gameplayFixturePythonSource.Contains('allowed_isolation_levels = (primary["level"], 99)') -and
+    $gameplayFixturePythonSource.Contains('"InspectIdentity": inspect_identity') -and
     $gameplayFixtureSource.Contains('AssertReloginHash') -and
-    $gameplayFixtureSource.Contains('postLoginHash')
-) "Gameplay no-server fixture again mutates the protected C++ server config."
+    $gameplayFixturePythonSource.Contains('Gameplay primary identity changed after relogin')
+) "Gameplay fixture regressed from the persistentDataPath SQLite snapshot/restore/isolation contract."
+Assert-ToolchainTest (
+    $gameplayCocosFixtureSource.Contains('FreezeCrossBackendMapping') -and
+    $gameplayCocosFixtureSource.Contains('AssertCrossBackendMapping') -and
+    $gameplayCocosFixtureSource.Contains('semantic-cross-backend-identity-v1') -and
+    $gameplayCocosFixtureSource.Contains('visualParityReady = ($migrationPending.Count -eq 0)') -and
+    $gameplayCocosFixtureSource.Contains('redPointOwnership = "shared-cache-read-only"')
+) "Gameplay Cocos fixture no longer freezes the explicit MySQL/SQLite semantic mapping contract."
+Assert-ToolchainTest (
+    $commonSource.Contains('Cross-backend Cocos/Unity identity mapping is missing or inconsistent') -and
+    $commonSource.Contains('G5 visual parity is blocked by migration-pending Gameplay ids')
+) "G5 preflight no longer enforces the frozen cross-backend identity and visual-parity readiness contract."
+Assert-ToolchainTest (
+    @($validationFixtures.profiles | Where-Object {
+        $_.key -eq 'reversible-gameplay-sqlite-fixed-account' -and
+        $_.roleMode -eq 'fixed-account' -and $_.mutatesServer -eq $false -and
+        $_.cleanup -eq 'snapshot-relogin-restore-cleanup-assert' -and
+        $_.adapter -eq 'tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1'
+    }).Count -eq 1
+) "Gameplay SQLite fixed-account fixture profile is missing or drifted."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('return (route == null || route.Page == 0)') -and
+    $projectXAppSource.Contains('services.Gameplay.Items.All(value => value.Definition.Id != id)') -and
+    -not $projectXAppSource.Contains('services.GameplayCatalog.Find(15) == null')
+) "Gameplay hub regression again treats a page=0 direct destination route as a visible lobby card."
 Assert-ToolchainTest (
     $fixedAccountRunnerSource.Contains('-Object $fixed -Name "requiredHydratedRoots" -Default @()') -and
     -not $fixedAccountRunnerSource.Contains('$fixed.requiredHydratedRoots | ForEach-Object') -and
@@ -1031,8 +1065,11 @@ Assert-ToolchainTest (
         'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shop/shop_bg.json' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
         'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/ActivityLayer.json' -and
-    [string]$gameplayEvidenceContract.fixedAccount.serverConfigDirectory -eq
-        '.local/gameplay-server-validation'
+    [string]$gameplayEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    [string]$gameplayEvidenceContract.fixedAccount.sqlitePath -eq
+        'AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db' -and
+    [uint32]$gameplayEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    -not $gameplayEvidenceContract.fixedAccount.PSObject.Properties['serverConfigDirectory']
 ) "Global or Gameplay fixed-account contract no longer declares complete Unity art hydration plus the canonical Gameplay runtime flag."
 $invalidScenarioState = [pscustomobject]@{ captureStates = @('registered-state') }
 $invalidScenarioRejected = $false

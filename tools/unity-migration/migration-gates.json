@@ -73,7 +73,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
-      "note": "2026-08-27 current-worktree G1-G3 passed. The first early user Play exposed a white screen because 28 normal-Editor login images were unresolved LFS pointers; the hydration contract was extended, all 28 objects were hydrated, and toolchain/DataPreflight/G3 batch passed again. User retest is pending before G4. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
+      "note": "2026-09-02 current-worktree G1-G3 passed. The first early user Play white screen and cross-page LFS gaps were repaired. Gameplay now uses persistentDataPath SQLite user 7200057/role 1000003 with an exact whole-database restore contract; current G3 batch passed 13/13 controls and 13 semantic assertions. User retest is pending before G4. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/GAMEPLAY.md",
@@ -83,8 +83,8 @@
         "G4": [
           ".local/unity-validation/gameplay-fixed-account-latest.json",
           ".local/unity-validation/gameplay-fixed-account-runner-latest.json",
-          ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
-          ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-unity-result.json",
+          ".local/ui-fidelity/Gameplay/fixture/gameplay-sqlite-fixture-snapshot.json",
+          ".local/ui-fidelity/Gameplay/fixture/gameplay-fixed-unity-result.json",
           ".local/unity-validation/gameplay-operation-ledger.json"
         ],
         "G5": [
@@ -131,7 +131,7 @@
           ".local/unity-validation/gameplay-operation-ledger.json"
         ]
       },
-      "updatedUtc": "2026-08-27T09:45:13.1300533Z"
+      "updatedUtc": "2026-09-02T05:20:36.0000000Z"
     },
     {
       "module": "GameplayShops",

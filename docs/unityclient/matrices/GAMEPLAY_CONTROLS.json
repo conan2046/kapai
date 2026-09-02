@@ -52,13 +52,16 @@
   ],
   "scope": {
     "fixedUserId": 7200057,
-    "fixedRoleId": 1000115,
+    "fixedRoleId": 1000003,
+    "cocosFixedUserId": 7200057,
+    "cocosFixedRoleId": 1000115,
     "isolationUserId": 705213,
     "isolationRoleId": 1000006,
     "width": 1334,
     "height": 750,
     "windowsScalePercent": 100,
-    "serverFixture": "no-server-fixture",
+    "serverFixture": "reversible-persistent-sqlite",
+    "crossBackendMappingEvidence": ".local/unity-validation/gameplay-cross-backend-mapping-latest.json",
     "ownedViews": [
       "csd/shop/shop_bg.csb via PopFirstClassBg",
       "csd/common/ActivityLayer.csb"
@@ -130,7 +133,7 @@
     "currentEvidence": false,
     "manualAcceptanceCurrent": false,
     "userId": 7200057,
-    "roleId": 1000115,
+    "roleId": 1000003,
     "screenshotSize": "1334x750",
     "placeholderCount": 0,
     "duplicateUidCount": 0,
@@ -139,7 +142,7 @@
     "cocosSourceSet": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
     "unitySourceSet": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
     "fixedAccountEvidence": ".local/unity-validation/gameplay-fixed-account-latest.json",
-    "fixtureContract": "shared-readonly-no-server-fixture",
+    "fixtureContract": "reversible-sqlite-readonly",
     "fixtureResidueCount": 0
   }
 }

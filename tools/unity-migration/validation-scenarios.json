@@ -1956,8 +1956,8 @@
     {
       "key": "gameplay-default",
       "module": "Gameplay",
-      "fixture": "shared-readonly",
-      "fixtureContract": "no-server-fixture",
+      "fixture": "reversible-gameplay-sqlite-fixed-account",
+      "fixtureContract": "persistent-sqlite-exact-restore",
       "requiredGate": "G3",
       "flags": [
         "-projectXGameplayValidation"
@@ -2096,7 +2096,7 @@
         {
           "path": "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
           "contains": [
-            "no-server-fixture",
+            "reversible-sqlite-readonly",
             "GAMEPLAY-10-ENTER-10"
           ]
         }

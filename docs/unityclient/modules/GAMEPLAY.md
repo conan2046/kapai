@@ -1,6 +1,6 @@
 # 玩法大厅（Gameplay）迁移证据
 
-> 当前门禁：G0-G3 passed；early user Play fix retest pending；G4-G6 pending。2026-08-27已在当前工作树重取G1原生Cocos证据、冻结输入指纹、复核G2并通过G3标准batch；首次早测白屏已修复资源水合缺口，等待用户复测，旧Runner、SHA与人工结果仍只能作历史线索。
+> 当前门禁：G0-G4 passed；early user Play passed；cross-backend mapping passed；G5 paused for Arena；G6 pending。2026-09-02用户确认暂停Gameplay，等待竞技场`id=6`迁移后从G5继续。
 
 > Steam范围更新（2026-08-20）：`function_id=7/8/11/12/18/19/25/26`（决战昆仑、血战到底、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金）由 `gameplay.json: steamEnabled=false` 排除。当前Steam大厅为5项/8个控件；下文13项/16控件仅描述排除前的历史验收基线。
 
@@ -112,7 +112,7 @@ src/main.lua
 ## 8. G0/G1 验收状态
 
 - Git/dirty基线：`.local/unity-validation/gameplay-dirty-baseline.txt`。
-- G0矩阵：首次冻结30项后被新鲜原生证据推翻；已改为16项真实可达控件。固定账号 `7200057/1000115`、隔离账号 `705213/1000006`、原生客户区 `1334×750`。
+- G0矩阵：首次冻结30项后被新鲜原生证据推翻；当前hard-gate v3为8个直接控件+5个场景状态。Unity固定账号 `7200057/1000003`、临时隔离账号 `705213/1000006`、原生客户区 `1334×750`。
 - G0中央门禁已通过：16控件、`workflowPolicyVersion=1`、3条源码证据路径均被接受。
 - 当前G1已通过：Computer Use原生证据台账含10个唯一target；本工作树生成HUD、顶部、滚动、返回、重进、等级锁、切号后重启、断线、重连、空列表等当前`1334×750`证据，并冻结`cocosBaselineInputs`指纹。
 - 证据清单：`.local/ui-fidelity/Gameplay/cocos/g1-20260802/G1_COCOS_EVIDENCE.md`；逐图身份、步骤、SHA、N/A裁定与finally恢复均已记录。
@@ -139,11 +139,10 @@ src/main.lua
 
 ### 9.3 固定账号与无服务端夹具
 
-- 合同：`shared-readonly + no-server-fixture`；适配器 `tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1`。
-- 主账号：`7200057/1000115/T00057/60`；真实锁定账号：`7200260/1000119/T20260/1`；隔离账号：`705213/1000006/T67076/60`。
-- 当前中央数据预检及G3收尾已通过：Setup、AssertSetup、AssertReloginHash、Restore、AssertRestored、Cleanup、AssertCleanup；最终重登录身份哈希 `d286b9c5453303dd732ae9ea0cb564fad988366d84dca89ab36d73cd1adaa0ea`，残留0。
-- G3只在`.local/gameplay-server-validation`生成临时服务端配置并设置主/隔离账号等级与余额保护；受保护的`server/config/config`未修改，跟踪文件SHA-256保持`442BD0A705C45E223135D67B00D6007B1F4DAB6A3E502860B3440E7087C1992D`。
-- 快照证据：`.local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json`。G2通过后仍必须由 `Run-UnityFixedAccountValidation.ps1 -Module Gameplay -DataPreflightOnly` 生成中央凭证，不能用本次手工预演代替。
+- 合同：`dataBackend=sqlite + reversible-sqlite-readonly`；只允许操作 `Application.persistentDataPath/LocalServer/projectx.db`，MySQL不再作为Unity夹具后端；适配器 `tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1`。
+- 主账号：`7200057/1000003/T00057/40`；隔离账号 `705213/1000006/T67076` 仅由夹具从主账号临时克隆，锁定视觉使用Runner内存等级投影，不再要求常驻低级账号。
+- 2026-09-02中央数据预检与G3收尾已通过：Setup、AssertSetup、AssertReloginHash、Restore、AssertRestored、Cleanup、AssertCleanup；整库恢复SHA-256 `0D2C8C4BBC698E40600C47D91147929E9EB6E1077B3EFAFABED88C368235B419`，残留0。
+- 快照证据：`.local/ui-fidelity/Gameplay/fixture/gameplay-sqlite-fixture-snapshot.json`。G2通过后仍必须由 `Run-UnityFixedAccountValidation.ps1 -Module Gameplay -DataPreflightOnly` 生成中央凭证，不能用手工预演代替。
 - G2中央门禁已通过：入口、协议所有权、配置资源、运行时Transform四闭包完成；4个既有Unity缺口均以G3处理与源码证据登记。
 
 ## 10. G3 Unity实现与编辑器证据
@@ -154,38 +153,39 @@ src/main.lua
 - 13个参加按钮在 Gameplay 验证模式下仅关闭大厅并报告目标所有者，不启动目标 Controller、不发送目标协议；非 Gameplay 模块验证的既有目标路由保持不变，作为回归面。
 - 固定账号 Runner 已覆盖：主账号13项、1级账号3项可参加/10项等级锁、13个参加边界、滚动/返回/重进、空配置安全态、断线重连、隔离账号及最终切回主账号。
 - 资源合同验证三个直接水合目录：`Resources/ProjectXStartup`、`Resources/GameplayIcons`与`res/res/UI/ui_login`，并单独验证运行时动态头像`Resources/RoleBust/5_touxiang.png`；同时从4份登录IR、`UImainLayer_new/UImain_cloudLayer/ChatLayer`三份主界面IR及`shop_bg/ActivityLayer`两份Gameplay IR递归解析全部图片与字体依赖，避免只按目录猜测而漏掉背景、九宫格、公共控件、字体及代码动态加载资源。
-- G3标准batch已通过：13/13控件、11/11语义断言、Steam 5个入口/路由、等级锁、滚动/返回/重进、空配置、客户端重启、断线恢复及账号隔离均完成；固定账号精确恢复、重登录哈希一致、Fixture残留0。
+- 2026-09-02当前SQLite G3标准batch已通过：13/13控件、13项语义断言、Steam 5个入口/路由、等级锁、滚动/返回/重进、空配置、客户端重启、断线恢复及账号隔离均完成；固定账号整库精确恢复、重登录身份一致、Fixture残留0。
 - 当前证据：`.local/unity-validation/gameplay-g3-runtime-latest.json`、`.local/unity-validation/gameplay-fixed-account-runner-latest.json`、`.local/unity-validation/gameplay-fixed-account-data-preflight-latest.json`、`.local/unity-validation/gameplay-fixed-account-timings-latest.json`、`build/ui-migration/unity-gameplay-fixed-account.log`。
-- G3已通过并按流程暂停；必须先取得本轮早期真人Play反馈并闭环，才允许进入G4。此轮早测不设置`manualPassed=true`，也不替代后续相关变更后的G6最终真人确认。
-- 首次早测失败：普通Editor已进入`Login`且日志打印`Login UI shown`，但`res/res/UI/ui_login`下28个图片仍为Git LFS指针，Game视图白屏。现已将该根纳入水合合同并完成28/28水合；工具链、DataPreflight和G3标准batch复跑通过，仍须用户复测关闭此失败记录。证据：`.local/unity-validation/gameplay-early-user-play-latest.json`。
+- G3早测反馈已由用户于2026-09-02确认“通过”；`manualPassed=false`继续保留给相关变更后的G6最终真人确认。
+- 首次早测失败：普通Editor已进入`Login`且日志打印`Login UI shown`，但`res/res/UI/ui_login`下28个图片仍为Git LFS指针，Game视图白屏。该根及后续跨目录缺图、黑底、头像缺失均已闭环，用户复测通过。证据：`.local/unity-validation/gameplay-early-user-play-latest.json`。
 - 继续复查发现首次修复范围仍不完整：登录背景实际位于`ui_bg`，文字依赖`xiaokaiSJ2.ttf`，主界面与Gameplay框架还跨`Sliced/ui_common/Icon`等目录。中央Runner现从9份权威UI IR递归校验图片/字体；128个依赖已水合、指针0。Computer Use真实Editor Play已进入完整主界面并从HUD打开5项玩法大厅，用户复测仍保持`manualPassed=false`。证据：`.local/unity-validation/gameplay-early-play-repair-current.png`。
 - 用户复核指出该截图仍有两个缺口：玩法框架外露出黑色Camera清屏、HUD角色头像为空。根因分别是`UiStack.Push(gameplayView)`错误停用了包含`Layer/Bg`的整个主界面根，而Cocos只隐藏`Layer/Main_UI`控件并保留底层场景；以及`LoadPlayerRoundPortrait`动态加载的`RoleBust/5_touxiang.png`不在UI IR静态资源闭包内，仍为LFS指针。当前修复保持`Layer/Bg`与云层激活、仅隐藏HUD控件，并把动态头像加入固定账号水合合同；G3批验证新增`gameplay-main-background-preserved`语义断言。
 - 用户继续跨模块复测时，背包等既有界面只显示文字：当前工作树仍有3475个ProjectX图片/字体LFS指针（声明总量约180 MB）。这不是Prefab节点丢失，Git状态中Prefab/场景改动为0；根因是前两次只水合Gameplay可见入口闭包。现已水合`unityclient/Assets/ProjectX`全部3634个LFS跟踪资源、剩余指针0，并把该根提升为所有固定账号Runner的全局前置，防止后续模块再次把跨页缺图交给用户发现。
 
 ## 11. G4 固定账号逻辑验收
 
-- 标准 batch 固定账号结果 `success=true`：16/16 真实控件、13个权威入口/路由边界、12/12 语义断言通过。
-- 主账号 `7200057/1000115`、1级锁定账号 `7200260/1000119`、隔离账号 `705213/1000006`；覆盖滚动、13个参加按钮、10项等级锁、空配置、不可用反馈、断线/重连、重进/重启、切号隔离及切回主账号。
+- 2026-09-02标准batch固定账号结果`success=true`：13/13控件、4个当前可见Steam入口/路由边界、13/13语义断言通过。
+- 当前Unity主账号 `7200057/1000003`、临时隔离账号 `705213/1000006`；锁定态由同一权威列表做等级1投影；覆盖滚动、当前4个可见参加按钮、竞技场隐藏边界、空配置、不可用反馈、断线/重连、重进/重启、切号隔离及切回主账号。
 - 大厅不拥有业务子页协议；`/65` 继续由共享红点控制器独占，昆仑 `/213 op=25` 由主界面全局刷新后本地计算，大厅仅消费稳定缓存。
-- `shared-readonly + no-server-fixture` 六段合同通过；恢复哈希 `9225585d40d2624b11aad0dc8c713a22afc641489307a68c5ea2e405cd3e0a5a`，变更数0、残留0。
+- `reversible-sqlite-readonly`合同通过；测试过程临时创建隔离身份，结束后整库恢复哈希 `0D2C8C4BBC698E40600C47D91147929E9EB6E1077B3EFAFABED88C368235B419`，残留0。
 - 证据：`.local/unity-validation/gameplay-fixed-account-latest.json`、`.local/unity-validation/gameplay-fixed-account-runner-latest.json`。
 
 ## 12. G5 双端视觉验收
 
-- 当前 Cocos/Unity 原生客户区均为 `1334×750`，9/9状态完成并排、叠加、增强差异和人工验收；大厅状态 MAE `4.71–8.27`。
-- 通过范围：HUD入口/关闭返回、列表顶部/底部滚动、13项顺序与资源、1级锁定、空配置、重启、断线、重连、裁剪、层级及昆仑红点。
-- 批准一项时序差：重连 Cocos 原生帧早于异步 `/213 op=25` 稳定，Unity等待相同权威响应后截图；两端初始与重启稳定帧红点一致。
-- 不可达 `TaskPopupLayer`、伪公告与系统Toast不再污染 Gameplay 稳定帧；未发现剩余错图、遮挡、文本截断或交互阻断。
-- 证据：`.local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json`、`manual-acceptance.json`、`G5_VISUAL_ACCEPTANCE.md`。
+- 跨后端映射已通过：Cocos/MySQL `7200057/1000115/T00057/99` 与Unity/SQLite `7200057/1000003/T00057/40`保持同逻辑userId、同角色名，两端等级均覆盖共享4入口最高32级阈值；角色主键不混用、不强求物理相等。
+- 当前路由映射：Cocos可见13项；Steam保留`1/3/6/9/10`；Unity迁移就绪可见`1/3/9/10`；`7/8/11/12/18/19/25/26`为产品排除，`6`为迁移待完成。
+- `Test-UnityModuleG5Preflight.ps1 -Module Gameplay -RequireInputs`当前准确阻塞于`id=6`。Cocos保留竞技场卡片，Unity按已验收G4合同隐藏未完成入口，故9态全帧视觉不能通过。
+- 禁止通过改矩阵值、改哈希、临时隐藏Cocos竞技场或复用旧图绕过。重拍应等待`id=6`产品呈现决策落定，避免证据再次失效。
+- 映射证据：`.local/unity-validation/gameplay-cross-backend-mapping-latest.json`；阻塞记录：`.local/unity-validation/gameplay-operation-ledger.json`。
+- 用户决策：2026-09-02确认“暂停 Gameplay，等后续 Arena 迁移后收口”。恢复点为G5 Cocos 9态重拍；此前不启动Cocos取证、不进入G6。证据：`.local/unity-validation/gameplay-pause-decision-latest.json`。
 
 ## 13. 2026-08-27 当前工作树审计
 
 - 中央规则根因已关闭：矩阵升级为hard-gate v3，8个真实按钮/滚动继续要求`realEntryClick=true`；空态、返回重进、客户端重启、网络恢复、账号隔离5个场景状态必须保持`realEntryClick=false`，并分别映射标准batch的`empty-failure`、`return-hud/reenter`、`restart`、`disconnected/reconnect`、`account-switch` capture state。禁止直接把状态项改成true。
 - `Test-UnityMigrationHardGates.ps1 -Module Gameplay -Phase Preflight`通过，当前合同为13条目、8个直接控件、5个场景状态；中央工具链回归225项通过。
 - `Test-UnityModuleG5Preflight.ps1 -Module Gameplay -RequireInputs`曾发现旧合同缺`cocosBaselineInputs`；当前已补齐入口/View/红点/配置/CSB/夹具输入，并在本工作树重新生成G1证据与基线，不复用E盘旧`.local`。
-- 当前G1、G2、G3已串行通过；G3为当前工作树标准batch结果，13/13控件、11/11语义断言、精确恢复与残留0均有文件证据。不得引用旧两次BuildBatch、旧G5差异或旧`manualPassed=true`恢复完成态。
+- 当前G1、G2、G3、G4已串行通过；2026-09-02 SQLite标准batch为13/13控件、13/13语义断言、整库精确恢复与残留0。不得引用旧两次BuildBatch、旧G5差异或旧`manualPassed=true`恢复完成态。
 - 两次真实 `BootstrapSceneBuilder.BuildBatch` 均通过，SHA-256 同为 `BED14CC26A6E055C8C00B4B647E54D7B706B7D0C2651CFF9915D1165094CE4E3`。
-- 上一条为2026-08-02历史结果，仅作诊断线索；当前收口顺序是早期真人Play→反馈闭环→G4→G5→G6。
+- 2026-08-02结果仅作诊断线索；当前收口顺序是处理竞技场`id=6`可见性依赖→重拍9态→G5→G6最终真人确认。
 - Cocos、Unity Editor、服务端、本地MySQL与 Computer Use 残留进程均在收口前清理；模块边界只含大厅与13个路由，不宣称任何子页完成。
 - 当前审计证据：`.local/unity-validation/gameplay-operation-ledger.json`、`.local/unity-validation/gameplay-g6-docs-audit.json`；旧G6证据路径当前不存在。
 
