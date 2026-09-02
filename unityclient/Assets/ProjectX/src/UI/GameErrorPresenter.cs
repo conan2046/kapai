@@ -39,6 +39,8 @@ namespace ProjectX.UI
         }
 
         public bool IsVisible => view.GameObject != null && view.GameObject.activeSelf;
+        public Button SingleConfirmationButton => singleConfirm;
+        public Button ConfirmationButton => confirmButton;
 
         public bool InvokeCancel()
         {

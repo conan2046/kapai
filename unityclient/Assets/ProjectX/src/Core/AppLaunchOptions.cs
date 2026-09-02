@@ -43,7 +43,8 @@ namespace ProjectX.Core
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
         public bool ScenarioManagedReconnect => HasFlag("-projectXScenarioManagedReconnect");
         public bool DrawClosureValidation => HasFlag("-projectXDrawClosureValidation");
-        public bool WorldBattleValidation => HasFlag("-projectXWorldBattleValidation");
+        public bool WorldG3Validation => HasFlag("-projectXWorldG3Validation");
+        public bool WorldBattleValidation => HasFlag("-projectXWorldBattleValidation") || WorldG3Validation;
         public bool LoginClosureValidation => HasFlag("-projectXLoginClosureValidation");
         public bool PlayerHudValidation => HasFlag("-projectXPlayerHudValidation");
         public bool UseItemValidation => HasFlag("-projectXUseItemValidation");
@@ -52,6 +53,7 @@ namespace ProjectX.Core
         public bool WelfareValidation => HasFlag("-projectXWelfareValidation");
         public bool GameplayValidation => HasFlag("-projectXGameplayValidation");
         public bool FengShenStoryValidation => HasFlag("-projectXFengShenStoryValidation");
+        public bool BattleFengShenStoryValidation => HasFlag("-projectXBattleFengShenStoryValidation");
         public bool StaminaClaimValidation => HasFlag("-projectXStaminaClaimValidation");
         public bool HeroCultivationG3Validation => HasFlag("-projectXHeroCultivationG3Validation");
         public bool EnhanceMasterG3Validation => HasFlag("-projectXEnhanceMasterG3Validation");

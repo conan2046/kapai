@@ -136,7 +136,224 @@
     {
       "module": "GameplayShops",
       "gates": {
-        "G0": "pending",
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+      "note": "2026-09-02 user scope narrows this machine key to Soul Shop function_id=15/type=2. Historical 12-page/59-control evidence is diagnostic only; other gameplay shop branches are excluded from this cycle.",
+      "gateEvidence": {
+        "G5": [],
+        "G6": [],
+        "G0": [
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_COVERAGE.json",
+          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+          "tools/unity-migration/unityclient-modules.json",
+          "tools/unity-migration/validation-scenarios.json",
+          "UNITYCLIENT_STATUS.md",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-03-DRAW-SHOP-window.png"
+        ],
+        "G1": [
+          ".local/unity-validation/gameplayshops-cocos-automation-ledger.json",
+          ".local/unity-validation/gameplayshops-cocos-preflight-latest.json",
+          ".local/unity-validation/gameplayshops-cocos-identity-latest.json",
+          ".local/unity-validation/gameplayshops-cocos-baseline-latest.json",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/G1_COCOS_EVIDENCE.md",
+          "client/ProjectX/src/View/Shop/JiangHunShop.lua",
+          "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua"
+        ],
+        "G2": [
+          ".local/protocol-evidence/221.md",
+          ".local/unity-validation/gameplay-shops-g2-source-audit-20260902.md",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "server/src/pack_deal.cpp",
+          "server/src/user_shop_manage.cpp",
+          "client/ProjectX/src/View/Shop/JiangHunShop.lua",
+          "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt"
+        ],
+        "G3": [
+          ".local/unity-validation/gameplay-shops-g3-implementation-20260902.md"
+        ],
+        "G4": [
+          ".local/unity-validation/gameplayshops-early-user-play-latest.json",
+          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+          ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json"
+        ]
+      },
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-09-02T02:52:23.0001881Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:18:51.5626474Z",
+          "calendarDurationMs": 53563,
+          "completionCheckDurationMs": 427
+        },
+        "G1": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:21:19.6365581Z",
+          "calendarDurationMs": 201637,
+          "completionCheckDurationMs": 357
+        },
+        "G2": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:22:39.0322107Z",
+          "calendarDurationMs": 281032,
+          "completionCheckDurationMs": 223
+        },
+        "G3": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:38:44.4066641Z",
+          "calendarDurationMs": 1246407,
+          "completionCheckDurationMs": 459
+        },
+        "G4": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T04:51:12.9384561Z",
+          "calendarDurationMs": 5594938,
+          "completionCheckDurationMs": 1292
+        },
+        "G5": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation"
+        }
+      },
+      "gateInvalidations": {
+        "G0": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_COVERAGE.json",
+            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+            "tools/unity-migration/unityclient-modules.json",
+            "tools/unity-migration/validation-scenarios.json",
+            "UNITYCLIENT_STATUS.md"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G1": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplayshops-cocos-preflight-latest.json",
+            ".local/unity-validation/gameplayshops-cocos-identity-latest.json",
+            ".local/unity-validation/gameplayshops-cocos-baseline-latest.json",
+            ".local/unity-validation/gameplayshops-cocos-automation-ledger.json",
+            ".local/ui-fidelity/GameplayShops/cocos/g1-current/G1_COCOS_EVIDENCE.md"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G2": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "tools/unity-migration/unityclient-modules.json",
+            "tools/unity-migration/validation-scenarios.json",
+            ".local/protocol-evidence/GameplayShops-221.md",
+            ".local/unity-validation/gameplay-shops-g2-protocol-evidence.md",
+            "server/src/protocol.h",
+            "server/src/pack_deal.cpp",
+            "server/src/user_shop_manage.cpp",
+            "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+            "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+            "client/ProjectX/src/View/Shop/WanFaShopDelegate.lua",
+            "server/config/json/shop.json",
+            "server/config/json/shop_config.json"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G3": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g3-implementation.md",
+            ".local/unity-validation/unity-compile-preflight-latest.json",
+            ".local/unity-validation/unity-compile-preflight.log",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
+            "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+            "unityclient/Assets/ProjectX/src/Data/GameplayShopStore.cs",
+            "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g4-evidence.md",
+            ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+            ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
+            "build/ui-migration/unity-gameplayshops-fixed-account.log"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g5-evidence.md",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg",
+            ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/contact-side-1.jpg",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/G5_VISUAL_ACCEPTANCE.md",
+            "build/ui-migration/unity-gameplayshops-g5-visual.log"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g6-evidence.md",
+            ".local/unity-validation/gameplayshops-latest.json",
+            ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            "build/ui-migration/bootstrap-idempotence-1.log",
+            "build/ui-migration/bootstrap-idempotence-2.log",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+            "UNITYCLIENT_STATUS.md",
+            "tools/unity-migration/unityclient-modules.json"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        }
+      },
+      "updatedUtc": "2026-09-02T04:51:12.9758608Z"
+    },
+    {
+      "module": "Shop",
+      "gates": {
+        "G0": "passed",
         "G1": "pending",
         "G2": "pending",
         "G3": "pending",
@@ -144,173 +361,156 @@
         "G5": "pending",
         "G6": "pending"
       },
-      "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-      "note": "Current checkout is missing all 15 registered formal G5/G4 evidence files. Historical 59-control results are diagnostic only; restart from current source at G0 and regenerate G1-G6 evidence.",
-      "gateEvidence": {
-        "G0": [
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
-          "tools/cocos-audit/generated/cocos-control-candidates.json"
-        ],
-        "G1": [
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/02-soul-list-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/06-soul-purchase-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/07-arena-goods-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/09-blood-tier1-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/13-guild-shop-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/15-kunlun-shop-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/16-turntable-locked-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/17-arena-insufficient-native.jpg"
-        ],
-        "G2": [
-          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-          "tools/unity-migration/unityclient-modules.json",
-          "tools/unity-migration/validation-scenarios.json",
-          ".local/protocol-evidence/GameplayShops-221.md",
-          ".local/unity-validation/gameplay-shops-g2-protocol-evidence.md",
-          "server/src/protocol.h",
-          "server/src/pack_deal.cpp",
-          "server/src/user_shop_manage.cpp",
-          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "client/ProjectX/src/View/Shop/WanFaShopDelegate.lua",
-          "server/config/json/shop.json",
-          "server/config/json/shop_config.json"
-        ],
-        "G3": [
-          ".local/unity-validation/gameplay-shops-g3-implementation.md",
-          ".local/unity-validation/unity-compile-preflight-latest.json",
-          ".local/unity-validation/unity-compile-preflight.log",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-          "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
-          "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
-          "unityclient/Assets/ProjectX/src/Data/GameplayShopStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
-        ],
-        "G4": [
-          ".local/unity-validation/gameplay-shops-g4-evidence.md",
-          ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
-          "build/ui-migration/unity-gameplayshops-fixed-account.log"
-        ],
-        "G5": [
-          ".local/unity-validation/gameplay-shops-g5-evidence.md",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/contact-side-1.jpg",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/G5_VISUAL_ACCEPTANCE.md",
-          "build/ui-migration/unity-gameplayshops-g5-visual.log"
-        ],
-        "G6": [
-          ".local/unity-validation/gameplay-shops-g6-evidence.md",
-          ".local/unity-validation/gameplayshops-latest.json",
-          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "build/ui-migration/bootstrap-idempotence-1.log",
-          "build/ui-migration/bootstrap-idempotence-2.log",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-          "UNITYCLIENT_STATUS.md",
-          "tools/unity-migration/unityclient-modules.json"
-        ]
-      },
-      "updatedUtc": "2026-07-29T12:17:26.7518753Z"
-    },
-    {
-      "module": "Shop",
-      "gates": {
-        "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
-      },
       "evidence": "docs/unityclient/modules/SHOP.md",
-      "note": "Shop G0 freezes 21 controls for current type=1 basic shop. Legacy phase-one results are clues only. G1 must provide fresh Cocos runtime evidence; manual refresh and purchase confirmation are target-required Unity fixes whose absence in current Cocos must be proven and recorded.",
+      "note": "2026-09-02 Shop reopened from G0. Current type=1 basic shop has 20 visible interaction controls; SHOP-19 refresh UI is product-disabled while /221 op=3 remains protocol-compatible. The runtime-ready implementation and user early Play passed, but formal G1-G2 and G3-G6 remain pending under the no-new-screenshot decision.",
       "gateEvidence": {
+        "G1": [],
+        "G2": [],
+        "G3": [],
+        "G4": [],
+        "G5": [],
+        "G6": [],
         "G0": [
           "docs/unityclient/matrices/SHOP_CONTROLS.json",
+          "docs/unityclient/matrices/SHOP_COVERAGE.json",
           "docs/unityclient/modules/SHOP.md",
-          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
-          "tools/cocos-audit/generated/cocos-control-candidates.json"
-        ],
-        "G1": [
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/05-shop-list.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/06-shop-list-scrolled.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/13-success-reward.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/18-failure-insufficient-currency.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/22-relogin-shop-restored.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/shop-fixture-snapshot.json"
-        ],
-        "G2": [
-          "docs/unityclient/modules/SHOP.md",
-          "docs/unityclient/matrices/SHOP_CONTROLS.json",
           "tools/unity-migration/unityclient-modules.json",
-          ".local/protocol-evidence/Shop-221.md",
-          ".local/unity-validation/shop-g2-protocol-evidence.md",
-          "server/src/protocol.h",
-          "server/src/pack_deal.cpp",
-          "server/src/user_shop_manage.cpp",
-          "server/config/json/shop_config.json",
-          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
-          "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
-          "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs"
-        ],
-        "G3": [
-          ".local/unity-validation/shop-g3-logic-evidence.md",
-          "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
-          "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
-          "unityclient/Assets/ProjectX/src/UI/ShopQuantityPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
-        ],
-        "G4": [
-          ".local/unity-validation/shop-latest.json",
-          "build/ui-migration/unity-shop-validation.log",
-          "build/ui-migration/bootstrap-shop-list.png",
-          "build/ui-migration/bootstrap-shop-quantity.png",
-          "build/ui-migration/bootstrap-shop-scroll-bottom.png",
-          "build/ui-migration/bootstrap-shop-confirm.png",
-          "build/ui-migration/bootstrap-shop-reward.png",
-          "build/ui-migration/bootstrap-shop.png"
-        ],
-        "G5": [
-          ".local/unity-validation/shop-fixed-account-latest.json",
-          ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-unity-result.json",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/report.json",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/contact-side-1.jpg",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/manual-acceptance.json",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/G5_VISUAL_ACCEPTANCE.md"
-        ],
-        "G6": [
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "build/ui-migration/bootstrap-idempotence-1.log",
-          "build/ui-migration/bootstrap-idempotence-2.log",
-          "docs/unityclient/matrices/SHOP_CONTROLS.json",
-          "docs/unityclient/modules/SHOP.md",
-          "UNITYCLIENT_STATUS.md"
+          ".local/unity-validation/shop-g0-escape-defect-20260902.md"
         ]
       },
-      "updatedUtc": "2026-07-28T17:22:38.8050663Z"
+      "gateInvalidations": {
+        "G0": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/matrices/SHOP_CONTROLS.json",
+            "docs/unityclient/modules/SHOP.md",
+            "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
+            "tools/cocos-audit/generated/cocos-control-candidates.json"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G1": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/G1_COCOS_EVIDENCE.md",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/05-shop-list.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/06-shop-list-scrolled.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/13-success-reward.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/18-failure-insufficient-currency.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/22-relogin-shop-restored.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/shop-fixture-snapshot.json"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G2": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/modules/SHOP.md",
+            "docs/unityclient/matrices/SHOP_CONTROLS.json",
+            "tools/unity-migration/unityclient-modules.json",
+            ".local/protocol-evidence/Shop-221.md",
+            ".local/unity-validation/shop-g2-protocol-evidence.md",
+            "server/src/protocol.h",
+            "server/src/pack_deal.cpp",
+            "server/src/user_shop_manage.cpp",
+            "server/config/json/shop_config.json",
+            "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+            "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+            "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
+            "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
+            "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G3": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/shop-g3-logic-evidence.md",
+            "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
+            "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
+            "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
+            "unityclient/Assets/ProjectX/src/UI/ShopQuantityPresenter.cs",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/shop-latest.json",
+            "build/ui-migration/unity-shop-validation.log",
+            "build/ui-migration/bootstrap-shop-list.png",
+            "build/ui-migration/bootstrap-shop-quantity.png",
+            "build/ui-migration/bootstrap-shop-scroll-bottom.png",
+            "build/ui-migration/bootstrap-shop-confirm.png",
+            "build/ui-migration/bootstrap-shop-reward.png",
+            "build/ui-migration/bootstrap-shop.png"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/shop-fixed-account-latest.json",
+            ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-unity-result.json",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/report.json",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/contact-side-1.jpg",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/manual-acceptance.json",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/G5_VISUAL_ACCEPTANCE.md"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            "build/ui-migration/bootstrap-idempotence-1.log",
+            "build/ui-migration/bootstrap-idempotence-2.log",
+            "docs/unityclient/matrices/SHOP_CONTROLS.json",
+            "docs/unityclient/modules/SHOP.md",
+            "UNITYCLIENT_STATUS.md"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        }
+      },
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G1": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G2": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G3": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G4": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G5": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        }
+      },
+      "updatedUtc": "2026-09-02T01:46:52.6499775Z"
     },
     {
       "module": "Mail",
@@ -318,10 +518,10 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/MAIL.md",
       "note": "Mail G0-G6 passed on 2026-07-27: 13/13 real controls, 5/5 semantics, same-account 4/4 visual pairs, fixed-account restore/relogin/residual-zero checks and twice-run BuildBatch idempotence passed. G5 explicitly records Unity fixes for the approved Cocos list-scroll defect and the Cocos attachment quantity-zero defect.",
@@ -543,7 +743,7 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
+        "G4": "passed",
         "G5": "pending",
         "G6": "pending"
       },
@@ -573,10 +773,6 @@
           ".local/unity-validation/unity-compile-preflight-latest.json",
           ".local/unity-validation/hero-fixed-account-data-preflight-latest.json"
         ],
-        "G4": [
-          ".local/unity-validation/hero-fixed-account-latest.json",
-          ".local/unity-validation/hero-early-user-play-latest.json"
-        ],
         "G5": [
           ".local/ui-fidelity/Hero/compare/g5-current/report.json",
           ".local/ui-fidelity/Hero/compare/g5-current/manual-acceptance.json"
@@ -585,9 +781,18 @@
           ".local/unity-validation/hero-fixed-account-latest.json",
           ".local/unity-validation/bootstrap-idempotence-latest.json",
           ".local/unity-validation/hero-retrospective-latest.json"
+        ],
+        "G4": [
+          ".local/unity-validation/hero-formation-early-user-play-latest.json",
+          ".local/unity-validation/hero-fixed-account-latest.json",
+          ".local/unity-validation/hero-fixed-account-runner-latest.json",
+          ".local/unity-validation/hero-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/hero-fixed-account-timings-latest.json",
+          ".local/unity-validation/hero-formation-feedback-fixes-latest.json",
+          ".local/unity-validation/hero-refresh-swap-fixes-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-23T05:46:23.4311567Z"
+      "updatedUtc": "2026-08-28T15:13:48.5996083Z"
     },
     {
       "module": "Draw",
@@ -636,8 +841,8 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "pending",
-        "G4": "pending",
+        "G3": "passed",
+        "G4": "passed",
         "G5": "pending",
         "G6": "pending"
       },
@@ -687,25 +892,19 @@
           "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
         ],
         "G3": [
-          ".local/unity-validation/unity-compile-preflight-latest.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity",
-          "unityclient/Assets/ProjectX/src/Data/BagStore.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt",
-          "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt",
-          "server/src/pet_equip_manage.cpp",
-          "build/server-win/Debug/kapai.exe"
+          ".local/unity-validation/heroequip-g3-runtime-latest.json"
         ],
         "G4": [
+          ".local/unity-validation/hero-equip-early-user-play-latest.json",
           ".local/unity-validation/heroequip-fixed-account-latest.json",
           ".local/unity-validation/heroequip-fixed-account-runner-latest.json",
-          ".local/unity-validation/heroequip-sqlite-runtime-current-v3.json",
-          ".local/unity-validation/heroequip-sqlite-restart-current-v3.json",
-          ".local/unity-validation/heroequip-sqlite-current-20260822-v3.db"
+          ".local/unity-validation/heroequip-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/heroequip-g3-runtime-latest.json",
+          ".local/unity-validation/heroequip-fixed-account-timings-latest.json",
+          ".local/unity-validation/heroequip-full-final.log"
         ]
       },
-      "updatedUtc": "2026-08-21T16:20:44.191379Z"
+      "updatedUtc": "2026-08-28T14:47:44.0954873Z"
     },
     {
       "module": "World",
@@ -719,54 +918,135 @@
         "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/WORLD.md",
-      "note": "World restarted from G0 on 2026-07-31. Historical phase1 screenshots, Runner output and SHA are excluded from every current gate.",
+      "note": "2026-09-02 World G0-G6 passed after current-source fixed-account batch, real EventSystem validation and final post-change user Play. All 32/32 controls, 5/5 authoritative semantics, reconnect, exact SQLite restore and zero residue passed; the YouLi entry is recorded as a user-approved controlled product difference from the frozen Cocos ranking slot.",
       "gateEvidence": {
         "G0": [
-          "docs/unityclient/matrices/WORLD_CONTROLS.json"
-        ],
-        "G1": [
-          "docs/unityclient/modules/WORLD.md",
-          ".local/ui-fidelity/World/cocos/g1-20260731-cua/capture-manifest.json",
-          ".local/ui-fidelity/World/cocos/g1-20260731-cua/world-fixed-fixture-snapshot.json"
-        ],
-        "G2": [
-          "docs/unityclient/modules/WORLD.md",
           "docs/unityclient/matrices/WORLD_CONTROLS.json",
           "tools/unity-migration/module-evidence-contracts.json",
-          "tools/unity-migration/Invoke-WorldCocosFixture.ps1",
-          "server/src/protocol.h",
-          "server/src/pack_deal.cpp",
-          "server/src/user_guanqia.cpp",
-          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "client/ProjectX/src/View/FuBenMap/StageInfoUI.lua"
+          ".local/unity-validation/world-g5-preflight-latest.json",
+          ".local/unity-validation/world-operation-ledger.json"
+        ],
+        "G1": [
+          ".local/unity-validation/world-cocos-automation-ledger.json",
+          ".local/unity-validation/world-cocos-preflight-latest.json",
+          ".local/unity-validation/world-cocos-identity-latest.json",
+          ".local/unity-validation/world-cocos-baseline-latest.json",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/world-fixed-fixture-snapshot.json"
+        ],
+        "G2": [
+          "docs/unityclient/matrices/WORLD_CONTROLS.json",
+          ".local/unity-validation/world-cocos-baseline-latest.json",
+          ".local/unity-validation/world-cocos-automation-ledger.json"
         ],
         "G3": [
-          "docs/unityclient/modules/WORLD.md",
-          "docs/unityclient/matrices/WORLD_CONTROLS.json",
-          ".local/unity-validation/world-g3-implementation.md",
-          ".local/unity-validation/world-g3-compile-20260731-final2.log",
-          ".local/unity-validation/world-fixed-account-data-preflight-latest.json",
-          "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt",
-          "unityclient/Assets/ProjectX/src/Data/WorldStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/WorldPresenter.cs",
-          "unityclient/Assets/ProjectX/src/UI/WorldOutcomePresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs",
-          "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
-          "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity"
+          ".local/unity-validation/world-g3-runtime-latest.json",
+          ".local/unity-validation/world-main-achievement-layout-data-fix-latest.json",
+          "build/ui-migration/world-main-achievement.png",
+          ".local/unity-validation/world-operation-ledger.json"
         ],
         "G4": [
-          ".local/unity-validation/world-fixed-account-latest.json"
+          ".local/unity-validation/world-fixed-account-latest.json",
+          ".local/unity-validation/world-early-user-play-latest.json",
+          ".local/unity-validation/world-operation-ledger.json"
         ],
         "G5": [
-          ".local/ui-fidelity/World/compare/g5-20260731-cua/manual-acceptance.md"
+          ".local/unity-validation/world-g5-visual-latest.json",
+          ".local/unity-validation/world-g5-preflight-latest.json",
+          ".local/ui-fidelity/World/compare/g5-current-battle/report.json"
         ],
         "G6": [
-          ".local/unity-validation/world-fixed-account-latest.json"
+          ".local/unity-validation/world-final-user-play-latest.json",
+          ".local/unity-validation/world-fixed-account-latest.json",
+          ".local/unity-validation/world-g5-visual-latest.json",
+          ".local/ui-fidelity/World/compare/g5-current-battle/report.json",
+          "docs/unityclient/matrices/WORLD_CONTROLS.json",
+          ".local/unity-validation/world-operation-ledger.json",
+          ".local/unity-validation/world-youli-g6-evidence-latest.json",
+          ".local/unity-validation/world-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-01T00:11:04.836519Z"
+      "gateRevalidations": {
+        "G0": {
+          "checkedUtc": "2026-08-30T22:38:33.6839122Z",
+          "evidence": [
+            "docs/unityclient/matrices/WORLD_CONTROLS.json",
+            "tools/unity-migration/module-evidence-contracts.json",
+            ".local/unity-validation/world-g5-preflight-latest.json",
+            ".local/unity-validation/world-operation-ledger.json"
+          ]
+        },
+        "G1": {
+          "checkedUtc": "2026-08-30T22:38:53.4779186Z",
+          "evidence": [
+            ".local/unity-validation/world-cocos-automation-ledger.json",
+            ".local/unity-validation/world-cocos-preflight-latest.json",
+            ".local/unity-validation/world-cocos-identity-latest.json",
+            ".local/unity-validation/world-cocos-baseline-latest.json",
+            ".local/ui-fidelity/World/cocos/g1-current-battle/world-fixed-fixture-snapshot.json"
+          ]
+        },
+        "G2": {
+          "checkedUtc": "2026-08-30T22:57:28.5776302Z",
+          "evidence": [
+            "docs/unityclient/matrices/WORLD_CONTROLS.json",
+            ".local/unity-validation/world-cocos-baseline-latest.json",
+            ".local/unity-validation/world-cocos-automation-ledger.json"
+          ]
+        },
+        "G3": {
+          "checkedUtc": "2026-09-01T07:23:04.2719629Z",
+          "evidence": [
+            ".local/unity-validation/world-fixed-account-latest.json"
+          ]
+        }
+      },
+      "gateInvalidations": {
+        "G3": {
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/world-stage-utility-live-input-fix-latest.json"
+          ],
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-01T13:53:55.3221854Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "The embedded hit-surface repair passed the four reported utility entries through distinct real EventSystem callbacks, but the canonical World G3 run later failed at the unrelated normal-box confirmation raycast; keep World G3 pending until that downstream failure is diagnosed and rerun."
+        }
+      },
+      "gateTimings": {
+        "G3": {
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
+          "startSource": "invalidation"
+        },
+        "G4": {
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
+          "startSource": "invalidation"
+        },
+        "G5": {
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-01T13:53:55.3221854Z",
+          "startSource": "invalidation"
+        }
+      },
+      "updatedUtc": "2026-09-01T17:00:24.5940638Z"
     },
     {
       "module": "Login",
@@ -1054,12 +1334,12 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/FENGSHEN_STORY.md",
-      "note": "G0 reopened on 2026-08-04 after user scope change: direct chapter drag fidelity is deferred; Unity left/right arrows must page exactly six chapters with clamped bounds and correct selection/clipping. Historical G0/G1 evidence cannot skip the refreeze. Shared /320 ownership with World must remain isolated.",
+      "note": "2026-08-29 current checkout G0-G3 passed after fresh Cocos evidence, persistentDataPath SQLite preflight and Unity BuildBatch. G4-G6 remain pending until the mandatory post-G3 early user Play retest closes reward, currency-header and challenge-flow feedback; historical G4-G6 evidence is stale.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/FENGSHEN_STORY.md",
@@ -1083,14 +1363,6 @@
           "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
           "server/src/user_guanqia.cpp"
         ],
-        "G3": [
-          "docs/unityclient/modules/FENGSHEN_STORY.md",
-          ".local/unity-validation/fengshenstory-g3-buildbatch-after-license.log",
-          "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt"
-        ],
         "G4": [
           ".local/unity-validation/fengshenstory-fixed-account-latest.json",
           ".local/unity-validation/fengshenstory-fixed-account-data-preflight-latest.json",
@@ -1109,9 +1381,16 @@
           ".local/unity-validation/bootstrap-idempotence-latest.json",
           ".local/unity-validation/fengshenstory-operation-ledger.json",
           ".local/unity-validation/fengshenstory-retrospective-latest.json"
+        ],
+        "G3": [
+          ".local/unity-validation/fengshenstory-g3-buildbatch-final-20260829.log",
+          ".local/unity-validation/fengshenstory-fixed-account-data-preflight-latest.json",
+          "docs/unityclient/matrices/FENGSHEN_STORY_CONTROLS.json",
+          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
+          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py"
         ]
       },
-      "updatedUtc": "2026-08-04T03:54:47.7246261Z"
+      "updatedUtc": "2026-08-29T02:23:58.9581762Z"
     },
     {
       "module": "YouLi",
@@ -1212,6 +1491,8 @@
     },
     {
       "module": "Arena",
+      "migrationExcluded": true,
+      "userExcluded": true,
       "gates": {
         "G0": "pending",
         "G1": "pending",
@@ -1222,7 +1503,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/ARENA.md",
-      "note": "2026-08-27 audit: historical Unity-only logic and Steam SQLite equivalence are diagnostic. Current Cocos baseline, control denominator and G0 workflow contract are not frozen, so Arena starts at G0 pending.",
+      "note": "2026-08-31 user decision: the current Arena is disabled and excluded from the current Unity migration and battle parity denominator. Pending gates are retained as not-run audit state, not passed evidence.",
       "gateEvidence": {},
       "updatedUtc": "2026-08-27T00:00:00Z"
     },
@@ -1312,6 +1593,309 @@
         ]
       },
       "updatedUtc": "2026-08-24T12:23:04.0840182Z"
+    },
+    {
+      "module": "BattleMeetMonster",
+      "gates": {
+        "G0": "passed",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/BATTLEMEETMONSTER.md",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-08-30T10:42:41.786236Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-08-30T10:42:41.7952805Z",
+          "startSource": "module-scaffold",
+          "completedUtc": "2026-08-30T10:47:55.3439998Z",
+          "calendarDurationMs": 314344,
+          "completionCheckDurationMs": 338
+        },
+        "G1": {
+          "startedUtc": "2026-08-30T10:47:55.3439998Z",
+          "startSource": "previous-gate-complete"
+        }
+      },
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/matrices/BATTLEMEETMONSTER_CONTROLS.json",
+          "docs/unityclient/matrices/BATTLEMEETMONSTER_COVERAGE.json",
+          "docs/unityclient/modules/BATTLEMEETMONSTER.md",
+          ".local/unity-validation/battlemeetmonster-g0-draft-latest.json",
+          ".local/protocol-evidence/battle-meet-monster-10.md",
+          ".local/protocol-evidence/battle-meet-monster-11.md",
+          ".local/protocol-evidence/battle-meet-monster-21.md",
+          ".local/protocol-evidence/battle-meet-monster-22.md",
+          ".local/protocol-evidence/battle-meet-monster-23.md",
+          ".local/protocol-evidence/battle-meet-monster-63.md",
+          ".local/protocol-evidence/battle-meet-monster-184.md"
+        ]
+      },
+      "updatedUtc": "2026-08-30T10:47:55.3849412Z"
+    },
+    {
+      "module": "BattleFengShenStory",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/BATTLEFENGSHENSTORY.md",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-08-30T11:38:13.8865377Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-08-30T11:38:13.8898436Z",
+          "startSource": "module-scaffold",
+          "completedUtc": "2026-08-30T11:46:05.8349727Z",
+          "calendarDurationMs": 472835,
+          "completionCheckDurationMs": 398
+        },
+        "G1": {
+          "startedUtc": "2026-08-30T11:46:05.8349727Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-08-30T12:21:38.7664499Z",
+          "calendarDurationMs": 2133766,
+          "completionCheckDurationMs": 578
+        },
+        "G2": {
+          "startedUtc": "2026-08-30T12:21:38.7664499Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-08-30T12:37:30.0205442Z",
+          "calendarDurationMs": 952021,
+          "completionCheckDurationMs": 149
+        },
+        "G3": {
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:07:20.8238933Z",
+          "calendarDurationMs": 1578824,
+          "completionCheckDurationMs": 249
+        },
+        "G4": {
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:18:11.7470652Z",
+          "calendarDurationMs": 2229747,
+          "completionCheckDurationMs": 1344
+        },
+        "G5": {
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:26:42.5773719Z",
+          "calendarDurationMs": 2740577,
+          "completionCheckDurationMs": 1985
+        },
+        "G6": {
+          "startedUtc": "2026-09-01T02:41:02.9525685Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-01T03:56:44.5639859Z",
+          "calendarDurationMs": 4542564,
+          "completionCheckDurationMs": 7925
+        }
+      },
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/BATTLEFENGSHENSTORY.md",
+          "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+          "docs/unityclient/matrices/BATTLEFENGSHENSTORY_COVERAGE.json",
+          ".local/protocol-evidence/battle-feng-shen-story-21.md",
+          ".local/protocol-evidence/battle-feng-shen-story-22.md",
+          ".local/protocol-evidence/battle-feng-shen-story-23.md",
+          ".local/protocol-evidence/battle-feng-shen-story-320.md",
+          ".local/unity-validation/battlefengshenstory-g0-draft-latest.json"
+        ],
+        "G1": [
+          ".local/unity-validation/battlefengshenstory-cocos-automation-ledger.json",
+          ".local/unity-validation/battlefengshenstory-cocos-preflight-latest.json",
+          ".local/unity-validation/battlefengshenstory-cocos-identity-latest.json",
+          ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+          ".local/unity-validation/battlefengshenstory-cocos-runtime-input-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1/semantic-contact-current-40074.jpg"
+        ],
+        "G2": [
+          ".local/unity-validation/battlefengshenstory-g2-source-audit-current.json",
+          "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+          ".local/unity-validation/battlefengshenstory-cocos-runtime-input-latest.json",
+          ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+          "server/config/json/config.json",
+          "server/config/json/fight_config.json",
+          "server/config/json/monster_boss_basic.json",
+          "server/src/user_spirit.cpp",
+          "client/ProjectX/src/Data/PetkaPaiManager.lua",
+          "client/ProjectX/src/View/Background/FirstClassBg.lua"
+        ],
+        "G3": [
+          ".local/unity-validation/battlefengshenstory-g3-runtime-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+          "build/ui-migration/BFS-BATTLE-STAND.png",
+          "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+          "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+          "unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs",
+          "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+        ],
+        "G4": [
+          ".local/unity-validation/battlefengshenstory-early-user-play-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/battlefengshenstory-fixed-account-timings-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+          "build/ui-migration/BFS-BATTLE-STAND.png",
+          "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py",
+          "unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs",
+          "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs"
+        ],
+        "G5": [
+          ".local/unity-validation/battlefengshenstory-g5-visual-latest.json",
+          ".local/unity-validation/battlefengshenstory-g5-preflight-latest.json",
+          ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-1.jpg",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-2.jpg"
+        ],
+        "G6": [
+          ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+          ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/unity-validation/battlefengshenstory-g6-runtime-cleanup-latest.json",
+          ".local/unity-validation/battlefengshenstory-final-sqlite-state-latest.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+          "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+          ".local/unity-validation/battlefengshenstory-retrospective-latest.json",
+          ".local/unity-validation/battlefengshenstory-retrospective-latest.json"
+        ]
+      },
+      "gateRevalidations": {
+        "G1": {
+          "checkedUtc": "2026-08-30T21:20:28.1703241Z",
+          "evidence": [
+            ".local/unity-validation/battlefengshenstory-cocos-automation-ledger.json",
+            ".local/unity-validation/battlefengshenstory-cocos-preflight-latest.json",
+            ".local/unity-validation/battlefengshenstory-cocos-identity-latest.json",
+            ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+            ".local/unity-validation/battlefengshenstory-cocos-runtime-input-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/cocos/g1/semantic-contact-current-40074.jpg"
+          ]
+        },
+        "G2": {
+          "checkedUtc": "2026-08-30T21:21:06.9020553Z",
+          "evidence": [
+            ".local/unity-validation/battlefengshenstory-g2-source-audit-current.json",
+            "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+            ".local/unity-validation/battlefengshenstory-cocos-runtime-input-latest.json",
+            ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+            "server/config/json/config.json",
+            "server/config/json/fight_config.json",
+            "server/config/json/monster_boss_basic.json",
+            "server/src/user_spirit.cpp",
+            "client/ProjectX/src/Data/PetkaPaiManager.lua",
+            "client/ProjectX/src/View/Background/FirstClassBg.lua"
+          ]
+        },
+        "G5": {
+          "checkedUtc": "2026-09-01T03:34:12.6523302Z",
+          "evidence": [
+            ".local/unity-validation/battlefengshenstory-g5-visual-latest.json",
+            ".local/unity-validation/battlefengshenstory-g5-preflight-latest.json",
+            ".local/unity-validation/battlefengshenstory-cocos-baseline-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-1.jpg",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/contact-side-2.jpg"
+          ]
+        },
+        "G6": {
+          "checkedUtc": "2026-09-01T04:01:10.3875873Z",
+          "evidence": [
+            ".local/unity-validation/battlefengshenstory-fixed-account-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+            ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            ".local/unity-validation/battlefengshenstory-g6-runtime-cleanup-latest.json",
+            ".local/unity-validation/battlefengshenstory-final-sqlite-state-latest.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+            ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md",
+            "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+            ".local/unity-validation/battlefengshenstory-retrospective-latest.json",
+            ".local/unity-validation/battlefengshenstory-retrospective-latest.json"
+          ]
+        }
+      },
+      "gateInvalidations": {
+        "G3": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/battlefengshenstory-g3-runtime-latest.json",
+            ".local/unity-validation/battlefengshenstory-fixed-account-runner-latest.json",
+            ".local/unity-validation/battlefengshenstory-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/battlefengshenstory-final-user-play-latest.json",
+            "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+            "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+            "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs"
+          ],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-01T02:41:02.9525685Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Current user Play and direct image comparison show local-side hero facing differs from the frozen current-Cocos stand frame. The old assertion covered action index only and omitted final FlipX/rendered-pixel parity."
+        }
+      },
+      "updatedUtc": "2026-09-01T04:01:10.3881448Z"
+    },
+    {
+      "module": "BattleScript",
+      "migrationExcluded": true,
+      "userExcluded": true,
+      "gates": {
+        "G0": "pending",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/BATTLESCRIPT.md",
+      "note": "2026-08-31 user decision: Shimen, Xinmo and treasure-map EFTScript flows are excluded from current Unity migration and battle parity denominator. Pending gates are retained as not-run audit state, not passed evidence.",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-08-30T23:29:53.381323Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-08-30T23:29:53.3836637Z",
+          "startSource": "module-scaffold"
+        }
+      }
     }
   ]
 }

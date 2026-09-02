@@ -12,18 +12,22 @@ namespace ProjectX.Data
 
     public readonly struct FengShenRewardRecord
     {
-        public FengShenRewardRecord(ushort type, uint id, uint amount, string name)
+        public FengShenRewardRecord(ushort type, uint id, uint amount, string name, int picture, int quality)
         {
             Type = type;
             Id = id;
             Amount = amount;
             Name = name ?? string.Empty;
+            Picture = picture;
+            Quality = quality;
         }
 
         public ushort Type { get; }
         public uint Id { get; }
         public uint Amount { get; }
         public string Name { get; }
+        public int Picture { get; }
+        public int Quality { get; }
     }
 
     public sealed class FengShenStoryStore

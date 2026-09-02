@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
@@ -36,6 +37,7 @@ namespace ProjectX.Data
         public float MonsterScale { get; set; } = 1f;
         public int Hope { get; set; }
         public int MaxAttempts { get; set; }
+        public WorldConfiguredReward[] FirstRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
         public WorldConfiguredReward[] ShowRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
     }
 
@@ -53,6 +55,14 @@ namespace ProjectX.Data
         public int Amount { get; }
     }
 
+    public sealed class WorldAchievementDefinition
+    {
+        public int Id { get; set; }
+        public int Type { get; set; }
+        public int Condition { get; set; }
+        public WorldConfiguredReward Reward { get; set; }
+    }
+
     public static class WorldVisualCatalog
     {
         private sealed class StageSource
@@ -63,6 +73,7 @@ namespace ProjectX.Data
             public int FightId;
             public int Hope;
             public int MaxAttempts;
+            public WorldConfiguredReward[] FirstRewards;
             public WorldConfiguredReward[] ShowRewards;
         }
 
@@ -84,6 +95,10 @@ namespace ProjectX.Data
             new Dictionary<int, WorldMapVisualDefinition>();
         private static readonly Dictionary<uint, WorldStageVisualDefinition> Stages =
             new Dictionary<uint, WorldStageVisualDefinition>();
+        private static readonly Dictionary<uint, WorldConfiguredReward[]> BoxRewards =
+            new Dictionary<uint, WorldConfiguredReward[]>();
+        private static readonly Dictionary<int, List<WorldAchievementDefinition>> Achievements =
+            new Dictionary<int, List<WorldAchievementDefinition>>();
         private static readonly Dictionary<int, int> PlayerExperienceLimits = new Dictionary<int, int>();
         private static bool loaded;
 
@@ -111,6 +126,19 @@ namespace ProjectX.Data
             return PlayerExperienceLimits.TryGetValue(level, out int value) ? value : 0;
         }
 
+        public static bool TryGetBoxRewards(uint id, out WorldConfiguredReward[] value)
+        {
+            EnsureLoaded();
+            return BoxRewards.TryGetValue(id, out value);
+        }
+
+        public static IReadOnlyList<WorldAchievementDefinition> GetAchievements(int type)
+        {
+            EnsureLoaded();
+            return Achievements.TryGetValue(type, out List<WorldAchievementDefinition> values)
+                ? values : Array.Empty<WorldAchievementDefinition>();
+        }
+
         private static void EnsureLoaded()
         {
             if (loaded) return;
@@ -122,6 +150,8 @@ namespace ProjectX.Data
             string fightConfig = Load("fight_config_dat");
             string monsters = Load("monster_boss_basic_dat");
             string experience = Load("exp_dat");
+            string boxRewards = Load("reward_fixed_dat");
+            string achievements = Load("map_achievement_dat");
             if (string.IsNullOrEmpty(bigMap) || string.IsNullOrEmpty(mapRes)
                 || string.IsNullOrEmpty(mapList) || string.IsNullOrEmpty(fightConfig)
                 || string.IsNullOrEmpty(monsters))
@@ -133,6 +163,8 @@ namespace ProjectX.Data
             ParseChapters(bigMap);
             ParseMaps(mapRes);
             if (!string.IsNullOrEmpty(experience)) ParseExperience(experience);
+            if (!string.IsNullOrEmpty(boxRewards)) ParseBoxRewards(boxRewards);
+            if (!string.IsNullOrEmpty(achievements)) ParseAchievements(achievements);
 
             var fightMonsters = new Dictionary<int, int>();
             foreach (string entry in SplitEntries(fightConfig))
@@ -166,6 +198,7 @@ namespace ProjectX.Data
                     FightId = fightId,
                     Hope = hope,
                     MaxAttempts = maxAttempts,
+                    FirstRewards = ParseTriples(GetBraceField(entry, "first_reward")),
                     ShowRewards = ParseTriples(GetBraceField(entry, "show_reward"))
                 };
             }
@@ -184,6 +217,7 @@ namespace ProjectX.Data
                     MonsterScale = monster.Scale <= 0f ? 1f : monster.Scale,
                     Hope = pair.Value.Hope,
                     MaxAttempts = pair.Value.MaxAttempts,
+                    FirstRewards = pair.Value.FirstRewards ?? Array.Empty<WorldConfiguredReward>(),
                     ShowRewards = pair.Value.ShowRewards ?? Array.Empty<WorldConfiguredReward>()
                 };
             }
@@ -235,6 +269,39 @@ namespace ProjectX.Data
             foreach (string entry in SplitEntries(source))
                 if (TryGetInt(entry, "level", out int level) && TryGetInt(entry, "exp", out int amount))
                     PlayerExperienceLimits[level] = amount;
+        }
+
+        private static void ParseBoxRewards(string source)
+        {
+            foreach (string entry in SplitEntries(source))
+            {
+                if (!TryGetInt(entry, "ID", out int id)) continue;
+                BoxRewards[(uint)id] = ParseTriples(GetBraceField(entry, "reward"));
+            }
+        }
+
+        private static void ParseAchievements(string source)
+        {
+            foreach (string entry in SplitEntries(source))
+            {
+                if (!TryGetInt(entry, "id", out int id) || !TryGetInt(entry, "type", out int type)
+                    || !TryGetInt(entry, "condition", out int condition)) continue;
+                WorldConfiguredReward reward = ParseTriples(GetBraceField(entry, "reward")).FirstOrDefault();
+                if (!Achievements.TryGetValue(type, out List<WorldAchievementDefinition> list))
+                {
+                    list = new List<WorldAchievementDefinition>();
+                    Achievements[type] = list;
+                }
+                list.Add(new WorldAchievementDefinition
+                {
+                    Id = id,
+                    Type = type,
+                    Condition = condition,
+                    Reward = reward
+                });
+            }
+            foreach (List<WorldAchievementDefinition> list in Achievements.Values)
+                list.Sort((left, right) => left.Id.CompareTo(right.Id));
         }
 
         private static IEnumerable<string> SplitEntries(string source)

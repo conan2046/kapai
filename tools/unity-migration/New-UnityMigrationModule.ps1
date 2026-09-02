@@ -123,9 +123,9 @@ $files[$documentPath] = @"
 
 ## 实现边界
 
-- `${Module}Controller.lua`：协议、业务规则和权威状态。
-- `${Module}ViewState`：Lua → C# 的只读渲染 DTO。
-- `${Module}RenderBridge`：仅绑定 Prefab、资源、动画和交互回调。
+- ``$($Module)Controller.lua``：协议、业务规则和权威状态。
+- ``$($Module)ViewState``：Lua → C# 的只读渲染 DTO。
+- ``$($Module)RenderBridge``：仅绑定 Prefab、资源、动画和交互回调。
 - 禁止新建业务型 C# Store/Catalog 或在 Bridge 解析协议。
 
 ## 验证
@@ -138,7 +138,7 @@ $files[$documentPath] = @"
 
 ## 冻结项
 
-- G0 `acceptanceExamples`：待补充具体 `given/when/then`。
+- G0 ``acceptanceExamples``：待补充具体 ``given/when/then``。
 - G1 Cocos 自动化账本：待生成。
 - G2 `sourceAudit`：入口、共享协议、配置资源和运行时 Transform 待核清。
 - G3 batch 场景：源码锚点、语义断言、截图状态和固定账号合同待冻结。

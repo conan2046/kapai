@@ -41,6 +41,28 @@ namespace ProjectX.Animation
         public int CurrentSequenceIndex => sequenceIndex;
         public int CurrentFrame { get; private set; } = -1;
         public float Speed => speed;
+        public bool IsFlippedX => flippedX;
+        public bool IsFlippedY => flippedY;
+        public string CurrentAnimationSource => data?.source ?? string.Empty;
+        public bool CurrentFrameBelongsToCurrentAction
+        {
+            get
+            {
+                if (!IsLoaded || actionIndex < 0 || actionIndex >= data.actions.Length) return false;
+                ImodAction action = data.actions[actionIndex];
+                return action.frames != null && Array.Exists(action.frames, item => item.frame == CurrentFrame);
+            }
+        }
+
+        public float GetActionDurationSeconds(int requestedAction = 0)
+        {
+            if (!IsLoaded || requestedAction < 0 || requestedAction >= data.actions.Length) return 0f;
+            ImodAction action = data.actions[requestedAction];
+            if (action.frames == null || action.frames.Length == 0) return 0f;
+            int ticks = 0;
+            foreach (ImodActionFrame frame in action.frames) ticks += Mathf.Max(1, frame.durationTicks);
+            return ticks / (float)Mathf.Max(1, data.frameRate) * speed;
+        }
 
         private void Awake()
         {
@@ -124,6 +146,8 @@ namespace ProjectX.Animation
             data = ImodAnimationData.Parse(json.text);
             BuildSprites();
             Stop();
+            actionIndex = -1;
+            sequenceIndex = 0;
             RenderFrame(data.actions.Length > 0 && data.actions[0].frames.Length > 0
                 ? data.actions[0].frames[0].frame : -1);
         }
@@ -160,6 +184,12 @@ namespace ProjectX.Animation
             foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetSpeedScale(speed);
         }
 
+        public void SetPlayOnEnable(bool value)
+        {
+            playOnEnable = value;
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetPlayOnEnable(value);
+        }
+
         public void SetFlippedX(bool value)
         {
             flippedX = value;
@@ -179,6 +209,14 @@ namespace ProjectX.Animation
             color = value;
             if (partImage != null) partImage.color = color;
             foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetColor(value);
+        }
+
+        public void SetVisualScale(float value)
+        {
+            EnsureRenderer();
+            float scale = Mathf.Max(.01f, value);
+            if (partTransform != null) partTransform.localScale = Vector3.one * scale;
+            foreach (ImodAnimationPlayer layer in additionalLayers) layer.SetVisualScale(scale);
         }
 
         public void SetOpacity(int opacity)
@@ -206,7 +244,11 @@ namespace ProjectX.Animation
         public void StopCurrentAnimation()
         {
             Stop();
-            RenderFrame(0);
+            int firstFrame = actionIndex >= 0 && actionIndex < data.actions.Length
+                && data.actions[actionIndex].frames != null && data.actions[actionIndex].frames.Length > 0
+                ? data.actions[actionIndex].frames[0].frame
+                : 0;
+            RenderFrame(firstFrame);
             foreach (ImodAnimationPlayer layer in additionalLayers) layer.StopCurrentAnimation();
         }
 

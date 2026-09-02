@@ -354,6 +354,16 @@ local function finishLists()
         end
         return
     end
+    if Bridge:HasCommandLineFlag("-projectXHeroEquipG5VisualValidation") then
+        if not M.g4Started then
+            M.g4Started = true
+            Bridge:RunHeroEquipmentG5VisualValidation()
+        elseif M.openPending then
+            M.openPending = false
+            Bridge:ShowHeroEquipment(M.openKind)
+        end
+        return
+    end
     if M.stage == "await_final_lists" then
         M.stage = nil
         Bridge:CompleteHeroEquipmentMutationValidation(M.equipmentUid, M.strengthBefore,

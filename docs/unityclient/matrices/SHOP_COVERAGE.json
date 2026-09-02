@@ -2,24 +2,24 @@
   "schemaVersion": 1,
   "module": "Shop",
   "scopeDecision": {
-    "decision": "补齐中央G0 coverageList机器登记；沿用当前模块矩阵、场景与源码边界，不改变既有完成状态或证据结论。",
+    "decision": "2026-09-02用户要求基础商城从G0重开：shangcheng打开期间隐藏OneLevelLayer/Panel_12，商店自身承担关闭和全部真实交互；玩法商店不纳入。",
     "confirmedByUser": true,
-    "confirmedDate": "2026-08-23"
+    "confirmedDate": "2026-09-02"
   },
   "scenarios": [
     {
       "id": "shop-registered-success",
       "kind": "success",
-      "given": "当前模块既有入口、协议和固定数据条件满足",
-      "when": "按当前控件矩阵执行已登记主路径",
-      "then": "由既有场景与Runner验证权威成功结果"
+      "given": "固定账号、type=1商品与真实支付货币满足，商城从当前主界面可达",
+      "when": "从入口打开shangcheng并执行选择、滚动、数量、购买、关闭",
+      "then": "Panel_12隐藏且全部真实控件可用，服务端权威结果正确，关闭后公共框架恢复"
     },
     {
       "id": "shop-registered-failure-boundary",
       "kind": "failure-boundary",
-      "given": "功能锁定、数据不足、非法参数、超时、断线或切号",
+      "given": "Panel_12遮挡、数据不足、非法参数、超时、断线、重进或切号",
       "when": "执行当前矩阵对应边界操作",
-      "then": "由既有场景验证拒绝、恢复与账号隔离且不伪造成功"
+      "then": "验证无点击穿透/遮挡、拒绝不预改状态、恢复与账号隔离且不伪造成功"
     }
   ],
   "sources": [
@@ -27,20 +27,38 @@
       "id": "shop-registered-business-ids",
       "sourceFiles": [
         "client/ProjectX/src/View/MainUI.lua",
+        "client/ProjectX/src/View/Background/FirstClassBg.lua",
         "client/ProjectX/src/View/Shop/SelectedGood.lua",
-        "server/src/pack_deal.cpp"
+        "server/src/pack_deal.cpp",
+        "server/src/user_shop_manage.cpp",
+        "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+        "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs"
       ],
-      "recordTotal": 2,
+      "recordTotal": 9,
       "businessIds": [
         "entry:btn_shangcheng",
-        "221"
+        "entry:Icon_jinbi/AddBtn",
+        "route:function_id=13",
+        "shop:type=1",
+        "protocol:221/op=1",
+        "protocol:221/op=2",
+        "protocol:221/op=3",
+        "protocol:221/op=4",
+        "frame:OneLevelLayer/Panel_12-hidden"
       ],
       "branchType": "当前Manifest入口与协议业务ID的中央覆盖登记",
       "mappings": [
         {
           "businessIds": [
             "entry:btn_shangcheng",
-            "221"
+            "entry:Icon_jinbi/AddBtn",
+            "route:function_id=13",
+            "shop:type=1",
+            "protocol:221/op=1",
+            "protocol:221/op=2",
+            "protocol:221/op=3",
+            "protocol:221/op=4",
+            "frame:OneLevelLayer/Panel_12-hidden"
           ],
           "successScenarioIds": [
             "shop-registered-success"

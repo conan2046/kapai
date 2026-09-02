@@ -23,13 +23,37 @@ $comparisonScript = Join-Path $root "tools/unity-migration/New-UiFidelityCompari
 $contactScript = Join-Path $root "tools/unity-migration/New-UiFidelityContactSheet.py"
 [IO.Directory]::CreateDirectory($compareDirectory) | Out-Null
 
-$pairIds = @($g5.pairs | ForEach-Object { [string]$_.id })
+$supplementalPairs = @(Get-UnityMigrationPropertyValue -Object $g5 `
+    -Name "supplementalReferencePairs" -Default @())
+$comparisonPairs = @(
+    foreach ($pair in @($g5.pairs)) {
+        [pscustomobject]@{
+            id = [string]$pair.id
+            cocosPath = Join-Path $cocosDirectory ([string]$pair.cocos)
+            unityPath = Join-Path $unityDirectory ([string]$pair.unity)
+            referenceKind = "current-fixed-identity"
+            currentReachable = $true
+            currentUnreachableReason = ""
+        }
+    }
+    foreach ($pair in $supplementalPairs) {
+        [pscustomobject]@{
+            id = [string]$pair.id
+            cocosPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$pair.cocosPath)
+            unityPath = Join-Path $unityDirectory ([string]$pair.unity)
+            referenceKind = [string]$pair.referenceKind
+            currentReachable = $false
+            currentUnreachableReason = [string]$pair.currentUnreachableReason
+        }
+    }
+)
+$pairIds = @($comparisonPairs | ForEach-Object { [string]$_.id })
 if ($pairIds.Count -eq 0 -or @($pairIds | Sort-Object -Unique).Count -ne $pairIds.Count) {
     throw "Module '$Module' G5 pairs are empty or contain duplicate ids."
 }
-$reports = foreach ($pair in $g5.pairs) {
-    $cocos = Join-Path $cocosDirectory ([string]$pair.cocos)
-    $unity = Join-Path $unityDirectory ([string]$pair.unity)
+$reports = foreach ($pair in $comparisonPairs) {
+    $cocos = [string]$pair.cocosPath
+    $unity = [string]$pair.unityPath
     foreach ($path in @($cocos, $unity)) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing G5 evidence: $path" }
     }
@@ -45,6 +69,12 @@ $reports = foreach ($pair in $g5.pairs) {
         -NotePropertyValue (Get-FileHash -Algorithm SHA256 -LiteralPath $cocos).Hash
     $report | Add-Member -NotePropertyName unitySha256 `
         -NotePropertyValue (Get-FileHash -Algorithm SHA256 -LiteralPath $unity).Hash
+    $report | Add-Member -NotePropertyName referenceKind -NotePropertyValue ([string]$pair.referenceKind)
+    $report | Add-Member -NotePropertyName currentReachable -NotePropertyValue ([bool]$pair.currentReachable)
+    if (-not [bool]$pair.currentReachable) {
+        $report | Add-Member -NotePropertyName currentUnreachableReason `
+            -NotePropertyValue ([string]$pair.currentUnreachableReason)
+    }
     $report
 }
 $git = "C:/Program Files/Git/cmd/git.exe"
@@ -65,6 +95,8 @@ $summary = [ordered]@{
     roleId = $summaryRoleId
     sourceCommit = $sourceCommit
     stateCount = $reports.Count
+    currentStateCount = @($comparisonPairs | Where-Object currentReachable).Count
+    supplementalStateCount = @($comparisonPairs | Where-Object { -not $_.currentReachable }).Count
     imageSize = @{ width = [int]$g5.width; height = [int]$g5.height }
     states = $reports
     generatedUtc = [DateTime]::UtcNow.ToString("O")

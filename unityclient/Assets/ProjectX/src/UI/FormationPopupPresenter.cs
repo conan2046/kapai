@@ -34,6 +34,7 @@ namespace ProjectX.UI
         private readonly ImodAnimationPlayer[] models = new ImodAnimationPlayer[5];
         private readonly Image runtimeDim;
         private readonly Text runtimeTitle;
+        private readonly Button closeInteractionButton;
         private int selectedFormationId;
         private int selectedCombatPosition;
 
@@ -55,6 +56,7 @@ namespace ProjectX.UI
             float height = template.GetComponent<RectTransform>().rect.height;
             list = new VirtualList<FormationDefinition>(viewport, template, height, BindFormation);
             view.BindClick("Layer/Bg/Popup/Btn_close", close, true);
+            closeInteractionButton = CreateCloseInteraction(close);
             for (int combat = 1; combat <= models.Length; combat++)
                 models[combat - 1] = CreateModel(Require($"Layer/FormationUI/Show/Formation/Node_{combat}").transform, combat);
             view.BindClick("Layer/FormationUI/Show/Info/btn_Upgrade", UpgradeSelectedFormation, true);
@@ -65,6 +67,58 @@ namespace ProjectX.UI
                 view.BindClick($"Layer/FormationUI/Show/Formation/Position{grid}", () => SelectGrid(captured), true);
             }
             formation.Changed += Render;
+        }
+
+        public Button CloseInteractionButton => closeInteractionButton;
+
+        public void RefreshCloseInteraction()
+        {
+            Canvas.ForceUpdateCanvases();
+            GameObject target = Require("Layer/Bg/Popup/Btn_close");
+            RectTransform targetRect = target.transform as RectTransform;
+            RectTransform rootRect = view.GameObject.transform as RectTransform;
+            RectTransform rect = closeInteractionButton.transform as RectTransform;
+            if (targetRect == null || rootRect == null || rect == null) return;
+            Vector3[] corners = new Vector3[4];
+            targetRect.GetWorldCorners(corners);
+            Vector3 min = rootRect.InverseTransformPoint(corners[0]);
+            Vector3 max = rootRect.InverseTransformPoint(corners[2]);
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
+            // The imported root uses a bottom-left pivot. anchoredPosition would
+            // add the parent's anchor reference a second time and place this
+            // proxy half a screen beyond the visible close button.
+            rect.localPosition = new Vector3((min.x + max.x) * .5f, (min.y + max.y) * .5f, 0f);
+            rect.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
+            Image image = closeInteractionButton.targetGraphic as Image;
+            if (image == null) return;
+            image.enabled = false;
+            image.enabled = true;
+            image.raycastTarget = true;
+            image.canvasRenderer.cullTransparentMesh = false;
+            image.SetAllDirty();
+            Canvas canvas = image.canvas;
+            if (canvas != null)
+            {
+                GraphicRegistry.RegisterGraphicForCanvas(canvas, image);
+                GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);
+            }
+            closeInteractionButton.transform.SetAsLastSibling();
+        }
+
+        private Button CreateCloseInteraction(Action close)
+        {
+            GameObject proxy = new GameObject("RuntimeFormationClose", typeof(RectTransform),
+                typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            proxy.transform.SetParent(view.GameObject.transform, false);
+            Image image = proxy.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, .001f);
+            image.raycastTarget = true;
+            image.canvasRenderer.cullTransparentMesh = false;
+            Button button = proxy.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.interactable = true;
+            button.onClick.AddListener(() => close());
+            return button;
         }
 
         public void Render()

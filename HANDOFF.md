@@ -14,22 +14,22 @@
 
 ## 当前批次
 
-### 技能/词条功能分支本轮接续（2026-08-31）
+### 技能/词条功能分支（2026-09-02 同步主干）
 
 - 用户明确要求“先跳过验收，继续下一步任务”；只暂缓人工点击、截图与战斗回放，不把缺失证据标记为通过，也不修改迁移门禁。
 - S8 已实现首批 12 名神将 / 24 套 A/B 词条配装参考，配置与规则见 `docs/HERO_SKILL_AFFIX_IMPLEMENTATION_V1.md` 的 2.6 节。
 - 双端已穿戴装备显示佩戴者的 A/B 匹配度，背包装备显示前三项推荐；评分为核心 100 / 兼容 60 / 不匹配 0，与战力、Tier、整套构筑分离。
 - 非 GUI 回归：1,248 项评分、2,052 行 Lua/C# 一致性、5 项 Cocos 上下文单测；C# 离线 Roslyn 编译退出 0。日志位于 `.local/hero-build-s8-tests.log`、`.local/hero-build-s8-lua-parity.log` 和 `.local/hero-build-s8/`。
-- 本轮没有开启游戏服务、数据库、Cocos 或 Unity；没有修改账号存档。本轮改动尚未提交/推送，继续保留 976 个既有 Unity `.meta` 改动；新增的三个 S8 资源 `.meta` 是本轮独立文件。
+- S8 已形成独立提交 `a3e62376`，随后将 `origin/main@77196b74` 合入功能分支；未把功能分支反向合并到 `main`。
+- 本轮没有开启游戏服务、数据库、Cocos 或 Unity；没有修改账号存档。976 个既有 Unity `.meta` 改动继续保留且未暂存；新增的三个 S8 资源 `.meta` 已随 S8 正式提交。
 - 下一开发任务：按既有方案推进首批神将的可选技能分支与策略预设，先明确服务端持久化/切换协议与战斗注入合同。当前配装参考不会切换技能，不得当成分支已生效。
-- 收口时当前任务记录约 116.7 MB，已超过用户规定的 20 MB 上限，停止在本任务追加开发；下一步请从新任务读取本交接继续。Codex `logs_2.sqlite` 约 218.1 MB，已提醒备份后单独检查，未修改或清理内部数据库。
 
 ### 迁移门禁（未因跳过人工验收而变更）
 
-- Bag：G0-G5 已通过；G6 等待最后相关变更后的用户真实 Play 确认，`manualPassed=false`。
-- EnhanceMaster：G0-G3 已通过；等待早期用户 Play，未进入 G4。
-- HeroCultivation：G0-G2 已通过，G3 初版完成；等待用户按最终布局复测，未进入 G4。
-- HeroEquip：仅 G0 通过；G1-G6 保持 pending，旧 33 控件和旧截图不可复用。
+- BattleFengShenStory：2026-09-01 当前输入下 G0-G6 全部通过；9/9控件、10态双端视觉、标准固定账号batch、两次BuildBatch与用户最终Play均通过。
+- BattleFengShenStory 自动复盘：失败244、解决244、补充证据4、待诊断0、未解决0；固定账号SQLite `7200057/1000003` 已恢复为40级/1600经验，WAL/SHM均不存在。
+- Mail 已按正式门禁从旧`g6-complete`降为G0-G2 passed；Shop降为G0-G4 passed。旧证据保留，但不得冒充当前门禁。
+- 全局文档校验34模块通过；Validated主模块保持`5/16 = 31.3%`，BattleFengShenStory属于非分母战斗子模块。
 - 同一时间只推进用户当前指定的一个模块；上一门禁未通过不得进入下一门禁或下一模块。
 
 ## 当前工作树保护
@@ -41,7 +41,7 @@
 
 ## 下一步
 
-1. 先读取 `UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、目标模块文档/矩阵及 `migration-gates.json`。
+1. 新任务先由用户指定下一个模块，再读取 `UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、目标模块文档/矩阵及 `migration-gates.json`。
 2. 确认用户当前指定模块和最早 pending 门禁。
 3. 新模块 G0 使用中央脚手架生成当前入口清单、协议证据和历史根因命中报告；不得手写缩小分母。
 4. 后续新模块记录 G0-G6 日历周期和 Runner 机器耗时；不追补历史模块。

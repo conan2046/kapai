@@ -90,6 +90,7 @@
 
 ## 本轮迭代与后续自检
 
+- 2026-08-28 共享货币栏复核：Cocos `FirstClassBg/GoldCheck` 统一语义为 `GoldIcon1=体力、GoldIcon3=金币、GoldIcon4=非绑定元宝`。Unity 的登录快照绑定正确，但 `/18` 增量解析曾把 `EUUT_YB/505` 与 `EUUT_BangDingYB/506` 都写入 `CurrencyIds.Premium`，并在材料 `60001` 更新时再次用绑元覆盖元宝；现已拆分为 `60003/505` 与 `60001/506`。复用 `OneLevelLayer` 的背包、神将/阵容、装备/法宝、邮件、商城，以及任务公共货币栏现统一订阅 `CurrencyStore.Changed` 实时刷新；设置、福利/基金、七日和封神列传各自已有刷新订阅。抽卡与世界副本使用不同 `GoldCheck` 结构，按其原始币种语义保留，不套用 FirstClassBg 映射。当前源码变更后的真人回归与标准 batch 尚未完成，旧 G4-G6 只作历史证据。
 - “网络超时”提示被定义为终态：自动化第一次出现后立即停止等待和坐标试错，记录失败并转查源码、日志与协议。
 - 中央编译预检现在能识别 Unity 退出码 0 但日志出现 `Assembly-CSharp.dll` 恢复型共享锁的情况，归档首轮并只重跑一次；`Unity.ILPP.Trigger` 纳入 owned-child 清理。
 - 大型 UI IR 节点查询改用共享 `System.Text.Json` 遍历；多结果摘要改用 `Get-UnityMigrationValidationResultSummaries`，避免再次拼接禁止的 `foreach {...} |`。

@@ -87,10 +87,12 @@ if ($Action -eq "StartFixedClient") {
     $transport = Get-Content -Raw -Encoding UTF8 -LiteralPath $resolvedPreflight | ConvertFrom-Json
     if (-not [bool]$transport.transportReady) { throw "Computer Use transport preflight is not ready." }
     $scope = Get-UnityMigrationPropertyValue -Object $matrix -Name "scope" -Default $null
-    $userId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
-    $roleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $fallbackUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
+    $fallbackRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $userId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedUserId" -Default $fallbackUserId)
+    $roleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedRoleId" -Default $fallbackRoleId)
     if ($userId -eq 0 -or $roleId -eq 0) {
-        throw "Module '$Module' matrix scope must freeze fixedUserId/fixedRoleId before G1."
+        throw "Module '$Module' matrix scope must freeze a Cocos fixed identity before G1."
     }
     if (@(Get-Process ProjectX -ErrorAction SilentlyContinue).Count -gt 0) {
         throw "Stop the existing ProjectX.exe before StartFixedClient."
@@ -107,8 +109,8 @@ if ($Action -eq "StartFixedClient") {
         throw "Cocos runtime client root is incomplete: $clientRoot"
     }
     $pwsh = Get-UnityMigrationPowerShellExecutable
-    & $pwsh -NoProfile -File $clientLauncher -LocalUserId $userId
-    if ($LASTEXITCODE -ne 0) { throw "Start-Client.ps1 failed for fixed userId=$userId." }
+    & $pwsh -NoProfile -File $clientLauncher -LocalUserId $userId -LocalRoleId $roleId
+    if ($LASTEXITCODE -ne 0) { throw "Start-Client.ps1 failed for fixed identity=$userId/$roleId." }
     $deadline = [DateTime]::UtcNow.AddSeconds($IdentityTimeoutSeconds)
     $matchedUser = $false
     $matchedRole = $false
@@ -136,7 +138,7 @@ if ($Action -eq "StartFixedClient") {
         userId = $userId
         roleId = $roleId
         launcher = "tools/unity-migration/Invoke-UnityMigrationCocosEvidence.ps1"
-        clientLauncher = "$clientLauncher -LocalUserId $userId"
+        clientLauncher = "$clientLauncher -LocalUserId $userId -LocalRoleId $roleId"
         runtimeClientRoot = $clientRoot
         authorityLog = ".local/kapai-current.out"
         checkedUtc = [DateTime]::UtcNow.ToString("O")
@@ -152,6 +154,7 @@ $contracts = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration
 $contract = @($contracts.modules | Where-Object { $_.module -ieq $Module })
 if ($contract.Count -ne 1 -or $null -eq $contract[0].g5) { throw "Module '$Module' has no unique G5 contract." }
 $g5 = $contract[0].g5
+$runtimeStateEvidence = Assert-UnityMigrationCocosBaselineStateEvidence -Root $root -Module $Module -G5 $g5 -Identity $identity
 $cocosDirectory = Resolve-UnityMigrationPath -Root $root -Path ([string]$g5.cocosDirectory)
 $states = New-Object System.Collections.Generic.List[object]
 Add-Type -AssemblyName System.Drawing
@@ -179,6 +182,8 @@ $baseline = [ordered]@{
     reuseEligible = $true
     userId = [uint32]$identity.userId
     roleId = [uint32]$identity.roleId
+    runtimeStateEvidencePath = if ($null -ne $runtimeStateEvidence) { [string]$runtimeStateEvidence.evidencePath } else { "" }
+    runtimeStateFingerprint = if ($null -ne $runtimeStateEvidence) { [string]$runtimeStateEvidence.sha256 } else { "" }
     inputFingerprint = Get-UnityMigrationCocosBaselineFingerprint -Root $root -G5 $g5
     states = @($states.ToArray())
     invalidationRule = "Recapture only states affected by changed cocosBaselineInputs, identity, fixture or pair definitions."

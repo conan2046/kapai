@@ -1,10 +1,12 @@
 {
   "schemaVersion": 2,
   "steamProgressPolicy": {
-    "denominator": 17,
+    "denominator": 16,
     "nonDenominatorSubmodules": [
       "HeroCultivation",
-      "EnhanceMaster"
+      "EnhanceMaster",
+      "BattleMeetMonster",
+      "BattleFengShenStory"
     ]
   },
   "visualFidelityPolicy": {
@@ -555,7 +557,7 @@
     {
       "key": "Mail",
       "displayName": "邮件",
-      "status": "g6-complete",
+      "status": "g0-g2-passed-g3-g6-pending",
       "protocols": [
         128
       ],
@@ -598,7 +600,7 @@
     {
       "key": "Shop",
       "displayName": "商城",
-      "status": "g6-complete",
+      "status": "g3-runtime-ready-early-user-play-passed-formal-g1-g2-pending",
       "protocols": [
         221
       ],
@@ -643,21 +645,20 @@
     },
     {
       "key": "GameplayShops",
-      "displayName": "玩法商店",
-      "status": "g0-evidence-missing",
+      "displayName": "将魂商店",
+      "status": "g4-passed-g5-pending",
       "protocols": [
         221
       ],
       "entries": [
         "Layer/Main_UI/ButtonGroup1/btn_shangcheng -> tankuang1/btn_jianghun -> EMID_SHOP_HUN=15 -> Shop.JiangHunShop",
-        "Layer/Main_UI/ButtonGroup1/btn_shangcheng -> tankuang1/btn_wanfa -> EMID_SHOP_JINGJI=16 -> Shop.WanFaShopMainUI(sub=1)",
-        "KaPaiArenaUI shop entry -> EMID_SHOP_JINGJI=16 -> Shop.WanFaShopMainUI(sub=1)",
-        "XueZhanMainUI/XueZhanChapterUI shop entry -> EMID_SHOP_XUEZHAN=17 -> Shop.WanFaShopMainUI(sub=2)",
-        "WanFaShopMainUI tabs -> guild type=25/26, kunlun type=23, turntable type=27/28"
+        "HappyDrawUI Layer/Shop -> EMID_SHOP_HUN=15 -> Shop.JiangHunShop",
+        "ItemSourceUI runtime source function_id=15 -> Shop.JiangHunShop",
+        "FengShenStory ItemSource Button_2 -> function_id=15 -> Shop.JiangHunShop"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/jianghunshop.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/wanfashop.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab"
       ],
       "configs": [
         "unityclient/Assets/ProjectX/Resources/Configs/shop.json",
@@ -669,12 +670,7 @@
         "-projectXGameplayShopsValidation"
       ],
       "screenshots": [
-        "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-        "build/ui-migration/bootstrap-gameplay-shop-arena.png",
-        "build/ui-migration/bootstrap-gameplay-shop-blood.png",
-        "build/ui-migration/bootstrap-gameplay-shop-guild.png",
-        "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
-        "build/ui-migration/bootstrap-gameplay-shop-turntable.png"
+        "build/ui-migration/bootstrap-gameplay-shop-jianghun.png"
       ],
       "visualFidelity": {
         "status": "pending-cocos-baseline",
@@ -813,6 +809,10 @@
       "displayName": "世界/战斗/副本",
       "status": "g6-complete",
       "protocols": [
+        21,
+        22,
+        23,
+        38,
         320
       ],
       "entries": [
@@ -840,13 +840,30 @@
       "visualFidelity": {
         "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/World/cocos/g1-20260731-cua/WORLD-01-WORLD-MAP.png"
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-ENTRY.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-NORMAL-ATTACK.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-SKILL.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-HURT-DAMAGE.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-DEATH.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-ROUND-RHYTHM.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-REPLAY.png",
+          ".local/ui-fidelity/World/cocos/g1-current-battle/WORLD-BATTLE-RETURN.png"
         ],
         "unityScreenshots": [
-          ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-MAP.png"
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-ENTRY.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-NORMAL-ATTACK.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-SKILL.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-HURT-DAMAGE.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-DEATH.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-ROUND-RHYTHM.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-REPLAY.png",
+          ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-RETURN.png"
         ],
         "diffReports": [
-          ".local/ui-fidelity/World/compare/g5-20260731-cua/report.json"
+          ".local/ui-fidelity/World/compare/g5-current-battle/report.json",
+          ".local/unity-validation/world-g5-visual-assessment-latest.json"
         ],
         "flowEvidence": ".local/unity-validation/world-fixed-account-latest.json",
         "uiMapping": "docs/unityclient/matrices/WORLD_CONTROLS.json"
@@ -1129,7 +1146,7 @@
     {
       "key": "FengShenStory",
       "displayName": "封神列传",
-      "status": "g6-complete",
+      "status": "g3-passed-early-user-play-pending",
       "protocols": [
         320
       ],
@@ -1158,7 +1175,7 @@
         "build/ui-migration/bootstrap-fengshen-story.png"
       ],
       "visualFidelity": {
-        "status": "passed",
+        "status": "visual-fixing",
         "cocosScreenshots": [
           ".local/ui-fidelity/FengShenStory/cocos/g1-20260802/FENGSHEN-CONTROL-CHAPTER-CELL.png"
         ],
@@ -1175,23 +1192,37 @@
     },
     {
       "key": "Arena",
-      "displayName": "竞技场",
-      "status": "g0-evidence-missing",
+      "displayName": "竞技场PVP战斗",
+      "status": "user-excluded",
+      "migrationExcluded": true,
+      "currentCocosReachable": false,
+      "excludedFromCurrentCocosParityDenominator": true,
+      "exclusionReason": "2026-08-31用户确认当前版本竞技场已屏蔽；function_id=6当前配置show=0，因此不进入本轮Unity迁移和战斗表现验收。",
+      "exclusionEvidence": ".local/unity-validation/battle-current-denominator-latest.json",
       "protocols": [
+        21,
+        22,
+        23,
+        38,
         161
       ],
       "entries": [
-        "Layer/Main_UI/ButtonGroup1/btn_wanfa -> WanFaEntranceUI function_id=6"
+        "Layer/Main_UI/btn_wanfa -> Main.WanFaEntranceUI function_id=6 -> WanFa.KaPaiArenaUI",
+        "KaPaiArenaUI.OnFightClick -> opponent formation -> /161 op5 -> EFTJingJiChang=44"
       ],
       "prefabs": [
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/JingjiLayer.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/JingjiLayer.prefab",
+        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset",
+        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleHpNode.asset"
       ],
       "configs": [
-        "server/config/json/function.json"
+        "server/config/json/function.json",
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/arena_dat.lua"
       ],
       "mutatesServer": true,
       "validationFlags": [
-        "-projectXArenaValidation"
+        "-projectXArenaBattleValidation"
       ],
       "screenshots": [
         "build/ui-migration/bootstrap-arena.png"
@@ -1206,7 +1237,9 @@
         "flowEvidence": "",
         "uiMapping": ""
       },
-      "document": "docs/unityclient/modules/ARENA.md"
+      "document": "docs/unityclient/modules/ARENA.md",
+      "controlMatrix": "docs/unityclient/matrices/ARENA_CONTROLS.json",
+      "g0Draft": ".local/unity-validation/arena-g0-draft-latest.json"
     },
     {
       "key": "KunLun",
@@ -1538,6 +1571,167 @@
       "screenshots": [],
       "controlMatrix": "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json",
       "document": "docs/unityclient/modules/ENHANCEMASTER.md"
+    },
+    {
+      "key": "BattleMeetMonster",
+      "displayName": "野外碰怪战斗",
+      "status": "v0-boundary-e-awaiting-user-confirmation",
+      "currentCocosReachable": false,
+      "excludedFromCurrentCocosParityDenominator": true,
+      "exclusionReason": "Current MainUI and all production Gameplay/Task entries expose no world-map movement route; WorldMapMainUI is reachable only from the MainChatUI developer command openUI.",
+      "exclusionEvidence": ".local/unity-validation/battlemeetmonster-cocos-entry-audit-20260830.json",
+      "protocols": [
+        10,
+        11,
+        21,
+        22,
+        23,
+        63,
+        184
+      ],
+      "entries": [
+        "GameScene movement -> CScene::MeetEnemy -> EFTMeetMonster"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/FightLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/zhandoujiesuanLayer.prefab"
+      ],
+      "configs": [
+        "server/src/scene_manager.cpp",
+        "server/src/fight.cpp",
+        "client/ProjectX/src/Logic/LBattleLogic.lua",
+        "client/ProjectX/src/View/Battle/BattleUI.lua"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXBattleMeetMonsterValidation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/BATTLEMEETMONSTER_CONTROLS.json",
+      "document": "docs/unityclient/modules/BATTLEMEETMONSTER.md",
+      "g0Draft": ".local/unity-validation/battlemeetmonster-g0-draft-latest.json"
+    },
+    {
+      "key": "BattleFengShenStory",
+      "displayName": "封神列传战斗表现",
+      "status": "g6-complete",
+      "protocols": [
+        21,
+        22,
+        23,
+        320
+      ],
+      "entries": [
+        "Gameplay Function_3 -> FengShenStoryMainUI -> FengShenStoryLevelUI.OnFightClick -> /320 op25",
+        "CUserGuanQia::TiaoZhanLieZhuan -> BeginFastFight -> EFTLieZhuanFight"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/FightLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/zhandoujiesuanLayer.prefab"
+      ],
+      "configs": [
+        "server/src/user_guanqia.cpp",
+        "server/src/fight.cpp",
+        "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "client/ProjectX/src/Logic/LBattleLogic.lua"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/BFS-BATTLE-START.png",
+        "build/ui-migration/BFS-BATTLE-STAND.png",
+        "build/ui-migration/BFS-BATTLE-SPEED.png",
+        "build/ui-migration/BFS-BATTLE-SKILL.png",
+        "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+        "build/ui-migration/BFS-BATTLE-MOVE.png",
+        "build/ui-migration/BFS-BATTLE-STATUS.png",
+        "build/ui-migration/BFS-BATTLE-DEATH.png",
+        "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+        "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+        "build/ui-migration/BFS-BATTLE-RETURN.png",
+        "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png"
+      ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-START.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STAND.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-SKILL.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-DAMAGE.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-MOVE.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STATUS.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-DEATH.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-STATISTICS.png",
+          ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture/BFS-BATTLE-RETURN.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SKILL.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATUS.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png",
+          ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-RETURN.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/report.json",
+          ".local/ui-fidelity/BattleFengShenStory/compare/g5/G5_VISUAL_ACCEPTANCE.md"
+        ],
+        "flowEvidence": ".local/unity-validation/battlefengshenstory-g5-visual-latest.json",
+        "uiMapping": "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json"
+      },
+      "controlMatrix": "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json",
+      "document": "docs/unityclient/modules/BATTLEFENGSHENSTORY.md",
+      "g0Draft": ".local/unity-validation/battlefengshenstory-g0-draft-latest.json"
+    },
+    {
+      "key": "BattleScript",
+      "displayName": "脚本触发战斗",
+      "status": "user-excluded",
+      "migrationExcluded": true,
+      "currentCocosReachable": false,
+      "excludedFromCurrentCocosParityDenominator": true,
+      "exclusionReason": "2026-08-31用户明确排除师门、心魔、藏宝图三条旧脚本战斗；当前任务和道具配置也无法形成正式产品入口。",
+      "exclusionEvidence": ".local/unity-validation/battle-current-denominator-latest.json",
+      "protocols": [
+        8,
+        12,
+        13,
+        21,
+        22,
+        23,
+        244
+      ],
+      "entries": [
+        "TaskTrack -> NPC 139/140 -> ShiMenFight -> EFTScript",
+        "Bag use item 2441/2442 -> script 22441/22442 -> WabaoFight -> EFTScript",
+        "NPC 251..256 -> ShiLianXinMoFight -> EFTScript"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset",
+        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleHpNode.asset"
+      ],
+      "configs": [
+        "server/config/json/item.json",
+        "client/ProjectX/src/ConfigData/item_dat.lua",
+        "server/config/xml/fight_config.xml",
+        "client/ProjectX/src/ConfigData/fight_config_dat.lua"
+      ],
+      "mutatesServer": false,
+      "validationFlags": [
+        "-projectXBattleScriptValidation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/BATTLESCRIPT_CONTROLS.json",
+      "document": "docs/unityclient/modules/BATTLESCRIPT.md",
+      "g0Draft": ".local/unity-validation/battlescript-g0-draft-latest.json"
     }
   ]
 }

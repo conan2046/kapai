@@ -213,7 +213,7 @@
             }
           ]
         },
-        "artifactCopies": [
+      "artifactCopies": [
           {
             "source": "build/ui-migration/bootstrap-login-local.png",
             "destination": ".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png"
@@ -668,19 +668,27 @@
     {
       "module": "GameplayShops",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-GameplayShopsCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-fixture-snapshot.json",
-        "resultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
-        "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-GameplayShopsSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/GameplayShops/fixture/gameplay-shops-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/gameplay-shops-fixed-account-latest.json",
+        "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-current/gameplay-shops-g5-visual-result.json",
         "visualValidationFlags": [
           "-projectXGameplayShopsVisualValidation"
         ],
-        "visualOnlyArtifacts": true,
+        "g3ValidationFlags": [
+          "-projectXGameplayShopsValidation"
+        ],
+        "visualOnlyArtifacts": false,
         "reloginRequired": true,
         "extraFlags": [],
-        "skipPostValidationFixtureAssert": true,
+        "skipPostValidationFixtureAssert": false,
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
@@ -689,90 +697,65 @@
               "description": "固定 userId 必须唯一绑定目标 roleId"
             },
             {
-              "id": "twelve-authoritative-pages",
-              "description": "以确定性 zlib 商店二进制准备 type 2,3,4,5,6,7,8,23,25,26,27,28，登录后逐页指纹必须不变"
-            },
-            {
-              "id": "turntable-level-unlock",
-              "description": "固定角色临时提升到 99 级，覆盖转盘解锁后的 type 27/28，同时保留 G1 的 60 级锁定证据"
+              "id": "single-authoritative-page",
+              "description": "按当前 C++ direct-hex 持久化格式仅准备 Steam V0 将魂商店 type 2 六格商品"
             },
             {
               "id": "refresh-and-purchase",
-              "description": "准备将魂六格与免费刷新、转盘绑定元宝商品及空购买计数，供真实 op 2/3/4 断言；Unity 内部硬断言变更，外层 finally 精确恢复"
-            },
-            {
-              "id": "failure-state-matrix",
-              "description": "保留条件未达、售罄、余额不足与非法重复请求的真实服务端失败分支"
+              "description": "准备六格确定性未购买商品；刷新、购买及失败分支仍由真实 PRO_SHOP op 3/4 服务端响应裁决"
             },
             {
               "id": "exact-restore-surface",
-              "description": "快照 level,package,mysteryShop,shenhunShop,save_data,mission,role money,user money,bd_money 并以整体 SHA256 复核恢复和残留清零"
+              "description": "对 persistentDataPath SQLite 整库备份、恢复，并以 SHA256 复核零残留"
             }
           ]
         },
         "artifactCopies": [
           {
             "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-SOUL.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-arena.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-ARENA.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-blood.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-BLOOD.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-guild.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-GUILD.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-KUNLUN.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-turntable.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-TURNTABLE.png"
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/GAMEPLAY-SOUL.png"
           }
         ]
       },
       "g5": {
-        "cocosDirectory": ".local/ui-fidelity/GameplayShops/cocos/g5-20260729",
-        "unityDirectory": ".local/ui-fidelity/GameplayShops/unity/g5-20260729",
-        "compareDirectory": ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729",
+        "cocosDirectory": ".local/ui-fidelity/GameplayShops/cocos/g1-current",
+        "unityDirectory": ".local/ui-fidelity/GameplayShops/unity/g5-current",
+        "compareDirectory": ".local/ui-fidelity/GameplayShops/compare/g5-current",
         "width": 1334,
         "height": 750,
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua",
+          "client/ProjectX/src/View/Shop/JiangHunShop.lua",
+          "client/ProjectX/res/csd/shop/jianghunshop.csb",
+          "server/config/json/shop.json",
+          "server/config/json/shop_config.json"
+        ],
         "pairs": [
           {
-            "id": "GAMEPLAY-SOUL",
-            "cocos": "GAMEPLAY-SOUL.jpg",
-            "unity": "GAMEPLAY-SOUL.png"
+            "id": "SOUL-LIST",
+            "cocos": "GPS-S01-AUTHORITATIVE-LIST.png",
+            "unity": "SOUL-LIST.png"
           },
           {
-            "id": "GAMEPLAY-ARENA",
-            "cocos": "GAMEPLAY-ARENA.jpg",
-            "unity": "GAMEPLAY-ARENA.png"
+            "id": "SOUL-HELP",
+            "cocos": "GPS-08-HELP.png",
+            "unity": "SOUL-HELP.png"
           },
           {
-            "id": "GAMEPLAY-BLOOD",
-            "cocos": "GAMEPLAY-BLOOD.jpg",
-            "unity": "GAMEPLAY-BLOOD.png"
+            "id": "SOUL-ITEM-DETAIL",
+            "cocos": "GPS-11-DETAIL-1.png",
+            "unity": "SOUL-ITEM-DETAIL.png"
           },
           {
-            "id": "GAMEPLAY-GUILD",
-            "cocos": "GAMEPLAY-GUILD.jpg",
-            "unity": "GAMEPLAY-GUILD.png"
+            "id": "SOUL-CURRENCY-DETAIL",
+            "cocos": "GPS-10-SOUL-INFO.png",
+            "unity": "SOUL-CURRENCY-DETAIL.png"
           },
           {
-            "id": "GAMEPLAY-KUNLUN",
-            "cocos": "GAMEPLAY-KUNLUN.jpg",
-            "unity": "GAMEPLAY-KUNLUN.png"
-          },
-          {
-            "id": "GAMEPLAY-TURNTABLE",
-            "cocos": "GAMEPLAY-TURNTABLE.jpg",
-            "unity": "GAMEPLAY-TURNTABLE.png"
+            "id": "SOUL-DRAW-ROUTE",
+            "cocos": "GPS-03-DRAW-SHOP.png",
+            "unity": "SOUL-DRAW-ROUTE.png"
           }
         ]
       }
@@ -1208,24 +1191,194 @@
       "module": "World",
       "fixedAccount": {
         "userId": 7200057,
-        "roleId": 1000115,
+        "roleId": 1000003,
         "terminalUserId": 705213,
         "terminalRoleId": 1000006,
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "adapter": "tools/unity-migration/Invoke-WorldCocosFixture.ps1",
         "snapshot": ".local/ui-fidelity/World/unity/g5-20260731-cua/world-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/World/unity/g5-20260731-cua/world-fixed-unity-result.json",
         "reloginRequired": true,
+        "g3ValidationFlags": [
+          "-projectXWorldG3Validation"
+        ],
+        "g5VisualSnapshot": ".local/ui-fidelity/World/unity/g5-current-battle/world-g5-visual-fixture-snapshot.json",
+        "g5VisualSetupAction": "SetupVisual",
+        "g5VisualAssertAction": "AssertPostValidation",
+        "g5VisualValidationFlags": [
+          "-projectXWorldG3Validation"
+        ],
         "extraFlags": [
           "-projectXWorldBattleValidation",
           "-projectXWorldIsolationUserId=705213"
         ],
         "skipPostValidationFixtureAssert": false,
+        "postValidationAdapterAction": "AssertPostValidation",
+        "serverRuntimeEvidence": {
+          "source": ".local/kapai-current.out",
+          "destination": ".local/unity-validation/world-g3-server-runtime-latest.log",
+          "requiredPatterns": [
+            "\\[local\\]\\[fight-seed\\] context=GuanQia node=10023 seed=20260830",
+            "\\[local\\]\\[fight-packet\\] label=guanqia-replay len=[0-9]+ fnv1a32=[0-9]+",
+            "\\[local\\]\\[fight-packet\\] label=guanqia-result len=[0-9]+ fnv1a32=[0-9]+"
+          ],
+          "fingerprintLinePattern": "^\\[local\\]\\[(fight-seed|fight-packet)\\]"
+        },
+        "requiredHydratedRoots": [
+          "client/ProjectX/simulator/win32/res/ConfigData/hit_monster.dat",
+          "client/ProjectX/src/ConfigData/zhenfa_config_dat.lua",
+          "client/ProjectX/simulator/win32/res/res/UI/ImageNum/num_lan.png",
+          "client/ProjectX/simulator/win32/res/res/UI/ImageNum/ui_pk_num.png",
+          "client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_1.png",
+          "client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_2.png",
+          "client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_3.png",
+          "client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_4.png",
+          "client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_5.png",
+          "client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_6.png",
+          "client/ProjectX/res/fuben/map_1/map_1.jpg",
+          "client/ProjectX/res/fuben/map_1/map_2.jpg",
+          "client/ProjectX/res/fuben/map_1/map_3.jpg",
+          "client/ProjectX/res/fuben/map_1/map_4.jpg",
+          "client/ProjectX/res/fuben/map_1/map_5.jpg",
+          "client/ProjectX/res/fuben/map_1/map_6.jpg",
+          "client/ProjectX/res/fuben/map_1/map_7.jpg",
+          "client/ProjectX/res/fuben/map_1/map_8.jpg",
+          "client/ProjectX/res/fuben/map_1/map_9.jpg",
+          "client/ProjectX/res/fuben/map_1/map_10.jpg",
+          "client/ProjectX/res/fuben/map_1/map_11.jpg",
+          "client/ProjectX/res/fuben/map_1/map_12.jpg",
+          "client/ProjectX/res/fuben/map_2/map_1.jpg",
+          "client/ProjectX/res/fuben/map_2/map_2.jpg",
+          "client/ProjectX/res/fuben/map_2/map_3.jpg",
+          "client/ProjectX/res/fuben/map_2/map_4.jpg",
+          "client/ProjectX/res/fuben/map_2/map_5.jpg",
+          "client/ProjectX/res/fuben/map_2/map_6.jpg",
+          "client/ProjectX/res/fuben/map_2/map_7.jpg",
+          "client/ProjectX/res/fuben/map_2/map_8.jpg",
+          "client/ProjectX/res/fuben/map_2/map_9.jpg",
+          "client/ProjectX/res/fuben/map_2/map_10.jpg",
+          "client/ProjectX/res/fuben/map_2/map_11.jpg",
+          "client/ProjectX/res/fuben/map_2/map_12.jpg",
+          "client/ProjectX/res/fuben/map_3/map_1.jpg",
+          "client/ProjectX/res/fuben/map_3/map_2.jpg",
+          "client/ProjectX/res/fuben/map_3/map_3.jpg",
+          "client/ProjectX/res/fuben/map_3/map_4.jpg",
+          "client/ProjectX/res/fuben/map_3/map_5.jpg",
+          "client/ProjectX/res/fuben/map_3/map_6.jpg",
+          "client/ProjectX/res/fuben/map_3/map_7.jpg",
+          "client/ProjectX/res/fuben/map_3/map_8.jpg",
+          "client/ProjectX/res/fuben/map_3/map_9.jpg",
+          "client/ProjectX/res/fuben/map_3/map_10.jpg",
+          "client/ProjectX/res/fuben/map_3/map_11.jpg",
+          "client/ProjectX/res/fuben/map_3/map_12.jpg",
+          "client/ProjectX/res/fuben/map_4/map_1.jpg",
+          "client/ProjectX/res/fuben/map_4/map_2.jpg",
+          "client/ProjectX/res/fuben/map_4/map_3.jpg",
+          "client/ProjectX/res/fuben/map_4/map_4.jpg",
+          "client/ProjectX/res/fuben/map_4/map_5.jpg",
+          "client/ProjectX/res/fuben/map_4/map_6.jpg",
+          "client/ProjectX/res/fuben/map_4/map_7.jpg",
+          "client/ProjectX/res/fuben/map_4/map_8.jpg",
+          "client/ProjectX/res/fuben/map_4/map_9.jpg",
+          "client/ProjectX/res/fuben/map_4/map_10.jpg",
+          "client/ProjectX/res/fuben/map_4/map_11.jpg",
+          "client/ProjectX/res/fuben/map_4/map_12.jpg",
+          "client/ProjectX/res/fuben/map_5/map_1.jpg",
+          "client/ProjectX/res/fuben/map_5/map_2.jpg",
+          "client/ProjectX/res/fuben/map_5/map_3.jpg",
+          "client/ProjectX/res/fuben/map_5/map_4.jpg",
+          "client/ProjectX/res/fuben/map_5/map_5.jpg",
+          "client/ProjectX/res/fuben/map_5/map_6.jpg",
+          "client/ProjectX/res/fuben/map_5/map_7.jpg",
+          "client/ProjectX/res/fuben/map_5/map_8.jpg",
+          "client/ProjectX/res/fuben/map_5/map_9.jpg",
+          "client/ProjectX/res/fuben/map_5/map_10.jpg",
+          "client/ProjectX/res/fuben/map_5/map_11.jpg",
+          "client/ProjectX/res/fuben/map_5/map_12.jpg",
+          "client/ProjectX/res/fuben/map_6/map_1.jpg",
+          "client/ProjectX/res/fuben/map_6/map_2.jpg",
+          "client/ProjectX/res/fuben/map_6/map_3.jpg",
+          "client/ProjectX/res/fuben/map_6/map_4.jpg",
+          "client/ProjectX/res/fuben/map_6/map_5.jpg",
+          "client/ProjectX/res/fuben/map_6/map_6.jpg",
+          "client/ProjectX/res/fuben/map_6/map_7.jpg",
+          "client/ProjectX/res/fuben/map_6/map_8.jpg",
+          "client/ProjectX/res/fuben/map_6/map_9.jpg",
+          "client/ProjectX/res/fuben/map_6/map_10.jpg",
+          "client/ProjectX/res/fuben/map_6/map_11.jpg",
+          "client/ProjectX/res/fuben/map_6/map_12.jpg",
+          "client/ProjectX/res/res/UI/Icon/ui_map_icon/fuben_map1.png",
+          "client/ProjectX/res/res/UI/Icon/ui_map_icon/fuben_map2.png",
+          "client/ProjectX/res/res/UI/Icon/ui_map_icon/fuben_map3.png",
+          "client/ProjectX/res/res/UI/ui_zhandou/bg0.jpg",
+          "client/ProjectX/res/Skill/UI/skill_101.png",
+          "client/ProjectX/res/Skill/UI/skill_111.png",
+          "client/ProjectX/res/Skill/UI/skill_121.png",
+          "client/ProjectX/res/Skill/UI/skill_122.png",
+          "client/ProjectX/res/Skill/UI/skill_131.png",
+          "client/ProjectX/res/Skill/UI/skill_141.png",
+          "client/ProjectX/res/Skill/UI/skill_151.png",
+          "client/ProjectX/res/Skill/UI/skill_161.png",
+          "client/ProjectX/res/Skill/UI/skill_171.png",
+          "client/ProjectX/res/Skill/UI/skill_181.png",
+          "client/ProjectX/res/Skill/UI/skill_191.png",
+          "client/ProjectX/res/Skill/UI/skill_201.png",
+          "client/ProjectX/res/Skill/UI/skill_211.png",
+          "client/ProjectX/res/Skill/UI/skill_221.png",
+          "client/ProjectX/res/Skill/UI/skill_231.png",
+          "client/ProjectX/res/Skill/UI/skill_241.png",
+          "client/ProjectX/res/Skill/UI/skill_251.png",
+          "client/ProjectX/res/Skill/UI/skill_261.png",
+          "client/ProjectX/res/Skill/UI/skill_271.png",
+          "client/ProjectX/res/Skill/UI/skill_281.png",
+          "client/ProjectX/res/Skill/UI/skill_291.png",
+          "client/ProjectX/res/Skill/UI/skill_301.png",
+          "client/ProjectX/res/Skill/UI/skill_311.png",
+          "client/ProjectX/res/Skill/UI/skill_321.png",
+          "client/ProjectX/res/Skill/UI/skill_331.png",
+          "client/ProjectX/res/Skill/UI/skill_341.png",
+          "client/ProjectX/res/Skill/UI/skill_351.png",
+          "client/ProjectX/res/Skill/UI/skill_371.png",
+          "client/ProjectX/res/Skill/UI/skill_381.png",
+          "client/ProjectX/res/Skill/UI/skill_391.png",
+          "client/ProjectX/res/Skill/UI/skill_401.png",
+          "client/ProjectX/res/Skill/UI/skill_411.png",
+          "client/ProjectX/res/Skill/UI/skill_421.png",
+          "client/ProjectX/res/Skill/UI/skill_431.png",
+          "client/ProjectX/res/Skill/UI/skill_441.png",
+          "client/ProjectX/res/Skill/UI/skill_451.png",
+          "client/ProjectX/res/Skill/UI/skill_461.png",
+          "client/ProjectX/res/Skill/UI/skill_471.png",
+          "client/ProjectX/res/Skill/UI/skill_481.png",
+          "client/ProjectX/res/Skill/UI/skill_491.png",
+          "client/ProjectX/res/Skill/UI/skill_501.png",
+          "client/ProjectX/res/Skill/UI/skill_511.png",
+          "client/ProjectX/res/Skill/UI/skill_521.png",
+          "client/ProjectX/res/Skill/UI/skill_531.png",
+          "client/ProjectX/res/Skill/UI/skill_541.png",
+          "client/ProjectX/res/Skill/UI/skill_551.png",
+          "client/ProjectX/res/Skill/UI/skill_561.png",
+          "client/ProjectX/res/Skill/UI/skill_571.png",
+          "client/ProjectX/res/Skill/UI/skill_581.png",
+          "client/ProjectX/res/Skill/UI/skill_591.png",
+          "client/ProjectX/res/Skill/UI/skill_601.png",
+          "client/ProjectX/res/Skill/UI/skill_611.png",
+          "client/ProjectX/res/Skill/UI/skill_621.png",
+          "client/ProjectX/res/Skill/UI/skill_631.png",
+          "client/ProjectX/res/Skill/UI/skill_641.png",
+          "client/ProjectX/res/Skill/UI/skill_651.png",
+          "client/ProjectX/res/Skill/UI/skill_661.png",
+          "client/ProjectX/res/Skill/UI/skill_671.png",
+          "client/ProjectX/res/Skill/UI/skill_681.png"
+        ],
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
             {
               "id": "account-role-link",
-              "description": "固定 userId 唯一绑定 1000115，终态隔离账号为 705213/1000006"
+              "description": "persistentDataPath SQLite 固定 userId=7200057 唯一绑定 1000003，夹具临时创建隔离账号 705213/1000006"
             },
             {
               "id": "world-authoritative-state",
@@ -1243,67 +1396,122 @@
         },
         "artifactCopies": [
           {
-            "source": "build/ui-migration/bootstrap-world-map.png",
-            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-MAP.png"
+            "source": "build/ui-migration/world-battle-entry.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-ENTRY.png"
           },
           {
-            "source": "build/ui-migration/bootstrap-world-detail.png",
-            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-STAGE-DETAIL.png"
+            "source": "build/ui-migration/world-battle-normal-attack.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-NORMAL-ATTACK.png"
           },
           {
-            "source": "build/ui-migration/bootstrap-world-sweep.png",
-            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-SWEEP.png"
+            "source": "build/ui-migration/world-battle-skill.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-SKILL.png"
           },
           {
-            "source": "build/ui-migration/bootstrap-world-reset.png",
-            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-RESET.png"
+            "source": "build/ui-migration/world-battle-hurt-damage.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-HURT-DAMAGE.png"
           },
           {
-            "source": "build/ui-migration/bootstrap-world-result.png",
-            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-BATTLE.png"
+            "source": "build/ui-migration/world-battle-death.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-DEATH.png"
           },
           {
-            "source": "build/ui-migration/bootstrap-world-chest.png",
-            "destination": ".local/ui-fidelity/World/unity/g5-20260731-cua/WORLD-CHEST.png"
+            "source": "build/ui-migration/world-battle-round-rhythm.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-ROUND-RHYTHM.png"
+          },
+          {
+            "source": "build/ui-migration/world-battle-settlement.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-SETTLEMENT.png"
+          },
+          {
+            "source": "build/ui-migration/world-battle-replay.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-REPLAY.png"
+          },
+          {
+            "source": "build/ui-migration/world-battle-return.png",
+            "destination": ".local/ui-fidelity/World/unity/g3-current-battle/WORLD-BATTLE-RETURN.png"
           }
         ]
       },
       "g5": {
-        "cocosDirectory": ".local/ui-fidelity/World/cocos/g5-20260731-cua",
-        "unityDirectory": ".local/ui-fidelity/World/unity/g5-20260731-cua",
-        "compareDirectory": ".local/ui-fidelity/World/compare/g5-20260731-cua",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/Common/Utils.lua",
+          "client/ProjectX/src/View/FuBenMap/NormalFuBenUI.lua",
+          "client/ProjectX/src/View/FuBenMap/StageInfoUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/Logic/LBattleLogic.lua",
+          "client/ProjectX/src/Data/LBattleData.lua",
+          "client/ProjectX/src/View/Battle/BattleUI.lua",
+          "client/ProjectX/src/View/Battle/BattleUnitNode.lua",
+          "client/ProjectX/src/View/Battle/BattleSkillNode.lua",
+          "client/ProjectX/src/View/Battle/BattleHpTextPool.lua",
+          "client/ProjectX/src/View/FuBenMap/FirstFightResultUI.lua",
+          "client/ProjectX/simulator/win32/res/csd/common/FightLayer.csb",
+          "client/ProjectX/simulator/win32/res/csd/fuben/zhandoujiesuanLayer.csb",
+          "client/ProjectX/simulator/win32/res/res/UI/ui_zhandou/bg_fuben.jpg",
+          "client/ProjectX/simulator/win32/res/Monster/btm1_zd.ani",
+          "client/ProjectX/simulator/win32/res/Monster/btm1_gj.ani",
+          "client/ProjectX/simulator/win32/res/Monster/btm1_sf1.ani",
+          "client/ProjectX/simulator/win32/res/Monster/btm1_bj.ani",
+          "client/ProjectX/simulator/win32/res/Monster/btm1_sw.ani",
+          "server/src/protocol.h",
+          "server/src/pack_deal.cpp",
+          "server/src/user_guanqia.cpp",
+          "server/src/fight.cpp",
+        "tools/unity-migration/Invoke-WorldCocosFixture.ps1"
+        ],
+        "cocosDirectory": ".local/ui-fidelity/World/cocos/g1-current-battle",
+        "unityDirectory": ".local/ui-fidelity/World/unity/g3-current-battle",
+        "compareDirectory": ".local/ui-fidelity/World/compare/g5-current-battle",
         "width": 1334,
         "height": 750,
         "pairs": [
           {
-            "id": "WORLD-MAP",
-            "cocos": "WORLD-MAP.png",
-            "unity": "WORLD-MAP.png"
+            "id": "WORLD-BATTLE-ENTRY",
+            "cocos": "WORLD-BATTLE-ENTRY.png",
+            "unity": "WORLD-BATTLE-ENTRY.png"
           },
           {
-            "id": "WORLD-STAGE-DETAIL",
-            "cocos": "WORLD-STAGE-DETAIL.png",
-            "unity": "WORLD-STAGE-DETAIL.png"
+            "id": "WORLD-BATTLE-NORMAL-ATTACK",
+            "cocos": "WORLD-BATTLE-NORMAL-ATTACK.png",
+            "unity": "WORLD-BATTLE-NORMAL-ATTACK.png"
           },
           {
-            "id": "WORLD-SWEEP",
-            "cocos": "WORLD-SWEEP.png",
-            "unity": "WORLD-SWEEP.png"
+            "id": "WORLD-BATTLE-SKILL",
+            "cocos": "WORLD-BATTLE-SKILL.png",
+            "unity": "WORLD-BATTLE-SKILL.png"
           },
           {
-            "id": "WORLD-RESET",
-            "cocos": "WORLD-RESET.png",
-            "unity": "WORLD-RESET.png"
+            "id": "WORLD-BATTLE-HURT-DAMAGE",
+            "cocos": "WORLD-BATTLE-HURT-DAMAGE.png",
+            "unity": "WORLD-BATTLE-HURT-DAMAGE.png"
           },
           {
-            "id": "WORLD-BATTLE",
-            "cocos": "WORLD-BATTLE.png",
-            "unity": "WORLD-BATTLE.png"
+            "id": "WORLD-BATTLE-DEATH",
+            "cocos": "WORLD-BATTLE-DEATH.png",
+            "unity": "WORLD-BATTLE-DEATH.png"
           },
           {
-            "id": "WORLD-CHEST",
-            "cocos": "WORLD-CHEST.png",
-            "unity": "WORLD-CHEST.png"
+            "id": "WORLD-BATTLE-ROUND-RHYTHM",
+            "cocos": "WORLD-BATTLE-ROUND-RHYTHM.png",
+            "unity": "WORLD-BATTLE-ROUND-RHYTHM.png"
+          },
+          {
+            "id": "WORLD-BATTLE-SETTLEMENT",
+            "cocos": "WORLD-BATTLE-SETTLEMENT.png",
+            "unity": "WORLD-BATTLE-SETTLEMENT.png"
+          },
+          {
+            "id": "WORLD-BATTLE-REPLAY",
+            "cocos": "WORLD-BATTLE-REPLAY.png",
+            "unity": "WORLD-BATTLE-REPLAY.png"
+          },
+          {
+            "id": "WORLD-BATTLE-RETURN",
+            "cocos": "WORLD-BATTLE-RETURN.png",
+            "unity": "WORLD-BATTLE-RETURN.png"
           }
         ]
       }
@@ -1311,12 +1519,15 @@
     {
       "module": "FengShenStory",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
+        "roleId": 1000003,
         "terminalUserId": 7200057,
-        "terminalRoleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/FengShenStory/unity/g5-20260804/fengshenstory-fixed-fixture-snapshot.json",
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/FengShenStory/fixture/fengshenstory-sqlite-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/FengShenStory/unity/g6/fengshenstory-fixed-unity-result.json",
         "reloginRequired": true,
         "extraFlags": [
@@ -1327,8 +1538,12 @@
           "requiresLogin": true,
           "requirements": [
             {
+              "id": "fengshenstory-sqlite-only",
+              "description": "用户Unity测试只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL不得作为夹具后端。"
+            },
+            {
               "id": "account-role-link",
-              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115"
+              "description": "固定 userId=7200057 必须唯一绑定SQLite roleId=1000003"
             },
             {
               "id": "chapter-stage-matrix",
@@ -1344,11 +1559,11 @@
             },
             {
               "id": "alternate-account-isolation",
-              "description": "同一可逆夹具将独立 userId=705213/roleId=1000006 固定为第1章第1关并单独保存/恢复 SHA；切号后不得继承主账号章节选择、弹窗或 pending"
+              "description": "同一可逆SQLite夹具临时创建独立 userId=705213/roleId=1000006 并固定为第1章第1关；切号后不得继承主账号章节选择、弹窗或 pending"
             },
             {
               "id": "exact-restore-surface",
-              "description": "快照 guan_qia、体力、背包、存档、任务、角色/账号货币及战斗关联数据，以整体 SHA256 和 residual=0 精确恢复"
+              "description": "整库快照 persistentDataPath projectx.db，恢复后整体 SHA256 相等、隔离账号删除且备份 residual=0"
             }
           ]
         },
@@ -2029,27 +2244,30 @@
     {
       "module": "HeroEquip",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-HeroEquipFixture.ps1",
-        "snapshot": ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-fixed-fixture-snapshot.json",
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-HeroEquipSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-sqlite-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/HeroEquip/unity/g6-current/hero-equip-fixed-unity-result.json",
         "reloginRequired": true,
+        "g3ValidationFlags": [
+          "-projectXHeroEquipValidation"
+        ],
+        "g5VisualValidationFlags": [
+          "-projectXHeroEquipG5VisualValidation"
+        ],
+        "g5VisualSetupAction": "SetupG5Visual",
+        "g5VisualAssertAction": "AssertG5Visual",
+        "g5VisualSnapshot": ".local/ui-fidelity/HeroEquip/unity/g5-current/hero-equip-g5-visual-fixture-snapshot.json",
         "mutationReloginOracle": {
           "captureAction": "CaptureMutationHash",
           "assertAction": "AssertMutationReloginHash",
-          "semanticAssertionId": "bag-currency-mission-mysql-relogin-restored"
-        },
-        "sqlitePersistenceOracle": {
-          "semanticAssertionId": "equipment-sqlite-runtime-restart-restored",
-          "serverExecutable": "build/server-win/Debug/kapai.exe",
-          "serverExecutableSha256": "27C97AD5C81E3BE99C64163F0C3A5C01963AE9307259695A03856296BE19FA8A",
-          "database": ".local/unity-validation/heroequip-sqlite-current-20260822-v3.db",
-          "databaseSha256": "02540A8390CA2443DC88521E7AC11076D55C2C54622633E757501B57487D1261",
-          "runtimeReport": ".local/unity-validation/heroequip-sqlite-runtime-current-v3.json",
-          "runtimeReportSha256": "1AA527C8A3DA0B9A3DA0C0BC15B959E36831BD43CA38AA3A81BF92468B895FA5",
-          "restartReport": ".local/unity-validation/heroequip-sqlite-restart-current-v3.json",
-          "restartReportSha256": "DF843A6DFC4F5D99C5C6EB4C4A8FC59062159BA010E86EB3A42FACCE2CC6F8C4"
+          "semanticAssertionId": "equipment-sqlite-mutation-relogin-restored"
         },
         "extraFlags": [],
         "skipPostValidationFixtureAssert": true,
@@ -2116,11 +2334,11 @@
           "requirements": [
             {
               "id": "hero-equip-fixed-account",
-              "description": "固定 userId=7200057 唯一绑定 roleId=1000115 且可读取 /24、/48、/319、/70、/18。"
+              "description": "用户Unity测试只使用projectx.db；固定 userId=7200057 唯一绑定 roleId=1000003 且可读取 /24、/48、/319、/70、/18。"
             },
             {
               "id": "hero-equip-reversible-role-row",
-              "description": "完整备份并恢复 role_info 与所属 user_info 分片；显式断言pet_equip、pet、mission、金币/材料、zhanDouLi及SQLite镜像，重登哈希一致。"
+              "description": "完整备份并恢复 persistentDataPath projectx.db；显式断言pet_equip、pet、金币/材料、zhanDouLi稳定字段及重登哈希一致。"
             },
             {
               "id": "hero-equip-cross-position-replacement",
@@ -2136,7 +2354,7 @@
       "g5": {
         "width": 1334,
         "height": 750,
-        "cocosDirectory": ".local/ui-fidelity/HeroEquip/cocos",
+        "cocosDirectory": ".local/ui-fidelity/HeroEquip/cocos/g1-current-20260828",
         "unityDirectory": ".local/ui-fidelity/HeroEquip/unity/g5-current",
         "compareDirectory": ".local/ui-fidelity/HeroEquip/compare/g5-current",
         "cocosBaselineInputs": [
@@ -2185,11 +2403,6 @@
             "unity": "g1-equipment-bag-empty.png"
           },
           {
-            "id": "HERO-EQUIP-EQUIPMENT-PIECES",
-            "cocos": "g1-equipment-pieces.png",
-            "unity": "g1-equipment-pieces.png"
-          },
-          {
             "id": "HERO-EQUIP-EQUIPMENT-PIECES-EMPTY",
             "cocos": "g1-equipment-pieces-empty.png",
             "unity": "g1-equipment-pieces-empty.png"
@@ -2210,11 +2423,6 @@
             "unity": "g1-refine-before.png"
           },
           {
-            "id": "HERO-EQUIP-AWAKEN-BEFORE",
-            "cocos": "g1-awaken-before.png",
-            "unity": "g1-awaken-before.png"
-          },
-          {
             "id": "HERO-EQUIP-AWAKEN-LOCKED",
             "cocos": "g1-awaken-locked.png",
             "unity": "g1-awaken-locked.png"
@@ -2228,11 +2436,30 @@
             "id": "HERO-EQUIP-SOURCE-ACTIONABLE",
             "cocos": "g1-source-actionable.png",
             "unity": "g1-source-actionable.png"
+          }
+        ],
+        "supplementalReferencePairs": [
+          {
+            "id": "HERO-EQUIP-EQUIPMENT-PIECES",
+            "cocosPath": ".local/ui-fidelity/HeroEquip/cocos/g1-equipment-pieces.png",
+            "unity": "g1-equipment-pieces.png",
+            "referenceKind": "archived-current-unreachable",
+            "currentUnreachableReason": "The frozen Cocos identity currently has zero equipment fragments; project policy forbids MySQL fixture mutation.",
+            "evidence": [
+              ".local/ui-fidelity/HeroEquip/cocos/g1-current-20260828/g1-equipment-pieces-empty.png",
+              ".local/unity-validation/heroequip-operation-ledger.json"
+            ]
           },
           {
-            "id": "HERO-EQUIP-HIDE-WORN",
-            "cocos": "g1-equipment-hide-worn.png",
-            "unity": "g1-equipment-hide-worn.png"
+            "id": "HERO-EQUIP-AWAKEN-BEFORE",
+            "cocosPath": ".local/ui-fidelity/HeroEquip/cocos/g1-awaken-before.png",
+            "unity": "g1-awaken-before.png",
+            "referenceKind": "archived-current-unreachable",
+            "currentUnreachableReason": "The frozen Cocos identity currently has no orange equipment; project policy forbids MySQL fixture mutation.",
+            "evidence": [
+              ".local/ui-fidelity/HeroEquip/cocos/g1-current-20260828/g1-awaken-locked.png",
+              ".local/unity-validation/heroequip-operation-ledger.json"
+            ]
           }
         ]
       }
@@ -2630,20 +2857,76 @@
           "server/config/json/fabao.json"
         ],
         "pairs": [
-          {"id":"EM-MASTER-STRENGTH","cocos":"EM-MASTER-STRENGTH.png","unity":"EM-MASTER-STRENGTH.png"},
-          {"id":"EM-MASTER-REFINE","cocos":"EM-MASTER-REFINE.png","unity":"EM-MASTER-REFINE.png"},
-          {"id":"EM-MASTER-AWAKEN","cocos":"EM-MASTER-AWAKEN.png","unity":"EM-MASTER-AWAKEN.png"},
-          {"id":"EM-MASTER-SHENZHU","cocos":"EM-MASTER-SHENZHU.png","unity":"EM-MASTER-SHENZHU.png"},
-          {"id":"EM-MASTER-FABAO-STRENGTH","cocos":"EM-MASTER-FABAO-STRENGTH.png","unity":"EM-MASTER-FABAO-STRENGTH.png"},
-          {"id":"EM-MASTER-FABAO-REFINE","cocos":"EM-MASTER-FABAO-REFINE.png","unity":"EM-MASTER-FABAO-REFINE.png"},
-          {"id":"EM-EQUIP-STRENGTH","cocos":"EM-EQUIP-STRENGTH.png","unity":"EM-EQUIP-STRENGTH.png"},
-          {"id":"EM-EQUIP-REFINE","cocos":"EM-EQUIP-REFINE.png","unity":"EM-EQUIP-REFINE.png"},
-          {"id":"EM-EQUIP-AUTO-REFINE","cocos":"EM-EQUIP-AUTO-REFINE.png","unity":"EM-EQUIP-AUTO-REFINE.png"},
-          {"id":"EM-EQUIP-AWAKEN-LOCKED","cocos":"EM-EQUIP-AWAKEN-LOCKED.png","unity":"EM-EQUIP-AWAKEN-LOCKED.png"},
-          {"id":"EM-EQUIP-SHENZHU-LOCKED","cocos":"EM-EQUIP-SHENZHU-LOCKED.png","unity":"EM-EQUIP-SHENZHU-LOCKED.png"},
-          {"id":"EM-FABAO-STRENGTH","cocos":"EM-FABAO-STRENGTH.png","unity":"EM-FABAO-STRENGTH.png"},
-          {"id":"EM-FABAO-REFINE","cocos":"EM-FABAO-REFINE.png","unity":"EM-FABAO-REFINE.png"},
-          {"id":"EM-FABAO-MATERIAL-CHOOSER","cocos":"EM-FABAO-MATERIAL-CHOOSER.png","unity":"EM-FABAO-MATERIAL-CHOOSER.png"}
+          {
+            "id": "EM-MASTER-STRENGTH",
+            "cocos": "EM-MASTER-STRENGTH.png",
+            "unity": "EM-MASTER-STRENGTH.png"
+          },
+          {
+            "id": "EM-MASTER-REFINE",
+            "cocos": "EM-MASTER-REFINE.png",
+            "unity": "EM-MASTER-REFINE.png"
+          },
+          {
+            "id": "EM-MASTER-AWAKEN",
+            "cocos": "EM-MASTER-AWAKEN.png",
+            "unity": "EM-MASTER-AWAKEN.png"
+          },
+          {
+            "id": "EM-MASTER-SHENZHU",
+            "cocos": "EM-MASTER-SHENZHU.png",
+            "unity": "EM-MASTER-SHENZHU.png"
+          },
+          {
+            "id": "EM-MASTER-FABAO-STRENGTH",
+            "cocos": "EM-MASTER-FABAO-STRENGTH.png",
+            "unity": "EM-MASTER-FABAO-STRENGTH.png"
+          },
+          {
+            "id": "EM-MASTER-FABAO-REFINE",
+            "cocos": "EM-MASTER-FABAO-REFINE.png",
+            "unity": "EM-MASTER-FABAO-REFINE.png"
+          },
+          {
+            "id": "EM-EQUIP-STRENGTH",
+            "cocos": "EM-EQUIP-STRENGTH.png",
+            "unity": "EM-EQUIP-STRENGTH.png"
+          },
+          {
+            "id": "EM-EQUIP-REFINE",
+            "cocos": "EM-EQUIP-REFINE.png",
+            "unity": "EM-EQUIP-REFINE.png"
+          },
+          {
+            "id": "EM-EQUIP-AUTO-REFINE",
+            "cocos": "EM-EQUIP-AUTO-REFINE.png",
+            "unity": "EM-EQUIP-AUTO-REFINE.png"
+          },
+          {
+            "id": "EM-EQUIP-AWAKEN-LOCKED",
+            "cocos": "EM-EQUIP-AWAKEN-LOCKED.png",
+            "unity": "EM-EQUIP-AWAKEN-LOCKED.png"
+          },
+          {
+            "id": "EM-EQUIP-SHENZHU-LOCKED",
+            "cocos": "EM-EQUIP-SHENZHU-LOCKED.png",
+            "unity": "EM-EQUIP-SHENZHU-LOCKED.png"
+          },
+          {
+            "id": "EM-FABAO-STRENGTH",
+            "cocos": "EM-FABAO-STRENGTH.png",
+            "unity": "EM-FABAO-STRENGTH.png"
+          },
+          {
+            "id": "EM-FABAO-REFINE",
+            "cocos": "EM-FABAO-REFINE.png",
+            "unity": "EM-FABAO-REFINE.png"
+          },
+          {
+            "id": "EM-FABAO-MATERIAL-CHOOSER",
+            "cocos": "EM-FABAO-MATERIAL-CHOOSER.png",
+            "unity": "EM-FABAO-MATERIAL-CHOOSER.png"
+          }
         ]
       },
       "fixedAccount": {
@@ -2679,14 +2962,315 @@
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
-            {"id":"enhance-master-sqlite-only","description":"用户Play只允许修改Application.persistentDataPath/LocalServer/projectx.db，禁止用MySQL替代Unity夹具。"},
-            {"id":"enhance-master-two-deployed","description":"至少两名属性不同的神将已上阵，切换神将时装备、法宝与六类大师状态同步。"},
-            {"id":"enhance-master-two-equipment-sets","description":"两个阵位各有四件装备；同时准备绿色品质边界、橙色觉醒成功和红色神铸成功目标。"},
-            {"id":"enhance-master-equip-resources","description":"准备金币、610..613精炼材料、觉醒碎片/觉醒石854、神铸碎片，覆盖成功、材料不足和满级。"},
-            {"id":"enhance-master-fabao-resources","description":"两个阵位均有法宝槽目标，并准备可消耗低品质法宝、615..617经验书、法宝精华614和金币。"},
-            {"id":"enhance-master-authoritative-pushes","description":"/8、/15、/18、/70、/319 op1/4/12..17/20..27均由真实本地服务端处理并收敛。"},
-            {"id":"enhance-master-exact-restore","description":"整库快照后setup/assert/run/relogin/finally restore/cleanup，数据库SHA一致、integrity_check=ok、残留0。"}
+            {
+              "id": "enhance-master-sqlite-only",
+              "description": "用户Play只允许修改Application.persistentDataPath/LocalServer/projectx.db，禁止用MySQL替代Unity夹具。"
+            },
+            {
+              "id": "enhance-master-two-deployed",
+              "description": "至少两名属性不同的神将已上阵，切换神将时装备、法宝与六类大师状态同步。"
+            },
+            {
+              "id": "enhance-master-two-equipment-sets",
+              "description": "两个阵位各有四件装备；同时准备绿色品质边界、橙色觉醒成功和红色神铸成功目标。"
+            },
+            {
+              "id": "enhance-master-equip-resources",
+              "description": "准备金币、610..613精炼材料、觉醒碎片/觉醒石854、神铸碎片，覆盖成功、材料不足和满级。"
+            },
+            {
+              "id": "enhance-master-fabao-resources",
+              "description": "两个阵位均有法宝槽目标，并准备可消耗低品质法宝、615..617经验书、法宝精华614和金币。"
+            },
+            {
+              "id": "enhance-master-authoritative-pushes",
+              "description": "/8、/15、/18、/70、/319 op1/4/12..17/20..27均由真实本地服务端处理并收敛。"
+            },
+            {
+              "id": "enhance-master-exact-restore",
+              "description": "整库快照后setup/assert/run/relogin/finally restore/cleanup，数据库SHA一致、integrity_check=ok、残留0。"
+            }
           ]
+        },
+        "artifactCopies": []
+      }
+    },
+    {
+      "module": "BattleMeetMonster",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/BattleMeetMonster/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/BattleMeetMonster/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/BattleMeetMonster/compare/g5",
+        "cocosBaselineInputs": [],
+        "pairs": []
+      },
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-BattleMeetMonsterFixture.ps1",
+        "snapshot": ".local/ui-fidelity/BattleMeetMonster/fixture/battle-meet-monster-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/BattleMeetMonster/unity/g6/battle-meet-monster-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXBattleMeetMonsterValidation"
+        ],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "battle-meet-monster-sqlite-only",
+              "description": "夹具只允许修改Application.persistentDataPath/LocalServer/projectx.db，不得使用MySQL作为用户验收夹具。"
+            },
+            {
+              "id": "battle-meet-monster-current-source-scene",
+              "description": "Setup必须从当前server/sql/_all_sql.sql注入黄河滩scene=2和monster_distribution 13..16，并将固定角色Data32[3]临时切至scene=2。"
+            },
+            {
+              "id": "battle-meet-monster-exact-restore",
+              "description": "完整执行Setup/Assert、Restore、重登稳定哈希、Cleanup；整库SHA一致、integrity_check=ok、夹具残留0。"
+            }
+          ]
+        },
+        "artifactCopies": []
+      }
+    },
+    {
+      "module": "BattleFengShenStory",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/BattleFengShenStory/cocos/g1-20260901-recapture",
+        "unityDirectory": ".local/ui-fidelity/BattleFengShenStory/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/BattleFengShenStory/compare/g5",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+          "client/ProjectX/src/Logic/LBattleLogic.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/src/Data/PetkaPaiManager.lua",
+          "client/ProjectX/src/Data/LHeroDetailData.lua",
+          "client/ProjectX/src/View/Background/FirstClassBg.lua",
+          "client/ProjectX/src/View/Battle/BattleUI.lua",
+          "client/ProjectX/src/View/Battle/BattleUnitNode.lua",
+          "client/ProjectX/src/View/Battle/BattleSkillNode.lua",
+          "client/ProjectX/src/View/Battle/BattleHpTextPool.lua",
+          "client/ProjectX/src/View/FuBenMap/FirstFightResultUI.lua",
+          "client/ProjectX/res/csd/common/FightLayer.csb",
+          "client/ProjectX/res/csd/fuben/zhandoujiesuanLayer.csb",
+          "server/src/protocol.h",
+          "server/src/pack_deal.cpp",
+          "server/src/user_guanqia.cpp",
+          "server/src/user_spirit.cpp",
+          "server/src/fight.cpp",
+          "server/config/json/config.json",
+          "server/config/json/fight_config.json",
+          "server/config/json/maplist.json"
+        ],
+        "cocosBaselineStateContract": {
+          "evidencePath": ".local/unity-validation/battlefengshenstory-cocos-runtime-input-latest.json",
+          "expected": {
+            "chapterIndex": 6,
+            "nodeId": 40074,
+            "fightId": 40074,
+            "fightType": 19,
+            "showId": 12136,
+            "floor": 28,
+            "opponentName": "碧霄"
+          }
+        },
+        "pairs": [
+          {
+            "id": "BFS-BATTLE-START",
+            "cocos": "BFS-BATTLE-START.png",
+            "unity": "BFS-BATTLE-START.png"
+          },
+          {
+            "id": "BFS-BATTLE-STAND",
+            "cocos": "BFS-BATTLE-STAND.png",
+            "unity": "BFS-BATTLE-STAND.png"
+          },
+          {
+            "id": "BFS-BATTLE-SKILL",
+            "cocos": "BFS-BATTLE-SKILL.png",
+            "unity": "BFS-BATTLE-SKILL.png"
+          },
+          {
+            "id": "BFS-BATTLE-DAMAGE",
+            "cocos": "BFS-BATTLE-DAMAGE.png",
+            "unity": "BFS-BATTLE-DAMAGE.png"
+          },
+          {
+            "id": "BFS-BATTLE-MOVE",
+            "cocos": "BFS-BATTLE-MOVE.png",
+            "unity": "BFS-BATTLE-MOVE.png"
+          },
+          {
+            "id": "BFS-BATTLE-STATUS",
+            "cocos": "BFS-BATTLE-STATUS.png",
+            "unity": "BFS-BATTLE-STATUS.png"
+          },
+          {
+            "id": "BFS-BATTLE-DEATH",
+            "cocos": "BFS-BATTLE-DEATH.png",
+            "unity": "BFS-BATTLE-DEATH.png"
+          },
+          {
+            "id": "BFS-BATTLE-SETTLEMENT",
+            "cocos": "BFS-BATTLE-SETTLEMENT.png",
+            "unity": "BFS-BATTLE-SETTLEMENT.png"
+          },
+          {
+            "id": "BFS-BATTLE-STATISTICS",
+            "cocos": "BFS-BATTLE-STATISTICS.png",
+            "unity": "BFS-BATTLE-STATISTICS.png"
+          },
+          {
+            "id": "BFS-BATTLE-RETURN",
+            "cocos": "BFS-BATTLE-RETURN.png",
+            "unity": "BFS-BATTLE-RETURN.png"
+          }
+        ]
+      },
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/BattleFengShenStory/unity/g6/battle-feng-shen-story-fixed-unity-result.json",
+        "reloginRequired": true,
+        "g3ValidationFlags": [
+          "-projectXBattleFengShenStoryValidation"
+        ],
+      "extraFlags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "postValidationAdapterAction": "AssertMutated",
+      "g5VisualSnapshot": ".local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-g5-visual-fixture-snapshot.json",
+      "g5VisualSetupAction": "Setup",
+      "g5VisualAssertAction": "AssertMutated",
+      "g5VisualValidationFlags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "skipPostValidationFixtureAssert": false,
+        "copyArtifactsInG3": true,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "battle-feng-shen-story-sqlite-only",
+              "description": "用户Unity测试只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL不得作为夹具后端。"
+            },
+            {
+              "id": "battle-feng-shen-story-current-stage",
+              "description": "固定账号必须进入当前封神列传可挑战关卡，并由真实/320 op25产生fightType=19的/38战报。"
+            },
+            {
+              "id": "battle-feng-shen-story-exact-restore",
+              "description": "完整执行Setup/Assert、Restore、重登稳定哈希、Cleanup；整库SHA一致、integrity_check=ok、夹具残留0。"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/BFS-BATTLE-START.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png"
+          },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-STAND.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-SPEED.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SPEED.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-SKILL.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SKILL.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-MOVE.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-STATUS.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATUS.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-DEATH.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png"
+        },
+        {
+          "source": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png"
+        },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-RETURN.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-RETURN.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SKIP-RETURN.png"
+          }
+        ]
+      }
+    },
+    {
+      "module": "BattleScript",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/BattleScript/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/BattleScript/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/BattleScript/compare/g5",
+        "cocosBaselineInputs": [],
+        "pairs": [],
+        "identity": {
+          "primaryUserId": 1,
+          "primaryRoleId": 1000001
+        }
+      }
+    },
+    {
+      "module": "Arena",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/Arena/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/Arena/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/Arena/compare/g5",
+        "cocosBaselineInputs": [],
+        "pairs": []
+      },
+      "fixedAccount": {
+        "userId": 1,
+        "roleId": 1000001,
+        "adapter": "tools/unity-migration/Invoke-ArenaSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Arena/unity/g5/arena-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Arena/unity/g6/arena-fixed-unity-result.json",
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXArenaBattleValidation"
+        ],
+        "skipPostValidationFixtureAssert": false,
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": []
         },
         "artifactCopies": []
       }

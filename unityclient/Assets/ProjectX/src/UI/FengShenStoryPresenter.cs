@@ -15,12 +15,15 @@ namespace ProjectX.UI
         public const int PageChapterCount = FengShenStoryStore.PageChapterCount;
 
         private readonly CocosUiView view;
-        private readonly CocosUiView levelView;
+        private CocosUiView levelView;
+        private readonly Func<CocosUiView> resolveLevelView;
         private readonly FengShenStoryStore store;
+        private readonly CurrencyStore currencies;
         private readonly ResourceService resources;
         private readonly GameErrorPresenter errorPresenter;
         private readonly CocosUiView itemSourceView;
         private readonly CocosUiView rewardView;
+        private readonly RewardPresenter sharedRewardPresenter;
         private readonly Action close;
         private readonly Action challenge;
         private readonly Action formation;
@@ -34,9 +37,9 @@ namespace ProjectX.UI
         private readonly List<GameObject> chapterCells = new List<GameObject>();
         private readonly Button leftButton;
         private readonly Button rightButton;
-        private readonly Button levelCloseButton;
-        private readonly Button fightButton;
-        private readonly Button formationButton;
+        private Button levelCloseButton;
+        private Button fightButton;
+        private Button formationButton;
         private readonly Button closedBoxButton;
         private readonly Button openedBoxButton;
         private readonly List<Button> rewardIconButtons = new List<Button>();
@@ -46,33 +49,42 @@ namespace ProjectX.UI
         private Button modalCloseButton;
         private Button sourceIconButton;
         private Action modalAcknowledge;
-        private readonly ImodAnimationPlayer enemyModel;
-        private readonly Image enemyFallback;
+        private ImodAnimationPlayer enemyModel;
+        private Image enemyFallback;
         private GameObject rewardRuntimeRow;
         private GameObject commonHeader;
+        private GameObject commonCurrency;
+        private int renderedLevelRewardCount;
+        private int renderedCurrentStageMarkerCount;
         private int popupStageId;
 
-        public FengShenStoryPresenter(CocosUiView view, CocosUiView levelView, FengShenStoryStore store,
-            ResourceService resources, GameErrorPresenter errorPresenter,
-            CocosUiView itemSourceView, CocosUiView rewardView,
-            GameObject commonHeaderTemplate, Action close, Action challenge, Action formation, Action<int> routeBoundary)
+        public FengShenStoryPresenter(CocosUiView view, CocosUiView levelView, Func<CocosUiView> resolveLevelView,
+            FengShenStoryStore store,
+            CurrencyStore currencies, ResourceService resources, GameErrorPresenter errorPresenter,
+            CocosUiView itemSourceView, CocosUiView rewardView, RewardPresenter sharedRewardPresenter,
+            GameObject commonHeaderTemplate, GameObject commonCurrencyTemplate,
+            Action close, Action challenge, Action formation, Action<int> routeBoundary,
+            Action staminaAdd, Action goldAdd)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.levelView = levelView ?? throw new ArgumentNullException(nameof(levelView));
+            this.resolveLevelView = resolveLevelView ?? throw new ArgumentNullException(nameof(resolveLevelView));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
+            this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.errorPresenter = errorPresenter ?? throw new ArgumentNullException(nameof(errorPresenter));
             this.itemSourceView = itemSourceView ?? throw new ArgumentNullException(nameof(itemSourceView));
             this.rewardView = rewardView ?? throw new ArgumentNullException(nameof(rewardView));
+            this.sharedRewardPresenter = sharedRewardPresenter
+                ?? throw new ArgumentNullException(nameof(sharedRewardPresenter));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.challenge = challenge ?? throw new ArgumentNullException(nameof(challenge));
             this.formation = formation ?? throw new ArgumentNullException(nameof(formation));
             this.routeBoundary = routeBoundary ?? throw new ArgumentNullException(nameof(routeBoundary));
 
             Normalize(view.GameObject.transform);
-            Normalize(levelView.GameObject.transform);
             Transform root = view.GameObject.transform;
-            InstallCommonHeader(commonHeaderTemplate);
+            InstallCommonHeader(commonHeaderTemplate, commonCurrencyTemplate, staminaAdd, goldAdd);
             SetVisible(root.Find("Panel_1"), true);
             SetVisible(root.Find("Panel_2"), true);
             remaining = RequireText(root, "Panel_1/today/num");
@@ -88,24 +100,19 @@ namespace ProjectX.UI
 
             leftButton = Bind(root, "Panel_2/Button_l", () => PageLeft());
             rightButton = Bind(root, "Panel_2/Button_r", () => PageRight());
+            NormalizeMirroredRaycastButton(leftButton);
             closedBoxButton = Bind(root, "Panel_1/Box1/Button1", () => ShowRewardPreview(false));
             openedBoxButton = Bind(root, "Panel_1/Box1/Button", () => ShowRewardPreview(true));
             BindStageButtons(root);
             InstallStageHitTargets(root);
 
-            Transform levelRoot = levelView.GameObject.transform;
-            levelCloseButton = Bind(levelRoot, "Popup/Btn_close", () => CloseLevelPopup());
-            fightButton = Bind(levelRoot, "Popup/Btn_Confirm", OnFightClicked);
-            formationButton = Bind(levelRoot, "Popup/Btn_buzhen", formation);
-            Transform enemyNode = Require(levelRoot, "Popup/Enemy/Node").transform;
-            enemyModel = CreateEnemyModel(enemyNode);
-            enemyFallback = CreateEnemyFallback(enemyNode);
-            BindRewardIcons(levelRoot);
-            levelView.SetVisible(false);
+            BindLevelView(this.levelView);
+            this.levelView.SetVisible(false);
             itemSourceView.SetVisible(false);
             rewardView.SetVisible(false);
 
             store.Changed += Render;
+            currencies.Changed += Render;
             Render();
         }
 
@@ -113,7 +120,10 @@ namespace ProjectX.UI
         public int FirstVisibleChapter => store.FirstVisibleChapter;
         public int SelectedChapter => store.SelectedChapter;
         public int RenderedChapterCount => chapterCells.Count;
-        public bool IsLevelPopupVisible => levelView.GameObject.activeSelf;
+        public int RenderedLevelRewardCount => renderedLevelRewardCount;
+        public int RenderedCurrentStageMarkerCount => renderedCurrentStageMarkerCount;
+        public bool IsCurrencyHeaderVisible => commonCurrency != null && commonCurrency.activeInHierarchy;
+        public bool IsLevelPopupVisible => levelView?.GameObject?.activeSelf == true;
         public bool IsModalVisible => errorPresenter.IsVisible || itemSourceView.GameObject.activeSelf
             || rewardView.GameObject.activeSelf || (modal != null && modal.activeSelf);
         public int PopupStageId => popupStageId;
@@ -121,21 +131,28 @@ namespace ProjectX.UI
         public void Dispose()
         {
             store.Changed -= Render;
+            currencies.Changed -= Render;
             if (modal != null) UnityEngine.Object.Destroy(modal);
             if (commonHeader != null) UnityEngine.Object.Destroy(commonHeader);
+            if (commonCurrency != null) UnityEngine.Object.Destroy(commonCurrency);
         }
 
         public bool SelectChapter(int selectedChapter) => store.SelectChapter(selectedChapter);
         public bool PageLeft() => store.PageLeft();
         public bool PageRight() => store.PageRight();
+        public Button LeftPageControl => leftButton;
+        public Button RightPageControl => rightButton;
         public bool InvokeLeft() { leftButton.onClick.Invoke(); return true; }
         public bool InvokeRight() { rightButton.onClick.Invoke(); return true; }
         public bool InvokeClose() { close(); return true; }
 
-        private void InstallCommonHeader(GameObject template)
+        private void InstallCommonHeader(GameObject template, GameObject currencyTemplate,
+            Action staminaAdd, Action goldAdd)
         {
             if (template == null)
                 throw new InvalidOperationException("FengShenStory shared FirstClassBg title template was not found.");
+            if (currencyTemplate == null)
+                throw new InvalidOperationException("FengShenStory shared FirstClassBg GoldCheck template was not found.");
             commonHeader = UnityEngine.Object.Instantiate(template, view.GameObject.transform, false);
             commonHeader.name = "RuntimeFengShenStoryFirstClassHeader";
             commonHeader.SetActive(true);
@@ -156,16 +173,36 @@ namespace ProjectX.UI
                 helpButton.onClick.RemoveAllListeners();
                 helpButton.onClick.AddListener(ShowHelp);
             }
+
+            commonCurrency = UnityEngine.Object.Instantiate(currencyTemplate, view.GameObject.transform, false);
+            commonCurrency.name = "RuntimeFengShenStoryGoldCheck";
+            commonCurrency.SetActive(true);
+            commonCurrency.transform.SetAsLastSibling();
+            Bind(commonCurrency.transform, "GoldIcon1/AddBtn", staminaAdd ?? (() => { }));
+            Bind(commonCurrency.transform, "GoldIcon3/AddBtn", goldAdd ?? (() => { }));
+            Button premiumAdd = commonCurrency.transform.Find("GoldIcon4/AddBtn")?.GetComponent<Button>();
+            if (premiumAdd != null)
+            {
+                premiumAdd.onClick.RemoveAllListeners();
+                premiumAdd.interactable = false;
+            }
         }
         public bool InvokeChapter(int chapterId)
         {
+            return InvokeVisible(GetChapterControl(chapterId));
+        }
+
+        public Button GetChapterControl(int chapterId)
+        {
             GameObject cell = chapterCells.FirstOrDefault(value => value != null && value.name == $"chapter_{chapterId}");
-            return cell != null && InvokeVisible(cell.GetComponent<Button>());
+            return cell?.GetComponent<Button>();
         }
 
         public Button GetStageControl(int level) => stageHitButtons.TryGetValue(level, out Button button)
             ? button
             : null;
+        public Button FightControl => fightButton;
+        public Button ModalCloseButton => modalCloseButton;
 
         public bool InvokeStage(int level)
         {
@@ -180,6 +217,11 @@ namespace ProjectX.UI
             if (stageId / 10 != selected || level < 1 || level > 4) return false;
             FengShenStageState state = store.GetStageState(selected, level);
             if (state == FengShenStageState.Locked) return false;
+            if (!EnsureLevelView())
+            {
+                errorPresenter.Show("提示", "关卡详情界面已失效，请重新进入封神列传。");
+                return false;
+            }
             popupStageId = stageId;
             Transform root = levelView.GameObject.transform;
             uint rawStageId = RawStageId(selected, level);
@@ -188,6 +230,7 @@ namespace ProjectX.UI
             RequireText(root, "Popup/Image_1/description").text = definition?.Description ??
                 (state == FengShenStageState.Current ? "击败敌军，继续封神列传。" : "本关已通关");
             RequireText(root, "Popup/Btn_Confirm/tili/num").text = (definition?.Hope ?? 5).ToString();
+            RenderLevelRewards(definition?.FirstRewards);
             RenderEnemy(definition);
             SetVisible(root.Find("Popup/Pass_bg"), state == FengShenStageState.Passed);
             SetVisible(root.Find("Popup/Pass"), state == FengShenStageState.Passed);
@@ -200,12 +243,12 @@ namespace ProjectX.UI
 
         public bool CloseLevelPopup()
         {
-            levelView.SetVisible(false);
+            levelView?.SetVisible(false);
             popupStageId = 0;
             return true;
         }
 
-        public bool InvokeLevelClose() { levelCloseButton.onClick.Invoke(); return true; }
+        public bool InvokeLevelClose() => InvokeVisible(levelCloseButton);
         public bool InvokeFight() => InvokeVisible(fightButton);
         public bool InvokeFormation() => InvokeVisible(formationButton);
         public bool InvokeClosedBox() => InvokeVisible(closedBoxButton);
@@ -247,10 +290,7 @@ namespace ProjectX.UI
 
         public void ShowRewardPush()
         {
-            string body = store.RewardPush.Count == 0
-                ? "奖励已由服务端发放"
-                : string.Join("\n", store.RewardPush.Select(value => $"{value.Name} ×{value.Amount}"));
-            ShowImportedReward("获得奖励", body, store.AcknowledgeRewardPush);
+            ShowImportedReward("宝箱奖励", string.Empty, store.AcknowledgeRewardPush);
         }
 
         public bool CloseModal()
@@ -259,6 +299,7 @@ namespace ProjectX.UI
             if (errorPresenter.IsVisible) errorPresenter.Hide();
             itemSourceView.SetVisible(false);
             rewardView.SetVisible(false);
+            sharedRewardPresenter.ResumeSharedViewRendering();
             if (modal != null) modal.SetActive(false);
             Action acknowledge = modalAcknowledge;
             modalAcknowledge = null;
@@ -273,6 +314,66 @@ namespace ProjectX.UI
         {
             if (errorPresenter.IsVisible) return errorPresenter.InvokeSingleConfirmation();
             return InvokeVisible(modalCloseButton);
+        }
+
+        public bool ValidateRewardPushPresentation(out string detail)
+        {
+            uint[] expectedIds = { 60014, 851 };
+            string[] expectedNames = { "神魂", "突破丹" };
+            int[] expectedPictures = { 3005, 710 };
+            int[] expectedQualities = { 4, 3 };
+            uint[] expectedAmounts = { 200, 100 };
+            Text title = rewardView.Binding.Find("Layer/Popup/Title/Title_1")?.GetComponent<Text>();
+            Text tips = rewardView.Binding.Find("Layer/Popup/tips")?.GetComponent<Text>();
+            Text confirm = rewardView.Binding.Find("Layer/Popup/btn_lingqu/Text1")?.GetComponent<Text>();
+            Image confirmGraphic = modalCloseButton?.targetGraphic as Image;
+            if (!rewardView.GameObject.activeSelf || title?.text != "宝箱奖励"
+                || !string.IsNullOrEmpty(tips?.text) || store.RewardPush.Count != 2
+                || rewardRuntimeRow == null || modalCloseButton == null
+                || !modalCloseButton.gameObject.activeInHierarchy || !modalCloseButton.interactable
+                || confirm?.text != "确定" || confirmGraphic == null || !confirmGraphic.enabled
+                || confirmGraphic.sprite == null)
+            {
+                detail = $"visible={rewardView.GameObject.activeSelf}, title='{title?.text}', tips='{tips?.text}', "
+                    + $"rewards={store.RewardPush.Count}, row={rewardRuntimeRow != null}, "
+                    + $"confirm={modalCloseButton?.gameObject.activeInHierarchy}/{modalCloseButton?.interactable}, "
+                    + $"label='{confirm?.text}', graphic={confirmGraphic?.sprite != null}";
+                return false;
+            }
+            for (int index = 0; index < store.RewardPush.Count; index++)
+            {
+                FengShenRewardRecord reward = store.RewardPush[index];
+                uint displayId = reward.Id > 0 ? reward.Id : reward.Type;
+                Transform cell = rewardRuntimeRow.transform.Find($"itemlayer_{index + 1}");
+                Text name = cell?.Find("Name")?.GetComponent<Text>();
+                Transform runtimeCell = cell?.Find("item/RuntimeFengShenItemCell");
+                Image icon = runtimeCell?.Find("Icon")?.GetComponent<Image>();
+                Text amount = runtimeCell?.Find("Amount")?.GetComponent<Text>();
+                if (displayId != expectedIds[index] || reward.Name != expectedNames[index]
+                    || reward.Picture != expectedPictures[index] || reward.Quality != expectedQualities[index]
+                    || reward.Amount != expectedAmounts[index]
+                    || cell?.gameObject.activeSelf != true
+                    || name?.text != reward.Name || icon?.sprite == null || amount?.text != reward.Amount.ToString())
+                {
+                    detail = $"item={index}, active={cell?.gameObject.activeSelf}, "
+                        + $"displayId={displayId}/{expectedIds[index]} (type={reward.Type},id={reward.Id}), "
+                        + $"name='{name?.text}'/'{reward.Name}'/'{expectedNames[index]}', "
+                        + $"picture={reward.Picture}/{expectedPictures[index]}, quality={reward.Quality}/{expectedQualities[index]}, "
+                        + $"icon={icon?.sprite != null}, amount='{amount?.text}'/'{reward.Amount}'";
+                    return false;
+                }
+            }
+            Text invalidText = rewardView.GameObject.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(value => value.gameObject.activeInHierarchy
+                    && (value.text == "获得奖励" || value.text.StartsWith("奖励 #", StringComparison.Ordinal)));
+            if (invalidText != null)
+            {
+                detail = $"unexpected active text '{invalidText.text}' at {HierarchyPath(invalidText.transform)}";
+                return false;
+            }
+            detail = string.Join(",", store.RewardPush.Select(value =>
+                $"{value.Name}:{value.Picture}:q{value.Quality}x{value.Amount}"));
+            return true;
         }
 
         public bool InvokeLevelMask()
@@ -293,6 +394,7 @@ namespace ProjectX.UI
 
         private void Render()
         {
+            RenderCurrencyHeader();
             if (!store.HasAuthoritativeResponse)
             {
                 remaining.text = "--/5";
@@ -331,8 +433,14 @@ namespace ProjectX.UI
                 SetVisible(cell.transform.Find("Image_3"), chapterId < store.CurrentChapter);
                 SetVisible(cell.transform.Find("Image_2"), chapterId == store.SelectedChapter);
                 int captured = chapterId;
+                Image hitGraphic = cell.GetComponent<Image>() ?? cell.AddComponent<Image>();
+                hitGraphic.sprite = null;
+                hitGraphic.color = new Color(1f, 1f, 1f, .01f);
+                hitGraphic.raycastTarget = true;
                 Button button = cell.GetComponent<Button>() ?? cell.AddComponent<Button>();
-                button.targetGraphic = cell.GetComponent<Graphic>();
+                button.enabled = true;
+                button.interactable = true;
+                button.targetGraphic = hitGraphic;
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => SelectChapter(captured));
                 chapterCells.Add(cell);
@@ -345,6 +453,7 @@ namespace ProjectX.UI
         {
             Transform panel = view.GameObject.transform.Find("Panel_1");
             if (panel == null) return;
+            renderedCurrentStageMarkerCount = 0;
             for (int level = 1; level <= 4; level++)
             {
                 FengShenStageState state = store.GetStageState(store.SelectedChapter, level);
@@ -358,6 +467,9 @@ namespace ProjectX.UI
                     WorldVisualCatalog.TryGetStage(RawStageId(store.SelectedChapter, level), out WorldStageVisualDefinition definition);
                     Text name = FindText(node, "Image_3/Text_1");
                     if (name != null) name.text = definition?.Name ?? $"第{level}关";
+                    bool isCurrent = state == FengShenStageState.Current;
+                    SetVisible(node.Find("Image_4"), isCurrent);
+                    if (isCurrent) renderedCurrentStageMarkerCount++;
                     Image icon = node.Find("Icon")?.GetComponent<Image>();
                     if (icon != null)
                     {
@@ -395,17 +507,21 @@ namespace ProjectX.UI
 
         private static ImodAnimationPlayer CreateEnemyModel(Transform parent)
         {
-            GameObject value = new GameObject("RuntimeFengShenEnemy", typeof(RectTransform));
+            Transform existing = parent.Find("RuntimeFengShenEnemy");
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject("RuntimeFengShenEnemy", typeof(RectTransform));
             RectTransform rect = value.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
             rect.anchoredPosition = Vector2.zero;
-            return value.AddComponent<ImodAnimationPlayer>();
+            return value.GetComponent<ImodAnimationPlayer>() ?? value.AddComponent<ImodAnimationPlayer>();
         }
 
         private static Image CreateEnemyFallback(Transform parent)
         {
-            GameObject value = new GameObject("RuntimeFengShenEnemyFallback", typeof(RectTransform), typeof(Image));
+            Transform existing = parent.Find("RuntimeFengShenEnemyFallback");
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject("RuntimeFengShenEnemyFallback", typeof(RectTransform), typeof(Image));
             RectTransform rect = value.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
@@ -490,10 +606,22 @@ namespace ProjectX.UI
         {
             store.BeginChallenge();
             challenge();
+            // Cocos FengShenStoryLevelUI closes immediately after sending op=25.
+            // Keeping the old stage popup open lets the op=10 push turn it into
+            // a passed-stage panel with no actions, which looks like lost buttons.
+            CloseLevelPopup();
+        }
+
+        private void OnFormationClicked()
+        {
+            formation();
+            // Cocos also closes the level popup when entering formation.
+            CloseLevelPopup();
         }
 
         private void BindRewardIcons(Transform root)
         {
+            rewardIconButtons.Clear();
             for (int index = 1; index <= 3; index++)
             {
                 Transform icon = root.Find($"Popup/ListView/Icon_{index}");
@@ -505,6 +633,77 @@ namespace ProjectX.UI
                 rewardIconButtons.Add(button);
             }
         }
+
+        private bool EnsureLevelView()
+        {
+            if (levelView?.GameObject != null && levelCloseButton != null
+                && fightButton != null && formationButton != null
+                && enemyModel != null && enemyFallback != null)
+                return true;
+
+            CocosUiView current = resolveLevelView();
+            if (current?.GameObject == null) return false;
+            BindLevelView(current);
+            return true;
+        }
+
+        private void BindLevelView(CocosUiView current)
+        {
+            levelView = current ?? throw new ArgumentNullException(nameof(current));
+            Transform levelRoot = levelView.GameObject?.transform
+                ?? throw new InvalidOperationException("FengShenStory level view was destroyed before binding.");
+            Normalize(levelRoot);
+            levelCloseButton = Bind(levelRoot, "Popup/Btn_close", () => CloseLevelPopup());
+            fightButton = Bind(levelRoot, "Popup/Btn_Confirm", OnFightClicked);
+            formationButton = Bind(levelRoot, "Popup/Btn_buzhen", OnFormationClicked);
+            Transform enemyNode = Require(levelRoot, "Popup/Enemy/Node").transform;
+            enemyModel = CreateEnemyModel(enemyNode);
+            enemyFallback = CreateEnemyFallback(enemyNode);
+            BindRewardIcons(levelRoot);
+        }
+
+        private void RenderLevelRewards(IReadOnlyList<WorldConfiguredReward> rewards)
+        {
+            Transform root = levelView.GameObject.transform;
+            renderedLevelRewardCount = 0;
+            for (int index = 0; index < 3; index++)
+            {
+                Transform slot = root.Find($"Popup/ListView/Icon_{index + 1}");
+                if (slot == null) continue;
+                bool active = rewards != null && index < rewards.Count;
+                slot.gameObject.SetActive(active);
+                if (!active) continue;
+
+                WorldConfiguredReward reward = rewards[index];
+                if (RenderItemCell(slot, RewardPicture(reward.Type), reward.Amount, 3, false))
+                    renderedLevelRewardCount++;
+            }
+        }
+
+        private void RenderCurrencyHeader()
+        {
+            if (commonCurrency == null) return;
+            Text stamina = FindText(commonCurrency.transform, "GoldIcon1/GoldNumBg/Num");
+            Text gold = FindText(commonCurrency.transform, "GoldIcon3/GoldNumBg/Num");
+            Text premium = FindText(commonCurrency.transform, "GoldIcon4/GoldNumBg/Num");
+            if (stamina != null) stamina.text = $"{currencies.Stamina}/100";
+            if (gold != null) gold.text = FormatHeaderCurrency(currencies.Gold);
+            if (premium != null) premium.text = currencies.Premium.ToString();
+        }
+
+        private static int RewardPicture(int id)
+        {
+            switch (id)
+            {
+                case CurrencyIds.Gold: return 3006;
+                case CurrencyIds.BoundPremium: return 3021;
+                case CurrencyIds.Soul: return 3005;
+                default: return id;
+            }
+        }
+
+        private static string FormatHeaderCurrency(long value) =>
+            value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
 
         private void ShowModal(string title, string body, Action acknowledge)
         {
@@ -540,44 +739,65 @@ namespace ProjectX.UI
         private void ShowImportedReward(string title, string body, Action acknowledge)
         {
             CloseImportedModals();
+            rewardView.SetVisible(true);
+            rewardView.GameObject.transform.SetAsLastSibling();
+            sharedRewardPresenter.SuspendSharedViewRendering();
             modalAcknowledge = acknowledge;
+            GameObject rewardLayer = rewardView.Binding.Find("Layer")
+                ?? throw new InvalidOperationException("FengShenStory reward modal is missing Layer.");
+            Image rewardDimmer = rewardLayer.GetComponent<Image>();
+            if (rewardDimmer == null) rewardDimmer = rewardLayer.AddComponent<Image>();
+            rewardDimmer.color = new Color(0f, 0f, 0f,
+                1f - Mathf.GammaToLinearSpace(1f - 150f / 255f));
+            rewardDimmer.raycastTarget = true;
             SetViewText(rewardView, "Layer/Popup/Title/Title_1", title);
             SetViewVisible(rewardView, "Layer/Popup/Title/Title_1", true);
             SetViewVisible(rewardView, "Layer/Popup/Title/Title_2", false);
             SetViewVisible(rewardView, "Layer/Popup/Title/Title_3", false);
             SetViewText(rewardView, "Layer/Popup/tips", body);
-            SetViewVisible(rewardView, "Layer/Popup/tips", true);
+            SetViewVisible(rewardView, "Layer/Popup/tips", !string.IsNullOrEmpty(body));
             SetViewVisible(rewardView, "Layer/Popup/tips_3", false);
             Transform rewardRow = BuildRewardRow();
-            RenderRewardItem(rewardRow, 1, 3005, acknowledge == null ? "神魂×100" : RewardLabel(0, "神魂"));
-            RenderRewardItem(rewardRow, 2, 612, acknowledge == null ? "突破丹×80" : RewardLabel(1, "突破丹"));
+            RenderRewardItem(rewardRow, 1, 3005, "神魂", 100, 4, acknowledge != null ? 0 : -1);
+            RenderRewardItem(rewardRow, 2, 710, "突破丹", 80, 3, acknowledge != null ? 1 : -1);
             SetChildVisible(rewardRow, "itemlayer_3", false);
             SetChildVisible(rewardRow, "itemlayer_4", false);
             Button closeButton = BindView(rewardView, "Layer/Popup/Btn_close", () => CloseModal());
             Button confirmButton = BindView(rewardView, "Layer/Popup/btn_lingqu", () => CloseModal());
             confirmButton.gameObject.SetActive(acknowledge != null);
+            confirmButton.enabled = true;
+            confirmButton.interactable = true;
+            Image confirmGraphic = confirmButton.targetGraphic as Image;
+            if (confirmGraphic != null)
+            {
+                confirmGraphic.enabled = true;
+                confirmGraphic.color = Color.white;
+                confirmGraphic.raycastTarget = true;
+            }
+            SetViewText(rewardView, "Layer/Popup/btn_lingqu/Text1", "确定");
             modalCloseButton = acknowledge == null ? closeButton : confirmButton;
-            rewardView.SetVisible(true);
-            rewardView.GameObject.transform.SetAsLastSibling();
-        }
-
-        private string RewardLabel(int index, string fallback)
-        {
-            if (index < 0 || index >= store.RewardPush.Count) return fallback;
-            FengShenRewardRecord reward = store.RewardPush[index];
-            return $"{reward.Name}×{reward.Amount}";
         }
 
         private Transform BuildRewardRow()
         {
-            if (rewardRuntimeRow != null) UnityEngine.Object.Destroy(rewardRuntimeRow);
+            if (rewardRuntimeRow != null)
+            {
+                rewardRuntimeRow.SetActive(false);
+                UnityEngine.Object.Destroy(rewardRuntimeRow);
+            }
             GameObject template = rewardView.Binding.Find("Layer/Popup/ItemList")
                 ?? throw new InvalidOperationException("FengShenStory reward row template is missing.");
             Transform list = rewardView.Binding.Find("Layer/Popup/ListView")?.transform
                 ?? throw new InvalidOperationException("FengShenStory reward list is missing.");
+            template.SetActive(false);
             rewardRuntimeRow = UnityEngine.Object.Instantiate(template, list, false);
             rewardRuntimeRow.name = "RuntimeFengShenRewardRow";
             rewardRuntimeRow.SetActive(true);
+            for (int index = 0; index < list.childCount; index++)
+            {
+                Transform child = list.GetChild(index);
+                if (child != rewardRuntimeRow.transform) child.gameObject.SetActive(false);
+            }
             RectTransform rect = rewardRuntimeRow.transform as RectTransform;
             if (rect != null)
             {
@@ -588,20 +808,126 @@ namespace ProjectX.UI
             return rewardRuntimeRow.transform;
         }
 
-        private void RenderRewardItem(Transform row, int index, int picture, string label)
+        private void RenderRewardItem(Transform row, int index, int picture, string fallbackName,
+            int fallbackAmount, int quality, int rewardIndex)
         {
             Transform cell = row.Find($"itemlayer_{index}");
             if (cell == null) return;
             cell.gameObject.SetActive(true);
-            Image icon = cell.Find("item")?.GetComponent<Image>();
-            if (icon != null)
+            SetOnlyDirectChildrenVisible(cell, "Name", "item");
+            string nameValue = fallbackName;
+            long amountValue = fallbackAmount;
+            if (rewardIndex >= 0 && rewardIndex < store.RewardPush.Count)
             {
-                icon.sprite = resources.LoadItemIcon(picture);
-                icon.preserveAspect = true;
-                icon.color = Color.white;
+                FengShenRewardRecord reward = store.RewardPush[rewardIndex];
+                if (reward.Picture > 0) picture = reward.Picture;
+                if (reward.Quality > 0) quality = reward.Quality;
+                nameValue = reward.Name;
+                amountValue = reward.Amount;
+            }
+            // The current Cocos ItemCell renders the soul currency with the
+            // common blue reward-cell frame even though its catalog metadata
+            // reports quality 4. Preserve the authoritative metadata for
+            // validation, but use the source presentation rule here.
+            int visualQuality = picture == 3005 ? 3 : quality;
+            Transform itemHost = cell.Find("item");
+            if (itemHost != null)
+            {
+                itemHost.gameObject.SetActive(true);
+                SetOnlyDirectChildrenVisible(itemHost, "RuntimeFengShenItemCell");
+                RenderItemCell(itemHost, picture, amountValue, visualQuality, false);
             }
             Text name = cell.Find("Name")?.GetComponent<Text>();
-            if (name != null) name.text = label;
+            if (name != null)
+            {
+                name.gameObject.SetActive(true);
+                name.text = nameValue;
+            }
+        }
+
+        private bool RenderItemCell(Transform host, int picture, long amount, int quality, bool multiplyPrefix)
+        {
+            Image hostImage = host.GetComponent<Image>();
+            if (hostImage != null)
+            {
+                hostImage.sprite = null;
+                hostImage.enabled = true;
+                hostImage.color = new Color(1f, 1f, 1f, .001f);
+                hostImage.raycastTarget = true;
+            }
+
+            Transform existing = host.Find("RuntimeFengShenItemCell");
+            GameObject cellObject = existing != null ? existing.gameObject
+                : new GameObject("RuntimeFengShenItemCell", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            cellObject.SetActive(true);
+            RectTransform cellRect = cellObject.GetComponent<RectTransform>();
+            cellRect.SetParent(host, false);
+            cellRect.anchorMin = Vector2.zero;
+            cellRect.anchorMax = Vector2.one;
+            cellRect.pivot = new Vector2(.5f, .5f);
+            cellRect.offsetMin = Vector2.zero;
+            cellRect.offsetMax = Vector2.zero;
+            cellRect.localScale = Vector3.one;
+
+            Image frame = cellObject.GetComponent<Image>();
+            frame.sprite = resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}");
+            frame.enabled = frame.sprite != null;
+            frame.preserveAspect = true;
+            frame.color = Color.white;
+            frame.raycastTarget = false;
+
+            Image icon = EnsureItemCellImage(cellRect, "Icon", new Vector2(.08f, .08f), new Vector2(.92f, .92f));
+            icon.sprite = resources.LoadItemIcon(picture);
+            icon.enabled = icon.sprite != null;
+            icon.preserveAspect = true;
+            icon.color = Color.white;
+
+            Text amountText = EnsureItemCellAmount(cellRect);
+            amountText.text = multiplyPrefix ? $"×{amount}" : amount.ToString();
+            cellObject.transform.SetAsLastSibling();
+            return frame.sprite != null && icon.sprite != null && !string.IsNullOrEmpty(amountText.text);
+        }
+
+        private static Image EnsureItemCellImage(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            Transform existing = parent.Find(name);
+            GameObject imageObject = existing != null ? existing.gameObject
+                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = imageObject.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = imageObject.GetComponent<Image>();
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Text EnsureItemCellAmount(Transform parent)
+        {
+            Transform existing = parent.Find("Amount");
+            GameObject amountObject = existing != null ? existing.gameObject
+                : new GameObject("Amount", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text), typeof(Outline));
+            RectTransform rect = amountObject.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.anchorMin = new Vector2(.18f, 0f);
+            rect.anchorMax = new Vector2(.98f, .34f);
+            rect.pivot = new Vector2(1f, 0f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Text text = amountObject.GetComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 18;
+            text.alignment = TextAnchor.LowerRight;
+            text.color = Color.white;
+            text.raycastTarget = false;
+            Outline outline = amountObject.GetComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, .9f);
+            outline.effectDistance = new Vector2(1f, -1f);
+            amountObject.transform.SetAsLastSibling();
+            return text;
         }
 
         private static void SetChildVisible(Transform root, string path, bool visible)
@@ -610,11 +936,32 @@ namespace ProjectX.UI
             if (child != null) child.gameObject.SetActive(visible);
         }
 
+        private static void SetOnlyDirectChildrenVisible(Transform root, params string[] visibleNames)
+        {
+            if (root == null) return;
+            for (int index = 0; index < root.childCount; index++)
+            {
+                Transform child = root.GetChild(index);
+                child.gameObject.SetActive(Array.IndexOf(visibleNames, child.name) >= 0);
+            }
+        }
+
+        private static string HierarchyPath(Transform node)
+        {
+            if (node == null) return "<null>";
+            List<string> segments = new List<string>();
+            for (Transform current = node; current != null; current = current.parent)
+                segments.Add(current.name);
+            segments.Reverse();
+            return string.Join("/", segments);
+        }
+
         private void CloseImportedModals()
         {
             errorPresenter.Hide();
             itemSourceView.SetVisible(false);
             rewardView.SetVisible(false);
+            sharedRewardPresenter.ResumeSharedViewRendering();
             modalAcknowledge = null;
             modalCloseButton = null;
             sourceIconButton = null;
@@ -735,6 +1082,16 @@ namespace ProjectX.UI
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => callback());
             return button;
+        }
+
+        private static void NormalizeMirroredRaycastButton(Button button)
+        {
+            if (button == null) return;
+            RectTransform rect = button.transform as RectTransform;
+            if (rect == null || Vector3.Dot(rect.forward, Vector3.forward) >= 0f) return;
+            Vector3 scale = rect.localScale;
+            rect.localRotation = Quaternion.identity;
+            rect.localScale = new Vector3(-Mathf.Abs(scale.x), scale.y, scale.z);
         }
 
         private static GameObject Require(Transform root, string path) => root.Find(path)?.gameObject

@@ -2,9 +2,11 @@
 
 ## 当前结论
 
-- 当前门禁：`G0-G6 passed`；控件矩阵 `21/21 complete`。
+- 当前实现状态：`G3 runtime-ready / early user Play passed`；正式门禁仍为`G0 passed / G1-G2 pending / G3-G6 pending`，原因是用户明确免除本轮截图，不能伪造当前Cocos动态G1或G5/G6视觉通过。2026-09-02无截图G3探针已验证17件权威商品、Panel_12隐藏、Shop自有关闭和全控件射线合同；用户早测确认本轮UI及数量输入修复无问题。
+- 本轮不新增截图；历史Cocos/Unity图片只作为布局参考，不替代当前G5/G6视觉证据。
 - 旧“第一阶段完成”、账号 `7172217`、17 件商品、单次购买和旧截图只保留为实现线索，不能继承为本轮证据。
-- 本轮范围固定为 `Shop / 基础商城 / type=1`，控件矩阵 `21` 项：`docs/unityclient/matrices/SHOP_CONTROLS.json`。
+- 本轮范围固定为 `Shop / 基础商城 / type=1`，当前可见交互控件 `20` 项；`SHOP-19` 刷新 UI 已按用户要求标记为产品禁用：`docs/unityclient/matrices/SHOP_CONTROLS.json`。
+- 当前运行证据：`.local/unity-validation/shop-g3-runtime-latest.json`；用户早测结果：`.local/unity-validation/shop-early-user-play-latest.json`、`.local/unity-validation/shop-quantity-display-fix-latest.json`。
 
 ## G0 范围冻结
 
@@ -14,8 +16,9 @@
   - `AppDef.moduleUI[EMID_SCCHANGYONG] = {lua="Shop.ShopUI", sub=1}`。
   - `ShopUI -> ShopPanel -> csd/shop/shangcheng.csb -> ShopTable/NormalShop/SelectedGood`。
 - 当前页面控件：唯一“道具购买”Tab、三列动态商品与滚动、商品选择、数量减/加/输入、购买、一级框架货币加号和关闭。
+- 新框架合同：打开`shangcheng`时`OneLevelLayer/Layer/Panel_12`整体隐藏；关闭入口由`shangcheng`运行层自身提供，所有控件走真实EventSystem；退出后恢复共用框架状态，不影响背包、邮件等模块。
 - 公共弹窗控件：数字键盘、删除、确定、取消；目标要求的购买确认/取消、奖励项/关闭。
-- 目标补齐项：手动刷新 `/221 op=3`、刷新次数/免费次数/倒计时。当前 Cocos type=1 未绑定该按钮，也未展示这些字段，G5 必须记录为“Unity 修复旧缺口”，但状态和扣费只能来自服务端。
+- 刷新边界：基础商城 type=1 不展示手动刷新、刷新次数、免费次数和倒计时 UI；`/221 op=3` 仅保留协议兼容与服务端错误解析。
 - 排除：type=2..8 玩法商店、旧神秘/绑定/积分/帮贡/NPC/特供/神魄/砸蛋分支、充值/VIP/渠道支付。
 
 ## G2 协议与权威边界
@@ -26,14 +29,15 @@
 - 当前 Cocos 解包：`LuaNetRecvdMsg.DealMsgShop`；成功购买后 type=1 自动重拉 `op=1`。
 - C# 只能渲染 Lua/服务端权威状态，不得预扣货币、预增次数、伪造奖励或刷新结果。
 - 配置 `60001` 的实际扣款映射为非绑定元宝 `60003`；G1 实测非绑定余额 `100000→99980`、绑定余额不变。
-- type=1 配置为 `refresh_count=0,cost=[0],free_time=0,free_cd=0`，当前 `op=3` 只会返回“次数耗尽”。Unity 保留真实请求/错误解析，但刷新控件必须按权威配置禁用，不得伪造成功刷新。
+- type=1 配置为 `refresh_count=0,cost=[0],free_time=0,free_cd=0`，当前 `op=3` 只会返回“次数耗尽”。Unity 保留真实错误解析，但不创建刷新控件，不得伪造成功刷新。
 - 完整字段表、短包规则和 G3 必修项：`.local/unity-validation/shop-g2-protocol-evidence.md`。
 
 ## 资源与实现现状
 
 - 真实 Prefab：`unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab`，只允许运行时绑定，不重建手工结构。
 - 当前旧实现：`ShopStore + ShopCatalog + ShopPresenter + ShopController.lua`。
-- 当前缺口：数量控件被 Unity 隐藏；无真实手动刷新按钮；旧 Runner 直接驱动确认流程且只覆盖 2 张截图；未登记控件 ID、语义断言、失败/重连/切号与固定账号恢复。
+- 本轮早测反馈修复：左侧页签强制使用 `ui_shangcheng_yeqian_2` 选中态且取消 Disabled tint；商品 icon 运行时尺寸提升到 `64×64`；移除刷新 UI；隐藏 `TextButton/__Label` 默认文字；购买按钮复用 Prefab 原始 `btn_Buy/Text` 颜色与字体。
+- `RuntimeShopQuantityInput` 改为通过 `InputField.SetTextWithoutNotify` 更新数值，避免直接写子 `Text` 后被 InputField 空背书值覆盖；用户复测通过。
 
 ## 账号与夹具
 
@@ -77,7 +81,7 @@
 - `/221 op=1/2/3/4` 已由 Lua 维护单一 pending，并校验回包中的 `op/type/tid/num`。
 - 数量减、加、真实 `EnterNumLayer` 数字键/删除/确定/取消已绑定；多数量价格按服务端累计百分比后一次截断。
 - 购买先走公共确认，取消不发包，确认后才发送 `op=2`；奖励数量按权威回包与成交数量展示。
-- type=1 刷新控件真实存在，但按当前 `refresh_count=0` 明确禁用；真实 `op=3` 错误链保留。
+- type=1 不创建刷新 UI；真实 `op=3` 协议错误链保留。
 - `op=4` 购买次数、空态、重拉、超时、断线与切号清理已实现。
 - Unity MCP 实测：`2022.3.62f3c1`、Bootstrap 场景空闲、无编译/Domain Reload、Console `0 error / 0 warning`。
 - 证据：`.local/unity-validation/shop-g3-logic-evidence.md`。

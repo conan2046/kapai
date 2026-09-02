@@ -2,7 +2,7 @@
 
 ## 当前门禁
 
-- 当前：G0-G6 passed。2026-08-04 已完成固定账号功能、视觉、恢复、逐控件证据、双次 BuildBatch 与自动复盘收口。
+- 当前：G0-G3 passed；2026-08-29当前Cocos动态证据、persistentDataPath SQLite数据预检与Unity `BuildBatch`均已重做。等待修复后的早期真人Play复测；反馈闭环前G4-G6保持pending。
 - 旧 `logic-validated-visual-pending`、旧截图、旧 Runner、旧 SHA 与 7200025 证据只作线索，不计入本轮门禁。
 - 唯一范围：`玩法大厅 → function_id=3 → 封神列传`；World 仅作共享 `/320` 回归面。
 
@@ -21,6 +21,7 @@
 - `/320 op=24`：服务端返回列传零基章节、当前关、剩余次数；Cocos 将章节 `+1` 后渲染。
 - `/320 op=25`：真实挑战；覆盖配置缺失、次数、等级、体力、战斗输赢及成功副作用。
 - `/320 op=10`、`op=26`：挑战结果/奖励的服务端推送属于列传闭环；章末 `op25` 成功时服务端已完成发奖，再推送 `op26` 打开奖励确认弹窗。
+- `op25`通过前置校验并执行战斗后必须返回`PRO_SUCCESS`确认字节；旧实现只发送`op10/op26`推送，随后把原请求发送成空体`/320`，Unity现保留空包兼容防御，但服务端仍以完整确认包为权威修复。
 - G1 源码与原生实测确认：Cocos 的 `op24` 宝箱解析已注释，正常链路不会生成可领红点；`op26` 弹窗的确定按钮仅关闭，不发送列传领奖请求。Unity不得伪造可领态或重复发奖。
 - World 独占 `/320 op=1/2/4/5/6/7/8/27` 与其 Store/pending；列传不得抢读、重复发送或清除 World 状态。
 
@@ -28,13 +29,12 @@
 
 | 用途 | userId | roleId | 要求 |
 |---|---:|---:|---|
-| 主账号 | 7200057 | 1000115 | 60级；准备当前/已过/锁定、次数、体力、成功/失败与宝箱三态 |
-| 低级锁定 | 7200260 | 1000119 | 1级；function_id=3 不开放且不得发送列传协议 |
-| 隔离终态 | 705213 | 1000006 | 60级；独立列传状态，切号后不得继承主账号 Store/pending |
+| 主账号 | 7200057 | 1000003 | SQLite夹具设为99级、第7章末关、次数5；覆盖当前/已过/锁定、章节翻页、体力及挑战边界 |
+| 隔离账号 | 705213 | 1000006 | SQLite夹具临时克隆并设为第1章第1关；切号后不得继承主账号 Store/pending，清理后账号与角色均为0 |
 
-Runner 会短暂登录隔离账号完成截图和 Store/pending 断言，随后必须切回主账号；固定账号结果合同的终态身份因此为 `7200057/1000115`，隔离身份由 `-projectXFengShenStoryIsolationUserId=705213` 与 `fengshen-account-isolation` 语义单独证明。
+Runner 会短暂登录隔离账号完成截图和 Store/pending 断言，随后必须切回主账号；固定账号结果合同的终态身份为 `7200057/1000003`，隔离身份由 `-projectXFengShenStoryIsolationUserId=705213` 与 `fengshen-account-isolation` 语义单独证明。
 
-变更型夹具必须在 `try/finally` 内快照和恢复：`role_info.guan_qia`、`user_spirit`、`package`、`save_data`、`save_val`、`mission`、角色/账号货币及战斗结果关联表。恢复后重登，整体 SHA256 相等，主账号终态复核，Fixture residual=0。
+变更型夹具只允许修改 `Application.persistentDataPath/LocalServer/projectx.db`。当前适配器对整库复制快照，在 `try/finally` 中恢复并重登；恢复后数据库整体 SHA256 相等、临时隔离账号删除、备份文件 residual=0。MySQL不得作为Unity用户测试夹具。
 
 ### 控件与状态
 
@@ -49,6 +49,19 @@ Runner 会短暂登录隔离账号完成截图和 Store/pending 断言，随后�
 ## G1-G6
 
 严格按中央门禁推进；每门证据完成后在本文件追加结论。旧 Unity 实现只有 op24、单 Store 和单截图，G3 前必须按本轮矩阵重做，不能当当前证据。
+
+### 2026-08-28 真人Play回归与当前修复
+
+- 用户截图确认两个阻塞缺口：关卡详情的三个首通奖励槽位为空白；公共一级界面顶部缺少体力、金币、元宝货币栏。
+- 根因1：Cocos `FengShenStoryLevelUI:ShowInfo()`读取`maplist_dat.first_reward`并调用`Utils:GetItemCellValue`；Unity `WorldVisualCatalog`此前只解析`show_reward`，`FengShenStoryPresenter`只给空槽绑定点击而未渲染奖励。
+- 根因2：Cocos `FirstClassBg`由`OneLevelLayer`同时提供`Panel_12/Title`和根级`GoldCheck`；Unity此前只克隆Title，遗漏整个货币Prefab。
+- 首轮修复：新增`FirstRewards`权威解析；从`OneLevelLayer/GoldCheck`克隆共享Prefab并绑定`CurrencyStore`实时显示，元宝加号保持原生禁用边界。第二轮真人Play确认货币栏已恢复，但奖励只显示数量，且`tanchuangjiangli`没有道具品质底框。
+- 第二轮根因与修复：Cocos实际通过`ItemCellUI`建立`ItemQuality + Icon + ItemNum`复合节点，特殊货币奖励还会强制使用3品质框；Unity首轮仅向导入空槽自身`Image`赋图。现两个奖励入口统一建立`RuntimeFengShenItemCell`复合格，显式加载`common_quality_03`、真实物品图标及数量。
+- 第三轮根因与修复：底框与数量已证明复合格生效，但`maplist_dat.first_reward`语义是`{itemId,reserved,amount}`，Unity误将第二列固定0传给`LoadItemIcon`；现改为使用第一列`reward.Type`映射`60000/60001/60014 → 3006/3021/3005`。
+- 新增`fengshen-level-first-reward-visible`与`fengshen-first-class-currency-header`运行语义，以及中央源码合同/工具链回归。静态结果：Assembly-CSharp 0错误；模块文档通过；工具链231/231。
+- 用户证据：`.local/ui-fidelity/FengShenStory/user-feedback/20260828-reward-header-missing.png`、`20260828-reward-icons-still-missing.png`、`20260828-reward-popup-item-frame-missing.png`、`20260828-reward-frames-visible-icons-missing.png`。2026-08-29标准G3 batch已通过；当前仅保留修复后用户复测门禁。
+- 挑战真人Play进一步捕获：成功战斗已收到`op10`结算和`op26`奖励后，服务端又发送`type=320 len=7`空体包，Lua读取首字节触发`Packet body underflow`并把App切到`Failed`。根因是`TiaoZhanLieZhuan`成功路径未向外层请求消息写入`PRO_SUCCESS`。现服务端补齐`op25 + PRO_SUCCESS`，Unity对旧服务端空包做兼容消费；须重启Play使服务端重编译后复测挑战。
+- 同轮复测发现挑战完成后旧关卡弹窗仍停留，`op10`已把该关变成已通关态，因此挑战/布阵按规则隐藏，看起来像按钮丢失。Cocos的`OnFightClick`和`OnFormationClick`都会在发送挑战或进入布阵后立即`CloseUI()`；Unity现同步为挑战/布阵后关闭关卡弹窗，返回主图后由玩家点击新“当前”关卡。
 
 ### G2 源码审计与设计
 
@@ -65,6 +78,14 @@ Runner 会短暂登录隔离账号完成截图和 Store/pending 断言，随后�
 - `dotnet build Assembly-CSharp.csproj`：0 error；中央文档 29/29；工具链 88/88。
 - 用户恢复许可证后，团结引擎 `2022.3.62f3c1` 的 `BootstrapSceneBuilder.BuildBatch` 成功解析 entitlement、打开 `Bootstrap.unity`，场景语义签名未变化并安全跳过重建，编译错误/异常/真正崩溃均为0，返回码0。证据：`.local/unity-validation/fengshenstory-g3-buildbatch-after-license.log`。
 - 先前3次许可证失败保留在操作账本，并以本次同一标准批处理成功证据逐条标记 Resolved；G3 门禁通过，进入 G4 固定账号批处理验证。
+
+### G3 当前重验（2026-08-29）
+
+- 当前Cocos固定身份 `7200057/1000115` 实际重取主页、关卡详情和首通奖励获取途径原生 `1334×750` 证据；首通奖励确认三格真实图标、品质框、数量与来源弹窗，顶部公共栏确认体力 `100/100`、金币 `100万`、元宝 `999999`。
+- Unity固定账号合同已迁为 `Application.persistentDataPath/LocalServer/projectx.db` 的 `7200057/1000003`，完整通过 Setup、AssertSetup、Restore、AssertRestored、Cleanup、AssertCleanup、重登哈希一致与隔离账号零残留。证据：`.local/unity-validation/fengshenstory-fixed-account-data-preflight-latest.json`。
+- 静态合同复核发现模块Runner仍硬编码旧MySQL角色`1000115`；现已同步为SQLite合同`7200057/1000003`，并在中央工具链增加源码绑定断言，防止合同与运行时再次漂移。
+- 团结引擎 `2022.3.62f3c1` 在该修复后重新执行 `BootstrapSceneBuilder.BuildBatch`，场景语义签名未变化，C#编译错误0，batch return code 0。最终证据：`.local/unity-validation/fengshenstory-g3-buildbatch-final-20260829.log`。
+- 中央工具回归 `260/260`；操作账本所有本轮失败均已登记根因、解决方案和文件证据。G3通过，G4严格等待修复后的早期真人Play，不继承2026-08-04旧G4-G6。
 
 ### G4-G6 结论（2026-08-04）
 

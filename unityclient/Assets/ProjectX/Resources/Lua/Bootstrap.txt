@@ -143,6 +143,8 @@ function OnWorldChallenge() WorldController.challengeSelected() end
 function OnWorldSweep() WorldController.sweepSelected() end
 function OnWorldReset(stageId) WorldController.resetStage(stageId) end
 function OnWorldClaimBox(boxId) WorldController.claimBox(boxId) end
+function OnWorldAchievementRequest() WorldController.requestAchievement() end
+function OnWorldAchievementClaim(index) WorldController.claimAchievement(index) end
 function OnWorldRefresh() WorldController.refreshAfterBattle() end
 function OnWorldValidateIsolation() WorldController.validateAccountIsolation() end
 function OnWelfareClicked() WelfareController.onClick() end

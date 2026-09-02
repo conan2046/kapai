@@ -1,6 +1,7 @@
 param(
     [switch]$RedirectLogs,
     [int]$LocalUserId = 0,
+    [int]$LocalRoleId = 0,
     [switch]$DisableAutoEnter,
     [switch]$DisableAutoCreateRole,
     [string]$LocalRoleNamePreset = "",
@@ -77,6 +78,23 @@ if ($PSBoundParameters.ContainsKey("LocalUserId")) {
         $appDefText,
         $uidPattern,
         "AppDef.LOCAL_TEST_UID = $LocalUserId"
+    )
+    Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
+}
+
+if ($PSBoundParameters.ContainsKey("LocalRoleId")) {
+    if ($LocalRoleId -le 0) {
+        throw "LocalRoleId must be a positive integer"
+    }
+    $appDefText = Get-Content -LiteralPath $simulatorAppDef -Raw -Encoding UTF8
+    $rolePattern = '(?m)^AppDef\.LOCAL_TEST_ROLE_ID\s*=\s*\d+\s*$'
+    if ([regex]::Matches($appDefText, $rolePattern).Count -ne 1) {
+        throw "Expected exactly one AppDef.LOCAL_TEST_ROLE_ID assignment in $simulatorAppDef"
+    }
+    $appDefText = [regex]::Replace(
+        $appDefText,
+        $rolePattern,
+        "AppDef.LOCAL_TEST_ROLE_ID = $LocalRoleId"
     )
     Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
 }

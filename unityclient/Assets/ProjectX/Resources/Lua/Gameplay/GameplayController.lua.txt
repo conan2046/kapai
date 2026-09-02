@@ -5,7 +5,8 @@ function M.onClick()
     Bridge:SetStatus("Gameplay current hub opened; gameplay-redpoint-shared-owner consumes cache only.")
     if Bridge:HasCommandLineFlag("-projectXGameplayValidation") then Bridge:RunGameplayValidation() end
     if Bridge:HasCommandLineFlag("-projectXYouLiValidation") then Bridge:EnterGameplay(1) end
-    if Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") then Bridge:EnterGameplay(3) end
+    if Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation")
+        or Bridge:HasCommandLineFlag("-projectXBattleFengShenStoryValidation") then Bridge:EnterGameplay(3) end
     if Bridge:HasCommandLineFlag("-projectXArenaValidation") then Bridge:EnterGameplay(6) end
     if Bridge:HasCommandLineFlag("-projectXXunBaoValidation") then Bridge:EnterGameplay(9) end
     if Bridge:HasCommandLineFlag("-projectXGameplayShopsValidation")

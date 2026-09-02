@@ -5,6 +5,46 @@
 #include "user_spirit.h"
 #include "award_manager.h"
 #include "rank.h"
+#include <cstdlib>
+
+extern const char *gConfigFile;
+
+namespace
+{
+	bool ApplyLocalTestFightSeed(uint32 nodeId)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) != "1")
+			return false;
+		const string seedText = gyu::util::CIniFile::GetValue(
+			"local_test_fight_seed", "server", gConfigFile);
+		if(seedText.empty())
+			return false;
+		char *end = NULL;
+		const unsigned long parsed = strtoul(seedText.c_str(), &end, 10);
+		if(end == seedText.c_str() || *end != '\0')
+		{
+			cout << "[local][fight-seed] invalid value=" << seedText << endl;
+			return false;
+		}
+		const uint32 seed = static_cast<uint32>(parsed);
+		srand(seed);
+		cout << "[local][fight-seed] context=GuanQia node=" << nodeId
+			<< " seed=" << seed << endl;
+		return true;
+	}
+
+	void LogLocalTestMessageFingerprint(const char *label, CNetMessage &msg)
+	{
+		if(gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) != "1")
+			return;
+		const std::string *data = msg.GetMsgData();
+		if(data == NULL)
+			return;
+		cout << "[local][fight-packet] label=" << label
+			<< " len=" << data->size()
+			<< " fnv1a32=" << gyu::util::Fnv1a32(*data) << endl;
+	}
+}
 
 const int SaveDateMaxLen = 1204 * 80;
 uint8 CGuanQiaCfgMgr::g_LieZhuanCnt = 0;
@@ -853,7 +893,6 @@ void CUserGuanQia::EnterGuanQiaFight(CUser* pUser, uint8 type, uint32 mapId, uin
 	}
 	
 	if (gqScore->nodeStars.find(nodeId) == gqScore->nodeStars.end())
-	if (gqScore == NULL)
 	{
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
 		return;
@@ -878,6 +917,7 @@ void CUserGuanQia::EnterGuanQiaFight(CUser* pUser, uint8 type, uint32 mapId, uin
 		return;
 	}
 	
+	ApplyLocalTestFightSeed(nodeId);
 	ShareFightPtr pFight = SingletonFightManager::instance().CreateFight();
 	if (pFight.get() == NULL)
 		return;
@@ -1206,6 +1246,7 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star)
 	awards.push_back(ad);
 	msg << star;
 	MakeMultiAwardMsg(awards, msg);
+	LogLocalTestMessageFingerprint("guanqia-result", msg);
 	m_curNodeId = 0;
 	m_curMapId = 0;
 	m_curType = 0;

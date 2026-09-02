@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "module": "BattleFengShenStory",
+  "scopeDecision": {
+    "decision": "验收正式封神列传op25触发的EFTLieZhuanFight=19完整生命周期：自然结束显示权威结算、统计、回放、关闭与返回奖励；主动跳过直接返回父地图且不显示结算。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-08-30"
+  },
+  "scenarios": [
+    {
+      "id": "bfsb-current-success",
+      "kind": "success",
+      "given": "固定账号当前列传关卡可挑战",
+      "when": "真实点击挑战并自然播放至结算，操作统计、回放、关闭与返回奖励后，再次挑战并真实点击跳过",
+      "then": "自然完成进入权威结算；主动跳过直接返回父级且不生成结算，两条生命周期互不串线"
+    },
+    {
+      "id": "bfsb-failure-reconnect",
+      "kind": "failure-boundary",
+      "given": "前置不足、战败、断线或切号",
+      "when": "挑战或恢复会话",
+      "then": "无伪战报、伪奖励或乐观扣减，重拉和恢复保持权威状态"
+    },
+    {
+      "id": "bfsb-control-boundary",
+      "kind": "failure-boundary",
+      "given": "自动/加速/跳过功能未开启或showJumpFlag=false",
+      "when": "真实点击对应FightLayer控件",
+      "then": "保持Cocos隐藏、提示或拒绝语义，不提前结束权威战斗"
+    }
+  ],
+  "sources": [
+    {
+      "id": "bfsb-entry-and-result",
+      "sourceFiles": [
+        "client/ProjectX/src/View/MainUI.lua",
+        "client/ProjectX/src/View/Main/WanFaEntranceUI.lua",
+        "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "server/src/pack_deal.cpp",
+        "server/src/user_guanqia.cpp"
+      ],
+      "recordTotal": 5,
+      "businessIds": ["entry:function3", "320:25", "fightType:19", "320:10", "320:26"],
+      "branchType": "当前正式入口、挑战确认、列传战斗、自然结算与返回奖励",
+      "mappings": [
+        {
+          "businessIds": ["entry:function3", "320:25", "fightType:19", "320:10", "320:26"],
+          "successScenarioIds": ["bfsb-current-success"],
+          "failureBoundaryScenarioIds": ["bfsb-failure-reconnect"]
+        }
+      ],
+      "excluded": []
+    },
+    {
+      "id": "bfsb-shared-battle-and-controls",
+      "sourceFiles": [
+        "client/ProjectX/src/Logic/LBattleLogic.lua",
+        "client/ProjectX/src/View/Battle/BattleUI.lua",
+        "server/src/fight.cpp",
+        "server/src/fight.h"
+      ],
+      "recordTotal": 16,
+      "businessIds": ["21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "auto", "skip", "settlement", "statistics", "replay", "return"],
+      "branchType": "共享战斗播放、列传手动选择模式、FightLayer控制、自然结算栈与主动跳过直返",
+      "mappings": [
+        {
+          "businessIds": ["21", "22:1", "22:2", "22:3", "22:4", "22:5", "22:6", "22:7", "23", "speed", "auto", "skip", "settlement", "statistics", "replay", "return"],
+          "successScenarioIds": ["bfsb-current-success"],
+          "failureBoundaryScenarioIds": ["bfsb-failure-reconnect", "bfsb-control-boundary"]
+        }
+      ],
+      "excluded": []
+    }
+  ]
+}

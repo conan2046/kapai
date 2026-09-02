@@ -12,6 +12,8 @@ param(
     [string]$SummaryPath = "",
     [switch]$StartTiming,
     [switch]$Complete,
+    [switch]$InvalidateFrom,
+    [string]$InvalidationReason = "",
     [string]$RegistryPath = "tools/unity-migration/migration-gates.json"
 )
 
@@ -48,6 +50,57 @@ function Test-GateEvidenceContainsPath([string]$Candidate) {
         if ((Resolve-UnityMigrationPath -Root $root -Path $item) -ieq $resolvedCandidate) { return $true }
     }
     return $false
+}
+
+if ($InvalidateFrom) {
+    if ($StartTiming -or $Complete) {
+        throw "-InvalidateFrom cannot be combined with -StartTiming or -Complete."
+    }
+    if (-not $InvalidationReason.Trim()) {
+        throw "-InvalidateFrom requires -InvalidationReason."
+    }
+
+    $invalidatedUtc = [DateTime]::UtcNow.ToString("O")
+    if ($null -eq $record.PSObject.Properties["gateEvidence"]) {
+        $record | Add-Member -NotePropertyName gateEvidence -NotePropertyValue ([pscustomobject]@{})
+    }
+    if ($null -eq $record.PSObject.Properties["gateInvalidations"]) {
+        $record | Add-Member -NotePropertyName gateInvalidations -NotePropertyValue ([pscustomobject]@{})
+    }
+    if ($null -eq $record.PSObject.Properties["gateTimings"]) {
+        $record | Add-Member -NotePropertyName gateTimings -NotePropertyValue ([pscustomobject]@{})
+    }
+
+    $invalidated = New-Object System.Collections.Generic.List[string]
+    for ($index = $gateNumber; $index -le 6; $index++) {
+        $targetGate = "G$index"
+        $previousState = [string](Get-UnityMigrationPropertyValue -Object $record.gates -Name $targetGate -Default "pending")
+        $previousEvidence = @()
+        if ($null -ne $record.gateEvidence.PSObject.Properties[$targetGate]) {
+            $previousEvidence = @($record.gateEvidence.$targetGate)
+        }
+        $record.gates | Add-Member -Force -NotePropertyName $targetGate -NotePropertyValue "pending"
+        $record.gateEvidence | Add-Member -Force -NotePropertyName $targetGate -NotePropertyValue @()
+        $record.gateInvalidations | Add-Member -Force -NotePropertyName $targetGate -NotePropertyValue ([pscustomobject][ordered]@{
+            invalidatedUtc = $invalidatedUtc
+            previousState = $previousState
+            previousEvidence = $previousEvidence
+            reason = $InvalidationReason
+        })
+        $record.gateTimings | Add-Member -Force -NotePropertyName $targetGate -NotePropertyValue ([pscustomobject][ordered]@{
+            startedUtc = $invalidatedUtc
+            startSource = "invalidation"
+        })
+        $invalidated.Add($targetGate)
+    }
+
+    $record | Add-Member -Force -NotePropertyName updatedUtc -NotePropertyValue $invalidatedUtc
+    Write-UnityMigrationUtf8 -Path $entry.Path -Content (($entry.Value | ConvertTo-Json -Depth 14) + "`n")
+    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $Gate -Category Gate `
+        -Tool "tools/unity-migration/Invoke-UnityMigrationGate.ps1" -Operation "invalidate-from-$Gate" `
+        -Outcome Passed -Evidence @($RegistryPath) | Out-Null
+    Write-Host "$Module invalidated $($invalidated -join ',') from ${Gate}: $InvalidationReason"
+    exit 0
 }
 
 if ($gateNumber -gt 0) {
@@ -160,6 +213,14 @@ if ($Gate -eq "G4") {
             throw "G4 early user Play agent recheck evidence missing: $recheckEvidence"
         }
     }
+    if ((Get-UnityMigrationPropertyValue -Object $earlyPlayEntry.Value -Name "userDelegatedAgentPlay" -Default $false) -eq $true) {
+        $delegation = Get-UnityMigrationPropertyValue -Object $earlyPlayEntry.Value -Name "delegation" -Default $null
+        $delegationEvidence = [string](Get-UnityMigrationPropertyValue -Object $delegation -Name "evidence" -Default "")
+        $resolvedDelegation = Resolve-UnityMigrationPath -Root $root -Path $delegationEvidence
+        if (-not (Test-Path -LiteralPath $resolvedDelegation -PathType Leaf)) {
+            throw "G4 delegated early Play authorization evidence missing: $delegationEvidence"
+        }
+    }
     if (-not $SummaryPath) {
         throw "Completing G4 requires -SummaryPath from the canonical Unity batch runner."
     }
@@ -200,7 +261,23 @@ if ($Gate -eq "G6") {
     Write-Host "$Module control matrix passed: $controlCount/$controlCount controls complete."
 }
 if ($current -eq "passed") {
-    Write-Host "$Module $Gate is already passed; no registry change."
+    if ($null -eq $record.PSObject.Properties["gateEvidence"]) {
+        $record | Add-Member -NotePropertyName gateEvidence -NotePropertyValue ([pscustomobject]@{})
+    }
+    $record.gateEvidence | Add-Member -Force -NotePropertyName $Gate -NotePropertyValue @($Evidence)
+    if ($null -eq $record.PSObject.Properties["gateRevalidations"]) {
+        $record | Add-Member -NotePropertyName gateRevalidations -NotePropertyValue ([pscustomobject]@{})
+    }
+    $record.gateRevalidations | Add-Member -Force -NotePropertyName $Gate -NotePropertyValue ([pscustomobject][ordered]@{
+        checkedUtc = [DateTime]::UtcNow.ToString("O")
+        evidence = @($Evidence)
+    })
+    $record | Add-Member -Force -NotePropertyName updatedUtc -NotePropertyValue ([DateTime]::UtcNow.ToString("O"))
+    Write-UnityMigrationUtf8 -Path $entry.Path -Content (($entry.Value | ConvertTo-Json -Depth 12) + "`n")
+    Add-UnityMigrationOperationRecord -Root $root -Module $Module -Gate $Gate -Category Gate `
+        -Tool "tools/unity-migration/Invoke-UnityMigrationGate.ps1" -Operation "revalidate-$Gate" `
+        -Outcome Passed -Evidence $Evidence | Out-Null
+    Write-Host "$Module $Gate revalidated current evidence; passed status and original timing retained."
     exit 0
 }
 

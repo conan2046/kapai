@@ -94,7 +94,9 @@ namespace ProjectX.Editor
         private const string WorldSweepPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/saodangLayer.prefab";
         private const string WorldBattleResultPrefab = "Assets/ProjectX/res/csd/Prefabs/common/zhandoujiesuanLayer.prefab";
         private const string WorldBattleStatisticsPrefab = "Assets/ProjectX/res/csd/Prefabs/common/zhandoutongji.prefab";
+        private const string BattleFightLayerPrefab = "Assets/ProjectX/res/csd/Prefabs/common/FightLayer.prefab";
         private const string WorldBoxAwardPrefab = "Assets/ProjectX/res/csd/Prefabs/guaiwubaoxiangLayer.prefab";
+        private const string WorldAchievementPrefab = "Assets/ProjectX/res/csd/Prefabs/fuben/zhuxianchengjiu.prefab";
         private const string WelfarePrefab = "Assets/ProjectX/res/csd/Prefabs/WelfareLayer.prefab";
         private const string WelfareSignPrefab = "Assets/ProjectX/res/csd/Prefabs/SignLayer.prefab";
         private const string WelfareOnlinePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/LoginGiftLayer.prefab";
@@ -187,6 +189,7 @@ namespace ProjectX.Editor
             new PrefabSpec(WorldBattleResultPrefab, false),
             new PrefabSpec(WorldBattleStatisticsPrefab, false),
             new PrefabSpec(WorldBoxAwardPrefab, false),
+            new PrefabSpec(WorldAchievementPrefab, false),
             new PrefabSpec(WelfarePrefab, false),
             new PrefabSpec(WelfareSignPrefab, false),
             new PrefabSpec(WelfareOnlinePrefab, false),
@@ -276,6 +279,8 @@ namespace ProjectX.Editor
             EnsureDynamicUiReference("FaBaoStrength", FaBaoStrengthPrefab);
             EnsureDynamicUiReference("FaBaoRefine", FaBaoRefinePrefab);
             EnsureDynamicUiReference("FaBaoMaterialChooser", FaBaoMaterialChooserPrefab);
+            EnsureDynamicUiReference("BattleFightLayer", BattleFightLayerPrefab);
+            EnsureDynamicUiReference("BattleHpNode", "Assets/ProjectX/res/csd/Prefabs/HPNode.prefab");
         }
 
         private static void EnsureDynamicUiReference(string key, string prefabPath)
@@ -325,10 +330,31 @@ namespace ProjectX.Editor
             CopyResourceIfChanged(
                 Path.Combine(cocosRoot, "res", "res", "UI", "ui_zhandou", "bg0.jpg"),
                 "Assets/ProjectX/Resources/WorldUI/battle_scene_bg.jpg");
+            // The source-tree copy is an unresolved LFS pointer in this checkout;
+            // the native Cocos runtime consumes this hydrated simulator copy.
+            CopyResourceIfChanged(
+                Path.Combine(cocosRoot, "simulator", "win32", "res", "ConfigData", "hit_monster.dat"),
+                "Assets/ProjectX/Resources/ProjectXConfig/battle/hit_monster.dat.bytes");
+            CopyResourceIfChanged(
+                Path.Combine(cocosRoot, "src", "ConfigData", "zhenfa_config_dat.lua"),
+                "Assets/ProjectX/Resources/ProjectXConfig/battle/zhenfa_config_dat.txt");
+            CopyResourceIfChanged(
+                Path.Combine(cocosRoot, "simulator", "win32", "res", "res", "UI", "ImageNum", "num_lan.png"),
+                "Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png");
+            CopyResourceIfChanged(
+                Path.Combine(cocosRoot, "simulator", "win32", "res", "res", "UI", "ImageNum", "ui_pk_num.png"),
+                "Assets/ProjectX/Resources/ProjectXBattle/Hud/ui_pk_num.png");
+            for (int formation = 1; formation <= 6; formation++)
+            {
+                CopyResourceIfChanged(
+                    Path.Combine(cocosRoot, "simulator", "win32", "res", "res2", "Icon", "ui_zhenfa_icon", $"zhenfa_{formation}.png"),
+                    $"Assets/ProjectX/Resources/HeroUI/formation_{formation}.png");
+            }
             foreach (string configName in new[]
                      {
                          "bigmap_dat", "map_res_dat", "maplist_dat", "fight_config_dat",
-                         "monster_boss_basic_dat", "exp_dat", "hero_dat", "star_dat",
+                         "monster_boss_basic_dat", "exp_dat", "reward_fixed_dat", "map_achievement_dat",
+                         "hero_dat", "star_dat",
                          "break_dat", "xiulian_dat"
                      })
             {
@@ -402,12 +428,25 @@ namespace ProjectX.Editor
             if (!File.Exists(absoluteSource))
                 throw new FileNotFoundException($"Runtime dynamic resource is missing: {absoluteSource}");
             byte[] source = File.ReadAllBytes(absoluteSource);
+            if (IsGitLfsPointer(source))
+                throw new InvalidDataException(
+                    $"Runtime dynamic resource is an unresolved Git LFS pointer: {absoluteSource}");
             bool changed = !File.Exists(absoluteDestination)
                 || !source.SequenceEqual(File.ReadAllBytes(absoluteDestination));
             if (!changed) return;
             Directory.CreateDirectory(Path.GetDirectoryName(absoluteDestination));
             File.WriteAllBytes(absoluteDestination, source);
             AssetDatabase.ImportAsset(destinationAssetPath, ImportAssetOptions.ForceSynchronousImport);
+        }
+
+        private static bool IsGitLfsPointer(byte[] content)
+        {
+            if (content == null || content.Length == 0 || content.Length > 512) return false;
+            byte[] marker = Encoding.ASCII.GetBytes("version https://git-lfs.github.com/spec/v1");
+            if (content.Length < marker.Length) return false;
+            for (int index = 0; index < marker.Length; index++)
+                if (content[index] != marker[index]) return false;
+            return true;
         }
 
         [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]

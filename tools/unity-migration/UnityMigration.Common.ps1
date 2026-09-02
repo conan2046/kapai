@@ -411,8 +411,19 @@ function Get-UnityMigrationEarlyUserPlayFailures {
     if ([string](Get-UnityMigrationPropertyValue -Object $Record -Name "checkpoint" -Default "") -ne "post-g3-early-play") {
         $failures.Add("early user Play checkpoint must be 'post-g3-early-play'.")
     }
-    if ((Get-UnityMigrationPropertyValue -Object $Record -Name "userParticipated" -Default $false) -ne $true) {
-        $failures.Add("early user Play must record explicit user participation.")
+    $userParticipated = (Get-UnityMigrationPropertyValue -Object $Record -Name "userParticipated" -Default $false) -eq $true
+    $userDelegatedAgentPlay = (Get-UnityMigrationPropertyValue -Object $Record -Name "userDelegatedAgentPlay" -Default $false) -eq $true
+    if (-not $userParticipated -and -not $userDelegatedAgentPlay) {
+        $failures.Add("early Play must record explicit user participation or explicit user-delegated agent Play.")
+    }
+    if ($userDelegatedAgentPlay) {
+        $delegation = Get-UnityMigrationPropertyValue -Object $Record -Name "delegation" -Default $null
+        if ($null -eq $delegation -or
+            (Get-UnityMigrationPropertyValue -Object $delegation -Name "authorized" -Default $false) -ne $true -or
+            (Get-UnityMigrationPropertyValue -Object $delegation -Name "finalUserConfirmationRequired" -Default $false) -ne $true -or
+            -not [string](Get-UnityMigrationPropertyValue -Object $delegation -Name "evidence" -Default "")) {
+            $failures.Add("delegated early Play requires authorized delegation evidence and must retain final user confirmation.")
+        }
     }
     $testedUtc = [string](Get-UnityMigrationPropertyValue -Object $Record -Name "testedUtc" -Default "")
     $parsedUtc = [DateTime]::MinValue
@@ -621,6 +632,9 @@ function Add-UnityMigrationOperationRecord {
         if ([int](Get-UnityMigrationPropertyValue -Object $ledger -Name "schemaVersion" -Default 0) -ne 1 -or
             [string](Get-UnityMigrationPropertyValue -Object $ledger -Name "module" -Default "") -ine $Module) {
             throw "Operation ledger identity is invalid: $resolvedPath"
+        }
+        if ($null -eq $ledger.PSObject.Properties["records"]) {
+            $ledger | Add-Member -NotePropertyName records -NotePropertyValue @()
         }
     }
     else {
@@ -1020,7 +1034,7 @@ function New-UnityMigrationRetrospective {
             policyStartedUtc = $gateRecords[0].timingPolicyStartedUtc
             historicalBackfill = $false
             calendarGateTimings = Get-UnityMigrationPropertyValue -Object $gateRecords[0] -Name "gateTimings" -Default ([pscustomobject]@{})
-            machineTimingReports = @($machineReports)
+            machineTimingReports = $machineReports.ToArray()
             interpretation = "calendarGateTimings include waiting; machineTimingReports contain runner execution time. Neither is human work-hours."
         }
     }
@@ -1390,6 +1404,11 @@ function Get-UnityMigrationFixedAccountContractFailures {
             $failures.Add("Evidence contract $Module fixedAccount field '$name' must be boolean.")
         }
     }
+    $postValidationAdapterAction = [string](Get-UnityMigrationPropertyValue `
+        -Object $FixedAccount -Name "postValidationAdapterAction" -Default "AssertSetup")
+    if ($postValidationAdapterAction -notmatch '^Assert[A-Za-z0-9]+$') {
+        $failures.Add("Evidence contract $Module fixedAccount postValidationAdapterAction must name an Assert* adapter action.")
+    }
     foreach ($flag in @((Get-UnityMigrationPropertyValue -Object $FixedAccount -Name "extraFlags" -Default @()))) {
         if ([string]::IsNullOrWhiteSpace([string]$flag)) {
             $failures.Add("Evidence contract $Module fixedAccount extraFlags contains an empty value.")
@@ -1580,7 +1599,7 @@ function Stop-UnityMigrationCompileChildren {
     if (-not $IsWindows) { return }
     $editorDirectory = Split-Path -Parent $UnityExecutable
     $runtimeDirectory = Join-Path $editorDirectory "Data\NetCoreRuntime"
-    $children = @(Get-Process dotnet,bee_backend,Unity.ILPP.Trigger -ErrorAction SilentlyContinue | Where-Object {
+    $children = @(Get-Process dotnet,bee_backend,Unity.ILPP.Trigger,Unity.ILPP.Runner -ErrorAction SilentlyContinue | Where-Object {
         $_.Path -and $_.Path.StartsWith($editorDirectory, [StringComparison]::OrdinalIgnoreCase)
     })
     if ($children.Count -eq 0) { return }
@@ -1661,10 +1680,12 @@ function Invoke-UnityMigrationCompilePreflight {
         "error CS0009:.*Assembly-CSharp\.ref\.dll.*being used by another process",
         "error CS2012:.*Assembly-CSharp(?:-Editor)?\.dll.*being used by another process",
         "PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process",
-        "IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll"
+        "IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll",
+        "Assembly-CSharp(?:-Editor)?\.dll.*另一个程序正在使用此文件",
+        "Copying the file failed:.*另一个程序正在使用此文件"
     )
     $process = $null
-    for ($attempt = 1; $attempt -le 2; $attempt++) {
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
         if (Test-Path -LiteralPath $logPath) { Remove-Item -LiteralPath $logPath -Force }
         $process = Start-Process -FilePath $UnityExecutable -ArgumentList $arguments -WindowStyle Hidden -PassThru
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
@@ -1675,22 +1696,22 @@ function Invoke-UnityMigrationCompilePreflight {
         # Unity batchmode may report its exit code before ILPP/Bee release Assembly-CSharp.dll.
         # The child processes are only cleaned after this owned batch process has exited.
         Stop-UnityMigrationCompileChildren -UnityExecutable $UnityExecutable
-        $transientBeeLock = $attempt -eq 1 -and (Test-Path -LiteralPath $logPath) -and
+        $transientBeeLock = $attempt -lt 4 -and (Test-Path -LiteralPath $logPath) -and
             (Select-String -LiteralPath $logPath -Pattern $transientBeeLockPatterns -CaseSensitive:$false -Quiet)
         if ($process.ExitCode -eq 0 -and -not $transientBeeLock) { break }
         if (-not $transientBeeLock) {
             throw "Unity compile preflight failed with exit code $($process.ExitCode); log=$logPath"
         }
-        $retryEvidence = "$logPath.transient-bee-lock-attempt1.log"
+        $retryEvidence = "$logPath.transient-bee-lock-attempt$attempt.log"
         Copy-Item -LiteralPath $logPath -Destination $retryEvidence -Force
-        Write-Warning "Unity held a generated Assembly-CSharp artifact during compile/reload; retrying the same compile preflight once even if Unity recovered with exit code 0. Evidence: $retryEvidence"
-        Start-Sleep -Seconds 2
+        Write-Warning "Unity held a generated Assembly-CSharp artifact during compile/reload; retrying the same compile preflight (attempt $($attempt + 1)/4). Evidence: $retryEvidence"
+        Start-Sleep -Seconds (2 * $attempt)
         Assert-NoUnityMigrationBlockingDotNet -Root $Root
     }
     if ($null -eq $process -or $process.ExitCode -ne 0) {
         throw "Unity compile preflight failed after transient-lock retry; log=$logPath"
     }
-    $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process'
+    $seriousPattern = 'error CS\d+|Unhandled Exception|Fatal Error|Crash!!!|ILPostProcessorException|IOException:.*Assembly-CSharp|sharing violation|being used by another process|另一个程序正在使用此文件'
     $serious = @(Select-String -LiteralPath $logPath -Pattern $seriousPattern -CaseSensitive:$false -ErrorAction SilentlyContinue)
     if ($serious.Count -gt 0) {
         $sample = ($serious | Select-Object -First 10 | ForEach-Object { "$($_.LineNumber):$($_.Line)" }) -join "`n"
@@ -2253,16 +2274,69 @@ function Assert-UnityMigrationCocosIdentityEvidence {
     )
     $entry = Import-UnityMigrationJson -Root $Root -Path $Path
     $scope = Get-UnityMigrationPropertyValue -Object $Matrix -Name "scope" -Default $null
-    $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
-    $expectedRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $fallbackUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedUserId" -Default 0)
+    $fallbackRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "fixedRoleId" -Default 0)
+    $expectedUserId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedUserId" -Default $fallbackUserId)
+    $expectedRoleId = [uint32](Get-UnityMigrationPropertyValue -Object $scope -Name "cocosFixedRoleId" -Default $fallbackRoleId)
     if ($expectedUserId -eq 0 -or $expectedRoleId -eq 0) {
-        throw "Module '$Module' matrix scope must freeze fixedUserId/fixedRoleId before G1."
+        throw "Module '$Module' matrix scope must freeze a Cocos fixed identity before G1."
     }
     if ([string]$entry.Value.module -ine $Module -or -not [bool]$entry.Value.success -or
         [uint32]$entry.Value.userId -ne $expectedUserId -or [uint32]$entry.Value.roleId -ne $expectedRoleId) {
         throw "Cocos identity evidence does not prove the frozen $expectedUserId/$expectedRoleId identity."
     }
     return $entry.Value
+}
+
+function Assert-UnityMigrationCocosBaselineStateEvidence {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)]$G5,
+        [Parameter(Mandatory = $true)]$Identity
+    )
+    $contract = Get-UnityMigrationPropertyValue -Object $G5 -Name "cocosBaselineStateContract" -Default $null
+    if ($null -eq $contract) { return $null }
+    $evidencePath = [string](Get-UnityMigrationPropertyValue -Object $contract -Name "evidencePath" -Default "")
+    $expected = Get-UnityMigrationPropertyValue -Object $contract -Name "expected" -Default $null
+    if (-not $evidencePath -or $null -eq $expected -or @($expected.PSObject.Properties).Count -eq 0) {
+        throw "Cocos baseline state contract for module '$Module' requires evidencePath and non-empty expected state."
+    }
+    $entry = Import-UnityMigrationJson -Root $Root -Path $evidencePath
+    $evidence = $entry.Value
+    if ([int](Get-UnityMigrationPropertyValue -Object $evidence -Name "schemaVersion" -Default 0) -ne 1 -or
+        [string](Get-UnityMigrationPropertyValue -Object $evidence -Name "module" -Default "") -ine $Module -or
+        -not [bool](Get-UnityMigrationPropertyValue -Object $evidence -Name "success" -Default $false) -or
+        [uint32](Get-UnityMigrationPropertyValue -Object $evidence -Name "userId" -Default 0) -ne [uint32]$Identity.userId -or
+        [uint32](Get-UnityMigrationPropertyValue -Object $evidence -Name "roleId" -Default 0) -ne [uint32]$Identity.roleId) {
+        throw "Cocos baseline state evidence does not prove module '$Module' and frozen identity $($Identity.userId)/$($Identity.roleId)."
+    }
+    $actualState = Get-UnityMigrationPropertyValue -Object $evidence -Name "state" -Default $null
+    if ($null -eq $actualState) { throw "Cocos baseline state evidence has no state object: $evidencePath" }
+    foreach ($property in @($expected.PSObject.Properties)) {
+        $actualProperty = $actualState.PSObject.Properties[[string]$property.Name]
+        if ($null -eq $actualProperty) {
+            throw "Cocos baseline state evidence is missing expected field '$($property.Name)': $evidencePath"
+        }
+        $expectedJson = $property.Value | ConvertTo-Json -Compress -Depth 8
+        $actualJson = $actualProperty.Value | ConvertTo-Json -Compress -Depth 8
+        if ($actualJson -cne $expectedJson) {
+            throw "Cocos baseline state '$($property.Name)' mismatch: expected=$expectedJson actual=$actualJson"
+        }
+    }
+    $evidenceFiles = @((Get-UnityMigrationPropertyValue -Object $evidence -Name "evidenceFiles" -Default @()))
+    if ($evidenceFiles.Count -eq 0) { throw "Cocos baseline state evidence must reference durable evidenceFiles: $evidencePath" }
+    foreach ($reference in $evidenceFiles) {
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path ([string]$reference)
+        if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+            throw "Cocos baseline state evidence file is missing: $reference"
+        }
+    }
+    return [pscustomobject]@{
+        evidencePath = $evidencePath
+        sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $entry.Path).Hash
+        value = $evidence
+    }
 }
 
 function Get-UnityMigrationCocosBaselineFingerprint {
@@ -2276,6 +2350,15 @@ function Get-UnityMigrationCocosBaselineFingerprint {
         $resolved = Resolve-UnityMigrationPath -Root $Root -Path $reference
         if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
             throw "Cocos baseline input is missing: $reference"
+        }
+        $lines.Add("$reference=$((Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash)")
+    }
+    $stateContract = Get-UnityMigrationPropertyValue -Object $G5 -Name "cocosBaselineStateContract" -Default $null
+    if ($null -ne $stateContract) {
+        $reference = [string](Get-UnityMigrationPropertyValue -Object $stateContract -Name "evidencePath" -Default "")
+        $resolved = Resolve-UnityMigrationPath -Root $Root -Path $reference
+        if (-not $reference -or -not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+            throw "Cocos baseline state evidence input is missing: $reference"
         }
         $lines.Add("$reference=$((Get-FileHash -Algorithm SHA256 -LiteralPath $resolved).Hash)")
     }
@@ -2304,6 +2387,16 @@ function Assert-UnityMigrationCocosBaseline {
     }
     if ([uint32]$entry.Value.userId -eq 0 -or [uint32]$entry.Value.roleId -eq 0) {
         throw "Cocos baseline has no frozen identity."
+    }
+    $stateContract = Get-UnityMigrationPropertyValue -Object $g5 -Name "cocosBaselineStateContract" -Default $null
+    if ($null -ne $stateContract) {
+        $stateEvidence = Assert-UnityMigrationCocosBaselineStateEvidence -Root $Root -Module $Module -G5 $g5 -Identity $entry.Value
+        if ([string](Get-UnityMigrationPropertyValue -Object $entry.Value -Name "runtimeStateEvidencePath" -Default "") -ne
+            [string]$stateEvidence.evidencePath -or
+            [string](Get-UnityMigrationPropertyValue -Object $entry.Value -Name "runtimeStateFingerprint" -Default "") -ne
+            [string]$stateEvidence.sha256) {
+            throw "Cocos baseline runtime state evidence changed after G1; recapture the affected states."
+        }
     }
     $states = @($entry.Value.states)
     if ($states.Count -ne @($g5.pairs).Count) { throw "Cocos baseline state count does not match the G5 pair contract." }

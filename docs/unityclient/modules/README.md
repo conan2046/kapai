@@ -20,8 +20,8 @@
 | 神将培养模块 B | `HEROCULTIVATION.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen`；18个当前Cocos状态与G3初版已完成，等待用户按最终Prefab布局复测 |
 | 装备（法宝边界回归） | `HERO_EQUIPMENT.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending`；方案A冻结14来源/974业务ID/86控件；历史G4-G6仅作诊断 |
 | 邮件 | `MAIL.md` | `G0-G6 passed / 13/13 complete`；当前证据路径存在 |
-| 商城 | `SHOP.md` | `G0-G6 passed / 21/21 complete`；当前证据路径存在 |
-| 玩法商店 | `GAMEPLAY_SHOPS.md` | `G0 pending / evidence-missing`；登记的15个正式证据路径当前缺失，旧完成态已撤销 |
+| 商城 | `SHOP.md` | `G3 runtime-ready / early user Play passed`；Panel_12隐藏、Shop自有关闭、全控件射线及数量InputField修复已通过用户早测；正式G1-G2及G4-G6仍pending |
+| 将魂商店 | `GAMEPLAY_SHOPS.md` | `G0-G4 passed / early user Play passed / G5-G6 pending`；当前仅保留function_id=15/type=2及全部调用入口，29/29控件与9/9语义通过，其他玩法商店分支暂不修复 |
 | 体力领取 | `STAMINACLAIM.md` | `steam-excluded`；历史证据仅留档，不再迁移 |
 | 资源找回 | `RESOURCERECOVERY.md` | `steam-excluded`；历史证据仅留档，不再迁移 |
 | 支付前置 | `PAYMENT.md` | P2 首个前置；仅完成设计冻结，源码尚未实现 |
@@ -30,7 +30,7 @@
 | 聊天 | `CHAT.md` | `steam-excluded`；含HUD聊天条 |
 | 队伍 | `TEAM.md` | `steam-excluded` |
 | 帮派 | `GUILD.md` | `steam-excluded`；含宗门 |
-| 世界/战斗/副本 | `WORLD.md` | `G0-G6 passed / 25/25 complete`；当前证据路径存在 |
+| 世界/战斗/副本 | `WORLD.md` | `V0 closed / A=16,19`；World自身停在G3，BattleFengShenStory子模块已完成G6；`47–53`移除 |
 | 福利 | `WELFARE.md` | `steam-excluded`；含在线奖励和体力领取 |
 | 活动 | `ACTIVITY.md` | `steam-excluded`；充值、排行榜及其他玩家数据活动整体排除 |
 | 神将招募 | `DRAW.md` | `G0-G5 retained / G6 evidence missing`；矩阵已有`g6Audit`，但登记的56份逐控件双端图片当前全部缺失 |
@@ -39,7 +39,7 @@
 | 决战昆仑 | `KUNLUN.md` | `steam-excluded`；依赖匹配对手数据 |
 | 血战到底 | `BLOOD_FIGHT.md` | `steam-excluded`；依赖全服排行榜数据 |
 | 游历三界 | `YOULI.md` | `G0 passed / G1-G6 evidence missing`；实现保留，Cocos/Unity基准与差异目录当前缺失 |
-| 封神列传 | `FENGSHEN_STORY.md` | `G0-G6 passed / 25/25 complete`；真实挑战/奖励、12 组双端视觉、精确恢复与 Bootstrap 幂等通过 |
+| 封神列传 | `FENGSHEN_STORY.md` | 用户确认保留；战斗19的BattleFengShenStory子模块已完成G0-G6；父模块仍按自身门禁推进 |
 | 竞技场 | `ARENA.md` | `G0 pending / legacy logic only`；历史Runner不替代当前Cocos基准与控件闭包 |
 | 法宝搜索 | `XUNBAO.md` | `G0 passed / G1-G6 evidence missing`；实现保留，Cocos/Unity基准与差异目录当前缺失 |
 | Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |

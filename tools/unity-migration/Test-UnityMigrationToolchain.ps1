@@ -70,6 +70,7 @@ $invalid = [pscustomobject]@{
     reloginRequired = "yes"
     extraFlags = @("")
     skipPostValidationFixtureAssert = 0
+    postValidationAdapterAction = "CompleteValidation"
     dataPreflight = [pscustomobject]@{
         requiresLogin = "yes"
         requirements = @(
@@ -90,6 +91,13 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($invalidFailures | Where-Object { $_ -like "*skipPostValidationFixtureAssert*boolean*" }).Count -eq 1
 ) "Non-boolean skipPostValidationFixtureAssert was not rejected."
+Assert-ToolchainTest (
+    @($invalidFailures | Where-Object { $_ -like "*postValidationAdapterAction*Assert*" }).Count -eq 1
+) "Invalid postValidationAdapterAction was not rejected."
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('-Name "postValidationAdapterAction" -Default "AssertSetup"') -and
+    $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter $postValidationAdapterAction')
+) "Fixed-account runner no longer supports a contract-owned post-validation adapter oracle."
 Assert-ToolchainTest (
     @($invalidFailures | Where-Object { $_ -like "*extraFlags contains an empty value*" }).Count -eq 1
 ) "Empty extraFlags value was not rejected."
@@ -190,6 +198,7 @@ foreach ($rule in @($rootCauseRules.rules)) {
 }
 $moduleScaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") -Raw -Encoding UTF8
 $gateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-UnityMigrationGate.ps1") -Raw -Encoding UTF8
+$docsValidatorSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityMigrationDocs.ps1") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $commonSource.Contains('function New-UnityMigrationG0Draft') -and
     $commonSource.Contains('function Assert-UnityMigrationG0Draft') -and
@@ -198,13 +207,39 @@ Assert-ToolchainTest (
     $moduleScaffoldSource.Contains('Get-ProtocolEvidence.ps1')
 ) "Future-module G0 draft no longer composes current inventory and protocol evidence."
 Assert-ToolchainTest (
+    $moduleScaffoldSource.Contains('- ``$($Module)Controller.lua``') -and
+    $moduleScaffoldSource.Contains('- G0 ``acceptanceExamples``') -and
+    -not $moduleScaffoldSource.Contains('- `${Module}Controller.lua`')
+) "Future-module documentation scaffold emits literal module placeholders or PowerShell control characters instead of Markdown code spans."
+Assert-ToolchainTest (
     $gateSource.Contains('[switch]$StartTiming') -and
     $gateSource.Contains('Historical gates were not backfilled') -and
     $commonSource.Contains('historicalBackfill = $false') -and
-    $commonSource.Contains('machineTimingReports')
+    $commonSource.Contains('machineTimingReports = $machineReports.ToArray()')
 ) "Future-only gate timing or retrospective timing separation was removed."
+Assert-ToolchainTest (
+    $docsValidatorSource.Contains('$currentCocosUnreachable = -not $currentCocosReachable -and $excludedFromCurrentCocosParityDenominator') -and
+    $docsValidatorSource.Contains('$statusDenominator = [int](Get-UnityMigrationPropertyValue') -and
+    $docsValidatorSource.Contains('excludes a current-Cocos-unreachable flow without exclusionEvidence.') -and
+    $docsValidatorSource.Contains('-not $currentCocosUnreachable -and $runnerText -notmatch') -and
+    $docsValidatorSource.Contains('must not fabricate G5 pairs for a current-Cocos-unreachable flow.') -and
+    $docsValidatorSource.Contains('-not $contractCurrentCocosUnreachable -and') -and
+    $docsValidatorSource.Contains('$contractMigrationExcluded = $null -ne $contractModule -and') -and
+    $docsValidatorSource.Contains('$null -ne $fixedAccount -and -not $contractMigrationExcluded')
+) "Docs validation no longer derives the current denominator or safely skips fixed-account execution contracts for evidence-backed excluded modules."
 
 $manifest = (Import-UnityMigrationManifest -Root $root).Value
+$battleMeetMonsterModule = @($manifest.modules | Where-Object { $_.key -eq "BattleMeetMonster" })[0]
+Assert-ToolchainTest (
+    @($manifest.steamProgressPolicy.nonDenominatorSubmodules) -contains "BattleMeetMonster" -and
+    $null -ne $battleMeetMonsterModule -and
+    [bool]$battleMeetMonsterModule.currentCocosReachable -eq $false -and
+    [bool]$battleMeetMonsterModule.excludedFromCurrentCocosParityDenominator -eq $true -and
+    [string]$battleMeetMonsterModule.exclusionEvidence -eq ".local/unity-validation/battlemeetmonster-cocos-entry-audit-20260830.json"
+) "BattleMeetMonster legacy current-Cocos-unreachable classification regressed into the Steam denominator or lost its evidence contract."
+Assert-ToolchainTest (
+    @($manifest.steamProgressPolicy.nonDenominatorSubmodules) -contains "BattleFengShenStory"
+) "BattleFengShenStory battle-type submodule regressed into the top-level Steam feature denominator."
 $unityExecutable = Resolve-UnityMigrationUnityExecutable -Root $root -Manifest $manifest
 Assert-ToolchainTest (Test-Path -LiteralPath $unityExecutable -PathType Leaf) `
     "Portable Unity executable resolution did not return an existing editor."
@@ -350,6 +385,23 @@ $validEarlyUserPlay = [pscustomobject]@{
 Assert-ToolchainTest (
     @(Get-UnityMigrationEarlyUserPlayFailures -Record $validEarlyUserPlay -ExpectedModule "Sample").Count -eq 0
 ) "Valid post-G3 early user Play evidence was rejected."
+$validDelegatedEarlyPlay = $validEarlyUserPlay | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$validDelegatedEarlyPlay.userParticipated = $false
+$validDelegatedEarlyPlay | Add-Member -NotePropertyName userDelegatedAgentPlay -NotePropertyValue $true
+$validDelegatedEarlyPlay | Add-Member -NotePropertyName delegation -NotePropertyValue ([pscustomobject]@{
+    authorized = $true
+    finalUserConfirmationRequired = $true
+    evidence = ".local/unity-validation/sample-agent-test-delegation.json"
+})
+Assert-ToolchainTest (
+    @(Get-UnityMigrationEarlyUserPlayFailures -Record $validDelegatedEarlyPlay -ExpectedModule "Sample").Count -eq 0
+) "Valid explicitly delegated post-G3 agent Play evidence was rejected."
+$invalidDelegatedEarlyPlay = $validDelegatedEarlyPlay | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+$invalidDelegatedEarlyPlay.delegation.finalUserConfirmationRequired = $false
+Assert-ToolchainTest (
+    @(Get-UnityMigrationEarlyUserPlayFailures -Record $invalidDelegatedEarlyPlay -ExpectedModule "Sample" |
+        Where-Object { $_ -like "*must retain final user confirmation*" }).Count -eq 1
+) "Delegated early Play incorrectly allowed final user confirmation to be removed."
 $invalidEarlyUserPlay = $validEarlyUserPlay | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $invalidEarlyUserPlay.feedback[0].status = "pending"
 Assert-ToolchainTest (
@@ -407,6 +459,9 @@ Assert-ToolchainTest (
     $fixedAccountRunnerSource.Contains('Explicit fixed-account server executable is missing:') -and
     $fixedAccountRunnerSource.Contains('[switch]$G3RuntimeOnly') -and
     $fixedAccountRunnerSource.Contains('validationMode = "g3-runtime"') -and
+    $fixedAccountRunnerSource.Contains('$g3ValidationFlags = @((Get-UnityMigrationPropertyValue -Object $fixed -Name "g3ValidationFlags" -Default @())') -and
+    $fixedAccountRunnerSource.Contains('-Name "copyArtifactsInG3" -Default $false') -and
+    $fixedAccountRunnerSource.Contains('$extraFlags = @((Get-UnityMigrationPropertyValue -Object $fixed -Name "extraFlags" -Default @())') -and
     @($bagEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXBagG3Validation' -and
     $fixedAccountRunnerSource.Contains('Required Unity assets are unresolved Git LFS pointers:') -and
     $fixedAccountRunnerSource.Contains('function Wait-FixedRuntimeRelease') -and
@@ -423,6 +478,58 @@ Assert-ToolchainTest (
     @($bagEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
         'unityclient/Assets/ProjectX/res/xiaokaiSJ2.ttf'
 ) "Independent-worktree regression: fixed-account runner cannot use an explicit read-only server runtime binary."
+
+$battleFengShenEvidenceContract = @((Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/module-evidence-contracts.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json).modules | Where-Object { $_.module -eq "BattleFengShenStory" })[0]
+$battleFengShenControlMatrix = Get-Content -LiteralPath `
+    (Join-Path $root "docs/unityclient/matrices/BATTLEFENGSHENSTORY_CONTROLS.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+Assert-ToolchainTest (
+    [int]$battleFengShenControlMatrix.hardGateVersion -eq 3 -and
+    @($battleFengShenControlMatrix.scenarioStateControlIds).Count -eq 1 -and
+    [string]$battleFengShenControlMatrix.scenarioStateControlIds[0] -eq 'BFSB-03-AUTO' -and
+    @($battleFengShenControlMatrix.controls | Where-Object {
+        [string]$_.id -eq 'BFSB-03-AUTO' -and $_.realEntryClick -eq $false
+    }).Count -eq 1 -and
+    @($battleFengShenControlMatrix.controls | Where-Object {
+        [string]$_.id -ne 'BFSB-03-AUTO' -and $_.realEntryClick -eq $true
+    }).Count -eq 8
+) "BattleFengShenStory hidden AUTO state must remain a scenario assertion while the other eight controls require real clicks."
+Assert-ToolchainTest (
+    $battleFengShenEvidenceContract.fixedAccount.copyArtifactsInG3 -eq $true -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies).Count -eq 12 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.source -eq 'build/ui-migration/BFS-BATTLE-SPEED.png'
+    }).Count -eq 1 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.source -eq 'build/ui-migration/BFS-BATTLE-SETTLEMENT.png'
+    }).Count -eq 1 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.source -eq 'build/ui-migration/BFS-BATTLE-SKIP-RETURN.png'
+    }).Count -eq 1 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.destination -like '.local/ui-fidelity/BattleFengShenStory/unity/g5/*'
+    }).Count -eq 10 -and
+    @($battleFengShenEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.destination -like '.local/ui-fidelity/BattleFengShenStory/unity/g3/*'
+    }).Count -eq 2
+) "BattleFengShenStory current G3 runtime no longer publishes natural-settlement and explicit-skip evidence."
+Assert-ToolchainTest (
+    @($battleFengShenEvidenceContract.g5.cocosBaselineInputs) -contains
+        'client/ProjectX/src/Data/PetkaPaiManager.lua' -and
+    @($battleFengShenEvidenceContract.g5.cocosBaselineInputs) -contains
+        'client/ProjectX/src/Data/LHeroDetailData.lua' -and
+    @($battleFengShenEvidenceContract.g5.cocosBaselineInputs) -contains
+        'client/ProjectX/src/View/Background/FirstClassBg.lua' -and
+    @($battleFengShenEvidenceContract.g5.cocosBaselineInputs) -contains
+        'server/config/json/config.json'
+) "BattleFengShenStory G1 input fingerprint no longer covers the current stamina timer, value, header, and 360-second regeneration source chain."
+Assert-ToolchainTest (
+    @($battleFengShenEvidenceContract.g5.cocosBaselineInputs | Where-Object {
+        [string]$_ -match 'Invoke-FengShenStorySqliteFixture\.(ps1|py)$'
+    }).Count -eq 0
+) "BattleFengShenStory Cocos baseline inputs must not include the Unity-only SQLite fixture adapter."
 $bagSqliteAdapterSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Invoke-BagSqliteFixture.py") -Raw -Encoding UTF8
 $bagCocosAdapterSource = Get-Content -LiteralPath `
@@ -662,6 +769,7 @@ Assert-ToolchainTest (
         -ResolutionRecords @($operationLedger.records[1])) -eq "observe fresh state"
 ) "Retrospective did not replace pending-diagnosis with the resolved effective root cause."
 $ledgerTestPath = ".local/unity-validation/toolchain-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
+$resolvedLegacyLedgerPath = $null
 try {
     $failedWrite = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
         -Tool "test" -Operation "fail" -Outcome Failed -ErrorMessage "failure" -RootCause "known" -Path $ledgerTestPath
@@ -680,10 +788,28 @@ try {
         -IterationAction "retest" -IterationEvidence @("tools/unity-migration/Test-UnityMigrationToolchain.ps1") `
         -Path $ledgerTestPath | Out-Null
     Assert-ToolchainTest $true "File-backed resolution could not be written."
+
+    $legacyLedgerPath = ".local/unity-validation/toolchain-legacy-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
+    $resolvedLegacyLedgerPath = Resolve-UnityMigrationPath -Root $root -Path $legacyLedgerPath
+    [pscustomobject][ordered]@{
+        schemaVersion = 1
+        module = "ToolchainLegacy"
+        updatedUtc = [DateTime]::UtcNow.ToString("O")
+        operations = @([pscustomobject]@{ id = "legacy-1"; status = "Resolved" })
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $resolvedLegacyLedgerPath -Encoding UTF8
+    Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainLegacy" -Gate G4 `
+        -Tool "test" -Operation "append-modern-record" -Outcome Passed -Path $legacyLedgerPath | Out-Null
+    $legacyLedger = Get-Content -LiteralPath $resolvedLegacyLedgerPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-ToolchainTest (
+        @($legacyLedger.operations).Count -eq 1 -and @($legacyLedger.records).Count -eq 1
+    ) "Operation recorder no longer preserves a legacy operations ledger while appending modern records."
 }
 finally {
     $resolvedLedgerTestPath = Resolve-UnityMigrationPath -Root $root -Path $ledgerTestPath
     if (Test-Path -LiteralPath $resolvedLedgerTestPath) { Remove-Item -LiteralPath $resolvedLedgerTestPath -Force }
+    if ($resolvedLegacyLedgerPath -and (Test-Path -LiteralPath $resolvedLegacyLedgerPath)) {
+        Remove-Item -LiteralPath $resolvedLegacyLedgerPath -Force
+    }
 }
 $resolutionAudit = @(Get-UnityMigrationOperationResolutionAudit -Ledger $operationLedger -RecordIds @("failure-1"))
 Assert-ToolchainTest (
@@ -757,6 +883,49 @@ Assert-ToolchainTest (
     @($sourceAuditFailures | Where-Object { $_ -like "*requires id, handling and evidence*" }).Count -eq 1
 ) "Incomplete source/config/transform audit was not rejected."
 
+$stateEvidenceTestPath = ".local/unity-validation/toolchain-cocos-runtime-input-test.json"
+$resolvedStateEvidenceTestPath = Resolve-UnityMigrationPath -Root $root -Path $stateEvidenceTestPath
+$stateEvidenceContract = [pscustomobject]@{
+    cocosBaselineInputs = @("AGENTS.md")
+    cocosBaselineStateContract = [pscustomobject]@{
+        evidencePath = $stateEvidenceTestPath
+        expected = [pscustomobject]@{ chapterIndex = 6; nodeId = 40074; fightType = 19 }
+    }
+}
+$stateIdentity = [pscustomobject]@{ userId = 7200057; roleId = 1000003 }
+try {
+    $validStateEvidence = [pscustomobject]@{
+        schemaVersion = 1
+        module = "ToolchainState"
+        success = $true
+        userId = 7200057
+        roleId = 1000003
+        state = [pscustomobject]@{ chapterIndex = 6; nodeId = 40074; fightType = 19 }
+        evidenceFiles = @("AGENTS.md")
+    }
+    Write-UnityMigrationUtf8 -Path $resolvedStateEvidenceTestPath -Content (($validStateEvidence | ConvertTo-Json -Depth 6) + "`n")
+    $validState = Assert-UnityMigrationCocosBaselineStateEvidence -Root $root -Module "ToolchainState" `
+        -G5 $stateEvidenceContract -Identity $stateIdentity
+    $validFingerprint = Get-UnityMigrationCocosBaselineFingerprint -Root $root -G5 $stateEvidenceContract
+    Assert-ToolchainTest (
+        [string]$validState.evidencePath -eq $stateEvidenceTestPath -and [string]$validState.sha256 -and [string]$validFingerprint
+    ) "Valid Cocos runtime state evidence was rejected or omitted from the baseline fingerprint."
+    $validStateEvidence.state.nodeId = 40083
+    Write-UnityMigrationUtf8 -Path $resolvedStateEvidenceTestPath -Content (($validStateEvidence | ConvertTo-Json -Depth 6) + "`n")
+    $wrongStateRejected = $false
+    try {
+        Assert-UnityMigrationCocosBaselineStateEvidence -Root $root -Module "ToolchainState" `
+            -G5 $stateEvidenceContract -Identity $stateIdentity | Out-Null
+    }
+    catch { $wrongStateRejected = $_.Exception.Message -like "*nodeId*mismatch*" }
+    Assert-ToolchainTest $wrongStateRejected "Cocos G1 baseline accepted evidence from the wrong runtime stage."
+}
+finally {
+    if (Test-Path -LiteralPath $resolvedStateEvidenceTestPath -PathType Leaf) {
+        Remove-Item -LiteralPath $resolvedStateEvidenceTestPath -Force
+    }
+}
+
 $operationLedgerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Update-UnityMigrationOperationLedger.ps1") `
     -Raw -Encoding UTF8
 Assert-ToolchainTest (
@@ -781,6 +950,11 @@ Assert-ToolchainTest (
     $gateSource.Contains("Completing G1 requires -CocosAutomationLedgerPath") -and
     $gateSource.Contains('Completing G1 requires -$($required[0])') -and
     $gateSource.Contains("Assert-UnityMigrationCocosBaseline") -and
+    $gateSource.Contains("revalidated current evidence; passed status and original timing retained") -and
+    $gateSource.Contains('[switch]$InvalidateFrom') -and
+    $gateSource.Contains('-InvalidateFrom requires -InvalidationReason') -and
+    $gateSource.Contains('gateInvalidations') -and
+    $gateSource.Contains('Operation "invalidate-from-$Gate"') -and
     $gateSource.Contains("Completing G4 requires -SummaryPath") -and
     $gateSource.Contains("Assert-UnityMigrationSourceAudit") -and
     $gateSource.Contains("Test-UnityModuleG5Preflight.ps1") -and
@@ -1043,6 +1217,20 @@ Assert-ToolchainTest (
     $currencyStoreSource.Contains('A same-account reconnect receives /1004 again') -and
     -not $currencyStoreSource.Contains("public void Initialize(long gold, long premium, long boundPremium, uint soul, uint guildContribution)`r`n        {`r`n            values.Clear();")
 ) "CurrencyStore no longer preserves auxiliary authoritative currencies across same-account reconnect."
+$playerControllerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $playerControllerSource.Contains('local BOUND_PREMIUM = 60001') -and
+    $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
+    -not $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
+    -not $playerControllerSource.Contains('if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end')
+) "PlayerHud no longer mirrors current Cocos /320 op 505/506 public TongBao overwrite semantics."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('services.Currencies.Changed += RefreshSharedCurrencyHeaders;') -and
+    $projectXAppSource.Contains('services.Currencies.Changed -= RefreshSharedCurrencyHeaders;') -and
+    $projectXAppSource.Contains('RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");') -and
+    $projectXAppSource.Contains('RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");')
+) "Shared FirstClassBg/Task GoldCheck consumers no longer refresh from CurrencyStore changes."
 
 $settingsPresenterSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
@@ -1054,9 +1242,11 @@ Assert-ToolchainTest (
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
 Assert-ToolchainTest (
-    $fixedRunnerSource.Contains('$requiredGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }') -and
+    $fixedRunnerSource.Contains('$requiredGate = if ($G5VisualOnly) { "G4" } elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }') -and
     $fixedRunnerSource.Contains('$workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }') -and
-    $fixedRunnerSource.Contains('$failureGate = if ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }') -and
+    $fixedRunnerSource.Contains('$failureGate = if ($G5VisualOnly) { "G5" } elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" } else { "G6" }') -and
+    $fixedRunnerSource.Contains('$runnerUserId = if ($G3RuntimeOnly -or $G5VisualOnly) { $UserId } else {') -and
+    $fixedRunnerSource.Contains('$runnerRoleId = if ($G3RuntimeOnly -or $G5VisualOnly) { $RoleId } else {') -and
     $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)') -and
     $fixedRunnerSource.Contains('$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"') -and
     $fixedRunnerSource.Contains('$serverStartParameters = @{ WaitSeconds = 60 }') -and
@@ -1126,11 +1316,14 @@ Assert-ToolchainTest (
     $commonSource.Contains('error CS2012:.*Assembly-CSharp(?:-Editor)?\.dll.*being used by another process') -and
     $commonSource.Contains('PostProcessing failed: System\.IO\.IOException:.*Library\\Bee\\artifacts.*being used by another process') -and
     $commonSource.Contains('IOException:\s*Sharing violation on path .*Library\\ScriptAssemblies\\Assembly-CSharp(?:-Editor)?\.dll') -and
+    $commonSource.Contains('Copying the file failed:.*另一个程序正在使用此文件') -and
+    $commonSource.Contains('for ($attempt = 1; $attempt -le 4; $attempt++)') -and
+    $commonSource.Contains('$transientBeeLock = $attempt -lt 4') -and
     $commonSource.Contains('if ($process.ExitCode -eq 0 -and -not $transientBeeLock) { break }') -and
-    $commonSource.Contains('Get-Process dotnet,bee_backend,Unity.ILPP.Trigger') -and
-    $commonSource.Contains('transient-bee-lock-attempt1.log') -and
-    $commonSource.Contains('retrying the same compile preflight once even if Unity recovered with exit code 0')
-) "Compile preflight no longer performs the bounded same-tool retry for proven transient Unity compile/reload locks, including a recovered exit-code-zero run."
+    $commonSource.Contains('Get-Process dotnet,bee_backend,Unity.ILPP.Trigger,Unity.ILPP.Runner') -and
+    $commonSource.Contains('transient-bee-lock-attempt$attempt.log') -and
+    $commonSource.Contains('retrying the same compile preflight (attempt $($attempt + 1)/4)')
+) "Compile preflight no longer performs bounded same-tool retries for proven transient Unity compile/reload locks, including localized file-use errors."
 $bootstrapBuilderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs")
 Assert-ToolchainTest (
@@ -1199,6 +1392,21 @@ Assert-ToolchainTest (
     $g5EvidenceSource.Contains('primaryUserId') -and
     $g5EvidenceSource.Contains('primaryRoleId')
 ) "Client-local no-server-fixture G5 contracts are no longer supported by the shared evidence tools."
+Assert-ToolchainTest (
+    $g5PreflightSource.Contains('supplementalReferencePairs') -and
+    $g5PreflightSource.Contains('archived-current-unreachable') -and
+    $g5PreflightSource.Contains('supplementalStateCount') -and
+    $g5EvidenceSource.Contains('supplementalReferencePairs') -and
+    $g5EvidenceSource.Contains('currentUnreachableReason') -and
+    $docsTestSource.Contains('supplementalReferencePairs')
+) "Shared G5 tools no longer retain archived visual references for states that the current fixed identity cannot reach without forbidden fixture mutation."
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('[switch]$G5VisualOnly') -and
+    $fixedAccountRunnerSource.Contains('g5VisualSetupAction') -and
+    $fixedAccountRunnerSource.Contains('g5VisualAssertAction') -and
+    $fixedAccountRunnerSource.Contains('g5VisualValidationFlags') -and
+    $fixedAccountRunnerSource.Contains('mode = "g5-visual-fixed-identity"')
+) "The canonical fixed-account runner no longer supports a reversible same-data G5 visual capture phase."
 
 $scaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") `
     -Raw -Encoding UTF8
@@ -1220,6 +1428,7 @@ Assert-ToolchainTest (
     $cocosEvidenceSource.Contains('RecordTransportPreflight') -and
     $cocosEvidenceSource.Contains('StartFixedClient') -and
     $cocosEvidenceSource.Contains('-LocalUserId $userId') -and
+    $cocosEvidenceSource.Contains('-LocalRoleId $roleId') -and
     $cocosEvidenceSource.Contains('FreezeG1Baseline') -and
     $cocosEvidenceSource.Contains('window-client-crop-no-scale')
 ) "Central Cocos lifecycle no longer preflights Computer Use, proves fixed identity or freezes the reusable G1 baseline."
@@ -1237,6 +1446,11 @@ Assert-ToolchainTest (
     $startClientSource.Contains('if ($copyExitCode -gt 1)') -and
     $startClientSource.Contains('$global:LASTEXITCODE = 0')
 ) "Start-Client no longer accepts XCOPY exit code 1 when the simulator files are already current."
+Assert-ToolchainTest (
+    $startClientSource.Contains('[int]$LocalRoleId = 0') -and
+    $startClientSource.Contains('AppDef.LOCAL_TEST_ROLE_ID') -and
+    $startClientSource.Contains('LocalRoleId must be a positive integer')
+) "Start-Client no longer applies the frozen local role identity without editing authoritative AppDef.lua."
 
 $clientWindowSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Invoke-ClientWindow.ps1") `
     -Raw -Encoding UTF8
@@ -1272,13 +1486,39 @@ $fengShenStoryRunnerSource = Get-Content -LiteralPath (Join-Path $root "unitycli
     -Raw -Encoding UTF8
 $fengShenStoryPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs") `
     -Raw -Encoding UTF8
+$worldBattlePlaybackSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs") `
+    -Raw -Encoding UTF8
+$worldVisualCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldVisualCatalog.cs") `
+    -Raw -Encoding UTF8
 $fengShenStoryStoreSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs") `
+    -Raw -Encoding UTF8
+$fengShenStoryControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt") `
+    -Raw -Encoding UTF8
+$guanQiaServerSource = Get-Content -LiteralPath (Join-Path $root "server/src/user_guanqia.cpp") `
     -Raw -Encoding UTF8
 $fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
 $evidenceContracts = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/module-evidence-contracts.json") `
     -Raw -Encoding UTF8 | ConvertFrom-Json
 $fengShenStoryEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "FengShenStory" })[0]
+$fengShenStorySqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-FengShenStorySqliteFixture.py") `
+    -Raw -Encoding UTF8
+$cocosItemCellSource = Get-Content -LiteralPath `
+    (Join-Path $root "client/ProjectX/src/View/Global/ItemCellUI.lua") -Raw -Encoding UTF8
+$xunBaoControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt") -Raw -Encoding UTF8
+$xunBaoPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $xunBaoControllerSource.Contains('Bridge:BeginXunBaoRewardUpdate()') -and
+    $xunBaoControllerSource.Contains('Bridge:AddXunBaoReward(rewardType,rewardId,amount)') -and
+    $xunBaoControllerSource.Contains('Bridge:EndXunBaoRewardUpdate(count)') -and
+    $xunBaoControllerSource.Contains('搜索次数不足，请使用搜宝令补充') -and
+    $xunBaoPresenterSource.Contains('if (store.Remaining == 0)') -and
+    $xunBaoPresenterSource.Contains('RenderFragmentCounts()') -and
+    $xunBaoPresenterSource.Contains('CanComposeSelected()') -and
+    $projectXAppSource.Contains('services.Rewards.Replace("寻宝奖励", pendingXunBaoRewards.Values)') -and
+    $projectXAppSource.Contains('OpenXunBaoSearchTokenBag')
+) "XunBao no longer blocks zero-count requests, renders authoritative fragments, opens result rewards, or routes the search token boundary."
 Assert-ToolchainTest (
     -not $fengShenStoryRunnerSource.Contains('foreach (string control in allControls) MarkValidationControl(control);') -and
     $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeRewardIcon(0)') -and
@@ -1287,8 +1527,34 @@ Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('public bool InvokeSourceIcon()')
 ) "FengShenStory validation regressed to synthetic control marking or direct modal calls instead of actual bound controls."
 Assert-ToolchainTest (
+    $worldVisualCatalogSource.Contains('FirstRewards = ParseTriples(GetBraceField(entry, "first_reward"))') -and
+    $fengShenStoryPresenterSource.Contains('RenderLevelRewards(definition?.FirstRewards)') -and
+    $fengShenStoryPresenterSource.Contains('RewardPicture(reward.Type)') -and
+    -not $fengShenStoryPresenterSource.Contains('RewardPicture(reward.Id)') -and
+    $fengShenStoryPresenterSource.Contains('new GameObject("RuntimeFengShenItemCell"') -and
+    $fengShenStoryPresenterSource.Contains('HeroUI/common_quality_') -and
+    $cocosItemCellSource.Contains('numLabel:setString(tostring(self.m_pUserDefine.num))') -and
+    $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, amountValue, visualQuality, false)') -and
+    $fengShenStoryPresenterSource.Contains('amount?.text != reward.Amount.ToString()') -and
+    -not $fengShenStoryPresenterSource.Contains('amount?.text != $"×{reward.Amount}"') -and
+    $fengShenStoryPresenterSource.Contains('commonCurrency.name = "RuntimeFengShenStoryGoldCheck"') -and
+    $fengShenStoryPresenterSource.Contains('currencies.Changed += Render') -and
+    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.RenderedLevelRewardCount != 3') -and
+    $fengShenStoryRunnerSource.Contains('!fengShenStoryPresenter.IsCurrencyHeaderVisible')
+) "FengShenStory no longer guarantees complete ItemCellUI-style rewards or the shared FirstClassBg GoldCheck currency prefab."
+Assert-ToolchainTest (
     $fengShenStoryStoreSource.Contains('(4000 + chapter) * 10 + level') -and
     $fengShenStoryStoreSource.Contains('SelectedChapter = CurrentChapter;') -and
+    $fengShenStoryPresenterSource.Contains('public Button GetChapterControl(int chapterId)') -and
+    $fengShenStoryPresenterSource.Contains('hitGraphic.raycastTarget = true;') -and
+    $fengShenStoryPresenterSource.Contains('button.targetGraphic = hitGraphic;') -and
+    $fengShenStoryPresenterSource.Contains('NormalizeMirroredRaycastButton(leftButton);') -and
+    $fengShenStoryPresenterSource.Contains('Vector3.Dot(rect.forward, Vector3.forward) >= 0f') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.LeftPageControl)') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.RightPageControl)') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter - 1))') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter))') -and
+    $fengShenStoryRunnerSource.Contains('battle-fengshen-entry-chapter-raycast') -and
     $fengShenStoryPresenterSource.Contains('public bool InvokeFight() => InvokeVisible(fightButton);') -and
     $fengShenStoryPresenterSource.Contains('public bool InvokeFormation() => InvokeVisible(formationButton);') -and
     $fengShenStoryRunnerSource.Contains('services.Options.ScenarioManagedReconnect') -and
@@ -1299,12 +1565,101 @@ Assert-ToolchainTest (
     $fengShenStoryRunnerSource.Contains('services.Network.Disconnect("FengShenStory deliberate disconnect")')
 ) "FengShenStory regressed from raw 400xx node identity or real visible fight/formation button invocation."
 Assert-ToolchainTest (
+    $fengShenStoryControllerSource.Contains('if message.Remaining == 0 then') -and
+    $fengShenStoryControllerSource.Contains('ignored legacy empty challenge acknowledgement') -and
+    [regex]::IsMatch($guanQiaServerSource,
+        'BeginFastFight\(result, true, pUser->GetSock\(\)\);\s*// op=25[\s\S]*?msg << PRO_SUCCESS;\s*int star = 0;')
+) "FengShenStory op25 success no longer returns a readable acknowledgement or the Unity shared /320 route lacks its legacy empty-packet guard."
+Assert-ToolchainTest (
+    $fengShenStoryControllerSource.Contains('found.pic or 0, found.quality or 0') -and
+    $fengShenStoryStoreSource.Contains('public int Picture { get; }') -and
+    $fengShenStoryStoreSource.Contains('public int Quality { get; }') -and
+    $fengShenStoryPresenterSource.Contains('ShowImportedReward("宝箱奖励", string.Empty, store.AcknowledgeRewardPush)') -and
+    $fengShenStoryPresenterSource.Contains('ValidateRewardPushPresentation(out string detail)') -and
+    $fengShenStoryPresenterSource.Contains('SetViewText(rewardView, "Layer/Popup/btn_lingqu/Text1", "确定")') -and
+    $fengShenStoryRunnerSource.Contains('InvokeEventSystemRaycastClick(fengShenStoryPresenter.ModalCloseButton)') -and
+    $fengShenStoryRunnerSource.Contains('services.Currencies.Stamina != 80') -and
+    $fengShenStoryRunnerSource.Contains('MarkValidationControl("BFSB-09-RETURN-REWARD-CONFIRM")')
+) "BattleFengShenStory op26 reward mapping, Cocos RewardGetUI presentation, or real confirmation lifecycle regressed."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('suppressFengShenSettlementForSkippedPlayback') -and
+    $projectXAppSource.Contains('&& worldBattlePlaybackPresenter.SkipRequested') -and
+    $projectXAppSource.Contains('FengShenStory authoritative result queued until natural playback completes') -and
+    $projectXAppSource.Contains('battle-fengshen-lifecycle-split') -and
+    $projectXAppSource.Contains('natural completion -> authoritative settlement; explicit skip -> direct parent return without settlement')
+) "BattleFengShenStory natural-completion settlement and explicit-skip direct-return branches regressed."
+$battleFengShenFixtureSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py") -Raw -Encoding UTF8
+$battleFengShenFixtureWrapperSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    [string]$battleFengShenEvidenceContract.fixedAccount.postValidationAdapterAction -eq 'AssertMutated' -and
+    [string]$battleFengShenEvidenceContract.fixedAccount.g5VisualSnapshot -eq '.local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-g5-visual-fixture-snapshot.json' -and
+    [string]$battleFengShenEvidenceContract.fixedAccount.g5VisualSetupAction -eq 'Setup' -and
+    [string]$battleFengShenEvidenceContract.fixedAccount.g5VisualAssertAction -eq 'AssertMutated' -and
+    @($battleFengShenEvidenceContract.fixedAccount.g5VisualValidationFlags) -contains '-projectXBattleFengShenStoryValidation' -and
+    $battleFengShenFixtureSource.Contains('def assert_mutated(args):') -and
+    $battleFengShenFixtureSource.Contains('{"count": 3, "chapterIndex": 7, "nodeId": 40082}') -and
+    $battleFengShenFixtureSource.Contains('if spirit["spirit"] != 60:') -and
+    $battleFengShenFixtureWrapperSource.Contains('"AssertSetup", "AssertMutated", "Restore"')
+) "BattleFengShenStory fixed-account G4 no longer asserts the two real challenge mutations before restore."
+Assert-ToolchainTest (
+    $worldBattlePlaybackSource.Contains('new GameObject("BattleStartShade"') -and
+    $worldBattlePlaybackSource.Contains('150f / 255f') -and
+    $worldBattlePlaybackSource.Contains('1f - Mathf.GammaToLinearSpace(1f - 150f / 255f)') -and
+    $worldBattlePlaybackSource.Contains('Mathf.InverseLerp(.9f, 1.1f') -and
+    $worldBattlePlaybackSource.Contains('ResolvePetQualityEffectResource(unit.Type, unit.Quality)') -and
+    $worldBattlePlaybackSource.Contains('"res2/animation/battle/quality3"') -and
+    $worldBattlePlaybackSource.Contains('UpdateRoundDisplay(Mathf.Max(1, store.CurrentTurn));') -and
+    $worldBattlePlaybackSource.Contains('startShade.transform.SetAsLastSibling();') -and
+    $worldBattlePlaybackSource.Contains('startEffect.transform.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.SetBattleStartElapsed(battleStartElapsed);')
+) "Battle start presentation no longer matches the current Cocos 150-alpha shade, 0.9/0.2 timing, or effect-over-shade layering."
+Assert-ToolchainTest (
+    $fengShenStoryPresenterSource.Contains('GameObject rewardLayer = rewardView.Binding.Find("Layer")') -and
+    $fengShenStoryPresenterSource.Contains('1f - Mathf.GammaToLinearSpace(1f - 150f / 255f)') -and
+    $fengShenStoryPresenterSource.Contains('rewardDimmer.raycastTarget = true;') -and
+    $fengShenStoryPresenterSource.Contains('int visualQuality = picture == 3005 ? 3 : quality;') -and
+    $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, amountValue, visualQuality, false);')
+) "BattleFengShenStory return reward no longer preserves the current Cocos modal dimmer and blocked-background lifecycle."
+Assert-ToolchainTest (
+    $fengShenStoryPresenterSource.Contains('private bool EnsureLevelView()') -and
+    $fengShenStoryPresenterSource.Contains('CocosUiView current = resolveLevelView();') -and
+    $fengShenStoryPresenterSource.Contains('BindLevelView(current);') -and
+    $fengShenStoryPresenterSource.Contains('public bool IsLevelPopupVisible => levelView?.GameObject?.activeSelf == true;') -and
+    $projectXAppSource.Contains('() => services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel")')
+) "FengShenStory real stage clicks no longer recover a rebuilt level view after repeated Editor Play or scene-object refresh."
+Assert-ToolchainTest (
+    $fengShenStoryPresenterSource.Contains('formationButton = Bind(levelRoot, "Popup/Btn_buzhen", OnFormationClicked);') -and
+    $fengShenStoryPresenterSource.Contains('SetVisible(node.Find("Image_4"), isCurrent);') -and
+    $fengShenStoryPresenterSource.Contains('public int RenderedCurrentStageMarkerCount => renderedCurrentStageMarkerCount;') -and
+    $projectXAppSource.Contains('battle-fengshen-stage-markers') -and
+    [regex]::IsMatch($fengShenStoryPresenterSource,
+        'private void OnFightClicked\(\)[\s\S]*?store.BeginChallenge\(\);\s*challenge\(\);[\s\S]*?CloseLevelPopup\(\);\s*\}') -and
+    [regex]::IsMatch($fengShenStoryPresenterSource,
+        'private void OnFormationClicked\(\)[\s\S]*?formation\(\);[\s\S]*?CloseLevelPopup\(\);\s*\}')
+) "FengShenStory fight or formation no longer closes the level popup like the current Cocos source."
+Assert-ToolchainTest (
     [regex]::IsMatch($fixedAccountRunnerSource,
         'else\s*\{\s*Invoke-FixedAdapter "Restore"\s*Invoke-FixedAdapter "AssertRestored"\s*Invoke-FixedAdapter "Cleanup"')
 ) "Fixed-account validation failure path can clean an applied fixture without first restoring the account snapshot."
+Assert-ToolchainTest (
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        'if \(\$dataBackend -eq "sqlite"\)[\s\S]*?Get-Process kapai[\s\S]*?Wait-FixedRuntimeRelease[\s\S]*?Invoke-FixedAdapter "AssertSetup"')
+) "SQLite fixed-account post-validation assertion can run while kapai.exe still owns the persistent database."
 $heroEquipFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipFixture.ps1") `
     -Raw -Encoding UTF8
+$heroEquipSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipSqliteFixture.py") `
+    -Raw -Encoding UTF8
 $heroEquipEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "HeroEquip" })[0]
+Assert-ToolchainTest (
+    @($heroEquipEvidenceContract.g5.pairs).Count -eq 11 -and
+    @($heroEquipEvidenceContract.g5.supplementalReferencePairs).Count -eq 2 -and
+    @($heroEquipEvidenceContract.g5.supplementalReferencePairs | Where-Object {
+        [string]$_.referenceKind -eq 'archived-current-unreachable' -and
+        [string]$_.currentUnreachableReason -and @($_.evidence).Count -gt 0
+    }).Count -eq 2
+) "HeroEquip G5 no longer separates the 11 current fixed-identity states from the two retained current-unreachable visual references."
 Assert-ToolchainTest (
     $heroEquipFixtureSource.Contains('"AddUserFragments"') -and
     $heroEquipFixtureSource.Contains('Add-HeroEquipUserFragments') -and
@@ -1316,18 +1671,71 @@ Assert-ToolchainTest (
     $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter $captureAction') -and
     $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter $assertAction') -and
     $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter "AssertReloginHash"') -and
-    $heroEquipFixtureSource.Contains('"CaptureMutationHash"') -and
-    $heroEquipFixtureSource.Contains('"AssertMutationReloginHash"') -and
+    $heroEquipSqliteFixtureSource.Contains('args.action == "CaptureMutationHash"') -and
+    $heroEquipSqliteFixtureSource.Contains('args.action == "AssertMutationReloginHash"') -and
+    [string]$heroEquipEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    [uint32]$heroEquipEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    [string]$heroEquipEvidenceContract.fixedAccount.adapter -eq 'tools/unity-migration/Invoke-HeroEquipSqliteFixture.ps1' -and
     [string]$heroEquipEvidenceContract.fixedAccount.mutationReloginOracle.semanticAssertionId -eq
-        'bag-currency-mission-mysql-relogin-restored' -and
-    [string]$heroEquipEvidenceContract.fixedAccount.sqlitePersistenceOracle.semanticAssertionId -eq
-        'equipment-sqlite-runtime-restart-restored' -and
-    $fixedAccountRunnerSource.Contains('Fixed-account SQLite HeroEquip runtime/restart semantics did not pass.')
-) "HeroEquip fixed-account runner no longer proves the mutated database across relogin before restoring the original snapshot."
+        'equipment-sqlite-mutation-relogin-restored'
+) "HeroEquip fixed-account runner no longer proves the persistentDataPath SQLite mutation across relogin before restoring the original snapshot."
+$heroPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $heroEquipSqliteFixtureSource.Contains('args.action in ("Setup", "SetupG5Visual")') -and
+    $heroEquipSqliteFixtureSource.Contains('assert_visual_setup') -and
+    $heroEquipSqliteFixtureSource.Contains('visual_equipment_blob') -and
+    $heroEquipSqliteFixtureSource.Contains('VISUAL_EQUIPMENT_TEMPLATES = (1001, 1002, 1003, 1004)') -and
+    $heroEquipSqliteFixtureSource.Contains('VISUAL_FABAO_UIDS[0], 1001') -and
+    $heroEquipSqliteFixtureSource.Contains('VISUAL_FABAO_UIDS[1], 1002') -and
+    @($heroEquipEvidenceContract.fixedAccount.g5VisualValidationFlags) -contains '-projectXHeroEquipG5VisualValidation' -and
+    [string]$heroEquipEvidenceContract.fixedAccount.g5VisualSetupAction -eq 'SetupG5Visual' -and
+    [string]$heroEquipEvidenceContract.fixedAccount.g5VisualAssertAction -eq 'AssertG5Visual' -and
+    $projectXAppSource.Contains('RunHeroEquipmentG5VisualValidationRoutine') -and
+    $projectXAppSource.Contains('const int sourceMaterialId = 610') -and
+    $projectXAppSource.Contains('services.Bag.GetTotalQuantityByItemId(sourceMaterialId)') -and
+    $projectXAppSource.Contains('services.EquipmentCatalog.GetItem(sourceMaterialId)') -and
+    $projectXAppSource.Contains('equipment list did not close after returning from fragments') -and
+    $projectXAppSource.Contains('formationEntry.gameObject.activeInHierarchy') -and
+    $projectXAppSource.Contains('heroEquipmentPresenter.ShowCultivationTab(2)') -and
+    $projectXAppSource.Contains('heroEquipmentPresenter.ShowCultivationTab(3)') -and
+    $projectXAppSource.Contains('toastPresenter?.Clear()') -and
+    $projectXAppSource.Contains('Layer/Popup/itemlayer_1/times') -and
+    $projectXAppSource.Contains('GameplayIcons/ui_main_icon_xuezhan') -and
+    $heroPresenterSource.Contains('(value.Slot == slot || value.Slot + 4 == slot)') -and
+    $bootstrapRunnerSource.Contains('bool heroEquipmentG5VisualValidation') -and
+    $bootstrapRunnerSource.Contains('checkingHeroEquipment ? heroEquipmentG5VisualValidation ? !app.IsHeroOpen : !app.IsHeroEquipmentOpen')
+) "HeroEquip G5 visual capture no longer uses the reversible SQLite same-data fixture and dedicated 11-state batch runner."
+Assert-ToolchainTest (
+    [string]$fengShenStoryEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    [uint32]$fengShenStoryEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    [string]$fengShenStoryEvidenceContract.fixedAccount.adapter -eq
+        'tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1' -and
+    $fengShenStorySqliteFixtureSource.Contains('ISOLATION_USER_ID = 705213') -and
+    $fengShenStorySqliteFixtureSource.Contains('copy_database(args.backup, args.database)') -and
+    $fengShenStorySqliteFixtureSource.Contains('data[cursor[0]] = 0') -and
+    $fengShenStorySqliteFixtureSource.Contains('"role.guan_qia.trial-counts"') -and
+    $fengShenStorySqliteFixtureSource.Contains('attack_count = read_u16(data, cursor)') -and
+    $fengShenStorySqliteFixtureSource.Contains('reset_count = read_u16(data, cursor)') -and
+    $fengShenStorySqliteFixtureSource.Contains('values[0] = canonicalize_guan_qia(values[0])') -and
+    $fengShenStorySqliteFixtureSource.Contains('SPIRIT_FULL = 100') -and
+    $fengShenStorySqliteFixtureSource.Contains('SPIRIT_REGEN_SECONDS = 360') -and
+    $fengShenStorySqliteFixtureSource.Contains('def relogin_spirit_matches(expected, current):') -and
+    $fengShenStorySqliteFixtureSource.Contains('if current_spirit == SPIRIT_FULL and current_time == 0:') -and
+    $fengShenStorySqliteFixtureSource.Contains('cap_time = expected_time + (SPIRIT_FULL - expected_spirit) * SPIRIT_REGEN_SECONDS') -and
+    $fengShenStorySqliteFixtureSource.Contains('normalized-passive-regeneration-cap') -and
+    $fengShenStorySqliteFixtureSource.Contains('changed != ["role.user_spirit"] or not spirit_matches') -and
+    $fengShenStorySqliteFixtureSource.Contains('"reloginSpiritOracle": spirit_oracle') -and
+    $fengShenStorySqliteFixtureSource.Contains('patch_spirit(role[2], 100)') -and
+    $fengShenStorySqliteFixtureSource.Contains('"role.user_spirit"') -and
+    $fengShenStorySqliteFixtureSource.Contains('"injectedSpirit": primary_spirit') -and
+    $fengShenStorySqliteFixtureSource.Contains('"reloginGuanQiaDiffOffsets": guan_qia_diff_offsets') -and
+    $fengShenStorySqliteFixtureSource.Contains('FengShenStory isolation user remained after restore')
+) "FengShenStory fixed-account validation no longer uses reversible SQLite state, canonical guan_qia relogin comparison, or isolation cleanup."
 Assert-ToolchainTest (
     [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalUserId -eq 7200057 -and
-    [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000115 -and
-    @($fengShenStoryEvidenceContract.fixedAccount.extraFlags) -contains '-projectXFengShenStoryIsolationUserId=705213'
+    [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000003 -and
+    @($fengShenStoryEvidenceContract.fixedAccount.extraFlags) -contains '-projectXFengShenStoryIsolationUserId=705213' -and
+    $projectXAppSource.Contains('primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213')
 ) "FengShenStory evidence contract no longer expects the restored primary terminal identity while retaining the isolation-account run flag."
 
 $startServerSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Start-Server.ps1") -Raw -Encoding UTF8
@@ -1602,7 +2010,7 @@ Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('Application.persistentDataPath, "LocalServer"') -and
     $localServerSupervisorSource.Contains('if (options.HasFlag("-projectXExternalServer")) return false;') -and
     $localServerSupervisorSource.Contains('return !Application.isEditor || !Application.isBatchMode;') -and
-    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "build", "server-win", "Debug")') -and
+    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, ".local", "server-build", "server-win", "Debug")') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "config")') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql")')
 ) "S6 supervisor no longer isolates immutable packaged assets from the writable player database or the external-server validation path."
@@ -1629,10 +2037,18 @@ Assert-ToolchainTest (
     $editorServerBuildGuardSource.Contains('PlayModeStateChange.ExitingEditMode') -and
     $editorServerBuildGuardSource.Contains('Application.isBatchMode') -and
     $editorServerBuildGuardSource.Contains('Build-Server.ps1') -and
+    $editorServerBuildGuardSource.Contains('Path.Combine(repositoryRoot, ".local", "server-build", "server-win")') -and
+    $editorServerBuildGuardSource.Contains('+ " -BuildDir " + Quote(buildDirectory)') -and
     $editorServerBuildGuardSource.Contains('EditorApplication.isPlaying = false') -and
     $editorServerBuildGuardSource.Contains('-projectXExternalServer') -and
     $editorServerBuildGuardSource.Contains('File.GetLastWriteTimeUtc(input) > builtAt')
 ) "Editor Play no longer auto-builds a missing/stale SQLite server or cancels Play on build failure."
+$serverBuildSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Build-Server.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $serverBuildSource.Contains('-C $Root rev-parse --git-common-dir') -and
+    $serverBuildSource.Contains('Join-Path $sharedRoot "tools\local\vcpkg"') -and
+    $serverBuildSource.Contains('Test-Path (Join-Path $sharedCandidate "scripts\buildsystems\vcpkg.cmake")')
+) "Detached worktree server builds no longer discover the primary checkout's shared vcpkg dependency cache."
 $steamBuildSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/Editor/SteamWindowsBuild.cs") -Raw -Encoding UTF8
 $serverMainSource = Get-Content -LiteralPath (Join-Path $root "server/src/main.cpp") -Raw -Encoding UTF8
@@ -1698,6 +2114,11 @@ $heroEquipmentPresenterSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
 $heroEquipmentControllerSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $heroEquipmentControllerSource.Contains('Bridge:HasCommandLineFlag("-projectXHeroEquipG5VisualValidation")') -and
+    $heroEquipmentControllerSource.Contains('elseif M.openPending then') -and
+    $heroEquipmentControllerSource.Contains('Bridge:ShowHeroEquipment(M.openKind)')
+) "HeroEquip G5 visual list refresh no longer resolves openPending into the equipment surface."
 $heroEquipmentBootstrapSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
 $heroEquipmentCatalogSource = Get-Content -LiteralPath (Join-Path $root `
@@ -1842,8 +2263,8 @@ Assert-ToolchainTest (
     $heroControllerSource.Contains('Bridge:RunHeroCultivationG3Validation()') -and
     $projectXAppSource.Contains('CompleteHeroCultivationG3Validation();')
 ) "HeroCultivation G3 flag is no longer wired from login through formation and authoritative package/8 completion."
-Assert-ToolchainTest (
-    $heroCultivationPresenterSource.Contains('ValidateEarlyPlayRuntime(out string detail)') -and
+  Assert-ToolchainTest (
+      $heroCultivationPresenterSource.Contains('ValidateEarlyPlayRuntime(out string detail)') -and
     $heroCultivationPresenterSource.Contains('missing level materials:') -and
     $heroCultivationPresenterSource.Contains('retained placeholder') -and
     $heroCultivationPresenterSource.Contains('tabs=5/5')
@@ -1898,5 +2319,710 @@ Assert-ToolchainTest (
     $imodAnimationPlayerSource.Contains('moduleSprites.Count == data.modules.Length') -and
     $imodAnimationPlayerSource.Contains('moduleSprites[part.module] == null')
 ) "Imod runtime regression: Play-mode assembly reload no longer rebuilds the generated sprite cache before rendering."
+
+$heroSqliteFixtureSource = Get-Content -LiteralPath (
+    Join-Path $root "tools/unity-migration/Invoke-HeroSqliteFixture.py") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $heroSqliteFixtureSource.Contains('FIXTURE_FORMATION_HERO_IDS = tuple(hero_id for hero_id, _ in HEROES[:2])') -and
+    $heroSqliteFixtureSource.Contains('FIXTURE_EQUIPMENT = (') -and
+    $heroSqliteFixtureSource.Contains('def two_occupied_formation_blob(value):') -and
+    $heroSqliteFixtureSource.Contains('def equipped_fixture_blob(value):') -and
+    $heroSqliteFixtureSource.Contains('not any(hero_id == 0 for hero_id in state["combatHeroes"])') -and
+    $heroSqliteFixtureSource.Contains('state["fixtureEquipment"] != expected_equipment') -and
+    $heroSqliteFixtureSource.Contains('UPDATE role_info SET level=?,pet=?,zhenfa=?,pet_equip=? WHERE id=?')
+) "Hero fixed-account fixture regressed to preserving an all-occupied formation, so real occupied-to-empty formation mutation cannot start."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'RunHeroG4ControlValidation\(int heroId, int originalPosition, int targetPosition\)[\s\S]*?BeginValidationEvidence\(\);') -and
+    $projectXAppSource.Contains('MarkValidationControl(controlId);') -and
+    $projectXAppSource.Contains('RecordValidationSemantic("hero-control-matrix-16"') -and
+    $bagControllerSource.Contains('elseif not Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then')
+) "Hero G4 evidence regression: control marks can be cleared/missed or a late package sort can overwrite the Hero completion payload."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'MaintainHeroEquipmentCultivationState\(\)[\s\S]*?toastPresenter\?\.IsVisible == true[\s\S]*?toastPresenter\.SetParent\(heroEquipmentCultivateView\.GameObject\.transform\.parent\)') -and
+    $projectXAppSource.Contains('heroEquipmentCultivateView?.GameObject.activeSelf == true') -and
+    $projectXAppSource.Contains('if (IsToastVisible && (toastPresenter?.Parent != heroEquipmentCultivateView.GameObject.transform.parent') -and
+    $projectXAppSource.Contains('Validate the rendered hierarchy after Update has reapplied')
+) "HeroEquip cultivation refresh can reparent or cover the success toast after an authoritative write."
+
+$worldOutcomeSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldOutcomePresenter.cs") -Raw -Encoding UTF8
+$gameErrorPresenterSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
+$worldReplaySource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldBattleReplayStore.cs") -Raw -Encoding UTF8
+$worldPlaybackSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs") -Raw -Encoding UTF8
+$battlePresentationCatalogSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Data/BattlePresentationCatalog.cs") -Raw -Encoding UTF8
+$battleAudioFiles = @(Get-ChildItem -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXAudio/battle") -File -Filter '*.mp3')
+$battleBuffIconFiles = @(Get-ChildItem -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXBattle/BuffTips") -File -Filter '*.png')
+$battleSkillNameFiles = @(Get-ChildItem -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXBattle/SkillName") -File -Filter '*.png')
+$worldPresenterSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
+$formationPopupSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
+$worldControllerSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
+$worldStoreSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldStore.cs") -Raw -Encoding UTF8
+$worldFixtureSource = Get-Content -LiteralPath (
+    Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
+$worldSqliteFixtureSource = Get-Content -LiteralPath (
+    Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.py") -Raw -Encoding UTF8
+$battleMeetMonsterFixtureSource = Get-Content -LiteralPath (
+    Join-Path $root "tools/unity-migration/Invoke-BattleMeetMonsterFixture.ps1") -Raw -Encoding UTF8
+$battleMeetMonsterSqliteFixtureSource = Get-Content -LiteralPath (
+    Join-Path $root "tools/unity-migration/Invoke-BattleMeetMonsterFixture.py") -Raw -Encoding UTF8
+$battleMeetMonsterEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "BattleMeetMonster" })[0]
+$worldGuanQiaServerSource = Get-Content -LiteralPath (
+    Join-Path $root "server/src/user_guanqia.cpp") -Raw -Encoding UTF8
+$worldFightServerSource = Get-Content -LiteralPath (
+    Join-Path $root "server/src/fight.cpp") -Raw -Encoding UTF8
+$worldUtilityHeaderSource = Get-Content -LiteralPath (
+    Join-Path $root "server/src/gyu/g_utility.h") -Raw -Encoding UTF8
+$worldUtilitySource = Get-Content -LiteralPath (
+    Join-Path $root "server/src/gyu/g_utility.cpp") -Raw -Encoding UTF8
+$worldServerConfigSource = Get-Content -LiteralPath (
+    Join-Path $root "server/config/config") -Raw -Encoding UTF8
+$legacyMessageSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Network/LegacyTcpMessage.cs") -Raw -Encoding UTF8
+$worldEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "World" })[0]
+$worldControlMatrix = Get-Content -LiteralPath (
+    Join-Path $root "docs/unityclient/matrices/WORLD_CONTROLS.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$worldValidationStart = $projectXAppSource.IndexOf('private IEnumerator CaptureWorldMap()', [StringComparison]::Ordinal)
+$worldValidationEnd = $projectXAppSource.IndexOf('private IEnumerator CaptureWorldBattleResult', [StringComparison]::Ordinal)
+$worldValidationInteractionSource = if ($worldValidationStart -ge 0 -and $worldValidationEnd -gt $worldValidationStart) {
+    $projectXAppSource.Substring($worldValidationStart, $worldValidationEnd - $worldValidationStart)
+} else { '' }
+Assert-ToolchainTest (
+    $worldPlaybackSource.Contains('Vector3.Lerp(moveStart, moveEnd, phase)') -and
+    -not $worldPlaybackSource.Contains('Vector3.Lerp(moveStart, moveEnd, Mathf.SmoothStep') -and
+    $worldPlaybackSource.Contains('if (model.MoveSeconds > 0f) return model.MoveSeconds;') -and
+    $worldPlaybackSource.Contains('ResolveLegacyAnimationDuration(') -and
+    $worldPlaybackSource.Contains('ImodAnimationData.Parse(assets.Animation.text)') -and
+    $worldPlaybackSource.Contains('unit.Model.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));') -and
+    $worldPlaybackSource.Contains('timelineEnd = Mathf.Max(timelineEnd, cursor + duration)') -and
+    $worldPlaybackSource.Contains('timelineEnd + .1f') -and
+    -not $worldPlaybackSource.Contains('cursor += duration') -and
+    $worldPlaybackSource.Contains('new Vector3(-60f, 35f)') -and
+    $worldPlaybackSource.Contains('new Vector3(60f, -35f)') -and
+    $worldPlaybackSource.Contains('case 11:') -and
+    $worldPlaybackSource.Contains('case 12:') -and
+    $worldPlaybackSource.Contains('ResolveColumnPoint(targetPosition)') -and
+    $worldPlaybackSource.Contains('ResolveLinePoint(targetPosition)') -and
+    $worldPlaybackSource.Contains('ResolveSideCenterPoint(sourcePosition, false)') -and
+    $worldPlaybackSource.Contains('ResolveSideCenterPoint(sourcePosition, true)') -and
+    $worldPlaybackSource.Contains('effect.MoveSeconds <= 0f && effect.MoveEndType == 10') -and
+    $worldPlaybackSource.Contains('rect.SetParent(attachedUnit.Root, false)')
+) "World battle movement/effect attachment regressed from current Cocos MoveTo, formation-point, and hit-point semantics."
+Assert-ToolchainTest (
+    $worldEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    $worldEvidenceContract.fixedAccount.sqlitePath -eq 'AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db' -and
+    [uint32]$worldEvidenceContract.fixedAccount.userId -eq 7200057 -and
+    [uint32]$worldEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    [uint32]$worldControlMatrix.scope.fixedUserId -eq 7200057 -and
+    [uint32]$worldControlMatrix.scope.fixedRoleId -eq 1000003 -and
+    [uint32]$worldControlMatrix.scope.cocosFixedUserId -eq 7200057 -and
+    [uint32]$worldControlMatrix.scope.cocosFixedRoleId -eq 1000115 -and
+    $worldEvidenceContract.fixedAccount.postValidationAdapterAction -eq 'AssertPostValidation' -and
+    $worldEvidenceContract.fixedAccount.g5VisualSetupAction -eq 'SetupVisual' -and
+    $worldEvidenceContract.fixedAccount.g5VisualAssertAction -eq 'AssertPostValidation' -and
+    @($worldEvidenceContract.fixedAccount.g5VisualValidationFlags) -contains '-projectXWorldG3Validation' -and
+    @($worldEvidenceContract.g5.cocosBaselineInputs) -contains 'tools/unity-migration/Invoke-WorldCocosFixture.ps1' -and
+    @($worldEvidenceContract.g5.cocosBaselineInputs) -notcontains 'tools/unity-migration/Invoke-WorldCocosFixture.py' -and
+    $worldFixtureSource.Contains('[string]$DatabasePath = ""') -and
+    $worldFixtureSource.Contains('World fixture only accepts Application.persistentDataPath/LocalServer/projectx.db.') -and
+    $worldFixtureSource.Contains('Invoke-WorldCocosFixture.py') -and
+    $worldSqliteFixtureSource.Contains('copy_database(args.backup, args.database)') -and
+    $worldSqliteFixtureSource.Contains('ADJACENT_MAP_ID = 1002') -and
+    $worldSqliteFixtureSource.Contains('TARGET_STAGE_ID = 10023') -and
+    $worldSqliteFixtureSource.Contains('FIXTURE_STAGE_STARS = {') -and
+    $worldSqliteFixtureSource.Contains('10021: 3,') -and
+    $worldSqliteFixtureSource.Contains('10022: 3,') -and
+    $worldSqliteFixtureSource.Contains('10023: 3,') -and
+    $worldSqliteFixtureSource.Contains('10024: 1,') -and
+    $worldSqliteFixtureSource.Contains('10025: 0,') -and
+    $worldSqliteFixtureSource.Contains('chapter["sumStar"] = sum(int(stars) for stars in chapter["nodeStars"].values())') -and
+    $worldSqliteFixtureSource.Contains('state["chapterStars"] != state["computedChapterStars"]') -and
+    $worldSqliteFixtureSource.Contains('COCOS_ROLE_LEVEL = 99') -and
+    $worldSqliteFixtureSource.Contains('COCOS_VISUAL_STAMINA = 101') -and
+    $worldSqliteFixtureSource.Contains('COCOS_RETURN_STAMINA = 96') -and
+    $worldSqliteFixtureSource.Contains('"SetupVisual": setup_visual') -and
+    $worldSqliteFixtureSource.Contains('COCOS_EXP = 0') -and
+    $worldSqliteFixtureSource.Contains('COCOS_ZHANDOU_LI = 17240') -and
+    $worldSqliteFixtureSource.Contains('COCOS_PET = "78da6362b464606400014606ce17ddfd') -and
+    $worldSqliteFixtureSource.Contains('COCOS_ZHENFA = "78da63606464606465b264c00e581112') -and
+    $worldSqliteFixtureSource.Contains('COCOS_PET_EQUIP = "78da63616064c8ad7bc9cc00041dc20') -and
+    $worldSqliteFixtureSource.Contains('assert_battle_input(connection, args.role_id)') -and
+    $worldSqliteFixtureSource.Contains('def assert_post_validation(args):') -and
+    $worldSqliteFixtureSource.Contains('"AssertPostValidation": assert_post_validation') -and
+    $worldSqliteFixtureSource.Contains('SPIRIT_REGEN_SECONDS = 360') -and
+    $worldSqliteFixtureSource.Contains('def relogin_spirit_matches(expected, current):') -and
+    $worldSqliteFixtureSource.Contains('if current_value == SPIRIT_FULL and current_time == 0:') -and
+    $worldSqliteFixtureSource.Contains('cap_time = expected_time + (SPIRIT_FULL - expected_value) * SPIRIT_REGEN_SECONDS') -and
+    $worldSqliteFixtureSource.Contains('normalized-passive-regeneration-cap') -and
+    $worldSqliteFixtureSource.Contains('changed_fields in ([], ["user_spirit"])') -and
+    $worldSqliteFixtureSource.Contains('"postLoginSpiritOracle": spirit_oracle') -and
+    $worldSqliteFixtureSource.Contains('r.pet,r.zhenfa,u.money,u.bd_money') -and
+    $worldSqliteFixtureSource.Contains('assert_world(value, allow_claimed=False)') -and
+    $worldSqliteFixtureSource.Contains('remove_sidecars(args.backup)')
+) "World fixed-account fixture regressed from the persistentDataPath SQLite snapshot/restore/zero-residue contract."
+Assert-ToolchainTest (
+    $worldOutcomeSource.Contains('Layer/Panel/victorypanel/win_bg/win3') -and
+    $worldOutcomeSource.Contains('LoadWorldSprite("WorldUI/battle_victory")')
+) "World settlement no longer prefers the current Cocos three-star perfect-victory title with a fallback asset."
+Assert-ToolchainTest (
+    $worldPresenterSource.Contains('RenderStagePlayer(mapVisual);') -and
+    $worldPresenterSource.Contains('PositionStageCamera(mapVisual);') -and
+    $worldPresenterSource.Contains('player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd"') -and
+    $worldPresenterSource.Contains('map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f)') -and
+    $worldPresenterSource.Contains('FindStageCameraY(-aimX, map.CameraCoordinates)') -and
+    $worldPresenterSource.Contains('speech.gameObject.SetActive(currentStage)') -and
+    $worldPresenterSource.Contains('"Layer/Panel_youxia/Button_zhuxianchengjiu", true') -and
+    $worldPresenterSource.Contains('UpdateCanvasProxyRect(viewRect, targetRect, proxyRect);') -and
+    $worldPresenterSource.Contains('button.transform.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('AttachWorldAchievementToWorldRoot();') -and
+    $projectXAppSource.Contains('heroFrameView.GameObject.transform.SetAsLastSibling();') -and
+    $projectXAppSource.Contains('worldAchievementView.GameObject.transform.parent != worldView.GameObject.transform') -and
+    $projectXAppSource.Contains('worldAchievementAuthoritativeResponse = true;') -and
+    $projectXAppSource.Contains('World main-achievement close control did not receive a real EventSystem raycast click.') -and
+    $projectXAppSource.Contains('timeline.Play("animation1", false);') -and
+    $projectXAppSource.Contains('FitWorldAchievementToScreen();') -and
+    $projectXAppSource.Contains('RefreshWorldBoxButtonBindings();') -and
+    $projectXAppSource.Contains('button.interactable = true;') -and
+    $projectXAppSource.Contains('CreateWorldBoxRootProxy(target, proxyName, action);') -and
+    $projectXAppSource.Contains('new GameObject(proxyName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button))') -and
+    $projectXAppSource.Contains('image.canvasRenderer.cullTransparentMesh = false;') -and
+    $projectXAppSource.Contains('GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);') -and
+    $projectXAppSource.Contains('Button confirm = worldBoxClaimInteractionButton;') -and
+    $projectXAppSource.Contains('World normal-box player-facing confirmation button is unavailable.') -and
+    $projectXAppSource.Contains('World normal-box confirmation did not receive a real EventSystem raycast click.') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_1/duiwu", () => { openFormation(); Mark("WORLD-32-STAGE-FORMATION"); }, false, true);') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_1/btn_zhenrong", () => { openHeroFormation(false); Mark("WORLD-33-STAGE-LINEUP"); }, false, true);') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);') -and
+    $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);') -and
+    $worldPresenterSource.Contains('if (staleProxy != null) staleProxy.gameObject.SetActive(false);') -and
+    $worldPresenterSource.Contains('if (proxyRect.parent == targetRect)') -and
+    $worldPresenterSource.Contains('proxyRect.offsetMin = Vector2.zero;') -and
+    $worldPresenterSource.Contains('proxyRect.offsetMax = Vector2.zero;') -and
+    $worldPresenterSource.Contains('"Layer/Panel_youxia/Button_youlisanjie", true') -and
+    $worldPresenterSource.Contains('"Layer/Panel_1/Button_paihangbang", false') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onYouLiClicked, "World.YouLi")') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(youLi)') -and
+    $projectXAppSource.Contains('services.YouLi.HasAuthoritativeResponse') -and
+    $projectXAppSource.Contains('MarkValidationControl("WORLD-34-YOULI-ENTRY")') -and
+    -not $projectXAppSource.Contains('MarkValidationControl("WORLD-27-RANK-ENTRY")') -and
+    $worldPresenterSource.Contains('if (value >= 10000) return (value / 10000) + "万";') -and
+    $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
+    $projectXAppSource.Contains('services.Options.WorldBattleValidation && !services.Options.WorldG3Validation') -and
+    $projectXAppSource.Contains('&& !worldG4StarBoxValidated') -and
+    $projectXAppSource.Contains('&& !worldG4NormalBoxValidated')
+) "World settlement return or current DadituuiLayer achievement/YouLi/rank boundary regressed."
+Assert-ToolchainTest (
+    $worldServerConfigSource.Contains('local_test_fight_seed=20260830') -and
+    $worldGuanQiaServerSource.Contains('ApplyLocalTestFightSeed(nodeId);') -and
+    $worldGuanQiaServerSource.Contains('"local_test_fight_seed", "server", gConfigFile') -and
+    $worldGuanQiaServerSource.Contains('srand(seed);') -and
+    $worldGuanQiaServerSource.Contains('LogLocalTestMessageFingerprint("guanqia-result", msg);') -and
+    $worldFightServerSource.Contains('label=guanqia-replay') -and
+    $worldFightServerSource.Contains('type == EFPT_PlayBack_2') -and
+    $worldUtilityHeaderSource.Contains('unsigned int Fnv1a32(const std::string &value);') -and
+    $worldUtilitySource.Contains('hash *= 16777619u;') -and
+    [string]$worldEvidenceContract.fixedAccount.serverRuntimeEvidence.destination -eq
+        '.local/unity-validation/world-g3-server-runtime-latest.log' -and
+    @($worldEvidenceContract.fixedAccount.serverRuntimeEvidence.requiredPatterns).Count -eq 3 -and
+    $fixedAccountRunnerSource.Contains('serverRuntimeFingerprintLines = @($serverRuntimeFingerprintLines)') -and
+    $fixedAccountRunnerSource.Contains('Fixed-account server runtime evidence misses required pattern:')
+) "World deterministic local-test fight seed or replay/result packet fingerprint evidence regressed."
+Assert-ToolchainTest (
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots).Count -eq 145 -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/simulator/win32/res/ConfigData/hit_monster.dat' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/src/ConfigData/zhenfa_config_dat.lua' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/simulator/win32/res/res/UI/ImageNum/num_lan.png' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/simulator/win32/res/res/UI/ImageNum/ui_pk_num.png' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_1.png' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_6.png' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/res/fuben/map_1/map_1.jpg' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/res/fuben/map_6/map_12.jpg' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/res/res/UI/ui_zhandou/bg0.jpg' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/res/Skill/UI/skill_101.png' -and
+    @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'client/ProjectX/res/Skill/UI/skill_681.png' -and
+    $bootstrapBuilderSource.Contains('if (IsGitLfsPointer(source))') -and
+    $bootstrapBuilderSource.Contains('Runtime dynamic resource is an unresolved Git LFS pointer:') -and
+    $bootstrapBuilderSource.Contains('content.Length > 512') -and
+    $bootstrapBuilderSource.Contains('version https://git-lfs.github.com/spec/v1')
+) "World dynamic Cocos resources can regress to unresolved LFS pointers before Bootstrap copies them into Unity."
+Assert-ToolchainTest (
+    $worldValidationInteractionSource.Contains('InvokeEventSystemRaycastClick') -and
+    -not $worldValidationInteractionSource.Contains('.onClick.Invoke();') -and
+    -not $worldValidationInteractionSource.Contains('InvokeConfirmation()')
+) "World G3 control coverage regressed from real EventSystem raycast interaction."
+Assert-ToolchainTest (
+    $worldOutcomeSource.Contains('RewardRecord[] money = values.Where(IsCocosMoneyReward).Take(4).ToArray();') -and
+    $worldOutcomeSource.Contains('CreateMoneyRewardEntry(host, money[index], index);') -and
+    $worldOutcomeSource.Contains('case 60000: case 60001: case 60003: case 60014:') -and
+    $worldOutcomeSource.Contains('iconRect.sizeDelta = new Vector2(31f, 31f);') -and
+    $worldOutcomeSource.Contains('CreateBattleText(rect, "Amount", reward.Amount.ToString()') -and
+    $worldOutcomeSource.Contains('frameRect.sizeDelta = new Vector2(86f, 86f);') -and
+    $worldOutcomeSource.Contains('frame.fillCenter = false;') -and
+    $worldOutcomeSource.Contains('iconRect.sizeDelta = new Vector2(80f, 80f);') -and
+    $worldOutcomeSource.Contains('barRect.sizeDelta = new Vector2(460f, 22f);') -and
+    $worldOutcomeSource.Contains('CreateBattleItemEntry(host, items[index], index);') -and
+    $worldOutcomeSource.Contains('frameRect.sizeDelta = new Vector2(88f, 88f);') -and
+    $worldOutcomeSource.Contains('new Vector2(71f, -22f)') -and
+    $worldOutcomeSource.Contains('new Vector2(0f, -50f)')
+) "World settlement regressed from the current Cocos money, hero-experience, and 88px item-cell layout."
+Assert-ToolchainTest (
+    $gameErrorPresenterSource.Contains('public Button ConfirmationButton => confirmButton;') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(errorPresenter.ConfirmationButton)')
+) "World reset confirmation regressed to the hidden single-confirm control or a callback-only path."
+Assert-ToolchainTest (
+    [regex]::IsMatch($worldControllerSource,
+        'local function readReset\(message\)[\s\S]*?Bridge:ApplyWorldReset\(stageId, usedResets, cost\)\s*end') -and
+    -not [regex]::IsMatch($worldControllerSource,
+        'local function readReset\(message\)[\s\S]*?requestChapter\(') -and
+    $worldStoreSource.Contains('WorldVisualCatalog.TryGetStage(stageId, out WorldStageVisualDefinition visual)') -and
+    $worldStoreSource.Contains('stage.RemainingAttempts = checked((byte)Math.Min(byte.MaxValue, visual.MaxAttempts));') -and
+    $worldStoreSource.Contains('if (usedResets > 0 && stage.RemainingResets > 0) stage.RemainingResets--;')
+) "World reset regressed from the Cocos detail-preserving attempt refresh lifecycle."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('worldFormationReturnPending = true;') -and
+    $projectXAppSource.Contains('worldFormationReturnToDetail = returnToDetail;') -and
+    $projectXAppSource.IndexOf('if (worldFormationReturnPending && IsHeroOpen)', [StringComparison]::Ordinal) -lt
+        $projectXAppSource.IndexOf('if (IsWorldOpen)', [StringComparison]::Ordinal) -and
+    $projectXAppSource.Contains('bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;') -and
+    $projectXAppSource.Contains('bool stackPopped = services?.UiStack.Pop() ?? false;') -and
+    $projectXAppSource.Contains('formationPopupView?.SetVisible(false);') -and
+    $projectXAppSource.Contains('if (restoreDetail) worldPresenter?.ShowSelectedStage();') -and
+    $projectXAppSource.Contains('else worldPresenter?.ShowStages();') -and
+    $projectXAppSource.Contains('World stage lineup close did not return cleanly to the stage map.') -and
+    $formationPopupSource.Contains('new GameObject("RuntimeFormationClose"') -and
+    $formationPopupSource.Contains('public void RefreshCloseInteraction()') -and
+    $formationPopupSource.Contains('rect.localPosition = new Vector3(') -and
+    $projectXAppSource.Contains('formationPopupPresenter.CloseInteractionButton')
+) "World formation return lost its detail-versus-stage-map origin contract."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('private bool worldFormationPopupRequestPending;') -and
+    $projectXAppSource.Contains('HandleWorldFormationPopupClick,') -and
+    $projectXAppSource.Contains('CallLua(onHeroClicked, "World.FormationPopup")') -and
+    $projectXAppSource.Contains('if (worldFormationPopupRequestPending)') -and
+    $projectXAppSource.Contains('services.Formation.CombatHeroes.Any(heroId => heroId > 0)') -and
+    $projectXAppSource.Contains('formationPopupPresenter.RenderedModelCount != expectedFormationModels') -and
+    $projectXAppSource.IndexOf('formationPopupView.SetVisible(true);', [StringComparison]::Ordinal) -lt
+        $projectXAppSource.IndexOf('formationPopupPresenter.Render();', [StringComparison]::Ordinal)
+) "World stage formation popup no longer guarantees authoritative heroes, Imod models, or active-surface playback."
+Assert-ToolchainTest (
+    [regex]::IsMatch($worldPresenterSource,
+        'Bind\(mapView, "Layer/Title/CloseBtn", \(\) =>[\s\S]*?if \(showChapters\) close\(\);[\s\S]*?else ShowChapterList\(\);[\s\S]*?}, true\);') -and
+    $worldPresenterSource.Contains('public bool ChapterListVisible => showChapters;') -and
+    $projectXAppSource.Contains('worldPresenter.FindInteractionButton("Layer/Title/CloseBtn")') -and
+    $projectXAppSource.Contains('World stage-map close did not return to WorldMapNewLayer:') -and
+    $projectXAppSource.Contains('WorldMapNewLayer close did not return to UImainLayer_new:') -and
+    ([regex]::Matches($worldControllerSource,
+        'local function request(?:World|Chapter)\([^\)]*\)[\s\S]*?M\.requestedStageId = 0').Count -eq 2) -and
+    $worldControllerSource.Contains('A normal /320 op=2 response only opens kapaiguaiwuLayer.') -and
+    -not [regex]::IsMatch($worldControllerSource,
+        'elseif M\.validationStage ~= "map_capture_running" then[\s\S]*?M\.openPreferredStage\(\)')
+) "World stage close, WorldMapNewLayer close, or stale op27 cancellation drifted from the two-step return contract."
+Assert-ToolchainTest (
+    $worldGuanQiaServerSource.Contains('if (gqScore->nodeStars.find(nodeId) == gqScore->nodeStars.end())') -and
+    -not [regex]::IsMatch($worldGuanQiaServerSource,
+        'if \(gqScore->nodeStars\.find\(nodeId\) == gqScore->nodeStars\.end\(\)\)\s*if \(gqScore == NULL\)') -and
+    $worldPresenterSource.Contains('viewportObject.transform.SetAsFirstSibling();') -and
+    $worldPresenterSource.Contains('public Button FindStageButton(uint stageId)') -and
+    $worldPresenterSource.Contains('Image hitSurface = touch.GetComponent<Image>() ?? touch.gameObject.AddComponent<Image>();') -and
+    $worldPresenterSource.Contains('button.targetGraphic = hitSurface;') -and
+    -not $worldPresenterSource.Contains('new GameObject("Stage_" + stage.Id') -and
+    ([regex]::Matches($projectXAppSource, 'worldPresenter\.FindStageButton\(').Count -ge 2)
+) "World stage clicks can drift to an adjacent node or allow a locked node to play without an op=8 settlement."
+Assert-ToolchainTest (
+    @($worldEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXWorldG3Validation' -and
+    $appLaunchOptionsSource.Contains('public bool WorldG3Validation => HasFlag("-projectXWorldG3Validation");') -and
+    $appLaunchOptionsSource.Contains('HasFlag("-projectXWorldBattleValidation") || WorldG3Validation') -and
+    $bootstrapRunnerSource.Contains('"-projectXWorldG3Validation"') -and
+    $fixedAccountRunnerSource.Contains('$runnerUserId = if ($G3RuntimeOnly -or $G5VisualOnly) { $UserId } else {') -and
+    $fixedAccountRunnerSource.Contains('elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G3" }') -and
+    $worldOutcomeSource.Contains('path == "Layer/Panel"') -and
+    $worldOutcomeSource.Contains('hitTarget.raycastTarget = true;') -and
+    $worldOutcomeSource.Contains('public Button ReplayInteractionButton => replayInteractionButton;') -and
+    $worldOutcomeSource.Contains('Image replayVisual = CreateBattleImage(parent, "ReplayVisual", replay,') -and
+    $worldOutcomeSource.Contains('replayInteractionButton = replayVisual.gameObject.AddComponent<Button>();') -and
+    $worldOutcomeSource.Contains('replayInteractionButton.targetGraphic = replayVisual;') -and
+    $worldOutcomeSource.Contains('replayInteractionGraphic.enabled = false;') -and
+    $worldOutcomeSource.Contains('replayInteractionGraphic.SetAllDirty();') -and
+    ([regex]::Matches($worldOutcomeSource, 'RefreshBattleInteractionGraphic\(\);').Count -ge 2) -and
+    $worldOutcomeSource.Contains('battleView.GameObject.SetActive(true);') -and
+    $worldOutcomeSource.Contains('EnsureBattleBackdrop();') -and
+    $worldOutcomeSource.Contains('new GameObject("WorldBattleBackdrop", typeof(RectTransform))') -and
+    -not $worldOutcomeSource.Contains('image.sprite = scene;') -and
+    -not $worldOutcomeSource.Contains('CreateBattlePanelShade(layer.transform);') -and
+    $worldOutcomeSource.Contains('new GameObject("RuntimeBattleResult_Dimmer", typeof(RectTransform),') -and
+    $worldOutcomeSource.Contains('dimmer.transform.SetAsFirstSibling();') -and
+    $worldOutcomeSource.Contains('washImage.color = new Color(0f, 0f, 0f, 0.58f);') -and
+    $projectXAppSource.Contains('if (!pendingWorldBattleResult) worldBattlePlaybackPresenter.Hide();') -and
+    $projectXAppSource.Contains('pendingWorldBattleResult = false;') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter?.Hide();') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onWorldRefresh, "World.Continue");') -and
+    $worldOutcomeSource.Contains('new GameObject("VictoryTitleImod", typeof(RectTransform))') -and
+    $worldOutcomeSource.Contains('new Vector2(201.2585f, 283.952f)') -and
+    $worldOutcomeSource.Contains('LoadLegacy("res2/animation/effect_zhandoujiesuan_2")') -and
+    $worldOutcomeSource.Contains('foreach (Image part in titleEffect.GetComponentsInChildren<Image>(true))') -and
+    $worldOutcomeSource.Contains('part.raycastTarget = false;') -and
+    $worldOutcomeSource.Contains('victoryTitleEffect.Restart(35f / 60f);') -and
+    $worldOutcomeSource.Contains('player.Completed += HandleCompleted;') -and
+    $worldOutcomeSource.Contains('if (action == 0) SetVisible(false);') -and
+    $worldOutcomeSource.Contains('VictoryTitleVariant = showStars ? Mathf.Clamp(stars, 1, 3) : 2;') -and
+    $worldOutcomeSource.Contains('RewardRecord[] money = values.Where(IsCocosMoneyReward).Take(4).ToArray();') -and
+    $worldOutcomeSource.Contains('case 60000: case 60001: case 60003: case 60014:') -and
+    $worldOutcomeSource.Contains('friendlyWash.anchoredPosition = new Vector2(0f, friendlyWash.anchoredPosition.y);') -and
+    $worldOutcomeSource.Contains("Replace('·', ' ')") -and
+    $worldPlaybackSource.Contains("configured.Replace('·', ' ')") -and
+    $projectXAppSource.Contains('RenderedMoneyRewardCount != 3') -and
+    $projectXAppSource.Contains('yield return new WaitForSecondsRealtime(.65f);') -and
+    $projectXAppSource.Contains('victory Imod leaked past its 0.7-second non-looping lifecycle') -and
+    $worldOutcomeSource.Contains('CreateBattleImage(layer.transform, "VictoryTitle"') -and
+    $worldPlaybackSource.Contains('skipButton.gameObject.SetActive(true);') -and
+    $worldPlaybackSource.Contains('if (store.CanSkip)') -and
+    $worldPlaybackSource.Contains('SkipRequested = true;') -and
+    $worldPlaybackSource.Contains('showControlMessage?.Invoke("精英、BOSS关无法跳过！");') -and
+    -not $worldPlaybackSource.Contains('skipButton.gameObject.SetActive(store.CanSkip);') -and
+    $worldPlaybackSource.Contains('private static readonly int[] CocosSpeedLabels = { 1, 2, 3, 5, 10, 15 };') -and
+    $worldPlaybackSource.Contains('private static readonly float[] CocosPlaybackFactors = { 1f, 2f, 3f, 3.5f, 4f, 4.5f };') -and
+    $worldPlaybackSource.Contains('unit.Model.Play(ResolveUnitActionIndex(unit), loop);') -and
+    $worldPlaybackSource.Contains('return unit?.Data != null && !unit.Data.IsEnemy ? 1 : 0;') -and
+    $worldPlaybackSource.Contains('value.Model.IsFlippedX == ResolveUnitFlipX(value)') -and
+    $worldPlaybackSource.Contains('value.Model.CurrentFrameBelongsToCurrentAction') -and
+    $worldPlaybackSource.Contains('unit.Model.SetFlippedX(ResolveUnitFlipX(unit));') -and
+    $worldPlaybackSource.Contains('public string UnitDirectionalState =>') -and
+    $worldPlaybackSource.Contains('foreach (UnitView unit in units.Values.Where(value => value?.Model != null))') -and
+    $worldPlaybackSource.Contains('view.Model.SetPlayOnEnable(false);') -and
+    $imodAnimationPlayerSource.Contains('public void SetPlayOnEnable(bool value)') -and
+    $imodAnimationPlayerSource.Contains('public bool IsFlippedX => flippedX;') -and
+    $imodAnimationPlayerSource.Contains('public bool CurrentFrameBelongsToCurrentAction') -and
+    $imodAnimationPlayerSource.Contains('? data.actions[actionIndex].frames[0].frame') -and
+    $imodAnimationPlayerSource.Contains('actionIndex = -1;') -and
+    $worldOutcomeSource.Contains('value.Type != 60052 && value.Type != 60006') -and
+    $worldOutcomeSource.Contains('.Where(value => value.FightPosition > 0)') -and
+    $worldOutcomeSource.Contains('no synthetic general data was rendered') -and
+    $worldPlaybackSource.Contains('CreateText(rect, "NameLabel", new Vector2(.5f, .5f), new Vector2(200f, 30f), 20,') -and
+    $worldPlaybackSource.Contains('view.NameLabel.rectTransform.anchoredPosition = new Vector2(0f, -20f);') -and
+    -not $worldPlaybackSource.Contains('CreateText(rect, "NameLabel", new Vector2(.5f, .08f)') -and
+    $worldPlaybackSource.Contains('healthView.Binding.Find("Node/Quality_bg")') -and
+    $worldPlaybackSource.Contains('bool showQuality = unit.Type == 2 && unit.Quality > 0;') -and
+    $worldPlaybackSource.Contains('Resources.Load<Sprite>(ResolveQualityScoreResource(unit.Quality))') -and
+    $worldPlaybackSource.Contains('if (quality <= 4) return "HeroUI/quality_score_A";') -and
+    $worldPlaybackSource.Contains('BringHealthNodeToFront(unit);') -and
+    $worldPlaybackSource.Contains('view.HealthRoot = healthRoot;') -and
+    $worldPlaybackSource.Contains('Transform healthRoot = unit?.HealthRoot;') -and
+    -not $worldPlaybackSource.Contains('unit?.HealthFill?.transform.parent?.parent') -and
+    $worldPlaybackSource.Contains('healthRoot.SetAsLastSibling();') -and
+    $worldOutcomeSource.Contains('image.color = new Color(0f, 0f, 0f, 0.001f);') -and
+    $worldOutcomeSource.Contains('image.canvasRenderer.cullTransparentMesh = false;') -and
+    $projectXAppSource.Contains('Button replay = worldOutcomePresenter.ReplayInteractionButton;') -and
+    $projectXAppSource.Contains('// The close click reactivates the result Canvas.') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-entry.png")') -and
+    $projectXAppSource -match 'while \(battleStartElapsed < 1\.12f\)[\s\S]*?SetBattleStartElapsed\(battleStartElapsed\);[\s\S]*?BuildUiMigrationPath\("world-battle-entry\.png"\)[\s\S]*?float normalActionDuration' -and
+    $projectXAppSource -match 'worldG4BattleReplayValidated\)[\s\S]*?WaitForSecondsRealtime\(\.15f\)[\s\S]*?BuildUiMigrationPath\("world-battle-replay\.png"\)' -and
+    $projectXAppSource.Contains('world-battle-{actionKind}-{actionIndex:D2}.png') -and
+    $projectXAppSource.Contains('world-battle-shake-{actionIndex:D2}.png') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-outcome.png")') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-normal-attack.png")') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-skill.png")') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-hurt-damage.png")') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-death.png")') -and
+    $projectXAppSource.Contains('HashSet<int> stableDeadPositions = new HashSet<int>();') -and
+    $projectXAppSource.Contains('stableDeathCaptureRound > 0 && action.Round >= stableDeathCaptureRound') -and
+    $projectXAppSource.Contains('stableDeadPositions.Count >= (captureFengShenStory ? 1 : 2)') -and
+    $projectXAppSource.Contains('captureFengShenStory && !fengDeathFrameCaptured') -and
+    $projectXAppSource.Contains('stableDeadPositions.Count > 0 && !worldBattlePlaybackPresenter.SkipRequested') -and
+    -not $projectXAppSource.Contains('impactState && !deathFrameCaptured') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-round-rhythm.png")') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-settlement.png")') -and
+    $projectXAppSource.Contains('// The Cocos result is the CSB victory title plus the 0.7-second') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-replay.png")') -and
+    $projectXAppSource.Contains('BuildUiMigrationPath("world-battle-return.png")') -and
+    ([regex]::Matches($projectXAppSource, 'services\.Options\.WorldBattleValidation && !services\.Options\.WorldG3Validation').Count -eq 3) -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(box)') -and
+    -not $projectXAppSource.Contains('box.onClick.Invoke();') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(continueButton)') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(statistics)') -and
+    $projectXAppSource.Contains('int expectedFriendlyStatistics = services.WorldBattleReplay.Units.Count(value => !value.IsEnemy);') -and
+    $projectXAppSource.Contains('services.WorldBattleReplay.StatisticsCount != services.WorldBattleReplay.Units.Count') -and
+    $projectXAppSource.Contains('worldOutcomePresenter.RenderedFriendlyStatisticsCount != expectedFriendlyStatistics') -and
+    $projectXAppSource.Contains('worldOutcomePresenter.RenderedEnemyStatisticsCount != expectedEnemyStatistics') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(closeStatistics)') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(replay)') -and
+    $projectXAppSource.Contains('services.Options.WorldG3Validation') -and
+    -not $projectXAppSource.Contains('continueButton.onClick.Invoke();')
+) "World regression: settlement interactions or authoritative /38 statistics validation drifted."
+Assert-ToolchainTest (
+    $legacyMessageSource.Contains('public LegacyNestedPacket ReadNestedPacket()') -and
+    $worldReplaySource.Contains('public void Load(LegacyTcpMessage message, byte expectedOperation = 5)') -and
+    $worldReplaySource.Contains('operation != expectedOperation') -and
+    $projectXAppSource.Contains('services.WorldBattleReplay.Load(message, 5);') -and
+    $worldReplaySource.Contains('packet.Command == 21') -and
+    $worldReplaySource.Contains('packet.Command == 22') -and
+    $worldReplaySource.Contains('packet.Command == 23') -and
+    $worldReplaySource.Contains('public int StatisticsCount => units.Count(value => value.HasStatistics);') -and
+    $worldReplaySource.Contains('ulong damageDealt = message.ReadULongInt();') -and
+    $worldReplaySource.Contains('ulong damageTaken = message.ReadULongInt();') -and
+    $worldReplaySource.Contains('ulong healing = message.ReadULongInt();') -and
+    $worldReplaySource.Contains('unit.DamageDealt = damageDealt;') -and
+    $worldReplaySource.Contains('unit.DamageTaken = damageTaken;') -and
+    $worldReplaySource.Contains('unit.Healing = healing;') -and
+    $worldReplaySource.Contains('HasAuthoritativeReplay = FightId != 0 && units.Count > 0 && actions.Count > 0') -and
+    $worldOutcomeSource.Contains('Math.Max(1ul, replay.Units.Max(value => value.DamageDealt))') -and
+    $worldOutcomeSource.Contains('unit.Type == 2 && HeroCatalog.TryGet((int)unit.Picture') -and
+    $worldOutcomeSource.Contains('Instantiate(statisticsFrameTemplate, layer, false)') -and
+    $worldOutcomeSource.Contains('Transform layer = Find(statisticsView, "Layer")?.transform') -and
+    $worldOutcomeSource.Contains('Instantiate(sourceTitle.gameObject, layer, true)') -and
+    $worldOutcomeSource.Contains('Instantiate(sourceClose.gameObject, layer, true)') -and
+    $worldOutcomeSource.Contains('runtimeClose.SetAsLastSibling()') -and
+    $worldOutcomeSource.Contains('statisticsCloseInteractionButton = runtimeClose.GetComponent<Button>()') -and
+    $projectXAppSource.Contains('services.UiRouter.FindBySource("shop/shop_bg")') -and
+    $projectXAppSource.Contains('Binding.Find("Layer/shopBg")') -and
+    $projectXAppSource.Contains('[EventSystemRaycast] rejected: inactive') -and
+    $projectXAppSource.Contains('services.WorldBattleReplay.StatisticsCount != services.WorldBattleReplay.Units.Count') -and
+    $projectXAppSource.Contains('World authoritative result queued until /38 playback completes') -and
+    $projectXAppSource.Contains('float playbackAllowance = Mathf.Min(180f, replayActionCount * 4.5f);') -and
+    $projectXAppSource.Contains('MarkValidationControl("WORLD-28-BATTLE-PLAYBACK-ENTER")') -and
+    $projectXAppSource.Contains('MarkValidationControl("WORLD-29-BATTLE-UNIT-IDENTITY")') -and
+    $projectXAppSource.Contains('MarkValidationControl("WORLD-30-BATTLE-ACTION-SEQUENCE")') -and
+    $projectXAppSource.Contains('MarkValidationControl("WORLD-31-BATTLE-TO-SETTLEMENT")') -and
+    $worldPlaybackSource.Contains('presentationCatalog.ResolveAction(action?.SkillId ?? 0, action?.FirstActionType ?? 0)') -and
+    $worldPlaybackSource.Contains('PlayConfiguredClip(scheduled)') -and
+    $worldPlaybackSource.Contains('player.LoadLegacy(path)') -and
+    $worldPlaybackSource.Contains('if (!impactApplied) ApplyImpact();') -and
+    $worldPlaybackSource.Contains('PlayUnitAnimation(target, record.Dead ? "sw" : "bj", false)') -and
+    $worldPlaybackSource.Contains('PlayUnitAnimation(unit, "sw", false)') -and
+    $worldPlaybackSource.Contains('view.HealthFill = CreateHealthBar(rect, unit, enemy, view.HitDefinition,') -and
+    $worldPlaybackSource.Contains('ApplyHpDelta(target, -(long)record.Damage)') -and
+    $worldPlaybackSource.Contains('public float ImpactProgress => impactProgress;') -and
+    $worldPlaybackSource.Contains('private static readonly Vector2[] CocosUnitAnchors') -and
+    $worldPlaybackSource.Contains('int displayed = source <= 9 ? source + 9 : source - 9;') -and
+    $worldPlaybackSource.Contains('view.NameLabel = CreateText') -and
+    $worldPlaybackSource.Contains('CocosSpeedLabels = { 1, 2, 3, 5, 10, 15 }') -and
+    $worldPlaybackSource.Contains('CocosPlaybackFactors = { 1f, 2f, 3f, 3.5f, 4f, 4.5f }') -and
+    $worldPlaybackSource.Contains('ConfigureImportedFightLayer();') -and
+    $worldPlaybackSource.Contains('Layer/FightUI/Position') -and
+    $projectXAppSource.Contains('Transform overlayParent = worldView.GameObject.transform.parent ?? worldView.GameObject.transform;') -and
+    $projectXAppSource.Contains('UiPrefabLoader.Load("BattleFightLayer", overlayParent)') -and
+    $bootstrapBuilderSource.Contains('EnsureDynamicUiReference("BattleFightLayer", BattleFightLayerPrefab);') -and
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset')).Contains('guid: d34c6ecec304c9d45840094f7f5ac2bc') -and
+    $worldPlaybackSource.Contains('foreach (WorldBattleTargetRecord record in activeAction.Targets)') -and
+    $worldReplaySource.Contains('IReadOnlyList<WorldBattleTargetRecord> Targets') -and
+    $worldReplaySource.Contains('IReadOnlyList<WorldBattleUnitRecord> SummonedUnits') -and
+    $worldReplaySource.Contains('action.FirstActionType >= 1 && action.FirstActionType <= 7') -and
+    $worldReplaySource.Contains('action.Message = message.ReadString();') -and
+    $worldReplaySource.Contains('ProtectorPosition = damage.ProtectorPosition') -and
+    $worldReplaySource.Contains('ReflectedDamage = damage.ReflectedDamage') -and
+    $worldReplaySource.Contains('CounterDamage = damage.CounterDamage') -and
+    $worldPlaybackSource.Contains('ShowCombatMarker(target, "dodgetext")') -and
+    $worldPlaybackSource.Contains('ApplyProtectorImpact(record);') -and
+    $worldPlaybackSource.Contains('ApplyRetaliationImpact(record);') -and
+    $worldPlaybackSource.Contains('EnsureSummonedUnits(action);') -and
+    $worldPlaybackSource.Contains('activeAction.FirstActionType == 6') -and
+    $worldPlaybackSource.Contains('BeginAction(WorldBattleActionRecord action, bool preserveExistingDamage = false)') -and
+    $worldPlaybackSource.Contains('EndAction(bool preserveDamage = false)') -and
+    $worldPlaybackSource.Contains('ShowCombatMarker(unit, "skill_0")') -and
+    $worldPlaybackSource.Contains('IsInRightSide(unit.Data.Position) ? 195f : -195f') -and
+    $worldPlaybackSource.Contains('if (activeAction.FirstActionType != 6)') -and
+    $worldPlaybackSource.Contains('buffIds.Distinct().Take(10)') -and
+    $projectXAppSource.Contains('WORLD_BATTLE_UNIT_DATA position={unit.Position}') -and
+    $projectXAppSource.Contains('sourceBuffs=[{string.Join("/", action.SourceBuffIds)}]') -and
+    $projectXAppSource.Contains('bool preservePassiveDamage = false;') -and
+    $projectXAppSource.Contains('bool actionHasPassiveCarry = preservePassiveDamage;') -and
+    $projectXAppSource.Contains('float stablePassiveProgress = Mathf.Min(1f,') -and
+    $projectXAppSource.Contains('float normalAttackCaptureProgress = actionHasPassiveCarry ? .12f : actionCaptureProgress;') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.EndAction(preserveDamage: true);') -and
+    $projectXAppSource.Contains('yield return new WaitForSecondsRealtime(.5f') -and
+    $worldPlaybackSource.Contains('ScheduleCameraShake(model.ShakeId, scheduled);') -and
+    $worldPlaybackSource.Contains('ScheduleCameraShake(effect.ShakeId, scheduled);') -and
+    $worldPlaybackSource.Contains('public bool IsCameraShaking { get; private set; }') -and
+    $worldPlaybackSource.Contains('Resources.Load<AudioClip>("ProjectXAudio/battle/" + soundFile)') -and
+    $worldPlaybackSource.Contains('if (battleAudio == null) battleAudio = root.AddComponent<AudioSource>();') -and
+    $worldPlaybackSource.Contains('battleAudio.PlayOneShot(clip);') -and
+    $worldPlaybackSource.Contains('RefreshBuffs(target, record.BuffIds);') -and
+    $worldPlaybackSource.Contains('Resources.Load<Sprite>("ProjectXBattle/BuffTips/" + buff.ResourceName)') -and
+    $worldPlaybackSource.Contains('player.LoadLegacy("res2/Skill/" + buff.ResourceName)') -and
+    $worldPlaybackSource.Contains('Vector3 hitPoint = ResolveHitPoint(unit, buff.Hit + 1);') -and
+    $worldPlaybackSource.Contains('unit.HitDefinition?.HpBarPosition') -and
+    $worldPlaybackSource.Contains('ShowCombatMarker(retaliator, "injurytext")') -and
+    $worldPlaybackSource.Contains('ShowCombatMarker(retaliator, "beatbacktext")') -and
+    $worldPlaybackSource.Contains('protector.Root.localPosition = protectedTarget.Home + direction * 45f;') -and
+    $worldPlaybackSource.Contains('ShowDamage(target, $"-{record.Damage}"') -and
+    $worldPlaybackSource.Contains('Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")') -and
+    -not $worldPlaybackSource.Contains('unit.Level') -and
+    -not $worldPlaybackSource.Contains('unit.CurrentHp}') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.SkipRequested') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.PlaybackSpeed') -and
+    $projectXAppSource.Contains('float normalActionDuration = Mathf.Max(1.35f, 4.2f / Mathf.Max(1, replay.Actions.Count));') -and
+    $projectXAppSource.Contains('float configuredDuration = worldBattlePlaybackPresenter.RecommendedActionDurationSeconds;') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.ImpactProgress + .02f, .45f, .96f') -and
+    $projectXAppSource.Contains('? worldBattlePlaybackPresenter.RecommendedSkillCaptureProgress') -and
+    $worldPlaybackSource.Contains('public float RecommendedSkillCaptureProgress => recommendedSkillCaptureProgress;') -and
+    $worldPlaybackSource.Contains('(firstSkillStart + .02f) / actionDurationSeconds') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.ImpactProgress + .22f') -and
+    $projectXAppSource.Contains('impactState && canonicalLightningSkill') -and
+    $projectXAppSource.Contains('progress >= actionCaptureProgress') -and
+    $projectXAppSource.Contains('WORLD_BATTLE_PRESENTATION sequence=') -and
+    $projectXAppSource.Contains('WORLD_BATTLE_ACTION_DATA sequence=') -and
+    $projectXAppSource.Contains(':damage={value.Damage}:healing={value.Healing}:state={value.State}:dead={value.Dead}') -and
+    $projectXAppSource.Contains('private void ReturnFromWorldBattleReplayControl()') -and
+    $projectXAppSource.Contains('worldPresenter.ShowStages();') -and
+    $projectXAppSource.Contains('ReplayBattleOutcomeControl,') -and
+    $projectXAppSource.Contains('private void ReplayBattleOutcomeControl()') -and
+    $projectXAppSource.Contains('ReturnFromWorldBattleReplayControl();') -and
+    -not $projectXAppSource.Contains('private void ReplayWorldBattleLocally()') -and
+    -not $projectXAppSource.Contains('InvokeLuaOrFail(onWorldChallenge, "World.Replay")') -and
+    $worldReplaySource.Contains('FirstTargetPosition') -and
+    $worldReplaySource.Contains('FirstTargetDamage') -and
+    $worldReplaySource.Contains('FirstTargetDead') -and
+    $worldReplaySource.Contains('SourceHpChanged') -and
+    $worldReplaySource.Contains('SkillId')
+) "World regression: the authoritative /38 playback or current Cocos replay-return lifecycle drifted."
+Assert-ToolchainTest (
+    $battlePresentationCatalogSource.Contains('LDataConstMgr:GetBTAction/GetBTModelAct/GetBTSkAct/GetBTHurtAct') -and
+    $battlePresentationCatalogSource.Contains('actionType == 3 && skillId <= uint.MaxValue - 100000') -and
+    $battlePresentationCatalogSource.Contains('ReadUInt16()') -and
+    $battlePresentationCatalogSource.Contains('ReadShakes(LoadBytes("skill_camerashock.dat")') -and
+    $battlePresentationCatalogSource.Contains('ReadBuffs(LoadBytes("buff_client.dat")') -and
+    $battlePresentationCatalogSource.Contains('ReadUnitHits(LoadBytes("hit_monster.dat")') -and
+    $battlePresentationCatalogSource.Contains('public int MonsterHitCount => monsterHits.Count;') -and
+    $battlePresentationCatalogSource.Contains('values[304] = new BattleUnitHitDefinition') -and
+    $battlePresentationCatalogSource.Contains('ReadFormations(LoadText("zhenfa_config_dat")') -and
+    $battlePresentationCatalogSource.Contains('public int FormationCount => formations.Count;') -and
+    $worldPlaybackSource.Contains('formation.Positions.Contains(localPosition)') -and
+    $worldPlaybackSource.Contains('original <= 9 ? store.Group1FormationId : store.Group2FormationId') -and
+    $worldPlaybackSource.Contains('public int ActiveFormationMarkerCount') -and
+    $projectXAppSource.Contains('worldBattlePlaybackPresenter.ActiveFormationMarkerCount != services.WorldBattleReplay.Units.Count') -and
+    $worldReplaySource.Contains('public float ScaleRatio { get; set; } = 1f;') -and
+    $worldReplaySource.Contains('message.ReadUInt() / 100f') -and
+    $worldReplaySource.Contains('Group1FormationId = message.ReadUShort();') -and
+    $worldReplaySource.Contains('Group2FormationId = message.ReadUShort();') -and
+    $worldReplaySource.Contains('CurrentTurn = message.ReadUShort();') -and
+    $worldPlaybackSource.Contains('UiPrefabLoader.Load("BattleHpNode", parent)') -and
+    $worldPlaybackSource.Contains('healthView.Binding.Find("Node/Minus")') -and
+    $worldPlaybackSource.Contains('healthView.Binding.Find("Node/Plus")') -and
+    $worldPlaybackSource.Contains('Resources.Load<Texture2D>("ProjectXBattle/Hud/ui_pk_num")') -and
+    $worldPlaybackSource.Contains('new Rect(index * 29f, 0f, 29f, 30f)') -and
+    $worldPlaybackSource.Contains('BuildBattleNumber(unit.NumberRoot, digits,') -and
+    $worldPlaybackSource.Contains('unit.NumberCritical') -and
+    $worldPlaybackSource.Contains('new Vector2(0f, 125f * eased)') -and
+    $worldPlaybackSource.Contains('cursor += clip.DelaySeconds * previousDuration;') -and
+    $worldPlaybackSource.Contains('timelineEnd = Mathf.Max(timelineEnd, cursor + duration);') -and
+    $worldPlaybackSource.Contains('actionDurationSeconds = Mathf.Max(.35f, timelineEnd + .1f);') -and
+    -not $worldPlaybackSource.Contains('cursor += duration;') -and
+    -not $worldPlaybackSource.Contains('CreateText(rect, "Damage"') -and
+    $worldPlaybackSource.Contains('presentationCatalog.ResolveUnitHit(unit.Type') -and
+    $worldPlaybackSource.Contains('ResolveHitPoint(attachedUnit, effect.HitPoint)') -and
+    $bootstrapBuilderSource.Contains('EnsureDynamicUiReference("BattleHpNode"') -and
+    $bootstrapBuilderSource.Contains('"ConfigData", "hit_monster.dat"') -and
+    $bootstrapBuilderSource.Contains('"ConfigData", "zhenfa_config_dat.lua"') -and
+    $bootstrapBuilderSource.Contains('"ImageNum", "num_lan.png"') -and
+    $bootstrapBuilderSource.Contains('"ImageNum", "ui_pk_num.png"') -and
+    $bootstrapBuilderSource.Contains('$"zhenfa_{formation}.png"') -and
+    $worldPlaybackSource.Contains('CreateRoundAtlas(roundLabel.transform);') -and
+    $worldPlaybackSource.Contains('UpdateRoundDisplay(Mathf.Max(1, store.CurrentTurn));') -and
+    $worldPlaybackSource.Contains('SetFormationIcon("Layer/FightUI/btn_Formation_Enemy/Image", store.Group2FormationId);') -and
+    $worldPlaybackSource.Contains('HideImportedButtonBackground("Layer/FightUI/btn_Formation_Enemy");') -and
+    $worldPlaybackSource.Contains('hasUnit ? 1f : 100f / 255f') -and
+    $battlePresentationCatalogSource.Contains('DelayRatio = reader.ReadUInt32() / 100f') -and
+    $battlePresentationCatalogSource.Contains('DurationSeconds = reader.ReadUInt32() / 1000f') -and
+    $battlePresentationCatalogSource.Contains('ModelAnimation = 1') -and
+    $battleAudioFiles.Count -eq 32 -and
+    @($battleAudioFiles | Where-Object { $_.Length -le 1024 }).Count -eq 0 -and
+    $battleBuffIconFiles.Count -eq 56 -and
+    $battleSkillNameFiles.Count -eq 8 -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXBattle/SkillName/skill_0.png')).Hash.ToLowerInvariant() -eq '0e232540ab573df9a2e641c0ac5b9511fbf7c41422242b1a0e9d4bca94ea8021' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'f36abb669b33aebcd8da55184648bfc2129e34b36214095319d13633c0bf7612' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_attack_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'ec065fb2f070a57735b11fff44a72b4cd2d6cc19fc4ba6f4cfb442eb0a6ac325' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_effect_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'aab57c44cafdaef99a6ee10e8b64ccab0b619a5276de91b46989869e9ee9465a' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_behit_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'abefd49b70812b95a1fe3304530b0472ed503def4feee2d09eb016a92d2a3583' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/hit_monster.dat.bytes')).Hash.ToLowerInvariant() -eq '79ce0eaf3b8efef4e8b2fa36421f34f7291672343fd91fb6a469309bee71fecc' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/zhenfa_config_dat.txt')).Hash.ToLowerInvariant() -eq '9d86d4a4df2ee54d538052f6e5de4a58ebb5a5c8b1f6dbb7185b65e1fb236949' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png')).Hash.ToLowerInvariant() -eq 'ac67a9df960289479ccf49e06f73ec252ff84d451f8178717dea540da5072d87'
+) "Shared battle presentation config parser or hydrated Cocos resource hashes drifted."
+Assert-ToolchainTest (
+    $worldPresenterSource.Contains('float backdropWidth = mapVisual != null ? mapVisual.Size.x * (750f / 1080f) : 0f;') -and
+    $worldPresenterSource.Contains('Math.Max(store.Stages.Count * width + 16f, backdropWidth)') -and
+    $worldPresenterSource.Contains('Find(mapView, "Layer/Title/bg")?.GetComponent<Image>()') -and
+    $worldPresenterSource.Contains('titleBackground.raycastTarget = false')
+) "World stage-map ScrollRect regressed to stage-button width and can no longer pan across the Cocos map backdrop."
+Assert-ToolchainTest (
+    $projectXAppSource.IndexOf('if (!services.Options.WorldBattleValidation)', [StringComparison]::Ordinal) -lt
+    $projectXAppSource.IndexOf('if (GetLocalUserId() == 1 || !IsWorldOpen', [StringComparison]::Ordinal)
+) "World regression: ordinary userId=1 Play is still routed through fixed-account G4 validation and opens a final-state error after settlement closes."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('worldStageView?.GameObject.activeSelf == true') -and
+    $projectXAppSource.Contains('worldMapView?.GameObject.activeSelf == true') -and
+    $projectXAppSource.Contains('worldDetailView?.GameObject.activeSelf == true')
+) "World open-state regression: an active chapter, stage, or detail surface is no longer recognized after UiStack ownership changes."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'HandleDisconnected\(string reason\)[\s\S]*?worldView\?\.SetVisible\(false\);\s*worldStageView\?\.SetVisible\(false\);\s*worldMapView\?\.SetVisible\(false\);')
+) "World disconnect cleanup leaves the imported stage surface active and reports the module as still open."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'HandleBack\(\)[\s\S]*?if \(IsWorldOpen\)[\s\S]*?worldStageView\?\.SetVisible\(false\);[\s\S]*?worldMapView\?\.SetVisible\(false\);[\s\S]*?worldView\?\.SetVisible\(false\);[\s\S]*?UiStack\.Pop\(\)')
+) "World back-navigation regression: closing the module leaves reparented chapter/stage surfaces active after the root UiStack pop."
+Assert-ToolchainTest (
+    ([regex]::IsMatch($projectXAppSource,
+        'CompleteHeroLuaReadValidation[\s\S]*?!services\.Options\.WorldBattleValidation\) ShowFormationPopup\(\);[\s\S]*?if \(services\.Options\.WorldBattleValidation\)[\s\S]*?World pre-challenge formation ready[\s\S]*?return;[\s\S]*?Complete\(showBag')) -and
+    ([regex]::Matches($projectXAppSource,
+        '!services\.Options\.WorldBattleValidation\) ShowFormationPopup\(\);').Count -eq 2)
+) "World cross-module formation probe can again terminate the World runner as a standalone Formation completion."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'CaptureWorldBattleResult\(int rewardCount\)[\s\S]*?replayActionCount = services\.WorldBattleReplay\?\.Actions\.Count \?\? 0;[\s\S]*?playbackAllowance = Mathf\.Min\(180f, replayActionCount \* 4\.5f\);[\s\S]*?settlementDeadline = Time\.realtimeSinceStartup \+ 30f \+ playbackAllowance;[\s\S]*?while \(!worldOutcomePresenter\.IsBattleVisible')
+) "World G4 runner again checks settlement before the authoritative /38 battle playback finishes."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'ShowWorldBattleResultNow\(int stars\)[\s\S]*?worldG4BattleReplayValidated[\s\S]*?StartCoroutine\(CaptureWorldBattleResult\(services\.Rewards\.Count\)\)')
+) "World G4 cached replay no longer resumes the settlement continue validation after playback."
+Assert-ToolchainTest (
+    $worldFixtureSource.Contains('"AssertReloginHash"') -and
+    $worldFixtureSource.Contains('Assert-WorldReloginStable') -and
+    $worldFixtureSource.Contains('stable_snapshot_hash') -and
+    $worldFixtureSource.Contains('CHAR_LENGTH(r.mission)>0') -and
+    $worldFixtureSource.Contains('COALESCE(TO_BASE64(r.mission)') -and
+    $worldFixtureSource.Contains('Get-WorldReloginCanonicalGuanQia') -and
+    $worldFixtureSource.Contains('Get-WorldReloginCanonicalSaveVal') -and
+    $worldFixtureSource.Contains('login-derived current-week attempt count') -and
+    $worldFixtureSource.Contains('$parts[0..9] -join') -and
+    $worldFixtureSource.Contains('post-login canonical guan_qia assertion failed') -and
+    $worldFixtureSource.Contains('postLoginHashVerified')
+) "World fixed-account fixture no longer separates exact restore from canonical login-normalized World/save_val persistence checks."
+Assert-ToolchainTest (
+    $battleMeetMonsterEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    $battleMeetMonsterEvidenceContract.fixedAccount.sqlitePath -eq 'AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db' -and
+    [uint32]$battleMeetMonsterEvidenceContract.fixedAccount.userId -eq 7200057 -and
+    [uint32]$battleMeetMonsterEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    $battleMeetMonsterFixtureSource.Contains('BattleMeetMonster fixture only accepts Application.persistentDataPath/LocalServer/projectx.db.') -and
+    $battleMeetMonsterFixtureSource.Contains('Invoke-BattleMeetMonsterFixture.py') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('SCENE_ID = 2') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('"510|742|511|851|378|809|"') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('"937|1265|796|1342|964|1406|"') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('patch_scene_id(save_data[0])') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('copy_database(args.backup, args.database)') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('"residueCount": 0') -and
+    $battleMeetMonsterSqliteFixtureSource.Contains('"AssertReloginHash": assert_relogin')
+) "BattleMeetMonster fixture drifted from the current-source scene-2 SQLite-only snapshot/restore contract."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

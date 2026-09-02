@@ -840,7 +840,9 @@
           "contains": [
             "Bridge:BeginPlayerHudValidation()",
             "Protocol.VIP",
-            "Protocol.STAMINA"
+            "Protocol.STAMINA",
+            "local BOUND_PREMIUM = 60001",
+            "elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)"
           ]
         },
         {
@@ -1224,8 +1226,7 @@
         "equipment-four-cultivation-transactions-restored",
         "hero-update-70-source-and-target-authoritative",
         "player-power-18-authoritative",
-        "bag-currency-mission-mysql-relogin-restored",
-        "equipment-sqlite-runtime-restart-restored",
+        "equipment-sqlite-mutation-relogin-restored",
         "failure-timing-sibling-isolation-and-zero-residual",
         "equipment-visible-dynamic-and-lifecycle-contracts",
         "equipment-common-bag-refresh-and-drag-contracts",
@@ -1272,11 +1273,11 @@
           ]
         },
         {
-          "path": "tools/unity-migration/Invoke-HeroEquipFixture.ps1",
+          "path": "tools/unity-migration/Invoke-HeroEquipSqliteFixture.py",
           "contains": [
-            "Add-HeroEquipFixtureItems",
-            "Assert-HeroEquipFixtureItems",
-            "fixtureEquipmentUid"
+            "fixture_equipment_blob",
+            "assert_setup",
+            "mutationStableHash"
           ]
         },
         {
@@ -1554,7 +1555,7 @@
           "contains": [
             "InvokeQuantityInput",
             "InvokeBuy",
-            "IsRefreshDisabledForBaseShop"
+            "IsRefreshControlHiddenForBaseShop"
           ]
         },
         {
@@ -1576,7 +1577,7 @@
     {
       "key": "gameplay-shops-default",
       "module": "GameplayShops",
-      "fixture": "isolated-role",
+      "fixture": "reversible-gameplay-shops-sqlite-fixed-account",
       "requiredGate": "G3",
       "flags": [
         "-projectXGameplayShopsValidation"
@@ -1584,26 +1585,6 @@
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-arena.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-blood.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-guild.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-turntable.png",
           "lifecycle": "runtime"
         }
       ],
@@ -1613,26 +1594,7 @@
         "soul-item-detail",
         "soul-refresh",
         "soul-purchase",
-        "arena-goods",
-        "arena-reward",
-        "arena-buy-dialog",
-        "arena-purchase",
-        "blood-tier1",
-        "blood-tier2",
-        "blood-tier3",
-        "blood-reward",
-        "blood-purchase",
-        "guild-shop",
-        "guild-spirit",
-        "guild-purchase",
-        "kunlun-shop",
-        "kunlun-purchase",
-        "turntable-locked",
-        "turntable-points",
-        "turntable-premium",
-        "turntable-purchase",
         "failure-insufficient",
-        "failure-condition",
         "failure-soldout",
         "failure-invalid-repeat",
         "reload",
@@ -1641,15 +1603,15 @@
       ],
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
-        "gameplay-shop-title",
-        "gameplay-shop-tabs",
-        "gameplay-shop-subtabs",
-        "gameplay-shop-currencies",
-        "gameplay-shop-authority",
-        "gameplay-shop-direct-buy",
-        "gameplay-shop-quantity-buy",
-        "gameplay-shop-failures",
-        "gameplay-shop-lifecycle"
+        "soul-shop-title-and-six-slots",
+        "soul-shop-all-function-15-routes",
+        "soul-shop-authoritative-list",
+        "soul-shop-authoritative-purchase",
+        "soul-shop-authoritative-refresh",
+        "soul-shop-insufficient-and-soldout",
+        "soul-shop-second-countdown",
+        "soul-shop-return-reconnect-account-switch",
+        "soul-shop-basic-shop-pending-isolation"
       ],
       "sourceContracts": [
         {
@@ -1669,7 +1631,7 @@
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
           "contains": [
             "-projectXGameplayShopsValidation",
-            "BeginGameplayShopsG4Validation"
+            "CompleteGameplayShopsValidation"
           ]
         },
         {
@@ -2360,13 +2322,26 @@
           ]
         },
         {
+          "path": "unityclient/Assets/ProjectX/src/Data/WorldVisualCatalog.cs",
+          "contains": [
+            "FirstRewards",
+            "ParseTriples(GetBraceField(entry, \"first_reward\"))"
+          ]
+        },
+        {
           "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
           "contains": [
             "PageChapterCount",
             "SelectChapter",
             "PageLeft",
             "PageRight",
-            "ShowLevelPopup"
+            "ShowLevelPopup",
+            "RenderLevelRewards(definition?.FirstRewards)",
+            "RewardPicture(reward.Type)",
+            "RuntimeFengShenItemCell",
+            "HeroUI/common_quality_",
+            "RuntimeFengShenStoryGoldCheck",
+            "RenderCurrencyHeader"
           ]
         },
         {
@@ -2380,11 +2355,11 @@
           ]
         },
         {
-          "path": "tools/unity-migration/Invoke-FengShenStoryCocosFixture.ps1",
+          "path": "tools/unity-migration/Invoke-FengShenStorySqliteFixture.ps1",
           "contains": [
             "AssertRestored",
             "AssertCleanup",
-            "snapshotHash"
+            "Application.persistentDataPath/LocalServer/projectx.db"
           ]
         }
       ],
@@ -2398,9 +2373,9 @@
     {
       "key": "arena-default",
       "module": "Arena",
-      "fixture": "isolated-role",
+      "fixture": "reversible-arena-fixed-account",
       "flags": [
-        "-projectXArenaValidation"
+        "-projectXArenaBattleValidation"
       ],
       "artifacts": [
         {
@@ -2410,7 +2385,17 @@
       ],
       "captureStates": [
         "arena"
-      ]
+      ],
+      "requiredGate": "G3",
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     },
     {
       "key": "kunlun-default",
@@ -2475,7 +2460,11 @@
             "function M.search",
             "function M.searchAll",
             "function M.compose",
-            "function M.composeAll"
+            "function M.composeAll",
+            "BeginXunBaoRewardUpdate",
+            "AddXunBaoReward",
+            "EndXunBaoRewardUpdate",
+            "搜索次数不足"
           ]
         },
         {
@@ -2484,7 +2473,10 @@
             "BindAction",
             "ActionBindingCount",
             "searchAll",
-            "composeAll"
+            "composeAll",
+            "store.Remaining == 0",
+            "RenderFragmentCounts",
+            "CanComposeSelected"
           ]
         },
         {
@@ -2772,37 +2764,351 @@
         "-projectXEnhanceMasterG3Validation"
       ],
       "artifacts": [
-        {"path":"build/ui-migration/EM-G3-MASTER-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-REFINE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-AWAKEN.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-SHENZHU.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-FABAO-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-MASTER-FABAO-REFINE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-REFINE.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-AWAKEN.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-EQUIP-SHENZHU.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-FABAO-STRENGTH.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-FABAO-MATERIAL-CHOOSER.png","lifecycle":"runtime"},
-        {"path":"build/ui-migration/EM-G3-FABAO-REFINE.png","lifecycle":"runtime"}
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-REFINE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-AWAKEN.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-SHENZHU.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-FABAO-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-MASTER-FABAO-REFINE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-REFINE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-AWAKEN.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-EQUIP-SHENZHU.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-FABAO-STRENGTH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-FABAO-MATERIAL-CHOOSER.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/EM-G3-FABAO-REFINE.png",
+          "lifecycle": "runtime"
+        }
       ],
       "captureStates": [
-        "master-strength","master-refine","master-awaken","master-shenzhu","master-fabao-strength","master-fabao-refine",
-        "equipment-strength","equipment-refine","equipment-awaken","equipment-shenzhu",
-        "fabao-strength","fabao-material-chooser","fabao-refine"
+        "master-strength",
+        "master-refine",
+        "master-awaken",
+        "master-shenzhu",
+        "master-fabao-strength",
+        "master-fabao-refine",
+        "equipment-strength",
+        "equipment-refine",
+        "equipment-awaken",
+        "equipment-shenzhu",
+        "fabao-strength",
+        "fabao-material-chooser",
+        "fabao-refine"
       ],
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
-        "enhance-master-six-tabs","enhance-master-dynamic-prefabs",
-        "enhance-master-fabao-cultivation","enhance-master-hero-skill-equipment-boundary",
+        "enhance-master-six-tabs",
+        "enhance-master-dynamic-prefabs",
+        "enhance-master-fabao-cultivation",
+        "enhance-master-hero-skill-equipment-boundary",
         "enhance-master-control-matrix-40"
       ],
       "sourceContracts": [
-        {"path":"client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua","contains":["UpdateEquipItem","UpdateFaBaoItem","TabClicked","onGoUpgradeClicked"]},
-        {"path":"server/src/pack_deal.cpp","contains":["StrongFaBao","JingLianFaBao"]},
-        {"path":"unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs","contains":["ShowFaBaoStrength","ShowFaBaoRefine","OpenFaBaoMaterialChooser"]},
-        {"path":"unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs","contains":["Resources.Load<UiPrefabReference>","Release"]}
+        {
+          "path": "client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua",
+          "contains": [
+            "UpdateEquipItem",
+            "UpdateFaBaoItem",
+            "TabClicked",
+            "onGoUpgradeClicked"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "StrongFaBao",
+            "JingLianFaBao"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
+          "contains": [
+            "ShowFaBaoStrength",
+            "ShowFaBaoRefine",
+            "OpenFaBaoMaterialChooser"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs",
+          "contains": [
+            "Resources.Load<UiPrefabReference>",
+            "Release"
+          ]
+        }
       ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "battle-meet-monster-default",
+      "module": "BattleMeetMonster",
+      "fixture": "reversible-battle-meet-monster-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBattleMeetMonsterValidation"
+      ],
+      "artifacts": [],
+      "captureStates": [],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "battle-feng-shen-story-default",
+      "module": "BattleFengShenStory",
+      "fixture": "reversible-battle-feng-shen-story-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBattleFengShenStoryValidation"
+      ],
+      "artifacts": [
+        {
+          "path": "build/ui-migration/BFS-BATTLE-START.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-STAND.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SPEED.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SKILL.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-MOVE.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-STATUS.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-DEATH.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-RETURN.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/BFS-BATTLE-SKIP-RETURN.png",
+          "lifecycle": "runtime"
+        }
+      ],
+      "captureStates": [
+        "battle-start",
+        "standing-formation",
+        "speed-control",
+        "skill",
+        "damage",
+        "move",
+        "status",
+        "death",
+        "settlement",
+        "statistics",
+        "return",
+        "skip-return"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "battle-fengshen-authority",
+        "battle-fengshen-presentation",
+        "battle-fengshen-lifecycle-split",
+        "battle-fengshen-stage-markers",
+        "battle-fengshen-controls"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/FengShenStory/FengShenStoryLevelUI.lua",
+          "contains": [
+            "QueryFengShenStory(25)",
+            "PlayStand(0)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "contains": [
+            "封神列传战斗结束推送",
+            "ReadBattleResult(stream,figthData)",
+            "Utils:OpenRewardBox(GUITips.RSI_BOX_TIP2,rewards,true"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/Logic/LBattleLogic.lua",
+          "contains": [
+            "function LBattleLogic:RecvBattleOver",
+            "LRoleDataMgr:UpdateFightDatum",
+            "cc.LayerColor:create(cc.c4b(0,0,0,150))",
+            "cc.DelayTime:create(0.9)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/View/Battle/BattleUnitNode.lua",
+          "contains": [
+            "function BattleUnitNode:ShowQuality",
+            "bgAnim = \"res2/animation/battle/quality3\"",
+            "self.m_pBgAni:PlayActionRepeat(0)"
+          ]
+        },
+        {
+          "path": "server/src/user_guanqia.cpp",
+          "contains": [
+            "TiaoZhanLieZhuan",
+            "EFTLieZhuanFight"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
+          "contains": [
+            "BeginBattleFengShenStoryValidation",
+            "ShowFengShenStoryBattleResult",
+            "found.pic or 0, found.quality or 0"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginView.lua.txt",
+          "contains": [
+            "-projectXBattleFengShenStoryValidation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
+          "contains": [
+            "-projectXBattleFengShenStoryValidation",
+            "Bridge:EnterGameplay(3)"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/WorldBattleReplayStore.cs",
+          "contains": [
+            "expectedOperation",
+            "HasAuthoritativeReplay"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs",
+          "contains": [
+            "public int Picture",
+            "public int Quality"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
+          "contains": [
+            "ValidateRewardPushPresentation",
+            "RenderedCurrentStageMarkerCount",
+            "SetVisible(node.Find(\"Image_4\"), isCurrent)",
+            "ShowImportedReward(\"宝箱奖励\", string.Empty",
+            "SetViewText(rewardView, \"Layer/Popup/btn_lingqu/Text1\", \"确定\")",
+            "rewardDimmer.raycastTarget = true"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs",
+          "contains": [
+            "BattleStartShade",
+            "GammaToLinearSpace",
+            "Mathf.InverseLerp(.9f, 1.1f",
+            "startEffect.transform.SetAsLastSibling()",
+            "ResolvePetQualityEffectResource",
+            "res2/animation/battle/quality3"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "RunBattleFengShenStoryValidation",
+            "battle-fengshen-controls",
+            "FengShenStory.BattleDirectReturn",
+            "natural completion -> authoritative settlement",
+            "explicit skip -> direct parent return without settlement",
+            "SetBattleStartElapsed(battleStartElapsed)"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "battle-script-default",
+      "module": "BattleScript",
+      "fixture": "shared-readonly",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXBattleScriptValidation"
+      ],
+      "artifacts": [],
+      "captureStates": [],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
       "visualAssertions": {
         "width": 1334,
         "height": 750,

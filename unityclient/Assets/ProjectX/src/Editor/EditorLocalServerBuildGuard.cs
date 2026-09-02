@@ -53,7 +53,8 @@ namespace ProjectX.Editor
                 return false;
             }
 
-            string executable = Path.Combine(repositoryRoot, "build", "server-win", "Debug", "kapai.exe");
+            string buildDirectory = Path.Combine(repositoryRoot, ".local", "server-build", "server-win");
+            string executable = Path.Combine(buildDirectory, "Debug", "kapai.exe");
             if (!force && !NeedsBuild(repositoryRoot, executable)) return true;
 
             string buildScript = Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1");
@@ -75,7 +76,8 @@ namespace ProjectX.Editor
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = pwsh,
-                    Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(buildScript),
+                    Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(buildScript)
+                        + " -BuildDir " + Quote(buildDirectory),
                     WorkingDirectory = repositoryRoot,
                     UseShellExecute = false,
                     CreateNoWindow = true,

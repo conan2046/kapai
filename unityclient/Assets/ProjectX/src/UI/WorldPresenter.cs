@@ -16,6 +16,7 @@ namespace ProjectX.UI
         private const string DetailRoot = "Layer/Panel_1/Pane/Descbg";
         private static readonly Dictionary<string, Sprite> RuntimeSprites = new Dictionary<string, Sprite>();
         private readonly Dictionary<uint, Button> normalBoxButtons = new Dictionary<uint, Button>();
+        private readonly Dictionary<string, Button> interactionButtons = new Dictionary<string, Button>();
         private readonly CocosUiView worldView;
         private readonly CocosUiView stageView;
         private readonly CocosUiView mapView;
@@ -36,12 +37,15 @@ namespace ProjectX.UI
         private readonly Action<uint> claimBox;
         private readonly Action<WorldStageRecord> showNormalBox;
         private readonly Action openFormation;
+        private readonly Action<bool> openHeroFormation;
+        private readonly Action openAchievement;
+        private readonly Action openYouLi;
         private readonly Action close;
-        private readonly Action closeStage;
         private readonly Action<string> validationControl;
         private readonly VirtualList<ListEntry> list;
         private readonly ScrollRect stageMapScroll;
         private readonly RectTransform stageMapContent;
+        private ImodAnimationPlayer stagePlayerModel;
         private bool showChapters = true;
         private bool showDetail;
         private bool showDropdown;
@@ -52,8 +56,8 @@ namespace ProjectX.UI
             ShopCatalog itemCatalog,
             EquipmentCatalog equipmentCatalog,
             Action<uint> requestChapter, Action<uint> requestStage, Action challenge, Action sweep,
-            Action<WorldStageRecord> requestReset, Action<uint> claimBox, Action<WorldStageRecord> showNormalBox, Action openFormation, Action close,
-            Action closeStage,
+            Action<WorldStageRecord> requestReset, Action<uint> claimBox, Action<WorldStageRecord> showNormalBox,
+            Action openFormation, Action<bool> openHeroFormation, Action openAchievement, Action openYouLi, Action close,
             Action<string> validationControl = null)
         {
             this.worldView = worldView ?? throw new ArgumentNullException(nameof(worldView));
@@ -76,8 +80,10 @@ namespace ProjectX.UI
             this.claimBox = claimBox ?? throw new ArgumentNullException(nameof(claimBox));
             this.showNormalBox = showNormalBox ?? throw new ArgumentNullException(nameof(showNormalBox));
             this.openFormation = openFormation ?? throw new ArgumentNullException(nameof(openFormation));
+            this.openHeroFormation = openHeroFormation ?? throw new ArgumentNullException(nameof(openHeroFormation));
+            this.openAchievement = openAchievement ?? throw new ArgumentNullException(nameof(openAchievement));
+            this.openYouLi = openYouLi ?? throw new ArgumentNullException(nameof(openYouLi));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
-            this.closeStage = closeStage ?? throw new ArgumentNullException(nameof(closeStage));
             this.validationControl = validationControl;
 
             EnsureWorldMapBackdrop();
@@ -109,9 +115,10 @@ namespace ProjectX.UI
             Bind(mapView, "Layer/Panel_zuoshang/Button_xiala", () => { showDropdown = !showDropdown; Render(); Mark("WORLD-04-CHAPTER-DROPDOWN"); });
             Bind(mapView, "Layer/Title/CloseBtn", () =>
             {
-                closeStage();
+                if (showChapters) close();
+                else ShowChapterList();
                 Mark("WORLD-08-STAGE-CLOSE");
-            });
+            }, true);
             Bind(worldView, "Layer/Button_1", () => { NavigateChapter(-1); Mark("WORLD-02-CHAPTER-PREV"); });
             Bind(worldView, "Layer/Button_2", () => { NavigateChapter(1); Mark("WORLD-03-CHAPTER-NEXT"); });
             for (int index = 1; index <= 5; index++)
@@ -130,17 +137,26 @@ namespace ProjectX.UI
             Bind(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_1", () => { challenge(); Mark("WORLD-14-CHALLENGE"); });
             Bind(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_3", () => { sweep(); Mark("WORLD-15-SWEEP"); });
             Bind(detailView, $"{DetailRoot}/Image_bg/Panel_4/TimesBg/AddBtn", () => { requestReset(store.SelectedStage); Mark("WORLD-16-RESET-ATTEMPTS"); });
-            Bind(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", () => { openFormation(); Mark("WORLD-18-PRECHALLENGE-FORMATION"); });
+            Bind(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", () => { openHeroFormation(true); Mark("WORLD-18-PRECHALLENGE-FORMATION"); });
+            Bind(mapView, "Layer/Panel_1/duiwu", () => { openFormation(); Mark("WORLD-32-STAGE-FORMATION"); }, false, true);
+            Bind(mapView, "Layer/Panel_1/btn_zhenrong", () => { openHeroFormation(false); Mark("WORLD-33-STAGE-LINEUP"); }, false, true);
+            Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);
+            Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_2", "挑战");
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", "布 阵");
             SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_1/Duizhan", false);
             SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen/Image", true);
             SetActive(detailView, "Layer/IconColor", false);
             SetActive(detailView, "Layer/IconBg1", false);
-            SetActive(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", false);
+            SetActive(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", true);
             SetActive(mapView, "Layer/Panel_youxia/Button_fengshenshilian", false);
-            SetActive(mapView, "Layer/Panel_youxia/Button_youlisanjie", false);
+            SetActive(mapView, "Layer/Panel_youxia/Button_youlisanjie", true);
             SetActive(mapView, "Layer/Panel_1/Button_paihangbang", false);
+            // The imported decorative title background overlaps Button_xiala.
+            // Cocos does not treat that ImageView as an input surface, while a
+            // Unity Image defaults to raycastTarget=true and blocks real clicks.
+            Image titleBackground = Find(mapView, "Layer/Title/bg")?.GetComponent<Image>();
+            if (titleBackground != null) titleBackground.raycastTarget = false;
 
             store.Changed += Render;
             heroes.Changed += Render;
@@ -152,9 +168,13 @@ namespace ProjectX.UI
         public int RenderedCount => list.Count;
         public int RenderedRewardCount { get; private set; }
         public bool DetailVisible => showDetail && store.SelectedStage != null;
+        public bool ChapterListVisible => showChapters;
 
         public Button FindNormalBoxButton(uint stageId) =>
             normalBoxButtons.TryGetValue(stageId, out Button button) ? button : null;
+
+        public Button FindInteractionButton(string path) =>
+            interactionButtons.TryGetValue(path, out Button button) ? button : null;
 
         public void ShowWorld()
         {
@@ -190,6 +210,7 @@ namespace ProjectX.UI
             stageView.GameObject.SetActive(!showChapters);
             mapView.GameObject.SetActive(!showDetail);
             detailView.GameObject.SetActive(DetailVisible);
+            RefreshInteractionButtons();
             SetActive(mapView, "Layer/Panel_1", !showChapters);
             GameObject popup = Find(mapView, "Layer/Popup");
             if (popup != null) popup.SetActive(!showChapters && !showDetail && showDropdown);
@@ -225,6 +246,7 @@ namespace ProjectX.UI
             formation.Changed -= Render;
             currencies.Changed -= Render;
             normalBoxButtons.Clear();
+            interactionButtons.Clear();
             list.Dispose();
         }
 
@@ -345,7 +367,7 @@ namespace ProjectX.UI
 
         private static string FormatCompact(long value)
         {
-            if (value >= 10000 && value % 10000 == 0) return (value / 10000) + "万";
+            if (value >= 10000) return (value / 10000) + "万";
             return value.ToString();
         }
 
@@ -354,8 +376,20 @@ namespace ProjectX.UI
             WorldChapterRecord selectedChapter = store.Chapters.FirstOrDefault(
                 value => value.Id == store.SelectedChapterId);
             if (selectedChapter != null)
+            {
                 SetText(mapView, "Layer/Panel_1/xingshu",
                     $"{selectedChapter.OwnedStars}/{selectedChapter.MaximumStars}");
+                Image progress = Find(mapView, "Layer/Panel_1/jindutiao")?.GetComponent<Image>();
+                if (progress != null)
+                {
+                    progress.type = Image.Type.Filled;
+                    progress.fillMethod = Image.FillMethod.Horizontal;
+                    progress.fillOrigin = 0;
+                    progress.fillClockwise = true;
+                    progress.fillAmount = selectedChapter.MaximumStars == 0 ? 0f
+                        : Mathf.Clamp01((float)selectedChapter.OwnedStars / selectedChapter.MaximumStars);
+                }
+            }
             for (int index = 0; index < 3; index++)
             {
                 WorldStarBoxRecord box = index < store.StarBoxes.Count ? store.StarBoxes[index] : null;
@@ -661,6 +695,11 @@ namespace ProjectX.UI
             GameObject viewportObject = new GameObject("RuntimeStageMapViewport", typeof(RectTransform),
                 typeof(CanvasRenderer), typeof(Image), typeof(RectMask2D), typeof(ScrollRect));
             viewportObject.transform.SetParent(stageView.GameObject.transform, false);
+            // This helper only provides the clipped horizontal drag extent.  It
+            // must stay behind the imported nonlinear stage nodes; otherwise
+            // its old equal-width buttons intercept a visual node and can send
+            // the adjacent stage id (for example clicking 2-3 sent 10014).
+            viewportObject.transform.SetAsFirstSibling();
             RectTransform viewport = viewportObject.GetComponent<RectTransform>();
             viewport.anchorMin = new Vector2(0.08f, 0.17f);
             viewport.anchorMax = new Vector2(0.92f, 0.78f);
@@ -709,6 +748,8 @@ namespace ProjectX.UI
                 nativeNode.SetActive(stage != null);
                 if (stage != null) RenderNativeStage(nativeNode, stage, index, mapVisual);
             }
+            RenderStagePlayer(mapVisual);
+            PositionStageCamera(mapVisual);
             foreach (Transform child in stageMapContent)
             {
                 // Destroy is deferred until end-of-frame.  Chapter switching and
@@ -719,29 +760,17 @@ namespace ProjectX.UI
                 UnityEngine.Object.Destroy(child.gameObject);
             }
             float width = 184f;
-            float height = Math.Max(160f, stageMapScroll.viewport.rect.height - 36f);
-            for (int index = 0; index < store.Stages.Count; index++)
-            {
-                WorldStageRecord stage = store.Stages[index];
-                GameObject node = new GameObject("Stage_" + stage.Id, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-                node.transform.SetParent(stageMapContent, false);
-                RectTransform rect = node.GetComponent<RectTransform>();
-                rect.anchorMin = rect.anchorMax = new Vector2(0f, 0.5f);
-                rect.pivot = new Vector2(0f, 0.5f);
-                rect.sizeDelta = new Vector2(width - 16f, height);
-                rect.anchoredPosition = new Vector2(16f + index * width, 0f);
-                Image image = node.GetComponent<Image>();
-                image.color = Color.clear;
-                Button button = node.GetComponent<Button>();
-                button.targetGraphic = image;
-                button.interactable = stage.IsUnlocked;
-                uint stageId = stage.Id;
-                button.onClick.AddListener(() => { requestStage(stageId); showDetail = true; Render(); Mark("WORLD-10-STAGE-NODE"); });
-            }
             float backdropWidth = mapVisual != null ? mapVisual.Size.x * (750f / 1080f) : 0f;
             stageMapContent.sizeDelta = new Vector2(Math.Max(stageMapScroll.viewport.rect.width,
                 Math.Max(store.Stages.Count * width + 16f, backdropWidth)), stageMapScroll.viewport.rect.height);
             stageMapScroll.horizontalNormalizedPosition = 0f;
+        }
+
+        public Button FindStageButton(uint stageId)
+        {
+            int index = store.Stages.ToList().FindIndex(value => value.Id == stageId);
+            if (index < 0) return null;
+            return Find(stageView, $"Layer/ScrollPanel/Node_{index + 1}/touchLayer")?.GetComponent<Button>();
         }
 
         private void RenderStageBackdrop(WorldMapVisualDefinition map)
@@ -812,9 +841,19 @@ namespace ProjectX.UI
                 name.gameObject.SetActive(stage.IsUnlocked);
             }
             Transform speech = node.transform.Find("Image_qipao");
-            if (speech != null) speech.gameObject.SetActive(false);
+            bool currentStage = stage.Id == store.CurrentStageId;
+            if (speech != null)
+            {
+                speech.gameObject.SetActive(currentStage);
+                if (currentStage && WorldVisualCatalog.TryGetStage(stage.Id,
+                    out WorldStageVisualDefinition currentVisual))
+                {
+                    Text speechText = speech.Find("Text_1_4")?.GetComponent<Text>();
+                    if (speechText != null) speechText.text = currentVisual.Description;
+                }
+            }
             Transform battle = node.transform.Find("zhandou");
-            if (battle != null) battle.gameObject.SetActive(stage.Id == store.CurrentStageId);
+            if (battle != null) battle.gameObject.SetActive(currentStage);
             for (int star = 0; star < 3; star++)
             {
                 Transform bright = node.transform.Find("laingxing_" + star);
@@ -826,8 +865,11 @@ namespace ProjectX.UI
             Transform touch = node.transform.Find("touchLayer");
             if (touch != null)
             {
+                Image hitSurface = touch.GetComponent<Image>() ?? touch.gameObject.AddComponent<Image>();
+                hitSurface.color = Color.clear;
+                hitSurface.raycastTarget = true;
                 Button button = touch.GetComponent<Button>() ?? touch.gameObject.AddComponent<Button>();
-                button.targetGraphic = touch.GetComponent<Graphic>() ?? touch.GetComponentInChildren<Graphic>(true);
+                button.targetGraphic = hitSurface;
                 button.interactable = stage.IsUnlocked;
                 button.onClick.RemoveAllListeners();
                 uint stageId = stage.Id;
@@ -842,6 +884,70 @@ namespace ProjectX.UI
 
             CreateNormalBox(node.transform, stage);
             RenderMonsterModel(node.transform, stage.Id);
+        }
+
+        private void RenderStagePlayer(WorldMapVisualDefinition map)
+        {
+            Transform scroll = Find(stageView, "Layer/ScrollPanel")?.transform;
+            if (scroll == null || map == null || map.RoleCoordinates.Length == 0)
+            {
+                if (stagePlayerModel != null) stagePlayerModel.gameObject.SetActive(false);
+                return;
+            }
+            int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
+            if (currentIndex < 0) currentIndex = 0;
+            currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
+
+            GameObject value = stagePlayerModel != null ? stagePlayerModel.gameObject
+                : new GameObject("RuntimeStagePlayer", typeof(RectTransform));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(scroll, false);
+            rect.anchorMin = rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f);
+            rect.sizeDelta = Vector2.zero;
+            rect.localScale = Vector3.one;
+            stagePlayerModel = value.GetComponent<ImodAnimationPlayer>()
+                ?? value.AddComponent<ImodAnimationPlayer>();
+            string legacyPath = player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd";
+            bool loaded = stagePlayerModel.LoadLegacy(legacyPath);
+            value.SetActive(loaded);
+            if (!loaded) return;
+            try { stagePlayerModel.Play(4, true); }
+            catch (ArgumentOutOfRangeException) { stagePlayerModel.Play(0, true); }
+            catch (InvalidOperationException) { stagePlayerModel.Play(0, true); }
+        }
+
+        private void PositionStageCamera(WorldMapVisualDefinition map)
+        {
+            RectTransform scroll = Find(stageView, "Layer/ScrollPanel")?.GetComponent<RectTransform>();
+            if (scroll == null || map == null || map.RoleCoordinates.Length == 0) return;
+            int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
+            if (currentIndex < 0) currentIndex = 0;
+            currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
+            float fightX = map.RoleCoordinates[currentIndex].x;
+            RectTransform root = stageView.GameObject.transform as RectTransform;
+            float halfScreen = root != null && root.rect.width > 0f ? root.rect.width * .5f : 667f;
+            float aimX = -fightX;
+            if (fightX >= halfScreen) aimX += halfScreen;
+            float maximumScroll = Mathf.Max(0f, map.Size.x * (750f / 1080f) - halfScreen * 2f);
+            aimX = Mathf.Clamp(aimX, -maximumScroll, 0f);
+            scroll.anchoredPosition = new Vector2(aimX, -FindStageCameraY(-aimX, map.CameraCoordinates));
+        }
+
+        private static float FindStageCameraY(float x, IReadOnlyList<Vector2> coordinates)
+        {
+            if (coordinates == null || coordinates.Count == 0) return 0f;
+            if (x <= coordinates[0].x) return coordinates[0].y;
+            for (int index = 0; index < coordinates.Count - 1; index++)
+            {
+                Vector2 current = coordinates[index];
+                Vector2 next = coordinates[index + 1];
+                if (x < current.x || x > next.x) continue;
+                float t = Mathf.InverseLerp(current.x, next.x, x);
+                return Mathf.Lerp(current.y, next.y, t);
+            }
+            return coordinates[coordinates.Count - 1].y;
         }
 
         private static void RenderMonsterModel(Transform host, uint stageId)
@@ -879,6 +985,8 @@ namespace ProjectX.UI
             {
                 normalBoxButtons.Remove(stage.Id);
                 if (existing != null) existing.gameObject.SetActive(false);
+                Transform staleProxy = stageView.GameObject.transform.Find("RuntimeInteraction_NormalBox_" + stage.Id);
+                if (staleProxy != null) staleProxy.gameObject.SetActive(false);
                 return;
             }
             // FuBenDetailUI clones the hidden `Layer/Box` prototype, then applies
@@ -902,6 +1010,7 @@ namespace ProjectX.UI
             bool claimable = stage.RewardBoxState == 1;
             Transform closed = box.transform.Find("Button1");
             Transform openedButton = box.transform.Find("Button");
+            Action openNormalBox = () => { showNormalBox(stage); Mark("WORLD-11-NORMAL-BOX"); };
             if (closed != null)
             {
                 closed.gameObject.SetActive(!opened);
@@ -910,8 +1019,10 @@ namespace ProjectX.UI
                 {
                     button.onClick.RemoveAllListeners();
                     button.interactable = true;
-                    button.onClick.AddListener(() => { showNormalBox(stage); Mark("WORLD-11-NORMAL-BOX"); });
-                    normalBoxButtons[stage.Id] = button;
+                    button.onClick.AddListener(() => openNormalBox());
+                    Button proxy = CreateCanvasProxy(stageView, closed.gameObject, "NormalBox_" + stage.Id, openNormalBox);
+                    proxy.gameObject.SetActive(!opened);
+                    normalBoxButtons[stage.Id] = proxy;
                 }
                 Transform prompt = closed.Find("Image_1");
                 if (prompt != null) prompt.gameObject.SetActive(claimable);
@@ -951,13 +1062,144 @@ namespace ProjectX.UI
             label.text = value;
         }
 
-        private static void Bind(CocosUiView view, string path, Action action)
+        private void Bind(CocosUiView view, string path, Action action, bool createCanvasProxy = false,
+            bool trackEmbeddedSurface = false)
         {
             GameObject target = Require(view, path);
             Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
-            button.targetGraphic = target.GetComponent<Graphic>() ?? target.GetComponentInChildren<Graphic>(true);
+            Transform existingSurface = target.transform.Find("RuntimeHitSurface");
+            Image surface;
+            if (existingSurface == null)
+            {
+                GameObject surfaceObject = new GameObject("RuntimeHitSurface", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Image), typeof(Button));
+                RectTransform surfaceRect = surfaceObject.GetComponent<RectTransform>();
+                surfaceRect.SetParent(target.transform, false);
+                surfaceRect.anchorMin = Vector2.zero;
+                surfaceRect.anchorMax = Vector2.one;
+                surfaceRect.offsetMin = surfaceRect.offsetMax = Vector2.zero;
+                surface = surfaceObject.GetComponent<Image>();
+            }
+            else surface = existingSurface.GetComponent<Image>();
+            surface.color = new Color(1f, 1f, 1f, 0.001f);
+            surface.enabled = false;
+            surface.enabled = true;
+            surface.canvasRenderer.cullTransparentMesh = false;
+            surface.raycastTarget = true;
+            surface.SetAllDirty();
+            Canvas surfaceCanvas = surface.canvas;
+            if (surfaceCanvas != null)
+            {
+                GraphicRegistry.RegisterGraphicForCanvas(surfaceCanvas, surface);
+                GraphicRegistry.RegisterRaycastGraphicForCanvas(surfaceCanvas, surface);
+            }
+            surface.transform.SetAsLastSibling();
+            button.targetGraphic = surface;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action());
+            Button surfaceButton = surface.GetComponent<Button>() ?? surface.gameObject.AddComponent<Button>();
+            surfaceButton.targetGraphic = surface;
+            surfaceButton.interactable = true;
+            surfaceButton.onClick.RemoveAllListeners();
+            surfaceButton.onClick.AddListener(() => action());
+            if (createCanvasProxy)
+                interactionButtons[path] = CreateCanvasProxy(view, target, path, action);
+            else if (trackEmbeddedSurface)
+            {
+                interactionButtons[path] = surfaceButton;
+                Transform staleProxy = view.GameObject.transform.Find(
+                    "RuntimeInteraction_" + path.Replace('/', '_'));
+                if (staleProxy != null) staleProxy.gameObject.SetActive(false);
+            }
+        }
+
+        private static Button CreateCanvasProxy(CocosUiView view, GameObject target, string path, Action action)
+        {
+            Canvas.ForceUpdateCanvases();
+            RectTransform targetRect = target.transform as RectTransform;
+            RectTransform viewRect = view.GameObject.transform as RectTransform;
+            if (targetRect == null || viewRect == null) return target.GetComponent<Button>();
+            string name = "RuntimeInteraction_" + path.Replace('/', '_');
+            Transform existing = view.GameObject.transform.Find(name);
+            GameObject proxy = existing != null ? existing.gameObject
+                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            RectTransform rect = proxy.GetComponent<RectTransform>();
+            rect.SetParent(viewRect, false);
+            UpdateCanvasProxyRect(viewRect, targetRect, rect);
+            Image image = proxy.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, .001f);
+            image.enabled = false;
+            image.enabled = true;
+            image.raycastTarget = true;
+            image.canvasRenderer.cullTransparentMesh = false;
+            image.SetAllDirty();
+            Canvas canvas = image.canvas;
+            if (canvas != null)
+            {
+                GraphicRegistry.RegisterGraphicForCanvas(canvas, image);
+                GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);
+            }
+            Button proxyButton = proxy.GetComponent<Button>();
+            proxyButton.targetGraphic = image;
+            proxyButton.interactable = true;
+            proxyButton.onClick.RemoveAllListeners();
+            proxyButton.onClick.AddListener(() => action());
+            proxy.transform.SetAsLastSibling();
+            return proxyButton;
+        }
+
+        private static void UpdateCanvasProxyRect(RectTransform viewRect, RectTransform targetRect, RectTransform proxyRect)
+        {
+            Vector3[] corners = new Vector3[4];
+            targetRect.GetWorldCorners(corners);
+            Vector3 min = viewRect.InverseTransformPoint(corners[0]);
+            Vector3 max = viewRect.InverseTransformPoint(corners[2]);
+            proxyRect.anchorMin = proxyRect.anchorMax = proxyRect.pivot = new Vector2(.5f, .5f);
+            proxyRect.anchoredPosition = new Vector2((min.x + max.x) * .5f, (min.y + max.y) * .5f);
+            proxyRect.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
+        }
+
+        public void RefreshInteractionButtons()
+        {
+            if (!mapView.GameObject.activeInHierarchy) return;
+            Canvas.ForceUpdateCanvases();
+            RectTransform viewRect = mapView.GameObject.transform as RectTransform;
+            foreach (KeyValuePair<string, Button> entry in interactionButtons)
+            {
+                Button button = entry.Value;
+                Image image = button?.targetGraphic as Image;
+                if (image == null) continue;
+                RectTransform targetRect = Find(mapView, entry.Key)?.transform as RectTransform;
+                RectTransform proxyRect = button.transform as RectTransform;
+                if (targetRect != null && proxyRect != null)
+                {
+                    if (proxyRect.parent == targetRect)
+                    {
+                        // Embedded hit surfaces already inherit the visible button's
+                        // transform. Converting their corners into map-root space a
+                        // second time moves the real raycast point off screen.
+                        proxyRect.anchorMin = Vector2.zero;
+                        proxyRect.anchorMax = Vector2.one;
+                        proxyRect.offsetMin = Vector2.zero;
+                        proxyRect.offsetMax = Vector2.zero;
+                        proxyRect.localScale = Vector3.one;
+                    }
+                    else if (viewRect != null)
+                        UpdateCanvasProxyRect(viewRect, targetRect, proxyRect);
+                }
+                // Dynamic stage nodes and boxes are rebuilt after these proxies.
+                // Keep the player-facing utility hit targets on top each frame.
+                button.transform.SetAsLastSibling();
+                image.enabled = false;
+                image.enabled = true;
+                image.raycastTarget = true;
+                image.canvasRenderer.cullTransparentMesh = false;
+                image.SetAllDirty();
+                Canvas canvas = image.canvas;
+                if (canvas == null) continue;
+                GraphicRegistry.RegisterGraphicForCanvas(canvas, image);
+                GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);
+            }
         }
 
         private void Mark(string controlId) => validationControl?.Invoke(controlId);

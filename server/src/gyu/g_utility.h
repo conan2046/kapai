@@ -29,6 +29,7 @@ namespace gyu {
 
 		int Random(int min,int max);
 		bool RandomSequence(int *array,int arrayLen,int max);
+		unsigned int Fnv1a32(const std::string &value);
 
 		void MD5String(std::string &str);
 		std::string Base64Decode(std::string src);

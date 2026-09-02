@@ -181,12 +181,12 @@ G1 一次采齐预计进入 G5 的全部 Cocos 状态后，用中央生命周期
 
 ### G3 静态实现
 
-接入真实 Prefab、资源、Lua Controller/Legacy Model 和 C# Render Bridge。按矩阵绑定真实控件；排除功能必须隐藏或禁用，不能保留空壳入口。
-
-退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查；场景在 G3 前已登记 `requiredGate=G3`、全控件覆盖、语义断言、源码锚点、全部截图状态和 `1334×750` 视觉断言；变更型模块已有固定账号数据合同。
+接入真实 Prefab、资源、Lua Controller/Legacy Model 和 C# Render Bridge。按矩阵绑定真实控件；排除功能必须隐藏或禁用，不能保留空壳入口。退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查；场景在 G3 前已登记 `requiredGate=G3`、全控件覆盖、语义断言、源码锚点、全部截图状态和 `1334×750` 视觉断言；变更型模块已有固定账号数据合同。
 
 #### G3 早期真实 Play 检查点
 G3 初版 UI、协议和代码可运行后立即暂停，由用户从真实入口进行一次早期 Play，优先评价入口、信息层级、主要反馈和整体体验；邀请用户前，代理必须先完成源码合同、DataPreflight、Unity编译/Console、中央工具链、运行时层级/输入，以及动态属性、权威刷新、动画完成清理、按钮显隐和Toast全生命周期等模块专项自检，明显的绑定、刷新、拖拽和生命周期错误不得留给用户首次发现。固定账号Runner还必须验证`unityclient/Assets/ProjectX`内全部PNG/JPG/字体均已脱离Git LFS指针状态；早期Play允许用户从主界面进入既有模块，不能只水合当前模块的入口闭包后把其他已导入界面的缺图留给用户发现。代理同时准备固定账号/数据、启动方式、5–15分钟主路径清单和已知限制，不得等到 G4-G6 完成后才让用户首次体验。反馈写入 `.local/unity-validation/<module>-early-user-play-latest.json`，至少包含 `module/checkpoint/userParticipated/testedUtc/entryPath/result/feedback/agentRecheck`；`blocking` 项必须修复并由代理用文件证据复核，`non-blocking` 项必须修复或经用户明确接受。此轮自检和早测都不设置`manualPassed=true`，不能替代最后一次相关变更后的G4自动事务验证或G6最终确认；缺自检证据、缺早测记录、用户未实际参与、代理复核证据缺失或仍有阻塞项时，G4机器门禁拒绝通过。
+
+用户在当前任务中明确全权委托代理执行该早测时，允许如实记录`userParticipated=false`与`userDelegatedAgentPlay=true`，但必须保存模块限定的授权文件、使用真实Unity Editor与EventSystem、提供文件化操作和代理复核证据，并强制`delegation.finalUserConfirmationRequired=true`。该委托只替代G3后的早期体验检查，不得伪装成用户参与，不得设置`manualPassed=true`，也不得替代最后一次相关变更后的G6用户最终确认。
 ### G4 逻辑动态验收
 
 验证列表/全量/增量、正常写操作、空态、材料不足、非法/重复、超时/断线、重拉、重连、返回、切号。每项必须由真实控件触发，服务端结果与 UI 刷新一致。真实控件触发必须经过实际 EventSystem/输入链，覆盖点击射线、列表项、Toggle、数字键输入/删除/清空、滚轮/拖拽、确认/取消、关闭/返回；直接调用 Presenter、Show/Open/Complete、回调函数或修改内部状态的结果一律无效。交互回调被调用不等于成功：滚动/拖拽必须先证明 `content > viewport`，再验证真实输入后 `anchoredPosition` 或等价权威位置实际变化，并覆盖卡片/按钮与空白区域；动画必须验证完成后节点状态和末帧清理；跨页/公共层必须验证最终 sibling、可见性和 UI 栈，禁止以“ExecuteEvents 返回成功”“ScrollRect 非空”“Completed 已触发”直接判通过。G4/G6 运行证据只接受两个标准 Runner 的 Unity `-batchMode` 摘要；Unity MCP 只允许用于 G3 编辑器检查，不得作为动态验收或出证路径。

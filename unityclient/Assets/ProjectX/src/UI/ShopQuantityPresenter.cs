@@ -9,6 +9,7 @@ namespace ProjectX.UI
     public sealed class ShopQuantityPresenter : IDisposable
     {
         private readonly CocosUiView view;
+        private readonly InputField quantityInput;
         private readonly Text valueText;
         private readonly Button[] digitButtons = new Button[10];
         private readonly Button deleteButton;
@@ -28,13 +29,13 @@ namespace ProjectX.UI
                 ?? throw new InvalidOperationException("EnterNumLayer clone has no CocosUiBinding.");
             view = new CocosUiView(binding);
             GameObject inputNode = Require("Layer/Panel/Bg/Num/TextField");
-            InputField input = inputNode.GetComponent<InputField>();
-            valueText = input?.textComponent
+            quantityInput = inputNode.GetComponent<InputField>();
+            valueText = quantityInput?.textComponent
                 ?? inputNode.transform.Find("Text")?.GetComponent<Text>()
                 ?? inputNode.GetComponentsInChildren<Text>(true)
                     .FirstOrDefault(text => text.gameObject.name == "Text")
                 ?? throw new InvalidOperationException("Shop quantity input text was not found.");
-            if (input != null) input.interactable = false;
+            if (quantityInput != null) quantityInput.interactable = false;
             for (int digit = 0; digit <= 9; digit++)
             {
                 int captured = digit;
@@ -117,7 +118,11 @@ namespace ProjectX.UI
 
         private void Render()
         {
-            valueText.text = quantity == 0 ? string.Empty : quantity.ToString();
+            string value = quantity == 0 ? string.Empty : quantity.ToString();
+            if (quantityInput != null)
+                quantityInput.SetTextWithoutNotify(value);
+            else
+                valueText.text = value;
         }
 
         private Button Bind(string path, Action callback)

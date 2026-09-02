@@ -44,6 +44,26 @@ if (-not $VcpkgRoot) {
     if (Test-Path (Join-Path $candidate "scripts\buildsystems\vcpkg.cmake")) {
         $VcpkgRoot = $candidate
     }
+    else {
+        $git = Get-Command git -ErrorAction SilentlyContinue
+        if (-not $git) {
+            $knownGit = "C:\Program Files\Git\cmd\git.exe"
+            if (Test-Path -LiteralPath $knownGit -PathType Leaf) { $git = $knownGit }
+        }
+        if ($git) {
+            $commonDirectory = (& $git -C $Root rev-parse --git-common-dir 2>$null | Select-Object -First 1)
+            if ($commonDirectory) {
+                if (-not [System.IO.Path]::IsPathRooted($commonDirectory)) {
+                    $commonDirectory = Join-Path $Root $commonDirectory
+                }
+                $sharedRoot = Split-Path -Parent ([System.IO.Path]::GetFullPath($commonDirectory))
+                $sharedCandidate = Join-Path $sharedRoot "tools\local\vcpkg"
+                if (Test-Path (Join-Path $sharedCandidate "scripts\buildsystems\vcpkg.cmake")) {
+                    $VcpkgRoot = $sharedCandidate
+                }
+            }
+        }
+    }
 }
 
 if ($VcpkgRoot) {

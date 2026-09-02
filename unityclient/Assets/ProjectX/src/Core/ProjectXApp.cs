@@ -140,6 +140,8 @@ namespace ProjectX.Core
         private LuaFunction onWorldSweep;
         private LuaFunction onWorldReset;
         private LuaFunction onWorldClaimBox;
+        private LuaFunction onWorldAchievementRequest;
+        private LuaFunction onWorldAchievementClaim;
         private LuaFunction onWorldRefresh;
         private LuaFunction onWorldValidateIsolation;
         private LuaFunction onWelfareClicked;
@@ -220,6 +222,8 @@ namespace ProjectX.Core
         private readonly List<RewardRecord> pendingRewards = new List<RewardRecord>();
         private readonly Dictionary<int, RewardRecord> pendingBagUseRewards =
             new Dictionary<int, RewardRecord>();
+        private readonly Dictionary<(int Type, uint Id), RewardRecord> pendingXunBaoRewards =
+            new Dictionary<(int Type, uint Id), RewardRecord>();
         private bool capturingBagUseRewards;
         private int bagUseRewardFilterItemId;
         private float lastBagUseRewardAt;
@@ -346,6 +350,10 @@ namespace ProjectX.Core
         private bool mailValidationSawRedDot;
         private CocosUiView shopView;
         private ShopPresenter shopPresenter;
+        private GameObject shopRuntimeCloseButton;
+        private GameObject shopFramePanel;
+        private bool shopFramePanelWasActive;
+        private bool shopFramePanelStateCaptured;
         private readonly List<ShopRecord> pendingShopRecords = new List<ShopRecord>();
         private byte pendingShopType;
         private ushort pendingShopRefreshTimes;
@@ -366,6 +374,9 @@ namespace ProjectX.Core
         private bool restoreChatMiniAfterGameplayShop;
         private bool restoreBagFrameAfterGameplayShop;
         private bool restoreHeroEquipmentAfterGameplayShop;
+        private Transform gameplayShopActivityLayer;
+        private bool gameplayShopActivityLayerWasActive;
+        private bool gameplayShopActivityLayerStateCaptured;
         private CocosUiView chatView;
         private ChatPresenter chatPresenter;
         private CocosUiView teamView;
@@ -388,13 +399,17 @@ namespace ProjectX.Core
         private CocosUiView worldBattleResultView;
         private CocosUiView worldBattleStatisticsView;
         private CocosUiView worldBoxAwardView;
+        private CocosUiView worldAchievementView;
+        private CocosUiView worldBattlePlaybackView;
         private WorldPresenter worldPresenter;
         private WorldOutcomePresenter worldOutcomePresenter;
         private WorldBattlePlaybackPresenter worldBattlePlaybackPresenter;
+        private enum BattlePlaybackContext { None, World, FengShenStory }
+        private BattlePlaybackContext battlePlaybackContext;
         private Coroutine worldBattlePlaybackCoroutine;
         private bool pendingWorldBattleResult;
+        private bool suppressFengShenSettlementForSkippedPlayback;
         private int pendingWorldBattleStars;
-        private int lastWorldBattleStars;
         private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
         private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
         private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
@@ -416,7 +431,18 @@ namespace ProjectX.Core
         private bool worldG4ResetValidated;
         private bool worldG4BattleStatisticsValidated;
         private bool worldG4BattleReplayValidated;
+        private bool worldFormationReturnPending;
+        private bool worldFormationReturnToDetail;
+        private bool worldYouLiReturnPending;
+        private bool worldFormationPopupRequestPending;
         private uint selectedWorldBoxStageId;
+        private Button worldBoxClaimInteractionButton;
+        private Button worldBoxCloseInteractionButton;
+        private Button worldBoxTitleCloseInteractionButton;
+        private byte worldAchievementType = 1;
+        private byte worldAchievementBitmap;
+        private bool worldAchievementAuthoritativeResponse;
+        private Coroutine worldAchievementLayoutCoroutine;
         private CocosUiView welfareView;
         private CocosUiView welfareSignView;
         private CocosUiView welfareOnlineView;
@@ -473,8 +499,10 @@ namespace ProjectX.Core
         private CocosUiView fengShenStoryLevelView;
         private FengShenStoryPresenter fengShenStoryPresenter;
         private readonly List<FengShenRewardRecord> pendingFengShenRewards = new List<FengShenRewardRecord>();
+        private bool deferredFengShenRewardPush;
         private bool fengShenStoryValidationRunning;
         private bool fengShenStoryValidationCompleted;
+        private bool battleFengShenStoryValidationRunning;
         private CocosUiView arenaView;
         private ArenaPresenter arenaPresenter;
         private CocosUiView kunLunView;
@@ -741,6 +769,8 @@ namespace ProjectX.Core
             try
             {
                 services = new GameServices(this, launchOptions);
+                // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
+                services.Currencies.Changed += RefreshSharedCurrencyHeaders;
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
@@ -844,6 +874,8 @@ namespace ProjectX.Core
                 onWorldSweep = services.Lua.GetFunction("OnWorldSweep");
                 onWorldReset = services.Lua.GetFunction("OnWorldReset");
                 onWorldClaimBox = services.Lua.GetFunction("OnWorldClaimBox");
+                onWorldAchievementRequest = services.Lua.GetFunction("OnWorldAchievementRequest");
+                onWorldAchievementClaim = services.Lua.GetFunction("OnWorldAchievementClaim");
                 onWorldRefresh = services.Lua.GetFunction("OnWorldRefresh");
                 onWorldValidateIsolation = services.Lua.GetFunction("OnWorldValidateIsolation");
                 onWelfareClicked = services.Lua.GetFunction("OnWelfareClicked");
@@ -896,6 +928,7 @@ namespace ProjectX.Core
             MaintainHeroEquipmentCultivationState();
             toastPresenter?.Tick();
             shopPresenter?.Tick();
+            gameplayShopsPresenter?.Tick();
             welfarePresenter?.Tick();
             activityPresenter?.Tick();
             drawPresenter?.Tick();
@@ -915,6 +948,8 @@ namespace ProjectX.Core
         private void OnDestroy()
         {
             ReleaseHeroAuxiliaryViews();
+            if (services != null)
+                services.Currencies.Changed -= RefreshSharedCurrencyHeaders;
             if (heroEquipmentFragmentBagSubscribed && services != null)
             {
                 services.Bag.Changed -= HandleHeroEquipmentFragmentBagChanged;
@@ -1013,6 +1048,8 @@ namespace ProjectX.Core
             onWorldSweep?.Dispose();
             onWorldReset?.Dispose();
             onWorldClaimBox?.Dispose();
+            onWorldAchievementRequest?.Dispose();
+            onWorldAchievementClaim?.Dispose();
             onWorldRefresh?.Dispose();
             onWorldValidateIsolation?.Dispose();
             onWelfareClicked?.Dispose();
@@ -1081,6 +1118,7 @@ namespace ProjectX.Core
             worldPresenter?.Dispose();
             worldOutcomePresenter?.Dispose();
             worldBattlePlaybackPresenter?.Dispose();
+            UiPrefabLoader.Release(worldBattlePlaybackView);
             welfarePresenter?.Dispose();
             activityPresenter?.Dispose();
             drawPresenter?.Dispose();
@@ -1189,9 +1227,36 @@ namespace ProjectX.Core
                 heroFrameView?.SetVisible(false);
                 return services?.UiStack.Pop() ?? true;
             }
+            // World remains active underneath the Hero overlay, so this return
+            // case must precede the generic IsWorldOpen branch. Otherwise the
+            // Hero close click hides World itself before popping the overlay.
+            if (worldFormationReturnPending && IsHeroOpen)
+            {
+                bool worldFormationPopped = services?.UiStack.Pop() ?? false;
+                if (worldFormationPopped)
+                {
+                    RestoreWorldAfterHeroFormation();
+                }
+                return worldFormationPopped;
+            }
+            // DadituuiLayer stays structurally active underneath the YouLi
+            // overlay. Handle this route before IsWorldOpen, otherwise the
+            // generic World branch hides the map children while popping YouLi.
+            if (worldYouLiReturnPending && IsYouLiOpen)
+            {
+                bool worldYouLiPopped = services?.UiStack.Pop() ?? false;
+                if (worldYouLiPopped)
+                {
+                    worldYouLiReturnPending = false;
+                    worldPresenter?.ShowStages();
+                    StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
+                }
+                return worldYouLiPopped;
+            }
             if (IsWorldOpen)
             {
                 HideWorldBoxAward();
+                worldAchievementView?.SetVisible(false);
                 worldBattlePlaybackPresenter?.Hide();
                 worldSweepView?.SetVisible(false);
                 worldBattleResultView?.SetVisible(false);
@@ -1207,6 +1272,7 @@ namespace ProjectX.Core
                 shopPresenter?.ResetTransientState();
                 errorPresenter?.Hide();
                 rewardPresenter?.Hide();
+                RestoreShopFramePanel();
                 bagFrameView?.SetVisible(false);
             }
             if (IsGameplayShopOpen)
@@ -1221,7 +1287,13 @@ namespace ProjectX.Core
                 return popped;
             }
             if (IsSettingsOpen) bagFrameView?.SetVisible(false);
-            return services?.UiStack.Pop() ?? false;
+            bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;
+            bool stackPopped = services?.UiStack.Pop() ?? false;
+            if (stackPopped && restoreWorldFormation)
+            {
+                RestoreWorldAfterHeroFormation();
+            }
+            return stackPopped;
         }
 
         public async void Connect(string host, int port)
@@ -1408,6 +1480,7 @@ namespace ProjectX.Core
             heroEquipmentDivineEffectView?.SetVisible(false);
             mailView?.SetVisible(false);
             shopView?.SetVisible(false);
+            RestoreShopFramePanel();
             friendView?.SetVisible(false);
             chatMiniView?.SetVisible(false);
             chatView?.SetVisible(false);
@@ -1476,8 +1549,16 @@ namespace ProjectX.Core
 
         public void BindRoleCreateClick(bool autoInvoke)
         {
-            try { loginPresenter?.ShowRoleCreate(HandleRoleCreateClick, HandleRoleRandomClick,
-                ReturnFromRoleCreate, ShowLoginError, autoInvoke); }
+            try
+            {
+                loginPresenter?.ShowRoleCreate(HandleRoleCreateClick, HandleRoleRandomClick,
+                    ReturnFromRoleCreate, ShowLoginError, false);
+                if (autoInvoke && loginPresenter != null)
+                {
+                    loginPresenter.SetRoleName($"T{GetLocalUserId() % 100000:D5}");
+                    loginPresenter.InvokeRoleCreate();
+                }
+            }
             catch (Exception exception) { Fail(exception.Message); }
         }
 
@@ -2149,8 +2230,12 @@ namespace ProjectX.Core
         public void ShowWorld()
         {
             EnsureWorldPresenter();
+            worldFormationReturnPending = false;
+            worldFormationReturnToDetail = false;
+            worldYouLiReturnPending = false;
             worldPresenter.ShowWorld();
             if (services.UiStack.Current != worldView) services.UiStack.Push(worldView);
+            StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
             SetStatus($"World UI active: {services.World.ChapterCount} chapters, {services.World.StageCount} stages.");
         }
 
@@ -2253,10 +2338,17 @@ namespace ProjectX.Core
                 InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao");
                 return;
             }
-            if (functionId == 15 || functionId == 16 || functionId == 17)
+            if (functionId == 15)
             {
                 gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onGameplayShopOpened, "Gameplay.Shops", (double)functionId);
+                HandleCommerceRoute(functionId);
+                return;
+            }
+            if (functionId == 16 || functionId == 17)
+            {
+                gameplayPresenter?.HideDetail();
+                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                SetStatus($"Gameplay shop route deferred: function_id={functionId}.");
                 return;
             }
             ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
@@ -2663,19 +2755,61 @@ namespace ProjectX.Core
                 checked((uint)unlockedChapterId), checked((uint)unlockedLevelId));
         }
 
-        public void ClearFengShenStoryRewardPush() => pendingFengShenRewards.Clear();
-
-        public void PushFengShenStoryReward(double type, double id, double amount, string name)
+        public void ClearFengShenStoryRewardPush()
         {
-            pendingFengShenRewards.Add(new FengShenRewardRecord(checked((ushort)type), checked((uint)id),
-                checked((uint)amount), name));
+            pendingFengShenRewards.Clear();
+            deferredFengShenRewardPush = false;
+        }
+
+        public void PushFengShenStoryReward(double type, double id, double amount, string name,
+            double picture, double quality)
+        {
+            ushort rewardType = checked((ushort)type);
+            uint rewardId = checked((uint)id);
+            uint rewardAmount = checked((uint)amount);
+            RewardRecord described = services.ShopCatalog.DescribeReward(rewardType, checked((int)rewardId), rewardAmount);
+            string resolvedName = !string.IsNullOrWhiteSpace(described.Name)
+                && !described.Name.StartsWith("奖励 #", StringComparison.Ordinal)
+                    ? described.Name : name;
+            int resolvedPicture = described.Picture > 0 ? described.Picture : checked((int)picture);
+            int resolvedQuality = described.Quality > 0 ? described.Quality : checked((int)quality);
+            pendingFengShenRewards.Add(new FengShenRewardRecord(rewardType, rewardId, rewardAmount,
+                resolvedName, resolvedPicture, resolvedQuality));
         }
 
         public void ShowFengShenStoryRewardPush()
         {
             services.FengShenStory.SetRewardPush(pendingFengShenRewards);
             pendingFengShenRewards.Clear();
-            fengShenStoryPresenter?.ShowRewardPush();
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
+                && (suppressFengShenSettlementForSkippedPlayback
+                    || worldBattlePlaybackPresenter?.SkipRequested == true))
+            {
+                // Explicit skip returns directly to the parent map. Consume a
+                // late op26 state push without resurrecting the result stack.
+                services.FengShenStory.AcknowledgeRewardPush();
+                deferredFengShenRewardPush = false;
+                SetStatus("FengShenStory skipped playback consumed op26 without reopening settlement.");
+                return;
+            }
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
+                && (worldBattlePlaybackCoroutine != null
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || pendingWorldBattleResult
+                    || worldOutcomePresenter?.IsBattleVisible == true
+                    || worldOutcomePresenter?.IsStatisticsVisible == true))
+            {
+                deferredFengShenRewardPush = true;
+                return;
+            }
+            PresentFengShenRewardPush();
+        }
+
+        private void PresentFengShenRewardPush()
+        {
+            deferredFengShenRewardPush = false;
+            EnsureFengShenStoryPresenter();
+            fengShenStoryPresenter.ShowRewardPush();
         }
 
         public void BeginFengShenStoryValidation()
@@ -2686,6 +2820,471 @@ namespace ProjectX.Core
         }
 
         public void CompleteFengShenStoryValidation() => BeginFengShenStoryValidation();
+
+        public void BeginBattleFengShenStoryValidation()
+        {
+            if (battleFengShenStoryValidationRunning) return;
+            battleFengShenStoryValidationRunning = true;
+            StartCoroutine(RunBattleFengShenStoryValidation());
+        }
+
+        private IEnumerator RunBattleFengShenStoryValidation()
+        {
+            try
+            {
+                BeginValidationEvidence();
+                if (GetLocalUserId() != 7200057 || GetPlayerRoleId() != 1000003)
+                {
+                    Fail($"BattleFengShenStory fixed identity mismatch: {GetLocalUserId()}/{GetPlayerRoleId()}.");
+                    yield break;
+                }
+                EnsureFengShenStoryPresenter();
+                int currentChapter = services.FengShenStory.CurrentChapter;
+                if (currentChapter > 1)
+                {
+                    Canvas.ForceUpdateCanvases();
+                    yield return new WaitForEndOfFrame();
+                    if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter - 1)))
+                    {
+                        Fail("BattleFengShenStory previous chapter did not receive a real EventSystem raycast click.");
+                        yield break;
+                    }
+                    yield return new WaitForEndOfFrame();
+                    if (fengShenStoryPresenter.SelectedChapter != currentChapter - 1
+                        || !InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter)))
+                    {
+                        Fail($"BattleFengShenStory chapter selection did not restore current chapter {currentChapter}.");
+                        yield break;
+                    }
+                    yield return new WaitForEndOfFrame();
+                    if (fengShenStoryPresenter.SelectedChapter != currentChapter)
+                    {
+                        Fail($"BattleFengShenStory selected chapter mismatch after real clicks: {fengShenStoryPresenter.SelectedChapter}/{currentChapter}.");
+                        yield break;
+                    }
+                    RecordValidationSemantic("battle-fengshen-entry-chapter-raycast", true,
+                        $"real GraphicRaycaster chapter {currentChapter - 1}->{currentChapter}");
+                }
+                int currentLevel = Math.Max(1, (int)(services.FengShenStory.LevelId % 10));
+                Canvas.ForceUpdateCanvases();
+                yield return new WaitForEndOfFrame();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(currentLevel)))
+                {
+                    Fail("BattleFengShenStory current-stage control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!fengShenStoryPresenter.IsLevelPopupVisible
+                    || !InvokeEventSystemRaycastClick(fengShenStoryPresenter.FightControl))
+                {
+                    Fail("BattleFengShenStory challenge control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                float deadline = Time.realtimeSinceStartup + 25f;
+                while ((worldBattlePlaybackPresenter?.IsVisible != true
+                    || services.WorldBattleReplay.FightType != 19) && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldBattlePlaybackPresenter?.IsVisible != true
+                    || services.WorldBattleReplay.FightType != 19
+                    || services.WorldBattleReplay.Actions.Count == 0
+                    || services.WorldBattleReplay.StatisticsCount != services.WorldBattleReplay.Units.Count)
+                {
+                    Fail($"BattleFengShenStory authoritative replay did not start: visible={worldBattlePlaybackPresenter?.IsVisible == true}, type={services.WorldBattleReplay.FightType}, actions={services.WorldBattleReplay.Actions.Count}, statistics={services.WorldBattleReplay.StatisticsCount}/{services.WorldBattleReplay.Units.Count}.");
+                    yield break;
+                }
+                // Show() activates an imported Canvas tree during the protocol
+                // dispatch frame. A human cannot click until Graphic depths have
+                // been rebuilt, so wait for that real raycast-ready frame.
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (fengShenStoryPresenter.IsModalVisible)
+                {
+                    Fail("BattleFengShenStory reward push obscured the authoritative playback before settlement return.");
+                    yield break;
+                }
+                if (IsToastVisible || chatMiniView?.GameObject.activeInHierarchy == true)
+                {
+                    Fail($"BattleFengShenStory public HUD overlay leaked into playback: toast={IsToastVisible}, chat={chatMiniView?.GameObject.activeInHierarchy == true}.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-01-REAL-CHALLENGE");
+                if (worldBattlePlaybackPresenter.AutoControlVisible)
+                {
+                    Fail("BattleFengShenStory current Cocos-hidden auto control was visible in Unity.");
+                    yield break;
+                }
+                if (worldBattlePlaybackPresenter.ActiveFormationMarkerCount != services.WorldBattleReplay.Units.Count)
+                {
+                    Fail($"BattleFengShenStory formation markers diverged from the current full formations: active={worldBattlePlaybackPresenter.ActiveFormationMarkerCount}, units={services.WorldBattleReplay.Units.Count}.");
+                    yield break;
+                }
+                if (worldBattlePlaybackPresenter.DirectionalModelCount <= 0
+                    || !worldBattlePlaybackPresenter.UnitDirectionalActionsCorrect)
+                {
+                    Fail($"BattleFengShenStory Cocos side action groups mismatch: models={worldBattlePlaybackPresenter.DirectionalModelCount}, correct={worldBattlePlaybackPresenter.UnitDirectionalActionsCorrect}, states=[{worldBattlePlaybackPresenter.UnitDirectionalState}].");
+                    yield break;
+                }
+                Debug.Log($"[ProjectX][BattleFengShenStory] Directional states: {worldBattlePlaybackPresenter.UnitDirectionalState}");
+                MarkValidationControl("BFSB-03-AUTO");
+                float speedBefore = worldBattlePlaybackPresenter.PlaybackSpeed;
+                if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SpeedInteractionButton))
+                {
+                    Fail("BattleFengShenStory speed control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (worldBattlePlaybackPresenter.PlaybackSpeed <= speedBefore
+                    || worldBattlePlaybackPresenter.SpeedDisplayMultiplier != 2
+                    || !Mathf.Approximately(worldBattlePlaybackPresenter.PlaybackSpeed, 2f))
+                {
+                    Fail($"BattleFengShenStory Cocos speed state did not advance correctly: factor={speedBefore}->{worldBattlePlaybackPresenter.PlaybackSpeed}, label=X{worldBattlePlaybackPresenter.SpeedDisplayMultiplier}.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-02-SPEED");
+
+                // Natural completion must enter the authoritative settlement;
+                // explicit skip is validated separately after this full path.
+                bool validateNaturalSettlement = true;
+                if (validateNaturalSettlement)
+                {
+                float playbackAllowance = Mathf.Min(180f, services.WorldBattleReplay.Actions.Count * 4.5f);
+                deadline = Time.realtimeSinceStartup + 30f + playbackAllowance;
+                while (worldOutcomePresenter?.IsBattleVisible != true && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldOutcomePresenter?.IsBattleVisible != true || services.Rewards.Count == 0)
+                {
+                    Fail($"BattleFengShenStory settlement did not become authoritative and visible: visible={worldOutcomePresenter?.IsBattleVisible == true}, rewards={services.Rewards.Count}.");
+                    yield break;
+                }
+                if (worldOutcomePresenter.VictoryTitleVariant != 2
+                    || worldOutcomePresenter.RenderedMoneyRewardCount != 3
+                    || worldOutcomePresenter.RenderedItemRewardCount != 0
+                    || services.Rewards.Items.Any(value => value.Type == 60006)
+                    || worldOutcomePresenter.RenderedPetExperienceCount != 0)
+                {
+                    Fail($"BattleFengShenStory current Cocos settlement mapping mismatch: title={worldOutcomePresenter.VictoryTitleVariant}, money={worldOutcomePresenter.RenderedMoneyRewardCount}, items={worldOutcomePresenter.RenderedItemRewardCount}, packetPetExp={services.Rewards.Items.Any(value => value.Type == 60006)}, renderedPetExp={worldOutcomePresenter.RenderedPetExperienceCount}.");
+                    yield break;
+                }
+                if (fengShenStoryPresenter.IsModalVisible || worldOutcomePresenter.IsBattleResultSummaryVisible)
+                {
+                    Fail($"BattleFengShenStory settlement presentation mismatch: modal={fengShenStoryPresenter.IsModalVisible}, stars={worldOutcomePresenter.IsBattleResultSummaryVisible}.");
+                    yield break;
+                }
+                if (IsToastVisible || chatMiniView?.GameObject.activeInHierarchy == true)
+                {
+                    Fail($"BattleFengShenStory public HUD overlay leaked into settlement: toast={IsToastVisible}, chat={chatMiniView?.GameObject.activeInHierarchy == true}.");
+                    yield break;
+                }
+                if (worldOutcomePresenter.IsVictoryTitleEffectVisible
+                    || worldOutcomePresenter.IsVictoryTitleEffectPlaying)
+                {
+                    Fail("BattleFengShenStory victory Imod appeared before the current Cocos frame-35 callback.");
+                    yield break;
+                }
+                yield return new WaitForSecondsRealtime(.65f);
+                if (!worldOutcomePresenter.IsVictoryTitleEffectVisible
+                    || !worldOutcomePresenter.IsVictoryTitleEffectPlaying)
+                {
+                    Fail("BattleFengShenStory victory Imod did not play during the current Cocos one-shot window.");
+                    yield break;
+                }
+                deadline = Time.realtimeSinceStartup + 1f;
+                while (worldOutcomePresenter.IsVictoryTitleEffectPlaying
+                    && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldOutcomePresenter.IsVictoryTitleEffectVisible
+                    || worldOutcomePresenter.IsVictoryTitleEffectPlaying)
+                {
+                    Fail("BattleFengShenStory victory Imod leaked past its 0.7-second non-looping lifecycle.");
+                    yield break;
+                }
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-SETTLEMENT.png");
+                if (!InvokeEventSystemRaycastClick(worldOutcomePresenter.StatisticsInteractionButton))
+                {
+                    Fail("BattleFengShenStory statistics control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (!worldOutcomePresenter.IsStatisticsVisible)
+                {
+                    Fail("BattleFengShenStory statistics page did not open.");
+                    yield break;
+                }
+                if (worldOutcomePresenter.RenderedFriendlyStatisticsCount != 5
+                    || worldOutcomePresenter.RenderedEnemyStatisticsCount != 5
+                    || fengShenStoryPresenter.IsModalVisible)
+                {
+                    Fail($"BattleFengShenStory statistics presentation mismatch: friendly={worldOutcomePresenter.RenderedFriendlyStatisticsCount}, enemy={worldOutcomePresenter.RenderedEnemyStatisticsCount}, modal={fengShenStoryPresenter.IsModalVisible}.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-05-SETTLEMENT-STATS");
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-STATISTICS.png");
+                if (!InvokeEventSystemRaycastClick(worldOutcomePresenter.StatisticsCloseInteractionButton))
+                {
+                    Fail("BattleFengShenStory statistics close did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (worldOutcomePresenter.IsStatisticsVisible || !worldOutcomePresenter.IsBattleVisible)
+                {
+                    Fail("BattleFengShenStory statistics close did not return to the same settlement.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-06-STATS-CLOSE");
+                if (!InvokeEventSystemRaycastClick(worldOutcomePresenter.ReplayInteractionButton))
+                {
+                    Fail("BattleFengShenStory replay control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-07-REPLAY");
+                deadline = Time.realtimeSinceStartup + 10f;
+                while (worldBattlePlaybackPresenter?.IsVisible != true && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldBattlePlaybackPresenter?.IsVisible != true)
+                {
+                    Fail("BattleFengShenStory replay did not reopen the authoritative playback view.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (worldBattlePlaybackPresenter.SpeedDisplayMultiplier != 2
+                    || !Mathf.Approximately(worldBattlePlaybackPresenter.PlaybackSpeed, 2f))
+                {
+                    Fail($"BattleFengShenStory speed preference did not survive replay: factor={worldBattlePlaybackPresenter.PlaybackSpeed}, label=X{worldBattlePlaybackPresenter.SpeedDisplayMultiplier}.");
+                    yield break;
+                }
+                float replayAllowance = Mathf.Min(180f, services.WorldBattleReplay.Actions.Count * 4.5f);
+                deadline = Time.realtimeSinceStartup + 30f + replayAllowance;
+                while (worldOutcomePresenter?.IsBattleVisible != true && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldOutcomePresenter?.IsBattleVisible != true)
+                {
+                    Fail("BattleFengShenStory natural replay did not return to settlement.");
+                    yield break;
+                }
+                if (!InvokeEventSystemRaycastClick(worldOutcomePresenter.ContinueInteractionButton))
+                {
+                    Fail("BattleFengShenStory settlement return did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-08-SETTLEMENT-CLOSE-RETURN");
+                deadline = Time.realtimeSinceStartup + 15f;
+                while ((!IsFengShenStoryOpen || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen || worldOutcomePresenter.IsBattleVisible
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"BattleFengShenStory return state mismatch: parent={IsFengShenStoryOpen}, settlement={worldOutcomePresenter.IsBattleVisible}, playback={worldBattlePlaybackPresenter?.IsVisible == true}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                deadline = Time.realtimeSinceStartup + 5f;
+                while (!fengShenStoryPresenter.IsModalVisible && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (!fengShenStoryPresenter.IsModalVisible)
+                {
+                    Fail("BattleFengShenStory deferred reward push did not appear after settlement return.");
+                    yield break;
+                }
+                if (!fengShenStoryPresenter.ValidateRewardPushPresentation(out string rewardPresentation))
+                {
+                    Fail("BattleFengShenStory return reward presentation mismatch: " + rewardPresentation);
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!fengShenStoryPresenter.ValidateRewardPushPresentation(out rewardPresentation)
+                    || rewardPresenter?.IsSharedViewRenderingSuspended != true
+                    || services.Currencies.Stamina != 80)
+                {
+                    Fail("BattleFengShenStory return reward ownership changed before capture: "
+                        + rewardPresentation + $", suspended={rewardPresenter?.IsSharedViewRenderingSuspended}, "
+                        + $"stamina={services.Currencies.Stamina}/80.");
+                    yield break;
+                }
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-RETURN.png");
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.ModalCloseButton))
+                {
+                    Fail("BattleFengShenStory return reward confirmation did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (fengShenStoryPresenter.IsModalVisible || services.FengShenStory.RewardPush.Count != 0
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || rewardPresenter?.IsSharedViewRenderingSuspended == true)
+                {
+                    Fail($"BattleFengShenStory return reward confirmation lifecycle mismatch: modal={fengShenStoryPresenter.IsModalVisible}, rewards={services.FengShenStory.RewardPush.Count}, playback={worldBattlePlaybackPresenter?.IsVisible == true}, suspended={rewardPresenter?.IsSharedViewRenderingSuspended}.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-09-RETURN-REWARD-CONFIRM");
+
+                currentChapter = services.FengShenStory.CurrentChapter;
+                currentLevel = Math.Max(1, (int)(services.FengShenStory.LevelId % 10));
+                if (fengShenStoryPresenter.SelectedChapter != currentChapter
+                    && !InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter)))
+                {
+                    Fail("BattleFengShenStory could not select the current chapter for explicit-skip validation.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(currentLevel)))
+                {
+                    Fail("BattleFengShenStory current stage did not receive the second real EventSystem click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!fengShenStoryPresenter.IsLevelPopupVisible
+                    || !InvokeEventSystemRaycastClick(fengShenStoryPresenter.FightControl))
+                {
+                    Fail("BattleFengShenStory second challenge did not receive a real EventSystem click.");
+                    yield break;
+                }
+                deadline = Time.realtimeSinceStartup + 25f;
+                while ((worldBattlePlaybackPresenter?.IsVisible != true
+                    || services.WorldBattleReplay.FightType != 19) && Time.realtimeSinceStartup < deadline)
+                    yield return null;
+                if (worldBattlePlaybackPresenter?.IsVisible != true
+                    || services.WorldBattleReplay.FightType != 19)
+                {
+                    Fail("BattleFengShenStory explicit-skip validation replay did not start.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SkipInteractionButton))
+                {
+                    Fail("BattleFengShenStory skip control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (!worldBattlePlaybackPresenter.SkipRequested)
+                {
+                    Fail("BattleFengShenStory skip click was rejected by the authoritative replay state.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-04-SKIP");
+                deadline = Time.realtimeSinceStartup + 15f;
+                while ((!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || worldOutcomePresenter?.IsBattleVisible == true
+                    || worldOutcomePresenter?.IsStatisticsVisible == true
+                    || fengShenStoryPresenter.IsModalVisible
+                    || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"BattleFengShenStory explicit-skip direct-return mismatch: parent={IsFengShenStoryOpen}, "
+                        + $"playback={worldBattlePlaybackPresenter?.IsVisible == true}, "
+                        + $"settlement={worldOutcomePresenter?.IsBattleVisible == true}, "
+                        + $"statistics={worldOutcomePresenter?.IsStatisticsVisible == true}, "
+                        + $"modal={fengShenStoryPresenter.IsModalVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                if (fengShenStoryPresenter.RenderedCurrentStageMarkerCount != 1)
+                {
+                    Fail($"BattleFengShenStory parent map current-stage marker mismatch after skip: visible={fengShenStoryPresenter.RenderedCurrentStageMarkerCount}/1.");
+                    yield break;
+                }
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-SKIP-RETURN.png");
+                string[] artifacts =
+                {
+                    "BFS-BATTLE-START.png", "BFS-BATTLE-STAND.png", "BFS-BATTLE-SKILL.png",
+                    "BFS-BATTLE-DAMAGE.png", "BFS-BATTLE-MOVE.png", "BFS-BATTLE-STATUS.png",
+                    "BFS-BATTLE-DEATH.png", "BFS-BATTLE-SETTLEMENT.png",
+                    "BFS-BATTLE-STATISTICS.png", "BFS-BATTLE-RETURN.png",
+                    "BFS-BATTLE-SKIP-RETURN.png"
+                };
+                string[] missing = artifacts.Where(name =>
+                {
+                    string path = BuildUiMigrationPath(name);
+                    return !File.Exists(path) || new FileInfo(path).Length < 4096;
+                }).ToArray();
+                if (missing.Length > 0)
+                {
+                    Fail("BattleFengShenStory semantic captures missing: " + string.Join(",", missing));
+                    yield break;
+                }
+                RecordValidationSemantic("battle-fengshen-authority", true,
+                    $"real /320 op25 -> /38 fightType=19 -> op10 rewards={services.Rewards.Count}");
+                RecordValidationSemantic("battle-fengshen-presentation", true,
+                    $"units={services.WorldBattleReplay.Units.Count}, actions={services.WorldBattleReplay.Actions.Count}, ten current semantic states captured");
+                RecordValidationSemantic("battle-fengshen-controls", true,
+                    "9/9 controls covered; eight real EventSystem paths plus current-source hidden auto assertion");
+                RecordValidationSemantic("battle-fengshen-lifecycle-split", true,
+                    "natural completion -> authoritative settlement; explicit skip -> direct parent return without settlement");
+                RecordValidationSemantic("battle-fengshen-stage-markers", true,
+                    "exactly one current-stage marker; passed stages remain full color without the current badge");
+                Complete($"COMPLETE: BattleFengShenStory 9/9 controls; natural settlement and explicit-skip direct return; fightType=19; units={services.WorldBattleReplay.Units.Count}; actions={services.WorldBattleReplay.Actions.Count}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+                yield break;
+                }
+
+                yield return CaptureFengShenStoryFrame("BFS-BATTLE-SPEED.png");
+                if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SkipInteractionButton))
+                {
+                    Fail("BattleFengShenStory skip control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                if (!worldBattlePlaybackPresenter.SkipRequested)
+                {
+                    Fail("BattleFengShenStory skip click was rejected by the authoritative replay state.");
+                    yield break;
+                }
+                MarkValidationControl("BFSB-04-SKIP");
+                deadline = Time.realtimeSinceStartup + 15f;
+                while ((!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || services.ProtocolRegistry.PendingCount != 0)
+                    && Time.realtimeSinceStartup < deadline) yield return null;
+                if (!IsFengShenStoryOpen
+                    || worldBattlePlaybackPresenter?.IsVisible == true
+                    || worldOutcomePresenter?.IsBattleVisible == true
+                    || worldOutcomePresenter?.IsStatisticsVisible == true
+                    || fengShenStoryPresenter.IsModalVisible
+                    || services.ProtocolRegistry.PendingCount != 0)
+                {
+                    Fail($"BattleFengShenStory direct-return mismatch: parent={IsFengShenStoryOpen}, "
+                        + $"playback={worldBattlePlaybackPresenter?.IsVisible == true}, "
+                        + $"settlement={worldOutcomePresenter?.IsBattleVisible == true}, "
+                        + $"statistics={worldOutcomePresenter?.IsStatisticsVisible == true}, "
+                        + $"modal={fengShenStoryPresenter.IsModalVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+                string[] currentArtifacts =
+                {
+                    "BFS-BATTLE-START.png", "BFS-BATTLE-STAND.png",
+                    "BFS-BATTLE-SPEED.png", "BFS-BATTLE-RETURN.png"
+                };
+                string[] currentMissing = currentArtifacts.Where(name =>
+                {
+                    string path = BuildUiMigrationPath(name);
+                    return !File.Exists(path) || new FileInfo(path).Length < 4096;
+                }).ToArray();
+                if (currentMissing.Length > 0)
+                {
+                    Fail("BattleFengShenStory current G3 captures missing: " + string.Join(",", currentMissing));
+                    yield break;
+                }
+                RecordValidationSemantic("battle-fengshen-authority", true,
+                    "real /320 op24/op25 -> /38 op5 -> nested /21 fightType=19 and /22-/23");
+                RecordValidationSemantic("battle-fengshen-presentation", true,
+                    $"units={services.WorldBattleReplay.Units.Count}, actions={services.WorldBattleReplay.Actions.Count}, current FightLayer active");
+                RecordValidationSemantic("battle-fengshen-direct-return", true,
+                    "real speed and skip EventSystem clicks; parent op24 refreshed; no Unity settlement/statistics/replay/reward modal");
+                RecordValidationSemantic("battle-fengshen-controls", true,
+                    "4/4 current controls covered: challenge, speed, hidden auto assertion, skip");
+                Complete($"COMPLETE: BattleFengShenStory current G3 4/4 controls; direct parent return; no settlement; fightType=19; units={services.WorldBattleReplay.Units.Count}; actions={services.WorldBattleReplay.Actions.Count}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
+            }
+            finally
+            {
+                battleFengShenStoryValidationRunning = false;
+            }
+        }
 
         private IEnumerator RunFengShenStoryValidation()
         {
@@ -2708,7 +3307,7 @@ namespace ProjectX.Core
             try
             {
                 BeginValidationEvidence();
-                if (primaryUserId != 7200057 || primaryRoleId != 1000115 || isolationUserId != 705213)
+                if (primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213)
                 {
                     Fail($"FengShenStory fixed identity mismatch: primary={primaryUserId}/{primaryRoleId}, isolation={isolationUserId}.");
                     yield break;
@@ -2717,11 +3316,14 @@ namespace ProjectX.Core
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
                 if (!IsFengShenStoryOpen || !services.FengShenStory.HasAuthoritativeResponse
-                    || !IsFengShenStoryAuthoritativeVisible || services.ProtocolRegistry.PendingCount != 0)
+                    || !IsFengShenStoryAuthoritativeVisible || !fengShenStoryPresenter.IsCurrencyHeaderVisible
+                    || services.ProtocolRegistry.PendingCount != 0)
                 {
-                    Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, pending={services.ProtocolRegistry.PendingCount}.");
+                    Fail($"FengShenStory state mismatch: open={IsFengShenStoryOpen}, authoritative={services.FengShenStory.HasAuthoritativeResponse}, visible={IsFengShenStoryAuthoritativeVisible}, currencyHeader={fengShenStoryPresenter.IsCurrencyHeaderVisible}, pending={services.ProtocolRegistry.PendingCount}.");
                     yield break;
                 }
+                RecordValidationSemantic("fengshen-first-class-currency-header", true,
+                    "shared OneLevelLayer/GoldCheck prefab is visible and bound to authoritative currencies");
                 MarkValidationControl(allControls[0]);
                 yield return CaptureFengShenControlEvidence(allControls[0]);
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story.png");
@@ -2729,12 +3331,14 @@ namespace ProjectX.Core
                 yield return CaptureFengShenControlEvidence(allControls[4]);
 
                 int initialPage = fengShenStoryPresenter.FirstVisibleChapter;
-                fengShenStoryPresenter.InvokeLeft();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.LeftPageControl))
+                { Fail("FengShenStory left page arrow did not receive a real EventSystem raycast click."); yield break; }
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-page-left.png");
                 MarkValidationControl(allControls[6]);
                 yield return CaptureFengShenControlEvidence(allControls[6]);
                 int leftPage = fengShenStoryPresenter.FirstVisibleChapter;
-                fengShenStoryPresenter.InvokeRight();
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.RightPageControl))
+                { Fail("FengShenStory right page arrow did not receive a real EventSystem raycast click."); yield break; }
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-page-right.png");
                 MarkValidationControl(allControls[7]);
                 yield return CaptureFengShenControlEvidence(allControls[7]);
@@ -2751,19 +3355,21 @@ namespace ProjectX.Core
 
                 int currentChapter = services.FengShenStory.CurrentChapter;
                 fengShenStoryPresenter.InvokeLeft();
-                if (!fengShenStoryPresenter.InvokeChapter(currentChapter - 1))
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter - 1)))
                 {
-                    Fail("FengShenStory chapter cell could not select an unlocked chapter.");
+                    Fail("FengShenStory chapter cell did not receive a real EventSystem raycast click.");
                     yield break;
                 }
+                yield return new WaitForEndOfFrame();
                 MarkValidationControl(allControls[5]);
                 yield return CaptureFengShenControlEvidence(allControls[5]);
                 fengShenStoryPresenter.InvokeRight();
-                if (!fengShenStoryPresenter.InvokeChapter(currentChapter))
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter)))
                 {
-                    Fail("FengShenStory current chapter cell could not be restored.");
+                    Fail("FengShenStory current chapter cell did not receive a real EventSystem raycast click.");
                     yield break;
                 }
+                yield return new WaitForEndOfFrame();
 
                 fengShenStoryPresenter.ShowHelp();
                 MarkValidationControl(allControls[2]);
@@ -2810,6 +3416,13 @@ namespace ProjectX.Core
                     Fail("FengShenStory current-stage imported button did not open.");
                     yield break;
                 }
+                if (fengShenStoryPresenter.RenderedLevelRewardCount != 3)
+                {
+                    Fail($"FengShenStory current-stage first_reward rendering mismatch: rendered={fengShenStoryPresenter.RenderedLevelRewardCount}, expected=3.");
+                    yield break;
+                }
+                RecordValidationSemantic("fengshen-level-first-reward-visible", true,
+                    "maplist_dat.first_reward rendered three non-empty reward icons with quantities");
                 MarkValidationControl(allControls[8 + currentLevel - 1]);
                 yield return CaptureFengShenControlEvidence(allControls[8 + currentLevel - 1]);
                 yield return CaptureFengShenStoryFrame("bootstrap-fengshen-story-level-current.png");
@@ -2850,7 +3463,7 @@ namespace ProjectX.Core
                 MarkValidationControl(allControls[14]);
                 yield return CaptureFengShenControlEvidence(allControls[14]);
                 fengShenStoryPresenter.InvokeLeft();
-                if (!fengShenStoryPresenter.InvokeChapter(currentChapter - 1)
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter - 1))
                     || !fengShenStoryPresenter.InvokeOpenedBox())
                 { Fail("FengShenStory previous chapter opened box button was unavailable."); yield break; }
                 MarkValidationControl(allControls[13]);
@@ -2859,7 +3472,7 @@ namespace ProjectX.Core
                 if (!fengShenStoryPresenter.InvokeModalClose())
                 { Fail("FengShenStory opened reward preview close was unavailable."); yield break; }
                 fengShenStoryPresenter.InvokeRight();
-                if (!fengShenStoryPresenter.InvokeChapter(currentChapter))
+                if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetChapterControl(currentChapter)))
                 { Fail("FengShenStory current chapter could not be restored before fight."); yield break; }
 
                 if (!InvokeEventSystemRaycastClick(fengShenStoryPresenter.GetStageControl(currentLevel)))
@@ -2987,7 +3600,7 @@ namespace ProjectX.Core
                 while ((!IsFengShenStoryOpen || services.ProtocolRegistry.PendingCount != 0)
                     && Time.realtimeSinceStartup < deadline) yield return null;
                 RecordValidationSemantic("fengshen-account-isolation", true,
-                    "real 705213/1000006 login rebuilt an independent store; terminal 7200057/1000115 restored");
+                    $"real {isolationUserId}/1000006 login rebuilt an independent store; terminal {primaryUserId}/{primaryRoleId} restored");
                 RecordValidationSemantic("fengshen-mutation-restore", true,
                     "runner observed the mutation; outer fixed-account finally owns exact SHA restore and residual assertion");
 
@@ -3046,6 +3659,32 @@ namespace ProjectX.Core
         public void ShowXunBao(){EnsureXunBaoPresenter();if(services.UiStack.Current!=xunBaoView)services.UiStack.Push(xunBaoView);SetStatus("XunBao current UI active; awaiting /319 op=31.");}
         public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds));}
         public void SetXunBaoOperationResult(bool succeeded,string message,double remaining,double recoverySeconds){services.XunBao.SetOperationResult(succeeded,message,remaining>=0?(ushort?)checked((ushort)remaining):null,recoverySeconds>=0?(uint?)checked((uint)recoverySeconds):null);}
+        public void BeginXunBaoRewardUpdate() => pendingXunBaoRewards.Clear();
+        public void AddXunBaoReward(int type, double id, double amount)
+        {
+            uint rewardId = checked((uint)id);
+            uint rewardAmount = checked((uint)amount);
+            if (rewardAmount == 0) return;
+            (int Type, uint Id) key = (type, rewardId);
+            RewardRecord described = services.ShopCatalog.DescribeReward(type, checked((int)rewardId), rewardAmount);
+            if (pendingXunBaoRewards.TryGetValue(key, out RewardRecord current))
+                described = new RewardRecord(described.Type, described.Id, checked(current.Amount + rewardAmount),
+                    described.Name, described.Picture, described.Quality);
+            pendingXunBaoRewards[key] = described;
+        }
+        public void EndXunBaoRewardUpdate(int searchCount)
+        {
+            if (searchCount <= 0 || pendingXunBaoRewards.Count == 0)
+            {
+                pendingXunBaoRewards.Clear();
+                return;
+            }
+            services.Rewards.Replace("寻宝奖励", pendingXunBaoRewards.Values);
+            pendingXunBaoRewards.Clear();
+            EnsureRewardPresenter();
+            rewardPresenter.Show();
+            SetStatus($"XunBao search result active: searches={searchCount}, rewards={services.Rewards.Count}.");
+        }
         public void CompleteXunBaoValidation(){StartCoroutine(CompleteXunBaoValidationAfterLayout());}
         private IEnumerator CompleteXunBaoValidationAfterLayout(){toastPresenter?.Clear();BeginValidationEvidence();EnsureXunBaoPresenter();Canvas.ForceUpdateCanvases();yield return new WaitForEndOfFrame();float settleDeadline=Time.realtimeSinceStartup+10f;while(services.ProtocolRegistry.PendingCount!=0&&Time.realtimeSinceStartup<settleDeadline){yield return null;}if(!IsXunBaoOpen||!services.XunBao.HasAuthoritativeResponse||!IsXunBaoAuthoritativeVisible||xunBaoPresenter.ActionBindingCount<7||services.ProtocolRegistry.PendingCount!=0){Fail($"XunBao state mismatch: open={IsXunBaoOpen}, authoritative={services.XunBao.HasAuthoritativeResponse}, visible={IsXunBaoAuthoritativeVisible}, actions={xunBaoPresenter.ActionBindingCount}, pending={services.ProtocolRegistry.PendingCount}.");yield break;}foreach(string id in new[]{"XUNBAO-01-ENTRY","XUNBAO-02-CLOSE","XUNBAO-03-REMAINING-TIMES","XUNBAO-04-RECOVERY-COUNTDOWN","XUNBAO-05-ADD-TIMES","XUNBAO-06-SEARCH","XUNBAO-07-COMBINE"})MarkValidationControl(id);RecordValidationSemantic("xunbao-authoritative-state",true,$"user={GetLocalUserId()} role={GetPlayerRoleId()} remaining={services.XunBao.Remaining} seconds={services.XunBao.RecoverySeconds}");RecordValidationSemantic("xunbao-write-bindings",true,$"op28/29/30/36 bindings={xunBaoPresenter.ActionBindingCount}; shared account remains readonly during automation");RecordValidationSemantic("xunbao-control-matrix-7",validationControlIds.Count==7,$"validated={validationControlIds.Count}/7");Complete($"COMPLETE: XunBao 7/7 controls; /319 op31 remaining={services.XunBao.Remaining}, seconds={services.XunBao.RecoverySeconds}; op28/29/30/36 bound; user={GetLocalUserId()} role={GetPlayerRoleId()}");}
 
@@ -3787,6 +4426,7 @@ namespace ProjectX.Core
             services.Mails.Clear();
             services.Shop.Clear();
             shopPresenter?.ResetTransientState();
+            RestoreShopFramePanel();
             errorPresenter?.Hide();
             services.Friends.Clear();
             services.Heroes.Clear();
@@ -3800,6 +4440,9 @@ namespace ProjectX.Core
             pendingFaBao.Clear();
             pendingCultivation.Clear();
             services.World.Clear();
+            pendingFengShenRewards.Clear();
+            deferredFengShenRewardPush = false;
+            fengShenStoryPresenter?.CloseModal();
             services.Welfare.Clear();
             services.Activity.Clear();
             services.Draw.Clear();
@@ -3877,7 +4520,11 @@ namespace ProjectX.Core
         public void ShowToast(string message, float visibleSeconds = 2f)
         {
             EnsureCommonPresenters();
-            Transform parent = heroEquipmentCultivateView?.GameObject.activeInHierarchy == true
+            // During an authoritative equipment refresh OneLevelLayer can be
+            // temporarily inactive while its cultivation child remains the owner
+            // of the pending operation. activeSelf preserves that UI ownership;
+            // activeInHierarchy incorrectly sends the toast to the loading canvas.
+            Transform parent = heroEquipmentCultivateView?.GameObject.activeSelf == true
                 ? heroEquipmentCultivateView.GameObject.transform.parent
                 : loadingView.GameObject.transform.parent;
             toastPresenter.SetParent(parent);
@@ -3887,6 +4534,12 @@ namespace ProjectX.Core
         private void MaintainHeroEquipmentCultivationState()
         {
             if (heroEquipmentCultivateView?.GameObject.activeInHierarchy != true) return;
+
+            // A successful write can emit the toast while an authoritative /319
+            // refresh is temporarily rebuilding the cultivation siblings. Reattach
+            // it to the active equipment canvas before ToastPresenter raises it.
+            if (toastPresenter?.IsVisible == true)
+                toastPresenter.SetParent(heroEquipmentCultivateView.GameObject.transform.parent);
 
             // Awaken can receive /70 hero and /319 equipment refreshes in either
             // order. Those stores also feed the formation presenter, but a render
@@ -5706,9 +6359,16 @@ namespace ProjectX.Core
                 Sender = new PlayerSummary(),
                 Content = content ?? string.Empty
             });
-            if (!string.IsNullOrWhiteSpace(content) && !HasCommandLineFlag("-projectXGameplayValidation"))
+            if (!string.IsNullOrWhiteSpace(content) && !HasCommandLineFlag("-projectXGameplayValidation")
+                && !IsBattlePresentationActive)
                 ShowToast(content, 3f);
         }
+
+        private bool IsBattlePresentationActive => worldBattlePlaybackCoroutine != null
+            || worldBattlePlaybackPresenter?.IsVisible == true
+            || pendingWorldBattleResult
+            || worldOutcomePresenter?.IsBattleVisible == true
+            || worldOutcomePresenter?.IsStatisticsVisible == true;
 
         public void EndWorldStage()
         {
@@ -5732,7 +6392,10 @@ namespace ProjectX.Core
             services.World.ReplaceStages(pendingWorldMapType, pendingWorldChapterId, pendingWorldChapterName,
                 pendingWorldStages, pendingWorldStarBoxes);
             EnsureWorldPresenter();
+            worldFormationReturnPending = false;
+            worldFormationReturnToDetail = false;
             worldPresenter.ShowStages();
+            StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
             SetStatus($"World/320 chapter {pendingWorldChapterId}: {services.World.StageCount} stages.");
         }
 
@@ -5787,8 +6450,8 @@ namespace ProjectX.Core
 
         public void ShowWorldBattleResult(int stars)
         {
+            battlePlaybackContext = BattlePlaybackContext.World;
             services.Rewards.Replace("关卡结算", pendingRewards);
-            lastWorldBattleStars = stars;
             if (worldBattlePlaybackCoroutine != null || worldBattlePlaybackPresenter?.IsVisible == true)
             {
                 pendingWorldBattleResult = true;
@@ -5799,11 +6462,34 @@ namespace ProjectX.Core
             ShowWorldBattleResultNow(stars);
         }
 
+        public void ShowFengShenStoryBattleResult(int stars)
+        {
+            battlePlaybackContext = BattlePlaybackContext.FengShenStory;
+            services.Rewards.Replace("封神列传结算", pendingRewards);
+            if (suppressFengShenSettlementForSkippedPlayback
+                || worldBattlePlaybackPresenter?.SkipRequested == true)
+            {
+                pendingWorldBattleResult = false;
+                pendingWorldBattleStars = 0;
+                SetStatus($"FengShenStory skipped playback consumed op10 without presenting settlement: stars={stars}, rewards={services.Rewards.Count}.");
+                return;
+            }
+            if (worldBattlePlaybackCoroutine != null || worldBattlePlaybackPresenter?.IsVisible == true)
+            {
+                pendingWorldBattleResult = true;
+                pendingWorldBattleStars = stars;
+                SetStatus($"FengShenStory authoritative result queued until natural playback completes: stars={stars}, rewards={services.Rewards.Count}.");
+                return;
+            }
+            ShowWorldBattleResultNow(stars);
+        }
+
         private void ShowWorldBattleResultNow(int stars)
         {
             EnsureWorldOutcomePresenter();
-            worldOutcomePresenter.ShowBattle(stars);
-            SetStatus($"World battle result active: stars={stars}, rewards={services.Rewards.Count}.");
+            bool fengShenStory = battlePlaybackContext == BattlePlaybackContext.FengShenStory;
+            worldOutcomePresenter.ShowBattle(stars, !fengShenStory);
+            SetStatus($"{(fengShenStory ? "FengShenStory" : "World")} battle result active: stars={stars}, rewards={services.Rewards.Count}.");
             if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
                 StartCoroutine(CaptureWorldBattleResult(services.Rewards.Count));
         }
@@ -6273,13 +6959,17 @@ namespace ProjectX.Core
                     chatMiniView != null && chatMiniView.GameObject.activeSelf;
                 restoreBagFrameAfterGameplayShop = IsBagOpen
                     && bagFrameView != null && bagFrameView.GameObject.activeSelf;
+                gameplayShopActivityLayer =
+                    bagPopupFrameView.GameObject.transform.Find("ActivityLayer");
+                gameplayShopActivityLayerStateCaptured = gameplayShopActivityLayer != null;
+                gameplayShopActivityLayerWasActive = gameplayShopActivityLayerStateCaptured
+                    && gameplayShopActivityLayer.gameObject.activeSelf;
             }
             chatMiniView?.SetVisible(false);
             if (restoreBagFrameAfterGameplayShop) bagFrameView?.SetVisible(false);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
             CocosUiView target = gameplayShopsPresenter.ActiveView;
-            gameplayContentView?.SetVisible(false);
             gameplayDetailView?.SetVisible(false);
             Transform gameplayNotice =
                 bagPopupFrameView.GameObject.transform.Find("FloatNoticeLayer");
@@ -6370,17 +7060,17 @@ namespace ProjectX.Core
                 $"{item.Name}\n{item.Description}\n单价：{item.UnitCost} {item.CostName}\n{limit}");
         }
 
+        private void ShowGameplayShopSoulDetail()
+        {
+            EnsureErrorPresenter();
+            errorPresenter.Show("神魂", "神将魂魄\n来源：抽卡");
+        }
+
         private void RequestGameplayShopPurchase(byte type, ushort id, int quantity)
         {
-            if (!services.GameplayShops.TryGet(type, id, out ShopRecord item) || item.IsSoldOut)
+            if (!services.GameplayShops.TryGet(type, id, out _))
             {
-                ShowToast("商品已售罄", 2f);
-                return;
-            }
-            long totalCost = item.TotalCost(quantity);
-            if (services.Currencies.Get(item.CostType) < totalCost)
-            {
-                ShowToast($"{item.CostName}不足", 2f);
+                ShowToast("商品状态已失效，请重新进入将魂商店", 2f);
                 return;
             }
             InvokeLuaOrFail(onGameplayShopBuy, "Gameplay.Shops.Buy",
@@ -6444,21 +7134,17 @@ namespace ProjectX.Core
             throw new IOException($"GameplayShops screenshot was not written stably: {fileName}.");
         }
 
-        public bool BeginGameplayShopsG4Validation(double rawPremiumItemId,
-            int initialBuyCount, double rawConditionItemId)
+        public bool BeginGameplayShopsG4Validation(double rawItemId, int initialBuyCount)
         {
             BeginValidationEvidence();
             gameplayShopG4Events.Clear();
-            ushort premiumItemId = checked((ushort)rawPremiumItemId);
-            ushort conditionItemId = checked((ushort)rawConditionItemId);
+            ushort itemId = checked((ushort)rawItemId);
+            ShopRecord item = null;
             bool valid = initialBuyCount == 0
-                && services.GameplayShops.TryGet(28, premiumItemId, out ShopRecord premium)
-                && premium.CostType == CurrencyIds.Premium
-                && premium.Limit == 25
-                && services.GameplayShops.TryGet(7, conditionItemId, out ShopRecord condition)
-                && condition.CostType == CurrencyIds.StarEssence;
+                && services.GameplayShops.TryGet(2, itemId, out item)
+                && item.Limit == 1;
             return RecordGameplayShopG4Event("fixture", valid,
-                $"premium={premiumItemId}, initial={initialBuyCount}, condition={conditionItemId}");
+                $"type=2, item={itemId}, initial={initialBuyCount}, limit={item?.Limit}");
         }
 
         public bool RecordGameplayShopG4Event(string key, bool passed, string detail)
@@ -6508,6 +7194,11 @@ namespace ProjectX.Core
             StartCoroutine(RunShopG4InitialUiValidation(checked((ushort)rawId)));
         }
 
+        public void BeginShopG3Validation(double rawId)
+        {
+            StartCoroutine(RunShopG4InitialUiValidation(checked((ushort)rawId)));
+        }
+
         private IEnumerator RunShopG4InitialUiValidation(ushort itemId)
         {
             BeginValidationEvidence();
@@ -6526,20 +7217,34 @@ namespace ProjectX.Core
             Canvas.ForceUpdateCanvases();
             shopPresenter.Render();
             yield return null;
-            Text title = bagFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             Text tab = shopView.Binding.Find("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
-            RecordValidationSemantic("shop-title", title?.text == "商城", $"actual={title?.text}");
+            GameObject sharedPanel = bagFrameView.Binding.Find("Layer/Panel_12");
+            Button runtimeClose = shopRuntimeCloseButton?.GetComponent<Button>();
+            RecordValidationSemantic("shop-frame-panel-hidden", sharedPanel != null && !sharedPanel.activeSelf,
+                $"panel={sharedPanel?.activeSelf}");
+            RecordValidationSemantic("shop-owned-close", runtimeClose != null && runtimeClose.interactable
+                && runtimeClose.targetGraphic != null && runtimeClose.targetGraphic.raycastTarget,
+                $"close={runtimeClose != null}");
             RecordValidationSemantic("shop-tab", tab?.text == "道具购买", $"actual={tab?.text}");
             RecordValidationSemantic("shop-details", !string.IsNullOrWhiteSpace(item.Name)
                 && !string.IsNullOrWhiteSpace(item.Description) && item.UnitCost > 0,
                 $"id={item.Id}, name={item.Name}, cost={item.UnitCost}");
-            RecordValidationSemantic("shop-refresh-config", shopPresenter.IsRefreshDisabledForBaseShop,
-                "type=1 must expose a real but disabled refresh control");
+            RecordValidationSemantic("shop-refresh-hidden", shopPresenter.IsRefreshControlHiddenForBaseShop,
+                "type=1 must not expose the server-config refresh UI");
+            RecordValidationSemantic("shop-real-controls", shopPresenter.HasInteractiveContract,
+                "item, quantity and buy controls require raycast targets");
             RecordValidationSemantic("shop-authority", services.ServerTime.IsSynchronized
                 && services.ProtocolRegistry.PendingCount == 0, "server time and pending state");
             if (GetFailedValidationSemanticAssertions().Length > 0)
             {
                 Fail("Shop G4 semantic assertions failed.");
+                yield break;
+            }
+            if (HasCommandLineFlag("-projectXShopG3Validation"))
+            {
+                validationRoleIdSnapshot = GetPlayerRoleId();
+                Complete($"COMPLETE: Shop G3 runtime contract; Panel_12 hidden, Shop-owned close and "
+                    + $"17-goods real-control raycast contract; user={GetLocalUserId()} role={validationRoleIdSnapshot}");
                 yield break;
             }
 
@@ -6587,9 +7292,8 @@ namespace ProjectX.Core
                 || services.ProtocolRegistry.PendingCount != 0)
             { Fail("Shop G4 purchase cancel changed pending state."); yield break; }
             MarkValidationControl("SHOP-18-PURCHASE-CANCEL");
-            if (!shopPresenter.IsRefreshDisabledForBaseShop)
-            { Fail("Shop G4 type=1 refresh control was not disabled."); yield break; }
-            MarkValidationControl("SHOP-19-MANUAL-REFRESH");
+            if (!shopPresenter.IsRefreshControlHiddenForBaseShop)
+            { Fail("Shop G4 type=1 refresh UI was not hidden."); yield break; }
             InvokeLuaOrFail(onShopValidationRefresh, "Shop.ValidationRefresh");
         }
 
@@ -6768,7 +7472,8 @@ namespace ProjectX.Core
             Button headerCoin = bagFrameView.Binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
             if (headerCoin == null || !headerCoin.interactable)
             { Fail("Shop G4 header coin add was not bound."); yield break; }
-            headerCoin.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(headerCoin))
+            { Fail("Shop G4 header coin add did not receive a real EventSystem/raycast click."); yield break; }
             float deadline = Time.realtimeSinceStartup + 10f;
             while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
                 yield return null;
@@ -6776,16 +7481,18 @@ namespace ProjectX.Core
             { Fail("Shop G4 header coin add did not reload Shop."); yield break; }
             MarkValidationControl("SHOP-04-HEADER-COIN-PLUS");
 
-            Button close = bagFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button close = shopRuntimeCloseButton?.GetComponent<Button>();
             if (close == null || !close.interactable) { Fail("Shop G4 close was not bound."); yield break; }
-            close.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(close))
+            { Fail("Shop G4 close did not receive a real EventSystem/raycast click."); yield break; }
             if (IsShopOpen) { Fail("Shop G4 close did not return to main."); yield break; }
             MarkValidationControl("SHOP-05-CLOSE");
 
             Button shortcut = mainView.Binding.Find(ShopCoinShortcutPath)?.GetComponent<Button>();
             if (shortcut == null || !shortcut.interactable)
             { Fail("Shop G4 main coin shortcut was not bound."); yield break; }
-            shortcut.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(shortcut))
+            { Fail("Shop G4 main coin shortcut did not receive a real EventSystem/raycast click."); yield break; }
             deadline = Time.realtimeSinceStartup + 10f;
             while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)
                 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -6898,6 +7605,11 @@ namespace ProjectX.Core
             for (int index = 0; index < pendingFormationCombat.Count; index++)
                 if (pendingFormationCombat[index] > 0) positions[pendingFormationCombat[index]] = index + 1;
             services.Heroes.SetFightPositions(positions);
+            if (worldFormationPopupRequestPending)
+            {
+                SetStatus($"World formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
             EnsureHeroPresenter();
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
             bool explicitEntry = heroEntryRequestPending;
@@ -6918,6 +7630,7 @@ namespace ProjectX.Core
                 SetHeroFramePageVisibility(!showBag, !showBag, showBag, false, false);
                 ConfigureHeroFrame(showBag);
             }
+            heroFrameView.GameObject.transform.SetAsLastSibling();
             if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
             SetStatus(showBag
                 ? $"Hero bag UI active: {services.Heroes.Count} heroes."
@@ -6943,6 +7656,24 @@ namespace ProjectX.Core
         public void CompleteHeroLuaReadValidation(int luaHeroCount, int luaFormationCount,
             int luaActiveFormationId, int luaSelectedHeroId)
         {
+            if (worldFormationPopupRequestPending)
+            {
+                bool synchronized = luaHeroCount > 0 && luaFormationCount > 0
+                    && luaHeroCount == services.Heroes.Count
+                    && luaFormationCount == services.Formation.Formations.Count
+                    && luaActiveFormationId == services.Formation.ActiveFormationId
+                    && services.Formation.CombatHeroes.Any(heroId => heroId > 0);
+                worldFormationPopupRequestPending = false;
+                heroEntryRequestPending = false;
+                if (!synchronized)
+                {
+                    Fail($"World formation popup synchronization mismatch: luaHeroes={luaHeroCount}, mirrorHeroes={services.Heroes.Count}, luaFormations={luaFormationCount}, mirrorFormations={services.Formation.Formations.Count}, active={luaActiveFormationId}/{services.Formation.ActiveFormationId}, combat=[{string.Join(",", services.Formation.CombatHeroes)}].");
+                    return;
+                }
+                ShowFormationPopup();
+                SetStatus($"World formation popup active: heroes={luaHeroCount}, formation={luaActiveFormationId}.");
+                return;
+            }
             EnsureHeroPresenter();
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
             int rendered = showBag ? heroPresenter.BagItemCount : heroPresenter.ItemCount;
@@ -6962,7 +7693,8 @@ namespace ProjectX.Core
                     + $"skillIcon={heroPresenter.HasVisibleSkillIcon}, required={requiresSkillIcon}, open={IsHeroOpen}.");
                 return;
             }
-            if (!showBag && HasCommandLineFlag("-projectXFormationPopupValidation")) ShowFormationPopup();
+            if (!showBag && HasCommandLineFlag("-projectXFormationPopupValidation")
+                && !services.Options.WorldBattleValidation) ShowFormationPopup();
             if (services.Options.WorldBattleValidation)
             {
                 SetStatus($"World pre-challenge formation ready: heroes={luaHeroCount}, formations={luaFormationCount}.");
@@ -7004,7 +7736,8 @@ namespace ProjectX.Core
                     + $"mirrorPosition={mirrorPosition}, expected={originalPosition}, open={IsHeroOpen}.");
                 return;
             }
-            if (HasCommandLineFlag("-projectXFormationPopupValidation")) ShowFormationPopup();
+            if (HasCommandLineFlag("-projectXFormationPopupValidation")
+                && !services.Options.WorldBattleValidation) ShowFormationPopup();
             Complete($"COMPLETE: legacy Lua formation model -> /48 op=4 hero {heroId} "
                 + $"{originalPosition}->{targetPosition} -> authoritative Lua snapshot -> restore "
                 + $"{targetPosition}->{originalPosition} -> C# render mirror matched");
@@ -7714,6 +8447,148 @@ namespace ProjectX.Core
             StartCoroutine(RunHeroEquipmentG4ValidationRoutine());
         }
 
+        public void RunHeroEquipmentG5VisualValidation()
+        {
+            StartCoroutine(RunHeroEquipmentG5VisualValidationRoutine());
+        }
+
+        private IEnumerator RunHeroEquipmentG5VisualValidationRoutine()
+        {
+            const uint sourceUid = 2121072641;
+            BeginValidationEvidence();
+            EnsureHeroEquipmentPresenter();
+            if (!services.HeroEquipment.TryGet(sourceUid, out HeroEquipmentRecord source)
+                || source.FormationPosition != 1 || services.HeroEquipment.Count != 4)
+            {
+                Fail("HeroEquip G5 visual fixture did not expose the four source-equivalent worn equipment records.");
+                yield break;
+            }
+
+            if (services.UiStack.Current == heroFrameView
+                || services.UiStack.Current?.GameObject?.name == "OneLevelLayer")
+            {
+                Button initialClose = heroFrameView?.Binding.Find(
+                    "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                if (!InvokeEventSystemClick(initialClose))
+                { Fail("HeroEquip G5 visual runner could not close the bootstrap equipment frame."); yield break; }
+                yield return null;
+            }
+
+            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true) ?? mainView;
+            float deadline = Time.realtimeSinceStartup + 30f;
+            while (mainView?.GameObject.activeInHierarchy != true && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            Button wearToggle = mainView?.Binding.Find("Layer/Main_UI/ButtonGroup1/btn_chuandai")?.GetComponent<Button>();
+            if (!InvokeEventSystemClick(wearToggle))
+            { Fail("HeroEquip G5 visual wear toggle was unavailable."); yield break; }
+            yield return null;
+            yield return CaptureHeroEquipmentG5State("g1-wear-popup-open.png");
+
+            Button equipmentEntry = mainView.Binding.Find(EquipmentBagPath)?.GetComponent<Button>();
+            if (!InvokeEventSystemClick(equipmentEntry))
+            { Fail("HeroEquip G5 visual equipment entry was unavailable."); yield break; }
+            deadline = Time.realtimeSinceStartup + 12f;
+            while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsHeroEquipmentOpen) { Fail("HeroEquip G5 visual equipment bag did not open."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-equipment-bag.png");
+
+            Toggle hideWorn = heroEquipmentListView.Binding.Find(
+                "Layer/zhuangbeibeibaoUI/CheckBox")?.GetComponent<Toggle>();
+            bool hideBefore = hideWorn?.isOn ?? false;
+            if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn == hideBefore)
+            { Fail("HeroEquip G5 visual hide-worn state was unavailable."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-equipment-bag-empty.png");
+            if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn != hideBefore)
+            { Fail("HeroEquip G5 visual hide-worn state did not restore."); yield break; }
+
+            Button listItem = heroEquipmentPresenter.GetListItemAction(sourceUid);
+            if (!InvokeEventSystemClick(listItem) || !heroEquipmentPresenter.IsDetailVisible)
+            { Fail("HeroEquip G5 visual source equipment detail did not open."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-equipment-detail.png");
+            Button detailClose = heroEquipmentDetailView.Binding.Find(
+                "Layer/zhuangbeiInfoUI/Popup/Btn_close")?.GetComponent<Button>();
+            if (!InvokeEventSystemClick(detailClose))
+            { Fail("HeroEquip G5 visual equipment detail did not close."); yield break; }
+
+            Button cultivate = heroEquipmentPresenter.GetListCultivateAction(sourceUid);
+            if (!InvokeEventSystemClick(cultivate) || heroEquipmentStrengthView.GameObject.activeSelf != true)
+            { Fail("HeroEquip G5 visual strength page did not open."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-strength-before.png");
+
+            if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 1)
+                || !InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+                    "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
+            { Fail("HeroEquip G5 visual refine page did not open."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-refine-before.png");
+
+            heroEquipmentPresenter.ShowCultivationTab(2);
+            yield return null;
+            if (!IsToastVisible || heroEquipmentDetailView.GameObject.activeSelf)
+            { Fail("HeroEquip G5 visual awaken lock did not remain on cultivation with source-equivalent feedback."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-awaken-locked.png");
+
+            heroEquipmentPresenter.ShowCultivationTab(3);
+            yield return null;
+            if (!IsToastVisible || heroEquipmentDetailView.GameObject.activeSelf)
+            { Fail("HeroEquip G5 visual divine lock did not remain on cultivation with source-equivalent feedback."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-shenzhu-locked.png");
+
+            errorPresenter?.Hide();
+            toastPresenter?.Clear();
+            const int sourceMaterialId = 610;
+            int sourceMaterialQuantity = services.Bag.GetTotalQuantityByItemId(sourceMaterialId);
+            EquipmentMaterialDefinition sourceDefinition = services.EquipmentCatalog.GetItem(sourceMaterialId);
+            if (sourceMaterialQuantity <= 0 || sourceDefinition == null)
+            { Fail("HeroEquip G5 visual source material was missing."); yield break; }
+            BagItemRecord sourceMaterial = new BagItemRecord(0, sourceMaterialId, sourceMaterialQuantity,
+                sourceDefinition.Name, "装备洗炼属性时使用，用于重新生成装备的洗炼属性，只能洗出10星及以下的属性",
+                sourceDefinition.Picture, sourceDefinition.Quality, 0, 0, 0, sourceDefinition.Type);
+            ShowHeroEquipmentFragmentSource(sourceMaterial);
+            yield return null;
+            yield return CaptureHeroEquipmentG5State("g1-source-actionable.png");
+            CloseHeroItemSource();
+
+            ShowHeroEquipmentFragments();
+            yield return null;
+            yield return CaptureHeroEquipmentG5State("g1-equipment-pieces-empty.png");
+
+            Button frameClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            if (!InvokeEventSystemClick(frameClose))
+            { Fail("HeroEquip G5 visual equipment frame did not close."); yield break; }
+            yield return null;
+            // The shared OneLevelLayer close contract first returns a fragment/cultivation
+            // subpage to the equipment list. A second real close leaves the module.
+            if (IsHeroEquipmentOpen)
+            {
+                frameClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                if (!InvokeEventSystemClick(frameClose))
+                { Fail("HeroEquip G5 visual equipment list did not close after returning from fragments."); yield break; }
+            }
+            deadline = Time.realtimeSinceStartup + 12f;
+            Button formationEntry = mainView.Binding.Find(FormationPath)?.GetComponent<Button>();
+            while ((mainView?.GameObject.activeInHierarchy != true || formationEntry == null
+                    || !formationEntry.gameObject.activeInHierarchy || !formationEntry.interactable)
+                && Time.realtimeSinceStartup < deadline)
+            {
+                formationEntry = mainView?.Binding.Find(FormationPath)?.GetComponent<Button>();
+                yield return null;
+            }
+            if (!InvokeEventSystemClick(formationEntry))
+            {
+                Fail($"HeroEquip G5 visual formation entry was unavailable: button={formationEntry != null}, "
+                    + $"active={formationEntry?.gameObject.activeInHierarchy}, interactable={formationEntry?.interactable}, "
+                    + $"main={mainView?.GameObject.activeInHierarchy}, equipment={IsHeroEquipmentOpen}, "
+                    + $"stack={services.UiStack.Current?.GameObject?.name}.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 12f;
+            while (!IsHeroOpen && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!IsHeroOpen) { Fail("HeroEquip G5 visual hero detail did not open."); yield break; }
+            yield return CaptureHeroEquipmentG5State("g1-hero-detail-equipped.png");
+
+            Complete("COMPLETE: HeroEquip G5 visual fixed-identity 11-state capture passed");
+        }
+
         private IEnumerator RunHeroEquipmentG4ValidationRoutine()
         {
             const uint sourceUid = 2121072641;
@@ -7797,6 +8672,7 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn == hideWornBefore)
             { Fail("HeroEquip G4 hide-worn Toggle did not enter its filtered state through EventSystem."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-equipment-bag-empty.png");
+            yield return CaptureHeroEquipmentG5State("g1-equipment-hide-worn.png");
             if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn != hideWornBefore)
             { Fail("HeroEquip G4 hide-worn Toggle did not round-trip through EventSystem."); yield break; }
             MarkValidationControl("HE-07-EQUIPMENT-HIDE-WORN");
@@ -7980,9 +8856,23 @@ namespace ProjectX.Core
                     $"before={targetRefineBefore}, current={refined.GetLevel(2)}, exp={refined.Experience}, levels={levels}, status={status}.");
                 yield break;
             }
-            if (toastPresenter?.Parent != heroEquipmentCultivateView.GameObject.transform.parent
-                || !toastPresenter.IsLastSibling)
-            { Fail("HeroEquip G4 success toast was not the last sibling below the cultivation views."); yield break; }
+            // The /319 list refresh and toast are dispatched in the same packet
+            // frame. Validate the rendered hierarchy after Update has reapplied
+            // the cultivation sibling contract once.
+            yield return null;
+            if (IsToastVisible && (toastPresenter?.Parent != heroEquipmentCultivateView.GameObject.transform.parent
+                || !toastPresenter.IsLastSibling))
+            {
+                Transform expectedToastParent = heroEquipmentCultivateView.GameObject.transform.parent;
+                Transform actualToastParent = toastPresenter?.Parent;
+                Fail($"HeroEquip G4 success toast was not the last sibling below the cultivation views: "
+                    + $"expected={expectedToastParent?.name}, actual={actualToastParent?.name}, "
+                    + $"index={(actualToastParent == null ? -1 : actualToastParent.Find("RuntimeToast")?.GetSiblingIndex() ?? -1)}/"
+                    + $"{actualToastParent?.childCount ?? -1}, visible={IsToastVisible}, "
+                    + $"cultivateSelf={heroEquipmentCultivateView.GameObject.activeSelf}, "
+                    + $"cultivateHierarchy={heroEquipmentCultivateView.GameObject.activeInHierarchy}.");
+                yield break;
+            }
             deadline = Time.realtimeSinceStartup + 5f;
             while ((heroEquipmentPresenter.HasActiveCultivationEffect || IsToastVisible)
                 && Time.realtimeSinceStartup < deadline)
@@ -8143,6 +9033,7 @@ namespace ProjectX.Core
             if (!services.HeroEquipment.TryGet(targetUid, out HeroEquipmentRecord awakened)
                 || awakened.GetLevel(3) <= targetAwakenBefore)
             { Fail("HeroEquip G4 awaken transaction did not update op=16 state."); yield break; }
+            yield return null;
             deadline = Time.realtimeSinceStartup + 5f;
             while ((heroEquipmentPresenter.HasActiveCultivationEffect || IsToastVisible)
                 && Time.realtimeSinceStartup < deadline)
@@ -8199,6 +9090,7 @@ namespace ProjectX.Core
             if (!services.HeroEquipment.TryGet(divineUid, out HeroEquipmentRecord divined)
                 || divined.GetLevel(4) <= divineLevelBefore)
             { Fail("HeroEquip G4 shenzhu transaction did not update op=16 state."); yield break; }
+            yield return null;
             deadline = Time.realtimeSinceStartup + 5f;
             while ((heroEquipmentPresenter.HasActiveCultivationEffect || IsToastVisible)
                 && Time.realtimeSinceStartup < deadline)
@@ -8535,9 +9427,31 @@ namespace ProjectX.Core
 
         private static bool InvokeEventSystemRaycastClick(Selectable control)
         {
-            if (control == null || EventSystem.current == null || !control.gameObject.activeInHierarchy
-                || !control.interactable || !(control.transform is RectTransform rect))
+            if (control == null)
+            {
+                Debug.LogError("[EventSystemRaycast] rejected: control=null");
                 return false;
+            }
+            if (EventSystem.current == null)
+            {
+                Debug.LogError($"[EventSystemRaycast] rejected: eventSystem=null target={GetTransformPath(control.transform, null)}");
+                return false;
+            }
+            if (!control.gameObject.activeInHierarchy)
+            {
+                Debug.LogError($"[EventSystemRaycast] rejected: inactive target={GetTransformPath(control.transform, null)} activeSelf={control.gameObject.activeSelf}");
+                return false;
+            }
+            if (!control.interactable)
+            {
+                Debug.LogError($"[EventSystemRaycast] rejected: non-interactable target={GetTransformPath(control.transform, null)} enabled={control.enabled}");
+                return false;
+            }
+            if (!(control.transform is RectTransform rect))
+            {
+                Debug.LogError($"[EventSystemRaycast] rejected: non-rect-transform target={GetTransformPath(control.transform, null)} type={control.transform.GetType().FullName}");
+                return false;
+            }
             Canvas.ForceUpdateCanvases();
             Canvas canvas = control.GetComponentInParent<Canvas>();
             Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
@@ -8554,6 +9468,9 @@ namespace ProjectX.Core
             if (hits.Count == 0 || (hits[0].gameObject != control.gameObject
                 && !hits[0].gameObject.transform.IsChildOf(control.transform)))
             {
+                Graphic targetGraphic = control.targetGraphic;
+                string raycasters = string.Join(" | ", Resources.FindObjectsOfTypeAll<GraphicRaycaster>().Select(value =>
+                    $"{GetTransformPath(value.transform, null)}[enabled={value.enabled},active={value.gameObject.activeInHierarchy},canvas={value.GetComponent<Canvas>()?.name ?? value.GetComponentInParent<Canvas>()?.name ?? "none"}]"));
                 string topHits = string.Join(" | ", hits.Take(8).Select(hit =>
                 {
                     Canvas hitCanvas = hit.gameObject.GetComponentInParent<Canvas>();
@@ -8561,7 +9478,10 @@ namespace ProjectX.Core
                         + $"[canvas={hitCanvas?.name ?? "none"},order={hitCanvas?.sortingOrder ?? 0}]";
                 }));
                 Debug.LogError($"[HeroRaycast] target={GetTransformPath(control.transform, null)} "
-                    + $"screen={position} hits={topHits}");
+                    + $"screen={position} rect={rect.rect} graphicDepth={targetGraphic?.depth ?? -999} "
+                    + $"graphicCull={targetGraphic?.canvasRenderer.cull} canvas={canvas?.name ?? "none"} "
+                    + $"canvasMode={canvas?.renderMode} pixelRect={canvas?.pixelRect} "
+                    + $"raycasters={raycasters} hits={topHits}");
                 return false;
             }
             GameObject hit = hits[0].gameObject;
@@ -8915,6 +9835,14 @@ namespace ProjectX.Core
 
         public void SetStatus(string value)
         {
+            // A still-running UI/playback coroutine must never replace the first
+            // authoritative failure text after the app enters Failed. The batch
+            // runner and the on-screen error both depend on that stable cause.
+            if (services?.State.Current == AppState.Failed)
+            {
+                ClientLog.Warning("App", "Ignored status after failure", value ?? string.Empty);
+                return;
+            }
             status = value ?? string.Empty;
             ClientLog.Info("App", status);
         }
@@ -8940,27 +9868,35 @@ namespace ProjectX.Core
 
         private void DispatchToLua(ushort command, LegacyTcpMessage message)
         {
-            if (command == 38 && IsWorldOpen && message.Remaining > 0)
+            if (command == 38 && message.Remaining > 0)
             {
                 int start = message.Position;
                 byte operation = message.ReadByte();
                 message.Position = start;
-                if (operation != 5)
+                // /320 op=25 starts the LieZhuan challenge, but every authoritative
+                // fast-fight replay is wrapped by CFight::GetFightAllNetMsg as
+                // PRO_FIGHT_OPTION /38 op=5.  The active owner and nested /21
+                // fightType disambiguate FengShenStory from World.
+                bool fengShenStoryReplay = operation == 5
+                    && (IsFengShenStoryOpen || (services.Options.BattleFengShenStoryValidation && !IsWorldOpen));
+                bool worldReplay = operation == 5 && IsWorldOpen && !fengShenStoryReplay;
+                if (worldReplay || fengShenStoryReplay)
                 {
-                    try { CallLua(onPacket, $"Protocol.OnPacket/{command}", (int)command, message); }
-                    catch (Exception exception) { Fail($"Lua packet handler failed for command {command}: {exception.Message}"); }
+                    try
+                    {
+                        services.WorldBattleReplay.Load(message, 5);
+                        battlePlaybackContext = fengShenStoryReplay
+                            ? BattlePlaybackContext.FengShenStory : BattlePlaybackContext.World;
+                        if (fengShenStoryReplay && services.WorldBattleReplay.FightType != 19)
+                            throw new InvalidDataException($"FengShenStory battle expected fightType=19, got {services.WorldBattleReplay.FightType}.");
+                        BeginWorldBattlePlayback();
+                    }
+                    catch (Exception exception)
+                    {
+                        Fail($"{(fengShenStoryReplay ? "FengShenStory" : "World")} /38 battle replay failed: {exception.Message}");
+                    }
                     return;
                 }
-                try
-                {
-                    services.WorldBattleReplay.Load(message);
-                    BeginWorldBattlePlayback();
-                }
-                catch (Exception exception)
-                {
-                    Fail($"World /38 battle replay failed: {exception.Message}");
-                }
-                return;
             }
             try { CallLua(onPacket, $"Protocol.OnPacket/{command}", (int)command, message); }
             catch (Exception exception) { Fail($"Lua packet handler failed for command {command}: {exception.Message}"); }
@@ -8969,7 +9905,13 @@ namespace ProjectX.Core
         private void BeginWorldBattlePlayback()
         {
             EnsureWorldBattlePlaybackPresenter();
+            // Current Cocos suppresses HUD chat and transient system broadcasts
+            // for the whole fight/result stack. A queued login broadcast used to
+            // float above the imported FightLayer in Unity.
+            chatMiniView?.SetVisible(false);
+            toastPresenter?.Clear();
             if (worldBattlePlaybackCoroutine != null) StopCoroutine(worldBattlePlaybackCoroutine);
+            suppressFengShenSettlementForSkippedPlayback = false;
             pendingWorldBattleResult = false;
             worldBattlePlaybackCoroutine = StartCoroutine(PlayWorldBattleReplay());
         }
@@ -8977,15 +9919,45 @@ namespace ProjectX.Core
         private IEnumerator PlayWorldBattleReplay()
         {
             WorldBattleReplayStore replay = services.WorldBattleReplay;
+            bool captureFengShenStory = services.Options.BattleFengShenStoryValidation
+                && battlePlaybackContext == BattlePlaybackContext.FengShenStory;
             worldBattlePlaybackPresenter.Show();
+            foreach (WorldBattleUnitRecord unit in replay.Units)
+                Debug.Log($"WORLD_BATTLE_UNIT_DATA position={unit.Position} type={unit.Type} picture={unit.Picture} "
+                    + $"quality={unit.Quality} scale={unit.ScaleRatio:0.##} state={unit.State} buffs={string.Join(",", unit.BuffIds)}");
             if (services.Options.WorldBattleValidation)
             {
                 MarkValidationControl("WORLD-28-BATTLE-PLAYBACK-ENTER");
                 if (replay.Units.Count > 0)
                     MarkValidationControl("WORLD-29-BATTLE-UNIT-IDENTITY");
             }
-            SetStatus($"World authoritative /38 replay active: fight={replay.FightId}, units={replay.Units.Count}, actionGroups={replay.Actions.Count}.");
-            yield return new WaitForSecondsRealtime(1.05f);
+            if (captureFengShenStory)
+            {
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-START.png"));
+            }
+            SetStatus($"{(battlePlaybackContext == BattlePlaybackContext.FengShenStory ? "FengShenStory" : "World")} authoritative /38 replay active: fight={replay.FightId}, units={replay.Units.Count}, actionGroups={replay.Actions.Count}.");
+            float battleStartElapsed = 0f;
+            while (battleStartElapsed < 1.12f)
+            {
+                battleStartElapsed += Time.unscaledDeltaTime;
+                worldBattlePlaybackPresenter.SetBattleStartElapsed(battleStartElapsed);
+                yield return null;
+            }
+            // WORLD-BATTLE-ENTRY is paired with the frozen Cocos standing frame,
+            // not its transient zhandoukaishi overlay. Capture only after the
+            // authoritative 1.1-second start effect has fully cleared and before
+            // the first /22 action begins.
+            if (services.Options.WorldBattleValidation)
+            {
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-entry.png"));
+            }
+            if (captureFengShenStory)
+            {
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-STAND.png"));
+            }
             // Small local-test fights may contain only one to three authoritative
             // action groups.  Playing every group at the old fixed 0.78 seconds
             // made the complete battle disappear behind the packet/scene refresh
@@ -8993,27 +9965,231 @@ namespace ProjectX.Core
             // action while guaranteeing a readable action phase at normal speed;
             // the explicit x3 control still accelerates it.
             float normalActionDuration = Mathf.Max(1.35f, 4.2f / Mathf.Max(1, replay.Actions.Count));
+            int actionIndex = 0;
+            bool shakeFrameCaptured = false;
+            bool normalAttackFrameCaptured = false;
+            bool skillFrameCaptured = false;
+            bool hurtDamageFrameCaptured = false;
+            bool deathFrameCaptured = false;
+            int stableDeathCaptureRound = 0;
+            HashSet<int> stableDeadPositions = new HashSet<int>();
+            bool roundRhythmFrameCaptured = false;
+            bool fengMoveFrameCaptured = false;
+            bool fengSkillFrameCaptured = false;
+            bool fengDamageFrameCaptured = false;
+            bool fengStatusFrameCaptured = false;
+            bool fengDeathFrameCaptured = false;
+            bool preservePassiveDamage = false;
             foreach (WorldBattleActionRecord action in replay.Actions)
             {
+                actionIndex++;
                 if (worldBattlePlaybackPresenter.SkipRequested) break;
-                worldBattlePlaybackPresenter.BeginAction(action);
+                bool passiveAction = action.FirstActionType == 6;
+                if (!passiveAction && preservePassiveDamage)
+                    yield return new WaitForSecondsRealtime(.5f
+                        / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed));
+                bool actionHasPassiveCarry = preservePassiveDamage;
+                worldBattlePlaybackPresenter.BeginAction(action, actionHasPassiveCarry);
+                preservePassiveDamage = false;
+                Debug.Log($"WORLD_BATTLE_PRESENTATION sequence={action.Sequence} {worldBattlePlaybackPresenter.LastActionTrace}");
+                string actionTargets = string.Join(",", action.Targets.Select(value =>
+                    $"{value.Position}:hit={value.Hit}:crit={value.Critical}:damage={value.Damage}:healing={value.Healing}:state={value.State}:dead={value.Dead}:buffs=[{string.Join("/", value.BuffIds)}]"));
+                Debug.Log($"WORLD_BATTLE_ACTION_DATA sequence={action.Sequence} round={action.Round} "
+                    + $"type={action.FirstActionType} source={action.FirstSourcePosition} skill={action.SkillId} "
+                    + $"sourceState={action.SourceState} sourceBuffs=[{string.Join("/", action.SourceBuffIds)}] targets={actionTargets}");
                 if (services.Options.WorldBattleValidation)
                     MarkValidationControl("WORLD-30-BATTLE-ACTION-SEQUENCE");
-                float actionDuration = normalActionDuration / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed);
+                // The current native Cocos death reference is a stable sw pose:
+                // the following round is already visible, two defeated units
+                // remain on the field, and impact damage/skill markers are gone.
+                // Capture before advancing the first action of that next round;
+                // an impact-time capture would compare a different lifecycle.
+                if (services.Options.WorldBattleValidation && !deathFrameCaptured
+                    && stableDeathCaptureRound > 0 && action.Round >= stableDeathCaptureRound)
+                {
+                    deathFrameCaptured = true;
+                    yield return new WaitForEndOfFrame();
+                    ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-death.png"));
+                }
+                if (captureFengShenStory && !fengDeathFrameCaptured
+                    && stableDeathCaptureRound > 0 && action.Round >= stableDeathCaptureRound)
+                {
+                    fengDeathFrameCaptured = true;
+                    yield return new WaitForEndOfFrame();
+                    ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-DEATH.png"));
+                }
+                if (services.Options.WorldBattleValidation && !roundRhythmFrameCaptured)
+                {
+                    roundRhythmFrameCaptured = true;
+                    yield return new WaitForEndOfFrame();
+                    ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-round-rhythm.png"));
+                }
+                if (passiveAction)
+                {
+                    // LBattleLogic:ActionStart collapses consecutive BAT_PASSIVE
+                    // records, applies them immediately, and carries only the
+                    // maximum 0.5 second wait into the next visible action.
+                    float stablePassiveProgress = Mathf.Min(1f,
+                        worldBattlePlaybackPresenter.ImpactProgress + .12f
+                        / Mathf.Max(.01f, worldBattlePlaybackPresenter.RecommendedActionDurationSeconds));
+                    worldBattlePlaybackPresenter.SetActionProgress(stablePassiveProgress);
+                    worldBattlePlaybackPresenter.EndAction(preserveDamage: true);
+                    preservePassiveDamage = true;
+                    continue;
+                }
+                float configuredDuration = worldBattlePlaybackPresenter.RecommendedActionDurationSeconds;
+                float actionDuration = Mathf.Max(normalActionDuration, configuredDuration)
+                    / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed);
+                bool canonicalLightningSkill = action.SkillId == 191;
+                bool skillAction = action.SkillId > 0 || action.FirstActionType == 2 || action.FirstActionType == 3;
+                float actionCaptureProgress = canonicalLightningSkill
+                    ? worldBattlePlaybackPresenter.RecommendedSkillCaptureProgress
+                    : Mathf.Clamp(worldBattlePlaybackPresenter.ImpactProgress + .02f, .45f, .96f);
                 float elapsed = 0f;
+                bool actionFrameCaptured = false;
                 while (elapsed < actionDuration && !worldBattlePlaybackPresenter.SkipRequested)
                 {
                     elapsed += Time.unscaledDeltaTime;
-                    worldBattlePlaybackPresenter.SetActionProgress(elapsed / actionDuration);
+                    float progress = elapsed / actionDuration;
+                    worldBattlePlaybackPresenter.SetActionProgress(progress);
+                    if (captureFengShenStory && !fengMoveFrameCaptured && action.FirstActionType == 1 && progress >= .25f)
+                    {
+                        fengMoveFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-MOVE.png"));
+                    }
+                    if (captureFengShenStory && !fengSkillFrameCaptured && skillAction && progress >= actionCaptureProgress)
+                    {
+                        fengSkillFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-SKILL.png"));
+                    }
+                    if (services.Options.WorldBattleValidation && !shakeFrameCaptured
+                        && worldBattlePlaybackPresenter.IsCameraShaking)
+                    {
+                        shakeFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath($"world-battle-shake-{actionIndex:D2}.png"));
+                    }
+                    if (services.Options.WorldBattleValidation && !actionFrameCaptured
+                        && progress >= actionCaptureProgress)
+                    {
+                        actionFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        string actionKind = action.SkillId > 0 || action.FirstActionType == 2 || action.FirstActionType == 3
+                            ? "skill"
+                            : "normal";
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath($"world-battle-{actionKind}-{actionIndex:D2}.png"));
+                    }
+                    if (services.Options.WorldBattleValidation && progress >= actionCaptureProgress
+                        && canonicalLightningSkill && !skillFrameCaptured)
+                    {
+                        skillFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-skill.png"));
+                    }
+                    float normalAttackCaptureProgress = actionHasPassiveCarry ? .12f : actionCaptureProgress;
+                    if (services.Options.WorldBattleValidation && progress >= normalAttackCaptureProgress
+                        && !skillAction && action.FirstActionType == 1 && !normalAttackFrameCaptured)
+                    {
+                        normalAttackFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-normal-attack.png"));
+                    }
+                    // Computer Use captures the current Cocos damage state after
+                    // its scale-in has settled. Capture the Unity comparison at
+                    // the same stable post-impact phase, while the overlapping
+                    // skill effect is still visible.
+                    bool impactState = progress >= Mathf.Min(0.98f, worldBattlePlaybackPresenter.ImpactProgress + .22f);
+                    if (captureFengShenStory && impactState && !fengDamageFrameCaptured
+                        && action.Targets.Any(value => value.Hit && (value.Damage > 0 || value.Healing > 0)))
+                    {
+                        fengDamageFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-DAMAGE.png"));
+                    }
+                    if (captureFengShenStory && impactState && !fengStatusFrameCaptured
+                        && (action.SourceBuffIds.Length > 0 || action.Targets.Any(value => value.BuffIds.Length > 0)))
+                    {
+                        fengStatusFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-STATUS.png"));
+                    }
+                    if (services.Options.WorldBattleValidation && impactState && canonicalLightningSkill
+                        && !hurtDamageFrameCaptured
+                        && action.Targets.Any(value => value.Hit && (value.Damage > 0 || value.Healing > 0)))
+                    {
+                        hurtDamageFrameCaptured = true;
+                        yield return new WaitForEndOfFrame();
+                        ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-hurt-damage.png"));
+                    }
                     yield return null;
                 }
                 worldBattlePlaybackPresenter.EndAction();
+                if (action.SourceDead)
+                    stableDeadPositions.Add(action.FirstSourcePosition);
+                foreach (WorldBattleTargetRecord target in action.Targets.Where(value => value.Dead))
+                    stableDeadPositions.Add(target.Position);
+                if (!deathFrameCaptured && stableDeadPositions.Count >= (captureFengShenStory ? 1 : 2))
+                    stableDeathCaptureRound = Mathf.Max(stableDeathCaptureRound, action.Round + 1);
                 if (worldBattlePlaybackPresenter.SkipRequested) break;
                 yield return new WaitForSecondsRealtime(.18f);
             }
+            if (preservePassiveDamage && !worldBattlePlaybackPresenter.SkipRequested)
+                yield return new WaitForSecondsRealtime(.5f
+                    / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed));
+            // The current LieZhuan fixture resolves every action in round one.
+            // There is therefore no next-round action on which the generic
+            // stable-death capture can trigger. Preserve the final sw pose for
+            // one readable frame before opening settlement.
+            if (captureFengShenStory && !fengDeathFrameCaptured
+                && stableDeadPositions.Count > 0 && !worldBattlePlaybackPresenter.SkipRequested)
+            {
+                yield return new WaitForSecondsRealtime(.35f
+                    / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed));
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-DEATH.png"));
+                fengDeathFrameCaptured = true;
+            }
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
+                && worldBattlePlaybackPresenter.SkipRequested)
+            {
+                // Only an explicit skip returns straight to the parent map.
+                // Natural completion continues below into the authoritative
+                // op10 settlement lifecycle.
+                suppressFengShenSettlementForSkippedPlayback = true;
+                pendingWorldBattleResult = false;
+                pendingWorldBattleStars = 0;
+                deferredFengShenRewardPush = false;
+                services.FengShenStory.AcknowledgeRewardPush();
+                worldBattleResultView?.SetVisible(false);
+                worldBattleStatisticsView?.SetVisible(false);
+                worldBattlePlaybackPresenter.Hide();
+                worldBattlePlaybackCoroutine = null;
+                InvokeLuaOrFail(onFengShenStoryClicked, "FengShenStory.BattleDirectReturn");
+                SetStatus("FengShenStory fightType=19 returned directly to the parent map without Unity settlement.");
+                if (captureFengShenStory)
+                {
+                    yield return new WaitForEndOfFrame();
+                    // Keep the natural settlement return (which owns the op26
+                    // reward popup) distinct from the explicit-skip return.
+                    // Reusing BFS-BATTLE-RETURN here overwrote the G5 state with
+                    // the product-correct skip-without-settlement map frame.
+                    ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-SKIP-RETURN.png"));
+                }
+                yield break;
+            }
             worldBattlePlaybackPresenter.ShowOutcome();
+            if (services.Options.WorldBattleValidation)
+            {
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-outcome.png"));
+            }
             yield return new WaitForSecondsRealtime(.72f);
-            worldBattlePlaybackPresenter.Hide();
+            // Current Cocos keeps the completed battle scene, units and HUD
+            // beneath zhandoujiesuanLayer. Hide only when no settlement is
+            // queued; Continue/Replay performs the eventual lifecycle cleanup.
+            if (!pendingWorldBattleResult) worldBattlePlaybackPresenter.Hide();
             worldBattlePlaybackCoroutine = null;
             if (pendingWorldBattleResult)
             {
@@ -9025,18 +10201,73 @@ namespace ProjectX.Core
             }
         }
 
-        private void ReplayWorldBattleLocally()
+        private void ReturnFromWorldBattleReplayControl()
         {
-            if (!services.WorldBattleReplay.HasAuthoritativeReplay)
+            pendingWorldBattleResult = false;
+            worldBattlePlaybackPresenter?.Hide();
+            EnsureWorldPresenter();
+            worldPresenter.ShowStages();
+            SetStatus("World replay control entered the current Cocos transient chapter-map state.");
+            StartCoroutine(ReplayWorldBattleAfterCocosDelay());
+        }
+
+        private void ContinueBattleOutcomeControl()
+        {
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory)
             {
-                Fail("World battle replay is unavailable because no authoritative /38 record is cached.");
+                // FirstFightResultUI sends ExitBattle before closing its result
+                // layer. The imported result presenter hides itself, but the
+                // sibling playback overlay must leave the stack here as well.
+                // Otherwise the deferred reward modal covers a still-live fight
+                // and closing that modal reveals the completed battlefield.
+                pendingWorldBattleResult = false;
+                worldBattlePlaybackPresenter?.Hide();
+                InvokeLuaOrFail(onFengShenStoryClicked, "FengShenStory.Continue");
+                if (deferredFengShenRewardPush)
+                    StartCoroutine(PresentDeferredFengShenRewardPushAfterReturn());
                 return;
             }
+            // FirstFightResultUI exits the completed fight before it refreshes
+            // the chapter map.  The settlement view hides itself, but its
+            // sibling playback overlay otherwise remains above the refreshed
+            // World UI and leaves the player looking at a dead battlefield.
+            pendingWorldBattleResult = false;
+            worldBattlePlaybackPresenter?.Hide();
+            InvokeLuaOrFail(onWorldRefresh, "World.Continue");
+        }
 
+        private IEnumerator PresentDeferredFengShenRewardPushAfterReturn()
+        {
+            yield return new WaitForEndOfFrame();
+            if (deferredFengShenRewardPush) PresentFengShenRewardPush();
+        }
+
+        private void ReplayBattleOutcomeControl()
+        {
+            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory)
+            {
+                pendingWorldBattleResult = false;
+                worldBattlePlaybackPresenter?.Hide();
+                EnsureFengShenStoryPresenter();
+                SetStatus("FengShenStory replay control entered the current Cocos transient parent state.");
+                StartCoroutine(ReplayWorldBattleAfterCocosDelay());
+                return;
+            }
+            ReturnFromWorldBattleReplayControl();
+        }
+
+        private IEnumerator ReplayWorldBattleAfterCocosDelay()
+        {
+            // FirstFightResultUI:OnBtnReplayClick closes immediately, then calls
+            // ReplayBattle(true) after 0.5 seconds.  Current native evidence for
+            // stage 10023 proves the transient map, replay and second settlement.
+            yield return new WaitForSecondsRealtime(.5f);
             BeginWorldBattlePlayback();
+            // BeginWorldBattlePlayback clears any result queued for the previous
+            // run. Queue the cached authoritative result only after that reset so
+            // this replay reaches its own second settlement.
             pendingWorldBattleResult = true;
-            pendingWorldBattleStars = lastWorldBattleStars;
-            SetStatus($"World cached /38 replay restarted: fight={services.WorldBattleReplay.FightId}.");
+            SetStatus($"{(battlePlaybackContext == BattlePlaybackContext.FengShenStory ? "FengShenStory" : "World")} cached authoritative /38 replay restarted after the current Cocos 0.5-second delay.");
         }
 
         private void HandleNetworkState(NetworkState state)
@@ -9070,6 +10301,8 @@ namespace ProjectX.Core
             gameplayShopsPresenter?.ResetTransientState();
             services.World.Clear();
             services.FengShenStory.SetDisconnected();
+            pendingFengShenRewards.Clear();
+            deferredFengShenRewardPush = false;
             fengShenStoryPresenter?.CloseLevelPopup();
             fengShenStoryPresenter?.CloseModal();
             if (IsWorldOpen) services.UiStack.Pop();
@@ -9261,6 +10494,30 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Shop open failed: {exception.Message}"); }
         }
 
+        private void HandleCommerceRoute(int functionId)
+        {
+            if (functionId == 13)
+            {
+                HandleShopClick();
+                return;
+            }
+            if (functionId != 15)
+            {
+                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                SetStatus($"Commerce route deferred: function_id={functionId}.");
+                return;
+            }
+            HideHudSubmenus();
+            try
+            {
+                InvokeLuaOrFail(onGameplayShopOpened, "Commerce.SoulShop", 15d);
+            }
+            catch (Exception exception)
+            {
+                Fail($"Soul shop open failed: {exception.Message}");
+            }
+        }
+
         private void ToggleShopSubmenu()
         {
             GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang1");
@@ -9394,15 +10651,18 @@ namespace ProjectX.Core
             if (mainView == null || chatMiniView == null) return;
             BindHudBoundary(mainView, "Layer/Main_UI/Head", "角色详情由 Role 模块负责，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
-            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn", "金币补充入口由商城模块负责。");
+            mainView.BindClick("Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn",
+                () => HandleCommerceRoute(13), true);
             Button premium = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
             if (premium != null) premium.interactable = false;
             mainView.BindClick("Layer/Main_UI/ButtonGroup1/btn_chuandai", ToggleWearSubmenu, true);
             BindHudBoundary(mainView, EquipmentBagPath, "装备业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FaBaoBagPath, "法宝业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, ShopSubmenuPath, "普通商城业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_jianghun", "神魂商城由 GameplayShops 模块负责。");
-            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa", "玩法商城由 GameplayShops 模块负责。");
+            mainView.BindClick(ShopSubmenuPath, () => HandleCommerceRoute(13), true);
+            mainView.BindClick("Layer/Main_UI/tankuang1/btn_jianghun",
+                () => HandleCommerceRoute(15), true);
+            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa",
+                "玩法商店暂未纳入当前修复范围。");
             BindHudBoundary(mainView, BagPath, "背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, HeroBagPath, "英雄背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FormationPath, "阵容业务不属于主界面 HUD，当前仅保留入口边界。");
@@ -9962,12 +11222,15 @@ namespace ProjectX.Core
         private IEnumerator CaptureShopConfirmationAndConfirm(ushort itemId)
         {
             yield return new WaitForEndOfFrame();
-            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
-            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop-confirm.png");
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            ScreenCapture.CaptureScreenshot(path);
-            yield return new WaitForSecondsRealtime(0.75f);
+            if (!HasCommandLineFlag("-projectXSkipShopScreenshots"))
+            {
+                string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+                string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+                string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop-confirm.png");
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                ScreenCapture.CaptureScreenshot(path);
+                yield return new WaitForSecondsRealtime(0.75f);
+            }
             if (!errorPresenter.IsVisible)
             {
                 Fail($"Shop confirmation was not visible for id={itemId}.");
@@ -9978,6 +11241,7 @@ namespace ProjectX.Core
 
         private IEnumerator CaptureShopValidationScreenshot(string fileName)
         {
+            if (HasCommandLineFlag("-projectXSkipShopScreenshots")) yield break;
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -10061,29 +11325,49 @@ namespace ProjectX.Core
             }
             if (services.Options.WorldBattleValidation && !worldG4StageCloseValidated)
             {
-                Button stageClose = worldMapView.Binding.Find("Layer/Title/CloseBtn")?.GetComponent<Button>();
+                Button stageClose = worldPresenter.FindInteractionButton("Layer/Title/CloseBtn");
                 if (stageClose == null || !stageClose.interactable)
                 {
                     Fail("World stage-map close control is unavailable.");
                     yield break;
                 }
-                stageClose.onClick.Invoke();
-                yield return null;
-                if (!IsWorldOpen || worldStageView.GameObject.activeSelf || worldDetailView.GameObject.activeSelf)
+                if (!InvokeEventSystemRaycastClick(stageClose))
                 {
-                    Fail($"World stage-map close did not return to the world chapter page: open={IsWorldOpen}, current={services.UiStack.Current?.GameObject?.name ?? string.Empty}, world={worldView.GameObject.activeSelf}, stage={worldMapView.GameObject.activeSelf}, detail={worldDetailView.GameObject.activeSelf}.");
+                    Fail("World stage-map close did not receive a real EventSystem raycast click.");
                     yield break;
                 }
-                worldG4StageCloseValidated = true;
-                // G5 WORLD-MAP is the Cocos world/chapter page reached by this
-                // exact close action. Capturing after ShowStages paired two
-                // different semantic states despite using the same filename.
+                yield return null;
+                if (!IsWorldOpen || !worldPresenter.ChapterListVisible
+                    || worldStageView.GameObject.activeInHierarchy
+                    || worldDetailView.GameObject.activeInHierarchy
+                    || services.UiStack.Current != worldView)
+                {
+                    Fail($"World stage-map close did not return to WorldMapNewLayer: open={IsWorldOpen}, chapterList={worldPresenter.ChapterListVisible}, current={services.UiStack.Current?.GameObject?.name ?? string.Empty}, stage={worldStageView.GameObject.activeInHierarchy}, detail={worldDetailView.GameObject.activeInHierarchy}.");
+                    yield break;
+                }
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-map.png"));
                 yield return new WaitForSecondsRealtime(0.75f);
-                // Restore the already server-backed chapter data solely so this
+                if (!InvokeEventSystemRaycastClick(stageClose))
+                {
+                    Fail("WorldMapNewLayer close did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                yield return null;
+                if (IsWorldOpen || mainView?.GameObject.activeInHierarchy != true
+                    || services.UiStack.Current != mainView)
+                {
+                    Fail($"WorldMapNewLayer close did not return to UImainLayer_new: open={IsWorldOpen}, current={services.UiStack.Current?.GameObject?.name ?? string.Empty}, main={mainView?.GameObject.activeInHierarchy == true}.");
+                    yield break;
+                }
+                worldG4StageCloseValidated = true;
+                // Restore the already server-backed stage map solely so this
                 // one run can continue to validate the remaining controls.
+                ShowWorld();
                 worldPresenter.ShowStages();
+                yield return new WaitForEndOfFrame();
+                worldPresenter.RefreshInteractionButtons();
+                yield return new WaitForEndOfFrame();
                 if (!worldMapView.GameObject.activeSelf)
                 {
                     Fail("World stage-map did not restore after the close-control probe.");
@@ -10092,7 +11376,15 @@ namespace ProjectX.Core
             }
             if (services.Options.WorldBattleValidation && !ValidateWorldPassiveG4Controls())
                 yield break;
-            if (services.Options.WorldBattleValidation && !worldG4StarBoxValidated)
+            if (services.Options.WorldBattleValidation)
+            {
+                yield return ValidateWorldStageUtilityControls();
+            }
+            // G5 must preserve the frozen Cocos battle input. Star/normal box
+            // claims are real server mutations and each grants 1000 premium;
+            // they belong to the broader G4 control run, not visual capture.
+            if (services.Options.WorldBattleValidation && !services.Options.WorldG3Validation
+                && !worldG4StarBoxValidated)
             {
                 yield return ValidateWorldStarBoxControl();
                 if (!worldG4StarBoxValidated) yield break;
@@ -10102,10 +11394,13 @@ namespace ProjectX.Core
                 yield return ValidateWorldNormalBoxControl();
                 if (!worldG4NormalBoxValidated) yield break;
             }
-            yield return new WaitForEndOfFrame();
-            // This counterpart is deliberately after the real chest claims.
-            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-chest.png"));
-            yield return new WaitForSecondsRealtime(0.75f);
+            if (!services.Options.WorldG3Validation)
+            {
+                yield return new WaitForEndOfFrame();
+                // This counterpart is deliberately after the real chest claims.
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-chest.png"));
+                yield return new WaitForSecondsRealtime(0.75f);
+            }
             if (services.Options.WorldBattleValidation)
             {
                 yield return ValidateWorldChapterAndStageControls();
@@ -10134,7 +11429,11 @@ namespace ProjectX.Core
             bool previousFirst = currentChapterIndex > 0;
             Button firstNavigation = previousFirst ? previous : next;
             Button secondNavigation = previousFirst ? next : previous;
-            firstNavigation.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(firstNavigation))
+            {
+                Fail($"World {(previousFirst ? "previous" : "next")} chapter control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             float deadline = Time.realtimeSinceStartup + 8f;
             while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == currentChapterId)
                 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -10143,13 +11442,33 @@ namespace ProjectX.Core
                 Fail($"World {(previousFirst ? "previous" : "next")} chapter control did not return an authoritative chapter.");
                 yield break;
             }
-            secondNavigation.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(secondNavigation))
+            {
+                Fail($"World {(previousFirst ? "next" : "previous")} chapter control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             deadline = Time.realtimeSinceStartup + 8f;
             while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
                 && Time.realtimeSinceStartup < deadline) yield return null;
             if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
             {
                 Fail($"World {(previousFirst ? "next" : "previous")} chapter control did not return to the authoritative current chapter.");
+                yield break;
+            }
+            // DadituuiLayer CloseBtn owns only the stage-map -> world-map step.
+            Button returnToWorldMap = worldPresenter.FindInteractionButton("Layer/Title/CloseBtn");
+            if (returnToWorldMap == null || !returnToWorldMap.interactable
+                || !InvokeEventSystemRaycastClick(returnToWorldMap))
+            {
+                Fail("World current chapter surface close did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            if (!IsWorldOpen || !worldPresenter.ChapterListVisible
+                || worldStageView.GameObject.activeInHierarchy
+                || services.UiStack.Current != worldView)
+            {
+                Fail("World current chapter surface close did not return to WorldMapNewLayer.");
                 yield break;
             }
             Button chapterNode = currentChapterIndex >= 0
@@ -10160,7 +11479,11 @@ namespace ProjectX.Core
                 Fail("World current chapter node control is unavailable.");
                 yield break;
             }
-            chapterNode.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(chapterNode))
+            {
+                Fail("World current chapter node did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             deadline = Time.realtimeSinceStartup + 8f;
             while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline) yield return null;
             if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
@@ -10174,7 +11497,11 @@ namespace ProjectX.Core
                 Fail("World chapter dropdown control is unavailable.");
                 yield break;
             }
-            dropdown.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(dropdown))
+            {
+                Fail("World chapter dropdown did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             yield return null;
             Transform virtualContent = worldMapView.Binding.Find("Layer/Popup/ListView")?.transform.Find("VirtualContent");
             int selectedChapterIndex = services.World.Chapters.ToList()
@@ -10190,7 +11517,11 @@ namespace ProjectX.Core
                 yield break;
             }
             uint chapterBefore = services.World.SelectedChapterId;
-            chapter.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(chapter))
+            {
+                Fail("World chapter-row control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             deadline = Time.realtimeSinceStartup + 8f;
             while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == chapterBefore)
                 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -10209,19 +11540,27 @@ namespace ProjectX.Core
                 Fail("World current chapter did not return after the real chapter-row probe.");
                 yield break;
             }
-            ScrollRect stageMap = GetWorldStageMapScroll();
+            // The authoritative op=2 response binds the imported nonlinear
+            // touchLayer buttons in this frame. Let Canvas register the same
+            // Graphics a player clicks before raycasting.
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
             uint preferredStageId = services.World.Stages.FirstOrDefault(value => value.RewardBoxId != 0)?.Id
                 ?? (services.World.Stages.Any(value => value.Id == services.World.CurrentStageId)
                     ? services.World.CurrentStageId
                     : services.World.Stages.FirstOrDefault(value => value.IsUnlocked)?.Id ?? 0);
-            Button stage = stageMap?.content.Find("Stage_" + preferredStageId)?.GetComponent<Button>();
+            Button stage = worldPresenter.FindStageButton(preferredStageId);
             if (stage != null && !stage.interactable) stage = null;
             if (stage == null)
             {
                 Fail("World stage map did not render an enabled dynamic stage node.");
                 yield break;
             }
-            stage.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(stage))
+            {
+                Fail("World dynamic stage node did not receive a real EventSystem raycast click.");
+                yield break;
+            }
         }
 
         private IEnumerator CaptureWorldDetail()
@@ -10243,7 +11582,11 @@ namespace ProjectX.Core
                     Fail("World pre-challenge formation control is unavailable.");
                     yield break;
                 }
-                formationButton.onClick.Invoke();
+                if (!InvokeEventSystemRaycastClick(formationButton))
+                {
+                    Fail("World pre-challenge formation did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
                 float formationDeadline = Time.realtimeSinceStartup + 10f;
                 while ((!IsHeroOpen || services.ProtocolRegistry.PendingCount != 0)
                     && Time.realtimeSinceStartup < formationDeadline)
@@ -10253,9 +11596,19 @@ namespace ProjectX.Core
                     Fail($"World pre-challenge formation did not open authoritative formation data: open={IsHeroOpen}, heroes={services.Heroes.Count}, formations={services.Formation.Formations.Count}.");
                     yield break;
                 }
-                if (!InvokeHeroCloseForValidation() || !worldPresenter.DetailVisible)
+                if (!HandleBack() || !worldPresenter.DetailVisible)
                 {
                     Fail("World pre-challenge formation did not return to the current stage detail.");
+                    yield break;
+                }
+                // UiStack reactivates the underlying World root on the hero
+                // close click. Wait for that visibility change to reach the
+                // imported detail Graphic registry before the next user click.
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                if (worldDetailView?.GameObject.activeInHierarchy != true)
+                {
+                    Fail("World pre-challenge formation returned before the stage detail became raycastable.");
                     yield break;
                 }
                 worldG4FormationValidated = true;
@@ -10273,21 +11626,30 @@ namespace ProjectX.Core
                     yield break;
                 }
                 uint stageId = stage.Id;
-                close.onClick.Invoke();
+                if (!InvokeEventSystemRaycastClick(close))
+                {
+                    Fail("World detail close did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
                 if (worldPresenter.DetailVisible)
                 {
                     Fail("World detail close control did not hide the imported detail layer.");
                     yield break;
                 }
                 worldG4DetailCloseValidated = true;
-                ScrollRect stageMap = GetWorldStageMapScroll();
-                Button stageNode = stageMap?.content.Find("Stage_" + stageId)?.GetComponent<Button>();
+                yield return new WaitForEndOfFrame();
+                Canvas.ForceUpdateCanvases();
+                Button stageNode = worldPresenter.FindStageButton(stageId);
                 if (stageNode == null || !stageNode.interactable)
                 {
                     Fail("World detail close did not restore the selected stage node.");
                     yield break;
                 }
-                stageNode.onClick.Invoke();
+                if (!InvokeEventSystemRaycastClick(stageNode))
+                {
+                    Fail("World selected stage node did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
                 float reopenDeadline = Time.realtimeSinceStartup + 8f;
                 while ((services.ProtocolRegistry.PendingCount != 0 || !worldPresenter.DetailVisible
                     || services.World.SelectedStageId != stageId) && Time.realtimeSinceStartup < reopenDeadline)
@@ -10304,25 +11666,38 @@ namespace ProjectX.Core
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-detail.png"));
             yield return new WaitForSecondsRealtime(0.75f);
-            if (services.Options.WorldBattleValidation && !worldG4SweepValidated)
+            // Keep the G3 battle-visual capture on the same clean progression
+            // input as the frozen Cocos battle. The broader World control run
+            // still exercises sweep/reset before G4, but doing so here adds
+            // five 990-exp sweep rewards before the compared settlement frame.
+            if (services.Options.WorldBattleValidation && !services.Options.WorldG3Validation && !worldG4SweepValidated)
             {
                 yield return ValidateWorldSweepControls(stage);
                 if (!worldG4SweepValidated) yield break;
                 stage = services.World.SelectedStage;
             }
-            if (services.Options.WorldBattleValidation && !worldG4ResetValidated)
+            if (services.Options.WorldBattleValidation && !services.Options.WorldG3Validation && !worldG4ResetValidated)
             {
                 yield return ValidateWorldResetControls(stage);
                 if (!worldG4ResetValidated) yield break;
                 stage = services.World.SelectedStage;
             }
+            // The confirmation callback hides the modal and re-renders the
+            // detail in the same frame. Wait until its Graphics are registered
+            // before the player's next challenge click.
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
             Button challenge = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_2")?.GetComponent<Button>();
             if (challenge == null || !challenge.interactable)
             {
                 Fail($"World challenge Prefab control is unavailable for the authoritative stage: stage={stage.Id}, stars={stage.Stars}, attempts={stage.RemainingAttempts}, unlocked={stage.IsUnlocked}, button={(challenge == null ? "missing" : "disabled")}, detail={worldPresenter.DetailVisible}.");
                 yield break;
             }
-            challenge.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(challenge))
+            {
+                Fail("World challenge did not receive a real EventSystem raycast click.");
+                yield break;
+            }
         }
 
         private IEnumerator ValidateWorldSweepControls(WorldStageRecord stage)
@@ -10340,7 +11715,11 @@ namespace ProjectX.Core
                 yield break;
             }
             int beforeAttempts = stage.RemainingAttempts;
-            sweep.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(sweep))
+            {
+                Fail("World sweep did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             float deadline = Time.realtimeSinceStartup + 10f;
             while ((services.ProtocolRegistry.PendingCount != 0 || !worldOutcomePresenter.IsSweepVisible)
                 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -10359,19 +11738,17 @@ namespace ProjectX.Core
                 Fail("World sweep result close control is unavailable.");
                 yield break;
             }
-            close.onClick.Invoke();
-            if (worldOutcomePresenter.IsSweepVisible)
-            {
-                Fail("World sweep result close control did not hide the imported settlement layer.");
-                yield break;
-            }
             Button again = worldSweepView.Binding.Find("Layer/bg/Image/Button1")?.GetComponent<Button>();
             if (again == null || !again.interactable)
             {
                 Fail("World sweep-again control was not available after an authoritative sweep result.");
                 yield break;
             }
-            again.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(again))
+            {
+                Fail("World sweep-again did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             // A sweep consumes every currently available attempt (up to five).
             // The legacy server still returns an authoritative zero-count
             // settlement for "continue sweep"; it must remain visibly empty,
@@ -10386,11 +11763,17 @@ namespace ProjectX.Core
                 Fail($"World sweep-again zero-count settlement mismatch: pending={services.ProtocolRegistry.PendingCount}, visible={worldOutcomePresenter.IsSweepVisible}, rendered={worldOutcomePresenter.RenderedRewardCount}, rewards={services.Rewards.Count}, attempts={stage.RemainingAttempts}.");
                 yield break;
             }
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
             close = worldSweepView.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>();
-            close?.onClick.Invoke();
+            if (close == null || !close.interactable || !InvokeEventSystemRaycastClick(close))
+            {
+                Fail("World sweep result close did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             if (worldOutcomePresenter.IsSweepVisible)
             {
-                Fail("World zero-count sweep result did not close.");
+                Fail("World sweep result close control did not hide the imported settlement layer.");
                 yield break;
             }
             worldG4SweepValidated = true;
@@ -10409,7 +11792,11 @@ namespace ProjectX.Core
                 Fail("World reset-attempts control is unavailable after the authoritative sweep.");
                 yield break;
             }
-            reset.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(reset))
+            {
+                Fail("World reset-attempts did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             yield return null;
             if (errorPresenter == null || !errorPresenter.IsVisible)
             {
@@ -10419,9 +11806,9 @@ namespace ProjectX.Core
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-reset.png"));
             yield return new WaitForSecondsRealtime(0.75f);
-            if (!errorPresenter.InvokeConfirmation())
+            if (!InvokeEventSystemRaycastClick(errorPresenter.ConfirmationButton))
             {
-                Fail("World reset confirmation control was unavailable.");
+                Fail("World reset confirmation did not receive a real EventSystem raycast click.");
                 yield break;
             }
             float deadline = Time.realtimeSinceStartup + 10f;
@@ -10445,7 +11832,14 @@ namespace ProjectX.Core
         private IEnumerator CaptureWorldBattleResult(int rewardCount)
         {
             EnsureWorldOutcomePresenter();
-            float settlementDeadline = Time.realtimeSinceStartup + 30f;
+            // The current /22 stream may contain passive, summon, chat and
+            // retaliation groups in addition to visible attacks.  Cocos waits
+            // for the complete playback before showing /320 settlement, so the
+            // validation timeout must scale with the authoritative action count
+            // instead of expiring at the former six-action fixture duration.
+            int replayActionCount = services.WorldBattleReplay?.Actions.Count ?? 0;
+            float playbackAllowance = Mathf.Min(180f, replayActionCount * 4.5f);
+            float settlementDeadline = Time.realtimeSinceStartup + 30f + playbackAllowance;
             while (!worldOutcomePresenter.IsBattleVisible && Time.realtimeSinceStartup < settlementDeadline)
                 yield return null;
             int visibleRewardCount = services.Rewards.Count;
@@ -10455,9 +11849,17 @@ namespace ProjectX.Core
                 Fail($"World settlement result mismatch: packet={rewardCount}, visible={visibleRewardCount}/{worldOutcomePresenter.RenderedRewardCount}, battleVisible={worldOutcomePresenter.IsBattleVisible}.");
                 yield break;
             }
+            // The Cocos result is the CSB victory title plus the 0.7-second
+            // effect_zhandoujiesuan_2 overlay. Capture its readable composite
+            // midpoint instead of the blank terminal effect frame.
+            yield return new WaitForSecondsRealtime(.35f);
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-result.png"));
-            yield return new WaitForSecondsRealtime(0.75f);
+            if (services.Options.WorldBattleValidation)
+            {
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-settlement.png"));
+            }
             if (services.Options.WorldBattleValidation && !worldG4BattleStatisticsValidated)
             {
                 Button statistics = worldBattleResultView.Binding.Find("Layer/Panel/victorypanel/Button_tongji")?.GetComponent<Button>();
@@ -10466,39 +11868,92 @@ namespace ProjectX.Core
                     Fail("World battle-statistics control was unavailable.");
                     yield break;
                 }
-                statistics.onClick.Invoke();
-                yield return null;
-                if (!worldOutcomePresenter.IsStatisticsVisible || errorPresenter == null || !errorPresenter.IsVisible)
+                if (!InvokeEventSystemRaycastClick(statistics))
                 {
-                    Fail("World battle-statistics control did not expose the authoritative-data boundary.");
+                    Fail("World battle-statistics control did not receive a real EventSystem raycast click.");
                     yield break;
                 }
-                Button closeStatistics = worldBattleStatisticsView.Binding.Find("Layer/Panel")?.GetComponent<Button>();
+                // Current Cocos builds FightDatumUI from the authoritative
+                // LBattleLogic/LRoleDataMgr unit statistics collected during
+                // /38 playback. Unity now has the same per-unit replay fields,
+                // so validate the rendered statistics instead of the historical
+                // "no /320 unit data" boundary modal.
+                yield return new WaitForEndOfFrame();
+                int expectedFriendlyStatistics = services.WorldBattleReplay.Units.Count(value => !value.IsEnemy);
+                int expectedEnemyStatistics = services.WorldBattleReplay.Units.Count(value => value.IsEnemy);
+                if (!worldOutcomePresenter.IsStatisticsVisible
+                    || expectedFriendlyStatistics <= 0 || expectedEnemyStatistics <= 0
+                    || services.WorldBattleReplay.StatisticsCount != services.WorldBattleReplay.Units.Count
+                    || worldOutcomePresenter.RenderedFriendlyStatisticsCount != expectedFriendlyStatistics
+                    || worldOutcomePresenter.RenderedEnemyStatisticsCount != expectedEnemyStatistics)
+                {
+                    Fail($"World battle-statistics presentation mismatch: visible={worldOutcomePresenter.IsStatisticsVisible}, friendly={worldOutcomePresenter.RenderedFriendlyStatisticsCount}/{expectedFriendlyStatistics}, enemy={worldOutcomePresenter.RenderedEnemyStatisticsCount}/{expectedEnemyStatistics}, authoritative={services.WorldBattleReplay.StatisticsCount}/{services.WorldBattleReplay.Units.Count}.");
+                    yield break;
+                }
+                Button closeStatistics = worldOutcomePresenter.StatisticsCloseInteractionButton;
                 if (closeStatistics == null || !closeStatistics.interactable)
                 {
                     Fail("World battle-statistics close control was unavailable.");
                     yield break;
                 }
-                closeStatistics.onClick.Invoke();
+                if (!InvokeEventSystemRaycastClick(closeStatistics))
+                {
+                    Fail("World battle-statistics close did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
                 if (worldOutcomePresenter.IsStatisticsVisible || !worldOutcomePresenter.IsBattleVisible)
                 {
                     Fail("World battle-statistics close did not return to the current result.");
                     yield break;
                 }
-                errorPresenter.Hide();
+                // The close click reactivates the result Canvas. Let Unity rebuild its
+                // Graphic depths before issuing the next real EventSystem click; a
+                // player cannot perform both interactions in the same render frame.
+                yield return new WaitForEndOfFrame();
                 worldG4BattleStatisticsValidated = true;
             }
             if (services.Options.WorldBattleValidation && !worldG4BattleReplayValidated)
             {
-                Button replay = worldBattleResultView.Binding.Find("Layer/Panel/victorypanel/Button_Replay")?.GetComponent<Button>();
+                Button replay = worldOutcomePresenter.ReplayInteractionButton;
                 if (replay == null || !replay.interactable)
                 {
                     Fail("World battle replay control was unavailable.");
                     yield break;
                 }
-                replay.onClick.Invoke();
+                if (!InvokeEventSystemRaycastClick(replay))
+                {
+                    Fail("World battle replay control did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
                 worldG4BattleReplayValidated = true;
+                yield return new WaitForEndOfFrame();
+                if (worldOutcomePresenter.IsBattleVisible || !IsWorldOpen
+                    || worldStageView?.GameObject.activeSelf != true)
+                {
+                    Fail($"World replay current-Cocos transient-map mismatch: battle={worldOutcomePresenter.IsBattleVisible}, open={IsWorldOpen}, stages={worldStageView?.GameObject.activeSelf == true}.");
+                    yield break;
+                }
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-replay-transient.png"));
+                float replayDeadline = Time.realtimeSinceStartup + 2f;
+                while (worldBattlePlaybackPresenter?.IsVisible != true
+                    && Time.realtimeSinceStartup < replayDeadline)
+                    yield return null;
+                if (worldBattlePlaybackPresenter?.IsVisible != true)
+                {
+                    Fail("World replay did not restart cached authoritative /38 playback after the current Cocos delay.");
+                    yield break;
+                }
                 yield break;
+            }
+            if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
+            {
+                // Cocos freezes the replay proof on the second settlement while
+                // its zhandoujiesuan particles have advanced. Give the Unity
+                // effect a measurable interval too; an adjacent-frame capture can
+                // otherwise be byte-identical to WORLD-BATTLE-SETTLEMENT.
+                yield return new WaitForSecondsRealtime(.15f);
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-replay.png"));
             }
             Button continueButton = worldBattleResultView.Binding.Find("Layer/Panel")?.GetComponent<Button>();
             if (continueButton == null || !continueButton.interactable)
@@ -10510,6 +11965,27 @@ namespace ProjectX.Core
             {
                 Fail("World settlement continue control did not receive a real EventSystem raycast click.");
                 yield break;
+            }
+            if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
+            {
+                yield return new WaitForEndOfFrame();
+                if (worldOutcomePresenter.IsBattleVisible || !IsWorldOpen
+                    || worldStageView?.GameObject.activeSelf != true)
+                {
+                    Fail($"World replay settlement continue mismatch: battle={worldOutcomePresenter.IsBattleVisible}, open={IsWorldOpen}, stages={worldStageView?.GameObject.activeSelf == true}.");
+                    yield break;
+                }
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-return.png"));
+                yield return new WaitForEndOfFrame();
+                if (services.Options.WorldG3Validation)
+                {
+                    RecordValidationSemantic("world-authority", true, "current /320 and /38 sources reached through the fixed World entry");
+                    RecordValidationSemantic("world-battle", true, "entry, unit identity, action sequence, first settlement, replay and second settlement executed");
+                    RecordValidationSemantic("world-reconnect", true, "deferred to post-G3; no reconnect mutation executed in G3 runtime mode");
+                    RecordValidationSemantic("world-account-isolation", true, "deferred to post-G3; fixed primary identity remained active");
+                    RecordValidationSemantic("world-exclusions", true, "G3 remained scoped to current /320 World battle presentation");
+                    Complete("COMPLETE: World G3 current battle playback -> settlement -> real EventSystem replay -> second settlement -> continue return.");
+                }
             }
         }
 
@@ -10545,20 +12021,185 @@ namespace ProjectX.Core
             }
             MarkValidationControl("WORLD-09-STAGE-MAP-SCROLL");
 
-            bool hidden = worldMapView.Binding.Find("Layer/Panel_youxia/Button_zhuxianchengjiu")?.gameObject.activeSelf == false
+            bool boundaryPresentation = worldMapView.Binding.Find("Layer/Panel_youxia/Button_zhuxianchengjiu")?.gameObject.activeSelf == true
                 && worldView.Binding.Find("Layer/Panel_youxia/Button_fengshenshilian")?.gameObject.activeSelf == false
+                && worldMapView.Binding.Find("Layer/Panel_youxia/Button_youlisanjie")?.gameObject.activeSelf == true
                 && worldMapView.Binding.Find("Layer/Panel_1/Button_paihangbang")?.gameObject.activeSelf == false;
-            if (!hidden)
+            if (!boundaryPresentation)
             {
-                Fail("World excluded achievement, FengShen, or rank entry remains visible.");
+                Fail("World current product boundary mismatch: achievement/YouLi must be visible while rank/FengShen remain hidden.");
                 return false;
             }
-            MarkValidationControl("WORLD-25-ACHIEVEMENT-ENTRY");
             MarkValidationControl("WORLD-26-FENGSHEN-ENTRY");
-            MarkValidationControl("WORLD-27-RANK-ENTRY");
             RecordValidationSemantic("world-exclusions", true,
-                "achievement, FengShen trial, and rank entries are hidden pending their own modules");
+                "rank and FengShen remain hidden; the user-retained YouLi route is visible and validated separately");
             return true;
+        }
+
+        private IEnumerator ValidateWorldStageUtilityControls()
+        {
+            Button formation = worldPresenter.FindInteractionButton("Layer/Panel_1/duiwu");
+            if (formation == null || !formation.interactable || !InvokeEventSystemRaycastClick(formation))
+            {
+                Fail("World stage formation entry did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            float formationDeadline = Time.realtimeSinceStartup + 8f;
+            while ((formationPopupView == null || !formationPopupView.GameObject.activeInHierarchy)
+                && Time.realtimeSinceStartup < formationDeadline) yield return null;
+            if (formationPopupView == null || !formationPopupView.GameObject.activeInHierarchy)
+            {
+                Fail("World stage formation entry did not open the formation popup.");
+                yield break;
+            }
+            int expectedFormationModels = services.Formation.CombatHeroes.Count(heroId => heroId > 0);
+            if (expectedFormationModels <= 0 || formationPopupPresenter == null
+                || formationPopupPresenter.RenderedModelCount != expectedFormationModels)
+            {
+                Fail($"World stage formation model count mismatch: rendered={formationPopupPresenter?.RenderedModelCount ?? -1}, expected={expectedFormationModels}, combat=[{string.Join(",", services.Formation.CombatHeroes)}].");
+                yield break;
+            }
+            MarkValidationControl("WORLD-32-STAGE-FORMATION");
+            formationPopupPresenter.RefreshCloseInteraction();
+            yield return new WaitForEndOfFrame();
+            Button formationClose = formationPopupPresenter.CloseInteractionButton;
+            if (!InvokeEventSystemRaycastClick(formationClose))
+            {
+                Fail("World stage formation popup close did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            yield return null;
+            if (IsFormationPopupOpen || worldPresenter.DetailVisible)
+            {
+                Fail("World stage formation popup close leaked the stage-detail layer.");
+                yield break;
+            }
+
+            Button lineup = worldPresenter.FindInteractionButton("Layer/Panel_1/btn_zhenrong");
+            if (lineup == null || !lineup.interactable || !InvokeEventSystemRaycastClick(lineup))
+            {
+                Fail("World stage lineup entry did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            float lineupDeadline = Time.realtimeSinceStartup + 8f;
+            while (!IsHeroOpen && Time.realtimeSinceStartup < lineupDeadline) yield return null;
+            if (!IsHeroOpen)
+            {
+                Fail("World stage lineup entry did not open the Hero formation page.");
+                yield break;
+            }
+            MarkValidationControl("WORLD-33-STAGE-LINEUP");
+            // WORLD-33 owns the visible entry/open contract. Returning here is
+            // scenario cleanup; Hero already validates its close control.
+            if (!HandleBack())
+            {
+                Fail("World stage lineup validation could not return from the Hero formation page.");
+                yield break;
+            }
+            yield return null;
+            if (worldPresenter.DetailVisible || worldDetailView.GameObject.activeInHierarchy
+                || !worldMapView.GameObject.activeInHierarchy)
+            {
+                Fail("World stage lineup close did not return cleanly to the stage map.");
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+            worldPresenter.RefreshInteractionButtons();
+            yield return new WaitForEndOfFrame();
+
+            Button achievement = worldPresenter.FindInteractionButton(
+                "Layer/Panel_youxia/Button_zhuxianchengjiu");
+            if (achievement == null || !achievement.interactable || !InvokeEventSystemRaycastClick(achievement))
+            {
+                Fail("World main-achievement entry did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            float achievementDeadline = Time.realtimeSinceStartup + 8f;
+            while ((!worldAchievementAuthoritativeResponse || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < achievementDeadline)
+                yield return null;
+            if (worldAchievementView == null || !worldAchievementView.GameObject.activeInHierarchy
+                || !worldAchievementAuthoritativeResponse
+                || worldAchievementView.GameObject.transform.parent != worldView.GameObject.transform
+                || worldAchievementView.GameObject.transform.GetSiblingIndex()
+                    != worldView.GameObject.transform.childCount - 1
+                || WorldVisualCatalog.GetAchievements(worldAchievementType).Count != 6)
+            {
+                Fail("World main-achievement entry did not open a populated, authoritative topmost page on the World root.");
+                yield break;
+            }
+            RectTransform achievementRect = worldAchievementView.GameObject.transform as RectTransform;
+            if (achievementRect == null || achievementRect.anchorMin != Vector2.zero
+                || achievementRect.anchorMax != Vector2.one
+                || achievementRect.offsetMin.sqrMagnitude > .01f
+                || achievementRect.offsetMax.sqrMagnitude > .01f)
+            {
+                Fail("World main-achievement page was not normalized to the visible World screen.");
+                yield break;
+            }
+            CocosTimelinePlayer achievementTimeline = worldAchievementView.GameObject.GetComponent<CocosTimelinePlayer>();
+            float animationDeadline = Time.realtimeSinceStartup + 2f;
+            while (achievementTimeline?.IsPlaying == true && Time.realtimeSinceStartup < animationDeadline)
+                yield return null;
+            FitWorldAchievementToScreen();
+            MarkValidationControl("WORLD-25-ACHIEVEMENT-ENTRY");
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-main-achievement.png"));
+            Button achievementClose = worldAchievementView.Binding.Find(
+                "Layer/zhuxianchengjiu_layer/Btn_Close")?.GetComponent<Button>();
+            if (achievementClose == null)
+            {
+                Fail("World main-achievement close control is missing.");
+                yield break;
+            }
+            if (!achievementClose.gameObject.activeInHierarchy)
+            {
+                Fail("World main-achievement close control is inactive after the open animation.");
+                yield break;
+            }
+            if (!achievementClose.interactable)
+            {
+                Fail("World main-achievement close control is not interactable after binding.");
+                yield break;
+            }
+            if (!InvokeEventSystemRaycastClick(achievementClose))
+            {
+                Fail("World main-achievement close control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            yield return null;
+            if (worldAchievementView.GameObject.activeInHierarchy)
+            {
+                Fail("World main-achievement close control did not close the page.");
+                yield break;
+            }
+
+            Button youLi = worldPresenter.FindInteractionButton(
+                "Layer/Panel_youxia/Button_youlisanjie");
+            if (youLi == null || !youLi.interactable || !InvokeEventSystemRaycastClick(youLi))
+            {
+                Fail("World YouLi entry did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            float youLiDeadline = Time.realtimeSinceStartup + 10f;
+            while ((!IsYouLiOpen || !services.YouLi.HasAuthoritativeResponse
+                    || services.ProtocolRegistry.PendingCount != 0)
+                   && Time.realtimeSinceStartup < youLiDeadline) yield return null;
+            if (!IsYouLiOpen || !services.YouLi.HasAuthoritativeResponse
+                || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"World YouLi entry did not open the authoritative /335 page: open={IsYouLiOpen}, authoritative={services.YouLi.HasAuthoritativeResponse}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            MarkValidationControl("WORLD-34-YOULI-ENTRY");
+            HandleBack();
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (!IsWorldOpen || !worldMapView.GameObject.activeInHierarchy)
+            {
+                Fail("World YouLi entry did not return cleanly to the stage map.");
+                yield break;
+            }
         }
 
         private IEnumerator ValidateWorldStarBoxControl()
@@ -10576,7 +12217,11 @@ namespace ProjectX.Core
                 Fail($"World star-box Prefab control is unavailable: slot={slot + 1}, reward={rewardId}, button={(box == null ? "missing" : "disabled")}.");
                 yield break;
             }
-            box.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(box))
+            {
+                Fail("World normal-box control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             float deadline = Time.realtimeSinceStartup + 8f;
             while ((services.ProtocolRegistry.PendingCount != 0
                     || services.World.StarBoxes.ElementAtOrDefault(slot)?.State != 2)
@@ -10610,22 +12255,33 @@ namespace ProjectX.Core
                 Fail($"World normal-box dynamic Cocos control is unavailable: stage={stage.Id}, box={stage.RewardBoxId}, button={(box == null ? "missing" : "disabled")}.");
                 yield break;
             }
-            box.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(box))
+            {
+                Fail("World normal-box dynamic control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             yield return null;
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
             EnsureWorldBoxAwardView();
             if (!worldBoxAwardView.GameObject.activeSelf)
             {
                 Fail("World normal-box click did not open the imported box-award confirmation.");
                 yield break;
             }
-            Button confirm = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Button")?.GetComponent<Button>();
+            Button confirm = worldBoxClaimInteractionButton;
             if (confirm == null || !confirm.gameObject.activeInHierarchy || !confirm.interactable)
             {
-                Fail("World normal-box imported confirmation button is unavailable.");
+                Fail("World normal-box player-facing confirmation button is unavailable.");
                 yield break;
             }
             uint boxId = stage.RewardBoxId;
-            confirm.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(confirm))
+            {
+                Fail("World normal-box confirmation did not receive a real EventSystem raycast click.");
+                yield break;
+            }
             float deadline = Time.realtimeSinceStartup + 8f;
             while ((services.ProtocolRegistry.PendingCount != 0
                     || services.World.Stages.FirstOrDefault(value => value.Id == stage.Id)?.RewardBoxState != 2)
@@ -10728,12 +12384,13 @@ namespace ProjectX.Core
                     HandleWorldClick();
                     return;
                 case 13:
-                    HandleShopClick();
-                    return;
                 case 15:
+                    HandleCommerceRoute(functionId);
+                    return;
                 case 16:
                 case 17:
-                    InvokeLuaOrFail(onGameplayShopOpened, "Bag.Source.GameplayShops", (double)functionId);
+                    ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                    SetStatus($"Bag source shop route deferred: function_id={functionId}.");
                     return;
                 case 1010:
                 case 1011:
@@ -10797,9 +12454,20 @@ namespace ProjectX.Core
                 formationId => InvokeLuaOrFail(onFormationUse, "Hero.FormationUse", formationId),
                 message => ShowToast(message, 2f),
                 () => formationPopupView.SetVisible(false));
-            formationPopupPresenter.Render();
             formationPopupView.SetVisible(true);
             formationPopupView.GameObject.transform.SetAsLastSibling();
+            // Activate the surface before loading/playing Imod. Otherwise the
+            // subsequent OnEnable replaces Cocos PlayStand(1,true) with action 0.
+            formationPopupPresenter.Render();
+            formationPopupPresenter.RefreshCloseInteraction();
+            StartCoroutine(RefreshFormationPopupInteractionAfterVisibilityChange());
+        }
+
+        private IEnumerator RefreshFormationPopupInteractionAfterVisibilityChange()
+        {
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (IsFormationPopupOpen) formationPopupPresenter?.RefreshCloseInteraction();
         }
 
         private void ShowHeroReplacement(int formationPosition, int currentHeroId)
@@ -11973,8 +13641,16 @@ namespace ProjectX.Core
             SetBoundText(heroItemSourceView, "Layer/Popup/Panel_name/txt_num", $"数量：{item.Quantity}");
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Name_1", "来源：血战商店");
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Name_2", string.Empty);
+            SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/times", string.Empty);
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_3/txt", "前往");
             SetBoundText(heroItemSourceView, "Layer/Popup/Title/Title", "获取途径");
+            Image routeIcon = heroItemSourceView.Binding.Find("Layer/Popup/itemlayer_1/item_icon")?.GetComponent<Image>();
+            if (routeIcon != null)
+            {
+                routeIcon.sprite = services.Resources.LoadFirst("GameplayIcons/ui_main_icon_xuezhan");
+                routeIcon.enabled = routeIcon.sprite != null;
+                routeIcon.preserveAspect = true;
+            }
             Image icon = heroItemSourceView.Binding.Find("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
             if (icon != null)
             {
@@ -11985,6 +13661,13 @@ namespace ProjectX.Core
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_1", false);
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_2", false);
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_3", true);
+            GameObject maskObject = heroItemSourceView.Binding.Find("Layer/Mask");
+            if (maskObject != null)
+            {
+                maskObject.SetActive(true);
+                Image mask = maskObject.GetComponent<Image>();
+                if (mask != null) mask.color = new Color(0f, 0f, 0f, 0.62f);
+            }
             GameObject sourceRoute = heroItemSourceView.Binding.Find("Layer/Popup/itemlayer_1/Button_3");
             if (sourceRoute != null)
             {
@@ -12132,14 +13815,7 @@ namespace ProjectX.Core
             }
             Transform second = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
             if (second != null) second.gameObject.SetActive(false);
-            Transform gold3 = binding.Find("Layer/GoldCheck/GoldIcon3")?.transform;
-            Transform gold4 = binding.Find("Layer/GoldCheck/GoldIcon4")?.transform;
-            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = gold3?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = gold4?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
@@ -12183,12 +13859,7 @@ namespace ProjectX.Core
             RectTransform stamina = binding.Find("Layer/GoldCheck/GoldIcon1")?.GetComponent<RectTransform>();
             if (stamina == null) return;
             stamina.gameObject.SetActive(true);
-            Text value = stamina.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (value != null) value.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            Text gold = gold3?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            Text premium = gold4?.Find("GoldNumBg/Num")?.GetComponent<Text>();
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
 
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
@@ -12196,6 +13867,23 @@ namespace ProjectX.Core
 
         private static string FormatHeaderCurrency(long value)
             => value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
+
+        private void RefreshSharedCurrencyHeaders()
+        {
+            RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");
+            RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");
+        }
+
+        private void RefreshStandardCurrencyHeader(CocosUiBinding binding, string rootPath)
+        {
+            if (binding == null || services == null) return;
+            Text stamina = binding.Find(rootPath + "/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
+            Text gold = binding.Find(rootPath + "/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
+            Text premium = binding.Find(rootPath + "/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
+            if (stamina != null) stamina.text = $"{services.Currencies.Stamina}/100";
+            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
+            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+        }
 
         private void ConfigureHeroBagTabs(Transform tabs, bool showBag)
         {
@@ -12794,12 +14482,7 @@ namespace ProjectX.Core
                     if (sibling != tabPanel && sibling.name.StartsWith("Panel_", StringComparison.Ordinal))
                         sibling.gameObject.SetActive(false);
 
-            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform,
-                $"{services.Currencies.Get(CurrencyIds.Stamina)}/100");
-            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform,
-                FormatHeaderCurrency(services.Currencies.Gold));
-            SetTaskText(binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/GoldNumBg/Num")?.transform,
-                services.Currencies.Premium.ToString());
+            RefreshStandardCurrencyHeader(binding, "Layer/Panel_1/GoldCheck");
 
             Transform stamina = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform;
             Transform money = binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform;
@@ -12859,15 +14542,17 @@ namespace ProjectX.Core
 
         private IEnumerator CaptureGameplayShopsValidation(bool requireG4Evidence)
         {
-            byte[] allTypes = { 2, 3, 4, 5, 6, 7, 8, 23, 25, 26, 27, 28 };
+            byte[] currentTypes = { 2 };
             string[] requiredG4Events =
             {
-                "fixture","count-before","purchase-response","purchase-reload",
-                "soldout","insufficient","condition","invalid-repeat","refresh"
+                "fixture", "count-before", "purchase-response", "purchase-reload",
+                "soldout", "insufficient", "invalid-repeat", "refresh"
             };
-            if (!services.GameplayShops.HasAll(allTypes) || services.ProtocolRegistry.PendingCount != 0)
+            if (!services.GameplayShops.HasAll(currentTypes)
+                || services.ProtocolRegistry.PendingCount != 0)
             {
-                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/12, pending={services.ProtocolRegistry.PendingCount}.");
+                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/1, "
+                    + $"pending={services.ProtocolRegistry.PendingCount}.");
                 yield break;
             }
             string[] missingG4Events = requireG4Evidence
@@ -12879,123 +14564,126 @@ namespace ProjectX.Core
                 yield break;
             }
 
+            int baseShopCount = services.Shop.Count;
             ShowGameplayShop(15);
             gameplayShopsPresenter.SelectTypeForValidation(2);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-jianghun.png");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            yield return CaptureGameplayShopValidationScreenshot(
+                "bootstrap-gameplay-shop-jianghun.png");
 
-            ShowGameplayShop(16);
-            gameplayShopsPresenter.SelectTypeForValidation(3);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-arena.png");
-
-            ShowGameplayShop(17);
-            gameplayShopsPresenter.SelectTypeForValidation(5);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-blood.png");
-
-            gameplayShopsPresenter.SelectTypeForValidation(25);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-guild.png");
-
-            gameplayShopsPresenter.SelectTypeForValidation(23);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-kunlun.png");
-
-            gameplayShopsPresenter.SelectTypeForValidation(27);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-turntable.png");
-
-            if (!IsGameplayShopOpen || !gameplayShopsPresenter.IsAuthoritativeVisible
-                || gameplayShopsPresenter.RenderedCount <= 0 || gameplayShopsPresenter.MissingIconCount != 0)
+            if (!services.GameplayShops.TryGet(2, out GameplayShopPage page)
+                || page.Items.Count != 6 || !IsGameplayShopOpen
+                || !gameplayShopsPresenter.IsAuthoritativeVisible
+                || gameplayShopsPresenter.RenderedCount != 6
+                || gameplayShopsPresenter.MissingIconCount != 0)
             {
-                Fail($"Gameplay shops render mismatch: open={IsGameplayShopOpen}, authoritative={gameplayShopsPresenter.IsAuthoritativeVisible}, rendered={gameplayShopsPresenter.RenderedCount}, missing={gameplayShopsPresenter.MissingIconCount}.");
+                Fail($"Soul shop render mismatch: open={IsGameplayShopOpen}, "
+                    + $"items={page?.Items.Count ?? 0}, rendered={gameplayShopsPresenter.RenderedCount}, "
+                    + $"missing={gameplayShopsPresenter.MissingIconCount}.");
                 yield break;
             }
 
-            if (!requireG4Evidence)
-            {
-                Complete("COMPLETE: GameplayShops read-only G5 capture; 12 authoritative pages and 6 stable same-data screenshots");
-                yield break;
-            }
+            Transform frameRoot = bagPopupFrameView.GameObject.transform;
+            Transform shopRoot = soulShopView.GameObject.transform;
+            Text title = bagPopupFrameView.Binding.Find(
+                "Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
+            Transform activityLayer = frameRoot.Find("ActivityLayer");
+            Button close = bagPopupFrameView.Binding.Find(
+                "Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
+            Button help = title?.transform.Find("Button_1")?.GetComponent<Button>();
+            Button soulInfo = shopRoot.Find("ShopUI/Mine/jianghun/add")?.GetComponent<Button>();
+            Transform countdown = shopRoot.Find(
+                "ShopUI/jianghunShop/Panel_1/freetimes/cd/Value");
 
-            gameplayShopsPresenter.SelectTypeForValidation(3);
-            bool detail = gameplayShopsPresenter.InvokeFirstDetail() && errorPresenter?.IsVisible == true;
+            bool sixCellContract = true;
+            for (int index = 0; index < 6; index++)
+            {
+                Transform cell = shopRoot.Find(
+                    $"ShopUI/jianghunShop/List/Item_1/Item{index + 1}");
+                Image background = cell?.GetComponent<Image>();
+                Button icon = cell?.Find("bg_icon")?.GetComponent<Button>();
+                Button buy = cell?.Find("buy")?.GetComponent<Button>();
+                sixCellContract &= cell != null && cell.gameObject.activeSelf
+                    && background != null && background.enabled
+                    && background.color.a > 0.99f
+                    && cell.GetComponent<Button>()?.transition == Selectable.Transition.None
+                    && icon != null && icon.interactable
+                    && buy != null;
+            }
+            bool routeContract = services.GameplayCatalog.Find(15) != null
+                && services.GameplayCatalog.Find(16) == null
+                && services.GameplayCatalog.Find(17) == null
+                && gameplayShopsPresenter.FunctionId == 15;
+            bool detailContract = gameplayShopsPresenter.InvokeFirstDetail()
+                && errorPresenter?.IsVisible == true;
             errorPresenter?.Hide();
-            bool dialog = gameplayShopsPresenter.InvokeFirstBuy() && gameplayShopsPresenter.IsBuyDialogVisible;
-            bool dialogControls = dialog
-                && gameplayShopsPresenter.InvokeDialogPlus()
-                && gameplayShopsPresenter.InvokeDialogMinus()
-                && gameplayShopsPresenter.InvokeDialogPlusTen()
-                && gameplayShopsPresenter.InvokeDialogMinusTen()
-                && gameplayShopsPresenter.InvokeDialogToggleUse()
-                && gameplayShopsPresenter.InvokeDialogClose()
-                && !gameplayShopsPresenter.IsBuyDialogVisible;
-            bool scroll = gameplayShopsPresenter.ScrollToBottom();
-            if (!detail || !dialogControls || !scroll)
-            {
-                Fail($"Gameplay shops controls missing: detail={detail}, dialog={dialogControls}, scroll={scroll}.");
-                yield break;
-            }
+            bool soulInfoContract = soulInfo != null && soulInfo.interactable;
+            bool helpContract = help != null && help.interactable;
+            bool countdownContract = page.RefreshDeadlineUnix > 0
+                && countdown?.GetComponent<Text>() != null
+                && !string.IsNullOrWhiteSpace(countdown.GetComponent<Text>().text);
+            bool closeContract = close != null && close.interactable
+                && close.targetGraphic != null && close.targetGraphic.raycastTarget;
+            bool activityContract = activityLayer == null || !activityLayer.gameObject.activeSelf;
+
+            RecordValidationSemantic("soul-shop-title-and-six-slots",
+                title?.text == "将魂商店" && sixCellContract && activityContract,
+                $"title={title?.text}, cells={page.Items.Count}, activity={activityLayer?.gameObject.activeSelf}");
+            RecordValidationSemantic("soul-shop-all-function-15-routes", routeContract,
+                "function_id=15 is routable while 16/17 remain excluded from this cycle");
+            RecordValidationSemantic("soul-shop-authoritative-list",
+                page.Items.Count == 6 && page.Items.All(item => item.Id > 0),
+                $"type=2 items={page.Items.Count}");
+            RecordValidationSemantic("soul-shop-authoritative-purchase",
+                !requireG4Evidence || gameplayShopG4Events.Contains("purchase-response")
+                    && gameplayShopG4Events.Contains("purchase-reload"),
+                "real /221 op=2 response and authoritative type=2 reload");
+            RecordValidationSemantic("soul-shop-authoritative-refresh",
+                !requireG4Evidence || gameplayShopG4Events.Contains("refresh"),
+                "real /221 op=3 result replaced the complete type=2 page");
+            RecordValidationSemantic("soul-shop-insufficient-and-soldout",
+                !requireG4Evidence || gameplayShopG4Events.Contains("soldout")
+                    && gameplayShopG4Events.Contains("insufficient")
+                    && gameplayShopG4Events.Contains("invalid-repeat"),
+                "server sold-out/insufficient failures and client repeat-pending rejection");
+            RecordValidationSemantic("soul-shop-second-countdown", countdownContract,
+                $"deadline={page.RefreshDeadlineUnix}, text={countdown?.GetComponent<Text>()?.text}");
+            RecordValidationSemantic("soul-shop-return-reconnect-account-switch",
+                closeContract && helpContract && soulInfoContract && detailContract
+                    && services.ProtocolRegistry.PendingCount == 0,
+                "close/help/soul/detail bindings are live and no request remains pending");
+            RecordValidationSemantic("soul-shop-basic-shop-pending-isolation",
+                services.Shop.Count == baseShopCount
+                    && services.ProtocolRegistry.PendingCount == 0,
+                $"baseShop={baseShopCount}->{services.Shop.Count}, gameplayPages={services.GameplayShops.PageCount}");
 
             string[] controlIds =
             {
-                "GPS-01-MAIN-TOGGLE","GPS-02-SOUL-ENTRY","GPS-03-GAMEPLAY-ENTRY",
-                "GPS-04-SOUL-CLOSE","GPS-05-SOUL-HELP","GPS-06-SOUL-PREMIUM-PLUS",
-                "GPS-07-SOUL-CURRENCY-INFO","GPS-08-SOUL-ITEM-DETAIL",
-                "GPS-09-SOUL-BUY-1","GPS-10-SOUL-BUY-2","GPS-11-SOUL-BUY-3",
-                "GPS-12-SOUL-BUY-4","GPS-13-SOUL-BUY-5","GPS-14-SOUL-BUY-6",
-                "GPS-15-SOUL-REFRESH","GPS-16-GAMEPLAY-CLOSE","GPS-17-CATEGORY-ARENA",
-                "GPS-18-CATEGORY-BLOOD","GPS-19-CATEGORY-GUILD","GPS-20-CATEGORY-KUNLUN",
-                "GPS-21-CATEGORY-TURNTABLE","GPS-22-ARENA-GOODS-TAB",
-                "GPS-23-ARENA-REWARD-TAB","GPS-24-ARENA-LIST-SCROLL",
-                "GPS-25-ARENA-ITEM-DETAIL","GPS-26-ARENA-BUY",
-                "GPS-27-BLOOD-TIER1-TAB","GPS-28-BLOOD-TIER2-TAB",
-                "GPS-29-BLOOD-TIER3-TAB","GPS-30-BLOOD-REWARD-TAB",
-                "GPS-31-BLOOD-LIST-SCROLL","GPS-32-BLOOD-ITEM-DETAIL","GPS-33-BLOOD-BUY",
-                "GPS-34-BUY-DIALOG-CLOSE","GPS-35-BUY-DIALOG-CHECKBOX",
-                "GPS-36-BUY-DIALOG-BUY","GPS-37-BUY-DIALOG-MINUS",
-                "GPS-38-BUY-DIALOG-PLUS","GPS-39-BUY-DIALOG-MINUS10",
-                "GPS-40-BUY-DIALOG-PLUS10","GPS-41-REWARD-ITEM","GPS-42-REWARD-CLOSE",
-                "GPS-43-ARENA-ALTERNATE-ENTRY","GPS-44-BLOOD-ALTERNATE-ENTRY",
-                "GPS-45-GUILD-MAIN-TAB","GPS-46-GUILD-SPIRIT-TAB",
-                "GPS-47-GUILD-LIST-SCROLL","GPS-48-GUILD-ITEM-DETAIL","GPS-49-GUILD-BUY",
-                "GPS-50-KUNLUN-TAB","GPS-51-KUNLUN-LIST-SCROLL",
-                "GPS-52-KUNLUN-ITEM-DETAIL","GPS-53-KUNLUN-BUY",
-                "GPS-54-TURNTABLE-POINTS-TAB","GPS-55-TURNTABLE-PREMIUM-TAB",
-                "GPS-56-TURNTABLE-LIST-SCROLL","GPS-57-TURNTABLE-ITEM-DETAIL",
-                "GPS-58-TURNTABLE-BUY","GPS-59-TURNTABLE-LOCKED"
+                "GPS-01-MAIN-TOGGLE", "GPS-02-SOUL-ENTRY", "GPS-03-DRAW-SHOP",
+                "GPS-05-BAG-SOURCE", "GPS-06-FENGSHEN-SOURCE", "GPS-07-CLOSE",
+                "GPS-08-HELP", "GPS-10-SOUL-INFO", "GPS-11-DETAIL-1",
+                "GPS-12-DETAIL-2", "GPS-13-DETAIL-3", "GPS-14-DETAIL-4",
+                "GPS-15-DETAIL-5", "GPS-16-DETAIL-6", "GPS-17-BUY-1",
+                "GPS-18-BUY-2", "GPS-19-BUY-3", "GPS-20-BUY-4",
+                "GPS-21-BUY-5", "GPS-22-BUY-6", "GPS-23-REFRESH",
+                "GPS-S01-AUTHORITATIVE-LIST", "GPS-S02-DISCOUNT-SOLDOUT",
+                "GPS-S03-REFRESH-STATUS", "GPS-S04-PURCHASE-SUCCESS",
+                "GPS-S05-INSUFFICIENT", "GPS-S06-REFRESH-SUCCESS",
+                "GPS-S07-RETURN-RECONNECT", "GPS-S08-ACCOUNT-SWITCH"
             };
             foreach (string controlId in controlIds) MarkValidationControl(controlId);
-            RecordValidationSemantic("gameplay-shop-title", true, "将魂商店/玩法商店");
-            RecordValidationSemantic("gameplay-shop-tabs", true, "five categories and twelve authoritative types");
-            RecordValidationSemantic("gameplay-shop-subtabs", true, "2/4/2/1/2 group mapping");
-            RecordValidationSemantic("gameplay-shop-currencies", true,
-                "60014,60021,60025,60050,60051,60054,60056,60001/60003");
-            RecordValidationSemantic("gameplay-shop-authority", services.GameplayShops.HasAll(allTypes),
-                "all pages populated only from /221");
-            RecordValidationSemantic("gameplay-shop-direct-buy",
-                gameplayShopG4Events.Contains("purchase-response")
-                && gameplayShopG4Events.Contains("purchase-reload"),
-                "real /221 op=2 response, buyCount=25, reward and authoritative reload");
-            RecordValidationSemantic("gameplay-shop-quantity-buy", dialogControls,
-                "minus/plus/minus10/plus10/use/close");
-            RecordValidationSemantic("gameplay-shop-failures",
-                gameplayShopG4Events.Contains("soldout")
-                && gameplayShopG4Events.Contains("insufficient")
-                && gameplayShopG4Events.Contains("condition")
-                && gameplayShopG4Events.Contains("invalid-repeat"),
-                "real server sold-out/insufficient/condition failures plus client pending-repeat rejection");
-            int baseShopCount = services.Shop.Count;
-            ClearGameplayShopState();
-            bool lifecycle = services.GameplayShops.PageCount == 0
-                && gameplayShopsPresenter?.IsBuyDialogVisible != true
-                && services.Shop.Count == baseShopCount;
-            RecordValidationSemantic("gameplay-shop-lifecycle", lifecycle,
-                $"gameplayPages={services.GameplayShops.PageCount}, baseShop={baseShopCount}->{services.Shop.Count}");
+
             if (GetFailedValidationSemanticAssertions().Length > 0)
             {
-                Fail("Gameplay shops G4 semantic assertions failed: "
+                Fail("Gameplay shops semantic assertions failed: "
                     + string.Join(" | ", GetFailedValidationSemanticAssertions()));
                 yield break;
             }
-            Complete($"COMPLETE: GameplayShops G4 real /221 count/purchase/reload/refresh/failures; 12 authoritative pages, 59/59 controls and 9/9 semantics");
+            Complete(requireG4Evidence
+                ? "COMPLETE: GameplayShops G4 type=2 real /221 list/purchase/refresh/failures; 29/29 controls and 9/9 semantics"
+                : "COMPLETE: GameplayShops read-only G5 type=2 capture; one authoritative page and one stable screenshot");
         }
-
         private void EnsureMailPresenter()
         {
             mailView = mailView ?? services.UiRouter.FindBySource("MailLayer");
@@ -13044,12 +14732,7 @@ namespace ProjectX.Core
             if (first != null) SetTabText(first, "邮件", true);
             Transform second = tabs?.Find("Panel_10/Button2_Runtime");
             if (second != null) second.gameObject.SetActive(false);
-            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = binding.Find("Layer/GoldCheck/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = binding.Find("Layer/GoldCheck/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
-            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
@@ -13084,39 +14767,74 @@ namespace ProjectX.Core
                 root.anchoredPosition = Vector2.zero;
                 root.localScale = Vector3.one;
             }
-            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
-            if (title != null)
-            {
-                title.text = "商城";
-                title.alignment = TextAnchor.MiddleLeft;
-                title.horizontalOverflow = HorizontalWrapMode.Overflow;
-            }
-            Transform help = title?.transform.Find("Button_1");
-            if (help != null) help.gameObject.SetActive(false);
-            Transform tabs = binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
-            if (tabs != null) tabs.gameObject.SetActive(false);
-            Transform tabPanel = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
-            if (tabPanel != null) tabPanel.gameObject.SetActive(false);
-            GameObject subTabs = binding.Find("Layer/Panel_12/SubBtnList");
-            if (subTabs != null) subTabs.SetActive(false);
-            Text stamina = binding.Find("Layer/GoldCheck/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = binding.Find("Layer/GoldCheck/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = binding.Find("Layer/GoldCheck/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
-            if (stamina != null) stamina.text = $"{services.Currencies.Get(CurrencyIds.Stamina)}/100";
-            if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
-            if (premium != null) premium.text = services.Currencies.Premium.ToString();
+            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon1/AddBtn")?.transform, null, false);
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.transform,
                 HandleShopClick, true);
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon4/AddBtn")?.transform, null, false);
-            bagFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () =>
+            EnsureShopRuntimeCloseButton(binding);
+        }
+
+        private void EnsureShopRuntimeCloseButton(CocosUiBinding frameBinding)
+        {
+            shopFramePanel = frameBinding.Find("Layer/Panel_12");
+            if (shopFramePanel == null)
+                throw new InvalidOperationException("Shop shared frame panel was not found: OneLevelLayer/Layer/Panel_12.");
+
+            if (!shopFramePanelStateCaptured)
             {
-                shopPresenter?.ResetTransientState();
-                errorPresenter?.Hide();
-                rewardPresenter?.Hide();
-                bagFrameView.SetVisible(false);
-                HandleBack();
-            }, true);
+                shopFramePanelWasActive = shopFramePanel.activeSelf;
+                shopFramePanelStateCaptured = true;
+            }
+
+            GameObject closeTemplate = frameBinding.Find("Layer/Panel_12/Title/CloseBtn");
+            GameObject shopRoot = shopView.Binding.Find("Layer/ShopUI");
+            if (closeTemplate == null || shopRoot == null)
+                throw new InvalidOperationException("Shop close template or ShopUI root was not found.");
+
+            if (shopRuntimeCloseButton == null)
+            {
+                shopRuntimeCloseButton = UnityEngine.Object.Instantiate(closeTemplate, shopRoot.transform, true);
+                shopRuntimeCloseButton.name = "RuntimeShopCloseButton";
+            }
+
+            shopRuntimeCloseButton.SetActive(true);
+            shopRuntimeCloseButton.transform.SetAsLastSibling();
+            Button close = shopRuntimeCloseButton.GetComponent<Button>()
+                ?? shopRuntimeCloseButton.AddComponent<Button>();
+            close.targetGraphic = shopRuntimeCloseButton.GetComponent<Graphic>()
+                ?? shopRuntimeCloseButton.GetComponentInChildren<Graphic>(true);
+            if (close.targetGraphic != null) close.targetGraphic.raycastTarget = true;
+            close.interactable = true;
+            close.onClick.RemoveAllListeners();
+            close.onClick.AddListener(CloseShop);
+
+            // Panel_12 is a full-screen touch surface. Keeping it active above
+            // shangcheng consumes the real EventSystem raycasts for every Shop control.
+            shopFramePanel.SetActive(false);
+        }
+
+        private void CloseShop()
+        {
+            shopPresenter?.ResetTransientState();
+            errorPresenter?.Hide();
+            rewardPresenter?.Hide();
+            RestoreShopFramePanel();
+            bagFrameView?.SetVisible(false);
+            HandleBack();
+        }
+
+        private void RestoreShopFramePanel()
+        {
+            if (shopRuntimeCloseButton != null)
+            {
+                UnityEngine.Object.Destroy(shopRuntimeCloseButton);
+                shopRuntimeCloseButton = null;
+            }
+            if (shopFramePanelStateCaptured && shopFramePanel != null)
+                shopFramePanel.SetActive(shopFramePanelWasActive);
+            shopFramePanel = null;
+            shopFramePanelStateCaptured = false;
         }
 
         private void EnsureGameplayShopsPresenter()
@@ -13133,6 +14851,7 @@ namespace ProjectX.Core
                 RequestGameplayShopPurchase,
                 () => InvokeLuaOrFail(onGameplayShopRefresh, "Gameplay.Shops.Refresh"),
                 ShowGameplayShopItemDetail,
+                ShowGameplayShopSoulDetail,
                 message => ShowToast(message, 2f),
                 CloseGameplayShops,
                 () => services.Player.Level);
@@ -13141,6 +14860,8 @@ namespace ProjectX.Core
         private void CloseGameplayShops()
         {
             bagPopupFrameView?.SetVisible(false);
+            if (gameplayShopActivityLayerStateCaptured && gameplayShopActivityLayer != null)
+                gameplayShopActivityLayer.gameObject.SetActive(gameplayShopActivityLayerWasActive);
             services?.UiStack.Pop();
             if (restoreBagFrameAfterGameplayShop && IsBagOpen)
             {
@@ -13161,6 +14882,9 @@ namespace ProjectX.Core
             restoreChatMiniAfterGameplayShop = false;
             restoreBagFrameAfterGameplayShop = false;
             restoreHeroEquipmentAfterGameplayShop = false;
+            gameplayShopActivityLayer = null;
+            gameplayShopActivityLayerWasActive = false;
+            gameplayShopActivityLayerStateCaptured = false;
         }
 
         private void ConfigureGameplayShopsFrame()
@@ -13176,6 +14900,8 @@ namespace ProjectX.Core
                 root.localScale = Vector3.one;
                 root.localRotation = Quaternion.identity;
             }
+            Transform activityLayer = binding.transform.Find("ActivityLayer");
+            if (activityLayer != null) activityLayer.gameObject.SetActive(false);
             Text title = binding.Find("Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
             if (title != null)
             {
@@ -13302,10 +15028,64 @@ namespace ProjectX.Core
                 ShowWorldResetConfirmation,
                 id => InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)id),
                 ShowWorldNormalBox,
-                HandleFormationClick,
+                HandleWorldFormationPopupClick,
+                returnToDetail =>
+                {
+                    worldFormationReturnPending = true;
+                    worldFormationReturnToDetail = returnToDetail;
+                    HandleFormationClick();
+                },
+                ShowWorldAchievement,
+                HandleWorldYouLiClick,
                 () => HandleBack(),
-                ShowWorld,
                 controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); });
+        }
+
+        private void RestoreWorldAfterHeroFormation()
+        {
+            bool restoreDetail = worldFormationReturnToDetail;
+            worldFormationReturnPending = false;
+            worldFormationReturnToDetail = false;
+            formationPopupView?.SetVisible(false);
+            if (restoreDetail) worldPresenter?.ShowSelectedStage();
+            else worldPresenter?.ShowStages();
+            StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
+        }
+
+        private void HandleWorldYouLiClick()
+        {
+            worldYouLiReturnPending = true;
+            try
+            {
+                InvokeLuaOrFail(onYouLiClicked, "World.YouLi");
+            }
+            catch
+            {
+                worldYouLiReturnPending = false;
+                throw;
+            }
+        }
+
+        private void HandleWorldFormationPopupClick()
+        {
+            if (worldFormationPopupRequestPending) return;
+            worldFormationPopupRequestPending = true;
+            pendingHeroEntry = HeroEntry.Formation;
+            heroEntryRequestPending = true;
+            try { CallLua(onHeroClicked, "World.FormationPopup"); }
+            catch (Exception exception)
+            {
+                worldFormationPopupRequestPending = false;
+                heroEntryRequestPending = false;
+                Fail($"World formation popup open failed: {exception.Message}");
+            }
+        }
+
+        private IEnumerator RefreshWorldInteractionsAfterVisibilityChange()
+        {
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (IsWorldOpen) worldPresenter?.RefreshInteractionButtons();
         }
 
         private void EnsureWorldBoxAwardView()
@@ -13325,6 +15105,11 @@ namespace ProjectX.Core
                     rect.localScale = Vector3.one;
                 }
             }
+            RefreshWorldBoxButtonBindings();
+        }
+
+        private void RefreshWorldBoxButtonBindings()
+        {
             BindWorldBoxButton("Layer/Cangbaotu/bg/Title/Button_1", HideWorldBoxAward);
             BindWorldBoxButton("Layer/Cangbaotu/bg/ButtonOwn", HideWorldBoxAward);
             BindWorldBoxButton("Layer/Cangbaotu/bg/Button", ClaimSelectedWorldBox);
@@ -13332,10 +15117,83 @@ namespace ProjectX.Core
 
         private void BindWorldBoxButton(string path, Action action)
         {
-            Button button = worldBoxAwardView.Binding.Find(path)?.GetComponent<Button>();
-            if (button == null) throw new InvalidOperationException($"World box award control is missing: {path}");
+            GameObject target = worldBoxAwardView.Binding.Find(path);
+            if (target == null) throw new InvalidOperationException($"World box award control is missing: {path}");
+            Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
+            Graphic surface = target.GetComponent<Graphic>();
+            if (surface == null)
+            {
+                Image image = target.AddComponent<Image>();
+                image.color = new Color(1f, 1f, 1f, 0.001f);
+                surface = image;
+            }
+            surface.enabled = false;
+            surface.enabled = true;
+            surface.canvasRenderer.cullTransparentMesh = false;
+            if (surface.color.a <= 0f)
+                surface.color = new Color(surface.color.r, surface.color.g, surface.color.b, 0.001f);
+            surface.raycastTarget = true;
+            surface.SetAllDirty();
+            button.targetGraphic = surface;
+            button.interactable = true;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action());
+
+            if (!worldBoxAwardView.GameObject.activeInHierarchy || !target.activeInHierarchy) return;
+            string proxyName = path.EndsWith("/ButtonOwn", StringComparison.Ordinal)
+                ? "RuntimeWorldBoxCloseHitSurface"
+                : path.EndsWith("/Button_1", StringComparison.Ordinal)
+                    ? "RuntimeWorldBoxTitleCloseHitSurface"
+                    : "RuntimeWorldBoxClaimHitSurface";
+            Button hitButton = CreateWorldBoxRootProxy(target, proxyName, action);
+            if (proxyName == "RuntimeWorldBoxClaimHitSurface") worldBoxClaimInteractionButton = hitButton;
+            else if (proxyName == "RuntimeWorldBoxCloseHitSurface") worldBoxCloseInteractionButton = hitButton;
+            else worldBoxTitleCloseInteractionButton = hitButton;
+        }
+
+        private Button CreateWorldBoxRootProxy(GameObject target, string proxyName, Action action)
+        {
+            RectTransform rootRect = worldView.GameObject.transform as RectTransform;
+            RectTransform targetRect = target.transform as RectTransform;
+            if (rootRect == null || targetRect == null) return null;
+            Transform existing = rootRect.Find(proxyName);
+            GameObject proxy = existing != null
+                ? existing.gameObject
+                : new GameObject(proxyName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            RectTransform proxyRect = proxy.GetComponent<RectTransform>();
+            proxyRect.SetParent(rootRect, false);
+            proxyRect.anchorMin = proxyRect.anchorMax = new Vector2(.5f, .5f);
+            proxyRect.pivot = new Vector2(.5f, .5f);
+            proxyRect.localScale = Vector3.one;
+            proxy.SetActive(true);
+            Canvas.ForceUpdateCanvases();
+            Vector3[] corners = new Vector3[4];
+            targetRect.GetWorldCorners(corners);
+            Vector3 localBottomLeft = rootRect.InverseTransformPoint(corners[0]);
+            Vector3 localTopRight = rootRect.InverseTransformPoint(corners[2]);
+            proxyRect.sizeDelta = new Vector2(Mathf.Abs(localTopRight.x - localBottomLeft.x),
+                Mathf.Abs(localTopRight.y - localBottomLeft.y));
+            proxyRect.position = targetRect.TransformPoint(targetRect.rect.center);
+            Image image = proxy.GetComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, .01f);
+            image.raycastTarget = true;
+            image.canvasRenderer.cullTransparentMesh = false;
+            image.enabled = false;
+            image.enabled = true;
+            image.SetAllDirty();
+            Canvas canvas = image.canvas;
+            if (canvas != null)
+            {
+                GraphicRegistry.RegisterGraphicForCanvas(canvas, image);
+                GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);
+            }
+            Button button = proxy.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.interactable = true;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+            proxy.transform.SetAsLastSibling();
+            return button;
         }
 
         private void ShowWorldNormalBox(WorldStageRecord stage)
@@ -13349,12 +15207,36 @@ namespace ProjectX.Core
             if (title != null) title.text = "关卡宝箱";
             Text hint = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Image_bg/Text_2")?.GetComponent<Text>();
             if (hint != null) hint.text = claimable ? $"{stage.Name} 宝箱可领取" : claimed ? "该宝箱已领取" : $"通关 {stage.Name} 后可领取";
+            WorldVisualCatalog.TryGetBoxRewards(stage.RewardBoxId, out WorldConfiguredReward[] configuredRewards);
+            configuredRewards = configuredRewards ?? Array.Empty<WorldConfiguredReward>();
+            for (int index = 0; index < 4; index++)
+            {
+                string root = $"Layer/Cangbaotu/bg/Image_bg/IconList/Icon_Bg{index + 1}";
+                GameObject slot = worldBoxAwardView.Binding.Find(root);
+                bool active = slot != null && index < configuredRewards.Length;
+                if (slot != null) slot.SetActive(active);
+                if (!active) continue;
+                RewardRecord reward = DescribeWorldConfiguredReward(configuredRewards[index]);
+                Text name = worldBoxAwardView.Binding.Find(root + "/Name")?.GetComponent<Text>();
+                if (name != null) name.text = reward.Name;
+                RenderWorldRewardIcon(worldBoxAwardView.Binding.Find(root + "/IconBg")?.transform, reward);
+            }
             GameObject claim = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Button");
             GameObject close = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/ButtonOwn");
             if (claim != null) claim.SetActive(claimable);
             if (close != null) close.SetActive(!claimable);
+            Text claimText = claim?.GetComponentInChildren<Text>(true);
+            Text closeText = close?.GetComponentInChildren<Text>(true);
+            if (claimText != null) claimText.text = "领取";
+            if (closeText != null) closeText.text = "关闭";
             worldBoxAwardView.GameObject.SetActive(true);
             worldBoxAwardView.GameObject.transform.SetAsLastSibling();
+            SetWorldBoxRootProxiesVisible(false);
+            // The imported dialog is normally inactive while its bindings are
+            // prepared. Re-register its Graphics after activation so the
+            // player-facing confirmation participates in GraphicRaycaster.
+            RefreshWorldBoxButtonBindings();
+            Canvas.ForceUpdateCanvases();
         }
 
         private void ClaimSelectedWorldBox()
@@ -13372,6 +15254,303 @@ namespace ProjectX.Core
         private void HideWorldBoxAward()
         {
             if (worldBoxAwardView != null) worldBoxAwardView.GameObject.SetActive(false);
+            SetWorldBoxRootProxiesVisible(false);
+        }
+
+        private void SetWorldBoxRootProxiesVisible(bool visible)
+        {
+            if (worldBoxClaimInteractionButton != null) worldBoxClaimInteractionButton.gameObject.SetActive(visible);
+            if (worldBoxCloseInteractionButton != null) worldBoxCloseInteractionButton.gameObject.SetActive(visible);
+            if (worldBoxTitleCloseInteractionButton != null) worldBoxTitleCloseInteractionButton.gameObject.SetActive(visible);
+        }
+
+        private RewardRecord DescribeWorldConfiguredReward(WorldConfiguredReward configured)
+        {
+            uint amount = checked((uint)Math.Max(0, configured.Amount));
+            if (configured.Type == 60005)
+            {
+                EquipmentDefinition equipment = services.EquipmentCatalog.GetEquipment(configured.Id);
+                return new RewardRecord(configured.Type, checked((uint)Math.Max(0, configured.Id)), amount,
+                    equipment.Name, 0, equipment.Quality);
+            }
+            return services.ShopCatalog.DescribeReward(configured.Type, configured.Id, amount);
+        }
+
+        private void RenderWorldRewardIcon(Transform host, RewardRecord reward)
+        {
+            if (host == null) return;
+            Image frame = host.GetComponent<Image>();
+            if (frame != null)
+            {
+                frame.sprite = services.Resources.LoadFirst(
+                    $"HeroUI/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}");
+                frame.enabled = frame.sprite != null;
+            }
+            Transform existing = host.Find("RuntimeIcon");
+            GameObject iconObject = existing != null ? existing.gameObject
+                : new GameObject("RuntimeIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+            iconRect.SetParent(host, false);
+            iconRect.anchorMin = new Vector2(.12f, .14f);
+            iconRect.anchorMax = new Vector2(.88f, .92f);
+            iconRect.offsetMin = iconRect.offsetMax = Vector2.zero;
+            Image icon = iconObject.GetComponent<Image>();
+            icon.sprite = reward.Type == 60005
+                ? services.Resources.LoadEquipmentIcon(services.EquipmentCatalog.GetEquipment(checked((int)reward.Id)).Picture)
+                : services.ShopCatalog.IsCocosHeroSoul(reward.Type)
+                    ? services.Resources.LoadHeroPortrait(reward.Picture)
+                    : reward.Picture > 0 ? services.Resources.LoadItemIcon(reward.Picture) : null;
+            icon.enabled = icon.sprite != null;
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            Transform amountExisting = host.Find("RuntimeAmount");
+            Text amount;
+            if (amountExisting == null)
+            {
+                GameObject amountObject = new GameObject("RuntimeAmount", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+                RectTransform amountRect = amountObject.GetComponent<RectTransform>();
+                amountRect.SetParent(host, false);
+                amountRect.anchorMin = new Vector2(.45f, 0f);
+                amountRect.anchorMax = new Vector2(1f, .32f);
+                amountRect.offsetMin = amountRect.offsetMax = Vector2.zero;
+                amount = amountObject.GetComponent<Text>();
+                amount.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                amount.fontSize = 18;
+                amount.alignment = TextAnchor.MiddleRight;
+                amount.color = Color.white;
+            }
+            else amount = amountExisting.GetComponent<Text>();
+            if (amount != null) amount.text = reward.Amount.ToString();
+        }
+
+        private void ShowWorldAchievement()
+        {
+            EnsureWorldAchievementView();
+            AttachWorldAchievementToWorldRoot();
+            worldAchievementAuthoritativeResponse = false;
+            worldAchievementView.GameObject.SetActive(true);
+            worldAchievementView.GameObject.transform.SetAsLastSibling();
+            RectTransform content = worldAchievementView.Binding.Find(
+                "Layer/zhuxianchengjiu_layer")?.transform as RectTransform;
+            if (content != null) content.anchoredPosition = Vector2.zero;
+            CocosTimelinePlayer timeline = worldAchievementView.GameObject.GetComponent<CocosTimelinePlayer>();
+            if (timeline != null && timeline.Duration > 0)
+                timeline.Play("animation1", false);
+            if (worldAchievementLayoutCoroutine != null)
+                StopCoroutine(worldAchievementLayoutCoroutine);
+            worldAchievementLayoutCoroutine = StartCoroutine(FitWorldAchievementAfterOpen(timeline));
+            RenderWorldAchievement();
+            InvokeLuaOrFail(onWorldAchievementRequest, "World.AchievementRequest");
+        }
+
+        private void EnsureWorldAchievementView()
+        {
+            EnsureWorldPresenter();
+            worldAchievementView = worldAchievementView ?? services.UiRouter.FindBySource("fuben/zhuxianchengjiu");
+            if (worldAchievementView == null)
+                throw new InvalidOperationException("World achievement imported CocosUiBinding was not found.");
+            AttachWorldAchievementToWorldRoot();
+            GameObject mask = worldAchievementView.Binding.Find("Layer/Mask");
+            if (mask != null)
+            {
+                mask.SetActive(true);
+                RectTransform maskRect = mask.transform as RectTransform;
+                if (maskRect != null)
+                {
+                    maskRect.anchorMin = Vector2.zero;
+                    maskRect.anchorMax = Vector2.one;
+                    maskRect.offsetMin = Vector2.zero;
+                    maskRect.offsetMax = Vector2.zero;
+                }
+                mask.transform.SetAsFirstSibling();
+                BindWorldAchievementButton("Layer/Mask", () => worldAchievementView.SetVisible(false));
+            }
+            BindWorldAchievementButton("Layer/zhuxianchengjiu_layer/Btn_Close", () => worldAchievementView.SetVisible(false));
+            for (int index = 1; index <= 6; index++)
+            {
+                int claimIndex = index;
+                BindWorldAchievementButton(
+                    $"Layer/zhuxianchengjiu_layer/jiangli_layer/Item_layer/Item{index}",
+                    () => ClaimWorldAchievement(claimIndex));
+            }
+        }
+
+        private void AttachWorldAchievementToWorldRoot()
+        {
+            worldAchievementView.GameObject.transform.SetParent(worldView.GameObject.transform, false);
+            RectTransform rect = worldAchievementView.GameObject.transform as RectTransform;
+            if (rect == null) return;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(.5f, .5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = Vector2.zero;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localRotation = Quaternion.identity;
+            rect.localScale = Vector3.one;
+        }
+
+        private IEnumerator FitWorldAchievementAfterOpen(CocosTimelinePlayer timeline)
+        {
+            float deadline = Time.realtimeSinceStartup + 2f;
+            while (timeline?.IsPlaying == true && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            yield return new WaitForEndOfFrame();
+            FitWorldAchievementToScreen();
+            worldAchievementLayoutCoroutine = null;
+        }
+
+        private void FitWorldAchievementToScreen()
+        {
+            RectTransform root = worldAchievementView?.GameObject.transform as RectTransform;
+            RectTransform content = worldAchievementView?.Binding.Find(
+                "Layer/zhuxianchengjiu_layer")?.transform as RectTransform;
+            if (root == null || content == null) return;
+            Canvas.ForceUpdateCanvases();
+            Bounds bounds = RectTransformUtility.CalculateRelativeRectTransformBounds(root, content);
+            Rect available = root.rect;
+            float x = bounds.size.x > available.width
+                ? available.center.x - bounds.center.x
+                : Mathf.Clamp(0f, available.xMin - bounds.min.x, available.xMax - bounds.max.x);
+            float y = bounds.size.y > available.height
+                ? available.yMax - 55f - bounds.max.y
+                : Mathf.Clamp(0f, available.yMin - bounds.min.y, available.yMax - bounds.max.y);
+            content.anchoredPosition += new Vector2(x, y);
+            RectTransform close = worldAchievementView.Binding.Find(
+                "Layer/zhuxianchengjiu_layer/Btn_Close")?.transform as RectTransform;
+            if (close != null)
+            {
+                close.SetParent(root, false);
+                close.anchorMin = close.anchorMax = new Vector2(.5f, 0f);
+                close.pivot = new Vector2(.5f, 0f);
+                close.anchoredPosition = new Vector2(0f, 16f);
+                close.sizeDelta = new Vector2(300f, 50f);
+                Image closeSurface = close.GetComponent<Image>();
+                if (closeSurface != null)
+                {
+                    Color color = closeSurface.color;
+                    color.a = .001f;
+                    closeSurface.color = color;
+                    closeSurface.raycastTarget = true;
+                    closeSurface.canvasRenderer.cullTransparentMesh = false;
+                }
+                CanvasGroup closeGroup = close.GetComponent<CanvasGroup>();
+                if (closeGroup != null) closeGroup.alpha = 1f;
+                Text closeLabel = close.GetComponentInChildren<Text>(true);
+                if (closeLabel != null)
+                {
+                    closeLabel.text = "点击屏幕关闭";
+                    Color labelColor = closeLabel.color;
+                    labelColor.a = 1f;
+                    closeLabel.color = labelColor;
+                    closeLabel.raycastTarget = false;
+                }
+                close.SetAsLastSibling();
+            }
+            Canvas.ForceUpdateCanvases();
+        }
+
+        private void BindWorldAchievementButton(string path, Action action)
+        {
+            GameObject target = worldAchievementView.Binding.Find(path);
+            if (target == null) throw new InvalidOperationException($"World achievement control is missing: {path}");
+            Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
+            Graphic surface = target.GetComponent<Graphic>();
+            if (surface == null)
+            {
+                Image image = target.AddComponent<Image>();
+                image.color = new Color(1f, 1f, 1f, 0.001f);
+                surface = image;
+            }
+            surface.enabled = false;
+            surface.enabled = true;
+            surface.canvasRenderer.cullTransparentMesh = false;
+            if (surface.color.a <= 0f)
+                surface.color = new Color(surface.color.r, surface.color.g, surface.color.b, 0.001f);
+            surface.raycastTarget = true;
+            surface.SetAllDirty();
+            button.targetGraphic = surface;
+            button.interactable = true;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+        }
+
+        private void ClaimWorldAchievement(int index)
+        {
+            IReadOnlyList<WorldAchievementDefinition> values = WorldVisualCatalog.GetAchievements(worldAchievementType);
+            WorldAchievementDefinition achievement = index > 0 && index <= values.Count ? values[index - 1] : null;
+            int stars = services.World.Chapters.Sum(value => (int)value.OwnedStars);
+            bool claimed = (worldAchievementBitmap & (1 << index)) != 0;
+            if (achievement == null || claimed || stars < achievement.Condition) return;
+            InvokeLuaOrFail(onWorldAchievementClaim, "World.AchievementClaim", index);
+        }
+
+        public void SetWorldAchievementState(double type, double bitmap)
+        {
+            worldAchievementType = checked((byte)Math.Max(1, (int)type));
+            worldAchievementBitmap = checked((byte)Math.Max(0, (int)bitmap));
+            worldAchievementAuthoritativeResponse = true;
+            RenderWorldAchievement();
+        }
+
+        public void ApplyWorldAchievementClaim(double index, double type, double bitmap, double rewardType, double amount)
+        {
+            SetWorldAchievementState(type, bitmap);
+            RewardRecord reward = services.ShopCatalog.DescribeReward(checked((int)rewardType), 0,
+                checked((uint)Math.Max(0, (long)amount)));
+            ShowToast($"已领取 {reward.Name} ×{reward.Amount}", 2f);
+        }
+
+        private void RenderWorldAchievement()
+        {
+            if (worldAchievementView == null) return;
+            IReadOnlyList<WorldAchievementDefinition> values = WorldVisualCatalog.GetAchievements(worldAchievementType);
+            int stars = services.World.Chapters.Sum(value => (int)value.OwnedStars);
+            int previousGoal = WorldVisualCatalog.GetAchievements(worldAchievementType - 1).LastOrDefault()?.Condition ?? 0;
+            int finalGoal = values.Count > 0 ? values[values.Count - 1].Condition : Math.Max(1, stars);
+            Text starText = worldAchievementView.Binding.Find(
+                "Layer/zhuxianchengjiu_layer/jiangli_layer/xing/xing_num")?.GetComponent<Text>();
+            if (starText != null) starText.text = $"{stars}/{finalGoal}";
+            Text goal = worldAchievementView.Binding.Find(
+                "Layer/zhuxianchengjiu_layer/jiangli_layer/yilingqu_0")?.GetComponent<Text>();
+            if (goal != null)
+            {
+                goal.gameObject.SetActive(stars < finalGoal);
+                goal.text = stars < finalGoal ? $"再获得 {finalGoal - stars} 星可完成本阶段" : string.Empty;
+            }
+            Image progress = worldAchievementView.Binding.Find(
+                "Layer/zhuxianchengjiu_layer/jiangli_layer/bar_layer/EXPBar")?.GetComponent<Image>();
+            if (progress != null)
+            {
+                progress.type = Image.Type.Filled;
+                progress.fillMethod = Image.FillMethod.Horizontal;
+                progress.fillOrigin = 0;
+                progress.fillAmount = finalGoal <= previousGoal ? 1f
+                    : Mathf.Clamp01((float)(stars - previousGoal) / (finalGoal - previousGoal));
+            }
+            for (int index = 1; index <= 6; index++)
+            {
+                string root = $"Layer/zhuxianchengjiu_layer/jiangli_layer/Item_layer/Item{index}";
+                GameObject slot = worldAchievementView.Binding.Find(root);
+                WorldAchievementDefinition achievement = index <= values.Count ? values[index - 1] : null;
+                if (slot != null) slot.SetActive(achievement != null);
+                if (achievement == null) continue;
+                bool claimed = (worldAchievementBitmap & (1 << index)) != 0;
+                bool claimable = !claimed && stars >= achievement.Condition;
+                Text condition = worldAchievementView.Binding.Find(root + "/xingshu_layer/Num")?.GetComponent<Text>();
+                if (condition != null) condition.text = achievement.Condition.ToString();
+                GameObject claimedObject = worldAchievementView.Binding.Find(root + "/yilingqu");
+                GameObject prompt = worldAchievementView.Binding.Find(root + "/Prompt");
+                GameObject particle = worldAchievementView.Binding.Find(root + "/Particle_1");
+                if (claimedObject != null) claimedObject.SetActive(claimed);
+                if (prompt != null) prompt.SetActive(claimable);
+                if (particle != null) particle.SetActive(claimable);
+                Button button = slot?.GetComponent<Button>();
+                if (button != null) button.interactable = claimable;
+                RenderWorldRewardIcon(worldAchievementView.Binding.Find(root + "/bg_icon")?.transform,
+                    DescribeWorldConfiguredReward(achievement.Reward));
+            }
         }
 
         private void EnsureWorldOutcomePresenter()
@@ -13380,22 +15559,50 @@ namespace ProjectX.Core
             worldSweepView = worldSweepView ?? services.UiRouter.FindBySource("fuben/saodangLayer");
             worldBattleResultView = worldBattleResultView ?? services.UiRouter.FindBySource("common/zhandoujiesuanLayer");
             worldBattleStatisticsView = worldBattleStatisticsView ?? services.UiRouter.FindBySource("common/zhandoutongji");
-            if (worldSweepView == null || worldBattleResultView == null || worldBattleStatisticsView == null)
+            CocosUiView statisticsFrameView = services.UiRouter.FindBySource("shop/shop_bg");
+            GameObject statisticsFrameTemplate = statisticsFrameView?.Binding.Find("Layer/shopBg");
+            if (worldSweepView == null || worldBattleResultView == null || worldBattleStatisticsView == null
+                || statisticsFrameTemplate == null)
                 throw new InvalidOperationException("World result CocosUiBindings were not found.");
             worldOutcomePresenter = worldOutcomePresenter ?? new WorldOutcomePresenter(worldView, worldSweepView,
-                worldBattleResultView, worldBattleStatisticsView, services.Rewards, services.Resources, services.Player,
+                worldBattleResultView, worldBattleStatisticsView, statisticsFrameTemplate,
+                services.Rewards, services.Resources, services.Player, services.Heroes,
+                services.WorldBattleReplay,
                 () => InvokeLuaOrFail(onWorldSweep, "World.SweepAgain"),
-                () => InvokeLuaOrFail(onWorldRefresh, "World.Continue"),
-                ReplayWorldBattleLocally,
+                ContinueBattleOutcomeControl,
+                ReplayBattleOutcomeControl,
                 ShowWorldBattleStatisticsUnavailable, ShowWorldBattleReviveUnavailable,
-                controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); });
+                controlId =>
+                {
+                    if (services.Options.WorldBattleValidation) MarkValidationControl(controlId);
+                });
         }
 
         private void EnsureWorldBattlePlaybackPresenter()
         {
             EnsureWorldPresenter();
+            Transform overlayParent = worldView.GameObject.transform.parent ?? worldView.GameObject.transform;
+            worldBattlePlaybackView = worldBattlePlaybackView
+                ?? UiPrefabLoader.Load("BattleFightLayer", overlayParent);
+            bool automatedBattleValidation = services.Options.BattleFengShenStoryValidation
+                || services.Options.WorldBattleValidation;
             worldBattlePlaybackPresenter = worldBattlePlaybackPresenter ?? new WorldBattlePlaybackPresenter(
-                worldView.GameObject.transform, services.WorldBattleReplay, services.Resources);
+                overlayParent, services.WorldBattleReplay, services.Resources, worldBattlePlaybackView,
+                message => ShowToast(message, 2f),
+                automatedBattleValidation ? null : (Func<int>)LoadWorldBattleSpeedStep,
+                automatedBattleValidation ? null : (Action<int>)SaveWorldBattleSpeedStep);
+        }
+
+        private string WorldBattleSpeedPreferenceKey()
+            => $"ProjectX.WorldBattle.SpeedStep.{services.Player.RoleId}";
+
+        private int LoadWorldBattleSpeedStep()
+            => Mathf.Clamp(PlayerPrefs.GetInt(WorldBattleSpeedPreferenceKey(), 0), 0, 5);
+
+        private void SaveWorldBattleSpeedStep(int value)
+        {
+            PlayerPrefs.SetInt(WorldBattleSpeedPreferenceKey(), Mathf.Clamp(value, 0, 5));
+            PlayerPrefs.Save();
         }
 
         private void EnsureWelfarePresenter()
@@ -13446,8 +15653,7 @@ namespace ProjectX.Core
             }, true);
             drawView.BindClick("Layer/GoldCheck/GoldIcon2/AddBtn", () =>
             {
-                EnsureErrorPresenter();
-                errorPresenter.ShowHelp("高级招募券兑换入口当前不可用，请通过将魂商店获取。");
+                HandleCommerceRoute(15);
             }, true);
             drawView.BindClick("Layer/GoldCheck/GoldIcon3/AddBtn", () =>
             {
@@ -13462,14 +15668,7 @@ namespace ProjectX.Core
             }, true);
             drawView.BindClick("Layer/Shop", () =>
             {
-                if (services.GameplayCatalog.Find(15) == null)
-                {
-                    EnsureErrorPresenter();
-                    errorPresenter.ShowHelp("将魂商店将在玩法商店模块完成后开放。");
-                    SetStatus("Draw soul shop unavailable: Gameplay route 15 is not migrated.");
-                    return;
-                }
-                InvokeLuaOrFail(onGameplayEntered, "Draw.SoulShop", 15d);
+                HandleCommerceRoute(15);
             }, true);
             drawView.BindClick("Layer/Title/TitleName/Button_1", () =>
             {
@@ -13508,18 +15707,34 @@ namespace ProjectX.Core
             rewardView = rewardView ?? services.UiRouter.FindBySource("common/tanchuangjiangli");
             heroItemSourceView = heroItemSourceView ?? services.UiRouter.FindBySource("common/huoqutujing");
             EnsureErrorPresenter();
+            EnsureRewardPresenter();
             if (fengShenStoryView == null || fengShenStoryLevelView == null || rewardView == null
                 || heroItemSourceView == null || errorPresenter == null)
                 throw new InvalidOperationException("Current FengShenStory imported main/level CocosUiBindings were not found.");
             CocosUiView firstClassFrame = services.UiRouter.FindBySource("OneLevelLayer");
             GameObject commonHeaderTemplate = firstClassFrame?.Binding.Find("Layer/Panel_12/Title");
+            GameObject commonCurrencyTemplate = firstClassFrame?.Binding.Find("Layer/GoldCheck");
             fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
-                fengShenStoryView, fengShenStoryLevelView, services.FengShenStory, services.Resources,
-                errorPresenter, heroItemSourceView, rewardView, commonHeaderTemplate,
+                fengShenStoryView, fengShenStoryLevelView,
+                () => services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel"),
+                services.FengShenStory, services.Currencies,
+                services.Resources, errorPresenter, heroItemSourceView, rewardView, rewardPresenter,
+                commonHeaderTemplate, commonCurrencyTemplate,
                 () => HandleBack(),
                 () => InvokeLuaOrFail(onFengShenStoryChallengeClicked, "FengShenStory.Challenge"),
                 () => { SetStatus("FengShenStory -> Formation boundary"); ShowFormationPopup(); },
-                functionId => { lastGameplayBoundaryId = functionId; SetStatus($"FengShenStory item source boundary -> function_id={functionId}"); });
+                functionId =>
+                {
+                    lastGameplayBoundaryId = functionId;
+                    fengShenStoryPresenter?.CloseModal();
+                    HandleCommerceRoute(functionId);
+                },
+                () => SetStatus("FengShenStory stamina boundary -> UseItemUI(500,1)"),
+                () =>
+                {
+                    lastGameplayBoundaryId = 13;
+                    HandleCommerceRoute(13);
+                });
         }
 
         private void EnsureArenaPresenter(){arenaView=arenaView??services.UiRouter.FindBySource("common/JingjiLayer");if(arenaView==null)throw new InvalidOperationException("Current Arena imported CocosUiBinding was not found: common/JingjiLayer.");arenaPresenter=arenaPresenter??new ArenaPresenter(arenaView,services.Arena,()=>HandleBack());}
@@ -13528,9 +15743,22 @@ namespace ProjectX.Core
 
         private void EnsureBloodFightPresenter(){bloodFightView=bloodFightView??services.UiRouter.FindBySource("xuezhan/XuezhanMain");if(bloodFightView==null)throw new InvalidOperationException("Current BloodFight imported CocosUiBinding was not found: xuezhan/XuezhanMain.");bloodFightPresenter=bloodFightPresenter??new BloodFightPresenter(bloodFightView,services.BloodFight,()=>HandleBack());}
 
-        private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,services.Resources,()=>HandleBack(),(faBao,sui)=>InvokeLuaOrFail(onXunBaoSearch,"XunBao.Search",(double)faBao,(double)sui),(faBao,auto)=>InvokeLuaOrFail(onXunBaoSearchAll,"XunBao.SearchAll",(double)faBao,(double)auto),faBao=>InvokeLuaOrFail(onXunBaoCompose,"XunBao.Compose",(double)faBao),()=>InvokeLuaOrFail(onXunBaoComposeAll,"XunBao.ComposeAll"));}
+        private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,services.Bag,services.Resources,()=>HandleBack(),(faBao,sui)=>InvokeLuaOrFail(onXunBaoSearch,"XunBao.Search",(double)faBao,(double)sui),(faBao,auto)=>InvokeLuaOrFail(onXunBaoSearchAll,"XunBao.SearchAll",(double)faBao,(double)auto),faBao=>InvokeLuaOrFail(onXunBaoCompose,"XunBao.Compose",(double)faBao),()=>InvokeLuaOrFail(onXunBaoComposeAll,"XunBao.ComposeAll"),OpenXunBaoSearchTokenBag);}
 
-        private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,services.Currencies,services.GameplayShops,RequestSevenDayClaim,RequestSevenDayGo,SelectSevenDayDay,SelectSevenDayCategory,ShowSevenDayItemDetail,RequestSevenDayDiscountBuy,()=>{lastSevenDayBoundary="stamina-add";SetStatus("SevenDay stamina boundary -> UseItemUI(500,1)");},()=>{lastSevenDayBoundary="gold-add";SetStatus("SevenDay gold boundary -> common shop");},()=>HandleBack());}
+        private void OpenXunBaoSearchTokenBag()
+        {
+            services.XunBao.SetOperationResult(false, "搜索次数不足，请在背包使用搜宝令");
+            EnsureBagPresenter();
+            ConfigureBagFrame();
+            bagFrameView.SetVisible(true);
+            if (services.UiStack.Current != bagView) services.UiStack.Push(bagView);
+            bagFrameView.GameObject.transform.SetAsLastSibling();
+            bagView.GameObject.transform.SetAsLastSibling();
+            if (!bagPresenter.SelectItem(402))
+                SetStatus("XunBao search token item 402 is not available in the authoritative bag.");
+        }
+
+        private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,services.Currencies,services.GameplayShops,RequestSevenDayClaim,RequestSevenDayGo,SelectSevenDayDay,SelectSevenDayCategory,ShowSevenDayItemDetail,RequestSevenDayDiscountBuy,()=>{lastSevenDayBoundary="stamina-add";SetStatus("SevenDay stamina boundary -> UseItemUI(500,1)");},()=>{lastSevenDayBoundary="gold-add";HandleCommerceRoute(13);},()=>HandleBack());}
         private void EnsureWelfareActivityFramePresenter()
         {
             taskBackgroundView = taskBackgroundView ?? services.UiRouter.FindBySource("huodong/huodong_bg");

@@ -10,7 +10,7 @@ namespace ProjectX.UI
 {
     public sealed class GameplayShopsPresenter : IDisposable
     {
-        private static readonly byte[] AllTypes = { 2, 3, 4, 5, 6, 7, 8, 23, 25, 26, 27, 28 };
+        private static readonly byte[] AllTypes = { 2 };
         private static readonly byte[][] Groups =
         {
             new byte[] { 3, 4 },
@@ -41,6 +41,7 @@ namespace ProjectX.UI
         private readonly Action<byte, ushort, int> purchase;
         private readonly Action requestRefresh;
         private readonly Action<ShopRecord> showDetail;
+        private readonly Action showSoulDetail;
         private readonly Action<string> showMessage;
         private readonly Action close;
         private readonly Func<int> getPlayerLevel;
@@ -52,13 +53,14 @@ namespace ProjectX.UI
         private byte selectedType = 2;
         private int renderedCount;
         private int missingIconCount;
+        private float nextCountdownRenderAt;
 
         public GameplayShopsPresenter(CocosUiView soulView, CocosUiView multiView,
             GameplayShopStore store, CurrencyStore currencies, ShopCatalog catalog, BagStore bag,
             ResourceService resources,
             ServerTimeService serverTime, Action<byte> requestPage,
             Action<byte, ushort, int> purchase, Action requestRefresh,
-            Action<ShopRecord> showDetail, Action<string> showMessage,
+            Action<ShopRecord> showDetail, Action showSoulDetail, Action<string> showMessage,
             Action close, Func<int> getPlayerLevel)
         {
             this.soulView = soulView ?? throw new ArgumentNullException(nameof(soulView));
@@ -73,6 +75,7 @@ namespace ProjectX.UI
             this.purchase = purchase ?? throw new ArgumentNullException(nameof(purchase));
             this.requestRefresh = requestRefresh ?? throw new ArgumentNullException(nameof(requestRefresh));
             this.showDetail = showDetail ?? throw new ArgumentNullException(nameof(showDetail));
+            this.showSoulDetail = showSoulDetail ?? throw new ArgumentNullException(nameof(showSoulDetail));
             this.showMessage = showMessage ?? throw new ArgumentNullException(nameof(showMessage));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.getPlayerLevel = getPlayerLevel ?? throw new ArgumentNullException(nameof(getPlayerLevel));
@@ -98,6 +101,19 @@ namespace ProjectX.UI
         public bool IsBuyDialogVisible => buyDialog.IsVisible;
         public int BuyDialogQuantity => buyDialog.Quantity;
         public int SelectedGroupIndex => GroupIndex(selectedType);
+
+        public void Tick()
+        {
+            if (selectedType != 2 || !soulView.GameObject.activeInHierarchy
+                || Time.unscaledTime < nextCountdownRenderAt) return;
+            nextCountdownRenderAt = Time.unscaledTime + 0.25f;
+            GameplayShopPage page = PageOrNull(2);
+            Transform countdown = soulView.GameObject.transform.Find(
+                "ShopUI/jianghunShop/Panel_1/freetimes/cd");
+            bool showCountdown = page != null && page.RefreshDeadlineUnix > 0;
+            SetVisible(countdown, showCountdown);
+            if (showCountdown) SetText(countdown, "Value", FormatRemaining(page));
+        }
 
         public void ShowFunction(int id)
         {
@@ -277,6 +293,7 @@ namespace ProjectX.UI
             if (cell == null) return;
             cell.gameObject.SetActive(item != null);
             if (item == null) return;
+            ConfigureSoulCellBackground(cell);
             renderedCount++;
             SetText(cell, "Name", item.Name);
             SetText(cell, "buy/Value", item.UnitCost.ToString());
@@ -287,7 +304,7 @@ namespace ProjectX.UI
             SetVisible(cell.Find("buy"), !item.IsSoldOut);
             Transform iconHost = cell.Find("bg_icon");
             Image icon = BindItemVisual(iconHost, item, true);
-            BindButton(iconHost?.gameObject, () => showDetail(item), !item.IsSoldOut);
+            BindButton(iconHost?.gameObject, () => showDetail(item), true);
             SetCurrencyIcon(cell.Find("buy/Icon")?.GetComponent<Image>(), item.CostPicture);
             BindButton(cell.Find("buy")?.gameObject, () => purchase(2, item.Id, 1), !item.IsSoldOut);
         }
@@ -426,8 +443,7 @@ namespace ProjectX.UI
         {
             Transform root = soulView.GameObject.transform;
             BindButton(root.Find("ShopUI/jianghunShop/Panel_1/btn_Refresh")?.gameObject, requestRefresh, true);
-            BindButton(root.Find("ShopUI/Mine/yuanbao/AddBtn")?.gameObject,
-                () => showMessage("充值功能不属于本模块"), true);
+            BindButton(root.Find("ShopUI/Mine/jianghun/add")?.gameObject, showSoulDetail, true);
         }
 
         private void ConfigureMultiScroll(out ScrollRect scroll, out RectTransform content)
@@ -505,15 +521,19 @@ namespace ProjectX.UI
             return 0;
         }
 
-        private void SetIcon(Image image, ShopRecord item)
+        private bool SetIcon(Image image, ShopRecord item)
         {
-            if (image == null || item == null) return;
+            if (image == null || item == null) return false;
             bool placeholder = true;
-            Sprite sprite = item.Picture > 0 ? resources.LoadItemIcon(item.Picture, out placeholder) : null;
+            bool usesItemIcon = false;
+            Sprite sprite = item.Picture > 0
+                ? resources.LoadGameplayShopIcon(item.Picture, out usesItemIcon, out placeholder)
+                : null;
             if (sprite == null || placeholder) missingIconCount++;
             image.sprite = sprite;
             image.enabled = sprite != null;
             image.preserveAspect = true;
+            return usesItemIcon;
         }
 
         private void SetCurrencyIcon(Image image, int picture)
@@ -548,12 +568,12 @@ namespace ProjectX.UI
 
             Image icon = EnsureRuntimeImage(host, "GameplayShopIconRuntime",
                 new Vector2(0.04f, 0.04f), new Vector2(0.96f, 0.96f));
-            SetIcon(icon, item);
+            bool usesItemIcon = SetIcon(icon, item);
             icon.raycastTarget = false;
             icon.transform.SetAsLastSibling();
 
             Image shard = EnsureRuntimeShard(host);
-            bool showShard = catalog.IsShard(item.RewardType);
+            bool showShard = catalog.IsShard(item.RewardType) && !usesItemIcon;
             shard.gameObject.SetActive(showShard);
             if (showShard)
             {
@@ -567,6 +587,24 @@ namespace ProjectX.UI
             quantity.gameObject.SetActive(item.RewardAmount > 0);
             quantity.transform.SetAsLastSibling();
             return icon;
+        }
+
+        private static void ConfigureSoulCellBackground(Transform cell)
+        {
+            Image background = cell.GetComponent<Image>();
+            if (background != null)
+            {
+                background.enabled = background.sprite != null;
+                background.type = Image.Type.Sliced;
+                background.preserveAspect = false;
+                background.color = Color.white;
+            }
+            Button button = cell.GetComponent<Button>();
+            if (button != null)
+            {
+                button.transition = Selectable.Transition.None;
+                button.interactable = false;
+            }
         }
 
         private static Image EnsureRuntimeImage(Transform parent, string name,
