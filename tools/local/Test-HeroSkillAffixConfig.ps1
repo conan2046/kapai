@@ -1,4 +1,4 @@
-param([string]$Root = "")
+param([string]$Root = "", [string]$LuaExecutable = "")
 
 $ErrorActionPreference = "Stop"
 if (-not $Root) { $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path }
@@ -95,4 +95,5 @@ foreach ($tag in @("SHIELD", "HEAL", "GUARD", "COUNTER", "CRIT", "COMBO", "BREAK
     Assert-True ($unityUi.Contains("case `"$tag`"")) "Unity recommendation mapping is missing tag $tag."
 }
 
-Write-Host "PASS hero-skill-affix config: roles=$($roles.Count), affixes=$($affixes.Count), runtimeEnabled=$($runtimeEnabled.Count), passiveSkills=48, clients=2, s7=lock+reroll+recommendation+rage-log"
+& (Join-Path $PSScriptRoot 'Test-HeroBuildRecommendation.ps1') -Root $Root -LuaExecutable $LuaExecutable
+Write-Host "PASS hero-skill-affix config: roles=$($roles.Count), affixes=$($affixes.Count), runtimeEnabled=$($runtimeEnabled.Count), passiveSkills=48, clients=2, s7=lock+reroll+recommendation+rage-log, s8=build-profiles"

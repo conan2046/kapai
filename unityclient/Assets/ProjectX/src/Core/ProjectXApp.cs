@@ -12503,6 +12503,8 @@ namespace ProjectX.Core
                 (uid, targetLevel) => InvokeLuaOrFail(onFaBaoRefine, "FaBao.Refine", (double)uid, targetLevel),
                 ConfigureHeroEquipmentCultivationFrame,
                 () => services.Player.Level,
+                position => position > 0 && position <= services.Formation.DisplayHeroes.Count
+                    ? services.Formation.DisplayHeroes[position - 1] : 0,
                 message =>
                 {
                     SetStatus(message);

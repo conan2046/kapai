@@ -1,5 +1,6 @@
 local EquipInfoUI = LUIBase:New()
 EquipInfoUI.__index = EquipInfoUI
+local HeroBuildRecommendation = require("Data.HeroBuildRecommendation")
 
 local function GetAffixBuildRecommendation(key)
     local prefix = string.match(key or "", "^([A-Z]+)") or ""
@@ -63,11 +64,13 @@ function EquipInfoUI:RegistMsgs()
 end
 
 function EquipInfoUI:ProcessEvent(msg)
-    if msg.msgId ~= LUIPetEvent.GotPetEquip then return end
+    if msg.msgId ~= LUIPetEvent.GotPetEquip or self.m_heroPos > 0 then return end
     local equips = LRoleDataMgr.Pet.equipList and LRoleDataMgr.Pet.equipList.m_petEquips
     self.m_info = equips and equips[self.m_uid] or self.m_info
+    self.m_fpos = self.m_info and self.m_info.m_fpos or 0
     self:RefreshAffixDescription()
     self:RefreshAffixActions()
+    self:RefreshBuildRecommendation()
 end
 
 function EquipInfoUI:InitData()
@@ -169,6 +172,14 @@ function EquipInfoUI:InitData()
 
     self.m_descNode = right:getChildByName("zhuangbeimiaoshu")
     self.m_descLabel = self.m_descNode:getChildByName("Content")
+
+    self.m_buildRecommendationNode = ccui.Layout:create()
+    self.m_buildRecommendationLabel = ccui.Text:create("", self.m_descLabel:getFontName(), 20)
+    self.m_buildRecommendationLabel:setColor(cc.c3b(120, 84, 60))
+    self.m_buildRecommendationLabel:setAnchorPoint(cc.p(0, 1))
+    self.m_buildRecommendationLabel:ignoreContentAdaptWithSize(true)
+    self.m_buildRecommendationLabel:setTextAreaSize(cc.size(410, 0))
+    self.m_buildRecommendationNode:addChild(self.m_buildRecommendationLabel)
 
     self.m_affixActionNode = ccui.Layout:create()
     self.m_affixActionNode:setContentSize(cc.size(440, 72))
@@ -598,7 +609,7 @@ function EquipInfoUI:RefreshAffixDescription()
         return
     end
     local desc = self.m_cfgData.des or ""
-    if self.m_info.specialAffixId ~= nil and self.m_info.specialAffixId > 0 then
+    if self.m_info ~= nil and (self.m_info.specialAffixId or 0) > 0 then
         local tierName = ({"T1", "T2", "T3"})[self.m_info.specialAffixTier] or "T?"
         local lockText = bit.band(self.m_info.affixLockMask or 0, 1) ~= 0 and "已锁定" or "未锁定"
         local affixText = string.format("[特殊词条·%s·%s] %s\n%s\n推荐：%s", tierName, lockText,
@@ -621,11 +632,38 @@ function EquipInfoUI:RefreshAffixActions()
         (locked and baseCost * 2 or baseCost) / 10000))
 end
 
+function EquipInfoUI:RefreshBuildRecommendation()
+    local visible = self.m_info ~= nil and (self.m_info.specialAffixId or 0) > 0
+    self.m_buildRecommendationNode:setVisible(visible)
+    if not visible then
+        self.m_buildRecommendationNode:setContentSize(cc.size(440, 0))
+        self.m_listView:forceDoLayout()
+        return
+    end
+    -- Equipment uses display formation slots. Do not use GetPetByFightPos: it
+    -- silently returns the first hero for an empty position or stale formation.
+    local heroId = 0
+    if self.m_heroPos == 0 and self.m_fpos > 0 then
+        heroId = (LRoleDataMgr.Pet.ShowPosList or {})[self.m_fpos] or 0
+    end
+    self.m_buildRecommendationLabel:setString(
+        HeroBuildRecommendation.Describe(heroId, self.m_info.specialAffixKey))
+    local height = math.max(60, self.m_buildRecommendationLabel:getVirtualRendererSize().height + 20)
+    self.m_buildRecommendationNode:setContentSize(cc.size(440, height))
+    self.m_buildRecommendationLabel:setPosition(cc.p(15, height - 10))
+    self.m_listView:forceDoLayout()
+end
+
 function EquipInfoUI:ShowDesc()
     self:RefreshAffixDescription()
     self.m_descNode:retain()
     self.m_descNode:removeFromParent()
     self.m_listView:pushBackCustomItem(self.m_descNode)
+    self.m_buildRecommendationNode:retain()
+    self.m_buildRecommendationNode:removeFromParent()
+    self.m_listView:pushBackCustomItem(self.m_buildRecommendationNode)
+    self.m_buildRecommendationNode:release()
+    self:RefreshBuildRecommendation()
     self:RefreshAffixActions()
     self.m_affixActionNode:retain()
     self.m_affixActionNode:removeFromParent()

@@ -81,6 +81,8 @@ namespace ProjectX.UI
         private readonly Action<uint, int> refineFaBao;
         private readonly Action<int, HeroEquipmentKind> showCultivationFrame;
         private readonly Func<int> getPlayerLevel;
+        private readonly Func<int, int> getHeroAtDisplayPosition;
+        private Text buildRecommendationText;
         private readonly Action<string> showFeedback;
         private readonly VirtualList<DisplayPair> list;
         private readonly VirtualList<DisplayPair> changeList;
@@ -140,7 +142,7 @@ namespace ProjectX.UI
             Action<uint, int> wearFaBao, Action<uint> takeOffFaBao,
             Action<uint, uint[]> strengthFaBao, Action<uint, int> refineFaBao,
             Action<int, HeroEquipmentKind> showCultivationFrame,
-            Func<int> getPlayerLevel, Action<string> showFeedback)
+            Func<int> getPlayerLevel, Func<int, int> getHeroAtDisplayPosition, Action<string> showFeedback)
         {
             this.listView = listView ?? throw new ArgumentNullException(nameof(listView));
             this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
@@ -168,6 +170,7 @@ namespace ProjectX.UI
             this.takeOffEquipment = takeOffEquipment;
             this.toggleAffixLock = toggleAffixLock;
             this.rerollAffix = rerollAffix;
+            this.getHeroAtDisplayPosition = getHeroAtDisplayPosition;
             this.strengthEquipment = strengthEquipment;
             this.strengthFiveEquipment = strengthFiveEquipment;
             this.strengthAllEquipment = strengthAllEquipment;
@@ -258,6 +261,7 @@ namespace ProjectX.UI
             });
             ConfigureCultivationButtons();
             ConfigureDetailListLayout();
+            ConfigureBuildRecommendation();
             ConfigureAffixActions();
             ConfigureSecondaryControls();
             ConfigureCultivationEffects();
@@ -557,6 +561,7 @@ namespace ProjectX.UI
                     $"\n<color=#4F8FBC>推荐：{AffixBuildRecommendation(affix.Key)}</color>";
             }
             detailDescription.text = description;
+            RefreshBuildRecommendation(item);
             bool hasAffixActions = item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
             affixActionRow.SetActive(hasAffixActions);
             if (hasAffixActions)
@@ -1806,6 +1811,45 @@ namespace ProjectX.UI
                 scroll.horizontal = false;
                 scroll.vertical = true;
             }
+        }
+
+        private void ConfigureBuildRecommendation()
+        {
+            Transform content = detailView.GameObject.GetComponentsInChildren<Transform>(true)
+                .First(value => value.name == "RuntimeDetailContent");
+            Transform existing = content.Find("RuntimeBuildRecommendation");
+            GameObject row = existing != null ? existing.gameObject
+                : new GameObject("RuntimeBuildRecommendation", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+            RectTransform rect = row.GetComponent<RectTransform>();
+            rect.SetParent(content, false);
+            rect.sizeDelta = new Vector2(410f, 60f);
+            buildRecommendationText = row.GetComponent<Text>();
+            buildRecommendationText.font = detailDescription.font;
+            buildRecommendationText.fontSize = 20;
+            buildRecommendationText.color = new Color32(120, 84, 60, 255);
+            buildRecommendationText.alignment = TextAnchor.UpperLeft;
+            buildRecommendationText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            buildRecommendationText.verticalOverflow = VerticalWrapMode.Overflow;
+            buildRecommendationText.raycastTarget = false;
+            row.SetActive(false);
+        }
+
+        private void RefreshBuildRecommendation(DisplayRecord item)
+        {
+            bool visible = item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
+            buildRecommendationText.gameObject.SetActive(visible);
+            if (!visible) return;
+            int heroId = item.FormationPosition > 0
+                ? getHeroAtDisplayPosition?.Invoke(item.FormationPosition) ?? 0 : 0;
+            buildRecommendationText.text = HeroBuildRecommendation.Describe(
+                HeroBuildProfileCatalog.Profiles, heroId, item.Equipment.Affix.Key);
+            float height = Mathf.Max(60f, buildRecommendationText.preferredHeight + 20f);
+            buildRecommendationText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+            LayoutElement element = buildRecommendationText.GetComponent<LayoutElement>();
+            element.preferredWidth = 410f;
+            element.preferredHeight = height;
+            LayoutRebuilder.MarkLayoutForRebuild(buildRecommendationText.rectTransform.parent as RectTransform);
         }
 
         private void ConfigureAffixActions()
