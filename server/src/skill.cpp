@@ -3,6 +3,8 @@
 #include "utility.h"
 #include <math.h>
 #include <algorithm>
+#include <fstream>
+#include "rapidjson/document.h"
 
 int SSkillEffectCfg::GetEffectId()
 {
@@ -146,7 +148,69 @@ bool CSkillMgr::Init()
 	m_zhongduBuffs.push_back(ESBUFF_ShiXinDu);
 	m_zhongduBuffs.push_back(ESBUFF_ShiDu);
 	m_zhongduBuffs.push_back(ESBUFF_FuDu);
+	return InitHeroSkillRoleCfg();
+}
+
+bool CSkillMgr::InitHeroSkillRoleCfg()
+{
+	const string fileName = "./json/hero_skill_role.json";
+	std::ifstream f(fileName.c_str());
+	if (!f.is_open())
+	{
+		cout << "CSkillMgr::InitHeroSkillRoleCfg >> open file error: " << fileName << endl;
+		return false;
+	}
+	std::string jsonStr((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+	f.close();
+	rapidjson::Document d;
+	if (d.Parse(jsonStr.c_str()).HasParseError() || !d.IsArray())
+	{
+		cout << "CSkillMgr::InitHeroSkillRoleCfg >> invalid JSON array" << endl;
+		return false;
+	}
+	m_heroSkillRoles.clear();
+	for (rapidjson::SizeType i = 0; i < d.Size(); ++i)
+	{
+		const rapidjson::Value& row = d[i];
+		const char* required[] = { "hero_id", "regular_skill_id", "tactic_skill_id", "tactic_cost", "build_a", "build_b" };
+		for (size_t k = 0; k < sizeof(required) / sizeof(required[0]); ++k)
+		{
+			if (!row.HasMember(required[k]))
+			{
+				cout << "CSkillMgr::InitHeroSkillRoleCfg >> missing " << required[k] << " at row " << i << endl;
+				return false;
+			}
+		}
+		HeroSkillRoleCfg cfg;
+		cfg.heroId = row["hero_id"].GetInt();
+		cfg.regularSkillId = row["regular_skill_id"].GetInt();
+		cfg.tacticSkillId = row["tactic_skill_id"].GetInt();
+		cfg.tacticCost = row["tactic_cost"].GetInt();
+		cfg.buildA = row["build_a"].GetString();
+		cfg.buildB = row["build_b"].GetString();
+		if (cfg.heroId == 0 || cfg.regularSkillId == 0 || cfg.tacticSkillId == 0
+			|| cfg.tacticCost < 20 || cfg.tacticCost > 100
+			|| GetSkillCfg(cfg.regularSkillId) == NULL || GetSkillCfg(cfg.tacticSkillId) == NULL
+			|| m_heroSkillRoles.find(cfg.heroId) != m_heroSkillRoles.end())
+		{
+			cout << "CSkillMgr::InitHeroSkillRoleCfg >> invalid/duplicate row " << i << endl;
+			return false;
+		}
+		m_heroSkillRoles[cfg.heroId] = cfg;
+	}
+	if (m_heroSkillRoles.size() != 59)
+	{
+		cout << "CSkillMgr::InitHeroSkillRoleCfg >> expected 59 rows, got " << m_heroSkillRoles.size() << endl;
+		return false;
+	}
+	cout << "hero_skill_role.json >> loaded 59 hero role mappings" << endl;
 	return true;
+}
+
+HeroSkillRoleCfg* CSkillMgr::GetHeroSkillRoleCfg(uint16 heroId)
+{
+	HeroSkillRoleCfgMap::iterator it = m_heroSkillRoles.find(heroId);
+	return it == m_heroSkillRoles.end() ? NULL : &it->second;
 }
 
 SSkillCfgData *CSkillMgr::GetSkillCfg(int skillId)

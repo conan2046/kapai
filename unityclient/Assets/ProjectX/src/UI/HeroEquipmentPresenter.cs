@@ -66,6 +66,8 @@ namespace ProjectX.UI
         private readonly Core.ResourceService resources;
         private readonly Action<uint, int> wearEquipment;
         private readonly Action<uint, int> takeOffEquipment;
+        private readonly Action<uint> toggleAffixLock;
+        private readonly Action<uint> rerollAffix;
         private readonly Action<uint> strengthEquipment;
         private readonly Action<uint> strengthFiveEquipment;
         private readonly Action<int> strengthAllEquipment;
@@ -79,6 +81,8 @@ namespace ProjectX.UI
         private readonly Action<uint, int> refineFaBao;
         private readonly Action<int, HeroEquipmentKind> showCultivationFrame;
         private readonly Func<int> getPlayerLevel;
+        private readonly Func<int, int> getHeroAtDisplayPosition;
+        private Text buildRecommendationText;
         private readonly Action<string> showFeedback;
         private readonly VirtualList<DisplayPair> list;
         private readonly VirtualList<DisplayPair> changeList;
@@ -100,6 +104,9 @@ namespace ProjectX.UI
         private readonly Button refineOnceButton;
         private readonly Button awakenOnceButton;
         private readonly Button divineOnceButton;
+        private GameObject affixActionRow;
+        private Button affixLockButton;
+        private Button affixRerollButton;
         private readonly List<DisplayRecord> items = new List<DisplayRecord>();
         private readonly List<DisplayPair> rows = new List<DisplayPair>();
         private readonly List<ImodAnimationPlayer> cultivationEffects = new List<ImodAnimationPlayer>();
@@ -128,13 +135,14 @@ namespace ProjectX.UI
             HeroEquipmentStore equipment, FaBaoStore faBao, BagStore bag,
             EquipmentCatalog catalog, CurrencyStore currencies, Core.ResourceService resources,
             Action<uint, int> wearEquipment, Action<uint, int> takeOffEquipment,
+            Action<uint> toggleAffixLock, Action<uint> rerollAffix,
             Action<uint> strengthEquipment, Action<uint> strengthFiveEquipment, Action<int> strengthAllEquipment,
             Action<uint, int, int> refineEquipment, Action<uint, int[], int[]> autoRefineEquipment,
             Action<uint> awakenEquipment, Action<uint> divineEquipment,
             Action<uint, int> wearFaBao, Action<uint> takeOffFaBao,
             Action<uint, uint[]> strengthFaBao, Action<uint, int> refineFaBao,
             Action<int, HeroEquipmentKind> showCultivationFrame,
-            Func<int> getPlayerLevel, Action<string> showFeedback)
+            Func<int> getPlayerLevel, Func<int, int> getHeroAtDisplayPosition, Action<string> showFeedback)
         {
             this.listView = listView ?? throw new ArgumentNullException(nameof(listView));
             this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
@@ -160,6 +168,9 @@ namespace ProjectX.UI
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.wearEquipment = wearEquipment;
             this.takeOffEquipment = takeOffEquipment;
+            this.toggleAffixLock = toggleAffixLock;
+            this.rerollAffix = rerollAffix;
+            this.getHeroAtDisplayPosition = getHeroAtDisplayPosition;
             this.strengthEquipment = strengthEquipment;
             this.strengthFiveEquipment = strengthFiveEquipment;
             this.strengthAllEquipment = strengthAllEquipment;
@@ -250,6 +261,8 @@ namespace ProjectX.UI
             });
             ConfigureCultivationButtons();
             ConfigureDetailListLayout();
+            ConfigureBuildRecommendation();
+            ConfigureAffixActions();
             ConfigureSecondaryControls();
             ConfigureCultivationEffects();
 
@@ -537,9 +550,31 @@ namespace ProjectX.UI
             if (popupTitle != null)
                 popupTitle.text = item.Kind == HeroEquipmentKind.FaBao ? "法宝信息" : "装备信息";
             detailName.text = item.Definition.Name;
-            detailDescription.text = string.IsNullOrEmpty(item.Definition.Description)
+            string description = string.IsNullOrEmpty(item.Definition.Description)
                 ? $"模板：{item.Definition.Id}　品质：{item.Definition.Quality}　槽位：{item.Slot}"
                 : item.Definition.Description;
+            if (item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid)
+            {
+                HeroEquipmentAffix affix = item.Equipment.Affix;
+                string lockState = (affix.LockMask & 1) != 0 ? "已锁定" : "未锁定";
+                description += $"\n<color=#D56A30>[特殊词条·T{affix.Tier}·{lockState}] {affix.Name}</color>\n{affix.Description}" +
+                    $"\n<color=#4F8FBC>推荐：{AffixBuildRecommendation(affix.Key)}</color>";
+            }
+            detailDescription.text = description;
+            RefreshBuildRecommendation(item);
+            bool hasAffixActions = item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
+            affixActionRow.SetActive(hasAffixActions);
+            if (hasAffixActions)
+            {
+                bool locked = (item.Equipment.Affix.LockMask & 1) != 0;
+                int baseCost = item.Definition.Quality >= 7 ? 50000 : 30000;
+                SetRuntimeButtonLabel(affixLockButton, locked ? "解锁词条" : "锁定词条");
+                SetRuntimeButtonLabel(affixRerollButton, $"重铸 {(locked ? baseCost * 2 : baseCost) / 10000}万");
+                affixLockButton.onClick.RemoveAllListeners();
+                affixLockButton.onClick.AddListener(() => toggleAffixLock?.Invoke(item.Uid));
+                affixRerollButton.onClick.RemoveAllListeners();
+                affixRerollButton.onClick.AddListener(() => rerollAffix?.Invoke(item.Uid));
+            }
             int attrType = item.Kind == HeroEquipmentKind.Equipment
                 ? item.Equipment.BaseAttributeType
                 : item.Definition.BaseAttribute != null && item.Definition.BaseAttribute.Length > 0 ? item.Definition.BaseAttribute[0] : 0;
@@ -1775,6 +1810,130 @@ namespace ProjectX.UI
                 scroll.content = content;
                 scroll.horizontal = false;
                 scroll.vertical = true;
+            }
+        }
+
+        private void ConfigureBuildRecommendation()
+        {
+            Transform content = detailView.GameObject.GetComponentsInChildren<Transform>(true)
+                .First(value => value.name == "RuntimeDetailContent");
+            Transform existing = content.Find("RuntimeBuildRecommendation");
+            GameObject row = existing != null ? existing.gameObject
+                : new GameObject("RuntimeBuildRecommendation", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
+            RectTransform rect = row.GetComponent<RectTransform>();
+            rect.SetParent(content, false);
+            rect.sizeDelta = new Vector2(410f, 60f);
+            buildRecommendationText = row.GetComponent<Text>();
+            buildRecommendationText.font = detailDescription.font;
+            buildRecommendationText.fontSize = 20;
+            buildRecommendationText.color = new Color32(120, 84, 60, 255);
+            buildRecommendationText.alignment = TextAnchor.UpperLeft;
+            buildRecommendationText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            buildRecommendationText.verticalOverflow = VerticalWrapMode.Overflow;
+            buildRecommendationText.raycastTarget = false;
+            row.SetActive(false);
+        }
+
+        private void RefreshBuildRecommendation(DisplayRecord item)
+        {
+            bool visible = item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
+            buildRecommendationText.gameObject.SetActive(visible);
+            if (!visible) return;
+            int heroId = item.FormationPosition > 0
+                ? getHeroAtDisplayPosition?.Invoke(item.FormationPosition) ?? 0 : 0;
+            buildRecommendationText.text = HeroBuildRecommendation.Describe(
+                HeroBuildProfileCatalog.Profiles, heroId, item.Equipment.Affix.Key);
+            float height = Mathf.Max(60f, buildRecommendationText.preferredHeight + 20f);
+            buildRecommendationText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
+            LayoutElement element = buildRecommendationText.GetComponent<LayoutElement>();
+            element.preferredWidth = 410f;
+            element.preferredHeight = height;
+            LayoutRebuilder.MarkLayoutForRebuild(buildRecommendationText.rectTransform.parent as RectTransform);
+        }
+
+        private void ConfigureAffixActions()
+        {
+            Transform content = detailView.GameObject.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(value => value.name == "RuntimeDetailContent");
+            if (content == null) throw new InvalidOperationException("RuntimeDetailContent was not created.");
+            Transform existing = content.Find("RuntimeAffixActions");
+            affixActionRow = existing != null ? existing.gameObject
+                : new GameObject("RuntimeAffixActions", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+            RectTransform rect = affixActionRow.GetComponent<RectTransform>();
+            rect.SetParent(content, false);
+            rect.sizeDelta = new Vector2(440f, 72f);
+            LayoutElement element = affixActionRow.GetComponent<LayoutElement>();
+            element.preferredWidth = 440f;
+            element.preferredHeight = 72f;
+            HorizontalLayoutGroup layout = affixActionRow.GetComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(20, 20, 10, 10);
+            layout.spacing = 24f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            affixLockButton = EnsureRuntimeAffixButton(affixActionRow.transform, "AffixLockButton");
+            affixRerollButton = EnsureRuntimeAffixButton(affixActionRow.transform, "AffixRerollButton");
+            affixActionRow.SetActive(false);
+        }
+
+        private static Button EnsureRuntimeAffixButton(Transform parent, string name)
+        {
+            Transform existing = parent.Find(name);
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(LayoutElement));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.sizeDelta = new Vector2(185f, 52f);
+            LayoutElement element = value.GetComponent<LayoutElement>();
+            element.preferredWidth = 185f;
+            element.preferredHeight = 52f;
+            Image image = value.GetComponent<Image>();
+            image.color = new Color(0.95f, 0.63f, 0.25f, 1f);
+            Button button = value.GetComponent<Button>();
+            Transform labelTransform = value.transform.Find("Label");
+            GameObject labelObject = labelTransform != null ? labelTransform.gameObject
+                : new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.SetParent(value.transform, false);
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            Text label = labelObject.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 22;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = new Color(0.35f, 0.12f, 0.04f, 1f);
+            return button;
+        }
+
+        private static void SetRuntimeButtonLabel(Button button, string value)
+        {
+            Text label = button?.GetComponentInChildren<Text>(true);
+            if (label != null) label.text = value;
+        }
+
+        private static string AffixBuildRecommendation(string key)
+        {
+            string prefix = string.IsNullOrEmpty(key) ? string.Empty : key.Split('-')[0];
+            switch (prefix)
+            {
+                case "SHIELD": return "护盾守护流｜护盾、援护、减伤";
+                case "HEAL": return "治疗复苏流｜治疗、净化、复活";
+                case "GUARD": return "嘲讽承伤流｜前排坦克、援护";
+                case "COUNTER": return "反击荆棘流｜受击反打、分伤";
+                case "CRIT": return "暴击斩杀流｜单体爆发、收割";
+                case "COMBO": return "连击追击流｜普攻连段、追加行动";
+                case "BREAK": return "破盾破法流｜穿透、驱盾、法术爆发";
+                case "CONTROL": return "控制先手流｜眩晕、沉默、速度压制";
+                case "DOT": return "持续伤害流｜毒、灼烧、异常扩散";
+                case "DEBUFF": return "弱化禁疗流｜减益、禁疗、易伤";
+                case "DEATH": return "献祭召唤流｜死亡触发、召唤";
+                case "TACTIC": return "战意战法流｜战法循环、团队辅助";
+                default: return "通用构筑｜按神将技能标签搭配";
             }
         }
 

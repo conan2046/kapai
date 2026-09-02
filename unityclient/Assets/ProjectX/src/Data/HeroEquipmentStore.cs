@@ -17,11 +17,41 @@ namespace ProjectX.Data
         public int Level { get; }
     }
 
+    public readonly struct HeroEquipmentAffix
+    {
+        public HeroEquipmentAffix(uint seed, int id, int tier, int lockMask, string key, string name,
+            string description, int value1, int value2)
+        {
+            Seed = seed;
+            Id = id;
+            Tier = tier;
+            LockMask = lockMask;
+            Key = key ?? string.Empty;
+            Name = name ?? string.Empty;
+            Description = description ?? string.Empty;
+            Value1 = value1;
+            Value2 = value2;
+        }
+
+        public uint Seed { get; }
+        public int Id { get; }
+        public int Tier { get; }
+        public int LockMask { get; }
+        public string Key { get; }
+        public string Name { get; }
+        public string Description { get; }
+        public int Value1 { get; }
+        public int Value2 { get; }
+        public bool IsValid => Id > 0 && Tier > 0;
+        public static HeroEquipmentAffix None => default;
+    }
+
     public readonly struct HeroEquipmentRecord
     {
         public HeroEquipmentRecord(uint uid, int templateId, int formationPosition, uint experience,
             IReadOnlyList<CultivationLevel> cultivation, int baseAttributeType, uint baseAttributeValue,
-            int strengthAttributeType, uint strengthAttributeValue, EquipmentDefinition definition)
+            int strengthAttributeType, uint strengthAttributeValue, EquipmentDefinition definition,
+            HeroEquipmentAffix affix)
         {
             Uid = uid;
             TemplateId = templateId;
@@ -33,6 +63,7 @@ namespace ProjectX.Data
             StrengthAttributeType = strengthAttributeType;
             StrengthAttributeValue = strengthAttributeValue;
             Definition = definition ?? EquipmentDefinition.Missing(templateId, HeroEquipmentKind.Equipment);
+            Affix = affix;
         }
 
         public uint Uid { get; }
@@ -46,11 +77,12 @@ namespace ProjectX.Data
         public int StrengthAttributeType { get; }
         public uint StrengthAttributeValue { get; }
         public EquipmentDefinition Definition { get; }
+        public HeroEquipmentAffix Affix { get; }
         public int GetLevel(int type) => Cultivation.FirstOrDefault(item => item.Type == type).Level;
 
         public HeroEquipmentRecord WithFormation(int formationPosition)
             => new HeroEquipmentRecord(Uid, TemplateId, formationPosition, Experience, Cultivation,
-                BaseAttributeType, BaseAttributeValue, StrengthAttributeType, StrengthAttributeValue, Definition);
+                BaseAttributeType, BaseAttributeValue, StrengthAttributeType, StrengthAttributeValue, Definition, Affix);
     }
 
     public readonly struct FaBaoRecord

@@ -77,6 +77,8 @@ namespace ProjectX.Core
         private LuaFunction onEquipmentBagClicked;
         private LuaFunction onFaBaoBagClicked;
         private LuaFunction onHeroEquipmentTakeOff;
+        private LuaFunction onHeroEquipmentAffixLock;
+        private LuaFunction onHeroEquipmentAffixReroll;
         private LuaFunction onHeroEquipmentStrength;
         private LuaFunction onHeroEquipmentStrengthAll;
         private LuaFunction onHeroEquipmentRefine;
@@ -310,6 +312,7 @@ namespace ProjectX.Core
         private uint pendingEquipmentBaseAttributeValue;
         private int pendingEquipmentStrengthAttributeType;
         private uint pendingEquipmentStrengthAttributeValue;
+        private HeroEquipmentAffix pendingEquipmentAffix;
         private int pendingFaBaoSlot;
         private CocosUiView settingsView;
         private SettingsPresenter settingsPresenter;
@@ -808,6 +811,8 @@ namespace ProjectX.Core
                 onEquipmentBagClicked = services.Lua.GetFunction("OnEquipmentBagClicked");
                 onFaBaoBagClicked = services.Lua.GetFunction("OnFaBaoBagClicked");
                 onHeroEquipmentTakeOff = services.Lua.GetFunction("OnHeroEquipmentTakeOff");
+                onHeroEquipmentAffixLock = services.Lua.GetFunction("OnHeroEquipmentAffixLock");
+                onHeroEquipmentAffixReroll = services.Lua.GetFunction("OnHeroEquipmentAffixReroll");
                 onHeroEquipmentStrength = services.Lua.GetFunction("OnHeroEquipmentStrength");
                 onHeroEquipmentStrengthAll = services.Lua.GetFunction("OnHeroEquipmentStrengthAll");
                 onHeroEquipmentRefine = services.Lua.GetFunction("OnHeroEquipmentRefine");
@@ -980,6 +985,8 @@ namespace ProjectX.Core
             onEquipmentBagClicked?.Dispose();
             onFaBaoBagClicked?.Dispose();
             onHeroEquipmentTakeOff?.Dispose();
+            onHeroEquipmentAffixLock?.Dispose();
+            onHeroEquipmentAffixReroll?.Dispose();
             onHeroEquipmentStrength?.Dispose();
             onHeroEquipmentStrengthAll?.Dispose();
             onHeroEquipmentRefine?.Dispose();
@@ -8186,7 +8193,15 @@ namespace ProjectX.Core
             pendingEquipmentBaseAttributeValue = checked((uint)baseAttributeValue);
             pendingEquipmentStrengthAttributeType = strengthAttributeType;
             pendingEquipmentStrengthAttributeValue = checked((uint)strengthAttributeValue);
+            pendingEquipmentAffix = HeroEquipmentAffix.None;
             pendingCultivation.Clear();
+        }
+
+        public void SetPendingHeroEquipmentAffix(double seed, int id, int tier, int lockMask,
+            string key, string name, string description, int value1, int value2)
+        {
+            pendingEquipmentAffix = new HeroEquipmentAffix(checked((uint)seed), id, tier, lockMask,
+                key, name, description, value1, value2);
         }
 
         public void AddHeroEquipmentCultivation(int type, int level)
@@ -8198,7 +8213,7 @@ namespace ProjectX.Core
                 pendingEquipmentFormationPosition, pendingEquipmentExperience, pendingCultivation.ToArray(),
                 pendingEquipmentBaseAttributeType, pendingEquipmentBaseAttributeValue,
                 pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
-                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
+                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId), pendingEquipmentAffix));
         }
 
         public void EndHeroEquipmentUpdate() => services.HeroEquipment.Replace(pendingHeroEquipment);
@@ -8209,7 +8224,7 @@ namespace ProjectX.Core
                 pendingEquipmentFormationPosition, pendingEquipmentExperience, pendingCultivation.ToArray(),
                 pendingEquipmentBaseAttributeType, pendingEquipmentBaseAttributeValue,
                 pendingEquipmentStrengthAttributeType, pendingEquipmentStrengthAttributeValue,
-                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId)));
+                services.EquipmentCatalog.GetEquipment(pendingEquipmentTemplateId), pendingEquipmentAffix));
         }
 
         public void NotifyHeroEquipmentCultivationSuccess(int operation)
@@ -14154,6 +14169,8 @@ namespace ProjectX.Core
                 services.HeroEquipment, services.FaBao, services.Bag, services.EquipmentCatalog, services.Currencies, services.Resources,
                 (uid, position) => InvokeLuaOrFail(onHeroEquipmentWear, "HeroEquipment.Wear", (double)uid, position),
                 (uid, position) => InvokeLuaOrFail(onHeroEquipmentTakeOff, "HeroEquipment.TakeOff", (double)uid, position),
+                uid => InvokeLuaOrFail(onHeroEquipmentAffixLock, "HeroEquipment.AffixLock", (double)uid),
+                uid => InvokeLuaOrFail(onHeroEquipmentAffixReroll, "HeroEquipment.AffixReroll", (double)uid),
                 uid => InvokeLuaOrFail(onHeroEquipmentStrength, "HeroEquipment.Strength", (double)uid),
                 uid => InvokeLuaOrFail(onHeroEquipmentStrength, "HeroEquipment.StrengthFive", (double)uid, 1),
                 position => InvokeLuaOrFail(onHeroEquipmentStrengthAll, "HeroEquipment.StrengthAll", position),
@@ -14178,6 +14195,8 @@ namespace ProjectX.Core
                 (uid, targetLevel) => InvokeLuaOrFail(onFaBaoRefine, "FaBao.Refine", (double)uid, targetLevel),
                 ConfigureHeroEquipmentCultivationFrame,
                 () => services.Player.Level,
+                position => position > 0 && position <= services.Formation.DisplayHeroes.Count
+                    ? services.Formation.DisplayHeroes[position - 1] : 0,
                 message =>
                 {
                     SetStatus(message);

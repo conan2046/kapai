@@ -5929,6 +5929,16 @@ function LuaNetSendMsg:SendPetEquipWearReq(op,uid,fPos)
     self:SendMsg(self.m_pStream)
 end
 
+-- 锁定/解锁装备特殊词条（op=41）或重铸特殊词条（op=42）。
+function LuaNetSendMsg:SendPetEquipAffixOperateReq(op, uid)
+    if (op ~= 41 and op ~= 42) or uid == nil or uid < 1 then return end
+    self:ResetStream()
+    self.m_pStream:WriteUShort(LuaNetCmd.MGS_PETEQUIP_BAG)
+    self.m_pStream:WriteByte(op)
+    self.m_pStream:WriteUInt(uid)
+    self:SendMsg(self.m_pStream)
+end
+
 --[[
 神将装备合成
 @param1:id 装备碎片ID

@@ -1,5 +1,25 @@
 local EquipInfoUI = LUIBase:New()
 EquipInfoUI.__index = EquipInfoUI
+local HeroBuildRecommendation = require("Data.HeroBuildRecommendation")
+
+local function GetAffixBuildRecommendation(key)
+    local prefix = string.match(key or "", "^([A-Z]+)") or ""
+    local builds = {
+        SHIELD = "护盾守护流｜适合护盾、援护与减伤神将",
+        HEAL = "治疗复苏流｜适合治疗、净化与复活神将",
+        GUARD = "嘲讽承伤流｜适合前排坦克与援护神将",
+        COUNTER = "反击荆棘流｜适合受击反打与分伤神将",
+        CRIT = "暴击斩杀流｜适合单体爆发与收割神将",
+        COMBO = "连击追击流｜适合普攻连段与追加行动神将",
+        BREAK = "破盾破法流｜适合穿透、驱盾与法术爆发神将",
+        CONTROL = "控制先手流｜适合眩晕、沉默与速度压制神将",
+        DOT = "持续伤害流｜适合毒、灼烧与异常扩散神将",
+        DEBUFF = "弱化禁疗流｜适合减益、禁疗与易伤神将",
+        DEATH = "献祭召唤流｜适合死亡触发与召唤神将",
+        TACTIC = "战意战法流｜适合战法循环与团队辅助神将",
+    }
+    return builds[prefix] or "通用构筑｜根据神将技能标签搭配"
+end
 
 function EquipInfoUI:New(userdata)
     local o = LUIBase:New()
@@ -31,10 +51,26 @@ function EquipInfoUI:Init(userdata)
     end
     self.m_pUILayer:registerScriptHandler(onNodeEvent)
     self:InitData()
+	self:RegistMsgs()
     self:ShowLeftInfo()
     self:ShowRightInfo()
     self:RegisterGuide()
 	self:UpdateRedDotUI()
+end
+
+function EquipInfoUI:RegistMsgs()
+    self.msgIds = { LUIPetEvent.GotPetEquip }
+    self:RegistSelf(self, self.msgIds)
+end
+
+function EquipInfoUI:ProcessEvent(msg)
+    if msg.msgId ~= LUIPetEvent.GotPetEquip or self.m_heroPos > 0 then return end
+    local equips = LRoleDataMgr.Pet.equipList and LRoleDataMgr.Pet.equipList.m_petEquips
+    self.m_info = equips and equips[self.m_uid] or self.m_info
+    self.m_fpos = self.m_info and self.m_info.m_fpos or 0
+    self:RefreshAffixDescription()
+    self:RefreshAffixActions()
+    self:RefreshBuildRecommendation()
 end
 
 function EquipInfoUI:InitData()
@@ -136,6 +172,39 @@ function EquipInfoUI:InitData()
 
     self.m_descNode = right:getChildByName("zhuangbeimiaoshu")
     self.m_descLabel = self.m_descNode:getChildByName("Content")
+
+    self.m_buildRecommendationNode = ccui.Layout:create()
+    self.m_buildRecommendationLabel = ccui.Text:create("", self.m_descLabel:getFontName(), 20)
+    self.m_buildRecommendationLabel:setColor(cc.c3b(120, 84, 60))
+    self.m_buildRecommendationLabel:setAnchorPoint(cc.p(0, 1))
+    self.m_buildRecommendationLabel:ignoreContentAdaptWithSize(true)
+    self.m_buildRecommendationLabel:setTextAreaSize(cc.size(410, 0))
+    self.m_buildRecommendationNode:addChild(self.m_buildRecommendationLabel)
+
+    self.m_affixActionNode = ccui.Layout:create()
+    self.m_affixActionNode:setContentSize(cc.size(440, 72))
+    self.m_affixLockBtn = ccui.Button:create("res/UI/ui_common_new2/btn_4.png", "res/UI/ui_common_new2/btn_5.png")
+    self.m_affixLockBtn:setTitleFontSize(22)
+    self.m_affixLockBtn:setPosition(cc.p(110, 36))
+    self.m_affixLockBtn:addClickEventListener(function()
+        LuaNetSendMsg:SendPetEquipAffixOperateReq(41, self.m_uid)
+    end)
+    self.m_affixActionNode:addChild(self.m_affixLockBtn)
+    self.m_affixRerollBtn = ccui.Button:create("res/UI/ui_common_new2/btn_4.png", "res/UI/ui_common_new2/btn_5.png")
+    self.m_affixRerollBtn:setTitleFontSize(22)
+    self.m_affixRerollBtn:setPosition(cc.p(330, 36))
+    self.m_affixRerollBtn:addClickEventListener(function()
+        local locked = self.m_info ~= nil and bit.band(self.m_info.affixLockMask or 0, 1) ~= 0
+        local baseCost = self.m_cfgData ~= nil and self.m_cfgData.quality >= 7 and 50000 or 30000
+        local cost = locked and baseCost * 2 or baseCost
+        local text = locked
+            and string.format("锁定重铸将保留词条类型，只重置阶位，消耗%d金币。是否继续？", cost)
+            or string.format("重铸将重新随机词条类型与阶位，消耗%d金币。是否继续？", cost)
+        Utils:ShowDialogOKCancel(text, function()
+            LuaNetSendMsg:SendPetEquipAffixOperateReq(42, self.m_uid)
+        end)
+    end)
+    self.m_affixActionNode:addChild(self.m_affixRerollBtn)
 
     --数据
     if self.m_id > 0 then
@@ -535,14 +604,70 @@ function EquipInfoUI:GetSuitNum()
     return num
 end
 
-function EquipInfoUI:ShowDesc()
+function EquipInfoUI:RefreshAffixDescription()
     if self.m_cfgData == nil then
         return
     end
-    self.m_descLabel:setString(self.m_cfgData.des or "")
+    local desc = self.m_cfgData.des or ""
+    if self.m_info ~= nil and (self.m_info.specialAffixId or 0) > 0 then
+        local tierName = ({"T1", "T2", "T3"})[self.m_info.specialAffixTier] or "T?"
+        local lockText = bit.band(self.m_info.affixLockMask or 0, 1) ~= 0 and "已锁定" or "未锁定"
+        local affixText = string.format("[特殊词条·%s·%s] %s\n%s\n推荐：%s", tierName, lockText,
+            self.m_info.specialAffixName or "", self.m_info.specialAffixDesc or "",
+            GetAffixBuildRecommendation(self.m_info.specialAffixKey))
+        desc = (#desc > 0) and (desc .. "\n" .. affixText) or affixText
+    end
+    self.m_descLabel:setString(desc)
+end
+
+function EquipInfoUI:RefreshAffixActions()
+    if self.m_affixActionNode == nil or self.m_info == nil then return end
+    local visible = self.m_heroPos == 0 and (self.m_info.specialAffixId or 0) > 0
+    self.m_affixActionNode:setVisible(visible)
+    if not visible then return end
+    local locked = bit.band(self.m_info.affixLockMask or 0, 1) ~= 0
+    self.m_affixLockBtn:setTitleText(locked and "解锁词条" or "锁定词条")
+    local baseCost = self.m_cfgData ~= nil and self.m_cfgData.quality >= 7 and 50000 or 30000
+    self.m_affixRerollBtn:setTitleText(string.format("%s %d万", locked and "锁定重铸" or "重铸词条",
+        (locked and baseCost * 2 or baseCost) / 10000))
+end
+
+function EquipInfoUI:RefreshBuildRecommendation()
+    local visible = self.m_info ~= nil and (self.m_info.specialAffixId or 0) > 0
+    self.m_buildRecommendationNode:setVisible(visible)
+    if not visible then
+        self.m_buildRecommendationNode:setContentSize(cc.size(440, 0))
+        self.m_listView:forceDoLayout()
+        return
+    end
+    -- Equipment uses display formation slots. Do not use GetPetByFightPos: it
+    -- silently returns the first hero for an empty position or stale formation.
+    local heroId = 0
+    if self.m_heroPos == 0 and self.m_fpos > 0 then
+        heroId = (LRoleDataMgr.Pet.ShowPosList or {})[self.m_fpos] or 0
+    end
+    self.m_buildRecommendationLabel:setString(
+        HeroBuildRecommendation.Describe(heroId, self.m_info.specialAffixKey))
+    local height = math.max(60, self.m_buildRecommendationLabel:getVirtualRendererSize().height + 20)
+    self.m_buildRecommendationNode:setContentSize(cc.size(440, height))
+    self.m_buildRecommendationLabel:setPosition(cc.p(15, height - 10))
+    self.m_listView:forceDoLayout()
+end
+
+function EquipInfoUI:ShowDesc()
+    self:RefreshAffixDescription()
     self.m_descNode:retain()
     self.m_descNode:removeFromParent()
     self.m_listView:pushBackCustomItem(self.m_descNode)
+    self.m_buildRecommendationNode:retain()
+    self.m_buildRecommendationNode:removeFromParent()
+    self.m_listView:pushBackCustomItem(self.m_buildRecommendationNode)
+    self.m_buildRecommendationNode:release()
+    self:RefreshBuildRecommendation()
+    self:RefreshAffixActions()
+    self.m_affixActionNode:retain()
+    self.m_affixActionNode:removeFromParent()
+    self.m_listView:pushBackCustomItem(self.m_affixActionNode)
 end
 
 function EquipInfoUI:CloseUI()

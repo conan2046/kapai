@@ -800,7 +800,7 @@ private:
 
 	bool IsShieldBuff(uint16 buffId);
 	void ShieldAbsorptionDamage(uint8 pos, int &hp, int &absorptionHp);	// 盾吸收伤害
-	bool ShieldBrokenCheck(uint8 pos);
+	bool ShieldBrokenCheck(uint8 pos,uint8 src=0);
 
 	uint8 GetStateSrcPos(uint8 pos, uint16 buffId);
 	int GetStatePara1(uint8 pos,uint16 buffId);
@@ -813,9 +813,9 @@ private:
 	void ClearAdditiveSkillTurnData(uint8 pos);
 
 	void ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src);
-	void ClearRandomDeBuff(uint8 pos,uint16 buffNum);
+	void ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src=0);
 	void ClearMulBuff(uint8 pos,uint16 buffId,uint8 src);
-	void ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList=NULL);
+	void ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList=NULL,uint8 src=0);
 	void AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn=0, vector<int> *para=NULL);
 
 	void SetState(uint8 pos, int state);
@@ -836,6 +836,25 @@ private:
 	bool IsSameGroup(uint8 pos1,uint8 pos2);
 	void GetOption(uint8 pos,uint8 &option,int &para,uint8 &target);
 	uint16 GetUnitAISkillId(uint8 pos);
+	uint16 GetHeroId(uint8 pos);
+	bool IsRoleSkillUseful(uint8 pos,uint16 skillId);
+	int GetTeamRage(uint8 pos) const;
+	void AddTeamRage(uint8 pos,int value);
+	int GetTacticCost(uint8 pos,const HeroSkillRoleCfg &roleCfg);
+	int GetAffixTier(uint8 pos,uint16 affixId) const;
+	int GetAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex) const;
+	int GetTeamBestAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex);
+	bool TryTriggerAffix(uint8 pos,uint16 affixId);
+	bool IsAffixHardControl(uint16 buffId) const;
+	void AddAffixShield(uint8 src,uint8 target,int shieldHp,uint8 effectTurn,uint16 affixId);
+	void AddAffixHpAction(uint8 src,uint8 target,int hp,uint16 affixId,bool ignoreShield=false);
+	void OnAffixShieldLost(uint8 target,uint8 shieldSrc,int absorbedHp,bool broken);
+	void OnAffixBuffRemoved(uint8 target,uint8 remover,const SFightBuffData &data,bool expired);
+	void OnAffixControlResisted(uint8 src,uint8 target);
+	void OnAffixUnitDied(uint8 pos);
+	void ApplyAffixSummonBonus(uint8 pos);
+	void InitTeamRageFromAffixes();
+	void GrantDamageTakenRage(uint8 pos);
 	uint8 GetTarget(uint8 pos);
 	bool IsEmpty(uint8 pos)
 	{
@@ -1012,6 +1031,13 @@ private:
 		uint8 skill245UseNum;		
 		uint8 firstCartonType;	// 第一回合战斗动画特效
 		bool killUnit_ext_IsLimit;
+		bool rageDamagedThisAction;
+		bool affixSummoned;
+		uint8 affixTurnCount[49];
+		uint8 affixBattleCount[49];
+		int affixState[49];
+		int affixTurnValue[49];
+		uint16 affixTargetMask[49];
 
 		uint32 petOwner;		// 神将主人roleId		
 		int para;
@@ -1071,6 +1097,13 @@ private:
 			skill245UseNum = 0;		
 			firstCartonType = 0;
 			killUnit_ext_IsLimit = false;
+			rageDamagedThisAction = false;
+			affixSummoned = false;
+			memset(affixTurnCount,0,sizeof(affixTurnCount));
+			memset(affixBattleCount,0,sizeof(affixBattleCount));
+			memset(affixState,0,sizeof(affixState));
+			memset(affixTurnValue,0,sizeof(affixTurnValue));
+			memset(affixTargetMask,0,sizeof(affixTargetMask));
 			nextAITurn = 0;
 			srcHp = 0;
 			type = 0;
@@ -1389,6 +1422,8 @@ private:
 	int m_taskId;
 	int m_zhaoHuanTimes;
 	int m_fightTurn;	//战斗轮次
+	int m_teamRage[2];	// 神将战意，按双方独立结算，范围0~100
+	bool m_tacticUsedThisTurn[2];	// 战法释放后，本回合暂时关闭守势词条
 	int m_cfgFightId;	// 配置表fightId
 	uint32 m_id;
 	uint32 m_beginTurnMask;

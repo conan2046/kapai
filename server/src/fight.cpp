@@ -775,6 +775,10 @@ void CFight::Clear()
 	m_delNpcIndex = 0;
 	m_diaoxiangId = 0;
 	m_fightTurn = 0;
+	m_teamRage[0] = 0;
+	m_teamRage[1] = 0;
+	m_tacticUsedThisTurn[0] = false;
+	m_tacticUsedThisTurn[1] = false;
 	m_cfgFightId = 0;
 
 	m_qx_userPos = 0;
@@ -939,6 +943,8 @@ int CFight::GetUnitSpeed(uint8 pos)
 			int speed = m_members[pos-1].unitAttr.speed;
 			speed *= (1 + m_members[pos-1].unitAttr.speed_percent_fight/10000.0);
 			speed *= (1 - GetStatePara1(pos,ESBUFF_SpeedDes)/10000.0 + GetStatePara1(pos,ESBUFF_AddSpeed)/10000.0);
+			if(m_fightTurn < 2)
+				speed = speed * (10000 + GetAffixValue(pos,29,1)) / 10000;
 			return speed;
 		}
 	}
@@ -1890,6 +1896,7 @@ bool CFight::CalculateFanJiRatio(uint8 src,uint8 target,vector<SAttrData> &attrL
 		return false;
 	
 	int fanjiLv = pTarget->unitAttr.fanjiLv*(1 - GetAttrValue(attrList,EAT_FanJiLv)/10000.0) - pSrc->unitAttr.fanjikangLv + extFanJiLv;
+	fanjiLv += GetStatePara1(target,ESBUFF_FanZhengAllAdd);
 	int r = Random(1,10000);
 	if(r <= fanjiLv)
 		return true;
@@ -2114,7 +2121,7 @@ void CFight::ClearMulBuff(uint8 pos,uint16 buffId,uint8 src)
 		vector<SFightBuffData> dataList;
 		for(uint16 i=0; i < size; i++)
 		{
-			ClearBuff(pos, buffList[i], &dataList);
+			ClearBuff(pos, buffList[i], &dataList, src);
 		}
 		
 		if(buffId == ESBUFF_AllEnBuff && size > 0)
@@ -2129,7 +2136,7 @@ void CFight::ClearMulBuff(uint8 pos,uint16 buffId,uint8 src)
 	else
 	{
 		vector<SFightBuffData> dataList;
-		ClearBuff(pos, buffId, &dataList);
+		ClearBuff(pos, buffId, &dataList, src);
 		if(dataList.empty())
 			return;
 		int randIdx = Random(1, dataList.size()) - 1;
@@ -2147,7 +2154,7 @@ void CFight::ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src)
 
 	vector<int> buffPos;
 	vector<int> enbuff;
-	SingletonCSkillMgr::instance().GetDeBuffList(enbuff);
+	SingletonCSkillMgr::instance().GetEnBuffList(enbuff);
 	int idx = 0;
 	for(list<SFightBuffData>::iterator it = m_members[pos-1].buff_list.begin(); it != m_members[pos-1].buff_list.end(); it++)
 	{
@@ -2192,6 +2199,7 @@ void CFight::ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src)
 			list<SFightBuffData>::iterator del_it = it;
 			it++;
 			m_members[pos-1].buff_list.erase(del_it);
+			OnAffixBuffRemoved(pos,src,data,false);
 			if(stealBufIdx-1 == idx)	// 偷增益buff
 			{
 				StealBuff(src, data);
@@ -2205,7 +2213,7 @@ void CFight::ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src)
 	}
 }
 
-void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum)
+void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src)
 {
 	if(pos == 0 || pos > MAX_MEMBER || buffNum == 0)
 		return;
@@ -2252,10 +2260,12 @@ void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum)
 		if(isDel)
 		{
 			delNum++;
+			SFightBuffData data = *it;
 			SpecialBuffPassAttr(pos, it->id, false);	// 清除buff触发
 			list<SFightBuffData>::iterator del_it = it;
 			it++;
 			m_members[pos-1].buff_list.erase(del_it);
+			OnAffixBuffRemoved(pos,src,data,false);
 		}
 		else
 		{
@@ -2265,7 +2275,7 @@ void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum)
 	}
 }
 
-void CFight::ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList)
+void CFight::ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList,uint8 src)
 {
 	if(buffId == 0 || buffId >= ESBUFF_MAX)
 		return;
@@ -2277,10 +2287,12 @@ void CFight::ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataLis
 	if(HaveBuff(pos,buffId))
 		SpecialBuffPassAttr(pos,buffId,false);	// 清除
 
+	vector<SFightBuffData> removed;
 	for(list<SFightBuffData>::iterator it = m_members[pos-1].buff_list.begin(); it != m_members[pos-1].buff_list.end(); )
 	{
 		if(it->id == buffId)
 		{
+			removed.push_back(*it);
 			if(dataList != NULL)
 				dataList->push_back(*it);
 			
@@ -2291,6 +2303,8 @@ void CFight::ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataLis
 		}
 		it++;
 	}
+	for(uint16 i=0;i<removed.size();i++)
+		OnAffixBuffRemoved(pos,src,removed[i],false);
 }
 
 void CFight::SetState(uint8 pos, int state)
@@ -2366,6 +2380,9 @@ void CFight::AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn, vect
 		return;
 	if(pos == 0 || pos > MAX_MEMBER)
 		return;
+	if(IsAffixHardControl(buffId) && src > 0 && src <= MAX_MEMBER && GetAffixTier(src,30) > 0
+		&& Random(1,10000) <= GetAffixValue(src,30,1))
+		effectTurn += GetAffixValue(src,30,2) > 0 ? 1 : 0;
 	if(!HaveBuff(pos, buffId))
 		SpecialBuffPassAttr(pos, buffId, true);	// 添加buff时触发
 
@@ -2376,6 +2393,70 @@ void CFight::AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn, vect
 	if(para != NULL)
 		data.paraList = *para;
 	m_members[pos-1].buff_list.push_back(data);
+
+	if(IsShieldBuff(buffId) && pos == src && src <= MAX_MEMBER && para != NULL && !para->empty() && TryTriggerAffix(src,2))
+	{
+		uint8 members[GROUP_MEMBER];
+		uint8 num = 0;
+		GetMeGroupExceptSelf(src,members,num);
+		uint8 target = 0;
+		int bestRatio = 10001;
+		for(uint8 i=0;i<num;i++)
+		{
+			if(!IsAlive(members[i]) || GetMaxHp(members[i]) <= 0)
+				continue;
+			int ratio = (int)(GetHp(members[i]) * 10000 / GetMaxHp(members[i]));
+			if(ratio < bestRatio)
+			{
+				bestRatio = ratio;
+				target = members[i];
+			}
+		}
+		if(target > 0)
+			AddAffixShield(src,target,(*para)[0] * GetAffixValue(src,2,1) / 10000,effectTurn,2);
+	}
+	if(buffId == ESBUFF_ChaoFeng && src > 0 && src <= MAX_MEMBER && GetAffixTier(src,10) > 0)
+	{
+		int cap = (int)(GetMaxHp(src) * GetAffixValue(src,10,2) / 10000);
+		int heal = (int)(GetMaxHp(src) * GetAffixValue(src,10,1) / 10000);
+		if(m_members[src-1].affixTurnValue[10] + heal > cap)
+			heal = cap - m_members[src-1].affixTurnValue[10];
+		if(heal > 0)
+		{
+			m_members[src-1].affixTurnValue[10] += heal;
+			AddAffixHpAction(src,src,-heal,10,true);
+		}
+	}
+	if((buffId == ESBUFF_ShiXinDu || buffId == ESBUFF_ShiDu || buffId == ESBUFF_FuDu)
+		&& src > 0 && src <= MAX_MEMBER && GetAffixTier(src,33) > 0)
+	{
+		int poisonStacks = 0;
+		for(list<SFightBuffData>::const_iterator it=m_members[pos-1].buff_list.begin();it!=m_members[pos-1].buff_list.end();++it)
+			if(it->id == ESBUFF_ShiXinDu || it->id == ESBUFF_ShiDu || it->id == ESBUFF_FuDu)
+				poisonStacks++;
+		if(poisonStacks >= GetAffixValue(src,33,2) && TryTriggerAffix(src,33)
+			&& Random(1,10000) <= GetAffixValue(src,33,1))
+		{
+			uint8 enemies[GROUP_MEMBER];
+			uint8 num = 0;
+			GetAnotherGroup(src,enemies,num);
+			for(uint8 i=0;i<num;i++)
+			{
+				if(IsAlive(enemies[i]) && !HaveZhongDuState(enemies[i]))
+				{
+					AddBuff(enemies[i],src,buffId,effectTurn,para);
+					break;
+				}
+			}
+		}
+	}
+	if((buffId == ESBUFF_GetDamageAdd || buffId == ESBUFF_GetWuDamageAdd || buffId == ESBUFF_GetFaDamageAdd)
+		&& src > 0 && src <= MAX_MEMBER && GetAffixTier(src,38) > 0)
+	{
+		vector<int> defensePara(1,GetAffixValue(src,38,1));
+		uint16 defenseBuff = m_members[src-1].attackType == 1 ? ESBUFF_WuFangDes : ESBUFF_FaFangDes;
+		AddBuff(pos,src,defenseBuff,2,&defensePara);
+	}
 }
 
 bool CFight::IsShieldBuff(uint16 buffId)
@@ -2423,9 +2504,9 @@ void CFight::ShieldAbsorptionDamage(uint8 pos, int &hp, int &absorptionHp)
 				}
 				else
 				{
-					val = 0;
 					absorptionHp += val;
 					hp -= val;
+					val = 0;
 				}
 				it->paraList[0] = val;
 			}
@@ -2439,11 +2520,13 @@ void CFight::ShieldAbsorptionDamage(uint8 pos, int &hp, int &absorptionHp)
 	}
 }
 
-bool CFight::ShieldBrokenCheck(uint8 pos)
+bool CFight::ShieldBrokenCheck(uint8 pos,uint8 src)
 {
 	if(pos == 0 || pos > MAX_MEMBER)
 		return false;
 	bool ret = false;
+	bool actualBroken = false;
+	vector<SFightBuffData> removed;
 	for(list<SFightBuffData>::iterator it = m_members[pos-1].buff_list.begin(); it != m_members[pos-1].buff_list.end(); )
 	{
 		if(IsShieldBuff(it->id))
@@ -2453,11 +2536,14 @@ bool CFight::ShieldBrokenCheck(uint8 pos)
 				list<SFightBuffData>::iterator del_it = it;
 				it++;
 
-				int val = del_it->paraList[1];
+				SFightBuffData data = *del_it;
+				int val = data.paraList.size() > 1 ? data.paraList[1] : 0;
 				vector<ESkillTriggerType> trigger;
 				trigger.push_back(ESkill_Trigger_SelfShieldMiss);
 				int res = CalculatePassiveSkill_ExtUnitAndBuff(pos, 0, trigger, 0, 0, val);
 				m_members[pos-1].buff_list.erase(del_it);
+				removed.push_back(data);
+				actualBroken = true;
 				
 				if(res == 1)
 					ret = true;
@@ -2465,6 +2551,22 @@ bool CFight::ShieldBrokenCheck(uint8 pos)
 			}
 		}
 		it++;
+	}
+	for(uint16 i=0;i<removed.size();i++)
+	{
+		int original = removed[i].paraList.size() > 1 ? removed[i].paraList[1] : 0;
+		OnAffixShieldLost(pos,removed[i].srcPos,original,true);
+	}
+	if(actualBroken && src > 0)
+	{
+		int vulnerable = GetAffixValue(src,26,1);
+		if(vulnerable > 0)
+		{
+			vector<int> para(1,vulnerable);
+			AddBuff(pos,src,ESBUFF_GetDamageAdd,2,&para);
+		}
+		if(TryTriggerAffix(src,28))
+			AddTeamRage(src,GetAffixValue(src,28,1));
 	}
 	return ret;
 }
@@ -2558,6 +2660,7 @@ void CFight::DecAllStateEffectTurn(uint8 pos)
 {
 	if(pos == 0 || pos > MAX_MEMBER)
 		return;
+	vector<SFightBuffData> expired;
 	for(list<SFightBuffData>::iterator it = m_members[pos-1].buff_list.begin(); it != m_members[pos-1].buff_list.end(); )
 	{
 		it->leftTurn--;
@@ -2565,6 +2668,7 @@ void CFight::DecAllStateEffectTurn(uint8 pos)
 		{
 			// 清除buff
 			list<SFightBuffData>::iterator del_it = it;
+			SFightBuffData data = *del_it;
 			if(del_it->id == ESBUFF_ShieldMianShang || del_it->id == ESBUFF_Shield)
 			{
 				vector<ESkillTriggerType> shieldTrigger;
@@ -2578,12 +2682,15 @@ void CFight::DecAllStateEffectTurn(uint8 pos)
 
 			it++;
 			m_members[pos-1].buff_list.erase(del_it);
+			expired.push_back(data);
 		}
 		else
 		{
 			it++;
 		}
 	}
+	for(uint16 i=0;i<expired.size();i++)
+		OnAffixBuffRemoved(pos,0,expired[i],true);
 }
 
 void CFight::DecAllSkillCD(uint8 pos)
@@ -8162,6 +8269,7 @@ uint8 CFight::CalculateSkill_AddHp(uint8 src,uint16 skillId,int skillLevel)
 	for(int i=0;i < tarNum;i++)
 	{
 		uint8 tar = allTarget[i];
+		bool wasAlive = IsAlive(tar);
 		// 禁止复活
 		if(!IsAlive(tar) && HaveBuff(tar,ESBUFF_ForbidFuHuo))
 			continue;
@@ -8180,6 +8288,8 @@ uint8 CFight::CalculateSkill_AddHp(uint8 src,uint16 skillId,int skillLevel)
 		int addHpPer = GetAttrValue(attrData,ESkill_PassAttr_AddHpPer);
 		bool baoji = CalculateBaoJiRatio_AddHp(src,attrData);
 		int addHp = GetSkillAddHpValue(src,tar,skillId,skillLevel);
+		if(GetMaxHp(tar) > 0 && GetHp(tar) * 10000 / GetMaxHp(tar) < GetAffixValue(src,6,2))
+			addHp = addHp * (10000 + GetAffixValue(src,6,1)) / 10000;
 		if(baoji)
 		{
 			addHp = GetBaoJiDamage(src,addHp);
@@ -8194,6 +8304,28 @@ uint8 CFight::CalculateSkill_AddHp(uint8 src,uint16 skillId,int skillLevel)
 		int tempHp = sHp - GetHp(tar) - addHp;
 		if(tempHp > moreHp)
 			moreHp = tempHp;
+		if(tempHp > 0 && TryTriggerAffix(src,5))
+		{
+			int shieldHp = tempHp * GetAffixValue(src,5,1) / 10000;
+			int cap = (int)(GetMaxHp(tar) * GetAffixValue(src,5,2) / 10000);
+			if(cap > 0 && shieldHp > cap)
+				shieldHp = cap;
+			AddAffixShield(src,tar,shieldHp,2,5);
+		}
+		if(!wasAlive && IsAlive(tar) && TryTriggerAffix(src,8))
+		{
+			vector<int> guardPara(1,GetAffixValue(src,8,1));
+			AddBuff(tar,src,ESBUFF_MianShangTemp,1,&guardPara);
+		}
+		if(HaveBuff(tar,ESBUFF_JinLiaoShu))
+		{
+			uint8 antihealSrc = GetStateSrcPos(tar,ESBUFF_JinLiaoShu);
+			if(antihealSrc > 0 && TryTriggerAffix(antihealSrc,37))
+			{
+				vector<int> slowPara(1,GetAffixValue(antihealSrc,37,1));
+				AddBuff(tar,antihealSrc,ESBUFF_SpeedDes,1,&slowPara);
+			}
+		}
 		m_actionMsg<<tar<<(uint8)baoji<<-addHp;
 		MakeBuffList(tar,m_actionMsg);
 		num++;
@@ -9811,7 +9943,7 @@ void CFight::CalculatePassiveSkill_ActionBuff(uint8 src,uint8 target,const vecto
 									if(size < 2)
 										break;
 									int debuffNum = para[1];
-									ClearRandomDeBuff(tar,debuffNum);
+									ClearRandomDeBuff(tar,debuffNum,src);
 
 									addType = 2;
 									pos = tar;
@@ -9985,7 +10117,11 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 							if(pEffect->buffId == ESBUFF_ShiXinDu || pEffect->buffId == ESBUFF_ShiDu || pEffect->buffId == ESBUFF_FuDu)
 								deRatio -= GetStatePara1(tar,ESBUFF_ZhongDuKangAdd) + GetAttrValue(pOther->passive_attr,ESkill_Pass_AddZhongDuKang);
 							if(Random(1,10000) > deRatio) // 未生效
+							{
+								if(IsAffixHardControl(pEffect->buffId))
+									OnAffixControlResisted(src,tar);
 								continue;
+							}
 						}
 						
 						if(pEffect->buffId == ESBUFF_FanJian)
@@ -10121,7 +10257,7 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 										if(k >= maxTarNum)
 											break;
 										uint8 deBuffNum = para[2];
-										ClearRandomDeBuff(tar,deBuffNum);
+										ClearRandomDeBuff(tar,deBuffNum,src);
 
 										addType = 2;
 										pos = tar;
@@ -10133,7 +10269,7 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 									}
 									else if(additiveId == ESkill_Pass_ClearSpecOneBuff)
 									{
-										ClearBuff(tar,pEffect->buffId);
+										ClearBuff(tar,pEffect->buffId,NULL,src);
 
 										addType = 2;
 										pos = tar;
@@ -10156,7 +10292,7 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 										if(size < 2)
 											break;
 										int debuffNum = para[1];
-										ClearRandomDeBuff(tar,debuffNum);
+										ClearRandomDeBuff(tar,debuffNum,src);
 
 										addType = 2;
 										pos = tar;
@@ -10452,9 +10588,44 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		m_actionMsg<<(uint8)EHIT_ShanBi;
 		return 1;
 	}
+	int64 targetHpBefore = pTarget->hp;
+	if(GetAffixTier(src,18) > 0 && pSrc->affixState[18] > 0)
+		attrData.push_back(SAttrData(EAT_BaoJiLv,pSrc->affixState[18] * GetAffixValue(src,18,1)));
+
+	// V1特殊词条使用既有战斗属性通道，不改写技能/装备老协议。
+	// 猎命：低生命目标提高暴击率与暴击伤害。
+	if(pTarget->unitAttr.maxHp > 0 && pTarget->hp * 10000 / pTarget->unitAttr.maxHp < 3000)
+	{
+		int critRate = GetAffixValue(src,17,1);
+		int critDamage = GetAffixValue(src,17,2);
+		if(critRate > 0)
+			attrData.push_back(SAttrData(EAT_BaoJiLv,critRate));
+		if(critDamage > 0)
+			attrData.push_back(SAttrData(EAT_BaoJiAdd,critDamage));
+	}
+
+	// 趁虚而入：受控目标更易命中，伤害加成在基础伤害产生后结算。
+	bool targetControlled = HaveBuff(target,ESBUFF_ChaoFeng) || HaveBuff(target,ESBUFF_ChenMo)
+		|| HaveBuff(target,ESBUFF_FengYin) || HaveBuff(target,ESBUFF_HunShui)
+		|| HaveBuff(target,ESBUFF_HunLuan) || HaveBuff(target,ESBUFF_MeiHuo)
+		|| HaveBuff(target,ESBUFF_FanJian) || HaveBuff(target,ESBUFF_NOT_MOVE);
+	if(targetControlled)
+	{
+		int hitAdd = GetAffixValue(src,32,2);
+		if(hitAdd > 0)
+			attrData.push_back(SAttrData(EAT_MingZhongLv,hitAdd));
+	}
+	if(!firstAttack && !isFanji)
+	{
+		int chaseHit = GetAffixValue(src,22,1);
+		if(chaseHit > 0)
+			attrData.push_back(SAttrData(EAT_MingZhongLv,chaseHit));
+	}
 	
 	// 命中
-	int hitRatio = CalculateHitRatio(src,target);
+	int hitRatio = CalculateHitRatio(src,target) + GetAttrValue(attrData,EAT_MingZhongLv);
+	if(hitRatio > 10000)
+		hitRatio = 10000;
 	int r = Random(1,10000);
 	if(r > hitRatio)	// 闪避
 	{
@@ -10483,6 +10654,46 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	{
 		damage = CalculateSkillDamage(src,target,skillId,skillLevel,selfDamage,attrData,tarAttrData);
 	}
+
+	int damageAdd = 0;
+	if(!firstAttack && !isFanji)
+		damageAdd += GetAffixValue(src,21,1); // 连击升温
+	if(!firstAttack && !isFanji)
+		damageAdd += GetAffixValue(src,22,2); // 追击专注
+	if(!firstAttack && !isFanji && pSrc->affixState[23] > 0)
+	{
+		damageAdd += pSrc->affixState[23];
+		pSrc->affixState[23] = 0;
+	}
+	if(HaveShieldState(target))
+		damageAdd += GetAffixValue(src,25,1); // 破盾剑意
+	if(HaveBuff(target,ESBUFF_FaFangDes))
+	{
+		int ignoreDef = GetAffixValue(src,27,1); // 法防穿透
+		if(ignoreDef > 0 && pSrc->attackType == 2)
+			damage = damage * 10000 / (10000 - (ignoreDef > 9000 ? 9000 : ignoreDef));
+	}
+	if(targetControlled)
+		damageAdd += GetAffixValue(src,32,1); // 趁虚而入
+	if(HaveZhongDuState(target) || HaveBuff(target,ESBUFF_ZhuoShao) || HaveBuff(target,ESBUFF_Blooding))
+		damageAdd += GetAffixValue(src,35,1); // 病入膏肓
+	if(HaveDeBuffState(target))
+	{
+		int perDebuff = GetAffixValue(src,39,1);
+		int maxDebuffs = GetAffixValue(src,39,2);
+		int debuffCount = 0;
+		for(list<SFightBuffData>::const_iterator it=pTarget->buff_list.begin();it!=pTarget->buff_list.end();++it)
+		{
+			SSkillBuff *pBuffCfg = SingletonCSkillMgr::instance().GetBuffCfg(it->id);
+			if(pBuffCfg != NULL && pBuffCfg->type == 2)
+				debuffCount++;
+		}
+		if(maxDebuffs > 0 && debuffCount > maxDebuffs)
+			debuffCount = maxDebuffs;
+		damageAdd += perDebuff * debuffCount;
+	}
+	if(damageAdd > 0)
+		damage = damage * (10000 + damageAdd) / 10000;
 	if(!firstAttack && !isFanji)	// 连击伤害，第二次攻击，且不是反击
 	{
 		damage *= (pSrc->unitAttr.lianjiAdd + GetAttrValue(attrData,EAT_LianJiAdd) + GetStatePara1(src,ESBUFF_LianJiLvShangHaiAdd))/10000.0;
@@ -10502,6 +10713,24 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	if(damage < 1)
 		damage = 1;
 
+	// 守势：战意达到阈值且本回合尚未释放战法时获得减伤。
+	int targetGroup = target <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2;
+	int guardThreshold = GetAffixValue(target,48,2);
+	int guardReduction = GetAffixValue(target,48,1);
+	if(guardReduction > 0 && GetTeamRage(target) >= guardThreshold && !m_tacticUsedThisTurn[targetGroup])
+	{
+		damage = damage * (10000 - guardReduction) / 10000;
+		if(damage < 1)
+			damage = 1;
+	}
+	int openingGuard = m_fightTurn < 2 ? GetTeamBestAffixValue(target,12,1) : 0;
+	if(openingGuard > 0)
+	{
+		damage = damage * (10000 - openingGuard) / 10000;
+		if(damage < 1)
+			damage = 1;
+	}
+
 	uint8 protect = 0;
 	int proDamage = 0;
 	uint8 baoji = 0;	// 0不暴击1暴击
@@ -10514,12 +10743,15 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		if(pSrc->type != EFMT_PET && pTarget->celue == ONLY_PET)
 			damage = 1;
 		baoji = 1;
+		pSrc->affixState[18] = 0;
 		if(showFightLog)
 			cout<<LANGUAGE_TRANSFORM_623<<damage;
 	}
 	else
 	{
 		baoji = 0;
+		if(GetAffixTier(src,18) > 0 && pSrc->affixState[18] < GetAffixValue(src,18,2))
+			pSrc->affixState[18]++;
 		if(showFightLog)
 			cout<<LANGUAGE_TRANSFORM_624<<damage;
 	}
@@ -10537,6 +10769,17 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		cout << LANGUAGE_TRANSFORM_627 << (int)src << LANGUAGE_TRANSFORM_628 << (int)target << LANGUAGE_TRANSFORM_629 << (int)skillId << LANGUAGE_TRANSFORM_631 << damage << endl;
 
 	int srcDamage = damage;
+	if(HaveBuff(target,ESBUFF_ForbidFuHuo) && GetAffixTier(src,44) > 0)
+	{
+		uint16 targetBit = (uint16)(1u << (target-1));
+		if((pSrc->affixTargetMask[44] & targetBit) == 0 && Random(1,10000) <= GetAffixValue(src,44,1))
+		{
+			for(list<SFightBuffData>::iterator it=pTarget->buff_list.begin();it!=pTarget->buff_list.end();++it)
+				if(it->id == ESBUFF_ForbidFuHuo)
+					it->leftTurn += GetAffixValue(src,44,2);
+			pSrc->affixTargetMask[44] |= targetBit;
+		}
+	}
 	// 保护者计算
 	if(!isFanji)	// 主动攻击
 	{
@@ -10575,22 +10818,36 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		if(protect > 0 && IsAlive(protect) && !HaveBuff(protect,ESBUFF_HunShui)) // 有保护者,活着,无昏睡
 		{
 			proDamage = damage * (protectDamagePer/10000.0);
+			int shareReduction = GetAffixValue(protect,11,1);
+			if(shareReduction > 0)
+				proDamage = proDamage * (10000 - shareReduction) / 10000;
 			damage *= (1 - protectDamagePer/10000.0);
 			if(proDamage < 1)
 				proDamage = 1;
 			if(damage < 1)
 				damage = 1;
 			DecreaseHp(protect, src, proDamage, absorpionHp, false, &fuhuoHp);
+			if(proDamage > 0)
+				GrantDamageTakenRage(protect);
 			DecHunShuiTimes(target);
 			m_actionMsg<<protect<<proDamage<<absorpionHp<<fuhuoHp;
 			MakeBuffList(protect,m_actionMsg);
+			if(IsAlive(protect) && IsAlive(src) && TryTriggerAffix(protect,9))
+			{
+				int counterDamage = GetUnitAttack(protect) * GetAffixValue(protect,9,1) / 10000;
+				AddAffixHpAction(protect,src,counterDamage,9);
+			}
 			DecreaseHp(target, src, damage, absorpionHp, ignoreDun, &fuhuoHp);
+			if(damage > 0)
+				GrantDamageTakenRage(target);
 			if(!IsAlive(protect))
 				pSrc->AddKillUnit(protect);
 		}
 		else	// 无保护者
 		{
 			DecreaseHp(target, src, damage, absorpionHp, ignoreDun, &fuhuoHp);
+			if(damage > 0)
+				GrantDamageTakenRage(target);
 			DecHunShuiTimes(target);
 			protect = 0;
 			m_actionMsg<<protect;
@@ -10601,7 +10858,59 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	else
 	{
 		DecreaseHp(target, src, damage, absorpionHp, ignoreDun, &fuhuoHp);
+		if(damage > 0)
+			GrantDamageTakenRage(target);
 		DecHunShuiTimes(target);
+	}
+	int actualDamage = (int)(targetHpBefore - GetHp(target));
+	if(actualDamage < 0)
+		actualDamage = 0;
+	if(isFanji && actualDamage > 0 && GetAffixTier(src,13) > 0)
+	{
+		int cap = (int)(GetMaxHp(src) * GetAffixValue(src,13,2) / 10000);
+		int heal = actualDamage * GetAffixValue(src,13,1) / 10000;
+		if(pSrc->affixTurnValue[13] + heal > cap)
+			heal = cap - pSrc->affixTurnValue[13];
+		if(heal > 0)
+		{
+			pSrc->affixTurnValue[13] += heal;
+			AddAffixHpAction(src,src,-heal,13,true);
+		}
+	}
+	if(actualDamage > 0 && IsAlive(target) && GetAffixTier(target,16) > 0
+		&& actualDamage * 10000 >= GetMaxHp(target) * GetAffixValue(target,16,2))
+	{
+		vector<int> bravePara;
+		bravePara.push_back(GetAffixValue(target,16,1));
+		bravePara.push_back(GetAffixValue(target,16,1));
+		AddBuff(target,target,ESBUFF_FanZhengAllAdd,2,&bravePara);
+	}
+	if(!IsAlive(target) && !isFanji)
+	{
+		if(TryTriggerAffix(src,23))
+		{
+			pSrc->affixState[23] = GetAffixValue(src,23,1);
+			pSrc->affixState[0] = m_fightTurn + 1;
+		}
+		int overkill = damage - (int)targetHpBefore;
+		if(overkill > 0 && TryTriggerAffix(src,19))
+		{
+			int splash = overkill * GetAffixValue(src,19,1) / 10000;
+			int cap = GetUnitAttack(src) * GetAffixValue(src,19,2) / 10000;
+			if(cap > 0 && splash > cap)
+				splash = cap;
+			uint8 enemies[GROUP_MEMBER];
+			uint8 enemyNum = 0;
+			GetAnotherGroupByAttackedOrder(src,enemies,enemyNum);
+			if(enemyNum > 1)
+				GetSkillTargetSelCondition(enemies,enemyNum,ESkill_Select_MinCurHp);
+			for(uint8 i=0;i<enemyNum;i++)
+				if(enemies[i] != target && IsAlive(enemies[i]))
+				{
+					AddAffixHpAction(src,enemies[i],splash,19);
+					break;
+				}
+		}
 	}
 
 	m_actionMsg<<baoji<<damage<<absorpionHp<<fuhuoHp;
@@ -10654,6 +10963,14 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 				fanzhen = 1;
 				DecreaseHp(src, target, fanzhenDamage, absorpionHp, false, &fuhuoHp);
 				m_actionMsg<<fanzhen<<fanzhenDamage<<absorpionHp<<fuhuoHp;
+				if(IsAlive(target) && TryTriggerAffix(target,14))
+				{
+					int shieldHp = fanzhenDamage * GetAffixValue(target,14,1) / 10000;
+					int cap = (int)(GetMaxHp(target) * GetAffixValue(target,14,2) / 10000);
+					if(cap > 0 && shieldHp > cap)
+						shieldHp = cap;
+					AddAffixShield(target,target,shieldHp,2,14);
+				}
 				if(OneGroupAllDie() == 3)	// all die
 				{
 					ClearState(src, EFST_STATE_Die);
@@ -10724,6 +11041,12 @@ uint8 CFight::CalculateOnceAction(uint8 src,uint8 target,uint16 skillId,uint16 s
 			res = BasicFightAction(target,src,0,0,damage,srcAttrData,tarAttrData,isFanji,firstAttack);
 			if(res == 2)
 				fanji = 0;
+			if(res == 0 && TryTriggerAffix(target,15) && Random(1,10000) <= GetAffixValue(target,15,1))
+			{
+				HeroSkillRoleCfg *pRoleCfg = SingletonCSkillMgr::instance().GetHeroSkillRoleCfg(GetHeroId(target));
+				if(pRoleCfg != NULL)
+					m_members[target-1].DecSkillCD(pRoleCfg->regularSkillId,GetAffixValue(target,15,2));
+			}
 			m_actionMsg.WriteData(fanjiPos,&fanji,sizeof(fanji));
 		}
 	}
@@ -10785,10 +11108,12 @@ uint8 CFight::CalculateNormal_DamageHp(uint8 src,uint8 target)
 		}
 		m_actionMsg.WriteData(tarNumPos,&num,sizeof(num));
 
-		if(ShieldBrokenCheck(target))	// 破盾检测
+		if(ShieldBrokenCheck(target,src))	// 破盾检测
 			break;
 	}
 	m_actionMsg.WriteData(lianjiPos,&lianjiNum,sizeof(lianjiNum));
+	if(lianjiNum > 1 && TryTriggerAffix(src,24))
+		AddTeamRage(src,GetAffixValue(src,24,1));
 
 	int absorpionHp = 0;
 	int fuhuoHp = 0;
@@ -10872,7 +11197,7 @@ uint8 CFight::CalculateSkill_DamageHp(uint8 src,uint16 skillId,int skillLevel)
 				MakeBuffList(tar,m_actionMsg);
 			}
 
-			if(ShieldBrokenCheck(tar))	// 破盾检测
+			if(ShieldBrokenCheck(tar,src))	// 破盾检测
 			{
 				isShieldBreak = true;
 			}
@@ -10887,6 +11212,8 @@ uint8 CFight::CalculateSkill_DamageHp(uint8 src,uint16 skillId,int skillLevel)
 			break;
 	}
 	m_actionMsg.WriteData(lianjiPos,&lianjiNum,sizeof(lianjiNum));
+	if(lianjiNum > 1 && TryTriggerAffix(src,24))
+		AddTeamRage(src,GetAffixValue(src,24,1));
 
 	int absorpionHp = 0;
 	int fuhuoHp = 0;
@@ -11607,12 +11934,30 @@ uint8 CFight::UnitPassiveAction(uint8 pos,EFightStep step,CNetMessage &msg,int d
 
 			if(val != 0)
 			{
+				int64 hpBefore = GetHp(pos);
 				int absorpionHp = 0;
 				int fuhuoHp = 0;
 				DecreaseHp(pos, srcPos, v, absorpionHp, false, &fuhuoHp);
 				msg<<pos<<-v<<absorpionHp<<fuhuoHp;
 				MakeBuffList(pos,msg);
 				addNum++;
+				int actualDamage = (int)(hpBefore - GetHp(pos));
+				if(damage > 0 && actualDamage > 0 && srcPos > 0 && GetAffixTier(srcPos,36) > 0)
+				{
+					SFightMember *pDotSrc = GetFightMember(srcPos);
+					if(pDotSrc != NULL && IsAlive(srcPos))
+					{
+						int cap = (int)(GetMaxHp(srcPos) * GetAffixValue(srcPos,36,2) / 10000);
+						int heal = actualDamage * GetAffixValue(srcPos,36,1) / 10000;
+						if(pDotSrc->affixTurnValue[36] + heal > cap)
+							heal = cap - pDotSrc->affixTurnValue[36];
+						if(heal > 0)
+						{
+							pDotSrc->affixTurnValue[36] += heal;
+							AddAffixHpAction(srcPos,srcPos,-heal,36,true);
+						}
+					}
+				}
 				
 				if(showFightLog)
 					cout<<"====== >>>>	CFight::UnitPassiveAction  pos="<<(int)pos<<(val > 0 ?", 扣血=" : ", 加血=")<<abs(v)<<endl;
@@ -11895,6 +12240,18 @@ uint16 CFight::GetUnitAISkillId(uint8 pos)
 		return 0;
 
 	CSkillMgr &mgr = SingletonCSkillMgr::instance();
+	uint16 heroId = GetHeroId(pos);
+	HeroSkillRoleCfg *pRoleCfg = mgr.GetHeroSkillRoleCfg(heroId);
+	if(pRoleCfg != NULL)
+	{
+		int tacticCost = GetTacticCost(pos,*pRoleCfg);
+		if(p->CanUseSkill(pRoleCfg->tacticSkillId) && GetTeamRage(pos) >= tacticCost
+			&& IsRoleSkillUseful(pos,pRoleCfg->tacticSkillId))
+			return pRoleCfg->tacticSkillId;
+		if(p->CanUseSkill(pRoleCfg->regularSkillId) && IsRoleSkillUseful(pos,pRoleCfg->regularSkillId))
+			return pRoleCfg->regularSkillId;
+		return 0;
+	}
 	const vector<SSkillData> &skillList = p->GetUnitSkillList();
 	vector<SSkillData> fuhuo;
 	vector<SSkillData> cure;
@@ -11937,10 +12294,9 @@ uint16 CFight::GetUnitAISkillId(uint8 pos)
 		return fuhuo[Random(1,size) - 1].id;
 	}
 
-	// 治疗
+	// 治疗（只有确有生命损失时才施放，避免满血空转）
 	size = cure.size();
-//	if(size > 0 && HaveLoseHpMember(pos))	// 有队友伤血
-	if(size > 0)
+	if(size > 0 && HaveLoseHpMember(pos))
 	{
 		return cure[Random(1,size) - 1].id;
 	}
@@ -11985,6 +12341,339 @@ uint16 CFight::GetUnitAISkillId(uint8 pos)
 	return 0;
 }
 
+uint16 CFight::GetHeroId(uint8 pos)
+{
+	SFightMember *p = GetFightMember(pos);
+	if(p == NULL || p->type != EFMT_PET || p->memPtr.type() != typeid(SharePetPtr))
+		return 0;
+	SPet *pPet = (boost::any_cast<SharePetPtr>(p->memPtr)).get();
+	return pPet == NULL ? 0 : pPet->id;
+}
+
+bool CFight::IsRoleSkillUseful(uint8 pos,uint16 skillId)
+{
+	SSkillCfgData *pSkillCfg = SingletonCSkillMgr::instance().GetSkillCfg(skillId);
+	if(pSkillCfg == NULL)
+		return false;
+	SSkillActiveEffect *pActive = SingletonCSkillMgr::instance().GetActiveEffectCfg(pSkillCfg->activeEffect.GetEffectId());
+	if(pActive == NULL)
+		return false;
+	if(pActive->effect_type == ESkill_Active_FuHuo)
+		return HaveDieMember(pos);
+	if(pActive->effect_type == ESkill_Active_AddHpByDam || pActive->effect_type == ESkill_Active_AddHpNormal)
+		return HaveLoseHpMember(pos);
+	return true;
+}
+
+int CFight::GetTeamRage(uint8 pos) const
+{
+	if(pos == 0 || pos > MAX_MEMBER)
+		return 0;
+	return m_teamRage[pos <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2];
+}
+
+void CFight::AddTeamRage(uint8 pos,int value)
+{
+	if(pos == 0 || pos > MAX_MEMBER || value == 0)
+		return;
+	int group = pos <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2;
+	int before = m_teamRage[group];
+	m_teamRage[group] += value;
+	if(m_teamRage[group] < 0)
+		m_teamRage[group] = 0;
+	else if(m_teamRage[group] > 100)
+		m_teamRage[group] = 100;
+	int changed = m_teamRage[group] - before;
+	if(changed != 0)
+	{
+		char rageText[96];
+		snprintf(rageText,sizeof(rageText),"战意 %s%d（%d/100）",changed > 0 ? "+" : "",changed,m_teamRage[group]);
+		uint16 actionNum = m_extActionMsg.GetType() + 1;
+		m_extActionMsg.SetType(actionNum);
+		m_extActionMsg<<(uint8)EFOT_Passive<<pos<<(uint16)0<<string(rageText)<<(uint8)0;
+	}
+}
+
+int CFight::GetAffixTier(uint8 pos,uint16 affixId) const
+{
+	if(pos == 0 || pos > MAX_MEMBER || affixId == 0 || affixId > 48)
+		return 0;
+	const SFightMember &member = m_members[pos-1];
+	uint16 passiveSkillId = 5000 + affixId;
+	for(uint16 i=0;i < member.passive_skill.size();i++)
+	{
+		if(member.passive_skill[i].id == passiveSkillId)
+			return member.passive_skill[i].level > 3 ? 3 : member.passive_skill[i].level;
+	}
+	return 0;
+}
+
+int CFight::GetAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex) const
+{
+	int tier = GetAffixTier(pos,affixId);
+	EquipAffixCfg *pCfg = sCItemCfgManager.GetEquipAffixCfg(affixId);
+	if(tier <= 0 || pCfg == NULL)
+		return 0;
+	return valueIndex == 2 ? pCfg->value2[tier-1] : pCfg->value1[tier-1];
+}
+
+int CFight::GetTeamBestAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex)
+{
+	if(pos == 0 || pos > MAX_MEMBER)
+		return 0;
+	int begin = pos <= GROUP2_BEGIN ? 1 : GROUP2_BEGIN + 1;
+	int end = pos <= GROUP2_BEGIN ? GROUP2_BEGIN : MAX_MEMBER;
+	int best = 0;
+	for(int memberPos=begin;memberPos<=end;memberPos++)
+	{
+		if(!IsEmpty(memberPos))
+		{
+			int value = GetAffixValue(memberPos,affixId,valueIndex);
+			if(value > best)
+				best = value;
+		}
+	}
+	return best;
+}
+
+bool CFight::TryTriggerAffix(uint8 pos,uint16 affixId)
+{
+	if(pos == 0 || pos > MAX_MEMBER || affixId == 0 || affixId > 48 || GetAffixTier(pos,affixId) == 0)
+		return false;
+	EquipAffixCfg *pCfg = sCItemCfgManager.GetEquipAffixCfg(affixId);
+	if(pCfg == NULL)
+		return false;
+	SFightMember &member = m_members[pos-1];
+	if(pCfg->perTurnLimit > 0 && member.affixTurnCount[affixId] >= pCfg->perTurnLimit)
+		return false;
+	if(pCfg->perBattleLimit > 0 && member.affixBattleCount[affixId] >= pCfg->perBattleLimit)
+		return false;
+	member.affixTurnCount[affixId]++;
+	member.affixBattleCount[affixId]++;
+	return true;
+}
+
+bool CFight::IsAffixHardControl(uint16 buffId) const
+{
+	return buffId == ESBUFF_ChaoFeng || buffId == ESBUFF_ChenMo || buffId == ESBUFF_FengYin
+		|| buffId == ESBUFF_HunShui || buffId == ESBUFF_HunLuan || buffId == ESBUFF_MeiHuo
+		|| buffId == ESBUFF_FanJian || buffId == ESBUFF_NOT_MOVE;
+}
+
+void CFight::AddAffixShield(uint8 src,uint8 target,int shieldHp,uint8 effectTurn,uint16 affixId)
+{
+	if(shieldHp <= 0 || !IsAlive(target))
+		return;
+	vector<int> para;
+	para.push_back(shieldHp);
+	para.push_back(shieldHp);
+	AddBuff(target,src,ESBUFF_Shield,effectTurn,&para);
+	if(showFightLog)
+		cout<<"[affix] shield id="<<affixId<<", src="<<(int)src<<", target="<<(int)target<<", hp="<<shieldHp<<endl;
+}
+
+void CFight::AddAffixHpAction(uint8 src,uint8 target,int hp,uint16 affixId,bool ignoreShield)
+{
+	if(src == 0 || target == 0 || hp == 0 || GetFightMember(target) == NULL)
+		return;
+	int64 beforeHp = GetHp(target);
+	int absorptionHp = 0;
+	int reviveHp = 0;
+	int value = hp;
+	DecreaseHp(target,src,value,absorptionHp,ignoreShield,&reviveHp);
+	int delta = (int)(GetHp(target) - beforeHp);
+	if(delta == 0 && absorptionHp == 0)
+		return;
+	if(!IsAlive(target) && GetFightMember(src) != NULL)
+		m_members[src-1].AddKillUnit(target);
+	uint16 actionNum = m_extActionMsg.GetType() + 1;
+	m_extActionMsg.SetType(actionNum);
+	m_extActionMsg<<(uint8)EFOT_Passive<<src<<(uint16)(5000+affixId)<<string("")<<(uint8)1;
+	m_extActionMsg<<target<<delta<<absorptionHp<<reviveHp;
+	MakeBuffList(target,m_extActionMsg);
+	if(hp > 0)
+		ShieldBrokenCheck(target,src);
+}
+
+void CFight::OnAffixShieldLost(uint8 target,uint8 shieldSrc,int absorbedHp,bool broken)
+{
+	if(absorbedHp <= 0)
+		return;
+	if(shieldSrc > 0 && TryTriggerAffix(shieldSrc,1))
+	{
+		int damage = absorbedHp * GetAffixValue(shieldSrc,1,1) / 10000;
+		int cap = (int)(GetMaxHp(shieldSrc) * GetAffixValue(shieldSrc,1,2) / 10000);
+		if(cap > 0 && damage > cap)
+			damage = cap;
+		uint8 targets[GROUP_MEMBER];
+		uint8 num = 0;
+		GetAnotherGroup(shieldSrc,targets,num);
+		for(uint8 i=0;i<num;i++)
+			if(IsAlive(targets[i]))
+				AddAffixHpAction(shieldSrc,targets[i],damage,1);
+	}
+	if(IsAlive(target) && TryTriggerAffix(target,3))
+	{
+		int heal = (int)(GetMaxHp(target) * GetAffixValue(target,3,1) / 10000);
+		AddAffixHpAction(target,target,-heal,3,true);
+	}
+	if(showFightLog)
+		cout<<"[affix] shield lost target="<<(int)target<<", absorbed="<<absorbedHp<<", broken="<<broken<<endl;
+}
+
+void CFight::OnAffixBuffRemoved(uint8 target,uint8 remover,const SFightBuffData &data,bool expired)
+{
+	if(IsShieldBuff(data.id))
+	{
+		int original = data.paraList.size() > 1 ? data.paraList[1] : 0;
+		int current = data.paraList.empty() ? 0 : data.paraList[0];
+		OnAffixShieldLost(target,data.srcPos,original-current,current <= 0);
+	}
+	if(data.id == ESBUFF_ZhuoShao && data.srcPos > 0 && GetAffixTier(data.srcPos,34) > 0)
+	{
+		int perTick = data.paraList.empty() ? 0 : data.paraList[0];
+		int turns = data.leftTurn > 0 ? data.leftTurn : 1;
+		int damage = perTick * turns * GetAffixValue(data.srcPos,34,1) / 10000;
+		int cap = GetUnitAttack(data.srcPos) * GetAffixValue(data.srcPos,34,2) / 10000;
+		if(cap > 0 && damage > cap)
+			damage = cap;
+		AddAffixHpAction(data.srcPos,target,damage,34);
+	}
+	if(remover == 0 || remover > MAX_MEMBER)
+		return;
+	SSkillBuff *pBuffCfg = SingletonCSkillMgr::instance().GetBuffCfg(data.id);
+	if(pBuffCfg == NULL)
+		return;
+	if(IsSameGroup(remover,target) && pBuffCfg->type == 2 && GetAffixTier(remover,7) > 0)
+	{
+		vector<int> para(1,GetAffixValue(remover,7,1));
+		AddBuff(target,remover,ESBUFF_MianShangTemp,1,&para);
+	}
+	else if(!IsSameGroup(remover,target) && pBuffCfg->type == 1)
+	{
+		if(TryTriggerAffix(remover,28))
+			AddTeamRage(remover,GetAffixValue(remover,28,1));
+		if(TryTriggerAffix(remover,40))
+		{
+			vector<int> para(1,GetAffixValue(remover,40,1));
+			AddBuff(remover,remover,ESBUFF_DamagePercentAdd,2,&para);
+			AddBuff(remover,remover,ESBUFF_AddSpeed,2,&para);
+		}
+	}
+}
+
+void CFight::OnAffixControlResisted(uint8 src,uint8 target)
+{
+	if(!TryTriggerAffix(src,31) || Random(1,10000) > GetAffixValue(src,31,1))
+		return;
+	AddTeamRage(src,GetAffixValue(src,31,2));
+	if(showFightLog)
+		cout<<"[affix] control resisted compensation src="<<(int)src<<", target="<<(int)target<<endl;
+}
+
+void CFight::OnAffixUnitDied(uint8 pos)
+{
+	if(TryTriggerAffix(pos,41))
+	{
+		uint8 members[GROUP_MEMBER];
+		uint8 num = 0;
+		GetMeGroupExceptSelf(pos,members,num);
+		for(uint8 i=0;i<num;i++)
+		{
+			if(!IsAlive(members[i]))
+				continue;
+			vector<int> para(1,GetAffixValue(pos,41,1));
+			AddBuff(members[i],pos,ESBUFF_MianShangTemp,2,&para);
+		}
+	}
+	SFightMember *pDied = GetFightMember(pos);
+	if(pDied != NULL && pDied->affixSummoned)
+		return;
+	for(uint8 memberPos=1;memberPos<=MAX_MEMBER;memberPos++)
+	{
+		if(!IsAlive(memberPos) || GetAffixTier(memberPos,42) == 0)
+			continue;
+		SFightMember &member = m_members[memberPos-1];
+		int maxStacks = GetAffixValue(memberPos,42,2);
+		if(member.affixState[42] >= maxStacks)
+			continue;
+		member.affixState[42]++;
+		vector<int> para(1,GetAffixValue(memberPos,42,1));
+		AddBuff(memberPos,memberPos,ESBUFF_DamagePercentAdd,255,&para);
+	}
+}
+
+void CFight::ApplyAffixSummonBonus(uint8 pos)
+{
+	SFightMember *pMember = GetFightMember(pos);
+	if(pMember == NULL)
+		return;
+	pMember->affixSummoned = true;
+	int damageAdd = GetTeamBestAffixValue(pos,43,1);
+	int hpAdd = GetTeamBestAffixValue(pos,43,2);
+	if(damageAdd <= 0 && hpAdd <= 0)
+		return;
+	if(damageAdd > 0)
+		pMember->unitAttr.attack = pMember->unitAttr.attack * (10000 + damageAdd) / 10000;
+	if(hpAdd > 0)
+	{
+		int64 oldMax = pMember->unitAttr.maxHp;
+		pMember->unitAttr.maxHp = pMember->unitAttr.maxHp * (10000 + hpAdd) / 10000;
+		pMember->hp += pMember->unitAttr.maxHp - oldMax;
+	}
+}
+
+int CFight::GetTacticCost(uint8 pos,const HeroSkillRoleCfg &roleCfg)
+{
+	int cost = roleCfg.tacticCost;
+	int begin = pos <= GROUP2_BEGIN ? 1 : GROUP2_BEGIN + 1;
+	int end = pos <= GROUP2_BEGIN ? GROUP2_BEGIN : MAX_MEMBER;
+	int bestReduction = 0;
+	for(int memberPos=begin;memberPos<=end;memberPos++)
+	{
+		if(!IsAlive(memberPos))
+			continue;
+		int reduction = GetAffixValue(memberPos,47,1);
+		if(reduction > bestReduction)
+			bestReduction = reduction;
+	}
+	cost -= bestReduction;
+	return cost < 20 ? 20 : cost;
+}
+
+void CFight::InitTeamRageFromAffixes()
+{
+	for(int group=0;group<2;group++)
+	{
+		int begin = group == EGT_GROUP1 ? 1 : GROUP2_BEGIN + 1;
+		int end = group == EGT_GROUP1 ? GROUP2_BEGIN : MAX_MEMBER;
+		int bestOpening = 0;
+		uint8 bestPos = 0;
+		for(int pos=begin;pos<=end;pos++)
+		{
+			if(!IsAlive(pos))
+				continue;
+			int opening = GetAffixValue(pos,45,1);
+			if(opening > bestOpening)
+			{
+				bestPos = (uint8)pos;
+				bestOpening = opening;
+			}
+		}
+		if(bestPos != 0 && bestOpening > 0)
+			AddTeamRage(bestPos,bestOpening);
+	}
+}
+
+void CFight::GrantDamageTakenRage(uint8 pos)
+{
+	SFightMember *pMember = GetFightMember(pos);
+	if(pMember == NULL || pMember->rageDamagedThisAction)
+		return;
+	pMember->rageDamagedThisAction = true;
+	AddTeamRage(pos,3);
+}
+
 uint8 CFight::AddNewFightUnit(CNetMessage &msg)
 {
 	if(m_zhuzhan.empty())
@@ -12018,6 +12707,7 @@ uint8 CFight::AddNewFightUnit(CNetMessage &msg)
 						continue;
 					if(AddPet(pet,pos,0xff,zhuzhan.zhenfaIdx - 1) > 0)
 					{
+						ApplyAffixSummonBonus(pos);
 //						SetBelongToUserWithPos(pos,9);
 						num++;
 						addMsg<<(uint8)2<<pos<<(uint32)pPet->id<<(int)100<<pPet->name<<pPet->level<<GetMaxHp(pos)<<GetHp(pos);
@@ -12033,6 +12723,7 @@ uint8 CFight::AddNewFightUnit(CNetMessage &msg)
 						continue;
 					if(AddMonster(ptr, pos,zhuzhan.zhenfaIdx - 1) > 0)
 					{
+						ApplyAffixSummonBonus(pos);
 						num++;
 						addMsg<<(uint8)0<<pos<<pInst->pic<<pInst->scale<<pInst->name
 							<<pInst->level<<pInst->attr.maxHp<<pInst->hp<<(uint8)0;
@@ -12194,6 +12885,7 @@ uint8 CFight::DiePassiveAcion(CNetMessage &msg)
 		uint8 pos = m_dieList[i];
 		if(!IsAlive(pos) && !HaveState(pos, EFST_STATE_Escape))	// 死亡
 		{
+			OnAffixUnitDied(pos);
 			uint8 member[GROUP_MEMBER];
 			uint8 num = 0;
 			GetAllMemberExceptSelf(pos,member,num);
@@ -12314,6 +13006,18 @@ void CFight::CalculateFight(CNetMessage &msg)
 	m_otherMsg.ReWrite();
 	m_extActionMsg.ReWrite();
 	m_shareDamageMsg.ReWrite();
+	m_tacticUsedThisTurn[0] = false;
+	m_tacticUsedThisTurn[1] = false;
+	for(uint8 affixPos=1;affixPos<=MAX_MEMBER;affixPos++)
+	{
+		if(!IsEmpty(affixPos))
+		{
+			memset(m_members[affixPos-1].affixTurnCount,0,sizeof(m_members[affixPos-1].affixTurnCount));
+			memset(m_members[affixPos-1].affixTurnValue,0,sizeof(m_members[affixPos-1].affixTurnValue));
+			if(m_members[affixPos-1].affixState[23] > 0 && m_fightTurn > m_members[affixPos-1].affixState[0])
+				m_members[affixPos-1].affixState[23] = 0;
+		}
+	}
 
 	msg<<(uint8)1; //战斗结果
 	uint8 damageNum = 0;
@@ -12341,6 +13045,7 @@ void CFight::CalculateFight(CNetMessage &msg)
 	// 战斗开始时,第一回合
 	if(m_fightTurn == 0)
 	{
+		InitTeamRageFromAffixes();
 		for(uint8 i = 0; i < num; i++)
 		{
 			if(!IsAlive(allMem[i]))
@@ -12396,6 +13101,11 @@ void CFight::CalculateFight(CNetMessage &msg)
 
 		m_members[src-1].ClearKillUnit();
 		m_dieList.clear();
+		for(uint8 ragePos=1;ragePos<=MAX_MEMBER;ragePos++)
+		{
+			if(!IsEmpty(ragePos))
+				m_members[ragePos-1].rageDamagedThisAction = false;
+		}
 
 		PassiveAction(EFStep_UserActBegin,m_extActionMsg,src);
 		damageNum += MergeExtActionMsg(msg);
@@ -12445,11 +13155,22 @@ void CFight::CalculateFight(CNetMessage &msg)
 
 		if(option == EOTNormal)	// 普通攻击
 		{
-			NormalButtle(src,target);
+			if(NormalButtle(src,target) > 0)
+				AddTeamRage(src,8);
 		}
 		else if(option == EOTSkill)	// 使用技能
 		{
+			HeroSkillRoleCfg *pRoleCfg = SingletonCSkillMgr::instance().GetHeroSkillRoleCfg(GetHeroId(src));
+			bool isTactic = pRoleCfg != NULL && para == pRoleCfg->tacticSkillId;
+			bool isRegular = pRoleCfg != NULL && para == pRoleCfg->regularSkillId;
+			if(isTactic)
+			{
+				AddTeamRage(src,-GetTacticCost(src,*pRoleCfg));
+				m_tacticUsedThisTurn[src <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2] = true;
+			}
 			SkillButtle(src,para);
+			if(isRegular)
+				AddTeamRage(src,12 + GetAffixValue(src,46,1));
 		}
 		else if(option == EOTEscape)	// 逃跑
 		{
@@ -12469,6 +13190,9 @@ void CFight::CalculateFight(CNetMessage &msg)
 			continue;
 		}
 		
+		if(HaveShieldState(src) && TryTriggerAffix(src,4))
+			AddTeamRage(src,GetAffixValue(src,4,1));
+
 		DecAllStateEffectTurn(src);
 		MakeBuffList(src, m_actionMsg);
 
@@ -12477,6 +13201,14 @@ void CFight::CalculateFight(CNetMessage &msg)
 			addOtherMsg = true;
 		// 死亡判定
 		damageNum += DiePassiveAcion(msg);
+		if(!m_members[src-1].killList.empty())
+		{
+			AddTeamRage(src,10 * (int)m_members[src-1].killList.size());
+			if(TryTriggerAffix(src,20) && Random(1,10000) <= GetAffixValue(src,20,1))
+				m_members[src-1].DecAllSkillCD(GetAffixValue(src,20,2));
+		}
+		for(uint16 dieIndex=0;dieIndex<m_dieList.size();dieIndex++)
+			AddTeamRage(m_dieList[dieIndex],15);
 		damageNum += MergeUnitAcionMsg(msg,addOtherMsg);
 
 		// 非击杀 重新出手判断
@@ -13374,6 +14106,18 @@ void CFight::GetAllUnitByOrder(uint8 *arr, uint8 &num)
 				num++;
 			}
 		}
+	}
+	if(m_fightTurn < 2)
+	{
+		bool haveOpeningSpeedAffix = false;
+		for(uint8 i=0;i<num;i++)
+			if(GetAffixTier(arr[i],29) > 0)
+			{
+				haveOpeningSpeedAffix = true;
+				break;
+			}
+		if(haveOpeningSpeedAffix)
+			SortBySpeed(arr,num);
 	}
 }
 
