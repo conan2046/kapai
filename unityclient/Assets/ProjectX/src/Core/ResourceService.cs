@@ -28,6 +28,26 @@ namespace ProjectX.Core
             return LoadSprite("MonsterBust/head_defult");
         }
 
+        public Sprite LoadGameplayShopIcon(int picture, out bool usesItemIcon,
+            out bool usedPlaceholder)
+        {
+            // ItemIcons carry their own shard corner; MonsterBust fallbacks do not.
+            usesItemIcon = false;
+            usedPlaceholder = false;
+            if (picture <= 0) return null;
+            Sprite sprite = LoadSprite($"ItemIcons/equip{picture}", false);
+            if (sprite != null)
+            {
+                usesItemIcon = true;
+                return sprite;
+            }
+            sprite = LoadFirst($"MonsterBust/{picture}_tou", $"MonsterBust/{picture}");
+            if (sprite != null) return sprite;
+            usedPlaceholder = true;
+            RecordMissing($"GameplayShopIcon/{picture}");
+            return LoadSprite("MonsterBust/head_defult");
+        }
+
         public Sprite LoadHeroPortrait(int picture) => LoadHeroPortrait(picture, out _);
 
         public Sprite LoadPlayerRoundPortrait(int head)

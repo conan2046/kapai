@@ -21,22 +21,29 @@ namespace ProjectX.Data
 
     public sealed class GameplayCatalog
     {
+        private readonly List<GameplayDefinition> routes;
         private readonly List<GameplayDefinition> items;
 
         public GameplayCatalog()
         {
             TextAsset asset = Resources.Load<TextAsset>("Configs/gameplay");
             if (asset == null) throw new InvalidOperationException("Gameplay config is missing: Resources/Configs/gameplay.json");
-            items = (JsonConvert.DeserializeObject<GameplayDefinition[]>(asset.text) ?? Array.Empty<GameplayDefinition>())
-                .Where(value => value != null && value.Id < 999 && value.Page != 0
+            routes = (JsonConvert.DeserializeObject<GameplayDefinition[]>(asset.text) ?? Array.Empty<GameplayDefinition>())
+                .Where(value => value != null && value.Id < 999
                     && value.SteamEnabled != false && value.MigrationReady != false)
                 .OrderBy(value => value.Id)
                 .ToList();
-            ClientLog.Info("Config", "Loaded Configs/gameplay", $"{items.Count} records");
+            items = routes.Where(value => value.Page != 0).ToList();
+            ClientLog.Info("Config", "Loaded Configs/gameplay",
+                $"{items.Count} visible records, {routes.Count} routable records");
         }
 
         public IReadOnlyList<GameplayDefinition> Items => items;
-        public GameplayDefinition Find(int id) => items.FirstOrDefault(value => value.Id == id);
-        public void Clear() => items.Clear();
+        public GameplayDefinition Find(int id) => routes.FirstOrDefault(value => value.Id == id);
+        public void Clear()
+        {
+            items.Clear();
+            routes.Clear();
+        }
     }
 }

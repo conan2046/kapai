@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `5/16 = 31.3%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块。Bag已按当前输入重新收口；BattleFengShenStory作为非分母战斗子模块已独立完成G6，不增加此处16模块分子。Mail、Shop及Hero、HeroEquip、Draw、World、Gameplay、YouLi、XunBao、FengShenStory按当前最早缺口降级；Arena已排除。 |
+| Validated | `6/16 = 37.5%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块。Bag、World已按当前输入重新收口；BattleFengShenStory作为非分母战斗子模块已独立完成G6，不增加此处16模块分子。Mail、Shop及Hero、HeroEquip、Draw、Gameplay、YouLi、XunBao、FengShenStory按当前最早缺口降级；Arena已排除。 |
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 ## 2. 模块状态
 | 模块 | 状态 | 已完成边界 | 后续 |
@@ -29,7 +29,7 @@
 | 装备（法宝边界回归） | `G0-G2 passed / G3 early user Play pending / G4-G6 pending` | 方案A冻结14来源、974业务ID、86控件；当前G1碎片态与G2所有权/配置审计保留，旧33控件结论失效 | G3实现完成后从真实入口早测；反馈闭环前不得进入G4，历史G4-G6不得复用 |
 | 邮件 | `G0-G2 passed / G3-G6 pending` | 旧固定账号、4/4双端视觉、13/13控件、`/128 op2/3/4/5`及Bootstrap证据仍保留，但正式门禁登记已降为G0-G2 | 从当前源码重跑G3-G6；旧完成标签不得替代当前门禁。 |
 | 基础商城 | `G3 runtime-ready / early user Play passed；正式G1-G2因免截图保持pending，G4-G6 pending` | 2026-09-02完成当前入口、`/221`、type=1配置与资源闭包；隐藏`OneLevelLayer/Panel_12`，迁入Shop自有真实关闭按钮并修复全控件射线。用户早测确认页签、商品图标、刷新隐藏、数量输入和购买按钮修复无问题 | 早测反馈已闭环；后续仍须按正式门禁补G1-G2并进入G4，不能把本轮免截图或早测冒充G5/G6视觉通过。 |
-| 玩法商店 | `G0 pending / evidence-missing` | 历史登记的 6 组 Cocos、6 组 Unity、差异报告、人工验收和固定账号结果共15个路径当前全部缺失，旧 G1-G6 已失效 | 从当前源码重新执行 G0-G6并生成新证据；禁止用历史完成记录替代当前文件 |
+| 将魂商店 | `G0-G4 passed / early user Play passed / G5-G6 pending / 29 controls + 9 semantics` | 2026-09-02按当前源码收窄为function_id=15/type=2；原生Cocos六格与各调用入口已冻结。Unity补齐六格底图、碎片角标语义、ActivityLayer子节点显隐、秒级倒计时及`/221`权威购买/刷新/失败回包；固定SQLite账号`7200057/1000003`完成29/29控件、9/9语义、整库精确恢复和残留0 | 用户最终实测通过；按本轮免截图约定停在G4提交，G5五状态视觉对比与G6最终收口仍pending；玩法商店其他分支继续暂缓 |
 | 好友 | `steam-excluded` | Steam隐藏HUD入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 聊天 | `steam-excluded` | Steam隐藏聊天入口及HUD聊天条、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 队伍 | `steam-excluded` | Steam不生成队伍入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |

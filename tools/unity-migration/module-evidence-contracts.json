@@ -668,19 +668,27 @@
     {
       "module": "GameplayShops",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-GameplayShopsCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-fixture-snapshot.json",
-        "resultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
-        "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-GameplayShopsSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/GameplayShops/fixture/gameplay-shops-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/gameplay-shops-fixed-account-latest.json",
+        "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-current/gameplay-shops-g5-visual-result.json",
         "visualValidationFlags": [
           "-projectXGameplayShopsVisualValidation"
         ],
-        "visualOnlyArtifacts": true,
+        "g3ValidationFlags": [
+          "-projectXGameplayShopsValidation"
+        ],
+        "visualOnlyArtifacts": false,
         "reloginRequired": true,
         "extraFlags": [],
-        "skipPostValidationFixtureAssert": true,
+        "skipPostValidationFixtureAssert": false,
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
@@ -689,90 +697,65 @@
               "description": "固定 userId 必须唯一绑定目标 roleId"
             },
             {
-              "id": "twelve-authoritative-pages",
-              "description": "以确定性 zlib 商店二进制准备 type 2,3,4,5,6,7,8,23,25,26,27,28，登录后逐页指纹必须不变"
-            },
-            {
-              "id": "turntable-level-unlock",
-              "description": "固定角色临时提升到 99 级，覆盖转盘解锁后的 type 27/28，同时保留 G1 的 60 级锁定证据"
+              "id": "single-authoritative-page",
+              "description": "按当前 C++ direct-hex 持久化格式仅准备 Steam V0 将魂商店 type 2 六格商品"
             },
             {
               "id": "refresh-and-purchase",
-              "description": "准备将魂六格与免费刷新、转盘绑定元宝商品及空购买计数，供真实 op 2/3/4 断言；Unity 内部硬断言变更，外层 finally 精确恢复"
-            },
-            {
-              "id": "failure-state-matrix",
-              "description": "保留条件未达、售罄、余额不足与非法重复请求的真实服务端失败分支"
+              "description": "准备六格确定性未购买商品；刷新、购买及失败分支仍由真实 PRO_SHOP op 3/4 服务端响应裁决"
             },
             {
               "id": "exact-restore-surface",
-              "description": "快照 level,package,mysteryShop,shenhunShop,save_data,mission,role money,user money,bd_money 并以整体 SHA256 复核恢复和残留清零"
+              "description": "对 persistentDataPath SQLite 整库备份、恢复，并以 SHA256 复核零残留"
             }
           ]
         },
         "artifactCopies": [
           {
             "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-SOUL.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-arena.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-ARENA.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-blood.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-BLOOD.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-guild.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-GUILD.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-KUNLUN.png"
-          },
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-turntable.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-20260729/GAMEPLAY-TURNTABLE.png"
+            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/GAMEPLAY-SOUL.png"
           }
         ]
       },
       "g5": {
-        "cocosDirectory": ".local/ui-fidelity/GameplayShops/cocos/g5-20260729",
-        "unityDirectory": ".local/ui-fidelity/GameplayShops/unity/g5-20260729",
-        "compareDirectory": ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729",
+        "cocosDirectory": ".local/ui-fidelity/GameplayShops/cocos/g1-current",
+        "unityDirectory": ".local/ui-fidelity/GameplayShops/unity/g5-current",
+        "compareDirectory": ".local/ui-fidelity/GameplayShops/compare/g5-current",
         "width": 1334,
         "height": 750,
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua",
+          "client/ProjectX/src/View/Shop/JiangHunShop.lua",
+          "client/ProjectX/res/csd/shop/jianghunshop.csb",
+          "server/config/json/shop.json",
+          "server/config/json/shop_config.json"
+        ],
         "pairs": [
           {
-            "id": "GAMEPLAY-SOUL",
-            "cocos": "GAMEPLAY-SOUL.jpg",
-            "unity": "GAMEPLAY-SOUL.png"
+            "id": "SOUL-LIST",
+            "cocos": "GPS-S01-AUTHORITATIVE-LIST.png",
+            "unity": "SOUL-LIST.png"
           },
           {
-            "id": "GAMEPLAY-ARENA",
-            "cocos": "GAMEPLAY-ARENA.jpg",
-            "unity": "GAMEPLAY-ARENA.png"
+            "id": "SOUL-HELP",
+            "cocos": "GPS-08-HELP.png",
+            "unity": "SOUL-HELP.png"
           },
           {
-            "id": "GAMEPLAY-BLOOD",
-            "cocos": "GAMEPLAY-BLOOD.jpg",
-            "unity": "GAMEPLAY-BLOOD.png"
+            "id": "SOUL-ITEM-DETAIL",
+            "cocos": "GPS-11-DETAIL-1.png",
+            "unity": "SOUL-ITEM-DETAIL.png"
           },
           {
-            "id": "GAMEPLAY-GUILD",
-            "cocos": "GAMEPLAY-GUILD.jpg",
-            "unity": "GAMEPLAY-GUILD.png"
+            "id": "SOUL-CURRENCY-DETAIL",
+            "cocos": "GPS-10-SOUL-INFO.png",
+            "unity": "SOUL-CURRENCY-DETAIL.png"
           },
           {
-            "id": "GAMEPLAY-KUNLUN",
-            "cocos": "GAMEPLAY-KUNLUN.jpg",
-            "unity": "GAMEPLAY-KUNLUN.png"
-          },
-          {
-            "id": "GAMEPLAY-TURNTABLE",
-            "cocos": "GAMEPLAY-TURNTABLE.jpg",
-            "unity": "GAMEPLAY-TURNTABLE.png"
+            "id": "SOUL-DRAW-ROUTE",
+            "cocos": "GPS-03-DRAW-SHOP.png",
+            "unity": "SOUL-DRAW-ROUTE.png"
           }
         ]
       }

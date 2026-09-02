@@ -1,116 +1,61 @@
-# 玩法商店模块
+# 将魂商店模块（机器键 GameplayShops）
 
 ## 当前结论
 
-- G0-G6 已通过；Runner `59/59` 控件与 `9/9` 语义断言有效。六页视觉修复、同数据重拍、人工逐页验收、完整回归和 Bootstrap 幂等均完成。
-- 固定账号 `7200057 / roleId=1000115` 完成真实 `/221 op=1/2/3/4`、12 页面、购买/刷新/次数、成功/失败、重拉/重进/重连/切号及精确恢复。
-- 原生 `1334×750` 的六页双端证据已重拍；结构错位、错资源和文字裁切/重叠均为 `0`，剩余像素差来自 JPEG/PNG、字体光栅和透明边缘混合。
-- `BootstrapSceneBuilder.BuildBatch` 已重新连续执行两次，SHA-256 均为 `53939A9C337FE4E853EC9869BBB0324FC145FEEFB41E0071AC1E7DF9E569B9EE`。
-- 本模块只声明兑换商店的查询、交互、消费和恢复闭环；父玩法的资源产出链在所属玩法模块迁移前不作完成声明。
-- 机器矩阵：`docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json`。
+- 当前正式基线为 `a35a7f264f5766526d9db18ce59bfa337dc5a33b`；工作区仅保留用户未跟踪的 `tmp/`，本模块不改基础商城 Prefab。
+- 2026-09-02 按用户范围决策重开：只处理将魂商店 `function_id=15 / type=2`；玩法商店其他分支暂不修复。
+- 当前 G0-G4 与用户早期真实 Play 已通过；固定账号批量验证为 29/29 控件、9/9 语义，SQLite 精确恢复且残留 0。按用户本轮免截图约定，G5-G6 保持 pending。2026-07 的 12 页、59 控件和 G5/G6 记录仅作诊断线索，不作为本轮证据。
+- 机器矩阵：`docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json`；覆盖清单：`docs/unityclient/matrices/GAMEPLAY_SHOPS_COVERAGE.json`。
 
 ## 范围
 
-当前真实入口为主界面 `btn_shangcheng → tankuang1/btn_jianghun 或 btn_wanfa`，另含竞技场与血战页面的替代入口。覆盖将魂 `type=2`、竞技场 `type=3/4`、血战 `type=5/6/7/8`、昆仑 `type=23`、帮派 `type=25/26`、转盘 `type=27/28` 的列表、页签、购买次数/限购、价格/折扣、持有货币、将魂刷新、购买弹窗、奖励/详情、入口、返回、失败与生命周期。
-
-基础商城 `type=1` 由 `Shop` 模块负责；充值、VIP 与渠道支付不属于本模块。
+- 当前入口闭包：
+  - 主界面 `btn_shangcheng → tankuang1/btn_jianghun → EMID_SHOP_HUN=15`。
+  - 招募页 `Layer/Shop` 与 `Layer/GoldCheck/GoldIcon2/AddBtn`。
+  - 通用 `ItemSourceUI` 中所有 `item_source` 含 `15` 的跳转。
+  - 封神列传奖励获取途径 `Button_2 → function_id=15`。
+- 页面：`Shop.JiangHunShop → csd/shop/jianghunshop.csb`，公共框为 `shop/shop_bg`。
+- 业务：`/221` 的 `op=1/2/3/4` 且 `type=2`；服务端随机返回六格，购买数量固定 `1`。
+- 配置分母：`server/config/json/shop.json` 中 `type=2` 共 724 条，ID `2001–2724`、6 个格位、48 个奖励物品，成本为 `60014` 神魂或 `60001/60003` 元宝链。
+- 排除：基础商城 `type=1` 继续归 `Shop`；竞技、血战、昆仑、帮派以及转盘/其他玩法商店均不进入本轮。
 
 ## 三方证据
 
-- 当前入口：`MainUI.shopTouchCallback → tankuang1/btn_jianghun → AppDef.EMID_SHOP_HUN=15 → Shop.JiangHunShop`；`tankuang1/btn_wanfa → EMID_SHOP_JINGJI=16 → Shop.WanFaShopMainUI(sub=1)`；血战页入口 `EMID_SHOP_XUEZHAN=17 → Shop.WanFaShopMainUI(sub=2)`。
-- 当前 Prefab：`shop/jianghunshop.csb`、`shop/wanfashop.csb`。
-- 协议：`/221 MSG_SHOP`，`op=1` 查询、`op=2` 购买、`op=3` 刷新。
-- 协议页：将魂 `type=2`；竞技场商品/奖励 `type=3/4`；血战初/中/高装备及奖励 `type=5/6/7/8`；昆仑 `type=23`；帮派/精魄 `type=25/26`；转盘积分/元宝 `type=27/28`。
-- 列表响应：`type,success,refreshTimes,freeTimes,refreshRemaining,count,[grid,tid,buyCount]`。
-- 权威配置：`server/config/json/shop.json`、`shop_config.json`、`item.json`。
+- Cocos：`MainUI.lua`、`HappyDrawUI.lua`、`ItemSourceUI.lua`、`JiangHunShop.lua`、`AppDef.lua`。
+- 服务端：`protocol.h` 的 `MSG_SHOP=221`，`pack_deal.cpp` 注册与处理，`user_shop_manage.cpp` 商店状态，`shop.json/shop_config.json`。
+- Unity：`GameplayShopController.lua.txt → GameplayShopStore → GameplayShopsPresenter → ProjectXApp.HandleCommerceRoute(15)`。
+- 当前协议提取：`.local/protocol-evidence/221.md`。
 
-## G2 协议与数据契约
+## 协议与权威边界
 
-协议号：`MSG_SHOP=221`。服务端原样保留请求字段作为响应前缀，因此 Unity 必须按下表精确读取，失败分支不得继续读取成功字段。
-
-| op | 请求体（不含协议号） | 成功响应（响应首字节仍为 op） | 失败响应 |
+| op | 请求 | 成功结果 | 失败结果 |
 |---:|---|---|---|
-| 1 查询 | `byte type` | `byte type, byte success, ushort refreshTimes, byte freeTimes, ushort remainingSec, byte count, count × (byte grid, ushort tid, ushort buyCount)` | `type, success=0, string reason`；配置/商店不存在时服务端当前可能只回显请求，客户端必须按 pending/超时硬失败 |
-| 2 购买 | `byte type, ushort tid, ushort num, byte use` | 回显请求字段后：`byte success, ushort totalBuyCount, ushort awardType, uint awardUnitNum` | 回显请求字段后：`success=0, string reason` |
-| 3 刷新 | `byte type` | 与 op=1 相同的完整列表体 | `type, success=0, string reason` |
-| 4 查购买次数 | `byte type, ushort tid` | 回显请求字段后：`byte success, ushort buyCount` | 回显请求字段后：`success=0, string reason` |
+| 1 | `type=2` | 刷新次数、免费次数、恢复秒数及六格 `grid/tid/buyCount` | `success=0 + reason`；短包/静默必须超时失败 |
+| 2 | `type=2,tid,num=1,use=0` | `buyCount,rewardType,rewardUnitNum`，货币/背包由权威增量同步 | `success=0 + reason`，不得本地预扣或改已购态 |
+| 3 | `type=2` | 完整新列表；免费次数优先，否则刷新令 `400×1` | 失败不换列表、不扣次数/道具 |
+| 4 | `type=2,tid` | 权威 `buyCount` | 失败释放 pending 并明确反馈 |
 
-服务端购买语义：
+- `/221` 与基础商城共享：将魂控制器只消费自己发起且 `op/type/tid/quantity` 精确匹配的 pending，不得串读 `type=1`。
+- 724 条配置只用于补充名称、图标、成本、折扣和限购语义；运行列表只能来自服务器六格，禁止客户端补货。
+- 购买不在 C# 预判业务成功；服务端失败前后货币、背包与 `buyCount` 必须原子不变。
+- `CurrencyStore`、`BagStore`、`ServerTime` 与回包重拉共同驱动可见刷新；倒计时按秒变化并在重连后重建。
 
-- `num` 上限被服务端钳制到 `10000`；限购按当前 `cnt` 与配置 `count[2]` 判断。
-- 购买条件由 `CheckUserCond(buyCond)` 判定；失败分别覆盖已售罄、条件未达、货币不足。
-- 价格按当前累计购买次数对应的 `price_real` 百分比逐次累加，不能用 `unitCost × num` 代替。
-- 成功后先扣真实 `MultiCost`，再增加 `award.num × num`，回包的 `awardUnitNum` 是单次配置数量，不是总奖励数。
-- `use=1` 会在发奖后立即使用物品；本模块默认发送 `0`，只有明确需要时才允许启用。
-- op=3 只对将魂 `type=2` 开放；优先消耗免费次数，否则消耗刷新令 `400×1`，并返回完整新列表。
+## G0 范围冻结
 
-页面与货币：
+- `workflowPolicyVersion=1`、`hardGateVersion=3`。
+- 直接控件 21：4 类入口、公共关闭/帮助、神魂详情、6 个物品详情、6 个购买按钮、刷新。当前 Cocos 证明招募页 GoldIcon2 加号属于道具兑换；`yuanbao/add` 无可见可达运行态，二者不计入当前分母。
+- 场景状态 8：权威六格、折扣/已购、刷新状态、购买成功、余额不足、刷新成功、返回/重连、切号。
+- 固定 Unity 早测身份为 `7200057/1000003`，数据只能来自 `Application.persistentDataPath/LocalServer/projectx.db`；任何 MySQL 夹具不能替代用户测试数据。
 
-| 页面 | type | 主要货币 |
-|---|---:|---:|
-| 将魂 | 2 | `60014` 神魂、`60001/60003` 元宝；刷新令 `400` |
-| 竞技商品/奖励 | 3/4 | `60050` 竞技积分 |
-| 血战一/二/三层、奖励 | 5/6/7/8 | `60025` 星宿精华 |
-| 昆仑 | 23 | `60051` 昆仑币 |
-| 帮派/圣灵 | 25/26 | `60021` 帮贡、`60054` 圣灵货币 |
-| 转盘积分/元宝 | 27/28 | `60056` 转盘积分、`60001/60003` 元宝 |
+## G1-G3 当前结果与退出条件
 
-`60001` 是旧配置展示 ID，服务端实际元宝扣款链还会更新 `60003`；Unity 必须以登录/增量协议的真实余额为权威，G4 需对扣款前后两者做硬断言，禁止只看图标或客户端预测值。
+- G1：当前原生 `ProjectX.exe / Cocos Simulator` 已冻结六格、帮助、神魂详情、物品详情、主界面入口与招募底部商城入口；GoldIcon2 实测为道具兑换，已移出本模块。
+- G2：关闭入口、共享协议所有权、724 配置到48物品/图标资源、Prefab运行时 Transform、事件监听和返回栈已审计；当时登记的 SQLite/G3 缝隙已在 G3 解决。
+- G3：运行时 Lua/Presenter/ProjectXApp 已收窄到 type=2；补神魂详情、秒级倒计时、服务端权威失败和返回生命周期。SQLite `7200057/1000003` 登录预检、整库 SHA 精确恢复、Unity 编译指纹与298项中央工具回归通过；未修改任何 Prefab。
+- 早测不替代 G4-G6；G6 最终确认仍必须由用户在最后一次相关变更后完成。
 
-## G2 所有权与实现边界
+## 已知风险
 
-- Lua `GameplayShopController` 独占自己发起的 `/221` pending，并拥有请求队列、op/type/tid/num/use、回包游标、错误、超时、刷新/重拉/重连与切号清理。
-- Lua 只在 pending 精确匹配时消费 `/221`；否则返回 `false` 交给基础 `ShopController`，不得串读 `type=1`。
-- C# `GameplayShopStore` 只保存服务器回包形成的 12 个页面缓存；配置只补名称、图标、条件文本、价格阶梯和显示规则，不能生成服务器未返回的商品。
-- C# `GameplayShopsPresenter` 只负责真实 Prefab 节点绑定、滚动、页签、详情、数量弹窗、公共奖励/Toast 与控件证据；点击动作回调 Lua，禁止直接改货币、购买次数或背包。
-- 购买成功后先应用回包购买次数与权威货币/背包增量，再重拉当前 type；失败只展示服务端原因，不做乐观扣款。
-- `ItemBuyUI`：`leftTimes==1` 直接购；`leftTimes>1` 打开数量弹窗并限制为 `1..leftTimes`；无限购使用客户端显示上限但最终由服务端钳制/校验。
-- 关闭、断线、重连、切号必须清空 pending、弹窗、临时选择、页面缓存与验证队列；基础 Shop Store 不能被清空或覆盖。
-- 转盘入口等级锁属于路由边界；未满 99 级显示原生语义 Toast，满级后加载 `type=27/28`，两个状态都必须进入后续证据。
-
-## 实现
-
-- `GameplayShopStore`、`GameplayShopController.lua` 和 Runner 已覆盖 12 个页面，并将 `type=1` 基础商城留给原 `ShopController`。
-- `GameplayShopsPresenter` 复用真实 `jianghunshop/wanfashop` 内容布局与 `shop/shop_bg` 原生框架，渲染将魂 6 格及全部玩法商店页面。
-- `GameplayShopController.lua` 独占自己发出的 `/221` 请求；未激活时把协议继续交给原 `ShopController`，基础商城链路不变。
-- `ProjectXApp.EnterGameplay(15/16/17)` 接通入口、UiStack 返回、分类/子页签请求和六态截图。
-- 购买、数量弹窗、将魂刷新、详情、奖励与公共反馈均接真实回调；客户端不做乐观扣款。
-
-## 功能验证
-
-- 本轮 G0 证据：当前入口库存、控件候选、MainUI/AppDef、JiangHunShop/WanFaShopMainUI/WanFaShopDelegate、ItemBuyUI、`/221` 服务端处理和两份真实 Prefab。
-- 本轮 G1：固定账号 `7200057 / roleId=1000115` 已完成原生动态取证。证据 `.local/ui-fidelity/GameplayShops/cocos/g1-20260729/G1_COCOS_EVIDENCE.md` 及同目录 `00-main-native.jpg` 至 `17-arena-insufficient-native.jpg`。
-- G1 可逆性：误触将魂直购后，元宝、背包和 `shenhunShop` 均按快照精确恢复；重登录后背包解压非零字节数为 `0`，残留为 `0`。
-- G2：`.local/protocol-evidence/GameplayShops-221.md` 与 `.local/unity-validation/gameplay-shops-g2-protocol-evidence.md`。
-- G3：最终编译指纹见 `.local/unity-validation/unity-compile-preflight-latest.json`。
-- G4：先通过匹配账号/适配器 SHA/需求指纹的 `DataPreflightOnly`，再完成正式固定账号验证；结果 `.local/unity-validation/gameplayshops-fixed-account-latest.json`。
-- G4 结果：真实购买 `type=28,id=28001,quantity=25`、权威重拉 `buyCount=25`、售罄重复拒绝、余额不足、条件不足、重复 pending、将魂免费刷新均通过；`59/59` 控件、`9/9` 语义。
-- G5：`.local/ui-fidelity/GameplayShops/cocos/g5-20260729/`、`.local/ui-fidelity/GameplayShops/unity/g5-20260729/`、`.local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json`、`manual-acceptance.json` 与 `G5_VISUAL_ACCEPTANCE.md`。
-- G6：`.local/unity-validation/gameplay-shops-g6-evidence.md`、`.local/unity-validation/gameplayshops-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`；6/6 截图、59/59 控件、9/9 语义及双次 BuildBatch 通过。
-- 恢复：固定账号原始哈希 `e9850155b76b5de9b9cd417612ed1c524f67de4dfa571fefec4b257b15707263`，重登录复核通过，fixture 行数为 `0`。
-
-## 视觉 1:1 记录
-
-- 当前状态：`same-data-g5-passed / G6-passed`。
-- 六组同账号、同确定性数据、同 `1334×750` 的 Cocos/Unity 原图、并排、叠加和差异报告已完成。
-- 修复项：替换错误 `OneLevelLayer` 外框，恢复 `shop/shop_bg`、菱形导航、正确页签和公共层；补齐真实品质框、物品数量、刷新令、碎片角标与合成计数；修正 940/955 宽行模板居中造成的 7.5 px 偏移及名称/合成数字对齐。
-
-## 模块外边界
-
-- 竞技、血战、帮派、昆仑、转盘等父玩法的资源产出不属于本模块；后续迁移对应玩法时再验证“玩法产出 → 商店兑换 → 消费”的端到端闭环。
-- 充值、VIP、渠道支付继续后置；元宝加号只保留明确边界，不伪造支付入口。
-
-## 关键坑
-
-- `/221` 同时服务基础商城与玩法商店；控制器必须只消费自己发出的请求，否则基础 `ShopController` 会读错游标。
-- 完整固定账号验证与 VisualOnly 拆跑时，G6 摘要必须按账号、角色、源码指纹、G5 指纹和逐图 SHA 合并视觉证据；仅有业务摘要或仅有截图摘要都不能通过。
-- 竞技商店实际是 `type=3/4` 两页，血战商店实际是 `type=5/6/7/8` 四页，不能只按功能 ID 各迁一个页面。
-- 将魂配置约 724 条候选，服务端只返回本角色当前随机 6 格；Unity 必须以回包 `tid` 为权威，不能直接全量展示配置。
-- 当前固定角色为 60 级，转盘入口原生显示 `99级开启此功能`；G4/G5 必须通过可逆数据预演同时覆盖锁定态与解锁后的 `type=27/28`，不得把锁定截图当作双页面完成。
-- `ShopCatalog` 的展示数据不能替代服务端累计价格、条件和限购判断；任何新增商店类型仍需以 `/221` 权威回包为准。
-
-## Steam SQLite S5（2026-08-20）
-
-- 已通过：全部保留类型`2/3/4/5/6/7/8/23/25/26/27/28`查询，将魂`type=2`免费刷新`10→9`，`type=28/id=28001 ×25`购买至售罄、`op4=25`、重复购买拒绝、`type=3`零竞技币拒绝及重启恢复。SQLite/MySQL运行态各64响应，重启拥有`/221`字节与语义一致。
-- 权威空态：新角色`type=26`成功返回0项，因为五项配置均要求`show=[3,*]`；不得为凑页面伪造商品。type2随机ID和倒计时只归一为六格/次数/有效CD语义，原始包完整保留。
-- 持久化：规范化后的29类型`mysteryShop` Blob、`package/mission/role_info.money`和账号元宝一致；非绑定元宝两端均`100000→93750`。只删除隔离库`fxl_game_gameplayshops_s5_v1`，正式`fxl_game_local`继续保留。证据：`.local/unity-validation/steam-sqlite-s5-gameplayshops-latest.json`。
+- 固定账号合同和夹具已切换为 persistentDataPath SQLite direct-hex 六格格式；旧多页 Runner 的休眠实现不得用于 G4-G6，后续正式 batch 必须继续只覆盖 type=2。
+- 旧 Presenter 保留玩法商店多页代码；本轮可保留为休眠兼容，但路由、请求、场景和验收不得触发其他类型。
+- Cocos `JiangHunShop.updateData` 在回包少于六格时会从配置补齐；Unity 按当前迁移硬标准不复制这一客户端伪造行为，空/短列表作为受控差异在 G1/G2 明确。

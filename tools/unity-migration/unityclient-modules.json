@@ -645,21 +645,20 @@
     },
     {
       "key": "GameplayShops",
-      "displayName": "玩法商店",
-      "status": "g0-evidence-missing",
+      "displayName": "将魂商店",
+      "status": "g4-passed-g5-pending",
       "protocols": [
         221
       ],
       "entries": [
         "Layer/Main_UI/ButtonGroup1/btn_shangcheng -> tankuang1/btn_jianghun -> EMID_SHOP_HUN=15 -> Shop.JiangHunShop",
-        "Layer/Main_UI/ButtonGroup1/btn_shangcheng -> tankuang1/btn_wanfa -> EMID_SHOP_JINGJI=16 -> Shop.WanFaShopMainUI(sub=1)",
-        "KaPaiArenaUI shop entry -> EMID_SHOP_JINGJI=16 -> Shop.WanFaShopMainUI(sub=1)",
-        "XueZhanMainUI/XueZhanChapterUI shop entry -> EMID_SHOP_XUEZHAN=17 -> Shop.WanFaShopMainUI(sub=2)",
-        "WanFaShopMainUI tabs -> guild type=25/26, kunlun type=23, turntable type=27/28"
+        "HappyDrawUI Layer/Shop -> EMID_SHOP_HUN=15 -> Shop.JiangHunShop",
+        "ItemSourceUI runtime source function_id=15 -> Shop.JiangHunShop",
+        "FengShenStory ItemSource Button_2 -> function_id=15 -> Shop.JiangHunShop"
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/jianghunshop.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/wanfashop.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab"
       ],
       "configs": [
         "unityclient/Assets/ProjectX/Resources/Configs/shop.json",
@@ -671,12 +670,7 @@
         "-projectXGameplayShopsValidation"
       ],
       "screenshots": [
-        "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-        "build/ui-migration/bootstrap-gameplay-shop-arena.png",
-        "build/ui-migration/bootstrap-gameplay-shop-blood.png",
-        "build/ui-migration/bootstrap-gameplay-shop-guild.png",
-        "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
-        "build/ui-migration/bootstrap-gameplay-shop-turntable.png"
+        "build/ui-migration/bootstrap-gameplay-shop-jianghun.png"
       ],
       "visualFidelity": {
         "status": "pending-cocos-baseline",
@@ -813,7 +807,7 @@
     {
       "key": "World",
       "displayName": "世界/战斗/副本",
-      "status": "v0-closed-a-16-19-world-g6-passed-user-confirmed",
+      "status": "g6-complete",
       "protocols": [
         21,
         22,

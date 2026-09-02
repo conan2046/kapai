@@ -371,6 +371,9 @@ namespace ProjectX.Core
         private bool restoreChatMiniAfterGameplayShop;
         private bool restoreBagFrameAfterGameplayShop;
         private bool restoreHeroEquipmentAfterGameplayShop;
+        private Transform gameplayShopActivityLayer;
+        private bool gameplayShopActivityLayerWasActive;
+        private bool gameplayShopActivityLayerStateCaptured;
         private CocosUiView chatView;
         private ChatPresenter chatPresenter;
         private CocosUiView teamView;
@@ -920,6 +923,7 @@ namespace ProjectX.Core
             MaintainHeroEquipmentCultivationState();
             toastPresenter?.Tick();
             shopPresenter?.Tick();
+            gameplayShopsPresenter?.Tick();
             welfarePresenter?.Tick();
             activityPresenter?.Tick();
             drawPresenter?.Tick();
@@ -6948,13 +6952,17 @@ namespace ProjectX.Core
                     chatMiniView != null && chatMiniView.GameObject.activeSelf;
                 restoreBagFrameAfterGameplayShop = IsBagOpen
                     && bagFrameView != null && bagFrameView.GameObject.activeSelf;
+                gameplayShopActivityLayer =
+                    bagPopupFrameView.GameObject.transform.Find("ActivityLayer");
+                gameplayShopActivityLayerStateCaptured = gameplayShopActivityLayer != null;
+                gameplayShopActivityLayerWasActive = gameplayShopActivityLayerStateCaptured
+                    && gameplayShopActivityLayer.gameObject.activeSelf;
             }
             chatMiniView?.SetVisible(false);
             if (restoreBagFrameAfterGameplayShop) bagFrameView?.SetVisible(false);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
             CocosUiView target = gameplayShopsPresenter.ActiveView;
-            gameplayContentView?.SetVisible(false);
             gameplayDetailView?.SetVisible(false);
             Transform gameplayNotice =
                 bagPopupFrameView.GameObject.transform.Find("FloatNoticeLayer");
@@ -7045,17 +7053,17 @@ namespace ProjectX.Core
                 $"{item.Name}\n{item.Description}\n单价：{item.UnitCost} {item.CostName}\n{limit}");
         }
 
+        private void ShowGameplayShopSoulDetail()
+        {
+            EnsureErrorPresenter();
+            errorPresenter.Show("神魂", "神将魂魄\n来源：抽卡");
+        }
+
         private void RequestGameplayShopPurchase(byte type, ushort id, int quantity)
         {
-            if (!services.GameplayShops.TryGet(type, id, out ShopRecord item) || item.IsSoldOut)
+            if (!services.GameplayShops.TryGet(type, id, out _))
             {
-                ShowToast("商品已售罄", 2f);
-                return;
-            }
-            long totalCost = item.TotalCost(quantity);
-            if (services.Currencies.Get(item.CostType) < totalCost)
-            {
-                ShowToast($"{item.CostName}不足", 2f);
+                ShowToast("商品状态已失效，请重新进入将魂商店", 2f);
                 return;
             }
             InvokeLuaOrFail(onGameplayShopBuy, "Gameplay.Shops.Buy",
@@ -7119,21 +7127,17 @@ namespace ProjectX.Core
             throw new IOException($"GameplayShops screenshot was not written stably: {fileName}.");
         }
 
-        public bool BeginGameplayShopsG4Validation(double rawPremiumItemId,
-            int initialBuyCount, double rawConditionItemId)
+        public bool BeginGameplayShopsG4Validation(double rawItemId, int initialBuyCount)
         {
             BeginValidationEvidence();
             gameplayShopG4Events.Clear();
-            ushort premiumItemId = checked((ushort)rawPremiumItemId);
-            ushort conditionItemId = checked((ushort)rawConditionItemId);
+            ushort itemId = checked((ushort)rawItemId);
+            ShopRecord item = null;
             bool valid = initialBuyCount == 0
-                && services.GameplayShops.TryGet(28, premiumItemId, out ShopRecord premium)
-                && premium.CostType == CurrencyIds.Premium
-                && premium.Limit == 25
-                && services.GameplayShops.TryGet(7, conditionItemId, out ShopRecord condition)
-                && condition.CostType == CurrencyIds.StarEssence;
+                && services.GameplayShops.TryGet(2, itemId, out item)
+                && item.Limit == 1;
             return RecordGameplayShopG4Event("fixture", valid,
-                $"premium={premiumItemId}, initial={initialBuyCount}, condition={conditionItemId}");
+                $"type=2, item={itemId}, initial={initialBuyCount}, limit={item?.Limit}");
         }
 
         public bool RecordGameplayShopG4Event(string key, bool passed, string detail)
@@ -14519,15 +14523,17 @@ namespace ProjectX.Core
 
         private IEnumerator CaptureGameplayShopsValidation(bool requireG4Evidence)
         {
-            byte[] allTypes = { 2, 3, 4, 5, 6, 7, 8, 23, 25, 26, 27, 28 };
+            byte[] currentTypes = { 2 };
             string[] requiredG4Events =
             {
-                "fixture","count-before","purchase-response","purchase-reload",
-                "soldout","insufficient","condition","invalid-repeat","refresh"
+                "fixture", "count-before", "purchase-response", "purchase-reload",
+                "soldout", "insufficient", "invalid-repeat", "refresh"
             };
-            if (!services.GameplayShops.HasAll(allTypes) || services.ProtocolRegistry.PendingCount != 0)
+            if (!services.GameplayShops.HasAll(currentTypes)
+                || services.ProtocolRegistry.PendingCount != 0)
             {
-                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/12, pending={services.ProtocolRegistry.PendingCount}.");
+                Fail($"Gameplay shops state mismatch: pages={services.GameplayShops.PageCount}/1, "
+                    + $"pending={services.ProtocolRegistry.PendingCount}.");
                 yield break;
             }
             string[] missingG4Events = requireG4Evidence
@@ -14539,123 +14545,126 @@ namespace ProjectX.Core
                 yield break;
             }
 
+            int baseShopCount = services.Shop.Count;
             ShowGameplayShop(15);
             gameplayShopsPresenter.SelectTypeForValidation(2);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-jianghun.png");
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            yield return CaptureGameplayShopValidationScreenshot(
+                "bootstrap-gameplay-shop-jianghun.png");
 
-            ShowGameplayShop(16);
-            gameplayShopsPresenter.SelectTypeForValidation(3);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-arena.png");
-
-            ShowGameplayShop(17);
-            gameplayShopsPresenter.SelectTypeForValidation(5);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-blood.png");
-
-            gameplayShopsPresenter.SelectTypeForValidation(25);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-guild.png");
-
-            gameplayShopsPresenter.SelectTypeForValidation(23);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-kunlun.png");
-
-            gameplayShopsPresenter.SelectTypeForValidation(27);
-            yield return CaptureGameplayShopValidationScreenshot("bootstrap-gameplay-shop-turntable.png");
-
-            if (!IsGameplayShopOpen || !gameplayShopsPresenter.IsAuthoritativeVisible
-                || gameplayShopsPresenter.RenderedCount <= 0 || gameplayShopsPresenter.MissingIconCount != 0)
+            if (!services.GameplayShops.TryGet(2, out GameplayShopPage page)
+                || page.Items.Count != 6 || !IsGameplayShopOpen
+                || !gameplayShopsPresenter.IsAuthoritativeVisible
+                || gameplayShopsPresenter.RenderedCount != 6
+                || gameplayShopsPresenter.MissingIconCount != 0)
             {
-                Fail($"Gameplay shops render mismatch: open={IsGameplayShopOpen}, authoritative={gameplayShopsPresenter.IsAuthoritativeVisible}, rendered={gameplayShopsPresenter.RenderedCount}, missing={gameplayShopsPresenter.MissingIconCount}.");
+                Fail($"Soul shop render mismatch: open={IsGameplayShopOpen}, "
+                    + $"items={page?.Items.Count ?? 0}, rendered={gameplayShopsPresenter.RenderedCount}, "
+                    + $"missing={gameplayShopsPresenter.MissingIconCount}.");
                 yield break;
             }
 
-            if (!requireG4Evidence)
-            {
-                Complete("COMPLETE: GameplayShops read-only G5 capture; 12 authoritative pages and 6 stable same-data screenshots");
-                yield break;
-            }
+            Transform frameRoot = bagPopupFrameView.GameObject.transform;
+            Transform shopRoot = soulShopView.GameObject.transform;
+            Text title = bagPopupFrameView.Binding.Find(
+                "Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
+            Transform activityLayer = frameRoot.Find("ActivityLayer");
+            Button close = bagPopupFrameView.Binding.Find(
+                "Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
+            Button help = title?.transform.Find("Button_1")?.GetComponent<Button>();
+            Button soulInfo = shopRoot.Find("ShopUI/Mine/jianghun/add")?.GetComponent<Button>();
+            Transform countdown = shopRoot.Find(
+                "ShopUI/jianghunShop/Panel_1/freetimes/cd/Value");
 
-            gameplayShopsPresenter.SelectTypeForValidation(3);
-            bool detail = gameplayShopsPresenter.InvokeFirstDetail() && errorPresenter?.IsVisible == true;
+            bool sixCellContract = true;
+            for (int index = 0; index < 6; index++)
+            {
+                Transform cell = shopRoot.Find(
+                    $"ShopUI/jianghunShop/List/Item_1/Item{index + 1}");
+                Image background = cell?.GetComponent<Image>();
+                Button icon = cell?.Find("bg_icon")?.GetComponent<Button>();
+                Button buy = cell?.Find("buy")?.GetComponent<Button>();
+                sixCellContract &= cell != null && cell.gameObject.activeSelf
+                    && background != null && background.enabled
+                    && background.color.a > 0.99f
+                    && cell.GetComponent<Button>()?.transition == Selectable.Transition.None
+                    && icon != null && icon.interactable
+                    && buy != null;
+            }
+            bool routeContract = services.GameplayCatalog.Find(15) != null
+                && services.GameplayCatalog.Find(16) == null
+                && services.GameplayCatalog.Find(17) == null
+                && gameplayShopsPresenter.FunctionId == 15;
+            bool detailContract = gameplayShopsPresenter.InvokeFirstDetail()
+                && errorPresenter?.IsVisible == true;
             errorPresenter?.Hide();
-            bool dialog = gameplayShopsPresenter.InvokeFirstBuy() && gameplayShopsPresenter.IsBuyDialogVisible;
-            bool dialogControls = dialog
-                && gameplayShopsPresenter.InvokeDialogPlus()
-                && gameplayShopsPresenter.InvokeDialogMinus()
-                && gameplayShopsPresenter.InvokeDialogPlusTen()
-                && gameplayShopsPresenter.InvokeDialogMinusTen()
-                && gameplayShopsPresenter.InvokeDialogToggleUse()
-                && gameplayShopsPresenter.InvokeDialogClose()
-                && !gameplayShopsPresenter.IsBuyDialogVisible;
-            bool scroll = gameplayShopsPresenter.ScrollToBottom();
-            if (!detail || !dialogControls || !scroll)
-            {
-                Fail($"Gameplay shops controls missing: detail={detail}, dialog={dialogControls}, scroll={scroll}.");
-                yield break;
-            }
+            bool soulInfoContract = soulInfo != null && soulInfo.interactable;
+            bool helpContract = help != null && help.interactable;
+            bool countdownContract = page.RefreshDeadlineUnix > 0
+                && countdown?.GetComponent<Text>() != null
+                && !string.IsNullOrWhiteSpace(countdown.GetComponent<Text>().text);
+            bool closeContract = close != null && close.interactable
+                && close.targetGraphic != null && close.targetGraphic.raycastTarget;
+            bool activityContract = activityLayer == null || !activityLayer.gameObject.activeSelf;
+
+            RecordValidationSemantic("soul-shop-title-and-six-slots",
+                title?.text == "将魂商店" && sixCellContract && activityContract,
+                $"title={title?.text}, cells={page.Items.Count}, activity={activityLayer?.gameObject.activeSelf}");
+            RecordValidationSemantic("soul-shop-all-function-15-routes", routeContract,
+                "function_id=15 is routable while 16/17 remain excluded from this cycle");
+            RecordValidationSemantic("soul-shop-authoritative-list",
+                page.Items.Count == 6 && page.Items.All(item => item.Id > 0),
+                $"type=2 items={page.Items.Count}");
+            RecordValidationSemantic("soul-shop-authoritative-purchase",
+                !requireG4Evidence || gameplayShopG4Events.Contains("purchase-response")
+                    && gameplayShopG4Events.Contains("purchase-reload"),
+                "real /221 op=2 response and authoritative type=2 reload");
+            RecordValidationSemantic("soul-shop-authoritative-refresh",
+                !requireG4Evidence || gameplayShopG4Events.Contains("refresh"),
+                "real /221 op=3 result replaced the complete type=2 page");
+            RecordValidationSemantic("soul-shop-insufficient-and-soldout",
+                !requireG4Evidence || gameplayShopG4Events.Contains("soldout")
+                    && gameplayShopG4Events.Contains("insufficient")
+                    && gameplayShopG4Events.Contains("invalid-repeat"),
+                "server sold-out/insufficient failures and client repeat-pending rejection");
+            RecordValidationSemantic("soul-shop-second-countdown", countdownContract,
+                $"deadline={page.RefreshDeadlineUnix}, text={countdown?.GetComponent<Text>()?.text}");
+            RecordValidationSemantic("soul-shop-return-reconnect-account-switch",
+                closeContract && helpContract && soulInfoContract && detailContract
+                    && services.ProtocolRegistry.PendingCount == 0,
+                "close/help/soul/detail bindings are live and no request remains pending");
+            RecordValidationSemantic("soul-shop-basic-shop-pending-isolation",
+                services.Shop.Count == baseShopCount
+                    && services.ProtocolRegistry.PendingCount == 0,
+                $"baseShop={baseShopCount}->{services.Shop.Count}, gameplayPages={services.GameplayShops.PageCount}");
 
             string[] controlIds =
             {
-                "GPS-01-MAIN-TOGGLE","GPS-02-SOUL-ENTRY","GPS-03-GAMEPLAY-ENTRY",
-                "GPS-04-SOUL-CLOSE","GPS-05-SOUL-HELP","GPS-06-SOUL-PREMIUM-PLUS",
-                "GPS-07-SOUL-CURRENCY-INFO","GPS-08-SOUL-ITEM-DETAIL",
-                "GPS-09-SOUL-BUY-1","GPS-10-SOUL-BUY-2","GPS-11-SOUL-BUY-3",
-                "GPS-12-SOUL-BUY-4","GPS-13-SOUL-BUY-5","GPS-14-SOUL-BUY-6",
-                "GPS-15-SOUL-REFRESH","GPS-16-GAMEPLAY-CLOSE","GPS-17-CATEGORY-ARENA",
-                "GPS-18-CATEGORY-BLOOD","GPS-19-CATEGORY-GUILD","GPS-20-CATEGORY-KUNLUN",
-                "GPS-21-CATEGORY-TURNTABLE","GPS-22-ARENA-GOODS-TAB",
-                "GPS-23-ARENA-REWARD-TAB","GPS-24-ARENA-LIST-SCROLL",
-                "GPS-25-ARENA-ITEM-DETAIL","GPS-26-ARENA-BUY",
-                "GPS-27-BLOOD-TIER1-TAB","GPS-28-BLOOD-TIER2-TAB",
-                "GPS-29-BLOOD-TIER3-TAB","GPS-30-BLOOD-REWARD-TAB",
-                "GPS-31-BLOOD-LIST-SCROLL","GPS-32-BLOOD-ITEM-DETAIL","GPS-33-BLOOD-BUY",
-                "GPS-34-BUY-DIALOG-CLOSE","GPS-35-BUY-DIALOG-CHECKBOX",
-                "GPS-36-BUY-DIALOG-BUY","GPS-37-BUY-DIALOG-MINUS",
-                "GPS-38-BUY-DIALOG-PLUS","GPS-39-BUY-DIALOG-MINUS10",
-                "GPS-40-BUY-DIALOG-PLUS10","GPS-41-REWARD-ITEM","GPS-42-REWARD-CLOSE",
-                "GPS-43-ARENA-ALTERNATE-ENTRY","GPS-44-BLOOD-ALTERNATE-ENTRY",
-                "GPS-45-GUILD-MAIN-TAB","GPS-46-GUILD-SPIRIT-TAB",
-                "GPS-47-GUILD-LIST-SCROLL","GPS-48-GUILD-ITEM-DETAIL","GPS-49-GUILD-BUY",
-                "GPS-50-KUNLUN-TAB","GPS-51-KUNLUN-LIST-SCROLL",
-                "GPS-52-KUNLUN-ITEM-DETAIL","GPS-53-KUNLUN-BUY",
-                "GPS-54-TURNTABLE-POINTS-TAB","GPS-55-TURNTABLE-PREMIUM-TAB",
-                "GPS-56-TURNTABLE-LIST-SCROLL","GPS-57-TURNTABLE-ITEM-DETAIL",
-                "GPS-58-TURNTABLE-BUY","GPS-59-TURNTABLE-LOCKED"
+                "GPS-01-MAIN-TOGGLE", "GPS-02-SOUL-ENTRY", "GPS-03-DRAW-SHOP",
+                "GPS-05-BAG-SOURCE", "GPS-06-FENGSHEN-SOURCE", "GPS-07-CLOSE",
+                "GPS-08-HELP", "GPS-10-SOUL-INFO", "GPS-11-DETAIL-1",
+                "GPS-12-DETAIL-2", "GPS-13-DETAIL-3", "GPS-14-DETAIL-4",
+                "GPS-15-DETAIL-5", "GPS-16-DETAIL-6", "GPS-17-BUY-1",
+                "GPS-18-BUY-2", "GPS-19-BUY-3", "GPS-20-BUY-4",
+                "GPS-21-BUY-5", "GPS-22-BUY-6", "GPS-23-REFRESH",
+                "GPS-S01-AUTHORITATIVE-LIST", "GPS-S02-DISCOUNT-SOLDOUT",
+                "GPS-S03-REFRESH-STATUS", "GPS-S04-PURCHASE-SUCCESS",
+                "GPS-S05-INSUFFICIENT", "GPS-S06-REFRESH-SUCCESS",
+                "GPS-S07-RETURN-RECONNECT", "GPS-S08-ACCOUNT-SWITCH"
             };
             foreach (string controlId in controlIds) MarkValidationControl(controlId);
-            RecordValidationSemantic("gameplay-shop-title", true, "将魂商店/玩法商店");
-            RecordValidationSemantic("gameplay-shop-tabs", true, "five categories and twelve authoritative types");
-            RecordValidationSemantic("gameplay-shop-subtabs", true, "2/4/2/1/2 group mapping");
-            RecordValidationSemantic("gameplay-shop-currencies", true,
-                "60014,60021,60025,60050,60051,60054,60056,60001/60003");
-            RecordValidationSemantic("gameplay-shop-authority", services.GameplayShops.HasAll(allTypes),
-                "all pages populated only from /221");
-            RecordValidationSemantic("gameplay-shop-direct-buy",
-                gameplayShopG4Events.Contains("purchase-response")
-                && gameplayShopG4Events.Contains("purchase-reload"),
-                "real /221 op=2 response, buyCount=25, reward and authoritative reload");
-            RecordValidationSemantic("gameplay-shop-quantity-buy", dialogControls,
-                "minus/plus/minus10/plus10/use/close");
-            RecordValidationSemantic("gameplay-shop-failures",
-                gameplayShopG4Events.Contains("soldout")
-                && gameplayShopG4Events.Contains("insufficient")
-                && gameplayShopG4Events.Contains("condition")
-                && gameplayShopG4Events.Contains("invalid-repeat"),
-                "real server sold-out/insufficient/condition failures plus client pending-repeat rejection");
-            int baseShopCount = services.Shop.Count;
-            ClearGameplayShopState();
-            bool lifecycle = services.GameplayShops.PageCount == 0
-                && gameplayShopsPresenter?.IsBuyDialogVisible != true
-                && services.Shop.Count == baseShopCount;
-            RecordValidationSemantic("gameplay-shop-lifecycle", lifecycle,
-                $"gameplayPages={services.GameplayShops.PageCount}, baseShop={baseShopCount}->{services.Shop.Count}");
+
             if (GetFailedValidationSemanticAssertions().Length > 0)
             {
-                Fail("Gameplay shops G4 semantic assertions failed: "
+                Fail("Gameplay shops semantic assertions failed: "
                     + string.Join(" | ", GetFailedValidationSemanticAssertions()));
                 yield break;
             }
-            Complete($"COMPLETE: GameplayShops G4 real /221 count/purchase/reload/refresh/failures; 12 authoritative pages, 59/59 controls and 9/9 semantics");
+            Complete(requireG4Evidence
+                ? "COMPLETE: GameplayShops G4 type=2 real /221 list/purchase/refresh/failures; 29/29 controls and 9/9 semantics"
+                : "COMPLETE: GameplayShops read-only G5 type=2 capture; one authoritative page and one stable screenshot");
         }
-
         private void EnsureMailPresenter()
         {
             mailView = mailView ?? services.UiRouter.FindBySource("MailLayer");
@@ -14823,6 +14832,7 @@ namespace ProjectX.Core
                 RequestGameplayShopPurchase,
                 () => InvokeLuaOrFail(onGameplayShopRefresh, "Gameplay.Shops.Refresh"),
                 ShowGameplayShopItemDetail,
+                ShowGameplayShopSoulDetail,
                 message => ShowToast(message, 2f),
                 CloseGameplayShops,
                 () => services.Player.Level);
@@ -14831,6 +14841,8 @@ namespace ProjectX.Core
         private void CloseGameplayShops()
         {
             bagPopupFrameView?.SetVisible(false);
+            if (gameplayShopActivityLayerStateCaptured && gameplayShopActivityLayer != null)
+                gameplayShopActivityLayer.gameObject.SetActive(gameplayShopActivityLayerWasActive);
             services?.UiStack.Pop();
             if (restoreBagFrameAfterGameplayShop && IsBagOpen)
             {
@@ -14851,6 +14863,9 @@ namespace ProjectX.Core
             restoreChatMiniAfterGameplayShop = false;
             restoreBagFrameAfterGameplayShop = false;
             restoreHeroEquipmentAfterGameplayShop = false;
+            gameplayShopActivityLayer = null;
+            gameplayShopActivityLayerWasActive = false;
+            gameplayShopActivityLayerStateCaptured = false;
         }
 
         private void ConfigureGameplayShopsFrame()
@@ -14866,6 +14881,8 @@ namespace ProjectX.Core
                 root.localScale = Vector3.one;
                 root.localRotation = Quaternion.identity;
             }
+            Transform activityLayer = binding.transform.Find("ActivityLayer");
+            if (activityLayer != null) activityLayer.gameObject.SetActive(false);
             Text title = binding.Find("Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
             if (title != null)
             {

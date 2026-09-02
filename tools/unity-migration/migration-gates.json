@@ -136,99 +136,219 @@
     {
       "module": "GameplayShops",
       "gates": {
-        "G0": "pending",
-        "G1": "pending",
-        "G2": "pending",
-        "G3": "pending",
-        "G4": "pending",
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-      "note": "Current checkout is missing all 15 registered formal G5/G4 evidence files. Historical 59-control results are diagnostic only; restart from current source at G0 and regenerate G1-G6 evidence.",
+      "note": "2026-09-02 user scope narrows this machine key to Soul Shop function_id=15/type=2. Historical 12-page/59-control evidence is diagnostic only; other gameplay shop branches are excluded from this cycle.",
       "gateEvidence": {
+        "G5": [],
+        "G6": [],
         "G0": [
           "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_COVERAGE.json",
           "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
-          "tools/cocos-audit/generated/cocos-control-candidates.json"
-        ],
-        "G1": [
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/02-soul-list-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/06-soul-purchase-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/07-arena-goods-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/09-blood-tier1-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/13-guild-shop-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/15-kunlun-shop-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/16-turntable-locked-native.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g1-20260729/17-arena-insufficient-native.jpg"
-        ],
-        "G2": [
-          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
           "tools/unity-migration/unityclient-modules.json",
           "tools/unity-migration/validation-scenarios.json",
-          ".local/protocol-evidence/GameplayShops-221.md",
-          ".local/unity-validation/gameplay-shops-g2-protocol-evidence.md",
-          "server/src/protocol.h",
+          "UNITYCLIENT_STATUS.md",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-03-DRAW-SHOP-window.png"
+        ],
+        "G1": [
+          ".local/unity-validation/gameplayshops-cocos-automation-ledger.json",
+          ".local/unity-validation/gameplayshops-cocos-preflight-latest.json",
+          ".local/unity-validation/gameplayshops-cocos-identity-latest.json",
+          ".local/unity-validation/gameplayshops-cocos-baseline-latest.json",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/G1_COCOS_EVIDENCE.md",
+          "client/ProjectX/src/View/Shop/JiangHunShop.lua",
+          "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua"
+        ],
+        "G2": [
+          ".local/protocol-evidence/221.md",
+          ".local/unity-validation/gameplay-shops-g2-source-audit-20260902.md",
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
           "server/src/pack_deal.cpp",
           "server/src/user_shop_manage.cpp",
-          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "client/ProjectX/src/View/Shop/WanFaShopDelegate.lua",
-          "server/config/json/shop.json",
-          "server/config/json/shop_config.json"
+          "client/ProjectX/src/View/Shop/JiangHunShop.lua",
+          "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt"
         ],
         "G3": [
-          ".local/unity-validation/gameplay-shops-g3-implementation.md",
-          ".local/unity-validation/unity-compile-preflight-latest.json",
-          ".local/unity-validation/unity-compile-preflight.log",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-          "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
-          "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
-          "unityclient/Assets/ProjectX/src/Data/GameplayShopStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+          ".local/unity-validation/gameplay-shops-g3-implementation-20260902.md"
         ],
         "G4": [
-          ".local/unity-validation/gameplay-shops-g4-evidence.md",
+          ".local/unity-validation/gameplayshops-early-user-play-latest.json",
+          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
           ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
-          "build/ui-migration/unity-gameplayshops-fixed-account.log"
-        ],
-        "G5": [
-          ".local/unity-validation/gameplay-shops-g5-evidence.md",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
-          ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg",
-          ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/contact-side-1.jpg",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/G5_VISUAL_ACCEPTANCE.md",
-          "build/ui-migration/unity-gameplayshops-g5-visual.log"
-        ],
-        "G6": [
-          ".local/unity-validation/gameplay-shops-g6-evidence.md",
-          ".local/unity-validation/gameplayshops-latest.json",
-          ".local/unity-validation/gameplayshops-fixed-account-latest.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "build/ui-migration/bootstrap-idempotence-1.log",
-          "build/ui-migration/bootstrap-idempotence-2.log",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-          ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-          "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-          "UNITYCLIENT_STATUS.md",
-          "tools/unity-migration/unityclient-modules.json"
+          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json"
         ]
       },
-      "updatedUtc": "2026-07-29T12:17:26.7518753Z"
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-09-02T02:52:23.0001881Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:18:51.5626474Z",
+          "calendarDurationMs": 53563,
+          "completionCheckDurationMs": 427
+        },
+        "G1": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:21:19.6365581Z",
+          "calendarDurationMs": 201637,
+          "completionCheckDurationMs": 357
+        },
+        "G2": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:22:39.0322107Z",
+          "calendarDurationMs": 281032,
+          "completionCheckDurationMs": 223
+        },
+        "G3": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T03:38:44.4066641Z",
+          "calendarDurationMs": 1246407,
+          "completionCheckDurationMs": 459
+        },
+        "G4": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-02T04:51:12.9384561Z",
+          "calendarDurationMs": 5594938,
+          "completionCheckDurationMs": 1292
+        },
+        "G5": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startSource": "invalidation"
+        }
+      },
+      "gateInvalidations": {
+        "G0": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_COVERAGE.json",
+            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+            "tools/unity-migration/unityclient-modules.json",
+            "tools/unity-migration/validation-scenarios.json",
+            "UNITYCLIENT_STATUS.md"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G1": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplayshops-cocos-preflight-latest.json",
+            ".local/unity-validation/gameplayshops-cocos-identity-latest.json",
+            ".local/unity-validation/gameplayshops-cocos-baseline-latest.json",
+            ".local/unity-validation/gameplayshops-cocos-automation-ledger.json",
+            ".local/ui-fidelity/GameplayShops/cocos/g1-current/G1_COCOS_EVIDENCE.md"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G2": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "tools/unity-migration/unityclient-modules.json",
+            "tools/unity-migration/validation-scenarios.json",
+            ".local/protocol-evidence/GameplayShops-221.md",
+            ".local/unity-validation/gameplay-shops-g2-protocol-evidence.md",
+            "server/src/protocol.h",
+            "server/src/pack_deal.cpp",
+            "server/src/user_shop_manage.cpp",
+            "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+            "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+            "client/ProjectX/src/View/Shop/WanFaShopDelegate.lua",
+            "server/config/json/shop.json",
+            "server/config/json/shop_config.json"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G3": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g3-implementation.md",
+            ".local/unity-validation/unity-compile-preflight-latest.json",
+            ".local/unity-validation/unity-compile-preflight.log",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
+            "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+            "unityclient/Assets/ProjectX/src/Data/GameplayShopStore.cs",
+            "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g4-evidence.md",
+            ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+            ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
+            "build/ui-migration/unity-gameplayshops-fixed-account.log"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g5-evidence.md",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
+            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg",
+            ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/contact-side-1.jpg",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/G5_VISUAL_ACCEPTANCE.md",
+            "build/ui-migration/unity-gameplayshops-g5-visual.log"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/gameplay-shops-g6-evidence.md",
+            ".local/unity-validation/gameplayshops-latest.json",
+            ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            "build/ui-migration/bootstrap-idempotence-1.log",
+            "build/ui-migration/bootstrap-idempotence-2.log",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
+            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
+            "UNITYCLIENT_STATUS.md",
+            "tools/unity-migration/unityclient-modules.json"
+          ],
+          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+        }
+      },
+      "updatedUtc": "2026-09-02T04:51:12.9758608Z"
     },
     {
       "module": "Shop",

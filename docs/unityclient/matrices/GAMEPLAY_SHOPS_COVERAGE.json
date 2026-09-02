@@ -2,55 +2,57 @@
   "schemaVersion": 1,
   "module": "GameplayShops",
   "scopeDecision": {
-    "decision": "补齐中央G0 coverageList机器登记；沿用当前模块矩阵、场景与源码边界，不改变既有完成状态或证据结论。",
+    "decision": "当前模块只保留将魂商店 type=2；玩法商店其他分支暂不修复，基础商城继续由 Shop 模块负责。",
     "confirmedByUser": true,
-    "confirmedDate": "2026-08-23"
+    "confirmedDate": "2026-09-02"
   },
   "scenarios": [
-    {
-      "id": "gameplayshops-registered-success",
-      "kind": "success",
-      "given": "当前模块既有入口、协议和固定数据条件满足",
-      "when": "按当前控件矩阵执行已登记主路径",
-      "then": "由既有场景与Runner验证权威成功结果"
-    },
-    {
-      "id": "gameplayshops-registered-failure-boundary",
-      "kind": "failure-boundary",
-      "given": "功能锁定、数据不足、非法参数、超时、断线或切号",
-      "when": "执行当前矩阵对应边界操作",
-      "then": "由既有场景验证拒绝、恢复与账号隔离且不伪造成功"
-    }
+    {"id":"soul-shop-authoritative-success","kind":"success","given":"固定账号的 type=2 将魂商店具有服务端权威六格和足够的对应货币","when":"从任一当前入口进入，查看六格、购买并免费刷新","then":"仅消费本控制器发起的 /221，购买与刷新由回包更新并在重进和重连后保持一致"},
+    {"id":"soul-shop-failure-boundary","kind":"failure-boundary","given":"货币不足、商品已购、请求重复、回包失败、超时、断线或切号","when":"从真实控件发起购买或刷新","then":"客户端不乐观改数据，释放 pending，显示明确反馈并清理旧账号商店状态"},
+    {"id":"soul-shop-entry-and-return","kind":"entry-lifecycle","given":"玩家位于主界面、招募页、背包获取途径或封神列传获取途径","when":"点击将魂商店入口并关闭返回","then":"四类入口打开同一 type=2 权威页面，关闭后返回原页面且 UI 栈、公共框和监听不重复"}
   ],
   "sources": [
     {
-      "id": "gameplayshops-registered-business-ids",
-      "sourceFiles": [
-        "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-        "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
-        "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt"
-      ],
-      "recordTotal": 2,
-      "businessIds": [
-        "entry:gameplay-shops",
-        "221"
-      ],
-      "branchType": "当前Manifest入口与协议业务ID的中央覆盖登记",
-      "mappings": [
-        {
-          "businessIds": [
-            "entry:gameplay-shops",
-            "221"
-          ],
-          "successScenarioIds": [
-            "gameplayshops-registered-success"
-          ],
-          "failureBoundaryScenarioIds": [
-            "gameplayshops-registered-failure-boundary"
-          ]
-        }
-      ],
+      "id": "soul-shop-config-candidates",
+      "sourceFiles": ["server/config/json/shop.json","server/config/json/shop_config.json","unityclient/Assets/ProjectX/Resources/Configs/shop.json"],
+      "recordTotal": 724,
+      "businessIdRanges": [{"prefix":"shop:type2:id:","start":2001,"end":2724}],
+      "branchType": "type=2 随机候选池；6 个 cell，每次仅以 /221 回包六格为渲染权威",
+      "coveredCount": 724,
+      "uncoveredBusinessIds": [],
+      "mappings": [{"businessIdRanges":[{"prefix":"shop:type2:id:","start":2001,"end":2724}],"successScenarioIds":["soul-shop-authoritative-success"],"failureBoundaryScenarioIds":["soul-shop-failure-boundary"]}],
+      "excluded": []
+    },
+    {
+      "id": "soul-shop-current-entry-routes",
+      "sourceFiles": ["client/ProjectX/src/View/MainUI.lua","client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua","client/ProjectX/src/View/Common/ItemSourceUI.lua","client/ProjectX/src/core/AppDef.lua","unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs","unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs"],
+      "recordTotal": 5,
+      "businessIds": ["entry:main-shop-submenu","entry:draw-shop","entry:bag-item-source-15","entry:fengshen-item-source-15","route:function-id-15"],
+      "branchType": "所有当前调用将魂商店的入口与返回链",
+      "coveredCount": 5,
+      "uncoveredBusinessIds": [],
+      "mappings": [{"businessIds":["entry:main-shop-submenu","entry:draw-shop","entry:bag-item-source-15","entry:fengshen-item-source-15","route:function-id-15"],"successScenarioIds":["soul-shop-entry-and-return"],"failureBoundaryScenarioIds":["soul-shop-failure-boundary"]}],
+      "excluded": []
+    },
+    {
+      "id": "soul-shop-protocol-branches",
+      "sourceFiles": ["server/src/protocol.h","server/src/pack_deal.cpp","server/src/user_shop_manage.cpp","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"],
+      "recordTotal": 4,
+      "businessIds": ["221:op1:type2","221:op2:type2","221:op3:type2","221:op4:type2"],
+      "branchType": "将魂商店查询、购买、刷新和购买次数",
+      "coveredCount": 4,
+      "uncoveredBusinessIds": [],
+      "mappings": [{"businessIds":["221:op1:type2","221:op2:type2","221:op3:type2","221:op4:type2"],"successScenarioIds":["soul-shop-authoritative-success"],"failureBoundaryScenarioIds":["soul-shop-failure-boundary"]}],
       "excluded": []
     }
+  ],
+  "excluded": [
+    {"id":"entry:draw-gold-icon2","reason":"当前 Cocos 真实点击打开道具兑换，不是将魂商店"},
+    {"id":"control:soul-shop-yuanbao-add","reason":"Lua 回调保留但当前运行态没有可见可达控件"},
+    {"id":"shop:type1","reason":"基础商城由 Shop 模块负责"},
+    {"id":"shop:type3-8","reason":"竞技场与血战为 Steam 排除模块，且用户明确暂不修复玩法商店其他分支"},
+    {"id":"shop:type23","reason":"决战昆仑为 Steam 排除模块"},
+    {"id":"shop:type25-26","reason":"帮派为 Steam 排除模块"},
+    {"id":"shop:type27-30","reason":"转盘及后续玩法商店分支不属于当前将魂商店模块"}
   ]
 }

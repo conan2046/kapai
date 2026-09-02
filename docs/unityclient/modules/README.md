@@ -21,7 +21,7 @@
 | 装备（法宝边界回归） | `HERO_EQUIPMENT.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending`；方案A冻结14来源/974业务ID/86控件；历史G4-G6仅作诊断 |
 | 邮件 | `MAIL.md` | `G0-G6 passed / 13/13 complete`；当前证据路径存在 |
 | 商城 | `SHOP.md` | `G3 runtime-ready / early user Play passed`；Panel_12隐藏、Shop自有关闭、全控件射线及数量InputField修复已通过用户早测；正式G1-G2及G4-G6仍pending |
-| 玩法商店 | `GAMEPLAY_SHOPS.md` | `G0 pending / evidence-missing`；登记的15个正式证据路径当前缺失，旧完成态已撤销 |
+| 将魂商店 | `GAMEPLAY_SHOPS.md` | `G0-G4 passed / early user Play passed / G5-G6 pending`；当前仅保留function_id=15/type=2及全部调用入口，29/29控件与9/9语义通过，其他玩法商店分支暂不修复 |
 | 体力领取 | `STAMINACLAIM.md` | `steam-excluded`；历史证据仅留档，不再迁移 |
 | 资源找回 | `RESOURCERECOVERY.md` | `steam-excluded`；历史证据仅留档，不再迁移 |
 | 支付前置 | `PAYMENT.md` | P2 首个前置；仅完成设计冻结，源码尚未实现 |

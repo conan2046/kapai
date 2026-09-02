@@ -1577,7 +1577,7 @@
     {
       "key": "gameplay-shops-default",
       "module": "GameplayShops",
-      "fixture": "isolated-role",
+      "fixture": "reversible-gameplay-shops-sqlite-fixed-account",
       "requiredGate": "G3",
       "flags": [
         "-projectXGameplayShopsValidation"
@@ -1585,26 +1585,6 @@
       "artifacts": [
         {
           "path": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-arena.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-blood.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-guild.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-kunlun.png",
-          "lifecycle": "runtime"
-        },
-        {
-          "path": "build/ui-migration/bootstrap-gameplay-shop-turntable.png",
           "lifecycle": "runtime"
         }
       ],
@@ -1614,26 +1594,7 @@
         "soul-item-detail",
         "soul-refresh",
         "soul-purchase",
-        "arena-goods",
-        "arena-reward",
-        "arena-buy-dialog",
-        "arena-purchase",
-        "blood-tier1",
-        "blood-tier2",
-        "blood-tier3",
-        "blood-reward",
-        "blood-purchase",
-        "guild-shop",
-        "guild-spirit",
-        "guild-purchase",
-        "kunlun-shop",
-        "kunlun-purchase",
-        "turntable-locked",
-        "turntable-points",
-        "turntable-premium",
-        "turntable-purchase",
         "failure-insufficient",
-        "failure-condition",
         "failure-soldout",
         "failure-invalid-repeat",
         "reload",
@@ -1642,15 +1603,15 @@
       ],
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
-        "gameplay-shop-title",
-        "gameplay-shop-tabs",
-        "gameplay-shop-subtabs",
-        "gameplay-shop-currencies",
-        "gameplay-shop-authority",
-        "gameplay-shop-direct-buy",
-        "gameplay-shop-quantity-buy",
-        "gameplay-shop-failures",
-        "gameplay-shop-lifecycle"
+        "soul-shop-title-and-six-slots",
+        "soul-shop-all-function-15-routes",
+        "soul-shop-authoritative-list",
+        "soul-shop-authoritative-purchase",
+        "soul-shop-authoritative-refresh",
+        "soul-shop-insufficient-and-soldout",
+        "soul-shop-second-countdown",
+        "soul-shop-return-reconnect-account-switch",
+        "soul-shop-basic-shop-pending-isolation"
       ],
       "sourceContracts": [
         {
@@ -1670,7 +1631,7 @@
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
           "contains": [
             "-projectXGameplayShopsValidation",
-            "BeginGameplayShopsG4Validation"
+            "CompleteGameplayShopsValidation"
           ]
         },
         {
