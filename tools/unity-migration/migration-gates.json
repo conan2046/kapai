@@ -234,83 +234,163 @@
       "module": "Shop",
       "gates": {
         "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/SHOP.md",
-      "note": "Shop G0 freezes 21 controls for current type=1 basic shop. Legacy phase-one results are clues only. G1 must provide fresh Cocos runtime evidence; manual refresh and purchase confirmation are target-required Unity fixes whose absence in current Cocos must be proven and recorded.",
+      "note": "2026-09-02 Shop reopened from G0. Current type=1 basic shop has 20 visible interaction controls; SHOP-19 refresh UI is product-disabled while /221 op=3 remains protocol-compatible. The runtime-ready implementation and user early Play passed, but formal G1-G2 and G3-G6 remain pending under the no-new-screenshot decision.",
       "gateEvidence": {
+        "G1": [],
+        "G2": [],
+        "G3": [],
+        "G4": [],
+        "G5": [],
+        "G6": [],
         "G0": [
           "docs/unityclient/matrices/SHOP_CONTROLS.json",
+          "docs/unityclient/matrices/SHOP_COVERAGE.json",
           "docs/unityclient/modules/SHOP.md",
-          "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
-          "tools/cocos-audit/generated/cocos-control-candidates.json"
-        ],
-        "G1": [
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/05-shop-list.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/06-shop-list-scrolled.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/13-success-reward.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/18-failure-insufficient-currency.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/22-relogin-shop-restored.png",
-          ".local/ui-fidelity/Shop/cocos/g1-20260728/shop-fixture-snapshot.json"
-        ],
-        "G2": [
-          "docs/unityclient/modules/SHOP.md",
-          "docs/unityclient/matrices/SHOP_CONTROLS.json",
           "tools/unity-migration/unityclient-modules.json",
-          ".local/protocol-evidence/Shop-221.md",
-          ".local/unity-validation/shop-g2-protocol-evidence.md",
-          "server/src/protocol.h",
-          "server/src/pack_deal.cpp",
-          "server/src/user_shop_manage.cpp",
-          "server/config/json/shop_config.json",
-          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
-          "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
-          "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs"
-        ],
-        "G3": [
-          ".local/unity-validation/shop-g3-logic-evidence.md",
-          "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
-          "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
-          "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
-          "unityclient/Assets/ProjectX/src/UI/ShopQuantityPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
-        ],
-        "G4": [
-          ".local/unity-validation/shop-latest.json",
-          "build/ui-migration/unity-shop-validation.log",
-          "build/ui-migration/bootstrap-shop-list.png",
-          "build/ui-migration/bootstrap-shop-quantity.png",
-          "build/ui-migration/bootstrap-shop-scroll-bottom.png",
-          "build/ui-migration/bootstrap-shop-confirm.png",
-          "build/ui-migration/bootstrap-shop-reward.png",
-          "build/ui-migration/bootstrap-shop.png"
-        ],
-        "G5": [
-          ".local/unity-validation/shop-fixed-account-latest.json",
-          ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-unity-result.json",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/report.json",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/contact-side-1.jpg",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/manual-acceptance.json",
-          ".local/ui-fidelity/Shop/compare/g5-live-20260728/G5_VISUAL_ACCEPTANCE.md"
-        ],
-        "G6": [
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "build/ui-migration/bootstrap-idempotence-1.log",
-          "build/ui-migration/bootstrap-idempotence-2.log",
-          "docs/unityclient/matrices/SHOP_CONTROLS.json",
-          "docs/unityclient/modules/SHOP.md",
-          "UNITYCLIENT_STATUS.md"
+          ".local/unity-validation/shop-g0-escape-defect-20260902.md"
         ]
       },
-      "updatedUtc": "2026-07-28T17:22:38.8050663Z"
+      "gateInvalidations": {
+        "G0": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/matrices/SHOP_CONTROLS.json",
+            "docs/unityclient/modules/SHOP.md",
+            "tools/cocos-audit/generated/cocos-current-entry-inventory.json",
+            "tools/cocos-audit/generated/cocos-control-candidates.json"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G1": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/G1_COCOS_EVIDENCE.md",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/05-shop-list.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/06-shop-list-scrolled.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/13-success-reward.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/18-failure-insufficient-currency.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/22-relogin-shop-restored.png",
+            ".local/ui-fidelity/Shop/cocos/g1-20260728/shop-fixture-snapshot.json"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G2": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/modules/SHOP.md",
+            "docs/unityclient/matrices/SHOP_CONTROLS.json",
+            "tools/unity-migration/unityclient-modules.json",
+            ".local/protocol-evidence/Shop-221.md",
+            ".local/unity-validation/shop-g2-protocol-evidence.md",
+            "server/src/protocol.h",
+            "server/src/pack_deal.cpp",
+            "server/src/user_shop_manage.cpp",
+            "server/config/json/shop_config.json",
+            "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+            "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+            "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
+            "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
+            "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G3": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/shop-g3-logic-evidence.md",
+            "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
+            "unityclient/Assets/ProjectX/src/Data/ShopStore.cs",
+            "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
+            "unityclient/Assets/ProjectX/src/UI/ShopQuantityPresenter.cs",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/shop-latest.json",
+            "build/ui-migration/unity-shop-validation.log",
+            "build/ui-migration/bootstrap-shop-list.png",
+            "build/ui-migration/bootstrap-shop-quantity.png",
+            "build/ui-migration/bootstrap-shop-scroll-bottom.png",
+            "build/ui-migration/bootstrap-shop-confirm.png",
+            "build/ui-migration/bootstrap-shop-reward.png",
+            "build/ui-migration/bootstrap-shop.png"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/shop-fixed-account-latest.json",
+            ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-unity-result.json",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/report.json",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/contact-side-1.jpg",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/manual-acceptance.json",
+            ".local/ui-fidelity/Shop/compare/g5-live-20260728/G5_VISUAL_ACCEPTANCE.md"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-02T01:44:41.8861952Z",
+          "previousState": "pending",
+          "previousEvidence": [
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            "build/ui-migration/bootstrap-idempotence-1.log",
+            "build/ui-migration/bootstrap-idempotence-2.log",
+            "docs/unityclient/matrices/SHOP_CONTROLS.json",
+            "docs/unityclient/modules/SHOP.md",
+            "UNITYCLIENT_STATUS.md"
+          ],
+          "reason": "2026-09-02 user escape defect: opening shangcheng must hide OneLevelLayer/Panel_12; current Shop depends on Panel_12 close and user reports the whole shop is non-interactive. Reopen from G0 and re-freeze all real controls."
+        }
+      },
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G1": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G2": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G3": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G4": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G5": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-02T01:44:41.8861952Z",
+          "startSource": "invalidation"
+        }
+      },
+      "updatedUtc": "2026-09-02T01:46:52.6499775Z"
     },
     {
       "module": "Mail",

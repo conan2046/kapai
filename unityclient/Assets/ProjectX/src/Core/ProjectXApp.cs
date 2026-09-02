@@ -347,6 +347,10 @@ namespace ProjectX.Core
         private bool mailValidationSawRedDot;
         private CocosUiView shopView;
         private ShopPresenter shopPresenter;
+        private GameObject shopRuntimeCloseButton;
+        private GameObject shopFramePanel;
+        private bool shopFramePanelWasActive;
+        private bool shopFramePanelStateCaptured;
         private readonly List<ShopRecord> pendingShopRecords = new List<ShopRecord>();
         private byte pendingShopType;
         private ushort pendingShopRefreshTimes;
@@ -1257,6 +1261,7 @@ namespace ProjectX.Core
                 shopPresenter?.ResetTransientState();
                 errorPresenter?.Hide();
                 rewardPresenter?.Hide();
+                RestoreShopFramePanel();
                 bagFrameView?.SetVisible(false);
             }
             if (IsGameplayShopOpen)
@@ -1464,6 +1469,7 @@ namespace ProjectX.Core
             heroEquipmentDivineEffectView?.SetVisible(false);
             mailView?.SetVisible(false);
             shopView?.SetVisible(false);
+            RestoreShopFramePanel();
             friendView?.SetVisible(false);
             chatMiniView?.SetVisible(false);
             chatView?.SetVisible(false);
@@ -2321,10 +2327,17 @@ namespace ProjectX.Core
                 InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao");
                 return;
             }
-            if (functionId == 15 || functionId == 16 || functionId == 17)
+            if (functionId == 15)
             {
                 gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onGameplayShopOpened, "Gameplay.Shops", (double)functionId);
+                HandleCommerceRoute(functionId);
+                return;
+            }
+            if (functionId == 16 || functionId == 17)
+            {
+                gameplayPresenter?.HideDetail();
+                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                SetStatus($"Gameplay shop route deferred: function_id={functionId}.");
                 return;
             }
             ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
@@ -4402,6 +4415,7 @@ namespace ProjectX.Core
             services.Mails.Clear();
             services.Shop.Clear();
             shopPresenter?.ResetTransientState();
+            RestoreShopFramePanel();
             errorPresenter?.Hide();
             services.Friends.Clear();
             services.Heroes.Clear();
@@ -7169,6 +7183,11 @@ namespace ProjectX.Core
             StartCoroutine(RunShopG4InitialUiValidation(checked((ushort)rawId)));
         }
 
+        public void BeginShopG3Validation(double rawId)
+        {
+            StartCoroutine(RunShopG4InitialUiValidation(checked((ushort)rawId)));
+        }
+
         private IEnumerator RunShopG4InitialUiValidation(ushort itemId)
         {
             BeginValidationEvidence();
@@ -7187,20 +7206,34 @@ namespace ProjectX.Core
             Canvas.ForceUpdateCanvases();
             shopPresenter.Render();
             yield return null;
-            Text title = bagFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             Text tab = shopView.Binding.Find("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
-            RecordValidationSemantic("shop-title", title?.text == "商城", $"actual={title?.text}");
+            GameObject sharedPanel = bagFrameView.Binding.Find("Layer/Panel_12");
+            Button runtimeClose = shopRuntimeCloseButton?.GetComponent<Button>();
+            RecordValidationSemantic("shop-frame-panel-hidden", sharedPanel != null && !sharedPanel.activeSelf,
+                $"panel={sharedPanel?.activeSelf}");
+            RecordValidationSemantic("shop-owned-close", runtimeClose != null && runtimeClose.interactable
+                && runtimeClose.targetGraphic != null && runtimeClose.targetGraphic.raycastTarget,
+                $"close={runtimeClose != null}");
             RecordValidationSemantic("shop-tab", tab?.text == "道具购买", $"actual={tab?.text}");
             RecordValidationSemantic("shop-details", !string.IsNullOrWhiteSpace(item.Name)
                 && !string.IsNullOrWhiteSpace(item.Description) && item.UnitCost > 0,
                 $"id={item.Id}, name={item.Name}, cost={item.UnitCost}");
-            RecordValidationSemantic("shop-refresh-config", shopPresenter.IsRefreshDisabledForBaseShop,
-                "type=1 must expose a real but disabled refresh control");
+            RecordValidationSemantic("shop-refresh-hidden", shopPresenter.IsRefreshControlHiddenForBaseShop,
+                "type=1 must not expose the server-config refresh UI");
+            RecordValidationSemantic("shop-real-controls", shopPresenter.HasInteractiveContract,
+                "item, quantity and buy controls require raycast targets");
             RecordValidationSemantic("shop-authority", services.ServerTime.IsSynchronized
                 && services.ProtocolRegistry.PendingCount == 0, "server time and pending state");
             if (GetFailedValidationSemanticAssertions().Length > 0)
             {
                 Fail("Shop G4 semantic assertions failed.");
+                yield break;
+            }
+            if (HasCommandLineFlag("-projectXShopG3Validation"))
+            {
+                validationRoleIdSnapshot = GetPlayerRoleId();
+                Complete($"COMPLETE: Shop G3 runtime contract; Panel_12 hidden, Shop-owned close and "
+                    + $"17-goods real-control raycast contract; user={GetLocalUserId()} role={validationRoleIdSnapshot}");
                 yield break;
             }
 
@@ -7248,9 +7281,8 @@ namespace ProjectX.Core
                 || services.ProtocolRegistry.PendingCount != 0)
             { Fail("Shop G4 purchase cancel changed pending state."); yield break; }
             MarkValidationControl("SHOP-18-PURCHASE-CANCEL");
-            if (!shopPresenter.IsRefreshDisabledForBaseShop)
-            { Fail("Shop G4 type=1 refresh control was not disabled."); yield break; }
-            MarkValidationControl("SHOP-19-MANUAL-REFRESH");
+            if (!shopPresenter.IsRefreshControlHiddenForBaseShop)
+            { Fail("Shop G4 type=1 refresh UI was not hidden."); yield break; }
             InvokeLuaOrFail(onShopValidationRefresh, "Shop.ValidationRefresh");
         }
 
@@ -7429,7 +7461,8 @@ namespace ProjectX.Core
             Button headerCoin = bagFrameView.Binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
             if (headerCoin == null || !headerCoin.interactable)
             { Fail("Shop G4 header coin add was not bound."); yield break; }
-            headerCoin.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(headerCoin))
+            { Fail("Shop G4 header coin add did not receive a real EventSystem/raycast click."); yield break; }
             float deadline = Time.realtimeSinceStartup + 10f;
             while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
                 yield return null;
@@ -7437,16 +7470,18 @@ namespace ProjectX.Core
             { Fail("Shop G4 header coin add did not reload Shop."); yield break; }
             MarkValidationControl("SHOP-04-HEADER-COIN-PLUS");
 
-            Button close = bagFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button close = shopRuntimeCloseButton?.GetComponent<Button>();
             if (close == null || !close.interactable) { Fail("Shop G4 close was not bound."); yield break; }
-            close.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(close))
+            { Fail("Shop G4 close did not receive a real EventSystem/raycast click."); yield break; }
             if (IsShopOpen) { Fail("Shop G4 close did not return to main."); yield break; }
             MarkValidationControl("SHOP-05-CLOSE");
 
             Button shortcut = mainView.Binding.Find(ShopCoinShortcutPath)?.GetComponent<Button>();
             if (shortcut == null || !shortcut.interactable)
             { Fail("Shop G4 main coin shortcut was not bound."); yield break; }
-            shortcut.onClick.Invoke();
+            if (!InvokeEventSystemRaycastClick(shortcut))
+            { Fail("Shop G4 main coin shortcut did not receive a real EventSystem/raycast click."); yield break; }
             deadline = Time.realtimeSinceStartup + 10f;
             while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)
                 && Time.realtimeSinceStartup < deadline) yield return null;
@@ -10440,6 +10475,30 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Shop open failed: {exception.Message}"); }
         }
 
+        private void HandleCommerceRoute(int functionId)
+        {
+            if (functionId == 13)
+            {
+                HandleShopClick();
+                return;
+            }
+            if (functionId != 15)
+            {
+                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                SetStatus($"Commerce route deferred: function_id={functionId}.");
+                return;
+            }
+            HideHudSubmenus();
+            try
+            {
+                InvokeLuaOrFail(onGameplayShopOpened, "Commerce.SoulShop", 15d);
+            }
+            catch (Exception exception)
+            {
+                Fail($"Soul shop open failed: {exception.Message}");
+            }
+        }
+
         private void ToggleShopSubmenu()
         {
             GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang1");
@@ -10573,15 +10632,18 @@ namespace ProjectX.Core
             if (mainView == null || chatMiniView == null) return;
             BindHudBoundary(mainView, "Layer/Main_UI/Head", "角色详情由 Role 模块负责，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
-            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn", "金币补充入口由商城模块负责。");
+            mainView.BindClick("Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn",
+                () => HandleCommerceRoute(13), true);
             Button premium = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
             if (premium != null) premium.interactable = false;
             mainView.BindClick("Layer/Main_UI/ButtonGroup1/btn_chuandai", ToggleWearSubmenu, true);
             BindHudBoundary(mainView, EquipmentBagPath, "装备业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FaBaoBagPath, "法宝业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, ShopSubmenuPath, "普通商城业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_jianghun", "神魂商城由 GameplayShops 模块负责。");
-            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa", "玩法商城由 GameplayShops 模块负责。");
+            mainView.BindClick(ShopSubmenuPath, () => HandleCommerceRoute(13), true);
+            mainView.BindClick("Layer/Main_UI/tankuang1/btn_jianghun",
+                () => HandleCommerceRoute(15), true);
+            BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa",
+                "玩法商店暂未纳入当前修复范围。");
             BindHudBoundary(mainView, BagPath, "背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, HeroBagPath, "英雄背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FormationPath, "阵容业务不属于主界面 HUD，当前仅保留入口边界。");
@@ -11141,12 +11203,15 @@ namespace ProjectX.Core
         private IEnumerator CaptureShopConfirmationAndConfirm(ushort itemId)
         {
             yield return new WaitForEndOfFrame();
-            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string repositoryRoot = Directory.GetParent(projectRoot).FullName;
-            string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop-confirm.png");
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            ScreenCapture.CaptureScreenshot(path);
-            yield return new WaitForSecondsRealtime(0.75f);
+            if (!HasCommandLineFlag("-projectXSkipShopScreenshots"))
+            {
+                string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+                string repositoryRoot = Directory.GetParent(projectRoot).FullName;
+                string path = Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-shop-confirm.png");
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                ScreenCapture.CaptureScreenshot(path);
+                yield return new WaitForSecondsRealtime(0.75f);
+            }
             if (!errorPresenter.IsVisible)
             {
                 Fail($"Shop confirmation was not visible for id={itemId}.");
@@ -11157,6 +11222,7 @@ namespace ProjectX.Core
 
         private IEnumerator CaptureShopValidationScreenshot(string fileName)
         {
+            if (HasCommandLineFlag("-projectXSkipShopScreenshots")) yield break;
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -12299,12 +12365,13 @@ namespace ProjectX.Core
                     HandleWorldClick();
                     return;
                 case 13:
-                    HandleShopClick();
-                    return;
                 case 15:
+                    HandleCommerceRoute(functionId);
+                    return;
                 case 16:
                 case 17:
-                    InvokeLuaOrFail(onGameplayShopOpened, "Bag.Source.GameplayShops", (double)functionId);
+                    ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                    SetStatus($"Bag source shop route deferred: function_id={functionId}.");
                     return;
                 case 1010:
                 case 1011:
@@ -14672,34 +14739,74 @@ namespace ProjectX.Core
                 root.anchoredPosition = Vector2.zero;
                 root.localScale = Vector3.one;
             }
-            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
-            if (title != null)
-            {
-                title.text = "商城";
-                title.alignment = TextAnchor.MiddleLeft;
-                title.horizontalOverflow = HorizontalWrapMode.Overflow;
-            }
-            Transform help = title?.transform.Find("Button_1");
-            if (help != null) help.gameObject.SetActive(false);
-            Transform tabs = binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
-            if (tabs != null) tabs.gameObject.SetActive(false);
-            Transform tabPanel = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
-            if (tabPanel != null) tabPanel.gameObject.SetActive(false);
-            GameObject subTabs = binding.Find("Layer/Panel_12/SubBtnList");
-            if (subTabs != null) subTabs.SetActive(false);
             RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon1/AddBtn")?.transform, null, false);
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.transform,
                 HandleShopClick, true);
             BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon4/AddBtn")?.transform, null, false);
-            bagFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () =>
+            EnsureShopRuntimeCloseButton(binding);
+        }
+
+        private void EnsureShopRuntimeCloseButton(CocosUiBinding frameBinding)
+        {
+            shopFramePanel = frameBinding.Find("Layer/Panel_12");
+            if (shopFramePanel == null)
+                throw new InvalidOperationException("Shop shared frame panel was not found: OneLevelLayer/Layer/Panel_12.");
+
+            if (!shopFramePanelStateCaptured)
             {
-                shopPresenter?.ResetTransientState();
-                errorPresenter?.Hide();
-                rewardPresenter?.Hide();
-                bagFrameView.SetVisible(false);
-                HandleBack();
-            }, true);
+                shopFramePanelWasActive = shopFramePanel.activeSelf;
+                shopFramePanelStateCaptured = true;
+            }
+
+            GameObject closeTemplate = frameBinding.Find("Layer/Panel_12/Title/CloseBtn");
+            GameObject shopRoot = shopView.Binding.Find("Layer/ShopUI");
+            if (closeTemplate == null || shopRoot == null)
+                throw new InvalidOperationException("Shop close template or ShopUI root was not found.");
+
+            if (shopRuntimeCloseButton == null)
+            {
+                shopRuntimeCloseButton = UnityEngine.Object.Instantiate(closeTemplate, shopRoot.transform, true);
+                shopRuntimeCloseButton.name = "RuntimeShopCloseButton";
+            }
+
+            shopRuntimeCloseButton.SetActive(true);
+            shopRuntimeCloseButton.transform.SetAsLastSibling();
+            Button close = shopRuntimeCloseButton.GetComponent<Button>()
+                ?? shopRuntimeCloseButton.AddComponent<Button>();
+            close.targetGraphic = shopRuntimeCloseButton.GetComponent<Graphic>()
+                ?? shopRuntimeCloseButton.GetComponentInChildren<Graphic>(true);
+            if (close.targetGraphic != null) close.targetGraphic.raycastTarget = true;
+            close.interactable = true;
+            close.onClick.RemoveAllListeners();
+            close.onClick.AddListener(CloseShop);
+
+            // Panel_12 is a full-screen touch surface. Keeping it active above
+            // shangcheng consumes the real EventSystem raycasts for every Shop control.
+            shopFramePanel.SetActive(false);
+        }
+
+        private void CloseShop()
+        {
+            shopPresenter?.ResetTransientState();
+            errorPresenter?.Hide();
+            rewardPresenter?.Hide();
+            RestoreShopFramePanel();
+            bagFrameView?.SetVisible(false);
+            HandleBack();
+        }
+
+        private void RestoreShopFramePanel()
+        {
+            if (shopRuntimeCloseButton != null)
+            {
+                UnityEngine.Object.Destroy(shopRuntimeCloseButton);
+                shopRuntimeCloseButton = null;
+            }
+            if (shopFramePanelStateCaptured && shopFramePanel != null)
+                shopFramePanel.SetActive(shopFramePanelWasActive);
+            shopFramePanel = null;
+            shopFramePanelStateCaptured = false;
         }
 
         private void EnsureGameplayShopsPresenter()
@@ -15510,8 +15617,7 @@ namespace ProjectX.Core
             }, true);
             drawView.BindClick("Layer/GoldCheck/GoldIcon2/AddBtn", () =>
             {
-                EnsureErrorPresenter();
-                errorPresenter.ShowHelp("高级招募券兑换入口当前不可用，请通过将魂商店获取。");
+                HandleCommerceRoute(15);
             }, true);
             drawView.BindClick("Layer/GoldCheck/GoldIcon3/AddBtn", () =>
             {
@@ -15526,14 +15632,7 @@ namespace ProjectX.Core
             }, true);
             drawView.BindClick("Layer/Shop", () =>
             {
-                if (services.GameplayCatalog.Find(15) == null)
-                {
-                    EnsureErrorPresenter();
-                    errorPresenter.ShowHelp("将魂商店将在玩法商店模块完成后开放。");
-                    SetStatus("Draw soul shop unavailable: Gameplay route 15 is not migrated.");
-                    return;
-                }
-                InvokeLuaOrFail(onGameplayEntered, "Draw.SoulShop", 15d);
+                HandleCommerceRoute(15);
             }, true);
             drawView.BindClick("Layer/Title/TitleName/Button_1", () =>
             {
@@ -15588,9 +15687,18 @@ namespace ProjectX.Core
                 () => HandleBack(),
                 () => InvokeLuaOrFail(onFengShenStoryChallengeClicked, "FengShenStory.Challenge"),
                 () => { SetStatus("FengShenStory -> Formation boundary"); ShowFormationPopup(); },
-                functionId => { lastGameplayBoundaryId = functionId; SetStatus($"FengShenStory item source boundary -> function_id={functionId}"); },
+                functionId =>
+                {
+                    lastGameplayBoundaryId = functionId;
+                    fengShenStoryPresenter?.CloseModal();
+                    HandleCommerceRoute(functionId);
+                },
                 () => SetStatus("FengShenStory stamina boundary -> UseItemUI(500,1)"),
-                () => { lastGameplayBoundaryId = 13; SetStatus("FengShenStory gold boundary -> function_id=13"); });
+                () =>
+                {
+                    lastGameplayBoundaryId = 13;
+                    HandleCommerceRoute(13);
+                });
         }
 
         private void EnsureArenaPresenter(){arenaView=arenaView??services.UiRouter.FindBySource("common/JingjiLayer");if(arenaView==null)throw new InvalidOperationException("Current Arena imported CocosUiBinding was not found: common/JingjiLayer.");arenaPresenter=arenaPresenter??new ArenaPresenter(arenaView,services.Arena,()=>HandleBack());}
@@ -15614,7 +15722,7 @@ namespace ProjectX.Core
                 SetStatus("XunBao search token item 402 is not available in the authoritative bag.");
         }
 
-        private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,services.Currencies,services.GameplayShops,RequestSevenDayClaim,RequestSevenDayGo,SelectSevenDayDay,SelectSevenDayCategory,ShowSevenDayItemDetail,RequestSevenDayDiscountBuy,()=>{lastSevenDayBoundary="stamina-add";SetStatus("SevenDay stamina boundary -> UseItemUI(500,1)");},()=>{lastSevenDayBoundary="gold-add";SetStatus("SevenDay gold boundary -> common shop");},()=>HandleBack());}
+        private void EnsureSevenDayPresenter(){sevenDayView=sevenDayView??services.UiRouter.FindBySource("huodong/QiriLayer");if(sevenDayView==null)throw new InvalidOperationException("Current SevenDay imported CocosUiBinding was not found: huodong/QiriLayer.");sevenDayPresenter=sevenDayPresenter??new SevenDayPresenter(sevenDayView,services.SevenDay,services.Currencies,services.GameplayShops,RequestSevenDayClaim,RequestSevenDayGo,SelectSevenDayDay,SelectSevenDayCategory,ShowSevenDayItemDetail,RequestSevenDayDiscountBuy,()=>{lastSevenDayBoundary="stamina-add";SetStatus("SevenDay stamina boundary -> UseItemUI(500,1)");},()=>{lastSevenDayBoundary="gold-add";HandleCommerceRoute(13);},()=>HandleBack());}
         private void EnsureWelfareActivityFramePresenter()
         {
             taskBackgroundView = taskBackgroundView ?? services.UiRouter.FindBySource("huodong/huodong_bg");

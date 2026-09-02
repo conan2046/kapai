@@ -4,39 +4,81 @@
   "coverageList": "docs/unityclient/matrices/SHOP_COVERAGE.json",
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
-    { "id": "shop-real-cost", "given": "固定账号具有商品配置对应的真实支付货币", "when": "调整数量、确认购买、刷新并触发余额不足", "then": "扣除配置实际货币和数量，失败不先改客户端状态，重连结果一致" }
+    { "id": "shop-real-cost", "given": "固定账号具有商品配置对应的真实支付货币", "when": "调整数量、确认购买并触发余额不足", "then": "扣除配置实际货币和数量，失败不先改客户端状态，重连结果一致" },
+    { "id": "shop-frame-and-real-controls", "given": "玩家从主界面商城入口或金币加号打开 shangcheng", "when": "基础商城显示并依次点击商品、滚动、数量、购买和关闭", "then": "OneLevelLayer/Panel_12 整体隐藏，商店自身运行时关闭按钮可用，所有商店控件经真实 EventSystem 生效，关闭后公共框架恢复且不影响其他模块" }
   ],
   "hardGateVersion": 1,
   "scope": {
     "screenSize": "1334x750",
     "included": [
       "当前《道友来封神》主界面商城展开入口、基础商城子入口和金币加号快捷入口",
+      "打开 shangcheng 时整体隐藏 OneLevelLayer/Layer/Panel_12，并在商店自身运行层提供真实关闭按钮；退出时恢复公共框架",
       "基础商城 type=1 的唯一页签、三列动态商品、滚动、选中、名称、描述、价格、折扣、原价、限购和售罄态",
       "数量减、数量加、数量输入弹窗、单次及多数量购买、购买确认/取消、奖励展示",
       "/221 op=1 列表、op=2 购买、op=3 刷新、op=4 购买计数的成功和失败结构",
-      "刷新次数、免费次数、倒计时、货币余额、不足/非法/重复/限购失败、空态、重拉、返回重进、断线重连和切号清理"
+      "货币余额、不足/非法/重复/限购失败、空态、重拉、返回重进、断线重连和切号清理；op=3 仅保留协议兼容与错误解析，不展示刷新 UI"
     ],
     "sharedGlobalControlsOwnedElsewhere": [
-      "一级框架标题、货币栏和关闭按钮由通用 UI 框架负责，Shop 负责真实绑定及返回结果",
+      "一级框架背景和货币栏由通用 UI 框架负责；Panel_12 在 Shop 打开期间整体隐藏，关闭按钮由 Shop 自身运行层负责",
       "购买确认/取消由通用 MessageBox 负责",
       "奖励物品、奖励详情和关闭由通用 Reward/ItemDetail 组件负责",
       "Toast、Loading、断线和重连提示由通用网络/UI 层负责"
     ],
     "approvedUnityFixesToProveAtG5": [
-      "当前 Cocos 基础商城没有手动刷新按钮，也不显示 /221 返回的刷新次数/免费次数/倒计时；Unity 按目标要求补真实 op=3 控件和权威状态，不伪造结果",
+      "基础商城 type=1 不展示刷新 UI；/221 op=3 只保留协议兼容和服务端错误解析，不伪造可刷新状态",
       "当前 Cocos btn_Buy 直接发送 /221 op=2；Unity 按目标要求增加购买确认/取消安全步骤，确认后才发包",
       "当前 Cocos /221 op=2 明确显示成功 Toast，奖励弹窗是否出现必须在 G1 运行取证；Unity 奖励展示只能使用权威回包"
+      ,"用户指定 Unity 打开 shangcheng 时隐藏 OneLevelLayer/Panel_12；关闭入口迁入商店运行层，且必须恢复共用框架生命周期"
     ],
     "excludedMustBeHiddenOrDisabled": [
       "将魂、竞技场、血战、七日半价、昆仑、帮派、转盘等 type=2..8 商店不属于本模块",
       "神秘、绑定元宝、积分、帮贡、NPC、特供、神魄、砸蛋等旧 ShopUI 分支未从当前基础商城入口合格到达",
       "充值、VIP、渠道支付和货币购买不属于本模块",
       "商品格 ItemCellUI:SetCanClick(false)，当前 Cocos 不允许点击商品图标打开独立物品详情；Unity 不新增该空壳入口"
+      ,"基础商城 type=1 的 RuntimeShopRefreshButton、刷新次数、免费次数和倒计时 UI 按用户要求隐藏"
     ],
     "fixedUserId": 7200057,
     "fixedRoleId": 1000115,
     "mutationFixture": "G4 每次分配全新 isolated-role；固定账号仅用于 G1/G5 同数据视觉对照，必须由 Shop 专用适配器快照、注入、finally 精确恢复、哈希断言和重登录复核",
     "windowsDpi": "100%"
+  },
+  "currentCycle": {
+    "reopenedDate": "2026-09-02",
+    "reason": "用户确认 Panel_12 应隐藏且当前商店整体不可交互，旧 G0-G6 从 G0 失效",
+    "currentGate": "G3 implementation runtime-ready / early user Play passed; formal G1-G2 remain pending under screenshot waiver",
+    "screenshotsRequiredThisCycle": false,
+    "screenshotDecision": "用户明确本轮流程无需新增截图；历史截图仅作布局参考，不作为当前 G5/G6 通过证据",
+    "invalidatedControlIds": [
+      "SHOP-01-MAIN-TOGGLE", "SHOP-02-SUBMENU-ENTRY", "SHOP-03-MAIN-COIN-SHORTCUT",
+      "SHOP-04-HEADER-COIN-PLUS", "SHOP-05-CLOSE", "SHOP-06-BASE-TAB",
+      "SHOP-07-LIST-SCROLL", "SHOP-08-ITEM-SELECT", "SHOP-09-QUANTITY-MINUS",
+      "SHOP-10-QUANTITY-PLUS", "SHOP-11-QUANTITY-INPUT-OPEN", "SHOP-12-QUANTITY-KEYPAD",
+      "SHOP-13-QUANTITY-DELETE", "SHOP-14-QUANTITY-CONFIRM", "SHOP-15-QUANTITY-CANCEL",
+      "SHOP-16-BUY", "SHOP-17-PURCHASE-CONFIRM", "SHOP-18-PURCHASE-CANCEL",
+      "SHOP-20-REWARD-ITEM", "SHOP-21-REWARD-CLOSE"
+    ]
+  },
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "evidence": {
+      "protocol": ".local/protocol-evidence/Shop-221-current-20260902.md",
+      "g2": ".local/unity-validation/shop-g2-source-audit-20260902.md"
+    },
+    "knownGaps": [
+      {
+        "id": "SHOP-GAP-PANEL12-RAYCAST-BLOCKER",
+        "handling": "G3 打开 shangcheng 时隐藏公共 Panel_12，把同资源关闭按钮克隆到 Shop 自身运行层，并在退出、断线和切号时恢复公共层。",
+        "evidence": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs; .local/unity-validation/shop-g2-source-audit-20260902.md"
+      },
+      {
+        "id": "SHOP-GAP-NO-FRESH-SCREENSHOTS",
+        "handling": "用户明确本轮无需新增截图；正式 G1/G5/G6 保持 pending，历史截图只作布局参考。",
+        "evidence": ".local/unity-validation/shop-g1-screenshot-waiver-20260902.md"
+      }
+    ]
   },
   "controls": [
     {
@@ -125,13 +167,13 @@
     },
     {
       "id": "SHOP-05-CLOSE",
-      "page": "基础商城一级框架",
-      "path": "OneLevelLayer/Layer/Panel_12/Title/CloseBtn",
+      "page": "基础商城",
+      "path": "shangcheng/Layer/ShopUI/RuntimeShopCloseButton",
       "visibleCondition": "基础商城打开",
       "cocosCallback": "FirstClassBg.CloseCallback -> ShopUI.CloseShop -> RemoveUI",
       "protocolOp": "无",
-      "unityBinding": "一级框架真实 CloseBtn -> 关闭 Shop 并回到主界面",
-      "successFeedback": "商城、弹窗和选择态清理，主界面恢复",
+      "unityBinding": "商店运行层真实 Button，复用当前 CloseBtn 图形资源；不得依赖已隐藏的 Panel_12",
+      "successFeedback": "商城、弹窗和选择态清理，主界面恢复；OneLevelLayer 公共 Panel_12 生命周期恢复",
       "failureFeedback": "无",
       "reconnectResult": "关闭后不再接收旧页面渲染，重进重新拉取",
       "cocosEvidence": ".local/ui-fidelity/Shop/cocos/g1-20260728/23-shop-close-return-main.png",
@@ -420,21 +462,21 @@
     {
       "id": "SHOP-19-MANUAL-REFRESH",
       "page": "基础商城",
-      "path": "shangcheng/RuntimeShopRefreshButton",
-      "visibleCondition": "基础商城列表已加载",
+      "path": "无（产品禁用）",
+      "visibleCondition": "永不显示；type=1 仅保留 /221 op=3 协议兼容",
       "cocosCallback": "当前 Cocos type=1 未绑定手动刷新；服务端真实支持 RefreshGrids",
       "protocolOp": "/221 op=3,type=1",
-      "unityBinding": "运行时补齐真实刷新 Button，显示免费次数/成本/倒计时并等待权威回包",
+      "unityBinding": "不创建 RuntimeShopRefreshButton；协议层继续解析 op=3 权威失败回包",
       "successFeedback": "列表、刷新次数、免费次数、倒计时和货币按 op=3 回包更新",
       "failureFeedback": "次数耗尽/货币不足/非法请求显示服务端错误并保留旧列表",
       "reconnectResult": "重连后 op=1 重拉刷新状态，禁止本地递增",
       "cocosEvidence": ".local/ui-fidelity/Shop/cocos/g1-20260728/05-shop-list.png",
       "unityEvidence": ".local/ui-fidelity/Shop/unity/g5-20260728/SHOP-LIST.png",
-      "status": "complete",
-      "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true,
-      "successEvidence": ".local/unity-validation/shop-fixed-account-latest.json",
+      "status": "product-disabled",
+      "realEntryClick": false,
+      "automationPassed": false,
+      "manualPassed": false,
+      "successEvidence": "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
       "failureEvidence": "build/ui-migration/unity-shop-fixed-account.log",
       "reconnectEvidence": ".local/ui-fidelity/Shop/unity/g5-20260728/shop-fixed-unity-result.json"
     },
@@ -490,9 +532,10 @@
     "购买确认取消不得发包；确认后成功/失败都必须释放 pending 和 Loading",
     "op=3 刷新成功只按回包替换列表和刷新状态，失败不得本地扣货币、次数或换列表",
     "op=4 返回购买次数必须绑定请求 type/tid，错误包不可静默",
+    "Shop 打开期间 OneLevelLayer/Layer/Panel_12 必须 inactive，所有商品与弹窗控件必须由真实 EventSystem 命中；退出后公共 Panel_12 状态恢复",
     "返回重进、重拉和断线重连恢复权威状态；切号清除 ShopStore、Lua 状态、pending、监听、选择和 UI 栈"
   ],
-  "auditConclusion": "G0-G6 passed. 21/21 real controls completed. G5 records approved target differences for explicit purchase confirmation, shared reward presentation, and disabled type=1 refresh feedback.",
+  "auditConclusion": "2026-09-02 reopened from G0. Previous 21/21 and G0-G6 results are historical leads only. Hidden Panel_12, the Shop-owned close control, real EventSystem interactions and quantity InputField rendering passed implementation runtime checks plus user early Play; formal G1-G2 and G3-G6 remain pending without new screenshots.",
   "validation": {
     "g0Evidence": [
       "tools/cocos-audit/generated/cocos-current-entry-inventory.json",

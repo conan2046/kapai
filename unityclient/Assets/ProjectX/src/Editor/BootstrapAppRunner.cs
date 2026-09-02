@@ -184,9 +184,10 @@ namespace ProjectX.Editor
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXEnhanceMasterG3Validation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMaterialValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
+            bool shopG3Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopG3Validation") >= 0;
             bool shopG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopG4Validation") >= 0;
             bool shopValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopValidation") >= 0
-                || shopG4Validation;
+                || shopG3Validation || shopG4Validation;
             bool gameplayShopsValidation =
                 Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayShopsVisualValidation") >= 0;
@@ -285,6 +286,9 @@ namespace ProjectX.Editor
                 if (shopG4Validation
                     && !status.StartsWith("COMPLETE: Shop G4", StringComparison.Ordinal))
                     return;
+                if (shopG3Validation
+                    && !status.StartsWith("COMPLETE: Shop G3", StringComparison.Ordinal))
+                    return;
                 if (taskValidation && !taskG4Validation
                     && !status.StartsWith("COMPLETE: real btn_renwu", StringComparison.Ordinal))
                     return;
@@ -343,7 +347,7 @@ namespace ProjectX.Editor
                     Finish(true);
                     return;
                 }
-                if (shopG4Validation)
+                if (shopG3Validation || shopG4Validation)
                 {
                     WriteResult(true, status);
                     Finish(true);

@@ -28,9 +28,10 @@ end
 
 function M.onClick()
     local g4 = Bridge:HasCommandLineFlag("-projectXShopG4Validation")
+    local g3 = Bridge:HasCommandLineFlag("-projectXShopG3Validation")
     M.validationStage = (Bridge:HasCommandLineFlag("-projectXShopValidation")
-        or (g4 and not M.validationStarted)) and "await_list" or nil
-    if g4 then M.validationStarted = true end
+        or ((g3 or g4) and not M.validationStarted)) and "await_list" or nil
+    if g3 or g4 then M.validationStarted = true end
     requestList()
 end
 
@@ -195,7 +196,10 @@ local function readList(message, op)
             return
         end
         M.validationItemId = firstId
-        if Bridge:HasCommandLineFlag("-projectXShopG4Validation") then
+        if Bridge:HasCommandLineFlag("-projectXShopG3Validation") then
+            M.validationStage = "await_ui"
+            Bridge:BeginShopG3Validation(firstId)
+        elseif Bridge:HasCommandLineFlag("-projectXShopG4Validation") then
             M.validationStage = "await_ui"
             Bridge:BeginShopG4Validation(firstId)
         else

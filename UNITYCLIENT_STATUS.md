@@ -28,7 +28,7 @@
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0-G2 passed / G3 early user Play pending / G4-G6 pending` | 方案A冻结14来源、974业务ID、86控件；当前G1碎片态与G2所有权/配置审计保留，旧33控件结论失效 | G3实现完成后从真实入口早测；反馈闭环前不得进入G4，历史G4-G6不得复用 |
 | 邮件 | `G0-G2 passed / G3-G6 pending` | 旧固定账号、4/4双端视觉、13/13控件、`/128 op2/3/4/5`及Bootstrap证据仍保留，但正式门禁登记已降为G0-G2 | 从当前源码重跑G3-G6；旧完成标签不得替代当前门禁。 |
-| 基础商城 | `G0-G4 passed / G5-G6 pending` | 旧6/6双端视觉、21/21控件、`/221 op1/2/3/4`、精确恢复及Bootstrap证据保留，但正式门禁当前只到G4 | 按当前源码重跑G5-G6；旧完成标签不得替代当前门禁。 |
+| 基础商城 | `G3 runtime-ready / early user Play passed；正式G1-G2因免截图保持pending，G4-G6 pending` | 2026-09-02完成当前入口、`/221`、type=1配置与资源闭包；隐藏`OneLevelLayer/Panel_12`，迁入Shop自有真实关闭按钮并修复全控件射线。用户早测确认页签、商品图标、刷新隐藏、数量输入和购买按钮修复无问题 | 早测反馈已闭环；后续仍须按正式门禁补G1-G2并进入G4，不能把本轮免截图或早测冒充G5/G6视觉通过。 |
 | 玩法商店 | `G0 pending / evidence-missing` | 历史登记的 6 组 Cocos、6 组 Unity、差异报告、人工验收和固定账号结果共15个路径当前全部缺失，旧 G1-G6 已失效 | 从当前源码重新执行 G0-G6并生成新证据；禁止用历史完成记录替代当前文件 |
 | 好友 | `steam-excluded` | Steam隐藏HUD入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 聊天 | `steam-excluded` | Steam隐藏聊天入口及HUD聊天条、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
