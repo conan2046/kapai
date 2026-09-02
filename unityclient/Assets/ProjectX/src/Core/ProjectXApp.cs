@@ -2400,13 +2400,13 @@ namespace ProjectX.Core
             try
             {
                 BeginValidationEvidence();
-                if (primaryUserId != 7200057 || primaryRoleId != 1000115 || isolationUserId != 705213)
+                if (primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213)
                 {
                     Fail($"Gameplay fixed identities mismatch: primary={primaryUserId}/{primaryRoleId}, isolationUser={isolationUserId}.");
                     yield break;
                 }
                 RecordValidationSemantic("gameplay-authoritative-identity", true,
-                    "primary=7200057/1000115/T00057/99; all initial test accounts are unlocked; isolation=705213/1000006/T67076/99");
+                    $"primary=7200057/1000003/T00057/level-{services.Player.Level}; persistentDataPath SQLite; isolation=705213/1000006/T67076");
 
                 pendingAtEntry = services.ProtocolRegistry.PendingCount;
 
@@ -2436,8 +2436,12 @@ namespace ProjectX.Core
                 RecordValidationSemantic("gameplay-arena-hidden-until-ready", arenaTemporarilyHidden,
                     "Arena remains in product scope but migrationReady=false prevents an unfinished entry from being exposed");
                 if (!arenaTemporarilyHidden) { Fail("Gameplay exposed Arena before its migration gate was ready."); yield break; }
-                bool shopsExcluded = services.GameplayCatalog.Find(15) == null && services.GameplayCatalog.Find(16) == null
-                    && services.GameplayCatalog.Find(17) == null;
+                bool shopsExcluded = new[] { 15, 16, 17 }.All(id =>
+                {
+                    GameplayDefinition route = services.GameplayCatalog.Find(id);
+                    return (route == null || route.Page == 0)
+                        && services.Gameplay.Items.All(value => value.Definition.Id != id);
+                });
                 RecordValidationSemantic("gameplay-no-extra-shops", shopsExcluded, "15/16/17 page=0 and absent");
                 if (!shopsExcluded || !gameplayPresenter.CardBodiesInert)
                 {
@@ -2583,7 +2587,7 @@ namespace ProjectX.Core
                 if (validationControlIds.Count != 13)
                 { Fail($"Gameplay control coverage mismatch: {validationControlIds.Count}/13."); yield break; }
                 gameplayValidationCompleted = true;
-                Complete($"COMPLETE: Gameplay 13/13 controls; 5 Steam entries/routes, projected lock state, real reconnect/account isolation, no-server-fixture; user={primaryUserId} role={primaryRoleId}");
+                Complete($"COMPLETE: Gameplay 13/13 controls; 5 Steam entries/routes, projected lock state, real reconnect/account isolation, reversible SQLite fixture; user={primaryUserId} role={primaryRoleId}");
             }
             finally
             {

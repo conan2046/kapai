@@ -2381,6 +2381,33 @@ function Assert-UnityMigrationCocosBaseline {
     $matches = @($contracts.modules | Where-Object { $_.module -ieq $Module })
     if ($matches.Count -ne 1 -or $null -eq $matches[0].g5) { throw "Module '$Module' has no unique G5 contract." }
     $g5 = $matches[0].g5
+    $crossBackend = Get-UnityMigrationPropertyValue -Object $g5 -Name "crossBackendIdentityMapping" -Default $null
+    if ($null -ne $crossBackend) {
+        $mappingPath = [string](Get-UnityMigrationPropertyValue -Object $crossBackend -Name "evidencePath" -Default "")
+        $mapping = (Import-UnityMigrationJson -Root $Root -Path $mappingPath).Value
+        $fixed = Get-UnityMigrationPropertyValue -Object $matches[0] -Name "fixedAccount" -Default $null
+        if ([string]$mapping.contract -ne [string]$crossBackend.contract -or
+            [uint32]$mapping.cocos.userId -ne [uint32]$crossBackend.cocosUserId -or
+            [uint32]$mapping.cocos.roleId -ne [uint32]$crossBackend.cocosRoleId -or
+            [uint32]$mapping.unity.userId -ne [uint32]$crossBackend.unityUserId -or
+            [uint32]$mapping.unity.roleId -ne [uint32]$crossBackend.unityRoleId -or
+            [uint32]$fixed.userId -ne [uint32]$crossBackend.unityUserId -or
+            [uint32]$fixed.roleId -ne [uint32]$crossBackend.unityRoleId -or
+            -not [bool]$mapping.semantics.sameLogicalUser -or
+            -not [bool]$mapping.semantics.sameRoleName -or
+            -not [bool]$mapping.semantics.bothOpenSharedReadyRoutes) {
+            throw "Cross-backend Cocos/Unity identity mapping is missing or inconsistent for module '$Module'."
+        }
+        if ([uint32]$entry.Value.userId -ne [uint32]$crossBackend.cocosUserId -or
+            [uint32]$entry.Value.roleId -ne [uint32]$crossBackend.cocosRoleId) {
+            throw "Cocos baseline identity does not match the frozen cross-backend mapping for module '$Module'."
+        }
+        if ($RequireCurrentInputs -and [bool]$crossBackend.requireVisualParityReady -and
+            -not [bool]$mapping.semantics.visualParityReady) {
+            $pending = @($mapping.semantics.migrationPendingIds) -join ','
+            throw "Cross-backend mapping is valid, but G5 visual parity is blocked by migration-pending Gameplay ids: $pending."
+        }
+    }
     if ([string]$entry.Value.module -ine $Module -or [string]$entry.Value.sourceGate -ne "G1" -or
         -not [bool]$entry.Value.reuseEligible) {
         throw "Cocos baseline must be a G1 reusable baseline for module '$Module'."

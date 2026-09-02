@@ -456,13 +456,17 @@
     {
       "module": "Gameplay",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
         "adapter": "tools/unity-migration/Invoke-GameplayFixedAccountFixture.ps1",
-        "snapshot": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-fixture-snapshot.json",
-        "resultEvidence": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-fixed-unity-result.json",
+        "snapshot": ".local/ui-fidelity/Gameplay/fixture/gameplay-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/ui-fidelity/Gameplay/fixture/gameplay-fixed-unity-result.json",
         "visualResultEvidence": ".local/ui-fidelity/Gameplay/unity/g5-20260802/gameplay-g5-visual-result.json",
-        "serverConfigDirectory": ".local/gameplay-server-validation",
         "visualValidationFlags": [
           "-projectXGameplayValidation"
         ],
@@ -489,8 +493,6 @@
         "visualOnlyArtifacts": false,
         "reloginRequired": true,
         "extraFlags": [
-          "-projectXGameplayLockedUserId=7200260",
-          "-projectXGameplayLockedRoleId=1000119",
           "-projectXGameplayIsolationUserId=705213",
           "-projectXGameplayIsolationRoleId=1000006"
         ],
@@ -499,16 +501,24 @@
           "requiresLogin": false,
           "requirements": [
             {
+              "id": "gameplay-sqlite-only",
+              "description": "用户Unity测试只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL不得作为夹具后端。"
+            },
+            {
               "id": "gameplay-authoritative-identities",
-              "description": "主账号7200057/1000115/T00057/99级（全系统测试号）、锁定账号7200260/1000119/T20260/1级、隔离账号705213/1000006/T67076/60级必须唯一绑定"
+              "description": "主账号7200057必须唯一绑定SQLite角色1000003/T00057；夹具临时克隆隔离账号705213/1000006/T67076。"
             },
             {
               "id": "gameplay-readonly-config",
-              "description": "function_dat.lua哈希固定且当前大厅严格为13项；夹具mutationCount必须为0"
+              "description": "function_dat.lua与gameplay.json保持当前Steam 5路由边界；大厅不写业务状态。"
             },
             {
               "id": "gameplay-no-owned-server-state",
               "description": "大厅不拥有业务协议或可变服务端数据；/65由SharedHotPoint所有，参加按钮只验证路由边界"
+            },
+            {
+              "id": "gameplay-exact-sqlite-restore",
+              "description": "完整备份persistentDataPath projectx.db；验证后整库SHA256精确恢复、隔离账号清理且备份残留0。"
             }
           ]
         },
@@ -575,9 +585,19 @@
           "client/ProjectX/src/ConfigData/function_dat.lua",
           "client/ProjectX/src/core/AppDef.lua",
           "client/ProjectX/res/csd/shop/shop_bg.csb",
-          "client/ProjectX/res/csd/common/ActivityLayer.csb",
-          "tools/unity-migration/Invoke-GameplayCocosFixture.ps1"
-        ],
+      "client/ProjectX/res/csd/common/ActivityLayer.csb",
+      "tools/unity-migration/Invoke-GameplayCocosFixture.ps1",
+      ".local/unity-validation/gameplay-cross-backend-mapping-latest.json"
+    ],
+    "crossBackendIdentityMapping": {
+      "contract": "semantic-cross-backend-identity-v1",
+      "evidencePath": ".local/unity-validation/gameplay-cross-backend-mapping-latest.json",
+      "cocosUserId": 7200057,
+      "cocosRoleId": 1000115,
+      "unityUserId": 7200057,
+      "unityRoleId": 1000003,
+      "requireVisualParityReady": true
+    },
         "cocosDirectory": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
         "unityDirectory": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
         "compareDirectory": ".local/ui-fidelity/Gameplay/compare/g5-live-20260802",
@@ -609,12 +629,10 @@
         ],
         "identity": {
           "primaryUserId": 7200057,
-          "primaryRoleId": 1000115,
-          "lockedUserId": 7200260,
-          "lockedRoleId": 1000119,
+          "primaryRoleId": 1000003,
           "isolationUserId": 705213,
           "isolationRoleId": 1000006,
-          "fixtureContract": "no-server-fixture"
+          "fixtureContract": "reversible-sqlite-readonly"
         },
         "pairs": [
           {
