@@ -18,12 +18,12 @@
 | 登录与创角 | `G0-G6 passed / 21/21 complete` | 固定账号完成 17/17 双端原生视觉、21/21 真实控件、10/10 语义断言；覆盖 LoginBg/loginLayer/SeverListLayer/RoleCreateLayer/NoticeLayer、`/1001→/1003→/1004`、`/1002`、`/88`、已有/无角色、命名合法/非法/重复、失败/超时/断线/重连、返回/重进/切号隔离及精确恢复 | 正式登录服、渠道 SDK、发布配置后置；HUD 已独立完成 |
 | UI 通用层 | 第一阶段完成 | VirtualList、MessageBox、Loading、Toast、Reward | 通用 Tab、分页、红点树深化 |
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
-| ResourceFoundation/资源/时间/旧动画 | `R0-R4 passed / agent live smoke passed / user Play pending` | 回退基线`7422cbd8`已冻结；Bootstrap为0业务PrefabInstance；110/110目录项与96个静态Source查询覆盖通过；登录阶段仅5个Source入口按需创建；登录遮挡与递归释放重复清理已修复；设置重复开关、HeroBook/HeroRecycle创建释放及退出Play 0 Error已实跑 | 用户接手复验同一路径并补任务父子组合；YooAsset后端、Atlas和内存预算后置 |
+| ResourceFoundation/资源/时间/旧动画 | `R0-R4 passed / early user Play passed` | 提交`97952ddd`；回退基线`7422cbd8`；Bootstrap为0业务PrefabInstance；110/110目录项、96个静态Source查询、登录5个Source入口通过；登录→主界面、设置重复开关、任务父子组合、HeroBook/HeroRecycle创建释放及无阻断残留已获用户确认 | 本轮收口；新Bootstrap已改变输入哈希，后续模块必须按当前输入重验。YooAsset后端、Atlas和内存预算后置 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
 | 主界面 HUD | `G0-G3 retained / shared currency regression fixed / user retest pending` | `/18` 增量货币映射已拆分非绑定元宝`505/60003`与绑定元宝`506/60001`；复用`FirstClassBg/GoldCheck`的背包、神将/阵容、装备/法宝、邮件、商城及任务公共栏统一实时刷新 | 当前源码变化已使旧G4-G6失效；先完成用户真人复测，再按标准batch重验 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定身份`1/1000001`完成26/26控件、18/18语义、真实`/8`与`/15`、ItemType 5/6奖励弹窗、异常/重连/重登/切号及精确恢复；G5同账号同数据16/16。G6真人Play发现并关闭礼包横向拖动缺口，用户最终复测“测试通过”；整库恢复、Fixture残留0，两次BuildBatch SHA一致 | 当前模块收口；下一模块按P1顺序从当前G0启动 |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
-| 神将/阵容 | `G0-G3 passed / early user Play retest pending / G4-G6 pending` | 当前16控件与G3实现保留；旧G4-G6输入已被后续服务端、Lua桥和`ProjectXApp.cs`变化失效 | 先完成当前早期真人复测并关闭反馈，再进入G4 |
+| 神将/阵容 | `G0 passed / G1-G6 invalidated / G1 recapture blocked` | G5重复内容硬门禁发现当前G1 Cocos状态中`HERO-02/03/04/06/07/08/09-15`像素完全相同，不能证明逐状态交互；原G4批验降为诊断线索 | Computer Use传输恢复后重采16个原生Cocos状态，再串行重验G2-G5；当前不得恢复完成标签 |
 | 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0-G2 passed / G3 early user Play pending / G4-G6 pending` | 方案A冻结14来源、974业务ID、86控件；当前G1碎片态与G2所有权/配置审计保留，旧33控件结论失效 | G3实现完成后从真实入口早测；反馈闭环前不得进入G4，历史G4-G6不得复用 |

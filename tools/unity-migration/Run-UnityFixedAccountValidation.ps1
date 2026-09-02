@@ -168,6 +168,7 @@ $snapshotValue = if ($G5VisualOnly) {
 if ($G5VisualOnly -and -not $snapshotValue) { throw "Fixed-account G5 visual mode requires g5VisualSnapshot." }
 $snapshot = Resolve-UnityMigrationPath -Root $root -Path $snapshotValue
 $resultPath = Resolve-UnityMigrationPath -Root $root -Path ([string]$manifest.resultFile)
+$runtimeResultPath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-run-$PID.json"
 $resultEvidence = Resolve-UnityMigrationPath -Root $root -Path ([string]$fixed.resultEvidence)
 $dataEvidencePath = Join-Path $root ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
 $dataPreflightFingerprint = Get-UnityMigrationDataPreflightFingerprint -Root $root -FixedAccount $fixed
@@ -378,13 +379,14 @@ try {
         finally {
             Complete-UnityMigrationTiming -Timings $timings -Name "serverStartup" -Timing $serverTiming
         }
-        if (Test-Path -LiteralPath $resultPath) { Remove-Item -LiteralPath $resultPath -Force }
+        if (Test-Path -LiteralPath $runtimeResultPath) { Remove-Item -LiteralPath $runtimeResultPath -Force }
         $arguments = @(
             "-batchMode",
             "-projectPath", $unityProject,
             "-executeMethod", ([string]$manifest.executeMethod),
             "-projectXAutomation",
             "-projectXUserId=$UserId",
+            "-projectXResultPath=$runtimeResultPath",
             "-projectXValidationScenario=$($scenario.key)",
             "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds",
             "-logFile", $logPath
@@ -400,10 +402,10 @@ try {
             $process = Start-Process -FilePath $unityExecutable -ArgumentList $arguments `
                 -PassThru -WindowStyle Hidden
             $process.WaitForExit()
-            if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
+            if (-not (Test-Path -LiteralPath $runtimeResultPath -PathType Leaf)) {
                 throw "Unity fixed-account result is missing; exit=$($process.ExitCode); log=$logPath"
             }
-            $result = Get-Content -LiteralPath $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $result = Get-Content -LiteralPath $runtimeResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
             # Preserve the exact runner payload before the outer lifecycle restores
             # the previous result file. This is needed to diagnose control/semantic
             # coverage failures without treating an earlier result as current evidence.
@@ -426,7 +428,7 @@ try {
                 if ($g3ValidationFlags.Count -eq 0) {
                     throw "Fixed-account G3 runtime mode requires g3ValidationFlags."
                 }
-                Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
+                Copy-Item -LiteralPath $runtimeResultPath -Destination $runnerCapture -Force
                 if ([bool](Get-UnityMigrationPropertyValue -Object $fixed -Name "copyArtifactsInG3" -Default $false)) {
                     foreach ($copy in @($fixed.artifactCopies)) {
                         $source = Resolve-UnityMigrationPath -Root $root -Path ([string]$copy.source)
@@ -580,7 +582,7 @@ try {
                 })
                 $result | Add-Member -Force passedSemanticAssertions $passed
                 $result | Add-Member -Force failedSemanticAssertions $failed
-                Write-UnityMigrationUtf8 -Path $resultPath -Content (($result | ConvertTo-Json -Depth 12) + "`n")
+                Write-UnityMigrationUtf8 -Path $runtimeResultPath -Content (($result | ConvertTo-Json -Depth 12) + "`n")
             }
             $sqlitePersistenceOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "sqlitePersistenceOracle" -Default $null
             if ($null -ne $sqlitePersistenceOracle) {
@@ -620,9 +622,9 @@ try {
                 $failed = @($result.failedSemanticAssertions | ForEach-Object { [string]$_ } | Where-Object { $_ -notlike "$sqliteSemanticId*" })
                 $result | Add-Member -Force passedSemanticAssertions $passed
                 $result | Add-Member -Force failedSemanticAssertions $failed
-                Write-UnityMigrationUtf8 -Path $resultPath -Content (($result | ConvertTo-Json -Depth 12) + "`n")
+                Write-UnityMigrationUtf8 -Path $runtimeResultPath -Content (($result | ConvertTo-Json -Depth 12) + "`n")
             }
-            Copy-Item -LiteralPath $resultPath -Destination $runnerCapture -Force
+            Copy-Item -LiteralPath $runtimeResultPath -Destination $runnerCapture -Force
             $coverage = Assert-UnityMigrationRunnerCoverage -Root $root -Result $result -Scenario $scenario `
                 -ControlMatrix ([string]$moduleConfig.controlMatrix)
             if (-not [bool]$fixed.skipPostValidationFixtureAssert) {
@@ -653,7 +655,7 @@ try {
                 Copy-Item -LiteralPath $source -Destination $destination -Force
             }
             [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resultEvidence)) | Out-Null
-            Copy-Item -LiteralPath $resultPath -Destination $resultEvidence -Force
+            Copy-Item -LiteralPath $runtimeResultPath -Destination $resultEvidence -Force
             $visualResults = Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario
             $sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
             $summary = [ordered]@{
@@ -806,6 +808,9 @@ finally {
         }
     }
     if (-not $PreflightOnly -and -not $DataPreflightOnly) {
+        if (Test-Path -LiteralPath $runtimeResultPath) {
+            Remove-Item -LiteralPath $runtimeResultPath -Force
+        }
         if ($hadPreviousResult) {
             Write-UnityMigrationUtf8 -Path $resultPath -Content $previousResultContent
         }

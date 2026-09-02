@@ -489,9 +489,23 @@ local function readFormation(message)
         return
     end
     if M.mutationStage == "interactive_snapshot" then
-        if FormationModel:GetCombatHero(M.targetPosition) ~= M.mutationHero
-            or FormationModel:GetSelectedHeroId() ~= M.mutationHero then
-            Bridge:Fail("Interactive formation snapshot did not select the authoritative target hero.")
+        local targetHero = FormationModel:GetCombatHero(M.targetPosition)
+        if targetHero ~= M.mutationHero then
+            Bridge:Fail("Interactive formation snapshot target mismatch: hero="
+                .. tostring(M.mutationHero) .. " target=" .. tostring(M.targetPosition)
+                .. " actual=" .. tostring(targetHero) .. ".")
+            M.mutationStage = nil
+            return
+        end
+        -- EndFormationUpdate synchronously re-renders the C# mirror. Re-apply
+        -- the Lua-owned selection after that render boundary so the detail panel
+        -- and the authoritative model finish on the replacement hero.
+        FormationModel:SelectHero(M.mutationHero)
+        Bridge:SyncHeroSelection(FormationModel:GetSelectedHeroId())
+        if FormationModel:GetSelectedHeroId() ~= M.mutationHero then
+            Bridge:Fail("Interactive formation snapshot selection mismatch: expected="
+                .. tostring(M.mutationHero) .. " actual="
+                .. tostring(FormationModel:GetSelectedHeroId()) .. ".")
             M.mutationStage = nil
             return
         end

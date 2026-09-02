@@ -31,6 +31,7 @@ namespace ProjectX.UI
         private readonly Action<int> use;
         private readonly Action<string> feedback;
         private readonly VirtualList<FormationDefinition> list;
+        private readonly Dictionary<int, Button> formationButtons = new Dictionary<int, Button>();
         private readonly ImodAnimationPlayer[] models = new ImodAnimationPlayer[5];
         private readonly Image runtimeDim;
         private readonly Text runtimeTitle;
@@ -70,6 +71,9 @@ namespace ProjectX.UI
         }
 
         public Button CloseInteractionButton => closeInteractionButton;
+        public int SelectedFormationId => selectedFormationId;
+        public Button GetFormationButton(int formationId)
+            => formationButtons.TryGetValue(formationId, out Button button) ? button : null;
 
         public void RefreshCloseInteraction()
         {
@@ -228,11 +232,25 @@ namespace ProjectX.UI
             Transform tag = row.Find("Tag"); if (tag != null) tag.gameObject.SetActive(formation.ActiveFormationId == item.Id);
             Transform choose = row.Find("Choose"); if (choose != null) choose.gameObject.SetActive(selectedFormationId == item.Id);
             Transform prompt = row.Find("Prompt"); if (prompt != null) prompt.gameObject.SetActive(false);
-            Button button = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
-            button.targetGraphic = row.GetComponent<Graphic>() ?? row.GetComponentInChildren<Graphic>();
+            // Bind the Button to the imported visual itself. Dynamically added
+            // transparent Graphics under this RectMask2D remain at canvas depth
+            // -1 in Unity 2022 batch mode, while bg_Formation already owns the
+            // valid rendered depth used by the visible icon/name surface.
+            GameObject hitObject = row.Find("bg_Formation")?.gameObject ?? row.gameObject;
+            Image hitArea = hitObject.GetComponent<Image>() ?? hitObject.AddComponent<Image>();
+            hitArea.enabled = true;
+            hitArea.raycastTarget = true;
+            hitArea.canvasRenderer.cullTransparentMesh = false;
+            Button button = hitObject.GetComponent<Button>() ?? hitObject.AddComponent<Button>();
+            button.targetGraphic = hitArea;
             button.interactable = true;
-            if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
-            button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => { selectedFormationId = item.Id; Render(); });
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
+            {
+                selectedFormationId = item.Id;
+                Render();
+            });
+            formationButtons[item.Id] = button;
         }
 
         private void SelectGrid(int grid)

@@ -553,12 +553,14 @@ namespace ProjectX.Core
         private uint pendingFundBuyTime, pendingFundRate, pendingFundPrice, pendingFundTotal;
         private byte pendingFundTierCondition, pendingFundTierState;
         private string status = "Starting ProjectX...";
+        private string completionStatus = string.Empty;
         private string disconnectReason;
         private int reconnectAttempts;
         private bool autoReconnectRunning;
 
         public static ProjectXApp Instance { get; private set; }
         public string Status => status;
+        public string CompletionStatus => completionStatus;
         public NetworkState NetworkState => services?.Network.State ?? NetworkState.Idle;
         public bool IsBagOpen => bagView != null && services?.UiStack.Current == bagView;
         public int BagMissingIconCount => bagPresenter?.MissingIconCount ?? 0;
@@ -7559,6 +7561,20 @@ namespace ProjectX.Core
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
             bool explicitEntry = heroEntryRequestPending;
             heroEntryRequestPending = false;
+            bool preserveFormationPopup = !explicitEntry
+                && formationPopupView?.GameObject.activeSelf == true;
+            if (preserveFormationPopup)
+            {
+                // /48 mutations refresh the authoritative formation mirror while
+                // this popup is open. Keep the modal above the hero frame instead
+                // of treating that data refresh as a fresh formation-page entry.
+                formationPopupPresenter?.Render();
+                formationPopupView.SetVisible(true);
+                formationPopupView.GameObject.transform.SetAsLastSibling();
+                formationPopupPresenter?.RefreshCloseInteraction();
+                SetStatus($"Formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
             bool preserveCultivation = !explicitEntry
                 && (heroCultivationView?.GameObject.activeSelf == true
                     || heroLevelUpView?.GameObject.activeSelf == true);
@@ -7777,7 +7793,7 @@ namespace ProjectX.Core
             if (IsHeroOpen && !InvokeHeroCloseForValidation()) return false;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             Button formationButton = mainView?.Binding.Find(FormationPath)?.GetComponent<Button>();
-            if (!InvokeEventSystemClick(formationButton)) return false;
+            if (!InvokeEventSystemRaycastClick(formationButton)) return false;
             return true;
         }
 
@@ -7980,11 +7996,35 @@ namespace ProjectX.Core
                 Fail("Hero G4 btn_buzhen did not open the formation popup.");
                 yield break;
             }
+            // ShowFormationPopup creates and binds the virtual formation rows in
+            // the current click callback. Their Graphics receive a valid canvas
+            // depth only after the next render cycle; real users cannot click a
+            // newly opened item before that boundary either.
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            yield return null;
             int expectedFormationModels = services.Formation.CombatHeroes.Count(hero => hero > 0);
             if (formationPopupPresenter == null
                 || formationPopupPresenter.RenderedModelCount != expectedFormationModels)
             {
                 Fail($"Hero G4 formation model count mismatch: rendered={formationPopupPresenter?.RenderedModelCount ?? -1}, expected={expectedFormationModels}.");
+                yield break;
+            }
+            int activeFormationId = services.Formation.ActiveFormationId > 0
+                ? services.Formation.ActiveFormationId : 1;
+            int selectableFormationId = activeFormationId == 1 ? 2 : 1;
+            Button formationItem = formationPopupPresenter.GetFormationButton(selectableFormationId);
+            if (!InvokeEventSystemRaycastClick(formationItem)
+                || formationPopupPresenter.SelectedFormationId != selectableFormationId)
+            {
+                Fail($"Hero G4 formation list item did not accept real pointer input: target={selectableFormationId}, selected={formationPopupPresenter.SelectedFormationId}.");
+                yield break;
+            }
+            Button activeFormationItem = formationPopupPresenter.GetFormationButton(activeFormationId);
+            if (!InvokeEventSystemRaycastClick(activeFormationItem)
+                || formationPopupPresenter.SelectedFormationId != activeFormationId)
+            {
+                Fail($"Hero G4 formation list item did not restore the active selection: target={activeFormationId}, selected={formationPopupPresenter.SelectedFormationId}.");
                 yield break;
             }
             yield return CaptureHeroG5Evidence("HERO-16-FORMATION");
@@ -9792,7 +9832,11 @@ namespace ProjectX.Core
             ClientLog.Info("App", status);
         }
 
-        public void Complete(string value) => SetStatus(value);
+        public void Complete(string value)
+        {
+            SetStatus(value);
+            completionStatus = status;
+        }
 
         public void Fail(string value)
         {

@@ -1154,7 +1154,8 @@
           "path": "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs",
           "contains": [
             "button.interactable = true",
-            "button.targetGraphic.raycastTarget = true"
+            "hitArea.raycastTarget = true",
+            "button.targetGraphic = hitArea"
           ]
         },
         {

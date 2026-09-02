@@ -175,6 +175,11 @@ foreach ($pair in @($g5.pairs)) {
     })
 }
 if ($states.Count -eq 0) { throw "G5 contract has no Cocos states to freeze at G1." }
+$allowedDuplicateGroups = @(Get-UnityMigrationPropertyValue -Object $g5 `
+    -Name "allowedDuplicateGroups" -Default @())
+Assert-UnityMigrationDuplicateHashPolicy -Items $states.ToArray() -IdentifierProperty "id" `
+    -HashProperty "sha256" -AllowedDuplicateGroups $allowedDuplicateGroups `
+    -Context "Module '$Module' G1 Cocos states"
 $baseline = [ordered]@{
     schemaVersion = 1
     module = $Module

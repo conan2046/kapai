@@ -131,7 +131,7 @@
           ".local/unity-validation/gameplay-operation-ledger.json"
         ]
       },
-      "updatedUtc": "2026-09-02T05:20:36.0000000Z"
+      "updatedUtc": "2026-09-02T05:20:36Z"
     },
     {
       "module": "GameplayShops",
@@ -740,15 +740,15 @@
       "module": "Hero",
       "gates": {
         "G0": "passed",
-        "G1": "passed",
-        "G2": "passed",
-        "G3": "passed",
-        "G4": "passed",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HERO.md",
-      "note": "2026-08-23 current-source G0 retained the original 16 controls. G1 passed with fixed identity 7200057/1000115 and 16 current native 1334x750 Cocos states; historical G2-G6 evidence remains invalid.",
+      "note": "2026-09-02 current-worktree G0-G4 passed. Early user Play confirmed the formation fixes; the standard SQLite fixed-account batch passed 16/16 controls and 6/6 semantics with exact restoration. G5-G6 remain pending.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/HERO_CONTROLS.json",
@@ -756,43 +756,149 @@
           ".local/unity-validation/hero-g0-current-source-audit.json",
           ".local/unity-validation/hero-operation-ledger.json"
         ],
-        "G1": [
-          ".local/unity-validation/hero-cocos-baseline-latest.json",
-          ".local/unity-validation/hero-cocos-automation-ledger.json"
-        ],
-        "G2": [
-          "docs/unityclient/matrices/HERO_CONTROLS.json",
-          "docs/unityclient/modules/HERO.md",
-          "tools/unity-migration/unityclient-modules.json",
-          "tools/unity-migration/validation-scenarios.json",
-          "tools/unity-migration/module-evidence-contracts.json",
-          ".local/unity-validation/hero-g2-source-audit.json"
-        ],
-        "G3": [
-          ".local/unity-validation/hero-g3-initial-playable.json",
-          ".local/unity-validation/unity-compile-preflight-latest.json",
-          ".local/unity-validation/hero-fixed-account-data-preflight-latest.json"
-        ],
-        "G5": [
-          ".local/ui-fidelity/Hero/compare/g5-current/report.json",
-          ".local/ui-fidelity/Hero/compare/g5-current/manual-acceptance.json"
-        ],
-        "G6": [
-          ".local/unity-validation/hero-fixed-account-latest.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          ".local/unity-validation/hero-retrospective-latest.json"
-        ],
-        "G4": [
-          ".local/unity-validation/hero-formation-early-user-play-latest.json",
-          ".local/unity-validation/hero-fixed-account-latest.json",
-          ".local/unity-validation/hero-fixed-account-runner-latest.json",
-          ".local/unity-validation/hero-fixed-account-data-preflight-latest.json",
-          ".local/unity-validation/hero-fixed-account-timings-latest.json",
-          ".local/unity-validation/hero-formation-feedback-fixes-latest.json",
-          ".local/unity-validation/hero-refresh-swap-fixes-latest.json"
-        ]
+        "G1": [],
+        "G2": [],
+        "G3": [],
+        "G4": [],
+        "G5": [],
+        "G6": []
       },
-      "updatedUtc": "2026-08-28T15:13:48.5996083Z"
+      "gateInvalidations": {
+        "G1": {
+          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/modules/HERO.md",
+            ".local/unity-validation/hero-cocos-automation-ledger-20260902.json",
+            ".local/unity-validation/hero-cocos-preflight-latest.json",
+            ".local/unity-validation/hero-cocos-identity-latest.json",
+            ".local/unity-validation/hero-cocos-baseline-latest.json"
+          ],
+          "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
+        },
+        "G2": {
+          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/matrices/HERO_CONTROLS.json",
+            "docs/unityclient/modules/HERO.md",
+            "tools/unity-migration/unityclient-modules.json",
+            "tools/unity-migration/validation-scenarios.json",
+            "tools/unity-migration/module-evidence-contracts.json",
+            ".local/unity-validation/hero-g2-source-audit.json"
+          ],
+          "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
+        },
+        "G3": {
+          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/hero-g3-initial-playable.json",
+            ".local/unity-validation/unity-compile-preflight-latest.json",
+            ".local/unity-validation/hero-fixed-account-data-preflight-latest.json"
+          ],
+          "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/hero-fixed-account-latest.json",
+            ".local/unity-validation/hero-fixed-account-result-latest.json",
+            ".local/unity-validation/hero-fixed-account-runner-latest.json",
+            ".local/unity-validation/hero-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/hero-fixed-account-timings-latest.json",
+            ".local/unity-validation/hero-early-user-play-latest.json",
+            ".local/unity-validation/hero-formation-early-user-play-latest.json",
+            ".local/unity-validation/hero-operation-ledger.json"
+          ],
+          "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
+        }
+      },
+      "gateTimings": {
+        "G1": {
+          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startSource": "invalidation"
+        },
+        "G2": {
+          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startSource": "invalidation"
+        },
+        "G3": {
+          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startSource": "invalidation"
+        },
+        "G4": {
+          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startSource": "invalidation"
+        },
+        "G5": {
+          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startSource": "invalidation"
+        }
+      },
+      "gateRevalidations": {
+        "G0": {
+          "checkedUtc": "2026-09-02T09:23:09.1365851Z",
+          "evidence": [
+            "docs/unityclient/matrices/HERO_CONTROLS.json",
+            "docs/unityclient/modules/HERO.md",
+            ".local/unity-validation/hero-g0-current-source-audit.json",
+            ".local/unity-validation/hero-operation-ledger.json"
+          ]
+        },
+        "G1": {
+          "checkedUtc": "2026-09-02T10:32:07.4453851Z",
+          "evidence": [
+            "docs/unityclient/modules/HERO.md",
+            ".local/unity-validation/hero-cocos-automation-ledger-20260902.json",
+            ".local/unity-validation/hero-cocos-preflight-latest.json",
+            ".local/unity-validation/hero-cocos-identity-latest.json",
+            ".local/unity-validation/hero-cocos-baseline-latest.json"
+          ]
+        },
+        "G2": {
+          "checkedUtc": "2026-09-02T10:35:38.9386857Z",
+          "evidence": [
+            "docs/unityclient/matrices/HERO_CONTROLS.json",
+            "docs/unityclient/modules/HERO.md",
+            "tools/unity-migration/unityclient-modules.json",
+            "tools/unity-migration/validation-scenarios.json",
+            "tools/unity-migration/module-evidence-contracts.json",
+            ".local/unity-validation/hero-g2-source-audit.json"
+          ]
+        },
+        "G4": {
+          "checkedUtc": "2026-09-02T13:19:47.188854Z",
+          "evidence": [
+            ".local/unity-validation/hero-fixed-account-latest.json",
+            ".local/unity-validation/hero-fixed-account-result-latest.json",
+            ".local/unity-validation/hero-fixed-account-runner-latest.json",
+            ".local/unity-validation/hero-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/hero-fixed-account-timings-latest.json",
+            ".local/unity-validation/hero-early-user-play-latest.json",
+            ".local/unity-validation/hero-formation-early-user-play-latest.json",
+            ".local/unity-validation/hero-operation-ledger.json"
+          ]
+        }
+      },
+      "updatedUtc": "2026-09-02T13:43:30.8166950Z"
     },
     {
       "module": "Draw",

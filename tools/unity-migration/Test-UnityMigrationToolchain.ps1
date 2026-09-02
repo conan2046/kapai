@@ -1118,6 +1118,22 @@ Assert-ToolchainTest (
     $bootstrapRunnerSource.Contains('SessionState.GetBool(ScreenshotPendingKey, false)') -and
     $bootstrapRunnerSource.Contains('completedStatus.StartsWith("COMPLETE:", StringComparison.Ordinal)')
 ) "Batch validation no longer latches a terminal COMPLETE status during stable-frame screenshot capture."
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('const string resultPathPrefix = "-projectXResultPath=";') -and
+    $bootstrapRunnerSource.Contains('Path.IsPathRooted(explicitPath)') -and
+    $fixedAccountRunnerSource.Contains('"-projectXResultPath=$runtimeResultPath"') -and
+    $fixedAccountRunnerSource.Contains('Get-Content -LiteralPath $runtimeResultPath') -and
+    $fixedAccountRunnerSource.Contains('Copy-Item -LiteralPath $runtimeResultPath -Destination $runnerCapture -Force') -and
+    $fixedAccountRunnerSource.Contains('Copy-Item -LiteralPath $runtimeResultPath -Destination $resultEvidence -Force')
+) "Fixed-account batch validation no longer isolates its runner result from concurrent module output."
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('string authoritativeCompletion = app.CompletionStatus;') -and
+    $bootstrapRunnerSource.Contains('!requiresReconnectValidation')
+) "Batch validation no longer recovers a same-frame COMPLETE status before screenshot capture."
+Assert-ToolchainTest (
+    $bootstrapRunnerSource.Contains('HeroEntryPhaseKey') -and
+    $bootstrapRunnerSource.Contains('HERO_INITIAL_ENTRY_CLICKED: real EventSystem/raycast entry accepted.')
+) "Hero G4 runner no longer enters Formation through the real EventSystem/raycast button path."
 
 $projectXAppSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
@@ -1125,6 +1141,13 @@ $networkServiceSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Network/NetworkService.cs") -Raw -Encoding UTF8
 $playerHudTempActivitySource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Activity/TempActivityController.lua.txt") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('public string CompletionStatus => completionStatus;') -and
+    $projectXAppSource.Contains('completionStatus = status;')
+) "ProjectXApp no longer preserves the authoritative validation completion across protocol status updates."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(formationButton)')
+) "Hero validation entry no longer resolves through the real EventSystem raycast helper."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")') -and
     $projectXAppSource.Contains('?? UiPrefabLoader.Load("HeroEquipmentDetail", GetDynamicUiRoot());') -and
@@ -1467,12 +1490,14 @@ Assert-ToolchainTest (
     $cocosEvidenceSource.Contains('-LocalUserId $userId') -and
     $cocosEvidenceSource.Contains('-LocalRoleId $roleId') -and
     $cocosEvidenceSource.Contains('FreezeG1Baseline') -and
-    $cocosEvidenceSource.Contains('window-client-crop-no-scale')
+    $cocosEvidenceSource.Contains('window-client-crop-no-scale') -and
+    $cocosEvidenceSource.Contains('-Context "Module ''$Module'' G1 Cocos states"')
 ) "Central Cocos lifecycle no longer preflights Computer Use, proves fixed identity or freezes the reusable G1 baseline."
 Assert-ToolchainTest (
     $g5PreflightSource.Contains('Assert-UnityMigrationCocosBaseline') -and
     $g5PreflightSource.Contains('cocosBaselineReused') -and
-    $g5PreflightSource.Contains('cocosBaselineInputs')
+    $g5PreflightSource.Contains('cocosBaselineInputs') -and
+    $commonSource.Contains('-Context "Module ''$Module'' G1 Cocos baseline"')
 ) "G5 no longer reuses and fingerprint-validates the G1 Cocos baseline by default."
 
 $startClientSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Start-Client.ps1") `
@@ -2321,6 +2346,13 @@ Assert-ToolchainTest (
       $heroPresenterSource.Contains('formation.GetCombatPosition(selectedId) == 0') -and
       $heroPresenterSource.Contains('int deployedHeroId = formation.CombatHeroes[selectedPosition - 1];')
   ) "Hero replacement regression: authoritative target selection or stale-detail fallback was removed."
+  Assert-ToolchainTest (
+      $heroControllerSource.Contains('Bridge:SyncHeroSelection(FormationModel:GetSelectedHeroId())') -and
+      $heroControllerSource.Contains('Interactive formation snapshot target mismatch: hero=') -and
+      $projectXAppSource.Contains('bool preserveFormationPopup = !explicitEntry') -and
+      $projectXAppSource.Contains('formationPopupView.GameObject.transform.SetAsLastSibling();') -and
+      $projectXAppSource.Contains('Formation popup synchronized: heroes=')
+  ) "Hero early-play regression: replacement post-render authority sync or formation-popup preservation was removed."
   $heroEquipmentPresenterSource = Get-Content -LiteralPath (
       Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
   Assert-ToolchainTest (
@@ -2409,6 +2441,16 @@ $worldPresenterSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
 $formationPopupSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $formationPopupSource.Contains('GameObject hitObject = row.Find("bg_Formation")?.gameObject ?? row.gameObject;') -and
+    $formationPopupSource.Contains('hitObject.GetComponent<Button>() ?? hitObject.AddComponent<Button>();') -and
+    $formationPopupSource.Contains('hitArea.raycastTarget = true;') -and
+    $formationPopupSource.Contains('button.targetGraphic = hitArea;') -and
+    $formationPopupSource.Contains('formationButtons[item.Id] = button;') -and
+    $projectXAppSource.Contains('formationPopupPresenter.GetFormationButton(selectableFormationId)') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(formationItem)') -and
+    $projectXAppSource.Contains('// newly opened item before that boundary either.')
+) "Hero formation-list regression: full-row raycast surface or real EventSystem selection coverage was removed."
 $worldControllerSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
 $worldStoreSource = Get-Content -LiteralPath (

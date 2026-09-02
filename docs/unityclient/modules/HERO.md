@@ -2,13 +2,14 @@
 
 ## 当前结论
 
-- 状态：`G0-G3 passed / early user Play feedback repaired, retest pending / G4-G6 pending / 16 controls retained`。
+- 状态：`G0 passed / G1-G6 invalidated / G1 recapture blocked by Computer Use transport / 16 controls retained`。
 - 2026-08-23按当前源码重新冻结原16项阵容控件。`btn_zhenrong → MainUI:PetTouchCallback → EMID_KAPAI_SHENJIANG=1030 → KaPaiPet.PetZhenRongUI`入口闭包、`/24 op1`与`/48 op1/2/3/4/5`权威所有权、配置资源和运行时Transform闭包仍成立。
 - 旧G6提交`9baa53fa`之后，`server/src/pack_deal.cpp`、`server/src/user.cpp`、Unity Hero Lua桥和`ProjectXApp.cs`均发生变化；当前24项输入综合SHA-256为`01B1B953CFA8163D8C72BB3905CAA57E5A523F58F955645F2BCA1DFCD2A35FE3`。因此旧Cocos/Unity原图、Runner、人工视觉、固定账号结果和BuildBatch哈希全部只作诊断线索。
 - 当前控件矩阵：`../matrices/HERO_CONTROLS.json`，分母保持16项；HERO-16布阵复合控件已补五模型和阵法学习/升级/切换。当前审计证据：`.local/unity-validation/hero-g0-current-source-audit.json`。
 - 当前G1：固定账号`7200057 / roleId=1000115`、唯一原生`ProjectX.exe / Cocos Simulator`窗口；16项均由Computer Use采集并裁切为`1334×750`。阵容页当前态为1个已上阵神将、4个空阵位，养成/强化大师/换将、装备槽1-4、法宝槽1-2、详细属性和布阵入口同时可见；关闭按钮已真实返回主界面。冻结证据：`.local/unity-validation/hero-cocos-baseline-latest.json`、`.local/unity-validation/hero-cocos-automation-ledger.json`。
 - 当前G2：入口、`/24 op1`、`/48 op1/2/3/4/5`、`/319`与`/320 op27`兄弟边界、8个Prefab（含共享`OneLevelLayer`）、3份配置、动态`PetTableView`以及Lua/C#生命周期均已按当前文件哈希关闭；中央场景已移除误挂的HeroEquip产物并登记8项Hero语义、16控件视觉契约及可逆固定账号夹具。证据：`.local/unity-validation/hero-g2-source-audit.json`。
 - 当前G3：固定账号数据预检已完成真实登录、整行恢复和备份表残留0；Unity编译指纹`7B96EF64207ABC598CE20493D9A3F2887D93234F8C09F43ABB867FAA628917BD`通过，当前8个Prefab、Lua协议桥、Hero/Formation Presenter和Bootstrap场景构成可运行初版。证据：`.local/unity-validation/hero-g3-initial-playable.json`。
+- 当前门禁失效：G5重复内容检查发现当前G1 Cocos状态集中`HERO-02/03/04/06/07/08/09-15`像素完全相同，不能证明各自页面状态；因此已从G1正式撤销G1-G6。先用Computer Use重新采集16个真实Cocos状态，再串行重验G2-G5。原G4批验仅保留为诊断线索。
 - 完整神将培养属于后续独立模块；神将背包/碎片属于再后一个独立模块。本轮只回归阵容及其兄弟入口边界，不提前扩展业务分母。当前 Unity 仅有“升级”页初版；“升星/突破/修炼/信息”及共享框架真实页签均未迁移完成。
 
 ## 范围
@@ -123,7 +124,7 @@ Unity数据链固定为：
 
 ## 下一步
 
-当前暂停在早期用户Play。用户完成5-15分钟主路径并反馈后，先把反馈写入`.local/unity-validation/hero-early-user-play-latest.json`；阻塞项修复且文件复核、非阻塞项修复或用户接受后，才允许进入G4。G4仍需补齐8项中央语义记录、失败/重连/切号和当前逐控件证据。
+当前停在G1重采。固定身份仍为Cocos `7200057/1000115`、Unity SQLite `7200057/1000003`；Computer Use传输恢复后，从唯一原生`ProjectX.exe / Cocos Simulator`窗口逐状态采集并即时校验，禁止复用重复截图。G1重新通过前不得进入G2-G5。
 
 ## Steam SQLite S5（2026-08-20）
 

@@ -6,11 +6,53 @@
   "acceptanceExamples": [
     { "id": "hero-formation-lifecycle", "given": "固定账号具有可上阵神将和空阵位", "when": "从真实阵容入口更换阵位并重连", "then": "服务端阵容权威更新、重连保持、切号无旧角色残留" }
   ],
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000003,
+    "cocosFixedUserId": 7200057,
+    "cocosFixedRoleId": 1000115,
+    "width": 1334,
+    "height": 750,
+    "included": "Current Hero/Formation 16-control boundary",
+    "excluded": [
+      "HeroCultivation five-tab business implementation",
+      "Hero bag and fragment business implementation",
+      "HeroEquip mutations beyond sibling-entry and shared-state regression"
+    ]
+  },
   "product": "道友来封神",
-  "auditConclusion": "G0-G6 passed. Fixed account 7200057 has two heroes, four equipped items, two different equipped FaBao and all formation/equipment-stage conditions unlocked. Fresh Cocos and Unity originals were captured 16/16 at 1334x750 with complete side-by-side/overlay/diff evidence. Real-Button automation passed 16/16; the 14 former hard visual defects were repaired and final manual visual acceptance passed 16/16.",
+  "auditConclusion": "Current 16-control scope is retained through G3. ResourceFoundation commit 97952dddc5d62f00b58af9168283e5c9d39c9f3e changed Bootstrap and shared UI loading inputs, so all earlier G4-G6 automation/manual conclusions are historical diagnostics only. Current early-user-Play retest and fresh batch G4 remain pending.",
   "g2DesignConclusion": "Lua owns /24 and /48 parsing plus authoritative Hero/Formation state. C# stores are render mirrors only. Every mutation waits for the server response and a fresh /48 op=1 snapshot. On disconnect and account switch, HeroController/EquipmentController and C# Hero/Formation/Equipment/FaBao stores are cleared; reconnect must request /24 op=1 then /48 op=1 before restoring an interactive page.",
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "evidence": {
+      "g0": ".local/unity-validation/hero-g0-current-source-audit.json",
+      "g2": ".local/unity-validation/hero-g2-source-audit.json",
+      "resourceFoundation": "docs/unityclient/modules/RESOURCE_FOUNDATION.md"
+    },
+    "knownGaps": [
+      {
+        "id": "HERO-GAP-CURRENT-G1-FINGERPRINT",
+        "handling": "Current Cocos baseline input fingerprint no longer matches the 2026-08-23 freeze; recapture affected native ProjectX.exe states and freeze a new baseline before retaining G1.",
+        "evidence": ".local/unity-validation/hero-cocos-baseline-latest.json; tools/unity-migration/module-evidence-contracts.json"
+      },
+      {
+        "id": "HERO-GAP-RESOURCE-FOUNDATION-BOOTSTRAP",
+        "handling": "Recompile and recheck the current Bootstrap plus shared Resources UI loading path at G3; never inherit pre-97952ddd G4-G6 runtime evidence.",
+        "evidence": "unityclient/Assets/ProjectX/Scenes/Bootstrap.unity; unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs; unityclient/Assets/ProjectX/src/UI/UiRouter.cs; unityclient/Assets/ProjectX/Resources/UiPrefabs/Catalog.asset"
+      },
+      {
+        "id": "HERO-GAP-CULTIVATION-MODULE-B-BOUNDARY",
+        "handling": "Hero only verifies the cultivation sibling entry and return boundary; five cultivation tabs and deployed-hero switching remain owned by the independent HeroCultivation module.",
+        "evidence": "docs/unityclient/modules/HEROCULTIVATION.md; docs/unityclient/matrices/HEROCULTIVATION_CONTROLS.json"
+      }
+    ]
+  },
   "g6Audit": {
-    "status": "passed",
+    "status": "invalidated",
     "userId": 7200057,
     "runnerResult": "build/ui-migration/bootstrap-app-result.json",
     "runnerResultUtc": "2026-07-26T14:31:28.6502368Z",
@@ -22,7 +64,11 @@
     "gitScope": "unexpected=0",
     "bootstrapIdempotenceSha256": "408E3FF9E994AA681B9805AF28F598F2023126E44B00EF55D0BFCACB0C49FEDC",
     "bootstrapIdempotenceVerifiedUtc": "2026-07-26T14:50:39.0223283Z",
-    "blockedBy": []
+    "blockedBy": [
+      "ResourceFoundation commit 97952dddc5d62f00b58af9168283e5c9d39c9f3e changed Bootstrap/shared UI inputs",
+      "current early user Play retest pending",
+      "fresh standard batch G4 pending"
+    ]
   },
   "controls": [
     {

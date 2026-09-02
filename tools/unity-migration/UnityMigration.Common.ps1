@@ -2434,6 +2434,11 @@ function Assert-UnityMigrationCocosBaseline {
             throw "Cocos baseline image changed after G1: $($state.path)"
         }
     }
+    $allowedDuplicateGroups = @(Get-UnityMigrationPropertyValue -Object $g5 `
+        -Name "allowedDuplicateGroups" -Default @())
+    Assert-UnityMigrationDuplicateHashPolicy -Items $states -IdentifierProperty "id" `
+        -HashProperty "sha256" -AllowedDuplicateGroups $allowedDuplicateGroups `
+        -Context "Module '$Module' G1 Cocos baseline"
     if ($RequireCurrentInputs) {
         $current = Get-UnityMigrationCocosBaselineFingerprint -Root $Root -G5 $g5
         if ([string]$entry.Value.inputFingerprint -ne $current) {

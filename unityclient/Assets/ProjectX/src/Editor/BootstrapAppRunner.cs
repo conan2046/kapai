@@ -28,6 +28,7 @@ namespace ProjectX.Editor
         private const string SettingsSwitchPendingKey = "ProjectX.BootstrapApp.SettingsSwitchPending";
         private const string SettingsSwitchStartKey = "ProjectX.BootstrapApp.SettingsSwitchStart";
         private const string LoginPhaseKey = "ProjectX.BootstrapApp.LoginPhase";
+        private const string HeroEntryPhaseKey = "ProjectX.BootstrapApp.HeroEntryPhase";
         private const double DefaultTimeoutSeconds = 300d;
         private const string BootstrapScene = "Assets/ProjectX/Scenes/Bootstrap.unity";
         private const int RequiredGameViewWidth = 1334;
@@ -83,6 +84,7 @@ namespace ProjectX.Editor
             SessionState.SetBool(SettingsVisualPendingKey, false);
             SessionState.SetBool(SettingsSwitchPendingKey, false);
             SessionState.SetInt(LoginPhaseKey, 0);
+            SessionState.SetInt(HeroEntryPhaseKey, 0);
             DeletePreviousResult();
             Debug.Log("[BootstrapAppRunner] Runner armed; entering Play Mode.");
             EditorApplication.isPlaying = true;
@@ -216,6 +218,35 @@ namespace ProjectX.Editor
             bool loginValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginValidation") >= 0;
             bool loginClosureValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXLoginClosureValidation") >= 0;
             bool requiresReconnectValidation = reconnectValidation || manualReconnectValidation || scenarioManagedReconnect;
+
+            // A protocol callback can replace the visible status in the same frame
+            // as Complete().  Non-reconnect runners must consume the separately
+            // latched terminal value before they enter the screenshot phase.
+            string authoritativeCompletion = app.CompletionStatus;
+            if (!requiresReconnectValidation
+                && authoritativeCompletion.StartsWith("COMPLETE:", StringComparison.Ordinal))
+            {
+                status = authoritativeCompletion;
+                SessionState.SetString(CompletionStatusKey, status);
+            }
+
+            if (heroValidation
+                && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
+                && !requiresReconnectValidation
+                && app.CurrentAppState == AppState.Main
+                && !app.IsHeroOpen
+                && SessionState.GetInt(HeroEntryPhaseKey, 0) == 0)
+            {
+                SessionState.SetInt(HeroEntryPhaseKey, 1);
+                if (!app.InvokeHeroEntryForReconnectValidation())
+                {
+                    WriteResult(false, status + " (real Hero entry did not receive an EventSystem/raycast click)");
+                    Finish(false);
+                    return;
+                }
+                Debug.Log("[BootstrapAppRunner] HERO_INITIAL_ENTRY_CLICKED: real EventSystem/raycast entry accepted.");
+                return;
+            }
 
             if (loginValidation && loginClosureValidation && status == "Login UI ready.")
             {
@@ -839,6 +870,13 @@ namespace ProjectX.Editor
 
         private static string GetResultPath()
         {
+            const string resultPathPrefix = "-projectXResultPath=";
+            foreach (string argument in Environment.GetCommandLineArgs())
+            {
+                if (!argument.StartsWith(resultPathPrefix, StringComparison.OrdinalIgnoreCase)) continue;
+                string explicitPath = argument.Substring(resultPathPrefix.Length);
+                if (Path.IsPathRooted(explicitPath)) return explicitPath;
+            }
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string repositoryRoot = Directory.GetParent(projectRoot).FullName;
             return Path.Combine(repositoryRoot, "build", "ui-migration", "bootstrap-app-result.json");

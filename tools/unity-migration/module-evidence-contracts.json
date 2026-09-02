@@ -2046,9 +2046,12 @@
         "terminalRoleId": 1000003,
         "adapter": "tools/unity-migration/Invoke-HeroFixture.ps1",
         "snapshot": ".local/ui-fidelity/Hero/fixture/hero-fixed-fixture-snapshot.json",
-        "resultEvidence": ".local/unity-validation/hero-fixed-account-latest.json",
+        "resultEvidence": ".local/unity-validation/hero-fixed-account-result-latest.json",
         "visualResultEvidence": ".local/ui-fidelity/Hero/unity/g5-current/hero-g5-visual-result.json",
         "visualValidationFlags": [
+          "-projectXHeroG4Validation"
+        ],
+        "g3ValidationFlags": [
           "-projectXHeroG4Validation"
         ],
         "visualOnlyArtifacts": false,
@@ -2154,9 +2157,18 @@
       "g5": {
         "width": 1334,
         "height": 750,
-        "cocosDirectory": ".local/ui-fidelity/Hero/cocos/g1-20260823",
+      "cocosDirectory": ".local/ui-fidelity/Hero/cocos/g1-20260902",
         "unityDirectory": ".local/ui-fidelity/Hero/unity/g5-current",
         "compareDirectory": ".local/ui-fidelity/Hero/compare/g5-current",
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "HERO-05-ADD-HERO",
+              "HERO-08-REPLACE"
+            ],
+            "reason": "Both actions open the same PetChangeUI candidate list; currentHeroId only affects mutation context and may produce an identical visible list when the occupied hero is already excluded by DisplayHeroes."
+          }
+        ],
         "cocosBaselineInputs": [
           "client/ProjectX/res/csd/OneLevelLayer.csb",
           "client/ProjectX/src/View/MainUI.lua",
