@@ -2713,6 +2713,18 @@ function Test-UnityMigrationWorkspaceMySqlOwnership {
             return $true
         }
     }
+    if ([IO.Path]::GetFullPath($Root) -match '[^\x00-\x7F]') {
+        $workspaceAlias = "$(Split-Path -Qualifier $Root)\kapai-workspace"
+        $aliasItem = Get-Item -LiteralPath $workspaceAlias -Force -ErrorAction SilentlyContinue
+        $aliasTarget = if ($aliasItem -and $aliasItem.Target) { [string]$aliasItem.Target } else { "" }
+        $aliasConfig = [IO.Path]::GetFullPath((Join-Path $workspaceAlias ".local\mysql-local.ini"))
+        if ($aliasItem -and $aliasItem.PSIsContainer -and
+            [IO.Path]::GetFullPath($aliasTarget) -eq [IO.Path]::GetFullPath($Root) -and
+            (Test-Path -LiteralPath $aliasConfig -PathType Leaf) -and
+            $normalizedCommandLine.IndexOf($aliasConfig, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+            return $true
+        }
+    }
     return $false
 }
 

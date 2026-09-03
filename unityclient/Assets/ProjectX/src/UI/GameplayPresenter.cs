@@ -140,11 +140,11 @@ namespace ProjectX.UI
             // have touchEnabled=false. Keep the imported asset available but never show it
             // as part of the current hall.
             SetVisible(FindDirect(frameView.GameObject.transform, "TaskPopupLayer"), false);
-            Transform notice = FindDirect(frameView.GameObject.transform, "FloatNoticeLayer")
-                ?? throw new InvalidOperationException("Gameplay FloatNoticeLayer was not found.");
+            Transform notice = FindDirect(frameView.GameObject.transform, "FloatNoticeLayer");
             // The native G1 stable frames had no live server announcement. Do not fabricate
-            // one merely because the reusable FloatNotice prefab exists in the scene.
-            notice.gameObject.SetActive(false);
+            // one merely because the reusable FloatNotice prefab exists in the scene. With
+            // ResourceFoundation the reusable layer is no longer required to be a frame child.
+            if (notice != null) notice.gameObject.SetActive(false);
         }
 
         private static RectTransform ConfigureList(Transform activityBackground)

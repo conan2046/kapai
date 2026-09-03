@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `6/16 = 37.5%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块。Bag、World已按当前输入重新收口；BattleFengShenStory作为非分母战斗子模块已独立完成G6，不增加此处16模块分子。Mail、Shop及Hero、HeroEquip、Draw、Gameplay、YouLi、XunBao、FengShenStory按当前最早缺口降级；Arena已排除。 |
+| Validated | `5/16 = 31.3%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块：Login、Settings、Bag、Task、World。BattleFengShenStory 作为非分母战斗子模块已独立完成 G6，不增加此处分子；PlayerHud 因共享输入变化保留到 G3，Arena 已排除。 |
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 ## 2. 模块状态
 | 模块 | 状态 | 已完成边界 | 后续 |
@@ -38,7 +38,7 @@
 | 福利 | `steam-excluded` | Steam隐藏福利入口、在线奖励和体力领取，禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |
 | 活动 | `steam-excluded` | 当前集合包含全服排行/最强榜等其他玩家数据，也包含充值活动；Steam隐藏入口并由Runner拒绝 | 后续不迁移；Cocos/服务端保留 |
 | 抽卡 | `G0-G5 retained / G6 evidence missing` | G5双端主状态与差异报告仍存在；G6矩阵登记的28组Cocos与28组Unity逐控件图在当前检出全部缺失 | 重取或找回56份真实逐控件证据后重跑G6；禁止复制旧图补路径 |
-| 玩法大厅 | `G0-G4 passed / early user Play passed / cross-backend mapping passed / G5 paused for Arena / G6 pending` | 2026-09-02用户确认早测通过；SQLite batch完成13/13控件、13/13语义、精确恢复及残留0。MySQL `7200057/1000115` 与SQLite `7200057/1000003`已冻结同逻辑用户/角色名/开放阈值映射 | 用户确认暂停Gameplay，等待Arena `id=6`迁移后从G5重拍9态继续；当前不改可见性、不进入G6、不提交或推送 |
+| 玩法大厅 | `G0-G3 passed / early user Play retest pending / G4-G6 pending` | 当前 SQLite batch 保留 13/13 控件、13/13 语义、精确恢复及残留 0；MySQL `7200057/1000115` 与 SQLite `7200057/1000003` 的同逻辑身份映射已冻结 | 先完成白屏与跨页 LFS 修复后的早期真人复测，再进入 G4；Steam 只保留 `function_id=1/3/9/10`，Arena 已排除且不再阻塞 G5 |
 | 法宝搜索 | `G0 passed / G1 implementation fixed, user retest pending / G2-G6 blocked` | 真人Play确认0次仍报一键搜索成功且无结果反馈；已补0次拦截、搜宝令背包边界、op28/29奖励弹窗、权威碎片数与合成前置校验 | 用户复测搜索次数不足、补次数、实际搜索结果和碎片刷新；当前证据目录缺失，仍须从G1串行重验 |
 | 游历三界 | `G0 passed / G1-G6 evidence missing` | `/335 op1/2/3`实现保留；登记的Cocos/Unity空态与差异目录当前不存在 | 从当前源码重取G1，后续门禁串行重验；写操作以op1权威重查为准 |
 | 竞技场 | `steam-excluded / user-confirmed disabled` | 当前以`migrationReady=false`隐藏大厅入口；2026-08-31用户确认竞技场本就屏蔽，不进入当前Unity迁移、战斗表现或16模块分母。历史Unity单端Runner、协议等价和旧截图仅作遗留线索 | 后续不迁移、不验收；若产品恢复竞技场，必须从G0重启并重新取得当前Cocos证据 |

@@ -524,7 +524,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/MAIL.md",
-      "note": "Mail G0-G6 passed on 2026-07-27: 13/13 real controls, 5/5 semantics, same-account 4/4 visual pairs, fixed-account restore/relogin/residual-zero checks and twice-run BuildBatch idempotence passed. G5 explicitly records Unity fixes for the approved Cocos list-scroll defect and the Cocos attachment quantity-zero defect.",
+      "note": "Mail retains G0-G2 only. The 2026-07-27 G3-G6 run remains diagnostic history because current Bootstrap/source inputs changed; rerun G3-G6 from current source before restoring completion.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/MAIL_CONTROLS.json",
@@ -748,7 +748,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HERO.md",
-      "note": "2026-09-02 current-worktree G0-G4 passed. Early user Play confirmed the formation fixes; the standard SQLite fixed-account batch passed 16/16 controls and 6/6 semantics with exact restoration. G5-G6 remain pending.",
+      "note": "2026-09-02 only G0 remains passed. Current Cocos G1 contains 13 pixel-identical states, so G1-G6 are pending; the former 16/16 control and 6/6 semantic batch is diagnostic history only until valid Cocos evidence is recaptured.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/HERO_CONTROLS.json",
@@ -765,7 +765,7 @@
       },
       "gateInvalidations": {
         "G1": {
-          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "invalidatedUtc": "2026-09-02T13:43:30.816695Z",
           "previousState": "passed",
           "previousEvidence": [
             "docs/unityclient/modules/HERO.md",
@@ -777,7 +777,7 @@
           "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
         },
         "G2": {
-          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "invalidatedUtc": "2026-09-02T13:43:30.816695Z",
           "previousState": "passed",
           "previousEvidence": [
             "docs/unityclient/matrices/HERO_CONTROLS.json",
@@ -790,7 +790,7 @@
           "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
         },
         "G3": {
-          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "invalidatedUtc": "2026-09-02T13:43:30.816695Z",
           "previousState": "passed",
           "previousEvidence": [
             ".local/unity-validation/hero-g3-initial-playable.json",
@@ -800,7 +800,7 @@
           "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
         },
         "G4": {
-          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "invalidatedUtc": "2026-09-02T13:43:30.816695Z",
           "previousState": "passed",
           "previousEvidence": [
             ".local/unity-validation/hero-fixed-account-latest.json",
@@ -815,13 +815,13 @@
           "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
         },
         "G5": {
-          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "invalidatedUtc": "2026-09-02T13:43:30.816695Z",
           "previousState": "pending",
           "previousEvidence": [],
           "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
         },
         "G6": {
-          "invalidatedUtc": "2026-09-02T13:43:30.8166950Z",
+          "invalidatedUtc": "2026-09-02T13:43:30.816695Z",
           "previousState": "pending",
           "previousEvidence": [],
           "reason": "2026-09-02 G5 duplicate-content hard gate proved the current G1 Cocos state set invalid: HERO-02/03/04/06/07/08/09-15 share identical pixels, so G1-G4 cannot remain inherited."
@@ -829,27 +829,27 @@
       },
       "gateTimings": {
         "G1": {
-          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startedUtc": "2026-09-02T13:43:30.816695Z",
           "startSource": "invalidation"
         },
         "G2": {
-          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startedUtc": "2026-09-02T13:43:30.816695Z",
           "startSource": "invalidation"
         },
         "G3": {
-          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startedUtc": "2026-09-02T13:43:30.816695Z",
           "startSource": "invalidation"
         },
         "G4": {
-          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startedUtc": "2026-09-02T13:43:30.816695Z",
           "startSource": "invalidation"
         },
         "G5": {
-          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startedUtc": "2026-09-02T13:43:30.816695Z",
           "startSource": "invalidation"
         },
         "G6": {
-          "startedUtc": "2026-09-02T13:43:30.8166950Z",
+          "startedUtc": "2026-09-02T13:43:30.816695Z",
           "startSource": "invalidation"
         }
       },
@@ -898,7 +898,7 @@
           ]
         }
       },
-      "updatedUtc": "2026-09-02T13:43:30.8166950Z"
+      "updatedUtc": "2026-09-02T13:43:30.816695Z"
     },
     {
       "module": "Draw",
@@ -1298,9 +1298,9 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "passed",
-        "G5": "passed",
-        "G6": "passed"
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/PLAYERHUD.md",
       "gateEvidence": {
@@ -1339,35 +1339,69 @@
           "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
           "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt"
         ],
-        "G4": [
-          ".local/unity-validation/playerhud-fixed-account-latest.json",
-          ".local/unity-validation/playerhud-fixed-account-runner-latest.json",
-          ".local/unity-validation/playerhud-fixed-account-data-preflight-latest.json",
-          ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-fixture-snapshot.json",
-          ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-unity-result.json",
-          "build/ui-migration/unity-playerhud-fixed-account.log",
-          "tools/unity-migration/Test-UnityMigrationToolchain.ps1"
-        ],
-        "G5": [
-          ".local/unity-validation/playerhud-g5-preflight-latest.json",
-          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
-          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/contact-side-1.jpg",
-          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/contact-side-2.jpg",
-          ".local/unity-validation/playerhud-fixed-account-runner-latest.json"
-        ],
-        "G6": [
-          "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
-          ".local/unity-validation/playerhud-fixed-account-latest.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
-          ".local/unity-validation/playerhud-cocos-automation-ledger.json",
-          ".local/unity-validation/playerhud-retrospective-latest.json"
-        ],
         "G3": [
           "build/ui-migration/unity-xunbao-validation.log"
-        ]
+        ],
+        "G4": [],
+        "G5": [],
+        "G6": []
       },
-      "updatedUtc": "2026-08-23T11:31:33.9735442Z"
+      "gateInvalidations": {
+        "G4": {
+          "invalidatedUtc": "2026-09-02T14:49:20.2251454Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/playerhud-fixed-account-latest.json",
+            ".local/unity-validation/playerhud-fixed-account-runner-latest.json",
+            ".local/unity-validation/playerhud-fixed-account-data-preflight-latest.json",
+            ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-fixture-snapshot.json",
+            ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-unity-result.json",
+            "build/ui-migration/unity-playerhud-fixed-account.log",
+            "tools/unity-migration/Test-UnityMigrationToolchain.ps1"
+          ],
+          "reason": "ResourceFoundation and shared currency refresh changed current Bootstrap/runtime inputs after the retained G3 baseline; prior G4-G6 evidence must be revalidated."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-02T14:49:20.2251454Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/playerhud-g5-preflight-latest.json",
+            ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
+            ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/contact-side-1.jpg",
+            ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/contact-side-2.jpg",
+            ".local/unity-validation/playerhud-fixed-account-runner-latest.json"
+          ],
+          "reason": "ResourceFoundation and shared currency refresh changed current Bootstrap/runtime inputs after the retained G3 baseline; prior G4-G6 evidence must be revalidated."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-02T14:49:20.2251454Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
+            ".local/unity-validation/playerhud-fixed-account-latest.json",
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
+            ".local/unity-validation/playerhud-cocos-automation-ledger.json",
+            ".local/unity-validation/playerhud-retrospective-latest.json"
+          ],
+          "reason": "ResourceFoundation and shared currency refresh changed current Bootstrap/runtime inputs after the retained G3 baseline; prior G4-G6 evidence must be revalidated."
+        }
+      },
+      "gateTimings": {
+        "G4": {
+          "startedUtc": "2026-09-02T14:49:20.2251454Z",
+          "startSource": "invalidation"
+        },
+        "G5": {
+          "startedUtc": "2026-09-02T14:49:20.2251454Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-02T14:49:20.2251454Z",
+          "startSource": "invalidation"
+        }
+      },
+      "updatedUtc": "2026-09-02T14:49:20.2251454Z"
     },
     {
       "module": "StaminaClaim",
