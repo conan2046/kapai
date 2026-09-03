@@ -338,7 +338,7 @@ foreach ($module in $modulesToCheck) {
         if (-not $exclusionEvidence) {
             Add-Failure "Module $key excludes a current-Cocos-unreachable flow without exclusionEvidence."
         }
-        else {
+        elseif ($RequireLocalEvidence) {
             Test-RequiredFile $exclusionEvidence | Out-Null
         }
     }
