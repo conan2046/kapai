@@ -971,13 +971,21 @@
     {
       "module": "Mail",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-MailCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/Mail/unity/g5-20260727/mail-fixed-fixture-snapshot.json",
-        "resultEvidence": ".local/ui-fidelity/Mail/unity/g5-20260727/mail-fixed-unity-result.json",
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-MailSqliteFixture.ps1",
+        "snapshot": ".local/unity-validation/mail-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/mail-fixed-account-latest.json",
         "reloginRequired": true,
         "skipPostValidationFixtureAssert": true,
+        "g3ValidationFlags": [
+          "-projectXMailValidation"
+        ],
         "extraFlags": [
           "-projectXMailSkipInjection"
         ],
@@ -986,7 +994,7 @@
           "requirements": [
             {
               "id": "account-role-link",
-              "description": "固定 userId 必须唯一绑定目标 roleId"
+              "description": "persistentDataPath SQLite 固定 userId=7200057 必须唯一绑定 roleId=1000003"
             },
             {
               "id": "mail-state-matrix",

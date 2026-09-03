@@ -19,7 +19,7 @@
 | 强化大师 | `ENHANCEMASTER.md` | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen`；14个当前Cocos状态、13个Unity G3运行态、六页签及装备/法宝养成路由已通过，等待早期真人Play反馈 |
 | 神将培养模块 B | `HEROCULTIVATION.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen`；18个当前Cocos状态与G3初版已完成，等待用户按最终Prefab布局复测 |
 | 装备（法宝边界回归） | `HERO_EQUIPMENT.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending`；方案A冻结14来源/974业务ID/86控件；历史G4-G6仅作诊断 |
-| 邮件 | `MAIL.md` | `G0-G2 passed / G3-G6 pending`；旧 13/13 控件和 4/4 双端视觉仅作当前实现线索 |
+| 邮件 | `MAIL.md` | `G0-G3 passed / early user Play pending / G4-G6 pending`；SQLite固定身份`7200057/1000003`当前G3通过13/13控件与5/5语义，旧G4-G6仅作诊断 |
 | 商城 | `SHOP.md` | `G3 runtime-ready / early user Play passed`；Panel_12隐藏、Shop自有关闭、全控件射线及数量InputField修复已通过用户早测；正式G1-G2及G4-G6仍pending |
 | 将魂商店 | `GAMEPLAY_SHOPS.md` | `G0-G4 passed / early user Play passed / G5-G6 pending`；当前仅保留function_id=15/type=2及全部调用入口，29/29控件与9/9语义通过，其他玩法商店分支暂不修复 |
 | 体力领取 | `STAMINACLAIM.md` | `steam-excluded`；历史证据仅留档，不再迁移 |

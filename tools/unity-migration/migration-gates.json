@@ -518,13 +518,13 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "pending",
+        "G3": "passed",
         "G4": "pending",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/MAIL.md",
-      "note": "Mail retains G0-G2 only. The 2026-07-27 G3-G6 run remains diagnostic history because current Bootstrap/source inputs changed; rerun G3-G6 from current source before restoring completion.",
+      "note": "Mail G3 reran on 2026-09-03 against persistentDataPath SQLite identity 7200057/1000003: 13/13 real controls and 5/5 semantics passed with exact final database restore. Early user Play remains required before G4; the 2026-07-27 G4-G6 run remains diagnostic history.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/MAIL_CONTROLS.json",
@@ -554,7 +554,11 @@
           "unityclient/Assets/ProjectX/src/Data/MailStore.cs"
         ],
         "G3": [
-          ".local/unity-validation/mail-g3-logic-evidence.md",
+          ".local/unity-validation/mail-g3-runtime-latest.json",
+          ".local/unity-validation/mail-fixed-account-runner-latest.json",
+          ".local/unity-validation/mail-sqlite-fixture-snapshot.json",
+          "tools/unity-migration/Invoke-MailSqliteFixture.ps1",
+          "tools/unity-migration/Invoke-MailSqliteFixture.py",
           "unityclient/Assets/ProjectX/Resources/Lua/Mail/MailController.lua.txt",
           "unityclient/Assets/ProjectX/src/Data/MailStore.cs"
         ],
@@ -577,7 +581,7 @@
           ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json"
         ]
       },
-      "updatedUtc": "2026-07-27T10:12:13.1740442Z"
+      "updatedUtc": "2026-09-03T03:28:51.4948983Z"
     },
     {
       "module": "Bag",

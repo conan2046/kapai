@@ -1944,6 +1944,23 @@ Assert-ToolchainTest (
     $protocolCompareSource.Contains('Mail = $mailParity') -and
     $protocolCompareSource.Contains('$mailParity.status -eq "Passed"')
 ) "SQLite/MySQL report comparison no longer gates Mail runtime and restart semantic equality."
+$mailEvidenceContract = @($allEvidenceContracts.modules |
+    Where-Object { $_.module -eq "Mail" })[0]
+$mailSqliteFixtureSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-MailSqliteFixture.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    [string]$mailEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    [string]$mailEvidenceContract.fixedAccount.sqlitePath -eq
+        'AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db' -and
+    [uint32]$mailEvidenceContract.fixedAccount.userId -eq 7200057 -and
+    [uint32]$mailEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    [uint32]$mailEvidenceContract.fixedAccount.terminalRoleId -eq 1000003 -and
+    @($mailEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXMailValidation' -and
+    [string]$mailEvidenceContract.fixedAccount.adapter -eq
+        'tools/unity-migration/Invoke-MailSqliteFixture.ps1' -and
+    $mailSqliteFixtureSource.Contains('Mail SQLite fixture identity must remain 7200057/1000003.') -and
+    $mailSqliteFixtureSource.Contains('Application.persistentDataPath/LocalServer/projectx.db')
+) "Mail fixed-account validation no longer freezes the persistentDataPath SQLite identity and adapter."
 Assert-ToolchainTest (
     $serverPackDealSource.Contains('const uint32 fixtureBaseTime = (uint32)(GetSysTime() / 86400 * 86400 + 43200);') -and
     $serverPackDealSource.Contains('fixtureBaseTime - index') -and

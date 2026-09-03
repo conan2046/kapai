@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-09-02
+> 最后更新：2026-09-03
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
@@ -27,7 +27,7 @@
 | 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0-G2 passed / G3 early user Play pending / G4-G6 pending` | 方案A冻结14来源、974业务ID、86控件；当前G1碎片态与G2所有权/配置审计保留，旧33控件结论失效 | G3实现完成后从真实入口早测；反馈闭环前不得进入G4，历史G4-G6不得复用 |
-| 邮件 | `G0-G2 passed / G3-G6 pending` | 旧固定账号、4/4双端视觉、13/13控件、`/128 op2/3/4/5`及Bootstrap证据仍保留，但正式门禁登记已降为G0-G2 | 从当前源码重跑G3-G6；旧完成标签不得替代当前门禁。 |
+| 邮件 | `G0-G3 passed / early user Play pending / G4-G6 pending` | 2026-09-03切换到persistentDataPath SQLite固定身份`7200057/1000003`；当前源码G3批处理通过13/13真实控件、5/5语义及`/128 op2/3/4`，14封可见+1封隐藏邮件夹具完成重登业务断言、整库精确恢复和残留0 | 用户从当前真实入口早测列表/正文/附件滚动、详情、单封/一键领取与删除；反馈闭环后进入G4。旧G4-G6证据仅作诊断。 |
 | 基础商城 | `G3 runtime-ready / early user Play passed；正式G1-G2因免截图保持pending，G4-G6 pending` | 2026-09-02完成当前入口、`/221`、type=1配置与资源闭包；隐藏`OneLevelLayer/Panel_12`，迁入Shop自有真实关闭按钮并修复全控件射线。用户早测确认页签、商品图标、刷新隐藏、数量输入和购买按钮修复无问题 | 早测反馈已闭环；后续仍须按正式门禁补G1-G2并进入G4，不能把本轮免截图或早测冒充G5/G6视觉通过。 |
 | 将魂商店 | `G0-G4 passed / early user Play passed / G5-G6 pending / 29 controls + 9 semantics` | 2026-09-02按当前源码收窄为function_id=15/type=2；原生Cocos六格与各调用入口已冻结。Unity补齐六格底图、碎片角标语义、ActivityLayer子节点显隐、秒级倒计时及`/221`权威购买/刷新/失败回包；固定SQLite账号`7200057/1000003`完成29/29控件、9/9语义、整库精确恢复和残留0 | 用户最终实测通过；按本轮免截图约定停在G4提交，G5五状态视觉对比与G6最终收口仍pending；玩法商店其他分支继续暂缓 |
 | 好友 | `steam-excluded` | Steam隐藏HUD入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |

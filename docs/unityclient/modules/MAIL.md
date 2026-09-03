@@ -2,10 +2,18 @@
 
 ## 当前门禁
 
-- 当前正式门禁：G0-G2 passed，G3-G6 pending。下述旧G3-G6实现与证据仅作重验输入，不能代替当前门禁。
+- 当前正式门禁：G0-G3 passed，early user Play pending，G4-G6 pending。下述2026-07-27旧G4-G6证据仅作重验输入，不能代替当前门禁。
 - G1 批准差异：当前 Cocos 左侧邮件 `cc.TableView` 不滚动；Unity 已修复并在 G5 单列。
 - G5 修复差异：Cocos 附件详情把 `10点贵族经验` 错显为 `数量:0`；Unity 按权威附件显示 `数量:10`。
-- 固定账号：`userId=7200057 / roleId=1000115`；Windows 100%；原生客户区 `1334×750`。
+- Unity固定账号：persistentDataPath SQLite `userId=7200057 / roleId=1000003`；Windows 100%；原生客户区 `1334×750`。Cocos历史G1仍使用当时冻结身份，不与Unity运行库混用。
+
+## 当前 G3 重验（2026-09-03）
+
+- 新增`Invoke-MailSqliteFixture.ps1/.py`，在Unity本地`projectx.db`准备14封可见邮件和1封隐藏已领取邮件，覆盖无附件、单附件、双附件、九附件、长正文和滚动状态。
+- 当前标准固定账号Runner通过13/13真实控件和5/5语义断言；`/128 op2/3/4`、重复失败、串行一键领取/已读、本地删除、空态和账号隔离链均由当前源码执行。
+- 运行前快照SHA-256为`CAD6FCF3E98F64A491328650CA911DFA685F6301E49CEDA3E8C7365AA23A3511`；重登后邮件业务状态一致，最终整库精确恢复，夹具备份残留0。
+- 本机证据：`.local/unity-validation/mail-g3-runtime-latest.json`、`.local/unity-validation/mail-fixed-account-runner-latest.json`、`.local/unity-validation/mail-sqlite-fixture-snapshot.json`、`.local/unity-validation/mail-fixed-account-timings-latest.json`。
+- 当前不升级G4：先由用户从真实入口早测列表/正文/附件滚动、附件详情、单封/一键领取和删除反馈。
 
 ## 当前真实链
 
