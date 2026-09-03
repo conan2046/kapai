@@ -19,6 +19,8 @@
 | `Test-UnityMigrationDocs.ps1` | 检查状态唯一性、文档体积、Manifest 和引用路径 |
 | `Test-BootstrapSceneIdempotence.ps1` | 连续生成两次 Bootstrap，校验场景 SHA-256 不发生二次变化 |
 | `Test-UnityMigrationGitScope.ps1` | 分离语义修改、Unity `.meta` 和换行噪声，并支持 allowlist 门禁 |
+| `Install-UnityValidationDatabase.ps1` | 校验、备份、安装或恢复版本化 SQLite 固定账号基准；不覆盖无备份的用户库 |
+| `New-UnityValidationDatabaseSeed.ps1` | 维护者从已验证运行库生成脱敏基准；清除日志、临时身份、排行和排除模块数据 |
 
 迁移流程、功能和视觉完成口径统一见 `docs/unityclient/MIGRATION_GUIDE.md`。`Run-UnityModuleValidation.ps1` 的 Unity 单端截图只证明界面可运行；没有同状态 Cocos 基准、节点映射与差异报告时，Manifest 只能标记 `logic-validated-visual-pending`。
 
@@ -70,7 +72,13 @@ pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Sho
 
 # 文档与 Manifest 门禁
 pwsh -File tools/unity-migration/Test-UnityMigrationDocs.ps1
+pwsh -File tools/unity-migration/Test-UnityMigrationDocs.ps1 -RequireLocalEvidence
 pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
+
+# 新电脑先校验并安装固定账号 SQLite；Install 输出的 BackupPath 用于 Restore
+pwsh -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Verify
+pwsh -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Install
+pwsh -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Restore -BackupPath <Install输出路径>
 
 # 只校验 G3 前置门禁；-Complete 时必须传真实证据路径
 pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip -Gate G3

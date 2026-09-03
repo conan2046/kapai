@@ -24,6 +24,32 @@ function Assert-ToolchainTest {
     $script:passed++
 }
 
+$validationDatabaseSeed = Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.db"
+$validationDatabaseManifestPath = Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.manifest.json"
+$validationDatabaseAdapter = Join-Path $PSScriptRoot "UnityValidationDatabase.py"
+$validationDatabaseInstaller = Join-Path $PSScriptRoot "Install-UnityValidationDatabase.ps1"
+$validationDatabaseManifest = Get-Content -LiteralPath $validationDatabaseManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+Assert-ToolchainTest (
+    (Test-Path -LiteralPath $validationDatabaseSeed -PathType Leaf) -and
+    (Test-Path -LiteralPath $validationDatabaseAdapter -PathType Leaf) -and
+    (Test-Path -LiteralPath $validationDatabaseInstaller -PathType Leaf) -and
+    (Get-FileHash -LiteralPath $validationDatabaseSeed -Algorithm SHA256).Hash -eq
+        [string]$validationDatabaseManifest.sha256 -and
+    [string]$validationDatabaseManifest.integrityCheck -eq "ok" -and
+    @($validationDatabaseManifest.identities).Count -eq 2 -and
+    [uint32]$validationDatabaseManifest.identities[0].userId -eq 1 -and
+    [uint32]$validationDatabaseManifest.identities[0].roleId -eq 1000001 -and
+    [uint32]$validationDatabaseManifest.identities[1].userId -eq 7200057 -and
+    [uint32]$validationDatabaseManifest.identities[1].roleId -eq 1000003
+) "Versioned Unity validation database seed or its fixed identities are invalid."
+$validationDatabaseVerifyOutput = @(& python -X utf8 $validationDatabaseAdapter verify `
+    --seed $validationDatabaseSeed --manifest $validationDatabaseManifestPath 2>&1)
+Assert-ToolchainTest (
+    $LASTEXITCODE -eq 0 -and
+    ($validationDatabaseVerifyOutput -join "`n").Contains('"integrityCheck": "ok"') -and
+    ($validationDatabaseVerifyOutput -join "`n").Contains('[[1, 1000001], [7200057, 1000003]]')
+) "Versioned Unity validation database seed failed live integrity/identity verification."
+
 Assert-ToolchainTest (
     $commonSource.Contains('$expectedControls.Count -gt 0 -and $actualControls.Count -eq 0') -and
     $commonSource.Contains('Runtime control coverage mismatch: expected=$($expectedControls.Count) actual=0')
@@ -261,6 +287,13 @@ Assert-ToolchainTest (
     $docsValidatorSource.Contains('$contractMigrationExcluded = $null -ne $contractModule -and') -and
     $docsValidatorSource.Contains('$null -ne $fixedAccount -and -not $contractMigrationExcluded')
 ) "Docs validation no longer derives the current denominator or safely skips fixed-account execution contracts for evidence-backed excluded modules."
+Assert-ToolchainTest (
+    $commonSource.Contains('[switch]$SkipEvidenceFileValidation') -and
+    $commonSource.Contains('if ($SkipEvidenceFileValidation) { continue }') -and
+    $docsValidatorSource.Contains('[switch]$RequireLocalEvidence') -and
+    $docsValidatorSource.Contains('-SkipEvidenceFileValidation:(-not $RequireLocalEvidence)') -and
+    $docsValidatorSource.Contains('$requiresFile = $field -eq "uiMapping" -or $RequireLocalEvidence')
+) "Static docs validation again requires machine-local screenshots or no longer provides an explicit local-evidence mode."
 
 $manifest = (Import-UnityMigrationManifest -Root $root).Value
 $battleMeetMonsterModule = @($manifest.modules | Where-Object { $_.key -eq "BattleMeetMonster" })[0]
