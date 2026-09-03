@@ -4,6 +4,7 @@ param(
     [string]$ManifestPath = "",
     [int]$StatusMaxLines = 115,
     [int]$GuideMaxLines = 360,
+    [switch]$RequireLocalEvidence,
     [string]$JsonOutput = ""
 )
 
@@ -394,7 +395,10 @@ foreach ($module in $modulesToCheck) {
             Add-Failure "Module $key claims $moduleStatus without a controlMatrix."
         }
         else {
-            try { Assert-UnityMigrationControlMatrix -Root $root -ModuleKey $key -Path $controlMatrix | Out-Null }
+            try {
+                Assert-UnityMigrationControlMatrix -Root $root -ModuleKey $key -Path $controlMatrix `
+                    -SkipEvidenceFileValidation:(-not $RequireLocalEvidence) | Out-Null
+            }
             catch { Add-Failure "Module $key controlMatrix failed: $($_.Exception.Message)" }
         }
         if ($null -eq $visual -or [string]$visual.status -ne "passed") {
@@ -408,7 +412,7 @@ foreach ($module in $modulesToCheck) {
                 foreach ($path in @($visual.$field)) {
                     if (-not $path) { continue }
                     $resolved = Resolve-UnityMigrationPath -Root $root -Path ([string]$path)
-                    if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+                    if ($RequireLocalEvidence -and -not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
                         Add-Failure "Module $key visualFidelity references missing $field file: $path"
                     }
                 }
@@ -420,7 +424,8 @@ foreach ($module in $modulesToCheck) {
                     continue
                 }
                 $resolved = Resolve-UnityMigrationPath -Root $root -Path $path
-                if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
+                $requiresFile = $field -eq "uiMapping" -or $RequireLocalEvidence
+                if ($requiresFile -and -not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
                     Add-Failure "Module $key visualFidelity references missing $field file: $path"
                 }
             }
@@ -539,6 +544,7 @@ $result = [ordered]@{
     fixtureCount = @($fixtureEntry.Value.profiles).Count
     failures = @($failures)
     warnings = @($warnings)
+    requireLocalEvidence = [bool]$RequireLocalEvidence
     checkedUtc = [DateTime]::UtcNow.ToString("O")
 }
 
@@ -553,5 +559,5 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host "Unity migration docs passed: scope=$(if ($TargetModule) { $TargetModule } else { 'all' }), modules=$(@($modulesToCheck).Count), no consistency failures."
+Write-Host "Unity migration docs passed: scope=$(if ($TargetModule) { $TargetModule } else { 'all' }), modules=$(@($modulesToCheck).Count), localEvidence=$(if ($RequireLocalEvidence) { 'required' } else { 'optional' }), no consistency failures."
 exit 0

@@ -14,6 +14,22 @@ pwsh -ExecutionPolicy Bypass -File tools/local/Check-LocalEnv.ps1 -SkipClient
 pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1
 ```
 
+迁移开发者还必须安装仓库版本化的脱敏固定账号 SQLite。安装前会校验 LFS 文件、SHA-256、`integrity_check` 和 `1/1000001`、`7200057/1000003` 两组身份；存在本地运行库时先备份到 `.local/unity-validation/database-backups/`，不会无备份覆盖：
+
+```powershell
+pwsh -NoProfile -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Verify
+pwsh -NoProfile -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Install
+```
+
+保留 Install 输出的 `BackupPath`。需要恢复接手人原库时执行：
+
+```powershell
+pwsh -NoProfile -File tools/unity-migration/Install-UnityValidationDatabase.ps1 `
+  -Action Restore -BackupPath "<Install输出的BackupPath>"
+```
+
+截图不随 Git 分发。普通 `Test-UnityMigrationDocs.ps1` 只检查可移植合同；准备进入 G1/G5/G6 时运行 `Test-UnityMigrationDocs.ps1 -RequireLocalEvidence`，缺失图片由对应标准 Runner 在本机重建。Cocos 图片仍必须来自原生 `ProjectX.exe / Cocos Simulator`；没有可用 Computer Use 时保持门禁 pending。
+
 然后使用 Unity `2022.3.62f3c1` 打开 `unityclient/`，执行：
 
 ```text

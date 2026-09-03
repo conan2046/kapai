@@ -29,3 +29,4 @@
 *.mov filter=lfs diff=lfs merge=lfs -text
 *.webm filter=lfs diff=lfs merge=lfs -text
 *.swf filter=lfs diff=lfs merge=lfs -text
+server/sql/sqlite/fixtures/*.db filter=lfs diff=lfs merge=lfs -text

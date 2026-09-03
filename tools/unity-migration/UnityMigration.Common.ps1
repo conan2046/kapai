@@ -1838,7 +1838,8 @@ function Assert-UnityMigrationControlMatrix {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)][string]$ModuleKey,
-        [Parameter(Mandatory = $true)][string]$Path
+        [Parameter(Mandatory = $true)][string]$Path,
+        [switch]$SkipEvidenceFileValidation
     )
     $entry = Import-UnityMigrationJson -Root $Root -Path $Path
     $matrix = $entry.Value
@@ -1925,6 +1926,7 @@ function Assert-UnityMigrationControlMatrix {
                 if (-not $seenEvidence.Add($evidence)) {
                     throw "Control evidence path is reused: $evidence"
                 }
+                if ($SkipEvidenceFileValidation) { continue }
                 $resolved = Resolve-UnityMigrationPath -Root $Root -Path $evidence
                 if (-not (Test-Path -LiteralPath $resolved -PathType Leaf)) {
                     throw "Control '$id' evidence file does not exist: $evidence"
