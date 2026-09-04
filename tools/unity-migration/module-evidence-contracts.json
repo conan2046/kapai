@@ -213,7 +213,7 @@
             }
           ]
         },
-      "artifactCopies": [
+        "artifactCopies": [
           {
             "source": "build/ui-migration/bootstrap-login-local.png",
             "destination": ".local/ui-fidelity/Login/unity/g5-20260801/LOGIN-LOCAL.png"
@@ -586,19 +586,19 @@
           "client/ProjectX/src/ConfigData/function_dat.lua",
           "client/ProjectX/src/core/AppDef.lua",
           "client/ProjectX/res/csd/shop/shop_bg.csb",
-      "client/ProjectX/res/csd/common/ActivityLayer.csb",
-      "tools/unity-migration/Invoke-GameplayCocosFixture.ps1",
-      ".local/unity-validation/gameplay-cross-backend-mapping-latest.json"
-    ],
-    "crossBackendIdentityMapping": {
-      "contract": "semantic-cross-backend-identity-v1",
-      "evidencePath": ".local/unity-validation/gameplay-cross-backend-mapping-latest.json",
-      "cocosUserId": 7200057,
-      "cocosRoleId": 1000115,
-      "unityUserId": 7200057,
-      "unityRoleId": 1000003,
-      "requireVisualParityReady": true
-    },
+          "client/ProjectX/res/csd/common/ActivityLayer.csb",
+          "tools/unity-migration/Invoke-GameplayCocosFixture.ps1",
+          ".local/unity-validation/gameplay-cross-backend-mapping-latest.json"
+        ],
+        "crossBackendIdentityMapping": {
+          "contract": "semantic-cross-backend-identity-v1",
+          "evidencePath": ".local/unity-validation/gameplay-cross-backend-mapping-latest.json",
+          "cocosUserId": 7200057,
+          "cocosRoleId": 1000115,
+          "unityUserId": 7200057,
+          "unityRoleId": 1000003,
+          "requireVisualParityReady": true
+        },
         "cocosDirectory": ".local/ui-fidelity/Gameplay/cocos/g1-20260802",
         "unityDirectory": ".local/ui-fidelity/Gameplay/unity/g5-20260802",
         "compareDirectory": ".local/ui-fidelity/Gameplay/compare/g5-live-20260802",
@@ -1487,7 +1487,7 @@
           "server/src/pack_deal.cpp",
           "server/src/user_guanqia.cpp",
           "server/src/fight.cpp",
-        "tools/unity-migration/Invoke-WorldCocosFixture.ps1"
+          "tools/unity-migration/Invoke-WorldCocosFixture.ps1"
         ],
         "cocosDirectory": ".local/ui-fidelity/World/cocos/g1-current-battle",
         "unityDirectory": ".local/ui-fidelity/World/unity/g3-current-battle",
@@ -2169,7 +2169,7 @@
       "g5": {
         "width": 1334,
         "height": 750,
-      "cocosDirectory": ".local/ui-fidelity/Hero/cocos/g1-20260902",
+        "cocosDirectory": ".local/ui-fidelity/Hero/cocos/g1-20260902",
         "unityDirectory": ".local/ui-fidelity/Hero/unity/g5-current",
         "compareDirectory": ".local/ui-fidelity/Hero/compare/g5-current",
         "allowedDuplicateGroups": [
@@ -3191,17 +3191,17 @@
         "g3ValidationFlags": [
           "-projectXBattleFengShenStoryValidation"
         ],
-      "extraFlags": [
-        "-projectXBattleFengShenStoryValidation"
-      ],
-      "postValidationAdapterAction": "AssertMutated",
-      "g5VisualSnapshot": ".local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-g5-visual-fixture-snapshot.json",
-      "g5VisualSetupAction": "Setup",
-      "g5VisualAssertAction": "AssertMutated",
-      "g5VisualValidationFlags": [
-        "-projectXBattleFengShenStoryValidation"
-      ],
-      "skipPostValidationFixtureAssert": false,
+        "extraFlags": [
+          "-projectXBattleFengShenStoryValidation"
+        ],
+        "postValidationAdapterAction": "AssertMutated",
+        "g5VisualSnapshot": ".local/ui-fidelity/BattleFengShenStory/fixture/battle-feng-shen-story-g5-visual-fixture-snapshot.json",
+        "g5VisualSetupAction": "Setup",
+        "g5VisualAssertAction": "AssertMutated",
+        "g5VisualValidationFlags": [
+          "-projectXBattleFengShenStoryValidation"
+        ],
+        "skipPostValidationFixtureAssert": false,
         "copyArtifactsInG3": true,
         "dataPreflight": {
           "requiresLogin": true,
@@ -3223,44 +3223,44 @@
         "artifactCopies": [
           {
             "source": "build/ui-migration/BFS-BATTLE-START.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png"
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-START.png"
           },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-STAND.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-SPEED.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SPEED.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-SKILL.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SKILL.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-MOVE.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-STATUS.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATUS.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-DEATH.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png"
-        },
-        {
-          "source": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
-          "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png"
-        },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-STAND.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STAND.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-SPEED.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g3/BFS-BATTLE-SPEED.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-SKILL.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SKILL.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-DAMAGE.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DAMAGE.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-MOVE.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-MOVE.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-STATUS.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATUS.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-DEATH.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-DEATH.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-SETTLEMENT.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-SETTLEMENT.png"
+          },
+          {
+            "source": "build/ui-migration/BFS-BATTLE-STATISTICS.png",
+            "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-STATISTICS.png"
+          },
           {
             "source": "build/ui-migration/BFS-BATTLE-RETURN.png",
             "destination": ".local/ui-fidelity/BattleFengShenStory/unity/g5/BFS-BATTLE-RETURN.png"
@@ -3315,6 +3315,149 @@
           "requirements": []
         },
         "artifactCopies": []
+      }
+    },
+    {
+      "module": "HeroRebirth",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/HeroRebirth/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/HeroRebirth/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/HeroRebirth/compare/g5",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/KaPaiPet/PetBagPetSubUI.lua",
+          "client/ProjectX/src/View/HuiShou/HuiShouMainUI.lua",
+          "client/ProjectX/src/View/HuiShou/ShengJiangChongShengUI.lua",
+          "client/ProjectX/src/View/HuiShou/ShengJiangChooseUI.lua",
+          "client/ProjectX/src/View/HuiShou/ChongShengConfirmUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/res/csd/common/UImainLayer_new.csb",
+          "client/ProjectX/res/csd/OneLevelLayer.csb",
+          "client/ProjectX/res/csd/shenjiangyangcheng/yingxiongbeibao.csb",
+          "client/ProjectX/res/csd/huishou/shenjiangchongsheng.csb",
+          "client/ProjectX/res/csd/huishou/Popup_Confirm.csb",
+          "client/ProjectX/res/csd/common/Choose.csb",
+          "client/ProjectX/res/csd/shop/shop_bg.csb",
+          "server/src/protocol.h",
+          "server/src/pack_deal.cpp",
+          "server/src/pet.cpp",
+          "server/src/user.cpp",
+          "server/src/utility.cpp",
+          "server/config/json/config.json",
+          "server/config/json/hero.json",
+          "server/config/json/exp.json",
+          "server/config/json/break.json",
+          "server/config/json/xiulian.json",
+          "server/config/json/item.json",
+          "tools/unity-migration/Invoke-HeroRebirthCocosFixture.ps1",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/hero-rebirth-cocos-fixture-snapshot.json"
+        ],
+        "pairs": [
+          { "id": "HR-01-MAIN-ENTRY", "cocos": "HR-01-main-entry.png", "unity": "HR-01-main-entry.png" },
+          { "id": "HR-02-HERO-BAG-ENTRY", "cocos": "HR-02-hero-bag-entry.png", "unity": "HR-02-hero-bag-entry.png" },
+          { "id": "HR-20-EMPTY", "cocos": "HR-20-empty-state.png", "unity": "HR-20-empty-state.png" },
+          { "id": "HR-11-CANDIDATES", "cocos": "HR-11-candidate-list.png", "unity": "HR-11-candidate-list.png" },
+          { "id": "HR-21-PREVIEW", "cocos": "HR-21-preview-state.png", "unity": "HR-21-preview-state.png" },
+          { "id": "HR-14-DETAIL", "cocos": "HR-14-refund-detail.png", "unity": "HR-14-refund-detail.png" },
+          { "id": "HR-16-CONFIRM", "cocos": "HR-16-confirmation.png", "unity": "HR-16-confirmation.png" },
+          { "id": "HR-22-INSUFFICIENT", "cocos": "HR-22-insufficient-currency.png", "unity": "HR-22-insufficient-currency.png" }
+        ]
+      },
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-HeroRebirthSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/HeroRebirth/unity/g3/hero-rebirth-fixed-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/hero-rebirth-fixed-account-latest.json",
+        "visualResultEvidence": ".local/ui-fidelity/HeroRebirth/unity/g5/hero-rebirth-g5-visual-result.json",
+        "visualValidationFlags": [],
+        "visualOnlyArtifacts": false,
+        "reloginRequired": true,
+        "g3ValidationFlags": [
+          "-projectXHeroRebirthG3Validation"
+        ],
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": false,
+        "postValidationAdapterAction": "AssertSuccess",
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "hero-rebirth-sqlite-only",
+              "description": "用户测试数据只允许写入Application.persistentDataPath/LocalServer/projectx.db；MySQL仅作为已冻结Cocos证据后端。"
+            },
+            {
+              "id": "hero-rebirth-fixed-account-link",
+              "description": "userId=7200057必须唯一绑定SQLite roleId=1000003，并能通过真实登录、/24与/48查询。"
+            },
+            {
+              "id": "hero-rebirth-candidate-filter",
+              "description": "准备至少7名未上阵且有等级、突破或修炼进度的候选神将，使双列候选内容稳定溢出视口；同时准备初始态神将62并排除上阵神将24、57。"
+            },
+            {
+              "id": "hero-rebirth-max-refund",
+              "description": "神将64固定为100级、突破15、修炼20，用于覆盖多行返还、道具详情和最大配置边界；当前服务端最多合并7种资源且两行可完整显示，不得伪造滚动位移，未来权威类型增加并溢出时才验证真实拖拽。"
+            },
+            {
+              "id": "hero-rebirth-rejection-data",
+              "description": "神将24、57固定在阵位且有养成进度，覆盖op8/op9上阵拒绝并证明货币、神将与背包原子不变。"
+            },
+            {
+              "id": "hero-rebirth-currency-profiles",
+              "description": "足额档money/bd_money均为100000，不足档均为0；不足档不得打开确认或发送op9。"
+            },
+            {
+              "id": "hero-rebirth-success-persistence",
+              "description": "成功重生后等级1、经验0、突破0、修炼0且星级保持；50绑定元宝与权威返还到账，重登后保持。"
+            },
+            {
+              "id": "hero-rebirth-exact-restore",
+              "description": "进程全停后整库备份；setup/assert/mutate/relogin/finally restore/cleanup assert后数据库SHA一致、integrity_check=ok、夹具残留0。"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/HR-01-main-entry.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-01-main-entry.png"
+          },
+          {
+            "source": "build/ui-migration/HR-02-hero-bag-entry.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-02-hero-bag-entry.png"
+          },
+          {
+            "source": "build/ui-migration/HR-20-empty-state.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-20-empty-state.png"
+          },
+          {
+            "source": "build/ui-migration/HR-11-candidate-list.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-11-candidate-list.png"
+          },
+          {
+            "source": "build/ui-migration/HR-21-preview-state.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-21-preview-state.png"
+          },
+          {
+            "source": "build/ui-migration/HR-14-refund-detail.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-14-refund-detail.png"
+          },
+          {
+            "source": "build/ui-migration/HR-16-confirmation.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-16-confirmation.png"
+          },
+          {
+            "source": "build/ui-migration/HR-22-insufficient-currency.png",
+            "destination": ".local/ui-fidelity/HeroRebirth/unity/g5/HR-22-insufficient-currency.png"
+          }
+        ]
       }
     }
   ]

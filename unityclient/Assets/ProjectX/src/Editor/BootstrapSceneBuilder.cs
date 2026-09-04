@@ -55,6 +55,8 @@ namespace ProjectX.Editor
         private const string HeroBagPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab";
         private const string HeroBookPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianLayer.prefab";
         private const string HeroRecyclePrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab";
+        private const string HeroRebirthChoosePrefab = "Assets/ProjectX/res/csd/Prefabs/common/Choose.prefab";
+        private const string HeroRebirthConfirmPrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/Popup_Confirm.prefab";
         private const string DynamicUiResourceDirectory = "Assets/ProjectX/Resources/UiPrefabs";
         private const string DynamicUiCatalog = DynamicUiResourceDirectory + "/Catalog.asset";
         private const string FormationPopupPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/shenjiangzhenxingLayer.prefab";
@@ -243,6 +245,8 @@ namespace ProjectX.Editor
         {
             new PrefabSpec(HeroBookPrefab, false),
             new PrefabSpec(HeroRecyclePrefab, false),
+            new PrefabSpec(HeroRebirthChoosePrefab, false),
+            new PrefabSpec(HeroRebirthConfirmPrefab, false),
             new PrefabSpec(HeroEnhanceMasterPrefab, false),
             new PrefabSpec(HeroEquipmentListPrefab, false),
             new PrefabSpec(HeroEquipmentDetailPrefab, false),
@@ -339,6 +343,8 @@ namespace ProjectX.Editor
         {
             if (prefabPath == HeroBookPrefab) return "HeroBook";
             if (prefabPath == HeroRecyclePrefab) return "HeroRecycle";
+            if (prefabPath == HeroRebirthChoosePrefab) return "HeroRebirthChoose";
+            if (prefabPath == HeroRebirthConfirmPrefab) return "HeroRebirthConfirm";
             if (prefabPath == HeroEnhanceMasterPrefab) return "HeroEnhanceMaster";
             if (prefabPath == HeroEquipmentListPrefab) return "HeroEquipmentList";
             if (prefabPath == HeroEquipmentDetailPrefab) return "HeroEquipmentDetail";
@@ -583,7 +589,7 @@ namespace ProjectX.Editor
                 if (reference == null || reference.Prefab == null)
                     throw new InvalidDataException($"ResourceFoundation prefab reference is missing: {entry.Key}.");
             }
-            foreach (string pilot in new[] { "HeroBook", "HeroRecycle" })
+            foreach (string pilot in new[] { "HeroBook", "HeroRecycle", "HeroRebirthChoose", "HeroRebirthConfirm" })
                 if (!keySet.Contains(pilot)) throw new InvalidDataException($"ResourceFoundation lifecycle pilot is missing: {pilot}.");
             if (!IsBootstrapSceneCurrent())
                 throw new InvalidDataException("ResourceFoundation Bootstrap scene is not minimal.");

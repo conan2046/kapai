@@ -17,6 +17,9 @@ local M = {
     cultivationOperation = nil,
     cultivationResponseReady = false,
     cultivationPushReady = false,
+    rebirthStage = nil,
+    rebirthHero = nil,
+    rebirthPreviewHero = nil,
     g4RestoreExpected = false,
     equipmentReady = false,
     formationReady = false,
@@ -259,6 +262,31 @@ function M.activateCultivation(heroId)
     sendCultivation(12, heroId)
 end
 
+function M.requestRebirthPreview(heroId)
+    heroId = tonumber(heroId) or 0
+    local hero = FormationModel:GetPetById(heroId)
+    if M.rebirthStage ~= nil or hero == nil or heroId <= 0 then return end
+    M.rebirthStage = "preview"
+    M.rebirthHero = heroId
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(8)
+    message:WriteUInt(heroId)
+    Bridge:Send(message)
+    Bridge:SetStatus("HeroRebirth/24 op=8 preview requested for hero " .. tostring(heroId) .. ".")
+end
+
+function M.confirmRebirth(heroId)
+    heroId = tonumber(heroId) or 0
+    if M.rebirthStage ~= nil or heroId <= 0 or M.rebirthPreviewHero ~= heroId then return end
+    M.rebirthStage = "mutation"
+    M.rebirthHero = heroId
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(9)
+    message:WriteUInt(heroId)
+    Bridge:Send(message)
+    Bridge:SetStatus("HeroRebirth/24 op=9 mutation requested for hero " .. tostring(heroId) .. ".")
+end
+
 local function readHero(message)
     local hero = {
         id = message:ReadWord(),
@@ -310,6 +338,54 @@ local function readHeroList(message)
         return
     end
     requestFormation()
+end
+
+local function readRebirthResponse(op, message)
+    local requestedHeroId = M.rebirthHero or 0
+    if message.Remaining < 4 then
+        M.rebirthStage = nil
+        Bridge:EndHeroRebirthResponse(op, requestedHeroId, false, "神将重生响应缺少神将编号")
+        return
+    end
+    -- PRO_PET keeps the request payload in the response. The legacy client reads
+    -- the echoed uint32 petId before the status byte for rebirth op 8/9.
+    local heroId = message:ReadUInt()
+    if message.Remaining <= 0 then
+        M.rebirthStage = nil
+        Bridge:EndHeroRebirthResponse(op, heroId, false, "神将重生响应缺少状态")
+        return
+    end
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "神将重生失败"
+        M.rebirthStage = nil
+        Bridge:EndHeroRebirthResponse(op, heroId, false, reason)
+        return
+    end
+    if message.Remaining <= 0 then
+        M.rebirthStage = nil
+        Bridge:EndHeroRebirthResponse(op, heroId, false, "神将重生响应缺少返还列表")
+        return
+    end
+    local count = message:ReadByte()
+    Bridge:BeginHeroRebirthResponse(op, heroId, count)
+    for _ = 1, count do
+        Bridge:AddHeroRebirthReward(message:ReadWord(), message:ReadUInt(), message:ReadUInt())
+    end
+    if message.Remaining ~= 0 then
+        M.rebirthStage = nil
+        Bridge:EndHeroRebirthResponse(op, heroId, false,
+            "HeroRebirth/24 op=" .. tostring(op) .. " has unread bytes: " .. tostring(message.Remaining))
+        return
+    end
+    M.rebirthStage = nil
+    if op == 8 then
+        M.rebirthPreviewHero = heroId
+    else
+        M.rebirthPreviewHero = nil
+    end
+    Bridge:EndHeroRebirthResponse(op, heroId, true, "")
+    if op == 9 then M.requestSnapshot("HeroRebirth.Success") end
 end
 
 local function requestCultivationSnapshotIfReady()
@@ -594,6 +670,10 @@ local function readFormation(message)
             Bridge:RunHeroLockedControlValidation()
         elseif Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation") then
             Bridge:RunHeroCultivationG3Validation()
+        elseif Bridge:HasCommandLineFlag("-projectXHeroRebirthG4Validation") then
+            Bridge:RunHeroRebirthG4Validation()
+        elseif Bridge:HasCommandLineFlag("-projectXHeroRebirthG3Validation") then
+            Bridge:RunHeroRebirthG3Validation()
         elseif Bridge:HasCommandLineFlag("-projectXHeroG4Validation") then
             if M.equipmentReady then runG4Validation()
             else M.formationReady = true end
@@ -812,6 +892,7 @@ function M.onPacket(command, message)
         if op == 1 then readHeroList(message)
         elseif op == 3 then readLevelUpResponse(message)
         elseif op == 4 or op == 5 or op == 6 or op == 7 or op == 12 then readCultivationResponse(op, message)
+        elseif op == 8 or op == 9 then readRebirthResponse(op, message)
         elseif op == 11 then readHeroComposeResponse(message)
         else return false end
         return true
@@ -835,6 +916,7 @@ function M.reset()
     M.levelUpHero, M.levelUpBeforeLevel, M.levelUpBeforeExperience = nil, nil, nil
     M.cultivationOperation = nil
     M.cultivationResponseReady, M.cultivationPushReady = false, false
+    M.rebirthStage, M.rebirthHero, M.rebirthPreviewHero = nil, nil, nil
     M.g4RestoreExpected = false
     M.equipmentReady, M.formationReady = false, false
     M.closureStage = keepClosure and M.closureStage or nil

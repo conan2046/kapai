@@ -170,11 +170,14 @@ namespace ProjectX.Editor
             bool taskValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXTaskValidation") >= 0
                 || taskG4Validation;
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
+            bool heroRebirthG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroRebirthG4Validation") >= 0;
             bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroBagValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroLockedValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroCultivationG3Validation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroRebirthG3Validation") >= 0
+                || heroRebirthG4Validation
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationInvalidValidation") >= 0;
             bool heroEquipmentG5VisualValidation = Array.IndexOf(Environment.GetCommandLineArgs(),
@@ -636,6 +639,7 @@ namespace ProjectX.Editor
                     return;
                 }
                 bool realHeroClose = checkingHero && (Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
+                    || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroRebirthG4Validation") >= 0
                     || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroLockedValidation") >= 0);
                 bool backHandled = realHeroClose ? app.InvokeHeroCloseForValidation() : app.HandleBack();
                 if (checkingHero && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationPopupValidation") >= 0)
@@ -713,7 +717,9 @@ namespace ProjectX.Editor
                     return;
                 }
 
-                if (requiresReconnectValidation && phase == 0)
+                // HeroRebirth G4 already completed disconnect/reconnect, account
+                // isolation and terminal relogin inside its atomic coroutine.
+                if (requiresReconnectValidation && phase == 0 && !heroRebirthG4Validation)
                 {
                     SessionState.SetInt(ReconnectPhaseKey, 1);
                     Debug.Log("[BootstrapAppRunner] INITIAL_COMPLETE: waiting for the server disconnect.");

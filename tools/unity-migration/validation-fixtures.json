@@ -122,6 +122,13 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-ArenaSqliteFixture.ps1"
+    },
+    {
+      "key": "reversible-hero-rebirth-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-HeroRebirthSqliteFixture.ps1"
     }
   ]
 }

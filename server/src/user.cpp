@@ -22601,7 +22601,7 @@ bool CUser::HeroChongSheng(CNetMessage &msg)
 {
 	uint16 petId;
 	msg >> petId;
-	if (GetTongBao() < 50)
+	if (GetTongBao(1) < 50)
 		return true;
 	SPet* pPet = NULL;
 	MultiCost allCost;
@@ -22613,7 +22613,6 @@ bool CUser::HeroChongSheng(CNetMessage &msg)
 			msg << PRO_ERROR << MakeStringColor(LANGUAGE_SSJ_0424, TIPS_FAILURE_COLOR);
 			return true;
 		}
-		MultiCost allCost;
 		pPet->GetChongShengCost(allCost);
 		pPet->level = 1;
 		pPet->breakLevel = 0;
@@ -22621,8 +22620,9 @@ bool CUser::HeroChongSheng(CNetMessage &msg)
 		pPet->curXiuLianCnts.clear();
 		pPet->exp = 0;
 	}
-	AddMaterial(HDAT_BANG_YB, -50);
-	ItemCurrencyLog(GetRoleId(), MUT_HChongSheng, 1, HDAT_YB, 50, GetMaterial(HDAT_YB), MUT_HChongSheng);
+	AddTongBao(-50, 1);
+	ItemCurrencyLog(GetRoleId(), MUT_HChongSheng, 1, HDAT_BANG_YB, 50,
+		GetMaterial(HDAT_BANG_YB), MUT_HChongSheng);
 	AddMultiCost(allCost);
 	msg << PRO_SUCCESS;
 	MakeMultiCostMsg(allCost, msg);

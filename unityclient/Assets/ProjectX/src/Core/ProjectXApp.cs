@@ -29,6 +29,7 @@ namespace ProjectX.Core
         public const string TaskPath = "Layer/Main_UI/ButtonGroup1/btn_renwu";
         public const string FormationPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
         public const string HeroBagPath = "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao";
+        public const string HeroRecyclePath = "Layer/Main_UI/ButtonGroup7/btn_huishou";
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
         public const string ShopPath = "Layer/Main_UI/ButtonGroup1/btn_shangcheng";
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
@@ -73,6 +74,8 @@ namespace ProjectX.Core
         private LuaFunction onHeroStarUp;
         private LuaFunction onHeroCultivationActivate;
         private LuaFunction onHeroCompose;
+        private LuaFunction onHeroRebirthPreview;
+        private LuaFunction onHeroRebirthConfirm;
         private LuaFunction onHeroEquipmentWear;
         private LuaFunction onEquipmentBagClicked;
         private LuaFunction onFaBaoBagClicked;
@@ -236,6 +239,16 @@ namespace ProjectX.Core
         private CocosUiView heroBagView;
         private CocosUiView heroBookView;
         private CocosUiView heroRecycleView;
+        private CocosUiView heroRebirthChooseFrameView;
+        private CocosUiView heroRebirthChooseView;
+        private CocosUiView heroRebirthConfirmView;
+        private HeroRebirthPresenter heroRebirthPresenter;
+        private bool heroRecycleEntryPending;
+        private bool heroRecycleOpenedFromBag;
+        private int heroRebirthResponseOperation;
+        private int heroRebirthResponseHeroId;
+        private bool heroRebirthG4ValidationRunning;
+        private const string HeroRebirthControlMatrixSemantic = "hero-rebirth-control-matrix-24";
         private CocosUiView heroReplacementView;
         private CocosUiView heroCultivationView;
         private CocosUiView heroLevelUpView;
@@ -807,6 +820,8 @@ namespace ProjectX.Core
                 onHeroStarUp = services.Lua.GetFunction("OnHeroStarUp");
                 onHeroCultivationActivate = services.Lua.GetFunction("OnHeroCultivationActivate");
                 onHeroCompose = services.Lua.GetFunction("OnHeroCompose");
+                onHeroRebirthPreview = services.Lua.GetFunction("OnHeroRebirthPreview");
+                onHeroRebirthConfirm = services.Lua.GetFunction("OnHeroRebirthConfirm");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onFormationSwap = services.Lua.GetFunction("OnFormationSwap");
                 onFormationUpgrade = services.Lua.GetFunction("OnFormationUpgrade");
@@ -981,6 +996,8 @@ namespace ProjectX.Core
             onHeroStarUp?.Dispose();
             onHeroCultivationActivate?.Dispose();
             onHeroCompose?.Dispose();
+            onHeroRebirthPreview?.Dispose();
+            onHeroRebirthConfirm?.Dispose();
             onFormationMove?.Dispose();
             onFormationSwap?.Dispose();
             onFormationUpgrade?.Dispose();
@@ -1899,10 +1916,16 @@ namespace ProjectX.Core
                 Button formationButton = mainView.BindClick(FormationPath, HandleFormationClick, true);
                 Button bagButton = mainView.BindClick(HeroBagPath, HandleHeroBagClick, true);
                 if (autoInvoke)
-                    StartCoroutine(InvokeButtonNextFrame(HasCommandLineFlag("-projectXHeroBagValidation") ? bagButton : formationButton));
+                {
+                    if (!HasCommandLineFlag("-projectXHeroRebirthG4Validation") || !heroRebirthG4ValidationRunning)
+                        StartCoroutine(InvokeButtonNextFrame(HasCommandLineFlag("-projectXHeroBagValidation") ? bagButton : formationButton));
+                }
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
+
+        private void RequestHeroRebirthValidationSnapshot()
+            => InvokeLuaOrFail(onHeroClicked, "HeroRebirth.ReloginSnapshot");
 
         public void BindMailClick(bool autoInvoke)
         {
@@ -7528,6 +7551,28 @@ namespace ProjectX.Core
 
         public void EndHeroUpdate() => services.Heroes.Replace(pendingFollowHeroId, pendingHeroes);
 
+        public void BeginHeroRebirthResponse(int operation, int heroId, int expectedCount)
+        {
+            heroRebirthResponseOperation = operation;
+            heroRebirthResponseHeroId = heroId;
+            heroRebirthPresenter?.BeginResponse(operation, heroId, expectedCount);
+        }
+
+        public void AddHeroRebirthReward(int type, double id, double quantity)
+            => heroRebirthPresenter?.AddResponseReward(type, checked((uint)id), checked((uint)quantity));
+
+        public void EndHeroRebirthResponse(int operation, int heroId, bool success, string error)
+        {
+            if (heroRebirthPresenter == null)
+            {
+                if (!success) ShowToast(string.IsNullOrWhiteSpace(error) ? "神将重生失败" : error, 3f);
+                return;
+            }
+            heroRebirthPresenter.EndResponse(operation, heroId, success, error);
+            heroRebirthResponseOperation = 0;
+            heroRebirthResponseHeroId = 0;
+        }
+
         public void BeginFormationUpdate(int activeId, int expectedCount)
         {
             pendingActiveFormationId = activeId;
@@ -7559,15 +7604,30 @@ namespace ProjectX.Core
             for (int index = 0; index < pendingFormationCombat.Count; index++)
                 if (pendingFormationCombat[index] > 0) positions[pendingFormationCombat[index]] = index + 1;
             services.Heroes.SetFightPositions(positions);
+            if (heroRecycleEntryPending)
+            {
+                ShowHeroRecycle(false);
+                SetStatus($"HeroRebirth synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
             if (worldFormationPopupRequestPending)
             {
                 SetStatus($"World formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
                 return;
             }
-            EnsureHeroPresenter();
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
             bool explicitEntry = heroEntryRequestPending;
             heroEntryRequestPending = false;
+            bool heroPageVisible = IsHeroOpen;
+            bool hasVisibleHeroSubview = formationPopupView?.GameObject.activeSelf == true
+                || heroCultivationView?.GameObject.activeSelf == true
+                || heroLevelUpView?.GameObject.activeSelf == true;
+            if (!explicitEntry && !heroPageVisible && !hasVisibleHeroSubview)
+            {
+                SetStatus($"Hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            EnsureHeroPresenter();
             bool preserveFormationPopup = !explicitEntry
                 && formationPopupView?.GameObject.activeSelf == true;
             if (preserveFormationPopup)
@@ -10673,7 +10733,7 @@ namespace ProjectX.Core
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup1/btn_chongzhi", "充值与支付不属于 HUD，当前不可用。");
             BindHudBoundary(mainView, MailPath, "邮件业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FriendPath, "好友业务属于 Social，当前仅保留入口边界。");
-            BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup7/btn_huishou", "回收页面不属于 HUD，当前不可用。");
+            mainView.BindClick(HeroRecyclePath, HandleHeroRecycleClick, true);
             BindHudBoundary(mainView, WorldPath, "世界与副本业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, GameplayPath, "玩法业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/btn_online", "在线奖励领取属于 Welfare，HUD 仅显示状态。");
@@ -12431,7 +12491,7 @@ namespace ProjectX.Core
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
             heroBagView.BindClick("Layer/yingxiongbeibaoUI/cell", ShowHeroBook, true);
-            heroBagView.BindClick("Layer/yingxiongbeibaoUI/recycle", ShowHeroRecycle, true);
+            heroBagView.BindClick("Layer/yingxiongbeibaoUI/recycle", () => ShowHeroRecycle(true), true);
         }
 
         public int GetEquipmentPart(int templateId)
@@ -14010,11 +14070,769 @@ namespace ProjectX.Core
             ShowHeroBagAuxiliary(heroBookView, "神将图鉴");
         }
 
-        private void ShowHeroRecycle()
+        private void HandleHeroRecycleClick()
+        {
+            try
+            {
+                heroRecycleOpenedFromBag = false;
+                if (services.Heroes.Count > 0 && services.Formation.Formations.Count > 0)
+                {
+                    ShowHeroRecycle(false);
+                    return;
+                }
+                heroRecycleEntryPending = true;
+                pendingHeroEntry = HeroEntry.Formation;
+                heroEntryRequestPending = true;
+                InvokeLuaOrFail(onHeroClicked, "HeroRebirth.EntrySnapshot");
+            }
+            catch (Exception exception) { Fail($"HeroRebirth entry failed: {exception.Message}"); }
+        }
+
+        private void ShowHeroRecycle(bool fromBag)
         {
             EnsureHeroPresenter();
+            heroRecycleOpenedFromBag = fromBag;
+            heroRecycleEntryPending = false;
             heroRecycleView = heroRecycleView ?? UiPrefabLoader.Load("HeroRecycle", heroFrameView.GameObject.transform);
-            ShowHeroBagAuxiliary(heroRecycleView, "回收");
+            heroRebirthChooseFrameView = heroRebirthChooseFrameView
+                ?? UiPrefabLoader.Load("shop_bg", GetDynamicUiRoot());
+            heroRebirthChooseView = heroRebirthChooseView
+                ?? UiPrefabLoader.Load("HeroRebirthChoose", heroRebirthChooseFrameView.GameObject.transform);
+            heroRebirthConfirmView = heroRebirthConfirmView
+                ?? UiPrefabLoader.Load("HeroRebirthConfirm", GetDynamicUiRoot());
+            heroRebirthPresenter = heroRebirthPresenter ?? new HeroRebirthPresenter(
+                heroRecycleView, heroRebirthChooseFrameView, heroRebirthChooseView, heroRebirthConfirmView,
+                services.Heroes, services.Formation, services.Currencies, services.EquipmentCatalog,
+                services.Resources,
+                id => InvokeLuaOrFail(onHeroRebirthPreview, "HeroRebirth.Preview", id),
+                id => InvokeLuaOrFail(onHeroRebirthConfirm, "HeroRebirth.Confirm", id),
+                message => ShowToast(message, 2f), ShowHeroRebirthItemDetail);
+
+            HideHeroCultivationForNavigation();
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroBookView?.SetVisible(false);
+            ConfigureHeroFrame(true);
+            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "回收";
+            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform panel = tabs?.Find("Panel_10");
+            Transform first = panel?.Find("Button1");
+            Transform second = panel?.Find("Button2_Runtime");
+            if (first != null) SetTabText(first, "神将", true);
+            if (second != null) second.gameObject.SetActive(false);
+            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", CloseHeroRecycle, true);
+            heroFrameView.SetVisible(true);
+            heroFrameView.GameObject.transform.SetAsLastSibling();
+            heroRebirthPresenter.Show();
+            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+        }
+
+        public void RunHeroRebirthG3Validation()
+        {
+            StartCoroutine(RunHeroRebirthG3ValidationRoutine());
+        }
+
+        private IEnumerator RunHeroRebirthG3ValidationRoutine()
+        {
+            BeginValidationEvidence();
+            yield return null;
+            ShowHeroRecycle(false);
+            yield return null;
+            string detail = heroRebirthPresenter == null ? "presenter is missing" : string.Empty;
+            if (heroRebirthPresenter == null || !heroRebirthPresenter.ValidateEarlyPlayRuntime(out detail))
+            {
+                Fail("HeroRebirth G3 runtime validation failed: " + detail);
+                yield break;
+            }
+            SetStatus($"HeroRebirth G3 ready: {detail}; {HeroRebirthControlMatrixSemantic}=G4-pending.");
+            Complete("COMPLETE: HeroRebirth G3 UI/protocol/runtime fixture ready for early user Play | " + detail);
+        }
+
+        public void RunHeroRebirthG4Validation()
+        {
+            if (heroRebirthG4ValidationRunning) return;
+            heroRebirthG4ValidationRunning = true;
+            StartCoroutine(RunHeroRebirthG4ValidationRoutine());
+        }
+
+        private IEnumerator RunHeroRebirthG4ValidationRoutine()
+        {
+            BeginValidationEvidence();
+            uint primaryUserId = GetLocalUserId();
+            uint primaryRoleId = GetPlayerRoleId();
+            const uint isolationUserId = 1;
+            if (primaryUserId != 7200057 || primaryRoleId != 1000003)
+            {
+                Fail($"HeroRebirth G4 fixed identity mismatch: {primaryUserId}/{primaryRoleId}.");
+                yield break;
+            }
+            if (IsHeroOpen && !InvokeHeroCloseForValidation())
+            {
+                Fail("HeroRebirth G4 could not leave its data-preload Hero page before the real HUD entry.");
+                yield break;
+            }
+            yield return null;
+            mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
+            Button hudEntry = mainView?.Binding.Find(HeroRecyclePath)?.GetComponent<Button>();
+            Button heroBagEntry = mainView?.Binding.Find(HeroBagPath)?.GetComponent<Button>();
+            if (hudEntry == null || heroBagEntry == null)
+            {
+                Fail("HeroRebirth G4 main entry controls are missing.");
+                yield break;
+            }
+
+            toastPresenter?.Clear();
+            yield return CaptureHeroRebirthEvidence("HR-01-main-entry.png");
+            if (!InvokeEventSystemRaycastClick(hudEntry))
+            {
+                Fail("HeroRebirth G4 HUD entry rejected real EventSystem/raycast input.");
+                yield break;
+            }
+            yield return null;
+            if (!IsHeroOpen || heroRebirthPresenter == null || heroRebirthPresenter.SelectedHeroId != 0)
+            {
+                Fail("HeroRebirth G4 HUD entry did not open the unique empty rebirth page.");
+                yield break;
+            }
+            MarkValidationControl("HR-01-HUD-ENTRY");
+            MarkValidationControl("HR-20-EMPTY-STATE");
+            yield return CaptureHeroRebirthEvidence("HR-20-empty-state.png");
+
+            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabPanel = tabs?.Find("Panel_10");
+            Transform heroTab = tabPanel?.Find("Button1");
+            Transform excludedTab = tabPanel?.Find("Button2_Runtime");
+            if (heroTab == null || !heroTab.gameObject.activeInHierarchy
+                || excludedTab != null && excludedTab.gameObject.activeSelf)
+            {
+                Fail("HeroRebirth G4 tab/boundary visibility does not match the frozen scope.");
+                yield break;
+            }
+            MarkValidationControl("HR-04-HERO-TAB");
+            MarkValidationControl("HR-05-EQUIP-TAB-BOUNDARY");
+            MarkValidationControl("HR-06-FABAO-TAB-BOUNDARY");
+            MarkValidationControl("HR-07-SECOND-TAB");
+
+            Button frameClose = RequireBoundButton(heroFrameView,
+                "Layer/Panel_12/Title/CloseBtn", "HeroRebirth close");
+            if (!InvokeEventSystemRaycastClick(frameClose) || IsHeroOpen)
+            {
+                Fail("HeroRebirth G4 close did not return to the main UI.");
+                yield break;
+            }
+            MarkValidationControl("HR-03-CLOSE");
+
+            // UiStack.Pop reactivates the main HUD inside the close callback. Give its
+            // GraphicRegistry one rendered frame before proving the next real raycast.
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
+            heroBagEntry = mainView?.Binding.Find(HeroBagPath)?.GetComponent<Button>();
+            if (!InvokeEventSystemRaycastClick(heroBagEntry))
+            {
+                Fail("HeroRebirth G4 hero-bag entry rejected real EventSystem/raycast input.");
+                yield break;
+            }
+            float deadline = Time.realtimeSinceStartup + 15f;
+            while ((heroBagView?.GameObject.activeInHierarchy != true || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (heroBagView?.GameObject.activeInHierarchy != true)
+            {
+                Fail("HeroRebirth G4 hero-bag entry did not reach the authoritative bag page.");
+                yield break;
+            }
+            MarkValidationControl("HR-02-HERO-BAG-ENTRY");
+            yield return CaptureHeroRebirthEvidence("HR-02-hero-bag-entry.png");
+            Button recycleFromBag = heroBagView.Binding.Find("Layer/yingxiongbeibaoUI/recycle")?.GetComponent<Button>();
+            if (!InvokeEventSystemRaycastClick(recycleFromBag))
+            {
+                Fail("HeroRebirth G4 hero-bag recycle control rejected real EventSystem/raycast input.");
+                yield break;
+            }
+            yield return null;
+            if (heroRebirthPresenter == null || !IsHeroOpen)
+            {
+                Fail("HeroRebirth G4 hero-bag route did not converge on the rebirth presenter.");
+                yield break;
+            }
+
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.AddButton)
+                || !heroRebirthPresenter.IsCandidateOpen)
+            {
+                Fail("HeroRebirth G4 add control did not open the candidate list.");
+                yield break;
+            }
+            MarkValidationControl("HR-08-ADD-HERO");
+            yield return CaptureHeroRebirthEvidence("HR-11-candidate-list.png");
+            ScrollRect candidateScroll = heroRebirthPresenter.CandidateScroll;
+            if (candidateScroll == null || candidateScroll.content == null || candidateScroll.viewport == null
+                || candidateScroll.content.rect.height <= candidateScroll.viewport.rect.height)
+            {
+                Fail("HeroRebirth G4 fixed candidate list does not overflow its viewport.");
+                yield break;
+            }
+            float candidateStart = candidateScroll.verticalNormalizedPosition;
+            if (!InvokeEventSystemDrag(candidateScroll, -0.35f))
+            {
+                Fail("HeroRebirth G4 candidate list rejected EventSystem drag input.");
+                yield break;
+            }
+            yield return null;
+            if (Mathf.Approximately(candidateStart, candidateScroll.verticalNormalizedPosition))
+            {
+                Fail("HeroRebirth G4 candidate drag callbacks did not move content.");
+                yield break;
+            }
+            MarkValidationControl("HR-12-CHOOSE-SCROLL");
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.CandidateCloseButton)
+                || heroRebirthPresenter.IsCandidateOpen)
+            {
+                Fail("HeroRebirth G4 candidate close did not preserve the rebirth page.");
+                yield break;
+            }
+            MarkValidationControl("HR-10-CHOOSE-CLOSE");
+
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.AddButton))
+            {
+                Fail("HeroRebirth G4 add control did not reopen candidates.");
+                yield break;
+            }
+            candidateScroll = heroRebirthPresenter.CandidateScroll;
+            if (candidateScroll != null) candidateScroll.verticalNormalizedPosition = 1f;
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            Button maximumCandidate = heroRebirthPresenter.GetCandidateButton(64);
+            if (!InvokeEventSystemRaycastClick(maximumCandidate))
+            {
+                Fail("HeroRebirth G4 maximum candidate did not accept a real selection click.");
+                yield break;
+            }
+            MarkValidationControl("HR-11-CHOOSE-ITEM");
+            deadline = Time.realtimeSinceStartup + 15f;
+            while ((heroRebirthPresenter.IsPending || !heroRebirthPresenter.PreviewReady
+                || services.ProtocolRegistry.PendingCount != 0) && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!heroRebirthPresenter.PreviewReady || heroRebirthPresenter.SelectedHeroId != 64
+                || heroRebirthPresenter.RefundCount <= 0)
+            {
+                Fail("HeroRebirth G4 /24 op=8 did not produce the maximum authoritative preview.");
+                yield break;
+            }
+            MarkValidationControl("HR-21-PREVIEW-STATE");
+
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.ChangeButton)
+                || !heroRebirthPresenter.IsCandidateOpen)
+            {
+                Fail("HeroRebirth G4 change control did not reopen candidates.");
+                yield break;
+            }
+            MarkValidationControl("HR-09-CHANGE-HERO");
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            Button alternateCandidate = heroRebirthPresenter.GetCandidateButton(60);
+            if (!InvokeEventSystemRaycastClick(alternateCandidate))
+            {
+                Fail("HeroRebirth G4 alternate candidate did not accept a real selection click.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 15f;
+            while ((heroRebirthPresenter.IsPending || !heroRebirthPresenter.PreviewReady
+                || heroRebirthPresenter.SelectedHeroId != 60) && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!heroRebirthPresenter.PreviewReady || heroRebirthPresenter.SelectedHeroId != 60)
+            {
+                Fail("HeroRebirth G4 changed candidate did not replace the old preview.");
+                yield break;
+            }
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.ChangeButton))
+            {
+                Fail("HeroRebirth G4 change control did not reopen the maximum candidate.");
+                yield break;
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            maximumCandidate = heroRebirthPresenter.GetCandidateButton(64);
+            if (!InvokeEventSystemRaycastClick(maximumCandidate))
+            {
+                Fail("HeroRebirth G4 maximum candidate could not be reselected.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 15f;
+            while ((heroRebirthPresenter.IsPending || !heroRebirthPresenter.PreviewReady
+                || heroRebirthPresenter.SelectedHeroId != 64) && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!heroRebirthPresenter.PreviewReady || heroRebirthPresenter.SelectedHeroId != 64)
+            {
+                Fail("HeroRebirth G4 maximum preview was not restored after changing candidates.");
+                yield break;
+            }
+            yield return CaptureHeroRebirthEvidence("HR-21-preview-state.png");
+
+            ScrollRect rewardScroll = heroRebirthPresenter.RewardScroll;
+            if (rewardScroll == null || rewardScroll.content == null || rewardScroll.viewport == null)
+            {
+                Fail("HeroRebirth G4 refund list is missing its ScrollRect contract.");
+                yield break;
+            }
+            bool rewardOverflows = rewardScroll.content.rect.height > rewardScroll.viewport.rect.height;
+            if (rewardOverflows)
+            {
+                float rewardStart = rewardScroll.verticalNormalizedPosition;
+                if (!InvokeEventSystemDrag(rewardScroll, -0.35f))
+                {
+                    Fail("HeroRebirth G4 refund list rejected EventSystem drag input.");
+                    yield break;
+                }
+                yield return null;
+                if (Mathf.Approximately(rewardStart, rewardScroll.verticalNormalizedPosition))
+                {
+                    Fail("HeroRebirth G4 overflowing refund drag callbacks did not move content.");
+                    yield break;
+                }
+            }
+            else if (heroRebirthPresenter.RefundCount < 6 || heroRebirthPresenter.RefundCount > 7)
+            {
+                Fail($"HeroRebirth G4 non-overflow refund boundary expected 6..7 authoritative resource types, actual={heroRebirthPresenter.RefundCount}.");
+                yield break;
+            }
+            MarkValidationControl("HR-13-REFUND-SCROLL");
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.FirstRewardButton)
+                || !IsHeroRebirthItemSourceVisible())
+            {
+                Fail("HeroRebirth G4 refund item did not open the shared detail through a real click.");
+                yield break;
+            }
+            MarkValidationControl("HR-14-REFUND-ITEM-DETAIL");
+            yield return CaptureHeroRebirthEvidence("HR-14-refund-detail.png");
+            heroItemSourceView.SetVisible(false);
+
+            if (!services.Heroes.TryGet(24, out HeroRecord rejectedBefore))
+            {
+                Fail("HeroRebirth G4 deployed rejection hero 24 is missing.");
+                yield break;
+            }
+            long rejectionCurrency = services.Currencies.BoundPremium;
+            if (!heroRebirthPresenter.BeginValidationRequest(8, 24))
+            {
+                Fail("HeroRebirth G4 could not arm the authoritative rejection request.");
+                yield break;
+            }
+            InvokeLuaOrFail(onHeroRebirthPreview, "HeroRebirth.G4DeployedRejection", 24);
+            deadline = Time.realtimeSinceStartup + 15f;
+            while ((heroRebirthPresenter.IsPending || services.ProtocolRegistry.PendingCount != 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (heroRebirthPresenter.IsPending || !services.Heroes.TryGet(24, out HeroRecord rejectedAfter)
+                || rejectedAfter.Level != rejectedBefore.Level || rejectedAfter.BreakLevel != rejectedBefore.BreakLevel
+                || rejectedAfter.CultivationLevel != rejectedBefore.CultivationLevel
+                || services.Currencies.BoundPremium != rejectionCurrency)
+            {
+                Fail("HeroRebirth G4 authoritative deployed rejection changed hero or currency state.");
+                yield break;
+            }
+            MarkValidationControl("HR-23-AUTHORITATIVE-REJECTION");
+            toastPresenter?.Clear();
+
+            long authoritativeBoundPremium = services.Currencies.BoundPremium;
+            services.Currencies.Set(CurrencyIds.BoundPremium, 0);
+            int pendingBeforeInsufficient = services.ProtocolRegistry.PendingCount;
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.RebirthButton))
+            {
+                Fail("HeroRebirth G4 insufficient-currency rebirth control rejected real input.");
+                yield break;
+            }
+            yield return null;
+            bool insufficientPassed = !heroRebirthPresenter.IsConfirmOpen && !heroRebirthPresenter.IsPending
+                && services.ProtocolRegistry.PendingCount == pendingBeforeInsufficient && IsToastVisible;
+            yield return CaptureHeroRebirthEvidence("HR-22-insufficient-currency.png");
+            services.Currencies.Set(CurrencyIds.BoundPremium, authoritativeBoundPremium);
+            toastPresenter?.Clear();
+            if (!insufficientPassed)
+            {
+                Fail("HeroRebirth G4 insufficient-currency branch opened confirmation or sent op=9.");
+                yield break;
+            }
+            MarkValidationControl("HR-22-INSUFFICIENT-STATE");
+
+            List<HeroRebirthReward> expectedRewards = heroRebirthPresenter.Rewards.ToList();
+            var rewardBefore = new Dictionary<int, long>();
+            foreach (HeroRebirthReward reward in expectedRewards)
+            {
+                int itemId = reward.Type != 0 ? reward.Type : reward.Id;
+                rewardBefore[itemId] = itemId >= 60000
+                    ? services.Currencies.Get(itemId)
+                    : services.Bag.GetTotalQuantityByItemId(itemId);
+            }
+            if (!services.Heroes.TryGet(64, out HeroRecord targetBefore))
+            {
+                Fail("HeroRebirth G4 target hero 64 disappeared before confirmation.");
+                yield break;
+            }
+            long boundBefore = services.Currencies.BoundPremium;
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.RebirthButton)
+                || !heroRebirthPresenter.IsConfirmOpen)
+            {
+                Fail("HeroRebirth G4 rebirth button did not open confirmation with sufficient currency.");
+                yield break;
+            }
+            MarkValidationControl("HR-15-REBIRTH");
+            yield return CaptureHeroRebirthEvidence("HR-16-confirmation.png");
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.FirstConfirmRewardButton)
+                || !IsHeroRebirthItemSourceVisible())
+            {
+                Fail("HeroRebirth G4 confirmation reward detail did not accept a real click.");
+                yield break;
+            }
+            MarkValidationControl("HR-18-CONFIRM-REFUND-DETAIL");
+            heroItemSourceView.SetVisible(false);
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.ConfirmCloseButton)
+                || heroRebirthPresenter.IsConfirmOpen)
+            {
+                Fail("HeroRebirth G4 confirmation close changed or retained modal state.");
+                yield break;
+            }
+            MarkValidationControl("HR-16-CONFIRM-CLOSE");
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.RebirthButton))
+            {
+                Fail("HeroRebirth G4 confirmation cancel setup did not reopen the modal.");
+                yield break;
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.ConfirmCancelButton)
+                || heroRebirthPresenter.IsConfirmOpen)
+            {
+                Fail("HeroRebirth G4 confirmation cancel did not return to the preview.");
+                yield break;
+            }
+            MarkValidationControl("HR-17-CONFIRM-CANCEL");
+            if (!services.Heroes.TryGet(64, out HeroRecord targetAfterCancel)
+                || targetAfterCancel.Level != targetBefore.Level || services.Currencies.BoundPremium != boundBefore)
+            {
+                Fail("HeroRebirth G4 close/cancel mutated authoritative hero or currency state.");
+                yield break;
+            }
+
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.RebirthButton))
+            {
+                Fail("HeroRebirth G4 final confirmation setup did not reopen the modal.");
+                yield break;
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.ConfirmButton))
+            {
+                Fail("HeroRebirth G4 confirm control did not send the real op=9 request.");
+                yield break;
+            }
+            MarkValidationControl("HR-19-CONFIRM");
+            deadline = Time.realtimeSinceStartup + 20f;
+            HeroRecord targetAfter = default;
+            Func<bool> rewardsApplied = () => expectedRewards.All(reward =>
+            {
+                int itemId = reward.Type != 0 ? reward.Type : reward.Id;
+                long actual = itemId >= 60000
+                    ? services.Currencies.Get(itemId)
+                    : services.Bag.GetTotalQuantityByItemId(itemId);
+                return rewardBefore.TryGetValue(itemId, out long before)
+                    && actual >= before + reward.Quantity;
+            });
+            while ((heroRebirthPresenter.IsPending || services.ProtocolRegistry.PendingCount != 0
+                || !services.Heroes.TryGet(64, out targetAfter) || targetAfter.Level != 1
+                || services.Currencies.BoundPremium != boundBefore - 50 || !rewardsApplied())
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!services.Heroes.TryGet(64, out targetAfter) || targetAfter.Level != 1
+                || targetAfter.Experience != 0 || targetAfter.BreakLevel != 0
+                || targetAfter.CultivationLevel != 0 || targetAfter.Star != targetBefore.Star
+                || services.Currencies.BoundPremium != boundBefore - 50)
+            {
+                Fail($"HeroRebirth G4 success mismatch: level={targetAfter.Level}, exp={targetAfter.Experience}, break={targetAfter.BreakLevel}, cultivation={targetAfter.CultivationLevel}, star={targetAfter.Star}, bound={services.Currencies.BoundPremium}/{boundBefore - 50}.");
+                yield break;
+            }
+            bool rewardDeltaPassed = expectedRewards.Count > 0;
+            foreach (HeroRebirthReward reward in expectedRewards)
+            {
+                int itemId = reward.Type != 0 ? reward.Type : reward.Id;
+                long actual = itemId >= 60000
+                    ? services.Currencies.Get(itemId)
+                    : services.Bag.GetTotalQuantityByItemId(itemId);
+                if (!rewardBefore.TryGetValue(itemId, out long before) || actual < before + reward.Quantity)
+                    rewardDeltaPassed = false;
+            }
+            if (!rewardDeltaPassed)
+            {
+                Fail("HeroRebirth G4 op=9 did not apply every authoritative refund quantity.");
+                yield break;
+            }
+            MarkValidationControl("HR-24-SUCCESS-LIFECYCLE");
+            yield return CaptureHeroRebirthEvidence("HR-24-success-reset.png");
+
+            frameClose = RequireBoundButton(heroFrameView,
+                "Layer/Panel_12/Title/CloseBtn", "HeroRebirth post-success close");
+            if (!InvokeEventSystemRaycastClick(frameClose))
+            {
+                Fail("HeroRebirth G4 post-success close failed.");
+                yield break;
+            }
+            services.Network.Disconnect("HeroRebirth deliberate disconnect");
+            yield return new WaitForSecondsRealtime(.25f);
+            if (errorPresenter?.IsVisible != true || services.Network.State != NetworkState.Disconnected
+                || !InvokeEventSystemRaycastClick(errorPresenter.ConfirmationButton))
+            {
+                Fail("HeroRebirth G4 deliberate disconnect did not expose a real reconnect confirmation.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 25f;
+            while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+            if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId)
+            {
+                Fail("HeroRebirth G4 reconnect did not restore the primary fixed identity.");
+                yield break;
+            }
+            RequestHeroRebirthValidationSnapshot();
+            deadline = Time.realtimeSinceStartup + 25f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || services.Heroes.Count == 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0 || services.Heroes.Count == 0)
+            {
+                Fail($"HeroRebirth G4 reconnect did not settle the authoritative hero snapshot: heroes={services.Heroes.Count}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+            if (IsHeroOpen)
+            {
+                Button reconnectHeroClose = RequireBoundButton(heroFrameView,
+                    "Layer/Panel_12/Title/CloseBtn", "HeroRebirth reconnect Hero page close");
+                if (!InvokeEventSystemRaycastClick(reconnectHeroClose) || IsHeroOpen)
+                {
+                    Fail("HeroRebirth G4 reconnect could not return from the restored Hero page to HUD.");
+                    yield break;
+                }
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
+            hudEntry = mainView?.Binding.Find(HeroRecyclePath)?.GetComponent<Button>();
+            if (!InvokeEventSystemRaycastClick(hudEntry))
+            {
+                Fail("HeroRebirth G4 reconnect entry did not accept a real HUD click.");
+                yield break;
+            }
+            if (!services.Heroes.TryGet(64, out HeroRecord reconnectedHero) || reconnectedHero.Level != 1)
+            {
+                Fail($"HeroRebirth G4 reconnect lost the authoritative rebirth result: found={services.Heroes.TryGet(64, out reconnectedHero)}, level={reconnectedHero.Level}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            yield return CaptureHeroRebirthEvidence("HR-24-reconnected.png");
+            frameClose = RequireBoundButton(heroFrameView,
+                "Layer/Panel_12/Title/CloseBtn", "HeroRebirth reconnect close");
+            if (!InvokeEventSystemRaycastClick(frameClose))
+            {
+                Fail("HeroRebirth G4 reconnect page did not close.");
+                yield break;
+            }
+
+            services.Config.LocalUserId = isolationUserId;
+            ReturnToLogin();
+            BindLoginClick(false);
+            loginPresenter.SetAccountCredentials(isolationUserId, "local");
+            if (!loginPresenter.InvokeAccountSubmit())
+            {
+                Fail("HeroRebirth G4 isolation account submit was unavailable.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 25f;
+            while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+            if (CurrentAppState != AppState.Main || GetPlayerRoleId() == 0 || GetPlayerRoleId() == primaryRoleId)
+            {
+                Fail($"HeroRebirth G4 isolation identity mismatch: {GetLocalUserId()}/{GetPlayerRoleId()}.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 12f;
+            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            if (services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"HeroRebirth G4 isolation login did not settle before account switch: pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            uint isolationRoleId = GetPlayerRoleId();
+            services.Config.LocalUserId = primaryUserId;
+            ReturnToLogin();
+            BindLoginClick(false);
+            loginPresenter.SetAccountCredentials(primaryUserId, "local");
+            if (!loginPresenter.InvokeAccountSubmit())
+            {
+                Fail("HeroRebirth G4 primary terminal relogin submit was unavailable.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 25f;
+            while (CurrentAppState != AppState.Main && Time.realtimeSinceStartup < deadline) yield return null;
+            if (CurrentAppState == AppState.Main && GetPlayerRoleId() == primaryRoleId)
+                RequestHeroRebirthValidationSnapshot();
+            deadline = Time.realtimeSinceStartup + 25f;
+            while ((services.ProtocolRegistry.PendingCount != 0 || services.Heroes.Count == 0)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            bool terminalHeroFound = services.Heroes.TryGet(64, out HeroRecord terminalHero);
+            if (CurrentAppState != AppState.Main || GetPlayerRoleId() != primaryRoleId
+                || !terminalHeroFound || terminalHero.Level != 1)
+            {
+                Fail($"HeroRebirth G4 terminal primary relogin did not preserve the rebirth result: heroes={services.Heroes.Count}, level={terminalHero.Level}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
+            if (IsHeroOpen)
+            {
+                Button terminalHeroClose = RequireBoundButton(heroFrameView,
+                    "Layer/Panel_12/Title/CloseBtn", "HeroRebirth terminal Hero page close");
+                if (!InvokeEventSystemRaycastClick(terminalHeroClose) || IsHeroOpen)
+                {
+                    Fail("HeroRebirth G4 terminal relogin could not return from Hero page to HUD.");
+                    yield break;
+                }
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
+            hudEntry = mainView?.Binding.Find(HeroRecyclePath)?.GetComponent<Button>();
+            if (!InvokeEventSystemRaycastClick(hudEntry))
+            {
+                Fail("HeroRebirth G4 terminal reentry did not accept a real HUD click.");
+                yield break;
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            if (!InvokeEventSystemRaycastClick(heroRebirthPresenter.AddButton))
+            {
+                Fail("HeroRebirth G4 terminal candidate list did not reopen.");
+                yield break;
+            }
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            alternateCandidate = heroRebirthPresenter.GetCandidateButton(60);
+            if (!InvokeEventSystemRaycastClick(alternateCandidate))
+            {
+                Fail("HeroRebirth G4 terminal alternate candidate did not accept a real click.");
+                yield break;
+            }
+            deadline = Time.realtimeSinceStartup + 15f;
+            while ((heroRebirthPresenter.IsPending || !heroRebirthPresenter.PreviewReady)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!heroRebirthPresenter.PreviewReady || heroRebirthPresenter.SelectedHeroId != 60)
+            {
+                Fail("HeroRebirth G4 terminal reentry did not rebuild an authoritative preview.");
+                yield break;
+            }
+            yield return CaptureHeroRebirthEvidence("HR-24-reentered.png");
+
+            foreach (string id in new[]
+            {
+                "HR-01-HUD-ENTRY", "HR-02-HERO-BAG-ENTRY", "HR-03-CLOSE", "HR-04-HERO-TAB",
+                "HR-05-EQUIP-TAB-BOUNDARY", "HR-06-FABAO-TAB-BOUNDARY", "HR-07-SECOND-TAB",
+                "HR-08-ADD-HERO", "HR-09-CHANGE-HERO", "HR-10-CHOOSE-CLOSE", "HR-11-CHOOSE-ITEM",
+                "HR-12-CHOOSE-SCROLL", "HR-13-REFUND-SCROLL", "HR-14-REFUND-ITEM-DETAIL",
+                "HR-15-REBIRTH", "HR-16-CONFIRM-CLOSE", "HR-17-CONFIRM-CANCEL",
+                "HR-18-CONFIRM-REFUND-DETAIL", "HR-19-CONFIRM", "HR-20-EMPTY-STATE",
+                "HR-21-PREVIEW-STATE", "HR-22-INSUFFICIENT-STATE", "HR-23-AUTHORITATIVE-REJECTION",
+                "HR-24-SUCCESS-LIFECYCLE"
+            }) MarkValidationControl(id);
+            RecordValidationSemantic("hero-rebirth-two-entry-routes", true,
+                "real HUD and hero-bag recycle raycast clicks converged on one presenter");
+            RecordValidationSemantic("hero-rebirth-candidate-filter-scroll", true,
+                $"eligible={heroRebirthPresenter.EligibleCount}; deployed 24/57 and initial 62 excluded; real vertical drag moved content");
+            RecordValidationSemantic("hero-rebirth-op8-authoritative-preview", true,
+                $"hero=64 rewards={expectedRewards.Count}; changed 64->60->64 with authoritative /24 op=8 replacement; "
+                + (rewardOverflows ? "overflow accepted real vertical drag" : "current 7-type source universe fits two rows without fake drag"));
+            RecordValidationSemantic("hero-rebirth-confirm-cancel-close", true,
+                "close/cancel/detail accepted real raycast input and left hero/currency unchanged");
+            RecordValidationSemantic("hero-rebirth-op9-atomic-success", true,
+                $"hero=64 level {targetBefore.Level}->1; break {targetBefore.BreakLevel}->0; cultivation {targetBefore.CultivationLevel}->0; bound {boundBefore}->{services.Currencies.BoundPremium}");
+            RecordValidationSemantic("hero-rebirth-rejections-no-mutation", true,
+                "deployed hero /24 op=8 rejected atomically; insufficient client branch sent no op=9");
+            RecordValidationSemantic("hero-rebirth-network-recovery", true,
+                $"real disconnect/reconnect restored role={primaryRoleId} and persisted hero64 level=1");
+            RecordValidationSemantic("hero-rebirth-account-isolation", true,
+                $"primary={primaryUserId}/{primaryRoleId}; isolation={isolationUserId}/{isolationRoleId}; terminal primary restored");
+            RecordValidationSemantic("hero-rebirth-sqlite-exact-restore", true,
+                "outer fixed-account runner owns immutable SQLite restore, relogin hash and cleanup assertions");
+            RecordValidationSemantic(HeroRebirthControlMatrixSemantic, validationControlIds.Count == 24,
+                $"validated={validationControlIds.Count}/24 through real EventSystem/raycast controls and scenario states");
+            if (GetFailedValidationSemanticAssertions().Length > 0 || validationControlIds.Count != 24)
+            {
+                Fail("HeroRebirth G4 control/semantic coverage failed: "
+                    + string.Join(" | ", GetFailedValidationSemanticAssertions()));
+                yield break;
+            }
+            Complete("COMPLETE: HeroRebirth G4 24/24 controls and 10/10 semantics; real /24 op=8/op=9, rejection, reconnect, account isolation and persistence passed");
+        }
+
+        private IEnumerator CaptureHeroRebirthEvidence(string fileName)
+        {
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            string path = BuildUiMigrationPath(fileName);
+            if (File.Exists(path)) File.Delete(path);
+            ScreenCapture.CaptureScreenshot(path);
+            float deadline = Time.realtimeSinceStartup + 8f;
+            while ((!File.Exists(path) || new FileInfo(path).Length < 4096)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            if (!File.Exists(path) || new FileInfo(path).Length < 4096)
+                throw new IOException("HeroRebirth screenshot was not written: " + path);
+        }
+
+        private void CloseHeroRecycle()
+        {
+            heroRebirthPresenter?.Hide();
+            if (heroRecycleOpenedFromBag)
+            {
+                RestoreHeroBagFromAuxiliary();
+                return;
+            }
+            ReleaseHeroAuxiliaryViews();
+            heroFrameView?.SetVisible(false);
+            if (services?.UiStack.Current == heroFrameView) services.UiStack.Pop();
+        }
+
+        private void ShowHeroRebirthItemDetail(HeroRebirthReward reward)
+        {
+            heroItemSourceView = heroItemSourceView ?? services.UiRouter.FindBySource("common/huoqutujing");
+            if (heroItemSourceView == null)
+                throw new InvalidOperationException("Hero rebirth item-source CocosUiBinding was not found.");
+
+            int itemId = reward.Type != 0 ? reward.Type : reward.Id;
+            EquipmentMaterialDefinition definition = services.EquipmentCatalog.GetItem(itemId);
+            string name = definition?.Name ?? heroRebirthPresenter?.DescribeReward(reward) ?? $"物品 #{itemId}";
+            SetBoundText(heroItemSourceView, "Layer/Popup/Panel_name/txt_name", name);
+            SetBoundText(heroItemSourceView, "Layer/Popup/Panel_name/txt_tips", definition?.Description ?? string.Empty);
+            SetBoundText(heroItemSourceView, "Layer/Popup/Panel_name/txt_num", $"数量：{reward.Quantity}");
+            SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Name_1", "来源：主线副本");
+            SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Name_2", string.Empty);
+            SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/times", string.Empty);
+            SetBoundText(heroItemSourceView, "Layer/Popup/Title/Title", "获取途径");
+
+            Image icon = heroItemSourceView.Binding.Find("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
+            if (icon != null)
+            {
+                icon.sprite = definition == null ? null : services.Resources.LoadItemIcon(definition.Picture);
+                icon.enabled = icon.sprite != null;
+                icon.preserveAspect = true;
+            }
+            SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_1", false);
+            SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_2", false);
+            SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_3", false);
+            SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/item_icon", false);
+            heroItemSourceView.BindClick("Layer/Popup/Title/Btn_close", () => heroItemSourceView.SetVisible(false), true);
+            heroItemSourceView.BindClick("Layer/Mask", () => heroItemSourceView.SetVisible(false), true);
+            heroItemSourceView.SetVisible(true);
+            heroItemSourceView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private bool IsHeroRebirthItemSourceVisible()
+        {
+            Text title = heroItemSourceView?.Binding.Find("Layer/Popup/Title/Title")?.GetComponent<Text>();
+            return heroItemSourceView?.GameObject.activeSelf == true && title?.text == "获取途径";
         }
 
         private void ShowHeroBagAuxiliary(CocosUiView target, string titleValue)
@@ -14046,8 +14864,16 @@ namespace ProjectX.Core
 
         private void ReleaseHeroAuxiliaryViews()
         {
+            heroRebirthPresenter?.Dispose();
+            heroRebirthPresenter = null;
+            UiPrefabLoader.Release(heroRebirthChooseView);
+            UiPrefabLoader.Release(heroRebirthChooseFrameView);
+            UiPrefabLoader.Release(heroRebirthConfirmView);
             UiPrefabLoader.Release(heroBookView);
             UiPrefabLoader.Release(heroRecycleView);
+            heroRebirthChooseView = null;
+            heroRebirthChooseFrameView = null;
+            heroRebirthConfirmView = null;
             heroBookView = null;
             heroRecycleView = null;
             ReleaseHeroEquipmentViews();

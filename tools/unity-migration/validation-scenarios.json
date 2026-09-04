@@ -3127,6 +3127,89 @@
         "minimumBytes": 4096,
         "requireUniqueHashes": true
       }
+    },
+    {
+      "key": "hero-rebirth-default",
+      "module": "HeroRebirth",
+      "fixture": "reversible-hero-rebirth-fixed-account",
+      "flags": [
+        "-projectXHeroRebirthG4Validation"
+      ],
+      "networkValidation": {
+        "disableAutoReconnect": true,
+        "showReconnectDialog": true
+      },
+      "artifacts": [
+        { "path": "build/ui-migration/HR-01-main-entry.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-02-hero-bag-entry.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-20-empty-state.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-11-candidate-list.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-21-preview-state.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-14-refund-detail.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-16-confirmation.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-22-insufficient-currency.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-24-success-reset.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-24-reconnected.png", "lifecycle": "runtime" },
+        { "path": "build/ui-migration/HR-24-reentered.png", "lifecycle": "runtime" }
+      ],
+      "captureStates": [
+        "main-entry", "hero-bag-entry", "empty-state", "candidate-list", "preview-state",
+        "refund-detail", "confirmation", "insufficient-currency", "success-reset", "reconnected", "reentered"
+      ],
+      "semanticAssertionKeys": [
+        "hero-rebirth-two-entry-routes",
+        "hero-rebirth-candidate-filter-scroll",
+        "hero-rebirth-op8-authoritative-preview",
+        "hero-rebirth-confirm-cancel-close",
+        "hero-rebirth-op9-atomic-success",
+        "hero-rebirth-rejections-no-mutation",
+        "hero-rebirth-network-recovery",
+        "hero-rebirth-account-isolation",
+        "hero-rebirth-sqlite-exact-restore",
+        "hero-rebirth-control-matrix-24"
+      ],
+      "sourceContracts": [
+        {
+          "path": "client/ProjectX/src/View/HuiShou/ShengJiangChongShengUI.lua",
+          "contains": ["OpenShenJiangChooseUI", "SendPetChongSheng(8"]
+        },
+        {
+          "path": "client/ProjectX/src/View/HuiShou/ChongShengConfirmUI.lua",
+          "contains": ["onConfirmClicked", "SendPetChongSheng(9"]
+        },
+        {
+          "path": "client/ProjectX/src/View/HuiShou/ShengJiangChooseUI.lua",
+          "contains": ["LoadShengJiangData", "fightPos == 0", "breakLevel > 0"]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": ["case 8:// 重生查询", "HeroCChongSheng", "case 9:// 重生", "HeroChongSheng"]
+        },
+        {
+          "path": "server/src/user.cpp",
+          "contains": ["GetChongShengCost(allCost)", "GetTongBao(1) < 50", "AddTongBao(-50, 1)", "AddMultiCost(allCost)"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "contains": ["function M.requestRebirthPreview", "function M.confirmRebirth", "message:WriteUInt(heroId)", "local heroId = message:ReadUInt()", "readRebirthResponse"]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/HeroRebirthPresenter.cs",
+          "contains": ["class HeroRebirthPresenter", "Monster/btm", "CurrencyIds.BoundPremium", "bg/Image1", "int itemId = reward.Type", "new GameObject(\"Icon\"", "new GameObject(\"Quantity\""]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": ["RunHeroRebirthG3Validation", "RunHeroRebirthG4Validation", "hero-rebirth-control-matrix-24", "ShowHeroRecycle"]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      },
+      "requiredGate": "G3",
+      "controlCoverageRequired": true
     }
   ]
 }

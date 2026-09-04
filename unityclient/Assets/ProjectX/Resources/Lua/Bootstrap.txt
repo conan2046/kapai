@@ -71,6 +71,8 @@ function OnHeroCultivate(heroId, count) HeroController.cultivate(heroId, count) 
 function OnHeroStarUp(heroId) HeroController.starUp(heroId) end
 function OnHeroCultivationActivate(heroId) HeroController.activateCultivation(heroId) end
 function OnHeroCompose(fragmentId) HeroController.composeHero(fragmentId) end
+function OnHeroRebirthPreview(heroId) HeroController.requestRebirthPreview(heroId) end
+function OnHeroRebirthConfirm(heroId) HeroController.confirmRebirth(heroId) end
 function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
 function OnEquipmentBagClicked() EquipmentController.open(1) end

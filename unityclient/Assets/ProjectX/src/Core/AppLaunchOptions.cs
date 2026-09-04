@@ -56,6 +56,8 @@ namespace ProjectX.Core
         public bool BattleFengShenStoryValidation => HasFlag("-projectXBattleFengShenStoryValidation");
         public bool StaminaClaimValidation => HasFlag("-projectXStaminaClaimValidation");
         public bool HeroCultivationG3Validation => HasFlag("-projectXHeroCultivationG3Validation");
+        public bool HeroRebirthValidation => HasFlag("-projectXHeroRebirthG3Validation")
+            || HasFlag("-projectXHeroRebirthG4Validation");
         public bool EnhanceMasterG3Validation => HasFlag("-projectXEnhanceMasterG3Validation");
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && flags.Contains(flag);

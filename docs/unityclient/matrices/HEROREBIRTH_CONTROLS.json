@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 1,
+  "module": "HeroRebirth",
+  "workflowPolicyVersion": 1,
+  "hardGateVersion": 3,
+  "scenarioStateControlIds": [
+    "HR-20-EMPTY-STATE",
+    "HR-21-PREVIEW-STATE",
+    "HR-22-INSUFFICIENT-STATE",
+    "HR-23-AUTHORITATIVE-REJECTION",
+    "HR-24-SUCCESS-LIFECYCLE"
+  ],
+  "scenarioStateContracts": [
+    { "controlId": "HR-20-EMPTY-STATE", "captureStates": ["empty-state"] },
+    { "controlId": "HR-21-PREVIEW-STATE", "captureStates": ["preview-state"] },
+    { "controlId": "HR-22-INSUFFICIENT-STATE", "captureStates": ["insufficient-currency"] },
+    { "controlId": "HR-23-AUTHORITATIVE-REJECTION", "captureStates": ["preview-state"] },
+    { "controlId": "HR-24-SUCCESS-LIFECYCLE", "captureStates": ["success-reset", "reconnected", "reentered"] }
+  ],
+  "coverageList": "docs/unityclient/matrices/HEROREBIRTH_COVERAGE.json",
+  "scope": {
+    "dataBackend": "sqlite",
+    "sqlitePath": "Application.persistentDataPath/LocalServer/projectx.db",
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000003,
+    "cocosFixedUserId": 7200057,
+    "cocosFixedRoleId": 1000115,
+    "screenSize": "1334x750",
+    "windowsDpi": "100%",
+    "controlCount": 24,
+    "included": [
+      "主界面回收入口与神将背包回收入口，两条链均进入HuiShouMainUI神将页",
+      "神将重生空态、候选列表、选择/更换、英雄模型、星级和重生前后属性",
+      "/24 op=8权威返还预览、返还物列表/详情/滚动、50绑定元宝消耗",
+      "确认弹窗关闭/取消/确认、/24 op=9成功与失败、重登/重连/切号/恢复"
+    ],
+    "sharedGlobalControlsOwnedElsewhere": [
+      "OneLevelLayer顶部绑定元宝、金币、体力显示由PlayerHud/ResourceFoundation负责",
+      "金币与体力加号打开后的商城/体力购买内部控件由各自模块负责"
+    ],
+    "excludedMustBeHiddenOrDisabled": [
+      "回收一级框架的装备、法宝页签：本任务只迁移神将重生，点击不得进入未验收页面",
+      "神将图鉴：独立后续模块，本任务不得绑定、实现或验收"
+    ],
+    "readOnlyPrefabBaseline": {
+      "path": "unityclient/Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab",
+      "sha256": "7E210120B232144840C62DAE3B323E48E82D4C0CE3D5CB682C7F761FFF5EA4B9"
+    }
+  },
+  "acceptanceExamples": [
+    {
+      "id": "hero-rebirth-authoritative-success",
+      "given": "固定SQLite角色拥有一名未上阵且等级、突破、修炼均大于初始值的神将，并至少有50绑定元宝",
+      "when": "从真实回收入口选择该神将，核对/24 op=8返还预览并在确认弹窗点击确认",
+      "then": "仅在/24 op=9成功后扣除50绑定元宝、神将等级/突破/修炼归零而星级保持，返还资源按权威结果到账，重登保持"
+    },
+    {
+      "id": "hero-rebirth-insufficient-currency",
+      "given": "固定角色绑定元宝少于50且存在可重生神将",
+      "when": "选择神将并点击真实重生按钮",
+      "then": "显示与Cocos一致的元宝不足提示，不发送成功事务且神将和背包资源均不变化"
+    },
+    {
+      "id": "hero-rebirth-deployed-rejection",
+      "given": "目标神将处于出战阵位且已有突破进度",
+      "when": "服务端收到/24 op=8或op=9的该神将ID",
+      "then": "返回可解释失败，绑定元宝、神将进度和背包资源原子不变"
+    },
+    {
+      "id": "hero-rebirth-cancel-lifecycle",
+      "given": "返还预览和确认弹窗已显示",
+      "when": "分别点击关闭与取消，并执行返回重进、断线重连和切号",
+      "then": "不产生写操作，旧选择、pending和弹窗不残留，finally精确恢复projectx.db"
+    }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "knownGaps": [
+      {
+        "id": "hero-rebirth-server-refund-shadow",
+        "handling": "G3前修复HeroChongSheng内部allCost遮蔽，并以源码合同及固定SQLite成功重生验证返还到账。",
+        "evidence": "server/src/user.cpp"
+      },
+      {
+        "id": "hero-rebirth-cocos-candidate-precedence",
+        "handling": "Unity候选严格要求未上阵且level>1或breakLevel>0或cultivationLevel>0；保留上阵神将作为权威拒绝夹具，不复刻Cocos括号缺失。",
+        "evidence": "client/ProjectX/src/View/HuiShou/ShengJiangChooseUI.lua"
+      },
+      {
+        "id": "hero-rebirth-readonly-prefab",
+        "handling": "不得修改用户Prefab；运行时Presenter只绑定现有节点并创建动态列表、Imod模型和弹窗实例。",
+        "evidence": "unityclient/Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab"
+      }
+    ],
+    "excludedControls": [
+      {
+        "path": "OneLevelLayer/Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1(tag=2,3)",
+        "reason": "用户明确本任务只处理神将重生；装备与法宝回收不在当前模块",
+        "source": "client/ProjectX/src/View/HuiShou/HuiShouMainUI.lua"
+      },
+      {
+        "path": "yingxiongbeibaoUI/cell",
+        "reason": "神将图鉴由后续独立任务从G0开始",
+        "source": "client/ProjectX/src/View/KaPaiPet/PetBagPetSubUI.lua"
+      }
+    ]
+  },
+  "controls": [
+    {
+      "id": "HR-01-HUD-ENTRY", "page": "主界面", "path": "Layer/Main_UI/ButtonGroup7/btn_huishou",
+      "visibleCondition": "主界面已进入且EMID_HUISHOU=410开放", "cocosCallback": "MainUI.OnHuiShouBtnButtonClick -> Utils:OpenFunction(EMID_HUISHOU)",
+      "protocolOp": "无；进入后等待选择神将", "unityBinding": "G3绑定真实HUD按钮并打开神将重生页", "g2Design": "两条入口汇合到同一权威Controller和唯一UI实例",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-01-HUD-ENTRY.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-01-HUD-ENTRY.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-02-HERO-BAG-ENTRY", "page": "神将背包", "path": "Layer/yingxiongbeibaoUI/recycle",
+      "visibleCondition": "神将背包神将页打开", "cocosCallback": "PetBagPetSubUI.recycle -> closeUI -> Utils:OpenFunction(EMID_HUISHOU)",
+      "protocolOp": "无；进入后等待选择神将", "unityBinding": "现有heroBagView recycle按钮进入同一神将重生页", "g2Design": "关闭神将背包后再打开重生页，不允许双层UI或重复实例",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-02-HERO-BAG-ENTRY.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-02-HERO-BAG-ENTRY.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-03-CLOSE", "page": "回收一级框架", "path": "OneLevelLayer/Layer/Panel_12/Title/CloseBtn",
+      "visibleCondition": "神将重生页打开", "cocosCallback": "FirstClassBg.CloseCallback -> HuiShouMainUI.CloseUI", "protocolOp": "无", "unityBinding": "G3真实关闭并回到来源页/主界面",
+      "g2Design": "清理选择、候选弹窗、确认弹窗、pending和监听",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-03-CLOSE.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-03-CLOSE.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-04-HERO-TAB", "page": "回收一级框架", "path": "OneLevelLayer/Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1(tag=1)",
+      "visibleCondition": "回收一级框架打开；神将页为选中禁用态", "cocosCallback": "FirstClassBg.touchTab(1) -> HuiShouMainUI.TabClicked(1)", "protocolOp": "无", "unityBinding": "G3显示神将页签选中态",
+      "g2Design": "不得因重复点击生成第二实例",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-04-HERO-TAB.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-04-HERO-TAB.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-05-EQUIP-TAB-BOUNDARY", "page": "回收一级框架", "path": "OneLevelLayer/Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1(tag=2)",
+      "visibleCondition": "本任务范围内必须隐藏或禁用", "cocosCallback": "HuiShouMainUI.TabClicked(2)（当前Cocos可达，当前任务明确排除）", "protocolOp": "不发送", "unityBinding": "G3隐藏或禁用且不进入装备回收",
+      "g2Design": "作为范围边界验证，不迁移装备业务",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-05-EQUIP-TAB-BOUNDARY.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-05-EQUIP-TAB-BOUNDARY.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-06-FABAO-TAB-BOUNDARY", "page": "回收一级框架", "path": "OneLevelLayer/Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1(tag=3)",
+      "visibleCondition": "本任务范围内必须隐藏或禁用", "cocosCallback": "HuiShouMainUI.TabClicked(3)（当前Cocos可达，当前任务明确排除）", "protocolOp": "不发送", "unityBinding": "G3隐藏或禁用且不进入法宝回收",
+      "g2Design": "作为范围边界验证，不迁移法宝业务",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-06-FABAO-TAB-BOUNDARY.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-06-FABAO-TAB-BOUNDARY.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-07-SECOND-TAB", "page": "神将重生", "path": "OneLevelLayer/Layer/Panel_12/SubBtnList/ListView/CheckBox(tag=1)",
+      "visibleCondition": "神将页打开；唯一二级页签为神将重生", "cocosCallback": "FirstClassBg.secondTouchTab(1) -> HuiShouMainUI.SecondTabClicked(1)", "protocolOp": "无", "unityBinding": "G3显示唯一选中页签",
+      "g2Design": "重复点击保持唯一页面实例",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-07-SECOND-TAB.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-07-SECOND-TAB.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-08-ADD-HERO", "page": "神将重生空态", "path": "Layer/shenjiangchongshengUI/bg/Btn_add",
+      "visibleCondition": "尚未选择神将", "cocosCallback": "ShengJiangChongShengUI.OpenShenJiangChooseUI -> EMID_SHENJIANG_CHOOSE", "protocolOp": "无；读取已有/24神将快照", "unityBinding": "G3打开候选神将弹层",
+      "g2Design": "只显示符合当前筛选规则的候选，空态有明确反馈",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-08-ADD-HERO.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-08-ADD-HERO.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-09-CHANGE-HERO", "page": "神将重生预览态", "path": "Layer/shenjiangchongshengUI/bg/Btn_Change",
+      "visibleCondition": "已选择神将", "cocosCallback": "ShengJiangChongShengUI.OpenShenJiangChooseUI", "protocolOp": "无；新选择后发送/24 op=8", "unityBinding": "G3重新打开候选层并替换选择",
+      "g2Design": "旧预览与返还列表必须被新权威响应替换",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-09-CHANGE-HERO.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-09-CHANGE-HERO.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-10-CHOOSE-CLOSE", "page": "神将选择", "path": "shop_bg/Popup/Btn_close",
+      "visibleCondition": "候选神将弹层打开", "cocosCallback": "PopFirstClassBg.CloseCallback -> ShengJiangChooseUI.CloseUI", "protocolOp": "无", "unityBinding": "G3关闭候选层并保留原选择/空态",
+      "g2Design": "关闭不得清除已确认页面栈或重开旧页",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-10-CHOOSE-CLOSE.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-10-CHOOSE-CLOSE.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-11-CHOOSE-ITEM", "page": "神将选择", "path": "Layer/ChooseUI/Popup/ItemList/Item1..2/Btn_Choose (dynamic rows)",
+      "visibleCondition": "至少一名候选神将", "cocosCallback": "ShengJiangChooseUI.ChooseShengJiangClicked -> LHuiShouEvent.SelectShengJiang", "protocolOp": "/24 op=8 + petId", "unityBinding": "G3真实候选按钮选择并关闭弹层",
+      "g2Design": "候选ID、名称、等级、突破、头像与权威/24一致",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-11-CHOOSE-ITEM.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-11-CHOOSE-ITEM.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-12-CHOOSE-SCROLL", "page": "神将选择", "path": "Layer/ChooseUI/Popup/TableView",
+      "visibleCondition": "候选行内容高度大于视口", "cocosCallback": "cc.TableView vertical drag/scroll", "protocolOp": "无", "unityBinding": "G3复用VirtualList并验证真实拖拽位移",
+      "g2Design": "按钮不吞父级拖拽，重绑不重复节点",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-12-CHOOSE-SCROLL.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-12-CHOOSE-SCROLL.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-13-REFUND-SCROLL", "page": "神将重生预览态", "path": "Layer/shenjiangchongshengUI/chongsheng/fanhuan/TableView",
+      "visibleCondition": "权威返还内容高度大于视口时；当前服务端资源宇宙最多7种，两行完整可见时保持非滚动态", "cocosCallback": "cc.TableView vertical drag/scroll", "protocolOp": "消费/24 op=8权威返还列表", "unityBinding": "G3复用VirtualList；溢出时验证真实位移，未溢出时验证6至7种最大边界且不伪造位移",
+      "g2Design": "每行5项，内容未溢出时不得伪报滚动成功",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-13-REFUND-SCROLL.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-13-REFUND-SCROLL.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-14-REFUND-ITEM-DETAIL", "page": "神将重生预览态", "path": "Layer/shenjiangchongshengUI/chongsheng/fanhuan/Item (dynamic clone)",
+      "visibleCondition": "至少一项返还资源", "cocosCallback": "Utils:GetItemCellValue(...showDetail=true)", "protocolOp": "无；读取op=8返还项", "unityBinding": "G3点击返还项显示真实道具详情",
+      "g2Design": "名称、品质框、图标和数量来自配置及权威数量",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-14-REFUND-ITEM-DETAIL.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-14-REFUND-ITEM-DETAIL.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-15-REBIRTH", "page": "神将重生预览态", "path": "Layer/shenjiangchongshengUI/chongsheng/Btn_chongsheng",
+      "visibleCondition": "已选择神将并收到op=8预览", "cocosCallback": "ShengJiangChongShengUI.onChongShengClicked", "protocolOp": "足额时打开确认弹窗；不足时本地提示", "unityBinding": "G3真实按钮按权威货币状态分流",
+      "g2Design": "不足50绑定元宝不打开确认、不产生写请求",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-15-REBIRTH.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-15-REBIRTH.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-16-CONFIRM-CLOSE", "page": "重生确认弹窗", "path": "Layer/Popup/Btn_close",
+      "visibleCondition": "确认弹窗打开", "cocosCallback": "ChongShengConfirmUI.onCancelClicked", "protocolOp": "无", "unityBinding": "G3关闭弹窗且不写入",
+      "g2Design": "来源/目标资源、货币和神将状态均不变",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-16-CONFIRM-CLOSE.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-16-CONFIRM-CLOSE.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-17-CONFIRM-CANCEL", "page": "重生确认弹窗", "path": "Layer/Popup/Btn_Cancel",
+      "visibleCondition": "确认弹窗打开", "cocosCallback": "ChongShengConfirmUI.onCancelClicked", "protocolOp": "无", "unityBinding": "G3取消并回到预览态",
+      "g2Design": "不产生写操作且预览保持可核对",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-17-CONFIRM-CANCEL.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-17-CONFIRM-CANCEL.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-18-CONFIRM-REFUND-DETAIL", "page": "重生确认弹窗", "path": "Layer/Popup/fanhuan/Item (dynamic clone)",
+      "visibleCondition": "确认弹窗至少一项返还资源", "cocosCallback": "Utils:ShowItemByConfigData(...showDetail=true)", "protocolOp": "无；复用op=8预览", "unityBinding": "G3点击显示道具详情",
+      "g2Design": "确认弹窗与主预览的资源集合和数量完全一致",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-18-CONFIRM-REFUND-DETAIL.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-18-CONFIRM-REFUND-DETAIL.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-19-CONFIRM", "page": "重生确认弹窗", "path": "Layer/Popup/Btn_Confirm",
+      "visibleCondition": "确认弹窗打开且固定账号满足成功前置", "cocosCallback": "ChongShengConfirmUI.onConfirmClicked -> SendPetChongSheng(9,petId)", "protocolOp": "/24 op=9 + petId", "unityBinding": "G3发送真实op=9并等待权威结果",
+      "g2Design": "pending期间防重复；成功后重拉/24和背包，失败原子不变",
+      "cocosEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/cocos/HR-19-CONFIRM.png", "unityEvidence": ".local/ui-fidelity/HeroRebirth/control-evidence/unity/HR-19-CONFIRM.png",
+      "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": true, "automationPassed": true, "manualPassed": true, "status": "complete"
+    },
+    {
+      "id": "HR-20-EMPTY-STATE", "page": "神将重生空态", "path": "Layer/shenjiangchongshengUI/Text + bg/Btn_add",
+      "visibleCondition": "无已选择神将或成功重生后ResetUI", "cocosCallback": "ShengJiangChongShengUI.ResetUI", "protocolOp": "无", "unityBinding": "G3显示提示和加号，隐藏模型/属性/返还/更换",
+      "g2Design": "场景状态；不得伪造真实点击", "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": false, "automationPassed": true, "manualPassed": true, "status": "complete", "entryType": "scenario-state"
+    },
+    {
+      "id": "HR-21-PREVIEW-STATE", "page": "神将重生预览态", "path": "Layer/shenjiangchongshengUI/bg + chongsheng",
+      "visibleCondition": "选择可重生神将并收到/24 op=8", "cocosCallback": "UpdatePetInfo + UpdateRewardInfo", "protocolOp": "/24 op=8", "unityBinding": "G3渲染Imod模型、星级、等级/突破/星级前后值、成本与返还",
+      "g2Design": "场景状态；当前星级保持不变，重生目标等级1/突破0", "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": false, "automationPassed": true, "manualPassed": true, "status": "complete", "entryType": "scenario-state"
+    },
+    {
+      "id": "HR-22-INSUFFICIENT-STATE", "page": "神将重生预览态", "path": "Toast + ConsumeBg/Value",
+      "visibleCondition": "绑定元宝<50", "cocosCallback": "onChongShengClicked -> GUITips.RSI_LD_TIP11", "protocolOp": "不发送op=9", "unityBinding": "G3显示等价提示并保持预览",
+      "g2Design": "场景状态；验证无货币/神将/资源变化", "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": false, "automationPassed": true, "manualPassed": true, "status": "complete", "entryType": "scenario-state"
+    },
+    {
+      "id": "HR-23-AUTHORITATIVE-REJECTION", "page": "神将重生", "path": "Toast/error response",
+      "visibleCondition": "神将不存在或在出战阵位", "cocosCallback": "LuaNetRecvdMsg /24错误分支", "protocolOp": "/24 op=8或op=9 PRO_ERROR", "unityBinding": "G3清pending、显示错误、保持原状态",
+      "g2Design": "场景状态；失败事务原子不变", "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": false, "automationPassed": true, "manualPassed": true, "status": "complete", "entryType": "scenario-state"
+    },
+    {
+      "id": "HR-24-SUCCESS-LIFECYCLE", "page": "神将重生", "path": "success toast + ResetUI + authoritative refresh",
+      "visibleCondition": "op=9成功、返回重进、重连、重启或切号", "cocosCallback": "ShengJiangChongSheng事件 -> ResetUI", "protocolOp": "/24 op=9 + /24 op=1重拉及背包权威刷新", "unityBinding": "G3成功后清选择并按权威快照刷新；生命周期不残留",
+      "g2Design": "场景状态；固定SQLite精确恢复且Fixture残留0", "successEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "failureEvidence": ".local/unity-validation/herorebirth-operation-ledger.json", "reconnectEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json", "realEntryClick": false, "automationPassed": true, "manualPassed": true, "status": "complete", "entryType": "scenario-state"
+    }
+  ],
+  "g6Audit": {
+    "currentEvidence": true,
+    "manualAcceptanceCurrent": true,
+    "userId": 7200057,
+    "roleId": 1000003,
+    "screenshotSize": "1334x750",
+    "placeholderCount": 0,
+    "duplicateUidCount": 0,
+    "seriousErrorCount": 0,
+    "automationScreenshotCount": 19,
+    "cocosSourceSet": ".local/ui-fidelity/HeroRebirth/cocos/g1",
+    "unitySourceSet": ".local/ui-fidelity/HeroRebirth/unity/g5",
+    "controlEvidenceManifest": ".local/unity-validation/herorebirth-g6-control-evidence-latest.json",
+    "fixedAccountEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json",
+    "finalUserPlayEvidence": ".local/unity-validation/herorebirth-final-user-play-latest.json",
+    "fixtureContract": "sqlite-whole-database-snapshot-restore-relogin-cleanup",
+    "fixtureResidueCount": 0
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "module": "HeroRebirth",
+  "scenarios": [
+    { "id": "HR-SC-ENTRY-DIRECT", "description": "主界面回收入口" },
+    { "id": "HR-SC-ENTRY-HERO-BAG", "description": "神将背包回收入口" },
+    { "id": "HR-SC-EMPTY", "description": "无选择与无候选空态" },
+    { "id": "HR-SC-SELECT", "description": "选择、关闭、更换和候选滚动" },
+    { "id": "HR-SC-PREVIEW", "description": "op=8权威返还预览" },
+    { "id": "HR-SC-INSUFFICIENT", "description": "绑定元宝不足" },
+    { "id": "HR-SC-CANCEL", "description": "确认弹窗关闭与取消" },
+    { "id": "HR-SC-SUCCESS", "description": "op=9成功完整事务" },
+    { "id": "HR-SC-DEPLOYED-REJECT", "description": "出战神将拒绝" },
+    { "id": "HR-SC-MISSING-REJECT", "description": "不存在神将拒绝" },
+    { "id": "HR-SC-NETWORK", "description": "延迟、超时、断线与重复点击" },
+    { "id": "HR-SC-LIFECYCLE", "description": "返回、重进、重启、重连、切号与恢复" }
+  ],
+  "sources": [
+    {
+      "id": "current-player-entries", "branchType": "visible-entry",
+      "sourceFiles": ["client/ProjectX/src/View/MainUI.lua", "client/ProjectX/src/View/KaPaiPet/PetBagPetSubUI.lua", "client/ProjectX/src/core/AppDef.lua"],
+      "recordTotal": 2, "businessIds": ["hud-btn-huishou", "hero-bag-recycle"],
+      "mappings": [
+        { "businessIds": ["hud-btn-huishou"], "successScenarioIds": ["HR-SC-ENTRY-DIRECT"], "failureBoundaryScenarioIds": ["HR-SC-NETWORK"] },
+        { "businessIds": ["hero-bag-recycle"], "successScenarioIds": ["HR-SC-ENTRY-HERO-BAG"], "failureBoundaryScenarioIds": ["HR-SC-LIFECYCLE"] }
+      ], "excluded": []
+    },
+    {
+      "id": "hero-template-universe", "branchType": "config-driven-hero-id",
+      "sourceFiles": ["server/config/json/hero.json", "client/ProjectX/src/ConfigData/hero_dat.lua"],
+      "recordTotal": 49,
+      "businessIds": ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "35", "27", "28", "29", "30", "31", "23", "20", "21", "22", "32", "34", "39", "24", "25", "26", "33", "37", "42", "43", "44", "45", "46", "47", "60", "62", "63", "40", "41", "49", "64", "65", "36", "38", "48", "57", "68", "69", "0"],
+      "mappings": [{
+        "businessIds": ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "35", "27", "28", "29", "30", "31", "23", "20", "21", "22", "32", "34", "39", "24", "25", "26", "33", "37", "42", "43", "44", "45", "46", "47", "60", "62", "63", "40", "41", "49", "64", "65", "36", "38", "48", "57", "68", "69"],
+        "successScenarioIds": ["HR-SC-SELECT", "HR-SC-SUCCESS"], "failureBoundaryScenarioIds": ["HR-SC-DEPLOYED-REJECT", "HR-SC-MISSING-REJECT"]
+      }],
+      "excluded": [{ "businessIds": ["0"], "productEvidence": "hero.json id=0 has empty name/pic/quality/itemId and SPet id=0 is invalid; it is not a player-owned hero template" }]
+    },
+    {
+      "id": "hero-level-refund-range", "branchType": "config-driven-level",
+      "sourceFiles": ["server/config/json/exp.json", "server/src/pet.cpp"], "recordTotal": 100,
+      "businessIdRanges": [{ "prefix": "level-", "start": 1, "end": 100 }],
+      "mappings": [{ "businessIdRanges": [{ "prefix": "level-", "start": 1, "end": 100 }], "successScenarioIds": ["HR-SC-PREVIEW", "HR-SC-SUCCESS"], "failureBoundaryScenarioIds": ["HR-SC-EMPTY", "HR-SC-LIFECYCLE"] }], "excluded": []
+    },
+    {
+      "id": "hero-break-refund-range", "branchType": "config-driven-break-level",
+      "sourceFiles": ["server/config/json/break.json", "server/src/hero_cfg_manager.cpp", "server/src/pet.cpp"], "recordTotal": 15,
+      "businessIdRanges": [{ "prefix": "break-", "start": 1, "end": 15 }],
+      "mappings": [{ "businessIdRanges": [{ "prefix": "break-", "start": 1, "end": 15 }], "successScenarioIds": ["HR-SC-PREVIEW", "HR-SC-SUCCESS"], "failureBoundaryScenarioIds": ["HR-SC-DEPLOYED-REJECT", "HR-SC-LIFECYCLE"] }], "excluded": []
+    },
+    {
+      "id": "hero-cultivation-refund-range", "branchType": "config-driven-cultivation-level",
+      "sourceFiles": ["server/config/json/xiulian.json", "server/src/hero_cfg_manager.cpp", "server/src/pet.cpp"], "recordTotal": 20,
+      "businessIdRanges": [{ "prefix": "xiulian-", "start": 1, "end": 20 }],
+      "mappings": [{ "businessIdRanges": [{ "prefix": "xiulian-", "start": 1, "end": 20 }], "successScenarioIds": ["HR-SC-PREVIEW", "HR-SC-SUCCESS"], "failureBoundaryScenarioIds": ["HR-SC-LIFECYCLE", "HR-SC-NETWORK"] }], "excluded": []
+    },
+    {
+      "id": "authoritative-refund-item-types", "branchType": "reward-resource-id",
+      "sourceFiles": ["server/config/json/item.json", "server/config/json/break.json", "server/config/json/xiulian.json", "server/src/pet.cpp"], "recordTotal": 7,
+      "businessIds": ["834", "835", "836", "837", "60000", "851", "853"],
+      "mappings": [{ "businessIds": ["834", "835", "836", "837", "60000", "851", "853"], "successScenarioIds": ["HR-SC-PREVIEW", "HR-SC-SUCCESS"], "failureBoundaryScenarioIds": ["HR-SC-CANCEL", "HR-SC-NETWORK"] }], "excluded": []
+    },
+    {
+      "id": "rebirth-currency-cost", "branchType": "fixed-cost-resource-id",
+      "sourceFiles": ["server/config/json/config.json", "client/ProjectX/src/ConfigData/config_dat.lua", "server/src/user.cpp"], "recordTotal": 1,
+      "businessIds": ["60001"], "mappings": [{ "businessIds": ["60001"], "successScenarioIds": ["HR-SC-SUCCESS"], "failureBoundaryScenarioIds": ["HR-SC-INSUFFICIENT", "HR-SC-CANCEL"] }], "excluded": []
+    },
+    {
+      "id": "pet-protocol-ops", "branchType": "protocol-op",
+      "sourceFiles": ["server/src/protocol.h", "server/src/pack_deal.cpp", "server/src/user.cpp", "client/ProjectX/src/NetWork/LuaNetSendMsg.lua", "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"],
+      "recordTotal": 2, "businessIds": ["24-op8", "24-op9"],
+      "mappings": [
+        { "businessIds": ["24-op8"], "successScenarioIds": ["HR-SC-PREVIEW"], "failureBoundaryScenarioIds": ["HR-SC-DEPLOYED-REJECT", "HR-SC-MISSING-REJECT", "HR-SC-NETWORK"] },
+        { "businessIds": ["24-op9"], "successScenarioIds": ["HR-SC-SUCCESS", "HR-SC-LIFECYCLE"], "failureBoundaryScenarioIds": ["HR-SC-INSUFFICIENT", "HR-SC-DEPLOYED-REJECT", "HR-SC-MISSING-REJECT", "HR-SC-NETWORK"] }
+      ], "excluded": []
+    }
+  ]
+}

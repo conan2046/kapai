@@ -6,7 +6,8 @@
       "HeroCultivation",
       "EnhanceMaster",
       "BattleMeetMonster",
-      "BattleFengShenStory"
+      "BattleFengShenStory",
+      "HeroRebirth"
     ]
   },
   "visualFidelityPolicy": {
@@ -1732,6 +1733,78 @@
       "controlMatrix": "docs/unityclient/matrices/BATTLESCRIPT_CONTROLS.json",
       "document": "docs/unityclient/modules/BATTLESCRIPT.md",
       "g0Draft": ".local/unity-validation/battlescript-g0-draft-latest.json"
+    },
+    {
+      "key": "HeroRebirth",
+      "displayName": "神将重生",
+      "status": "migration-complete",
+      "protocols": [
+        24
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup7/btn_huishou -> MainUI.OnHuiShouBtnButtonClick -> Utils:OpenFunction(EMID_HUISHOU=410) -> HuiShouMainUI tab=1 -> ShengJiangChongShengUI",
+        "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao -> PetBagMainUI tab=1 -> yingxiongbeibaoUI/recycle -> closeUI -> Utils:OpenFunction(EMID_HUISHOU=410) -> HuiShouMainUI tab=1 -> ShengJiangChongShengUI"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/Choose.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huishou/Popup_Confirm.prefab"
+      ],
+      "configs": [
+        "server/config/json/config.json",
+        "server/config/json/hero.json",
+        "server/config/json/exp.json",
+        "server/config/json/break.json",
+        "server/config/json/xiulian.json",
+        "server/config/json/item.json",
+        "client/ProjectX/src/ConfigData/config_dat.lua",
+        "client/ProjectX/src/ConfigData/hero_dat.lua",
+        "client/ProjectX/src/ConfigData/exp_dat.lua",
+        "client/ProjectX/src/ConfigData/break_dat.lua",
+        "client/ProjectX/src/ConfigData/xiulian_dat.lua",
+        "client/ProjectX/src/ConfigData/item_dat.lua"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXHeroRebirthG4Validation"
+      ],
+      "screenshots": [],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-01-main-entry.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-02-hero-bag-entry.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-20-empty-state.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-11-candidate-list.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-21-preview-state.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-14-refund-detail.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-16-confirmation.png",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/HR-22-insufficient-currency.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-01-main-entry.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-02-hero-bag-entry.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-20-empty-state.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-11-candidate-list.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-21-preview-state.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-14-refund-detail.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-16-confirmation.png",
+          ".local/ui-fidelity/HeroRebirth/unity/g5/HR-22-insufficient-currency.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/HeroRebirth/compare/g5/report.json",
+          ".local/unity-validation/herorebirth-g5-visual-assessment-latest.json"
+        ],
+        "flowEvidence": ".local/unity-validation/herorebirth-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/HEROREBIRTH_CONTROLS.json"
+      },
+      "document": "docs/unityclient/modules/HEROREBIRTH.md",
+      "controlMatrix": "docs/unityclient/matrices/HEROREBIRTH_CONTROLS.json",
+      "g0Draft": ".local/unity-validation/herorebirth-g0-draft-latest.json"
     }
   ]
 }

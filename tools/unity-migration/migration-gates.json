@@ -2040,6 +2040,141 @@
           "startSource": "module-scaffold"
         }
       }
+    },
+    {
+      "module": "HeroRebirth",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
+      },
+      "evidence": "docs/unityclient/modules/HEROREBIRTH.md",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-09-04T04:00:55.8588833Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-04T04:00:55.861852Z",
+          "startSource": "module-scaffold",
+          "completedUtc": "2026-09-04T04:16:08.8806542Z",
+          "calendarDurationMs": 913881,
+          "completionCheckDurationMs": 343
+        },
+        "G1": {
+          "startedUtc": "2026-09-04T04:16:08.8806542Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-04T04:35:30.5018794Z",
+          "calendarDurationMs": 1162502,
+          "completionCheckDurationMs": 194
+        },
+        "G2": {
+          "startedUtc": "2026-09-04T04:35:30.5018794Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-04T04:47:14.3711856Z",
+          "calendarDurationMs": 704371,
+          "completionCheckDurationMs": 173
+        },
+        "G3": {
+          "startedUtc": "2026-09-04T04:47:14.3711856Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-04T05:11:33.5655219Z",
+          "calendarDurationMs": 1459566,
+          "completionCheckDurationMs": 337
+        },
+        "G4": {
+          "startedUtc": "2026-09-04T05:11:33.5655219Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-04T07:29:04.068289Z",
+          "calendarDurationMs": 8251068,
+          "completionCheckDurationMs": 1138
+        },
+        "G5": {
+          "startedUtc": "2026-09-04T07:29:04.068289Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-04T08:11:24.1749872Z",
+          "calendarDurationMs": 2540175,
+          "completionCheckDurationMs": 1510
+        },
+        "G6": {
+          "startedUtc": "2026-09-04T08:11:24.1749872Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-04T09:43:48.665642Z",
+          "calendarDurationMs": 5544666,
+          "completionCheckDurationMs": 3826
+        }
+      },
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/HEROREBIRTH.md",
+          "docs/unityclient/matrices/HEROREBIRTH_CONTROLS.json",
+          "docs/unityclient/matrices/HEROREBIRTH_COVERAGE.json",
+          ".local/unity-validation/herorebirth-g0-draft-latest.json"
+        ],
+        "G1": [
+          ".local/unity-validation/herorebirth-cocos-automation-ledger.json",
+          ".local/unity-validation/herorebirth-cocos-preflight-latest.json",
+          ".local/unity-validation/herorebirth-cocos-identity-latest.json",
+          ".local/unity-validation/herorebirth-cocos-baseline-latest.json",
+          ".local/ui-fidelity/HeroRebirth/cocos/g1/hero-rebirth-cocos-fixture-snapshot.json"
+        ],
+        "G2": [
+          ".local/unity-validation/herorebirth-g2-source-audit-latest.json"
+        ],
+        "G3": [
+          ".local/unity-validation/herorebirth-g3-runtime-latest.json"
+        ],
+        "G4": [
+          ".local/unity-validation/hero-rebirth-early-user-play-latest.json",
+          ".local/unity-validation/herorebirth-fixed-account-latest.json",
+          ".local/unity-validation/herorebirth-fixed-account-runner-latest.json",
+          ".local/unity-validation/hero-rebirth-fixed-account-latest.json",
+          ".local/ui-fidelity/HeroRebirth/unity/g3/hero-rebirth-fixed-fixture-snapshot.json",
+          ".local/unity-validation/herorebirth-operation-ledger.json"
+        ],
+        "G5": [
+          ".local/unity-validation/herorebirth-g5-preflight-latest.json",
+          ".local/ui-fidelity/HeroRebirth/compare/g5/report.json",
+          ".local/ui-fidelity/HeroRebirth/compare/g5/contact-side-1.jpg",
+          ".local/ui-fidelity/HeroRebirth/compare/g5/contact-side-2.jpg",
+          ".local/unity-validation/herorebirth-g5-visual-assessment-latest.json",
+          ".local/unity-validation/herorebirth-fixed-account-latest.json"
+        ],
+        "G6": [
+          ".local/unity-validation/herorebirth-fixed-account-latest.json",
+          ".local/unity-validation/herorebirth-final-user-play-latest.json",
+          ".local/unity-validation/herorebirth-final-play-identity-recovery-latest.json",
+          ".local/unity-validation/herorebirth-g6-control-evidence-latest.json",
+          ".local/unity-validation/herorebirth-g6-runtime-cleanup-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json",
+          ".local/ui-fidelity/HeroRebirth/compare/g5/report.json",
+          ".local/unity-validation/herorebirth-g5-visual-assessment-latest.json",
+          "docs/unityclient/matrices/HEROREBIRTH_CONTROLS.json",
+          ".local/unity-validation/herorebirth-operation-ledger.json",
+          ".local/unity-validation/herorebirth-retrospective-latest.json"
+        ]
+      },
+      "gateRevalidations": {
+        "G6": {
+          "checkedUtc": "2026-09-04T09:47:08.4053454Z",
+          "evidence": [
+            ".local/unity-validation/herorebirth-fixed-account-latest.json",
+            ".local/unity-validation/herorebirth-final-user-play-latest.json",
+            ".local/unity-validation/herorebirth-final-play-identity-recovery-latest.json",
+            ".local/unity-validation/herorebirth-g6-control-evidence-latest.json",
+            ".local/unity-validation/herorebirth-g6-runtime-cleanup-latest.json",
+            ".local/unity-validation/bootstrap-idempotence-latest.json",
+            ".local/ui-fidelity/HeroRebirth/compare/g5/report.json",
+            ".local/unity-validation/herorebirth-g5-visual-assessment-latest.json",
+            "docs/unityclient/matrices/HEROREBIRTH_CONTROLS.json",
+            ".local/unity-validation/herorebirth-operation-ledger.json",
+            ".local/unity-validation/herorebirth-retrospective-latest.json"
+          ]
+        }
+      },
+      "updatedUtc": "2026-09-04T09:47:08.4056526Z"
     }
   ]
 }

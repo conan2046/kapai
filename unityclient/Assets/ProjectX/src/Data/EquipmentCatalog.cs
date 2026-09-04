@@ -97,6 +97,7 @@ namespace ProjectX.Data
     {
         [JsonProperty("id")] public int Id { get; set; }
         [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("des")] public string Description { get; set; }
         [JsonProperty("pic")] public int Picture { get; set; }
         [JsonProperty("quality")] public int Quality { get; set; }
         [JsonProperty("type")] public int Type { get; set; }
