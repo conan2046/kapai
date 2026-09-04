@@ -123,9 +123,33 @@ def parse_equipment_layout(value):
         level_count = data[position + 12]
         position += 13 + level_count * 2
         fabao.append((uid, template_id, bytes(data[start:position])))
-    if len(data) - position != 6:
-        raise RuntimeError("HeroEquip SQLite pet_equip tail is not uint32+uint16")
-    return equipment, fabao, bytes(data[position:])
+    tail = bytes(data[position:])
+    if len(tail) < 6:
+        raise RuntimeError("HeroEquip SQLite pet_equip tail is shorter than uint32+uint16")
+    extension = tail[6:]
+    if extension:
+        if len(extension) < 7 or extension[:4] != b"PXA1":
+            raise RuntimeError("HeroEquip SQLite pet_equip tail has an unknown extension")
+        version = extension[4]
+        affix_count = struct.unpack_from("<H", extension, 5)[0]
+        expected_length = 7 + affix_count * 12
+        if version != 1 or len(extension) != expected_length:
+            raise RuntimeError("HeroEquip SQLite PXA1 extension is malformed")
+    return equipment, fabao, tail
+
+
+def parse_affix_records(tail):
+    extension = tail[6:]
+    if not extension:
+        return []
+    affix_count = struct.unpack_from("<H", extension, 5)[0]
+    position = 7
+    records = []
+    for _ in range(affix_count):
+        uid, seed, affix_id, tier, lock_mask = struct.unpack_from("<IIHBB", extension, position)
+        position += 12
+        records.append([uid, seed, affix_id, tier, lock_mask])
+    return records
 
 
 def fixture_equipment_blob(value):
@@ -201,10 +225,10 @@ def role_state(connection, user_id, role_id):
     _, pets = hero_fixture.parse_pets(row[2])
     quantities = {item_id: quantity for item_id, quantity in parse_package(row[3]) if item_id}
     _, _, combat = hero_fixture.parse_formation(row[4])
-    equipment, fabao, _ = parse_equipment_layout(row[5])
+    equipment, fabao, tail = parse_equipment_layout(row[5])
     fields = [str(row[0]), str(row[1]), row[2], row[3], row[4], row[5], str(row[6]), row[8], row[9]]
     stable_hash = hashlib.sha256("\x1f".join(fields).encode("utf-8")).hexdigest()
-    return {
+    state = {
         "level": int(row[0]), "money": int(row[1]),
         "petIds": [pet_id for pet_id, _, _ in pets], "combatHeroes": combat,
         "package": {str(item_id): quantities.get(item_id, 0) for item_id in PACKAGE_ITEMS},
@@ -214,6 +238,23 @@ def role_state(connection, user_id, role_id):
         "stableHash": stable_hash,
         "integrity": connection.execute("PRAGMA integrity_check").fetchone()[0],
     }
+    persistence = {
+        "level": state["level"], "money": state["money"], "petIds": state["petIds"],
+        "combatHeroes": state["combatHeroes"], "package": state["package"],
+        "equipmentRecords": [[uid, raw.hex()] for uid, _, _, raw in equipment
+                             if uid in RESERVED_EQUIPMENT_UIDS],
+        "fabaoRecords": [[uid, raw.hex()] for uid, _, raw in fabao if uid in RESERVED_FABAO_UIDS],
+        "affixRecords": [record for record in parse_affix_records(tail)
+                         if record[0] in RESERVED_EQUIPMENT_UIDS],
+    }
+    # zhanDouLi is a derived cache. CUser::Init calls ResetPower after loading the
+    # persisted equipment, so a service restart may normalize this column even
+    # when every authoritative HeroEquip field remains byte-stable.
+    state["zhanDouLi"] = int(row[6])
+    state["semanticHash"] = hashlib.sha256(json.dumps(
+        persistence, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+    state["persistence"] = persistence
+    return state
 
 
 def assert_setup(connection, user_id, role_id):
@@ -290,7 +331,8 @@ def main():
             "schemaVersion": 1, "action": args.action, "backend": "sqlite",
             "database": database, "backup": backup, "userId": args.user_id, "roleId": args.role_id,
             "snapshotHash": sha256(backup), "fixtureHash": sha256(database),
-            "fixtureStableHash": fixture["stableHash"], "before": before, "fixture": fixture,
+            "fixtureStableHash": fixture["stableHash"],
+            "fixtureSemanticHash": fixture["semanticHash"], "before": before, "fixture": fixture,
             "createdUtc": datetime.now(timezone.utc).isoformat(),
         })
         return
@@ -316,9 +358,11 @@ def main():
             state = role_state(connection, args.user_id, args.role_id)
         finally:
             connection.close()
-        if state["stableHash"] == snapshot["fixtureStableHash"]:
+        if state["semanticHash"] == snapshot["fixtureSemanticHash"]:
             raise RuntimeError("HeroEquip SQLite transaction did not change the authoritative role state")
-        snapshot["mutationStableHash"] = state["stableHash"]
+        snapshot["mutationSemanticHash"] = state["semanticHash"]
+        snapshot["mutationPersistence"] = state["persistence"]
+        snapshot["mutationZhanDouLi"] = state["zhanDouLi"]
         snapshot["mutationCapturedUtc"] = datetime.now(timezone.utc).isoformat()
         write_json(evidence, snapshot)
     elif args.action == "AssertMutationReloginHash":
@@ -327,8 +371,24 @@ def main():
             state = role_state(connection, args.user_id, args.role_id)
         finally:
             connection.close()
-        if state["stableHash"] != snapshot.get("mutationStableHash"):
-            raise RuntimeError("HeroEquip SQLite post-transaction relogin stable hash mismatch")
+        if state["zhanDouLi"] <= 0:
+            raise RuntimeError("HeroEquip SQLite post-transaction relogin derived power is invalid")
+        if state["semanticHash"] != snapshot.get("mutationSemanticHash"):
+            before = snapshot.get("mutationPersistence", {})
+            after = state["persistence"]
+            snapshot["mutationReloginSemanticHash"] = state["semanticHash"]
+            snapshot["mutationReloginPersistence"] = after
+            snapshot["mutationReloginDifferences"] = {
+                key: {"before": before.get(key), "after": after.get(key)}
+                for key in sorted(set(before) | set(after))
+                if before.get(key) != after.get(key)
+            }
+            snapshot["mutationReloginFailedUtc"] = datetime.now(timezone.utc).isoformat()
+            write_json(evidence, snapshot)
+            raise RuntimeError("HeroEquip SQLite post-transaction relogin semantic hash mismatch")
+        snapshot["mutationReloginZhanDouLi"] = state["zhanDouLi"]
+        snapshot["mutationReloginPowerNormalized"] = (
+            state["zhanDouLi"] != snapshot.get("mutationZhanDouLi"))
         snapshot["mutationReloginAssertedUtc"] = datetime.now(timezone.utc).isoformat()
         write_json(evidence, snapshot)
     elif args.action == "Restore":

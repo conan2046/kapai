@@ -220,8 +220,8 @@ namespace ProjectX.Editor
             new PrefabSpec(XunBaoPrefab, false),
             new PrefabSpec(SevenDayPrefab, false),
             new PrefabSpec(HeroFramePrefab, false),
-            new PrefabSpec(HeroListPrefab, true, HeroFramePrefab),
-            new PrefabSpec(HeroDetailPrefab, true, HeroFramePrefab),
+            new PrefabSpec(HeroListPrefab, false, HeroFramePrefab),
+            new PrefabSpec(HeroDetailPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroBagPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroCultivationPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroLevelUpPrefab, false, HeroFramePrefab),
@@ -616,6 +616,20 @@ namespace ProjectX.Editor
                 CocosUiView task = provider.FindOrLoadBySource("huodong/RenwuLayer");
                 if (task == null || taskFrame == null || task.GameObject.transform.parent != taskFrame.GameObject.transform)
                     throw new InvalidDataException("UI provider parent-child composition contract failed for Task.");
+
+                int loadedBeforeHeroFrame = provider.LoadedSingletonCount;
+                CocosUiView heroFrame = provider.GetOrCreate("OneLevelLayer");
+                if (heroFrame == null || provider.LoadedSingletonCount != loadedBeforeHeroFrame + 1
+                    || heroFrame.GameObject.transform.Find("DynamicUi_yingxiongListLayer") != null
+                    || heroFrame.GameObject.transform.Find("DynamicUi_yingxiongInfoLayer") != null)
+                    throw new InvalidDataException("UI provider must not eagerly instantiate OneLevelLayer child pages.");
+                CocosUiView heroList = provider.FindOrLoadBySource("shenjiangyangcheng/yingxiongListLayer");
+                CocosUiView heroDetail = provider.FindOrLoadBySource("shenjiangyangcheng/yingxiongInfoLayer");
+                if (heroList == null || heroDetail == null
+                    || heroList.GameObject.transform.parent != heroFrame.GameObject.transform
+                    || heroDetail.GameObject.transform.parent != heroFrame.GameObject.transform
+                    || heroList.GameObject.activeSelf || heroDetail.GameObject.activeSelf)
+                    throw new InvalidDataException("UI provider lazy OneLevelLayer child-page contract failed.");
 
                 CocosUiView heroBookA = provider.Instantiate("HeroBook", root);
                 CocosUiView heroBookB = provider.Instantiate("HeroBook", root);

@@ -9,7 +9,7 @@
       "id": "hud-authoritative-display",
       "given": "固定账号选角成功并收到/1004角色快照",
       "when": "进入HUD并依次收到/18、/226、/321增量更新",
-      "then": "头像、角色名、等级、VIP、经验、战力、金币、元宝和体力严格按Cocos格式更新；没有Unity假值或跨字段污染"
+      "then": "头像、角色名、等级、VIP、经验、战力、金币、非绑定元宝、绑定元宝和体力严格按协议语义更新；/18的505与506不可互相覆盖，也没有Unity假值"
     },
     {
       "id": "hud-menu-state",
@@ -44,13 +44,13 @@
   ],
   "scope": {
     "fixedUserId": 7200057,
-    "fixedRoleId": 1000115,
+    "fixedRoleId": 1000003,
     "isolationUserId": 705213,
     "isolationRoleId": 1000006,
     "width": 1334,
     "height": 750,
     "windowsScalePercent": 100,
-    "serverFixture": "no-server-fixture-readonly-authoritative-display",
+    "serverFixture": "reversible-sqlite-readonly-authoritative-display",
     "persistenceOwnership": "session-local-menu-red-dot-chat-state; authoritative-role-data-owned-by-existing-stores",
     "ownedViews": [
       "csd/common/UImainLayer_new.csb",
@@ -1277,7 +1277,7 @@
   ],
   "g6Audit": {
     "userId": 7200057,
-    "roleId": 1000115,
+    "roleId": 1000003,
     "screenshotSize": "1334x750",
     "placeholderCount": 0,
     "duplicateUidCount": 0,
@@ -1286,7 +1286,7 @@
     "cocosSourceSet": ".local/ui-fidelity/PlayerHud/cocos/g5-20260801",
     "unitySourceSet": ".local/ui-fidelity/PlayerHud/unity/g5-20260801",
     "fixedAccountEvidence": ".local/unity-validation/playerhud-fixed-account-latest.json",
-    "fixtureContract": "no-server-fixture-readonly-authoritative-display",
+    "fixtureContract": "reversible-sqlite-readonly-authoritative-display",
     "fixtureResidueCount": 0
   },
   "protocolCommands": [

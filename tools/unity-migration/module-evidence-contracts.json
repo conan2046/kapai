@@ -403,7 +403,8 @@
         ],
         "identity": {
           "primaryUserId": 7200057,
-          "primaryRoleId": 1000115,
+          "primaryRoleId": 1000003,
+          "cocosRoleId": 1000115,
           "isolationUserId": 705213,
           "isolationRoleId": 1000006,
           "persistence": "device-local-shared-across-accounts",
@@ -1723,13 +1724,16 @@
     {
       "module": "PlayerHud",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
+        "roleId": 1000003,
         "terminalUserId": 7200057,
-        "terminalRoleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-PlayerHudFixture.ps1",
-        "snapshot": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-fixture-snapshot.json",
-        "resultEvidence": ".local/ui-fidelity/PlayerHud/unity/g5-20260801/playerhud-fixed-unity-result.json",
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-PlayerHudSqliteFixture.ps1",
+        "snapshot": ".local/unity-validation/playerhud-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/playerhud-fixed-account-result-latest.json",
         "reloginRequired": true,
         "extraFlags": [
           "-projectXPlayerHudValidation",
@@ -1740,24 +1744,24 @@
           "requiresLogin": true,
           "requirements": [
             {
-              "id": "primary-account-role-link",
-              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115/T00057"
+              "id": "playerhud-sqlite-only",
+              "description": "用户Unity测试只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL不得作为夹具后端。"
             },
             {
-              "id": "isolation-account-role-link",
-              "description": "隔离 userId=705213 必须唯一绑定 roleId=1000006/T67076"
+              "id": "playerhud-versioned-primary",
+              "description": "版本化固定SQLite中userId=7200057必须唯一绑定roleId=1000003/T00057。"
             },
             {
-              "id": "authoritative-hud-display",
-              "description": "角色等级/经验/战力/金币/元宝和持久化体力满足 HUD 确定性展示"
+              "id": "playerhud-currency-separation",
+              "description": "固定库非绑定元宝100200与绑定元宝100000保持不同，验证/18的505/506不会互相覆盖。"
             },
             {
-              "id": "exact-restore-surface",
-              "description": "role_info 金币/经验/等级/战力/体力与 user_info1 元宝字段使用整体 SHA-256 精确恢复"
+              "id": "playerhud-isolation-account",
+              "description": "夹具临时克隆705213/1000006/T67076且使用不同货币，验证切号不会继承主账号HUD。"
             },
             {
-              "id": "fixture-zero-residue",
-              "description": "unity_validation_playerhud_fixture 最终残留必须为 0"
+              "id": "playerhud-exact-sqlite-restore",
+              "description": "完整备份persistentDataPath projectx.db；验证后整库SHA256精确恢复、隔离账号清理且备份残留0。"
             }
           ]
         },

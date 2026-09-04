@@ -58,11 +58,8 @@ local function readCharacterUpdate(message)
             if kind == 501 then Bridge:SetPlayerPotential(value)
             elseif kind == 502 then Bridge:AddPlayerExperience(value)
             elseif kind == 504 then Bridge:SetCurrency(GOLD, value)
-            -- Current Cocos intentionally routes both 505 and 506 through
-            -- setTongBao; the later push owns the one public yuanbao display.
-            -- Keep the login-time bound value separately, but mirror that
-            -- visible update order instead of leaving a stale 505 value.
-            elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)
+            elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)
+            elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)
             elseif kind == 513 then Bridge:SetPlayerPower(value)
             elseif kind == 514 then Bridge:SetPlayerSoul(value) end
         end

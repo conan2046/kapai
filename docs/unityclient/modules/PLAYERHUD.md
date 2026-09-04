@@ -1,14 +1,14 @@
 # 主界面 HUD 模块
 
-> 状态：`G0-G6 passed / 56/56 complete`（2026-08-02）。2026-08-01 之前的“第一阶段完成”、截图、Runner、SHA 与历史完成标记未被复用为本轮门禁证据。
+> 当前状态：`G0-G3 retained / early user Play passed / G4-G6 pending`（2026-09-04）。真人 Play 已确认绑定/非绑定元宝分流、跨页公共栏刷新及背包懒加载复测通过。2026-08-02 的截图、Runner、SHA 与完成标记仅作历史诊断，不作为当前 G4-G6 证据。
 
 ## 范围与所有权
 
 - PlayerHud 只拥有：登录选角后的 HUD 数据显示、菜单展开/收起、被动聊天摘要、红点/提示显示、云层 Timeline，以及按钮的路由入口或不可用反馈。
 - PlayerHud 不拥有：角色详情、背包、装备、法宝、阵容、排行、招募、帮派、任务、商城、福利、活动、充值、七日、首充、邮件、好友、回收、副本、玩法、聊天发送、语音与在线奖励领取业务页。
 - 支付、活动、基金、福利、竞技、社交仅登记边界；本模块不得实现或修改这些页面。
-- 固定验证身份：`userId=7200057 / roleId=1000115`；隔离身份：`userId=705213 / roleId=1000006`；原生客户区固定 `1334x750`。
-- 数据合同：权威数据只读显示，`no-server-fixture`；不得以 Unity 假数据补协议失败、空数据或缺配置。
+- Unity 固定验证身份：`userId=7200057 / roleId=1000003`；隔离身份：`userId=705213 / roleId=1000006`；原生客户区固定 `1334x750`。历史 Cocos 身份 `7200057/1000115` 只用于旧双端基准，不得写入 Unity 测试库。
+- 数据合同：只使用版本化 `Application.persistentDataPath/LocalServer/projectx.db`；夹具整库快照、临时隔离账号、精确恢复与零残留。HUD 仍为权威数据只读显示，不得以 Unity 假数据补协议失败、空数据或缺配置。
 - Steam 范围覆盖：`tools/unity-migration/unityclient-modules.json` 的 `steamProtocols` 固定为 `/18、/62、/65、/206、/220、/226、/321、/1004`。聊天摘要及 `/26` 随 Chat 排除；活动/福利入口状态 `/199、/222` 随 Activity/Welfare 排除。下文完整 Cocos 协议表只保留原版所有权证据，不能重新开启这三条 Steam 请求或 UI。
 
 ## 登录到 HUD 的真实链路
@@ -90,7 +90,7 @@
 
 ## 本轮迭代与后续自检
 
-- 2026-08-28 共享货币栏复核：Cocos `FirstClassBg/GoldCheck` 统一语义为 `GoldIcon1=体力、GoldIcon3=金币、GoldIcon4=非绑定元宝`。Unity 的登录快照绑定正确，但 `/18` 增量解析曾把 `EUUT_YB/505` 与 `EUUT_BangDingYB/506` 都写入 `CurrencyIds.Premium`，并在材料 `60001` 更新时再次用绑元覆盖元宝；现已拆分为 `60003/505` 与 `60001/506`。复用 `OneLevelLayer` 的背包、神将/阵容、装备/法宝、邮件、商城，以及任务公共货币栏现统一订阅 `CurrencyStore.Changed` 实时刷新；设置、福利/基金、七日和封神列传各自已有刷新订阅。抽卡与世界副本使用不同 `GoldCheck` 结构，按其原始币种语义保留，不套用 FirstClassBg 映射。当前源码变更后的真人回归与标准 batch 尚未完成，旧 G4-G6 只作历史证据。
+- 2026-09-04 当前基线复核：Cocos `FirstClassBg/GoldCheck` 统一语义为 `GoldIcon1=体力、GoldIcon3=金币、GoldIcon4=非绑定元宝`。当前检出曾再次把 `/18` 的 `EUUT_YB/505` 与 `EUUT_BangDingYB/506` 合并写入 `CurrencyIds.Premium`，与协议/服务端的 `m_tongBao`、`m_bdTongBao` 双字段矛盾；本轮恢复为 `505→60003`、`506→60001`。复用 `OneLevelLayer` 的背包、神将/阵容、装备/法宝、邮件、商城，以及任务公共货币栏继续统一订阅 `CurrencyStore.Changed` 实时刷新。抽卡与世界副本使用不同 `GoldCheck` 结构，按其原始币种语义保留，不套用 FirstClassBg 映射。真人回归与标准 batch 尚未完成，旧 G4-G6 只作历史证据。
 - “网络超时”提示被定义为终态：自动化第一次出现后立即停止等待和坐标试错，记录失败并转查源码、日志与协议。
 - 中央编译预检现在能识别 Unity 退出码 0 但日志出现 `Assembly-CSharp.dll` 恢复型共享锁的情况，归档首轮并只重跑一次；`Unity.ILPP.Trigger` 纳入 owned-child 清理。
 - 大型 UI IR 节点查询改用共享 `System.Text.Json` 遍历；多结果摘要改用 `Get-UnityMigrationValidationResultSummaries`，避免再次拼接禁止的 `foreach {...} |`。

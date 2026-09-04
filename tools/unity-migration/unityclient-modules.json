@@ -338,8 +338,8 @@
       ],
       "mutatesServer": false,
       "fixtureContract": {
-        "mode": "no-server-fixture-readonly-authoritative-display",
-        "serverSnapshotRequired": false,
+        "mode": "reversible-sqlite-readonly-authoritative-display",
+        "serverSnapshotRequired": true,
         "cleanupAssertion": "fixtureResidueCount=0"
       },
       "validationFlags": [
@@ -479,7 +479,7 @@
     {
       "key": "HeroEquip",
       "displayName": "装备（法宝边界回归）",
-      "status": "g2-passed-g3-early-user-play-pending",
+      "status": "g4-passed-g5-unity-captured-cocos-refresh-blocked-final-user-play-passed-g6-blocked-by-g5",
       "protocols": [
         319,
         70,

@@ -35,6 +35,13 @@ if ($builder -notmatch '7422cbd83531b365a4188e36e21999e47d508d5d') { throw 'Roll
 if ($provider -notmatch 'GetOrCreate' -or $provider -notmatch 'ReleaseSingletonTree' -or $provider -notmatch 'childrenByParentKey') {
     throw 'Provider singleton, release, or parent-child contract is incomplete.'
 }
+if ($provider -match 'GetOrCreate\(child\.Key, view\.GameObject\.transform\);') {
+    throw 'Provider must not eagerly instantiate every ParentKey child when a shared frame is requested.'
+}
+if ($builder -notmatch 'new PrefabSpec\(HeroListPrefab, false, HeroFramePrefab\)' -or
+    $builder -notmatch 'new PrefabSpec\(HeroDetailPrefab, false, HeroFramePrefab\)') {
+    throw 'OneLevelLayer Hero child pages must be lazy and default-inactive.'
+}
 if ($loader -match 'Resources\.Load') { throw 'UiPrefabLoader bypasses the configured provider.' }
 if ($loader -match 'Attempted to release a UI view not owned' -or $loader -notmatch 'provider\.Release\(view\)') {
     throw 'UI release is no longer idempotent after recursive parent cleanup.'

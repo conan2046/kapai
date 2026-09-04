@@ -278,6 +278,19 @@ namespace ProjectX.UI
         public bool CultivationImodReady => cultivationEffects.Count == 9
             && cultivationEffects.All(value => value != null && value.IsLoaded);
         public bool HasActiveCultivationEffect => cultivationEffects.Any(value => value != null && value.gameObject.activeSelf);
+        public bool IsCultivationSubviewExclusive(int mode)
+        {
+            if (!cultivateView.GameObject.activeSelf || activeCultivationMode != mode || mode < 0 || mode > 3)
+                return false;
+            bool[] active =
+            {
+                strengthView.GameObject.activeSelf,
+                refineView.GameObject.activeSelf,
+                awakenView.GameObject.activeSelf,
+                divineView.GameObject.activeSelf
+            };
+            return active.Count(value => value) == 1 && active[mode];
+        }
         public bool IsStrengthAllVisible => cultivateView.Binding.Find(
             "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua")?.activeSelf == true;
 
@@ -815,10 +828,7 @@ namespace ProjectX.UI
             detailView.SetVisible(false);
             changeView.SetVisible(false);
             cultivateView.SetVisible(true);
-            strengthView.SetVisible(true);
-            refineView.SetVisible(false);
-            awakenView.SetVisible(false);
-            divineView.SetVisible(false);
+            SetEquipmentCultivationSubview(0);
             cultivateView.GameObject.transform.SetAsLastSibling();
             strengthView.GameObject.transform.SetAsLastSibling();
         }
@@ -1197,8 +1207,7 @@ namespace ProjectX.UI
             refineOnceButton.onClick.RemoveAllListeners();
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
             SetStrengthAllVisible(false);
-            strengthView.SetVisible(false);
-            refineView.SetVisible(true);
+            SetEquipmentCultivationSubview(1);
             refineView.GameObject.transform.SetAsLastSibling();
         }
 
@@ -1228,8 +1237,7 @@ namespace ProjectX.UI
             SetButtonLabel(awakenView,
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn", "觉醒");
             SetStrengthAllVisible(false);
-            strengthView.SetVisible(false);
-            awakenView.SetVisible(true);
+            SetEquipmentCultivationSubview(2);
             awakenView.GameObject.transform.SetAsLastSibling();
         }
 
@@ -1304,9 +1312,18 @@ namespace ProjectX.UI
                 BindButton(divineEffectView, "Layer/Popup/Btn_close", () => divineEffectView.SetVisible(false));
                 ShowPopup(divineEffectView);
             });
-            strengthView.SetVisible(false);
-            divineView.SetVisible(true);
+            SetEquipmentCultivationSubview(3);
             divineView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void SetEquipmentCultivationSubview(int mode)
+        {
+            strengthView.SetVisible(mode == 0);
+            refineView.SetVisible(mode == 1);
+            awakenView.SetVisible(mode == 2);
+            divineView.SetVisible(mode == 3);
+            faBaoStrengthView.SetVisible(false);
+            faBaoRefineView.SetVisible(false);
         }
 
         private void ConfigureSecondaryControls()

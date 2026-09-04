@@ -721,7 +721,7 @@
       "key": "player-hud-default",
       "module": "PlayerHud",
       "fixture": "shared-readonly",
-      "fixtureContract": "no-server-fixture",
+      "fixtureContract": "reversible-sqlite-readonly-authoritative-display",
       "flags": [
         "-projectXPlayerHudValidation"
       ],
@@ -794,6 +794,7 @@
       ],
       "semanticAssertionKeys": [
         "hud-authoritative-display",
+        "hud-currency-separation",
         "hud-protocol-ownership",
         "hud-menu-state",
         "hud-route-boundaries",
@@ -842,7 +843,8 @@
             "Protocol.VIP",
             "Protocol.STAMINA",
             "local BOUND_PREMIUM = 60001",
-            "elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)"
+            "elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)",
+            "elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)"
           ]
         },
         {
@@ -883,11 +885,11 @@
           ]
         },
         {
-          "path": "tools/unity-migration/Invoke-PlayerHudFixture.ps1",
+          "path": "tools/unity-migration/Invoke-PlayerHudSqliteFixture.ps1",
           "contains": [
-            "snapshot_hash",
-            "Assert-RestoredState",
-            "AssertCleanup"
+            "Application.persistentDataPath/LocalServer/projectx.db",
+            "7200057/1000003",
+            "Invoke-PlayerHudSqliteFixture.py"
           ]
         },
         {
@@ -1278,7 +1280,7 @@
           "contains": [
             "fixture_equipment_blob",
             "assert_setup",
-            "mutationStableHash"
+            "mutationSemanticHash"
           ]
         },
         {

@@ -23,9 +23,10 @@
 - `GetOrCreate`：同一 key 只保留一个实例，重复查找不得重复实例化。
 - `Instantiate`：用于确实允许多实例的临时 UI；必须调用 `Release`。
 - `Release`：幂等；释放父级会递归释放目录子级，后续对子级的清理调用安全返回。
-- 父 Prefab 首次加载时按目录恢复原 Bootstrap 子 Prefab 组合和 `activeSelf`。
+- `ParentKey` 只定义实例化后的层级关系，不代表随父级预加载；打开公共外壳不得递归创建其业务子页。
+- 请求子页时先确保父级存在，再只实例化该子页；`defaultActive` 仅作用于本次被请求的条目，具体页面显隐仍由 Presenter/路由决定。
 - `GameServices.Dispose` 统一释放当前会话全部单例和瞬态实例。
-- 首批显式“创建—关闭—销毁—重建”试点：`HeroBook`、`HeroRecycle`；现有 `ReleaseHeroAuxiliaryViews` 统一走 `IUiAssetProvider.Release`。
+- 首批显式“创建—关闭—销毁—重建”生命周期试点：`HeroBook`、`HeroRecycle`；现有 `ReleaseHeroAuxiliaryViews` 统一走 `IUiAssetProvider.Release`。该试点只证明资源生命周期，不代表神将图鉴、神将重生业务功能已迁移；两项功能于2026-09-04由用户确认缺失，排在HeroEquip G6之后从各自G0启动。
 - 登录阶段只创建 `loginLayer`、`LoginBgLayer`、服务器列表、创角、公告、错误框、加载层和运行时 Toast；其他业务界面在首次入口按需创建。
 - 其他页面本轮由“场景常驻”降为“首次访问后会话缓存”；逐模块完成 Presenter 可释放合同后再升级为关闭即销毁，禁止在未解绑状态监听时强行销毁。
 

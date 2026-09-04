@@ -1314,16 +1314,30 @@ $playerControllerSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $playerControllerSource.Contains('local BOUND_PREMIUM = 60001') -and
-    $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
-    -not $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
+    $playerControllerSource.Contains('elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)') -and
+    $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
+    -not $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
     -not $playerControllerSource.Contains('if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end')
-) "PlayerHud no longer mirrors current Cocos /320 op 505/506 public TongBao overwrite semantics."
+) "PlayerHud currency updates can again merge bound premium into regular premium."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('services.Currencies.Changed += RefreshSharedCurrencyHeaders;') -and
     $projectXAppSource.Contains('services.Currencies.Changed -= RefreshSharedCurrencyHeaders;') -and
     $projectXAppSource.Contains('RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");') -and
     $projectXAppSource.Contains('RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");')
 ) "Shared FirstClassBg/Task GoldCheck consumers no longer refresh from CurrencyStore changes."
+$playerHudEvidenceContract = @($allEvidenceContracts.modules |
+    Where-Object { $_.module -eq "PlayerHud" })[0]
+$playerHudSqliteFixtureSource = Get-Content -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Invoke-PlayerHudSqliteFixture.py") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    [string]$playerHudEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
+    [uint32]$playerHudEvidenceContract.fixedAccount.userId -eq 7200057 -and
+    [uint32]$playerHudEvidenceContract.fixedAccount.roleId -eq 1000003 -and
+    [string]$playerHudEvidenceContract.fixedAccount.adapter -eq
+        'tools/unity-migration/Invoke-PlayerHudSqliteFixture.ps1' -and
+    $playerHudSqliteFixtureSource.Contains('PlayerHud SQLite premium/bound-premium separation failed') -and
+    $playerHudSqliteFixtureSource.Contains('PlayerHud isolation rows remained after restore')
+) "PlayerHud fixed-account validation no longer freezes the versioned persistentDataPath SQLite identity, split currencies, or exact restore."
 
 $settingsPresenterSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
@@ -1419,11 +1433,20 @@ Assert-ToolchainTest (
 ) "Compile preflight no longer performs bounded same-tool retries for proven transient Unity compile/reload locks, including localized file-use errors."
 $bootstrapBuilderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs")
+$resourcesUiAssetProviderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ResourcesUiAssetProvider.cs")
 Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('NormalizeBootstrapSceneYaml();') -and
     $bootstrapBuilderSource.Contains("line.TrimEnd(' ', '\t')") -and
     $bootstrapBuilderSource.Contains('new UTF8Encoding(false)')
 ) "BootstrapSceneBuilder no longer normalizes generated Unity YAML trailing whitespace before idempotence and commit checks."
+Assert-ToolchainTest (
+    $bootstrapBuilderSource.Contains('new PrefabSpec(HeroListPrefab, false, HeroFramePrefab)') -and
+    $bootstrapBuilderSource.Contains('new PrefabSpec(HeroDetailPrefab, false, HeroFramePrefab)') -and
+    $bootstrapBuilderSource.Contains('UI provider must not eagerly instantiate OneLevelLayer child pages.') -and
+    $bootstrapBuilderSource.Contains('UI provider lazy OneLevelLayer child-page contract failed.') -and
+    -not $resourcesUiAssetProviderSource.Contains('GetOrCreate(child.Key, view.GameObject.transform);')
+) "ResourceFoundation can again eagerly instantiate active Hero pages when a shared OneLevelLayer consumer such as Bag opens."
 $resultSummaryPaths = @(
     ".local/unity-validation/toolchain-result-summary-test-a.json",
     ".local/unity-validation/toolchain-result-summary-test-b.json"
@@ -1746,6 +1769,8 @@ $heroEquipFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Inv
     -Raw -Encoding UTF8
 $heroEquipSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipSqliteFixture.py") `
     -Raw -Encoding UTF8
+$heroCultivationSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroCultivationSqliteFixture.py") `
+    -Raw -Encoding UTF8
 $heroEquipEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "HeroEquip" })[0]
 Assert-ToolchainTest (
     @($heroEquipEvidenceContract.g5.pairs).Count -eq 11 -and
@@ -1768,12 +1793,27 @@ Assert-ToolchainTest (
     $fixedAccountRunnerSource.Contains('Invoke-FixedAdapter "AssertReloginHash"') -and
     $heroEquipSqliteFixtureSource.Contains('args.action == "CaptureMutationHash"') -and
     $heroEquipSqliteFixtureSource.Contains('args.action == "AssertMutationReloginHash"') -and
+    $heroEquipSqliteFixtureSource.Contains('"mutationSemanticHash"') -and
+    $heroEquipSqliteFixtureSource.Contains('"mutationReloginDifferences"') -and
+    $heroEquipSqliteFixtureSource.Contains('"mutationReloginPersistence"') -and
+    $heroEquipSqliteFixtureSource.Contains('"mutationReloginPowerNormalized"') -and
+    $heroEquipSqliteFixtureSource.Contains('state["zhanDouLi"] <= 0') -and
+    $heroEquipSqliteFixtureSource.Contains('"equipmentRecords"') -and
+    $heroEquipSqliteFixtureSource.Contains('"affixRecords"') -and
+    -not $heroEquipSqliteFixtureSource.Contains('"mutationStableHash"') -and
     [string]$heroEquipEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
     [uint32]$heroEquipEvidenceContract.fixedAccount.roleId -eq 1000003 -and
     [string]$heroEquipEvidenceContract.fixedAccount.adapter -eq 'tools/unity-migration/Invoke-HeroEquipSqliteFixture.ps1' -and
     [string]$heroEquipEvidenceContract.fixedAccount.mutationReloginOracle.semanticAssertionId -eq
         'equipment-sqlite-mutation-relogin-restored'
 ) "HeroEquip fixed-account runner no longer proves the persistentDataPath SQLite mutation across relogin before restoring the original snapshot."
+Assert-ToolchainTest (
+    $heroEquipSqliteFixtureSource.Contains('extension[:4] != b"PXA1"') -and
+    $heroEquipSqliteFixtureSource.Contains('expected_length = 7 + affix_count * 12') -and
+    $heroEquipSqliteFixtureSource.Contains('return equipment, fabao, tail') -and
+    $heroCultivationSqliteFixtureSource.Contains('extension[:4] != b"PXA1"') -and
+    $heroCultivationSqliteFixtureSource.Contains('expected_length = 7 + affix_count * 12')
+) "HeroEquip/HeroCultivation SQLite fixtures reject or discard the current versioned PXA1 pet_equip extension."
 $heroPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $heroEquipSqliteFixtureSource.Contains('args.action in ("Setup", "SetupG5Visual")') -and
@@ -2257,7 +2297,7 @@ Assert-ToolchainTest (
     $null -ne $processAcceptance -and
     $processAcceptance.sampleModule -eq "HeroEquip" -and
     @($processAcceptance.preUserAgentChecks).Count -eq 3 -and
-    @($processAcceptance.freshG4RequiredAssertions).Count -eq 7 -and
+    @($processAcceptance.freshG4RequiredAssertions).Count -eq 8 -and
     $processAcceptance.scopeBoundary.Contains("法宝仅验兄弟入口、5..6槽和共享/319隔离") -and
     $processAcceptance.passCondition.Contains("最后一次相关变更后的固定账号G4全部断言通过") -and
     @($heroEquipMatrix.scope.excludedMustBeHiddenOrDisabled | Where-Object { $_ -like "法宝背包、碎片、详情、穿戴、卸下、搜索、合成、强化、炼化和重生的完整业务验收*" }).Count -eq 1
@@ -2266,7 +2306,7 @@ Assert-ToolchainTest (
     $migrationGuideSource.Contains("明显的绑定、刷新、拖拽和生命周期错误不得留给用户首次发现") -and
     $heroEquipModuleSource.Contains("## 流程改动验收样板（2026-08-22）") -and
     $heroEquipModuleSource.Contains("Run-UnityFixedAccountValidation.ps1 -Module HeroEquip -DataPreflightOnly") -and
-    $heroEquipModuleSource.Contains("Run-UnityModuleValidation.ps1 -Module HeroEquip -ValidationMode Full")
+    $heroEquipModuleSource.Contains("Run-UnityFixedAccountValidation.ps1 -Module HeroEquip")
 ) "The central guide or HeroEquip teammate runbook no longer gates user early play behind agent self-checks."
 Assert-ToolchainTest (
     @($heroEquipScenario.semanticAssertionKeys | Where-Object { $_ -in @(
@@ -2288,6 +2328,14 @@ Assert-ToolchainTest (
     -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(3);') -and
     -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(effectIndex, currentLevel > 0);')
 ) "HeroEquip early-play regression: cultivation page rendering once again starts success effects."
+Assert-ToolchainTest (
+    $heroEquipmentPresenterSource.Contains('public bool IsCultivationSubviewExclusive(int mode)') -and
+    $heroEquipmentPresenterSource.Contains('private void SetEquipmentCultivationSubview(int mode)') -and
+    $heroEquipmentPresenterSource.Contains('active.Count(value => value) == 1 && active[mode]') -and
+    $projectXAppSource.Contains('SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeijuexing"') -and
+    $projectXAppSource.Contains('SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeishenzhu"') -and
+    $projectXAppSource.Contains('cultivate tab left multiple subviews active')
+) "HeroEquip regression: cultivation tabs no longer enforce one active equipment subview across duplicate source instances."
 Assert-ToolchainTest (
     -not $heroEquipmentPresenterSource.Contains('EnsureButtonLabel(strengthAllObject.transform') -and
     -not $heroEquipmentPresenterSource.Contains('private static void EnsureButtonLabel(') -and
@@ -2322,6 +2370,39 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('Mathf.Clamp01((float)item.Quantity / required)') -and
     -not $projectXAppSource.Contains('.ThenByDescending(item => item.ItemId)\r\n                .Take(5)')
 ) "HeroEquip regression: fragment rows no longer reuse the common draggable VirtualList or progress is not quantity-bound."
+$fragmentBindStart = $projectXAppSource.IndexOf('private void BindHeroEquipmentFragmentRow', [StringComparison]::Ordinal)
+$fragmentBindEnd = $projectXAppSource.IndexOf('private static void CopyRectTransform', $fragmentBindStart, [StringComparison]::Ordinal)
+$fragmentBindSource = if ($fragmentBindStart -ge 0 -and $fragmentBindEnd -gt $fragmentBindStart) {
+    $projectXAppSource.Substring($fragmentBindStart, $fragmentBindEnd - $fragmentBindStart)
+} else { "" }
+Assert-ToolchainTest (
+    $fragmentBindSource.Contains('icon.enabled = icon.sprite != null;') -and
+    $fragmentBindSource.Contains('icon.color = Color.white;') -and
+    $fragmentBindSource.Contains('icon.gameObject.SetActive(icon.sprite != null);') -and
+    $fragmentBindSource.Contains('if (qualityRect.parent != cell)') -and
+    $fragmentBindSource.Contains('int fragmentQualityIndex = qualityObject.transform.GetSiblingIndex();') -and
+    $fragmentBindSource.Contains('int fragmentIconIndex = iconRect.GetSiblingIndex();') -and
+    $fragmentBindSource.Contains('if (fragmentQualityIndex > fragmentIconIndex)') -and
+    $fragmentBindSource.Contains('qualityObject.transform.SetSiblingIndex(fragmentIconIndex);') -and
+    -not $fragmentBindSource.Contains('qualityObject.transform.SetSiblingIndex(iconRect.GetSiblingIndex());')
+) "HeroEquip early-play regression: repeated fragment binding can toggle the opaque quality frame above the item icon."
+$heroEquipSourceTargetControl = @($heroEquipMatrix.controls |
+    Where-Object { [string]$_.id -eq 'HE-78-SOURCE-DYNAMIC-TARGET' }) | Select-Object -First 1
+$enterGameplayStart = $projectXAppSource.IndexOf('public void EnterGameplay(int functionId)', [StringComparison]::Ordinal)
+$enterGameplayEnd = $projectXAppSource.IndexOf('private static string GameplayRouteOwner', $enterGameplayStart, [StringComparison]::Ordinal)
+$enterGameplaySource = if ($enterGameplayStart -ge 0 -and $enterGameplayEnd -gt $enterGameplayStart) {
+    $projectXAppSource.Substring($enterGameplayStart, $enterGameplayEnd - $enterGameplayStart)
+} else { "" }
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('EnterGameplay(17);') -and
+    -not $projectXAppSource.Contains('InvokeLuaOrFail(onGameplayShopOpened, "HeroEquipment.Source.GameplayShops", 17d);') -and
+    $projectXAppSource.Contains('excluded functionId=17 source did not preserve the fragment flow with deferred feedback') -and
+    $projectXAppSource.Contains('excluded functionId=17 source feedback passed real runtime assertions') -and
+    $enterGameplaySource.IndexOf('if (functionId == 16 || functionId == 17)', [StringComparison]::Ordinal) -ge 0 -and
+    $enterGameplaySource.IndexOf('if (functionId == 16 || functionId == 17)', [StringComparison]::Ordinal) -lt
+        $enterGameplaySource.IndexOf('services.GameplayCatalog.Find(functionId)', [StringComparison]::Ordinal) -and
+    [string]$heroEquipSourceTargetControl.protocolOp -eq '当前来源17为Steam排除的血战商店，不发/221'
+) "HeroEquip regression: the excluded functionId=17 source still invokes a removed GameplayShops Lua route or lacks real-click feedback coverage."
 Assert-ToolchainTest (
     $heroEquipmentControllerSource.Contains('BagController.requestEquipmentSnapshot(function(_) end)') -and
     $projectXAppSource.Contains('services.Bag.Changed += HandleHeroEquipmentFragmentBagChanged;') -and
@@ -2653,7 +2734,8 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('MarkValidationControl("WORLD-34-YOULI-ENTRY")') -and
     -not $projectXAppSource.Contains('MarkValidationControl("WORLD-27-RANK-ENTRY")') -and
     $worldPresenterSource.Contains('if (value >= 10000) return (value / 10000) + "万";') -and
-    $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
+    $playerControllerSource.Contains('elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)') -and
+    $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
     $projectXAppSource.Contains('services.Options.WorldBattleValidation && !services.Options.WorldG3Validation') -and
     $projectXAppSource.Contains('&& !worldG4StarBoxValidated') -and
     $projectXAppSource.Contains('&& !worldG4NormalBoxValidated')

@@ -183,8 +183,18 @@ def equipment_layout(value):
         if position + level_count * 2 > len(data):
             raise RuntimeError("HeroCultivation FaBao level data is truncated")
         position += level_count * 2
-    if len(data) - position != 6:
-        raise RuntimeError("HeroCultivation pet_equip tail is not uint32+uint16")
+    tail = bytes(data[position:])
+    if len(tail) < 6:
+        raise RuntimeError("HeroCultivation pet_equip tail is shorter than uint32+uint16")
+    extension = tail[6:]
+    if extension:
+        if len(extension) < 7 or extension[:4] != b"PXA1":
+            raise RuntimeError("HeroCultivation pet_equip tail has an unknown extension")
+        version = extension[4]
+        affix_count = struct.unpack_from("<H", extension, 5)[0]
+        expected_length = 7 + affix_count * 12
+        if version != 1 or len(extension) != expected_length:
+            raise RuntimeError("HeroCultivation PXA1 extension is malformed")
     return data, equipment_end, equipment
 
 

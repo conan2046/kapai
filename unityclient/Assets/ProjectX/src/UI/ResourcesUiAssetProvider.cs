@@ -71,9 +71,6 @@ namespace ProjectX.UI
                     resolvedParent = GetOrCreate(entry.ParentKey).GameObject.transform;
                 CocosUiView view = Create(entry.Key, resolvedParent ?? root, entry.DefaultActive);
                 singletons.Add(entry.Key, view);
-                if (childrenByParentKey.TryGetValue(entry.Key, out UiPrefabCatalogEntry[] children))
-                    foreach (UiPrefabCatalogEntry child in children)
-                        GetOrCreate(child.Key, view.GameObject.transform);
                 return view;
             }
             finally

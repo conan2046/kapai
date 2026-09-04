@@ -2,11 +2,12 @@
 
 ## 当前结论
 
-- 状态：`G0-G2 passed / G3-G6 pending`。2026-08-21 用户确认方案A后，当前分母为14来源/974业务ID/86控件。合成目标解析与先扣料风险已修复；服务端输入变化使旧G1失效后，已用Computer Use仅重拍受影响的装备碎片态并重新冻结13态，当前碎片SHA为`FB2219AD3DB7EEED81858C8BAB6F9C83C8300A45D6F018FB4A48DD76DE6BE443`，Fixture恢复、重登哈希和残留均通过。
+- 状态：`G0-G4 passed / G5 Unity capture passed, Cocos refresh blocked / final user Play passed, G6 blocked by G5`。2026-08-21 用户确认方案A后，当前分母为14来源/974业务ID/86控件。2026-09-04碎片Icon奇偶消失已修复并由用户复测通过；随后觉醒/神铸叠层定位为切页只依赖`ShowStrength`副作用且未在Presenter及路由源实例两层建立独占约束，现已强制四个装备培养子页任一时刻只激活一个，并由固定账号Full逐Tab真实EventSystem断言；用户按`装备 → 觉醒 → 神铸 → 再切回觉醒`复测通过，本轮缺陷关闭。SQLite夹具兼容`PXA1`词条扩展，权威业务字段重登语义一致；`zhanDouLi`由`CUser::Init -> ResetPower`归一化，单列正值校验而不混入权威持久化哈希。工具链319/319、86控件及全部语义通过，数据库恢复SHA=`56DCEFE5DBE88209E78C39F272604E79405F807D27F08BB9E765CF14601E7A3F`。Unity G5已重拍11态；Cocos详情基线因词条输入变化失效，而当前Computer Use无原生应用控制，故完整G5/G6仍阻塞；人工复测记录见`.local/unity-validation/heroequip-final-user-play-latest.json`。
 - 完成主体仅为 `主界面 → btn_chuandai → tankuang2/btn_zhuangbei → 装备`。Hero、Bag、HUD、HuiShou只做影响回归；法宝只做兄弟入口、5..6槽和共享`/319`游标隔离，不计入本模块完成率。
 - 当前G0机器分母：`HERO_EQUIPMENT_COVERAGE.json`登记14个源码/配置来源、974个来源记录；控件矩阵登记86项。新增的40项来自真实链 `PetEquipPiecesSubUI:GetBtnClicked → item_dat(4605..4644).item_source`，另有7项品质精炼倍率及4项精炼材料ID 610..613；不得用较小分母替代。
 - G1实机发现：勾选“隐藏已穿戴”后计数与空态文案已切到空态，但四张旧装备卡片仍残留；这是Cocos当前真实显示缺陷，G5必须分别断言计数/空态和不应残留的旧卡片。装备碎片40个“获取”入口均有`item_source={{17}}`，不存在可由本模块真实控件打开的“碎片空来源弹窗”，因此不伪造`source-empty`视觉状态；空来源装备模板仍保留为配置/安全失败覆盖。
 - G2已完成所有权裁决：新增Unity精炼51、觉醒60、神铸155及大师100条服务端权威JSON；客户端神铸150级仅保留为Cocos显示边界。五次强化、自动精炼、Imod 1..9及外部事务重登oracle纳入G3实现合同；源Prefab内一键兑换/一键升星/一键升阶/一键升层四入口均为`m_IsActive=0`且`BtnStateCheck()`为空，对应弹层不可达，Unity必须保持隐藏并在G4/G5同时断言“不应显示”。
+- 当前40个装备碎片的配置来源均为`function_id=17`血战商店；血战及其商店已按Steam边界排除，且当前`GameplayShopController`只保留`function_id=15/type=2`。来源弹窗与“前往”真实Button仍保留，但点击必须走统一`EnterGameplay(17)`边界，显示暂未开放反馈并留在装备流程；不得调用缺失Lua路由、打开玩法商店或发送`/221`。
 - 历史装备/法宝批处理、`33/33`控件、`20/20`视觉、MCP、BuildBatch、SQLite/MySQL结果全部只作诊断线索，不计入2026-08-21后的任何门禁。
 
 ## 流程改动验收样板（2026-08-22）
@@ -17,7 +18,7 @@
 ./tools/unity-migration/Test-UnityMigrationDocs.ps1 -TargetModule HeroEquip
 ./tools/unity-migration/Test-UnityMigrationToolchain.ps1
 ./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module HeroEquip -DataPreflightOnly
-./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module HeroEquip -ValidationMode Full
+./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module HeroEquip
 ```
 
 判定顺序：前三条通过后，代理完成用户早测前专项自检；随后从真实入口进行G3早测，只收体验反馈；最后一次相关变更后必须重新执行固定账号Full，并由场景摘要证明动态属性、碎片权威刷新、特效末帧清理、四Tab按钮显隐、Toast全生命周期、两类背包真实拖拽及法宝边界隔离全部通过。G6仍需用户最终确认。

@@ -2232,6 +2232,13 @@ namespace ProjectX.Core
 
         public void EnterGameplay(int functionId)
         {
+            if (functionId == 16 || functionId == 17)
+            {
+                gameplayPresenter?.HideDetail();
+                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
+                SetStatus($"Gameplay shop route deferred: function_id={functionId}.");
+                return;
+            }
             GameplayDefinition definition = services.GameplayCatalog.Find(functionId);
             if (definition == null) { Fail($"Gameplay route config is missing id={functionId}."); return; }
             if (services.Player.Level < definition.OpenLevel)
@@ -2285,13 +2292,6 @@ namespace ProjectX.Core
             {
                 gameplayPresenter?.HideDetail();
                 HandleCommerceRoute(functionId);
-                return;
-            }
-            if (functionId == 16 || functionId == 17)
-            {
-                gameplayPresenter?.HideDetail();
-                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
-                SetStatus($"Gameplay shop route deferred: function_id={functionId}.");
                 return;
             }
             ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
@@ -4533,12 +4533,19 @@ namespace ProjectX.Core
                 while ((mainHudPresenter.VisibleDiscountCount != 0 || mainHudPresenter.VisibleRedDotCount < 7
                     || !mainTaskTracker.IsAuthorityReady) && Time.realtimeSinceStartup < hudStableDeadline)
                     yield return null;
-                if (primaryUserId != 7200057 || primaryRoleId != 1000115)
-                { Fail($"Player HUD requires fixed primary 7200057/1000115, actual={primaryUserId}/{primaryRoleId}."); yield break; }
+                if (primaryUserId != 7200057 || primaryRoleId != 1000003)
+                { Fail($"Player HUD requires fixed SQLite primary 7200057/1000003, actual={primaryUserId}/{primaryRoleId}."); yield break; }
                 if (isolationUserId == 0 || isolationUserId == primaryUserId)
                 { Fail("Player HUD requires a distinct -projectXPlayerHudIsolationUserId."); yield break; }
                 if (!mainHudPresenter.Validate(out string detail))
                 { RecordValidationSemantic("hud-authoritative-display", false, detail); Fail("Player HUD validation failed: " + detail); yield break; }
+                if (services.Currencies.Premium != 100200 || services.Currencies.BoundPremium != 100000)
+                {
+                    Fail($"Player HUD split currency snapshot mismatch: premium={services.Currencies.Premium}, boundPremium={services.Currencies.BoundPremium}.");
+                    yield break;
+                }
+                RecordValidationSemantic("hud-currency-separation", true,
+                    $"/1004 and /18 preserve premium={services.Currencies.Premium} separately from boundPremium={services.Currencies.BoundPremium}");
 
                 for (int index = 1; index <= 11; index++) MarkValidationControl($"HUD-{index:00}-" + HudControlSuffix(index));
                 string[] identityBoundaryPaths =
@@ -9141,6 +9148,8 @@ namespace ProjectX.Core
                     $"Layer/Panel_12/Bg/Btn_ListView/Panel_10/{tabName}")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(tabButton))
                 { Fail($"HeroEquip G4 cultivate tab EventSystem input unavailable: {cultivateTabIds[tab]}"); yield break; }
+                if (!heroEquipmentPresenter.IsCultivationSubviewExclusive(tab))
+                { Fail($"HeroEquip G4 cultivate tab left multiple subviews active: {cultivateTabIds[tab]}"); yield break; }
                 MarkValidationControl(cultivateTabIds[tab]);
                 yield return null;
             }
@@ -9173,16 +9182,14 @@ namespace ProjectX.Core
                     + $"sourceView={heroItemSourceView.GameObject.activeSelf}.");
                 yield break;
             }
-            deadline = Time.realtimeSinceStartup + 12f;
-            while (!IsGameplayShopOpen && Time.realtimeSinceStartup < deadline) yield return null;
-            if (!IsGameplayShopOpen)
-            { Fail("HeroEquip G4 functionId=17 source did not open GameplayShops."); yield break; }
-            MarkValidationControl("HE-78-SOURCE-DYNAMIC-TARGET");
-            Button gameplayShopClose = bagPopupFrameView.Binding.Find(
-                "Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
-            if (!InvokeEventSystemClick(gameplayShopClose))
-            { Fail("HeroEquip G4 source destination could not return through its real close control."); yield break; }
             yield return null;
+            if (IsGameplayShopOpen || !IsToastVisible || heroItemSourceView.GameObject.activeSelf
+                || !heroEquipmentFragmentView.GameObject.activeSelf || !heroFrameView.GameObject.activeSelf)
+            {
+                Fail("HeroEquip G4 excluded functionId=17 source did not preserve the fragment flow with deferred feedback.");
+                yield break;
+            }
+            MarkValidationControl("HE-78-SOURCE-DYNAMIC-TARGET");
             Button equipmentFrameClose = heroFrameView.Binding.Find(
                 "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentFrameClose))
@@ -9359,7 +9366,7 @@ namespace ProjectX.Core
                 awakenRejected && divineRejected && faBaoUnchanged,
                 $"awakenRejected={awakenRejected}, divineRejected={divineRejected}, fabao={faBaoUnchanged}");
             RecordValidationSemantic("equipment-visible-dynamic-and-lifecycle-contracts", true,
-                "refine/awaken/divine attributes, effects, tab visibility, and toast lifetime passed real runtime assertions");
+                "refine/awaken/divine attributes, effects, tab visibility, toast lifetime, and excluded functionId=17 source feedback passed real runtime assertions");
             RecordValidationSemantic("equipment-common-bag-refresh-and-drag-contracts", true,
                 "equipment and fragment lists moved after EventSystem drag; compose refreshed source quantity and progress");
             RecordValidationSemantic("fabao-sibling-boundary-remains-isolated", faBaoUnchanged,
@@ -13462,6 +13469,9 @@ namespace ProjectX.Core
             if (icon != null)
             {
                 icon.sprite = services.Resources.LoadItemIcon(item.Picture);
+                icon.enabled = icon.sprite != null;
+                icon.color = Color.white;
+                icon.gameObject.SetActive(icon.sprite != null);
                 icon.preserveAspect = true;
             }
             BindHeroEquipmentFragmentBagVisual(cell, icon?.rectTransform, item);
@@ -13503,7 +13513,8 @@ namespace ProjectX.Core
             GameObject qualityObject = qualityTransform != null ? qualityTransform.gameObject
                 : new GameObject("RuntimeFragmentQuality", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             RectTransform qualityRect = qualityObject.GetComponent<RectTransform>();
-            qualityRect.SetParent(cell, false);
+            if (qualityRect.parent != cell)
+                qualityRect.SetParent(cell, false);
             CopyRectTransform(iconRect, qualityRect);
             Image quality = qualityObject.GetComponent<Image>();
             quality.sprite = services.Resources.LoadFirst(
@@ -13511,7 +13522,10 @@ namespace ProjectX.Core
             quality.enabled = quality.sprite != null;
             quality.preserveAspect = true;
             quality.raycastTarget = false;
-            qualityObject.transform.SetSiblingIndex(iconRect.GetSiblingIndex());
+            int fragmentQualityIndex = qualityObject.transform.GetSiblingIndex();
+            int fragmentIconIndex = iconRect.GetSiblingIndex();
+            if (fragmentQualityIndex > fragmentIconIndex)
+                qualityObject.transform.SetSiblingIndex(fragmentIconIndex);
 
             Transform shardTransform = cell.Find("RuntimeFragmentBadge");
             GameObject shardObject = shardTransform != null ? shardTransform.gameObject
@@ -13695,10 +13709,7 @@ namespace ProjectX.Core
             Button sourceRouteButton = heroItemSourceView.BindClick("Layer/Popup/itemlayer_1/Button_3", () =>
             {
                 heroItemSourceView.SetVisible(false);
-                heroEquipmentFragmentView.SetVisible(false);
-                heroFrameView.SetVisible(false);
-                restoreHeroEquipmentAfterGameplayShop = true;
-                InvokeLuaOrFail(onGameplayShopOpened, "HeroEquipment.Source.GameplayShops", 17d);
+                EnterGameplay(17);
             }, true);
             sourceRouteButton.interactable = true;
             heroItemSourceView.BindClick("Layer/Popup/Title/Btn_close", CloseHeroItemSource, true);
@@ -14325,6 +14336,15 @@ namespace ProjectX.Core
             heroLevelUpView?.SetVisible(false);
             heroAttributesView?.SetVisible(false);
             heroItemSourceView?.SetVisible(false);
+            bool equipment = kind == HeroEquipmentKind.Equipment;
+            services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeiqianghua",
+                heroEquipmentStrengthView, equipment && selectedMode == 0);
+            services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeijinglian",
+                heroEquipmentRefineView, equipment && selectedMode == 1);
+            services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeijuexing",
+                heroEquipmentAwakenView, equipment && selectedMode == 2);
+            services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeishenzhu",
+                heroEquipmentDivineView, equipment && selectedMode == 3);
             Image portrait = heroEquipmentCultivateView?.Binding.Find(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon")?.GetComponent<Image>();
             if (portrait != null)
