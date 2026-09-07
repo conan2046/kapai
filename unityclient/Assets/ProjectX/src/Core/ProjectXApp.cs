@@ -1246,14 +1246,14 @@ namespace ProjectX.Core
                     return true;
                 }
                 heroFrameView?.SetVisible(false);
-                return services?.UiStack.Pop() ?? true;
+                return PopUiStackWithHudRefresh();
             }
             // World remains active underneath the Hero overlay, so this return
             // case must precede the generic IsWorldOpen branch. Otherwise the
             // Hero close click hides World itself before popping the overlay.
             if (worldFormationReturnPending && IsHeroOpen)
             {
-                bool worldFormationPopped = services?.UiStack.Pop() ?? false;
+                bool worldFormationPopped = PopUiStackWithHudRefresh();
                 if (worldFormationPopped)
                 {
                     RestoreWorldAfterHeroFormation();
@@ -1265,7 +1265,7 @@ namespace ProjectX.Core
             // generic World branch hides the map children while popping YouLi.
             if (worldYouLiReturnPending && IsYouLiOpen)
             {
-                bool worldYouLiPopped = services?.UiStack.Pop() ?? false;
+                bool worldYouLiPopped = PopUiStackWithHudRefresh();
                 if (worldYouLiPopped)
                 {
                     worldYouLiReturnPending = false;
@@ -1286,7 +1286,7 @@ namespace ProjectX.Core
                 worldStageView?.SetVisible(false);
                 worldMapView?.SetVisible(false);
                 worldView?.SetVisible(false);
-                return services?.UiStack.Pop() ?? true;
+                return PopUiStackWithHudRefresh();
             }
             if (IsShopOpen)
             {
@@ -1303,18 +1303,29 @@ namespace ProjectX.Core
             }
             if (IsGameplayOpen)
             {
-                bool popped = services?.UiStack.Pop() ?? false;
+                bool popped = PopUiStackWithHudRefresh();
                 SetMainHudSurfaceVisible(true);
                 return popped;
             }
             if (IsSettingsOpen) bagFrameView?.SetVisible(false);
             bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;
-            bool stackPopped = services?.UiStack.Pop() ?? false;
+            bool stackPopped = PopUiStackWithHudRefresh();
             if (stackPopped && restoreWorldFormation)
             {
                 RestoreWorldAfterHeroFormation();
             }
             return stackPopped;
+        }
+
+        private bool PopUiStackWithHudRefresh()
+        {
+            bool popped = services?.UiStack.Pop() ?? false;
+            if (popped && services.UiStack.Current == mainView)
+            {
+                mainHudPresenter?.RefreshAfterVisibilityRestore();
+                Canvas.ForceUpdateCanvases();
+            }
+            return popped;
         }
 
         public async void Connect(string host, int port)
@@ -5873,6 +5884,7 @@ namespace ProjectX.Core
         }
         public int DeleteAllLocalMails()
         {
+            if (services.Mails.HasHistory) mailPresenter?.SuppressNextAutomaticRead();
             int count = services.Mails.DeleteAllHistory();
             UpdateMailRedDot();
             return count;
@@ -11200,6 +11212,9 @@ namespace ProjectX.Core
 
         private IEnumerator CaptureMailValidationScreenshot(string fileName)
         {
+            // Login system broadcasts are transient overlays, not part of the Mail state.
+            // Clear the shared queue so G5 compares the stable native Mail frame.
+            toastPresenter?.Clear();
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -12373,7 +12388,8 @@ namespace ProjectX.Core
                 throw new InvalidOperationException("Bag required CocosUiBinding was not found.");
             bagFlowPresenter = bagFlowPresenter ?? new BagFlowPresenter(
                 bagInputView, bagPopupFrameView, bagGiftView, bagSourceView, bagEquipmentInfoView,
-                services.Resources, services.EquipmentCatalog, services.Bag.GetTotalQuantityByItemId,
+                services.Resources, services.EquipmentCatalog, services.ShopCatalog,
+                services.Bag.GetTotalQuantityByItemId,
                 (item, quantity, target) =>
                 {
                     BeginBagUseRewardCapture(item);

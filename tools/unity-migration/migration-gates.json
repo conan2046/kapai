@@ -519,12 +519,12 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/MAIL.md",
-      "note": "Mail G3 reran on 2026-09-03 against persistentDataPath SQLite identity 7200057/1000003: 13/13 real controls and 5/5 semantics passed with exact final database restore. Early user Play remains required before G4; the 2026-07-27 G4-G6 run remains diagnostic history.",
+      "note": "Mail G0-G6 passed on 2026-09-07. The user completed the full Mail module test through real input in an opened Unity Editor and explicitly authorized direct G6 closure. Current 13/13 controls, 5/5 semantics, four-state visual evidence, exact database restore, and Cocos-equivalent delete-all behavior are accepted.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/MAIL_CONTROLS.json",
@@ -533,13 +533,12 @@
           "tools/cocos-audit/generated/cocos-control-candidates.json"
         ],
         "G1": [
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/G1_COCOS_EVIDENCE.md",
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-populated-final.png",
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-list-message-drag.png",
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-list-hardware-drag-final.png",
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-attachment-scroll-start.png",
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-attachment-scroll-end.png",
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/mail-fixture-snapshot.json"
+          ".local/unity-validation/mail-cocos-baseline-latest.json",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-01-POPULATED.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-05-LIST-SCROLL-BOTTOM.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-08-ATTACHMENT-END.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-09-ATTACHMENT-DETAIL.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/mail-fixture-snapshot.json"
         ],
         "G2": [
           "docs/unityclient/modules/MAIL.md",
@@ -563,17 +562,20 @@
           "unityclient/Assets/ProjectX/src/Data/MailStore.cs"
         ],
         "G4": [
-          ".local/unity-validation/mail-latest.json",
-          ".local/ui-fidelity/Mail/unity/g4-20260727/G4_UNITY_EVIDENCE.md",
+          ".local/unity-validation/mail-fixed-account-latest.json",
+          ".local/unity-validation/mail-fixed-account-runner-latest.json",
+          ".local/unity-validation/mail-final-user-acceptance-latest.json",
           "build/ui-migration/bootstrap-mail-populated.png",
           "build/ui-migration/bootstrap-mail.png"
         ],
         "G5": [
-          ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json",
-          ".local/ui-fidelity/Mail/compare/g5-live-20260727/G5_VISUAL_ACCEPTANCE.md",
-          ".local/ui-fidelity/Mail/unity/g5-20260727/mail-fixed-unity-result.json"
+          ".local/ui-fidelity/Mail/compare/g5-20260907/report.json",
+          ".local/unity-validation/mail-g5-current-visual-ready-20260907.md",
+          ".local/unity-validation/mail-g5-preflight-latest.json"
         ],
         "G6": [
+          ".local/unity-validation/mail-final-user-acceptance-latest.json",
+          ".local/unity-validation/mail-retrospective-latest.json",
           ".local/unity-validation/bootstrap-idempotence-latest.json",
           "build/ui-migration/bootstrap-idempotence-1.log",
           "build/ui-migration/bootstrap-idempotence-2.log",
@@ -581,7 +583,7 @@
           ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json"
         ]
       },
-      "updatedUtc": "2026-09-03T03:28:51.4948983Z"
+      "updatedUtc": "2026-09-07T06:48:48.7408380Z"
     },
     {
       "module": "Bag",
@@ -1302,11 +1304,12 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/PLAYERHUD.md",
+      "note": "PlayerHud G0-G6 passed on 2026-09-07. The user independently tested the current PlayerHud through Play/GameView in the opened Unity Editor and explicitly authorized direct G6 closure; 56/56 controls remain real-click, automated, and manually passed. The current HUD restore path re-renders authoritative values and re-registers dynamic Text components after UiStack.Pop.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
@@ -1346,9 +1349,27 @@
         "G3": [
           "build/ui-migration/unity-xunbao-validation.log"
         ],
-        "G4": [],
-        "G5": [],
-        "G6": []
+        "G4": [
+          ".local/unity-validation/playerhud-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/playerhud-operation-ledger.json",
+          ".local/unity-validation/playerhud-final-user-acceptance-latest.json",
+          "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+        ],
+        "G5": [
+          ".local/ui-fidelity/PlayerHud/cocos/g5-20260801",
+          ".local/ui-fidelity/PlayerHud/unity/g5-20260801",
+          ".local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json",
+          ".local/unity-validation/playerhud-final-user-acceptance-latest.json"
+        ],
+        "G6": [
+          "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json",
+          ".local/unity-validation/playerhud-final-user-acceptance-latest.json",
+          ".local/unity-validation/playerhud-retrospective-latest.json",
+          ".local/unity-validation/playerhud-operation-ledger.json",
+          ".local/unity-validation/playerhud-fixed-account-latest.json",
+          ".local/unity-validation/bootstrap-idempotence-latest.json"
+        ]
       },
       "gateInvalidations": {
         "G4": {
@@ -1405,7 +1426,7 @@
           "startSource": "invalidation"
         }
       },
-      "updatedUtc": "2026-09-02T14:49:20.2251454Z"
+      "updatedUtc": "2026-09-07T07:20:00.8929809Z"
     },
     {
       "module": "StaminaClaim",

@@ -205,6 +205,39 @@ namespace ProjectX.UI
             }
         }
 
+        public void RefreshAfterVisibilityRestore()
+        {
+            Render();
+            Text[] dynamicTexts =
+            {
+                nameText,
+                levelText,
+                vipText,
+                powerText,
+                goldText,
+                premiumText,
+                staminaText,
+                onlineTimeText,
+                onlineRewardAmount
+            };
+            foreach (Text text in dynamicTexts)
+            {
+                if (text == null) continue;
+                bool wasEnabled = text.enabled;
+                text.enabled = false;
+                text.enabled = wasEnabled;
+                text.SetAllDirty();
+            }
+            foreach (Text text in discountTimeTexts)
+            {
+                if (text == null) continue;
+                bool wasEnabled = text.enabled;
+                text.enabled = false;
+                text.enabled = wasEnabled;
+                text.SetAllDirty();
+            }
+        }
+
         public void SetOnlineReward(int claimedIndex, int elapsedSeconds)
         {
             if (!welfareVisible)

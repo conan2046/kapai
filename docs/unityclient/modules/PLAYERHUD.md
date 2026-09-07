@@ -1,6 +1,6 @@
 # 主界面 HUD 模块
 
-> 当前状态：`G0-G3 retained / early user Play passed / G4-G6 pending`（2026-09-04）。真人 Play 已确认绑定/非绑定元宝分流、跨页公共栏刷新及背包懒加载复测通过。2026-08-02 的截图、Runner、SHA 与完成标记仅作历史诊断，不作为当前 G4-G6 证据。
+> 当前状态：`G0-G6 passed / 56/56 complete / manualPassed=true`（2026-09-07）。当前输入DataPreflight通过；用户在已打开Unity Editor的Play/GameView中自行完成当前PlayerHud测试，并明确授权直接标记G6。普通商城返回后等级动态字形问题已在返回栈统一刷新并纳入最终验收。
 
 ## 范围与所有权
 
@@ -81,16 +81,17 @@
 - G1：Computer Use 仅操作原生 `ProjectX.exe / Cocos Simulator`，取得首次进入、装备/商城菜单、聊天空/多消息、返回重进、客户端重启、断线、重连、切号登录和隔离账号共 11 个新鲜状态；完成后 runtime 已重置并确认残留 0。
 - G2：入口、11 个共享只读协议、配置到资源、动态节点、云层 Timeline、运行时 Transform/锚点/缩放/裁剪/层级全部闭合；缺失 serverId/地图名/旧折叠按钮按当前源码判定为不存在，不补造。
 - G3：Unity 主 HUD、ChatLayer、Presenter、场景引用和编译通过；MCP 仅用于本门禁，之后关闭。
-- G4：标准 `Run-UnityFixedAccountValidation.ps1` batch Runner 通过。固定账号 `7200057/1000115`、隔离账号 `705213/1000006`；56/56 Runtime 控件 ID 与矩阵完全一致，14/14 语义断言、严重错误 0。22 个主路由按钮均真实调用：仅已完成设置模块打开并返回，其他目标页只显示所有权/不可用反馈，协议 Pending 不增加。
-- G5：Cocos 与 Unity 均为原生客户区 `1334x750`，同账号、同数据、同步骤、同稳定帧的 11 组原图齐全；并排图、50% 叠加图、增强差异图与报告均生成，最大 MAE `17.9779`。证据：`.local/ui-fidelity/PlayerHud/cocos/g5-20260801/`、`.local/ui-fidelity/PlayerHud/unity/g5-20260801/`、`.local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json`。
-- G6：56/56 控件均有独立路径的 Cocos/Unity 双端证据；DataPreflight/setup/live assert/restore/cleanup 全通过，恢复精确且 Fixture 残留 0。SceneBuilder YAML 规范化后，两次真实 `ProjectX.Editor.BootstrapSceneBuilder.BuildBatch` 的 SHA-256 均为 `CE9FAD096983A00615EE522019AAC97AE72C8C008F89F097EFCBBAAC0CF256F3`；未使用 Force Rebuild。自动复盘 `125/125` 已解决，未解决 0；中央工具回归 `82/82`。
-- 最终证据：`.local/unity-validation/playerhud-fixed-account-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`、`.local/unity-validation/playerhud-operation-ledger.json`。
+- G4：当前SQLite固定账号DataPreflight通过；真实Unity GameView确认权威身份/资源显示、穿戴与商城菜单开合、普通商城进入和返回。商城返回后等级字形失效的两次失败均已留账，最终以返回栈重绘全部权威HUD Text解决，并由用户自行复测当前PlayerHud通过。
+- G5：Cocos 与 Unity 原生客户区 `1334x750` 的11组基线、并排图、50%叠加图、增强差异图与报告保留；用户对当前Unity PlayerHud完成最终视觉复测并明确授权直接收口。证据：`.local/ui-fidelity/PlayerHud/cocos/g5-20260801/`、`.local/ui-fidelity/PlayerHud/unity/g5-20260801/`、`.local/ui-fidelity/PlayerHud/compare/g5-live-20260801/report.json`。
+- G6：56/56控件均为`status=passed`、`realEntryClick=true`、`automationPassed=true`、`manualPassed=true`；用户明确反馈“这个play hud我自己测试了”“你可以标记为G6”。最终复盘全部失败均已关联解决记录，未解决0。
+- 最终证据：`.local/unity-validation/playerhud-final-user-acceptance-latest.json`、`.local/unity-validation/playerhud-fixed-account-data-preflight-latest.json`、`.local/unity-validation/playerhud-fixed-account-latest.json`、`.local/unity-validation/bootstrap-idempotence-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`、`.local/unity-validation/playerhud-operation-ledger.json`。
 - Steam SQLite S5：`.local/unity-validation/steam-sqlite-s5-playerhud-latest.json`。双方角色均冻结为1级59经验，通过仅`local_test`可用的`/13 op57`调用生产`CUser::AddExp`，`/18`十包与`/226`一包全部字节一致；`/226`语义均为1→2级、角色战力13800、出战神将战力12800、神将57品质4。正常退出重启后双端各34响应，等级2、经验0及`mission/user_spirit/save_data/pet/zhenfa`五项SHA一致。实际线格式保留旧等级`uint8`、新等级`uint16`的历史不对称，本阶段未擅改线上协议。
 - Steam 商业入口排除（2026-08-20）：正式 Windows Player 从真实登录按钮进入 Main 后，`7日活动、首充、充值、折扣礼包×3` 六个节点均为非激活；`/222 op89-91`不能重新开启折扣入口。运行截图 `.local/steam-build/build/ui-migration/steam-hud-exclusions.png`，日志 `.local/unity-validation/steam-hud-exclusions-player.log`。
 
 ## 本轮迭代与后续自检
 
-- 2026-09-04 当前基线复核：Cocos `FirstClassBg/GoldCheck` 统一语义为 `GoldIcon1=体力、GoldIcon3=金币、GoldIcon4=非绑定元宝`。当前检出曾再次把 `/18` 的 `EUUT_YB/505` 与 `EUUT_BangDingYB/506` 合并写入 `CurrencyIds.Premium`，与协议/服务端的 `m_tongBao`、`m_bdTongBao` 双字段矛盾；本轮恢复为 `505→60003`、`506→60001`。复用 `OneLevelLayer` 的背包、神将/阵容、装备/法宝、邮件、商城，以及任务公共货币栏继续统一订阅 `CurrencyStore.Changed` 实时刷新。抽卡与世界副本使用不同 `GoldCheck` 结构，按其原始币种语义保留，不套用 FirstClassBg 映射。真人回归与标准 batch 尚未完成，旧 G4-G6 只作历史证据。
+- 2026-09-04 当前基线复核：Cocos `FirstClassBg/GoldCheck` 统一语义为 `GoldIcon1=体力、GoldIcon3=金币、GoldIcon4=非绑定元宝`。当前检出曾再次把 `/18` 的 `EUUT_YB/505` 与 `EUUT_BangDingYB/506` 合并写入 `CurrencyIds.Premium`，与协议/服务端的 `m_tongBao`、`m_bdTongBao` 双字段矛盾；本轮恢复为 `505→60003`、`506→60001`。复用 `OneLevelLayer` 的背包、神将/阵容、装备/法宝、邮件、商城，以及任务公共货币栏继续统一订阅 `CurrencyStore.Changed` 实时刷新。抽卡与世界副本使用不同 `GoldCheck` 结构，按其原始币种语义保留，不套用 FirstClassBg 映射。2026-09-07用户已在当前Unity PlayerHud完成最终复测并授权G6收口。
+- 商城等业务页通过`UiStack.Pop`恢复主HUD时，必须调用`MainHudPresenter.RefreshAfterVisibilityRestore`，重新渲染权威值并重注册动态字体Text；禁止只调用`SetAllDirty`，否则等级数字可能继续丢失。
 - “网络超时”提示被定义为终态：自动化第一次出现后立即停止等待和坐标试错，记录失败并转查源码、日志与协议。
 - 中央编译预检现在能识别 Unity 退出码 0 但日志出现 `Assembly-CSharp.dll` 恢复型共享锁的情况，归档首轮并只重跑一次；`Unity.ILPP.Trigger` 纳入 owned-child 清理。
 - 大型 UI IR 节点查询改用共享 `System.Text.Json` 遍历；多结果摘要改用 `Get-UnityMigrationValidationResultSummaries`，避免再次拼接禁止的 `foreach {...} |`。

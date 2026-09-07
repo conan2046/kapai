@@ -424,15 +424,15 @@ Assert-ToolchainTest (
 
 $invalidWorkflowPolicy = $workflowPolicy | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $invalidWorkflowPolicy.cocos.maximumAttemptsPerTarget = 2
-$invalidWorkflowPolicy.unity.runtimeValidationMode = "editor-or-batch"
+$invalidWorkflowPolicy.unity.runtimeValidationMode = "batch-only"
 $invalidWorkflowPolicy.sequence.requireEarlyUserPlayAfterG3BeforeG4 = $false
 $workflowFailures = @(Get-UnityMigrationWorkflowPolicyFailures -Policy $invalidWorkflowPolicy)
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*maximumAttemptsPerTarget*" }).Count -eq 1
 ) "Repeated Cocos target attempts were not rejected by workflow policy."
 Assert-ToolchainTest (
-    @($workflowFailures | Where-Object { $_ -like "*runtimeValidationMode*batch-only*" }).Count -eq 1
-) "Non-batch Unity runtime validation was not rejected by workflow policy."
+    @($workflowFailures | Where-Object { $_ -like "*runtimeValidationMode*opened-editor-real-input-only*" }).Count -eq 1
+) "Batch-only Unity acceptance was not rejected by workflow policy."
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*requireEarlyUserPlayAfterG3BeforeG4*" }).Count -eq 1
 ) "Missing post-G3 early user Play checkpoint was not rejected by workflow policy."
@@ -1272,6 +1272,11 @@ Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('chatVisibleStartIndex = 0;') -and
     $mainHudPresenterSource.Contains('.Where(record => systemChatSummaryVisible || record.Channel != ChatChannel.System)') -and
     $mainHudPresenterSource.Contains('text.supportRichText = true;') -and
+    $mainHudPresenterSource.Contains('public void RefreshAfterVisibilityRestore()') -and
+    $mainHudPresenterSource.Contains('text.enabled = false;') -and
+    $mainHudPresenterSource.Contains('text.enabled = wasEnabled;') -and
+    $projectXAppSource.Contains('private bool PopUiStackWithHudRefresh()') -and
+    $projectXAppSource.Contains('mainHudPresenter?.RefreshAfterVisibilityRestore();') -and
     $projectXAppSource.Contains('hudShopSubmenuOrigin = CalculateShopSubmenuPosition(rect);') -and
     $projectXAppSource.Contains('RectTransformUtility.CalculateRelativeRectTransformBounds(parent, button)') -and
     $projectXAppSource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(buttonGroup)') -and
@@ -1988,6 +1993,16 @@ $mailEvidenceContract = @($allEvidenceContracts.modules |
     Where-Object { $_.module -eq "Mail" })[0]
 $mailSqliteFixtureSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Invoke-MailSqliteFixture.ps1") -Raw -Encoding UTF8
+$mailPresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/MailPresenter.cs") -Raw -Encoding UTF8
+$mailControllerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Mail/MailController.lua.txt") -Raw -Encoding UTF8
+$bagFlowPresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
+$shopCatalogSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     [string]$mailEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
     [string]$mailEvidenceContract.fixedAccount.sqlitePath -eq
@@ -2001,6 +2016,31 @@ Assert-ToolchainTest (
     $mailSqliteFixtureSource.Contains('Mail SQLite fixture identity must remain 7200057/1000003.') -and
     $mailSqliteFixtureSource.Contains('Application.persistentDataPath/LocalServer/projectx.db')
 ) "Mail fixed-account validation no longer freezes the persistentDataPath SQLite identity and adapter."
+Assert-ToolchainTest (
+    $mailPresenterSource.Contains('new Vector2(624f, viewport.sizeDelta.y)') -and
+    $bagFlowPresenterSource.Contains('item.Id > 0 ? checked((int)item.Id) : item.Type') -and
+    $bagFlowPresenterSource.Contains('itemCatalog.TryGetItemPresentation(displayItemId') -and
+    $shopCatalogSource.Contains('public bool TryGetItemPresentation') -and
+    $shopCatalogSource.Contains('Match sourceMatch = Regex.Match(entry') -and
+    $projectXAppSource.Contains('Login system broadcasts are transient overlays, not part of the Mail state.')
+) "Mail current-frame parity no longer freezes six visible attachment cells, Cocos item detail text, and stable toast-free captures."
+Assert-ToolchainTest (
+    $mailControllerSource.Contains('batchRewards = nil, deleteAllQueued = false,') -and
+    $mailControllerSource.Contains('if M.pendingOp == 4 then') -and
+    $mailControllerSource.Contains('M.deleteAllQueued = true') -and
+    $mailControllerSource.Contains('Mail delete-all queued behind pending read response.') -and
+    [regex]::IsMatch($mailControllerSource,
+        'local function deleteAllNow\(\)\s*local count = Bridge:DeleteAllLocalMails\(\)\s*Bridge:ShowToast\([^\r\n]+\)\s*end') -and
+    $mailControllerSource.Contains('count > 0 and "删除成功" or "没有可删除的邮件"') -and
+    [regex]::IsMatch($mailControllerSource,
+        'Bridge:MoveMailToHistory\(id\)\s*if M\.deleteAllQueued then[\s\S]*?deleteAllNow\(\)\s*return') -and
+    [regex]::IsMatch($mailControllerSource,
+        'function M\.onDisconnected\(\)[\s\S]*?M\.deleteAllQueued = false') -and
+    $mailPresenterSource.Contains('public void SuppressNextAutomaticRead() => suppressNextAutomaticRead = true;') -and
+    $mailPresenterSource.Contains('SelectInternal(found ? selectedId : items[0].Id, allowAutomaticRead);') -and
+    $mailPresenterSource.Contains('if (allowAutomaticRead && !item.IsRead && !item.HasAttachments) read(id);') -and
+    $projectXAppSource.Contains('if (services.Mails.HasHistory) mailPresenter?.SuppressNextAutomaticRead();')
+) "Mail delete-all can race the automatic /128 op=4 read response and leave the selected read mail in the list."
 Assert-ToolchainTest (
     $serverPackDealSource.Contains('const uint32 fixtureBaseTime = (uint32)(GetSysTime() / 86400 * 86400 + 43200);') -and
     $serverPackDealSource.Contains('fixtureBaseTime - index') -and
@@ -2824,7 +2864,7 @@ Assert-ToolchainTest (
     $projectXAppSource.IndexOf('if (worldFormationReturnPending && IsHeroOpen)', [StringComparison]::Ordinal) -lt
         $projectXAppSource.IndexOf('if (IsWorldOpen)', [StringComparison]::Ordinal) -and
     $projectXAppSource.Contains('bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;') -and
-    $projectXAppSource.Contains('bool stackPopped = services?.UiStack.Pop() ?? false;') -and
+    $projectXAppSource.Contains('bool stackPopped = PopUiStackWithHudRefresh();') -and
     $projectXAppSource.Contains('formationPopupView?.SetVisible(false);') -and
     $projectXAppSource.Contains('if (restoreDetail) worldPresenter?.ShowSelectedStage();') -and
     $projectXAppSource.Contains('else worldPresenter?.ShowStages();') -and

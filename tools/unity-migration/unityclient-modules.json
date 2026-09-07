@@ -297,7 +297,7 @@
     {
       "key": "PlayerHud",
       "displayName": "主界面 HUD",
-      "status": "g3-retained-g4-g6-invalidated-user-retest-pending",
+      "status": "g6-complete",
       "protocols": [
         18,
         26,
@@ -558,7 +558,7 @@
     {
       "key": "Mail",
       "displayName": "邮件",
-      "status": "g0-g3-passed-early-user-play-pending-g4-g6-pending",
+      "status": "g6-complete",
       "protocols": [
         128
       ],
@@ -583,14 +583,19 @@
       "visualFidelity": {
         "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/Mail/cocos/g1-20260727/04-mail-populated-native.png"
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-01-POPULATED.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-05-LIST-SCROLL-BOTTOM.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-08-ATTACHMENT-END.png",
+          ".local/ui-fidelity/Mail/cocos/g1-20260907/MAIL-09-ATTACHMENT-DETAIL.png"
         ],
         "unityScreenshots": [
-          ".local/ui-fidelity/Mail/unity/g5-20260727/MAIL-01-POPULATED.png"
+          ".local/ui-fidelity/Mail/unity/g5-20260907/MAIL-01-POPULATED.png",
+          ".local/ui-fidelity/Mail/unity/g5-20260907/MAIL-05-LIST-SCROLL-BOTTOM.png",
+          ".local/ui-fidelity/Mail/unity/g5-20260907/MAIL-08-ATTACHMENT-END.png",
+          ".local/ui-fidelity/Mail/unity/g5-20260907/MAIL-09-ATTACHMENT-DETAIL.png"
         ],
         "diffReports": [
-          ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json",
-          ".local/ui-fidelity/Mail/compare/g5-live-20260727/manual-acceptance.json"
+          ".local/ui-fidelity/Mail/compare/g5-20260907/report.json"
         ],
         "flowEvidence": ".local/unity-validation/mail-fixed-account-latest.json",
         "uiMapping": "docs/unityclient/matrices/MAIL_CONTROLS.json"

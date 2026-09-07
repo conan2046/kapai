@@ -30,6 +30,7 @@ namespace ProjectX.UI
         private readonly CocosUiView equipmentInfoView;
         private readonly Core.ResourceService resources;
         private readonly EquipmentCatalog equipmentCatalog;
+        private readonly ShopCatalog itemCatalog;
         private readonly Func<int, int> ownedQuantity;
         private readonly Action<BagItemRecord, int, int> useAction;
         private readonly Action beforeItemJump;
@@ -59,6 +60,7 @@ namespace ProjectX.UI
             CocosUiView equipmentInfoView,
             Core.ResourceService resources,
             EquipmentCatalog equipmentCatalog,
+            ShopCatalog itemCatalog,
             Func<int, int> ownedQuantity,
             Action<BagItemRecord, int, int> useAction,
             Action beforeItemJump,
@@ -73,6 +75,7 @@ namespace ProjectX.UI
             this.equipmentInfoView = equipmentInfoView ?? throw new ArgumentNullException(nameof(equipmentInfoView));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.equipmentCatalog = equipmentCatalog ?? throw new ArgumentNullException(nameof(equipmentCatalog));
+            this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
             this.ownedQuantity = ownedQuantity ?? throw new ArgumentNullException(nameof(ownedQuantity));
             this.useAction = useAction ?? throw new ArgumentNullException(nameof(useAction));
             this.beforeItemJump = beforeItemJump ?? throw new ArgumentNullException(nameof(beforeItemJump));
@@ -153,15 +156,17 @@ namespace ProjectX.UI
         public void ShowMailAttachment(RewardRecord item)
         {
             choices.Clear();
+            int displayItemId = item.Id > 0 ? checked((int)item.Id) : item.Type;
+            itemCatalog.TryGetItemPresentation(displayItemId, out string description, out string itemFrom);
             var choice = new Choice
             {
                 Id = checked((int)item.Id),
                 Name = item.Name,
-                Description = "邮件附件奖励",
+                Description = string.IsNullOrWhiteSpace(description) ? "邮件附件奖励" : description,
                 Picture = item.Picture,
                 Quality = item.Quality,
                 Quantity = checked((int)item.Amount),
-                ItemFrom = "来源：系统邮件",
+                ItemFrom = string.IsNullOrWhiteSpace(itemFrom) ? "来源：系统邮件" : itemFrom,
                 Sources = string.Empty,
             };
             sourceChoice = choice;

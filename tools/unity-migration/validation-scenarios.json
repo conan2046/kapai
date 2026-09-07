@@ -36,7 +36,11 @@
     "unity": {
       "standardRunner": "tools/unity-migration/Run-UnityModuleValidation.ps1",
       "fixedAccountRunner": "tools/unity-migration/Run-UnityFixedAccountValidation.ps1",
-      "runtimeValidationMode": "batch-only",
+      "runtimeValidationMode": "opened-editor-real-input-only",
+      "interactionTool": "computer-use@openai-bundled",
+      "targetWindow": "UnityEditor-GameView",
+      "forbidBatchModeAsAcceptanceEvidence": true,
+      "requireOpenedUnityInteractiveAcceptance": true,
       "mcpScope": "g3-editor-inspection-only",
       "requireRegisteredArtifactsBeforeG3": true,
       "requireDataPreflightBeforeFullRun": true

@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-09-05
+> 最后更新：2026-09-07
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
@@ -9,7 +9,7 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR；历史 356 Prefab 含跨目录同名混入，不再记作 100% |
 | Functional | `待逐控件重审` | 旧“约56%”只统计页面/协议主链，未统计 Cocos 可达控件和真实点击覆盖，现已作废 |
-| Validated | `5/16 = 31.3%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块：Login、Settings、Bag、Task、World。BattleFengShenStory 作为非分母战斗子模块已独立完成 G6，不增加此处分子；PlayerHud 因共享输入变化保留到 G3，Arena 已排除。 |
+| Validated | `7/16 = 43.8%` | 仅统计当前 Manifest 完成态、G0-G6 全通过且证据可在本检出复核的主模块：Login、Settings、PlayerHud、Bag、Task、World、Mail。BattleFengShenStory 作为非分母战斗子模块已独立完成 G6，不增加此处分子；Arena 已排除。 |
 禁止在其他文档维护第二份完成率。历史“第一阶段完成”统一解释为 `legacy-unverified`，不代表功能完成；新标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 ## 2. 模块状态
 | 模块 | 状态 | 已完成边界 | 后续 |
@@ -20,7 +20,7 @@
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
 | ResourceFoundation/资源/时间/旧动画 | `R0-R4 passed / early user Play passed` | 提交`97952ddd`；回退基线`7422cbd8`；Bootstrap为0业务PrefabInstance；110/110目录项、96个静态Source查询、登录5个Source入口通过；登录→主界面、设置重复开关、任务父子组合、HeroBook/HeroRecycle仅完成创建释放生命周期试点及无阻断残留确认，不代表两项业务功能已迁移 | 本轮收口；新Bootstrap已改变输入哈希，后续模块必须按当前输入重验。YooAsset后端、Atlas和内存预算后置 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
-| 主界面 HUD | `G0-G3 retained / early user Play passed / G4-G6 pending` | 2026-09-04真人Play确认非绑定元宝`505/60003`与绑定元宝`506/60001`分流、跨页公共栏刷新及背包懒加载复测通过。ResourceFoundation现以`ParentKey`只保留运行时层级，不再随`OneLevelLayer`递归加载全部子页，英雄列表/详情改为显式请求后加载且默认关闭；Unity固定身份为版本化SQLite `7200057/1000003` | 当前修复已通过315项工具链、ResourceFoundation批验证和Bootstrap双次幂等；可进入标准G4，旧G4-G6仍不得复用 |
+| 主界面 HUD | `G0-G6 passed / 56/56 complete` | 2026-09-07当前输入DataPreflight通过；用户在已打开Unity Editor的Play/GameView中自行完成当前PlayerHud测试，并明确授权直接标记G6。商城返回后的等级动态字形刷新已由返回栈统一重绘处理，56/56控件均保持真实点击、自动与人工通过 | 当前模块收口，`manualPassed=true`。证据`.local/unity-validation/playerhud-final-user-acceptance-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`；下一模块按P1顺序进入玩法大厅复测。 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定身份`1/1000001`完成26/26控件、18/18语义、真实`/8`与`/15`、ItemType 5/6奖励弹窗、异常/重连/重登/切号及精确恢复；G5同账号同数据16/16。G6真人Play发现并关闭礼包横向拖动缺口，用户最终复测“测试通过”；整库恢复、Fixture残留0，两次BuildBatch SHA一致 | 当前模块收口；下一模块按P1顺序从当前G0启动 |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0 passed / G1-G6 invalidated / G1 recapture blocked` | G5重复内容硬门禁发现当前G1 Cocos状态中`HERO-02/03/04/06/07/08/09-15`像素完全相同，不能证明逐状态交互；原G4批验降为诊断线索。神将重生已拆为独立非分母子模块；用户微调Prefab为只读基线：`shenjiangchongsheng.prefab` SHA=`7E210120B232144840C62DAE3B323E48E82D4C0CE3D5CB682C7F761FFF5EA4B9`、`yingxiongtujianLayer.prefab` SHA=`77AB6917CE61D06D7A462148C50CE373B8950CF0C8D1FACF33070D933FD33FC7` | 当前只推进神将重生；神将图鉴不在本任务范围；神将/阵容旧G1仍待Computer Use恢复后重采 |
@@ -28,7 +28,7 @@
 | 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0-G4 passed / G5 Unity capture passed, Cocos refresh blocked / final user Play passed, G6 blocked by G5` | 方案A冻结14来源、974业务ID、86控件；碎片Icon奇偶消失及觉醒/神铸双层叠加均已由用户复测通过。培养子页采用Presenter四选一，并由UiRouter关闭同源重复实例；固定SQLite Full通过86控件与全部语义，工具链319/319，整库恢复SHA=`56DCEFE5DBE88209E78C39F272604E79405F807D27F08BB9E765CF14601E7A3F` | 本轮缺陷关闭；当前Computer Use仅暴露浏览器，无法补拍被词条输入改动失效的Cocos详情基线，因此完整G5/G6仍阻塞。后续优先启动神将重生、神将图鉴，且不得覆盖用户布局 |
-| 邮件 | `G0-G3 recorded / current Full passed / user Play deferred / G5 recapture pending / G4-G6 pending` | 2026-09-05统一双端货币/时间/正文，独立核对15封邮件一致；修复选中高亮滞后，当前Full13/13控件、5/5语义通过；两端恢复残留0，夹具备份保护测试通过 | 新Cocos重采入口无`/128`且客户端退出，待诊断；断开时另见`login_log_9`格式错误，根因未确认。旧四图已因输入变化失效；人工验收继续暂缓。 |
+| 邮件 | `G0-G6 passed / 13/13 complete` | 2026-09-07用户完成已打开Unity Editor内的Mail整模块测试并明确要求直接标记G6；一键删除按Cocos语义仅清除已处理本地历史，保留未读/未领取服务端邮件，左侧列表立即刷新。13/13控件、5/5语义及当前四态视觉证据已闭环 | 当前模块收口，`manualPassed=true`。证据`.local/unity-validation/mail-final-user-acceptance-latest.json`、`.local/unity-validation/mail-retrospective-latest.json`。 |
 | 基础商城 | `G3 runtime-ready / early user Play passed；正式G1-G2因免截图保持pending，G4-G6 pending` | 2026-09-02完成当前入口、`/221`、type=1配置与资源闭包；隐藏`OneLevelLayer/Panel_12`，迁入Shop自有真实关闭按钮并修复全控件射线。用户早测确认页签、商品图标、刷新隐藏、数量输入和购买按钮修复无问题 | 早测反馈已闭环；后续仍须按正式门禁补G1-G2并进入G4，不能把本轮免截图或早测冒充G5/G6视觉通过。 |
 | 将魂商店 | `G0-G4 passed / early user Play passed / G5-G6 pending / 29 controls + 9 semantics` | 2026-09-02按当前源码收窄为function_id=15/type=2；原生Cocos六格与各调用入口已冻结。Unity补齐六格底图、碎片角标语义、ActivityLayer子节点显隐、秒级倒计时及`/221`权威购买/刷新/失败回包；固定SQLite账号`7200057/1000003`完成29/29控件、9/9语义、整库精确恢复和残留0 | 用户最终实测通过；按本轮免截图约定停在G4提交，G5五状态视觉对比与G6最终收口仍pending；玩法商店其他分支继续暂缓 |
 | 好友 | `steam-excluded` | Steam隐藏HUD入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |

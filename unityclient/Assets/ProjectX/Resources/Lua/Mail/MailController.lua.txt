@@ -7,7 +7,7 @@ local M = {
     validationStage = nil, validationMailId = 0, validationRewardCount = 0,
     rewardsByMail = {}, mailOrder = {}, pendingOp = 0, pendingId = 0,
     listPending = false, refreshQueued = false, claimQueue = nil, readQueue = nil,
-    batchRewards = nil,
+    batchRewards = nil, deleteAllQueued = false,
 }
 
 local function describeReward(rewardType, rewardId)
@@ -180,9 +180,22 @@ function M.validationRepeat(id)
     Bridge:Send(message)
 end
 
-function M.deleteAll()
+local function deleteAllNow()
     local count = Bridge:DeleteAllLocalMails()
-    Bridge:ShowToast(count > 0 and "已删除全部已读邮件" or "暂无可删除邮件", 1.5)
+    Bridge:ShowToast(count > 0 and "删除成功" or "没有可删除的邮件", 1.5)
+end
+
+function M.deleteAll()
+    if M.pendingOp == 4 then
+        M.deleteAllQueued = true
+        Bridge:SetStatus("Mail delete-all queued behind pending read response.")
+        return
+    end
+    if M.pendingOp ~= 0 or M.listPending then
+        Bridge:ShowToast("邮件操作处理中", 1.5)
+        return
+    end
+    deleteAllNow()
 end
 
 function M.onDisconnected()
@@ -193,6 +206,7 @@ function M.onDisconnected()
     M.claimQueue = nil
     M.readQueue = nil
     M.batchRewards = nil
+    M.deleteAllQueued = false
 end
 
 local function readList(message)
@@ -346,10 +360,20 @@ local function readRead(message)
     if success == 0 then
         Bridge:ShowToast(result ~= "" and result or "邮件已读失败", 2.0)
         Bridge:SetStatus("Mail/128 read failed: " .. tostring(result))
+        if M.deleteAllQueued then
+            M.deleteAllQueued = false
+            deleteAllNow()
+            return
+        end
         requestList()
         return
     end
     Bridge:MoveMailToHistory(id)
+    if M.deleteAllQueued then
+        M.deleteAllQueued = false
+        deleteAllNow()
+        return
+    end
     if M.readQueue then
         sendNextBatchRead()
     else

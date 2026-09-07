@@ -12,7 +12,7 @@
 |---|---|---|
 | 底层/登录 | `FOUNDATION.md` / `LOGIN.md` | 登录与创角 G0-G6 已通过；Steam SQLite 为 `S0-S7 passed / S8 local accepted / external deferred` |
 | 系统设置 | `SETTINGS.md` | `G0-G6 passed / 21/21 complete`；设备级持久化、切号隔离、`no-server-fixture`、8/8 双端视觉和 Bootstrap 幂等通过 |
-| 主界面 HUD | `PLAYERHUD.md` | `G0-G3 retained / G4-G6 invalidated / user retest pending`；共享货币与 ResourceFoundation/Bootstrap 输入已变，旧 G4-G6 仅作历史证据 |
+| 主界面 HUD | `PLAYERHUD.md` | `G0-G6 passed / 56/56 complete`；2026-09-07用户在已打开Unity Editor内自行完成当前PlayerHud测试并明确授权直接标记G6 |
 | 背包 | `BAG.md` | `G0-G6 passed / 26/26 complete`；当前 SQLite 身份、真实控件、16态 G5、精确恢复及用户最终复测均已收口 |
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `G0 passed / G1-G6 invalidated / G1 recapture blocked`；G5硬门禁发现当前Cocos状态集大面积重复，必须经Computer Use重采16态后串行重验 |

@@ -28,6 +28,7 @@ namespace ProjectX.Data
         [JsonProperty("pic")] public int Picture { get; set; }
         [JsonProperty("quality")] public int Quality { get; set; }
         [JsonProperty("type")] public int Type { get; set; }
+        [JsonProperty("item_from")] public string Source { get; set; }
     }
 
     [Serializable]
@@ -87,6 +88,15 @@ namespace ProjectX.Data
                 item?.Quality ?? 0);
         }
 
+        public bool TryGetItemPresentation(int itemId, out string description, out string source)
+        {
+            EnsureCocosItems();
+            ShopItemDefinition item = FindCocosItem(itemId) ?? FindItem(itemId);
+            description = item?.Description ?? string.Empty;
+            source = item?.Source ?? string.Empty;
+            return item != null;
+        }
+
         public bool IsCocosHeroSoul(int itemId)
         {
             EnsureCocosItems();
@@ -108,18 +118,22 @@ namespace ProjectX.Data
             {
                 Match idMatch = Regex.Match(entry, @"\bid\s*=\s*(-?\d+)");
                 Match nameMatch = Regex.Match(entry, @"\bname\s*=\s*""([^""]*)""");
+                Match descriptionMatch = Regex.Match(entry, @"\bdes\s*=\s*""([^""]*)""");
                 Match pictureMatch = Regex.Match(entry, @"\bpic\s*=\s*(-?\d+)");
                 Match qualityMatch = Regex.Match(entry, @"\bquality\s*=\s*(-?\d+)");
                 Match typeMatch = Regex.Match(entry, @"\btype\s*=\s*(-?\d+)");
+                Match sourceMatch = Regex.Match(entry, @"\bitem_from\s*=\s*""([^""]*)""");
                 if (!idMatch.Success) continue;
                 int itemId = int.Parse(idMatch.Groups[1].Value);
                 cocosItems[itemId] = new ShopItemDefinition
                 {
                     Id = itemId,
                     Name = nameMatch.Success ? nameMatch.Groups[1].Value : string.Empty,
+                    Description = descriptionMatch.Success ? descriptionMatch.Groups[1].Value : string.Empty,
                     Picture = pictureMatch.Success ? int.Parse(pictureMatch.Groups[1].Value) : 0,
                     Quality = qualityMatch.Success ? int.Parse(qualityMatch.Groups[1].Value) : 0,
-                    Type = typeMatch.Success ? int.Parse(typeMatch.Groups[1].Value) : 0
+                    Type = typeMatch.Success ? int.Parse(typeMatch.Groups[1].Value) : 0,
+                    Source = sourceMatch.Success ? sourceMatch.Groups[1].Value : string.Empty
                 };
             }
         }

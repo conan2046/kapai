@@ -37,6 +37,7 @@ namespace ProjectX.UI
         private ScrollRect bodyScroll;
         private ScrollRect attachmentScroll;
         private uint selectedId;
+        private bool suppressNextAutomaticRead;
         private readonly Dictionary<RectTransform, uint> rowMailIds = new Dictionary<RectTransform, uint>();
         private int missingIconCount;
 
@@ -193,8 +194,12 @@ namespace ProjectX.UI
             return true;
         }
 
+        public void SuppressNextAutomaticRead() => suppressNextAutomaticRead = true;
+
         public void Render()
         {
+            bool allowAutomaticRead = !suppressNextAutomaticRead;
+            suppressNextAutomaticRead = false;
             IReadOnlyList<MailRecord> items = store.Items;
             emptyPanel.SetActive(items.Count == 0);
             contentPanel.SetActive(items.Count > 0);
@@ -210,17 +215,19 @@ namespace ProjectX.UI
             bool found = false;
             foreach (MailRecord item in items)
                 if (item.Id == selectedId) { found = true; break; }
-            Select(found ? selectedId : items[0].Id);
+            SelectInternal(found ? selectedId : items[0].Id, allowAutomaticRead);
         }
 
-        public bool Select(uint id)
+        public bool Select(uint id) => SelectInternal(id, true);
+
+        private bool SelectInternal(uint id, bool allowAutomaticRead)
         {
             if (!store.TryGet(id, out MailRecord item)) return false;
             selectedId = id;
             foreach (var row in rowMailIds)
                 if (row.Key != null) SetVisible(row.Key, "ChooseBg", row.Value == selectedId);
             RenderDetails(item);
-            if (!item.IsRead && !item.HasAttachments) read(id);
+            if (allowAutomaticRead && !item.IsRead && !item.HasAttachments) read(id);
             return true;
         }
 
@@ -279,7 +286,7 @@ namespace ProjectX.UI
         private void ConfigureAttachments()
         {
             RectTransform viewport = attachmentViewport.GetComponent<RectTransform>();
-            viewport.sizeDelta = new Vector2(520f, viewport.sizeDelta.y);
+            viewport.sizeDelta = new Vector2(624f, viewport.sizeDelta.y);
             if (attachmentViewport.GetComponent<RectMask2D>() == null) attachmentViewport.AddComponent<RectMask2D>();
             attachmentScroll = attachmentViewport.GetComponent<ScrollRect>() ?? attachmentViewport.AddComponent<ScrollRect>();
             var contentObject = new GameObject("RuntimeAttachmentContent", typeof(RectTransform));
