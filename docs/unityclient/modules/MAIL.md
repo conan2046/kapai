@@ -2,6 +2,17 @@
 
 ## 当前门禁
 
+- 2026-09-05双端状态修复：`mail-visual-fixture.json`统一货币、当天本地中午的邮件时间及长正文；MySQL夹具新增三项货币快照/恢复，SQLite拒绝覆盖未清理备份。独立数据库导出确认两端角色名T00057、三项货币及15封邮件字段一致。MailPresenter修复Select不刷新ChooseBg导致高亮滞后，标准Runner增加详情选中一致性断言；Full继续13/13控件、5/5语义通过，独立夹具恢复测试通过。
+- 新夹具下Cocos已登录固定身份，但入口点击未产生`/128`，客户端随后退出；断开时另有MySQL `login_log_9`格式错误，尚不能认定是退出根因。旧Cocos四图因输入变化已失效，G5仍待诊断后重采。两端夹具均恢复、残留0，相关游戏/MySQL已关闭。证据：`.local/unity-validation/mail-visual-parity-result.md`。
+
+- 2026-09-05 G5准备：补齐13项Cocos输入，原生Computer Use从真实入口补采四态（列表拖动、九附件末端、3201详情），身份`7200057/1000115`与四图SHA已冻结；合同及RequireInputs预检均通过。MySQL夹具恢复哈希`3ebc3430810a061e0d5227c63835ba96cdac915977df13fa4b721c1256c2ccad`、残留0，游戏和本轮MySQL已关闭。
+- G5仍未通过：两端账号映射、顶部货币、生成/到期时间、详情背后选中邮件尚不一致；两套夹具长正文也不同。当前四组对比仅诊断。下一步统一可逆双端状态合同并重采受影响状态，不能改旧证据指纹。详见`.local/unity-validation/mail-g5-current-review.md`及`.local/ui-fidelity/Mail/compare/diagnostic-20260905/`。
+
+- 2026-09-05标准SQLite Full通过13/13控件、5/5语义，编译、重登业务断言、整库恢复及残留0均通过。证据位于`.local/unity-validation/`：`mail-fixed-account-latest.json`、`mail-fixed-account-timings-latest.json`、`mail-sqlite-fixture-snapshot.json`。
+- VisualReplay初次因缺少`sourceAudit`被拒绝；现已按下文补齐四项源码审计，10/10附件PNG签名检查通过，标准硬门禁预检及VisualReplay重试通过。证据：`.local/unity-validation/mail-source-audit-replay.log`、`mail-visual-replay-latest.json`；原阻塞已在操作账本Resolved。结构复检不等于当前双端G5或正式G4-G6通过。
+
+- 2026-09-05用户明确要求“跳过需要人工验收的步骤，进行其他步骤”：本轮暂缓早期及最终人工Play，继续标准Runner自动验证。此授权不代表人工通过，不设置`manualPassed=true`；正式完成态仍须满足实际证据要求。
+
 - 当前正式门禁：G0-G3 passed，early user Play pending，G4-G6 pending。下述2026-07-27旧G4-G6证据仅作重验输入，不能代替当前门禁。
 - G1 批准差异：当前 Cocos 左侧邮件 `cc.TableView` 不滚动；Unity 已修复并在 G5 单列。
 - G5 修复差异：Cocos 附件详情把 `10点贵族经验` 错显为 `数量:0`；Unity 按权威附件显示 `数量:10`。
@@ -14,6 +25,14 @@
 - 运行前快照SHA-256为`CAD6FCF3E98F64A491328650CA911DFA685F6301E49CEDA3E8C7365AA23A3511`；重登后邮件业务状态一致，最终整库精确恢复，夹具备份残留0。
 - 本机证据：`.local/unity-validation/mail-g3-runtime-latest.json`、`.local/unity-validation/mail-fixed-account-runner-latest.json`、`.local/unity-validation/mail-sqlite-fixture-snapshot.json`、`.local/unity-validation/mail-fixed-account-timings-latest.json`。
 - 当前不升级G4：先由用户从真实入口早测列表/正文/附件滚动、附件详情、单封/一键领取和删除反馈。
+
+## 源码闭包审计（2026-09-05）
+
+- 入口：`MainUI.lua:2038`的邮件按钮进入`Social.SocialLayer(openTab=1)`，该层只声明邮件页签；`MailUI.lua`明确加载`csd/MailLayer.csb`。Unity `ProjectXApp.BindMailClick/EnsureMailPresenter/ConfigureMailFrame`通过真实按钮、`MailLayer`与`OneLevelLayer`装配；关闭调用返回栈，附件详情复用`BagFlowPresenter.ShowMailAttachment`。写信、回复等旧入口不属于当前可达范围。
+- 协议所有权：`Resources/Lua/Bootstrap.txt`把邮件按钮与操作交给`Mail.MailController`，包分发调用其`onPacket`；仅`Protocol.MAIL`被消费，op2列表、op3领取、op4已读、op5通知重查。Controller拥有pending、串行领取和重查；`MailPresenter`仅调用传入回调及渲染Store。服务端`CPackageDeal::XinShi`按`id + to_id`约束领取与已读，重复/非法请求走失败回包；本地历史删除不新增服务端删除协议。
+- 配置资源：`MailController.describeReward`按奖励id优先、type兜底查询`Data.ItemCatalog`，传递name/pic/quality及权威amount。`ResourceService.LoadItemIcon`按`ItemIcons/equip{pic}`、`MonsterBust/{pic}`查找，缺图会记录而非伪装通过。当前SQLite夹具的10种奖励映射为`3201→3500、500→5018、613→524、851→710、853→717、854→711、855→25105、861→3014、862→3015、863→3016`，对应ItemIcons PNG全部存在。动态邮件不枚举所有游戏物品作为本模块分母；后续新增奖励配置仍须重新核对资源。MailLayer、OneLevelLayer、common/huoqutujing均使用现有Prefab；附件模板来自MailLayer，未引入Timeline或Imod替代品。
+- 运行时布局：`MailPresenter`列表使用原MailBtn模板及`VirtualList`；正文顶左锚点、自动首选高度、RectMask2D和纵向ScrollRect；附件视口宽520，单格88、间距104、左侧锚定、横向Clamped滚动且内容宽不小于视口。空态拉伸居中，删除时间宽420；`ConfigureMailFrame`顶左锚点、单位缩放，邮件及公共层置顶，单页签禁用切换。附件详情按权威数量展示并隐藏获取跳转按钮。布局审计确认运行时改动位置与归属，不替代G5逐像素验收。
+- 当前标准Full证据为13/13控件、5/5语义和5张截图；本审计不更改历史`manualPassed`标记的有效性，正式G4-G6仍以当前门禁和证据为准。
 
 ## 当前真实链
 

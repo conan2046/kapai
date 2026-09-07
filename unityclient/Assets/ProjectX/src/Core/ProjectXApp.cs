@@ -11159,7 +11159,12 @@ namespace ProjectX.Core
             yield return CaptureMailValidationScreenshot("bootstrap-mail-attachment-end.png");
             MailRecord detailMail = services.Mails.Items.FirstOrDefault(item =>
                 item.Message.Contains("单附件可领取"));
-            if (detailMail.Id != 0) mailPresenter.Select(detailMail.Id);
+            if (detailMail.Id == 0 || !mailPresenter.Select(detailMail.Id)
+                || !mailPresenter.SelectedRowHighlightMatches)
+            {
+                Fail("Mail detail selection and visible row highlight must agree.");
+                yield break;
+            }
             if (!mailPresenter.InvokeFirstAttachmentDetail() || bagFlowPresenter?.IsSourceOpen != true)
             {
                 Fail("Mail G4 attachment detail control did not open the shared item-source popup.");

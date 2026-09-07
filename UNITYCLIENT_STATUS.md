@@ -1,5 +1,5 @@
 # UnityClient 当前状态
-> 最后更新：2026-09-04
+> 最后更新：2026-09-05
 > 本文件是迁移进度、当前批次和下一步的唯一状态源。
 > 历史全文见 `docs/unityclient/history/`；唯一流程与标准见 `docs/unityclient/MIGRATION_GUIDE.md`。
 > Steam模块黑名单见 `docs/unityclient/STEAM_SCOPE.md`；命中 `steam-excluded` 的模块禁止继续迁移。
@@ -28,7 +28,7 @@
 | 强化大师 | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen` | 14个当前Cocos状态、40控件/898业务ID与源码闭包已冻结；标准固定账号batch G3完成13个Unity运行态，六页签、装备/法宝养成路由、法宝材料滚动选择及按需加载通过；SQLite预检、精确恢复与211项工具回归通过 | 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料；等待用户真实Play反馈，此前不进入G4 |
 | 神将培养模块 B | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen` | 18个当前Cocos状态冻结；`/24,/25,/48,/70`、配置/14个Prefab/Imod闭包与G3初版实现完成，用户调整后的Prefab布局已保留 | 用户按最终布局复测5-15分钟主路径并反馈；反馈闭环后才进入G4，测试数据仅允许Unity LocalServer SQLite |
 | 装备（法宝边界回归） | `G0-G4 passed / G5 Unity capture passed, Cocos refresh blocked / final user Play passed, G6 blocked by G5` | 方案A冻结14来源、974业务ID、86控件；碎片Icon奇偶消失及觉醒/神铸双层叠加均已由用户复测通过。培养子页采用Presenter四选一，并由UiRouter关闭同源重复实例；固定SQLite Full通过86控件与全部语义，工具链319/319，整库恢复SHA=`56DCEFE5DBE88209E78C39F272604E79405F807D27F08BB9E765CF14601E7A3F` | 本轮缺陷关闭；当前Computer Use仅暴露浏览器，无法补拍被词条输入改动失效的Cocos详情基线，因此完整G5/G6仍阻塞。后续优先启动神将重生、神将图鉴，且不得覆盖用户布局 |
-| 邮件 | `G0-G3 passed / early user Play pending / G4-G6 pending` | 2026-09-03切换到persistentDataPath SQLite固定身份`7200057/1000003`；当前源码G3批处理通过13/13真实控件、5/5语义及`/128 op2/3/4`，14封可见+1封隐藏邮件夹具完成重登业务断言、整库精确恢复和残留0 | 用户从当前真实入口早测列表/正文/附件滚动、详情、单封/一键领取与删除；反馈闭环后进入G4。旧G4-G6证据仅作诊断。 |
+| 邮件 | `G0-G3 recorded / current Full passed / user Play deferred / G5 recapture pending / G4-G6 pending` | 2026-09-05统一双端货币/时间/正文，独立核对15封邮件一致；修复选中高亮滞后，当前Full13/13控件、5/5语义通过；两端恢复残留0，夹具备份保护测试通过 | 新Cocos重采入口无`/128`且客户端退出，待诊断；断开时另见`login_log_9`格式错误，根因未确认。旧四图已因输入变化失效；人工验收继续暂缓。 |
 | 基础商城 | `G3 runtime-ready / early user Play passed；正式G1-G2因免截图保持pending，G4-G6 pending` | 2026-09-02完成当前入口、`/221`、type=1配置与资源闭包；隐藏`OneLevelLayer/Panel_12`，迁入Shop自有真实关闭按钮并修复全控件射线。用户早测确认页签、商品图标、刷新隐藏、数量输入和购买按钮修复无问题 | 早测反馈已闭环；后续仍须按正式门禁补G1-G2并进入G4，不能把本轮免截图或早测冒充G5/G6视觉通过。 |
 | 将魂商店 | `G0-G4 passed / early user Play passed / G5-G6 pending / 29 controls + 9 semantics` | 2026-09-02按当前源码收窄为function_id=15/type=2；原生Cocos六格与各调用入口已冻结。Unity补齐六格底图、碎片角标语义、ActivityLayer子节点显隐、秒级倒计时及`/221`权威购买/刷新/失败回包；固定SQLite账号`7200057/1000003`完成29/29控件、9/9语义、整库精确恢复和残留0 | 用户最终实测通过；按本轮免截图约定停在G4提交，G5五状态视觉对比与G6最终收口仍pending；玩法商店其他分支继续暂缓 |
 | 好友 | `steam-excluded` | Steam隐藏HUD入口、禁止路由和验收；Cocos/服务端保留 | 后续不迁移 |

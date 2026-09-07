@@ -37,7 +37,8 @@ NINE = attachment(((500, 0, 1), (613, 0, 3), (851, 0, 20), (853, 0, 2),
 
 
 def fixture_rows(role_id):
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    contract = read_json(os.path.join(os.path.dirname(__file__), "mail-visual-fixture.json"))
+    now = datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
     bodies = [
         ("", "系统", "邮件验证 无附件未读正文", 0),
         (ONE, "系统", "邮件验证 单附件可领取", 0),
@@ -47,7 +48,7 @@ def fixture_rows(role_id):
     ]
     for index in range(6, 13):
         bodies.append(("", "系统", f"邮件验证 列表滚动 {index:02d}", 0))
-    bodies.append(("", "系统", "邮件验证 长正文：用于验证正文滚动、裁剪、重进、重连、切号隔离和数据库精确恢复。" * 12, 0))
+    bodies.append(("", "系统", contract["longBody"] * contract["longBodyRepeat"], 0))
     bodies.append((ONE, "系统", "邮件验证 列表滚动 14", 0))
     bodies.append((ONE, "系统", "邮件验证 已领取不可见行", 1))
     return [(0, 0, 0, attach, 0, role_id, 0,
@@ -57,7 +58,7 @@ def fixture_rows(role_id):
 
 
 def state(connection, user_id, role_id):
-    link = connection.execute("SELECT role0 FROM user_info1 WHERE id=?", (user_id,)).fetchone()
+    link = connection.execute("SELECT role0,money,bd_money FROM user_info1 WHERE id=?", (user_id,)).fetchone()
     if link is None or int(link[0]) != role_id:
         raise RuntimeError(f"SQLite user {user_id} is not linked to role {role_id}")
     rows = connection.execute(
@@ -67,6 +68,9 @@ def state(connection, user_id, role_id):
     hidden = [row for row in rows if int(row[1]) == 1 and row[3] == "邮件验证 已领取不可见行"]
     return {
         "integrity": connection.execute("PRAGMA integrity_check").fetchone()[0],
+        "gold": int(connection.execute("SELECT money FROM role_info WHERE id=?", (role_id,)).fetchone()[0]),
+        "userMoney": int(link[1]),
+        "boundMoney": int(link[2]),
         "total": len(rows),
         "fixtureVisible": len(visible),
         "fixtureHidden": len(hidden),
@@ -78,6 +82,12 @@ def state(connection, user_id, role_id):
 
 def assert_setup(connection, user_id, role_id):
     current = state(connection, user_id, role_id)
+    contract = read_json(os.path.join(os.path.dirname(__file__), "mail-visual-fixture.json"))
+    if any(current[key] != contract[key] for key in ("gold", "userMoney", "boundMoney")):
+        raise RuntimeError("Mail visual currency contract mismatch")
+    actual = connection.execute("SELECT money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message FROM xin_shi WHERE to_id=? ORDER BY id", (role_id,)).fetchall()
+    if actual != fixture_rows(role_id):
+        raise RuntimeError("Mail visual time/body/attachment contract mismatch")
     if (current["integrity"] != "ok" or current["fixtureVisible"] != 14
             or current["fixtureHidden"] != 1 or current["plainVisible"] < 5
             or current["attachmentVisible"] < 5 or current["nineAttachmentVisible"] != 1):
@@ -109,6 +119,8 @@ def main():
     database, backup, evidence = map(os.path.abspath, (args.database, args.backup, args.evidence))
 
     if args.action == "Setup":
+        if os.path.exists(backup):
+            raise RuntimeError("Mail SQLite backup already exists; restore and clean it before Setup")
         if not os.path.isfile(database):
             raise RuntimeError(f"Mail SQLite database is missing: {database}")
         connection = sqlite3.connect(database)
@@ -121,6 +133,10 @@ def main():
         shutil.copy2(database, backup)
         connection = sqlite3.connect(database)
         try:
+            contract = read_json(os.path.join(os.path.dirname(__file__), "mail-visual-fixture.json"))
+            connection.execute("UPDATE role_info SET money=? WHERE id=?", (contract["gold"], args.role_id))
+            connection.execute("UPDATE user_info1 SET money=?,bd_money=? WHERE id=?",
+                               (contract["userMoney"], contract["boundMoney"], args.user_id))
             connection.execute("DELETE FROM xin_shi WHERE to_id=?", (args.role_id,))
             connection.executemany(
                 "INSERT INTO xin_shi(money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message) "

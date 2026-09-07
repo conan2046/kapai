@@ -37,6 +37,7 @@ namespace ProjectX.UI
         private ScrollRect bodyScroll;
         private ScrollRect attachmentScroll;
         private uint selectedId;
+        private readonly Dictionary<RectTransform, uint> rowMailIds = new Dictionary<RectTransform, uint>();
         private int missingIconCount;
 
         public MailPresenter(CocosUiView view, CocosUiView frameView, MailStore store, Core.ResourceService resources,
@@ -115,6 +116,19 @@ namespace ProjectX.UI
         public int ItemCount => store.Count;
         public int MissingIconCount => missingIconCount;
         public uint SelectedId => selectedId;
+        public bool SelectedRowHighlightMatches
+        {
+            get
+            {
+                foreach (var row in rowMailIds)
+                {
+                    if (row.Key == null || !row.Key.gameObject.activeInHierarchy) continue;
+                    Transform highlight = row.Key.Find("ChooseBg");
+                    if (highlight == null || highlight.gameObject.activeSelf != (row.Value == selectedId)) return false;
+                }
+                return true;
+            }
+        }
         public bool HasScrollableMailList => list.Count > 5;
         public bool HasScrollableBody => bodyScroll != null && bodyScroll.content != null
             && bodyScroll.content.rect.height > bodyScroll.viewport.rect.height;
@@ -203,6 +217,8 @@ namespace ProjectX.UI
         {
             if (!store.TryGet(id, out MailRecord item)) return false;
             selectedId = id;
+            foreach (var row in rowMailIds)
+                if (row.Key != null) SetVisible(row.Key, "ChooseBg", row.Value == selectedId);
             RenderDetails(item);
             if (!item.IsRead && !item.HasAttachments) read(id);
             return true;
@@ -217,6 +233,7 @@ namespace ProjectX.UI
 
         private void BindRow(RectTransform row, MailRecord item, int index)
         {
+            rowMailIds[row] = item.Id;
             string sender = DisplaySender(item);
             SetText(row, "Name", $"来自{sender}的邮件");
             SetText(row, "From", item.FromId == 0 ? "系统" : sender);

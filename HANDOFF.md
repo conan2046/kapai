@@ -1,68 +1,75 @@
 # Unity 迁移当前交接
 
-> 实时完成率、当前批次和模块门禁唯一读取 [`UNITYCLIENT_STATUS.md`](UNITYCLIENT_STATUS.md)。
-> 历史交接已归档到 `docs/unityclient/history/2026-07-to-2026-08-handoff-legacy.md`，不得用其中数字、路径、截图、SHA、账号或 Runner 结论替代当前证据。
+> 更新时间：2026-09-05。实时完成率、当前批次和模块门禁唯一读取 [`UNITYCLIENT_STATUS.md`](UNITYCLIENT_STATUS.md)。历史交接不得替代当前源码、状态表、矩阵、Runner 与本机证据。
 
-## 装备特殊词条 S7 收口（2026-08-30）
+## 当前仓库基线
 
-- 功能分支：`feature/hero-skill-affix-v1`；实现提交：`49893bf5201fa5b1baf5550b102953dd28dfce89`；未合并 `main`。
-- 已完成服务端权威词条锁定与重铸（`/319 op=41/42`）、品质 6/7 金币消耗、词条种子与锁定状态持久化。
-- Cocos 与 Unity 均已接入锁定/重铸按钮、权威回包刷新和 12 类神将流派推荐；战斗行动流已显示战意实际变化。
-- 验收通过：48 词条/59 神将配置回归、双端 LuaJIT 编译、Unity 2022.3.62f3c1 全新批处理编译、服务端 Debug 构建与 SQLite 启动、29 项真实装备词条协议回放、3 项重启持久化回放。
-- 本轮只提交 14 个功能文件；工作树中 976 个既有 Unity `.meta` 改动未暂存、未清理、未夹带。
-- 下一任务应新开任务继续：优先做 Cocos/Unity 装备详情人工点击与截图验收，以及含战意增减的真实战斗回放；这些人工视觉证据不应由本轮自动化结果替代。
+- 仓库：`conan2046/kapai`。
+- 当前分支：`feature/hero-skill-affix-v1`。
+- 当前提交：`cd011165 feat(unity): 完成神将重生G6迁移`，与`origin/main`一致。
+- 当前分支包含装备特殊词条S7、神将配装建议S8、Mail SQLite G3以及神将重生G6；对应提交`49893bf5`、`a3e62376`、`f62308ac`均已进入当前主干历史。
+- 当前工作树只有976个Unity自动漂移的`.meta`：`HeroUI` 91项、`ProjectXAnimation` 885项；语义改动0、noise 0、unexpected 0。不得批量暂存、提交、reset、checkout或stash这些`.meta`。
 
-## 当前批次
+## 当前唯一开发模块：Mail
 
-### 技能/词条功能分支（2026-09-02 同步主干）
+- 正式门禁：`G0-G3 passed / early user Play pending / G4-G6 pending`。
+- Unity固定身份：persistentDataPath SQLite `userId=7200057 / roleId=1000003`。
+- G3当前源码已通过13/13真实控件、5/5语义以及真实`/128 op2/3/4`；可逆夹具覆盖14封可见邮件、1封隐藏已领取邮件、无/单/双/九附件、长正文和滚动状态。
+- 固定账号Runner已验证重复失败、串行一键领取/已读、本地删除、空态、账号隔离、重登业务状态、最终整库精确恢复和夹具残留0。
+- 用户早测准备曾注入邮件夹具并启动Unity，但没有收到明确验收反馈。2026-09-05已确认Unity、`kapai.exe`、`ProjectX.exe`和MySQL均未运行，并将数据库精确恢复到基准SHA-256 `CAD6FCF3E98F64A491328650CA911DFA685F6301E49CEDA3E8C7365AA23A3511`；夹具备份已清理。
+- 2026-09-05用户授权暂缓人工验收，继续自动步骤；本轮Mail标准Full通过13/13控件、5/5语义、重登、精确恢复和残留0。人工确认仍未通过。
+- 已补齐Mail四项sourceAudit，10/10附件PNG存在且签名有效，标准硬门禁预检及VisualReplay通过，原阻塞已Resolved。结构复检不等于当前G5双端视觉，正式G4-G6仍pending。
 
-- 用户明确要求“先跳过验收，继续下一步任务”；只暂缓人工点击、截图与战斗回放，不把缺失证据标记为通过，也不修改迁移门禁。
-- S8 已实现首批 12 名神将 / 24 套 A/B 词条配装参考，配置与规则见 `docs/HERO_SKILL_AFFIX_IMPLEMENTATION_V1.md` 的 2.6 节。
-- 双端已穿戴装备显示佩戴者的 A/B 匹配度，背包装备显示前三项推荐；评分为核心 100 / 兼容 60 / 不匹配 0，与战力、Tier、整套构筑分离。
-- 非 GUI 回归：1,248 项评分、2,052 行 Lua/C# 一致性、5 项 Cocos 上下文单测；C# 离线 Roslyn 编译退出 0。日志位于 `.local/hero-build-s8-tests.log`、`.local/hero-build-s8-lua-parity.log` 和 `.local/hero-build-s8/`。
-- S8 已形成独立提交 `a3e62376`，随后将 `origin/main@77196b74` 合入功能分支；未把功能分支反向合并到 `main`。
-- 本轮没有开启游戏服务、数据库、Cocos 或 Unity；没有修改账号存档。976 个既有 Unity `.meta` 改动继续保留且未暂存；新增的三个 S8 资源 `.meta` 已随 S8 正式提交。
-- 下一开发任务：按既有方案推进首批神将的可选技能分支与策略预设，先明确服务端持久化/切换协议与战斗注入合同。当前配装参考不会切换技能，不得当成分支已生效。
+### Mail 下一步
 
-### 迁移门禁（未因跳过人工验收而变更）
+1. 用户继续暂缓人工验收。Mail双端夹具已统一，15封邮件及货币/角色名一致，高亮滞后已修复且Full通过。下一步诊断Cocos真实入口无`/128`且客户端退出的问题后重采四态；断开日志的`login_log_9`格式错误不等于已确认退出根因。旧Cocos基线已失效。详见`.local/unity-validation/mail-visual-parity-result.md`。
+2. 自动Full已通过，业务代码未改变时不重复重跑；缺当前双端证据的状态按标准采集路径准备。
+3. 不把历史manualPassed或本轮结构复检作为当前用户确认。正式G4-G6保持pending，直至满足门禁或记录适用的明确豁免。
+4. 仅处理Mail；测试夹具遵守SQLite快照、精确恢复和残留0合同，当前无须保持游戏进程。
 
-- BattleFengShenStory：2026-09-01 当前输入下 G0-G6 全部通过；9/9控件、10态双端视觉、标准固定账号batch、两次BuildBatch与用户最终Play均通过。
-- BattleFengShenStory 自动复盘：失败244、解决244、补充证据4、待诊断0、未解决0；固定账号SQLite `7200057/1000003` 已恢复为40级/1600经验，WAL/SHM均不存在。
-- Mail 已按正式门禁从旧`g6-complete`降为G0-G2 passed；Shop降为G0-G4 passed。旧证据保留，但不得冒充当前门禁。
-- 全局文档校验34模块通过；Validated主模块保持`5/16 = 31.3%`，BattleFengShenStory属于非分母战斗子模块。
-- 同一时间只推进用户当前指定的一个模块；上一门禁未通过不得进入下一门禁或下一模块。
+## 当前全局状态摘要
 
-## 当前工作树保护
+- Validated主模块：`5/16 = 31.3%`，仅Login、Settings、Bag、Task、World。
+- 神将重生：`G0-G6 passed / 24/24 complete`，当前已收口。
+- 主界面HUD：`G0-G3 retained / early user Play passed / G4-G6 pending`。
+- 装备/法宝边界回归：`G0-G4 passed / G5 Unity capture passed / Cocos refresh blocked / final user Play passed / G6 blocked by G5`。
+- 强化大师、神将培养、Mail、玩法大厅和封神列传仍各有早期真人Play或重测边界；不得因其他模块历史证据跳门禁。
+- 神将/阵容旧G1仍待真实Cocos状态重采；竞技场及状态表标记的`steam-excluded`模块不得继续迁移。
 
-- 当前已知用户改动：`server/config/config`。
-- 当前未跟踪输入：`tmp/pdfs/ai-game-factory-article/` 下图片。
-- 上述内容不属于本轮治理范围；不得 reset、checkout、stash、暂存或夹带提交。
-- 每次继续前重新执行 Git 状态检查；本节只记录交接时观察，不作为未来数量基线。
+## 2026-09-05 拉取与查漏补缺结果
 
-## 下一步
+- 已执行`git fetch origin --prune`；当前`HEAD`与`origin/main`均为`cd011165`，无需额外合并。
+- `Test-UnityMigrationToolchain.ps1`：319项通过。
+- `Test-UnityMigrationDocs.ps1`：35模块通过，local evidence为optional。
+- `Test-UnityMigrationGitScope.ps1 -SummaryOnly`：total 976、semantic 0、meta 976、noise 0、unexpected 0。
+- 根交接原先仍写Mail G0-G2、功能分支未进主干、神将重生未完成及旧工作树条目，均已按实时状态纠正。
+- `docs/unityclient/modules/README.md`仍有PlayerHUD、装备等摘要落后于`UNITYCLIENT_STATUS.md`；因当前只允许处理Mail，暂不改其他模块索引。后续切换对应模块时再同步，不能以旧摘要覆盖状态表。
 
-1. 新任务先由用户指定下一个模块，再读取 `UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、目标模块文档/矩阵及 `migration-gates.json`。
-2. 确认用户当前指定模块和最早 pending 门禁。
-3. 新模块 G0 使用中央脚手架生成当前入口清单、协议证据和历史根因命中报告；不得手写缩小分母。
-4. 后续新模块记录 G0-G6 日历周期和 Runner 机器耗时；不追补历史模块。
-5. 商业发布工程化按 `docs/unityclient/COMMERCIAL_RELEASE_HARDENING.md` 执行；必须先完成C0并取得预算、语言和字体决策。
-6. 只有用户明确要求后才提交或推送，并使用严格路径 allowlist。
+## 验证环境
 
-## 常用入口
+- 基准库：`server/sql/sqlite/fixtures/projectx-validation-base.db`。
+- 安装目标：`%USERPROFILE%\AppData\LocalLow\Xuancai\ProjectX\LocalServer\projectx.db`。
+- 固定身份：`1/1000001/S8D01`与`7200057/1000003/T00057`。
+- `pwsh -NoProfile`可能命中WindowsApps无效Python占位程序；运行迁移脚本时使用Codex bundled Python或显式可用Python，不修改全局环境。
+- PNG/JPG、本机日志、数据库备份和运行证据只放`.local/`或`build/`，不得提交Git。
+
+## 常用命令
 
 ```powershell
-python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-audit/generated
-./tools/unity-migration/Get-ProtocolEvidence.ps1 -Protocol <Protocol> -Module <Module>
-./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G0
-./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -ValidationMode Preflight
-./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly
-./tools/unity-migration/Test-UnityMigrationDocs.ps1
-./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
+git status --short
+git fetch origin --prune
+pwsh -NoProfile -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Verify
+pwsh -NoProfile -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Mail -DataPreflightOnly
+pwsh -NoProfile -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Mail -G3RuntimeOnly
+pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationToolchain.ps1
+pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationDocs.ps1
+pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
 
 ## 收口规则
 
-- 初版 UI、协议、代码可运行后立即邀请早期用户 Play；G4 前关闭反馈，G6 仍需最后相关变更后的用户确认。
-- 失败立即写 operation ledger；修复后追加 `Resolved + resolution + iterationAction + iterationEvidence`。
-- G4/G6 只认标准 batch Runner；G5 只认当前输入指纹匹配的双端证据。
-- 阶段完成后关闭本阶段启动的 Unity、Cocos、`kapai.exe`、本地数据库及 Computer Use 运行时。
+- 同一时间只处理一个模块；本交接当前锁定Mail。
+- G4/G6只认标准batch Runner；G5只认当前输入指纹匹配的双端真实证据。
+- 失败立即写operation ledger；修复后追加`Resolved`、`resolution`、`iterationAction`和`iterationEvidence`。
+- 只有用户明确要求后才提交或推送，并使用严格路径allowlist。
+- 阶段完成后关闭本阶段启动的Unity、Cocos、`kapai.exe`、本地数据库和Computer Use运行时。

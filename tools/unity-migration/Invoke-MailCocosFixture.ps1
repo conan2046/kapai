@@ -11,6 +11,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
+$visualContract = Get-Content (Join-Path $PSScriptRoot "mail-visual-fixture.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$fixtureBase = (Get-Date).Date.AddHours(12).ToString('yyyy-MM-dd HH:mm:ss')
 $mysql = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"
 $evidence = if ([System.IO.Path]::IsPathRooted($EvidencePath)) {
     $EvidencePath
@@ -74,6 +76,8 @@ $hashExpression = @"
 SHA2(CONCAT_WS('|',
  COALESCE(TO_BASE64(r.package),''),
  COALESCE(r.clientstring,''),
+ COALESCE(r.money,0),
+ (SELECT CONCAT_WS(',',COALESCE(money,0),COALESCE(bd_money,0)) FROM user_info1 WHERE id=$UserId),
  COALESCE((
    SELECT GROUP_CONCAT(
      SHA2(CONCAT_WS('|',x.id,x.money,x.YB,x.bdYB,COALESCE(x.attachment,''),x.from_id,x.to_id,
@@ -94,6 +98,7 @@ CREATE TABLE IF NOT EXISTS unity_validation_mail_fixture (
  snapshot_hash CHAR(64) NOT NULL,
  backup_package MEDIUMTEXT NULL,
  backup_clientstring MEDIUMTEXT NULL,
+ backup_visual_state TEXT NULL,
  PRIMARY KEY(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 SET @mail_fixture_clientstring_column=(
@@ -110,6 +115,11 @@ SET @mail_fixture_clientstring_sql=IF(
 PREPARE mail_fixture_clientstring_stmt FROM @mail_fixture_clientstring_sql;
 EXECUTE mail_fixture_clientstring_stmt;
 DEALLOCATE PREPARE mail_fixture_clientstring_stmt;
+SET @mail_visual_column=(SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='unity_validation_mail_fixture' AND column_name='backup_visual_state');
+SET @mail_visual_sql=IF(@mail_visual_column=0,'ALTER TABLE unity_validation_mail_fixture ADD COLUMN backup_visual_state TEXT NULL','SELECT 1');
+PREPARE mail_visual_stmt FROM @mail_visual_sql;
+EXECUTE mail_visual_stmt;
+DEALLOCATE PREPARE mail_visual_stmt;
 CREATE TABLE IF NOT EXISTS unity_validation_mail_backup (
  user_id INT UNSIGNED NOT NULL,
  id INT NOT NULL,
@@ -184,6 +194,12 @@ $fixtureValues = @(
     "(0,0,0,'$oneAttachment',0,$RoleId,0,DATE_SUB(NOW(),INTERVAL 15 MINUTE),0,1,'系统','邮件验证 已领取不可见行')"
 ) -join ","
 
+# Both adapters use the same local calendar day at noon; SQL TIMESTAMP and
+# SQLite unix_timestamp both interpret these strings in the local timezone.
+$fixtureValues = $fixtureValues.Replace('NOW()', "'$fixtureBase'")
+$sharedBody = (([string]$visualContract.longBody) * [int]$visualContract.longBodyRepeat).Replace("'", "''")
+$fixtureValues = [regex]::Replace($fixtureValues, '邮件验证 长正文：[^'']*', [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $sharedBody })
+
 $setupAssertSql = @"
 SET @mail_ok=(
  SELECT COUNT(*)=1 FROM unity_validation_mail_fixture
@@ -200,7 +216,10 @@ SET @mail_attach_scroll=(
    AND LEFT(attachment,2)='09'
 );
 SET @mail_guide=(SELECT COUNT(*)=1 FROM role_info WHERE id=$RoleId AND clientstring='$mailGuideClientString');
-SET @mail_sql=IF(@mail_ok AND @mail_visible AND @mail_deleted AND @mail_attach AND @mail_plain AND @mail_attach_scroll AND @mail_guide,
+SET @mail_visual=(SELECT COUNT(*)=1 FROM role_info r JOIN user_info1 u ON u.role0=r.id WHERE r.id=$RoleId AND u.id=$UserId AND r.money=$([long]$visualContract.gold) AND u.money=$([long]$visualContract.userMoney) AND u.bd_money=$([long]$visualContract.boundMoney));
+SET @mail_clock=(SELECT COUNT(*)=1 FROM xin_shi WHERE to_id=$RoleId AND message='邮件验证 单附件可领取' AND time=DATE_SUB('$fixtureBase',INTERVAL 2 MINUTE));
+SET @mail_body=(SELECT COUNT(*)=1 FROM xin_shi WHERE to_id=$RoleId AND message='$sharedBody');
+SET @mail_sql=IF(@mail_ok AND @mail_visible AND @mail_deleted AND @mail_attach AND @mail_plain AND @mail_attach_scroll AND @mail_guide AND @mail_visual AND @mail_clock AND @mail_body,
  'SELECT 1','SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT=''Mail fixture setup assertion failed''');
 PREPARE mail_stmt FROM @mail_sql;
 EXECUTE mail_stmt;
@@ -208,6 +227,8 @@ DEALLOCATE PREPARE mail_stmt
 "@
 
 function Restore-MailSnapshot {
+    $visualBackup = @(Invoke-MailSql -Sql "SELECT COUNT(*) FROM unity_validation_mail_fixture WHERE user_id=$UserId AND role_id=$RoleId AND backup_visual_state IS NOT NULL" -ReturnOutput)
+    if ([int]$visualBackup[-1] -ne 1) { throw 'Mail visual currency backup is missing; do not overwrite account data.' }
     Invoke-MailSql -Sql @"
 DELETE FROM xin_shi WHERE to_id=$RoleId;
 INSERT INTO xin_shi(id,money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message)
@@ -216,9 +237,11 @@ FROM unity_validation_mail_backup WHERE user_id=$UserId ORDER BY id;
 UPDATE role_info r
 JOIN unity_validation_mail_fixture f ON f.role_id=r.id AND f.user_id=$UserId
 SET r.package=f.backup_package,
-    r.clientstring=f.backup_clientstring
+    r.clientstring=f.backup_clientstring,
+    r.money=JSON_UNQUOTE(JSON_EXTRACT(f.backup_visual_state,'$.gold'))
 WHERE r.id=$RoleId
 "@
+    Invoke-MailSql -Sql "UPDATE user_info1 u JOIN unity_validation_mail_fixture f ON f.user_id=u.id SET u.money=JSON_UNQUOTE(JSON_EXTRACT(f.backup_visual_state,'$.userMoney')),u.bd_money=JSON_UNQUOTE(JSON_EXTRACT(f.backup_visual_state,'$.boundMoney')) WHERE u.id=$UserId"
     $restored = @(Invoke-MailSql -Sql @"
 SELECT COUNT(*)=1 AND $hashExpression=f.snapshot_hash
 FROM role_info r
@@ -253,15 +276,17 @@ INSERT INTO unity_validation_mail_backup(
 SELECT $UserId,id,money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message
 FROM xin_shi WHERE to_id=$RoleId;
 INSERT INTO unity_validation_mail_fixture(
- user_id,role_id,applied,source_mail_count,snapshot_hash,backup_package,backup_clientstring
+ user_id,role_id,applied,source_mail_count,snapshot_hash,backup_package,backup_clientstring,backup_visual_state
 )
 SELECT $UserId,$RoleId,0,(SELECT COUNT(*) FROM xin_shi WHERE to_id=$RoleId),
-       $hashExpression,r.package,r.clientstring
+       $hashExpression,r.package,r.clientstring,JSON_OBJECT('gold',r.money,'userMoney',(SELECT money FROM user_info1 WHERE id=$UserId),'boundMoney',(SELECT bd_money FROM user_info1 WHERE id=$UserId))
 FROM role_info r WHERE r.id=$RoleId;
 DELETE FROM xin_shi WHERE to_id=$RoleId;
 INSERT INTO xin_shi(money,YB,bdYB,attachment,from_id,to_id,gmtime,time,shenhun,deleted,from_name,message)
 VALUES $fixtureValues;
 UPDATE role_info SET clientstring='$mailGuideClientString' WHERE id=$RoleId;
+UPDATE role_info SET money=$([long]$visualContract.gold) WHERE id=$RoleId;
+UPDATE user_info1 SET money=$([long]$visualContract.userMoney),bd_money=$([long]$visualContract.boundMoney) WHERE id=$UserId AND role0=$RoleId;
 UPDATE unity_validation_mail_fixture SET applied=1 WHERE user_id=$UserId AND role_id=$RoleId
 "@
         Invoke-MailSql -Sql $setupAssertSql
