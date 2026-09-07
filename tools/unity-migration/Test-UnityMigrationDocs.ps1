@@ -89,7 +89,7 @@ if ($statusPath) {
     if ($functionalMatches.Count -ne 1) {
         Add-Failure "STATUS must contain exactly one Functional percentage row; found $($functionalMatches.Count)."
     }
-    $priorityLabels = @("P0 基础层", "P1 其他单人功能", "P2 运营与商业化", "P3 竞技/玩家依赖", "P4 社交最后")
+    $priorityLabels = @("P0 基础层", "P1 核心养成与单人功能", "P2 运营与商业化", "P3 竞技/玩家依赖", "P4 社交最后")
     $lastPriorityIndex = -1
     foreach ($label in $priorityLabels) {
         $priorityIndex = $status.IndexOf($label, [StringComparison]::Ordinal)

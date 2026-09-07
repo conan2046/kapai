@@ -20,7 +20,7 @@
 | 迁移提速工具 | 第三阶段完成 | 新增零副作用 Preflight、源码锚点、固定账号快照回滚、矩阵 ID 运行覆盖、中文语义断言、G5 输入哈希/提交来源；兼容 Task 回归样板 | 后续模块统一登记证据契约，再按 G0-G6 推进 |
 | ResourceFoundation/资源/时间/旧动画 | `R0-R4 passed / early user Play passed` | 提交`97952ddd`；回退基线`7422cbd8`；Bootstrap为0业务PrefabInstance；110/110目录项、96个静态Source查询、登录5个Source入口通过；登录→主界面、设置重复开关、任务父子组合、HeroBook/HeroRecycle仅完成创建释放生命周期试点及无阻断残留确认，不代表两项业务功能已迁移 | 本轮收口；新Bootstrap已改变输入哈希，后续模块必须按当前输入重验。YooAsset后端、Atlas和内存预算后置 |
 | 设置 | `G0-G6 passed / 21/21 complete` | 固定账号完成 8/8 双端原生视觉、21/21 真实控件、10/10 语义；覆盖默认/开关/音量边界与中值、返回重进/重启持久化、损坏回退、真实音频应用、切号身份隔离和设备偏好保留 | `no-server-fixture` 残留 0；公告、兑换码、商城/体力购买及支付等仍属独立模块 |
-| 主界面 HUD | `G0-G6 passed / 56/56 complete` | 2026-09-07当前输入DataPreflight通过；用户在已打开Unity Editor的Play/GameView中自行完成当前PlayerHud测试，并明确授权直接标记G6。商城返回后的等级动态字形刷新已由返回栈统一重绘处理，56/56控件均保持真实点击、自动与人工通过 | 当前模块收口，`manualPassed=true`。证据`.local/unity-validation/playerhud-final-user-acceptance-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`；下一模块按P1顺序进入玩法大厅复测。 |
+| 主界面 HUD | `G0-G6 passed / 56/56 complete` | 2026-09-07当前输入DataPreflight通过；用户在已打开Unity Editor的Play/GameView中自行完成当前PlayerHud测试，并明确授权直接标记G6。商城返回后的等级动态字形刷新已由返回栈统一重绘处理，56/56控件均保持真实点击、自动与人工通过 | 当前模块收口，`manualPassed=true`。证据`.local/unity-validation/playerhud-final-user-acceptance-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`；2026-09-07用户重排优先级，下一模块改为强化大师。 |
 | 背包 | `G0-G6 passed / 26/26 complete` | 固定身份`1/1000001`完成26/26控件、18/18语义、真实`/8`与`/15`、ItemType 5/6奖励弹窗、异常/重连/重登/切号及精确恢复；G5同账号同数据16/16。G6真人Play发现并关闭礼包横向拖动缺口，用户最终复测“测试通过”；整库恢复、Fixture残留0，两次BuildBatch SHA一致 | 当前模块收口；下一模块按P1顺序从当前G0启动 |
 | 任务 | `G0-G6 passed / 14/14 complete` | 固定账号完成 11/11 双端关键视觉状态；14/14 真控件覆盖每日任务、前往/领取/已领取、滚动、四档宝箱、奖励弹窗、货币加号/禁用态、失败/重连/持久化/切号及精确恢复 | 当前模块收口；下一任务重新选择模块执行 G0 |
 | 神将/阵容 | `G0 passed / G1-G6 invalidated / G1 recapture blocked` | G5重复内容硬门禁发现当前G1 Cocos状态中`HERO-02/03/04/06/07/08/09-15`像素完全相同，不能证明逐状态交互；原G4批验降为诊断线索。神将重生已拆为独立非分母子模块；用户微调Prefab为只读基线：`shenjiangchongsheng.prefab` SHA=`7E210120B232144840C62DAE3B323E48E82D4C0CE3D5CB682C7F761FFF5EA4B9`、`yingxiongtujianLayer.prefab` SHA=`77AB6917CE61D06D7A462148C50CE373B8950CF0C8D1FACF33070D933FD33FC7` | 当前只推进神将重生；神将图鉴不在本任务范围；神将/阵容旧G1仍待Computer Use恢复后重采 |
@@ -95,7 +95,7 @@
 |---|---|---|
 | Steam 发布前置 | SQLite S0-S8：基线 → 双后端 → Schema → SQL兼容 → 核心数据 → Steam业务回归 → Unity监管 → 生命周期 → 干净机 | 不改变业务模块分母；通过后解除 Windows 正式发布阻塞 |
 | P0 基础层 | 登录与创角 → 系统设置 → 主界面HUD等基础模块 | 规划顺序，不重复维护完成率 |
-| P1 其他单人功能 | 玩法大厅、封神列传、法宝搜索、游历三界 | 规划顺序，不重复维护完成率 |
+| P1 核心养成与单人功能 | 强化大师 → 神将培养模块B → 将魂商店 → 抽卡 → 神将/阵容 → 装备（法宝边界回归） → 玩法大厅模块组（大厅框架、封神列传、法宝搜索、游历三界） | 2026-09-07用户确认前六项均高于玩法大厅；同一时间仍只处理一个门禁单元，玩法大厅按父模块汇总进度 |
 | P2 运营与商业化 | 无保留活动模块 | 规划顺序，不重复维护完成率 |
 | P3 竞技/玩家依赖 | 当前无保留模块；竞技场保持屏蔽 | 规划顺序，不重复维护完成率 |
 | P4 社交最后 | 好友、聊天、队伍、帮派/宗门全部排除；支付前置不计入16个业务模块，历史边界见`PAYMENT.md` | 规划顺序，不重复维护完成率 |

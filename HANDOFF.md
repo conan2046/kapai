@@ -27,11 +27,12 @@
 - 商城返回后等级动态字形刷新已由`UiStack.Pop`后的HUD权威重绘和Text重注册处理；失败与解决记录已写入PlayerHud ledger。
 - 最终证据：`.local/unity-validation/playerhud-final-user-acceptance-latest.json`、`.local/unity-validation/playerhud-retrospective-latest.json`。
 
-## 当前唯一开发模块：玩法大厅
+## 当前唯一开发模块：强化大师
 
-- 当前门禁：`G0-G3 passed / early user Play retest pending / G4-G6 pending`。
-- 下一步只在已打开Unity Editor内复测白屏与跨页LFS修复后的入口、列表、详情和返回；反馈闭环后再进入G4。
-- Steam仅保留`function_id=1/3/9/10`；竞技场继续排除。
+- 当前门禁：`G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen`。
+- 固定账号`1/1000001`已准备2套红装、4件已穿戴法宝和12件法宝材料。
+- 下一步只在已打开Unity Editor内完成六页签、装备/法宝养成路由、法宝材料滚动选择和返回主路径的早期真人Play；反馈闭环后再进入G4。
+- 2026-09-07用户重排优先级：强化大师 → 神将培养模块B → 将魂商店 → 抽卡 → 神将/阵容 → 装备（法宝边界回归） → 玩法大厅模块组。前六项全部高于玩法大厅。
 
 ## 当前全局状态摘要
 
@@ -65,8 +66,8 @@
 git status --short
 git fetch origin --prune
 pwsh -NoProfile -File tools/unity-migration/Install-UnityValidationDatabase.ps1 -Action Verify
-pwsh -NoProfile -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Mail -DataPreflightOnly
-pwsh -NoProfile -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Mail -G3RuntimeOnly
+pwsh -NoProfile -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module EnhanceMaster -DataPreflightOnly
+pwsh -NoProfile -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module EnhanceMaster -G3RuntimeOnly
 pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationToolchain.ps1
 pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationDocs.ps1
 pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
@@ -74,7 +75,7 @@ pwsh -NoProfile -File tools/unity-migration/Test-UnityMigrationGitScope.ps1 -Sum
 
 ## 收口规则
 
-- 同一时间只处理一个模块；本交接当前锁定玩法大厅。
+- 同一时间只处理一个模块；本交接当前锁定强化大师。玩法大厅及其封神列传、法宝搜索、游历三界子模块整体后移。
 - G4/G6只认已打开Unity Editor GameView中的真实输入与用户确认；BatchMode/Runner仅用于编译、夹具、oracle和诊断。G5只认当前输入指纹匹配的双端真实证据。
 - 失败立即写operation ledger；修复后追加`Resolved`、`resolution`、`iterationAction`和`iterationEvidence`。
 - 只有用户明确要求后才提交或推送，并使用严格路径allowlist。
