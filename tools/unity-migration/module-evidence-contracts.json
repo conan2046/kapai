@@ -2887,7 +2887,7 @@
       "g5": {
         "width": 1334,
         "height": 750,
-        "cocosDirectory": ".local/ui-fidelity/EnhanceMaster/cocos/g1-current",
+        "cocosDirectory": ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal",
         "unityDirectory": ".local/ui-fidelity/EnhanceMaster/unity/g5",
         "compareDirectory": ".local/ui-fidelity/EnhanceMaster/compare/g5",
         "cocosBaselineInputs": [
@@ -2997,9 +2997,14 @@
         "terminalRoleId": 1000001,
         "adapter": "tools/unity-migration/Invoke-EnhanceMasterFixture.ps1",
         "snapshot": ".local/ui-fidelity/EnhanceMaster/unity/g5/enhance-master-fixed-fixture-snapshot.json",
+        "g5VisualSnapshot": ".local/ui-fidelity/EnhanceMaster/unity/g5/enhance-master-fixed-fixture-snapshot.json",
+        "g5VisualSetupAction": "SetupVisual",
+        "g5VisualAssertAction": "AssertVisualSetup",
         "resultEvidence": ".local/ui-fidelity/EnhanceMaster/unity/g6/enhance-master-fixed-unity-result.json",
         "visualResultEvidence": ".local/ui-fidelity/EnhanceMaster/unity/g5/enhance-master-g5-visual-result.json",
-        "visualValidationFlags": [],
+        "g5VisualValidationFlags": [
+          "-projectXEnhanceMasterG5VisualValidation"
+        ],
         "g3ValidationFlags": [
           "-projectXEnhanceMasterG3Validation"
         ],
@@ -3050,7 +3055,22 @@
             }
           ]
         },
-        "artifactCopies": []
+        "artifactCopies": [
+          { "source": "build/ui-migration/EM-MASTER-STRENGTH.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-STRENGTH.png" },
+          { "source": "build/ui-migration/EM-MASTER-REFINE.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-REFINE.png" },
+          { "source": "build/ui-migration/EM-MASTER-AWAKEN.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-AWAKEN.png" },
+          { "source": "build/ui-migration/EM-MASTER-SHENZHU.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-SHENZHU.png" },
+          { "source": "build/ui-migration/EM-MASTER-FABAO-STRENGTH.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-FABAO-STRENGTH.png" },
+          { "source": "build/ui-migration/EM-MASTER-FABAO-REFINE.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-FABAO-REFINE.png" },
+          { "source": "build/ui-migration/EM-EQUIP-STRENGTH.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-STRENGTH.png" },
+          { "source": "build/ui-migration/EM-EQUIP-REFINE.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-REFINE.png" },
+          { "source": "build/ui-migration/EM-EQUIP-AUTO-REFINE.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-AUTO-REFINE.png" },
+          { "source": "build/ui-migration/EM-EQUIP-AWAKEN-LOCKED.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-AWAKEN-LOCKED.png" },
+          { "source": "build/ui-migration/EM-EQUIP-SHENZHU-LOCKED.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-SHENZHU-LOCKED.png" },
+          { "source": "build/ui-migration/EM-FABAO-STRENGTH.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-FABAO-STRENGTH.png" },
+          { "source": "build/ui-migration/EM-FABAO-REFINE.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-FABAO-REFINE.png" },
+          { "source": "build/ui-migration/EM-FABAO-MATERIAL-CHOOSER.png", "destination": ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-FABAO-MATERIAL-CHOOSER.png" }
+        ]
       }
     },
     {

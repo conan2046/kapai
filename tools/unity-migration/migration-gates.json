@@ -583,7 +583,7 @@
           ".local/ui-fidelity/Mail/compare/g5-live-20260727/report.json"
         ]
       },
-      "updatedUtc": "2026-09-07T06:48:48.7408380Z"
+      "updatedUtc": "2026-09-07T06:48:48.740838Z"
     },
     {
       "module": "Bag",
@@ -1731,9 +1731,9 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/ENHANCEMASTER.md",
       "gateEvidence": {
@@ -1751,13 +1751,48 @@
         "G2": [
           "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json",
           "docs/unityclient/matrices/ENHANCEMASTER_COVERAGE.json",
-          ".local/unity-validation/enhancemaster-g2-source-audit.json"
+          ".local/unity-validation/enhancemaster-g2-source-audit.json",
+          ".local/unity-validation/enhancemaster-current-source-audit-latest.json"
         ],
         "G3": [
-          ".local/unity-validation/enhancemaster-g3-runtime-latest.json"
+          ".local/unity-validation/enhancemaster-g3-runtime-latest.json",
+          ".local/unity-validation/enhancemaster-source-contract-latest.json",
+          ".local/unity-validation/enhancemaster-csharp-build-latest.json"
+        ],
+        "G4": [
+          ".local/unity-validation/enhancemaster-fixed-account-latest.json",
+          ".local/unity-validation/enhancemaster-early-user-play-latest.json",
+          ".local/unity-validation/enhancemaster-g3-runtime-latest.json",
+          ".local/unity-validation/enhancemaster-fixed-account-data-preflight-latest.json"
+        ],
+        "G5": [
+          ".local/unity-validation/enhancemaster-g5-visual-latest.json"
+        ],
+        "G6": [
+          ".local/unity-validation/enhancemaster-final-user-play-latest.json",
+          ".local/unity-validation/enhancemaster-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-24T12:23:04.0840182Z"
+      "gateInvalidations": {
+        "G1": [
+          ".local/unity-validation/enhancemaster-current-head-impact-latest.json"
+        ],
+        "G2": [
+          ".local/unity-validation/enhancemaster-current-head-impact-latest.json"
+        ],
+        "G3": [
+          ".local/unity-validation/enhancemaster-current-head-impact-latest.json"
+        ]
+      },
+      "gateRevalidations": {
+        "G5": {
+          "checkedUtc": "2026-09-07T11:38:46.1845841Z",
+          "evidence": [
+            ".local/unity-validation/enhancemaster-g5-visual-latest.json"
+          ]
+        }
+      },
+      "updatedUtc": "2026-09-07T12:42:03.5486160Z"
     },
     {
       "module": "BattleMeetMonster",

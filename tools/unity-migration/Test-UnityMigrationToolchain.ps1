@@ -1819,6 +1819,13 @@ Assert-ToolchainTest (
     $heroCultivationSqliteFixtureSource.Contains('extension[:4] != b"PXA1"') -and
     $heroCultivationSqliteFixtureSource.Contains('expected_length = 7 + affix_count * 12')
 ) "HeroEquip/HeroCultivation SQLite fixtures reject or discard the current versioned PXA1 pet_equip extension."
+Assert-ToolchainTest (
+    $heroCultivationSqliteFixtureSource.Contains('prior module may have left only part of its reserved set') -and
+    $heroCultivationSqliteFixtureSource.Contains('preserved_count + len(EQUIPMENT_SETS)') -and
+    $heroCultivationSqliteFixtureSource.Contains('preserved_count + len(desired)') -and
+    $heroCultivationSqliteFixtureSource.Contains('FABAO_MATERIAL_TEMPLATES = (615, 616, 617)') -and
+    $heroCultivationSqliteFixtureSource.Contains('material chooser has 12 records without creating missing definitions')
+) "HeroCultivation SQLite fixture cannot recover a partial reserved equipment or FaBao set left by a prior module."
 $heroPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $heroEquipSqliteFixtureSource.Contains('args.action in ("Setup", "SetupG5Visual")') -and

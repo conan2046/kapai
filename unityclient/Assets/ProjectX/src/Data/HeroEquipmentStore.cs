@@ -185,4 +185,35 @@ namespace ProjectX.Data
         public bool TryGet(uint uid, out FaBaoRecord value) => records.TryGetValue(uid, out value);
         public void Clear() { records.Clear(); Changed?.Invoke(); }
     }
+
+    // Read-only mirror of the server's /319 op24/25/26/27 master state.
+    // It is intentionally separate from EquipmentCatalog: catalog data gives
+    // labels/attributes, while this store owns only the authoritative level.
+    public sealed class EnhanceMasterStore
+    {
+        private readonly Dictionary<int, int[]> levels = new Dictionary<int, int[]>();
+        public event Action Changed;
+
+        public bool TryGetLevel(int formationPosition, int type, out int level)
+        {
+            level = 0;
+            if (type < 1 || type > 6 || !levels.TryGetValue(formationPosition, out int[] values)) return false;
+            level = values[type - 1];
+            return true;
+        }
+
+        public void SetPosition(int formationPosition, int level1, int level2, int level3,
+            int level4, int level5, int level6)
+        {
+            if (formationPosition < 1) return;
+            levels[formationPosition] = new[] { level1, level2, level3, level4, level5, level6 };
+            Changed?.Invoke();
+        }
+
+        public void Clear()
+        {
+            levels.Clear();
+            Changed?.Invoke();
+        }
+    }
 }

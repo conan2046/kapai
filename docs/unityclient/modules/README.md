@@ -17,7 +17,7 @@
 | 任务 | `TASK.md` | `G0-G6 passed / 14/14 complete`；通用硬门禁回归样板 |
 | 神将/阵容 | `HERO.md` | `G0 passed / G1-G6 invalidated / G1 recapture blocked`；G5硬门禁发现当前Cocos状态集大面积重复，必须经Computer Use重采16态后串行重验 |
 | 神将重生 | `HEROREBIRTH.md` | `G0-G6 passed / 24/24 complete`；当前Cocos 8态与Unity双端视觉、固定SQLite Full、hard-gate v3、最终用户Play、两次BuildBatch及自动复盘全部通过；两个Prefab按用户基线只读 |
-| 强化大师 | `ENHANCEMASTER.md` | `G0-G3 passed / early user Play pending / G4-G6 pending / 40 controls frozen`；14个当前Cocos状态、13个Unity G3运行态、六页签及装备/法宝养成路由已通过，等待早期真人Play反馈 |
+| 强化大师 | `ENHANCEMASTER.md` | `G0 passed / G1-G3 invalidated / G1 recapture pending / G4-G6 pending / 40 controls frozen`；旧G1-G3仅作诊断，当前HEAD输入影响已登记；先重拍14个Cocos状态并重跑G2/G3 |
 | 神将培养模块 B | `HEROCULTIVATION.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending / 51 controls frozen`；18个当前Cocos状态与G3初版已完成，等待用户按最终Prefab布局复测 |
 | 装备（法宝边界回归） | `HERO_EQUIPMENT.md` | `G0-G2 passed / G3 early user Play pending / G4-G6 pending`；方案A冻结14来源/974业务ID/86控件；历史G4-G6仅作诊断 |
 | 邮件 | `MAIL.md` | `G0-G3 passed / early user Play pending / G4-G6 pending`；SQLite固定身份`7200057/1000003`当前G3通过13/13控件与5/5语义，旧G4-G6仅作诊断 |

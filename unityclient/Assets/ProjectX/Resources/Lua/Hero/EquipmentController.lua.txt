@@ -55,6 +55,19 @@ local function requestLists()
     Bridge:SetStatus("HeroEquipment/319 list requests sent: op=1, op=17.")
 end
 
+local function requestMaster(position)
+    position = tonumber(position) or 0
+    if position < 1 then return end
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(25)
+    message:WriteByte(position)
+    Bridge:Send(message)
+end
+
+local function requestMasterPositions()
+    for position = 1, 5 do requestMaster(position) end
+end
+
 local function readEquipmentRecord(message)
     local uid = message:ReadUInt()
     if uid == 0 then return end
@@ -138,6 +151,14 @@ local function syncRenderMirror()
         Bridge:EndFaBaoRecord()
     end
     Bridge:EndFaBaoUpdate()
+
+    for position = 1, 5 do
+        local levels = EquipmentModel:GetMasterLevels(position)
+        if levels then
+            Bridge:SetEnhanceMasterLevels(position, levels[1], levels[2], levels[3],
+                levels[4], levels[5], levels[6])
+        end
+    end
 end
 
 local function selectFormationPosition()
@@ -337,7 +358,8 @@ local function finishLists()
         callback()
         return
     end
-    if Bridge:HasCommandLineFlag("-projectXEnhanceMasterG3Validation") then
+    if Bridge:HasCommandLineFlag("-projectXEnhanceMasterG3Validation")
+        or Bridge:HasCommandLineFlag("-projectXEnhanceMasterG5VisualValidation") then
         if not M.g4Started then
             M.g4Started = true
             Bridge:RunEnhanceMasterG3Validation()
@@ -476,6 +498,7 @@ function M.onHeroReady()
     M.injectedEquipment = false
     M.injectedFaBao = false
     requestLists()
+    requestMasterPositions()
 end
 
 function M.preload(callback)
@@ -485,6 +508,11 @@ function M.preload(callback)
     -- requires its dynamically loaded presenter, which is intentionally absent
     -- when the player enters Formation directly.
     requestLists()
+    requestMasterPositions()
+end
+
+function M.requestMaster(position)
+    requestMaster(position)
 end
 
 function M.wearEquipment(uid, position) sendEquipmentWear(uid, position) end
@@ -668,11 +696,31 @@ local function readEquipmentMasterResponse(message, op)
     local position = message:ReadByte()
     if op == 24 then
         local masterType, level = message:ReadByte(), message:ReadByte()
-        Bridge:SetStatus("装备大师更新：阵位" .. tostring(position) .. " 类型" .. tostring(masterType) .. " 等级" .. tostring(level))
+        EquipmentModel:SetMasterLevel(position, masterType, level)
+        syncRenderMirror()
+        Bridge:NotifyEnhanceMasterLevel(position, masterType, level)
         return
     end
     local count = message:ReadByte()
-    for _ = 1, count do message:ReadByte(); message:ReadByte() end
+    local values = {}
+    for _ = 1, count do
+        local masterType, level = message:ReadByte(), message:ReadByte()
+        values[masterType] = level
+    end
+    if op == 25 then
+        local levels = { 0, 0, 0, 0, 0, 0 }
+        for masterType, level in pairs(values) do
+            if masterType >= 1 and masterType <= 6 then levels[masterType] = level end
+        end
+        EquipmentModel:ReplaceMasterLevels(position, levels)
+    else
+        -- op26/op27 are partial family pushes. Merge them into the complete
+        -- position mirror instead of replacing unrelated types.
+        for masterType, level in pairs(values) do
+            EquipmentModel:SetMasterLevel(position, masterType, level)
+        end
+    end
+    syncRenderMirror()
 end
 
 local function readFaBaoWearResponse(message)

@@ -95,6 +95,7 @@ function OnFaBaoStrength(uid, uid1, uid2, uid3, uid4, uid5, uid6, uid7, uid8)
     EquipmentController.strengthFaBao(uid, uid1, uid2, uid3, uid4, uid5, uid6, uid7, uid8)
 end
 function OnFaBaoRefine(uid, targetLevel) EquipmentController.refineFaBao(uid, targetLevel) end
+function OnEnhanceMasterOpened(position) EquipmentController.requestMaster(position) end
 function OnMailClicked() MailController.onClick() end
 function OnMailClaimClicked(id) MailController.claim(id) end
 function OnMailReadClicked(id) MailController.read(id) end

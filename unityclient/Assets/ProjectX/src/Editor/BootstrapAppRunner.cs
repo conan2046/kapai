@@ -187,6 +187,7 @@ namespace ProjectX.Editor
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipG4Validation") >= 0
                 || heroEquipmentG5VisualValidation
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXEnhanceMasterG3Validation") >= 0
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXEnhanceMasterG5VisualValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroEquipMaterialValidation") >= 0;
             bool mailValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXMailValidation") >= 0;
             bool shopG3Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXShopG3Validation") >= 0;

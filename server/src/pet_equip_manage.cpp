@@ -37,7 +37,7 @@ void WearEquipSuit::MakeQHDSMsg(CNetMessage& msg, uint8 type/* = 0*/)
 	{
 		if (type == 1 && it->first > EST_SHENZHU)
 			continue;
-		else if (type == 2 && it->first < EST_SHENZHU)
+		else if (type == 2 && it->first <= EST_SHENZHU)
 			continue;
 		size++;
 		QHDSAttr& qhds = it->second;

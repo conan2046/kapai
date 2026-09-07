@@ -2848,22 +2848,99 @@
         "enhance-master-control-matrix-40"
       ],
       "sourceContracts": [
-        {
-          "path": "client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua",
-          "contains": [
-            "UpdateEquipItem",
-            "UpdateFaBaoItem",
-            "TabClicked",
-            "onGoUpgradeClicked"
-          ]
-        },
-        {
-          "path": "server/src/pack_deal.cpp",
-          "contains": [
-            "StrongFaBao",
-            "JingLianFaBao"
-          ]
-        },
+    {
+      "path": "client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua",
+      "contains": [
+        "UpdateEquipItem",
+        "UpdateFaBaoItem",
+        "TabClicked",
+        "onGoUpgradeClicked"
+      ]
+    },
+    {
+      "path": "client/ProjectX/src/Logic/LGameLogic.lua",
+      "contains": [
+        "SendMasterList",
+        "QueryPetEquip(1)"
+      ]
+    },
+    {
+      "path": "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+      "contains": [
+        "function LuaNetSendMsg:SendMasterList",
+        "WriteByte(25)"
+      ]
+    },
+    {
+      "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+      "contains": [
+        "masterTypeList",
+        "if op == 24 then",
+        "if op == 26 or op == 27 then"
+      ]
+    },
+    {
+      "path": "server/src/pet_equip_manage.cpp",
+      "contains": [
+        "MakeQHDSMsg",
+        "EST_FBJINGLIAN",
+        "type == 2 && it->first <= EST_SHENZHU"
+      ]
+    },
+    {
+      "path": "server/src/pack_deal.cpp",
+      "contains": [
+        "StrongFaBao",
+        "JingLianFaBao",
+        "GetQHDSMsg"
+      ]
+    },
+    {
+      "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt",
+      "contains": [
+        "requestMasterPositions",
+        "readEquipmentMasterResponse",
+        "SetEnhanceMasterLevels"
+      ]
+    },
+    {
+      "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
+      "contains": [
+        "masterLevels",
+        "ReplaceMasterLevels",
+        "SetMasterLevel"
+      ]
+    },
+    {
+      "path": "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+      "contains": [
+        "OnEnhanceMasterOpened",
+        "EquipmentController.requestMaster"
+      ]
+    },
+    {
+      "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+      "contains": [
+        "SetEnhanceMasterLevels",
+        "NotifyEnhanceMasterLevel",
+        "EnhanceMasters.TryGetLevel"
+      ]
+    },
+    {
+      "path": "unityclient/Assets/ProjectX/src/Data/HeroEquipmentStore.cs",
+      "contains": [
+        "class EnhanceMasterStore",
+        "TryGetLevel",
+        "SetPosition"
+      ]
+    },
+    {
+      "path": "unityclient/Assets/ProjectX/src/Core/GameServices.cs",
+      "contains": [
+        "EnhanceMasters = new EnhanceMasterStore()",
+        "public EnhanceMasterStore EnhanceMasters"
+      ]
+    },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
           "contains": [

@@ -1526,7 +1526,7 @@
     {
       "key": "EnhanceMaster",
       "displayName": "强化大师",
-      "status": "g3-passed-early-user-play-pending",
+      "status": "g6-complete",
       "protocols": [
         8,
         15,
@@ -1574,7 +1574,76 @@
       "validationFlags": [
         "-projectXEnhanceMasterG3Validation"
       ],
-      "screenshots": [],
+      "screenshots": [
+        "build/ui-migration/EM-MASTER-STRENGTH.png",
+        "build/ui-migration/EM-MASTER-REFINE.png",
+        "build/ui-migration/EM-MASTER-AWAKEN.png",
+        "build/ui-migration/EM-MASTER-SHENZHU.png",
+        "build/ui-migration/EM-MASTER-FABAO-STRENGTH.png",
+        "build/ui-migration/EM-MASTER-FABAO-REFINE.png",
+        "build/ui-migration/EM-EQUIP-STRENGTH.png",
+        "build/ui-migration/EM-EQUIP-REFINE.png",
+        "build/ui-migration/EM-EQUIP-AUTO-REFINE.png",
+        "build/ui-migration/EM-EQUIP-AWAKEN-LOCKED.png",
+        "build/ui-migration/EM-EQUIP-SHENZHU-LOCKED.png",
+        "build/ui-migration/EM-FABAO-STRENGTH.png",
+        "build/ui-migration/EM-FABAO-REFINE.png",
+        "build/ui-migration/EM-FABAO-MATERIAL-CHOOSER.png"
+      ],
+      "visualFidelity": {
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-MASTER-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-MASTER-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-MASTER-AWAKEN.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-MASTER-SHENZHU.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-MASTER-FABAO-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-MASTER-FABAO-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-EQUIP-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-EQUIP-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-EQUIP-AUTO-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-EQUIP-AWAKEN-LOCKED.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-EQUIP-SHENZHU-LOCKED.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-FABAO-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-FABAO-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/cocos/g1-20260907-recapture-formal/EM-FABAO-MATERIAL-CHOOSER.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-AWAKEN.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-SHENZHU.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-FABAO-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-MASTER-FABAO-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-AUTO-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-AWAKEN-LOCKED.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-EQUIP-SHENZHU-LOCKED.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-FABAO-STRENGTH.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-FABAO-REFINE.png",
+          ".local/ui-fidelity/EnhanceMaster/unity/g5/EM-FABAO-MATERIAL-CHOOSER.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-MASTER-STRENGTH-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-MASTER-REFINE-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-MASTER-AWAKEN-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-MASTER-SHENZHU-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-MASTER-FABAO-STRENGTH-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-MASTER-FABAO-REFINE-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-EQUIP-STRENGTH-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-EQUIP-REFINE-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-EQUIP-AUTO-REFINE-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-EQUIP-AWAKEN-LOCKED-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-EQUIP-SHENZHU-LOCKED-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-FABAO-STRENGTH-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-FABAO-REFINE-report.json",
+          ".local/ui-fidelity/EnhanceMaster/compare/g5/EM-FABAO-MATERIAL-CHOOSER-report.json"
+        ],
+        "flowEvidence": ".local/unity-validation/enhancemaster-fixed-account-latest.json",
+        "uiMapping": "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json"
+      },
       "controlMatrix": "docs/unityclient/matrices/ENHANCEMASTER_CONTROLS.json",
       "document": "docs/unityclient/modules/ENHANCEMASTER.md"
     },
@@ -1777,7 +1846,6 @@
       "validationFlags": [
         "-projectXHeroRebirthG4Validation"
       ],
-      "screenshots": [],
       "visualFidelity": {
         "status": "passed",
         "cocosScreenshots": [

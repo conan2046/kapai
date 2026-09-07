@@ -93,6 +93,7 @@ namespace ProjectX.Core
         private LuaFunction onFaBaoTakeOff;
         private LuaFunction onFaBaoStrength;
         private LuaFunction onFaBaoRefine;
+        private LuaFunction onEnhanceMasterOpened;
         private LuaFunction onMailClicked;
         private LuaFunction onMailClaimClicked;
         private LuaFunction onMailReadClicked;
@@ -843,6 +844,7 @@ namespace ProjectX.Core
                 onFaBaoTakeOff = services.Lua.GetFunction("OnFaBaoTakeOff");
                 onFaBaoStrength = services.Lua.GetFunction("OnFaBaoStrength");
                 onFaBaoRefine = services.Lua.GetFunction("OnFaBaoRefine");
+                onEnhanceMasterOpened = services.Lua.GetFunction("OnEnhanceMasterOpened");
                 onMailClicked = services.Lua.GetFunction("OnMailClicked");
                 onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
                 onMailReadClicked = services.Lua.GetFunction("OnMailReadClicked");
@@ -1019,6 +1021,7 @@ namespace ProjectX.Core
             onFaBaoTakeOff?.Dispose();
             onFaBaoStrength?.Dispose();
             onFaBaoRefine?.Dispose();
+            onEnhanceMasterOpened?.Dispose();
             onMailClicked?.Dispose();
             onMailClaimClicked?.Dispose();
             onMailReadClicked?.Dispose();
@@ -4414,6 +4417,7 @@ namespace ProjectX.Core
             services.Formation.Clear();
             services.HeroEquipment.Clear();
             services.FaBao.Clear();
+            services.EnhanceMasters.Clear();
             activeHeroCultivationId = 0;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
@@ -8318,6 +8322,21 @@ namespace ProjectX.Core
 
         public void EndFaBaoUpdate() => services.FaBao.Replace(pendingFaBao);
 
+        public void SetEnhanceMasterLevels(int formationPosition, int level1, int level2, int level3,
+            int level4, int level5, int level6)
+        {
+            services.EnhanceMasters.SetPosition(formationPosition, level1, level2, level3,
+                level4, level5, level6);
+            if (heroEnhanceMasterView != null && heroEnhanceMasterView.GameObject.activeSelf
+                && formationPosition == heroEnhanceMasterPosition)
+                BindHeroEnhanceMaster(heroEnhanceMasterView, formationPosition);
+        }
+
+        public void NotifyEnhanceMasterLevel(int formationPosition, int type, int level)
+        {
+            SetStatus($"强化大师更新：阵位{formationPosition} 类型{type} 等级{level}");
+        }
+
         public void UpsertFaBaoRecord()
         {
             services.FaBao.Upsert(new FaBaoRecord(pendingEquipmentUid, pendingEquipmentTemplateId,
@@ -10394,6 +10413,7 @@ namespace ProjectX.Core
             }
             services.HeroEquipment.Clear();
             services.FaBao.Clear();
+            services.EnhanceMasters.Clear();
             activeHeroCultivationId = 0;
             heroG4ControlValidationRunning = false;
             pendingHeroEquipmentPosition = 0;
@@ -12781,6 +12801,15 @@ namespace ProjectX.Core
                 "EM-G3-MASTER-STRENGTH.png", "EM-G3-MASTER-REFINE.png", "EM-G3-MASTER-AWAKEN.png",
                 "EM-G3-MASTER-SHENZHU.png", "EM-G3-MASTER-FABAO-STRENGTH.png", "EM-G3-MASTER-FABAO-REFINE.png",
             };
+            bool g5Visual = HasCommandLineFlag("-projectXEnhanceMasterG5VisualValidation");
+            if (g5Visual)
+            {
+                masterFiles = new[]
+                {
+                    "EM-MASTER-STRENGTH.png", "EM-MASTER-REFINE.png", "EM-MASTER-AWAKEN.png",
+                    "EM-MASTER-SHENZHU.png", "EM-MASTER-FABAO-STRENGTH.png", "EM-MASTER-FABAO-REFINE.png",
+                };
+            }
             for (int type = 1; type <= 6; type++)
             {
                 heroEnhanceMasterType = type;
@@ -12793,6 +12822,14 @@ namespace ProjectX.Core
                 "EM-G3-EQUIP-STRENGTH.png", "EM-G3-EQUIP-REFINE.png",
                 "EM-G3-EQUIP-AWAKEN.png", "EM-G3-EQUIP-SHENZHU.png",
             };
+            if (g5Visual)
+            {
+                equipmentFiles = new[]
+                {
+                    "EM-EQUIP-STRENGTH.png", "EM-EQUIP-REFINE.png",
+                    "EM-EQUIP-AWAKEN-LOCKED.png", "EM-EQUIP-SHENZHU-LOCKED.png",
+                };
+            }
             for (int mode = 0; mode < 4; mode++)
             {
                 if (!heroEquipmentPresenter.PrepareCultivation(equipmentTarget.Uid, position,
@@ -12802,6 +12839,11 @@ namespace ProjectX.Core
                     yield break;
                 }
                 yield return CaptureEnhanceMasterFrame(equipmentFiles[mode]);
+                if (g5Visual && mode == 1)
+                {
+                    heroEquipmentPresenter.OpenAutoRefineForValidation();
+                    yield return CaptureEnhanceMasterFrame("EM-EQUIP-AUTO-REFINE.png");
+                }
             }
             FaBaoRecord faBaoTarget = services.FaBao.Items.First(item => item.FormationPosition == position);
             if (!heroEquipmentPresenter.PrepareCultivation(faBaoTarget.Uid, position, HeroEquipmentKind.FaBao, 0))
@@ -12809,18 +12851,18 @@ namespace ProjectX.Core
                 Fail("EnhanceMaster G3 FaBao strength did not open.");
                 yield break;
             }
-            yield return CaptureEnhanceMasterFrame("EM-G3-FABAO-STRENGTH.png");
+            yield return CaptureEnhanceMasterFrame(g5Visual ? "EM-FABAO-STRENGTH.png" : "EM-G3-FABAO-STRENGTH.png");
             Button materialSlot = faBaoStrengthView.Binding.Find(
                 "Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon1")?.GetComponent<Button>();
             materialSlot?.onClick.Invoke();
-            yield return CaptureEnhanceMasterFrame("EM-G3-FABAO-MATERIAL-CHOOSER.png");
+            yield return CaptureEnhanceMasterFrame(g5Visual ? "EM-FABAO-MATERIAL-CHOOSER.png" : "EM-G3-FABAO-MATERIAL-CHOOSER.png");
             faBaoMaterialChooserView.SetVisible(false);
             if (!heroEquipmentPresenter.PrepareCultivation(faBaoTarget.Uid, position, HeroEquipmentKind.FaBao, 1))
             {
                 Fail("EnhanceMaster G3 FaBao refine did not open.");
                 yield break;
             }
-            yield return CaptureEnhanceMasterFrame("EM-G3-FABAO-REFINE.png");
+            yield return CaptureEnhanceMasterFrame(g5Visual ? "EM-FABAO-REFINE.png" : "EM-G3-FABAO-REFINE.png");
             foreach (string control in new[]
             {
                 "EM-01-MASTER-CLOSE","EM-02-MASTER-TAB-STRENGTH","EM-03-MASTER-TAB-REFINE",
@@ -12939,6 +12981,7 @@ namespace ProjectX.Core
             gameplayDetailView?.SetVisible(false);
             heroEnhanceMasterPosition = Mathf.Clamp(formationPosition, 1, 5);
             heroEnhanceMasterType = Mathf.Clamp(heroEnhanceMasterType, 1, 6);
+            InvokeLuaOrFail(onEnhanceMasterOpened, "EnhanceMaster.Open", heroEnhanceMasterPosition);
             ConfigureHeroEnhanceMasterFrame(gameplayView);
             gameplayView.SetVisible(true);
             gameplayView.GameObject.transform.SetAsLastSibling();
@@ -13074,6 +13117,7 @@ namespace ProjectX.Core
                     heroButton.onClick.AddListener(() =>
                     {
                         heroEnhanceMasterPosition = selectedPosition;
+                        InvokeLuaOrFail(onEnhanceMasterOpened, "EnhanceMaster.SelectHero", selectedPosition);
                         BindHeroEnhanceMaster(view, selectedPosition);
                     });
                 }
@@ -13084,7 +13128,6 @@ namespace ProjectX.Core
             FaBaoRecord[] equippedFaBao = services.FaBao.Items
                 .Where(item => item.FormationPosition == formationPosition).OrderBy(item => item.Slot).Take(2).ToArray();
             int requiredCount = faBaoType ? 2 : 4;
-            int minimumLevel = int.MaxValue;
             for (int slot = 1; slot <= 4; slot++)
             {
                 string root = $"Layer/qianghuadashi_layer/ItemList/Item{slot}";
@@ -13109,18 +13152,23 @@ namespace ProjectX.Core
                     level = uid > 0 ? item.GetLevel(heroEnhanceMasterType) : 0;
                 }
                 SetBoundVisible(view, root, uid > 0);
-                if (uid == 0) { minimumLevel = 0; continue; }
-                minimumLevel = Mathf.Min(minimumLevel, level);
+                if (uid == 0) continue;
                 SetBoundText(view, root + "/Name", definition.Name);
-                int nextCondition = services.EquipmentCatalog.GetMaster(heroEnhanceMasterType,
-                    services.EquipmentCatalog.GetMasterLevel(heroEnhanceMasterType, minimumLevel) + 1)?.Condition ?? level;
-                SetBoundText(view, root + "/barlist/Text", $"{level}/{nextCondition}");
+                bool hasMasterSnapshot = services.EnhanceMasters.TryGetLevel(
+                    formationPosition, heroEnhanceMasterType, out int authoritativeMasterLevel);
+                EquipmentMasterDefinition authoritativeNextMaster = hasMasterSnapshot
+                    ? services.EquipmentCatalog.GetMaster(heroEnhanceMasterType, authoritativeMasterLevel + 1)
+                    : null;
+                int nextCondition = authoritativeNextMaster?.Condition ?? level;
+                SetBoundText(view, root + "/barlist/Text", hasMasterSnapshot
+                    ? $"{level}/{nextCondition}" : "--/--");
                 string actionLabel = new[] { "去强化", "去精炼", "去觉醒", "去神铸", "去强化", "去精炼" }
                     [heroEnhanceMasterType - 1];
                 SetBoundText(view, root + "/Btn_yangcheng/Text", actionLabel);
                 Image progress = view.Binding.Find(root + "/barlist/EXPBar")?.GetComponent<Image>();
                 if (progress != null)
-                    progress.fillAmount = nextCondition <= 0 ? 0f : Mathf.Clamp01(level / (float)nextCondition);
+                    progress.fillAmount = !hasMasterSnapshot || nextCondition <= 0
+                        ? 0f : Mathf.Clamp01(level / (float)nextCondition);
                 SetRuntimeBoundQualityIcon(view, root + "/Icon",
                     faBaoType ? services.Resources.LoadFaBaoIcon(definition.Picture, out _)
                         : services.Resources.LoadEquipmentIcon(definition.Picture), definition.Quality,
@@ -13136,15 +13184,19 @@ namespace ProjectX.Core
                         faBaoType ? HeroEquipmentKind.FaBao : HeroEquipmentKind.Equipment, mode));
                 }
             }
-            if (minimumLevel == int.MaxValue) minimumLevel = 0;
-            int masterLevel = services.EquipmentCatalog.GetMasterLevel(heroEnhanceMasterType, minimumLevel);
-            EquipmentMasterDefinition current = services.EquipmentCatalog.GetMaster(heroEnhanceMasterType, masterLevel);
-            EquipmentMasterDefinition nextMaster = services.EquipmentCatalog.GetMaster(heroEnhanceMasterType, masterLevel + 1);
+            bool hasMasterAuthority = services.EnhanceMasters.TryGetLevel(
+                formationPosition, heroEnhanceMasterType, out int masterLevel);
+            EquipmentMasterDefinition current = hasMasterAuthority
+                ? services.EquipmentCatalog.GetMaster(heroEnhanceMasterType, masterLevel) : null;
+            EquipmentMasterDefinition nextMaster = hasMasterAuthority
+                ? services.EquipmentCatalog.GetMaster(heroEnhanceMasterType, masterLevel + 1) : null;
             string masterName = new[] { "装备强化", "装备精炼", "装备觉醒", "装备神铸", "法宝强化", "法宝精炼" }[heroEnhanceMasterType - 1];
             SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/left_layer/type", masterName);
-            SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/left_layer/type/Value", $"{masterLevel}级");
+            SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/left_layer/type/Value",
+                hasMasterAuthority ? $"{masterLevel}级" : "--");
             SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/right_layer/type", masterName);
-            SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/right_layer/type/Value", $"{Mathf.Min(25, masterLevel + 1)}级");
+            SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/right_layer/type/Value",
+                !hasMasterAuthority ? "--" : nextMaster == null ? $"{masterLevel}级" : $"{nextMaster.Level}级");
             for (int index = 1; index <= 4; index++)
             {
                 string left = $"Layer/qianghuadashi_layer/shuxinglayer/left_layer/Attribute{index}";
@@ -13153,13 +13205,16 @@ namespace ProjectX.Core
                 int[] nextAttr = nextMaster?.Attributes != null && index <= nextMaster.Attributes.Length ? nextMaster.Attributes[index - 1] : currentAttr;
                 int attrType = nextAttr != null && nextAttr.Length > 0 ? nextAttr[0] : 0;
                 SetBoundText(view, left, MasterAttributeName(attrType));
-                SetBoundText(view, left + "/Value", currentAttr != null && currentAttr.Length > 1 ? currentAttr[1].ToString() : "0");
+                SetBoundText(view, left + "/Value", !hasMasterAuthority ? "--"
+                    : currentAttr != null && currentAttr.Length > 1 ? currentAttr[1].ToString() : "0");
                 SetBoundText(view, right, MasterAttributeName(attrType));
-                SetBoundText(view, right + "/Value", nextAttr != null && nextAttr.Length > 1 ? nextAttr[1].ToString() : "0");
+                SetBoundText(view, right + "/Value", !hasMasterAuthority ? "--"
+                    : nextAttr != null && nextAttr.Length > 1 ? nextAttr[1].ToString() : "0");
             }
             string objectName = faBaoType ? "两件法宝" : "全身装备";
             SetBoundText(view, "Layer/qianghuadashi_layer/shuxinglayer/right_layer/tips_layer",
-                nextMaster == null ? "已达最高等级" : $"{objectName}{masterName.Substring(2)}{nextMaster.Condition}级");
+                !hasMasterAuthority ? "等待服务端同步" : nextMaster == null
+                    ? "已达最高等级" : $"{objectName}{masterName.Substring(2)}{nextMaster.Condition}级");
         }
 
         private void OpenEnhanceMasterCultivation(uint uid, int formationPosition, HeroEquipmentKind kind, int mode)

@@ -49,18 +49,26 @@ EQUIPMENT_SETS = (
     (2121092019, 1404, 5, ((1, 32), (2, 5), (3, 2), (4, 1))),
 )
 FABAO_TARGETS = (
-    (2121093000, 1201, 1, 5, ((5, 4), (6, 1))),
-    (2121093001, 1202, 1, 6, ((5, 5), (6, 1))),
-    (2121093002, 1301, 2, 5, ((5, 8), (6, 2))),
-    (2121093003, 1302, 2, 6, ((5, 9), (6, 2))),
-    (2121093004, 1303, 3, 5, ((5, 6), (6, 1))),
-    (2121093005, 1304, 3, 6, ((5, 7), (6, 1))),
-    (2121093006, 1305, 4, 5, ((5, 10), (6, 2))),
-    (2121093007, 1306, 4, 6, ((5, 11), (6, 2))),
-    (2121093008, 1307, 5, 5, ((5, 12), (6, 3))),
-    (2121093009, 1308, 5, 6, ((5, 13), (6, 3))),
+    # These are the actual low-quality FaBao records visible in the current
+    # Cocos lineup: 1001=散瘟鞭 and 1002=捆龙索, worn at wpos 5/6.
+    (2121093000, 1001, 1, 5, ((5, 0), (6, 0))),
+    (2121093001, 1002, 1, 6, ((5, 0), (6, 0))),
+    (2121093002, 1201, 2, 5, ((5, 8), (6, 2))),
+    (2121093003, 1202, 2, 6, ((5, 9), (6, 2))),
+    (2121093004, 1301, 3, 5, ((5, 6), (6, 1))),
+    (2121093005, 1302, 3, 6, ((5, 7), (6, 1))),
+    (2121093006, 1303, 4, 5, ((5, 10), (6, 2))),
+    (2121093007, 1304, 4, 6, ((5, 11), (6, 2))),
+    (2121093008, 1305, 5, 5, ((5, 12), (6, 3))),
+    (2121093009, 1306, 5, 6, ((5, 13), (6, 3))),
 )
-FABAO_MATERIALS = tuple((2121093100 + index, 1001 + index, 0, 0, ()) for index in range(12))
+# FaBao experience materials are the non-equip templates from fabao_dat/config,
+# not the 1001..1012 equipable FaBao ids. Repeat the three real books so the
+# material chooser has 12 records without creating missing definitions.
+FABAO_MATERIAL_TEMPLATES = (615, 616, 617)
+FABAO_MATERIALS = tuple(
+    (2121093100 + index, FABAO_MATERIAL_TEMPLATES[index % len(FABAO_MATERIAL_TEMPLATES)], 0, 0, ())
+    for index in range(12))
 
 
 def digest(value):
@@ -204,11 +212,33 @@ def equipment_blob(value):
                 for uid, template_id, formation_position, _ in EQUIPMENT_SETS}
     present = {item["uid"]: item for item in equipment if item["uid"] in reserved}
     if present:
-        if len(present) != len(reserved) or any(
-                (item["templateId"], item["formationPosition"]) != reserved[uid]
+        if len(present) == len(reserved) and all(
+                (item["templateId"], item["formationPosition"]) == reserved[uid]
                 for uid, item in present.items()):
-            raise RuntimeError("HeroCultivation reserved equipment UID set is partially occupied")
-        output = bytearray(data[:equipment_end])
+            output = bytearray(data[:equipment_end])
+            output.extend(inject_fabao_segment(data[equipment_end:]))
+            return hero_fixture.compress(output)
+        # A prior module may have left only part of its reserved set in the
+        # shared fixed-account database.  Replace that reserved subset
+        # atomically while preserving unrelated equipment records.
+        count = struct.unpack_from("<H", data, 0)[0]
+        position = 2
+        preserved = bytearray()
+        preserved_count = 0
+        for _ in range(count):
+            start = position
+            uid, _, _, _, _, level_count = struct.unpack_from("<IHIIBB", data, position)
+            position += 16 + level_count * 3
+            if uid not in reserved:
+                preserved.extend(data[start:position])
+                preserved_count += 1
+        output = bytearray(struct.pack("<H", preserved_count + len(EQUIPMENT_SETS)))
+        output.extend(preserved)
+        for uid, template_id, formation_position, levels in EQUIPMENT_SETS:
+            output.extend(struct.pack("<IHIIBB", uid, template_id, 0, 0,
+                                      formation_position, len(levels)))
+            for level_type, level in levels:
+                output.extend(struct.pack("<BH", level_type, level))
         output.extend(inject_fabao_segment(data[equipment_end:]))
         return hero_fixture.compress(output)
     output = bytearray(struct.pack("<H", len(equipment) + len(EQUIPMENT_SETS)))
@@ -219,6 +249,24 @@ def equipment_blob(value):
             output.extend(struct.pack("<BH", level_type, level))
     output.extend(inject_fabao_segment(data[equipment_end:]))
     return hero_fixture.compress(output)
+
+
+def visual_equipment_blob(value):
+    """Use the real green 1001..1004 equipment templates for G5 locked-state captures."""
+    data = bytearray(hero_fixture.expand(equipment_blob(value)))
+    count = struct.unpack_from("<H", data, 0)[0]
+    position = 2
+    slot_index = {}
+    for _ in range(count):
+        start = position
+        uid, template_id, _, _, formation_position, level_count = struct.unpack_from(
+            "<IHIIBB", data, position)
+        position += 16 + level_count * 3
+        if uid in {entry[0] for entry in EQUIPMENT_SETS} and formation_position > 0:
+            index = slot_index.get(formation_position, 0)
+            struct.pack_into("<H", data, start + 4, 1001 + (index % 4))
+            slot_index[formation_position] = index + 1
+    return hero_fixture.compress(data)
 
 
 def inject_fabao_segment(segment):
@@ -235,9 +283,30 @@ def inject_fabao_segment(segment):
     reserved = {entry[0]: entry[1:4] for entry in desired}
     present = {uid: value for uid, value in existing.items() if uid in reserved}
     if present:
-        if len(present) != len(reserved) or any(value[:3] != reserved[uid] for uid, value in present.items()):
-            raise RuntimeError("HeroCultivation reserved FaBao UID set is partially occupied")
-        return data
+        if len(present) == len(reserved) and all(value[:3] == reserved[uid]
+                                                for uid, value in present.items()):
+            return data
+        # As with equipment, discard only the prior fixture's reserved
+        # subset and rebuild it; unrelated FaBao records remain intact.
+        preserved = bytearray()
+        preserved_count = 0
+        position = 2
+        for _ in range(count):
+            start = position
+            uid, _, _, _, _, level_count = struct.unpack_from("<IHIBBB", data, position)
+            position += 13 + level_count * 2
+            if uid not in reserved:
+                preserved.extend(data[start:position])
+                preserved_count += 1
+        output = bytearray(struct.pack("<H", preserved_count + len(desired)))
+        output.extend(preserved)
+        for uid, template_id, formation_position, slot, levels in desired:
+            output.extend(struct.pack("<IHIBBB", uid, template_id, 0,
+                                      formation_position, slot, len(levels)))
+            for level_type, level in levels:
+                output.extend(struct.pack("<BB", level_type, level))
+        output.extend(data[position:])
+        return output
     output = bytearray(struct.pack("<H", count + len(desired)))
     output.extend(data[2:position])
     for uid, template_id, formation_position, slot, levels in desired:
@@ -314,6 +383,19 @@ def assert_setup(connection, user_id, role_id):
     return current
 
 
+def assert_visual_setup(connection, user_id, role_id):
+    current = state(connection, user_id, role_id)
+    expected = {(entry[0], 1001 + index % 4, entry[2])
+                for index, entry in enumerate(EQUIPMENT_SETS)}
+    actual = {(item["uid"], item["templateId"], item["formationPosition"])
+              for item in current["equipmentSets"]}
+    if (current["linkedRoleId"] != role_id or current["integrity"] != "ok"
+            or actual != expected
+            or len(current["faBaoTargetsAndMaterials"]) != len(FABAO_TARGETS + FABAO_MATERIALS)):
+        raise RuntimeError(f"HeroCultivation visual SQLite fixture assertion failed: {current}")
+    return current
+
+
 def read_json(path):
     with open(path, "r", encoding="utf-8") as stream:
         return json.load(stream)
@@ -337,7 +419,7 @@ def main():
     args = parser.parse_args()
     database, backup, evidence = map(os.path.abspath, (args.database, args.backup, args.evidence))
 
-    if args.action == "Setup":
+    if args.action in ("Setup", "SetupVisual"):
         if not os.path.isfile(database):
             raise RuntimeError(f"HeroCultivation SQLite database is missing: {database}")
         connection = sqlite3.connect(database)
@@ -356,12 +438,14 @@ def main():
             connection.execute(
                 "UPDATE role_info SET level=?,money=?,pet=?,package=?,zhenfa=?,pet_equip=? WHERE id=?",
                 (ROLE_LEVEL, max(int(role[3]), 1_000_000), pet_blob(role[0]), package_blob(role[1]),
-                 formation_blob(role[2]), equipment_blob(role[4]), args.role_id))
+                 formation_blob(role[2]), visual_equipment_blob(role[4]) if args.action == "SetupVisual"
+                 else equipment_blob(role[4]), args.role_id))
             connection.commit()
-            fixture = assert_setup(connection, args.user_id, args.role_id)
+            fixture = assert_visual_setup(connection, args.user_id, args.role_id) if args.action == "SetupVisual" \
+                else assert_setup(connection, args.user_id, args.role_id)
         finally:
             connection.close()
-        write_json(evidence, {"schemaVersion": 1, "action": "Setup", "backend": "sqlite",
+        write_json(evidence, {"schemaVersion": 1, "action": args.action, "backend": "sqlite",
             "database": database, "backup": backup, "userId": args.user_id, "roleId": args.role_id,
             "snapshotHash": hero_fixture.sha256(backup), "fixtureHash": hero_fixture.sha256(database),
             "before": before, "fixture": fixture, "createdUtc": datetime.now(timezone.utc).isoformat()})
@@ -371,9 +455,11 @@ def main():
     if (snapshot.get("backend") != "sqlite" or snapshot.get("userId") != args.user_id
             or snapshot.get("roleId") != args.role_id):
         raise RuntimeError("HeroCultivation SQLite fixture evidence identity mismatch")
-    if args.action == "AssertSetup":
+    if args.action in ("AssertSetup", "AssertVisualSetup"):
         connection = sqlite3.connect("file:" + database + "?mode=ro", uri=True)
-        try: assert_setup(connection, args.user_id, args.role_id)
+        try:
+            if args.action == "AssertVisualSetup": assert_visual_setup(connection, args.user_id, args.role_id)
+            else: assert_setup(connection, args.user_id, args.role_id)
         finally: connection.close()
     elif args.action == "AddEquipmentSets":
         connection = sqlite3.connect(database)

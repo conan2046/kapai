@@ -6,6 +6,8 @@ local M = {
     equipmentOrder = {},
     faBao = {},
     faBaoOrder = {},
+    -- Server-authoritative EnhanceMaster levels, keyed by formation position.
+    masterLevels = {},
 }
 
 function M:Reset()
@@ -13,6 +15,32 @@ function M:Reset()
     self.equipmentOrder = {}
     self.faBao = {}
     self.faBaoOrder = {}
+    self.masterLevels = {}
+end
+
+local function newMasterLevels()
+    return { 0, 0, 0, 0, 0, 0 }
+end
+
+function M:ReplaceMasterLevels(position, values)
+    position = tonumber(position) or 0
+    if position < 1 then return end
+    local levels = newMasterLevels()
+    for index = 1, 6 do levels[index] = tonumber(values and values[index]) or 0 end
+    self.masterLevels[position] = levels
+end
+
+function M:SetMasterLevel(position, masterType, level)
+    position = tonumber(position) or 0
+    masterType = tonumber(masterType) or 0
+    if position < 1 or masterType < 1 or masterType > 6 then return end
+    local levels = self.masterLevels[position] or newMasterLevels()
+    levels[masterType] = tonumber(level) or 0
+    self.masterLevels[position] = levels
+end
+
+function M:GetMasterLevels(position)
+    return self.masterLevels[tonumber(position) or 0]
 end
 
 local function replace(target, order, values)

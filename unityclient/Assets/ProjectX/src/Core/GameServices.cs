@@ -54,6 +54,7 @@ namespace ProjectX.Core
             EquipmentCatalog = new EquipmentCatalog();
             HeroEquipment = new HeroEquipmentStore();
             FaBao = new FaBaoStore();
+            EnhanceMasters = new EnhanceMasterStore();
             Resources = new ResourceService();
             ServerTime = new ServerTimeService();
             Network = new NetworkService();
@@ -111,6 +112,7 @@ namespace ProjectX.Core
         public EquipmentCatalog EquipmentCatalog { get; }
         public HeroEquipmentStore HeroEquipment { get; }
         public FaBaoStore FaBao { get; }
+        public EnhanceMasterStore EnhanceMasters { get; }
         public ResourceService Resources { get; }
         public ServerTimeService ServerTime { get; }
         public NetworkService Network { get; }
@@ -139,6 +141,7 @@ namespace ProjectX.Core
             EquipmentCatalog.Clear();
             HeroEquipment.Clear();
             FaBao.Clear();
+            EnhanceMasters.Clear();
             Mails.Clear();
             Shop.Clear();
             GameplayShops.Clear();

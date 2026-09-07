@@ -861,6 +861,13 @@ namespace ProjectX.UI
             return true;
         }
 
+        public bool OpenAutoRefineForValidation()
+        {
+            if (selected.Uid == 0 || selected.Kind != HeroEquipmentKind.Equipment) return false;
+            OpenAutoRefine();
+            return autoRefineView.GameObject.activeSelf;
+        }
+
         private void ShowFaBaoStrength(DisplayRecord item)
         {
             if (!CanOpenCultivation(item, 0)) return;
