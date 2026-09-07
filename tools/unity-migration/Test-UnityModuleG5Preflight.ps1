@@ -52,7 +52,8 @@ if (@($directories | Where-Object { -not $_ }).Count -gt 0 -or
 }
 $fixed = Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount" -Default $null
 if ($null -ne $fixed) {
-    $copies = @($fixed.artifactCopies)
+    $copies = @(Get-UnityMigrationPropertyValue -Object $fixed -Name "g5ArtifactCopies" -Default @())
+    if ($copies.Count -eq 0) { $copies = @($fixed.artifactCopies) }
     $sources = @($copies | ForEach-Object { [string]$_.source })
     $destinations = @($copies | ForEach-Object { [string]$_.destination })
     if ($copies.Count -lt ($pairs.Count + $supplementalPairs.Count)) {

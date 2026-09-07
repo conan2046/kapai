@@ -161,6 +161,12 @@ namespace ProjectX.Editor
                 if (completedStatus.StartsWith("COMPLETE:", StringComparison.Ordinal))
                     status = completedStatus;
             }
+            if (app.CurrentAppState == AppState.Failed)
+            {
+                WriteResult(false, status);
+                Finish(false);
+                return;
+            }
             bool reconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXReconnectValidation") >= 0;
             bool manualReconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXManualReconnectValidation") >= 0;
             bool scenarioManagedReconnect = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXScenarioManagedReconnect") >= 0;
@@ -171,11 +177,14 @@ namespace ProjectX.Editor
                 || taskG4Validation;
             bool playerHudValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXPlayerHudValidation") >= 0;
             bool heroRebirthG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroRebirthG4Validation") >= 0;
+            bool heroCultivationG3Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroCultivationG3Validation") >= 0;
+            bool heroCultivationG4Validation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroCultivationG4Validation") >= 0;
             bool heroValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroBagValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroLockedValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroCultivationG3Validation") >= 0
+                || heroCultivationG4Validation
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroRebirthG3Validation") >= 0
                 || heroRebirthG4Validation
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationMutationValidation") >= 0
@@ -315,6 +324,9 @@ namespace ProjectX.Editor
             }
             if (status.StartsWith("COMPLETE:", StringComparison.Ordinal))
             {
+                if (heroCultivationG4Validation
+                    && !status.StartsWith("COMPLETE: HeroCultivation G4", StringComparison.Ordinal))
+                    return;
                 if (taskG4Validation
                     && !status.StartsWith("COMPLETE: Task G4", StringComparison.Ordinal))
                     return;
@@ -383,6 +395,22 @@ namespace ProjectX.Editor
                     return;
                 }
                 if (shopG3Validation || shopG4Validation)
+                {
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (heroCultivationG3Validation)
+                {
+                    // HeroCultivation G3 owns its complete early-runtime path and
+                    // must stop on the cultivation shell. Do not fall through to
+                    // the generic Hero screenshot/back lifecycle, which targets
+                    // the older formation module and can overwrite the G3 result.
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (heroCultivationG4Validation)
                 {
                     WriteResult(true, status);
                     Finish(true);

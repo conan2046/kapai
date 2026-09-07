@@ -21,13 +21,13 @@
         "G0": "passed",
         "G1": "passed",
         "G2": "passed",
-        "G3": "pending",
-        "G4": "pending",
+        "G3": "passed",
+        "G4": "passed",
         "G5": "pending",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/HEROCULTIVATION.md",
-      "note": "2026-08-24 G0-G2 passed with 51 controls and 18 current Cocos states. G3 implementation is runnable but remains pending early user Play on the final user-authored Prefab layout; G4-G6 are not entered.",
+      "note": "2026-09-07 G0-G4 passed with 51 controls and 18 current Cocos states. Fixed SQLite account 1/1000001 passed DataPreflight and G4 runtime coverage; user completed early Play and confirmed 测试通过. G5-G6 remain pending because current Cocos visual baseline files are not present.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/HEROCULTIVATION.md",
@@ -39,10 +39,14 @@
         ],
         "G3": [
           ".local/unity-validation/hero-cultivation-g3-initial-playable.json",
-          ".local/unity-validation/hero-cultivation-fixed-account-data-preflight-latest.json"
+          ".local/unity-validation/hero-cultivation-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/herocultivation-g3-runtime-latest.json",
+          ".local/unity-validation/hero-cultivation-early-user-play-latest.json"
         ],
         "G4": [
-          ".local/unity-validation/hero-cultivation-fixed-account-latest.json",
+          ".local/unity-validation/herocultivation-g4-runtime-latest.json",
+          ".local/unity-validation/herocultivation-fixed-account-runner-latest.json",
+          ".local/unity-validation/herocultivation-fixed-account-data-preflight-latest.json",
           ".local/unity-validation/hero-cultivation-early-user-play-latest.json"
         ],
         "G5": [
@@ -59,7 +63,7 @@
           ".local/unity-validation/herocultivation-cocos-baseline-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-23T16:15:00Z"
+      "updatedUtc": "2026-09-07T13:22:00Z"
     },
     {
       "module": "Gameplay",

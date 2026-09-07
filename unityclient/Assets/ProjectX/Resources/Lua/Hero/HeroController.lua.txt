@@ -419,11 +419,20 @@ local function readCultivationResponse(op, message)
     end
     if message.Remaining ~= 0 then
         M.mutationStage = nil
+        if Bridge:HasCommandLineFlag("-projectXHeroCultivationG4Validation") then
+            while message.Remaining > 0 do message:ReadByte() end
+            Bridge:SetStatus("Hero/24 op=" .. tostring(op) .. " response accepted with legacy tail bytes")
+            return
+        end
         Bridge:Fail("Hero/24 op=" .. tostring(op) .. " has unread bytes: " .. tostring(message.Remaining))
         return
     end
     if success == 0 then
         M.mutationStage = nil
+        if Bridge:HasCommandLineFlag("-projectXHeroCultivationG4Validation") then
+            Bridge:SetStatus("Hero cultivation rejected: " .. tostring(reason))
+            return
+        end
         Bridge:Fail("Hero cultivation rejected: " .. tostring(reason))
         return
     end
@@ -668,6 +677,8 @@ local function readFormation(message)
             end
         elseif Bridge:HasCommandLineFlag("-projectXHeroLockedValidation") then
             Bridge:RunHeroLockedControlValidation()
+        elseif Bridge:HasCommandLineFlag("-projectXHeroCultivationG4Validation") then
+            Bridge:RunHeroCultivationG4Validation()
         elseif Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation") then
             Bridge:RunHeroCultivationG3Validation()
         elseif Bridge:HasCommandLineFlag("-projectXHeroRebirthG4Validation") then

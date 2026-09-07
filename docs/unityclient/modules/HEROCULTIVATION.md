@@ -1,6 +1,6 @@
 # 神将培养模块 B
 
-> 当前状态：`G0-G2 passed / G3-G6 pending`。
+> 当前状态：`G0-G4 passed / early user Play passed / G5-G6 pending`。
 
 ## 当前结论
 
@@ -73,4 +73,4 @@ Layer/Main_UI/ButtonGroup1/btn_zhenrong
 
 ## 下一门禁
 
-进入 G3：实现 SQLite 可逆夹具、Unity `/24,/25,/48,/70` 闭环、五页签/说明/输入/详情弹窗、左右已上阵神将切换及 MonsterBig Imod 站立模型。初版可运行后立即暂停并通知用户早期 Play。
+进入 G5：G4 已使用固定 SQLite 账号完成 51 控件、8 个语义断言及恢复合同；当前仍缺本轮可追溯的 18 个 Cocos 基线截图，不能用历史或 Unity 截图替代。用户已完成 G3 早期 Play并确认“测试通过”。

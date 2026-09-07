@@ -512,11 +512,14 @@ try {
                 Invoke-FixedAdapter $assertVisualAction
 
                 $g5 = Get-UnityMigrationPropertyValue -Object $contract -Name "g5" -Default $null
+                $g5ArtifactCopies = @(Get-UnityMigrationPropertyValue -Object $fixed `
+                    -Name "g5ArtifactCopies" -Default @())
+                if ($g5ArtifactCopies.Count -eq 0) { $g5ArtifactCopies = @($fixed.artifactCopies) }
                 $visualCopies = New-Object System.Collections.Generic.List[object]
                 foreach ($pair in @($g5.pairs)) {
                     $expectedDestination = (([string]$g5.unityDirectory).TrimEnd([char[]]@('/', '\')) `
                         + "/" + [string]$pair.unity)
-                    $matches = @($fixed.artifactCopies | Where-Object {
+                    $matches = @($g5ArtifactCopies | Where-Object {
                         [string]$_.destination -ieq $expectedDestination
                     })
                     if ($matches.Count -ne 1) {

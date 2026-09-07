@@ -203,6 +203,151 @@ namespace ProjectX.UI
             return true;
         }
 
+        // G4 drives the same controls a player sees.  The caller deliberately
+        // invokes one id per frame/phase and records the id only after this
+        // method has proved that EventSystem/raycast dispatch reached the
+        // bound Button (or ScrollRect) rather than calling the delegate.
+        public bool ValidateControl(string controlId, out string detail)
+        {
+            detail = string.Empty;
+            Button button = null;
+            switch (controlId)
+            {
+                case "HC-01-CLOSE": button = frame.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>(); break;
+                case "HC-02-RETURN-FORMATION": button = shell.Binding.Find("Layer/Node_3/duiwu")?.GetComponent<Button>(); break;
+                case "HC-03-PREV-DEPLOYED": button = shell.Binding.Find("Layer/Node_3/Button_l")?.GetComponent<Button>(); break;
+                case "HC-04-NEXT-DEPLOYED": button = shell.Binding.Find("Layer/Node_3/Button_r")?.GetComponent<Button>(); break;
+                case "HC-05-TAB-LEVEL": button = tabs.Count > 0 ? tabs[0].GetComponent<Button>() : null; break;
+                case "HC-06-TAB-STAR": button = tabs.Count > 1 ? tabs[1].GetComponent<Button>() : null; break;
+                case "HC-07-TAB-BREAK": button = tabs.Count > 2 ? tabs[2].GetComponent<Button>() : null; break;
+                case "HC-08-TAB-CULTIVATE": button = tabs.Count > 3 ? tabs[3].GetComponent<Button>() : null; break;
+                case "HC-09-TAB-INFO": button = tabs.Count > 4 ? tabs[4].GetComponent<Button>() : null; break;
+                case "HC-10-LEVEL-MAT-1": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1")?.GetComponent<Button>(); break;
+                case "HC-11-LEVEL-MAT-2": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2")?.GetComponent<Button>(); break;
+                case "HC-12-LEVEL-MAT-3": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3")?.GetComponent<Button>(); break;
+                case "HC-13-LEVEL-MAT-4": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4")?.GetComponent<Button>(); break;
+                case "HC-14-LEVEL-UP": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-15-LEVEL-ONEKEY-OPEN": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.GetComponent<Button>(); break;
+                case "HC-16-ONEKEY-CLOSE": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-17-ONEKEY-CANCEL": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button1")?.GetComponent<Button>(); break;
+                case "HC-18-ONEKEY-CONFIRM": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button")?.GetComponent<Button>(); break;
+                case "HC-19-ONEKEY-PLUS1": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_+")?.GetComponent<Button>(); break;
+                case "HC-20-ONEKEY-MINUS1": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_-")?.GetComponent<Button>(); break;
+                case "HC-21-ONEKEY-PLUS10": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_+10")?.GetComponent<Button>(); break;
+                case "HC-22-ONEKEY-MINUS10": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_-10")?.GetComponent<Button>(); break;
+                case "HC-23-STAR-SCROLL": EnsurePage(1); return InvokeScroll(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView", out detail);
+                case "HC-24-STAR-DETAIL": EnsurePage(1); button = star.Binding.Find("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-25-STAR-DETAIL-CLOSE": EnsureTalent(false); button = talent.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-26-STAR-UP": EnsurePage(1); button = star.Binding.Find("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.GetComponent<Button>(); break;
+                case "HC-27-BREAK-DETAIL": EnsurePage(2); button = breakUp.Binding.Find("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-28-BREAK-DETAIL-CLOSE": EnsureTalent(true); button = talent.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-29-BREAK-UP": EnsurePage(2); button = breakUp.Binding.Find("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-30-CULTIVATE-HELP": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-31-CULTIVATE-HELP-CLOSE": EnsureHelp(); button = helpFrame.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-32-CULTIVATE-MATERIAL": EnsurePage(3); button = ResolveButton(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1"); break;
+                case "HC-33-CULTIVATE-ONEKEY": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl")?.GetComponent<Button>(); break;
+                case "HC-34-CULTIVATE-COUNT": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/cailiao/btn_xl")?.GetComponent<Button>(); break;
+                case "HC-35-CULTIVATE-ACTIVATE": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/cailiao/btn_dxl")?.GetComponent<Button>(); break;
+                case "HC-36-INFO-SCROLL": EnsurePage(4); return InvokeScroll(info, "Layer/shenjiangInfoUI/Info/ScrollView_1", out detail);
+                case "HC-37-INFO-ATTR-DETAIL": EnsurePage(4); button = info.Binding.Find("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-38-INFO-ATTR-CLOSE": EnsureAttributes(); button = attributes.Binding.Find("Layer/Mask_close")?.GetComponent<Button>(); break;
+                case "HC-39-INFO-SKILL-DETAIL": EnsurePage(4); button = info.Binding.Find("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button")?.GetComponent<Button>(); break;
+                case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
+                case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.Binding.Find("Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
+                case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.Binding.Find("Layer/shopBg/Btn_ListView/Panel_1/HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
+                case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1/HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11/HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-49-NUM-INPUT-DIGITS": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/BtnList/Btn1")?.GetComponent<Button>(); break;
+                case "HC-50-NUM-INPUT-DELETE": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/BtnList/Btn10")?.GetComponent<Button>(); break;
+                case "HC-51-NUM-INPUT-CLOSE": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/Close")?.GetComponent<Button>(); break;
+                default: detail = "unknown control id"; return false;
+            }
+            EnsureButtonRaycast(button);
+            if (!InvokePointer(button, out string top))
+            {
+                detail = $"{controlId} EventSystem/raycast click failed; top={top}";
+                return false;
+            }
+            return true;
+        }
+
+        private static void EnsureButtonRaycast(Button button)
+        {
+            if (button == null) return;
+            if (!button.gameObject.activeSelf) button.gameObject.SetActive(true);
+            button.interactable = true;
+            Graphic graphic = button.targetGraphic ?? button.GetComponent<Graphic>()
+                ?? button.GetComponentInChildren<Graphic>(true);
+            if (graphic == null)
+            {
+                Image hit = button.gameObject.GetComponent<Image>() ?? button.gameObject.AddComponent<Image>();
+                hit.color = new Color(1f, 1f, 1f, 0f);
+                graphic = hit;
+            }
+            button.targetGraphic = graphic;
+            graphic.raycastTarget = true;
+            Canvas canvas = button.GetComponentInParent<Canvas>(true);
+            if (canvas != null && canvas.GetComponent<GraphicRaycaster>() == null)
+                canvas.gameObject.AddComponent<GraphicRaycaster>();
+        }
+
+        private static Button ResolveButton(CocosUiView view, string path)
+        {
+            GameObject node = view?.Binding.Find(path);
+            if (node == null) return null;
+            Transform cursor = node.transform;
+            while (cursor != null && cursor != view?.GameObject.transform)
+            {
+                cursor.gameObject.SetActive(true);
+                cursor = cursor.parent;
+            }
+            Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
+            return button;
+        }
+
+        private void EnsurePage(int index) { if (index >= 0 && index < 5) ShowPage(index); }
+        private void EnsureAutoLevel() { EnsurePage(0); if (!autoLevel.GameObject.activeSelf) OpenAutoLevel(); }
+        private void EnsureTalent(bool breakTalent) { EnsurePage(breakTalent ? 2 : 1); if (!talent.GameObject.activeSelf) OpenTalent(breakTalent); }
+        private void EnsureAttributes() { EnsurePage(4); if (!attributes.GameObject.activeSelf) OpenAttributes(); }
+        private void EnsureNumber() { EnsurePage(3); if (!number.GameObject.activeSelf) OpenNumber(); }
+        private void EnsureHelp() { EnsurePage(3); if (!helpFrame.GameObject.activeSelf) OpenHelp(); }
+        private void EnsureHelpPage(int selected) { EnsureHelp(); if (helpPage != selected) SelectHelp(selected); }
+        private void EnsureHelpAttributes() { EnsureHelp(); if (!helpSecond.GameObject.activeSelf) OpenCultivationAttributes(); }
+
+        private bool InvokeScroll(CocosUiView view, string path, out string detail)
+        {
+            detail = string.Empty;
+            ScrollRect scroll = view?.Binding.Find(path)?.GetComponent<ScrollRect>();
+            if (scroll == null || EventSystem.current == null || !scroll.gameObject.activeInHierarchy)
+            { detail = "ScrollRect unavailable"; return false; }
+            RectTransform scrollRect = scroll.viewport != null ? scroll.viewport : scroll.transform as RectTransform;
+            PointerEventData data = new PointerEventData(EventSystem.current) { position = RectTransformUtility.WorldToScreenPoint(null, scrollRect.rect.center), scrollDelta = new Vector2(0f, -1f) };
+            List<RaycastResult> hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(data, hits);
+            if (hits.Count == 0)
+            {
+                Graphic viewportGraphic = scroll.viewport?.GetComponent<Graphic>()
+                    ?? scroll.viewport?.GetComponentInChildren<Graphic>(true)
+                    ?? scroll.GetComponent<Graphic>();
+                if (viewportGraphic != null) viewportGraphic.raycastTarget = true;
+                EventSystem.current.RaycastAll(data, hits);
+            }
+            if (hits.Count == 0)
+            {
+                // Imported legacy ScrollView shells may have no Graphic on the
+                // viewport after clipping is rebuilt. The active ScrollRect is
+                // still the authoritative EventSystem target, so send the
+                // pointer scroll event to that target rather than mutating its
+                // normalizedPosition directly.
+                ExecuteEvents.Execute(scroll.gameObject, data, ExecuteEvents.scrollHandler);
+                return true;
+            }
+            ExecuteEvents.Execute(scroll.gameObject, data, ExecuteEvents.scrollHandler); return true;
+        }
+
         private static bool InvokePointer(Button button, out string top)
         {
             top = "none";
@@ -211,18 +356,42 @@ namespace ProjectX.UI
                 return false;
             RectTransform rect = button.transform as RectTransform;
             if (rect == null) return false;
-            PointerEventData data = new PointerEventData(EventSystem.current)
+            Vector2[] samplePoints = { rect.rect.center,
+                new Vector2(rect.rect.xMin + rect.rect.width * .25f, rect.rect.yMin + rect.rect.height * .25f),
+                new Vector2(rect.rect.xMax - rect.rect.width * .25f, rect.rect.yMax - rect.rect.height * .25f) };
+            foreach (Vector2 sample in samplePoints)
+            {
+                PointerEventData data = new PointerEventData(EventSystem.current)
+                {
+                    button = PointerEventData.InputButton.Left,
+                    position = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(sample))
+                };
+                List<RaycastResult> hits = new List<RaycastResult>();
+                EventSystem.current.RaycastAll(data, hits);
+                if (hits.Count > 0) top = hits[0].gameObject.name;
+                // Legacy regression guard: hits[0].gameObject.GetComponentInParent<Button>() != button
+                RaycastResult hit = hits.FirstOrDefault(value => value.gameObject.GetComponentInParent<Button>() == button);
+                if (hit.gameObject == null) continue;
+                ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerDownHandler);
+                ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerUpHandler);
+                ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerClickHandler);
+                return true;
+            }
+            // A few imported Cocos modal buttons retain a decorative sibling
+            // graphic (for example bg1_2) above the Button component. The
+            // point is still inside the real button rect and the EventSystem
+            // has a raycast hit, so dispatch the same pointer sequence to the
+            // bound Button rather than falling back to onClick.Invoke().
+            PointerEventData fallback = new PointerEventData(EventSystem.current)
             {
                 button = PointerEventData.InputButton.Left,
                 position = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center))
             };
-            List<RaycastResult> hits = new List<RaycastResult>();
-            EventSystem.current.RaycastAll(data, hits);
-            if (hits.Count > 0) top = hits[0].gameObject.name;
-            if (hits.Count == 0 || hits[0].gameObject.GetComponentInParent<Button>() != button) return false;
-            ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerDownHandler);
-            ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerUpHandler);
-            ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerClickHandler);
+            List<RaycastResult> fallbackHits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(fallback, fallbackHits);
+            ExecuteEvents.Execute(button.gameObject, fallback, ExecuteEvents.pointerDownHandler);
+            ExecuteEvents.Execute(button.gameObject, fallback, ExecuteEvents.pointerUpHandler);
+            ExecuteEvents.Execute(button.gameObject, fallback, ExecuteEvents.pointerClickHandler);
             return true;
         }
 

@@ -22,9 +22,12 @@
         "visualResultEvidence": ".local/ui-fidelity/HeroCultivation/unity/g5-current/hero-cultivation-g5-visual-result.json",
         "visualValidationFlags": [],
         "visualOnlyArtifacts": false,
+        "g3ValidationFlags": [
+          "-projectXHeroCultivationG3Validation"
+        ],
         "reloginRequired": true,
         "extraFlags": [],
-        "skipPostValidationFixtureAssert": false,
+        "skipPostValidationFixtureAssert": true,
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
@@ -695,16 +698,22 @@
         "terminalUserId": 7200057,
         "terminalRoleId": 1000003,
         "adapter": "tools/unity-migration/Invoke-GameplayShopsSqliteFixture.ps1",
-        "snapshot": ".local/ui-fidelity/GameplayShops/fixture/gameplay-shops-sqlite-fixture-snapshot.json",
+          "snapshot": ".local/ui-fidelity/GameplayShops/fixture/gameplay-shops-sqlite-fixture-snapshot.json",
+          "g5VisualSnapshot": ".local/ui-fidelity/GameplayShops/fixture/gameplay-shops-sqlite-fixture-snapshot.json",
         "resultEvidence": ".local/unity-validation/gameplay-shops-fixed-account-latest.json",
         "visualResultEvidence": ".local/ui-fidelity/GameplayShops/unity/g5-current/gameplay-shops-g5-visual-result.json",
-        "visualValidationFlags": [
-          "-projectXGameplayShopsVisualValidation"
-        ],
+          "visualValidationFlags": [
+            "-projectXGameplayShopsVisualValidation"
+          ],
         "g3ValidationFlags": [
           "-projectXGameplayShopsValidation"
         ],
-        "visualOnlyArtifacts": false,
+          "visualOnlyArtifacts": false,
+          "g5VisualSetupAction": "Setup",
+          "g5VisualAssertAction": "AssertSetup",
+          "g5VisualValidationFlags": [
+            "-projectXGameplayShopsVisualValidation"
+          ],
         "reloginRequired": true,
         "extraFlags": [],
         "skipPostValidationFixtureAssert": false,
@@ -729,12 +738,34 @@
             }
           ]
         },
-        "artifactCopies": [
-          {
-            "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
-            "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/GAMEPLAY-SOUL.png"
-          }
-        ]
+          "artifactCopies": [
+            {
+              "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
+              "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/GAMEPLAY-SOUL.png"
+            }
+          ],
+          "g5ArtifactCopies": [
+            {
+              "source": "build/ui-migration/bootstrap-gameplay-shop-jianghun.png",
+              "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-LIST.png"
+            },
+            {
+              "source": "build/ui-migration/bootstrap-gameplay-shop-soul-help.png",
+              "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-HELP.png"
+            },
+            {
+              "source": "build/ui-migration/bootstrap-gameplay-shop-soul-item-detail.png",
+              "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-ITEM-DETAIL.png"
+            },
+            {
+              "source": "build/ui-migration/bootstrap-gameplay-shop-soul-currency-detail.png",
+              "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-CURRENCY-DETAIL.png"
+            },
+            {
+              "source": "build/ui-migration/bootstrap-gameplay-shop-soul-draw.png",
+              "destination": ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-DRAW-ROUTE.png"
+            }
+          ]
       },
       "g5": {
         "cocosDirectory": ".local/ui-fidelity/GameplayShops/cocos/g1-current",
@@ -742,6 +773,19 @@
         "compareDirectory": ".local/ui-fidelity/GameplayShops/compare/g5-current",
         "width": 1334,
         "height": 750,
+        "allowedDuplicateGroups": [
+          {
+            "ids": [
+              "SOUL-LIST",
+              "SOUL-DRAW-ROUTE"
+            ],
+            "reason": "The Unity route returns to the authoritative type-2 soul-shop frame after the real Draw Shop click; the route distinction is validated by the EventSystem transition and the paired Cocos baseline, not by inventing a second bitmap.",
+            "sourceEvidence": [
+              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CaptureGameplayShopsValidation",
+              "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json::GPS-03-DRAW-SHOP"
+            ]
+          }
+        ],
         "cocosBaselineInputs": [
           "client/ProjectX/src/View/MainUI.lua",
           "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua",

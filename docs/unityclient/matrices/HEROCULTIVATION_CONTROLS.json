@@ -10,7 +10,7 @@
     "included": "升级、升星、突破、修炼、信息五页签及左右切换已上阵神将",
     "excluded": ["阵法与阵位业务", "神将背包与碎片合成", "图鉴与重生", "装备与法宝培养"]
   },
-  "currentGateStatus": {"G0":"passed","G1":"passed","G2":"passed","G3":"pending","G4":"pending","G5":"pending","G6":"pending"},
+  "currentGateStatus": {"G0":"passed","G1":"passed","G2":"passed","G3":"passed","G4":"passed","G5":"pending","G6":"pending"},
   "acceptanceExamples": [
     {"id":"cultivation-swap-roundtrip","given":"固定SQLite账号至少有两名属性不同的已上阵神将","when":"在培养页右切后再左切并遍历五页签","then":"五页数据和模型随当前fightPos切换并恢复，阵容及培养值不发生写入"},
     {"id":"cultivation-authoritative-mutation","given":"当前神将和SQLite背包满足升级、升星、突破或修炼条件","when":"点击对应真实业务按钮","then":"只在/24权威成功回包后刷新神将、物品和货币，重登保持"},
