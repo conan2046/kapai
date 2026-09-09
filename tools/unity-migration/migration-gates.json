@@ -23,11 +23,11 @@
         "G2": "passed",
         "G3": "passed",
         "G4": "passed",
-      "G5": "passed",
-      "G6": "passed"
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/HEROCULTIVATION.md",
-    "note": "2026-09-09 G0-G6 passed. Fixed SQLite account 1/1000001 passed the current 51/51 control and 8/8 semantic oracle, relogin stable-state verification, exact restore and zero residue. The user completed current Unity Play and explicitly stated 我这边测试通，可以算G6通过的. This is a recorded direct-G6 exception: Computer Use apps=[] left current Cocos files unavailable and 26 historical ledger records remain unresolved; neither gap was hidden or replaced with fabricated evidence.",
+      "note": "2026-09-09 G0-G6 passed. Fixed SQLite account 1/1000001 passed the current 51/51 control and 8/8 semantic oracle, relogin stable-state verification, exact restore and zero residue. The user completed current Unity Play and explicitly stated 我这边测试通，可以算G6通过的. This is a recorded direct-G6 exception: Computer Use apps=[] left current Cocos files unavailable and 26 historical ledger records remain unresolved; neither gap was hidden or replaced with fabricated evidence.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/HEROCULTIVATION.md",
@@ -49,14 +49,14 @@
           ".local/unity-validation/herocultivation-fixed-account-data-preflight-latest.json",
           ".local/unity-validation/hero-cultivation-early-user-play-latest.json"
         ],
-      "G5": [
-        ".local/unity-validation/herocultivation-g5-blocked-latest.json",
-        ".local/unity-validation/herocultivation-final-user-acceptance-latest.json"
-      ],
-      "G6": [
-        ".local/unity-validation/herocultivation-final-user-acceptance-latest.json",
-        ".local/unity-validation/herocultivation-g6-user-authorized-retrospective-latest.json"
-      ],
+        "G5": [
+          ".local/unity-validation/herocultivation-g5-blocked-latest.json",
+          ".local/unity-validation/herocultivation-final-user-acceptance-latest.json"
+        ],
+        "G6": [
+          ".local/unity-validation/herocultivation-final-user-acceptance-latest.json",
+          ".local/unity-validation/herocultivation-g6-user-authorized-retrospective-latest.json"
+        ],
         "G1": [
           ".local/unity-validation/hero-cultivation-cocos-automation-ledger.json",
           ".local/unity-validation/herocultivation-cocos-preflight-latest.json",
@@ -64,7 +64,7 @@
           ".local/unity-validation/herocultivation-cocos-baseline-latest.json"
         ]
       },
-    "updatedUtc": "2026-09-09T08:06:37.8528719Z"
+      "updatedUtc": "2026-09-09T08:06:37.8528719Z"
     },
     {
       "module": "Gameplay",
@@ -75,7 +75,7 @@
         "G3": "passed",
         "G4": "pending",
         "G5": "pending",
-        "G6": "pending"
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
       "note": "2026-09-02 current-worktree G1-G3 passed. The first early user Play white screen and cross-page LFS gaps were repaired. Gameplay now uses persistentDataPath SQLite user 7200057/role 1000003 with an exact whole-database restore contract; current G3 batch passed 13/13 controls and 13 semantic assertions. User retest is pending before G4. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
@@ -146,14 +146,12 @@
         "G2": "passed",
         "G3": "passed",
         "G4": "passed",
-        "G5": "pending",
+        "G5": "passed",
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-      "note": "2026-09-02 user scope narrows this machine key to Soul Shop function_id=15/type=2. Historical 12-page/59-control evidence is diagnostic only; other gameplay shop branches are excluded from this cycle.",
+      "note": "2026-09-09 G0-G6 passed. Fixed SQLite account 7200057/1000003 passed the current 29/29 control and 9/9 semantic batch, five-state G5 visual validation, exact restore, relogin hash and zero residue. The user completed post-change Unity Play, stated 测试通过, then explicitly authorized 直接g6通过. This direct-G6 exception preserves the disclosed gap: 16/21 Cocos and 21/21 Unity per-control image files remain absent and were not fabricated.",
       "gateEvidence": {
-        "G5": [],
-        "G6": [],
         "G0": [
           "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
           "docs/unityclient/matrices/GAMEPLAY_SHOPS_COVERAGE.json",
@@ -181,14 +179,24 @@
           "client/ProjectX/src/View/Shop/JiangHunShop.lua",
           "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt"
         ],
+        "G6": [
+          ".local/unity-validation/gameplayshops-final-user-acceptance-latest.json",
+          ".local/unity-validation/gameplayshops-g6-user-authorized-retrospective-latest.json"
+        ],
         "G3": [
-          ".local/unity-validation/gameplay-shops-g3-implementation-20260902.md"
+          "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt"
         ],
         "G4": [
           ".local/unity-validation/gameplayshops-early-user-play-latest.json",
           ".local/unity-validation/gameplayshops-fixed-account-latest.json",
+          ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json"
+        ],
+        "G5": [
+          ".local/unity-validation/gameplayshops-g5-visual-latest.json",
+          ".local/unity-validation/gameplayshops-g5-preflight-latest.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/report.json",
           ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
-          "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json"
+          ".local/unity-validation/gameplayshops-early-user-play-latest.json"
         ]
       },
       "timingPolicyVersion": 1,
@@ -216,26 +224,31 @@
           "completionCheckDurationMs": 223
         },
         "G3": {
-          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startedUtc": "2026-09-09T14:01:26.4112051Z",
           "startSource": "invalidation",
-          "completedUtc": "2026-09-02T03:38:44.4066641Z",
-          "calendarDurationMs": 1246407,
-          "completionCheckDurationMs": 459
+          "completedUtc": "2026-09-09T14:14:23.8534618Z",
+          "calendarDurationMs": 777853,
+          "completionCheckDurationMs": 410
         },
         "G4": {
-          "startedUtc": "2026-09-02T03:17:58.4558604Z",
+          "startedUtc": "2026-09-09T14:01:26.4112051Z",
           "startSource": "invalidation",
-          "completedUtc": "2026-09-02T04:51:12.9384561Z",
-          "calendarDurationMs": 5594938,
-          "completionCheckDurationMs": 1292
+          "completedUtc": "2026-09-09T14:22:47.3033146Z",
+          "calendarDurationMs": 1281303,
+          "completionCheckDurationMs": 1052
         },
         "G5": {
-          "startedUtc": "2026-09-02T03:17:58.4558604Z",
-          "startSource": "invalidation"
+          "startedUtc": "2026-09-09T14:01:26.4112051Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-09T14:24:27.4764866Z",
+          "calendarDurationMs": 1381476,
+          "completionCheckDurationMs": 1247
         },
-        "G6": {
-          "startedUtc": "2026-09-02T03:17:58.4558604Z",
-          "startSource": "invalidation"
+      "G6": {
+        "startedUtc": "2026-09-09T14:01:26.4112051Z",
+        "startSource": "invalidation",
+        "completedUtc": "2026-09-09T14:38:49.4782358Z",
+        "completionSource": "explicit-user-authorized-exception"
         }
       },
       "gateInvalidations": {
@@ -286,74 +299,43 @@
           "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
         },
         "G3": {
-          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
-          "previousState": "pending",
+          "invalidatedUtc": "2026-09-09T14:01:26.4112051Z",
+          "previousState": "passed",
           "previousEvidence": [
-            ".local/unity-validation/gameplay-shops-g3-implementation.md",
-            ".local/unity-validation/unity-compile-preflight-latest.json",
-            ".local/unity-validation/unity-compile-preflight.log",
-            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-            "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
-            "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
-            "unityclient/Assets/ProjectX/src/Data/GameplayShopStore.cs",
-            "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
-            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
+            ".local/unity-validation/gameplay-shops-g3-implementation-20260902.md"
           ],
-          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+          "reason": "2026-09-09 final user Play found two purchase-success presentation defects: redundant success toast and reward icon/quality-frame mismatch."
         },
         "G4": {
-          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
-          "previousState": "pending",
+          "invalidatedUtc": "2026-09-09T14:01:26.4112051Z",
+          "previousState": "passed",
           "previousEvidence": [
-            ".local/unity-validation/gameplay-shops-g4-evidence.md",
-            ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
+            ".local/unity-validation/gameplayshops-early-user-play-latest.json",
             ".local/unity-validation/gameplayshops-fixed-account-latest.json",
-            ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-fixed-unity-result.json",
-            "build/ui-migration/unity-gameplayshops-fixed-account.log"
+            ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json",
+            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json"
           ],
-          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+          "reason": "2026-09-09 final user Play found two purchase-success presentation defects: redundant success toast and reward icon/quality-frame mismatch."
         },
         "G5": {
-          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
-          "previousState": "pending",
+          "invalidatedUtc": "2026-09-09T14:01:26.4112051Z",
+          "previousState": "passed",
           "previousEvidence": [
-            ".local/unity-validation/gameplay-shops-g5-evidence.md",
-            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-SOUL.jpg",
-            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-ARENA.jpg",
-            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-BLOOD.jpg",
-            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-GUILD.jpg",
-            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-KUNLUN.jpg",
-            ".local/ui-fidelity/GameplayShops/cocos/g5-20260729/GAMEPLAY-TURNTABLE.jpg",
-            ".local/ui-fidelity/GameplayShops/unity/g5-20260729/gameplay-shops-g5-visual-result.json",
-            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/contact-side-1.jpg",
-            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
-            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/G5_VISUAL_ACCEPTANCE.md",
-            "build/ui-migration/unity-gameplayshops-g5-visual.log"
+            ".local/unity-validation/gameplayshops-g5-visual-latest.json",
+            ".local/unity-validation/gameplayshops-g5-preflight-latest.json",
+            ".local/ui-fidelity/GameplayShops/compare/g5-current/report.json",
+            ".local/unity-validation/gameplayshops-fixed-account-data-preflight-latest.json"
           ],
-          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+          "reason": "2026-09-09 final user Play found two purchase-success presentation defects: redundant success toast and reward icon/quality-frame mismatch."
         },
         "G6": {
-          "invalidatedUtc": "2026-09-02T03:17:58.4558604Z",
+          "invalidatedUtc": "2026-09-09T14:01:26.4112051Z",
           "previousState": "pending",
-          "previousEvidence": [
-            ".local/unity-validation/gameplay-shops-g6-evidence.md",
-            ".local/unity-validation/gameplayshops-latest.json",
-            ".local/unity-validation/gameplayshops-fixed-account-latest.json",
-            ".local/unity-validation/bootstrap-idempotence-latest.json",
-            "build/ui-migration/bootstrap-idempotence-1.log",
-            "build/ui-migration/bootstrap-idempotence-2.log",
-            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/report.json",
-            ".local/ui-fidelity/GameplayShops/compare/g5-live-20260729/manual-acceptance.json",
-            "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json",
-            "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
-            "UNITYCLIENT_STATUS.md",
-            "tools/unity-migration/unityclient-modules.json"
-          ],
-          "reason": "Current native Cocos G1 proved Draw GoldIcon2 opens ticket exchange, not Soul Shop, and the registered premium-plus has no reachable visible control; remove stale controls and refreeze current routes."
+          "previousEvidence": [],
+          "reason": "2026-09-09 final user Play found two purchase-success presentation defects: redundant success toast and reward icon/quality-frame mismatch."
         }
       },
-      "updatedUtc": "2026-09-02T04:51:12.9758608Z"
+      "updatedUtc": "2026-09-09T14:38:49.4782358Z"
     },
     {
       "module": "Shop",

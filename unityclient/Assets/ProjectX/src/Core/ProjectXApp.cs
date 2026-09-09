@@ -561,6 +561,9 @@ namespace ProjectX.Core
         private CocosUiView soulShopView;
         private CocosUiView multiShopView;
         private GameplayShopsPresenter gameplayShopsPresenter;
+        private GameObject gameplayShopBackdrop;
+        private CocosUiView gameplayShopItemInfoView;
+        private GameplayShopItemInfoPresenter gameplayShopItemInfoPresenter;
         private readonly List<SevenDayTaskRecord> pendingSevenDayTasks = new List<SevenDayTaskRecord>();
         private readonly List<StaminaClaimRecord> pendingStaminaClaimRecords = new List<StaminaClaimRecord>();
         private readonly List<ResourceRecoveryRecord> pendingResourceRecoveryRecords = new List<ResourceRecoveryRecord>();
@@ -7493,13 +7496,15 @@ namespace ProjectX.Core
                     chatMiniView != null && chatMiniView.GameObject.activeSelf;
                 restoreBagFrameAfterGameplayShop = IsBagOpen
                     && bagFrameView != null && bagFrameView.GameObject.activeSelf;
-                gameplayShopActivityLayer =
-                    bagPopupFrameView.GameObject.transform.Find("ActivityLayer");
+                gameplayContentView = gameplayContentView
+                    ?? services.UiRouter.FindBySource("common/ActivityLayer");
+                gameplayShopActivityLayer = gameplayContentView?.GameObject.transform;
                 gameplayShopActivityLayerStateCaptured = gameplayShopActivityLayer != null;
                 gameplayShopActivityLayerWasActive = gameplayShopActivityLayerStateCaptured
                     && gameplayShopActivityLayer.gameObject.activeSelf;
             }
             chatMiniView?.SetVisible(false);
+            gameplayContentView?.SetVisible(false);
             if (restoreBagFrameAfterGameplayShop) bagFrameView?.SetVisible(false);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
@@ -7511,6 +7516,9 @@ namespace ProjectX.Core
             if (services.UiStack.Current == previous && previous != target) services.UiStack.Pop();
             if (services.UiStack.Current != target) services.UiStack.Push(target);
             ConfigureGameplayShopsFrame();
+            EnsureGameplayShopBackdrop();
+            gameplayShopBackdrop.SetActive(true);
+            gameplayShopBackdrop.transform.SetAsLastSibling();
             bagPopupFrameView.SetVisible(true);
             bagPopupFrameView.GameObject.transform.SetAsLastSibling();
             target.GameObject.transform.SetAsLastSibling();
@@ -7560,6 +7568,8 @@ namespace ProjectX.Core
             services.GameplayShops.Clear();
             pendingShopRecords.Clear();
             gameplayShopsPresenter?.ResetTransientState();
+            bagFlowPresenter?.HideGameplayShopSource();
+            gameplayShopItemInfoPresenter?.Hide();
             errorPresenter?.Hide();
             rewardPresenter?.Hide();
         }
@@ -7577,6 +7587,12 @@ namespace ProjectX.Core
                     totalAmount, item.Name, item.Picture, item.Quality)
             });
             EnsureRewardPresenter();
+            rewardPresenter.ConfigureItemVisuals(reward =>
+            {
+                if (services.ShopCatalog.IsCocosHeroSoul(reward.Type))
+                    return services.Resources.LoadHeroPortrait(reward.Picture);
+                return services.Resources.LoadGameplayShopIcon(reward.Picture, out _, out _);
+            }, true);
             rewardPresenter.SetItemClickHandler(reward =>
             {
                 EnsureErrorPresenter();
@@ -7588,25 +7604,23 @@ namespace ProjectX.Core
         public void ShowGameplayShopItemDetail(ShopRecord item)
         {
             if (item == null) return;
-            EnsureErrorPresenter();
-            string limit = item.Limit < 0 ? "不限购" : $"剩余 {item.RemainingLimit} 次";
-            errorPresenter.Show("物品详情",
-                $"{item.Name}\n{item.Description}\n单价：{item.UnitCost} {item.CostName}\n{limit}");
+            EnsureBagPresenter();
+            bagFlowPresenter.ShowGameplayShopSource(item);
         }
 
         private void ShowGameplayShopHelp()
         {
             EnsureErrorPresenter();
-            errorPresenter.Show("将魂商店",
-                "免费刷新次数优先使用；次数耗尽后消耗刷新令。\n\n"
-                + "商品购买后变为已购状态，刷新会重新拉取权威六格商品。\n"
-                + "关闭帮助后返回将魂商店。");
+            errorPresenter.ShowDismissOnly("提示",
+                "玩家可以免费刷新将魂商店商品，免费刷新次数随时间恢复，上限为10次。\n"
+                + "免费刷新次数的使用不会扣除今日剩余次数。\n"
+                + "在没有免费刷新次数时，玩家可以使用刷新令进行刷新。");
         }
 
         private void ShowGameplayShopSoulDetail()
         {
-            EnsureErrorPresenter();
-            errorPresenter.Show("神魂", "神将魂魄\n来源：抽卡");
+            EnsureGameplayShopItemInfoPresenter();
+            gameplayShopItemInfoPresenter.ShowSoul();
         }
 
         private void RequestGameplayShopPurchase(byte type, ushort id, int quantity)
@@ -7647,6 +7661,7 @@ namespace ProjectX.Core
             // contaminate the module's native visual evidence.
             loadingPresenter?.Clear();
             loadingView?.SetVisible(false);
+            toastPresenter?.Clear();
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -16216,11 +16231,13 @@ namespace ProjectX.Core
                 yield break;
             }
 
-            Transform frameRoot = bagPopupFrameView.GameObject.transform;
             Transform shopRoot = soulShopView.GameObject.transform;
             Text title = bagPopupFrameView.Binding.Find(
                 "Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
-            Transform activityLayer = frameRoot.Find("ActivityLayer");
+            gameplayContentView = gameplayContentView
+                ?? services.UiRouter.FindBySource("common/ActivityLayer");
+            Transform activityLayer = gameplayContentView?.GameObject.transform;
+            bool activityContract = activityLayer == null || !activityLayer.gameObject.activeSelf;
             Button close = bagPopupFrameView.Binding.Find(
                 "Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
             Button help = title?.transform.Find("Button_1")?.GetComponent<Button>();
@@ -16243,24 +16260,26 @@ namespace ProjectX.Core
                 errorPresenter.Hide();
                 yield return null;
 
-                if (!gameplayShopsPresenter.InvokeFirstDetail() || !IsErrorVisible)
+                if (!gameplayShopsPresenter.InvokeFirstDetail()
+                    || bagFlowPresenter?.IsSourceOpen != true)
                 {
-                    Fail("Gameplay shops G5 item-detail control did not open the real detail dialog.");
+                    Fail("Gameplay shops G5 item-detail control did not open the imported source dialog.");
                     yield break;
                 }
                 yield return CaptureGameplayShopValidationScreenshot(
                     "bootstrap-gameplay-shop-soul-item-detail.png");
-                errorPresenter.Hide();
+                bagFlowPresenter.HideGameplayShopSource();
                 yield return null;
 
-                if (!InvokeEventSystemClick(soulInfo) || !IsErrorVisible)
+                if (!InvokeEventSystemClick(soulInfo)
+                    || gameplayShopItemInfoPresenter?.IsVisible != true)
                 {
-                    Fail("Gameplay shops G5 soul-info control did not open the real detail dialog.");
+                    Fail("Gameplay shops G5 soul-info control did not open the imported item-info dialog.");
                     yield break;
                 }
                 yield return CaptureGameplayShopValidationScreenshot(
                     "bootstrap-gameplay-shop-soul-currency-detail.png");
-                errorPresenter.Hide();
+                gameplayShopItemInfoPresenter.Hide();
                 yield return null;
 
                 CloseGameplayShops();
@@ -16316,8 +16335,8 @@ namespace ProjectX.Core
                 && services.GameplayCatalog.Find(17) == null
                 && gameplayShopsPresenter.FunctionId == 15;
             bool detailContract = gameplayShopsPresenter.InvokeFirstDetail()
-                && errorPresenter?.IsVisible == true;
-            errorPresenter?.Hide();
+                && bagFlowPresenter?.IsSourceOpen == true;
+            bagFlowPresenter?.HideGameplayShopSource();
             bool soulInfoContract = soulInfo != null && soulInfo.interactable;
             bool helpContract = help != null && help.interactable;
             bool countdownContract = !requireG4Evidence || page.RefreshDeadlineUnix > 0
@@ -16325,11 +16344,9 @@ namespace ProjectX.Core
                 && !string.IsNullOrWhiteSpace(countdown.GetComponent<Text>().text);
             bool closeContract = close != null && close.interactable
                 && close.targetGraphic != null && close.targetGraphic.raycastTarget;
-            bool activityContract = activityLayer == null || !activityLayer.gameObject.activeSelf;
-
             RecordValidationSemantic("soul-shop-title-and-six-slots",
                 title?.text == "将魂商店" && sixCellContract && activityContract,
-                $"title={title?.text}, cells={page.Items.Count}, activity={activityLayer?.gameObject.activeSelf}");
+                $"title={title?.text}, cells={page.Items.Count}, activityHiddenWhileShopOpen={activityContract}");
             RecordValidationSemantic("soul-shop-all-function-15-routes", routeContract,
                 "function_id=15 is routable while 16/17 remain excluded from this cycle");
             RecordValidationSemantic("soul-shop-authoritative-list",
@@ -16539,6 +16556,7 @@ namespace ProjectX.Core
 
         private void EnsureGameplayShopsPresenter()
         {
+            EnsureBagPresenter();
             soulShopView = soulShopView ?? services.UiRouter.FindBySource("shop/jianghunshop");
             multiShopView = multiShopView ?? services.UiRouter.FindBySource("shop/wanfashop");
             bagPopupFrameView = bagPopupFrameView ?? services.UiRouter.FindBySource("shop/shop_bg");
@@ -16557,8 +16575,28 @@ namespace ProjectX.Core
                 () => services.Player.Level);
         }
 
+        private void EnsureGameplayShopItemInfoPresenter()
+        {
+            gameplayShopItemInfoView = gameplayShopItemInfoView
+                ?? services.UiRouter.FindBySource("common/SourceLayer");
+            if (gameplayShopItemInfoView == null)
+                throw new InvalidOperationException(
+                    "GameplayShops imported CocosUiBinding was not found: common/SourceLayer.");
+            gameplayShopItemInfoPresenter = gameplayShopItemInfoPresenter
+                ?? new GameplayShopItemInfoPresenter(gameplayShopItemInfoView,
+                    services.Resources, services.ShopCatalog, () =>
+                    {
+                        CloseGameplayShops();
+                        EnsureDrawPresenter();
+                        HandleDrawClick();
+                    });
+        }
+
         private void CloseGameplayShops()
         {
+            bagFlowPresenter?.HideGameplayShopSource();
+            gameplayShopItemInfoPresenter?.Hide();
+            if (gameplayShopBackdrop != null) gameplayShopBackdrop.SetActive(false);
             bagPopupFrameView?.SetVisible(false);
             if (gameplayShopActivityLayerStateCaptured && gameplayShopActivityLayer != null)
                 gameplayShopActivityLayer.gameObject.SetActive(gameplayShopActivityLayerWasActive);
@@ -16646,6 +16684,24 @@ namespace ProjectX.Core
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
             bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", CloseGameplayShops, true);
+        }
+
+        private void EnsureGameplayShopBackdrop()
+        {
+            if (gameplayShopBackdrop != null) return;
+            Transform parent = bagPopupFrameView.GameObject.transform.parent;
+            gameplayShopBackdrop = new GameObject("GameplayShopBackdrop",
+                typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            gameplayShopBackdrop.transform.SetParent(parent, false);
+            RectTransform rect = (RectTransform)gameplayShopBackdrop.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = gameplayShopBackdrop.GetComponent<Image>();
+            image.color = Color.black;
+            image.raycastTarget = false;
+            gameplayShopBackdrop.SetActive(false);
         }
 
         private static void SetGameplayShopTabText(Transform tab, string value, bool selected)

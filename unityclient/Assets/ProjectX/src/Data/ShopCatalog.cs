@@ -181,6 +181,7 @@ namespace ProjectX.Data
         public ShopRecord Build(byte grid, ushort id, ushort buyCount, string fallbackName,
             string fallbackDescription, int fallbackPicture, int fallbackQuality)
         {
+            EnsureCocosItems();
             ShopDefinition definition = Get(id);
             int rewardType = Value(definition.Item, 0);
             int rewardId = Value(definition.Item, 1);
@@ -202,12 +203,13 @@ namespace ProjectX.Data
                 : -1;
 
             ShopItemDefinition item = FindItem(rewardType);
+            ShopItemDefinition cocosItem = FindCocosItem(rewardType);
             ShopItemDefinition currency = FindItem(configuredCostType) ?? FindItem(costType);
             // The shipped Lua catalog is the visual authority for normal items, while
             // hero-soul entries (item type 2) intentionally use their item-id portrait
             // from the current JSON catalog. This mirrors Cocos GetItemCellValue output.
-            int picture = item?.Type == 2 && item.Picture > 0
-                ? item.Picture
+            int picture = cocosItem?.Type == 2 && cocosItem.Picture > 0
+                ? cocosItem.Picture
                 : fallbackPicture > 0 ? fallbackPicture : item?.Picture ?? 0;
             return new ShopRecord(grid, id, buyCount, rewardType, rewardId, rewardAmount,
                 NonEmpty(fallbackName, item?.Name, $"商品 #{rewardType}"),

@@ -42,6 +42,7 @@ namespace ProjectX.UI
         private BagItemRecord activeItem;
         private Choice selectedChoice;
         private Choice sourceChoice;
+        private bool standaloneSource;
         private int quantity;
         private int maxQuantity;
         private int inputDigitMask;
@@ -104,6 +105,37 @@ namespace ProjectX.UI
             : null;
         public Button InputConfirmControl =>
             inputView.Binding.Find("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>();
+
+        public void ShowGameplayShopSource(ShopRecord item)
+        {
+            if (item == null) return;
+            itemCatalog.TryGetItemPresentation(item.RewardType,
+                out string catalogDescription, out _);
+            standaloneSource = true;
+            ShowSource(new Choice
+            {
+                Id = item.RewardType,
+                Name = item.Name,
+                Description = string.IsNullOrWhiteSpace(catalogDescription)
+                    ? item.Description
+                    : catalogDescription,
+                Picture = item.Picture,
+                Quality = item.Quality,
+                Quantity = ownedQuantity(item.RewardType),
+                ItemFrom = "来源：将魂商店",
+                Sources = "15",
+            });
+            popupFrameView.SetVisible(false);
+            giftView.SetVisible(false);
+            SetText(sourceView, "Layer/Popup/Panel_name/txt_num", $"数量：{ownedQuantity(item.RewardType)}");
+        }
+
+        public void HideGameplayShopSource()
+        {
+            standaloneSource = false;
+            sourceChoice = null;
+            sourceView.SetVisible(false);
+        }
 
         public bool SelectGiftChoice(int index)
         {
@@ -522,6 +554,12 @@ namespace ProjectX.UI
             Bind(sourceView, "Layer/Popup/Title/Btn_close", () =>
             {
                 sourceView.SetVisible(false);
+                if (standaloneSource)
+                {
+                    standaloneSource = false;
+                    sourceChoice = null;
+                    return;
+                }
                 if (choices.Count > 0)
                 {
                     popupFrameView.SetVisible(true);

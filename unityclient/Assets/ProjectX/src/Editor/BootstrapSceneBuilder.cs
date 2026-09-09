@@ -81,6 +81,7 @@ namespace ProjectX.Editor
         private const string MailPrefab = "Assets/ProjectX/res/csd/Prefabs/MailLayer.prefab";
         private const string ShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shangcheng.prefab";
         private const string SoulShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/jianghunshop.prefab";
+        private const string GameplayShopItemInfoPrefab = "Assets/ProjectX/res/csd/Prefabs/common/SourceLayer.prefab";
         private const string MultiShopPrefab = "Assets/ProjectX/res/csd/Prefabs/shop/wanfashop.prefab";
         private const string FriendPrefab = "Assets/ProjectX/res/csd/Prefabs/common/FriendLayer.prefab";
         private const string ChatMiniPrefab = "Assets/ProjectX/res/csd/Prefabs/ChatLayer.prefab";
@@ -178,6 +179,7 @@ namespace ProjectX.Editor
             new PrefabSpec(MailPrefab, false),
             new PrefabSpec(ShopPrefab, false),
             new PrefabSpec(SoulShopPrefab, false),
+            new PrefabSpec(GameplayShopItemInfoPrefab, false),
             new PrefabSpec(MultiShopPrefab, false),
             new PrefabSpec(FriendPrefab, false),
             new PrefabSpec(ChatMiniPrefab, false),
@@ -389,6 +391,9 @@ namespace ProjectX.Editor
         {
             string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
             string cocosRoot = Path.Combine(repositoryRoot, "client", "ProjectX");
+            CopyResourceIfChanged(
+                "Assets/ProjectX/res/res/UI/Icon/ui_main_icon/ui_icon_choukarukou.png",
+                "Assets/ProjectX/Resources/GameplayIcons/ui_icon_choukarukou.png");
             // World still draws from the original Cocos bitmaps.  Keep these
             // runtime copies small and explicit instead of substituting screenshots.
             CopyResourceIfChanged(

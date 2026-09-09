@@ -652,7 +652,7 @@
     {
       "key": "GameplayShops",
       "displayName": "将魂商店",
-      "status": "g4-passed-g5-pending",
+      "status": "g6-passed-user-authorized-exception",
       "protocols": [
         221
       ],
@@ -679,10 +679,29 @@
         "build/ui-migration/bootstrap-gameplay-shop-jianghun.png"
       ],
       "visualFidelity": {
-        "status": "pending-cocos-baseline",
-        "cocosScreenshots": [],
-        "unityScreenshots": [],
-        "diffReports": [],
+        "status": "passed",
+        "cocosScreenshots": [
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-S01-AUTHORITATIVE-LIST.png",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-08-HELP.png",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-11-DETAIL-1.png",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-10-SOUL-INFO.png",
+          ".local/ui-fidelity/GameplayShops/cocos/g1-current/GPS-03-DRAW-SHOP.png"
+        ],
+        "unityScreenshots": [
+          ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-LIST.png",
+          ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-HELP.png",
+          ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-ITEM-DETAIL.png",
+          ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-CURRENCY-DETAIL.png",
+          ".local/ui-fidelity/GameplayShops/unity/g5-current/SOUL-DRAW-ROUTE.png"
+        ],
+        "diffReports": [
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/SOUL-LIST-report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/SOUL-HELP-report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/SOUL-ITEM-DETAIL-report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/SOUL-CURRENCY-DETAIL-report.json",
+          ".local/ui-fidelity/GameplayShops/compare/g5-current/SOUL-DRAW-ROUTE-report.json"
+        ],
         "flowEvidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
         "uiMapping": "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json"
       },

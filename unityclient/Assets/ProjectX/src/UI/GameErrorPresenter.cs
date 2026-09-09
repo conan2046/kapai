@@ -87,6 +87,16 @@ namespace ProjectX.UI
             message.alignment = TextAnchor.UpperLeft;
         }
 
+        public void ShowDismissOnly(string heading, string detail)
+        {
+            Show(heading, detail);
+            singleConfirm.gameObject.SetActive(false);
+            RectTransform rect = message.rectTransform;
+            rect.anchoredPosition = new Vector2(0f, 6f);
+            rect.sizeDelta = new Vector2(500f, 230f);
+            message.alignment = TextAnchor.UpperLeft;
+        }
+
         public void ShowConfirmation(string heading, string detail, Action onConfirm,
             string confirmLabel = "确定", string cancelLabel = "取消", bool alignTopLeft = false,
             Action onCancel = null)

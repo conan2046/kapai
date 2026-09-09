@@ -16,6 +16,7 @@ namespace ProjectX.UI
         private readonly Text tips;
         private readonly GameObject[] cells = new GameObject[4];
         private readonly GameObject[] runtimeCells = new GameObject[4];
+        private readonly Image[] runtimeQualityFrames = new Image[4];
         private readonly Image[] runtimeIcons = new Image[4];
         private readonly Text[] runtimeNames = new Text[4];
         private readonly Text[] runtimeAmounts = new Text[4];
@@ -25,6 +26,8 @@ namespace ProjectX.UI
         private readonly Button closeButton;
         private Action confirmAction;
         private Action<RewardRecord> itemClick;
+        private Func<RewardRecord, Sprite> itemIconResolver;
+        private bool showQualityFrames;
         private bool sharedViewRenderingSuspended;
 
         public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources)
@@ -132,6 +135,13 @@ namespace ProjectX.UI
             Render();
         }
 
+        public void ConfigureItemVisuals(Func<RewardRecord, Sprite> iconResolver, bool useQualityFrames)
+        {
+            itemIconResolver = iconResolver;
+            showQualityFrames = useQualityFrames;
+            Render();
+        }
+
         public bool InvokeFirstItem()
         {
             if (!IsVisible || RenderedCount <= 0) return false;
@@ -183,6 +193,8 @@ namespace ProjectX.UI
         {
             confirmAction = null;
             view.SetVisible(false);
+            itemIconResolver = null;
+            showQualityFrames = false;
         }
 
         public void Render()
@@ -210,7 +222,7 @@ namespace ProjectX.UI
                 Text name = cell.transform.Find("Name")?.GetComponent<Text>();
                 if (name != null) name.text = item.Name;
                 Image icon = cell.transform.Find("item")?.GetComponent<Image>();
-                ApplyIcon(icon, item.Picture);
+                ApplyIcon(icon, item);
                 AddOrUpdateAmount(cell.transform, item.Amount);
                 Button itemButton = cell.GetComponent<Button>() ?? cell.AddComponent<Button>();
                 itemButton.targetGraphic = cell.GetComponent<Graphic>()
@@ -224,7 +236,8 @@ namespace ProjectX.UI
                 }
                 runtimeNames[index].text = item.Name;
                 runtimeAmounts[index].text = $"×{item.Amount}";
-                ApplyIcon(runtimeIcons[index], item.Picture);
+                ApplyQualityFrame(runtimeQualityFrames[index], item.Quality);
+                ApplyIcon(runtimeIcons[index], item);
             }
             LayoutRuntimeCells(RenderedCount);
         }
@@ -254,15 +267,29 @@ namespace ProjectX.UI
                 cell.transform.SetParent(layer.transform, false);
                 runtimeCells[index] = cell;
 
+                GameObject qualityObject = new GameObject("Quality", typeof(RectTransform),
+                    typeof(CanvasRenderer), typeof(Image));
+                qualityObject.transform.SetParent(cell.transform, false);
+                RectTransform qualityRect = qualityObject.GetComponent<RectTransform>();
+                qualityRect.anchorMin = new Vector2(0.14f, 0.33f);
+                qualityRect.anchorMax = new Vector2(0.86f, 0.98f);
+                qualityRect.offsetMin = Vector2.zero;
+                qualityRect.offsetMax = Vector2.zero;
+                runtimeQualityFrames[index] = qualityObject.GetComponent<Image>();
+                runtimeQualityFrames[index].raycastTarget = false;
+                runtimeQualityFrames[index].preserveAspect = true;
+                runtimeQualityFrames[index].enabled = false;
+
                 GameObject iconObject = new GameObject("Icon", typeof(RectTransform),
                     typeof(CanvasRenderer), typeof(Image));
                 iconObject.transform.SetParent(cell.transform, false);
                 RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-                iconRect.anchorMin = new Vector2(0.14f, 0.33f);
-                iconRect.anchorMax = new Vector2(0.86f, 0.98f);
+                iconRect.anchorMin = new Vector2(0.18f, 0.37f);
+                iconRect.anchorMax = new Vector2(0.82f, 0.94f);
                 iconRect.offsetMin = Vector2.zero;
                 iconRect.offsetMax = Vector2.zero;
                 runtimeIcons[index] = iconObject.GetComponent<Image>();
+                runtimeIcons[index].raycastTarget = false;
 
                 runtimeNames[index] = CreateRuntimeText(cell.transform, "Name", template,
                     new Vector2(0f, 0.03f), new Vector2(1f, 0.33f), TextAnchor.MiddleCenter);
@@ -348,10 +375,20 @@ namespace ProjectX.UI
             label.text = $"×{amount}";
         }
 
-        private void ApplyIcon(Image image, int picture)
+        private void ApplyQualityFrame(Image image, int quality)
         {
             if (image == null) return;
-            Sprite sprite = resources.LoadItemIcon(picture);
+            Sprite sprite = showQualityFrames && quality > 0
+                ? resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}")
+                : null;
+            image.sprite = sprite;
+            image.enabled = sprite != null;
+        }
+
+        private void ApplyIcon(Image image, RewardRecord item)
+        {
+            if (image == null) return;
+            Sprite sprite = itemIconResolver?.Invoke(item) ?? resources.LoadItemIcon(item.Picture);
             image.sprite = sprite;
             image.enabled = sprite != null;
             image.preserveAspect = true;

@@ -329,7 +329,6 @@ local function readPurchase(message)
     end
     clearPending()
     Bridge:ShowGameplayShopPurchaseReward(shopType, id, rewardType, rewardAmount, quantity)
-    Bridge:ShowToast("购买成功", 2.0)
     if M.validation and M.validationPhase == "purchase" then
         if buyCount ~= 1 or not Bridge:RecordGameplayShopG4Event(
             "purchase-response", true, "type=2 buyCount=1 and reward payload accepted") then

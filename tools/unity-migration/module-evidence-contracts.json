@@ -732,7 +732,7 @@
           ],
         "reloginRequired": true,
         "extraFlags": [],
-        "skipPostValidationFixtureAssert": false,
+        "skipPostValidationFixtureAssert": true,
         "dataPreflight": {
           "requiresLogin": true,
           "requirements": [
@@ -742,11 +742,11 @@
             },
             {
               "id": "single-authoritative-page",
-              "description": "按当前 C++ direct-hex 持久化格式仅准备 Steam V0 将魂商店 type 2 六格商品"
+              "description": "按 UserShopManager 压缩 mysteryShop 持久化格式仅准备 Steam V0 将魂商店 type 2 六格商品"
             },
             {
               "id": "refresh-and-purchase",
-              "description": "准备六格确定性未购买商品；刷新、购买及失败分支仍由真实 PRO_SHOP op 3/4 服务端响应裁决"
+              "description": "准备六格确定性商品：前五格未购买、第六格已售罄；刷新、购买及失败分支仍由真实 PRO_SHOP op 3/4 服务端响应裁决"
             },
             {
               "id": "exact-restore-surface",

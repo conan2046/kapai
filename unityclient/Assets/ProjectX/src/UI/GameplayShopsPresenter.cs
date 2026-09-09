@@ -526,9 +526,12 @@ namespace ProjectX.UI
             if (image == null || item == null) return false;
             bool placeholder = true;
             bool usesItemIcon = false;
-            Sprite sprite = item.Picture > 0
-                ? resources.LoadGameplayShopIcon(item.Picture, out usesItemIcon, out placeholder)
-                : null;
+            Sprite sprite = null;
+            if (item.Picture > 0 && catalog.IsCocosHeroSoul(item.RewardType))
+                sprite = resources.LoadHeroPortrait(item.Picture, out placeholder);
+            else if (item.Picture > 0)
+                sprite = resources.LoadGameplayShopIcon(
+                    item.Picture, out usesItemIcon, out placeholder);
             if (sprite == null || placeholder) missingIconCount++;
             image.sprite = sprite;
             image.enabled = sprite != null;
