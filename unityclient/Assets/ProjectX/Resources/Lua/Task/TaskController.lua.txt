@@ -32,6 +32,11 @@ function M.onClick()
     Bridge:SetStatus("Task/37 request sent: op=1, type=2 daily + type=0 activity boxes.")
 end
 
+function M.requestXunBao()
+    requestList(3)
+    Bridge:SetStatus("XunBao Task/37 request sent: op=1, type=3.")
+end
+
 function M.claim(taskType, id)
     local message = Protocol.newMessage(Protocol.TASK_LIST)
     message:WriteByte(3)
@@ -43,7 +48,7 @@ end
 
 local function readList(message)
     local taskType = message:ReadByte()
-    if taskType ~= 0 and taskType ~= 2 then
+    if taskType ~= 0 and taskType ~= 2 and taskType ~= 3 then
         Bridge:Fail("Task/37 unexpected list type: " .. tostring(taskType) .. ".")
         return
     end
@@ -58,6 +63,10 @@ local function readList(message)
     end
     M.requested[taskType] = nil
     Bridge:EndTaskUpdate()
+    if taskType == 3 then
+        Bridge:SetStatus("XunBao Task/37 list received: type=3, count=" .. tostring(count) .. ".")
+        return
+    end
     if taskType == 2 then M.receivedDaily = true else M.receivedBoxes = true end
     if M.receivedDaily and M.receivedBoxes then
         if Bridge:HasCommandLineFlag("-projectXTaskG4Validation") and not M.g4Started then
@@ -74,8 +83,7 @@ local function readIncrement(message)
     local progress = message:ReadUInt()
     local state = message:ReadByte()
     if message.Remaining ~= 0 then return end
-    local taskType = id >= 144 and id <= 147 and 0 or 2
-    Bridge:UpsertTaskRecord(taskType, id, progress, state)
+    Bridge:UpsertTaskRecordByDefinition(id, progress, state)
 end
 
 local function readActivityIncrement(message)

@@ -7,6 +7,10 @@ local function readRewardBatch(message)
   Bridge:AddXunBaoReward(rewardType,rewardId,amount)
  end
 end
+local function skipRewardBatch(message)
+ local count=message:ReadByte()
+ for _=1,count do message:ReadWord();message:ReadUInt();message:ReadUInt() end
+end
 function M.onClick()
  M.validation=Bridge:HasCommandLineFlag("-projectXXunBaoValidation");Bridge:ShowXunBao()
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(31);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=31 requested.")
@@ -31,30 +35,35 @@ function M.onOperation(op,message)
  end
  if op==28 then
   local faBaoId=message:ReadWord();local suiId=message:ReadWord();local ok=message:ReadByte()
-  if ok==0 then Bridge:SetXunBaoOperationResult(false,"搜索失败",-1,-1);return true end
+  if ok==0 then local detail=message.Remaining>0 and message:ReadString() or "";Bridge:SetXunBaoOperationResult(false,"搜索失败"..detail,-1,-1);return true end
   local remaining=message:ReadWord();local count=message:ReadWord();local seconds=message:ReadUInt()
-  Bridge:BeginXunBaoRewardUpdate();for _=1,count do readRewardBatch(message) end
+  Bridge:BeginXunBaoRewardUpdate();for _=1,count do Bridge:BeginXunBaoRewardBatch();readRewardBatch(message);Bridge:EndXunBaoRewardBatch() end
+  if message.Remaining>0 then skipRewardBatch(message) end
   if count==0 then Bridge:SetXunBaoOperationResult(false,"搜索次数不足，请使用搜宝令补充",remaining,seconds)
   else Bridge:SetXunBaoOperationResult(true,"搜索成功：法宝"..tostring(faBaoId).."碎片"..tostring(suiId),remaining,seconds) end
-  Bridge:EndXunBaoRewardUpdate(count);return true
+  Bridge:EndXunBaoRewardUpdate(count,0,faBaoId,suiId);if count==0 then Bridge:OpenXunBaoSearchTokenBag() end;return true
  end
  if op==29 then
   local auto=message:ReadByte();local faBaoId=message:ReadWord();local ok=message:ReadByte()
-  if ok==0 then Bridge:SetXunBaoOperationResult(false,"一键搜索失败",-1,-1);return true end
-  local count=message:ReadWord();Bridge:BeginXunBaoRewardUpdate();for _=1,count do readRewardBatch(message) end
-  local remaining=message:ReadWord();local seconds=message:ReadWord();if message.Remaining>=4 then message:ReadUInt() end
-  if count==0 then Bridge:SetXunBaoOperationResult(false,"搜索次数不足，请使用搜宝令补充",remaining,seconds)
-  else Bridge:SetXunBaoOperationResult(true,"一键搜索成功",remaining,seconds) end
-  Bridge:EndXunBaoRewardUpdate(count);return true
+  if ok==0 then local detail=message.Remaining>0 and message:ReadString() or "";Bridge:SetXunBaoOperationResult(false,"一键搜索失败"..detail,-1,-1);return true end
+   local count=message:ReadWord();Bridge:BeginXunBaoRewardUpdate();for _=1,count do Bridge:BeginXunBaoRewardBatch();readRewardBatch(message);Bridge:EndXunBaoRewardBatch() end
+   -- Server FaBaoAutoSouSuo writes remaining as Word, recovery seconds as UInt32,
+   -- then the搜宝令 consumption count as UInt16. The legacy Cocos reader used
+   -- ReadWord for seconds and became byte-shifted whenever op=29 returned.
+   local remaining=message:ReadWord();local seconds=message:ReadUInt();local useItemCount=message:ReadWord()
+   if count==0 then Bridge:SetXunBaoOperationResult(false,"搜索次数不足，请使用搜宝令补充",remaining,seconds)
+   else Bridge:SetXunBaoOperationResult(true,"一键搜索成功（消耗搜宝令"..tostring(useItemCount).."个）",remaining,seconds) end
+  Bridge:EndXunBaoRewardUpdate(count,1,faBaoId,0);if count==0 then Bridge:OpenXunBaoSearchTokenBag() end;return true
  end
  if op==30 then
   local faBaoId=message:ReadWord();local ok=message:ReadByte();local detail=message.Remaining>0 and message:ReadString() or ""
-  Bridge:SetXunBaoOperationResult(ok~=0,(ok~=0 and "法宝合成成功" or "法宝合成失败")..detail,-1,-1);return true
+  Bridge:SetXunBaoOperationResult(ok~=0,(ok~=0 and "法宝合成成功" or "法宝合成失败")..detail,-1,-1)
+  if ok~=0 then Bridge:PlayXunBaoComposeFeedback() end;return true
  end
  if op==36 then
   local ok=message:ReadByte()
   if ok==0 then local detail=message.Remaining>0 and message:ReadString() or "";Bridge:SetXunBaoOperationResult(false,"一键合成失败"..detail,-1,-1);return true end
-  Bridge:BeginXunBaoRewardUpdate();readRewardBatch(message);Bridge:SetXunBaoOperationResult(true,"一键合成完成",-1,-1);Bridge:EndXunBaoRewardUpdate(1);return true
+  Bridge:BeginXunBaoRewardUpdate();Bridge:BeginXunBaoRewardBatch();readRewardBatch(message);Bridge:EndXunBaoRewardBatch();Bridge:SetXunBaoOperationResult(true,"一键合成完成",-1,-1);Bridge:EndXunBaoRewardUpdate(1,2,0,0);return true
  end
  return false
 end

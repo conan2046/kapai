@@ -5,148 +5,94 @@
   "workflowPolicyVersion": 1,
   "acceptanceExamples": [
     {
-      "id": "xunbao-only",
-      "given": "法宝搜索玩法模块可达且服务端返回 /319 剩余次数",
-      "when": "进入玩法、检查次数/倒计时、切换法宝并执行搜索或合成",
-      "then": "界面展示权威状态；op28/29/30/36 按来源协议发送并按结果更新提示，关闭可安全返回"
+      "id": "xunbao-single-search-result",
+      "given": "固定账号在法宝搜索页拥有至少1次搜索次数，蓝色法宝1001的碎片4701可搜索且掉落配置有效",
+      "when": "用户真实点击 Add1，经 /319 op=28 完成一次搜索",
+      "then": "Cocos与Unity均展示逐次奖励结果，权威剩余次数减少1，背包4701数量按服务端奖励变化且重登一致"
+    },
+    {
+      "id": "xunbao-zero-count-source",
+      "given": "固定账号剩余搜索次数为0",
+      "when": "用户真实点击碎片加号、一键搜索或次数加号",
+      "then": "不发送会伪造成功的搜索请求，打开并选中背包搜宝令402；道具不存在时显示可见缺失反馈且控件恢复可交互"
+    },
+    {
+      "id": "xunbao-compose-feedback",
+      "given": "固定账号拥有法宝1001配方4701/4702/4703各1个且尚未拥有目标法宝",
+      "when": "用户真实点击合成，经 /319 op=30 成功",
+      "then": "碎片原子扣除、目标法宝增加，播放 BlueCompose 时间轴、粒子和 Xunbao_popupLayer 合成成功弹窗，重登回读一致"
+    },
+    {
+      "id": "xunbao-task-rewards",
+      "given": "固定账号存在服务端 /37 type=3 法宝搜索任务，正式 daily.json 含任务25至143及奖励配置",
+      "when": "用户真实点击寻宝奖励，并在可领取状态点击领取",
+      "then": "Unity请求 /37 op=1 type=3，按任务进度展示说明、奖励图标、数量和领取状态；领取经 /37 op=3 type=3 后权威刷新且奖励到账"
     }
   ],
   "scope": {
     "screenSize": "1334x750",
-    "included": [
-      "法宝搜索主入口、次数区、关闭返回、法宝切换、碎片搜索、一键搜索、单个/一键合成",
-      "/319 op=28/29/30/31/36 按当前 Cocos 字段顺序收发；变更结果不由客户端预测"
-    ],
     "fixedUserId": 7200057,
     "fixedRoleId": 1000115,
-    "windowsDpi": "100%"
+    "windowsDpi": "100%",
+    "included": [
+      "玩法大厅 function_id=9 入口、法宝搜索主界面、次数/倒计时、帮助、资源加号和寻宝奖励任务列表/领取",
+      "45条 hecheng.type=8 动态目标、180个碎片、蓝紫橙品质面板、卡片选择、碎片来源、单次/一键搜索、单个/一键合成",
+      "Xunbao_souxunLayer 逐条结果、Xunbao_popupLayer 一键搜索确认和合成成功表现",
+      "/319 op=28/29/30/31/36 与 /37 op=1/3 type=3 的完整字节布局、静默/错误/超时/断线/重连/切号、SQLite持久化与夹具恢复"
+    ],
+    "excluded": [
+      "Xunbao/Panel/Button_L 与 Button_R；Cocos 回调已注释，真实选择入口是动态 List 卡片"
+    ]
   },
   "sourceAudit": {
     "entryClosureComplete": true,
     "protocolOwnershipComplete": true,
     "configAssetClosureComplete": true,
     "runtimeTransformClosureComplete": true,
+    "coverageNotes": [
+      "G2已核清 hecheng.type=8 配方197..241、45个目标模板、180个碎片、config.id=17、/319五个操作，以及入口/协议/配置资源/运行时Transform闭包。",
+      "寻宝奖励按 XunBaoPopUI mode=3 正式请求 /37 op=1 type=3；server/config/json/daily.json 的119条 type=3 任务及120条奖励记录驱动列表，领取走 /37 op=3 type=3。",
+      "任务奖励1211严格取concept/data/excel/xml配置表/新表/item.xlsx的高级法宝箱记录；60028按子类型615/616/617解析fabao.json，不允许占位。",
+      "Rewards/ListView复用项目统一VirtualList，按来源660x398裁剪区、120逻辑像素行高与ScrollRect拖动中继呈现119条正式任务定义。",
+      "搜索概率同源输入为E:/neiwang_kapai/concept/data/excel/xml配置表/新表/fabao_looting.xlsx；官方xl转表.exe生成264条server JSON，当前180个配方碎片全部覆盖，另84条红色碎片因当前无type=8配方而排除。",
+      "品质3且目标!=615默认可见；其余目标仅在任一配方碎片数量大于0时进入动态列表。",
+      "选择动态卡片播放 Blue/Purple/Orange/Red Open；op30成功播放对应 Compose并打开合成成功弹窗；搜索结果每0.3秒追加一条。"
+    ],
     "knownGaps": [
       {
-        "id": "XUNBAO-GAP-20260828-ZERO-COUNT-NO-RESULT",
-        "handling": "用户真人Play确认剩余次数为0时一键搜索仍显示成功，且Unity未展示服务端奖励记录、未刷新碎片数。现已补次数不足拦截、搜宝令背包边界、op28/29奖励解析与公共奖励弹窗、背包权威碎片数量和合成前置校验；用户复测前保持阻塞。",
-        "evidence": ".local/ui-fidelity/XunBao/user-feedback/20260828-xunbao-actions-ineffective.png; client/ProjectX/src/View/WanFa/XunBaoMainUI.lua; client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua; unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs; unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt"
+        "id": "XUNBAO-GAP-20260908-REAL-CLICK-NO-RESPONSE",
+        "handling": "原始Button绑定已修复；当前输入G3后仍必须经首个EventSystem射线命中、权威协议往返及用户早期复测关闭。",
+        "evidence": ".local/unity-validation/xunbao-early-user-play-latest.json; .local/unity-validation/xunbao-operation-ledger.json; unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs"
+      },
+      {
+        "id": "XUNBAO-GAP-20260908-ZERO-COUNT-SOURCE",
+        "handling": "次数为0路径已修复；当前输入G3后必须验证三类入口均路由背包搜宝令402，缺道具时有可见反馈，并确认未发送op28/29。",
+        "evidence": ".local/unity-validation/xunbao-early-user-play-latest.json; client/ProjectX/src/View/WanFa/XunBaoMainUI.lua; unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs"
       }
     ]
   },
   "hardGateVersion": 1,
   "controls": [
-    {
-      "id": "XUNBAO-01-ENTRY",
-      "page": "主界面",
-      "path": "UImainLayer_new/Main_UI/btn_wanfa",
-      "visibleCondition": "function_id 9 已开放（15级）",
-      "cocosCallback": "MainUI.OnFunctionButtonClick(function_id=9) -> WanFa.XunBaoMainUI",
-      "protocolOp": "无，入口为直接 Cocos 玩法入口",
-      "unityBinding": "真实玩法大厅入口打开法宝搜索场景并触发 /319",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "complete",
-      "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true
-    },
-    {
-      "id": "XUNBAO-02-CLOSE",
-      "page": "法宝搜索",
-      "path": "Panel/Title/CloseBtn",
-      "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "WanFa.XunBaoMainUI.closeCallback -> 返回玩法大厅",
-      "protocolOp": "无",
-      "unityBinding": "一级关闭按钮真实关闭法宝搜索并返回主界面",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "complete",
-      "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true
-    },
-    {
-      "id": "XUNBAO-03-REMAINING-TIMES",
-      "page": "法宝搜索",
-      "path": "Panel/XunbaoBg/TimesBg/Icon/Num",
-      "visibleCondition": "法宝搜索初始界面渲染完成",
-      "cocosCallback": "updateRemainCount/refreshNum 显示剩余次数",
-      "protocolOp": "/319 op=31 解析 remaining",
-      "unityBinding": "基于 XunBaoStore.remaining 展示权威次数文字",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "complete",
-      "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true
-    },
-    {
-      "id": "XUNBAO-04-RECOVERY-COUNTDOWN",
-      "page": "法宝搜索",
-      "path": "Panel/XunbaoBg/TimesBg/Tips",
-      "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "remaining/recoverySeconds -> 倒计时文本",
-      "protocolOp": "/319 op=31 解析 recoverySeconds",
-      "unityBinding": "倒计时显示“搜索次数已满”或 HH:MM:SS",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "complete",
-      "realEntryClick": true,
-      "automationPassed": true,
-      "manualPassed": true
-    },
-    {
-      "id": "XUNBAO-05-ADD-TIMES",
-      "page": "法宝搜索",
-      "path": "Panel/XunbaoBg/TimesBg/AddBtn",
-      "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "addBtn.click",
-      "protocolOp": "次数为0时不发送搜索协议，打开权威背包中的搜宝令402使用边界",
-      "unityBinding": "真实可点击；打开背包并选中搜宝令，缺道具时保留明确提示",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "pending",
-      "realEntryClick": true,
-      "automationPassed": false,
-      "manualPassed": false
-    },
-    {
-      "id": "XUNBAO-06-SEARCH",
-      "page": "法宝搜索",
-      "path": "Panel/XunbaoBg/Btn_1",
-      "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "碎片 Add / 一键搜索",
-      "protocolOp": "/319 op=28、op=29",
-      "unityBinding": "次数大于0才发送真实op28/29；解析每批奖励、打开寻宝奖励弹窗并由BagStore刷新碎片数",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "pending",
-      "realEntryClick": true,
-      "automationPassed": false,
-      "manualPassed": false
-    },
-    {
-      "id": "XUNBAO-07-COMBINE",
-      "page": "法宝搜索",
-      "path": "Xunbao/Panel/Button_L",
-      "visibleCondition": "法宝搜索界面打开",
-      "cocosCallback": "单个合成 / 一键合成",
-      "protocolOp": "/319 op=30、op=36",
-      "unityBinding": "三种权威碎片均满足后才发送单个合成；一键合成解析成功/失败与奖励",
-      "successEvidence": ".local/unity-validation/xunbao-latest.json",
-      "failureEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "reconnectEvidence": "build/ui-migration/unity-xunbao-validation.log",
-      "status": "pending",
-      "realEntryClick": true,
-      "automationPassed": false,
-      "manualPassed": false
-    }
+    {"id":"XUNBAO-01-ENTRY","page":"玩法大厅","path":"WanFaEntranceUI/List/function_id=9","visibleCondition":"角色等级>=15且function_id=9开放","cocosCallback":"WanFaEntranceUI真实功能卡 -> Utils:OpenFunction(EMID_KAPAI_XUNBAO)","protocolOp":"打开后发送/接收 /319 op=31","unityBinding":"真实玩法大厅卡片点击进入XunbaoLayer，不允许直接Presenter调用替代","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-02-CLOSE","page":"法宝搜索","path":"Panel/Title/CloseBtn","visibleCondition":"主界面打开","cocosCallback":"XunBaoMainUI.CloseUI -> 返回玩法大厅","protocolOp":"无","unityBinding":"原始导入Button直接接收EventSystem射线并安全关闭","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-03-REMAINING-TIMES","page":"法宝搜索","path":"Panel/XunbaoBg/TimesBg/Icon/Num","visibleCondition":"op31权威状态已返回","cocosCallback":"updateRemainCount/refreshNum","protocolOp":"/319 op=31 remaining:word","unityBinding":"仅显示XunBaoStore权威remaining","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-04-RECOVERY-COUNTDOWN","page":"法宝搜索","path":"Panel/XunbaoBg/TimesBg/Tips","visibleCondition":"主界面打开","cocosCallback":"remaining/recoverySeconds每秒刷新","protocolOp":"/319 op=31 recoverySeconds:uint","unityBinding":"次数满显示搜索次数已满，否则HH:MM:SS且到点重查","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-05-ADD-TIMES","page":"法宝搜索","path":"Panel/XunbaoBg/TimesBg/AddBtn","visibleCondition":"主界面打开","cocosCallback":"Utils:OpenUseUI(402,1)","protocolOp":"不直接发送搜索协议","unityBinding":"原始Button打开背包并选中搜宝令402，缺道具时显示可见反馈","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-06-HELP","page":"法宝搜索","path":"Panel/Title/TitleName/btn_help","visibleCondition":"主界面打开","cocosCallback":"HelpClicked -> GUITips.XunBao","protocolOp":"无","unityBinding":"原始Button打开来源一致的法宝搜索说明","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-07-STAMINA-ADD","page":"法宝搜索","path":"Panel/GoldCheck/GoldIcon1/AddBtn","visibleCondition":"主界面打开","cocosCallback":"Utils:OpenUseUI(500,1)","protocolOp":"无，既有体力道具边界","unityBinding":"原始Button路由既有体力使用界面","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-08-GOLD-ADD","page":"法宝搜索","path":"Panel/GoldCheck/GoldIcon3/AddBtn","visibleCondition":"主界面打开","cocosCallback":"Utils:OpenFunction(EMID_SCCHANGYONG)","protocolOp":"无，既有商城边界","unityBinding":"原始Button路由既有金币来源/商城界面","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-09-PREMIUM-ADD-DISABLED","page":"法宝搜索","path":"Panel/GoldCheck/GoldIcon4/AddBtn","visibleCondition":"来源节点隐藏或禁用","cocosCallback":"cashAddBtn隐藏/不绑定","protocolOp":"无","unityBinding":"不显示且不接收GraphicRaycaster命中","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-10-TASK-ENTRY","page":"法宝搜索","path":"Panel/XunbaoBg/Btn_1","visibleCondition":"主界面打开","cocosCallback":"OnBottomRightBtnClick -> XunBaoPopUI mode=3 -> QueryGotTaskList(3)","protocolOp":"/37 op=1 type=3","unityBinding":"原始Button打开任务弹窗并发送正式type=3任务列表请求，不得只显示空壳","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-11-TREASURE-CARD","page":"法宝搜索","path":"Xunbao/Panel/List/<dynamic item>/Big","visibleCondition":"对应配置满足默认或持有碎片可见条件","cocosCallback":"OnFaBaoCellClicked(sender,index)","protocolOp":"无","unityBinding":"动态卡片自身Button接收射线，切换目标、属性、碎片槽并播放品质Open时间轴","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-12-FRAGMENT-SOURCE","page":"法宝搜索","path":"Xunbao/{Blue|Purple|Orange|Red}/Image/Add1..Add5","visibleCondition":"当前配方存在对应碎片且未达到成本","cocosCallback":"SeekCallBack -> op28；0次 -> OpenUseUI(402,1)","protocolOp":"/319 op=28(fid:word,sid:word)","unityBinding":"每个实际碎片槽原始Button按当前配方绑定；0次不发包并打开402来源","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-13-ONEKEY-SEARCH","page":"法宝搜索","path":"Xunbao/Btn_1","visibleCondition":"功能1181开放且当前目标不可合成","cocosCallback":"OneKeyCallBack -> XunBaoPopUI mode=2 / op29","protocolOp":"/319 op=29(use:byte,fid:word)","unityBinding":"原始Button打开来源确认；0次路由402，禁止透明子Button截获","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-14-SINGLE-COMPOSE","page":"法宝搜索","path":"Xunbao/Btn_2","visibleCondition":"当前目标存在；碎片足够时可交互","cocosCallback":"HeChengCallBack -> op30","protocolOp":"/319 op=30(fid:word)","unityBinding":"原始Button按权威成本启停；成功后播放Compose与成功弹窗","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-15-ONEKEY-COMPOSE","page":"法宝搜索","path":"Xunbao/Btn_3 -> common/saodang/saodangchenggong","visibleCondition":"至少两条配方可合成","cocosCallback":"OneKeyHCCallBack -> op36 -> Common.SaoDangUI / csd/common/saodang.csb","protocolOp":"/319 op=36","unityBinding":"按权威碎片集合显示并由原始Button发送；成功后使用同源common/saodang.prefab逐项展示完整奖励并由源面板关闭","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-16-AUTO-SEARCH-CONFIRM","page":"一键搜索确认","path":"Popup/{Btn_close|Btn_2|Btn_1|CheckBox_0|bg/Panel_1/CheckBox}","visibleCondition":"点击一键搜索且当前目标有效","cocosCallback":"mode=2关闭/取消/确认、登录不再提示、自动使用搜宝令","protocolOp":"确认发送/319 op=29","unityBinding":"Xunbao_popupLayer来源节点、文案、勾选状态和按钮均真实可操作","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-17-SEARCH-RESULT","page":"搜索结果","path":"Souxun/Popup/ListView + Souxun/Popup/RuntimeXunBaoResultClose","visibleCondition":"op28/29成功返回至少一批奖励","cocosCallback":"XunBaoResultUI每0.3秒追加第N次与奖励；二级界面右上角关闭","protocolOp":"op28逐批奖励+尾部总奖励；op29逐批奖励+剩余/时间/用令数量","unityBinding":"使用Xunbao_souxunLayer，按0.3秒逐条显示并保持滚动；隐藏底部Button_1，使用同源二级界面右上角关闭控件","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-18-COMPOSE-FEEDBACK","page":"合成反馈","path":"Xunbao/{Blue|Purple|Orange|Red} + Hecheng/Black","visibleCondition":"op30成功","cocosCallback":"ShowTimeLine -> {quality}Compose -> XunBaoPopUI mode=1","protocolOp":"/319 op=30 success+message","unityBinding":"播放对应Compose时间轴/粒子，结束后打开Xunbao_popupLayer合成成功弹窗并可关闭","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-19-DYNAMIC-QUALITY-PANELS","page":"法宝搜索","path":"Xunbao/{Blue|Purple|Orange|Red}","visibleCondition":"当前目标quality映射到唯一品质面板","cocosCallback":"m_colorPanels + Blue/Purple/Orange/Red Open/Compose","protocolOp":"无","unityBinding":"不得跨品质复用蓝色占位；目标图标、碎片、粒子、属性和命名片段均取当前配置","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-20-TASK-REWARD-LIST","page":"寻宝奖励","path":"Rewards/Popup/bg/Image2/ListView + Reward + IconBg","visibleCondition":"/37 op=1 type=3返回至少一条可见任务","cocosCallback":"WanFaDailyTaskInfo -> DataSort -> ShowRewardList/ShowOneReward","protocolOp":"/37 op=1 type=3 -> taskId:word,progress:uint,state:byte[]","unityBinding":"按正式daily.json说明、目标、进度、奖励和状态使用统一VirtualList呈现Reward列表，不允许空白占位或客户端假数据","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"XUNBAO-21-TASK-CLAIM","page":"寻宝奖励","path":"Rewards/Popup/Reward/Btn","visibleCondition":"任务state=1且progress达到condition[2]","cocosCallback":"ShowOneReward.Btn -> QueryGotTaskAward(3,taskId)","protocolOp":"/37 op=3 type=3,taskId:word；成功后解锁任务与奖励批次","unityBinding":"仅可领取任务按钮接收真实射线；成功后状态、后继任务和奖励按服务端回包刷新","successEvidence":".local/unity-validation/xunbao-latest.json","failureEvidence":".local/unity-validation/xunbao-operation-ledger.json","reconnectEvidence":".local/unity-validation/xunbao-latest.json","status":"passed","realEntryClick":true,"automationPassed":true,"manualPassed":true}
   ]
 }

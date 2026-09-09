@@ -428,10 +428,7 @@ namespace ProjectX.UI
                 text.lineSpacing = .8f;
                 text.color = Color.white;
                 text.supportRichText = true;
-                string content = (record.Content ?? string.Empty)
-                    .Replace("[c/n]", string.Empty)
-                    .Replace("[c/]", string.Empty)
-                    .Replace("[/c]", string.Empty);
+                string content = CocosRichText.ToUnity(record.Content ?? string.Empty);
                 if (!string.IsNullOrWhiteSpace(player.Name))
                     content = content.Replace(player.Name, $"<color=#29A9D6>{player.Name}</color>");
                 text.text = record.Channel == ChatChannel.System

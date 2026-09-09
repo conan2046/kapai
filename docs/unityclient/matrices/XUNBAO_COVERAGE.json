@@ -2,53 +2,117 @@
   "schemaVersion": 1,
   "module": "XunBao",
   "scopeDecision": {
-    "decision": "补齐中央G0 coverageList机器登记；沿用当前模块矩阵、场景与源码边界，不改变既有完成状态或证据结论。",
+    "decision": "覆盖玩法大厅 function_id=9 至法宝搜索主界面、搜索确认/结果、合成表现、寻宝奖励任务列表/领取，以及 /319 op=28/29/30/31/36 和 /37 op=1/3 type=3。旧 G0-G6 证据不继承。",
     "confirmedByUser": true,
-    "confirmedDate": "2026-08-23"
+    "confirmedDate": "2026-09-08"
   },
   "scenarios": [
-    {
-      "id": "xunbao-registered-success",
-      "kind": "success",
-      "given": "当前模块既有入口、协议和固定数据条件满足",
-      "when": "按当前控件矩阵执行已登记主路径",
-      "then": "由既有场景与Runner验证权威成功结果"
-    },
-    {
-      "id": "xunbao-registered-failure-boundary",
-      "kind": "failure-boundary",
-      "given": "功能锁定、数据不足、非法参数、超时、断线或切号",
-      "when": "执行当前矩阵对应边界操作",
-      "then": "由既有场景验证拒绝、恢复与账号隔离且不伪造成功"
-    }
+    {"id":"xunbao-entry-and-count","kind":"success","given":"固定账号等级达到 function_id=9 开放条件且 /319 op=31 可返回权威次数","when":"从玩法大厅真实点击法宝搜索并等待稳定帧","then":"主界面、剩余次数、恢复倒计时、货币栏及动态法宝列表与当前账号权威状态一致"},
+    {"id":"xunbao-config-selection","kind":"success","given":"hecheng.type=8 的 45 条合成配置、45 个目标模板和 180 个碎片条目已加载","when":"真实点击动态法宝卡片并遍历蓝紫橙及经验书分支","then":"目标名称、品质面板、碎片槽、数量、缺失/可合成状态及 Open 时间轴均来自对应配置"},
+    {"id":"xunbao-single-search","kind":"success","given":"当前碎片可搜索、剩余次数大于0且服务端存在对应掉落概率","when":"真实点击碎片槽加号发送 /319 op=28","then":"逐次奖励批次、权威剩余次数、恢复时间、背包碎片及搜索结果弹窗完整收敛"},
+    {"id":"xunbao-auto-search","kind":"success","given":"功能1181已开放且剩余次数或搜宝令402满足来源规则","when":"真实点击一键搜索、确认自动使用规则并发送 /319 op=29","then":"确认弹窗、逐次奖励、权威剩余次数、搜宝令消耗和背包碎片一致"},
+    {"id":"xunbao-single-compose","kind":"success","given":"当前 hecheng.type=8 目标的全部碎片数量满足成本","when":"真实点击合成发送 /319 op=30","then":"服务器原子扣除碎片并增加目标，播放对应品质 Compose 时间轴、粒子与合成成功弹窗，重登回读一致"},
+    {"id":"xunbao-auto-compose","kind":"success","given":"至少两条 hecheng.type=8 配置可合成","when":"真实点击一键合成发送 /319 op=36","then":"全部可合成项目由服务器原子处理，奖励批次、背包和正式 Common.SaoDangUI / common/saodang.prefab 结果弹窗一致"},
+    {"id":"xunbao-task-rewards","kind":"success","given":"正式daily.json存在119条type=3任务且固定账号服务端任务状态可查询","when":"真实点击寻宝奖励请求 /37 op=1 type=3，并对可领取任务发送 /37 op=3","then":"弹窗展示任务说明、进度、120条配置奖励的当前可见子集与领取状态，领取后服务端权威刷新且奖励到账"},
+    {"id":"xunbao-navigation-boundary","kind":"success","given":"法宝搜索主界面已打开","when":"真实点击关闭、帮助、体力/金币加号、寻宝奖励或次数加号","then":"分别返回玩法大厅、打开来源说明/既有资源路由/正式寻宝任务列表/搜宝令402背包来源；隐藏元宝加号不接收射线"},
+    {"id":"xunbao-failure-recovery","kind":"failure-boundary","given":"功能未开放、次数为0、掉落配置缺失、碎片不足、非法参数、静默回包、超时、断线、重连或切号","when":"经真实控件执行搜索、合成、关闭或切换账号","then":"不伪造成功、不客户端预扣、明确反馈并恢复交互；迟到回包不复活旧页且账号/SQLite状态隔离"}
   ],
   "sources": [
     {
-      "id": "xunbao-registered-business-ids",
-      "sourceFiles": [
-        "client/ProjectX/src/View/WanFa/XunBaoMainUI.lua",
-        "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"
-      ],
-      "recordTotal": 2,
-      "businessIds": [
-        "entry:function-9",
-        "319"
-      ],
-      "branchType": "当前Manifest入口与协议业务ID的中央覆盖登记",
+      "id": "xunbao-compose-type8",
+      "sourceFiles": ["server/config/json/hecheng.json","unityclient/Assets/ProjectX/Resources/Configs/hecheng.json","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua","server/src/pet_equip_manage.cpp"],
+      "recordTotal": 45,
+      "businessIdRanges": [{"start":197,"end":241}],
+      "branchType": "45条法宝/经验书合成配方及动态列表、碎片槽、搜索与合成分支",
       "mappings": [
-        {
-          "businessIds": [
-            "entry:function-9",
-            "319"
-          ],
-          "successScenarioIds": [
-            "xunbao-registered-success"
-          ],
-          "failureBoundaryScenarioIds": [
-            "xunbao-registered-failure-boundary"
-          ]
-        }
+        {"businessIdRanges":[{"start":197,"end":210}],"successScenarioIds":["xunbao-config-selection","xunbao-single-search","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIdRanges":[{"start":211,"end":224}],"successScenarioIds":["xunbao-config-selection","xunbao-single-search","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIdRanges":[{"start":225,"end":238}],"successScenarioIds":["xunbao-config-selection","xunbao-single-search","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIdRanges":[{"start":239,"end":241}],"successScenarioIds":["xunbao-config-selection","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "xunbao-fabao-template",
+      "sourceFiles": ["server/config/json/fabao.json","client/ProjectX/src/ConfigData/fabao_dat.lua","unityclient/Assets/ProjectX/Resources/Configs/fabao.json"],
+      "recordTotal": 45,
+      "businessIds": ["615","616","617","1001","1002","1003","1004","1005","1006","1007","1008","1009","1010","1011","1012","1013","1014","1101","1102","1103","1104","1105","1106","1107","1108","1109","1110","1111","1112","1113","1114","1201","1202","1203","1204","1205","1206","1207","1208","1209","1210","1211","1212","1213","1214"],
+      "branchType": "45个搜索/合成目标模板的名称、品质、图标、属性和经验书语义",
+      "mappings": [
+        {"businessIds":["615","616","617","1001","1002","1003","1004","1005","1006","1007","1008","1009","1010","1011","1012","1013","1014","1101","1102","1103","1104","1105","1106","1107","1108","1109","1110","1111","1112","1113","1114","1201","1202","1203","1204","1205","1206","1207","1208","1209","1210","1211","1212","1213","1214"],"successScenarioIds":["xunbao-config-selection","xunbao-single-search","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "xunbao-fragment-item",
+      "sourceFiles": ["server/config/json/item.json","client/ProjectX/src/ConfigData/item_dat.lua","unityclient/Assets/ProjectX/Resources/Configs/item.json","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua"],
+      "recordTotal": 180,
+      "businessIdRanges": [{"start":4701,"end":4742},{"start":4801,"end":4856},{"start":4901,"end":4970},{"start":5101,"end":5112}],
+      "branchType": "180个法宝/经验书碎片的图标、品质、数量、来源和搜索目标",
+      "mappings": [
+        {"businessIdRanges":[{"start":4701,"end":4742},{"start":4801,"end":4856},{"start":4901,"end":4970}],"successScenarioIds":["xunbao-config-selection","xunbao-single-search","xunbao-auto-search","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIdRanges":[{"start":5101,"end":5112}],"successScenarioIds":["xunbao-config-selection","xunbao-single-compose","xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "xunbao-looting-ratio",
+      "sourceFiles": ["E:/neiwang_kapai/concept/data/excel/xml配置表/新表/fabao_looting.xlsx","E:/neiwang_kapai/concept/data/excel/转表工具/excel转json配置说明.txt","server/config/json/fabao_looting.json","server/src/pet_equip_manage.cpp"],
+      "recordTotal": 264,
+      "businessIdRanges": [{"start":1,"end":264}],
+      "branchType": "官方Excel打表得到的264条碎片搜索百分比概率；当前配方使用180条，84条红色碎片在当前hecheng.type=8中无配方",
+      "mappings": [
+        {"businessIdRanges":[{"start":1,"end":168},{"start":253,"end":264}],"successScenarioIds":["xunbao-single-search","xunbao-auto-search"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": [
+        {"businessIdRanges":[{"start":169,"end":252}],"productEvidence":"当前server/config/json/hecheng.json的type=8仅含碎片4701..4970与5101..5112；打表行169..252对应5001..5084，当前无可达配方或动态卡片入口。"}
+      ]
+    },
+    {
+      "id": "xunbao-count-config",
+      "sourceFiles": ["server/config/json/config.json","server/src/config_para.cpp","server/src/pet_equip_manage.cpp"],
+      "recordTotal": 1,
+      "businessIds": ["17:fabao_counts"],
+      "branchType": "初始次数20、每30分钟恢复1次、上限30及搜宝令补次边界",
+      "mappings": [
+        {"businessIds":["17:fabao_counts"],"successScenarioIds":["xunbao-entry-and-count","xunbao-auto-search"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "xunbao-protocol-319",
+      "sourceFiles": ["server/src/protocol.h","server/src/pack_deal.cpp","server/src/pet_equip_manage.cpp","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"],
+      "recordTotal": 5,
+      "businessIds": ["28","29","30","31","36"],
+      "branchType": "/319 单次搜索、一键搜索、单个合成、次数查询/推送及一键合成的请求、响应和变更语义",
+      "mappings": [
+        {"businessIds":["28"],"successScenarioIds":["xunbao-single-search"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIds":["29"],"successScenarioIds":["xunbao-auto-search"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIds":["30"],"successScenarioIds":["xunbao-single-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIds":["31"],"successScenarioIds":["xunbao-entry-and-count"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]},
+        {"businessIds":["36"],"successScenarioIds":["xunbao-auto-compose"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "xunbao-task-reward-type3",
+      "sourceFiles": ["server/config/json/daily.json","server/src/mission_manager.cpp","server/src/pack_deal.cpp","client/ProjectX/src/View/WanFa/XunBaoPopUI.lua","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua","unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json"],
+      "recordTotal": 119,
+      "businessIdRanges": [{"start":25,"end":143}],
+      "branchType": "119条寻宝任务、120条配置奖励及 /37 op=1/3 type=3 查询/领取",
+      "mappings": [
+        {"businessIdRanges":[{"start":25,"end":143}],"successScenarioIds":["xunbao-task-rewards"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "xunbao-function-entry",
+      "sourceFiles": ["server/config/json/function.json","client/ProjectX/src/core/AppDef.lua","client/ProjectX/src/View/Main/WanFaEntranceUI.lua","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua"],
+      "recordTotal": 1,
+      "businessIds": ["9"],
+      "branchType": "玩法大厅法宝搜索入口、15级开放条件与界面生命周期",
+      "mappings": [
+        {"businessIds":["9"],"successScenarioIds":["xunbao-entry-and-count","xunbao-navigation-boundary"],"failureBoundaryScenarioIds":["xunbao-failure-recovery"]}
       ],
       "excluded": []
     }

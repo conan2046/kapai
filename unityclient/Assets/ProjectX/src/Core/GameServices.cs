@@ -15,7 +15,8 @@ namespace ProjectX.Core
             State = new AppStateMachine();
             Config = AppConfig.LocalTest(Options);
             Configs = new ConfigService();
-            Tasks = new TaskStore(Configs);
+            EquipmentCatalog = new EquipmentCatalog();
+            Tasks = new TaskStore(Configs, EquipmentCatalog);
             Player = new PlayerStore();
             Currencies = new CurrencyStore();
             Bag = new BagStore();
@@ -51,7 +52,6 @@ namespace ProjectX.Core
             Funds = new FundsStore();
             Heroes = new HeroStore();
             Formation = new FormationStore();
-            EquipmentCatalog = new EquipmentCatalog();
             HeroEquipment = new HeroEquipmentStore();
             FaBao = new FaBaoStore();
             EnhanceMasters = new EnhanceMasterStore();

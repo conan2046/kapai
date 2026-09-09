@@ -1332,41 +1332,72 @@
     {
       "key": "XunBao",
       "displayName": "法宝搜索",
-      "status": "g0-passed-g1-evidence-missing",
+      "status": "g6-complete",
       "protocols": [
-        319
+        319,
+        37
       ],
       "entries": [
         "Layer/Main_UI/ButtonGroup1/btn_wanfa -> WanFaEntranceUI function_id=9"
       ],
       "prefabs": [
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab"
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/Xunbao_souxunLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/Xunbao_popupLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/saodang.prefab"
       ],
       "configs": [
         "server/config/json/function.json",
-        "server/config/json/config.json"
+        "server/config/json/config.json",
+        "server/config/json/hecheng.json",
+        "server/config/json/fabao.json",
+        "server/config/json/item.json",
+        "server/config/json/fabao_looting.json",
+        "server/config/json/daily.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/item.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/daily.json",
+        "unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json"
       ],
-      "mutatesServer": false,
+      "mutatesServer": true,
       "validationFlags": [
         "-projectXXunBaoValidation"
       ],
       "screenshots": [
-        "build/ui-migration/bootstrap-xunbao.png"
+        "build/ui-migration/bootstrap-xunbao.png",
+        "build/ui-migration/bootstrap-xunbao-main.png",
+        "build/ui-migration/bootstrap-xunbao-task.png",
+        "build/ui-migration/bootstrap-xunbao-search-result.png",
+        "build/ui-migration/bootstrap-xunbao-compose.png",
+        "build/ui-migration/bootstrap-xunbao-compose-all.png",
+        "build/ui-migration/bootstrap-xunbao-search-confirm.png",
+        "build/ui-migration/bootstrap-xunbao-search-all-result.png"
       ],
       "controlMatrix": "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
       "visualFidelity": {
-        "status": "pending-cocos-baseline",
+        "status": "passed",
         "cocosScreenshots": [
-          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-MAIN.png"
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-MAIN.png",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-TASK.png",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-SEARCH-RESULT.png",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-COMPOSE.png",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-COMPOSE-ALL.png",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-SEARCH-CONFIRM.png",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-SEARCH-ALL-RESULT.png"
         ],
         "unityScreenshots": [
-          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-MAIN.png"
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-MAIN.png",
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-TASK.png",
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-RESULT.png",
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-COMPOSE.png",
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-COMPOSE-ALL.png",
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-CONFIRM.png",
+          ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-ALL-RESULT.png"
         ],
         "diffReports": [
           ".local/ui-fidelity/XunBao/compare/g5/report.json",
           ".local/ui-fidelity/XunBao/compare/g5/manual-acceptance.json"
         ],
-        "flowEvidence": ".local/unity-validation/xunbao-latest.json",
+        "flowEvidence": ".local/unity-validation/xunbao-fixed-account-latest.json",
         "uiMapping": "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
       },
       "document": "docs/unityclient/modules/XUNBAO.md"

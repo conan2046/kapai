@@ -68,12 +68,12 @@ const char *GetShenqiName(int id)
 	return MakeStringColor(SingletonShenQiCfgMgr::instance().GetShenQiName(id), 4).c_str();
 }
 
-const char *GetFaBaoName(int id)
+string GetFaBaoName(int id)
 {
 	FaBaoCfg* cfg = sCItemCfgManager.GetFaBaoCfg(id);
 	if (cfg == NULL)
-		return "";
-	return MakeStringColor(cfg->name.c_str(), 4).c_str();
+		return string();
+	return MakeStringColor(cfg->name, 4);
 }
 
 

@@ -795,7 +795,7 @@ const char *GetSexName(uint32 sex);
 
 const char *GetTitleName(int tid);
 const char *GetShenqiName(int id);
-const char *GetFaBaoName(int id);
+string GetFaBaoName(int id);
 
 void SendPKNotice(CUser *pUser);
 void SendSysInfo(CUser*,const char *info);

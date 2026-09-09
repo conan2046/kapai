@@ -211,8 +211,8 @@ namespace ProjectX.UI.Migration
             switch (property)
             {
                 case "Position" when rect != null:
-                    rect.anchoredPosition = Vector2.LerpUnclamped(
-                        new Vector2(left.x, left.y), new Vector2(right.x, right.y), t);
+                    ApplyCocosPosition(rect, Vector2.LerpUnclamped(
+                        new Vector2(left.x, left.y), new Vector2(right.x, right.y), t));
                     break;
                 case "Scale" when rect != null:
                     rect.localScale = Vector3.LerpUnclamped(
@@ -247,6 +247,26 @@ namespace ProjectX.UI.Migration
                     target.SetActive(t < 1f ? left.visible : right.visible);
                     break;
             }
+        }
+
+        private static void ApplyCocosPosition(RectTransform rect, Vector2 sourcePosition)
+        {
+            RectTransform parent = rect.parent as RectTransform;
+            if (parent == null || parent.rect.width <= Mathf.Epsilon || parent.rect.height <= Mathf.Epsilon)
+            {
+                rect.anchoredPosition = sourcePosition;
+                return;
+            }
+
+            // Imported static Cocos positions are represented as normalized anchors
+            // with zero offset. Timeline positions use the same bottom-left logical
+            // pixel coordinates, so animate the anchor rather than adding those
+            // absolute pixels again as an anchoredPosition offset.
+            Vector2 anchor = new Vector2(sourcePosition.x / parent.rect.width,
+                sourcePosition.y / parent.rect.height);
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.anchoredPosition = Vector2.zero;
         }
 
         private static float Ease(float t, int type)

@@ -63,9 +63,19 @@ namespace ProjectX.Data
     [Serializable]
     public sealed class EquipmentComposeDefinition
     {
+        [JsonProperty("id")] public int Id { get; set; }
         [JsonProperty("type")] public int Type { get; set; }
         [JsonProperty("item")] public int[][] Items { get; set; }
         [JsonProperty("target")] public int[] Target { get; set; }
+    }
+
+    [Serializable]
+    public sealed class FaBaoSearchDefinition
+    {
+        public int ComposeId { get; set; }
+        public int FaBaoId { get; set; }
+        public int[] FragmentIds { get; set; }
+        public int[] FragmentCosts { get; set; }
     }
 
     [Serializable]
@@ -145,6 +155,7 @@ namespace ProjectX.Data
         private readonly Dictionary<int, EquipmentSuitDefinition> suits = new Dictionary<int, EquipmentSuitDefinition>();
         private readonly Dictionary<int, int> equipmentByFragment = new Dictionary<int, int>();
         private readonly Dictionary<int, int> fragmentComposeCost = new Dictionary<int, int>();
+        private readonly Dictionary<int, FaBaoSearchDefinition> faBaoSearch = new Dictionary<int, FaBaoSearchDefinition>();
         private readonly Dictionary<int, EquipmentRefineDefinition> refine = new Dictionary<int, EquipmentRefineDefinition>();
         private readonly Dictionary<int, EquipmentAwakenDefinition> awaken = new Dictionary<int, EquipmentAwakenDefinition>();
         private readonly Dictionary<int, EquipmentDivineDefinition> divine = new Dictionary<int, EquipmentDivineDefinition>();
@@ -186,6 +197,20 @@ namespace ProjectX.Data
         public bool IsEquipmentFragment(int itemId) => equipmentByFragment.ContainsKey(itemId);
         public int GetEquipmentComposeCost(int itemId)
             => fragmentComposeCost.TryGetValue(itemId, out int value) ? value : 0;
+
+        public IReadOnlyList<FaBaoSearchDefinition> GetFaBaoSearches()
+        {
+            List<FaBaoSearchDefinition> values = new List<FaBaoSearchDefinition>(faBaoSearch.Values);
+            values.Sort((left, right) =>
+            {
+                int quality = GetFaBao(right.FaBaoId).Quality.CompareTo(GetFaBao(left.FaBaoId).Quality);
+                return quality != 0 ? quality : left.FaBaoId.CompareTo(right.FaBaoId);
+            });
+            return values;
+        }
+
+        public FaBaoSearchDefinition GetFaBaoSearch(int faBaoId)
+            => faBaoSearch.TryGetValue(faBaoId, out FaBaoSearchDefinition value) ? value : null;
 
         public EquipmentRefineDefinition GetRefine(int level)
             => refine.TryGetValue(level, out EquipmentRefineDefinition value) ? value : null;
@@ -269,6 +294,7 @@ namespace ProjectX.Data
         public void Clear()
         {
             equipment.Clear(); faBao.Clear(); strength.Clear(); suits.Clear(); equipmentByFragment.Clear(); fragmentComposeCost.Clear();
+            faBaoSearch.Clear();
             refine.Clear(); awaken.Clear(); divine.Clear(); items.Clear(); refineMaterials.Clear(); qualities.Clear();
             faBaoStrength.Clear(); faBaoRefine.Clear(); masters.Clear();
         }
@@ -347,9 +373,29 @@ namespace ProjectX.Data
                 ?? Array.Empty<EquipmentComposeDefinition>();
             foreach (EquipmentComposeDefinition value in values)
             {
-                if (value == null || value.Type != 4 || value.Items == null || value.Items.Length != 1
-                    || value.Items[0] == null || value.Items[0].Length < 3
-                    || value.Target == null || value.Target.Length < 3 || value.Target[0] <= 0) continue;
+                if (value == null || value.Items == null || value.Target == null || value.Target.Length < 2) continue;
+                if (value.Type == 8 && value.Target[1] > 0)
+                {
+                    List<int> fragmentIds = new List<int>();
+                    List<int> fragmentCosts = new List<int>();
+                    foreach (int[] item in value.Items)
+                    {
+                        if (item == null || item.Length < 3 || item[0] <= 0 || item[2] <= 0) continue;
+                        fragmentIds.Add(item[0]);
+                        fragmentCosts.Add(item[2]);
+                    }
+                    if (fragmentIds.Count > 0)
+                        faBaoSearch[value.Target[1]] = new FaBaoSearchDefinition
+                        {
+                            ComposeId = value.Id,
+                            FaBaoId = value.Target[1],
+                            FragmentIds = fragmentIds.ToArray(),
+                            FragmentCosts = fragmentCosts.ToArray(),
+                        };
+                    continue;
+                }
+                if (value.Type != 4 || value.Items.Length != 1 || value.Items[0] == null
+                    || value.Items[0].Length < 3 || value.Target[0] <= 0) continue;
                 int fragmentId = value.Items[0][0];
                 if (fragmentId > 0)
                 {

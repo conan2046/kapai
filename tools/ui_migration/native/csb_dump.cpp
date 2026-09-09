@@ -166,6 +166,13 @@ DecodedNode decodeOptions(const std::string& originalClass, const flatbuffers::T
         addResource(result, "FileData", value->backGroundImageData());
         result.bools["ClipAble"] = value->clipEnabled() != 0;
         result.bools["Scale9Enable"] = value->backGroundScale9Enabled() != 0;
+        result.numbers["ColorType"] = value->colorType();
+        result.numbers["BackColorAlpha"] = value->bgColorOpacity();
+        if (value->bgColor()) {
+            result.numbers["BackColorR"] = value->bgColor()->r();
+            result.numbers["BackColorG"] = value->bgColor()->g();
+            result.numbers["BackColorB"] = value->bgColor()->b();
+        }
     } else if (name == "ScrollView") {
         const auto* value = reinterpret_cast<const ScrollViewOptions*>(raw);
         result.widget = value->widgetOptions();

@@ -129,6 +129,9 @@ namespace ProjectX.Editor
         private const string KunLunPrefab = "Assets/ProjectX/res/csd/Prefabs/kunlun/juezhankunlun.prefab";
         private const string BloodFightPrefab = "Assets/ProjectX/res/csd/Prefabs/xuezhan/XuezhanMain.prefab";
         private const string XunBaoPrefab = "Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab";
+        private const string XunBaoResultPrefab = "Assets/ProjectX/res/csd/Prefabs/wanfa/Xunbao_souxunLayer.prefab";
+        private const string XunBaoPopupPrefab = "Assets/ProjectX/res/csd/Prefabs/wanfa/Xunbao_popupLayer.prefab";
+        private const string XunBaoComposeAllPrefab = "Assets/ProjectX/res/csd/Prefabs/common/saodang.prefab";
         private const string SevenDayPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/QiriLayer.prefab";
         private const string StaminaClaimPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/tililingquLayer.prefab";
         private const string ResourceRecoveryPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ziyuanzhaohui.prefab";
@@ -220,6 +223,9 @@ namespace ProjectX.Editor
             new PrefabSpec(KunLunPrefab, false),
             new PrefabSpec(BloodFightPrefab, false),
             new PrefabSpec(XunBaoPrefab, false),
+            new PrefabSpec(XunBaoResultPrefab, false),
+            new PrefabSpec(XunBaoPopupPrefab, false),
+            new PrefabSpec(XunBaoComposeAllPrefab, false),
             new PrefabSpec(SevenDayPrefab, false),
             new PrefabSpec(HeroFramePrefab, false),
             new PrefabSpec(HeroListPrefab, false, HeroFramePrefab),
@@ -464,7 +470,7 @@ namespace ProjectX.Editor
                     Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", $"skill_{skillId}.png"),
                     $"Assets/ProjectX/Resources/HeroUI/skill_{skillId}.png");
             }
-            foreach (string configName in new[] { "fabao_qianghua", "fabao_jinglian", "master" })
+            foreach (string configName in new[] { "fabao_qianghua", "fabao_jinglian", "master", "daily" })
             {
                 CopyResourceIfChanged(
                     Path.Combine(repositoryRoot, "server", "config", "json", configName + ".json"),

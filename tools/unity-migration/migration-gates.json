@@ -1573,7 +1573,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/YOULI.md",
-      "note": "2026-08-27 audit retains the implementation and G0 scope only. The registered Cocos/Unity baseline and comparison directory is absent in the current checkout, so G1-G6 must be recaptured serially.",
+      "note": "2026-09-08 current-input re-audit: G0 scope is frozen for 541 business ids from 7 sources and 19 controls. G1 remains blocked because Computer Use exposes no native ProjectX.exe/Cocos Simulator surface; G2-G6 stay pending. Current static repair removes transparent hit targets, restores official item 402 and fabao_looting data, and prepares a reversible SQLite fixture, but no new runtime pass is claimed.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/YOULI.md",
@@ -1614,49 +1614,176 @@
       "module": "XunBao",
       "gates": {
         "G0": "passed",
-        "G1": "pending",
-        "G2": "pending",
-        "G3": "pending",
-        "G4": "pending",
-        "G5": "pending",
-        "G6": "pending"
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "passed",
+        "G5": "passed",
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/XUNBAO.md",
-      "note": "2026-08-27 audit retains the implementation and G0 scope only. The registered Cocos/Unity baseline and comparison directory is absent in the current checkout, so G1-G6 must be recaptured serially.",
+      "note": "2026-09-09 current-input G0-G6 complete: 21/21 real controls, 6/6 semantic assertions and 7/7 Cocos/Unity visual states passed. Fixed SQLite identity 7200057/1000003 completed full and G5 visual validation, relogin, exact restore and zero residue; the user confirmed 测试通过 after the task-icon, quality-frame and result-close repairs. Result-window size difference is explicitly accepted.",
       "gateEvidence": {
         "G0": [
+          "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
+          "docs/unityclient/matrices/XUNBAO_COVERAGE.json",
           "docs/unityclient/modules/XUNBAO.md",
-          "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
+          "client/ProjectX/src/View/WanFa/XunBaoMainUI.lua",
+          "client/ProjectX/src/View/WanFa/XunBaoPopUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "server/src/pet_equip_manage.cpp",
+          "server/src/mission_manager.cpp",
+          "server/config/json/hecheng.json",
+          "server/config/json/daily.json",
+          "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs",
+          "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs",
+          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt",
+          "unityclient/Assets/ProjectX/Resources/Lua/Task/TaskController.lua.txt"
         ],
         "G1": [
-          ".local/ui-fidelity/XunBao/cocos/g1-20260823/XUNBAO-MAIN.png"
+          ".local/unity-validation/xunbao-cocos-automation-ledger.json",
+          ".local/unity-validation/xunbao-cocos-preflight-latest.json",
+          ".local/unity-validation/xunbao-cocos-identity-latest.json",
+          ".local/unity-validation/xunbao-cocos-baseline-latest.json",
+          ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-TASK.png"
         ],
         "G2": [
-          "docs/unityclient/modules/XUNBAO.md",
-          "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt"
+          "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "tools/unity-migration/Test-UnityMigrationToolchain.ps1",
+          "tools/unity-migration/validation-scenarios.json"
         ],
         "G3": [
-          ".local/unity-validation/xunbao-latest.json",
-          "build/ui-migration/bootstrap-xunbao.png"
+          "build/ui-migration/bootstrap-xunbao-task.png",
+          "build/ui-migration/bootstrap-xunbao-search-result.png",
+          "build/ui-migration/bootstrap-xunbao-search-all-result.png"
         ],
         "G4": [
-          ".local/unity-validation/xunbao-latest.json",
-          "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
+          ".local/unity-validation/xunbao-fixed-account-latest.json",
+          ".local/unity-validation/xunbao-early-user-play-latest.json",
+          "build/ui-migration/bootstrap-xunbao-task.png",
+          "build/ui-migration/bootstrap-xunbao-search-result.png",
+          "build/ui-migration/bootstrap-xunbao-search-all-result.png"
         ],
         "G5": [
+          ".local/unity-validation/xunbao-g5-preflight-latest.json",
           ".local/ui-fidelity/XunBao/compare/g5/report.json",
           ".local/ui-fidelity/XunBao/compare/g5/manual-acceptance.json",
-          ".local/unity-validation/xunbao-g5-preflight-latest.json"
+          ".local/unity-validation/xunbao-fixed-account-latest.json"
         ],
         "G6": [
-          ".local/unity-validation/xunbao-latest.json",
-          ".local/unity-validation/bootstrap-idempotence-latest.json",
-          "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
+          ".local/unity-validation/xunbao-fixed-account-latest.json",
+          ".local/unity-validation/xunbao-early-user-play-latest.json",
           ".local/ui-fidelity/XunBao/compare/g5/report.json",
+          ".local/ui-fidelity/XunBao/compare/g5/manual-acceptance.json",
+          "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
           ".local/unity-validation/xunbao-retrospective-latest.json"
         ]
       },
-      "updatedUtc": "2026-08-23T13:45:42.5976553Z"
+      "gateInvalidations": {
+        "G0": {
+          "invalidatedUtc": "2026-09-09T02:44:53.9253689Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "E:\\neiwang_kapai\\concept\\data\\excel\\xml配置表\\新表\\fabao_looting.xlsx",
+            "server/config/json/fabao_looting.json",
+            "docs/unityclient/matrices/XUNBAO_COVERAGE.json",
+            "docs/unityclient/matrices/XUNBAO_CONTROLS.json"
+          ],
+          "reason": "User feedback expands XunBao from the previously excluded task-boundary shell to formal /37 type=3 reward list/claim, and changes the protected Xunbao_souxunLayer prefab input."
+        },
+        "G1": {
+          "invalidatedUtc": "2026-09-09T03:44:50.3291635Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            ".local/unity-validation/xunbao-cocos-automation-ledger.json",
+            ".local/unity-validation/xunbao-cocos-preflight-latest.json",
+            ".local/unity-validation/xunbao-cocos-identity-latest.json",
+            ".local/unity-validation/xunbao-cocos-baseline-latest.json",
+            ".local/ui-fidelity/XunBao/cocos/g5/XUNBAO-TASK.png"
+          ],
+          "reason": "Formal XunBao task reward closure added existing item.xlsx row 1211 to server/Unity item.json and registered daily.json plus mission_manager.cpp as G1/G5 baseline inputs; the current baseline fingerprint changed and must be re-frozen before G2."
+        },
+        "G2": {
+          "invalidatedUtc": "2026-09-09T06:04:54.8707465Z",
+          "previousState": "passed",
+          "previousEvidence": [
+            "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+            "tools/unity-migration/Test-UnityMigrationToolchain.ps1",
+            "tools/unity-migration/validation-scenarios.json"
+          ],
+          "reason": "Post-fix G3 screenshot proved the restored frames still used the template color; bind both result and task reward frames to formal item quality before revalidation."
+        },
+        "G3": {
+          "invalidatedUtc": "2026-09-09T06:04:54.8707465Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Post-fix G3 screenshot proved the restored frames still used the template color; bind both result and task reward frames to formal item quality before revalidation."
+        },
+        "G4": {
+          "invalidatedUtc": "2026-09-09T06:04:54.8707465Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Post-fix G3 screenshot proved the restored frames still used the template color; bind both result and task reward frames to formal item quality before revalidation."
+        },
+        "G5": {
+          "invalidatedUtc": "2026-09-09T06:04:54.8707465Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Post-fix G3 screenshot proved the restored frames still used the template color; bind both result and task reward frames to formal item quality before revalidation."
+        },
+        "G6": {
+          "invalidatedUtc": "2026-09-09T06:04:54.8707465Z",
+          "previousState": "pending",
+          "previousEvidence": [],
+          "reason": "Post-fix G3 screenshot proved the restored frames still used the template color; bind both result and task reward frames to formal item quality before revalidation."
+        }
+      },
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-09T02:44:53.9253689Z",
+          "startSource": "invalidation"
+        },
+        "G1": {
+          "startedUtc": "2026-09-09T03:44:50.3291635Z",
+          "startSource": "invalidation"
+        },
+        "G2": {
+          "startedUtc": "2026-09-09T06:04:54.8707465Z",
+          "startSource": "invalidation"
+        },
+        "G3": {
+          "startedUtc": "2026-09-09T06:04:54.8707465Z",
+          "startSource": "invalidation"
+        },
+        "G4": {
+          "startedUtc": "2026-09-09T06:04:54.8707465Z",
+          "startSource": "invalidation"
+        },
+        "G5": {
+          "startedUtc": "2026-09-09T06:04:54.8707465Z",
+          "startSource": "invalidation"
+        },
+        "G6": {
+          "startedUtc": "2026-09-09T06:04:54.8707465Z",
+          "startSource": "invalidation"
+        }
+      },
+      "gateRevalidations": {
+        "G2": {
+          "checkedUtc": "2026-09-08T23:51:52.6453387Z",
+          "evidence": [
+            "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
+            "docs/unityclient/matrices/XUNBAO_COVERAGE.json",
+            ".local/unity-validation/xunbao-g2-source-audit-current.json",
+            "tools/unity-migration/Test-UnityMigrationToolchain.ps1",
+            "tools/unity-migration/Test-ResourceFoundation.ps1"
+          ]
+        }
+      },
+      "updatedUtc": "2026-09-09T06:50:21.0410696Z"
     },
     {
       "module": "Arena",
@@ -1796,7 +1923,7 @@
           ]
         }
       },
-      "updatedUtc": "2026-09-07T12:42:03.5486160Z"
+      "updatedUtc": "2026-09-07T12:42:03.548616Z"
     },
     {
       "module": "BattleMeetMonster",

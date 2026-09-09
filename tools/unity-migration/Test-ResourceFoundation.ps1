@@ -62,8 +62,16 @@ $referenceCount = @(Get-ChildItem -LiteralPath (Split-Path $catalogPath) -Filter
     Where-Object Name -ne 'Catalog.asset').Count
 $catalogSources = @([regex]::Matches($catalog, '(?m)^\s+source:\s*(.+?)\s*$') |
     ForEach-Object { $_.Groups[1].Value })
-if ($referenceCount -ne 110 -or $catalogSources.Count -ne 110) {
-    throw "Dynamic UI inventory drifted: references=$referenceCount, catalogSources=$($catalogSources.Count), expected=110"
+$inventoryBlocks = @([regex]::Matches($builder,
+    'private static readonly PrefabSpec\[\] (?:PrefabSpecs|DynamicOnlyPrefabSpecs)\s*=\s*\{(?<body>[\s\S]*?)\n\s*\};'))
+if ($inventoryBlocks.Count -ne 2) {
+    throw "Dynamic UI inventory declarations could not be resolved from BootstrapSceneBuilder: blocks=$($inventoryBlocks.Count)"
+}
+$expectedInventoryCount = ($inventoryBlocks | ForEach-Object {
+    [regex]::Matches($_.Groups['body'].Value, 'new PrefabSpec\(').Count
+} | Measure-Object -Sum).Sum
+if ($referenceCount -ne $expectedInventoryCount -or $catalogSources.Count -ne $expectedInventoryCount) {
+    throw "Dynamic UI inventory drifted: references=$referenceCount, catalogSources=$($catalogSources.Count), expected=$expectedInventoryCount"
 }
 $sourceTokens = @([regex]::Matches($projectXApp, 'FindBySource\(\s*"([^"]+)"') |
     ForEach-Object { $_.Groups[1].Value } |

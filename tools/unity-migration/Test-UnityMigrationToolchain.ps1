@@ -1250,9 +1250,7 @@ Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('SetChatControlVisible("Layer/Panel_Chat/btn_Set", false);') -and
     $mainHudPresenterSource.Contains('UnityEngine.Object.Instantiate(chatTemplate, chatList, false)') -and
     $mainHudPresenterSource.Contains('tagText.text = record.Channel == ChatChannel.System ? "系统" : "世界";') -and
-    $mainHudPresenterSource.Contains('.Replace("[c/n]", string.Empty)') -and
-    $mainHudPresenterSource.Contains('.Replace("[c/]", string.Empty)') -and
-    $mainHudPresenterSource.Contains('.Replace("[/c]", string.Empty)') -and
+    $mainHudPresenterSource.Contains('CocosRichText.ToUnity(record.Content ?? string.Empty)') -and
     $mainHudPresenterSource.Contains('const float collapsedListHeight = 100.8287f;') -and
     $mainHudPresenterSource.Contains('const float expansionOffset = 115.8287f;') -and
     $mainHudPresenterSource.Contains('const float rowHeight = 58f;') -and
@@ -1440,6 +1438,8 @@ $bootstrapBuilderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs")
 $resourcesUiAssetProviderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ResourcesUiAssetProvider.cs")
+$resourceFoundationTestSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "tools/unity-migration/Test-ResourceFoundation.ps1")
 Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('NormalizeBootstrapSceneYaml();') -and
     $bootstrapBuilderSource.Contains("line.TrimEnd(' ', '\t')") -and
@@ -1452,6 +1452,11 @@ Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('UI provider lazy OneLevelLayer child-page contract failed.') -and
     -not $resourcesUiAssetProviderSource.Contains('GetOrCreate(child.Key, view.GameObject.transform);')
 ) "ResourceFoundation can again eagerly instantiate active Hero pages when a shared OneLevelLayer consumer such as Bag opens."
+Assert-ToolchainTest (
+    $resourceFoundationTestSource.Contains('$expectedInventoryCount = ($inventoryBlocks | ForEach-Object {') -and
+    $resourceFoundationTestSource.Contains('$referenceCount -ne $expectedInventoryCount') -and
+    -not $resourceFoundationTestSource.Contains('$referenceCount -ne 110')
+) "ResourceFoundation inventory validation is hard-coded again instead of following BootstrapSceneBuilder declarations."
 $resultSummaryPaths = @(
     ".local/unity-validation/toolchain-result-summary-test-a.json",
     ".local/unity-validation/toolchain-result-summary-test-b.json"
@@ -1629,19 +1634,175 @@ $fengShenStorySqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScrip
 $cocosItemCellSource = Get-Content -LiteralPath `
     (Join-Path $root "client/ProjectX/src/View/Global/ItemCellUI.lua") -Raw -Encoding UTF8
 $xunBaoControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt") -Raw -Encoding UTF8
+$bagControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
+$bootstrapLuaSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
 $xunBaoPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs") -Raw -Encoding UTF8
+$xunBaoOverlaySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs") -Raw -Encoding UTF8
+$xunBaoToastSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
+$cocosTimelineSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/Migration/CocosTimelinePlayer.cs") -Raw -Encoding UTF8
+$serverUtilityHeaderSource = Get-Content -LiteralPath (Join-Path $root "server/src/utility.h") -Raw -Encoding UTF8
+$serverUtilitySource = Get-Content -LiteralPath (Join-Path $root "server/src/utility.cpp") -Raw -Encoding UTF8
+$csbDumpSource = Get-Content -LiteralPath (Join-Path $root "tools/ui_migration/native/csb_dump.cpp") -Raw -Encoding UTF8
 $projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$xunBaoFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-XunBaoSqliteFixture.py") -Raw -Encoding UTF8
+$xunBaoItemSource = Get-Content -LiteralPath (Join-Path $root "server/config/json/item.json") -Raw -Encoding UTF8
+$xunBaoUnityItemSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Configs/item.json") -Raw -Encoding UTF8
+$xunBaoLootingSource = Get-Content -LiteralPath (Join-Path $root "server/config/json/fabao_looting.json") -Raw -Encoding UTF8
+$xunBaoManifest = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/unityclient-modules.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$xunBaoModule = @($xunBaoManifest.modules | Where-Object { $_.key -eq "XunBao" })[0]
+$xunBaoEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "XunBao" })[0]
+$xunBaoFixtureProfiles = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/validation-fixtures.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$xunBaoFixtureProfile = @($xunBaoFixtureProfiles.profiles | Where-Object { $_.key -eq "reversible-xunbao-sqlite-fixed-account" })[0]
 Assert-ToolchainTest (
     $xunBaoControllerSource.Contains('Bridge:BeginXunBaoRewardUpdate()') -and
+    $xunBaoControllerSource.Contains('Bridge:BeginXunBaoRewardBatch()') -and
     $xunBaoControllerSource.Contains('Bridge:AddXunBaoReward(rewardType,rewardId,amount)') -and
-    $xunBaoControllerSource.Contains('Bridge:EndXunBaoRewardUpdate(count)') -and
+    $xunBaoControllerSource.Contains('Bridge:EndXunBaoRewardUpdate(count,0,faBaoId,suiId)') -and
     $xunBaoControllerSource.Contains('搜索次数不足，请使用搜宝令补充') -and
     $xunBaoPresenterSource.Contains('if (store.Remaining == 0)') -and
+    $xunBaoPresenterSource.Contains('if (bag.GetTotalQuantityByItemId(fragmentId) >= required) return;') -and
     $xunBaoPresenterSource.Contains('RenderFragmentCounts()') -and
     $xunBaoPresenterSource.Contains('CanComposeSelected()') -and
-    $projectXAppSource.Contains('services.Rewards.Replace("寻宝奖励", pendingXunBaoRewards.Values)') -and
+    $projectXAppSource.Contains('xunBaoResultPresenter.Show(pendingXunBaoRewardBatches.ToArray()') -and
     $projectXAppSource.Contains('OpenXunBaoSearchTokenBag')
 ) "XunBao no longer blocks zero-count requests, renders authoritative fragments, opens result rewards, or routes the search token boundary."
+Assert-ToolchainTest (
+    -not $xunBaoPresenterSource.Contains('BindActionWithHitTarget') -and
+    -not $xunBaoPresenterSource.Contains('RuntimeActionHit') -and
+    -not $xunBaoPresenterSource.Contains('RuntimeSelectHit') -and
+    $xunBaoPresenterSource.Contains('Button cardButton = card.GetComponent<Button>() ?? card.AddComponent<Button>();') -and
+    $xunBaoPresenterSource.Contains('Graphic cardGraphic = card.transform.Find("Big")?.GetComponent<Graphic>()') -and
+    $xunBaoPresenterSource.Contains('cardGraphic.raycastTarget = true;') -and
+    $xunBaoPresenterSource.Contains('return treasureCards[index].GetComponent<Button>();') -and
+    $xunBaoPresenterSource.Contains('BindAction(root, "Xunbao/Btn_1"') -and
+    $xunBaoPresenterSource.Contains('BindAction(root, "Xunbao/Btn_2"') -and
+    $xunBaoPresenterSource.Contains('BindAction(root, "Xunbao/Btn_3"') -and
+    $xunBaoPresenterSource.Contains('PlayComposeFeedback()') -and
+    $xunBaoPresenterSource.Contains('PlayOpenFeedback()') -and
+    $projectXAppSource.Contains('ShowXunBaoSearchConfirmation') -and
+    $projectXAppSource.Contains('ShowToast("背包中没有搜宝令（道具 402）"') -and
+    $projectXAppSource.Contains('pendingBagSelectionItemId = 402;') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onXunBaoSearchTokenBagRequested, "XunBao.SearchTokenPackageSnapshot");') -and
+    $projectXAppSource.Contains('if (pendingBagSelectionItemId > 0)') -and
+    $projectXAppSource.Contains('while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)') -and
+    $projectXAppSource.Contains('XunBao gold add shop boundary did not settle') -and
+    $projectXAppSource.Contains('services.ProtocolRegistry.PendingCount > 0') -and
+    $projectXAppSource.Contains('else if (popped && services.UiStack.Current == gameplayView)') -and
+    $projectXAppSource.Contains('gameplayContentView?.SetVisible(true);') -and
+    $projectXAppSource.Contains('if (IsBagOpen)') -and
+    $projectXAppSource.Contains('bagFlowPresenter?.CloseAll();') -and
+    $projectXAppSource.Contains('bagFrameView?.SetVisible(false);') -and
+    $bagControllerSource.Contains('function M.requestXunBaoTokenSnapshot()') -and
+    $bagControllerSource.Contains('M.xunBaoTokenRequested = true') -and
+    $bagControllerSource.Contains('if M.xunBaoTokenRequested then') -and
+    $bootstrapLuaSource.Contains('function OnXunBaoSearchTokenBagRequested() BagController.requestXunBaoTokenSnapshot() end') -and
+    $xunBaoControllerSource.Contains('skipRewardBatch(message)') -and
+    $xunBaoControllerSource.Contains('Bridge:OpenXunBaoSearchTokenBag()') -and
+    $xunBaoControllerSource.Contains('Bridge:PlayXunBaoComposeFeedback()') -and
+    $xunBaoOverlaySource.Contains('new WaitForSecondsRealtime(0.3f)') -and
+    $xunBaoOverlaySource.Contains('listContent = EnsureVerticalLayout(list.gameObject);') -and
+    $xunBaoOverlaySource.Contains('scroll.content = content;') -and
+    $xunBaoOverlaySource.Contains('Instantiate(rewardTemplate, listContent, false)') -and
+    $xunBaoOverlaySource.Contains('legacyBottomButton.SetActive(false);') -and
+    $xunBaoOverlaySource.Contains('runtimeCloseControl.SetActive(true);') -and
+    $xunBaoOverlaySource.Contains('ShowSearchConfirm(EquipmentDefinition definition') -and
+    $xunBaoOverlaySource.Contains('ShowCompose(EquipmentDefinition definition)') -and
+    $xunBaoOverlaySource.Contains('return $"{AttributeName(type)}+{amountText}";') -and
+    $xunBaoOverlaySource.Contains('string amountText = type > 9 ? $"{amount / 100f:0.##}%" : amount.ToString();') -and
+    -not $xunBaoOverlaySource.Contains('$"属性{value[0]}：+{value[1]}"') -and
+    $xunBaoOverlaySource.Contains('Bind("Layer/Hecheng/Black", Hide, true);') -and
+    $xunBaoOverlaySource.Contains('panelMask.color = new Color32(0, 0, 0, 178);') -and
+    $xunBaoOverlaySource.Contains('panelMask.raycastTarget = true;') -and
+    $xunBaoOverlaySource.Contains('button.targetGraphic = panelMask;') -and
+    $csbDumpSource.Contains('result.numbers["BackColorAlpha"] = value->bgColorOpacity();') -and
+    $csbDumpSource.Contains('result.numbers["ColorType"] = value->colorType();') -and
+    $xunBaoOverlaySource.Contains('ShowTaskBoundary()') -and
+    $xunBaoOverlaySource.Contains('public sealed class XunBaoComposeAllPresenter') -and
+    $xunBaoOverlaySource.Contains('timeline.Play(0, timeline.Duration, false);') -and
+    $xunBaoOverlaySource.Contains('public bool IsAnimationPlaying => timeline?.IsPlaying == true;') -and
+    $xunBaoOverlaySource.Contains('Image closeGraphic = panel.GetComponent<Image>() ?? panel.AddComponent<Image>();') -and
+    $xunBaoOverlaySource.Contains('closeGraphic.color = Color.clear;') -and
+    $xunBaoOverlaySource.Contains('closeGraphic.raycastTarget = true;') -and
+    $xunBaoOverlaySource.Contains('closeButton.targetGraphic = closeGraphic;') -and
+    $xunBaoOverlaySource.Contains('listContent = EnsureVerticalLayout(tableView.gameObject);') -and
+    $xunBaoOverlaySource.Contains('Instantiate(rowTemplate, listContent, false)') -and
+    $xunBaoOverlaySource.Contains('scroll.content = content;') -and
+    $xunBaoOverlaySource.Contains('RuntimeSaoDangRow_') -and
+    $cocosTimelineSource.Contains('ApplyCocosPosition(rect, Vector2.LerpUnclamped(') -and
+    $cocosTimelineSource.Contains('rect.anchorMin = anchor;') -and
+    $cocosTimelineSource.Contains('rect.anchorMax = anchor;') -and
+    $xunBaoToastSource.Contains('public static class CocosRichText') -and
+    $xunBaoToastSource.Contains('[4] = "FFDA0E"') -and
+    $xunBaoToastSource.Contains('label.supportRichText = true;') -and
+    $xunBaoToastSource.Contains('public string CurrentText') -and
+    $xunBaoToastSource.Contains('label.text = CocosRichText.ToUnity(pending.Dequeue());') -and
+    -not $xunBaoPresenterSource.Contains('recovery.text = CocosRichText.ToUnity(store.LastMessage);') -and
+    $xunBaoOverlaySource.Contains('public string ComposeAttributeText') -and
+    $xunBaoOverlaySource.Contains('public bool ComposeAttributeFits') -and
+    $xunBaoOverlaySource.Contains('attribute.horizontalOverflow = HorizontalWrapMode.Overflow;') -and
+    $serverUtilityHeaderSource.Contains('string GetFaBaoName(int id);') -and
+    $serverUtilitySource.Contains('string GetFaBaoName(int id)') -and
+    $serverUtilitySource.Contains('return MakeStringColor(cfg->name, 4);') -and
+    -not $serverUtilitySource.Contains('return MakeStringColor(cfg->name.c_str(), 4).c_str();') -and
+    $xunBaoOverlaySource.Contains('public bool IsSequenceComplete') -and
+    $projectXAppSource.Contains('services.UiRouter.FindBySource("common/saodang")') -and
+    $projectXAppSource.Contains('xunBaoComposeAllPresenter.Show(') -and
+    $projectXAppSource.Contains('xunBaoComposeAllPresenter.IsAnimationPlaying') -and
+    $projectXAppSource.Contains('!string.Equals(xunBaoPopupPresenter.ComposeAttributeText, "攻击+400", StringComparison.Ordinal)') -and
+    $projectXAppSource.Contains('!xunBaoPopupPresenter.ComposeAttributeFits') -and
+    $projectXAppSource.Contains('!composeToast.Contains("<color=#FFDA0E>")') -and
+    -not $projectXAppSource.Contains('services.Rewards.Replace("一键合成奖励"') -and
+    -not $projectXAppSource.Contains('foreach (string id in controls) MarkValidationControl(id)') -and
+    $projectXAppSource.Contains('each control was marked only after its own state/raycast/protocol/result assertion')
+) "XunBao real controls regressed to transparent runtime hit targets or lost visible zero-count/timeline feedback."
+Assert-ToolchainTest (
+    $xunBaoOverlaySource.Contains('InstallTopRightClose(closeTemplate)') -and
+    $xunBaoOverlaySource.Contains('control.name = "RuntimeXunBaoResultClose";') -and
+    $xunBaoOverlaySource.Contains('button.onClick.AddListener(Hide);') -and
+    $xunBaoOverlaySource.Contains('GameObject iconObject = new GameObject("Icon"') -and
+    $xunBaoOverlaySource.Contains('HeroUI/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}') -and
+    $xunBaoOverlaySource.Contains('HeroUI/common_quality_{Mathf.Clamp(reward.quality, 1, 7):00}') -and
+    $xunBaoOverlaySource.Contains('frame.enabled = frame.sprite != null;') -and
+    $xunBaoOverlaySource.Contains('iconRect.anchorMin = new Vector2(0.08f, 0.08f);') -and
+    $xunBaoOverlaySource.Contains('EnsureHorizontalLayout(rewardList.gameObject);') -and
+    $xunBaoOverlaySource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(rewardRect);') -and
+    $projectXAppSource.Contains('services.UiRouter.FindBySource("wanfa/Xunbao_popupLayer")') -and
+    $projectXAppSource.Contains('Binding.Find("Layer/Rewards/Popup/Btn_close")')
+) "XunBao visual regression: task rewards, result item frames, or the top-right result close contract is missing."
+Assert-ToolchainTest (
+    $xunBaoFixtureSource.Contains('TUTORIAL_BIT = 629') -and
+    $xunBaoFixtureSource.Contains('SEARCH_COUNT = 20') -and
+    $xunBaoFixtureSource.Contains('TOKEN_QUANTITY = 2') -and
+    $xunBaoFixtureSource.Contains('FRAGMENT_QUANTITIES') -and
+    $xunBaoFixtureSource.Contains('FORMAL_HECHENG_JSON') -and
+    $xunBaoFixtureSource.Contains('expected_targets = set(range(1002, 1015))') -and
+    $xunBaoFixtureSource.Contains('args.action == "AssertMutated"') -and
+    $xunBaoItemSource.Contains('{"id":402,"name":"寻宝令"') -and
+    $xunBaoItemSource.Contains('"sub_value":[[60029,5]]') -and
+    $xunBaoUnityItemSource.Contains('{"id":402,"name":"寻宝令"') -and
+    $xunBaoUnityItemSource.Contains('"sub_value":[[60029,5]]') -and
+    $xunBaoLootingSource.Contains('{"id":1,"item":4701,"ratio":40}') -and
+    [bool]$xunBaoModule.mutatesServer -and
+    @($xunBaoModule.configs) -contains 'server/config/json/fabao_looting.json' -and
+    @($xunBaoModule.prefabs) -contains 'unityclient/Assets/ProjectX/res/csd/Prefabs/common/saodang.prefab' -and
+    [bool]$xunBaoFixtureProfile.mutatesServer -and
+    [string]$xunBaoFixtureProfile.cleanup -eq 'snapshot-relogin-restore-cleanup-assert'
+) "XunBao lost its formal item/looting data or reversible SQLite mutation contract."
+Assert-ToolchainTest (
+    [bool]$xunBaoEvidenceContract.g5.requireUiResourceMaps -and
+    [string]$xunBaoEvidenceContract.fixedAccount.g5VisualSnapshot -eq '.local/ui-fidelity/XunBao/fixture/xunbao-g5-visual-sqlite-fixture-snapshot.json' -and
+    [string]$xunBaoEvidenceContract.fixedAccount.g5VisualSetupAction -eq 'Setup' -and
+    [string]$xunBaoEvidenceContract.fixedAccount.g5VisualAssertAction -eq 'AssertMutated' -and
+    @($xunBaoEvidenceContract.fixedAccount.g5VisualValidationFlags) -contains '-projectXXunBaoValidation' -and
+    @($xunBaoEvidenceContract.g5.pairs).Count -eq 7 -and
+    @($xunBaoEvidenceContract.fixedAccount.artifactCopies | Where-Object {
+        [string]$_.destination -like '.local/ui-fidelity/XunBao/unity/g5/*-ui-resource-map.md'
+    }).Count -eq 7 -and
+    @($xunBaoEvidenceContract.g5.cocosBaselineInputs) -contains 'client/ProjectX/src/View/Common/SaoDangUI.lua' -and
+    @($xunBaoEvidenceContract.g5.cocosBaselineInputs) -contains 'client/ProjectX/res/csd/common/saodang.csb' -and
+    $projectXAppSource.Contains('WriteXunBaoResourceMap(path)') -and
+    $g5PreflightSource.Contains('G5 UI resource map is missing')
+) "XunBao G5 no longer freezes all seven source states with adjacent UI resource maps."
 Assert-ToolchainTest (
     -not $fengShenStoryRunnerSource.Contains('foreach (string control in allControls) MarkValidationControl(control);') -and
     $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeRewardIcon(0)') -and

@@ -2691,9 +2691,9 @@ function LuaNetRecvdMsg.DealMsgPetEquip(stream)
             table.insert(data.m_records,value)
         end
         data.m_cnt = stream:ReadWord() --剩余次数
-        data.m_sec = stream:ReadWord() --增加次数倒计时（秒）
+        data.m_sec = stream:ReadUInt() --增加次数倒计时（秒）；服务端 op=29 写入 UInt32
         PetkaPaiManager:setTiLiTimer(nil, data.m_sec)
-        local useItemNum = stream:ReadUInt() --使用道具次数
+        local useItemNum = stream:ReadWord() --使用道具次数；服务端 op=29 写入 UInt16
         Utils:SendMsg(LUIXunBaoEvent.UpdateCntUI)
         Utils:SendMsg(LUIXunBaoEvent.ShowResultUI)
         if #data.m_records > 0 then

@@ -101,6 +101,13 @@ foreach ($pair in $pairs) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
             throw "Module '$Module' G5 input is missing: $path"
         }
+        if ([bool](Get-UnityMigrationPropertyValue -Object $g5 -Name "requireUiResourceMaps" -Default $false)) {
+            $mapPath = Join-Path ([IO.Path]::GetDirectoryName($path)) `
+                (([IO.Path]::GetFileNameWithoutExtension($path)) + "-ui-resource-map.md")
+            if (-not (Test-Path -LiteralPath $mapPath -PathType Leaf)) {
+                throw "Module '$Module' G5 UI resource map is missing: $mapPath"
+            }
+        }
         $item = Get-Item -LiteralPath $path
         if ($FreshAfterUtc -ne [datetime]::MinValue -and
             $side -eq "unity" -and $item.LastWriteTimeUtc -lt $FreshAfterUtc.AddSeconds(-2)) {

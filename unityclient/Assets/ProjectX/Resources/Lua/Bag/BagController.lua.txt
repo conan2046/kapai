@@ -11,6 +11,7 @@ local M = {
     validationSlot = nil,
     validationQuantity = nil,
     g4Stage = nil,
+    xunBaoTokenRequested = false,
     drawClosureRequested = false,
     drawHeaderRequested = false,
     equipmentSnapshotCallback = nil
@@ -84,6 +85,11 @@ function M.onClick()
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
+function M.requestXunBaoTokenSnapshot()
+    M.xunBaoTokenRequested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
 function M.requestDrawClosureSnapshot()
     M.drawClosureRequested = true
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
@@ -108,6 +114,7 @@ end
 function M.onDisconnected()
     M.requested = false
     M.awaitingSort = false
+    M.xunBaoTokenRequested = false
     if M.g4Stage ~= "await_reconnect" then M.g4Stage = nil end
     M.equipmentSnapshotCallback = nil
 end
@@ -166,7 +173,7 @@ local function validateIncrementalUpdate(slot, itemId, quantity)
 end
 
 function M.onPacket(command, message)
-    if command == Protocol.ROLE_PACKAGE and (M.requested or M.drawClosureRequested or M.drawHeaderRequested
+    if command == Protocol.ROLE_PACKAGE and (M.requested or M.xunBaoTokenRequested or M.drawClosureRequested or M.drawHeaderRequested
         or M.equipmentSnapshotCallback ~= nil) then
         -- A main-screen click can still carry an obsolete package request from
         -- the imported navigation layer. Once Draw is already open, its /8
@@ -174,6 +181,10 @@ function M.onPacket(command, message)
         local headerOnly = M.drawHeaderRequested or Bridge:IsDrawActive()
         local serverCount = readFullPackage(message, true, headerOnly)
         local renderedCount = Bridge:GetBagCount()
+        if M.xunBaoTokenRequested then
+            M.xunBaoTokenRequested = false
+            return true
+        end
         if M.drawHeaderRequested then
             M.drawHeaderRequested = false
             return true

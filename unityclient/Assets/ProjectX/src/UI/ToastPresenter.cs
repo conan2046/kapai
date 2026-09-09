@@ -1,10 +1,95 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    public static class CocosRichText
+    {
+        // Formal Cocos palette: client/ProjectX/src/core/AppUIDef.lua and
+        // server/src/utility.h (GGCT_*). Shadow variants retain their base hue.
+        private static readonly IReadOnlyDictionary<int, string> Colors = new Dictionary<int, string>
+        {
+            [0] = "FFFFFF", [1] = "FF5A27", [2] = "017FFF", [3] = "2FB500",
+            [4] = "FFDA0E", [5] = "FF7C99", [6] = "9AFFFF", [7] = "CC31FF",
+            [8] = "FF5A00", [9] = "B22222", [10] = "703B33", [11] = "B0B0B0",
+            [12] = "2FB500", [13] = "017FFF", [14] = "CC31FF", [15] = "FF5A00",
+            [16] = "FFFFFF", [32] = "28EA1C", [36] = "FFFFFF"
+        };
+
+        public static string ToUnity(string source)
+        {
+            if (string.IsNullOrEmpty(source)) return source ?? string.Empty;
+            StringBuilder output = new StringBuilder(source.Length + 32);
+            int openColors = 0;
+            for (int index = 0; index < source.Length;)
+            {
+                if (source[index] != '[')
+                {
+                    output.Append(source[index++]);
+                    continue;
+                }
+
+                int end = source.IndexOf(']', index + 1);
+                if (end < 0)
+                {
+                    output.Append(source[index++]);
+                    continue;
+                }
+
+                string token = source.Substring(index + 1, end - index - 1);
+                if (TryReadOpenColor(token, out int color))
+                {
+                    output.Append("<color=#").Append(ColorHex(color)).Append('>');
+                    openColors++;
+                    index = end + 1;
+                    continue;
+                }
+                if (IsCloseColor(token))
+                {
+                    if (openColors > 0)
+                    {
+                        output.Append("</color>");
+                        openColors--;
+                    }
+                    index = end + 1;
+                    continue;
+                }
+                if (string.Equals(token, "c/n", StringComparison.OrdinalIgnoreCase))
+                {
+                    output.Append('\n');
+                    index = end + 1;
+                    continue;
+                }
+
+                output.Append(source, index, end - index + 1);
+                index = end + 1;
+            }
+            while (openColors-- > 0) output.Append("</color>");
+            return output.ToString();
+        }
+
+        private static bool TryReadOpenColor(string token, out int color)
+        {
+            color = 0;
+            return token.Length > 1
+                && (token[0] == 'c' || token[0] == 'C')
+                && int.TryParse(token.Substring(1), out color);
+        }
+
+        private static bool IsCloseColor(string token)
+        {
+            if (string.Equals(token, "c/", StringComparison.OrdinalIgnoreCase)) return true;
+            if (!token.StartsWith("/c", StringComparison.OrdinalIgnoreCase)) return false;
+            if (token.Length == 2) return true;
+            return int.TryParse(token.Substring(2), out _);
+        }
+
+        private static string ColorHex(int color) => Colors.TryGetValue(color, out string hex) ? hex : "FFFFFF";
+    }
+
     public sealed class ToastPresenter : IDisposable
     {
         private readonly Queue<string> pending = new Queue<string>();
@@ -41,6 +126,7 @@ namespace ProjectX.UI
             label.fontSize = 24;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
+            label.supportRichText = true;
             label.raycastTarget = false;
             root.SetActive(false);
         }
@@ -49,6 +135,7 @@ namespace ProjectX.UI
         public int PendingCount => pending.Count;
         public Transform Parent => root != null ? root.transform.parent : null;
         public bool IsLastSibling => root != null && root.transform.GetSiblingIndex() == root.transform.parent.childCount - 1;
+        public string CurrentText => label != null ? label.text : string.Empty;
 
         public void SetParent(Transform parent)
         {
@@ -99,7 +186,7 @@ namespace ProjectX.UI
             }
             duration = Mathf.Max(0.25f, visibleSeconds);
             remaining = duration;
-            label.text = pending.Dequeue();
+            label.text = CocosRichText.ToUnity(pending.Dequeue());
             group.alpha = 1f;
             root.SetActive(true);
             root.transform.SetAsLastSibling();

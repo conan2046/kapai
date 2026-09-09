@@ -78,6 +78,9 @@ namespace ProjectX.UI
             return true;
         }
 
+        public Button GetEnterButton(int functionId)
+            => enterButtons.TryGetValue(functionId, out Button button) ? button : null;
+
         public void HideDetail() { }
 
         public void ResetScrollToTop()

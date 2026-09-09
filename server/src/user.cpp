@@ -21510,8 +21510,11 @@ bool CUser::AddMaterial(uint32 type, int value, bool isFight,bool showMsg, int s
 			break;
 
 		case HDAT_FaBao:
-			snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0213, GetFaBaoName(value));
+		{
+			const string faBaoName = GetFaBaoName(value);
+			snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0213, faBaoName.c_str());
 			break;
+		}
 
 		case HDAT_ArenaCnt:
 			snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0221, GetItemName(type), value);

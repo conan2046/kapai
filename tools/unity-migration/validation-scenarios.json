@@ -2441,7 +2441,7 @@
     {
       "key": "xunbao-default",
       "module": "XunBao",
-      "fixture": "xunbao-shared-readonly",
+      "fixture": "reversible-xunbao-sqlite-fixed-account",
       "flags": [
         "-projectXXunBaoValidation"
       ],
@@ -2449,16 +2449,54 @@
         {
           "path": "build/ui-migration/bootstrap-xunbao.png",
           "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-main.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-task.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-search-result.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-compose.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-compose-all.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-search-confirm.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/bootstrap-xunbao-search-all-result.png",
+          "lifecycle": "runtime"
         }
       ],
       "captureStates": [
-        "xunbao"
+        "xunbao-final-main",
+        "xunbao-main",
+        "xunbao-task-boundary",
+        "xunbao-single-search-result",
+        "xunbao-compose-feedback",
+        "xunbao-compose-all-result",
+        "xunbao-search-confirm",
+        "xunbao-one-key-search-result"
       ],
+      "requiredGate": "G3",
       "controlCoverageRequired": true,
       "semanticAssertionKeys": [
         "xunbao-authoritative-state",
         "xunbao-write-bindings",
-        "xunbao-control-matrix-7"
+        "xunbao-dynamic-quality-and-fragment-closure",
+        "xunbao-control-matrix-21",
+        "xunbao-source-audit-21"
       ],
       "sourceContracts": [
         {
@@ -2471,6 +2509,8 @@
             "BeginXunBaoRewardUpdate",
             "AddXunBaoReward",
             "EndXunBaoRewardUpdate",
+            "OpenXunBaoSearchTokenBag",
+            "PlayXunBaoComposeFeedback",
             "搜索次数不足"
           ]
         },
@@ -2487,10 +2527,110 @@
           ]
         },
         {
+          "path": "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs",
+          "contains": [
+            "WaitForSecondsRealtime(0.3f)",
+            "ShowSearchConfirm",
+            "ShowCompose",
+            "ShowTaskBoundary",
+            "XunBaoResultSequence",
+            "IsSequenceComplete",
+            "XunBaoComposeAllPresenter",
+            "RuntimeSaoDangRow_",
+            "VirtualList<TaskRecord>",
+            "RenderedTaskCount = items.Count",
+            "GetFirstClaimableControl",
+            "claimTask(item)",
+            "legacyBottomButton.SetActive(false)",
+            "RuntimeXunBaoResultClose",
+            "new GameObject(\"Icon\"",
+            "HeroUI/common_quality_",
+            "EnsureHorizontalLayout(rewardList.gameObject)",
+            "LayoutRebuilder.ForceRebuildLayoutImmediate(rewardRect)"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Task/TaskController.lua.txt",
+          "contains": [
+            "function M.requestXunBao",
+            "Protocol.TASK_LIST",
+            "type=3",
+            "UpsertTaskRecordByDefinition"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/TaskStore.cs",
+          "contains": [
+            "LoadFormalXunBaoDefinitions",
+            "Resources/Configs/daily.json",
+            "XunBaoItems",
+            "id == 60028"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-XunBaoSqliteFixture.py",
+          "contains": [
+            "TUTORIAL_BIT = 629",
+            "SEARCH_COUNT = 20",
+            "TOKEN_QUANTITY = 2",
+            "Formal daily.json XunBao task range must remain ids 25..143",
+            "missionType3Count",
+            "AssertMutated"
+          ]
+        },
+        {
+          "path": "server/config/json/item.json",
+          "contains": [
+            "\"id\":402",
+            "\"name\":\"寻宝令\"",
+            "\"id\":1211",
+            "\"name\":\"高级法宝箱\"",
+            "\"sub_value\":[[60029,5]]"
+          ]
+        },
+        {
+          "path": "server/config/json/fabao_looting.json",
+          "contains": [
+            "\"item\":4701",
+            "\"ratio\":40"
+          ]
+        },
+        {
+          "path": "server/config/json/daily.json",
+          "contains": [
+            "\"id\":25",
+            "\"type\":3",
+            "\"id\":143"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Configs/daily.json",
+          "contains": [
+            "\"id\":25",
+            "\"type\":3",
+            "\"id\":143"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Configs/item.json",
+          "contains": [
+            "\"id\":402",
+            "\"name\":\"寻宝令\"",
+            "\"id\":1211",
+            "\"name\":\"高级法宝箱\"",
+            "\"sub_value\":[[60029,5]]"
+          ]
+        },
+        {
           "path": "docs/unityclient/matrices/XUNBAO_CONTROLS.json",
           "contains": [
-            "XUNBAO-07-COMBINE",
-            "op=28/29/30/31/36"
+            "XUNBAO-14-SINGLE-COMPOSE",
+            "XUNBAO-19-DYNAMIC-QUALITY-PANELS",
+            "XUNBAO-20-TASK-REWARD-LIST",
+            "XUNBAO-21-TASK-CLAIM",
+            "op=28/29/30/31/36",
+            "/37 op=1 type=3",
+            "/37 op=3 type=3"
           ]
         }
       ],

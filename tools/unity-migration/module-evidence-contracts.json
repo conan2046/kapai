@@ -2841,30 +2841,198 @@
     },
     {
       "module": "XunBao",
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-XunBaoSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/XunBao/fixture/xunbao-sqlite-fixture-snapshot.json",
+        "g5VisualSnapshot": ".local/ui-fidelity/XunBao/fixture/xunbao-g5-visual-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/xunbao-fixed-account-latest.json",
+        "g3ValidationFlags": [
+          "-projectXXunBaoValidation"
+        ],
+        "g5VisualSetupAction": "Setup",
+        "g5VisualAssertAction": "AssertMutated",
+        "g5VisualValidationFlags": [
+          "-projectXXunBaoValidation"
+        ],
+        "reloginRequired": true,
+        "extraFlags": [],
+        "skipPostValidationFixtureAssert": false,
+        "postValidationAdapterAction": "AssertMutated",
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "xunbao-sqlite-only",
+              "description": "只允许修改 Application.persistentDataPath/LocalServer/projectx.db，禁止用 MySQL 或客户端假数据替代"
+            },
+            {
+              "id": "account-role-link",
+              "description": "固定 Unity SQLite userId=7200057 必须唯一绑定 roleId=1000003/T00057；Cocos MySQL 同名角色为1000115"
+            },
+            {
+              "id": "search-count-and-token",
+              "description": "pet_equip 正式持久化搜索次数 20，背包准备正式 item.xlsx 道具 402 搜宝令 2 个"
+            },
+            {
+              "id": "deterministic-tutorial-search",
+              "description": "精确清除 bitset 629 并移除 4701/4702/4703，首次 op28 走服务端引导确定性奖励，不依赖随机概率"
+            },
+        {
+          "id": "compose-materials",
+          "description": "按正式 hecheng.type=8 准备 4704..4709 各 2 个，先覆盖单个合成，余量再覆盖一键合成"
+        },
+        {
+          "id": "xunbao-task-list-and-claim",
+          "description": "按正式 daily.json 写入 type=3、id=25..143 共119条任务记录；task 25 为可领取态，并同步save_val每日标记防止登录重置；必须覆盖 /37 op=1 列表与 op=3 领奖并由整库快照精确恢复"
+        },
+        {
+              "id": "exact-restore-surface",
+              "description": "整库快照、恢复后 SHA256 相等、完整性检查通过且备份残留为 0"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-main.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-MAIN.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-task.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-TASK.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-search-result.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-RESULT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-compose.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-COMPOSE.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-compose-all.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-COMPOSE-ALL.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-search-confirm.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-CONFIRM.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-search-all-result.png",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-ALL-RESULT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-main-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-MAIN-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-task-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-TASK-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-search-result-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-RESULT-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-compose-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-COMPOSE-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-compose-all-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-COMPOSE-ALL-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-search-confirm-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-CONFIRM-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-xunbao-search-all-result-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/XunBao/unity/g5/XUNBAO-SEARCH-ALL-RESULT-ui-resource-map.md"
+          }
+        ]
+      },
       "g5": {
+        "requireUiResourceMaps": true,
         "width": 1334,
         "height": 750,
         "cocosDirectory": ".local/ui-fidelity/XunBao/cocos/g5",
         "unityDirectory": ".local/ui-fidelity/XunBao/unity/g5",
         "compareDirectory": ".local/ui-fidelity/XunBao/compare/g5",
-        "cocosBaselineInputs": [
-          "client/ProjectX/src/View/WanFa/XunBaoMainUI.lua",
-          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-          "client/ProjectX/res/csd/wanfa/XunbaoLayer.csb",
-          "server/src/pack_deal.cpp",
-          "server/src/pet_equip_manage.cpp"
+      "cocosBaselineInputs": [
+        "client/ProjectX/src/View/WanFa/XunBaoMainUI.lua",
+        "client/ProjectX/src/View/WanFa/XunBaoResultUI.lua",
+      "client/ProjectX/src/View/WanFa/XunBaoPopUI.lua",
+      "client/ProjectX/src/View/Common/SaoDangUI.lua",
+        "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+        "client/ProjectX/res/csd/wanfa/XunbaoLayer.csb",
+        "client/ProjectX/res/csd/wanfa/Xunbao_souxunLayer.csb",
+      "client/ProjectX/res/csd/wanfa/Xunbao_popupLayer.csb",
+      "client/ProjectX/res/csd/common/saodang.csb",
+        "server/config/json/hecheng.json",
+        "server/config/json/fabao.json",
+      "server/config/json/item.json",
+      "server/config/json/daily.json",
+      "server/config/json/fabao_looting.json",
+      "server/src/pack_deal.cpp",
+      "server/src/pet_equip_manage.cpp",
+      "server/src/mission_manager.cpp"
         ],
         "identity": {
           "primaryUserId": 7200057,
           "primaryRoleId": 1000115,
-          "fixtureContract": "xunbao-shared-readonly"
+          "fixtureContract": "reversible-xunbao-sqlite-fixed-account"
+        },
+        "crossBackendIdentityMapping": {
+          "contract": "semantic-cross-backend-identity-v1",
+          "evidencePath": ".local/unity-validation/xunbao-cross-backend-mapping-latest.json",
+          "cocosUserId": 7200057,
+          "cocosRoleId": 1000115,
+          "unityUserId": 7200057,
+          "unityRoleId": 1000003,
+          "requireVisualParityReady": false
         },
         "pairs": [
           {
             "id": "XUNBAO-MAIN",
             "cocos": "XUNBAO-MAIN.png",
             "unity": "XUNBAO-MAIN.png"
+          },
+          {
+            "id": "XUNBAO-TASK",
+            "cocos": "XUNBAO-TASK.png",
+            "unity": "XUNBAO-TASK.png"
+          },
+          {
+            "id": "XUNBAO-SEARCH-RESULT",
+            "cocos": "XUNBAO-SEARCH-RESULT.png",
+            "unity": "XUNBAO-SEARCH-RESULT.png"
+          },
+          {
+            "id": "XUNBAO-COMPOSE",
+            "cocos": "XUNBAO-COMPOSE.png",
+            "unity": "XUNBAO-COMPOSE.png"
+          },
+          {
+            "id": "XUNBAO-COMPOSE-ALL",
+            "cocos": "XUNBAO-COMPOSE-ALL.png",
+            "unity": "XUNBAO-COMPOSE-ALL.png"
+          },
+          {
+            "id": "XUNBAO-SEARCH-CONFIRM",
+            "cocos": "XUNBAO-SEARCH-CONFIRM.png",
+            "unity": "XUNBAO-SEARCH-CONFIRM.png"
+          },
+          {
+            "id": "XUNBAO-SEARCH-ALL-RESULT",
+            "cocos": "XUNBAO-SEARCH-ALL-RESULT.png",
+            "unity": "XUNBAO-SEARCH-ALL-RESULT.png"
           }
         ]
       }

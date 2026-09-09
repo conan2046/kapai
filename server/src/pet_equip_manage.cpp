@@ -380,7 +380,7 @@ bool CItemCfgManager::InitComposeCfg()
 		const string file = "fabao_looting.json";
 		std::ifstream lootingFile(("./json/" + file).c_str());
 		if (!lootingFile.good()
-			&& gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+		&& gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
 		{
 			cout << "[local] CItemCfgManager::InitComposeCfg: " << file
 				<< " is unavailable; fabao looting is disabled until its source table is supplied" << endl;
@@ -3455,7 +3455,8 @@ void CEquipManeger::FaBaoHeCheng(CUser* pUser, CNetMessage& msg)
 	if (cfg != NULL)
 		sCMissionManager.UpdateQuestState(pUser, EMQCT_34, 1, cfg->quality);
 	char buf[256];
-	snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0213, GetFaBaoName(hcCfg->tar.typeId));
+	const string faBaoName = GetFaBaoName(hcCfg->tar.typeId);
+	snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0213, faBaoName.c_str());
 	msg << PRO_SUCCESS << MakeStringColor(buf, TIPS_WARNING_COLOR);
 
 	if (cfg != NULL && cfg->quality >= 5 && cfg->id != 617)

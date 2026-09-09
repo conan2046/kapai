@@ -15,10 +15,11 @@
       "cleanup": "none"
     },
     {
-      "key": "xunbao-shared-readonly",
-      "roleMode": "shared",
-      "mutatesServer": false,
-      "cleanup": "none"
+      "key": "reversible-xunbao-sqlite-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-XunBaoSqliteFixture.ps1"
     },
     {
       "key": "isolated-role",

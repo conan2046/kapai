@@ -42,7 +42,7 @@
 | 游历三界 | `YOULI.md` | `G0 passed / G1-G6 evidence missing`；实现保留，Cocos/Unity基准与差异目录当前缺失 |
 | 封神列传 | `FENGSHEN_STORY.md` | 用户确认保留；战斗19的BattleFengShenStory子模块已完成G0-G6；父模块仍按自身门禁推进 |
 | 竞技场 | `ARENA.md` | `G0 pending / legacy logic only`；历史Runner不替代当前Cocos基准与控件闭包 |
-| 法宝搜索 | `XUNBAO.md` | `G0 passed / G1-G6 evidence missing`；实现保留，Cocos/Unity基准与差异目录当前缺失 |
+| 法宝搜索 | `XUNBAO.md` | `G0-G6 passed / 21/21 complete`；当前`/319 + /37 type=3`、7/7双端状态、6/6语义、SQLite精确恢复及用户最终Play均已闭环；结果窗尺寸差异为用户接受项 |
 | Cocos UI Timeline | `UI_TIMELINE.md` | 29 处有效调用对应 Prefab 完成 |
 | ImodAnim 兼容播放 | `IMOD_ANIMATION.md` / `IMOD_ANIMATION_CALLS.md` | 885 个可播放资源全动作验证；7 个源资产缺口 |
 
