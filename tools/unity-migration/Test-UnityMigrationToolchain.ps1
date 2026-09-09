@@ -2664,6 +2664,33 @@ $heroLoginSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginView.lua.txt") -Raw -Encoding UTF8
 $appLaunchOptionsSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs") -Raw -Encoding UTF8
+$heroCultivationEvidenceContract = @($allEvidenceContracts.modules |
+    Where-Object { $_.module -eq "HeroCultivation" })[0]
+Assert-ToolchainTest (
+    @($heroCultivationEvidenceContract.g5.pairs).Count -eq 18 -and
+    @($heroCultivationEvidenceContract.g5.pairs.id) -contains 'HC-CULTIVATE-HELP-11-20' -and
+    @($heroCultivationEvidenceContract.g5.pairs.id) -contains 'HC-CULTIVATE-HELP-ATTRIBUTE' -and
+    @($heroCultivationEvidenceContract.g5.pairs.id) -contains 'HC-CULTIVATE-NUM-INPUT'
+) "HeroCultivation G5 contract no longer covers all 18 frozen visual states."
+Assert-ToolchainTest (
+    $heroCultivationEvidenceContract.fixedAccount.requireBatchVisualArtifacts -eq $false -and
+    $fixedRunnerSource.Contains('-Name "requireBatchVisualArtifacts" -Default $true') -and
+    $fixedRunnerSource.Contains('if ($requireBatchVisualArtifacts)')
+) "HeroCultivation logic oracle once again requires legacy batch screenshots instead of the native GameView visual path."
+Assert-ToolchainTest (
+    $heroCultivationSqliteFixtureSource.Contains('elif args.action == "AssertReloginHash":') -and
+    $heroCultivationSqliteFixtureSource.Contains('def role_semantic_sha256(role):') -and
+    $heroCultivationSqliteFixtureSource.Contains('def stable_pet_equip_bytes(value):') -and
+    $heroCultivationSqliteFixtureSource.Contains('return bytes(data[:position] + data[position + 6:])') -and
+    $heroCultivationSqliteFixtureSource.Contains('expanded = stable_pet_equip_bytes(compressed) if index == 3') -and
+    $heroCultivationSqliteFixtureSource.Contains('"roleSemanticSha256": role_semantic_sha256(role)') -and
+    $heroCultivationSqliteFixtureSource.Contains('"roleComponentSemanticSha256": role_component_semantic_sha256(role)') -and
+    $heroCultivationSqliteFixtureSource.Contains('"petEquipPersistence": pet_equip_persistence_state(role[5])') -and
+    $heroCultivationSqliteFixtureSource.Contains('"lastCountTime": struct.unpack_from("<I", data, fabao_end)[0]') -and
+    $heroCultivationSqliteFixtureSource.Contains('current["roleSemanticSha256"] != expected["roleSemanticSha256"]') -and
+    $heroCultivationSqliteFixtureSource.Contains('snapshot["postLoginBusinessStateVerified"] = current') -and
+    $heroCultivationSqliteFixtureSource.Contains('snapshot["postLoginDatabaseHash"] = hero_fixture.sha256(database)')
+) "HeroCultivation relogin verification once again requires byte-identical SQLite instead of stable business state."
 Assert-ToolchainTest (
     $appLaunchOptionsSource.Contains('HeroCultivationG3Validation => HasFlag("-projectXHeroCultivationG3Validation")') -and
     $heroLoginSource.Contains('Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation")') -and

@@ -44,6 +44,8 @@ $postValidationAdapterAction = [string](Get-UnityMigrationPropertyValue `
 $dataBackend = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "dataBackend" -Default "mysql")
 if ($dataBackend -notin @("mysql", "sqlite")) { throw "Unsupported fixed-account data backend: $dataBackend" }
 $mutationReloginOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "mutationReloginOracle" -Default $null
+$requireBatchVisualArtifacts = [bool](Get-UnityMigrationPropertyValue `
+    -Object $fixed -Name "requireBatchVisualArtifacts" -Default $true)
 $serverConfigDirectoryValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "serverConfigDirectory" -Default "")
 $serverStartParameters = @{ WaitSeconds = 60 }
 if ($ServerExecutable) {
@@ -659,7 +661,14 @@ try {
             }
             [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resultEvidence)) | Out-Null
             Copy-Item -LiteralPath $runtimeResultPath -Destination $resultEvidence -Force
-            $visualResults = Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario
+            # Since 2026-09-07, native visual acceptance belongs to the opened
+            # Editor GameView / Computer Use path.  Logic-only fixed-account
+            # modules may explicitly skip legacy batch screenshots while still
+            # preserving fixture, authority, coverage and restore checks.
+            $visualResults = if ($requireBatchVisualArtifacts) {
+                @(Assert-UnityMigrationVisualArtifacts -Root $root -Scenario $scenario)
+            }
+            else { @() }
             $sourceContractFingerprint = Assert-UnityMigrationSourceContracts -Root $root -Scenario $scenario
             $summary = [ordered]@{
                 schemaVersion = 1

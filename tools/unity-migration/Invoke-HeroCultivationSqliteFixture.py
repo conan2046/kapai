@@ -75,6 +75,71 @@ def digest(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def stable_pet_equip_bytes(value):
+    data, equipment_end, _ = equipment_layout(value)
+    position = equipment_end
+    fabao_count = struct.unpack_from("<H", data, position)[0]
+    position += 2
+    for _ in range(fabao_count):
+        level_count = data[position + 12]
+        position += 13 + level_count * 2
+    # m_lastCntTime + m_faBaoCnt are a time-derived recharge clock. A login
+    # legitimately advances them; equipment, FaBao and PXA1 affixes remain
+    # byte-stable and continue to participate in the relogin oracle.
+    return bytes(data[:position] + data[position + 6:])
+
+
+def role_semantic_sha256(role):
+    value = hashlib.sha256()
+    value.update(struct.pack("<qq", int(role[0]), int(role[1])))
+    for index, compressed in enumerate(role[2:]):
+        expanded = stable_pet_equip_bytes(compressed) if index == 3 \
+            else bytes(hero_fixture.expand(compressed))
+        value.update(struct.pack("<I", len(expanded)))
+        value.update(expanded)
+    return value.hexdigest()
+
+
+def role_component_semantic_sha256(role):
+    return {
+        name: hashlib.sha256(stable_pet_equip_bytes(compressed) if name == "pet_equip"
+                            else bytes(hero_fixture.expand(compressed))).hexdigest()
+        for name, compressed in zip(("pet", "package", "zhenfa", "pet_equip"), role[2:])
+    }
+
+
+def pet_equip_persistence_state(value):
+    data, equipment_end, _ = equipment_layout(value)
+    position = equipment_end
+    fabao_count = struct.unpack_from("<H", data, position)[0]
+    position += 2
+    for _ in range(fabao_count):
+        level_count = data[position + 12]
+        position += 13 + level_count * 2
+    fabao_end = position
+    core_end = fabao_end + 6
+    extension = bytes(data[core_end:])
+    affixes = []
+    if extension:
+        affix_count = struct.unpack_from("<H", extension, 5)[0]
+        extension_position = 7
+        for _ in range(affix_count):
+            uid, seed, affix_id, tier, lock_mask = struct.unpack_from(
+                "<IIHBB", extension, extension_position)
+            extension_position += 12
+            affixes.append({"uid": uid, "seed": seed, "affixId": affix_id,
+                            "tier": tier, "lockMask": lock_mask})
+    return {
+        "coreSha256": hashlib.sha256(bytes(data[:core_end])).hexdigest(),
+        "stableSha256": hashlib.sha256(stable_pet_equip_bytes(value)).hexdigest(),
+        "equipmentSha256": hashlib.sha256(bytes(data[:equipment_end])).hexdigest(),
+        "faBaoSha256": hashlib.sha256(bytes(data[equipment_end:fabao_end])).hexdigest(),
+        "lastCountTime": struct.unpack_from("<I", data, fabao_end)[0],
+        "faBaoCount": struct.unpack_from("<H", data, fabao_end + 4)[0],
+        "affixes": affixes,
+    }
+
+
 def pet_blob(value):
     ext_num, records = hero_fixture.parse_pets(value)
     existing = {pet_id: record for pet_id, _, record in records}
@@ -360,7 +425,9 @@ def state(connection, user_id, role_id):
                                 and struct.pack("<H", 11) in raw_formation),
         "equipmentSets": fixture_equipment,
         "faBaoTargetsAndMaterials": fixture_fabao,
-        "roleSemanticSha256": digest("|".join(str(value) for value in role)),
+        "roleSemanticSha256": role_semantic_sha256(role),
+        "roleComponentSemanticSha256": role_component_semantic_sha256(role),
+        "petEquipPersistence": pet_equip_persistence_state(role[5]),
         "integrity": connection.execute("PRAGMA integrity_check").fetchone()[0],
     }
 
@@ -497,7 +564,7 @@ def main():
         for suffix in ("-wal", "-shm"):
             if os.path.exists(database + suffix): os.remove(database + suffix)
         shutil.copy2(backup, database)
-    elif args.action in ("AssertRestored", "AssertReloginHash"):
+    elif args.action == "AssertRestored":
         if hero_fixture.sha256(database) != snapshot["snapshotHash"]:
             raise RuntimeError("HeroCultivation restored SQLite database hash mismatch")
         connection = sqlite3.connect("file:" + database + "?mode=ro", uri=True)
@@ -506,6 +573,22 @@ def main():
                 raise RuntimeError("HeroCultivation restored SQLite integrity failed")
         finally:
             connection.close()
+    elif args.action == "AssertReloginHash":
+        connection = sqlite3.connect("file:" + database + "?mode=ro", uri=True)
+        try:
+            current = state(connection, args.user_id, args.role_id)
+        finally:
+            connection.close()
+        expected = snapshot["before"]
+        if (current["integrity"] != "ok"
+                or current["linkedRoleId"] != expected["linkedRoleId"]
+                or current["roleSemanticSha256"] != expected["roleSemanticSha256"]):
+            raise RuntimeError(
+                f"HeroCultivation restored business state changed after relogin: {current}")
+        snapshot["postLoginBusinessStateVerified"] = current
+        snapshot["postLoginDatabaseHash"] = hero_fixture.sha256(database)
+        snapshot["postLoginVerifiedUtc"] = datetime.now(timezone.utc).isoformat()
+        write_json(evidence, snapshot)
     elif args.action == "Cleanup":
         if os.path.exists(backup): os.remove(backup)
     elif args.action == "AssertCleanup":

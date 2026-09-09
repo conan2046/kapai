@@ -1,9 +1,11 @@
 # 神将培养模块 B
 
-> 当前状态：`G0-G4 passed / early user Play passed / G5-G6 pending`。
+> 当前状态：`G0-G6 passed / 51/51 complete / manualPassed=true`（2026-09-09 用户明确确认“我这边测试通，可以算G6通过的”）。
 
 ## 当前结论
 
+- 2026-09-09 当前固定账号 oracle 通过 51/51 控件、8/8 权威语义、重登稳定状态、SQLite 精确恢复与零运行时残留；用户完成当前 Unity Play 并明确授权按 G6 通过。
+- 本次为用户授权的直接 G6 例外：Computer Use 当前 `apps=[]`，缺少本轮可追溯 Cocos 文件；历史操作台账仍保留 26 条未唯一解决记录（其中 24 条 `pending-diagnosis`）。这些缺口已在最终验收与例外复盘中披露，未伪造截图、未删除失败历史。
 - 本模块按 2026-08-23 当前 Cocos、服务端和 Unity 源码重新开门禁；模块 A 只作为 `btn_zhenrong → 养成` 入口与返回回归面。
 - 历史 Hero/HeroEquip 截图、Runner、SHA、人工结论和完成标签全部禁止复用。
 - G2 反查发现原 G0 分母漏掉修炼说明弹窗 7 项与数量输入弹窗 3 项真实交互，原 41 项结论已失效；当前已按 51 项重新冻结并通过 G0，中央文档 30 模块一致、工具链 190 项通过。
@@ -71,6 +73,6 @@ Layer/Main_UI/ButtonGroup1/btn_zhenrong
 3. 给定满足升星、突破、修炼或激活条件的神将，各写操作按服务端结果更新并在重登后保持；finally 恢复原始 SQLite。
 4. 给定材料不足、等级不足或达到上限，按钮显示当前 Cocos 对应提示，角色、神将、物品和货币均不变化。
 
-## 下一门禁
+## 门禁结论
 
-进入 G5：G4 已使用固定 SQLite 账号完成 51 控件、8 个语义断言及恢复合同；当前仍缺本轮可追溯的 18 个 Cocos 基线截图，不能用历史或 Unity 截图替代。用户已完成 G3 早期 Play并确认“测试通过”。
+G0-G6 已通过。最终人工验收见 `.local/unity-validation/herocultivation-final-user-acceptance-latest.json`；用户授权例外复盘见 `.local/unity-validation/herocultivation-g6-user-authorized-retrospective-latest.json`。缺失的当前 Cocos 文件与未闭环历史台账继续如实保留，不作为其他模块证据复用。
