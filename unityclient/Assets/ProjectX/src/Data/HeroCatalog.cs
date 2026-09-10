@@ -11,7 +11,10 @@ namespace ProjectX.Data
     public readonly struct HeroDefinition
     {
         public HeroDefinition(int picture, int quality, string feature = "", bool physicalAttack = false,
-            int skillId = 0, string skillName = "", string skillDescription = "", string name = "")
+            int skillId = 0, string skillName = "", string skillDescription = "", string name = "",
+            int itemId = 0, int attack = 0, int physicalDefense = 0, int magicDefense = 0,
+            int health = 0, int attackGrowth = 0, int physicalDefenseGrowth = 0,
+            int magicDefenseGrowth = 0, int healthGrowth = 0)
         {
             Picture = picture;
             Quality = quality;
@@ -21,6 +24,15 @@ namespace ProjectX.Data
             SkillName = skillName ?? "";
             SkillDescription = skillDescription ?? "";
             Name = name ?? "";
+            ItemId = itemId;
+            Attack = attack;
+            PhysicalDefense = physicalDefense;
+            MagicDefense = magicDefense;
+            Health = health;
+            AttackGrowth = attackGrowth;
+            PhysicalDefenseGrowth = physicalDefenseGrowth;
+            MagicDefenseGrowth = magicDefenseGrowth;
+            HealthGrowth = healthGrowth;
         }
         public int Picture { get; }
         public int Quality { get; }
@@ -30,6 +42,15 @@ namespace ProjectX.Data
         public string SkillName { get; }
         public string SkillDescription { get; }
         public string Name { get; }
+        public int ItemId { get; }
+        public int Attack { get; }
+        public int PhysicalDefense { get; }
+        public int MagicDefense { get; }
+        public int Health { get; }
+        public int AttackGrowth { get; }
+        public int PhysicalDefenseGrowth { get; }
+        public int MagicDefenseGrowth { get; }
+        public int HealthGrowth { get; }
     }
 
     public static class HeroCatalog
@@ -136,7 +157,16 @@ namespace ProjectX.Data
                         skillId,
                         skill?.Attribute("name")?.Value ?? "",
                         description,
-                        pet.Attribute("name")?.Value ?? "");
+                        pet.Attribute("name")?.Value ?? "",
+                        ParseInt(pet.Attribute("itemId")?.Value),
+                        ParseInt(pet.Attribute("gongji")?.Value),
+                        ParseInt(pet.Attribute("wufang")?.Value),
+                        ParseInt(pet.Attribute("fashang")?.Value),
+                        ParseInt(pet.Attribute("qixue")?.Value),
+                        ParseInt(pet.Attribute("gongji_lv")?.Value),
+                        ParseInt(pet.Attribute("wufang_lv")?.Value),
+                        ParseInt(pet.Attribute("fafang_lv")?.Value),
+                        ParseInt(pet.Attribute("qixue_lv")?.Value));
                 }
                 authoritativeLoaded = true;
                 missingResourcesLogged = false;

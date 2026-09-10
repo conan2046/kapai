@@ -1257,6 +1257,12 @@ namespace ProjectX.UI
             public int ExtraValue { get; }
         }
 
+        internal static IReadOnlyList<string> GetBreakTalentDescriptionsForPreview(
+            int heroId, HeroDefinition definition)
+        {
+            return new HeroCultivationConfig().GetBreakTalentDescriptions(heroId, definition);
+        }
+
         private sealed class HeroCultivationConfig
         {
             private readonly Dictionary<int, uint[]> growth = new Dictionary<int, uint[]>();

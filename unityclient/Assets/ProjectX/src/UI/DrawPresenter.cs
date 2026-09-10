@@ -17,11 +17,13 @@ namespace ProjectX.UI
         private readonly CocosUiView tenResultView;
         private readonly CocosUiView previewView;
         private readonly GameObject previewFrame;
+        private readonly Transform previewTabTemplate;
         private readonly DrawStore store;
         private readonly ServerTimeService serverTime;
         private readonly Action<byte, byte> draw;
         private readonly Action close;
         private readonly ResourceService resources;
+        private readonly ShopCatalog itemCatalog;
         private readonly CurrencyStore currencies;
         private readonly BagStore bag;
         private readonly Text statusText;
@@ -44,16 +46,28 @@ namespace ProjectX.UI
         private CocosTimelinePlayer singleResultTimeline;
         private readonly GameObject furnaceEffect;
         private readonly Action<byte, byte> requestDraw;
-        private readonly Action<string> showPreviewHero;
         private ScrollRect previewScroll;
         private RectTransform previewContent;
         private Transform previewNativeList;
         private GameObject previewNativeTemplate;
+        private ScrollRect previewNativeScroll;
+        private RectTransform previewNativeContent;
+        private readonly GameObject heroPreviewFrame;
+        private readonly CocosUiView heroPreviewView;
+        private ImodAnimationPlayer heroPreviewModel;
+        private Image heroPreviewFallback;
+        private Text heroPreviewSkillDescription;
+        private Text heroPreviewTalentDescription;
+        private GameObject transformedResultVisual;
+        private Image transformedResultFrame;
+        private Image transformedResultIcon;
+        private Text transformedResultAmount;
         private byte previewPoolKind;
 
-        public DrawPresenter(CocosUiView view, CocosUiView singleResultView, CocosUiView tenResultView, CocosUiView previewView, CocosUiView previewFrameView,
-            DrawStore store, ServerTimeService serverTime, ResourceService resources, CurrencyStore currencies, BagStore bag,
-            Action<byte, byte> draw, Action close, Action<string> showPreviewHero)
+        public DrawPresenter(CocosUiView view, CocosUiView singleResultView, CocosUiView tenResultView,
+            CocosUiView previewView, CocosUiView previewFrameView, CocosUiView heroPreviewTemplate,
+            DrawStore store, ServerTimeService serverTime, ResourceService resources, ShopCatalog itemCatalog,
+            CurrencyStore currencies, BagStore bag, Action<byte, byte> draw, Action close)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.singleResultView = singleResultView ?? throw new ArgumentNullException(nameof(singleResultView));
@@ -63,32 +77,47 @@ namespace ProjectX.UI
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.serverTime = serverTime ?? throw new ArgumentNullException(nameof(serverTime));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
+            this.itemCatalog = itemCatalog ?? throw new ArgumentNullException(nameof(itemCatalog));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             this.bag = bag ?? throw new ArgumentNullException(nameof(bag));
             this.draw = draw ?? throw new ArgumentNullException(nameof(draw));
             requestDraw = this.draw;
             this.close = close ?? throw new ArgumentNullException(nameof(close));
-            this.showPreviewHero = showPreviewHero ?? throw new ArgumentNullException(nameof(showPreviewHero));
+            if (heroPreviewTemplate == null) throw new ArgumentNullException(nameof(heroPreviewTemplate));
 
             Reparent(singleResultView, view.GameObject.transform);
             Reparent(tenResultView, view.GameObject.transform);
             previewFrame = UnityEngine.Object.Instantiate(previewFrameView.GameObject, view.GameObject.transform);
             previewFrame.name = "DrawRewardPreviewFrame";
-            UnityEngine.Object.Destroy(previewFrame.GetComponent<CocosUiBinding>());
+            CocosUiBinding previewFrameBinding = previewFrame.GetComponent<CocosUiBinding>();
+            previewTabTemplate = previewFrameBinding?.Find(
+                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            UnityEngine.Object.Destroy(previewFrameBinding);
             Reparent(previewView, previewFrame.transform);
+            heroPreviewFrame = UnityEngine.Object.Instantiate(previewFrameView.GameObject, view.GameObject.transform);
+            heroPreviewFrame.name = "DrawHeroPreviewFrame";
+            UnityEngine.Object.Destroy(heroPreviewFrame.GetComponent<CocosUiBinding>());
+            GameObject heroPreviewObject = UnityEngine.Object.Instantiate(heroPreviewTemplate.GameObject,
+                heroPreviewFrame.transform);
+            heroPreviewObject.name = "DrawHeroPreview";
+            heroPreviewView = new CocosUiView(heroPreviewObject.GetComponent<CocosUiBinding>());
             Normalize(singleResultView.GameObject);
             Normalize(tenResultView.GameObject);
             Normalize(previewFrame);
             Normalize(previewView.GameObject);
+            Normalize(heroPreviewFrame);
+            Normalize(heroPreviewView.GameObject);
             singleResultView.GameObject.SetActive(false);
             tenResultView.GameObject.SetActive(false);
             previewView.GameObject.SetActive(false);
             previewFrame.SetActive(false);
+            heroPreviewFrame.SetActive(false);
             BindFirst(view.GameObject.transform, close, "CloseBtn", "Btn_Close");
             BindDrawButtons();
             view.BindClick("Layer/RewardPreview", ShowPreview, true);
             BindFirst(previewView.GameObject.transform, HidePreview, "CloseBtn", "Btn_Close", "Background");
             BindFirst(previewFrame.transform, HidePreview, "CloseBtn", "Btn_Close");
+            BindFirst(heroPreviewFrame.transform, HidePreviewHeroDetail, "CloseBtn", "Btn_Close");
             CreatePreviewUi();
             // The imported Cocos screen already owns the lower decorative band. Do not
             // overlay a diagnostic status label there: it covered original Draw art.
@@ -99,6 +128,7 @@ namespace ProjectX.UI
             BindResultControls(tenResultView.GameObject.transform);
             furnaceEffect = CreateFurnaceEffect(view.GameObject.transform);
             CreateDuplicateOverlay();
+            CreateTransformedResultVisual();
             singleResultTimeline = singleResultView.GameObject.GetComponent<CocosTimelinePlayer>();
             if (singleResultTimeline != null)
                 singleResultTimeline.AnimationCompleted += HandleSingleResultAnimationCompleted;
@@ -115,12 +145,15 @@ namespace ProjectX.UI
         public bool FurnaceEffectLoaded => furnaceEffect != null;
         public int PreviewRenderedCount => previewContent == null ? 0 : previewContent.childCount;
         public byte PreviewPoolKind => previewPoolKind;
+        public bool IsPreviewHeroDetailVisible => heroPreviewFrame != null && heroPreviewFrame.activeSelf;
         public bool ScrollPreviewToEnd()
         {
-            if (previewScroll == null || previewContent == null || previewScroll.viewport == null) return false;
+            ScrollRect scroll = previewNativeScroll ?? previewScroll;
+            RectTransform content = previewNativeContent ?? previewContent;
+            if (scroll == null || content == null || scroll.viewport == null) return false;
             Canvas.ForceUpdateCanvases();
-            if (previewContent.rect.height <= previewScroll.viewport.rect.height) return false;
-            previewScroll.verticalNormalizedPosition = 0f;
+            if (content.rect.height <= scroll.viewport.rect.height) return false;
+            scroll.verticalNormalizedPosition = 0f;
             return true;
         }
 
@@ -172,15 +205,7 @@ namespace ProjectX.UI
                     resultText.text = reward == null ? "招募成功" : RewardName(reward);
                 if (!showDuplicateConversion)
                 {
-                    bool placeholder = true;
-                    Sprite sprite = reward == null ? null : LoadRewardSprite(reward, out placeholder);
-                    if (resultIcon != null)
-                    {
-                        resultIcon.sprite = sprite;
-                        resultIcon.enabled = sprite != null;
-                        resultIcon.preserveAspect = true;
-                    }
-                    RenderResultHeroModel(reward);
+                    RenderSingleRewardVisual(reward);
                     RenderResultHeroMetadata(reward);
                 }
                 CocosTimelinePlayer timeline = singleResultTimeline;
@@ -228,10 +253,10 @@ namespace ProjectX.UI
             // The single-draw CSD exposes its timeline skip target as an ImageView named
             // "Bg" rather than a Button. Bind() upgrades that imported node to a real
             // Unity button so its original Cocos tap-to-skip behavior is preserved.
-            Bind(FindNamed(root, "Bg"), HideResult);
-            Bind(FindNamed(root, "bg"), HideResult);
-            Bind(FindNamed(root, "bg_0"), HideResult);
-            BindFirst(root, HideResult, "CloseBtn", "Btn_Close", "btn_Close", "ReturnBtn", "Background", "bg", "bg_0");
+            Bind(FindNamed(root, "Bg"), SkipResultAnimation);
+            Bind(FindNamed(root, "bg"), SkipResultAnimation);
+            Bind(FindNamed(root, "bg_0"), SkipResultAnimation);
+            BindFirst(root, HideResult, "CloseBtn", "Btn_Close", "btn_Close", "ReturnBtn", "Background");
             BindFirst(root, ContinueLastPool, "Btn_Continue", "btn_Continue", "ContinueBtn");
             // Skill is intentionally a no-op interaction here: it dismisses the result only after the authoritative
             // result has already been rendered, matching Cocos's skip/confirm lifecycle without predicting rewards.
@@ -295,9 +320,10 @@ namespace ProjectX.UI
                     duplicateResultIcon.transform.SetAsFirstSibling();
                 }
                 bool placeholder;
-                duplicateResultIcon.sprite = resources.LoadHeroPortrait(
+                Sprite fallbackPortrait = resources.LoadHeroPortrait(
                     HeroCatalog.TryGet((int)reward.Id, out HeroDefinition heroDefinition) ? heroDefinition.Picture : 0,
                     out placeholder);
+                duplicateResultIcon.sprite = resources.LoadItemIcon(reward.TransformItemId) ?? fallbackPortrait;
                 duplicateResultIcon.enabled = duplicateResultIcon.sprite != null;
             }
             if (duplicateOverlay != null)
@@ -305,9 +331,13 @@ namespace ProjectX.UI
                 duplicateOverlay.SetActive(true);
                 duplicateOverlay.transform.SetAsLastSibling();
                 bool placeholder;
-                duplicateOverlayPortrait.sprite = resources.LoadHeroPortrait(
+                Sprite fallbackPortrait = resources.LoadHeroPortrait(
                     HeroCatalog.TryGet((int)reward.Id, out HeroDefinition heroDefinition) ? heroDefinition.Picture : 0,
                     out placeholder);
+                // The conversion composition displays the soul item granted by /224,
+                // not the original hero portrait. Prefer TransformItemId so hero-soul
+                // configs that reuse a generic `pic` still resolve ItemIcons/equip{id}.
+                duplicateOverlayPortrait.sprite = resources.LoadItemIcon(reward.TransformItemId) ?? fallbackPortrait;
                 duplicateOverlayPortrait.enabled = duplicateOverlayPortrait.sprite != null;
                 duplicateOverlaySoulName.text = ToVerticalText(RewardName(reward));
                 duplicateOverlayConversion.text = $"自动转化为碎片 {reward.TransformAmount}";
@@ -413,7 +443,65 @@ namespace ProjectX.UI
         {
             if (duplicateOverlay?.activeSelf == true) return;
             StabilizeSingleResultLayout();
+            RenderSingleRewardVisual(store.LastResult?.Rewards.FirstOrDefault());
             RenderSingleResultControls();
+        }
+
+        private void CreateTransformedResultVisual()
+        {
+            transformedResultVisual = new GameObject("RuntimeSingleTransformedReward", typeof(RectTransform));
+            RectTransform root = transformedResultVisual.GetComponent<RectTransform>();
+            GameObject resultSurface = singleResultView.Binding.Find("Layer/dancichoukaUI");
+            root.SetParent(resultSurface != null ? resultSurface.transform : singleResultView.GameObject.transform, false);
+            root.anchorMin = Vector2.zero;
+            root.anchorMax = Vector2.one;
+            root.offsetMin = Vector2.zero;
+            root.offsetMax = Vector2.zero;
+            transformedResultFrame = CreateImage(root, "QualityFrame",
+                new Vector2(.455f, .385f), new Vector2(.545f, .545f));
+            transformedResultFrame.preserveAspect = true;
+            transformedResultFrame.raycastTarget = false;
+            transformedResultIcon = CreateImage(root, "FragmentIcon",
+                new Vector2(.462f, .397f), new Vector2(.538f, .533f));
+            transformedResultIcon.preserveAspect = true;
+            transformedResultIcon.raycastTarget = false;
+            transformedResultAmount = CreateText(root, "Amount",
+                new Vector2(.505f, .397f), new Vector2(.538f, .435f), 22, TextAnchor.LowerRight);
+            transformedResultAmount.color = new Color(1f, .90f, .18f, 1f);
+            transformedResultVisual.SetActive(false);
+        }
+
+        private void RenderSingleRewardVisual(DrawRewardRecord reward)
+        {
+            Transform root = singleResultView.GameObject.transform;
+            Transform hero = root.Find("Layer/dancichoukaUI/shenjiang");
+            Transform item = root.Find("Layer/dancichoukaUI/Item");
+            bool transformed = reward != null && reward.TransformItemId > 0;
+            if (hero != null) hero.gameObject.SetActive(reward != null && !transformed && reward.Type == 60002);
+            if (item != null) item.gameObject.SetActive(reward != null && !transformed && reward.Type != 60002);
+            if (transformed)
+            {
+                RewardRecord fragment = itemCatalog.DescribeReward(reward.TransformItemId, 0, reward.TransformAmount);
+                transformedResultVisual.SetActive(true);
+                transformedResultVisual.transform.SetAsLastSibling();
+                // Hero-soul item configs can reuse a generic `pic` id (for example
+                // item 2415 reports pic=703), while the actual puzzle portrait is
+                // stored as ItemIcons/equip{itemId}. Prefer the authoritative /224
+                // transform item id and retain pic only as a compatibility fallback.
+                transformedResultIcon.sprite = resources.LoadItemIcon(reward.TransformItemId)
+                    ?? resources.LoadItemIcon(fragment.Picture);
+                transformedResultIcon.enabled = transformedResultIcon.sprite != null;
+                transformedResultFrame.sprite = resources.LoadFirst(
+                    $"HeroUI/common_quality_{Mathf.Clamp(fragment.Quality, 1, 7):00}");
+                transformedResultFrame.enabled = transformedResultFrame.sprite != null;
+                transformedResultAmount.text = reward.TransformAmount.ToString();
+            }
+            else if (transformedResultVisual != null)
+            {
+                transformedResultVisual.SetActive(false);
+            }
+            if (resultIcon != null) resultIcon.enabled = false;
+            RenderResultHeroModel(transformed ? null : reward);
         }
 
         private void StabilizeSingleResultLayout()
@@ -551,19 +639,22 @@ namespace ProjectX.UI
             SetNamedText(ten, "Text", "招募x10");
             SetNamedVisible(ten, "Icon", true);
             SetTicketIcon(ten, pool.Kind);
+            bool hasFreeTimes = pool.FreeTimes > 0;
+            bool isInCooldown = hasFreeTimes && cooldown > 0;
             SetNamedText(single, "Text_1", "招募x1");
-            SetNamedVisible(single, "Text_1", !isFree);
-            SetNamedVisible(single, "Text_2", isFree);
-            SetNamedVisible(single, "Text_3", !isFree && FindNamed(single, "Text_3") != null);
-            if (isFree)
+            SetNamedVisible(single, "Text_1", !hasFreeTimes);
+            SetNamedVisible(single, "Text_2", hasFreeTimes && !isInCooldown);
+            SetNamedVisible(single, "Text_3", isInCooldown);
+            if (hasFreeTimes && !isInCooldown)
             {
                 SetNamedText(single, "Num", $"{pool.FreeTimes}/{FreeLimit(pool.Kind)}");
             }
-            else if (FindNamed(single, "Comment") != null)
+            else if (isInCooldown)
             {
-                SetNamedText(single, "Comment", cooldown == 0 ? "招募x1" : $"{cooldown / 60:00}:{cooldown % 60:00} 后免费");
+                Transform countdown = FindNamed(single, "Text_3");
+                SetNamedText(countdown, "Num", $"{cooldown / 60:00}:{cooldown % 60:00}");
             }
-            SetNamedVisible(single, "Icon", true);
+            SetNamedVisible(single, "Icon", !hasFreeTimes || isInCooldown);
             SetTicketIcon(single, pool.Kind);
             SetNamedVisible(single, "Prompt", isFree);
         }
@@ -609,6 +700,19 @@ namespace ProjectX.UI
             singleResultView.GameObject.SetActive(false);
             tenResultView.GameObject.SetActive(false);
             store.ClearResult();
+        }
+
+        private void SkipResultAnimation()
+        {
+            foreach (CocosTimelinePlayer timeline in new[]
+            {
+                singleResultView.GameObject.GetComponent<CocosTimelinePlayer>(),
+                tenResultView.GameObject.GetComponent<CocosTimelinePlayer>()
+            })
+            {
+                if (timeline != null && timeline.gameObject.activeInHierarchy && timeline.Duration > 0)
+                    timeline.GotoFrameAndPlay(timeline.Duration, timeline.Duration, false);
+            }
         }
 
         private void SetMainDrawContentVisible(bool visible)
@@ -680,6 +784,9 @@ namespace ProjectX.UI
         {
             if (target == null) return;
             Button button = target.GetComponent<Button>() ?? target.gameObject.AddComponent<Button>();
+            button.interactable = true;
+            button.targetGraphic = target.GetComponent<Graphic>() ?? target.GetComponentInChildren<Graphic>(true);
+            if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action());
         }
@@ -735,7 +842,8 @@ namespace ProjectX.UI
 
         private void ConfigurePreviewTabs()
         {
-            Transform button = FindNamed(previewFrame.transform, "Button1")
+            Transform button = previewTabTemplate
+                ?? FindNamed(previewFrame.transform, "Button1")
                 ?? FindNamed(previewFrame.transform, "RuntimeDrawPreviewTab1");
             if (button == null) return;
             Transform parent = button.parent;
@@ -761,13 +869,37 @@ namespace ProjectX.UI
                 Transform prompt = tab.Find("Prompt");
                 if (prompt != null) prompt.gameObject.SetActive(false);
                 byte captured = kind;
-                Bind(tab, () => SelectPreviewPool(captured));
+                BindPreviewTab(tab, () => SelectPreviewPool(captured));
                 tab.gameObject.SetActive(true);
             }
         }
 
+        private static void BindPreviewTab(Transform tab, Action action)
+        {
+            Transform existing = tab.Find("RuntimePreviewTabRaycast");
+            Image hitTarget;
+            if (existing == null)
+            {
+                hitTarget = CreateImage(tab, "RuntimePreviewTabRaycast", Vector2.zero, Vector2.one);
+                hitTarget.color = new Color(1f, 1f, 1f, .001f);
+            }
+            else
+            {
+                hitTarget = existing.GetComponent<Image>();
+            }
+            hitTarget.enabled = true;
+            hitTarget.raycastTarget = true;
+            hitTarget.transform.SetAsLastSibling();
+            Button button = tab.GetComponent<Button>() ?? tab.gameObject.AddComponent<Button>();
+            button.interactable = true;
+            button.targetGraphic = hitTarget;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+        }
+
         private void HidePreview()
         {
+            HidePreviewHeroDetail();
             previewView.GameObject.SetActive(false);
             previewFrame.SetActive(false);
         }
@@ -775,6 +907,11 @@ namespace ProjectX.UI
         private void CreatePreviewUi()
         {
             Transform parent = previewView.GameObject.transform;
+            // The imported reward page sits above the shared first-class frame. Its
+            // decorative full-screen graphics must not intercept the visible frame
+            // tabs; re-enable raycasts only on the real list viewport and cards.
+            foreach (Graphic graphic in previewView.GameObject.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = false;
             RectTransform tabs = CreatePanel(parent, "FirstClassBg", new Vector2(0.20f, 0.81f), new Vector2(0.80f, 0.90f), new Color(0.05f, 0.10f, 0.22f, 0.72f));
             string[] labels = { "基础招募", "高级招募", "友情招募" };
             for (byte kind = 1; kind <= 3; kind++)
@@ -812,6 +949,9 @@ namespace ProjectX.UI
             foreach (Image image in tabs.GetComponentsInChildren<Image>(true)) image.color = Color.clear;
             foreach (Text text in tabs.GetComponentsInChildren<Text>(true)) text.color = Color.clear;
             foreach (Text text in close.GetComponentsInChildren<Text>(true)) text.color = Color.clear;
+            tabs.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
+            close.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
+            viewportGo.AddComponent<CanvasGroup>().blocksRaycasts = false;
             GameObject nativeList = previewView.Binding.Find("Layer/Panel/IllustrationsBg/IllustrationsList");
             previewNativeList = nativeList != null ? nativeList.transform : null;
             GameObject nativeTemplate = previewView.Binding.Find("Layer/Panel/IllustrationsBg/Image1");
@@ -820,7 +960,40 @@ namespace ProjectX.UI
             {
                 previewNativeTemplate = template.gameObject;
                 previewNativeTemplate.SetActive(false);
+                ConfigureNativePreviewScroll();
             }
+        }
+
+        private void ConfigureNativePreviewScroll()
+        {
+            RectTransform viewport = previewNativeList as RectTransform;
+            if (viewport == null) return;
+            if (previewNativeList.GetComponent<RectMask2D>() == null)
+                previewNativeList.gameObject.AddComponent<RectMask2D>();
+            Graphic viewportGraphic = previewNativeList.GetComponent<Graphic>();
+            if (viewportGraphic == null) viewportGraphic = previewNativeList.gameObject.AddComponent<Image>();
+            viewportGraphic.raycastTarget = true;
+            previewNativeScroll = previewNativeList.GetComponent<ScrollRect>()
+                ?? previewNativeList.gameObject.AddComponent<ScrollRect>();
+            previewNativeScroll.viewport = viewport;
+            previewNativeScroll.horizontal = false;
+            previewNativeScroll.vertical = true;
+            previewNativeScroll.movementType = ScrollRect.MovementType.Clamped;
+            previewNativeScroll.scrollSensitivity = 32f;
+            Transform existing = previewNativeList.Find("RuntimeNativePreviewContent");
+            if (existing == null)
+            {
+                var contentObject = new GameObject("RuntimeNativePreviewContent", typeof(RectTransform));
+                existing = contentObject.transform;
+                existing.SetParent(previewNativeList, false);
+            }
+            previewNativeContent = existing as RectTransform;
+            previewNativeContent.anchorMin = new Vector2(0f, 1f);
+            previewNativeContent.anchorMax = new Vector2(1f, 1f);
+            previewNativeContent.pivot = new Vector2(.5f, 1f);
+            previewNativeContent.anchoredPosition = Vector2.zero;
+            previewNativeContent.sizeDelta = new Vector2(0f, viewport.rect.height);
+            previewNativeScroll.content = previewNativeContent;
         }
 
         private void SelectPreviewPool(byte kind)
@@ -866,12 +1039,11 @@ namespace ProjectX.UI
 
         private void RenderNativePreview(int[] heroIds)
         {
-            if (previewNativeList == null || previewNativeTemplate == null) return;
+            if (previewNativeContent == null || previewNativeTemplate == null) return;
             // Image1 is the imported Cocos card-row template.  It remains an
             // inactive child of the native list and must survive refreshes.
-            foreach (Transform child in previewNativeList)
-                if (child.gameObject != previewNativeTemplate)
-                    UnityEngine.Object.Destroy(child.gameObject);
+            foreach (Transform child in previewNativeContent)
+                UnityEngine.Object.Destroy(child.gameObject);
             const int cardsPerLine = 8;
             const float rowHeight = 180f;
             int rowIndex = 0;
@@ -884,7 +1056,7 @@ namespace ProjectX.UI
                 int[] ids = qualityGroup.ToArray();
                 for (int start = 0; start < ids.Length; start += cardsPerLine)
                 {
-                    GameObject row = UnityEngine.Object.Instantiate(previewNativeTemplate, previewNativeList);
+                    GameObject row = UnityEngine.Object.Instantiate(previewNativeTemplate, previewNativeContent);
                     row.name = "NativePreviewQuality" + qualityGroup.Key + "_" + rowIndex;
                     row.SetActive(true);
                     RectTransform rect = row.GetComponent<RectTransform>();
@@ -893,8 +1065,14 @@ namespace ProjectX.UI
                         // Cocos Image1 is a sibling of its ListView and starts at
                         // a scroll-content Y coordinate.  Once cloned beneath the
                         // Unity viewport, place its top at the viewport top.
-                        float viewportHeight = (previewNativeList as RectTransform)?.rect.height ?? 530f;
-                        rect.anchoredPosition = new Vector2(0f, viewportHeight - rowIndex * rowHeight);
+                        rect.anchorMin = new Vector2(0f, 1f);
+                        rect.anchorMax = new Vector2(1f, 1f);
+                        rect.pivot = new Vector2(.5f, 1f);
+                        rect.anchoredPosition = new Vector2(0f, -rowIndex * rowHeight);
+                        // Under horizontal stretch, x sizeDelta must be zero. Keeping
+                        // Image1's imported -960 width turns into Left/Right=-480 and
+                        // moves all visible hero cards outside the ScrollRect viewport.
+                        rect.sizeDelta = new Vector2(0f, rowHeight);
                     }
                     Transform title = row.transform.Find("TitleBg/Text");
                     if (title != null) SetNamedText(title.parent, "Text", QualityTitle(qualityGroup.Key));
@@ -927,6 +1105,9 @@ namespace ProjectX.UI
                     rowIndex++;
                 }
             }
+            float viewportHeight = (previewNativeList as RectTransform)?.rect.height ?? 530f;
+            previewNativeContent.sizeDelta = new Vector2(0f, Mathf.Max(viewportHeight, rowIndex * rowHeight));
+            if (previewNativeScroll != null) previewNativeScroll.verticalNormalizedPosition = 1f;
         }
 
         private static string QualityTitle(int quality)
@@ -951,10 +1132,147 @@ namespace ProjectX.UI
         private void ShowPreviewHeroDetail(int heroId)
         {
             if (!HeroCatalog.TryGet(heroId, out HeroDefinition definition)) return;
-            string text = $"神将预览 #{heroId}\n品质：{definition.Quality}\n定位：{(string.IsNullOrWhiteSpace(definition.Feature) ? (definition.PhysicalAttack ? "物理" : "法术") : definition.Feature)}";
-            if (!string.IsNullOrWhiteSpace(definition.SkillName))
-                text += $"\n技能：{definition.SkillName}\n{HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1)}";
-            showPreviewHero(text);
+            heroPreviewFrame.SetActive(true);
+            heroPreviewView.GameObject.SetActive(true);
+            heroPreviewFrame.transform.SetAsLastSibling();
+            heroPreviewView.GameObject.transform.SetAsLastSibling();
+            SetNamedText(heroPreviewFrame.transform, "TitleName", "信息");
+            SetHeroPreviewText("Layer/Panel/Panel_left/Name", definition.Name);
+            Text heroName = heroPreviewView.Binding.Find("Layer/Panel/Panel_left/Name")?.GetComponent<Text>();
+            if (heroName != null) heroName.color = QualityColor(definition.Quality);
+            GameObject powerPanel = heroPreviewView.Binding.Find("Layer/Panel/Panel_left/RolePowerBase");
+            if (powerPanel != null) powerPanel.SetActive(false);
+            SetHeroPreviewText("Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value", definition.Feature);
+            string[] attributeNames = { "攻击:", "生命:", "物防:", "法防:",
+                "攻击成长:", "生命成长:", "物防成长:", "法防成长:" };
+            int[] attributes = { definition.Attack, definition.Health, definition.PhysicalDefense,
+                definition.MagicDefense, definition.AttackGrowth, definition.PhysicalDefenseGrowth,
+                definition.MagicDefenseGrowth, definition.HealthGrowth };
+            for (int index = 0; index < attributes.Length; index++)
+            {
+                SetHeroPreviewText($"Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_{index + 1}",
+                    attributeNames[index]);
+                SetHeroPreviewText($"Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_{index + 1}/Value",
+                    attributes[index].ToString());
+            }
+            const string skillItemPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/Skill/Item";
+            SetHeroPreviewText(skillItemPath + "/SkillName", definition.SkillName);
+            Transform skillItem = heroPreviewView.Binding.Find(skillItemPath)?.transform;
+            Text skillTemplate = heroPreviewView.Binding.Find(skillItemPath + "/SkillInfo")?.GetComponent<Text>();
+            heroPreviewSkillDescription = EnsurePreviewRuntimeText(heroPreviewSkillDescription, skillItem,
+                "RuntimeSkillDescription", new Vector2(.24f, .03f), new Vector2(.97f, .62f), skillTemplate, 19);
+            if (heroPreviewSkillDescription != null)
+                heroPreviewSkillDescription.text = HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1);
+
+            const string talentPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu";
+            Transform talentPanel = heroPreviewView.Binding.Find(talentPath)?.transform;
+            Text talentTemplate = heroPreviewView.Binding.Find(talentPath + "/TalentInfo")?.GetComponent<Text>();
+            heroPreviewTalentDescription = EnsurePreviewRuntimeText(heroPreviewTalentDescription, talentPanel,
+                "RuntimeTalentDescription", new Vector2(.04f, .03f), new Vector2(.96f, .97f), talentTemplate, 18);
+            if (heroPreviewTalentDescription != null)
+            {
+                IReadOnlyList<string> talents = HeroCultivationPresenter
+                    .GetBreakTalentDescriptionsForPreview(heroId, definition);
+                heroPreviewTalentDescription.text = string.Join("\n\n", talents.Select((value, index) =>
+                    $"突破至{index + 1}开启\n{value}"));
+            }
+            int fragmentNeed = itemCatalog.GetSynthesisCost(definition.ItemId);
+            int fragmentOwned = definition.ItemId > 0 ? bag.GetTotalQuantityByItemId(definition.ItemId) : 0;
+            SetHeroPreviewText("Layer/Panel/Panel_left/suipian/Slider_Bg/Value", $"{fragmentOwned}/{fragmentNeed}");
+            GameObject loadingObject = heroPreviewView.Binding.Find("Layer/Panel/Panel_left/suipian/Slider_Bg/LoadingBar");
+            Slider loading = loadingObject?.GetComponent<Slider>();
+            float fragmentProgress = fragmentNeed > 0 ? Mathf.Clamp01(fragmentOwned / (float)fragmentNeed) : 0f;
+            if (loading != null) loading.value = fragmentProgress;
+            Image loadingImage = loadingObject?.GetComponent<Image>();
+            if (loadingImage != null) loadingImage.fillAmount = fragmentProgress;
+            GameObject qualityObject = heroPreviewView.Binding.Find("Layer/Panel/Panel_left/bg_Quality/Value");
+            Image quality = qualityObject?.GetComponent<Image>();
+            if (quality != null)
+            {
+                string score = definition.Quality <= 4 ? "A" : definition.Quality == 5 ? "S"
+                    : definition.Quality == 6 ? "SS" : definition.Quality == 7 ? "SSS" : "SSSS";
+                quality.sprite = resources.LoadFirst("HeroUI/quality_score_" + score);
+                quality.enabled = quality.sprite != null;
+            }
+            GameObject skillIconObject = heroPreviewView.Binding.Find(
+                "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Btn_Skill/Icon");
+            Image skillIcon = skillIconObject?.GetComponent<Image>();
+            if (skillIcon != null)
+            {
+                skillIcon.sprite = resources.LoadFirst($"HeroUI/skill_{definition.SkillId}");
+                skillIcon.enabled = skillIcon.sprite != null;
+                skillIcon.preserveAspect = true;
+            }
+            RenderHeroPreviewModel(definition);
+        }
+
+        private void RenderHeroPreviewModel(HeroDefinition definition)
+        {
+            GameObject hostObject = heroPreviewView.Binding.Find("Layer/Panel/Panel_left/Node_1/Node");
+            Transform host = hostObject?.transform;
+            if (host == null) return;
+            if (heroPreviewModel == null)
+            {
+                var modelObject = new GameObject("RuntimeDrawHeroPreviewModel", typeof(RectTransform));
+                RectTransform rect = modelObject.GetComponent<RectTransform>();
+                rect.SetParent(host, false);
+                rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = Vector2.zero;
+                heroPreviewModel = modelObject.AddComponent<ImodAnimationPlayer>();
+            }
+            bool loaded = heroPreviewModel.LoadLegacy($"Monster/btm{definition.Picture}_zd_show");
+            heroPreviewModel.gameObject.SetActive(loaded);
+            if (loaded) heroPreviewModel.Play(0, true);
+            if (heroPreviewFallback == null)
+            {
+                heroPreviewFallback = CreateImage(host, "RuntimeDrawHeroPreviewPortrait",
+                    new Vector2(-1.5f, -1.5f), new Vector2(2.5f, 2.5f));
+                heroPreviewFallback.preserveAspect = true;
+            }
+            heroPreviewFallback.sprite = loaded ? null
+                : resources.LoadFirst($"MonsterBust/{definition.Picture}", $"MonsterBust/{definition.Picture}_tou");
+            heroPreviewFallback.gameObject.SetActive(!loaded && heroPreviewFallback.sprite != null);
+        }
+
+        private void SetHeroPreviewText(string path, string value)
+        {
+            Text text = heroPreviewView.Binding.Find(path)?.GetComponent<Text>();
+            if (text != null) text.text = value ?? string.Empty;
+        }
+
+        private static Text EnsurePreviewRuntimeText(Text current, Transform parent, string name,
+            Vector2 anchorMin, Vector2 anchorMax, Text template, int fontSize)
+        {
+            if (parent == null) return null;
+            Text text = current;
+            if (text == null)
+                text = CreateText(parent, name, anchorMin, anchorMax, fontSize, TextAnchor.UpperLeft);
+            RectTransform rect = text.rectTransform;
+            rect.SetParent(parent, false);
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            if (template != null)
+            {
+                text.font = template.font;
+                text.fontStyle = template.fontStyle;
+                text.color = template.color;
+            }
+            text.fontSize = fontSize;
+            text.alignment = TextAnchor.UpperLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
+            text.supportRichText = true;
+            text.raycastTarget = false;
+            text.gameObject.SetActive(true);
+            text.transform.SetAsLastSibling();
+            return text;
+        }
+
+        public void HidePreviewHeroDetail()
+        {
+            if (heroPreviewFrame != null) heroPreviewFrame.SetActive(false);
         }
 
         private static void BindFirst(Transform root, Action action, params string[] names)

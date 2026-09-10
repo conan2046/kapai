@@ -112,6 +112,7 @@ namespace ProjectX.Editor
         private const string DrawSingleResultPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/dancichouka.prefab";
         private const string DrawTenResultPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/shilianchouka.prefab";
         private const string DrawPreviewPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/jiangliyulan.prefab";
+        private const string DrawHeroPreviewPrefab = "Assets/ProjectX/res/csd/Prefabs/chouka/shenjiangyulan.prefab";
         private const string DrawExchangePrefab = "Assets/ProjectX/res/csd/Prefabs/common/daojuduihuan.prefab";
         private const string GameplayFramePrefab = "Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab";
         private const string GameplayPrefab = "Assets/ProjectX/res/csd/Prefabs/common/ActivityLayer.prefab";
@@ -209,6 +210,7 @@ namespace ProjectX.Editor
             new PrefabSpec(DrawSingleResultPrefab, true, DrawPrefab),
             new PrefabSpec(DrawTenResultPrefab, true, DrawPrefab),
             new PrefabSpec(DrawPreviewPrefab, false, DrawPrefab),
+            new PrefabSpec(DrawHeroPreviewPrefab, false, DrawPrefab),
             new PrefabSpec(DrawExchangePrefab, false),
             new PrefabSpec(GameplayFramePrefab, false),
             new PrefabSpec(GameplayPrefab, true, GameplayFramePrefab),

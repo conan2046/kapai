@@ -483,6 +483,7 @@ namespace ProjectX.Core
         private CocosUiView drawSingleResultView;
         private CocosUiView drawTenResultView;
         private CocosUiView drawPreviewView;
+        private CocosUiView drawHeroPreviewView;
         private CocosUiView drawExchangeView;
         private GameObject drawExchangeDimmer;
         private DrawPresenter drawPresenter;
@@ -17391,17 +17392,16 @@ namespace ProjectX.Core
             drawSingleResultView = drawSingleResultView ?? services.UiRouter.FindBySource("chouka/dancichouka");
             drawTenResultView = drawTenResultView ?? services.UiRouter.FindBySource("chouka/shilianchouka");
             drawPreviewView = drawPreviewView ?? services.UiRouter.FindBySource("chouka/jiangliyulan");
+            drawHeroPreviewView = drawHeroPreviewView ?? services.UiRouter.FindBySource("chouka/shenjiangyulan");
             CocosUiView drawPreviewFrame = services.UiRouter.FindBySource("OneLevelLayer");
-            if (drawView == null || drawSingleResultView == null || drawTenResultView == null || drawPreviewView == null || drawPreviewFrame == null)
+            if (drawView == null || drawSingleResultView == null || drawTenResultView == null || drawPreviewView == null
+                || drawHeroPreviewView == null || drawPreviewFrame == null)
                 throw new InvalidOperationException("Current HappyDraw imported CocosUiBindings were not found by full relative path.");
-            drawPresenter = drawPresenter ?? new DrawPresenter(drawView, drawSingleResultView, drawTenResultView, drawPreviewView, drawPreviewFrame,
-                services.Draw, services.ServerTime, services.Resources, services.Currencies, services.Bag,
+            drawPresenter = drawPresenter ?? new DrawPresenter(drawView, drawSingleResultView, drawTenResultView,
+                drawPreviewView, drawPreviewFrame, drawHeroPreviewView,
+                services.Draw, services.ServerTime, services.Resources, services.ShopCatalog, services.Currencies, services.Bag,
                 (kind, type) => InvokeLuaOrFail(onDrawRequested, "Draw.Requested", (double)kind, (double)type),
-                () => HandleBack(), text =>
-                {
-                    EnsureErrorPresenter();
-                    errorPresenter.ShowHelp(text);
-                });
+                () => HandleBack());
             drawView.BindClick("Layer/GoldCheck/GoldIcon1/AddBtn", () =>
             {
                 EnsureErrorPresenter();
@@ -17717,8 +17717,8 @@ namespace ProjectX.Core
                 Button heroPreview = drawPreviewView.GameObject.transform.Find("PreviewViewport/IllustrationsList/Hero_35")?.GetComponent<Button>();
                 if (heroPreview == null) { Fail("Draw normal reward preview hero entry is missing."); yield break; }
                 heroPreview.onClick.Invoke();
-                if (!IsErrorVisible) { Fail("Draw preview hero detail did not open."); yield break; }
-                errorPresenter.Hide(); MarkValidationControl("DRAW-20-PREVIEW-HERO-DETAIL");
+                if (!drawPresenter.IsPreviewHeroDetailVisible) { Fail("Draw preview hero detail did not open."); yield break; }
+                drawPresenter.HidePreviewHeroDetail(); MarkValidationControl("DRAW-20-PREVIEW-HERO-DETAIL");
                 Button previewClose = drawPreviewView.GameObject.transform.Find("RuntimePreviewClose")?.GetComponent<Button>()
                     ?? drawPreviewView.Binding.Find("Layer/CloseBtn")?.GetComponent<Button>()
                     ?? drawPreviewView.Binding.Find("Layer/Btn_Close")?.GetComponent<Button>();
