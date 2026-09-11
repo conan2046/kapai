@@ -54,6 +54,8 @@ namespace ProjectX.UI
         private RectTransform previewNativeContent;
         private readonly GameObject heroPreviewFrame;
         private readonly CocosUiView heroPreviewView;
+        private ScrollRect heroPreviewInfoScroll;
+        private RectTransform heroPreviewInfoContent;
         private ImodAnimationPlayer heroPreviewModel;
         private Image heroPreviewFallback;
         private Text heroPreviewSkillDescription;
@@ -107,6 +109,7 @@ namespace ProjectX.UI
             Normalize(previewView.GameObject);
             Normalize(heroPreviewFrame);
             Normalize(heroPreviewView.GameObject);
+            ConfigureHeroPreviewInfoScroll();
             singleResultView.GameObject.SetActive(false);
             tenResultView.GameObject.SetActive(false);
             previewView.GameObject.SetActive(false);
@@ -1198,14 +1201,16 @@ namespace ProjectX.UI
             const string talentPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu";
             Transform talentPanel = heroPreviewView.Binding.Find(talentPath)?.transform;
             Text talentTemplate = heroPreviewView.Binding.Find(talentPath + "/TalentInfo")?.GetComponent<Text>();
-            heroPreviewTalentDescription = EnsurePreviewRuntimeText(heroPreviewTalentDescription, talentPanel,
-                "RuntimeTalentDescription", new Vector2(.04f, .03f), new Vector2(.96f, .97f), talentTemplate, 18);
+            Transform staleRuntimeText = talentPanel?.Find("RuntimeTalentDescription");
+            if (staleRuntimeText != null) UnityEngine.Object.Destroy(staleRuntimeText.gameObject);
+            heroPreviewTalentDescription = talentTemplate;
             if (heroPreviewTalentDescription != null)
             {
                 IReadOnlyList<string> talents = HeroCultivationPresenter
                     .GetBreakTalentDescriptionsForPreview(heroId, definition);
                 heroPreviewTalentDescription.text = string.Join("\n\n", talents.Select((value, index) =>
                     $"突破至{index + 1}开启\n{value}"));
+                ResizeHeroPreviewTalentInfo();
             }
             int fragmentNeed = itemCatalog.GetSynthesisCost(definition.ItemId);
             int fragmentOwned = definition.ItemId > 0 ? bag.GetTotalQuantityByItemId(definition.ItemId) : 0;
@@ -1235,6 +1240,95 @@ namespace ProjectX.UI
                 skillIcon.preserveAspect = true;
             }
             RenderHeroPreviewModel(definition);
+        }
+
+        private void ConfigureHeroPreviewInfoScroll()
+        {
+            const string path = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1";
+            GameObject scrollObject = heroPreviewView.Binding.Find(path);
+            RectTransform viewport = scrollObject?.transform as RectTransform;
+            if (viewport == null) return;
+
+            heroPreviewInfoScroll = scrollObject.GetComponent<ScrollRect>()
+                ?? scrollObject.AddComponent<ScrollRect>();
+            heroPreviewInfoScroll.viewport = viewport;
+            heroPreviewInfoScroll.horizontal = false;
+            heroPreviewInfoScroll.vertical = true;
+            heroPreviewInfoScroll.movementType = ScrollRect.MovementType.Clamped;
+            heroPreviewInfoScroll.scrollSensitivity = 30f;
+
+            Image inputSurface = scrollObject.GetComponent<Image>() ?? scrollObject.AddComponent<Image>();
+            inputSurface.sprite = null;
+            inputSurface.color = Color.clear;
+            inputSurface.raycastTarget = true;
+
+            Transform existing = viewport.Find("RuntimeContent");
+            if (existing != null)
+            {
+                heroPreviewInfoContent = existing as RectTransform;
+            }
+            else
+            {
+                GameObject contentObject = new GameObject("RuntimeContent", typeof(RectTransform));
+                heroPreviewInfoContent = contentObject.GetComponent<RectTransform>();
+                heroPreviewInfoContent.SetParent(viewport, false);
+                heroPreviewInfoContent.anchorMin = new Vector2(0f, 1f);
+                heroPreviewInfoContent.anchorMax = new Vector2(1f, 1f);
+                heroPreviewInfoContent.pivot = new Vector2(.5f, 1f);
+                heroPreviewInfoContent.anchoredPosition = Vector2.zero;
+                heroPreviewInfoContent.sizeDelta = new Vector2(0f, viewport.rect.height);
+
+                Transform[] sections = viewport.Cast<Transform>()
+                    .Where(value => value != heroPreviewInfoContent)
+                    .ToArray();
+                foreach (Transform section in sections)
+                {
+                    RectTransform rect = section as RectTransform;
+                    if (rect == null) continue;
+                    Vector3 worldPosition = rect.position;
+                    rect.SetParent(heroPreviewInfoContent, true);
+                    rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1f);
+                    rect.position = worldPosition;
+                }
+            }
+
+            heroPreviewInfoScroll.content = heroPreviewInfoContent;
+            RefreshHeroPreviewInfoContentHeight();
+        }
+
+        private void ResizeHeroPreviewTalentInfo()
+        {
+            if (heroPreviewTalentDescription == null) return;
+            RectTransform rect = heroPreviewTalentDescription.rectTransform;
+            heroPreviewTalentDescription.horizontalOverflow = HorizontalWrapMode.Wrap;
+            heroPreviewTalentDescription.verticalOverflow = VerticalWrapMode.Overflow;
+            heroPreviewTalentDescription.raycastTarget = false;
+            Canvas.ForceUpdateCanvases();
+            float preferredHeight = Mathf.Max(1f, heroPreviewTalentDescription.preferredHeight);
+            if (preferredHeight > rect.rect.height)
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, preferredHeight);
+            RefreshHeroPreviewInfoContentHeight();
+        }
+
+        private void RefreshHeroPreviewInfoContentHeight()
+        {
+            if (heroPreviewInfoScroll == null || heroPreviewInfoContent == null
+                || heroPreviewInfoScroll.viewport == null) return;
+            Canvas.ForceUpdateCanvases();
+            float lowestPoint = 0f;
+            Vector3[] corners = new Vector3[4];
+            foreach (RectTransform child in heroPreviewInfoContent.GetComponentsInChildren<RectTransform>(true))
+            {
+                if (child == heroPreviewInfoContent) continue;
+                child.GetWorldCorners(corners);
+                for (int index = 0; index < corners.Length; index++)
+                    lowestPoint = Mathf.Min(lowestPoint,
+                        heroPreviewInfoContent.InverseTransformPoint(corners[index]).y);
+            }
+            float viewportHeight = heroPreviewInfoScroll.viewport.rect.height;
+            float requiredHeight = Mathf.Max(viewportHeight, -lowestPoint + 16f);
+            heroPreviewInfoContent.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, requiredHeight);
+            heroPreviewInfoScroll.verticalNormalizedPosition = 1f;
         }
 
         private void RenderHeroPreviewModel(HeroDefinition definition)
