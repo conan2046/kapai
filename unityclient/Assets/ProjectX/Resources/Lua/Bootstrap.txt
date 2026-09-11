@@ -5,6 +5,7 @@ local SettingsController = require("Settings.SettingsController")
 local TaskController = require("Task.TaskController")
 local PlayerController = require("Player.PlayerController")
 local HeroController = require("Hero.HeroController")
+local HeroBookController = require("Hero.HeroBookController")
 local EquipmentController = require("Hero.EquipmentController")
 local ServerTimeController = require("Time.ServerTimeController")
 local MailController = require("Mail.MailController")
@@ -42,6 +43,7 @@ function OnConnected() LoginController.onConnected() end
 function OnDisconnected(reason)
     BagController.onDisconnected()
     HeroController.reset()
+    HeroBookController.reset()
     EquipmentController.reset()
     MailController.onDisconnected()
     ShopController.onDisconnected()
@@ -75,6 +77,8 @@ function OnHeroCultivationActivate(heroId) HeroController.activateCultivation(he
 function OnHeroCompose(fragmentId) HeroController.composeHero(fragmentId) end
 function OnHeroRebirthPreview(heroId) HeroController.requestRebirthPreview(heroId) end
 function OnHeroRebirthConfirm(heroId) HeroController.confirmRebirth(heroId) end
+function OnHeroBookOpened() HeroBookController.open() end
+function OnHeroBookUpgrade(heroId) HeroBookController.upgrade(heroId) end
 function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
 function OnEquipmentBagClicked() EquipmentController.open(1) end
@@ -206,6 +210,7 @@ function OnPacket(command, message)
     if PlayerController.onPacket(command, message) then return end
     if BagController.onPacket(command, message) then return end
     if HeroController.onPacket(command, message) then return end
+    if HeroBookController.onPacket(command, message) then return end
     if SevenDayController.onPacket(command, message) then return end
     if ServerTimeController.onPacket(command, message) then return end
     if MailController.onPacket(command, message) then return end

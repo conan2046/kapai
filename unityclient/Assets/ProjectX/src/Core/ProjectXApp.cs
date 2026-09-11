@@ -78,6 +78,8 @@ namespace ProjectX.Core
         private LuaFunction onHeroCompose;
         private LuaFunction onHeroRebirthPreview;
         private LuaFunction onHeroRebirthConfirm;
+        private LuaFunction onHeroBookOpened;
+        private LuaFunction onHeroBookUpgrade;
         private LuaFunction onHeroEquipmentWear;
         private LuaFunction onEquipmentBagClicked;
         private LuaFunction onFaBaoBagClicked;
@@ -245,6 +247,22 @@ namespace ProjectX.Core
         private CocosUiView heroDetailView;
         private CocosUiView heroBagView;
         private CocosUiView heroBookView;
+        private CocosUiView heroBookUpgradeView;
+        private CocosUiView heroBookActivateResultView;
+        private CocosUiView heroBookUpgradeResultView;
+        private CocosUiView heroBookAttributesView;
+        private CocosUiView heroBookAchievementView;
+        private CocosUiView heroBookLevelResultView;
+        private HeroBookPresenter heroBookPresenter;
+        private readonly List<HeroBookEntry> pendingHeroBookEntries = new List<HeroBookEntry>();
+        private readonly List<HeroBookAttribute> pendingHeroBookAttributes = new List<HeroBookAttribute>();
+        private readonly List<HeroBookAttribute> pendingHeroBookScoreAttributes = new List<HeroBookAttribute>();
+        private readonly List<HeroBookAttribute> pendingHeroBookUpgradeAttributes = new List<HeroBookAttribute>();
+        private readonly List<HeroBookAttribute> pendingHeroBookUpgradeLevelAttributes = new List<HeroBookAttribute>();
+        private int pendingHeroBookLevel;
+        private long pendingHeroBookScore;
+        private long pendingHeroBookNextStart;
+        private long pendingHeroBookNextEnd;
         private CocosUiView heroRecycleView;
         private CocosUiView heroRebirthChooseFrameView;
         private CocosUiView heroRebirthChooseView;
@@ -843,6 +861,8 @@ namespace ProjectX.Core
                 onHeroCompose = services.Lua.GetFunction("OnHeroCompose");
                 onHeroRebirthPreview = services.Lua.GetFunction("OnHeroRebirthPreview");
                 onHeroRebirthConfirm = services.Lua.GetFunction("OnHeroRebirthConfirm");
+                onHeroBookOpened = services.Lua.GetFunction("OnHeroBookOpened");
+                onHeroBookUpgrade = services.Lua.GetFunction("OnHeroBookUpgrade");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onFormationSwap = services.Lua.GetFunction("OnFormationSwap");
                 onFormationUpgrade = services.Lua.GetFunction("OnFormationUpgrade");
@@ -1022,6 +1042,8 @@ namespace ProjectX.Core
             onHeroCompose?.Dispose();
             onHeroRebirthPreview?.Dispose();
             onHeroRebirthConfirm?.Dispose();
+            onHeroBookOpened?.Dispose();
+            onHeroBookUpgrade?.Dispose();
             onFormationMove?.Dispose();
             onFormationSwap?.Dispose();
             onFormationUpgrade?.Dispose();
@@ -8157,6 +8179,70 @@ namespace ProjectX.Core
             heroRebirthResponseHeroId = 0;
         }
 
+        public void BeginHeroBookSnapshot(int level, double score, double nextStart, double nextEnd,
+            int expectedHeroCount)
+        {
+            pendingHeroBookLevel = level;
+            pendingHeroBookScore = checked((long)score);
+            pendingHeroBookNextStart = checked((long)nextStart);
+            pendingHeroBookNextEnd = checked((long)nextEnd);
+            pendingHeroBookEntries.Clear();
+            pendingHeroBookAttributes.Clear();
+            pendingHeroBookScoreAttributes.Clear();
+            if (expectedHeroCount > pendingHeroBookEntries.Capacity)
+                pendingHeroBookEntries.Capacity = expectedHeroCount;
+        }
+
+        public void AddHeroBookEntry(int heroId, int star, int score)
+            => pendingHeroBookEntries.Add(new HeroBookEntry(heroId, star, score));
+
+        public void AddHeroBookAttribute(int group, int type, double value)
+        {
+            var attribute = new HeroBookAttribute(type, checked((long)value));
+            if (group == 1) pendingHeroBookAttributes.Add(attribute);
+            else pendingHeroBookScoreAttributes.Add(attribute);
+        }
+
+        public void EndHeroBookSnapshot()
+        {
+            services.HeroBook.Replace(pendingHeroBookLevel, pendingHeroBookScore,
+                pendingHeroBookNextStart, pendingHeroBookNextEnd, pendingHeroBookEntries,
+                pendingHeroBookAttributes, pendingHeroBookScoreAttributes);
+            SetStatus($"HeroBook synchronized: level={services.HeroBook.Level}, score={services.HeroBook.Score}, heroes={services.HeroBook.Entries.Count}.");
+        }
+
+        public void BeginHeroBookUpgrade(int heroId, int star, int addedScore, int bookLevel)
+        {
+            pendingHeroBookUpgradeAttributes.Clear();
+            pendingHeroBookUpgradeLevelAttributes.Clear();
+        }
+
+        public void AddHeroBookUpgradeAttribute(int group, int type, double value)
+        {
+            var attribute = new HeroBookAttribute(type, checked((long)value));
+            if (group == 1) pendingHeroBookUpgradeAttributes.Add(attribute);
+            else pendingHeroBookUpgradeLevelAttributes.Add(attribute);
+        }
+
+        public void EndHeroBookUpgrade(int heroId, int star, int addedScore, int bookLevel,
+            bool success, string error)
+        {
+            if (!success)
+            {
+                pendingHeroBookUpgradeAttributes.Clear();
+                pendingHeroBookUpgradeLevelAttributes.Clear();
+                ShowToast(string.IsNullOrWhiteSpace(error) ? "图鉴升级失败" : error, 3f);
+                return;
+            }
+            // The Cocos activation flow stays on HeroBook and only overlays the result.
+            // Repair stale sibling visibility without running the full auxiliary-page
+            // navigation, which would briefly reopen Bag and rebind its close control.
+            EnsureHeroBookSurfaceForResult();
+            services.HeroBook.ApplyUpgrade(heroId, star, addedScore, bookLevel,
+                pendingHeroBookUpgradeAttributes, pendingHeroBookUpgradeLevelAttributes);
+            SetStatus($"HeroBook/322 upgrade applied: hero={heroId}, star={star}, score=+{addedScore}, level={bookLevel}.");
+        }
+
         public void BeginFormationUpdate(int activeId, int expectedCount)
         {
             pendingActiveFormationId = activeId;
@@ -8209,6 +8295,16 @@ namespace ProjectX.Core
             if (!explicitEntry && !heroPageVisible && !hasVisibleHeroSubview)
             {
                 SetStatus($"Hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            bool preserveHeroBook = !explicitEntry
+                && heroBookView?.GameObject.activeSelf == true;
+            if (preserveHeroBook)
+            {
+                // Activating a handbook entry causes the server to push /18, /70 and /48
+                // before the /322 result. Those packets refresh data only; they must not
+                // apply the remembered Bag entry and replace the visible handbook page.
+                SetStatus($"HeroBook hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
                 return;
             }
             EnsureHeroPresenter();
@@ -8291,12 +8387,18 @@ namespace ProjectX.Core
             int rendered = showBag ? heroPresenter.BagItemCount : heroPresenter.ItemCount;
             bool luaMatchesMirror = luaHeroCount == services.Heroes.Count
                 && luaFormationCount == services.Formation.Formations.Count
-                && luaActiveFormationId == services.Formation.ActiveFormationId
-                && luaSelectedHeroId == heroPresenter.SelectedId;
-            bool requiresSkillIcon = HeroCatalog.TryGet(luaSelectedHeroId, out HeroDefinition selectedDefinition)
+                && luaActiveFormationId == services.Formation.ActiveFormationId;
+            // The hero bag is a complete-card grid and has no selected-detail state.
+            // Lua may retain an undeployed LCPet selection while the shared formation
+            // presenter keeps its detail panel on a deployed slot; both are valid for
+            // this entry and must not turn a successful bag render into AppState.Failed.
+            bool selectionMatches = showBag || luaSelectedHeroId == heroPresenter.SelectedId;
+            bool requiresSkillIcon = !showBag
+                && HeroCatalog.TryGet(luaSelectedHeroId, out HeroDefinition selectedDefinition)
                 && selectedDefinition.SkillId > 0;
             if (luaHeroCount <= 0 || luaFormationCount <= 0 || rendered != luaHeroCount
-                || !luaMatchesMirror || !IsHeroOpen || (requiresSkillIcon && !heroPresenter.HasVisibleSkillIcon))
+                || !luaMatchesMirror || !selectionMatches || !IsHeroOpen
+                || (requiresSkillIcon && !heroPresenter.HasVisibleSkillIcon))
             {
                 Fail($"Lua formation read mismatch: entry={pendingHeroEntry}, luaHeroes={luaHeroCount}, "
                     + $"mirrorHeroes={services.Heroes.Count}, rendered={rendered}, luaFormations={luaFormationCount}, "
@@ -14802,7 +14904,28 @@ namespace ProjectX.Core
         {
             EnsureHeroPresenter();
             heroBookView = heroBookView ?? UiPrefabLoader.Load("HeroBook", heroFrameView.GameObject.transform);
+            Transform overlayRoot = GetDynamicUiRoot();
+            heroBookUpgradeView = heroBookUpgradeView ?? UiPrefabLoader.Load("HeroBookUpgrade", overlayRoot);
+            heroBookActivateResultView = heroBookActivateResultView
+                ?? UiPrefabLoader.Load("HeroBookActivateResult", overlayRoot);
+            heroBookUpgradeResultView = heroBookUpgradeResultView
+                ?? UiPrefabLoader.Load("HeroBookUpgradeResult", overlayRoot);
+            heroBookAttributesView = heroBookAttributesView
+                ?? UiPrefabLoader.Load("HeroBookAttributes", overlayRoot);
+            heroBookAchievementView = heroBookAchievementView
+                ?? UiPrefabLoader.Load("HeroBookAchievements", overlayRoot);
+            heroBookLevelResultView = heroBookLevelResultView
+                ?? UiPrefabLoader.Load("HeroBookLevelResult", overlayRoot);
+            heroBookPresenter = heroBookPresenter ?? new HeroBookPresenter(heroBookView,
+                heroBookUpgradeView, heroBookActivateResultView, heroBookUpgradeResultView,
+                heroBookAttributesView, heroBookAchievementView, heroBookLevelResultView,
+                services.HeroBook, services.HeroBookCatalog, services.Heroes, services.Bag,
+                services.EquipmentCatalog, services.Resources,
+                id => InvokeLuaOrFail(onHeroBookUpgrade, "HeroBook.Upgrade", id),
+                message => ShowToast(message, 3f));
             ShowHeroBagAuxiliary(heroBookView, "神将图鉴");
+            heroBookPresenter.Show();
+            InvokeLuaOrFail(onHeroBookOpened, "HeroBook.Open");
         }
 
         private void HandleHeroRecycleClick()
@@ -15590,6 +15713,31 @@ namespace ProjectX.Core
             target.GameObject.transform.SetAsLastSibling();
         }
 
+        private void EnsureHeroBookSurfaceForResult()
+        {
+            if (heroBookPresenter == null || heroBookView?.GameObject == null) return;
+            bool hasConflictingSurface = heroListView?.GameObject.activeSelf == true
+                || heroDetailView?.GameObject.activeSelf == true
+                || heroBagView?.GameObject.activeSelf == true
+                || heroCultivationView?.GameObject.activeSelf == true
+                || heroLevelUpView?.GameObject.activeSelf == true;
+            if (heroBookView.GameObject.activeSelf && !hasConflictingSurface) return;
+
+            HideHeroCultivationForNavigation();
+            heroListView?.SetVisible(false);
+            heroDetailView?.SetVisible(false);
+            heroBagView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
+            heroBookView.SetVisible(true);
+            heroFrameView?.SetVisible(true);
+            Transform tabs = heroFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            if (tabs != null) tabs.gameObject.SetActive(false);
+            Text title = heroFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "神将图鉴";
+            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            heroBookView.GameObject.transform.SetAsLastSibling();
+        }
+
         private void RestoreHeroBagFromAuxiliary()
         {
             ReleaseHeroAuxiliaryViews();
@@ -15599,17 +15747,31 @@ namespace ProjectX.Core
 
         private void ReleaseHeroAuxiliaryViews()
         {
+            heroBookPresenter?.Dispose();
+            heroBookPresenter = null;
             heroRebirthPresenter?.Dispose();
             heroRebirthPresenter = null;
             UiPrefabLoader.Release(heroRebirthChooseView);
             UiPrefabLoader.Release(heroRebirthChooseFrameView);
             UiPrefabLoader.Release(heroRebirthConfirmView);
             UiPrefabLoader.Release(heroBookView);
+            UiPrefabLoader.Release(heroBookUpgradeView);
+            UiPrefabLoader.Release(heroBookActivateResultView);
+            UiPrefabLoader.Release(heroBookUpgradeResultView);
+            UiPrefabLoader.Release(heroBookAttributesView);
+            UiPrefabLoader.Release(heroBookAchievementView);
+            UiPrefabLoader.Release(heroBookLevelResultView);
             UiPrefabLoader.Release(heroRecycleView);
             heroRebirthChooseView = null;
             heroRebirthChooseFrameView = null;
             heroRebirthConfirmView = null;
             heroBookView = null;
+            heroBookUpgradeView = null;
+            heroBookActivateResultView = null;
+            heroBookUpgradeResultView = null;
+            heroBookAttributesView = null;
+            heroBookAchievementView = null;
+            heroBookLevelResultView = null;
             heroRecycleView = null;
             ReleaseHeroEquipmentViews();
             UiPrefabLoader.Release(heroEnhanceMasterView);

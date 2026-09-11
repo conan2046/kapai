@@ -51,6 +51,8 @@ namespace ProjectX.Core
             FundsCatalog = new FundsCatalog();
             Funds = new FundsStore();
             Heroes = new HeroStore();
+            HeroBookCatalog = new HeroBookCatalog();
+            HeroBook = new HeroBookStore();
             Formation = new FormationStore();
             HeroEquipment = new HeroEquipmentStore();
             FaBao = new FaBaoStore();
@@ -108,6 +110,8 @@ namespace ProjectX.Core
         public FundsCatalog FundsCatalog { get; }
         public FundsStore Funds { get; }
         public HeroStore Heroes { get; }
+        public HeroBookCatalog HeroBookCatalog { get; }
+        public HeroBookStore HeroBook { get; }
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
         public HeroEquipmentStore HeroEquipment { get; }
@@ -165,6 +169,7 @@ namespace ProjectX.Core
             StaminaClaim.Clear();
             ResourceRecovery.Reset();
             Funds.Reset();
+            HeroBook.Clear();
             ShopCatalog.Clear();
             ServerTime.Reset();
             Configs.Clear();

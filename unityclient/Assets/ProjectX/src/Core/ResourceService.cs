@@ -50,6 +50,8 @@ namespace ProjectX.Core
 
         public Sprite LoadHeroPortrait(int picture) => LoadHeroPortrait(picture, out _);
 
+        public Sprite LoadHeroBodyPortrait(int picture) => LoadHeroBodyPortrait(picture, out _);
+
         public Sprite LoadPlayerRoundPortrait(int head)
         {
             int resolvedHead = head == 4 || head == 5 ? head : 5;
@@ -103,6 +105,19 @@ namespace ProjectX.Core
             usedPlaceholder = true;
             RecordMissing($"HeroPortrait/{picture}");
             return LoadSprite("MonsterBust/head_defult");
+        }
+
+        public Sprite LoadHeroBodyPortrait(int picture, out bool usedPlaceholder)
+        {
+            usedPlaceholder = false;
+            if (picture > 0)
+            {
+                Sprite sprite = LoadSprite($"MonsterBust/{picture}", false);
+                if (sprite != null) return sprite;
+            }
+            usedPlaceholder = true;
+            RecordMissing($"HeroBodyPortrait/{picture}");
+            return LoadSprite("MonsterBust/1", false) ?? LoadSprite("MonsterBust/head_defult");
         }
 
         public Sprite LoadFirst(params string[] resourcePaths)

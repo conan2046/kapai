@@ -252,6 +252,16 @@ namespace ProjectX.Data
             return Definitions.TryGetValue(heroId, out definition);
         }
 
+        public static IReadOnlyList<KeyValuePair<int, HeroDefinition>> GetBookDefinitions()
+        {
+            LoadAuthoritativeDefinitions();
+            return Definitions
+                .Where(item => item.Key > 0 && item.Value.Picture > 0)
+                .OrderByDescending(item => item.Value.Quality)
+                .ThenBy(item => item.Key)
+                .ToArray();
+        }
+
         public static IEnumerable<int> GetDrawPreviewHeroes(byte poolKind)
         {
             // Synchronized from server/config/json/draw_config.json. Cocos groups

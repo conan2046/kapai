@@ -16,12 +16,20 @@ $drawPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/As
 $drawSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-DrawSqliteFixture.ps1") -Raw -Encoding UTF8
 $drawSqliteFixturePythonSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-DrawSqliteFixture.py") -Raw -Encoding UTF8
 $heroCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/HeroCatalog.cs") -Raw -Encoding UTF8
+$heroBookCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/HeroBookCatalog.cs") -Raw -Encoding UTF8
+$heroBookPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroBookPresenter.cs") -Raw -Encoding UTF8
+$heroBookControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroBookController.lua.txt") -Raw -Encoding UTF8
+$resourceServiceSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ResourceService.cs") -Raw -Encoding UTF8
+$protocolRegistrySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Network/ProtocolRegistry.cs") -Raw -Encoding UTF8
+$uiPrefabCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/UiPrefabs/Catalog.asset") -Raw -Encoding UTF8
 $bootstrapSceneBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
+$heroBookActivatePrefabSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianendLayer.prefab") -Raw -Encoding UTF8
 $validationFixtures = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/validation-fixtures.json").Value
 $drawPoolConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_config.json").Value
 $drawPoolBasic = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_basic.json").Value
 $drawItemConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/item.json").Value
+$heroBookHeroConfig = (Import-UnityMigrationJson -Root $root -Path "unityclient/Assets/ProjectX/Resources/Configs/hero.json").Value
 
 function Assert-ToolchainTest {
     param(
@@ -1576,6 +1584,11 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('while (!services.Currencies.Has(CurrencyIds.Stamina) && Time.realtimeSinceStartup < deadline)')
 ) "PlayerHud native online reward, chat clipping/expansion, submenu animation, or stable-frame capture regressed."
 Assert-ToolchainTest (
+    $mainHudPresenterSource.Contains('powerWanRect.localScale = new Vector3(.39f, .39f, 1f);') -and
+    $mainHudPresenterSource.Contains('powerWanRect.anchoredPosition = new Vector2(Mathf.Ceil(powerText.preferredWidth), 0f);') -and
+    $mainHudPresenterSource.Contains('Cocos MainUI.ShowHeroPower places Wan at the current label content width.')
+) "Main HUD compact-power Wan marker can again inherit the normalized Value scale or remain at the imported x=360 position."
+Assert-ToolchainTest (
     $mainTaskTrackerSource.Contains('private bool serverHotPointReceived;') -and
     $mainTaskTrackerSource.Contains('public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;') -and
     $mainTaskTrackerSource.Contains('else if (serverHotPointReceived) prompt.SetActive(serverHotPoint);') -and
@@ -3059,6 +3072,14 @@ Assert-ToolchainTest (
     $heroCultivationPresenterSource.Contains('HeroCultivationMaterialFrame')
 ) "HeroCultivation early-play regression: duplicate second tab or unified material quality-frame repair was removed."
 Assert-ToolchainTest (
+    [regex]::IsMatch($heroCultivationPresenterSource,
+        'Hide\(\)[\s\S]*?shell\.SetVisible\(false\);\s*ResetTabOverlay\(\);') -and
+    [regex]::IsMatch($heroCultivationPresenterSource,
+        'ResetTabOverlay\(\)[\s\S]*?tabCanvas\.overrideSorting = false;\s*tabCanvas\.sortingOrder = 0;') -and
+    $heroCultivationPresenterSource.Contains('tabCanvas.overrideSorting = true;') -and
+    $heroCultivationPresenterSource.Contains('tabCanvas.sortingOrder = 200;')
+) "HeroCultivation navigation again leaves the OneLevelLayer tab canvas above later modal roots."
+Assert-ToolchainTest (
     $heroCultivationPresenterSource.Contains('CloseTransientPopups();') -and
     $heroCultivationPresenterSource.Contains('page switch did not close transient popup') -and
     $heroCultivationPresenterSource.Contains('GetBreakTalentDescriptions') -and
@@ -3757,6 +3778,71 @@ Assert-ToolchainTest (
     ([regex]::Matches($projectXAppSource,
         '!services\.Options\.WorldBattleValidation\) ShowFormationPopup\(\);').Count -eq 2)
 ) "World cross-module formation probe can again terminate the World runner as a standalone Formation completion."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('bool selectionMatches = showBag || luaSelectedHeroId == heroPresenter.SelectedId;') -and
+    [regex]::IsMatch($projectXAppSource,
+        'bool requiresSkillIcon = !showBag\s*&& HeroCatalog\.TryGet\(luaSelectedHeroId') -and
+    [regex]::IsMatch($projectXAppSource,
+        'rendered != luaHeroCount[\s\S]*?\|\| !luaMatchesMirror \|\| !selectionMatches \|\| !IsHeroOpen')
+) "Hero bag read validation again treats formation-only selection/detail state as a fatal bag-render mismatch."
+Assert-ToolchainTest (
+    $protocolRegistrySource.Contains('new ProtocolDefinition(322, "MSG_HERO_BOOK", "HeroBook")') -and
+    $heroBookControllerSource.Contains('send(1)') -and
+    $heroBookControllerSource.Contains('send(2, heroId)') -and
+    $heroBookControllerSource.Contains('Bridge:BeginHeroBookSnapshot(level, score, nextStart, nextEnd, heroCount)') -and
+    $heroBookControllerSource.Contains('Bridge:BeginHeroBookUpgrade(heroId, star, addedScore, bookLevel)') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onHeroBookOpened, "HeroBook.Open")') -and
+    $projectXAppSource.Contains('InvokeLuaOrFail(onHeroBookUpgrade, "HeroBook.Upgrade", id)')
+) "HeroBook regressed from the authoritative /322 snapshot and upgrade path."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'EndFormationUpdate\(\)[\s\S]*?bool preserveHeroBook = !explicitEntry[\s\S]*?heroBookView\?\.GameObject\.activeSelf == true;[\s\S]*?if \(preserveHeroBook\)[\s\S]*?HeroBook hero state synchronized without navigation[\s\S]*?return;[\s\S]*?EnsureHeroPresenter\(\);')
+) "HeroBook activation can again be replaced by the remembered Hero Bag entry while unsolicited hero/formation packets arrive before /322."
+Assert-ToolchainTest (
+    $heroBookPresenterSource.Contains('Layer/tujianUI/Panel/Slider_Bg/Btn_tujian') -and
+    $heroBookPresenterSource.Contains('Layer/tujianUI/Panel/Btn_shuxing') -and
+    $heroBookPresenterSource.Contains('Layer/Popup/Btn_shengji') -and
+    $heroBookPresenterSource.Contains('definitions.AddRange(catalog.Heroes') -and
+    $heroBookPresenterSource.Contains('resources.LoadHeroBodyPortrait(definition.Picture)') -and
+    $heroBookPresenterSource.Contains('portrait.sprite = resources.LoadHeroPortrait(definition.Picture)') -and
+    $heroBookPresenterSource.Contains('HeroUI/common_quality_{Mathf.Clamp(definition.Quality, 1, 7):00}') -and
+    $resourceServiceSource.Contains('Sprite sprite = LoadSprite($"MonsterBust/{picture}", false);') -and
+    $resourceServiceSource.Contains('return LoadSprite("MonsterBust/1", false) ?? LoadSprite("MonsterBust/head_defult");') -and
+    $heroBookPresenterSource.Contains('bag.GetTotalQuantityByItemId(cost.ItemId)') -and
+    $heroBookPresenterSource.Contains('new GameObject("RuntimeHeroBookContent", typeof(RectTransform)') -and
+    $heroBookPresenterSource.Contains('for (int index = 0; index < definitions.Count; index++)') -and
+    $heroBookPresenterSource.Contains('cardScroll.horizontalNormalizedPosition = targetOffset / maximumOffset;') -and
+    $heroBookPresenterSource.Contains('feedback("排行榜属于竞技/玩家依赖模块，当前不可用。")') -and
+    -not $heroBookPresenterSource.Contains('9999') -and
+    -not $heroBookPresenterSource.Contains('123456789')
+) "HeroBook regressed to placeholder values or lost a player-visible Cocos control."
+Assert-ToolchainTest (
+    $uiPrefabCatalogSource.Contains('key: HeroBookAchievements') -and
+    $uiPrefabCatalogSource.Contains('key: HeroBookActivateResult') -and
+    $uiPrefabCatalogSource.Contains('source: cocosstudio/csd/shenjiangyangcheng/yingxiongtujianendLayer.csd') -and
+    $uiPrefabCatalogSource.Contains('key: HeroBookAttributes') -and
+    $uiPrefabCatalogSource.Contains('key: HeroBookLevelResult') -and
+    $uiPrefabCatalogSource.Contains('key: HeroBookUpgrade') -and
+    $uiPrefabCatalogSource.Contains('key: HeroBookUpgradeResult') -and
+    $bootstrapSceneBuilderSource.Contains('return "HeroBookActivateResult";') -and
+    $bootstrapSceneBuilderSource.Contains('return "HeroBookLevelResult";') -and
+    $heroBookActivatePrefabSource.Contains('m_Sprite: {fileID: 21300000, guid: a220cd2ea14d9e744b8fdfbec47de2e3, type: 3}') -and
+    [regex]::IsMatch($projectXAppSource,
+        'EndHeroBookUpgrade\(int heroId,[\s\S]*?EnsureHeroBookSurfaceForResult\(\);[\s\S]*?services\.HeroBook\.ApplyUpgrade') -and
+    [regex]::IsMatch($projectXAppSource,
+        'EnsureHeroBookSurfaceForResult\(\)[\s\S]*?if \(heroBookView\.GameObject\.activeSelf && !hasConflictingSurface\) return;[\s\S]*?heroBagView\?\.SetVisible\(false\);[\s\S]*?heroBookView\.SetVisible\(true\);') -and
+    $heroBookCatalogSource.Contains('Resources.Load<TextAsset>("Configs/hero")') -and
+    $heroBookCatalogSource.Contains('if (raw.id <= 0 || raw.pic <= 0) continue;') -and
+    @($heroBookHeroConfig).Count -eq 49 -and
+    @($heroBookHeroConfig | Where-Object { [int]$_.id -gt 0 }).Count -eq 48 -and
+    [int]@($heroBookHeroConfig | Where-Object { [int]$_.id -eq 25 })[0].quality -eq 5 -and
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/Configs/hero.json')).TrimEnd() -ceq
+        (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/hero.json')).TrimEnd() -and
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/Configs/star.json')).TrimEnd() -ceq
+        (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/star.json')).TrimEnd() -and
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/Configs/handbook.json')).TrimEnd() -ceq
+        (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/handbook.json')).TrimEnd()
+) "HeroBook popup resources or authoritative star/handbook configuration drifted."
 Assert-ToolchainTest (
     [regex]::IsMatch($projectXAppSource,
         'CaptureWorldBattleResult\(int rewardCount\)[\s\S]*?replayActionCount = services\.WorldBattleReplay\?\.Actions\.Count \?\? 0;[\s\S]*?playbackAllowance = Mathf\.Min\(180f, replayActionCount \* 4\.5f\);[\s\S]*?settlementDeadline = Time\.realtimeSinceStartup \+ 30f \+ playbackAllowance;[\s\S]*?while \(!worldOutcomePresenter\.IsBattleVisible')

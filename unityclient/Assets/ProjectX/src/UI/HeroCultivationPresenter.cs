@@ -81,6 +81,7 @@ namespace ProjectX.UI
             autoLevel.SetVisible(false); talent.SetVisible(false); attributes.SetVisible(false);
             number.SetVisible(false); helpFrame.SetVisible(false); helpFirst.SetVisible(false); helpSecond.SetVisible(false);
             shell.SetVisible(false);
+            ResetTabOverlay();
         }
 
         public bool ValidateEarlyPlayRuntime(out string detail)
@@ -530,6 +531,18 @@ namespace ProjectX.UI
                 SetTab(tab, labels[index], index == page);
                 tabs.Add(tab);
             }
+        }
+
+        private void ResetTabOverlay()
+        {
+            GameObject listObject = frame?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
+            Canvas tabCanvas = listObject?.GetComponent<Canvas>();
+            if (tabCanvas == null) return;
+            // sortingOrder=200 is owned only by the cultivation shell. Leaving it
+            // enabled after navigation makes OneLevelLayer tabs render and raycast
+            // above later modal roots such as HeroRebirth's DynamicUi_shop_bg.
+            tabCanvas.overrideSorting = false;
+            tabCanvas.sortingOrder = 0;
         }
 
         private void ShowPage(int index)

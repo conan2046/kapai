@@ -26,6 +26,7 @@ namespace ProjectX.UI
         private readonly Text staminaText;
         private readonly Image experienceBar;
         private readonly GameObject powerWan;
+        private readonly RectTransform powerWanRect;
         private readonly GameObject onlineButton;
         private readonly GameObject onlineTimeRoot;
         private readonly Text onlineTimeText;
@@ -77,6 +78,7 @@ namespace ProjectX.UI
             portrait = view.Binding.Find("Layer/Main_UI/Head/Icon")?.GetComponent<Image>();
             experienceBar = view.Binding.Find("Layer/Main_UI/Head/EXPBar")?.GetComponent<Image>();
             powerWan = view.Binding.Find("Layer/Main_UI/Head/bg_CombatEffetiveness/Value/Wan");
+            powerWanRect = powerWan?.GetComponent<RectTransform>();
             RectTransform powerRect = powerText.rectTransform;
             powerRect.localScale = Vector3.one;
             powerRect.sizeDelta = new Vector2(108f, 24f);
@@ -90,6 +92,14 @@ namespace ProjectX.UI
             Outline powerOutline = powerText.GetComponent<Outline>() ?? powerText.gameObject.AddComponent<Outline>();
             powerOutline.effectColor = new Color32(92, 48, 34, 255);
             powerOutline.effectDistance = new Vector2(1f, -1f);
+            if (powerWanRect != null)
+            {
+                // The imported Cocos node inherits Value's original 0.3 scale. Value is
+                // normalized to 1.0 above, so preserve Wan's original on-screen size.
+                powerWanRect.anchorMin = powerWanRect.anchorMax = new Vector2(0f, .5f);
+                powerWanRect.pivot = new Vector2(0f, .5f);
+                powerWanRect.localScale = new Vector3(.39f, .39f, 1f);
+            }
             onlineButton = view.Binding.Find("Layer/Main_UI/btn_online");
             onlineTimeRoot = view.Binding.Find("Layer/Main_UI/btn_online/Time");
             onlineTimeText = view.Binding.Find("Layer/Main_UI/btn_online/Time/temp_text")?.GetComponent<Text>();
@@ -193,7 +203,13 @@ namespace ProjectX.UI
             vipText.text = "贵族" + player.VipLevel;
             bool compactPower = player.Power >= 1000000;
             powerText.text = compactPower ? (player.Power / 10000UL).ToString() : player.Power.ToString();
-            if (powerWan != null) powerWan.SetActive(compactPower);
+            if (powerWan != null)
+            {
+                powerWan.SetActive(compactPower);
+                // Cocos MainUI.ShowHeroPower places Wan at the current label content width.
+                if (compactPower && powerWanRect != null)
+                    powerWanRect.anchoredPosition = new Vector2(Mathf.Ceil(powerText.preferredWidth), 0f);
+            }
             if (portrait != null) portrait.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             goldText.text = FormatGold(currencies.Gold);
             premiumText.text = Math.Max(0, currencies.Premium).ToString();

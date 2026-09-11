@@ -54,6 +54,12 @@ namespace ProjectX.Editor
         private const string HeroItemSourcePrefab = "Assets/ProjectX/res/csd/Prefabs/common/huoqutujing.prefab";
         private const string HeroBagPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab";
         private const string HeroBookPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianLayer.prefab";
+        private const string HeroBookUpgradePrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianupLayer.prefab";
+        private const string HeroBookActivateResultPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianendLayer.prefab";
+        private const string HeroBookUpgradeResultPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianupendLayer.prefab";
+        private const string HeroBookAttributesPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianshuxingLayer.prefab";
+        private const string HeroBookAchievementsPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianchengjiuLayer.prefab";
+        private const string HeroBookLevelResultPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongjihuoendLayer.prefab";
         private const string HeroRecyclePrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/shenjiangchongsheng.prefab";
         private const string HeroRebirthChoosePrefab = "Assets/ProjectX/res/csd/Prefabs/common/Choose.prefab";
         private const string HeroRebirthConfirmPrefab = "Assets/ProjectX/res/csd/Prefabs/huishou/Popup_Confirm.prefab";
@@ -254,6 +260,12 @@ namespace ProjectX.Editor
         private static readonly PrefabSpec[] DynamicOnlyPrefabSpecs =
         {
             new PrefabSpec(HeroBookPrefab, false),
+            new PrefabSpec(HeroBookUpgradePrefab, false),
+            new PrefabSpec(HeroBookActivateResultPrefab, false),
+            new PrefabSpec(HeroBookUpgradeResultPrefab, false),
+            new PrefabSpec(HeroBookAttributesPrefab, false),
+            new PrefabSpec(HeroBookAchievementsPrefab, false),
+            new PrefabSpec(HeroBookLevelResultPrefab, false),
             new PrefabSpec(HeroRecyclePrefab, false),
             new PrefabSpec(HeroRebirthChoosePrefab, false),
             new PrefabSpec(HeroRebirthConfirmPrefab, false),
@@ -354,6 +366,12 @@ namespace ProjectX.Editor
         private static string GetDynamicKey(string prefabPath)
         {
             if (prefabPath == HeroBookPrefab) return "HeroBook";
+            if (prefabPath == HeroBookUpgradePrefab) return "HeroBookUpgrade";
+            if (prefabPath == HeroBookActivateResultPrefab) return "HeroBookActivateResult";
+            if (prefabPath == HeroBookUpgradeResultPrefab) return "HeroBookUpgradeResult";
+            if (prefabPath == HeroBookAttributesPrefab) return "HeroBookAttributes";
+            if (prefabPath == HeroBookAchievementsPrefab) return "HeroBookAchievements";
+            if (prefabPath == HeroBookLevelResultPrefab) return "HeroBookLevelResult";
             if (prefabPath == HeroRecyclePrefab) return "HeroRecycle";
             if (prefabPath == HeroRebirthChoosePrefab) return "HeroRebirthChoose";
             if (prefabPath == HeroRebirthConfirmPrefab) return "HeroRebirthConfirm";

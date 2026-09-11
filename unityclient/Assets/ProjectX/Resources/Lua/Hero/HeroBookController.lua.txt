@@ -1,0 +1,96 @@
+local Protocol = require("Protocol")
+
+local M = { level = 0 }
+
+local function send(operation, heroId)
+    local message = Protocol.newMessage(Protocol.HERO_BOOK)
+    message:WriteByte(operation)
+    if heroId ~= nil then message:WriteUShort(heroId) end
+    Bridge:Send(message)
+end
+
+function M.open()
+    send(1)
+    Bridge:SetStatus("HeroBook/322 snapshot requested.")
+end
+
+function M.upgrade(heroId)
+    if heroId == nil or heroId <= 0 then
+        Bridge:ShowToast("请选择神将", 2)
+        return
+    end
+    send(2, heroId)
+    Bridge:SetStatus("HeroBook/322 upgrade requested: hero=" .. tostring(heroId) .. ".")
+end
+
+local function readAttributes(message, add)
+    local count = message:ReadByte()
+    for index = 1, count do
+        add(message:ReadWord(), message:ReadUInt())
+    end
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.HERO_BOOK then return false end
+    local operation = message:ReadByte()
+    if operation == 1 then
+        local level = message:ReadByte()
+        local score = message:ReadUInt()
+        local nextStart = message:ReadUInt()
+        local nextEnd = message:ReadUInt()
+        local heroCount = message:ReadByte()
+        Bridge:BeginHeroBookSnapshot(level, score, nextStart, nextEnd, heroCount)
+        for index = 1, heroCount do
+            Bridge:AddHeroBookEntry(message:ReadWord(), message:ReadByte(), message:ReadWord())
+        end
+        readAttributes(message, function(attrType, value)
+            Bridge:AddHeroBookAttribute(1, attrType, value)
+        end)
+        readAttributes(message, function(attrType, value)
+            Bridge:AddHeroBookAttribute(2, attrType, value)
+        end)
+        if message.Remaining ~= 0 then
+            Bridge:Fail("HeroBook/322 op=1 has unread bytes: " .. tostring(message.Remaining))
+            return true
+        end
+        M.level = level
+        Bridge:EndHeroBookSnapshot()
+        return true
+    end
+    if operation == 2 then
+        local heroId = message:ReadWord()
+        local success = message:ReadByte()
+        if success == 0 then
+            Bridge:EndHeroBookUpgrade(heroId, 0, 0, M.level, false, message:ReadString())
+            return true
+        end
+        local star = message:ReadByte()
+        local addedScore = message:ReadWord()
+        local bookLevel = message:ReadWord()
+        Bridge:BeginHeroBookUpgrade(heroId, star, addedScore, bookLevel)
+        readAttributes(message, function(attrType, value)
+            Bridge:AddHeroBookUpgradeAttribute(1, attrType, value)
+        end)
+        for level = M.level + 1, bookLevel do
+            readAttributes(message, function(attrType, value)
+                Bridge:AddHeroBookUpgradeAttribute(2, attrType, value)
+            end)
+        end
+        if message.Remaining ~= 0 then
+            Bridge:EndHeroBookUpgrade(heroId, star, addedScore, bookLevel, false,
+                "图鉴升级响应数据不完整")
+            return true
+        end
+        M.level = math.max(M.level, bookLevel)
+        Bridge:EndHeroBookUpgrade(heroId, star, addedScore, bookLevel, true, "")
+        return true
+    end
+    Bridge:SetStatus("Unhandled HeroBook/322 op=" .. tostring(operation) .. ".")
+    return true
+end
+
+function M.reset()
+    M.level = 0
+end
+
+return M

@@ -158,6 +158,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(224, "MSG_PET_RANDOM_DRAW", "Draw"));
             registry.Register(new ProtocolDefinition(226, "MSG_UPDATE_USER_LEVELUP_INFO", "Player", expectsResponse: false));
             registry.Register(new ProtocolDefinition(321, "MSG_SPIRIT", "Player"));
+            registry.Register(new ProtocolDefinition(322, "MSG_HERO_BOOK", "HeroBook"));
             registry.Register(new ProtocolDefinition(335, "MSG_YOU_LI", "YouLi"));
             registry.Register(new ProtocolDefinition(161, "MSG_ARENA", "Arena"));
             registry.Register(new ProtocolDefinition(319, "PET_EQUIP_OPERATE", "HeroEquipment"));
