@@ -15,31 +15,42 @@ namespace ProjectX.UI
         private readonly Text title;
         private readonly Text tips;
         private readonly GameObject[] cells = new GameObject[4];
-        private readonly GameObject[] runtimeCells = new GameObject[4];
-        private readonly Image[] runtimeQualityFrames = new Image[4];
-        private readonly Image[] runtimeIcons = new Image[4];
-        private readonly Text[] runtimeNames = new Text[4];
-        private readonly Text[] runtimeAmounts = new Text[4];
-        private readonly GameObject runtimeContent;
+        private readonly Image[] qualityFrames = new Image[4];
+        private readonly Image[] icons = new Image[4];
+        private readonly Text[] names = new Text[4];
+        private readonly Text[] amounts = new Text[4];
         private readonly Core.ResourceService resources;
+        private readonly ShopCatalog catalog;
         private readonly Button confirmButton;
         private readonly Button closeButton;
         private Action confirmAction;
         private Action<RewardRecord> itemClick;
         private Func<RewardRecord, Sprite> itemIconResolver;
-        private bool showQualityFrames;
+        private bool showQualityFrames = true;
         private bool sharedViewRenderingSuspended;
 
-        public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources)
+        public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources,
+            ShopCatalog catalog)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
+            this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
             title = Require("Title/Title_1").GetComponent<Text>();
             tips = Require("tips").GetComponent<Text>();
             for (int index = 0; index < cells.Length; index++)
+            {
                 cells[index] = Require($"ItemList/itemlayer_{index + 1}");
-            runtimeContent = CreateRuntimeContentLayer();
+                Transform cell = cells[index].transform;
+                qualityFrames[index] = cell.Find("Quality")?.GetComponent<Image>();
+                icons[index] = cell.Find("item")?.GetComponent<Image>();
+                names[index] = cell.Find("Name")?.GetComponent<Text>();
+                amounts[index] = cell.Find("Amount")?.GetComponent<Text>();
+                if (qualityFrames[index] == null || icons[index] == null
+                    || names[index] == null || amounts[index] == null)
+                    throw new InvalidOperationException(
+                        $"Reward prefab cell itemlayer_{index + 1} is incomplete.");
+            }
             closeButton = BindClose("Btn_close");
             GameObject confirmNode = Require("btn_lingqu");
             confirmButton = confirmNode.GetComponent<Button>() ?? confirmNode.AddComponent<Button>();
@@ -62,7 +73,6 @@ namespace ProjectX.UI
         public void SuspendSharedViewRendering()
         {
             sharedViewRenderingSuspended = true;
-            if (runtimeContent != null) runtimeContent.SetActive(false);
             foreach (GameObject cell in cells)
                 if (cell != null) cell.SetActive(false);
         }
@@ -70,7 +80,6 @@ namespace ProjectX.UI
         public void ResumeSharedViewRendering()
         {
             sharedViewRenderingSuspended = false;
-            if (runtimeContent != null) runtimeContent.SetActive(true);
             closeButton.onClick.RemoveAllListeners();
             closeButton.onClick.AddListener(Hide);
             Render();
@@ -97,23 +106,23 @@ namespace ProjectX.UI
             {
                 RewardRecord item = Items[index];
                 GameObject cell = cells[index];
-                string renderedName = cell.transform.Find("Name")?.GetComponent<Text>()?.text ?? string.Empty;
-                string renderedAmount = cell.transform.Find("RuntimeAmount")?.GetComponent<Text>()?.text ?? string.Empty;
+                string renderedName = names[index]?.text ?? string.Empty;
+                string renderedAmount = amounts[index]?.text ?? string.Empty;
                 if (!cell.activeSelf || renderedName != item.Name || renderedAmount != $"×{item.Amount}")
                 {
                     detail = $"cell={index}, active={cell.activeSelf}, name='{renderedName}'/'{item.Name}', "
                         + $"amount='{renderedAmount}'/'×{item.Amount}'";
                     return false;
                 }
-                string visibleName = runtimeNames[index]?.text ?? string.Empty;
-                string visibleAmount = runtimeAmounts[index]?.text ?? string.Empty;
-                Sprite visibleIcon = runtimeIcons[index]?.sprite;
-                if (runtimeCells[index]?.activeInHierarchy != true || visibleIcon == null
-                    || visibleName != item.Name || visibleAmount != $"×{item.Amount}")
+                int visualQuality = ResolveVisualQuality(item);
+                string expectedFrame = $"common_quality_{Mathf.Clamp(visualQuality, 1, 7):00}";
+                if (icons[index]?.sprite == null
+                    || visualQuality > 0 && (qualityFrames[index]?.sprite == null
+                        || qualityFrames[index].sprite.name != expectedFrame))
                 {
-                    detail = $"runtimeCell={index}, active={runtimeCells[index]?.activeInHierarchy}, "
-                        + $"icon={visibleIcon != null}, name='{visibleName}'/'{item.Name}', "
-                        + $"amount='{visibleAmount}'/'×{item.Amount}'";
+                    detail = $"cell={index}, icon={icons[index]?.sprite != null}, "
+                        + $"qualityFrame='{qualityFrames[index]?.sprite?.name}'/'{expectedFrame}', "
+                        + $"quality={item.Quality}/{visualQuality}";
                     return false;
                 }
             }
@@ -194,7 +203,7 @@ namespace ProjectX.UI
             confirmAction = null;
             view.SetVisible(false);
             itemIconResolver = null;
-            showQualityFrames = false;
+            showQualityFrames = true;
         }
 
         public void Render()
@@ -215,18 +224,15 @@ namespace ProjectX.UI
                 bool occupied = index < items.Count;
                 GameObject cell = cells[index];
                 cell.SetActive(occupied);
-                GameObject runtimeCell = runtimeCells[index];
-                runtimeCell.SetActive(occupied);
                 if (!occupied) continue;
                 RewardRecord item = items[index];
-                Text name = cell.transform.Find("Name")?.GetComponent<Text>();
-                if (name != null) name.text = item.Name;
-                Image icon = cell.transform.Find("item")?.GetComponent<Image>();
-                ApplyIcon(icon, item);
-                AddOrUpdateAmount(cell.transform, item.Amount);
+                names[index].text = item.Name;
+                amounts[index].text = $"×{item.Amount}";
+                ApplyQualityFrame(qualityFrames[index], item);
+                ApplyIcon(icons[index], item);
                 Button itemButton = cell.GetComponent<Button>() ?? cell.AddComponent<Button>();
-                itemButton.targetGraphic = cell.GetComponent<Graphic>()
-                    ?? cell.GetComponentInChildren<Graphic>(true);
+                itemButton.transition = Selectable.Transition.None;
+                itemButton.targetGraphic = icons[index];
                 itemButton.onClick.RemoveAllListeners();
                 itemButton.interactable = itemClick != null;
                 if (itemClick != null)
@@ -234,112 +240,13 @@ namespace ProjectX.UI
                     RewardRecord captured = item;
                     itemButton.onClick.AddListener(() => itemClick(captured));
                 }
-                runtimeNames[index].text = item.Name;
-                runtimeAmounts[index].text = $"×{item.Amount}";
-                ApplyQualityFrame(runtimeQualityFrames[index], item.Quality);
-                ApplyIcon(runtimeIcons[index], item);
             }
-            LayoutRuntimeCells(RenderedCount);
         }
 
         public void Dispose()
         {
             store.Changed -= Render;
             itemClick = null;
-            if (runtimeContent != null) UnityEngine.Object.Destroy(runtimeContent);
-        }
-
-        private GameObject CreateRuntimeContentLayer()
-        {
-            GameObject listView = Require("ListView");
-            GameObject layer = new GameObject("BagRewardRuntimeContent", typeof(RectTransform));
-            layer.transform.SetParent(listView.transform, false);
-            RectTransform layerRect = layer.GetComponent<RectTransform>();
-            layerRect.anchorMin = Vector2.zero;
-            layerRect.anchorMax = Vector2.one;
-            layerRect.offsetMin = Vector2.zero;
-            layerRect.offsetMax = Vector2.zero;
-
-            Text template = cells[0].transform.Find("Name")?.GetComponent<Text>() ?? tips;
-            for (int index = 0; index < runtimeCells.Length; index++)
-            {
-                GameObject cell = new GameObject($"Reward_{index + 1}", typeof(RectTransform));
-                cell.transform.SetParent(layer.transform, false);
-                runtimeCells[index] = cell;
-
-                GameObject qualityObject = new GameObject("Quality", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Image));
-                qualityObject.transform.SetParent(cell.transform, false);
-                RectTransform qualityRect = qualityObject.GetComponent<RectTransform>();
-                qualityRect.anchorMin = new Vector2(0.14f, 0.33f);
-                qualityRect.anchorMax = new Vector2(0.86f, 0.98f);
-                qualityRect.offsetMin = Vector2.zero;
-                qualityRect.offsetMax = Vector2.zero;
-                runtimeQualityFrames[index] = qualityObject.GetComponent<Image>();
-                runtimeQualityFrames[index].raycastTarget = false;
-                runtimeQualityFrames[index].preserveAspect = true;
-                runtimeQualityFrames[index].enabled = false;
-
-                GameObject iconObject = new GameObject("Icon", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Image));
-                iconObject.transform.SetParent(cell.transform, false);
-                RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-                iconRect.anchorMin = new Vector2(0.18f, 0.37f);
-                iconRect.anchorMax = new Vector2(0.82f, 0.94f);
-                iconRect.offsetMin = Vector2.zero;
-                iconRect.offsetMax = Vector2.zero;
-                runtimeIcons[index] = iconObject.GetComponent<Image>();
-                runtimeIcons[index].raycastTarget = false;
-
-                runtimeNames[index] = CreateRuntimeText(cell.transform, "Name", template,
-                    new Vector2(0f, 0.03f), new Vector2(1f, 0.33f), TextAnchor.MiddleCenter);
-                runtimeAmounts[index] = CreateRuntimeText(cell.transform, "Amount", template,
-                    new Vector2(0.48f, 0.31f), new Vector2(0.91f, 0.54f), TextAnchor.LowerRight);
-                runtimeAmounts[index].color = Color.white;
-                Shadow shadow = runtimeAmounts[index].gameObject.AddComponent<Shadow>();
-                shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
-                shadow.effectDistance = new Vector2(1f, -1f);
-            }
-            return layer;
-        }
-
-        private static Text CreateRuntimeText(Transform parent, string name, Text template,
-            Vector2 anchorMin, Vector2 anchorMax, TextAnchor alignment)
-        {
-            GameObject textObject = new GameObject(name, typeof(RectTransform),
-                typeof(CanvasRenderer), typeof(Text));
-            textObject.transform.SetParent(parent, false);
-            RectTransform rect = textObject.GetComponent<RectTransform>();
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            Text text = textObject.GetComponent<Text>();
-            text.font = template != null ? template.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            text.fontSize = template != null ? template.fontSize : 18;
-            text.fontStyle = template != null ? template.fontStyle : FontStyle.Normal;
-            text.color = template != null ? template.color : Color.white;
-            text.alignment = alignment;
-            text.resizeTextForBestFit = true;
-            text.resizeTextMinSize = 12;
-            text.resizeTextMaxSize = Mathf.Max(18, text.fontSize);
-            text.raycastTarget = false;
-            return text;
-        }
-
-        private void LayoutRuntimeCells(int count)
-        {
-            int visibleCount = Mathf.Clamp(count, 1, runtimeCells.Length);
-            float cellWidth = 1f / runtimeCells.Length;
-            float start = (1f - cellWidth * visibleCount) * 0.5f;
-            for (int index = 0; index < runtimeCells.Length; index++)
-            {
-                RectTransform rect = runtimeCells[index].GetComponent<RectTransform>();
-                rect.anchorMin = new Vector2(start + cellWidth * index, 0f);
-                rect.anchorMax = new Vector2(start + cellWidth * (index + 1), 1f);
-                rect.offsetMin = new Vector2(5f, 2f);
-                rect.offsetMax = new Vector2(-5f, -2f);
-            }
         }
 
         private Button BindClose(string relativePath)
@@ -352,37 +259,22 @@ namespace ProjectX.UI
             return button;
         }
 
-        private static void AddOrUpdateAmount(Transform cell, uint amount)
-        {
-            Transform existing = cell.Find("RuntimeAmount");
-            Text label;
-            if (existing == null)
-            {
-                GameObject labelObject = new GameObject("RuntimeAmount", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-                labelObject.transform.SetParent(cell, false);
-                RectTransform rect = labelObject.GetComponent<RectTransform>();
-                rect.anchorMin = new Vector2(0.45f, 0.18f);
-                rect.anchorMax = new Vector2(0.95f, 0.48f);
-                rect.offsetMin = Vector2.zero;
-                rect.offsetMax = Vector2.zero;
-                label = labelObject.GetComponent<Text>();
-                label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                label.fontSize = 18;
-                label.alignment = TextAnchor.LowerRight;
-                label.color = Color.white;
-            }
-            else label = existing.GetComponent<Text>();
-            label.text = $"×{amount}";
-        }
-
-        private void ApplyQualityFrame(Image image, int quality)
+        private void ApplyQualityFrame(Image image, RewardRecord item)
         {
             if (image == null) return;
+            int quality = ResolveVisualQuality(item);
             Sprite sprite = showQualityFrames && quality > 0
                 ? resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}")
                 : null;
             image.sprite = sprite;
+            image.color = Color.white;
             image.enabled = sprite != null;
+        }
+
+        private int ResolveVisualQuality(RewardRecord item)
+        {
+            RewardRecord configured = catalog.DescribeReward(item.Type, checked((int)item.Id), item.Amount);
+            return configured.Quality > 0 ? configured.Quality : item.Quality;
         }
 
         private void ApplyIcon(Image image, RewardRecord item)

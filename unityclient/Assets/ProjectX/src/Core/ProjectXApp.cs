@@ -13204,7 +13204,8 @@ namespace ProjectX.Core
         {
             rewardView = rewardView ?? services.UiRouter.FindBySource("common/tanchuangjiangli");
             if (rewardView == null) throw new InvalidOperationException("common/tanchuangjiangli CocosUiBinding was not found.");
-            rewardPresenter = rewardPresenter ?? new RewardPresenter(rewardView, services.Rewards, services.Resources);
+            rewardPresenter = rewardPresenter ?? new RewardPresenter(rewardView, services.Rewards,
+                services.Resources, services.ShopCatalog);
         }
 
         private void EnsureHeroPresenter()
