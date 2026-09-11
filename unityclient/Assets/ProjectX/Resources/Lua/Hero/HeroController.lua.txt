@@ -6,6 +6,7 @@ local WorldController = require("World.WorldController")
 local M = {
     requested = false,
     snapshotOnly = false,
+    preloadPending = false,
     mutationStage = nil,
     mutationHero = nil,
     originalPosition = nil,
@@ -73,6 +74,19 @@ function M.onClick()
     message:WriteByte(1)
     Bridge:Send(message)
     Bridge:SetStatus("Hero/24 list request sent by legacy Lua formation model.")
+end
+
+-- Refresh the authoritative hero and formation mirrors for shared consumers
+-- without opening or navigating to the hero page.
+function M.preload(owner)
+    M.requested = false
+    M.snapshotOnly = false
+    if M.preloadPending then return end
+    M.preloadPending = true
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(1)
+    Bridge:Send(message)
+    Bridge:SetStatus("Hero/24 preload requested for " .. tostring(owner or "shared consumer") .. ".")
 end
 
 function M.requestSnapshot(owner)
@@ -332,6 +346,10 @@ local function readHeroList(message)
     for index = 1, count do heroes[index] = readHero(message) end
     if message.Remaining ~= 0 then Bridge:Fail("Hero/24 has unread bytes: " .. tostring(message.Remaining)); return end
     FormationModel:ReplaceHeroes(followId, heroes)
+    if M.preloadPending then
+        requestFormation()
+        return
+    end
     if M.snapshotOnly then
         M.snapshotOnly = false
         syncHeroMirror()
@@ -515,6 +533,12 @@ local function readFormation(message)
     end
     syncRenderMirror()
     M.formationReady = true
+
+    if M.preloadPending then
+        M.preloadPending = false
+        Bridge:SetStatus("Hero/24 and Formation/48 preload applied without navigation.")
+        return
+    end
 
     if M.mutationStage == "levelup_snapshot" then
         local hero = FormationModel:GetPetById(M.levelUpHero)
@@ -921,7 +945,8 @@ end
 function M.reset()
     local keepClosure = Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
         and (M.closureStage == "await_reconnect" or M.closureStage == "await_account_isolation")
-    M.requested, M.snapshotOnly, M.mutationStage, M.mutationHero = false, false, nil, nil
+    M.requested, M.snapshotOnly, M.preloadPending = false, false, false
+    M.mutationStage, M.mutationHero = nil, nil
     M.originalPosition, M.targetPosition = nil, nil
     M.swapSourceHero, M.swapTargetHero = nil, nil
     M.levelUpHero, M.levelUpBeforeLevel, M.levelUpBeforeExperience = nil, nil, nil

@@ -1500,6 +1500,8 @@ Assert-ToolchainTest (
     $cocosUiBindingSource.Contains('cocosPath.StartsWith("Layer/", StringComparison.Ordinal)') -and
     $cocosUiBindingSource.Contains('transform.Find(cocosPath.Substring("Layer/".Length))') -and
     $uiRouterSource.Contains('public const string MainHudSourceToken = "common/UImainLayer_new";') -and
+    $uiRouterSource.Contains('EditorSceneManager.IsPreviewScene(binding.gameObject.scene)') -and
+    ([regex]::Matches($uiRouterSource, 'IsRuntimeSceneBinding\(item\)').Count -eq 2) -and
     $projectXAppSource.Contains('FindBySource(UiRouter.MainHudSourceToken, true)') -and
     -not $projectXAppSource.Contains('FindBySource("UImainLayer", true)') -and
     $firstPlayableLoopSource.Contains('FindBySource(UiRouter.MainHudSourceToken, true)') -and
@@ -2789,8 +2791,12 @@ $heroEquipMatrix = (Import-UnityMigrationJson -Root $root `
     -Path "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json").Value
 $heroEquipmentPresenterSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
+$heroEquipmentCultivatePrefabSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab") -Raw -Encoding UTF8
 $heroEquipmentControllerSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt") -Raw -Encoding UTF8
+$heroEquipmentHeroControllerSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $heroEquipmentControllerSource.Contains('Bridge:HasCommandLineFlag("-projectXHeroEquipG5VisualValidation")') -and
     $heroEquipmentControllerSource.Contains('elseif M.openPending then') -and
@@ -2812,6 +2818,14 @@ $migrationGuideSource = Get-Content -LiteralPath (Join-Path $root `
     "docs/unityclient/MIGRATION_GUIDE.md") -Raw -Encoding UTF8
 $heroEquipScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "HeroEquip"
 $processAcceptance = $heroEquipMatrix.processEffectivenessAcceptance
+Assert-ToolchainTest (
+    $heroEquipmentBootstrapSource.Contains('HeroController.preload("HeroEquipment")') -and
+    $heroEquipmentBootstrapSource.Contains('HeroController.preload("HeroFaBao")') -and
+    $heroEquipmentHeroControllerSource.Contains('function M.preload(owner)') -and
+    $heroEquipmentHeroControllerSource.Contains('if M.preloadPending then') -and
+    $heroEquipmentHeroControllerSource.Contains('Hero/24 and Formation/48 preload applied without navigation.') -and
+    $projectXAppSource.Contains('BindHeroEquipmentCultivationPortrait();')
+) "HeroEquip direct entry no longer preloads /24 and /48 before rebinding the cultivation portrait."
 Assert-ToolchainTest (
     $null -ne $processAcceptance -and
     $processAcceptance.sampleModule -eq "HeroEquip" -and
@@ -2840,6 +2854,10 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('firstButton.onClick.AddListener(ShowHeroEquipmentListTab);') -and
     $projectXAppSource.Contains('value.name.EndsWith("_StrengthRuntime", StringComparison.Ordinal)')
 ) "HeroEquip early-play regression: equipment/fragments reverse navigation or cultivation-tab cleanup was removed."
+Assert-ToolchainTest (
+    [regex]::IsMatch($heroEquipmentCultivatePrefabSource,
+        'm_Name: Button_L[\s\S]*?m_LocalRotation: \{x: 0, y: 0, z: 0, w: 1\}[\s\S]*?m_LocalScale: \{x: -0\.8, y: 0\.8, z: 1\}')
+) "HeroEquip previous-hero control once again mirrors by back-facing Y rotation and cannot receive GraphicRaycaster input."
 Assert-ToolchainTest (
     $heroEquipmentPresenterSource.Contains('public void PlayCultivationSuccess(int operation)') -and
     -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(1);') -and
@@ -3798,6 +3816,10 @@ Assert-ToolchainTest (
     [regex]::IsMatch($projectXAppSource,
         'EndFormationUpdate\(\)[\s\S]*?bool preserveHeroBook = !explicitEntry[\s\S]*?heroBookView\?\.GameObject\.activeSelf == true;[\s\S]*?if \(preserveHeroBook\)[\s\S]*?HeroBook hero state synchronized without navigation[\s\S]*?return;[\s\S]*?EnsureHeroPresenter\(\);')
 ) "HeroBook activation can again be replaced by the remembered Hero Bag entry while unsolicited hero/formation packets arrive before /322."
+Assert-ToolchainTest (
+    [regex]::IsMatch($projectXAppSource,
+        'EndFormationUpdate\(\)[\s\S]*?bool preserveHeroEquipmentSubpage = !explicitEntry[\s\S]*?IsHeroEquipmentSubpageVisible;[\s\S]*?if \(preserveHeroEquipmentSubpage\)[\s\S]*?BindHeroEquipmentCultivationPortrait\(\);[\s\S]*?Hero equipment state synchronized without navigation[\s\S]*?return;[\s\S]*?if \(preserveHeroBook\)')
+) "HeroEquipment cultivation can again be hidden or keep a blank hero portrait when an unsolicited formation refresh arrives."
 Assert-ToolchainTest (
     $heroBookPresenterSource.Contains('Layer/tujianUI/Panel/Slider_Bg/Btn_tujian') -and
     $heroBookPresenterSource.Contains('Layer/tujianUI/Panel/Btn_shuxing') -and

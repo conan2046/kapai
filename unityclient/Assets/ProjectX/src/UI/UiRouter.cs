@@ -2,6 +2,9 @@ using System;
 using System.Linq;
 using ProjectX.UI.Migration;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor.SceneManagement;
+#endif
 
 namespace ProjectX.UI
 {
@@ -22,8 +25,7 @@ namespace ProjectX.UI
         public CocosUiView FindBySource(string sourceToken, bool excludeBackup = false)
         {
             CocosUiBinding binding = Resources.FindObjectsOfTypeAll<CocosUiBinding>()
-                .Where(item => item != null
-                    && item.gameObject.scene.IsValid()
+                .Where(item => IsRuntimeSceneBinding(item)
                     && !string.IsNullOrEmpty(item.Source)
                     && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0
                     && (!excludeBackup || item.Source.IndexOf("backup", StringComparison.OrdinalIgnoreCase) < 0))
@@ -38,12 +40,21 @@ namespace ProjectX.UI
         public void SetExclusiveVisibleBySource(string sourceToken, CocosUiView selected, bool visible)
         {
             foreach (CocosUiBinding binding in Resources.FindObjectsOfTypeAll<CocosUiBinding>()
-                .Where(item => item != null && item.gameObject.scene.IsValid()
+                .Where(item => IsRuntimeSceneBinding(item)
                     && !string.IsNullOrEmpty(item.Source)
                     && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 binding.gameObject.SetActive(visible && selected != null && binding == selected.Binding);
             }
+        }
+
+        private static bool IsRuntimeSceneBinding(CocosUiBinding binding)
+        {
+            if (binding == null || !binding.gameObject.scene.IsValid()) return false;
+#if UNITY_EDITOR
+            if (EditorSceneManager.IsPreviewScene(binding.gameObject.scene)) return false;
+#endif
+            return true;
         }
     }
 }

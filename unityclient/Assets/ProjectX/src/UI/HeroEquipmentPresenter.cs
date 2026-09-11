@@ -521,6 +521,7 @@ namespace ProjectX.UI
             SetText(cell, "Atrribute_2", string.Empty);
             Transform worn = cell.Find("yichuandai");
             if (worn != null) worn.gameObject.SetActive(item.FormationPosition > 0);
+            ApplyQualityFrame(cell.Find("Icon_bg")?.GetComponent<Image>(), item.Definition.Quality);
             ApplyIcon(cell.Find("Icon")?.GetComponent<Image>(), item);
             Button button = EnsureClickable(cell);
             button.onClick.RemoveAllListeners();
@@ -783,8 +784,6 @@ namespace ProjectX.UI
             }
             SetBoundText(strengthView,
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text", "强化");
-            SetButtonLabel(cultivateView,
-                "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua", "一键强化");
             Text strengthActionLabel = strengthView.Binding.Find(
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text")?.GetComponent<Text>();
             if (strengthActionLabel != null)
@@ -1031,6 +1030,8 @@ namespace ProjectX.UI
                 RectTransform cellRect = cell as RectTransform;
                 if (cellRect != null) cellRect.anchoredPosition = start + new Vector2(90f * index, 0f);
                 cell.gameObject.SetActive(true);
+                Transform equipmentQualityFrame = cell.Find("icon");
+                if (equipmentQualityFrame != null) equipmentQualityFrame.gameObject.SetActive(false);
                 Transform iconHost = cell.Find("zhuangbeiIcon");
                 BindFaBaoQualityIcon(iconHost, value);
                 Transform choose = cell.Find("Choose");
@@ -1456,6 +1457,8 @@ namespace ProjectX.UI
             if (selected.Uid == 0 || selected.Kind != HeroEquipmentKind.Equipment) return;
             SetBoundText(autoRefineView, "Layer/Popup/Panel_1/Name", selected.Definition.Name);
             ApplyIcon(autoRefineView.Binding.Find("Layer/Popup/Panel_1/Item")?.GetComponent<Image>(), selected);
+            ApplyQualityFrame(autoRefineView.Binding.Find(
+                "Layer/Popup/Panel_1/Item_bg")?.GetComponent<Image>(), selected.Definition.Quality);
             SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Cancel", "取消");
             SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Confirm", "确定");
             SetButtonLabel(autoRefineView, "Layer/Popup/Panel_1/Btn_Minus", "-1");
@@ -1471,10 +1474,16 @@ namespace ProjectX.UI
                 EquipmentMaterialDefinition material = index < materialIds.Count
                     ? catalog.GetItem(materialIds[index]) : null;
                 slot.SetActive(material != null);
-                if (material == null) continue;
+                Image materialQualityFrame = autoRefineView.Binding.Find(path + "_bg")?.GetComponent<Image>();
+                if (material == null)
+                {
+                    if (materialQualityFrame != null) materialQualityFrame.gameObject.SetActive(false);
+                    continue;
+                }
+                ApplyQualityFrame(materialQualityFrame, material.Quality);
                 SetBoundText(autoRefineView, path + "/Value",
                     bag.GetTotalQuantityByItemId(material.Id).ToString());
-                ApplyMaterialIcon(EnsureMaterialIcon(slot.transform), material);
+                ApplyMaterialIcon(slot.GetComponent<Image>(), material);
             }
             autoRefineLevels = 1;
             SetAutoRefineLevels(1);
@@ -1589,13 +1598,33 @@ namespace ProjectX.UI
                 RectTransform rect = slot as RectTransform;
                 if (rect != null) rect.anchoredPosition = start + new Vector2(index * 88f, 0f);
                 slot.gameObject.SetActive(true);
-                ApplyIcon(slot.Find("zhuangbeiIcon")?.GetComponent<Image>(), target);
+                BindEquipmentCultivationQualityFrame(slot.Find("icon"), target.Definition.Quality);
+                Transform equipmentIcon = slot.Find("zhuangbeiIcon");
+                ApplyIcon(equipmentIcon?.GetComponent<Image>(), target);
+                RectTransform equipmentIconRect = equipmentIcon as RectTransform;
+                if (equipmentIconRect != null) equipmentIconRect.sizeDelta = new Vector2(80f, 80f);
                 Transform choose = slot.Find("Choose");
                 if (choose != null) choose.gameObject.SetActive(target.Uid == current.Uid);
                 Button button = EnsureClickable(slot);
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => ShowStrength(target));
             }
+        }
+
+        private void BindEquipmentCultivationQualityFrame(Transform target, int quality)
+        {
+            if (target == null) return;
+            Image image = target.GetComponent<Image>();
+            Sprite sprite = resources.LoadFirst(
+                $"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}");
+            target.gameObject.SetActive(sprite != null);
+            if (image == null) return;
+            image.sprite = sprite;
+            image.enabled = sprite != null;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            Button button = target.GetComponent<Button>();
+            if (button != null) button.enabled = false;
         }
 
         private void BindRefineMaterials(IReadOnlyList<int> materialIds)
@@ -1746,6 +1775,15 @@ namespace ProjectX.UI
             if (isDetail && detailQualityFrame != null)
                 detailQualityFrame.gameObject.SetActive(item.Kind == HeroEquipmentKind.FaBao
                     && detailQualityFrame.sprite != null);
+        }
+
+        private void ApplyQualityFrame(Image image, int quality)
+        {
+            if (image == null) return;
+            image.sprite = resources.LoadFirst(
+                $"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}");
+            image.enabled = image.sprite != null;
+            image.gameObject.SetActive(image.enabled);
         }
 
         private static Image EnsureDetailQualityFrame(Transform host)

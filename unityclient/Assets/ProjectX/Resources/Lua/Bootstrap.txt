@@ -81,8 +81,14 @@ function OnHeroBookOpened() HeroBookController.open() end
 function OnHeroBookUpgrade(heroId) HeroBookController.upgrade(heroId) end
 function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
-function OnEquipmentBagClicked() EquipmentController.open(1) end
-function OnFaBaoBagClicked() EquipmentController.open(2) end
+function OnEquipmentBagClicked()
+    HeroController.preload("HeroEquipment")
+    EquipmentController.open(1)
+end
+function OnFaBaoBagClicked()
+    HeroController.preload("HeroFaBao")
+    EquipmentController.open(2)
+end
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
 function OnHeroEquipmentAffixLock(uid) EquipmentController.toggleAffixLock(uid) end
 function OnHeroEquipmentAffixReroll(uid) EquipmentController.rerollAffix(uid) end

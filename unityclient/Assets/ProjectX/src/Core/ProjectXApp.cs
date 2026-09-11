@@ -8299,6 +8299,17 @@ namespace ProjectX.Core
             }
             bool preserveHeroBook = !explicitEntry
                 && heroBookView?.GameObject.activeSelf == true;
+            bool preserveHeroEquipmentSubpage = !explicitEntry
+                && IsHeroEquipmentSubpageVisible;
+            if (preserveHeroEquipmentSubpage)
+            {
+                // Equipment cultivation writes can push /70 and /48 after the
+                // operation result. Those packets refresh data only; moving
+                // OneLevelLayer to the top hides the still-active subpage.
+                BindHeroEquipmentCultivationPortrait();
+                SetStatus($"Hero equipment state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
             if (preserveHeroBook)
             {
                 // Activating a handbook entry causes the server to push /18, /70 and /48
@@ -16018,6 +16029,33 @@ namespace ProjectX.Core
             if (showFragments) shardButton.onClick.AddListener(ShowHeroEquipmentFragments);
         }
 
+        private void BindHeroEquipmentCultivationPortrait()
+        {
+            Image portrait = heroEquipmentCultivateView?.Binding.Find(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon")?.GetComponent<Image>();
+            if (portrait == null) return;
+
+            int formationPosition = heroEquipmentPresenter?.ActiveFormationPosition ?? 0;
+            int heroId = formationPosition > 0 && services.Formation.CombatHeroes.Count >= formationPosition
+                ? services.Formation.CombatHeroes[formationPosition - 1]
+                : 0;
+            bool hasHeroDefinition = HeroCatalog.TryGet(heroId, out HeroDefinition heroDefinition);
+            portrait.sprite = hasHeroDefinition
+                ? services.Resources.LoadHeroPortrait(heroDefinition.Picture)
+                : null;
+            portrait.enabled = portrait.sprite != null;
+            portrait.preserveAspect = true;
+
+            Image heroFrame = heroEquipmentCultivateView.Binding.Find(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon_bg")?.GetComponent<Image>();
+            if (heroFrame == null) return;
+            heroFrame.sprite = hasHeroDefinition
+                ? services.Resources.LoadFirst(
+                    $"HeroUI/common_quality_{Mathf.Clamp(heroDefinition.Quality, 1, 7):00}")
+                : null;
+            heroFrame.enabled = heroFrame.sprite != null;
+        }
+
         private void ConfigureHeroEquipmentCultivationFrame(int selectedMode, HeroEquipmentKind kind)
         {
             ConfigureHeroFrame(false);
@@ -16039,31 +16077,7 @@ namespace ProjectX.Core
                 heroEquipmentAwakenView, equipment && selectedMode == 2);
             services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeishenzhu",
                 heroEquipmentDivineView, equipment && selectedMode == 3);
-            Image portrait = heroEquipmentCultivateView?.Binding.Find(
-                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon")?.GetComponent<Image>();
-            if (portrait != null)
-            {
-                int formationPosition = heroEquipmentPresenter?.ActiveFormationPosition ?? 0;
-                int heroId = formationPosition > 0 && services.Formation.CombatHeroes.Count >= formationPosition
-                    ? services.Formation.CombatHeroes[formationPosition - 1]
-                    : 0;
-                bool hasHeroDefinition = HeroCatalog.TryGet(heroId, out HeroDefinition heroDefinition);
-                portrait.sprite = hasHeroDefinition
-                    ? services.Resources.LoadHeroPortrait(heroDefinition.Picture)
-                    : null;
-                portrait.enabled = portrait.sprite != null;
-                portrait.preserveAspect = true;
-                Image heroFrame = heroEquipmentCultivateView.Binding.Find(
-                    "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon_bg")?.GetComponent<Image>();
-                if (heroFrame != null)
-                {
-                    heroFrame.sprite = hasHeroDefinition
-                        ? services.Resources.LoadFirst(
-                            $"HeroUI/common_quality_{Mathf.Clamp(heroDefinition.Quality, 1, 7):00}")
-                        : null;
-                    heroFrame.enabled = heroFrame.sprite != null;
-                }
-            }
+            BindHeroEquipmentCultivationPortrait();
             Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = kind == HeroEquipmentKind.FaBao ? "法宝" : "装备";
             GameObject tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
