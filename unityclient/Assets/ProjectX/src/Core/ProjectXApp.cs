@@ -12,6 +12,7 @@ using ProjectX.LuaRuntime;
 using ProjectX.Network;
 using ProjectX.UI;
 using ProjectX.UI.Migration;
+using ProjectX.Validation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -804,6 +805,7 @@ namespace ProjectX.Core
                 Canvas canvas = FindObjectOfType<Canvas>();
                 if (canvas == null) throw new InvalidOperationException("Startup Canvas was not found.");
                 services = new GameServices(this, launchOptions, canvas.transform);
+                RuntimeSnapshotCollector.TryInstall(gameObject, services);
                 // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
                 services.Currencies.Changed += RefreshSharedCurrencyHeaders;
                 // These validations intentionally drive every reconnect step and

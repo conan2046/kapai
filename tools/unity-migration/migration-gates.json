@@ -147,7 +147,7 @@
         "G3": "passed",
         "G4": "passed",
         "G5": "passed",
-        "G6": "pending"
+        "G6": "passed"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY_SHOPS.md",
       "note": "2026-09-09 G0-G6 passed. Fixed SQLite account 7200057/1000003 passed the current 29/29 control and 9/9 semantic batch, five-state G5 visual validation, exact restore, relogin hash and zero residue. The user completed post-change Unity Play, stated 测试通过, then explicitly authorized 直接g6通过. This direct-G6 exception preserves the disclosed gap: 16/21 Cocos and 21/21 Unity per-control image files remain absent and were not fabricated.",
@@ -905,7 +905,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/DRAW.md",
-      "note": "2026-08-27 audit retains G0-G5. All 56 control-level Cocos/Unity image paths registered by the G6 matrix are absent in the current checkout, so G6 is pending until real evidence is recovered or recaptured.",
+      "note": "2026-09-10 hardGateVersion=4 pilot retains G0-G5 and replaces 56 missing per-control images with 28/28 dual-engine runtime JSON, 9/9 visual states, per-engine Computer Use samples, exact SQLite restore and final user Play. Current runtime, real-input and final Play evidence is still pending.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/DRAW_CONTROLS.json"
@@ -927,12 +927,15 @@
           ".local/ui-fidelity/Draw/compare/g5-20260730/manual-acceptance.json"
         ],
         "G6": [
-          ".local/unity-validation/draw-fixed-account-latest.json",
+          ".local/unity-validation/runtime-snapshots/Draw/current/summary.json",
+          ".local/unity-validation/runtime-snapshots/Draw/current/compare-report.json",
+          ".local/unity-validation/draw-sqlite-fixture-latest.json",
+          "tools/unity-migration/runtime-scenarios/draw.json",
           "docs/unityclient/modules/DRAW.md",
           "UNITYCLIENT_STATUS.md"
         ]
       },
-      "updatedUtc": "2026-08-23T11:05:34Z"
+      "updatedUtc": "2026-09-10T00:00:00Z"
     },
     {
       "module": "HeroEquip",

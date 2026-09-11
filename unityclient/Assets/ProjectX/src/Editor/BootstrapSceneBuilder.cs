@@ -326,6 +326,8 @@ namespace ProjectX.Editor
             }
             catalog.Replace(entries.OrderBy(entry => entry.Key, System.StringComparer.OrdinalIgnoreCase));
             EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssetIfDirty(catalog);
+            NormalizeUnityYaml(DynamicUiCatalog);
         }
 
         private static GameObject EnsureDynamicUiReference(string key, string prefabPath)
@@ -667,15 +669,18 @@ namespace ProjectX.Editor
         }
 
         private static void NormalizeBootstrapSceneYaml()
+            => NormalizeUnityYaml(BootstrapScene);
+
+        private static void NormalizeUnityYaml(string assetPath)
         {
-            string absolutePath = Path.GetFullPath(BootstrapScene);
+            string absolutePath = Path.GetFullPath(assetPath);
             string content = File.ReadAllText(absolutePath);
             string newline = content.Contains("\r\n") ? "\r\n" : "\n";
             string[] lines = content.Replace("\r\n", "\n").Split('\n');
             string normalized = string.Join(newline, lines.Select(line => line.TrimEnd(' ', '\t')));
             if (string.Equals(content, normalized, System.StringComparison.Ordinal)) return;
             File.WriteAllText(absolutePath, normalized, new UTF8Encoding(false));
-            AssetDatabase.ImportAsset(BootstrapScene, ImportAssetOptions.ForceSynchronousImport);
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
         }
 
         private static void EnsureFloatNoticePrefab()

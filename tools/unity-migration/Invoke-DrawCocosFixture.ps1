@@ -205,7 +205,7 @@ function Restore-DeterministicDrawDuplicateFixture($Payload) {
 $hashExpression = @"
 SHA2(CONCAT_WS('|',COALESCE(r.level,''),COALESCE(r.package,''),COALESCE(r.pet,''),COALESCE(r.chou_ka,''),
 COALESCE(r.zhenfa,''),COALESCE(r.save_data,''),COALESCE(r.money,''),COALESCE(r.zhanDouLi,''),
-COALESCE(r.petZhanDouLi,''),COALESCE(u.money,''),COALESCE(u.bd_money,'')),256)
+COALESCE(r.petZhanDouLi,''),COALESCE(u.money,''),COALESCE(u.bd_money,''),COALESCE(u.role0,'')),256)
 "@ -replace "\r?\n", ""
 $createTableSql = @"
 CREATE TABLE IF NOT EXISTS unity_validation_draw_fixture (
@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS unity_validation_draw_fixture (
  backup_pet MEDIUMTEXT NULL, backup_chou_ka MEDIUMTEXT NULL, backup_zhenfa MEDIUMTEXT NULL,
  backup_save_data MEDIUMTEXT NULL, backup_role_money MEDIUMTEXT NULL, backup_role_power MEDIUMTEXT NULL,
  backup_pet_power MEDIUMTEXT NULL, backup_user_money MEDIUMTEXT NULL, backup_bd_money MEDIUMTEXT NULL,
+ backup_user_role0 INT UNSIGNED NULL,
  backup_item_type INT NULL, backup_item_sub_value MEDIUMTEXT NULL,
  PRIMARY KEY(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -225,7 +226,7 @@ SET r.level=f.backup_level,r.package=f.backup_package,r.pet=f.backup_pet,r.chou_
  r.zhenfa=f.backup_zhenfa,r.save_data=f.backup_save_data,r.money=f.backup_role_money,
  r.zhanDouLi=f.backup_role_power,r.petZhanDouLi=f.backup_pet_power WHERE r.id=$RoleId;
 UPDATE user_info1 u JOIN unity_validation_draw_fixture f ON f.user_id=u.id
-SET u.money=f.backup_user_money,u.bd_money=f.backup_bd_money WHERE u.id=$UserId AND u.role0=$RoleId;
+SET u.role0=f.backup_user_role0,u.money=f.backup_user_money,u.bd_money=f.backup_bd_money WHERE u.id=$UserId;
 UPDATE item i JOIN unity_validation_draw_fixture f ON f.user_id=$UserId AND f.role_id=$RoleId
 SET i.type=f.backup_item_type,i.sub_value=f.backup_item_sub_value WHERE i.id=$heroExpItemId;
 "@
@@ -233,7 +234,7 @@ SET i.type=f.backup_item_type,i.sub_value=f.backup_item_sub_value WHERE i.id=$he
     $restored = $false
     for ($attempt = 1; $attempt -le 5; $attempt++) {
         $current = @(Invoke-DrawSql -Sql @"
-SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId WHERE r.id=$RoleId
+SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId WHERE r.id=$RoleId
 "@ -ReturnOutput)
         if ($expected.Count -gt 0 -and [string]$current[-1] -eq [string]$expected[-1]) { $restored = $true; break }
         Start-Sleep -Milliseconds 100
@@ -243,9 +244,10 @@ SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.
     }
 }
 function Ensure-DrawFixtureColumns {
-    $columns = @(Invoke-DrawSql -Sql "SELECT column_name FROM information_schema.columns WHERE table_schema='fxl_game_local' AND table_name='unity_validation_draw_fixture' AND column_name IN ('backup_item_type','backup_item_sub_value')" -ReturnOutput)
+    $columns = @(Invoke-DrawSql -Sql "SELECT column_name FROM information_schema.columns WHERE table_schema='fxl_game_local' AND table_name='unity_validation_draw_fixture' AND column_name IN ('backup_item_type','backup_item_sub_value','backup_user_role0')" -ReturnOutput)
     if ($columns -notcontains 'backup_item_type') { Invoke-DrawSql -Sql "ALTER TABLE unity_validation_draw_fixture ADD COLUMN backup_item_type INT NULL" }
     if ($columns -notcontains 'backup_item_sub_value') { Invoke-DrawSql -Sql "ALTER TABLE unity_validation_draw_fixture ADD COLUMN backup_item_sub_value MEDIUMTEXT NULL" }
+    if ($columns -notcontains 'backup_user_role0') { Invoke-DrawSql -Sql "ALTER TABLE unity_validation_draw_fixture ADD COLUMN backup_user_role0 INT UNSIGNED NULL" }
 }
 function Assert-DrawIsolationAccount {
     $row = @(Invoke-DrawSql -Sql @"
@@ -266,6 +268,8 @@ WHERE f.user_id=$UserId AND f.role_id=$RoleId
 "@ -ReturnOutput)
     if ($row.Count -eq 0) { throw "Draw fixture row is missing." }
     $values = $row[-1] -split "`t",5
+    $boundRole = @(Invoke-DrawSql -Sql "SELECT role0 FROM user_info1 WHERE id=$UserId" -ReturnOutput)
+    if ($boundRole.Count -eq 0 -or [uint32]$boundRole[-1] -ne $RoleId) { throw "Draw fixture account binding mismatch: expected role0=$RoleId." }
     $items = Get-DrawPackageCounts $values[0]; $pets = Get-DrawPetIds $values[1]; $pools = Get-DrawPoolState $values[2]
     foreach ($id in 834,1000,1001,1002) { if (($items[$id] ?? 0) -le 0) { throw "Draw fixture lacks item $id." } }
     if ([int]$values[3] -lt 60 -or [int]$values[4] -ne 1) { throw "Draw fixture level/applied assertion failed." }
@@ -291,13 +295,13 @@ switch ($Action) {
         Invoke-DrawSql -Sql @"
 INSERT INTO unity_validation_draw_fixture(user_id,role_id,applied,snapshot_hash,backup_level,backup_package,backup_pet,
  backup_chou_ka,backup_zhenfa,backup_save_data,backup_role_money,backup_role_power,backup_pet_power,backup_user_money,backup_bd_money,
- backup_item_type,backup_item_sub_value)
+ backup_user_role0,backup_item_type,backup_item_sub_value)
 SELECT $UserId,$RoleId,0,$hashExpression,r.level,r.package,r.pet,r.chou_ka,r.zhenfa,r.save_data,
- r.money,r.zhanDouLi,r.petZhanDouLi,u.money,u.bd_money,i.type,i.sub_value FROM role_info r
-JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId JOIN item i ON i.id=$heroExpItemId WHERE r.id=$RoleId;
+ r.money,r.zhanDouLi,r.petZhanDouLi,u.money,u.bd_money,u.role0,i.type,i.sub_value FROM role_info r
+JOIN user_info1 u ON u.id=$UserId JOIN item i ON i.id=$heroExpItemId WHERE r.id=$RoleId;
 UPDATE role_info SET level='60',package='$targetPackage',pet='$targetPet',chou_ka='$targetPool',
  money='1000000',zhanDouLi='0',petZhanDouLi='0' WHERE id=$RoleId;
-UPDATE user_info1 SET money='100000',bd_money='100000' WHERE id=$UserId AND role0=$RoleId;
+UPDATE user_info1 SET role0=$RoleId,money='100000',bd_money='100000' WHERE id=$UserId;
 UPDATE item SET type=3,sub_value='60006,200' WHERE id=$heroExpItemId;
 UPDATE unity_validation_draw_fixture SET applied=1 WHERE user_id=$UserId AND role_id=$RoleId;
 "@
@@ -318,7 +322,7 @@ UPDATE unity_validation_draw_fixture SET applied=1 WHERE user_id=$UserId AND rol
     "AssertRestored" {
         $payload = Read-Evidence
         $current = @(Invoke-DrawSql -Sql @"
-SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId WHERE r.id=$RoleId
+SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId WHERE r.id=$RoleId
 "@ -ReturnOutput)
         if ([string]$current[-1] -ne [string]$payload.snapshotHash) { throw "Draw restored hash assertion failed." }
         Write-Host "Draw retained snapshot hash assertion passed: $($payload.snapshotHash)"
@@ -328,12 +332,12 @@ SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.
         $current = @(Invoke-DrawSql -Sql @"
 SELECT SHA2(CONCAT_WS('|',COALESCE(r.package,''),COALESCE(r.pet,''),COALESCE(r.chou_ka,''),
 COALESCE(r.zhenfa,''),COALESCE(r.save_data,''),COALESCE(r.money,''),COALESCE(r.zhanDouLi,''),
-COALESCE(r.petZhanDouLi,''),COALESCE(u.money,''),COALESCE(u.bd_money,'')),256),
+COALESCE(r.petZhanDouLi,''),COALESCE(u.money,''),COALESCE(u.bd_money,''),COALESCE(u.role0,'')),256),
 SHA2(CONCAT_WS('|',COALESCE(f.backup_package,''),COALESCE(f.backup_pet,''),COALESCE(f.backup_chou_ka,''),
 COALESCE(f.backup_zhenfa,''),COALESCE(f.backup_save_data,''),COALESCE(f.backup_role_money,''),COALESCE(f.backup_role_power,''),
-COALESCE(f.backup_pet_power,''),COALESCE(f.backup_user_money,''),COALESCE(f.backup_bd_money,'')),256)
+COALESCE(f.backup_pet_power,''),COALESCE(f.backup_user_money,''),COALESCE(f.backup_bd_money,''),COALESCE(f.backup_user_role0,'')),256)
 FROM unity_validation_draw_fixture f JOIN role_info r ON r.id=f.role_id
-JOIN user_info1 u ON u.id=f.user_id AND u.role0=f.role_id WHERE f.user_id=$UserId AND f.role_id=$RoleId
+JOIN user_info1 u ON u.id=f.user_id WHERE f.user_id=$UserId AND f.role_id=$RoleId
 "@ -ReturnOutput)
         $hashes = $current[-1] -split "`t",2
         if ($hashes.Count -ne 2 -or [string]$hashes[0] -ne [string]$hashes[1]) { throw "Draw post-login restore hash mismatch." }
@@ -355,7 +359,7 @@ JOIN user_info1 u ON u.id=f.user_id AND u.role0=f.role_id WHERE f.user_id=$UserI
         $payload = Read-Evidence
         $rows = @(Invoke-DrawSql -Sql "SELECT COUNT(*) FROM unity_validation_draw_fixture WHERE user_id=$UserId" -ReturnOutput)
         $current = @(Invoke-DrawSql -Sql @"
-SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId AND u.role0=$RoleId WHERE r.id=$RoleId
+SELECT $hashExpression FROM role_info r JOIN user_info1 u ON u.id=$UserId WHERE r.id=$RoleId
 "@ -ReturnOutput)
         $itemTemplate = @(Invoke-DrawSql -Sql "SELECT type,sub_value FROM item WHERE id=$heroExpItemId" -ReturnOutput)
         $drawConfigHash = (Get-FileHash -LiteralPath $drawConfigPath -Algorithm SHA256).Hash

@@ -34,3 +34,16 @@ Select-String -Path .local/*.out,.local/*.err,client/ProjectX/simulator/win32/lo
 - “客户端进主流程”只证明 L2。
 - “协议 smoke 干净”只证明对应协议层覆盖，不等于人工 UI 全功能验收。
 - 宣称目标完成前，必须有 L6 级证据：主要 UI 功能点人工点击或自动化点击覆盖，并且服务端/客户端日志无错误。
+
+## Windows 本地兼容基线
+
+- `Start-LocalMySql.ps1` 只启动 `.local/mysql-data` 下的 workspace MySQL 8.4，不安装或修改 Windows 服务。
+- MSVC输出为 `build/server-win/Debug/kapai.exe`；`libmysql.dll`、`libssl-3-x64.dll`、`libcrypto-3-x64.dll` 必须位于exe同目录或 `server/config`。
+- `win_compat.h`、`server/src/boost/*.hpp`、`swigluarun.h` 和POSIX shim只服务本地Windows兼容，禁止扩展成线上业务重写。
+- 旧Cocos协议：`MET_Unicode` 字符串使用UTF-16LE；4字节长度为不含6字节包头的body长度；零payload命令合法。
+- Windows socket发送必须保留每socket队列；不得改成单pending消息。零body合包不得清掉后续有效包。
+- 已修崩溃回归：`MakeNewShenQiBaseInfo()` 不越过 `shenqiList.size()`；保存SQL参数按占位出现顺序；Rapid init响应不得丢包。
+- `local_test=1` 可对缺失的非登录关键商店、活动、排行、充值、红点、帮助和登录服在线回写做空响应/降级，但必须保留正式路径。
+- Lua兼容按具体 `call:` 错误补最小绑定；现有范围包括 `CUser*`、`GetFuncOpenLevel`、legacy `bit._*`、题目、日常Boss和任务星级相关接口。`server/script/75.lua` 是缺失可选弹窗脚本的本地占位。
+- 本地创角允许一次性userId，默认等级99并提供测试货币；帮派创建、公告字段和题库最小schema由bootstrap修复。新增字段仍须进入最小schema，不得依赖正式库猜测。
+- workspace MySQL与SQLite职责严格分开：Cocos/离线兼容使用MySQL；Unity Editor/Player用户功能测试使用 `Application.persistentDataPath/LocalServer/projectx.db`。

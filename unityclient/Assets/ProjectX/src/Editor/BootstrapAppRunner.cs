@@ -167,6 +167,34 @@ namespace ProjectX.Editor
                 Finish(false);
                 return;
             }
+            string runtimeSnapshotOutput = GetCommandLineValue("-projectXRuntimeSnapshotOutput=");
+            if (!string.IsNullOrEmpty(runtimeSnapshotOutput))
+            {
+                string collectorError = runtimeSnapshotOutput + ".error.json";
+                if (File.Exists(collectorError))
+                {
+                    WriteResult(false, "Runtime snapshot collector error: " + File.ReadAllText(collectorError));
+                    Finish(false);
+                    return;
+                }
+                int expectedActions = GetRuntimeSnapshotExpectedActionCount();
+                int actualActions = 0;
+                try { actualActions = File.Exists(runtimeSnapshotOutput) ? File.ReadLines(runtimeSnapshotOutput).Count() : 0; }
+                catch (IOException) { actualActions = 0; }
+                if (expectedActions > 0 && actualActions >= expectedActions)
+                {
+                    WriteResult(true, $"COMPLETE: runtime snapshot actions={actualActions}/{expectedActions}");
+                    Finish(true);
+                    return;
+                }
+                double.TryParse(SessionState.GetString(StartTimeKey, "0"), out double runtimeStartTime);
+                if (EditorApplication.timeSinceStartup - runtimeStartTime > GetRunnerTimeoutSeconds())
+                {
+                    WriteResult(false, $"Runtime snapshot timeout: actions={actualActions}/{expectedActions}");
+                    Finish(false);
+                }
+                return;
+            }
             bool reconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXReconnectValidation") >= 0;
             bool manualReconnectValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXManualReconnectValidation") >= 0;
             bool scenarioManagedReconnect = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXScenarioManagedReconnect") >= 0;
@@ -841,6 +869,25 @@ namespace ProjectX.Editor
                     return Math.Max(60d, Math.Min(900d, value));
             }
             return DefaultTimeoutSeconds;
+        }
+
+        private static string GetCommandLineValue(string prefix)
+        {
+            string argument = Environment.GetCommandLineArgs().FirstOrDefault(value =>
+                value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+            return argument == null ? string.Empty : argument.Substring(prefix.Length).Trim('"');
+        }
+
+        private static int GetRuntimeSnapshotExpectedActionCount()
+        {
+            string scenarioPath = GetCommandLineValue("-projectXRuntimeSnapshotScenario=");
+            if (string.IsNullOrEmpty(scenarioPath) || !File.Exists(scenarioPath)) return 0;
+            string json = File.ReadAllText(scenarioPath);
+            const string marker = "\"actionId\"";
+            int count = 0;
+            for (int index = 0; (index = json.IndexOf(marker, index, StringComparison.Ordinal)) >= 0; index += marker.Length)
+                count++;
+            return count;
         }
 
         private static void Finish(bool success)

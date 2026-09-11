@@ -102,6 +102,15 @@ function MainUI:Init()
     -- self:sortButtonGroup(4)
    
     self:QueryDataEnterGame()
+    if AppDef.LOCAL_TEST and AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE == "Draw" then
+        local ok, replay = pcall(require, "Validation.RuntimeSnapshotReplay")
+        if ok and replay then
+            performWithDelay(self.m_pUILayer, function() replay:Attach(self.m_pUILayer) end, 1.0)
+        else
+            local file = io.open((AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_OUTPUT or "cocos-session.jsonl") .. ".error.json", "w")
+            if file then file:write(json.encode({recordType="collector-error",engine="cocos",error=tostring(replay)})); file:close() end
+        end
+    end
     GameSdk:updateQuickPlayerInfo()
     --增加战斗menu
     LGameMsg.m_baseMsgWithOne:Change(LUILogicEvent.addBattleMenu)

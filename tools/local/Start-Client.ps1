@@ -6,7 +6,11 @@ param(
     [switch]$DisableAutoCreateRole,
     [string]$LocalRoleNamePreset = "",
     [string]$LocalGameIp = "",
-    [int]$LocalGamePort = 0
+    [int]$LocalGamePort = 0,
+    [string]$RuntimeSnapshotModule = "",
+    [string]$RuntimeSnapshotScenario = "",
+    [string]$RuntimeSnapshotOutput = "",
+    [string]$RuntimeSnapshotFingerprint = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -146,6 +150,38 @@ if ($PSBoundParameters.ContainsKey("LocalRoleNamePreset")) {
     }
     $replacement = "`$1`nAppDef.LOCAL_TEST_ROLE_NAME_PRESET = `"$LocalRoleNamePreset`""
     $appDefText = [regex]::Replace($appDefText, $anchorPattern, $replacement)
+    Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
+}
+
+if ($RuntimeSnapshotModule -or $RuntimeSnapshotScenario -or $RuntimeSnapshotOutput -or $RuntimeSnapshotFingerprint) {
+    if ($RuntimeSnapshotModule -ne "Draw") { throw "RuntimeSnapshotModule must be Draw for the current pilot." }
+    if (-not $PSBoundParameters.ContainsKey("LocalUserId") -or -not $PSBoundParameters.ContainsKey("LocalRoleId") -or
+        $LocalUserId -ne 7200057 -or $LocalRoleId -ne 1000003) {
+        throw "Draw runtime snapshots require -LocalUserId 7200057 -LocalRoleId 1000003. Silent fallback to the default account is forbidden."
+    }
+    if (-not $RuntimeSnapshotScenario -or -not (Test-Path -LiteralPath $RuntimeSnapshotScenario -PathType Leaf)) {
+        throw "RuntimeSnapshotScenario must identify an existing JSON file."
+    }
+    if (-not $RuntimeSnapshotOutput) { throw "RuntimeSnapshotOutput is required." }
+    if ($RuntimeSnapshotFingerprint -notmatch '^[A-Fa-f0-9]{64}$') { throw "RuntimeSnapshotFingerprint must be a SHA256 value." }
+    $resolvedScenario = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $RuntimeSnapshotScenario)).Replace('\','/')
+    $resolvedOutput = [IO.Path]::GetFullPath($RuntimeSnapshotOutput).Replace('\','/')
+    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($resolvedOutput)) | Out-Null
+    foreach ($value in @($RuntimeSnapshotModule, $resolvedScenario, $resolvedOutput, $RuntimeSnapshotFingerprint)) {
+        if ($value -match '["\r\n]') { throw "Runtime snapshot arguments cannot contain quotes or line breaks." }
+    }
+    $appDefText = Get-Content -LiteralPath $simulatorAppDef -Raw -Encoding UTF8
+    $overrides = [ordered]@{
+        LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE = $RuntimeSnapshotModule
+        LOCAL_TEST_RUNTIME_SNAPSHOT_SCENARIO = $resolvedScenario
+        LOCAL_TEST_RUNTIME_SNAPSHOT_OUTPUT = $resolvedOutput
+        LOCAL_TEST_RUNTIME_SNAPSHOT_FINGERPRINT = $RuntimeSnapshotFingerprint.ToUpperInvariant()
+    }
+    foreach ($entry in $overrides.GetEnumerator()) {
+        $pattern = "(?m)^AppDef\.$($entry.Key)\s*=\s*nil\s*$"
+        if ([regex]::Matches($appDefText, $pattern).Count -ne 1) { throw "Expected exactly one AppDef.$($entry.Key) nil assignment in $simulatorAppDef" }
+        $appDefText = [regex]::Replace($appDefText, $pattern, "AppDef.$($entry.Key) = `"$($entry.Value)`"")
+    }
     Set-Content -LiteralPath $simulatorAppDef -Value $appDefText -Encoding utf8NoBOM -NoNewline
 }
 

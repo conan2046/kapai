@@ -20,6 +20,7 @@ namespace ProjectX.Network
         private bool disposing;
 
         public event Action<ushort, LegacyTcpMessage> PacketReceived;
+        public event Action<ProtocolPacketTrace> PacketObserved;
         public event Action<NetworkState> StateChanged;
         public event Action<string> Disconnected;
 
@@ -62,6 +63,8 @@ namespace ProjectX.Network
         public void Send(LegacyTcpMessage message)
         {
             if (State != NetworkState.Connected) throw new InvalidOperationException($"Cannot send while network state is {State}.");
+            byte[] payload = message.SnapshotPayload();
+            PacketObserved?.Invoke(new ProtocolPacketTrace(ProtocolPacketDirection.Sent, message.OutgoingCommand, payload, FrameOutgoing(payload), DateTime.UtcNow));
             client.Send(message);
         }
 
@@ -71,6 +74,8 @@ namespace ProjectX.Network
             {
                 if (command != 0)
                 {
+                    byte[] body = message.SnapshotPayload();
+                    PacketObserved?.Invoke(new ProtocolPacketTrace(ProtocolPacketDirection.Received, command, body, FrameIncoming(command, body), DateTime.UtcNow));
                     PacketReceived?.Invoke(command, message);
                     return;
                 }
@@ -102,6 +107,26 @@ namespace ProjectX.Network
             if (State == state) return;
             State = state;
             StateChanged?.Invoke(state);
+        }
+
+        private static byte[] FrameOutgoing(byte[] payload)
+        {
+            if (payload == null || payload.Length < 2) return Array.Empty<byte>();
+            int bodyLength = payload.Length - 2;
+            byte[] packet = new byte[payload.Length + 4];
+            Buffer.BlockCopy(BitConverter.GetBytes(bodyLength), 0, packet, 0, 4);
+            Buffer.BlockCopy(payload, 0, packet, 4, payload.Length);
+            return packet;
+        }
+
+        private static byte[] FrameIncoming(ushort command, byte[] body)
+        {
+            body = body ?? Array.Empty<byte>();
+            byte[] packet = new byte[body.Length + 6];
+            Buffer.BlockCopy(BitConverter.GetBytes(body.Length), 0, packet, 0, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(command), 0, packet, 4, 2);
+            Buffer.BlockCopy(body, 0, packet, 6, body.Length);
+            return packet;
         }
     }
 }

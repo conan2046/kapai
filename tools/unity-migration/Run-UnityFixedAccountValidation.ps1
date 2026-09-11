@@ -9,12 +9,20 @@ param(
     [switch]$PreflightOnly,
     [switch]$DataPreflightOnly,
     [switch]$G3RuntimeOnly,
-    [switch]$G5VisualOnly
+    [switch]$G5VisualOnly,
+    [switch]$FinalFull
 )
 
 $ErrorActionPreference = "Stop"
 if (@(@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly, $G5VisualOnly) | Where-Object { $_ }).Count -gt 1) {
     throw "-PreflightOnly, -DataPreflightOnly, -G3RuntimeOnly and -G5VisualOnly are mutually exclusive."
+}
+if ($FinalFull -and @(@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly, $G5VisualOnly) |
+    Where-Object { $_ }).Count -gt 0) {
+    throw "-FinalFull cannot be combined with a focused preflight/runtime/visual mode."
+}
+if (-not $FinalFull -and -not $PreflightOnly -and -not $DataPreflightOnly -and -not $G3RuntimeOnly -and -not $G5VisualOnly) {
+    throw "Full fixed-account validation is reserved for final convergence. Use a focused mode while diagnosing, or add -FinalFull after targeted hybrid checks pass."
 }
 . (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = Get-UnityMigrationRoot
@@ -153,6 +161,12 @@ $scenario = Get-UnityMigrationScenario -Root $root -ModuleKey ([string]$moduleCo
 if ($null -eq $scenario) { throw "Module '$Module' has no validation scenario." }
 $scenarioRuntimeFlags = @(Get-UnityMigrationScenarioRuntimeFlags -Scenario $scenario)
 $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
+$isFullRun = -not $PreflightOnly -and -not $DataPreflightOnly -and -not $G3RuntimeOnly -and -not $G5VisualOnly
+if ($isFullRun) {
+    Assert-UnityMigrationNoBlindRetry -Root $root -Module ([string]$moduleConfig.key) `
+        -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" `
+        -Operation "fixed-account-batch-validation" -Policy $workflowPolicy
+}
 $requiredGate = if ($G5VisualOnly) { "G4" } elseif ($DataPreflightOnly -or $PreflightOnly -or $G3RuntimeOnly) { "G2" } else { "G3" }
 $workflowPhase = if ($DataPreflightOnly) { "G0" } else { "G3" }
 Assert-UnityMigrationGatePrerequisite -Root $root -ModuleKey ([string]$moduleConfig.key) -RequiredGate $requiredGate
@@ -186,6 +200,8 @@ $overallTiming = Start-UnityMigrationTiming
 $runStatus = "failed"
 $fixtureCreated = $false
 $validationPassed = $false
+$fixtureActionHistory = New-Object System.Collections.Generic.List[string]
+$fixtureSetupCount = 0
 $startedMySqlIds = New-Object System.Collections.Generic.List[int]
 $hadPreviousResult = -not $PreflightOnly -and -not $DataPreflightOnly -and
     (Test-Path -LiteralPath $resultPath -PathType Leaf)
@@ -202,11 +218,16 @@ try {
     }
 
     function Invoke-FixedAdapter([string]$Action) {
+        if ($Action -match '^Setup' -and $fixtureSetupCount -gt 0) {
+            throw "Fixture Setup cannot run more than once in one validation lifecycle. Restore and start a new focused run instead."
+        }
         $adapterArguments = @("-NoProfile", "-File", $adapter, "-Action", $Action,
             "-UserId", $UserId, "-RoleId", $RoleId, "-EvidencePath", $snapshot)
         if ($dataBackend -eq "sqlite") { $adapterArguments += @("-DatabasePath", $fixedSqlitePath) }
         & $pwshExecutable @adapterArguments
         if ($LASTEXITCODE -ne 0) { throw "Fixed-account adapter action failed: $Action" }
+        $fixtureActionHistory.Add($Action)
+        if ($Action -match '^Setup') { $script:fixtureSetupCount++ }
     }
 
     function Wait-FixedRuntimeRelease {
@@ -368,6 +389,9 @@ try {
         if (-not $setupAction) { throw "Fixed-account G5 visual mode requires g5VisualSetupAction." }
         Invoke-FixedAdapter $setupAction
         $fixtureCreated = $true
+        if (-not $G5VisualOnly) {
+            Invoke-FixedAdapter "AssertSetup"
+        }
     }
     finally {
         Complete-UnityMigrationTiming -Timings $timings -Name "fixtureSetup" -Timing $fixtureTiming
@@ -836,6 +860,7 @@ finally {
         module = $Module
         mode = $(if ($PreflightOnly) { "compile-preflight" } elseif ($DataPreflightOnly) { "data-preflight" } elseif ($G3RuntimeOnly) { "g3-runtime" } elseif ($G5VisualOnly) { "g5-visual" } else { "full" })
         status = $runStatus
+        fixtureActions = @($fixtureActionHistory)
         timings = $timings
         checkedUtc = [DateTime]::UtcNow.ToString("O")
     }

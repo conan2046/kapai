@@ -11463,6 +11463,12 @@ end
 
 function LuaNetRecvdMsg.DealLuckDraw(stream)
     local op = stream:ReadByte()
+    local runtimeCollector = nil
+    local runtimeDecoded = {op=op}
+    if AppDef.LOCAL_TEST and AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE == "Draw" then
+        local ok, collector = pcall(require, "Validation.RuntimeSnapshotCollector")
+        if ok and collector then runtimeCollector = collector end
+    end
     --print("DealLuckDraw ===> op", op)
     if op == 1 then
         local drawInfo = {}
@@ -11479,20 +11485,27 @@ function LuaNetRecvdMsg.DealLuckDraw(stream)
         end
         -- dump(drawInfo, "DealLuckDraw ===========================>")
         PetkaPaiManager.m_DrawInfo = drawInfo
+        runtimeDecoded.drawInfo = drawInfo
         Utils:SendMsg(LUIDrawEvent.updateDrawUI, drawInfo, true)
     elseif op == 2 then
         local kind = stream:ReadByte()
         local type = stream:ReadByte()
 
         local errCode = stream:ReadByte()
+        runtimeDecoded.kind = kind
+        runtimeDecoded.type = type
+        runtimeDecoded.errCode = errCode
         --print("LuaNetRecvdMsg.DealLuckDraw 22222222222", errCode, type)
         if errCode < 1 then
             local msg = stream:ReadString()
+            runtimeDecoded.errorMessage = msg
+            if runtimeCollector then runtimeCollector.observe("received", LuaNetCmd.MSG_GET_PET, op, runtimeDecoded, stream) end
             Utils:ShowScrollTips(msg)
             return
         end
 
         local totalNum = stream:ReadUInt()
+        runtimeDecoded.totalNum = totalNum
         --print("LuaNetRecvdMsg.DealLuckDraw totalNum ===>", totalNum)
         if type == AppDef.DrawType.OneDraw then
             local itemInfo = LLuckyDrawResultItem:New()
@@ -11544,6 +11557,7 @@ function LuaNetRecvdMsg.DealLuckDraw(stream)
                 itemInfo.itemId = itemInfo.awardType
             end
             PetkaPaiManager.m_DrawResult = itemInfo
+            runtimeDecoded.result = itemInfo
             -- dump(itemInfo, "DealLuckDraw 111111111111111111 ====>")
             -- Utils:InitUI("HappyDraw.SingleDrawResultUI", AppDef.UIType.SpecialLayer, itemInfo)
             Utils:SendMsg(LUIDrawEvent.SingleDrawSuccess, itemInfo)
@@ -11601,12 +11615,15 @@ function LuaNetRecvdMsg.DealLuckDraw(stream)
                 table.insert(info.items, itemInfo)
             end
             PetkaPaiManager.m_DrawResult = info
+            runtimeDecoded.result = info
             -- Utils:InitUI("HappyDraw.TenDrawResultUI", AppDef.UIType.SpecialLayer, info)
             Utils:SendMsg(LUIDrawEvent.TenDrawSuccess, info)
         end
     elseif op == 3 then
         LRedDotCheckMgr.cardCd = stream:ReadInt()
+        runtimeDecoded.cardCd = LRedDotCheckMgr.cardCd
     end
+    if runtimeCollector then runtimeCollector.observe("received", LuaNetCmd.MSG_GET_PET, op, runtimeDecoded, stream) end
     LRedDotCheckMgr:MainCardCheck()
 end
 

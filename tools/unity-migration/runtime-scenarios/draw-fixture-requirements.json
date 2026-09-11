@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "module": "Draw",
+  "backend": "Application.persistentDataPath/LocalServer/projectx.db",
+  "identity": { "userId": 7200057, "roleId": 1000003, "isolationUserId": 1, "isolationRoleId": 1000001 },
+  "preconditions": {
+    "minimumLevel": 60,
+    "retainedHeroIds": [57],
+    "absentHeroIds": [64],
+    "items": { "834": 10, "1000": 20, "1001": 10, "1002": 200 },
+    "drawPools": [
+      { "kind": 1, "total": 0, "cooldown": 0, "free": 3 },
+      { "kind": 2, "total": 0, "cooldown": 0, "free": 1 },
+      { "kind": 3, "total": 0, "cooldown": 0, "free": 0 }
+    ],
+    "deterministicAuthority": "server/src/chou_ka_manager.cpp high first draw returns hero 64"
+  },
+  "safety": {
+    "fullDatabaseSnapshot": true,
+    "exactFileRestore": true,
+    "reloginBusinessStateCheck": true,
+    "integrityCheck": "ok",
+    "requiredResidualCount": 0,
+    "restoreInFinally": true,
+    "scenariosAreIndependent": true
+  }
+}

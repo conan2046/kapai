@@ -63,6 +63,7 @@ function Test-RequiredFile {
 
 $statusPath = Test-RequiredFile "UNITYCLIENT_STATUS.md"
 $guidePath = Test-RequiredFile "docs/unityclient/MIGRATION_GUIDE.md"
+$agentsPath = Test-RequiredFile "AGENTS.md"
 $steamScopePath = Test-RequiredFile "docs/unityclient/STEAM_SCOPE.md"
 $moduleIndexPath = Test-RequiredFile "docs/unityclient/modules/README.md"
 $paymentPath = Test-RequiredFile "docs/unityclient/modules/PAYMENT.md"
@@ -101,7 +102,7 @@ if ($statusPath) {
     if ($statusDenominator -le 0 -or -not $status.Contains("当前 Steam 业务模块分母固定为 $statusDenominator")) {
         Add-Failure "STATUS no longer declares the single current Steam denominator."
     }
-    $prioritySectionMatch = [regex]::Match($status, '(?s)## 4\. 总迁移顺序(?<body>.*?)## 5\.')
+    $prioritySectionMatch = [regex]::Match($status, '(?s)## \d+\. 总迁移顺序(?<body>.*?)## \d+\.')
     if (-not $prioritySectionMatch.Success) {
         Add-Failure "STATUS priority section cannot be isolated for duplicate-progress validation."
     }
@@ -200,6 +201,28 @@ $completionStatuses = @(
     "g6-complete-visual-passed",
     "g0-g6-passed"
 )
+$completionPolicy = Get-UnityMigrationPropertyValue -Object $manifest -Name "completionPolicy" -Default $null
+$userAuthorizedExceptionStatus = [string](Get-UnityMigrationPropertyValue `
+    -Object $completionPolicy -Name "userAuthorizedExceptionStatus" -Default "")
+$userAuthorizedExceptionCountsTowardStrictProgress = [bool](Get-UnityMigrationPropertyValue `
+    -Object $completionPolicy -Name "userAuthorizedExceptionCountsTowardStrictProgress" -Default $false)
+if (-not $userAuthorizedExceptionStatus) {
+    Add-Failure "Manifest completionPolicy has no userAuthorizedExceptionStatus."
+}
+
+$sizeRules = @(
+    [pscustomobject]@{ Name = "AGENTS"; Path = $agentsPath; Limit = 12KB },
+    [pscustomobject]@{ Name = "STATUS"; Path = $statusPath; Limit = 12KB },
+    [pscustomobject]@{ Name = "MIGRATION_GUIDE"; Path = $guidePath; Limit = 44KB },
+    [pscustomobject]@{ Name = "MODULE_INDEX"; Path = $moduleIndexPath; Limit = 8KB }
+)
+foreach ($rule in $sizeRules) {
+    if (-not $rule.Path) { continue }
+    $size = (Get-Item -LiteralPath $rule.Path).Length
+    if ($size -gt $rule.Limit) {
+        Add-Failure "$($rule.Name) has $size bytes; limit is $($rule.Limit). Move dated detail to history instead of expanding the current-context document."
+    }
+}
 
 if (-not $TargetModule) {
     $progressPolicy = Get-UnityMigrationPropertyValue -Object $manifest `
@@ -242,10 +265,14 @@ if (-not $TargetModule) {
             }
             $eligibleStatus = [string]$eligibleModule.status
             $claimsComplete = $eligibleStatus -in $completionStatuses
-            if ($allGatesPassed -ne $claimsComplete) {
+            $isUserAuthorizedException = $eligibleStatus -eq $userAuthorizedExceptionStatus
+            if (-not $isUserAuthorizedException -and $allGatesPassed -ne $claimsComplete) {
                 Add-Failure "Steam progress module $eligibleKey status/gate drift: status=$eligibleStatus allGatesPassed=$allGatesPassed."
             }
-            if ($allGatesPassed -and $claimsComplete) { $completedKeys.Add($eligibleKey) }
+            if ($allGatesPassed -and ($claimsComplete -or
+                ($isUserAuthorizedException -and $userAuthorizedExceptionCountsTowardStrictProgress))) {
+                $completedKeys.Add($eligibleKey)
+            }
         }
 
         if ($statusPath -and $declaredDenominator -gt 0) {
@@ -360,6 +387,41 @@ foreach ($module in $modulesToCheck) {
         }
     }
     $moduleStatus = [string]$module.status
+    $moduleGateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $key })
+    $isUserAuthorizedException = $moduleStatus -eq $userAuthorizedExceptionStatus
+    if ($isUserAuthorizedException) {
+        if ($moduleGateRecords.Count -ne 1) {
+            Add-Failure "Module $key claims a user-authorized G6 exception without a unique gate record."
+        }
+        else {
+            foreach ($gate in @("G0","G1","G2","G3","G4","G5","G6")) {
+                if ([string]$moduleGateRecords[0].gates.$gate -ne "passed") {
+                    Add-Failure "Module $key claims a user-authorized G6 exception while $gate is '$($moduleGateRecords[0].gates.$gate)'."
+                }
+            }
+            $exceptionEvidence = @($moduleGateRecords[0].gateEvidence.G6 | ForEach-Object { [string]$_ })
+            if (@($exceptionEvidence | Where-Object { $_ -like '*-final-user-acceptance-latest.json' }).Count -ne 1) {
+                Add-Failure "Module $key user-authorized G6 exception has no unique final user acceptance evidence."
+            }
+            if (@($exceptionEvidence | Where-Object { $_ -like '*-g6-user-authorized-retrospective-latest.json' }).Count -ne 1) {
+                Add-Failure "Module $key user-authorized G6 exception has no unique disclosed retrospective evidence."
+            }
+        }
+    }
+    $controlMatrixPath = [string](Get-UnityMigrationPropertyValue -Object $module -Name "controlMatrix" -Default "")
+    if ($controlMatrixPath -and $moduleGateRecords.Count -eq 1) {
+        $matrixPath = Resolve-UnityMigrationPath -Root $root -Path $controlMatrixPath
+        if (Test-Path -LiteralPath $matrixPath -PathType Leaf) {
+            $matrix = Get-Content -Raw -Encoding UTF8 -LiteralPath $matrixPath | ConvertFrom-Json
+            $matrixCompletion = Get-UnityMigrationPropertyValue -Object $matrix -Name "completion" -Default $null
+            $matrixG6Audit = Get-UnityMigrationPropertyValue -Object $matrix -Name "g6Audit" -Default $null
+            $matrixClaimsG6 = [string](Get-UnityMigrationPropertyValue -Object $matrixCompletion -Name "status" -Default "") -eq "complete" -or
+                [string](Get-UnityMigrationPropertyValue -Object $matrixG6Audit -Name "status" -Default "") -eq "passed"
+            if ($matrixClaimsG6 -and [string]$moduleGateRecords[0].gates.G6 -ne "passed") {
+                Add-Failure "Module $key control matrix claims G6 completion while registry G6 is '$($moduleGateRecords[0].gates.G6)'."
+            }
+        }
+    }
     $visualProperty = $module.PSObject.Properties["visualFidelity"]
     $visual = if ($null -ne $visualProperty) { $visualProperty.Value } else { $null }
     $visualCompleteStatus = if ($manifest.visualFidelityPolicy.completeStatus) {
@@ -526,6 +588,70 @@ foreach ($record in @($gateEntry.Value.modules | Where-Object {
     }
     if (-not $record.evidence -or -not (Test-Path -LiteralPath (Resolve-UnityMigrationPath -Root $root -Path ([string]$record.evidence)))) {
         Add-Failure "Module $($record.module) gate evidence document is missing: $($record.evidence)"
+    }
+}
+
+if (-not $TargetModule -or $TargetModule -ieq "Draw") {
+    $drawContract = @($evidenceContractEntry.Value.modules | Where-Object { [string]$_.module -ieq "Draw" })
+    $runtimeOwners = @($evidenceContractEntry.Value.modules | Where-Object {
+        $null -ne (Get-UnityMigrationPropertyValue -Object $_ -Name "runtimeSnapshot" -Default $null)
+    })
+    if ($drawContract.Count -ne 1) {
+        Add-Failure "Draw must have exactly one evidence contract."
+    }
+    elseif ($null -eq (Get-UnityMigrationPropertyValue -Object $drawContract[0] -Name "runtimeSnapshot" -Default $null)) {
+        Add-Failure "Draw evidence contract is missing runtimeSnapshot."
+    }
+    if (@($runtimeOwners | Where-Object { [string]$_.module -ieq "Draw" }).Count -ne 1 -or
+        @($runtimeOwners | Where-Object { [string]$_.module -ine "Draw" -and
+            [string]$_.runtimeSnapshot.scenario -eq "tools/unity-migration/runtime-scenarios/draw.json" }).Count -ne 0) {
+        Add-Failure "Draw runtime snapshot contract is attached to the wrong module or duplicated."
+    }
+
+    $drawMatrixPath = Test-RequiredFile "docs/unityclient/matrices/DRAW_CONTROLS.json"
+    $drawScenarioPath = Test-RequiredFile "tools/unity-migration/runtime-scenarios/draw.json"
+    Test-RequiredFile "tools/unity-migration/runtime-snapshot.schema.json" | Out-Null
+    Test-RequiredFile "tools/unity-migration/runtime-scenarios/draw-fixture-requirements.json" | Out-Null
+    Test-RequiredFile "tools/unity-migration/RuntimeSnapshot.Common.ps1" | Out-Null
+    Test-RequiredFile "tools/unity-migration/Compare-UnityRuntimeSnapshots.ps1" | Out-Null
+    Test-RequiredFile "tools/unity-migration/Invoke-DrawSqliteFixture.ps1" | Out-Null
+    Test-RequiredFile "client/ProjectX/src/Validation/RuntimeSnapshotReplay.lua" | Out-Null
+    Test-RequiredFile "unityclient/Assets/ProjectX/src/Validation/RuntimeInputDispatcher.cs" | Out-Null
+    if ($drawMatrixPath -and $drawScenarioPath) {
+        $drawMatrix = Get-Content -Raw -Encoding UTF8 -LiteralPath $drawMatrixPath | ConvertFrom-Json
+        $drawRuntimeScenario = Get-Content -Raw -Encoding UTF8 -LiteralPath $drawScenarioPath | ConvertFrom-Json
+        $matrixIds = @($drawMatrix.controls | ForEach-Object { [string]$_.id } | Sort-Object)
+        $scenarioIds = @($drawRuntimeScenario.actions | ForEach-Object { [string]$_.action.targetControlId } | Sort-Object)
+        $expectedFields = @("automationPassed", "engineInputReplayPassed", "realInputSamplePassed",
+            "protocolSemanticPassed", "runtimeTreePassed", "visualPassed", "manualPassed")
+        if ([int]$drawMatrix.hardGateVersion -ne 4) { Add-Failure "Draw hardGateVersion must be 4." }
+        if ($matrixIds.Count -ne 28 -or @($matrixIds | Sort-Object -Unique).Count -ne 28) {
+            Add-Failure "Draw matrix must contain 28 unique controls for runtime v4."
+        }
+        if ($scenarioIds.Count -ne 28 -or @($scenarioIds | Sort-Object -Unique).Count -ne 28 -or
+            @((Compare-Object $matrixIds $scenarioIds)).Count -ne 0) {
+            Add-Failure "Draw runtime scenario action targets must equal the 28 matrix control ids."
+        }
+        if (@(Compare-Object @($drawMatrix.runtimeEvidenceFields) $expectedFields).Count -ne 0) {
+            Add-Failure "Draw runtimeEvidenceFields must match the seven v4 evidence flags."
+        }
+        if ([string]$drawMatrix.g6Audit.status -ne "runtime-v4-pending" -or
+            [bool]$drawMatrix.g6Audit.manualPassed -or [int]$drawMatrix.g6Audit.cocosActionCount -ne 28 -or
+            [int]$drawMatrix.g6Audit.unityActionCount -ne 28 -or
+            [int]$drawMatrix.g6Audit.matchedControlCount -ne 0) {
+            Add-Failure "Draw v4 pilot must retain 28 actions per engine, zero current matches and manualPassed=false while G6 remains pending."
+        }
+    }
+    if ($drawContract.Count -eq 1) {
+        if ([string]$drawContract[0].fixedAccount.dataBackend -ne "sqlite" -or
+            [int]$drawContract[0].fixedAccount.userId -ne 7200057 -or
+            [int]$drawContract[0].fixedAccount.roleId -ne 1000003) {
+            Add-Failure "Draw fixed account contract must use SQLite identity 7200057/1000003."
+        }
+        if ([int]$drawContract[0].runtimeSnapshot.realInputMinimumPerEngine -ne 8 -or
+            [int]$drawContract[0].runtimeSnapshot.visualStateCount -ne 9) {
+            Add-Failure "Draw runtime contract must require 8 real-input samples per engine and 9 visual states."
+        }
     }
 }
 

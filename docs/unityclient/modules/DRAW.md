@@ -2,15 +2,16 @@
 
 ## 当前结论
 
-- 当前 `G0-G5 retained / G6 evidence missing`：`HappyDrawUI`、`/224` 和 G5 双端主状态证据保留；矩阵登记的 28 组 Cocos 与 28 组 Unity 逐控件图片在当前检出全部缺失，因此不得维持 G6 完成结论。Hero 与 Formation 仅承担真实招募目标的跨模块回归，没有扩大迁移边界。
-- 固定账号 `7200057/1000115` 真实完成高级免费单抽确定获得 `64 郑伦`，随后 `/24 op=3` 培养、`/48 op=4` 上阵、重进、断线重连；切换 `705213/1000006` 后目标神将和阵容均未继承。
-- 28/28 控件、6/6 语义硬断言、9/9 双端视觉通过；账号快照、招募记录、神将、培养材料、货币和阵容精确恢复，SHA-256 `d10f760ded12ce9b8518770097bad55e1d85b72906a0e3344a9de47fe23483ee`，Fixture 残留 0。
+- 当前 `G0-G5 retained / hardGateVersion=4 pilot implemented / G6 runtime evidence pending`：中央 Schema、场景 DSL、双端采集器、语义比较器和 SQLite 夹具适配器已落地；本轮已生成 Cocos/Unity 各 28 条 JSONL，但 Cocos 触摸绑定拒绝 table/vector 转换，Unity 仅 3/28 通过，双端匹配 0/28。Computer Use 原生应用面为空、当前视觉基线未重建、用户最终 Play 未开始，因此 `manualPassed=false`，G6 保持 pending。Hero 与 Formation 仅承担真实招募目标的跨模块回归，没有扩大迁移边界。
+- 当前 Unity 固定 SQLite 身份为 `7200057/1000003`，隔离身份为 `1/1000001`；夹具只操作 `Application.persistentDataPath/LocalServer/projectx.db`，必须整库快照、恢复、重登业务哈希、`PRAGMA integrity_check` 与残留 0 全通过。
+- 历史 28/28 控件、6/6 语义、9/9 双端视觉及恢复 SHA 仅作回放输入和差异线索；v4 门禁不读取旧逐控件布尔值，也不把缺失的 56 张逐控件图片重新定义为通过证据。
 - 两次真正 `BootstrapSceneBuilder.BuildBatch` 的场景 SHA-256 均为 `CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。
 - 确定性目标只能使用高级池首次真实招募：服务端 `CChouKaManager::ChouKa` 在高级池累计次数为零时权威返回神将 `64`；普通池随机结果不能用作固定账号验收目标。
+- 两类目标必须分开：`NewHero` 夹具移除神将64，用于新神将主链；`DuplicateFragment` 夹具预置神将64，只用于“高级首次单抽→权威碎片转换→碎片UI”定向验收。未先通过对应 `AssertSetup` 时禁止截图或判定碎片缺陷。
 
 ## 1. 当前范围
 
-- 当前 Unity 主界面入口：`Layer/Main_UI/ButtonGroup1/btn_zhaomu`。
+- 当前双端运行时可见主界面入口：`Layer/Main_UI/ButtonGroup3/btn_zhaomu`；历史 Prefab 中另有隐藏的 `ButtonGroup1/btn_zhaomu`，不得作为当前点击目标。
 - 当前回调：`MainUI:LuckDrawTouchCallback → Utils:OpenFunction(EMID_KAPAI_CHOUKA)`。
 - 当前 View：`View/HappyDraw/HappyDrawUI.lua`，不是旧 `View/LuckyDraw/LuckyDrawUI.lua`。
 - 当前协议：`MSG_PET_RANDOM_DRAW / 224`。
@@ -21,7 +22,7 @@
 ## 2. 当前调用链
 
 ```text
-UImainLayer_new/ButtonGroup1/btn_zhaomu
+UImainLayer_new/Layer/Main_UI/ButtonGroup3/btn_zhaomu
 → MainUI:LuckDrawTouchCallback
 → Utils:OpenFunction(EMID_KAPAI_CHOUKA)
 → AppDef.ModuleOpenData[1010].lua = HappyDraw.HappyDrawUI
@@ -158,9 +159,8 @@ G1 原始窗口截图全部为 `1334×750` PrintWindow 捕获；`kapai-current.o
 
 - `HeroController.levelUp` 直接发送 `/24 op=3 + heroId + 834 + 1`，仅在成功回包后重拉 `/24 → /48`；等级、属性和上阵显示不在 Unity 侧预测或改 Store。
 - `HeroController.moveHero` 已移除“必须原先上阵”的错误限制，仍通过服务端 `/48 op=4` 对目标神将和阵位做权威校验；因此招募得到、初始未上阵的神将可被真实替换进合法阵位。
-- `Invoke-DrawCocosFixture.ps1` 使用可逆服务端夹具：目标 `64` 在夹具前不存在，高级池 `allCnt=0/freeTimes=1`，首个高级单抽由 `CChouKaManager` 确定返回 `64`；同时准备招募券、`834` 和其服务端经验模板 `type=3/sub_value=60006,200`，并快照 `package/pet/chou_ka/zhenfa`、培养后会变更的战力与货币字段及模板原值。
-- 固定账号闭环另用只读隔离账号 `705213/1000006`：Fixture 建立和预演均解析其真实神将快照并硬断言不存在目标 `64`；Unity 在主账号重连验证后真实切换该账号，再重拉 `/24 → /48` 验证不继承神将、培养或阵容状态。
-- 夹具本地自检已执行“建立 → 初始硬断言 → 精确恢复 → fixture 行为 0、整体 SHA 一致”；完整预演必须再走固定账号脚本的登录、恢复与清理流程，不能以本自检替代。
+- `Invoke-DrawSqliteFixture.ps1/.py` 只接受当前用户 `AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db`。默认 `NewHero` 对 `7200057/1000003` 建立确定性高级首次招募、券/材料/阵位条件；`-Profile DuplicateFragment` 预置目标神将64，确保首次高级单抽满足碎片转换前置条件。隔离身份固定为 `1/1000001`。
+- 夹具执行整库快照和精确还原，并独立记录数据库 SHA-256、重登业务哈希、`PRAGMA integrity_check` 与 fixture 残留；静态副本自检不能替代真实客户端重登。
 
 ## 7. 动态验证（2026-08-23 历史 G6 记录；2026-08-27 缺证降级）
 
@@ -168,7 +168,10 @@ G1 原始窗口截图全部为 `1334×750` PrintWindow 捕获；`kapai-current.o
 
 ```powershell
 pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Draw -DataPreflightOnly
-pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Draw
+pwsh -File tools/unity-migration/Invoke-DrawSqliteFixture.ps1 -Action Setup -Profile DuplicateFragment
+pwsh -File tools/unity-migration/Invoke-DrawSqliteFixture.ps1 -Action AssertSetup -Profile DuplicateFragment
+# 此时只做一次真实高级单抽并核对 /224、Type=60002、TransformItemId>0 与可见碎片UI；随后按 Restore/AssertRestored/AssertReloginHash/Cleanup/AssertCleanup 恢复。
+pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Draw -FinalFull
 pwsh -File tools/unity-migration/New-UnityModuleG5Evidence.ps1 -Module Draw
 pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 ```
@@ -184,6 +187,15 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 - 两次正式 BuildBatch 幂等 SHA-256：`48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`。
 - G5 的 9 个原生 `1334×750` 主状态仍存在；`DRAW_CONTROLS.json` 已登记 `g6Audit`，但其 56 个逐控件双端证据路径当前全部不存在，G6 保持 pending。
 - 好友入口在 Steam 版本明确提示排除；将魂商店在 Gameplay route 15 尚未迁移时明确提示边界，不伪造商城交易。
+
+### hardGateVersion=4 快速回放试点（2026-09-10）
+
+- 公共格式：`tools/unity-migration/runtime-snapshot.schema.json`；Draw 唯一场景：`tools/unity-migration/runtime-scenarios/draw.json`，28 个唯一动作 ID 与 28 个矩阵控件 ID 全等。
+- Cocos 通过 `RuntimeSnapshotReplay.lua + RuntimeSnapshotCollector.lua` 走 `cc.EventDispatcher`；Unity 通过 `RuntimeInputDispatcher.cs + RuntimeSnapshotCollector.cs` 走 `EventSystem.RaycastAll + ExecuteEvents`。两端禁止 Presenter、回调或 `.onClick.Invoke()` 直调。
+- 每动作输出目标/射线、引擎事件、`/224` 原始包长度与 SHA-256、解码字段、变化节点、稳定帧、动画开始/结束/清理和结论；`Compare-UnityRuntimeSnapshots.ps1` 只比较语义字段，并把 `simulation=true`、缺 raw hash 或任一子标志失败写入 `failures.json`。
+- 当前会话均完整出行：Cocos `28/28` 条中自动通过 `0/28`，根因是随包 Lua 绑定无法把回放构造的 touch table/vector 传给 `EventTouch:setTouches`；Unity `28/28` 条中仅 `DRAW-A01/A02/A03` 自动、引擎输入、协议和 UI 树均通过，其余 `25/28` 因动作间未恢复各自前置/清理状态而被上一结果层阻挡。单抽/十连结果根路径已区分，撤销了 A21 命中十连背景形成的假阳性。语义比较 `matched=0/28`、失败明细 `446`，门禁必须拒绝。
+- 固定 SQLite 夹具已通过精确恢复、重登录校验、`PRAGMA integrity_check=ok` 与残留 `0`。当前 product 指纹为 `ECEFC4C22D64CC959514BA4B0BEF107D8D082111A8FC4CC5FFBF60435103816D`，probe 指纹为 `F41547E6A486A529A1D6213C6ACC3AC15DFD5A6551A5EEB29F0082022F370DED`。
+- Computer Use 原生应用面仍返回空，真实输入抽检保持 `0/8+0/8`；现有 9 组图片未建立本轮 product/probe 双指纹基线，视觉保持 `0/9`，不自动复用。
 
 以下为 2026-07-18 历史 phase1 证据，不计本轮门禁：
 
@@ -207,6 +219,6 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 
 ## 8. 完成边界与后续
 
-- Draw 本轮完成；不迁移副本。
+- Draw v4 公共工具与试点接线、双端运行和 SQLite 恢复验证完成；Cocos 引擎触摸、Unity 动作状态隔离、真实输入抽检和当前视觉基线仍阻塞收口，G6 保持 pending，不迁移副本。
 - 概率公示、支付/渠道合规和友情点外部产出链不属于本模块。
-- 下一任务仅建议进入 `World（世界/战斗/副本）`，必须重新从 G0 冻结当前入口、协议和控件矩阵。
+- 未修复双端回放阻塞、完成真实输入抽检、当前视觉复核与用户最终 Play 前，不进入下一模块。

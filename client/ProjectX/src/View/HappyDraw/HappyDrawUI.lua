@@ -317,6 +317,10 @@ function HappyDrawUI:updateDrawMaterial( ... )
     local gaoJiJuan = LRoleDataMgr.Equip:CountItemNumById(COSTITEMIDBEGIN + 2)
     self._CouponArr[2]:setString(gaoJiJuan)
     local youQingJuan = LRoleDataMgr.Equip:CountItemNumById(COSTITEMIDBEGIN + 3)
+    if AppDef.LOCAL_TEST and AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE == "Draw" then
+        local ok, collector = pcall(require, "Validation.RuntimeSnapshotCollector")
+        if ok and collector then collector.note("UpdateCouponCounts basic="..tostring(zhaoMuJuan).." high="..tostring(gaoJiJuan).." friend="..tostring(youQingJuan)) end
+    end
     self._CouponArr[3]:setString(youQingJuan)
     local myGold = LRoleDataMgr.MyHeroInfo.DetailData:GetTongBao()
     self._CouponArr[4]:setString(myGold)
@@ -463,6 +467,10 @@ function HappyDrawUI:DrawCallBack( sender )
     local zhaoMuJuan = LRoleDataMgr.Equip:CountItemNumById(COSTITEMIDBEGIN + 1)
     local gaoJiJuan = LRoleDataMgr.Equip:CountItemNumById(COSTITEMIDBEGIN + 2)
     local youQingJuan = LRoleDataMgr.Equip:CountItemNumById(COSTITEMIDBEGIN + 3)
+    if AppDef.LOCAL_TEST and AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE == "Draw" then
+        local ok, collector = pcall(require, "Validation.RuntimeSnapshotCollector")
+        if ok and collector then collector.note("DrawCallBack tag="..tostring(tag).." basic="..tostring(zhaoMuJuan).." high="..tostring(gaoJiJuan).." friend="..tostring(youQingJuan)) end
+    end
 
     if tag ==  1 then
 		local data = self.m_pInfo[math.ceil(tag/2)]

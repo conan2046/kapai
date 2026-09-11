@@ -18,7 +18,8 @@ param(
     [int]$Width = 0,
     [int]$Height = 0,
     [string]$OperationLedgerPath = "",
-    [string]$CocosAutomationLedgerPath = ""
+    [string]$CocosAutomationLedgerPath = "",
+    [switch]$PassThru
 )
 
 $ErrorActionPreference = "Stop"
@@ -90,3 +91,4 @@ if ($Category -eq "CocosAutomation" -and $Outcome -eq "Passed") {
 
 Write-Host "Operation record: $($recordResult.Record.recordId) outcome=$Outcome"
 Write-Host "Operation ledger: $($recordResult.Path)"
+if ($PassThru) { Write-Output $recordResult }

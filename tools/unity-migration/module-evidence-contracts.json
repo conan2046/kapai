@@ -1136,16 +1136,19 @@
       "module": "Draw",
       "fixedAccount": {
         "userId": 7200057,
-        "roleId": 1000115,
-        "terminalUserId": 705213,
-        "terminalRoleId": 1000006,
-        "adapter": "tools/unity-migration/Invoke-DrawCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/Draw/unity/g3/draw-fixed-fixture-snapshot.json",
+        "roleId": 1000003,
+        "terminalUserId": 1,
+        "terminalRoleId": 1000001,
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "adapter": "tools/unity-migration/Invoke-DrawSqliteFixture.ps1",
+        "snapshot": ".local/unity-validation/draw-sqlite-fixture-latest.json",
         "resultEvidence": ".local/ui-fidelity/Draw/unity/g6/draw-fixed-unity-result.json",
         "reloginRequired": true,
         "extraFlags": [
           "-projectXDrawClosureValidation",
-          "-projectXDrawIsolationUserId=705213"
+          "-projectXDrawIsolationUserId=1"
         ],
         "skipPostValidationFixtureAssert": true,
         "dataPreflight": {
@@ -1157,7 +1160,7 @@
             },
             {
               "id": "deterministic-first-high-draw",
-              "description": "服务端夹具把高级池累计次数设为 0、免费次数设为 1，首个真实 /224 高级单抽权威返回神将 64"
+              "description": "SQLite夹具把高级池累计次数设为0、免费次数设为1，首个真实/224高级单抽权威返回神将64"
             },
             {
               "id": "target-hero-initial-state",
@@ -1169,7 +1172,7 @@
             },
             {
               "id": "hero-level-material",
-              "description": "准备初级神将内丹 834 及其服务端模板 type=3/sub_value=60006,200，供真实 /24 op=3 培养并验证资源扣除与属性刷新；模板原值须随夹具精确恢复"
+              "description": "在SQLite中准备初级神将内丹834，供真实/24 op=3培养并验证资源扣除与属性刷新；整库快照必须精确恢复"
             },
             {
               "id": "legal-formation-replacement",
@@ -1177,11 +1180,11 @@
             },
             {
               "id": "alternate-account-isolation",
-              "description": "准备独立只读 userId=705213/roleId=1000006，并硬断言其初始神将列表不存在目标 64；闭环末尾必须真实切换并重拉 /24,/48 验证隔离"
+              "description": "使用独立隔离身份userId=1/roleId=1000001；闭环末尾必须真实切换并重拉/24,/48验证神将、培养和阵位不继承"
             },
             {
               "id": "exact-restore-surface",
-              "description": "快照 level、package、pet、chou_ka、zhenfa、save_data、角色货币与战力、账户货币及 834 模板，以整体 SHA256、模板原值和 fixture 零残留验证精确恢复"
+              "description": "完整快照projectx.db，以整库SHA256、重登业务Hash、PRAGMA integrity_check=ok和fixture残留0验证精确恢复"
             }
           ]
         },
@@ -1223,6 +1226,64 @@
             "destination": ".local/ui-fidelity/Draw/unity/g5-20260730/DRAW-FORMATION-MOUNTED.png"
           }
         ]
+      },
+      "runtimeSnapshot": {
+        "hardGateVersion": 4,
+        "targetedFixtureProfiles": {
+          "newHero": "NewHero",
+          "duplicateFragment": "DuplicateFragment",
+          "duplicateFragmentOracle": "Type=60002 && TransformItemId>0"
+        },
+        "schema": "tools/unity-migration/runtime-snapshot.schema.json",
+        "scenario": "tools/unity-migration/runtime-scenarios/draw.json",
+        "fixtureRequirements": "tools/unity-migration/runtime-scenarios/draw-fixture-requirements.json",
+        "outputPattern": ".local/unity-validation/runtime-snapshots/Draw/{runId}",
+        "requiredFiles": [
+          "cocos-session.jsonl",
+          "unity-session.jsonl",
+          "compare-report.json",
+          "failures.json",
+          "summary.json",
+          "current-input-fingerprint.json"
+        ],
+        "productInputs": [
+          "client/ProjectX/src/View/HappyDraw/HappyDrawUI.lua",
+          "client/ProjectX/src/View/HappyDraw/SingleDrawResultUI.lua",
+          "client/ProjectX/src/View/HappyDraw/TenDrawResultUI.lua",
+          "client/ProjectX/src/View/HappyDraw/DrawRewardMainUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/res/csd/chouka/shenjiangzhaomu.csb",
+          "client/ProjectX/res/csd/chouka/dancichouka.csb",
+          "client/ProjectX/res/csd/chouka/shilianchouka.csb",
+          "client/ProjectX/res/csd/chouka/jiangliyulan.csb",
+          "unityclient/Assets/ProjectX/Resources/Lua/Draw/DrawController.lua.txt",
+          "unityclient/Assets/ProjectX/src/UI/DrawPresenter.cs",
+          "unityclient/Assets/ProjectX/src/Data/DrawStore.cs",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/shenjiangzhaomu.prefab",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/dancichouka.prefab",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/shilianchouka.prefab",
+          "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/jiangliyulan.prefab",
+          "server/src/chou_ka_manager.cpp",
+          "server/config/json/draw_config.json",
+          "tools/unity-migration/runtime-scenarios/draw-fixture-requirements.json"
+        ],
+        "probeToolInputs": [
+          "client/ProjectX/src/Validation/Sha256.lua",
+          "client/ProjectX/src/Validation/RuntimeSnapshotCollector.lua",
+          "client/ProjectX/src/Validation/RuntimeSnapshotReplay.lua",
+          "unityclient/Assets/ProjectX/src/Validation/RuntimeInputDispatcher.cs",
+          "unityclient/Assets/ProjectX/src/Validation/RuntimeSnapshotCollector.cs",
+          "unityclient/Assets/ProjectX/src/Network/ProtocolPacketTrace.cs",
+          "tools/unity-migration/runtime-snapshot.schema.json",
+          "tools/unity-migration/runtime-scenarios/draw.json",
+          "tools/unity-migration/Compare-UnityRuntimeSnapshots.ps1",
+          "tools/unity-migration/RuntimeSnapshot.Common.ps1",
+          "tools/unity-migration/Invoke-DrawSqliteFixture.ps1",
+          "tools/unity-migration/Invoke-DrawSqliteFixture.py"
+        ],
+        "realInputMinimumPerEngine": 8,
+        "visualStateCount": 9
       },
       "g5": {
         "cocosDirectory": ".local/ui-fidelity/Draw/cocos/g5-20260730",

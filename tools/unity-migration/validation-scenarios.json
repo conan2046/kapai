@@ -12,6 +12,15 @@
   },
   "workflowPolicy": {
     "version": 1,
+    "context": {
+      "statusReadMode": "current-focus-and-module-row",
+      "guideReadMode": "quick-loop-and-referenced-section",
+      "moduleReadMode": "target-only",
+      "ledgerReadMode": "unresolved-and-latest-signature",
+      "logTailLines": 100,
+      "forbidHistoryBulkRead": true,
+      "forbidLedgerBulkRead": true
+    },
     "cocos": {
       "tool": "computer-use@openai-bundled",
       "requestedAppReference": "plugin://computer-use@openai-bundled?app=com.adspower.global",
@@ -42,6 +51,8 @@
       "forbidBatchModeAsAcceptanceEvidence": true,
       "requireOpenedUnityInteractiveAcceptance": true,
       "mcpScope": "g3-editor-inspection-only",
+      "defaultValidationMode": "Preflight",
+      "fullRunPurpose": "final-convergence-only",
       "requireRegisteredArtifactsBeforeG3": true,
       "requireDataPreflightBeforeFullRun": true
     },
@@ -54,7 +65,10 @@
       "visualReplayIsNotG5Evidence": true,
       "requireTwoBuildBatchRunsForG6": true,
       "reuseG1CocosAtG5ByDefault": true,
-      "recaptureOnlyInvalidatedCocosStates": true
+      "recaptureOnlyInvalidatedCocosStates": true,
+      "requireBusinessPreconditionBeforeCapture": true,
+      "requireTargetedHybridBeforeFullRun": true,
+      "jsonAloneIsInsufficient": true
     },
     "iteration": {
       "operationLedgerPattern": ".local/unity-validation/{module}-operation-ledger.json",
@@ -66,7 +80,12 @@
       "autoSummarizeAtG6": true,
       "requireToolchainTestForPolicyIteration": true,
       "requireFileBackedEvidenceAtResolution": true,
-      "retrospectiveUsesEffectiveRootCause": true
+      "retrospectiveUsesEffectiveRootCause": true,
+      "forbidBlindRetry": true,
+      "deferEvidencePackagingUntilTargetedPass": true,
+      "repeatSignatureFuseThreshold": 2,
+      "centralRegressionThreshold": 3,
+      "noBlindRetryEnforcedAfterUtc": "2026-09-11T00:00:00+08:00"
     }
   },
   "scenarios": [
@@ -1921,6 +1940,26 @@
         "account-switch"
       ],
       "controlCoverageRequired": true,
+      "runtimeSnapshot": {
+        "hardGateVersion": 4,
+        "scenario": "tools/unity-migration/runtime-scenarios/draw.json",
+        "schema": "tools/unity-migration/runtime-snapshot.schema.json",
+        "actionCount": 28,
+        "engines": ["cocos", "unity"],
+        "inputMode": "engine-input-replay",
+        "realInputMinimumPerEngine": 8,
+        "visualStateIds": [
+          "DRAW-MAIN",
+          "DRAW-REWARD-PREVIEW",
+          "DRAW-RESULT-NEW",
+          "DRAW-RESULT-DUPLICATE",
+          "DRAW-RESOURCE-INSUFFICIENT",
+          "DRAW-HERO-LIST",
+          "DRAW-HERO-CULTIVATE",
+          "DRAW-FORMATION-SELECTION",
+          "DRAW-FORMATION-MOUNTED"
+        ]
+      },
       "semanticAssertionKeys": [
         "draw-authority",
         "draw-target-hero",

@@ -10,7 +10,8 @@ param(
     [switch]$KeepServices,
     [switch]$SkipPythonTests,
     [switch]$SkipScreenshotCheck,
-    [ValidateSet("Full", "Preflight", "VisualReplay")][string]$ValidationMode = "Full",
+    [ValidateSet("Context", "Full", "Preflight", "VisualReplay")][string]$ValidationMode = "Preflight",
+    [switch]$FinalFull,
     [string[]]$ExtraFlags = @(),
     [string[]]$ValidationFlagsOverride = @(),
     [string]$PythonExecutable = "",
@@ -43,6 +44,17 @@ $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
 $fixtureMatches = @($fixtureEntry.Value.profiles | Where-Object { $_.key -ieq ([string]$scenario.fixture) })
 if ($fixtureMatches.Count -ne 1) { throw "Scenario '$($scenario.key)' fixture '$($scenario.fixture)' was not found exactly once." }
 $fixture = $fixtureMatches[0]
+if ($ValidationMode -eq "Context") {
+    Get-UnityMigrationContextSummary -Root $root -ModuleConfig $moduleConfig |
+        ConvertTo-Json -Depth 8
+    exit 0
+}
+if ($FinalFull -and $ValidationMode -ne "Full") {
+    throw "-FinalFull is valid only with -ValidationMode Full."
+}
+if ($ValidationMode -eq "Full" -and -not $FinalFull) {
+    throw "Full validation is reserved for final convergence. Use the default Preflight while diagnosing, or add -FinalFull after targeted hybrid checks pass."
+}
 $scenarioArtifacts = @($scenario.artifacts)
 $immutableEvidenceRoots = @($scenarioEntry.Value.artifactPolicy.immutableRoots | ForEach-Object { [string]$_ })
 $requiredGate = [string](Get-UnityMigrationPropertyValue -Object $scenario -Name "requiredGate" -Default "")
@@ -166,6 +178,9 @@ if ($ValidationMode -eq "VisualReplay") {
     Write-Host "Visual replay passed: $visualReplayPath"
     exit 0
 }
+Assert-UnityMigrationNoBlindRetry -Root $root -Module $moduleKey `
+    -Tool "tools/unity-migration/Run-UnityModuleValidation.ps1" -Operation "batch-validation" `
+    -Policy $workflowPolicy
 $existingUnity = @(Get-Process Unity -ErrorAction SilentlyContinue)
 $unityProjectPatterns = @(
     [regex]::Escape($unityProject),

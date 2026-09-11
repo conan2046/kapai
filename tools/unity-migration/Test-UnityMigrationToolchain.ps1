@@ -12,6 +12,11 @@ $gameplayCocosFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 
 $fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") -Raw -Encoding UTF8
 $moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") -Raw -Encoding UTF8
 $projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$drawPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/DrawPresenter.cs") -Raw -Encoding UTF8
+$drawSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-DrawSqliteFixture.ps1") -Raw -Encoding UTF8
+$drawSqliteFixturePythonSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-DrawSqliteFixture.py") -Raw -Encoding UTF8
+$heroCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/HeroCatalog.cs") -Raw -Encoding UTF8
+$bootstrapSceneBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
 $validationFixtures = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/validation-fixtures.json").Value
 
@@ -23,6 +28,155 @@ function Assert-ToolchainTest {
     if (-not $Condition) { throw $Message }
     $script:passed++
 }
+
+# hardGateVersion=4 failure-first regression: none of these bypasses may be accepted.
+function New-RuntimeSnapshotTestAction {
+    param([string]$Engine, [string]$ControlId)
+    return [pscustomobject][ordered]@{
+        schemaVersion = 1; recordType = "action"; module = "Draw"; stateId = "stable"
+        actionId = "A-$ControlId"; controlId = $ControlId; sequence = 1
+        timestampUtc = "2026-09-10T00:00:00Z"; engine = $Engine; operationType = "click"
+        inputMode = "engine-input-replay"; inputCoordinates = [pscustomobject]@{ x = 10; y = 20; coordinateSpace = "1334x750-top-left" }
+        preUiTreeHash = ("A" * 64); preUiTree = @(); preUiTreeRef = "tree-a.json"; preUiTreeNodeCount = 1
+        targetNodePath = "Root/$ControlId"; targetSemanticId = $ControlId
+        hitTest = [pscustomobject]@{ hits = @($ControlId); firstHit = $ControlId }; engineEventDispatched = $true
+        protocol = [pscustomobject]@{ sent = @(); received = @(); errors = @(); timedOut = $false; disconnected = $false }
+        changedNodes = @(); postUiTreeHash = ("B" * 64); postUiTree = @(); postUiTreeRef = "tree-b.json"; postUiTreeNodeCount = 1
+        stableState = [pscustomobject]@{ outcome = "stable"; stableFrames = 3; reason = "test"; elapsedMs = 10 }
+        animation = [pscustomobject]@{ started = $false; ended = $true; durationMs = 10; cleanupPassed = $true }
+        visualStateId = "DRAW-MAIN"; identity = [pscustomobject]@{ account = ""; userId = 1; roleId = 1000001 }
+        resolution = [pscustomobject]@{ width = 1334; height = 750; dpiScale = 1 }; inputFingerprint = ("C" * 64)
+        automationPassed = $true; engineInputReplayPassed = $true; protocolSemanticPassed = $true; runtimeTreePassed = $true
+    }
+}
+$runtimeMatrix = [pscustomobject]@{
+    module = "Draw"; hardGateVersion = 4
+    controls = @([pscustomobject]@{ id = "C1" }, [pscustomobject]@{ id = "C2" })
+    g6Audit = [pscustomobject]@{ productInputFingerprint = ("D" * 64); probeToolFingerprint = ("E" * 64) }
+}
+$runtimeRows = @()
+foreach ($engine in @("cocos", "unity")) { foreach ($id in @("C1", "C2")) { $runtimeRows += New-RuntimeSnapshotTestAction -Engine $engine -ControlId $id } }
+$runtimeSummary = [pscustomobject]@{
+    schemaVersion = 1; module = "Draw"; simulation = $false; actions = $runtimeRows
+    counts = [pscustomobject]@{ automationPassed = 4; engineInputReplayPassed = 4; protocolSemanticPassed = 4; runtimeTreePassed = 4 }
+    comparison = [pscustomobject]@{ passed = $true; matchedControls = 2 }
+    realInputSample = [pscustomobject]@{ passed = $true; sampleCount = 16; byEngine = [pscustomobject]@{ cocos = 8; unity = 8 } }
+    visual = [pscustomobject]@{ passed = $true; passedStateCount = 9; requiredStateCount = 9 }
+    fixture = [pscustomobject]@{ restored = $true; reloginVerified = $true; databaseIntegrity = "ok"; residualCount = 0 }
+    fingerprints = [pscustomobject]@{ productInputFingerprint = ("D" * 64); probeToolFingerprint = ("E" * 64) }
+    manualPassed = $true
+}
+Assert-ToolchainTest (@(Get-UnityRuntimeSnapshotGateFailures -Matrix $runtimeMatrix -Summary $runtimeSummary -RequireManualPassed).Count -eq 0) "Valid hardGateVersion=4 runtime summary was rejected."
+foreach ($case in @(
+    [pscustomobject]@{ name = "callback-bypass"; mutate = { param($s) $s.actions[0].inputMode = "direct-callback" }; expected = "inputMode" },
+    [pscustomobject]@{ name = "event-bypass"; mutate = { param($s) $s.actions[0].engineEventDispatched = $false }; expected = "event dispatch" },
+    [pscustomobject]@{ name = "missing-raw-hash"; mutate = { param($s) $s.actions[0].protocol.sent = @([pscustomobject]@{ command=224; op=2; length=7; rawPacketHash=""; decodedFields=[pscustomobject]@{} }) }; expected = "rawPacketHash" },
+    [pscustomobject]@{ name = "insufficient-real-input"; mutate = { param($s) $s.realInputSample.byEngine.cocos = 7 }; expected = "real-input" },
+    [pscustomobject]@{ name = "stale-manual"; mutate = { param($s) $s.manualPassed = $false }; expected = "manualPassed" },
+    [pscustomobject]@{ name = "simulation"; mutate = { param($s) $s.simulation = $true }; expected = "simulated" }
+)) {
+    $copy = $runtimeSummary | ConvertTo-Json -Depth 20 | ConvertFrom-Json
+    & $case.mutate $copy
+    $caseFailures = @(Get-UnityRuntimeSnapshotGateFailures -Matrix $runtimeMatrix -Summary $copy -RequireManualPassed)
+    Assert-ToolchainTest (@($caseFailures | Where-Object { $_ -like "*$($case.expected)*" }).Count -gt 0) "hardGateVersion=4 did not reject $($case.name)."
+}
+$runtimeScenario = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/runtime-scenarios/draw.json").Value
+$drawDeclaredCount = Assert-UnityMigrationControlMatrixDeclared -Root $root -ModuleKey "Draw" `
+    -Path "docs/unityclient/matrices/DRAW_CONTROLS.json"
+Assert-ToolchainTest ($drawDeclaredCount -eq 28) "Draw hardGateVersion=4 declaration must not require legacy v3 scenarioStateControlIds."
+$runtimeSchema = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/runtime-snapshot.schema.json").Value
+$runtimeInputSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "unityclient/Assets/ProjectX/src/Validation/RuntimeInputDispatcher.cs")
+$runtimeCollectorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "unityclient/Assets/ProjectX/src/Validation/RuntimeSnapshotCollector.cs")
+$runtimeCocosReplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/src/Validation/RuntimeSnapshotReplay.lua")
+$runtimeCocosCollectorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/src/Validation/RuntimeSnapshotCollector.lua")
+$runtimeCocosAppDelegateSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/frameworks/runtime-src/Classes/AppDelegate.cpp")
+$runtimeCocosFixtureSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "tools/unity-migration/Invoke-DrawCocosFixture.ps1")
+Assert-ToolchainTest (@($runtimeScenario.actions).Count -eq 28 -and @($runtimeScenario.actions.action.targetControlId | Sort-Object -Unique).Count -eq 28) "Draw runtime scenario must cover 28 unique controls."
+Assert-ToolchainTest (
+    @($runtimeScenario.actions | Where-Object { $_.actionId -in @('DRAW-A21','DRAW-A22','DRAW-A23','DRAW-A24','DRAW-A28') -and $_.action.unityPath -notlike 'DynamicUi_dancichouka/*' }).Count -eq 0 -and
+    @($runtimeScenario.actions | Where-Object { $_.actionId -in @('DRAW-A25','DRAW-A26','DRAW-A27') -and $_.action.unityPath -notlike 'DynamicUi_shilianchouka/*' }).Count -eq 0
+) "Draw runtime result controls must distinguish the single and ten-result roots."
+Assert-ToolchainTest ([string]$runtimeSchema.'$id' -like '*runtime-snapshot-v1.json') "Runtime snapshot schema is not versioned."
+Assert-ToolchainTest (
+    $runtimeCollectorSource.Contains('["preUiTreeRef"] = preTreeRef') -and
+    $runtimeCollectorSource.Contains('["postUiTreeRef"] = postTreeRef') -and
+    $runtimeCollectorSource.Contains('GZipStream') -and
+    $runtimeCocosReplaySource.Contains('preUiTreeRef=preTreeRef') -and
+    $runtimeCocosReplaySource.Contains('postUiTreeRef=postTreeRef')
+) "Runtime collectors must keep full UI trees in content-addressed sidecars instead of duplicating them in every JSONL record."
+Assert-ToolchainTest ($runtimeInputSource.Contains('eventSystem.RaycastAll') -and $runtimeInputSource.Contains('ExecuteEvents.pointerDownHandler') -and $runtimeInputSource.Contains('ExecuteEvents.pointerUpHandler') -and -not $runtimeInputSource.Contains('.onClick.Invoke')) "Unity runtime replay bypassed EventSystem/Raycast."
+Assert-ToolchainTest (
+    $runtimeCocosReplaySource.Contains('projectx_validation_dispatch_touch') -and
+    -not $runtimeCocosReplaySource.Contains('EventTouch:setTouches') -and
+    -not $runtimeCocosReplaySource.Contains('event.setTouches') -and
+    $runtimeCocosAppDelegateSource.Contains('view->handleTouchesBegin') -and
+    $runtimeCocosAppDelegateSource.Contains('view->handleTouchesMove') -and
+    $runtimeCocosAppDelegateSource.Contains('view->handleTouchesEnd')
+) "Cocos runtime replay must enter through the native GLView touch bridge instead of the unsupported Lua vector binding."
+Assert-ToolchainTest (
+    $runtimeCocosCollectorSource.Contains('projectx_validation_sha256(encoded)') -and
+    $runtimeCocosCollectorSource.Contains('local encodedTrees = setmetatable') -and
+    $runtimeCocosReplaySource.Contains('Collector.treeJson(tree)') -and
+    $runtimeCocosAppDelegateSource.Contains('BCRYPT_SHA256_ALGORITHM') -and
+    $runtimeCocosAppDelegateSource.Contains('BCryptHashData')
+) "Cocos compact runtime replay regressed to repeated JSON encoding or pure-Lua hashing of full UI trees."
+Assert-ToolchainTest (
+    $runtimeCocosFixtureSource.Contains('backup_user_role0') -and
+    $runtimeCocosFixtureSource.Contains('SET role0=$RoleId') -and
+    $runtimeCocosFixtureSource.Contains('SET u.role0=f.backup_user_role0')
+) "Draw Cocos fixture cannot bind fixed role 1000003 and restore the prior role0 exactly."
+Assert-ToolchainTest (
+    $runtimeCollectorSource.Contains('PrepareAction(definition') -and
+    $runtimeCollectorSource.Contains('CleanupAction(definition') -and
+    $runtimeCollectorSource.Contains('NormalizeToDrawMain') -and
+    $runtimeCollectorSource.Contains('RuntimeInputDispatcher.Inspect') -and
+    $runtimeInputSource.Contains('DispatchInternal(targetPath, targetSemanticId, operationType, true)') -and
+    -not $runtimeCollectorSource.Contains('.onClick.Invoke')
+) "Draw runtime replay no longer isolates scenario state through real EventSystem input."
+Assert-ToolchainTest (
+    $drawPresenterSource.Contains('reward.TransformItemId > 0') -and
+    $drawPresenterSource.Contains('itemCatalog.DescribeReward(reward.TransformItemId, 0, reward.TransformAmount)') -and
+    $drawPresenterSource.Contains('RuntimeSingleTransformedReward') -and
+    $drawPresenterSource.Contains('singleResultView.Binding.Find("Layer/dancichoukaUI")') -and
+    $drawPresenterSource.Contains('resources.LoadItemIcon(reward.TransformItemId)') -and
+    $drawPresenterSource.Contains('duplicateOverlayPortrait.sprite = resources.LoadItemIcon(reward.TransformItemId)') -and
+    $drawPresenterSource.Contains('transformedResultVisual.transform.SetAsLastSibling()')
+) "Draw single-result duplicate conversion no longer renders the authoritative fragment item art."
+Assert-ToolchainTest (
+    $drawSqliteFixtureSource.Contains('[ValidateSet("NewHero", "DuplicateFragment")]') -and
+    $drawSqliteFixtureSource.Contains('--profile $Profile') -and
+    $drawSqliteFixturePythonSource.Contains('if profile == "DuplicateFragment"') -and
+    $drawSqliteFixturePythonSource.Contains('target_state_valid = target_owned if profile == "DuplicateFragment" else not target_owned') -and
+    $drawSqliteFixturePythonSource.Contains('"profile": args.profile')
+) "Draw fragment validation can again run with a new-hero fixture that cannot produce the target duplicate conversion."
+Assert-ToolchainTest (
+    $drawPresenterSource.Contains('bool hasFreeTimes = pool.FreeTimes > 0;') -and
+    $drawPresenterSource.Contains('SetNamedVisible(single, "Text_1", !hasFreeTimes);') -and
+    $drawPresenterSource.Contains('SetNamedVisible(single, "Text_3", isInCooldown);')
+) "Draw basic single cooldown can regress to overlapping recruit and countdown labels."
+Assert-ToolchainTest (
+    $drawPresenterSource.Contains('ConfigureNativePreviewScroll();') -and
+    $drawPresenterSource.Contains('previewNativeScroll.content = previewNativeContent;') -and
+    $drawPresenterSource.Contains('rect.sizeDelta = new Vector2(0f, rowHeight);') -and
+    $drawPresenterSource.Contains('previewNativeContent.sizeDelta = new Vector2(0f, Mathf.Max(viewportHeight, rowIndex * rowHeight));') -and
+    $drawPresenterSource.Contains('graphic.raycastTarget = false;')
+) "Draw preview visible cards are no longer attached to the real raycastable ScrollRect or can block frame tabs."
+Assert-ToolchainTest (
+    $drawPresenterSource.Contains('Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1') -and
+    $drawPresenterSource.Contains('RuntimePreviewTabRaycast') -and
+    $drawPresenterSource.Contains('button.targetGraphic = hitTarget;')
+) "Draw visible Cocos preview tabs no longer have stable raycast surfaces or exact source binding."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('FindBySource("chouka/shenjiangyulan")') -and
+    $bootstrapSceneBuilderSource.Contains('new PrefabSpec(DrawHeroPreviewPrefab, false, DrawPrefab)') -and
+    $drawPresenterSource.Contains('DrawHeroPreviewFrame') -and
+    $drawPresenterSource.Contains('HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1)') -and
+    $drawPresenterSource.Contains('RuntimeSkillDescription') -and
+    $drawPresenterSource.Contains('RuntimeTalentDescription') -and
+    $drawPresenterSource.Contains('GetBreakTalentDescriptionsForPreview') -and
+    $heroCatalogSource.Contains('ParseInt(pet.Attribute("gongji")?.Value)') -and
+    -not $drawPresenterSource.Contains('神将预览 #{heroId}')
+) "Draw preview hero click regressed to a generic text popup instead of the Cocos hero-preview surface."
 
 $validationDatabaseSeed = Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.db"
 $validationDatabaseManifestPath = Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.manifest.json"
@@ -245,6 +399,28 @@ $rootCauseRules = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migr
 Assert-ToolchainTest (
     [int]$rootCauseRules.schemaVersion -eq 1 -and @($rootCauseRules.rules).Count -ge 6
 ) "Central root-cause rule registry is missing or undersized."
+$requiredSpeedRules = @(
+    "RC-POWERSHELL-PIPELINE", "RC-FULL-RUN-AS-DEBUGGER", "RC-BUSINESS-PRECONDITION",
+    "RC-JSON-ONLY-ACCEPTANCE", "RC-CUA-CAPABILITY", "RC-WIN-GIT-EOL-CHECK"
+)
+Assert-ToolchainTest (
+    @($requiredSpeedRules | Where-Object { $_ -notin @($rootCauseRules.rules.ruleId) }).Count -eq 0
+) "Recurring migration-speed root-cause rules are incomplete."
+$rgRule = @($rootCauseRules.rules | Where-Object { [string]$_.ruleId -eq "RC-WIN-RG-PATH" })[0]
+Assert-ToolchainTest (
+    [string]$rgRule.requiredAction -match 'rg -F' -and
+    @($rgRule.rootCausePatterns | Where-Object { [string]$_ -match 'regex parse error' }).Count -eq 1
+) "Literal rg search failures are not covered by the central root-cause rule."
+$powerShellRule = @($rootCauseRules.rules | Where-Object { [string]$_.ruleId -eq "RC-POWERSHELL-PIPELINE" })[0]
+Assert-ToolchainTest (
+    [string]$powerShellRule.requiredAction -match 'hashtable splatting' -and
+    [string]$powerShellRule.requiredAction -match '不经嵌套 pwsh -File' -and
+    @($powerShellRule.rootCausePatterns | Where-Object { [string]$_ -match 'ValidateSet' }).Count -eq 1
+) "PowerShell array-parameter binding failures are not covered by the central root-cause rule."
+$gitEolRule = @($rootCauseRules.rules | Where-Object { [string]$_.ruleId -eq "RC-WIN-GIT-EOL-CHECK" })[0]
+Assert-ToolchainTest (
+    [string]$gitEolRule.requiredAction -match '禁止.*core\.autocrlf'
+) "Windows git diff EOL false-positive prevention is missing."
 foreach ($rule in @($rootCauseRules.rules)) {
     Assert-ToolchainTest (
         [string]$rule.ruleId -match '^RC-' -and
@@ -259,6 +435,11 @@ foreach ($rule in @($rootCauseRules.rules)) {
 $moduleScaffoldSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "New-UnityMigrationModule.ps1") -Raw -Encoding UTF8
 $gateSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-UnityMigrationGate.ps1") -Raw -Encoding UTF8
 $docsValidatorSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Test-UnityMigrationDocs.ps1") -Raw -Encoding UTF8
+$ledgerWriterSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Update-UnityMigrationOperationLedger.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $ledgerWriterSource.Contains('[switch]$PassThru') -and
+    $ledgerWriterSource.Contains('if ($PassThru) { Write-Output $recordResult }')
+) "Operation ledger writer no longer exposes structured record IDs for automation."
 Assert-ToolchainTest (
     $commonSource.Contains('function New-UnityMigrationG0Draft') -and
     $commonSource.Contains('function Assert-UnityMigrationG0Draft') -and
@@ -421,11 +602,25 @@ $workflowPolicy = Assert-UnityMigrationWorkflowPolicy -Root $root
 Assert-ToolchainTest (
     @(Get-UnityMigrationWorkflowPolicyFailures -Policy $workflowPolicy).Count -eq 0
 ) "Canonical workflow policy was rejected."
+Assert-ToolchainTest (
+    [string]$workflowPolicy.context.ledgerReadMode -eq "unresolved-and-latest-signature" -and
+    [int]$workflowPolicy.context.logTailLines -eq 100 -and
+    [string]$workflowPolicy.unity.defaultValidationMode -eq "Preflight" -and
+    [string]$workflowPolicy.unity.fullRunPurpose -eq "final-convergence-only" -and
+    [bool]$workflowPolicy.sequence.requireBusinessPreconditionBeforeCapture -and
+    [bool]$workflowPolicy.sequence.requireTargetedHybridBeforeFullRun -and
+    [bool]$workflowPolicy.sequence.jsonAloneIsInsufficient -and
+    [bool]$workflowPolicy.iteration.forbidBlindRetry -and
+    [int]$workflowPolicy.iteration.repeatSignatureFuseThreshold -eq 2 -and
+    [int]$workflowPolicy.iteration.centralRegressionThreshold -eq 3
+) "Fast iteration, minimal context, precondition, hybrid evidence, or retry-fuse policy drifted."
 
 $invalidWorkflowPolicy = $workflowPolicy | ConvertTo-Json -Depth 8 | ConvertFrom-Json
 $invalidWorkflowPolicy.cocos.maximumAttemptsPerTarget = 2
 $invalidWorkflowPolicy.unity.runtimeValidationMode = "batch-only"
+$invalidWorkflowPolicy.unity.fullRunPurpose = "debugger"
 $invalidWorkflowPolicy.sequence.requireEarlyUserPlayAfterG3BeforeG4 = $false
+$invalidWorkflowPolicy.sequence.jsonAloneIsInsufficient = $false
 $workflowFailures = @(Get-UnityMigrationWorkflowPolicyFailures -Policy $invalidWorkflowPolicy)
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*maximumAttemptsPerTarget*" }).Count -eq 1
@@ -436,6 +631,10 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($workflowFailures | Where-Object { $_ -like "*requireEarlyUserPlayAfterG3BeforeG4*" }).Count -eq 1
 ) "Missing post-G3 early user Play checkpoint was not rejected by workflow policy."
+Assert-ToolchainTest (
+    @($workflowFailures | Where-Object { $_ -like "*fullRunPurpose*final-convergence-only*" }).Count -eq 1 -and
+    @($workflowFailures | Where-Object { $_ -like "*jsonAloneIsInsufficient*" }).Count -eq 1
+) "Full-as-debugger or JSON-only acceptance policy drift was not rejected."
 $validEarlyUserPlay = [pscustomobject]@{
     schemaVersion = 1
     module = "Sample"
@@ -837,6 +1036,8 @@ Assert-ToolchainTest (
 ) "Retrospective did not replace pending-diagnosis with the resolved effective root cause."
 $ledgerTestPath = ".local/unity-validation/toolchain-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
 $resolvedLegacyLedgerPath = $null
+$retryModule = "ToolchainRetry$([Guid]::NewGuid().ToString('N'))"
+$retryLedgerPath = Get-UnityMigrationOperationLedgerPath -Root $root -Module $retryModule
 try {
     $failedWrite = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
         -Tool "test" -Operation "fail" -Outcome Failed -ErrorMessage "failure" -RootCause "known" -Path $ledgerTestPath
@@ -855,6 +1056,50 @@ try {
         -IterationAction "retest" -IterationEvidence @("tools/unity-migration/Test-UnityMigrationToolchain.ps1") `
         -Path $ledgerTestPath | Out-Null
     Assert-ToolchainTest $true "File-backed resolution could not be written."
+
+    $repeatOne = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G3 `
+        -Tool "test-runner" -Operation "repeatable-operation" -Outcome Failed `
+        -ErrorMessage "stable repeated failure pid=101" -RootCause "known" -Path $ledgerTestPath
+    $repeatTwo = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G3 `
+        -Tool "test-runner" -Operation "repeatable-operation" -Outcome Failed `
+        -ErrorMessage "stable repeated failure pid=202" -RootCause "known" -Path $ledgerTestPath
+    Assert-ToolchainTest (
+        [string]$repeatOne.Record.failureSignature -eq [string]$repeatTwo.Record.failureSignature -and
+        [int]$repeatOne.Record.failureRepeatCount -eq 1 -and
+        [int]$repeatTwo.Record.failureRepeatCount -eq 2 -and
+        [string]$repeatTwo.Record.retryDisposition -eq "shared-fix-required"
+    ) "Repeated failures no longer normalize volatile values or trigger the second-occurrence fuse."
+    $sharedEvidenceRejected = $false
+    try {
+        Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G3 `
+            -Tool "test" -Operation "resolve-repeat" -Outcome Resolved `
+            -RelatedRecordId ([string]$repeatTwo.Record.recordId) -Resolution "fixed" `
+            -IterationAction "retest" -IterationEvidence @("LOCAL_DEBUG.md") -Path $ledgerTestPath | Out-Null
+    }
+    catch { $sharedEvidenceRejected = $_.Exception.Message -like "*requires shared tool/policy evidence*" }
+    Assert-ToolchainTest $sharedEvidenceRejected "Second occurrence accepted a module-only resolution without shared tool/policy evidence."
+
+    $retryFailure = Add-UnityMigrationOperationRecord -Root $root -Module $retryModule -Gate G3 `
+        -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" `
+        -Operation "fixed-account-batch-validation" -Outcome Failed `
+        -ErrorMessage "current retry failure" -RootCause "known"
+    $blindRetryRejected = $false
+    try {
+        Assert-UnityMigrationNoBlindRetry -Root $root -Module $retryModule `
+            -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" `
+            -Operation "fixed-account-batch-validation" -Policy $workflowPolicy
+    }
+    catch { $blindRetryRejected = $_.Exception.Message -like "Blind full retry blocked*" }
+    Assert-ToolchainTest $blindRetryRejected "An unresolved current failure did not block a blind full retry."
+    Add-UnityMigrationOperationRecord -Root $root -Module $retryModule -Gate G3 `
+        -Tool "test" -Operation "resolve" -Outcome Resolved `
+        -RelatedRecordId ([string]$retryFailure.Record.recordId) -Resolution "diagnosed" `
+        -IterationAction "focused retest" `
+        -IterationEvidence @("tools/unity-migration/Test-UnityMigrationToolchain.ps1") | Out-Null
+    Assert-UnityMigrationNoBlindRetry -Root $root -Module $retryModule `
+        -Tool "tools/unity-migration/Run-UnityFixedAccountValidation.ps1" `
+        -Operation "fixed-account-batch-validation" -Policy $workflowPolicy
+    Assert-ToolchainTest $true "Resolved current failure still blocked the next planned full run."
 
     $legacyLedgerPath = ".local/unity-validation/toolchain-legacy-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
     $resolvedLegacyLedgerPath = Resolve-UnityMigrationPath -Root $root -Path $legacyLedgerPath
@@ -877,6 +1122,7 @@ finally {
     if ($resolvedLegacyLedgerPath -and (Test-Path -LiteralPath $resolvedLegacyLedgerPath)) {
         Remove-Item -LiteralPath $resolvedLegacyLedgerPath -Force
     }
+    if (Test-Path -LiteralPath $retryLedgerPath) { Remove-Item -LiteralPath $retryLedgerPath -Force }
 }
 $resolutionAudit = @(Get-UnityMigrationOperationResolutionAudit -Ledger $operationLedger -RecordIds @("failure-1"))
 Assert-ToolchainTest (
@@ -1363,6 +1609,24 @@ Assert-ToolchainTest (
     ([regex]::Matches($fixedRunnerSource, '& \$startServerScript @serverStartParameters').Count -eq 4) -and
     -not $fixedRunnerSource.Contains('& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1")')
 ) "Fixed-account data/compile preflights no longer run after G2 while the full run remains gated by G3."
+Assert-ToolchainTest (
+    $moduleRunnerSource.Contains('[ValidateSet("Context", "Full", "Preflight", "VisualReplay")][string]$ValidationMode = "Preflight"') -and
+    $moduleRunnerSource.Contains('Full validation is reserved for final convergence') -and
+    $moduleRunnerSource.Contains('Get-UnityMigrationContextSummary') -and
+    $moduleRunnerSource.Contains('Assert-UnityMigrationNoBlindRetry') -and
+    $fixedRunnerSource.Contains('Full fixed-account validation is reserved for final convergence') -and
+    $fixedRunnerSource.Contains('Assert-UnityMigrationNoBlindRetry') -and
+    $fixedRunnerSource.Contains('Fixture Setup cannot run more than once') -and
+    $fixedRunnerSource.Contains('Invoke-FixedAdapter "AssertSetup"') -and
+    $fixedRunnerSource.Contains('fixtureActions = @($fixtureActionHistory)')
+) "Runners no longer default to focused preflight, lock setup state, or block blind full retries."
+
+Assert-ToolchainTest (
+    $commonSource.Contains('function Get-UnityMigrationFailureSignature') -and
+    $commonSource.Contains('function Get-UnityMigrationOpenOperationFailures') -and
+    $commonSource.Contains('function Assert-UnityMigrationNoBlindRetry') -and
+    $commonSource.Contains('function Get-UnityMigrationContextSummary')
+) "Shared failure signature, retry fuse, or minimal-context query helpers are missing."
 
 $commonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "UnityMigration.Common.ps1") -Raw -Encoding UTF8
 Assert-ToolchainTest (
@@ -1579,6 +1843,11 @@ Assert-ToolchainTest (
     $startClientSource.Contains('AppDef.LOCAL_TEST_ROLE_ID') -and
     $startClientSource.Contains('LocalRoleId must be a positive integer')
 ) "Start-Client no longer applies the frozen local role identity without editing authoritative AppDef.lua."
+Assert-ToolchainTest (
+    $startClientSource.Contains('Draw runtime snapshots require -LocalUserId 7200057 -LocalRoleId 1000003') -and
+    $startClientSource.Contains('$LocalUserId -ne 7200057') -and
+    $startClientSource.Contains('$LocalRoleId -ne 1000003')
+) "Draw runtime snapshots can silently fall back to the default Cocos account."
 
 $clientWindowSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Invoke-ClientWindow.ps1") `
     -Raw -Encoding UTF8

@@ -1,5 +1,7 @@
 Set-StrictMode -Version Latest
 
+. (Join-Path $PSScriptRoot "RuntimeSnapshot.Common.ps1")
+
 function Get-UnityMigrationRoot {
     return [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 }
@@ -329,11 +331,16 @@ function Get-UnityMigrationWorkflowPolicyFailures {
     if ([int](Get-UnityMigrationPropertyValue -Object $Policy -Name "version" -Default 0) -ne 1) {
         $failures.Add("workflowPolicy.version must be 1.")
     }
+    $context = Get-UnityMigrationPropertyValue -Object $Policy -Name "context" -Default $null
     $cocos = Get-UnityMigrationPropertyValue -Object $Policy -Name "cocos" -Default $null
     $unity = Get-UnityMigrationPropertyValue -Object $Policy -Name "unity" -Default $null
     $sequence = Get-UnityMigrationPropertyValue -Object $Policy -Name "sequence" -Default $null
     $iteration = Get-UnityMigrationPropertyValue -Object $Policy -Name "iteration" -Default $null
     $expectedStrings = @(
+        @($context, "statusReadMode", "current-focus-and-module-row"),
+        @($context, "guideReadMode", "quick-loop-and-referenced-section"),
+        @($context, "moduleReadMode", "target-only"),
+        @($context, "ledgerReadMode", "unresolved-and-latest-signature"),
         @($cocos, "tool", "computer-use@openai-bundled"),
         @($cocos, "requestedAppReference", "plugin://computer-use@openai-bundled?app=com.adspower.global"),
         @($cocos, "targetProcess", "ProjectX.exe"),
@@ -349,6 +356,8 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($unity, "interactionTool", "computer-use@openai-bundled"),
         @($unity, "targetWindow", "UnityEditor-GameView"),
         @($unity, "mcpScope", "g3-editor-inspection-only"),
+        @($unity, "defaultValidationMode", "Preflight"),
+        @($unity, "fullRunPurpose", "final-convergence-only"),
         @($iteration, "operationLedgerPattern", ".local/unity-validation/{module}-operation-ledger.json"),
         @($iteration, "retrospectivePattern", ".local/unity-validation/{module}-retrospective-latest.json")
     )
@@ -360,7 +369,24 @@ function Get-UnityMigrationWorkflowPolicyFailures {
     if ([int](Get-UnityMigrationPropertyValue -Object $cocos -Name "maximumAttemptsPerTarget" -Default 0) -ne 1) {
         $failures.Add("workflowPolicy cocos.maximumAttemptsPerTarget must be 1.")
     }
+    if ([int](Get-UnityMigrationPropertyValue -Object $context -Name "logTailLines" -Default 0) -ne 100) {
+        $failures.Add("workflowPolicy context.logTailLines must be 100.")
+    }
+    if ([int](Get-UnityMigrationPropertyValue -Object $iteration -Name "repeatSignatureFuseThreshold" -Default 0) -ne 2) {
+        $failures.Add("workflowPolicy iteration.repeatSignatureFuseThreshold must be 2.")
+    }
+    if ([int](Get-UnityMigrationPropertyValue -Object $iteration -Name "centralRegressionThreshold" -Default 0) -ne 3) {
+        $failures.Add("workflowPolicy iteration.centralRegressionThreshold must be 3.")
+    }
+    $retryPolicyStart = [DateTimeOffset]::MinValue
+    if (-not [DateTimeOffset]::TryParse(
+        [string](Get-UnityMigrationPropertyValue -Object $iteration -Name "noBlindRetryEnforcedAfterUtc" -Default ""),
+        [ref]$retryPolicyStart)) {
+        $failures.Add("workflowPolicy iteration.noBlindRetryEnforcedAfterUtc must be a valid timestamp.")
+    }
     foreach ($rule in @(
+        @($context, "forbidHistoryBulkRead"),
+        @($context, "forbidLedgerBulkRead"),
         @($cocos, "requireAutomationLedger"),
         @($cocos, "forbidDesktopCapture"),
         @($cocos, "forbidHistoricalEvidence"),
@@ -383,6 +409,9 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($sequence, "requireTwoBuildBatchRunsForG6"),
         @($sequence, "reuseG1CocosAtG5ByDefault"),
         @($sequence, "recaptureOnlyInvalidatedCocosStates"),
+        @($sequence, "requireBusinessPreconditionBeforeCapture"),
+        @($sequence, "requireTargetedHybridBeforeFullRun"),
+        @($sequence, "jsonAloneIsInsufficient"),
         @($iteration, "recordEveryFailure"),
         @($iteration, "requireFailureRootCause"),
         @($iteration, "requireEarlyFeedbackResolutionBeforeG4"),
@@ -390,7 +419,9 @@ function Get-UnityMigrationWorkflowPolicyFailures {
         @($iteration, "autoSummarizeAtG6"),
         @($iteration, "requireToolchainTestForPolicyIteration"),
         @($iteration, "requireFileBackedEvidenceAtResolution"),
-        @($iteration, "retrospectiveUsesEffectiveRootCause")
+        @($iteration, "retrospectiveUsesEffectiveRootCause"),
+        @($iteration, "forbidBlindRetry"),
+        @($iteration, "deferEvidencePackagingUntilTargetedPass")
     )) {
         $value = Get-UnityMigrationPropertyValue -Object $rule[0] -Name $rule[1] -Default $null
         if ($value -isnot [bool] -or -not $value) {
@@ -593,6 +624,107 @@ function Get-UnityMigrationVerifiedEvidenceFiles {
     return @($verified)
 }
 
+function Get-UnityMigrationFailureSignature {
+    param(
+        [Parameter(Mandatory = $true)][string]$Tool,
+        [Parameter(Mandatory = $true)][string]$Operation,
+        [Parameter(Mandatory = $true)][string]$ErrorMessage
+    )
+    $normalized = $ErrorMessage.Trim().ToLowerInvariant()
+    $normalized = $normalized -replace '[0-9a-f]{32,64}', '<hash>'
+    $normalized = $normalized -replace '(?i)pid\s*[=:]\s*\d+', 'pid=<n>'
+    $normalized = $normalized -replace '(?i)(line|行)\s*\d+', '$1 <n>'
+    $normalized = $normalized -replace '(?i)toolchain-operation-ledger-[0-9a-f]+', 'toolchain-operation-ledger-<id>'
+    $normalized = $normalized -replace '\s+', ' '
+    $payload = "$($Tool.Trim().ToLowerInvariant())|$($Operation.Trim().ToLowerInvariant())|$normalized"
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($payload))) -replace '-', '')
+    }
+    finally { $sha.Dispose() }
+}
+
+function Get-UnityMigrationOpenOperationFailures {
+    param(
+        [Parameter(Mandatory = $true)]$Ledger,
+        [string]$Tool = "",
+        [string]$Operation = "",
+        [DateTimeOffset]$Since = [DateTimeOffset]::MinValue
+    )
+    $records = @((Get-UnityMigrationPropertyValue -Object $Ledger -Name "records" -Default @()))
+    $resolvedIds = @($records | Where-Object { [string]$_.outcome -eq "Resolved" } |
+        ForEach-Object { [string]$_.relatedRecordId })
+    return @($records | Where-Object {
+        if ([string]$_.outcome -notin @("Failed", "Blocked")) { return $false }
+        if ([string]$_.recordId -in $resolvedIds) { return $false }
+        if ($Tool -and [string]$_.tool -ine $Tool) { return $false }
+        if ($Operation -and [string]$_.operation -ine $Operation) { return $false }
+        $timestamp = [DateTimeOffset]::MinValue
+        if (-not [DateTimeOffset]::TryParse([string]$_.timestampUtc, [ref]$timestamp)) { return $false }
+        return $timestamp -ge $Since
+    })
+}
+
+function Assert-UnityMigrationNoBlindRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)][string]$Module,
+        [Parameter(Mandatory = $true)][string]$Tool,
+        [Parameter(Mandatory = $true)][string]$Operation,
+        [Parameter(Mandatory = $true)]$Policy
+    )
+    $ledgerPath = Get-UnityMigrationOperationLedgerPath -Root $Root -Module $Module
+    if (-not (Test-Path -LiteralPath $ledgerPath -PathType Leaf)) { return }
+    $start = [DateTimeOffset]::MinValue
+    [DateTimeOffset]::TryParse(
+        [string](Get-UnityMigrationPropertyValue -Object $Policy.iteration `
+            -Name "noBlindRetryEnforcedAfterUtc" -Default ""), [ref]$start) | Out-Null
+    $ledger = Get-Content -Raw -Encoding UTF8 -LiteralPath $ledgerPath | ConvertFrom-Json
+    $open = @(Get-UnityMigrationOpenOperationFailures -Ledger $ledger -Tool $Tool -Operation $Operation -Since $start)
+    if ($open.Count -eq 0) { return }
+    $latest = @($open | Sort-Object timestampUtc -Descending)[0]
+    $disposition = [string](Get-UnityMigrationPropertyValue -Object $latest -Name "retryDisposition" -Default "diagnose-before-retry")
+    throw "Blind full retry blocked for module '$Module': unresolved record=$($latest.recordId), disposition=$disposition. Diagnose it, append a file-backed Resolved record, then rerun."
+}
+
+function Get-UnityMigrationContextSummary {
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [Parameter(Mandatory = $true)]$ModuleConfig
+    )
+    $module = [string]$ModuleConfig.key
+    $ledgerPath = Get-UnityMigrationOperationLedgerPath -Root $Root -Module $module
+    $openFailures = @()
+    $latestFailure = $null
+    if (Test-Path -LiteralPath $ledgerPath -PathType Leaf) {
+        $ledger = Get-Content -Raw -Encoding UTF8 -LiteralPath $ledgerPath | ConvertFrom-Json
+        $openFailures = @(Get-UnityMigrationOpenOperationFailures -Ledger $ledger)
+        $latestFailure = @($ledger.records | Where-Object { [string]$_.outcome -in @("Failed", "Blocked") } |
+            Sort-Object timestampUtc -Descending | Select-Object -First 1)
+    }
+    return [pscustomobject][ordered]@{
+        module = $module
+        statusSource = "UNITYCLIENT_STATUS.md#current-focus"
+        workflowSource = "docs/unityclient/MIGRATION_GUIDE.md#快速执行闭环"
+        moduleDocument = [string](Get-UnityMigrationPropertyValue -Object $ModuleConfig -Name "document" -Default "")
+        controlMatrix = [string](Get-UnityMigrationPropertyValue -Object $ModuleConfig -Name "controlMatrix" -Default "")
+        ledgerQuery = "unresolved-and-latest-signature"
+        openFailureCount = $openFailures.Count
+        openFailures = @($openFailures | Sort-Object timestampUtc -Descending | Select-Object -First 5 |
+            ForEach-Object { [pscustomobject][ordered]@{
+                recordId = [string]$_.recordId
+                gate = [string]$_.gate
+                operation = [string]$_.operation
+                rootCause = [string]$_.rootCause
+                retryDisposition = [string](Get-UnityMigrationPropertyValue -Object $_ -Name "retryDisposition" -Default "")
+            } })
+        latestFailureSignature = if ($latestFailure.Count -eq 1) {
+            [string](Get-UnityMigrationPropertyValue -Object $latestFailure[0] -Name "failureSignature" -Default "legacy-unclassified")
+        } else { "" }
+        forbiddenBulkReads = @("docs/unityclient/history", ".local/unity-validation/*-operation-ledger.json", "full build logs")
+    }
+}
+
 function Add-UnityMigrationOperationRecord {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
@@ -649,6 +781,24 @@ function Add-UnityMigrationOperationRecord {
             records = @()
         }
     }
+    $failureSignature = ""
+    $failureRepeatCount = 0
+    $retryDisposition = ""
+    if ($Outcome -in @("Failed", "Blocked")) {
+        $failureSignature = Get-UnityMigrationFailureSignature -Tool $Tool -Operation $Operation `
+            -ErrorMessage $ErrorMessage
+        $failureRepeatCount = @($ledger.records | Where-Object {
+            [string]$_.outcome -in @("Failed", "Blocked") -and
+            [string](Get-UnityMigrationPropertyValue -Object $_ -Name "failureSignature" -Default "") -eq $failureSignature
+        }).Count + 1
+        $retryDisposition = if ($failureRepeatCount -ge 3) {
+            "central-regression-required"
+        } elseif ($failureRepeatCount -ge 2) {
+            "shared-fix-required"
+        } else {
+            "diagnose-before-retry"
+        }
+    }
     if ($Outcome -eq "Resolved") {
         $related = @($ledger.records | Where-Object { [string]$_.recordId -eq $RelatedRecordId })
         if ($related.Count -ne 1 -or [string]$related[0].outcome -notin @("Failed", "Blocked")) {
@@ -658,6 +808,18 @@ function Add-UnityMigrationOperationRecord {
             [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $RelatedRecordId
         }).Count -gt 0) {
             throw "Failure '$RelatedRecordId' already has a resolution record."
+        }
+        $relatedRepeatCount = [int](Get-UnityMigrationPropertyValue -Object $related[0] `
+            -Name "failureRepeatCount" -Default 0)
+        if ($relatedRepeatCount -ge 2 -and @($IterationEvidence | Where-Object {
+            [string]$_ -match '^tools/unity-migration/'
+        }).Count -eq 0) {
+            throw "Repeated failure '$RelatedRecordId' requires shared tool/policy evidence under tools/unity-migration/."
+        }
+        if ($relatedRepeatCount -ge 3 -and @($IterationEvidence | Where-Object {
+            [string]$_ -match '^tools/unity-migration/Test-UnityMigrationToolchain\.ps1(?::|$)'
+        }).Count -eq 0) {
+            throw "Third occurrence '$RelatedRecordId' requires Test-UnityMigrationToolchain.ps1 regression evidence."
         }
     }
     if ($Outcome -eq "Supplemented") {
@@ -688,6 +850,9 @@ function Add-UnityMigrationOperationRecord {
         outcome = $Outcome
         error = $ErrorMessage
         rootCause = $RootCause
+        failureSignature = $failureSignature
+        failureRepeatCount = $failureRepeatCount
+        retryDisposition = $retryDisposition
         relatedRecordId = $RelatedRecordId
         resolution = $Resolution
         iterationAction = $IterationAction
@@ -1862,14 +2027,15 @@ function Assert-UnityMigrationControlMatrix {
                 throw "Control '$id' has no $field in $Path"
             }
         }
-        foreach ($field in @("automationPassed", "manualPassed")) {
+        $completionFields = if ($hardGateVersion -ge 4) { @() } else { @("automationPassed", "manualPassed") }
+        foreach ($field in $completionFields) {
             if (-not [bool](Get-UnityMigrationPropertyValue -Object $control -Name $field -Default $false)) {
                 throw "Control '$id' has not passed $field in $Path"
             }
         }
         $verificationKind = Get-UnityMigrationControlVerificationKind -Matrix $matrix -Control $control
         if ($verificationKind -eq "direct-control") {
-            if (-not [bool](Get-UnityMigrationPropertyValue -Object $control -Name "realEntryClick" -Default $false)) {
+            if ($hardGateVersion -lt 4 -and -not [bool](Get-UnityMigrationPropertyValue -Object $control -Name "realEntryClick" -Default $false)) {
                 throw "Control '$id' has not passed realEntryClick in $Path"
             }
             $directControls.Add($control)
@@ -1894,7 +2060,7 @@ function Assert-UnityMigrationControlMatrix {
     if ($hardGateVersion -ge 2) {
         $audit = Get-UnityMigrationPropertyValue -Object $matrix -Name "g6Audit"
         if ($null -eq $audit) { throw "Hard-gate v2 matrix has no g6Audit: $Path" }
-        if ($hardGateVersion -ge 3) {
+        if ($hardGateVersion -ge 3 -and $hardGateVersion -lt 4) {
             if (-not [bool](Get-UnityMigrationPropertyValue -Object $audit -Name "currentEvidence" -Default $false)) {
                 throw "Hard-gate v3 matrix has no current evidence confirmation: $Path"
             }
@@ -1914,13 +2080,17 @@ function Assert-UnityMigrationControlMatrix {
                 throw "Hard-gate v2 matrix $field must be 0: $Path"
             }
         }
-        if ([int](Get-UnityMigrationPropertyValue -Object $audit -Name "automationScreenshotCount" -Default -1) -ne $directControls.Count) {
+        if ($hardGateVersion -lt 4 -and [int](Get-UnityMigrationPropertyValue -Object $audit -Name "automationScreenshotCount" -Default -1) -ne $directControls.Count) {
             throw "Hard-gate matrix automationScreenshotCount must equal direct-control count $($directControls.Count): $Path"
         }
 
-        Add-Type -AssemblyName System.Drawing
-        $seenEvidence = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-        foreach ($control in $directControls) {
+        if ($hardGateVersion -ge 4) {
+            Assert-UnityMigrationRuntimeSnapshotGate -Root $Root -Matrix $matrix -RequireManualPassed | Out-Null
+        }
+        else {
+            Add-Type -AssemblyName System.Drawing
+            $seenEvidence = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+            foreach ($control in $directControls) {
             $id = [string]$control.id
             foreach ($field in @("cocosEvidence", "unityEvidence")) {
                 $evidence = [string](Get-UnityMigrationPropertyValue -Object $control -Name $field -Default "")
@@ -1942,6 +2112,7 @@ function Assert-UnityMigrationControlMatrix {
                     }
                 }
                 finally { $image.Dispose() }
+            }
             }
         }
     }
@@ -1965,7 +2136,7 @@ function Assert-UnityMigrationControlMatrixDeclared {
     $hardGateVersion = [int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1)
     $scenarioStateControlIds = @(Get-UnityMigrationPropertyValue -Object $matrix `
         -Name "scenarioStateControlIds" -Default @())
-    if ($hardGateVersion -ge 3) {
+    if ($hardGateVersion -ge 3 -and $hardGateVersion -lt 4) {
         if ($scenarioStateControlIds.Count -eq 0) {
             throw "Hard-gate v3 matrix has no scenarioStateControlIds: $Path"
         }
@@ -1983,12 +2154,14 @@ function Assert-UnityMigrationControlMatrixDeclared {
             }
         }
         if ($RequireLifecycleFields) {
-            foreach ($field in @("status", "realEntryClick", "automationPassed", "manualPassed")) {
+            $lifecycleFields = @("status", "realEntryClick", "automationPassed", "manualPassed")
+            foreach ($field in $lifecycleFields) {
                 if ($null -eq $control.PSObject.Properties[$field]) {
                     throw "Control matrix entry '$($control.id)' has no lifecycle field $field in $Path"
                 }
             }
-            foreach ($field in @("realEntryClick", "automationPassed", "manualPassed")) {
+            $booleanFields = @("realEntryClick", "automationPassed", "manualPassed")
+            foreach ($field in $booleanFields) {
                 if ((Get-UnityMigrationPropertyValue -Object $control -Name $field -Default $null) -isnot [bool]) {
                     throw "Control matrix entry '$($control.id)' field $field must be boolean in $Path"
                 }
@@ -2025,7 +2198,8 @@ function Assert-UnityMigrationScenarioStateCoverage {
         [Parameter(Mandatory = $true)]$Scenario
     )
     $matrix = (Import-UnityMigrationJson -Root $Root -Path $Path).Value
-    if ([int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1) -lt 3) {
+    $hardGateVersion = [int](Get-UnityMigrationPropertyValue -Object $matrix -Name "hardGateVersion" -Default 1)
+    if ($hardGateVersion -lt 3 -or $hardGateVersion -ge 4) {
         return 0
     }
     $captureStates = @($Scenario.captureStates | ForEach-Object { [string]$_ })

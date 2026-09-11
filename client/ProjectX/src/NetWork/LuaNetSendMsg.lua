@@ -5590,6 +5590,10 @@ function LuaNetSendMsg:SendExtractPetMsg(op, kind, type)
         self.m_pStream:WriteByte(kind)
         self.m_pStream:WriteByte(type)
     end
+    if AppDef.LOCAL_TEST and AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE == "Draw" then
+        local ok, collector = pcall(require, "Validation.RuntimeSnapshotCollector")
+        if ok and collector then collector.observe("sent", LuaNetCmd.MSG_GET_PET, op, {kind=kind,type=type}, self.m_pStream) end
+    end
     self:SendMsg(self.m_pStream)
 end
 -----------------------------抽卡到这里结束------------------------------------------------

@@ -162,6 +162,12 @@ namespace ProjectX.Network
             return stream.ToArray();
         }
 
+        public byte[] SnapshotPayload()
+        {
+            if (writer != null) writer.Flush();
+            return stream.ToArray();
+        }
+
         private void EnsureWriter()
         {
             if (writer == null)

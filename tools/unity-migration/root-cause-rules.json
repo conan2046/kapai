@@ -4,8 +4,8 @@
     {
       "ruleId": "RC-WIN-RG-PATH",
       "title": "Windows rg 路径与通配符",
-      "rootCausePatterns": ["(?i)rg.*(wildcard|通配符)", "(?i)(wildcard|通配符).*rg", "(?i)literal.*wildcard"],
-      "requiredAction": "对字面目录使用 rg -g 过滤；零匹配按诊断语义处理，不把通配符作为路径参数。"
+      "rootCausePatterns": ["(?i)rg.*(wildcard|通配符)", "(?i)(wildcard|通配符).*rg", "(?i)literal.*wildcard", "(?i)rg: regex parse error", "(?i)unclosed group"],
+      "requiredAction": "字面源码片段使用 rg -F；对字面目录使用 rg -g 过滤；零匹配按诊断语义处理，不把通配符作为路径参数。"
     },
     {
       "ruleId": "RC-STALE-ARTIFACT",
@@ -42,6 +42,42 @@
       "title": "PowerShell 自动变量 Matches 名称碰撞",
       "rootCausePatterns": ["(?i)(PowerShell|pwsh).*\\$Matches", "(?i)automatic variable.*Matches", "自动变量.*Matches"],
       "requiredAction": "执行 -match 的函数内禁止把业务集合命名为 $matches；使用语义化变量名并增加回归断言。"
+    },
+    {
+      "ruleId": "RC-POWERSHELL-PIPELINE",
+      "title": "PowerShell 管道与字符串插值语法",
+      "rootCausePatterns": ["(?i)An empty pipe element is not allowed", "(?i)Variable reference is not valid.*colon", "(?i)Cannot validate argument on parameter.*ValidateSet", "(?i)parameter.*specified more than once", "(?i)record id missing", "(?i)(for|foreach|while).*pipe element", "循环.*直接.*管道", "变量.*紧跟冒号", "数组参数.*位置参数"],
+      "requiredAction": "先用 @() 收集 for/foreach/while 输出再接管道；变量后紧跟冒号时使用 -f 格式化或 ${name}；脚本数组参数在当前进程直接调用并使用 hashtable splatting，不经嵌套 pwsh -File 转发；程序消费台账 recordId 必须使用 -PassThru 结构化结果；复杂命令写入现有脚本并补回归。"
+    },
+    {
+      "ruleId": "RC-FULL-RUN-AS-DEBUGGER",
+      "title": "完整批验被当作问题定位器",
+      "rootCausePatterns": ["(?i)(full|batch).*(retry|rerun|diagnos)", "完整.*(重跑|调试|定位)", "批验.*反复"],
+      "requiredAction": "先完成单控件或单状态的混合验证；全部反馈收敛后仅执行一次带 FinalFull 的完整收口。"
+    },
+    {
+      "ruleId": "RC-BUSINESS-PRECONDITION",
+      "title": "业务前置条件未锁定",
+      "rootCausePatterns": ["(?i)(precondition|fixture).*(missing|wrong|not met)", "前置条件.*(缺|错|未满足)", "夹具.*不能产生.*目标"],
+      "requiredAction": "启动被测动作前执行权威 AssertSetup；截图前断言协议或数据库状态确实能产生目标结果。"
+    },
+    {
+      "ruleId": "RC-JSON-ONLY-ACCEPTANCE",
+      "title": "JSON 单独充当验收",
+      "rootCausePatterns": ["(?i)json.*(only|alone).*(accept|pass|evidence)", "JSON.*单独.*(验收|通过|证据)"],
+      "requiredAction": "JSON 只作索引；必须同时具备真实输入、玩家可见 UI、协议或 SQLite 权威状态及当前文件证据。"
+    },
+    {
+      "ruleId": "RC-CUA-CAPABILITY",
+      "title": "Computer Use 原生窗口能力不可用",
+      "rootCausePatterns": ["(?i)apps=\\[\\]", "(?i)cua\\.getApp is not a function", "(?i)(native window|computer use).*(unavailable|missing)"],
+      "requiredAction": "每轮只做一次能力和窗口预检；不可用即阻塞动态取证，禁止坐标重试或用浏览器窗口替代。"
+    },
+    {
+      "ruleId": "RC-WIN-GIT-EOL-CHECK",
+      "title": "Windows Git EOL 检查误报",
+      "rootCausePatterns": ["(?i)core\\.autocrlf=false.*diff --check", "(?i)CRLF.*trailing whitespace", "每一行.*尾随空格"],
+      "requiredAction": "Windows 上沿用仓库现有 EOL 配置运行 git diff --check；禁止为检查临时覆盖 core.autocrlf，且输出仍受200行上限约束。"
     }
   ]
 }

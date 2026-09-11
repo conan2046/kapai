@@ -1,5 +1,34 @@
 # Unity 迁移当前交接
 
+## 2026-09-10 Draw 新任务交接（当前唯一有效入口）
+
+- 当前唯一模块：`Draw`。不得切换到其他模块，不得提交或推送。
+- 用户最新决策：停止扩建双端 JSON hardGate v4，尽快按旧验收方案完成 Draw；保留现有 JSON 结果作为诊断证据，不得据此宣称 G4-G6 通过。
+- 新任务必须先读取：`AGENTS.md`、`UNITYCLIENT_STATUS.md`、`docs/unityclient/MIGRATION_GUIDE.md`、`docs/unityclient/modules/README.md`、Draw 模块文档、`docs/unityclient/matrices/DRAW_CONTROLS.json`、本节交接。
+- 当前 Draw 矩阵：28 个控件，`hardGateVersion=4`，状态为 `g5-retained-g6-runtime-v4-pending`；G6 仍为 pending。
+- 最新 Cocos 诊断运行：`.local/unity-validation/runtime-snapshots/Draw/20260910T103138Z/cocos-session.jsonl`。28 条记录、约 76 秒；`automationPassed=4/28`、`engineInputReplayPassed=17/28`、`protocolSemanticPassed=17/28`、`runtimeTreePassed=22/28`。
+- 该轮总落盘约 7.61 MB：JSONL 79,073 bytes，39 个树 sidecar 共 7,532,486 bytes；无需把原始 JSON 灌入对话，只读摘要和失败项。
+- JSON 方案已发现并修复的关键问题：启动器未强制固定身份 `7200057/1000003`；Cocos 夹具错误沿用角色 `1000115`；运行时页面准备时序不足；CSD 与运行时节点路径不一致；完整树哈希/编码过慢。不要重新调查这些已解决项。
+- JSON 当前未解决且不再扩建的契约缺口：A08/A09 等状态观察被错误建模为点击；未完整校验 `expectedVisible/expectedHidden`；未拒绝意外协议；cleanup/state preparation 未形成有效验收。只把这些作为 JSON 不可用于收口的理由。
+- Unity `Assembly-CSharp.csproj` 静态编译最近已通过：0 errors，8 个既有 warnings。`RuntimeSnapshotCollector.cs` 的 `CompressionLevel` 歧义已用明确命名空间处理。新任务不得无原因重复大范围编译；只在相关源码变化后执行最小编译。
+- Cocos 原生桥已通过 v143 构建；中央工具链最近通过 352 项。除非相关文件变化，不重复重建原生桥或扩充工具链。
+- 固定账号：`userId=7200057 / roleId=1000003`。Cocos MySQL 夹具已恢复；Unity SQLite 已恢复并验证完整性及残留 0，但 `reloginVerified=false`，最终旧方案验收必须补恢复后的 Unity 重登复核。
+- 当前操作台账：`.local/unity-validation/draw-operation-ledger.json`。保留全部 Failed/Blocked/Resolved 记录；Computer Use 在旧任务曾返回 `apps=[]`，新任务必须重新加载 `computer-use` skill 并先检查实际原生应用能力，不得复用旧句柄或坐标。
+- 旧方案执行顺序：先做最小环境/身份预检；再使用 Computer Use 对原生 `ProjectX.exe / Cocos Simulator` 与已打开 Unity Editor GameView 做真实输入；取得合同规定的 9 个同账号、同数据、同步骤、同分辨率稳定状态；生成并排图、50% 叠加图、增强差异图和差异报告；完成恢复、重登、完整性、残留清零；最后等待用户真实 Play 明确确认。
+- 验收边界：真实点击和截图不能被 Runner、MCP、BatchMode、Presenter 回调、JSON 回放或历史图片替代。缺任一端截图、差异报告、恢复重登或用户最终确认时，Draw 必须保持 pending。
+- PowerShell 规范：只使用 `pwsh.exe`；避免嵌套 shell、字符串拼接命令和 `foreach { ... } |`；复杂逻辑写入现有脚本或先收集到变量再管道；单次输出不超过 200 行。
+- 当前 Cocos、Unity、服务端和 MySQL 已停止。新任务只启动旧方案当前步骤必需的一个重任务，结束后清理残留进程。
+
+关键证据：
+
+- `.local/unity-validation/runtime-snapshots/Draw/20260910T103138Z/cocos-session.jsonl`
+- `.local/unity-validation/runtime-snapshots/Draw/static-check/continuation-command-and-runtime-failures.txt`
+- `.local/unity-validation/draw-operation-ledger.json`
+- `.local/unity-validation/draw-sqlite-fixture-latest.json`
+- `.local/unity-validation/draw-cocos-runtime-fixture-latest.json`
+- `docs/unityclient/matrices/DRAW_CONTROLS.json`
+- `tools/unity-migration/runtime-scenarios/draw.json`
+
 > 更新时间：2026-09-07。实时完成率、当前批次和模块门禁唯一读取 [`UNITYCLIENT_STATUS.md`](UNITYCLIENT_STATUS.md)。历史交接不得替代当前源码、状态表、矩阵、Runner 与本机证据。
 
 ## 当前仓库基线

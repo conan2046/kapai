@@ -3,16 +3,27 @@
 > 本文件是迁移路线、执行流程、完整标准、视觉标准、工具入口和高频坑的唯一稳定文档。
 > 当前进度只看根目录 `UNITYCLIENT_STATUS.md`；模块事实只写入 `docs/unityclient/modules/`；日期流水只写入 `docs/unityclient/history/`。
 
+## 0. 快速执行闭环
+
+默认只执行以下闭环，当前步骤需要细节时再读取对应章节：
+
+1. `Context/Preflight`：确认唯一模块、Steam范围、数据后端、输入指纹、进程端口和工具能力；不启动重运行时。
+2. `Source closure`：打印入口→Lua→Prefab/动态资源→协议→服务端链；冻结 `given/when/then` 和可机器断言的业务前置条件。
+3. `Targeted hybrid`：只验证当前失败控件/状态，必须同时具备真实输入、玩家可见UI、协议或SQLite权威结果和当前文件证据；JSON只作索引。
+4. `Final convergence`：全部定向问题收敛后，只执行一次显式 `-FinalFull`、G5和G6；恢复、重登、完整性、残留和最终用户Play全部通过后收口。
+
+失败不盲跑：第一次先诊断；同签名第二次修公共工具/预检；第三次补中央回归。截图前先断言业务输入确实能产生目标状态。纯文档/矩阵改动不启动Unity，视觉修复只重验受影响状态，协议/夹具/共享源码变化才从最早失效门禁扩大范围。
+
 ## 1. 默认读取顺序
 
-1. `AGENTS.md`：项目和运行约束。
-2. `UNITYCLIENT_STATUS.md`：唯一实时状态、当前批次、阻塞和下一步。
+1. `AGENTS.md`：项目和运行约束，由任务环境提供时不重复读取。
+2. `UNITYCLIENT_STATUS.md`：只读当前焦点和目标模块行。
 3. `docs/unityclient/STEAM_SCOPE.md`：Steam模块黑名单；命中 `steam-excluded` 时立即停止。
-4. 本文件：唯一稳定流程与完成标准。
+4. 本文件：先读“快速执行闭环”，再按当前门禁定点读取。
 5. `docs/unityclient/modules/README.md`：模块索引。
-6. 当前目标模块文档和 `matrices/*.json`：调用链、协议、控件和证据。
+6. 当前目标模块文档和目标矩阵：调用链、协议、控件和证据。
 
-默认禁止完整读取 `history/`；只有追查旧决策、命令或错误时定点检索。
+默认禁止完整读取 `history/`、其他模块、全量Manifest、完整Ledger和完整日志；Ledger只查未解决项与最近同签名失败，日志只读错误附近或尾部100行。
 
 ## 2. 文档与机器状态唯一性
 
@@ -179,9 +190,9 @@ G1 一次采齐预计进入 G5 的全部 Cocos 状态后，用中央生命周期
 
 退出条件：三方证据齐全；资源类型与播放语义明确；每个控件都有实现与验证设计；`sourceAudit` 机器门禁通过。
 
-### G3 静态实现
+### G3 实现、影响集回归与早测收敛
 
-接入真实 Prefab、资源、Lua Controller/Legacy Model 和 C# Render Bridge。按矩阵绑定真实控件；排除功能必须隐藏或禁用，不能保留空壳入口。退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查；场景在 G3 前已登记 `requiredGate=G3`、全控件覆盖、语义断言、源码锚点、全部截图状态和 `1334×750` 视觉断言；变更型模块已有固定账号数据合同。
+接入真实 Prefab、资源、Lua Controller/Legacy Model 和 C# Render Bridge。按矩阵绑定真实控件；排除功能必须隐藏或禁用，不能保留空壳入口。本门禁内部统一执行“实现 → 按变更影响面分流回归 → 代理自检 → 用户早测 → 反馈修复 → 受影响项再验证”的收敛循环，不再把影响集回归作为独立阶段；循环稳定后只执行一次当前输入下的 G3 最终验证，才允许进入 G4。退出条件：编译通过；无占位资源/伪造数据；静态路径、协议路由、生命周期边界通过检查；场景在 G3 前已登记 `requiredGate=G3`、全控件覆盖、语义断言、源码锚点、全部截图状态和 `1334×750` 视觉断言；变更型模块已有固定账号数据合同。
 
 #### G3 早期真实 Play 检查点
 G3 初版 UI、协议和代码可运行后立即暂停，由用户从真实入口进行一次早期 Play，优先评价入口、信息层级、主要反馈和整体体验；邀请用户前，代理必须先完成源码合同、DataPreflight、Unity编译/Console、中央工具链、运行时层级/输入，以及动态属性、权威刷新、动画完成清理、按钮显隐和Toast全生命周期等模块专项自检，明显的绑定、刷新、拖拽和生命周期错误不得留给用户首次发现。固定账号Runner还必须验证`unityclient/Assets/ProjectX`内全部PNG/JPG/字体均已脱离Git LFS指针状态；早期Play允许用户从主界面进入既有模块，不能只水合当前模块的入口闭包后把其他已导入界面的缺图留给用户发现。代理同时准备固定账号/数据、启动方式、5–15分钟主路径清单和已知限制，不得等到 G4-G6 完成后才让用户首次体验。反馈写入 `.local/unity-validation/<module>-early-user-play-latest.json`，至少包含 `module/checkpoint/userParticipated/testedUtc/entryPath/result/feedback/agentRecheck`；`blocking` 项必须修复并由代理用文件证据复核，`non-blocking` 项必须修复或经用户明确接受。此轮自检和早测都不设置`manualPassed=true`，不能替代最后一次相关变更后的G4自动事务验证或G6最终确认；缺自检证据、缺早测记录、用户未实际参与、代理复核证据缺失或仍有阻塞项时，G4机器门禁拒绝通过。
@@ -189,7 +200,7 @@ G3 初版 UI、协议和代码可运行后立即暂停，由用户从真实入�
 用户在当前任务中明确全权委托代理执行该早测时，允许如实记录`userParticipated=false`与`userDelegatedAgentPlay=true`，但必须保存模块限定的授权文件、使用真实Unity Editor与EventSystem、提供文件化操作和代理复核证据，并强制`delegation.finalUserConfirmationRequired=true`。该委托只替代G3后的早期体验检查，不得伪装成用户参与，不得设置`manualPassed=true`，也不得替代最后一次相关变更后的G6用户最终确认。
 ### G4 逻辑动态验收
 
-验证列表/全量/增量、正常写操作、空态、材料不足、非法/重复、超时/断线、重拉、重连、返回、切号。每项必须由真实控件触发，服务端结果与 UI 刷新一致。真实控件触发必须经过实际 EventSystem/输入链，覆盖点击射线、列表项、Toggle、数字键输入/删除/清空、滚轮/拖拽、确认/取消、关闭/返回；直接调用 Presenter、Show/Open/Complete、回调函数或修改内部状态的结果一律无效。交互回调被调用不等于成功：滚动/拖拽必须先证明 `content > viewport`，再验证真实输入后 `anchoredPosition` 或等价权威位置实际变化，并覆盖卡片/按钮与空白区域；动画必须验证完成后节点状态和末帧清理；跨页/公共层必须验证最终 sibling、可见性和 UI 栈。自2026-09-07起，G4/G6动态验收只接受已打开Unity Editor的GameView中，通过Computer Use逐次观察、真实输入、立即刷新取得的证据；`-batchMode`、Runner摘要、直接EventSystem注入、Presenter调用、MCP或内部完成方法只能用于编译、夹具、独立oracle及诊断，不能作为验收通过证据。
+验证列表/全量/增量、正常写操作、空态、材料不足、非法/重复、超时/断线、重拉、重连、返回、切号。每项必须由真实控件触发，服务端结果与 UI 刷新一致。真实控件触发必须经过实际 EventSystem/输入链，覆盖点击射线、列表项、Toggle、数字键输入/删除/清空、滚轮/拖拽、确认/取消、关闭/返回；直接调用 Presenter、Show/Open/Complete、回调函数或修改内部状态的结果一律无效。交互回调被调用不等于成功：滚动/拖拽必须先证明 `content > viewport`，再验证真实输入后 `anchoredPosition` 或等价权威位置实际变化，并覆盖卡片/按钮与空白区域；动画必须验证完成后节点状态和末帧清理；跨页/公共层必须验证最终 sibling、可见性和 UI 栈。`hardGateVersion<4` 仍只接受已打开 Unity Editor GameView 中经 Computer Use 逐项取得的证据。`hardGateVersion=4` 可用双端 `engine-input-replay` 覆盖完整逻辑分母，但每条记录必须同时包含运行时目标节点、命中链首项、实际引擎事件派发、协议号/长度/原始包 SHA-256/解码字段、变化节点、稳定帧和动画清理；Presenter/回调直调、`simulation=true` 或缺原始协议证据一律失败。引擎内回放不冒充 Windows 真实输入，必须另以 Computer Use 在 Cocos 与 Unity 各抽取合同规定的代表性控件（Draw 试点各不少于 8 个），用户最终真实 Play 仍不可替代。`-batchMode`、MCP和内部完成方法只能用于编译、夹具、独立 oracle 及诊断。
 
 所有写操作必须用独立权威 oracle 比对操作前后快照：来源道具/货币/次数、全部可能的目标背包/属性/进度、数据库持久化及重登录回读。随机结果不要求固定命中，但必须属于当前有效奖励池、总次数和总增量正确。成功还必须断言玩家可见的道具名、数量、属性变化或等价原版反馈；失败必须断言原子性和明确失败回包。UI 刷新必须复刻 Cocos 权威事件链：回包/推送或权威重拉 → Lua/Store 更新 → 可见页订阅刷新 → 进度、列表数量、货币和目标结果同步变化；原版依赖 `BagDataChanged` 等事件时，Unity 必须登记订阅和解除订阅生命周期，只验证目标新增、不验证来源扣除及当前页重绘，事务不通过。禁止让被测客户端自己的内存状态或“发奖完成”日志同时充当实现与验收依据。
 
@@ -211,11 +222,11 @@ Cocos 自动化采用 Computer Use 的原生窗口级观察与输入：每次从
 
 ### G6 回归与收口
 
-从已打开Unity的真实主界面入口重新进入模块，逐控件执行真实点击、滚动、拖拽、输入、确认/取消、关闭/返回及异常恢复；同时完成异常扫描、16/16 UI、构建幂等、文档门禁、Git范围和清理检查。构建与静态检查只证明工程完整性，不替代GameView交互验收。
+从真实主界面入口重新进入模块并完成异常恢复；同时完成异常扫描、16/16 UI、构建幂等、文档门禁、Git范围和清理检查。v4 模块由双端运行时 JSON 回放覆盖完整控件分母，并以双端 Computer Use 代表性真实输入抽检证明窗口级输入可达；构建、静态检查和引擎内回放均不替代最终 GameView 真实 Play。
 
 自动化通过后只能报告“G6 自动化通过、用户最终确认待完成”，模块仍保持 G6 pending。G3早期Play用于尽早反馈，不等于最终确认；`manualPassed=true` 只能由用户在最后一次影响该模块的代码、Lua、Prefab、场景、资源、服务端、配置或Fixture变更之后，使用真实 Play 路径明确确认。代理自行点击、Runner、MCP、旧人工记录或变更前的早期Play均不得代替。
 
-退出条件：控件矩阵的直接控件每项 `realEntryClick=true`，场景状态以 `scenarioStateControlIds/scenarioStateContracts` 显式登记，并映射到已打开Unity中的逐状态交互证据；全部条目均须有当前输入下的GameView证据、用户确认的 `manualPassed=true`、`status=complete`。BatchMode产物不得填充或替代交互证据。覆盖清单未覆盖ID为0、工作区无越界变更后，模块才可标记 `migration-complete`。任一相关输入在用户确认后再次变化，自动撤销受影响的 `manualPassed` 和 G4-G6 结论。
+退出条件：`hardGateVersion<4` 沿用直接控件逐项 `realEntryClick=true` 与逐状态 GameView 证据。`hardGateVersion=4` 要求 Cocos/Unity 各自运行 100% 场景动作且 `logicalPassed/eventDispatchPassed/hitTestPassed/protocolPassed/uiStatePassed/stableOutcomePassed/cleanupPassed` 全真，双端语义对比 100%、每端真实输入抽检达到合同下限、9 个视觉状态当前指纹有效、SQLite 快照/恢复/重登哈希/完整性/残留全通过，并由用户在最后一次相关变更后确认 `manualPassed=true`。`simulation=true`、缺失 JSONL、旧指纹或 BatchMode 产物不得填充交互证据。覆盖清单未覆盖 ID 为 0、工作区无越界变更后，模块才可标记 `migration-complete`。任一相关输入在用户确认后再次变化，自动撤销受影响的 `manualPassed` 和 G4-G6 结论。
 
 ## 10. 状态口径
 
@@ -293,41 +304,35 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 ./tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module <Module> -Gate G1 -Complete -CocosAutomationLedgerPath .local/unity-validation/<module>-cocos-automation-ledger.json -CocosPreflightPath .local/unity-validation/<module>-cocos-preflight-latest.json -CocosIdentityPath .local/unity-validation/<module>-cocos-identity-latest.json -CocosBaselinePath .local/unity-validation/<module>-cocos-baseline-latest.json -Evidence @('<module-doc>','<ledger>','<preflight>','<identity>','<baseline>')
 ./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -ValidationMode Preflight
 ./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly
-./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module>
+./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -ValidationMode Context
+./tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module <Module> -FinalFull
+./tools/unity-migration/Run-UnityModuleValidation.ps1 -Module <Module> -ValidationMode Full -FinalFull
 ./tools/unity-migration/New-UnityModuleG5Evidence.ps1 -Module <Module>
 ./tools/unity-migration/Test-UnityMigrationDocs.ps1
 ./tools/unity-migration/Test-UnityMigrationGitScope.ps1 -SummaryOnly
 ```
 动态验收先运行连接诊断和 `Preflight`，随后在已打开Unity的GameView中逐项操作并记录场景、`userId`、`roleId`、`1334×750`、控件ID、操作前后画面及权威结果。Runner仍须为夹具/oracle/诊断写出同等身份和语义信息，但不得据此标记G4/G6通过。断线/重连不再维护C#模块名白名单。Unity编译预检检查退出码和最终日志；恢复型`Assembly-CSharp.dll`共享锁按限次流程处理。G6连续两次`BuildBatch`一致哈希仅是构建完整性检查，禁止用`ForceRebuild`或该哈希代替GameView交互证据。
 提速分流：`-ValidationMode Preflight` 不分配账号、不启服务/Unity，先查门禁、注册表、源码锚点和配置漂移；`-ValidationMode VisualReplay` 只复检现存截图的 `1334×750`、最小体积和重复哈希，不能替代新鲜 G5 双端证据。固定账号和 G5 状态对统一登记在 `module-evidence-contracts.json`；夹具必须有注入前快照、`setupAssertSql/cleanupAssertSql` 或等价硬断言、`finally` 恢复及重登录后复核。固定账号模块在 G3 后、启动 Unity 前必须运行 `Run-UnityFixedAccountValidation.ps1 -Module <Module> -DataPreflightOnly`，按 `dataPreflight.requirements` 完成数据快照、确定性准备、硬断言、精确恢复和残留清零；完整验证只接受账号、适配器 SHA 和数据需求指纹匹配的预演凭证。新模块 G1 数据不足时直接 `blocked`，禁止用 Unity 假数据补图或进入 G2。
-计时只从启用 `timingPolicyVersion=1` 的后续模块开始，不追补历史：脚手架自动开始 G0，上一门禁通过后自动开始下一门禁；中途接入时用 `Invoke-UnityMigrationGate.ps1 -StartTiming`。`calendarGateTimings` 包含用户反馈等待和阻塞时间，Runner 的 `*-timings-latest.json` / `*-fixed-account-timings-latest.json` 记录机器执行时间；retrospective 分开汇总，二者都不得冒充人时。累计 2–3 个后续模块样本后再决定是否实现影响集回归，采样前保持现有全量中央回归规则。
+计时只从启用 `timingPolicyVersion=1` 的后续模块开始，不追补历史：脚手架自动开始 G0，上一门禁通过后自动开始下一门禁；中途接入时用 `Invoke-UnityMigrationGate.ps1 -StartTiming`。`calendarGateTimings` 包含用户反馈等待和阻塞时间，Runner 的 `*-timings-latest.json` / `*-fixed-account-timings-latest.json` 记录机器执行时间；retrospective 分开汇总，二者都不得冒充人时。已有 EnhanceMaster、HeroCultivation、GameplayShops、XunBao 四组样本，G3 收敛循环正式采用影响集回归：纯文档/矩阵改动只跑文档门禁与 Preflight；输入指纹不变的视觉修复只重验受影响控件/状态及 G5；协议、夹具、共享源码或权威数据变化才从最早失效门禁重跑 Full，全部反馈修复收敛后只执行一次计划内最终 Full/G5/G6。
 
 ## 13. 高频坑与处理
 
-以下约束来自已完成模块的实际返工，不是建议项：
+以下约束来自历史返工，按问题族执行；模块个案只保存在模块文档或自动复盘中。
 
-| 模块 | 已发生的弯路 | 已固化约束 |
-|---|---|---|
-| Bag | 手写26控件分母遗漏业务ID；Runner绕过真实点击/拖拽/Toggle；只断言内部数量导致输入框空白仍通过；任选礼包未证明目标奖励到账；招募跳转延迟回包重开旧页；来源商店与背包叠层；随机装备盒缺配置闭包和获得反馈 | G0 从全部 `use_type/use_jump`、可选礼包、随机盒、直接使用和来源跳转生成覆盖清单；G2逐ID关闭配置/协议链；G4走真实EventSystem并验证完整事务与时序；G5同时断言应显示/不应显示；用户最后一次真实Play确认前G6保持pending |
-| Task | 进入动态验证后才发现权威任务列表为空 | 变更型模块 G3 前必须有固定账号合同，Full 前必须通过 `DataPreflightOnly` |
-| Hero | Cocos 无有效窗口后尝试旧图、完成标记和 Force Rebuild 证明 | 无当前 Cocos 动态证据保持 pending；G6必须补齐已打开Unity的真实交互，BuildBatch只作构建检查 |
-| HeroEquip | 监听端口存在却没有可用 Unity Editor；只读静态 Prefab 漏掉 ItemCellUI/特效完成/背包事件；装备与碎片各写一套滚动；Runner只调用拖拽回调未验证位移 | MCP 前先查进程、实例和 editor state；G2审计动态包装/完成回调/权威刷新事件；同类列表强制复用 VirtualList；G4验证来源扣除、当前页重绘、content溢出及实际位移；MCP仅限G3检查，G4-G6只认已打开Unity的真实操作证据 |
-| Mail | 有/无附件状态及原生滚动、数量缺陷直到后期才分清 | G1 冻结状态对和已批准原生缺陷；Fixture 同时准备正反状态并精确恢复 |
-| Shop | 启动 Unity 后才发现账号数据和实际扣款配置不满足 | `dataPreflight.requirements` 必须覆盖账号绑定、货币、商品和真实成本字段 |
-| GameplayShops | `VisualOnly` 结果缺截图，随后靠人工合并造成反复 | 只有账号、角色、源码/G5指纹和逐图 SHA 全匹配才允许复用视觉产物 |
-| Draw | 可选合同字段、终态切号身份和随机抽取导致假阻塞 | 可选字段统一安全读取；终态身份显式登记；随机业务必须先找确定性服务端条件 |
-| World | 猜 `-DryRun`、资产路径和扫荡展示语义；共享 `/320` 被提前消费 | 先查工具参数和源码链；G0 写结果示例；资源缺口只做可证模块兼容；共享协议不匹配必须恢复游标 |
-| PlayerHud | 网络超时终态仍等待；路由只登记 ID 未逐个真实调用；Unity 退出 0 的恢复型 DLL 锁污染最终日志；重复拼接 `foreach {...} |` | 终态立即停止；G6 路由逐按钮调用并断言不越界；中央编译按脏日志限次重跑；多结果摘要只走共享函数和 81 项回归 |
-
-| 问题 | 处理 |
+| 问题族 | 硬门禁 |
 |---|---|
-| 扫描到旧游戏 Lua | 只认当前 MainUI 静态闭包和运行入口 |
-| AppDef有枚举就认当前功能 | 必须有当前入口、资源和运行证明 |
-| 历史截图文件名看似正确 | 核对窗口、标题、账号、角色、步骤、分辨率、节点 |
-| 坐标点击失败后继续试错 | 首次失败立即停，转查回调、日志、协议、自动化 |
-| Cocos 操作 AdsPower 浏览器窗口或混用多套桌面自动化 | 统一 Computer Use，唯一匹配 `ProjectX.exe / Cocos Simulator`；AdsPower 仅是用户入口标签，不是游戏目标 |
+| 业务前置条件未锁定 | G3 后、启动 Unity 前执行 `DataPreflightOnly`；夹具 `Setup` 后立即 `AssertSetup`，不满足即停 |
+| 把 Full 当调试器 | 默认只跑 `Context/Preflight/目标场景`；差异收敛后才允许一次 `-FinalFull` |
+| JSON/Runner 自证通过 | JSON 仅作索引；必须同时有真实 EventSystem/raycast 操作、玩家可见结果和权威数据变化 |
+| 相同失败反复重试 | 首次先诊断；同签名第2次先修共享工具；第3次必须补中央工具链回归，未满足时熔断 |
+| CUA/MCP/端口故障介入业务判断 | 先预检能力、实例、项目路径和端口；工具不可用只登记阻塞，不得替代业务证据 |
+| 历史证据或脏产物复用 | 核对身份、输入指纹、源码 SHA、分辨率、时间戳与逐图 SHA；任一变化从最早受影响门禁重验 |
+| Cocos 首次点击失败后坐标试错 | 立即停止，转查 Lua 回调、CSB/CSD、日志与协议；只操作 `ProjectX.exe / Cocos Simulator` |
+| 配置/资源闭包后置 | G2 一次核清入口、共享协议、配置到资源、Transform/缩放/锚点；缺口不得靠假数据补齐 |
+| PowerShell 命令自身失败 | 使用已解析字面路径；通配符只放 `-g`；先收集 `foreach` 结果再接管道；变量后接冒号用 `${name}` 或格式化字符串 |
+| 过早整理证据 | 目标场景通过前只保留原始日志、截图和台账；通过后再生成摘要、差异报告和 G6 包 |
 
-### 6.6 失败台账、自动复盘与迭代
+### 13.1 失败台账、自动复盘与迭代
 
 - 标准路径：`.local/unity-validation/<module>-operation-ledger.json`。失败发生即记录，不允许迁移完成后凭记忆补写。
 - Windows 下 `rg` 的路径参数必须是已解析的字面目录/文件；文件筛选统一写成 `rg <pattern> <literal-directory> -g '*.ps1'`，禁止把 `*.ps1`、`user.*` 等通配符直接作为路径参数。中央回归 `Assert-UnityMigrationRgPathArgument` 会拒绝此类参数。
@@ -339,16 +344,6 @@ python tools/cocos-audit/Export-CocosCurrentInventory.py --output tools/cocos-au
 - 任何已标记完成的模块被用户、运行日志或新证据发现逃逸缺陷时，立即撤销 `migration-complete`，从最早失效门禁重新打开；不得保留“其余G4-G6仍通过”的口头结论，除非输入指纹和独立证据证明不受影响。
 - 逃逸缺陷禁止点修即收口：先确定所属问题族并扩展覆盖清单，再扫描全部同类业务ID和分支。例如一个随机盒断链必须扫描全部随机盒，一个 `use_jump` 生命周期错误必须扫描全部跳转道具，一个反馈缺失必须扫描全部产生资源变化的操作。
 - 同类修复必须进入中央验证规则、场景或工具链回归；在机器门禁尚未自动执行新规则前，模块只能保持对应门禁 pending，禁止用Markdown声明代替可执行证明。
-| 到 Unity 阶段才发现账号无数据 | G3 前登记固定账号合同；Full 前强制 `-DataPreflightOnly` 凭证 |
-| 小改一次就重跑完整闭环 | 先批量收敛视觉差异；Preflight/VisualReplay 分流，最终只跑计划内 Full、G5、G6 |
-| Runner直接调用内部方法 | 判定无效，必须从真实 Button/Item/Tab 触发 |
-| Unity单端截图通过 | 只能证明可运行，不能算视觉通过 |
-| 静态头像替代动态模型 | 使用真实 Imod/Timeline资源和动作语义 |
-| C#先改状态再等回包 | 禁止；Lua/服务端权威结果后再渲染 |
-| 切号残留旧角色数据 | 清角色Store、Lua模型、pending、监听、UI栈 |
-| Runner沿用旧结果 | 运行前删除旧产物并检查本次时间戳 |
-| 自动化误删Cocos基准 | 冻结证据不放 Runner outputs 字段 |
-| Unity meta批量漂移 | Git scope区分语义/meta/换行噪声，禁止无审计覆盖 |
 
 ## 14. 文档维护规则
 
