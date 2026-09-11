@@ -293,6 +293,7 @@ namespace ProjectX.UI
             SetVisible(cell, "CostPrice", item.DiscountPercent < 100);
             SetVisible(cell, "Tag", item.IsSoldOut);
             SetVisible(cell, "Choose", item.Id == selectedId);
+            ItemQualityVisual.ApplyFrame(cell.Find("bg_icon")?.GetComponent<Image>(), item.Quality, resources);
             Image icon = cell.Find("bg_icon/Icon")?.GetComponent<Image>();
             bool placeholder = true;
             Sprite sprite = item.Picture > 0 ? resources.LoadItemIcon(item.Picture, out placeholder) : null;

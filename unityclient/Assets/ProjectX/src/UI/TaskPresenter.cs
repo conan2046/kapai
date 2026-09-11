@@ -160,7 +160,8 @@ namespace ProjectX.UI
                 rect.pivot = new Vector2(0f, 0.5f);
                 rect.sizeDelta = new Vector2(64f, 64f);
                 rect.anchoredPosition = new Vector2(index * 72f, 0f);
-                Image icon = cell.GetComponent<Image>();
+                ItemQualityVisual.ApplyFrame(cell.GetComponent<Image>(), reward.quality, resources);
+                Image icon = ItemQualityVisual.EnsureIcon(cell.transform);
                 icon.sprite = resources.LoadItemIcon(reward.picture);
                 icon.enabled = icon.sprite != null;
                 icon.preserveAspect = true;

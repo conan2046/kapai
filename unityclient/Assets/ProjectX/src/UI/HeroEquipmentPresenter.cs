@@ -396,17 +396,22 @@ namespace ProjectX.UI
 
         public void ShowCultivationTab(int mode)
         {
-            if (selected.Uid == 0) return;
-            if (selected.Kind == HeroEquipmentKind.FaBao)
+            ShowCultivationTab(selected, mode);
+        }
+
+        private void ShowCultivationTab(DisplayRecord item, int mode)
+        {
+            if (item.Uid == 0) return;
+            if (item.Kind == HeroEquipmentKind.FaBao)
             {
-                if (mode == 1) ShowFaBaoRefine(selected);
-                else ShowFaBaoStrength(selected);
+                if (mode == 1) ShowFaBaoRefine(item);
+                else ShowFaBaoStrength(item);
                 return;
             }
-            if (mode == 1) ShowRefine(selected);
-            else if (mode == 2) ShowAwaken(selected);
-            else if (mode == 3) ShowDivine(selected);
-            else ShowStrength(selected);
+            if (mode == 1) ShowRefine(item);
+            else if (mode == 2) ShowAwaken(item);
+            else if (mode == 3) ShowDivine(item);
+            else ShowStrength(item);
         }
 
         public void PlayCultivationSuccess(int operation)
@@ -1276,8 +1281,11 @@ namespace ProjectX.UI
             string divineNamePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name";
             string divineValuePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value";
             Image divineItemIcon = divineView.Binding.Find(divineItemPath)?.GetComponent<Image>();
+            Image divineItemQualityFrame = divineView.Binding.Find(divineItemPath + "_bg")?.GetComponent<Image>();
             bool showDivineMaterial = divineItemId > 0 && divineItem != null && divineRequired > 0
                 && ApplyMaterialIcon(divineItemIcon, divineItem);
+            if (showDivineMaterial) ApplyQualityFrame(divineItemQualityFrame, divineItem.Quality);
+            else if (divineItemQualityFrame != null) divineItemQualityFrame.gameObject.SetActive(false);
             divineView.Binding.Find(divineItemPath)?.SetActive(showDivineMaterial);
             divineView.Binding.Find(divineNamePath)?.SetActive(showDivineMaterial);
             divineView.Binding.Find(divineValuePath)?.SetActive(showDivineMaterial);
@@ -1607,7 +1615,7 @@ namespace ProjectX.UI
                 if (choose != null) choose.gameObject.SetActive(target.Uid == current.Uid);
                 Button button = EnsureClickable(slot);
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => ShowStrength(target));
+                button.onClick.AddListener(() => ShowCultivationTab(target, activeCultivationMode));
             }
         }
 

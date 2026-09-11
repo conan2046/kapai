@@ -2476,6 +2476,14 @@ $mailSqliteFixtureSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Invoke-MailSqliteFixture.ps1") -Raw -Encoding UTF8
 $mailPresenterSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/UI/MailPresenter.cs") -Raw -Encoding UTF8
+$shopPresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs") -Raw -Encoding UTF8
+$taskPresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs") -Raw -Encoding UTF8
+$welfarePresenterSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/WelfarePresenter.cs") -Raw -Encoding UTF8
+$itemQualityVisualSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ItemQualityVisual.cs") -Raw -Encoding UTF8
 $mailControllerSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Mail/MailController.lua.txt") -Raw -Encoding UTF8
 $bagFlowPresenterSource = Get-Content -LiteralPath `
@@ -2505,6 +2513,17 @@ Assert-ToolchainTest (
     $shopCatalogSource.Contains('Match sourceMatch = Regex.Match(entry') -and
     $projectXAppSource.Contains('Login system broadcasts are transient overlays, not part of the Mail state.')
 ) "Mail current-frame parity no longer freezes six visible attachment cells, Cocos item detail text, and stable toast-free captures."
+Assert-ToolchainTest (
+    $itemQualityVisualSource.Contains('HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}') -and
+    $itemQualityVisualSource.Contains('rect.anchorMin = new Vector2(0.08f, 0.08f);') -and
+    $itemQualityVisualSource.Contains('rect.anchorMax = new Vector2(0.92f, 0.92f);') -and
+    $mailPresenterSource.Contains('ItemQualityVisual.ApplyFrame(cell.GetComponent<Image>(), item.Quality, resources);') -and
+    $shopPresenterSource.Contains('ItemQualityVisual.ApplyFrame(cell.Find("bg_icon")?.GetComponent<Image>(), item.Quality, resources);') -and
+    $taskPresenterSource.Contains('ItemQualityVisual.ApplyFrame(cell.GetComponent<Image>(), reward.quality, resources);') -and
+    $taskPresenterSource.Contains('Image icon = ItemQualityVisual.EnsureIcon(cell.transform);') -and
+    $welfarePresenterSource.Contains('ItemQualityVisual.ApplyFrame(itemFrame?.GetComponent<Image>(), value.Reward.Quality, resources);') -and
+    $welfarePresenterSource.Contains('Image icon = ItemQualityVisual.EnsureIcon(itemFrame);')
+) "Confirmed Mail, Shop, Task, or Welfare item icons lost their common_quality_01-07 frame contract."
 Assert-ToolchainTest (
     $mailControllerSource.Contains('batchRewards = nil, deleteAllQueued = false,') -and
     $mailControllerSource.Contains('if M.pendingOp == 4 then') -and
@@ -3066,6 +3085,20 @@ Assert-ToolchainTest (
       $heroEquipmentPresenterSource.Contains('changeHasCurrentEquipped && item.Uid == changeCurrent.Uid ? "已穿戴" : "穿戴"') -and
       $heroEquipmentPresenterSource.Contains('action.interactable = !changeHasCurrentEquipped || item.Uid != changeCurrent.Uid;')
   ) "HeroEquipment empty-slot regression: an unequipped candidate can no longer be disabled as the current worn item."
+  Assert-ToolchainTest (
+      $heroEquipmentPresenterSource.Contains(
+          'button.onClick.AddListener(() => ShowCultivationTab(target, activeCultivationMode));') -and
+      -not $heroEquipmentPresenterSource.Contains(
+          'button.onClick.AddListener(() => ShowStrength(target));')
+  ) "HeroEquipment cultivation selector regression: changing equipment no longer preserves the active cultivation tab."
+  Assert-ToolchainTest (
+      $heroEquipmentPresenterSource.Contains(
+          'Image divineItemQualityFrame = divineView.Binding.Find(divineItemPath + "_bg")?.GetComponent<Image>();') -and
+      $heroEquipmentPresenterSource.Contains(
+          'if (showDivineMaterial) ApplyQualityFrame(divineItemQualityFrame, divineItem.Quality);') -and
+      $heroEquipmentPresenterSource.Contains(
+          'else if (divineItemQualityFrame != null) divineItemQualityFrame.gameObject.SetActive(false);')
+  ) "HeroEquipment divine material regression: Item_bg no longer follows the configured item quality or hides with an unavailable material."
   Assert-ToolchainTest (
     $heroCultivationPresenterSource.Contains('EventSystem.current.RaycastAll(data, hits);') -and
     $heroCultivationPresenterSource.Contains('hits[0].gameObject.GetComponentInParent<Button>() != button') -and

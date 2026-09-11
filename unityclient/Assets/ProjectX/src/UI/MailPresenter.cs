@@ -359,6 +359,7 @@ namespace ProjectX.UI
                 rect.pivot = new Vector2(0f, 0.5f);
                 rect.anchoredPosition = new Vector2(index * width, 0f);
                 rect.sizeDelta = new Vector2(88f, 88f);
+                ItemQualityVisual.ApplyFrame(cell.GetComponent<Image>(), item.Quality, resources);
                 Image icon = cell.transform.Find("EquipIcon")?.GetComponent<Image>();
                 bool placeholder = true;
                 Sprite sprite = item.Picture > 0 ? resources.LoadItemIcon(item.Picture, out placeholder) : null;

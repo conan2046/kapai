@@ -150,7 +150,9 @@ namespace ProjectX.UI
             SetNamedText(row, "Text", value.State == WelfareRewardState.Claimed ? "已领取" : value.State == WelfareRewardState.Claimable ? "可领取" : "等待中");
             foreach (Text text in row.GetComponentsInChildren<Text>(true))
                 if (text.gameObject.name == "Num") text.text = value.Reward.Amount.ToString();
-            Image icon = FindNamed(row, "Icon")?.GetComponent<Image>() ?? FindNamed(row, "Item")?.GetComponent<Image>();
+            Transform itemFrame = FindNamed(row, "Item");
+            ItemQualityVisual.ApplyFrame(itemFrame?.GetComponent<Image>(), value.Reward.Quality, resources);
+            Image icon = ItemQualityVisual.EnsureIcon(itemFrame);
             if (icon != null)
             {
                 Sprite sprite = value.Reward.Picture > 0 ? resources.LoadItemIcon(value.Reward.Picture) : null;
