@@ -2877,7 +2877,7 @@ Assert-ToolchainTest (
     -not $projectXAppSource.Contains('.ThenByDescending(item => item.ItemId)\r\n                .Take(5)')
 ) "HeroEquip regression: fragment rows no longer reuse the common draggable VirtualList or progress is not quantity-bound."
 $fragmentBindStart = $projectXAppSource.IndexOf('private void BindHeroEquipmentFragmentRow', [StringComparison]::Ordinal)
-$fragmentBindEnd = $projectXAppSource.IndexOf('private static void CopyRectTransform', $fragmentBindStart, [StringComparison]::Ordinal)
+$fragmentBindEnd = $projectXAppSource.IndexOf('private static int GetHeroFragmentComposeCost', $fragmentBindStart, [StringComparison]::Ordinal)
 $fragmentBindSource = if ($fragmentBindStart -ge 0 -and $fragmentBindEnd -gt $fragmentBindStart) {
     $projectXAppSource.Substring($fragmentBindStart, $fragmentBindEnd - $fragmentBindStart)
 } else { "" }
@@ -2885,13 +2885,24 @@ Assert-ToolchainTest (
     $fragmentBindSource.Contains('icon.enabled = icon.sprite != null;') -and
     $fragmentBindSource.Contains('icon.color = Color.white;') -and
     $fragmentBindSource.Contains('icon.gameObject.SetActive(icon.sprite != null);') -and
-    $fragmentBindSource.Contains('if (qualityRect.parent != cell)') -and
-    $fragmentBindSource.Contains('int fragmentQualityIndex = qualityObject.transform.GetSiblingIndex();') -and
-    $fragmentBindSource.Contains('int fragmentIconIndex = iconRect.GetSiblingIndex();') -and
-    $fragmentBindSource.Contains('if (fragmentQualityIndex > fragmentIconIndex)') -and
-    $fragmentBindSource.Contains('qualityObject.transform.SetSiblingIndex(fragmentIconIndex);') -and
-    -not $fragmentBindSource.Contains('qualityObject.transform.SetSiblingIndex(iconRect.GetSiblingIndex());')
-) "HeroEquip early-play regression: repeated fragment binding can toggle the opaque quality frame above the item icon."
+    $fragmentBindSource.Contains('cell.Find("FragmentQuality")?.GetComponent<Image>()') -and
+    $fragmentBindSource.Contains('cell.Find("FragmentBadge")?.GetComponent<Image>()') -and
+    $fragmentBindSource.Contains('cell.Find("Text")?.GetComponent<Text>()') -and
+    -not $fragmentBindSource.Contains('RuntimeFragmentQuality') -and
+    -not $fragmentBindSource.Contains('RuntimeFragmentBadge') -and
+    -not $fragmentBindSource.Contains('RuntimeFragmentQuantity')
+) "HeroEquip regression: fragment visuals no longer bind the Prefab-authored quality, badge, and quantity nodes."
+$heroEquipmentHelpStart = $projectXAppSource.IndexOf('private void ConfigureHeroEquipmentHelp', [StringComparison]::Ordinal)
+$heroEquipmentHelpEnd = $projectXAppSource.IndexOf('private void ConfigureHeroEquipmentTabs', $heroEquipmentHelpStart, [StringComparison]::Ordinal)
+$heroEquipmentHelpSource = if ($heroEquipmentHelpStart -ge 0 -and $heroEquipmentHelpEnd -gt $heroEquipmentHelpStart) {
+    $projectXAppSource.Substring($heroEquipmentHelpStart, $heroEquipmentHelpEnd - $heroEquipmentHelpStart)
+} else { "" }
+Assert-ToolchainTest (
+    $heroEquipmentHelpSource.Contains('Layer/Panel_12/Title/TitleName/Button_1') -and
+    $heroEquipmentHelpSource.Contains('heroFrameView.BindClick(helpPath') -and
+    -not $heroEquipmentHelpSource.Contains('HeroEquipmentHelpButton') -and
+    -not $heroEquipmentHelpSource.Contains('new GameObject(')
+) "HeroEquip regression: help no longer binds the Prefab-authored OneLevelLayer title button."
 $heroEquipSourceTargetControl = @($heroEquipMatrix.controls |
     Where-Object { [string]$_.id -eq 'HE-78-SOURCE-DYNAMIC-TARGET' }) | Select-Object -First 1
 $enterGameplayStart = $projectXAppSource.IndexOf('public void EnterGameplay(int functionId)', [StringComparison]::Ordinal)
@@ -3225,6 +3236,12 @@ Assert-ToolchainTest (
     $worldOutcomeSource.Contains('Layer/Panel/victorypanel/win_bg/win3') -and
     $worldOutcomeSource.Contains('LoadWorldSprite("WorldUI/battle_victory")')
 ) "World settlement no longer prefers the current Cocos three-star perfect-victory title with a fallback asset."
+Assert-ToolchainTest (
+    $worldPresenterSource.Contains('Image icon = iconHost.Find("Icon")?.GetComponent<Image>();') -and
+    $worldPresenterSource.Contains('Text amount = entry.transform.Find("Bg/Text")?.GetComponent<Text>();') -and
+    -not $worldPresenterSource.Contains('new GameObject("RuntimeIcon"') -and
+    -not $worldPresenterSource.Contains('CreateStageLabel(entry.transform, "RuntimeAmount"')
+) "World stage-detail drops no longer reuse the Prefab-authored Bg/Icon and Bg/Text nodes."
 Assert-ToolchainTest (
     $worldPresenterSource.Contains('RenderStagePlayer(mapVisual);') -and
     $worldPresenterSource.Contains('PositionStageCamera(mapVisual);') -and

@@ -9311,8 +9311,8 @@ namespace ProjectX.Core
             if (equipmentTab == null || equipmentTab.interactable)
             { Fail("HeroEquip G4 selected equipment tab state was not source-equivalent."); yield break; }
             MarkValidationControl("HE-04-EQUIPMENT-BAG-TAB");
-            Button equipmentHelp = heroFrameView.GameObject.GetComponentsInChildren<Button>(true)
-                .FirstOrDefault(value => value.name == "HeroEquipmentHelpButton");
+            Button equipmentHelp = heroFrameView.Binding.Find(
+                "Layer/Panel_12/Title/TitleName/Button_1")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentHelp) || !IsErrorVisible)
             { Fail("HeroEquip G4 equipment help EventSystem input did not open the real help dialog."); yield break; }
             MarkValidationControl("HE-06-EQUIPMENT-HELP");
@@ -9602,9 +9602,9 @@ namespace ProjectX.Core
             const int composeFragmentId = 4621;
             int fragmentQuantityBefore = services.Bag.GetTotalQuantityByItemId(composeFragmentId);
             int fragmentComposeCost = services.EquipmentCatalog.GetEquipmentComposeCost(composeFragmentId);
-            Image fragmentQuality = composableFragment?.Find("RuntimeFragmentQuality")?.GetComponent<Image>();
-            Image fragmentBadge = composableFragment?.Find("RuntimeFragmentBadge")?.GetComponent<Image>();
-            Text fragmentQuantity = composableFragment?.Find("RuntimeFragmentQuantity")?.GetComponent<Text>();
+            Image fragmentQuality = composableFragment?.Find("FragmentQuality")?.GetComponent<Image>();
+            Image fragmentBadge = composableFragment?.Find("FragmentBadge")?.GetComponent<Image>();
+            Text fragmentQuantity = composableFragment?.Find("Text")?.GetComponent<Text>();
             if (fragmentQuantityBefore < fragmentComposeCost || fragmentComposeCost <= 0)
             { Fail("HeroEquip G4 fragment 4621 fixture is not composable."); yield break; }
             if (fragmentQuality == null || !fragmentQuality.enabled || fragmentQuality.sprite == null
@@ -9648,7 +9648,7 @@ namespace ProjectX.Core
             Transform refreshedFragment = heroEquipmentFragmentView.GameObject
                 .GetComponentsInChildren<Transform>(true)
                 .FirstOrDefault(value => value.name == "EquipmentFragment_4621");
-            Text refreshedQuantity = refreshedFragment?.Find("RuntimeFragmentQuantity")?.GetComponent<Text>();
+            Text refreshedQuantity = refreshedFragment?.Find("Text")?.GetComponent<Text>();
             string expectedFragmentProgress = $"{fragmentQuantityAfter}/{fragmentComposeCost}";
             if (fragmentProgress == null || fragmentProgress.text != expectedFragmentProgress
                 || refreshedQuantity == null || refreshedQuantity.text != fragmentQuantityAfter.ToString())
@@ -9656,7 +9656,7 @@ namespace ProjectX.Core
                 string matchingCells = string.Join(";", heroEquipmentFragmentView.GameObject
                     .GetComponentsInChildren<Transform>(true)
                     .Where(value => value.name == $"EquipmentFragment_{composeFragmentId}")
-                    .Select(value => $"active={value.gameObject.activeInHierarchy},self={value.gameObject.activeSelf},qty={value.Find("RuntimeFragmentQuantity")?.GetComponent<Text>()?.text}"));
+                    .Select(value => $"active={value.gameObject.activeInHierarchy},self={value.gameObject.activeSelf},qty={value.Find("Text")?.GetComponent<Text>()?.text}"));
                 Fail($"HeroEquip G4 compose refreshed the bag model but left fragment progress or grid quantity stale; "
                     + $"model={fragmentQuantityAfter}, expected={expectedFragmentProgress}, progress={fragmentProgress?.text}, "
                     + $"refreshed={refreshedQuantity?.text}, cells={matchingCells}.");
@@ -9891,8 +9891,8 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 excluded FaBao fragment tab was not hidden."); yield break; }
             MarkValidationControl("HE-12-FABAO-FRAGMENT-TAB");
             MarkValidationControl("HE-15-FABAO-FRAGMENT-ACTIONS-DEFERRED");
-            Button faBaoHelp = heroFrameView.GameObject.GetComponentsInChildren<Button>(true)
-                .FirstOrDefault(value => value.name == "HeroEquipmentHelpButton");
+            Button faBaoHelp = heroFrameView.Binding.Find(
+                "Layer/Panel_12/Title/TitleName/Button_1")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(faBaoHelp) || !IsErrorVisible)
             { Fail("HeroEquip G4 FaBao help EventSystem input did not open the real help dialog."); yield break; }
             MarkValidationControl("HE-13-FABAO-HELP");
@@ -14310,7 +14310,7 @@ namespace ProjectX.Core
                 icon.gameObject.SetActive(icon.sprite != null);
                 icon.preserveAspect = true;
             }
-            BindHeroEquipmentFragmentBagVisual(cell, icon?.rectTransform, item);
+            BindHeroEquipmentFragmentBagVisual(cell, item);
             Text name = cell.Find("Name")?.GetComponent<Text>();
             if (name != null) name.text = item.Name;
             int required = heroFragment
@@ -14341,69 +14341,28 @@ namespace ProjectX.Core
             });
         }
 
-        private void BindHeroEquipmentFragmentBagVisual(Transform cell, RectTransform iconRect, BagItemRecord item)
+        private void BindHeroEquipmentFragmentBagVisual(Transform cell, BagItemRecord item)
         {
-            if (cell == null || iconRect == null) return;
+            if (cell == null) return;
 
-            Transform qualityTransform = cell.Find("RuntimeFragmentQuality");
-            GameObject qualityObject = qualityTransform != null ? qualityTransform.gameObject
-                : new GameObject("RuntimeFragmentQuality", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform qualityRect = qualityObject.GetComponent<RectTransform>();
-            if (qualityRect.parent != cell)
-                qualityRect.SetParent(cell, false);
-            CopyRectTransform(iconRect, qualityRect);
-            Image quality = qualityObject.GetComponent<Image>();
-            quality.sprite = services.Resources.LoadFirst(
-                $"HeroUI/common_quality_{Mathf.Clamp(item.Quality, 1, 7):00}");
-            quality.enabled = quality.sprite != null;
-            quality.preserveAspect = true;
-            quality.raycastTarget = false;
-            int fragmentQualityIndex = qualityObject.transform.GetSiblingIndex();
-            int fragmentIconIndex = iconRect.GetSiblingIndex();
-            if (fragmentQualityIndex > fragmentIconIndex)
-                qualityObject.transform.SetSiblingIndex(fragmentIconIndex);
+            Image quality = cell.Find("FragmentQuality")?.GetComponent<Image>();
+            if (quality != null)
+            {
+                quality.sprite = services.Resources.LoadFirst(
+                    $"HeroUI/common_quality_{Mathf.Clamp(item.Quality, 1, 7):00}");
+                quality.enabled = quality.sprite != null;
+            }
 
-            Transform shardTransform = cell.Find("RuntimeFragmentBadge");
-            GameObject shardObject = shardTransform != null ? shardTransform.gameObject
-                : new GameObject("RuntimeFragmentBadge", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform shardRect = shardObject.GetComponent<RectTransform>();
-            shardRect.SetParent(cell, false);
-            shardRect.anchorMin = new Vector2(0f, 1f);
-            shardRect.anchorMax = new Vector2(0f, 1f);
-            shardRect.pivot = new Vector2(0f, 1f);
-            shardRect.anchoredPosition = iconRect.anchoredPosition
-                + new Vector2(-iconRect.rect.width * 0.5f, iconRect.rect.height * 0.5f);
-            shardRect.sizeDelta = new Vector2(38f, 38f);
-            Image shard = shardObject.GetComponent<Image>();
-            shard.sprite = services.Resources.LoadFirst("ItemDecorations/suipian");
-            shard.enabled = shard.sprite != null;
-            shard.preserveAspect = true;
-            shard.raycastTarget = false;
+            Image shard = cell.Find("FragmentBadge")?.GetComponent<Image>();
+            if (shard != null)
+            {
+                shard.sprite = services.Resources.LoadFirst("ItemDecorations/suipian");
+                shard.enabled = shard.sprite != null;
+            }
 
-            Transform quantityTransform = cell.Find("RuntimeFragmentQuantity");
-            GameObject quantityObject = quantityTransform != null ? quantityTransform.gameObject
-                : new GameObject("RuntimeFragmentQuantity", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            RectTransform quantityRect = quantityObject.GetComponent<RectTransform>();
-            quantityRect.SetParent(cell, false);
-            CopyRectTransform(iconRect, quantityRect);
-            Text quantity = quantityObject.GetComponent<Text>();
-            quantity.font = UnityEngine.Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            quantity.fontSize = 17;
-            quantity.alignment = TextAnchor.LowerRight;
-            quantity.color = Color.white;
-            quantity.text = item.Quantity.ToString();
-            quantity.raycastTarget = false;
-            quantityObject.transform.SetAsLastSibling();
-        }
-
-        private static void CopyRectTransform(RectTransform source, RectTransform target)
-        {
-            target.anchorMin = source.anchorMin;
-            target.anchorMax = source.anchorMax;
-            target.pivot = source.pivot;
-            target.anchoredPosition = source.anchoredPosition;
-            target.sizeDelta = source.sizeDelta;
-            target.localScale = source.localScale;
+            Text quantity = cell.Find("Text")?.GetComponent<Text>();
+            if (quantity != null)
+                quantity.text = item.Quantity.ToString();
         }
 
         private static int GetHeroFragmentComposeCost(BagItemRecord item)
@@ -15846,39 +15805,11 @@ namespace ProjectX.Core
 
         private void ConfigureHeroEquipmentHelp(HeroEquipmentKind kind)
         {
-            Transform title = heroFrameView.Binding.Find("Layer/Panel_12/Title")?.transform;
-            if (title == null) return;
-            Transform existing = title.Find("HeroEquipmentHelpButton");
-            GameObject value = existing != null ? existing.gameObject
-                : new GameObject("HeroEquipmentHelpButton",
-                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            RectTransform rect = value.GetComponent<RectTransform>();
-            rect.SetParent(title, false);
-            rect.anchorMin = rect.anchorMax = new Vector2(1f, 0.5f);
-            rect.pivot = new Vector2(1f, 0.5f);
-            rect.anchoredPosition = new Vector2(-82f, 0f);
-            rect.sizeDelta = new Vector2(54f, 54f);
-            Image image = value.GetComponent<Image>();
-            image.color = new Color(0.55f, 0.27f, 0.08f, 0.95f);
-            Transform labelTransform = value.transform.Find("Label");
-            GameObject labelObject = labelTransform != null ? labelTransform.gameObject
-                : new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-            labelRect.SetParent(value.transform, false);
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = labelRect.offsetMax = Vector2.zero;
-            Text label = labelObject.GetComponent<Text>();
-            Text titleText = title.GetComponentsInChildren<Text>(true).FirstOrDefault();
-            label.font = titleText != null ? titleText.font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.text = "?";
-            label.fontSize = 34;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.color = Color.white;
-            Button button = value.GetComponent<Button>();
-            button.targetGraphic = image;
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => errorPresenter?.ShowHelp(
+            const string helpPath = "Layer/Panel_12/Title/TitleName/Button_1";
+            GameObject help = heroFrameView.Binding.Find(helpPath);
+            if (help == null) return;
+            help.SetActive(true);
+            heroFrameView.BindClick(helpPath, () => errorPresenter?.ShowHelp(
                 kind == HeroEquipmentKind.Equipment
                     ? "装备强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
                       "装备精炼等级上限由装备品质决定。\n" +
@@ -15886,7 +15817,6 @@ namespace ProjectX.Core
                       "红色以上装备可以进行装备神铸，神铸需消耗对应装备碎片。"
                     : "法宝强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
                       "法宝精炼消耗精炼石，精炼等级上限为25级。"));
-            value.SetActive(true);
         }
 
         private void ConfigureHeroEquipmentTabs(Transform tabs, HeroEquipmentKind kind)

@@ -576,27 +576,21 @@ namespace ProjectX.UI
                             $"HeroUI/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}");
                         qualityFrame.enabled = qualityFrame.sprite != null;
                     }
-                    GameObject iconObject = new GameObject("RuntimeIcon", typeof(RectTransform),
-                        typeof(CanvasRenderer), typeof(Image));
-                    RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-                    iconRect.SetParent(iconHost, false);
-                    iconRect.anchorMin = new Vector2(0.12f, 0.18f);
-                    iconRect.anchorMax = new Vector2(0.88f, 0.94f);
-                    iconRect.offsetMin = iconRect.offsetMax = Vector2.zero;
-                    Image icon = iconObject.GetComponent<Image>();
-                    icon.sprite = reward.Type == 60005
-                        ? resources.LoadEquipmentIcon(equipmentCatalog.GetEquipment(checked((int)reward.Id)).Picture)
-                        : itemCatalog.IsCocosHeroSoul(reward.Type)
-                            ? resources.LoadHeroPortrait(reward.Picture)
-                        : reward.Picture > 0 ? resources.LoadItemIcon(reward.Picture) : null;
-                    icon.enabled = icon.sprite != null;
-                    icon.preserveAspect = true;
-                    icon.raycastTarget = false;
+                    Image icon = iconHost.Find("Icon")?.GetComponent<Image>();
+                    if (icon != null)
+                    {
+                        icon.sprite = reward.Type == 60005
+                            ? resources.LoadEquipmentIcon(equipmentCatalog.GetEquipment(checked((int)reward.Id)).Picture)
+                            : itemCatalog.IsCocosHeroSoul(reward.Type)
+                                ? resources.LoadHeroPortrait(reward.Picture)
+                            : reward.Picture > 0 ? resources.LoadItemIcon(reward.Picture) : null;
+                        icon.enabled = icon.sprite != null;
+                    }
                 }
                 Text name = entry.transform.Find("Bg/TextBg/Name")?.GetComponent<Text>();
                 if (name != null) name.text = reward.Name;
-                CreateStageLabel(entry.transform, "RuntimeAmount", reward.Amount.ToString(),
-                    new Vector2(0.56f, 0.12f), new Vector2(0.96f, 0.36f), 18);
+                Text amount = entry.transform.Find("Bg/Text")?.GetComponent<Text>();
+                if (amount != null) amount.text = reward.Amount.ToString();
             }
         }
 
@@ -1042,24 +1036,6 @@ namespace ProjectX.UI
                 normalBoxButtons.Remove(stage.Id);
             Transform effect = box.transform.Find("effect_tuitu_1");
             if (effect != null) effect.gameObject.SetActive(claimable);
-        }
-
-        private static void CreateStageLabel(Transform parent, string name, string value, Vector2 min, Vector2 max, int size)
-        {
-            GameObject labelObject = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            labelObject.transform.SetParent(parent, false);
-            RectTransform rect = labelObject.GetComponent<RectTransform>();
-            rect.anchorMin = min;
-            rect.anchorMax = max;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
-            Text label = labelObject.GetComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontSize = size;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.color = Color.white;
-            label.horizontalOverflow = HorizontalWrapMode.Wrap;
-            label.verticalOverflow = VerticalWrapMode.Overflow;
-            label.text = value;
         }
 
         private void Bind(CocosUiView view, string path, Action action, bool createCanvasProxy = false,

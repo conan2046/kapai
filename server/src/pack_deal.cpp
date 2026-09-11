@@ -1550,21 +1550,7 @@ void CPackageDeal::SelectRole(CNetMessage *pMsg,int sock)
 		if(localTestLog)
 			cout << "[local] SelectRole: sent login roleId=" << roleId << endl;
 
-		uint16 rank = rmgr.GetRankIdx(CRankMgr::ERT_Power, pUser->GetRoleId());
-		if (rank > 0 && rank <= 5)
-		{
-			char buf[128];
-			snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0242, rank, pUser->GetName());
-			SysInfoToAllUser(buf);
-		}
-
-		rank = rmgr.GetRankIdx(CRankMgr::ERT_Level, pUser->GetRoleId());
-		if (rank > 0 && rank <= 5)
-		{
-			char buf[128];
-			snprintf(buf, sizeof(buf), LANGUAGE_ZQX_0243, rank, pUser->GetName());
-			SysInfoToAllUser(buf);
-		}
+		// 排行榜数据仍在登录时刷新，但不再广播高排名角色上线消息。
 	}
 	else
 	{
