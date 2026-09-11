@@ -1,6 +1,24 @@
 # Unity 迁移当前交接
 
-## 2026-09-10 Draw 新任务交接（当前唯一有效入口）
+## 2026-09-11 Draw 收口（当前唯一有效入口）
+
+- `Draw / 神将招募` 已完成：用户在最后一次直接碎片图标修复后使用原生 Unity GameView 真人复测，并明确反馈“测试通过”；`manualPassed=true`，G6 收口。
+- 根因是奖池直接碎片（如 `type=2458, transformItemId=0`）与重复神将转换（`type=60002, transformItemId>0`）属于两条权威回包分支，旧 Unity 只为后一条创建中央碎片卡。现已统一按实际 item id 渲染稳定卡片，并隐藏非神将结果残留品质图。
+- 概率结果不要求跨端相同；正式口径是同一真实账号 UI 状态一致，并逐次核对“实际 `/224` 回包 → 业务数据变化 → 结果 UI”一致。正式229条奖池配置的35种直接奖励映射缺失为0。
+- 当前工具链373项、文档一致性与 `git diff --check` 通过；SQLite已恢复并完成账号 `7200057/1000003` 重登业务哈希校验，完整性 `ok`、无 Draw 残留；Unity与`kapai.exe`已关闭。
+- runtime-v4 的逐控件双端自动证据仍有历史缺口，继续在矩阵披露，不伪造成通过。本次按用户批准的旧验收路径及最终真人 Play 收口。
+- 本任务不启动下一个模块。后续工作新建任务，并以 `UNITYCLIENT_STATUS.md` 的当前状态为唯一入口。
+
+关键文件：
+
+- `unityclient/Assets/ProjectX/src/UI/DrawPresenter.cs`
+- `tools/unity-migration/Test-UnityMigrationToolchain.ps1`
+- `docs/unityclient/modules/DRAW.md`
+- `docs/unityclient/matrices/DRAW_CONTROLS.json`
+- `.local/unity-validation/draw-final-user-acceptance-latest.json`
+- `.local/unity-validation/draw-real-state-random-result-20260911.md`
+
+## 2026-09-10 Draw 新任务交接（已由上节收口替代）
 
 - 当前唯一模块：`Draw`。不得切换到其他模块，不得提交或推送。
 - 用户最新决策：停止扩建双端 JSON hardGate v4，尽快按旧验收方案完成 Draw；保留现有 JSON 结果作为诊断证据，不得据此宣称 G4-G6 通过。

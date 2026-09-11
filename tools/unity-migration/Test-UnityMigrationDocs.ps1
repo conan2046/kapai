@@ -635,11 +635,17 @@ if (-not $TargetModule -or $TargetModule -ieq "Draw") {
         if (@(Compare-Object @($drawMatrix.runtimeEvidenceFields) $expectedFields).Count -ne 0) {
             Add-Failure "Draw runtimeEvidenceFields must match the seven v4 evidence flags."
         }
-        if ([string]$drawMatrix.g6Audit.status -ne "runtime-v4-pending" -or
-            [bool]$drawMatrix.g6Audit.manualPassed -or [int]$drawMatrix.g6Audit.cocosActionCount -ne 28 -or
-            [int]$drawMatrix.g6Audit.unityActionCount -ne 28 -or
-            [int]$drawMatrix.g6Audit.matchedControlCount -ne 0) {
-            Add-Failure "Draw v4 pilot must retain 28 actions per engine, zero current matches and manualPassed=false while G6 remains pending."
+        $drawV4CountsRetained = [int]$drawMatrix.g6Audit.cocosActionCount -eq 28 -and
+            [int]$drawMatrix.g6Audit.unityActionCount -eq 28 -and
+            [int]$drawMatrix.g6Audit.matchedControlCount -eq 0
+        $drawPendingValid = [string]$drawMatrix.g6Audit.status -eq "runtime-v4-pending" -and
+            -not [bool]$drawMatrix.g6Audit.manualPassed
+        $drawUserClosureValid = [string]$drawMatrix.g6Audit.status -eq "g6-complete-user-final-play-passed-runtime-v4-debt-disclosed" -and
+            [bool]$drawMatrix.g6Audit.manualPassed -and
+            -not [bool]$drawMatrix.g6Audit.runtimeV4StrictGatePassed -and
+            [bool]$drawMatrix.g6Audit.runtimeV4DebtDisclosed
+        if (-not $drawV4CountsRetained -or (-not $drawPendingValid -and -not $drawUserClosureValid)) {
+            Add-Failure "Draw must remain runtime-v4-pending/manualPassed=false, or record explicit user final closure while retaining runtimeV4StrictGatePassed=false and the v4 evidence debt."
         }
     }
     if ($drawContract.Count -eq 1) {

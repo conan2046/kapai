@@ -19,6 +19,9 @@ $heroCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Asse
 $bootstrapSceneBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
 $validationFixtures = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/validation-fixtures.json").Value
+$drawPoolConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_config.json").Value
+$drawPoolBasic = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_basic.json").Value
+$drawItemConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/item.json").Value
 
 function Assert-ToolchainTest {
     param(
@@ -133,15 +136,41 @@ Assert-ToolchainTest (
     $runtimeInputSource.Contains('DispatchInternal(targetPath, targetSemanticId, operationType, true)') -and
     -not $runtimeCollectorSource.Contains('.onClick.Invoke')
 ) "Draw runtime replay no longer isolates scenario state through real EventSystem input."
+$drawItemById = @{}
+foreach ($item in @($drawItemConfig)) { $drawItemById[[int]$item.id] = $item }
+$drawDirectRewardIds = New-Object System.Collections.Generic.HashSet[int]
+foreach ($entry in @($drawPoolConfig)) {
+    $rewardType = [int]$entry.award[0]
+    if ($rewardType -ne 60002) { [void]$drawDirectRewardIds.Add($rewardType) }
+}
+foreach ($pool in @($drawPoolBasic)) {
+    foreach ($guaranteed in @($pool.must_get)) { [void]$drawDirectRewardIds.Add([int]$guaranteed[0]) }
+}
+$drawDirectRewardFailures = New-Object System.Collections.Generic.List[string]
+foreach ($rewardType in @($drawDirectRewardIds | Sort-Object)) {
+    $item = $drawItemById[$rewardType]
+    if ($null -eq $item) {
+        $drawDirectRewardFailures.Add("missing item config $rewardType")
+        continue
+    }
+    $idIcon = Join-Path $root ("unityclient/Assets/ProjectX/Resources/ItemIcons/equip{0}.png" -f $rewardType)
+    $pictureIcon = Join-Path $root ("unityclient/Assets/ProjectX/Resources/ItemIcons/equip{0}.png" -f [int]$item.pic)
+    if (-not (Test-Path -LiteralPath $idIcon -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $pictureIcon -PathType Leaf)) {
+        $drawDirectRewardFailures.Add("missing item icon $rewardType/$([int]$item.pic)")
+    }
+}
 Assert-ToolchainTest (
     $drawPresenterSource.Contains('reward.TransformItemId > 0') -and
-    $drawPresenterSource.Contains('itemCatalog.DescribeReward(reward.TransformItemId, 0, reward.TransformAmount)') -and
+    $drawPresenterSource.Contains('bool directItem = reward != null && reward.Type != 60002;') -and
+    $drawPresenterSource.Contains('int displayItemId = transformed ? reward.TransformItemId : directItem ? reward.Type : 0;') -and
     $drawPresenterSource.Contains('RuntimeSingleTransformedReward') -and
-    $drawPresenterSource.Contains('singleResultView.Binding.Find("Layer/dancichoukaUI")') -and
-    $drawPresenterSource.Contains('resources.LoadItemIcon(reward.TransformItemId)') -and
+    $drawPresenterSource.Contains('root.SetParent(singleResultView.GameObject.transform, false);') -and
+    $drawPresenterSource.Contains('resources.LoadItemIcon(displayItemId)') -and
     $drawPresenterSource.Contains('duplicateOverlayPortrait.sprite = resources.LoadItemIcon(reward.TransformItemId)') -and
-    $drawPresenterSource.Contains('transformedResultVisual.transform.SetAsLastSibling()')
-) "Draw single-result duplicate conversion no longer renders the authoritative fragment item art."
+    $drawPresenterSource.Contains('transformedResultVisual.transform.SetAsLastSibling()') -and
+    $drawDirectRewardFailures.Count -eq 0
+) "Draw single-result mapping no longer covers every authoritative direct reward and duplicate conversion with valid item art: $($drawDirectRewardFailures -join '; ')."
 Assert-ToolchainTest (
     $drawSqliteFixtureSource.Contains('[ValidateSet("NewHero", "DuplicateFragment")]') -and
     $drawSqliteFixtureSource.Contains('--profile $Profile') -and

@@ -7,11 +7,11 @@
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动模块 | `Draw / 神将招募` |
-| 当前门禁 | `G0-G5 retained / G6 runtime evidence pending` |
-| 当前仅剩玩家缺陷 | 抽卡后碎片结果未完成真实可见验收；神将预览详情已由用户复测补齐 |
-| 下一步 | 使用 `DuplicateFragment` SQLite 定向夹具，先断言重复神将条件，再完成真实高级单抽、权威回包、碎片 UI 和恢复检查 |
-| 禁止事项 | 不开启其他模块；不以普通新神将单抽、JSON、内部回调、旧截图或批处理摘要证明碎片显示 |
+| 唯一活动模块 | 无；`Draw / 神将招募` 已收口 |
+| 当前门禁 | `G0-G6 complete / user final Play passed` |
+| 当前仅剩玩家缺陷 | 无；基础/高级单抽直接碎片中央图标修复已由用户真人复测确认通过 |
+| 下一步 | Draw 任务收口；后续模块必须新建独立任务并从其当前最早门禁开始 |
+| 禁止事项 | 不把本次 Draw 验收复用于其他模块；历史 runtime-v4 自动证据缺口继续披露，不伪造补齐 |
 
 ## 2. 总进度
 
@@ -40,7 +40,7 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | HeroRebirth | `G0-G6 complete` | 24/24，用户最终确认，已收口；用户 Prefab 只读 |
 | HeroCultivation | `G0-G6 user exception` | 51/51；Cocos缺口和历史未闭环台账继续披露，不复用例外 |
 | GameplayShops | `G0-G6 user exception` | 仅 `function_id=15/type=2`；其他商店不在范围 |
-| Draw | `G0-G5 retained / G6 pending` | 只处理重复神将碎片可见问题；`manualPassed=false` |
+| Draw | `G0-G6 complete` | 2026-09-11 用户最终真人 Play 确认通过；`manualPassed=true`，历史 runtime-v4 自动证据缺口保留披露 |
 | Hero | `G0 passed / G1-G6 invalidated` | 当前不启动；待有效 Cocos 状态重采 |
 | HeroEquip | `G0-G4 passed / G5 blocked` | 当前不启动；用户 Prefab 不覆盖 |
 | Shop | `G3 runtime-ready / early Play passed` | 正式 G1-G2、G4-G6 待后续独立任务 |
@@ -57,15 +57,15 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 
 | 范围 | 当前结论 | 证据入口 |
 |---|---|---|
-| Draw | SQLite恢复、重登、完整性和残留检查已通过；运行时回放仍不构成最终验收 | `docs/unityclient/modules/DRAW.md`、`docs/unityclient/matrices/DRAW_CONTROLS.json` |
-| Draw 碎片定向条件 | `NewHero` 与 `DuplicateFragment` 夹具已分离；碎片测试必须使用后者 | `tools/unity-migration/Invoke-DrawSqliteFixture.ps1` |
+| Draw | 用户真人输入复现直接碎片图标缺失；源码修复后，正式229条奖池映射全量通过，账号1无注入随机实抽的回包/业务变化/UI一致，SQLite恢复、重登、完整性与残留通过；2026-09-11 用户最终真人 Play 确认通过 | `docs/unityclient/modules/DRAW.md`、`docs/unityclient/matrices/DRAW_CONTROLS.json` |
+| Draw 碎片定向条件 | 必须分别覆盖直接碎片道具（`reward.Type<60000`）和重复神将转换（`type=60002 + transformItemId>0`）；`DuplicateFragment` 只保证后一条高级首次抽取前置 | `tools/unity-migration/Invoke-DrawSqliteFixture.ps1` |
 | 最近严格完成模块 | XunBao 21/21、7/7双端状态、6/6语义、用户最终Play通过 | `docs/unityclient/modules/XUNBAO.md` |
 | Steam本机发布 | Unity可独立双击运行；外部干净机/Depot不在当前阻塞口径 | 对应 S0-S8 本地证据与历史文档 |
 
 ## 5. 总迁移顺序
 
 1. P0 基础层：已按现状冻结，不在 Draw 任务内重开。
-2. P1 核心养成与单人功能：当前只收口 Draw；后续为 Hero → HeroEquip → Gameplay 模块组（Gameplay、FengShenStory、YouLi）。
+2. P1 核心养成与单人功能：Draw 已收口；后续模块须在新任务中按当前状态重新选择，不在本任务启动。
 3. P2 运营与商业化：进入任何保留模块 G0 前先完成 `docs/unityclient/modules/PAYMENT.md` 前置；当前不启动。
 4. P3 竞技/玩家依赖：当前无新增保留模块。
 5. P4 社交最后：Steam 排除项不再启动。

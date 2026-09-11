@@ -2,12 +2,12 @@
 
 ## 当前结论
 
-- 当前 `G0-G5 retained / hardGateVersion=4 pilot implemented / G6 runtime evidence pending`：中央 Schema、场景 DSL、双端采集器、语义比较器和 SQLite 夹具适配器已落地；本轮已生成 Cocos/Unity 各 28 条 JSONL，但 Cocos 触摸绑定拒绝 table/vector 转换，Unity 仅 3/28 通过，双端匹配 0/28。Computer Use 原生应用面为空、当前视觉基线未重建、用户最终 Play 未开始，因此 `manualPassed=false`，G6 保持 pending。Hero 与 Formation 仅承担真实招募目标的跨模块回归，没有扩大迁移边界。
+- 当前 `G0-G6 complete / user final Play passed`：2026-09-11 用户真人点击基础/高级 `Btn_Recruit_2` 复现“直接碎片道具中央无图标”。源码修复后，正式奖池229条映射全量通过；恢复后的账号1未注入奖励随机实抽得到基础碎片2458和高级新神将64，实际回包、持久化业务变化与结果 UI 一致。用户在最后一次相关变更后明确反馈“测试通过”，`manualPassed=true`，Draw 收口。MCP EventSystem 仍只计诊断，历史 runtime-v4 自动证据缺口继续披露。
 - 当前 Unity 固定 SQLite 身份为 `7200057/1000003`，隔离身份为 `1/1000001`；夹具只操作 `Application.persistentDataPath/LocalServer/projectx.db`，必须整库快照、恢复、重登业务哈希、`PRAGMA integrity_check` 与残留 0 全通过。
 - 历史 28/28 控件、6/6 语义、9/9 双端视觉及恢复 SHA 仅作回放输入和差异线索；v4 门禁不读取旧逐控件布尔值，也不把缺失的 56 张逐控件图片重新定义为通过证据。
 - 两次真正 `BootstrapSceneBuilder.BuildBatch` 的场景 SHA-256 均为 `CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。
-- 确定性目标只能使用高级池首次真实招募：服务端 `CChouKaManager::ChouKa` 在高级池累计次数为零时权威返回神将 `64`；普通池随机结果不能用作固定账号验收目标。
-- 两类目标必须分开：`NewHero` 夹具移除神将64，用于新神将主链；`DuplicateFragment` 夹具预置神将64，只用于“高级首次单抽→权威碎片转换→碎片UI”定向验收。未先通过对应 `AssertSetup` 时禁止截图或判定碎片缺陷。
+- 确定性重复转换目标只能使用高级池首次真实招募：服务端 `CChouKaManager::ChouKa` 在高级池累计次数为零时权威返回神将 `64`；直接碎片道具来自普通奖池随机项，必须先核对 `/224 reward.Type<60000`，不能拿重复转换结果替代它。
+- 概率结果不做跨端逐项相等要求：Cocos 与 Unity 使用同一正式配置和真实账号状态时允许抽到不同奖励；每次验收只要求本次 `/224` 权威回包、业务数据变化与结果 UI 一致。`NewHero`/`DuplicateFragment` 夹具只用于定位分支，不作为正式概率抽取通过条件。
 
 ## 1. 当前范围
 
@@ -185,8 +185,19 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 - Cocos 上阵完成帧未刷新培养后的等级/装备数值；Unity 显示同一服务端权威培养结果。该差异作为原生陈旧显示缺陷保留，不回退 Unity 权威状态。
 - 精确恢复：快照、恢复和重登录哈希一致，Fixture 行 0；严重错误 0。
 - 两次正式 BuildBatch 幂等 SHA-256：`48F42BDE8CB04EEB6532C850F0221EB802C4FAF85829B0847DF2EA74FA8DD6F0`。
-- G5 的 9 个原生 `1334×750` 主状态仍存在；`DRAW_CONTROLS.json` 已登记 `g6Audit`，但其 56 个逐控件双端证据路径当前全部不存在，G6 保持 pending。
+- G5 的 9 个原生 `1334×750` 主状态仍存在；`DRAW_CONTROLS.json` 已登记 `g6Audit`。runtime-v4 的56个逐控件双端证据路径仍不存在，该自动审计债务不伪造补齐；本次收口依据用户批准的旧方案与最后一次相关变更后的真人 Play 明确通过。
 - 好友入口在 Steam 版本明确提示排除；将魂商店在 Gameplay route 15 尚未迁移时明确提示边界，不伪造商城交易。
+
+### 单抽碎片两分支回归（2026-09-11）
+
+- 用户真人操作已证明缺陷命中的是奖池直接碎片：账号1的物品2458由4增至6、基础/高级累计由4/2增至5/3且未持有神将65，对应 `/224 type=2458, transformItemId=0`；此前通过的高级首次抽取是神将64重复转换 `/224 type=60002, transformItemId=2457`，两次测试并非同一分支。
+- 根因：Unity 单抽结果只为 `TransformItemId>0` 创建中央碎片卡；直接物品分支仅激活导入的空 `Item` 节点，并遗留 Prefab 的 `SSS` 品质图。修复后，直接物品以 `reward.Type`、重复转换以 `transformItemId` 取 `ItemIcons/equip{itemId}`，共同使用 Timeline 外稳定运行时卡片；非神将结果强制隐藏旧品质图。
+- 结果一致性按规则校验，不比较随机值：正式 `draw_basic.json/draw_config.json` 共229条奖池项；全部35种直接奖励/保底类型均存在正式物品配置，34种具备 `equip{reward.Type}` 图标，神魂货币60014具备正式 `pic=3005` 回退图标，缺失配置与缺失图标均为0。
+- 无夹具真实数据复测：恢复后的账号1基础实抽随机返回直接碎片2458×1，持久化后背包2458 `0→1`、基础累计 `0→1`，UI显示 `equip2458/common_quality_04`；高级实抽随机返回新神将64，神将列表新增64、高级累计 `0→1`，UI显示郑伦/A。两次结果不同且都按各自权威回包正确落地。
+- 固定身份 `7200057/1000003`，`DuplicateFragment` 的 `AssertSetup` 通过。MCP 调用 `RuntimeInputDispatcher` 执行当前 EventSystem raycast 和 pointer down/up/click，只作修复诊断：基础单抽命中 `DRAW-02` 并显示 `equip2458×1`；高级首次显示 `equip2457×30`；高级下一次直接碎片显示 `equip2417×1`。
+- 当前证据：`.local/unity-validation/draw-user-single-fragment-regression-20260911.md`、`.local/unity-validation/draw-direct-fragment-targeted-20260911.md`、`.local/unity-validation/draw-real-state-random-result-20260911.md` 及对应 `.local/ui-fidelity/Draw/unity/g4-20260911-*/`。
+- 已执行 `Restore → AssertRestored → 客户端重登 → AssertReloginHash → Cleanup → AssertCleanup`；恢复业务哈希一致、完整性 `ok`、残留 `0`。
+- 当前原生 Computer Use 没有暴露 Unity 应用面，因此修复后的三条 MCP 结果仅计定向诊断；随后用户使用原生 Unity GameView 真人复测并明确反馈“测试通过”，`manualPassed=true`。
 
 ### hardGateVersion=4 快速回放试点（2026-09-10）
 
@@ -219,6 +230,6 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 
 ## 8. 完成边界与后续
 
-- Draw v4 公共工具与试点接线、双端运行和 SQLite 恢复验证完成；Cocos 引擎触摸、Unity 动作状态隔离、真实输入抽检和当前视觉基线仍阻塞收口，G6 保持 pending，不迁移副本。
+- 直接碎片和重复神将转换两条权威结果分支均已修复；正式229条奖池配置的全部35种直接奖励资源映射通过，抽取结果按“实际回包→业务数据→UI”一致性验收，不要求跨端随机结果相同。2026-09-11 用户最终真人 Play 明确通过，Draw G6 收口。
 - 概率公示、支付/渠道合规和友情点外部产出链不属于本模块。
-- 未修复双端回放阻塞、完成真实输入抽检、当前视觉复核与用户最终 Play 前，不进入下一模块。
+- 本任务不进入下一模块；后续模块使用新任务。

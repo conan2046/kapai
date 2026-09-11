@@ -442,8 +442,14 @@ namespace ProjectX.UI
         private void HandleSingleResultAnimationCompleted(string _)
         {
             if (duplicateOverlay?.activeSelf == true) return;
+            DrawRewardRecord reward = store.LastResult?.Rewards.FirstOrDefault();
             StabilizeSingleResultLayout();
-            RenderSingleRewardVisual(store.LastResult?.Rewards.FirstOrDefault());
+            // The imported timeline owns the original result subtree and reapplies its
+            // last keyframe when playback ends. Reassert every runtime-owned result
+            // visual after that final frame, including metadata that otherwise keeps
+            // the prefab's stale default quality/skill state.
+            RenderResultHeroMetadata(reward);
+            RenderSingleRewardVisual(reward);
             RenderSingleResultControls();
         }
 
@@ -451,8 +457,10 @@ namespace ProjectX.UI
         {
             transformedResultVisual = new GameObject("RuntimeSingleTransformedReward", typeof(RectTransform));
             RectTransform root = transformedResultVisual.GetComponent<RectTransform>();
-            GameObject resultSurface = singleResultView.Binding.Find("Layer/dancichoukaUI");
-            root.SetParent(resultSurface != null ? resultSurface.transform : singleResultView.GameObject.transform, false);
+            // Keep the authoritative fragment card outside dancichoukaUI: that imported
+            // subtree is controlled by the Cocos timeline and its settled frame can
+            // occlude runtime children. The normalized single-result root is stable.
+            root.SetParent(singleResultView.GameObject.transform, false);
             root.anchorMin = Vector2.zero;
             root.anchorMax = Vector2.one;
             root.offsetMin = Vector2.zero;
@@ -477,24 +485,36 @@ namespace ProjectX.UI
             Transform hero = root.Find("Layer/dancichoukaUI/shenjiang");
             Transform item = root.Find("Layer/dancichoukaUI/Item");
             bool transformed = reward != null && reward.TransformItemId > 0;
+            bool directItem = reward != null && reward.Type != 60002;
             if (hero != null) hero.gameObject.SetActive(reward != null && !transformed && reward.Type == 60002);
-            if (item != null) item.gameObject.SetActive(reward != null && !transformed && reward.Type != 60002);
-            if (transformed)
+            if (item != null)
             {
-                RewardRecord fragment = itemCatalog.DescribeReward(reward.TransformItemId, 0, reward.TransformAmount);
+                item.gameObject.SetActive(directItem);
+                if (directItem)
+                {
+                    SetNamedText(item, "Name", RewardName(reward));
+                    SetNamedText(item, "Num", reward.Amount.ToString());
+                    SetNamedVisible(item, "auto", false);
+                }
+            }
+            int displayItemId = transformed ? reward.TransformItemId : directItem ? reward.Type : 0;
+            uint displayAmount = transformed ? reward.TransformAmount : directItem ? reward.Amount : 0;
+            if (displayItemId > 0)
+            {
+                RewardRecord itemReward = itemCatalog.DescribeReward(displayItemId, 0, displayAmount);
                 transformedResultVisual.SetActive(true);
                 transformedResultVisual.transform.SetAsLastSibling();
-                // Hero-soul item configs can reuse a generic `pic` id (for example
-                // item 2415 reports pic=703), while the actual puzzle portrait is
-                // stored as ItemIcons/equip{itemId}. Prefer the authoritative /224
-                // transform item id and retain pic only as a compatibility fallback.
-                transformedResultIcon.sprite = resources.LoadItemIcon(reward.TransformItemId)
-                    ?? resources.LoadItemIcon(fragment.Picture);
+                // Draw pools can return a fragment item directly (Type=2458) or a
+                // duplicated hero conversion (TransformItemId=2458). In both cases
+                // the actual puzzle portrait is ItemIcons/equip{itemId}; `pic` can
+                // point at a generic/legacy icon and is only a compatibility fallback.
+                transformedResultIcon.sprite = resources.LoadItemIcon(displayItemId)
+                    ?? resources.LoadItemIcon(itemReward.Picture);
                 transformedResultIcon.enabled = transformedResultIcon.sprite != null;
                 transformedResultFrame.sprite = resources.LoadFirst(
-                    $"HeroUI/common_quality_{Mathf.Clamp(fragment.Quality, 1, 7):00}");
+                    $"HeroUI/common_quality_{Mathf.Clamp(itemReward.Quality, 1, 7):00}");
                 transformedResultFrame.enabled = transformedResultFrame.sprite != null;
-                transformedResultAmount.text = reward.TransformAmount.ToString();
+                transformedResultAmount.text = displayAmount.ToString();
             }
             else if (transformedResultVisual != null)
             {
@@ -531,11 +551,15 @@ namespace ProjectX.UI
 
         private void RenderResultHeroMetadata(DrawRewardRecord reward)
         {
-            if (reward == null || reward.Type != 60002
-                || !HeroCatalog.TryGet((int)reward.Id, out HeroDefinition definition)) return;
             GameObject qualityObject = singleResultView.Binding.Find("Layer/dancichoukaUI/shenjiang/bg_Level/Level");
             Image qualityImage = qualityObject?.GetComponent<Image>();
             if (qualityImage != null) qualityImage.enabled = false;
+            if (reward == null || reward.Type != 60002
+                || !HeroCatalog.TryGet((int)reward.Id, out HeroDefinition definition))
+            {
+                if (resultQualityImage != null) resultQualityImage.enabled = false;
+                return;
+            }
             Transform qualityParent = singleResultView.GameObject.transform;
             if (qualityParent != null)
             {
@@ -754,6 +778,13 @@ namespace ProjectX.UI
             if (reward.Type == 60002 && HeroCatalog.TryGet((int)reward.Id, out HeroDefinition hero))
             {
                 return resources.LoadHeroPortrait(hero.Picture, out usedPlaceholder);
+            }
+            // Item rewards encode the item id in Type. Prefer that identity so hero
+            // fragments resolve equip2458 rather than a reused legacy `pic` value.
+            if (reward.Type > 0 && reward.Type < 60000)
+            {
+                Sprite itemSprite = resources.LoadItemIcon(reward.Type, out usedPlaceholder);
+                if (itemSprite != null) return itemSprite;
             }
             if (reward.Picture > 0) return resources.LoadItemIcon(reward.Picture, out usedPlaceholder);
             usedPlaceholder = true;
