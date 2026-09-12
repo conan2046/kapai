@@ -26,14 +26,8 @@ local function parseRewards(message)
     for _ = 1, rewardCount do Bridge:AddFundReward(message:ReadWord(), message:ReadUInt()) end
 end
 
-function M.onPacket(command, message)
-    if command ~= Protocol.TEMP_ACTIVITY or not M.active then return false end
-    local kind = message:ReadByte()
-    if kind ~= GROWTH and kind ~= ACTIVE then
-        Bridge:Fail("Funds received unexpected /222 op=" .. tostring(kind) .. " while its two read-only requests were pending.")
-        M.active = false
-        return true
-    end
+function M.onOperation(kind, message)
+    if not M.active or (kind ~= GROWTH and kind ~= ACTIVE) then return false end
     local opType = message:ReadByte()
     if opType ~= 1 then Bridge:Fail("Funds/222 opType mismatch: " .. tostring(opType)); M.active=false; return true end
     local success = message:ReadByte()
@@ -70,6 +64,12 @@ function M.onPacket(command, message)
         if M.validation then M.validation=false; Bridge:CompleteFundsValidation() end
     end
     return true
+end
+
+
+function M.onPacket(command, message)
+    if command ~= Protocol.TEMP_ACTIVITY then return false end
+    return M.onOperation(message:ReadByte(), message)
 end
 
 function M.reset() M.active=false;M.validation=false;M.pending=0 end

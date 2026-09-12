@@ -271,7 +271,6 @@ local function readPurchase(message)
     M.pendingId = 0
     M.pendingQuantity = 0
     Bridge:ShowShopPurchaseReward(id, rewardType, rewardAmount, quantity)
-    Bridge:ShowToast("购买成功", 2.0)
     if M.validationStage == "await_purchase" then
         if id ~= M.validationItemId then
             M.validationStage = nil

@@ -1945,7 +1945,10 @@
         "scenario": "tools/unity-migration/runtime-scenarios/draw.json",
         "schema": "tools/unity-migration/runtime-snapshot.schema.json",
         "actionCount": 28,
-        "engines": ["cocos", "unity"],
+        "engines": [
+          "cocos",
+          "unity"
+        ],
         "inputMode": "engine-input-replay",
         "realInputMinimumPerEngine": 8,
         "visualStateIds": [
@@ -3040,99 +3043,99 @@
         "enhance-master-control-matrix-40"
       ],
       "sourceContracts": [
-    {
-      "path": "client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua",
-      "contains": [
-        "UpdateEquipItem",
-        "UpdateFaBaoItem",
-        "TabClicked",
-        "onGoUpgradeClicked"
-      ]
-    },
-    {
-      "path": "client/ProjectX/src/Logic/LGameLogic.lua",
-      "contains": [
-        "SendMasterList",
-        "QueryPetEquip(1)"
-      ]
-    },
-    {
-      "path": "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
-      "contains": [
-        "function LuaNetSendMsg:SendMasterList",
-        "WriteByte(25)"
-      ]
-    },
-    {
-      "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
-      "contains": [
-        "masterTypeList",
-        "if op == 24 then",
-        "if op == 26 or op == 27 then"
-      ]
-    },
-    {
-      "path": "server/src/pet_equip_manage.cpp",
-      "contains": [
-        "MakeQHDSMsg",
-        "EST_FBJINGLIAN",
-        "type == 2 && it->first <= EST_SHENZHU"
-      ]
-    },
-    {
-      "path": "server/src/pack_deal.cpp",
-      "contains": [
-        "StrongFaBao",
-        "JingLianFaBao",
-        "GetQHDSMsg"
-      ]
-    },
-    {
-      "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt",
-      "contains": [
-        "requestMasterPositions",
-        "readEquipmentMasterResponse",
-        "SetEnhanceMasterLevels"
-      ]
-    },
-    {
-      "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
-      "contains": [
-        "masterLevels",
-        "ReplaceMasterLevels",
-        "SetMasterLevel"
-      ]
-    },
-    {
-      "path": "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
-      "contains": [
-        "OnEnhanceMasterOpened",
-        "EquipmentController.requestMaster"
-      ]
-    },
-    {
-      "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-      "contains": [
-        "SetEnhanceMasterLevels",
-        "NotifyEnhanceMasterLevel",
-        "EnhanceMasters.TryGetLevel"
-      ]
-    },
-    {
-      "path": "unityclient/Assets/ProjectX/src/Data/HeroEquipmentStore.cs",
-      "contains": [
-        "class EnhanceMasterStore",
-        "TryGetLevel",
-        "SetPosition"
-      ]
-    },
-    {
-      "path": "unityclient/Assets/ProjectX/src/Core/GameServices.cs",
-      "contains": [
-        "EnhanceMasters = new EnhanceMasterStore()",
-        "public EnhanceMasterStore EnhanceMasters"
-      ]
-    },
+        {
+          "path": "client/ProjectX/src/View/Activity/QiangHuaDaShiUI.lua",
+          "contains": [
+            "UpdateEquipItem",
+            "UpdateFaBaoItem",
+            "TabClicked",
+            "onGoUpgradeClicked"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/Logic/LGameLogic.lua",
+          "contains": [
+            "SendMasterList",
+            "QueryPetEquip(1)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "contains": [
+            "function LuaNetSendMsg:SendMasterList",
+            "WriteByte(25)"
+          ]
+        },
+        {
+          "path": "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "contains": [
+            "masterTypeList",
+            "if op == 24 then",
+            "if op == 26 or op == 27 then"
+          ]
+        },
+        {
+          "path": "server/src/pet_equip_manage.cpp",
+          "contains": [
+            "MakeQHDSMsg",
+            "EST_FBJINGLIAN",
+            "type == 2 && it->first <= EST_SHENZHU"
+          ]
+        },
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "StrongFaBao",
+            "JingLianFaBao",
+            "GetQHDSMsg"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt",
+          "contains": [
+            "requestMasterPositions",
+            "readEquipmentMasterResponse",
+            "SetEnhanceMasterLevels"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
+          "contains": [
+            "masterLevels",
+            "ReplaceMasterLevels",
+            "SetMasterLevel"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+          "contains": [
+            "OnEnhanceMasterOpened",
+            "EquipmentController.requestMaster"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "contains": [
+            "SetEnhanceMasterLevels",
+            "NotifyEnhanceMasterLevel",
+            "EnhanceMasters.TryGetLevel"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Data/HeroEquipmentStore.cs",
+          "contains": [
+            "class EnhanceMasterStore",
+            "TryGetLevel",
+            "SetPosition"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/GameServices.cs",
+          "contains": [
+            "EnhanceMasters = new EnhanceMasterStore()",
+            "public EnhanceMasterStore EnhanceMasters"
+          ]
+        },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
           "contains": [
@@ -3413,21 +3416,63 @@
         "showReconnectDialog": true
       },
       "artifacts": [
-        { "path": "build/ui-migration/HR-01-main-entry.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-02-hero-bag-entry.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-20-empty-state.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-11-candidate-list.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-21-preview-state.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-14-refund-detail.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-16-confirmation.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-22-insufficient-currency.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-24-success-reset.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-24-reconnected.png", "lifecycle": "runtime" },
-        { "path": "build/ui-migration/HR-24-reentered.png", "lifecycle": "runtime" }
+        {
+          "path": "build/ui-migration/HR-01-main-entry.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-02-hero-bag-entry.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-20-empty-state.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-11-candidate-list.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-21-preview-state.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-14-refund-detail.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-16-confirmation.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-22-insufficient-currency.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-24-success-reset.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-24-reconnected.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/HR-24-reentered.png",
+          "lifecycle": "runtime"
+        }
       ],
       "captureStates": [
-        "main-entry", "hero-bag-entry", "empty-state", "candidate-list", "preview-state",
-        "refund-detail", "confirmation", "insufficient-currency", "success-reset", "reconnected", "reentered"
+        "main-entry",
+        "hero-bag-entry",
+        "empty-state",
+        "candidate-list",
+        "preview-state",
+        "refund-detail",
+        "confirmation",
+        "insufficient-currency",
+        "success-reset",
+        "reconnected",
+        "reentered"
       ],
       "semanticAssertionKeys": [
         "hero-rebirth-two-entry-routes",
@@ -3444,35 +3489,74 @@
       "sourceContracts": [
         {
           "path": "client/ProjectX/src/View/HuiShou/ShengJiangChongShengUI.lua",
-          "contains": ["OpenShenJiangChooseUI", "SendPetChongSheng(8"]
+          "contains": [
+            "OpenShenJiangChooseUI",
+            "SendPetChongSheng(8"
+          ]
         },
         {
           "path": "client/ProjectX/src/View/HuiShou/ChongShengConfirmUI.lua",
-          "contains": ["onConfirmClicked", "SendPetChongSheng(9"]
+          "contains": [
+            "onConfirmClicked",
+            "SendPetChongSheng(9"
+          ]
         },
         {
           "path": "client/ProjectX/src/View/HuiShou/ShengJiangChooseUI.lua",
-          "contains": ["LoadShengJiangData", "fightPos == 0", "breakLevel > 0"]
+          "contains": [
+            "LoadShengJiangData",
+            "fightPos == 0",
+            "breakLevel > 0"
+          ]
         },
         {
           "path": "server/src/pack_deal.cpp",
-          "contains": ["case 8:// 重生查询", "HeroCChongSheng", "case 9:// 重生", "HeroChongSheng"]
+          "contains": [
+            "case 8:// 重生查询",
+            "HeroCChongSheng",
+            "case 9:// 重生",
+            "HeroChongSheng"
+          ]
         },
         {
           "path": "server/src/user.cpp",
-          "contains": ["GetChongShengCost(allCost)", "GetTongBao(1) < 50", "AddTongBao(-50, 1)", "AddMultiCost(allCost)"]
+          "contains": [
+            "GetChongShengCost(allCost)",
+            "GetTongBao(1) < 50",
+            "AddTongBao(-50, 1)",
+            "AddMultiCost(allCost)"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
-          "contains": ["function M.requestRebirthPreview", "function M.confirmRebirth", "message:WriteUInt(heroId)", "local heroId = message:ReadUInt()", "readRebirthResponse"]
+          "contains": [
+            "function M.requestRebirthPreview",
+            "function M.confirmRebirth",
+            "message:WriteUInt(heroId)",
+            "local heroId = message:ReadUInt()",
+            "readRebirthResponse"
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/UI/HeroRebirthPresenter.cs",
-          "contains": ["class HeroRebirthPresenter", "Monster/btm", "CurrencyIds.BoundPremium", "bg/Image1", "int itemId = reward.Type", "new GameObject(\"Icon\"", "new GameObject(\"Quantity\""]
+          "contains": [
+            "class HeroRebirthPresenter",
+            "Monster/btm",
+            "CurrencyIds.BoundPremium",
+            "bg/Image1",
+            "int itemId = reward.Type",
+            "new GameObject(\"Icon\"",
+            "new GameObject(\"Quantity\""
+          ]
         },
         {
           "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
-          "contains": ["RunHeroRebirthG3Validation", "RunHeroRebirthG4Validation", "hero-rebirth-control-matrix-24", "ShowHeroRecycle"]
+          "contains": [
+            "RunHeroRebirthG3Validation",
+            "RunHeroRebirthG4Validation",
+            "hero-rebirth-control-matrix-24",
+            "ShowHeroRecycle"
+          ]
         }
       ],
       "visualAssertions": {
@@ -3483,6 +3567,26 @@
       },
       "requiredGate": "G3",
       "controlCoverageRequired": true
+    },
+    {
+      "key": "money-tree-default",
+      "module": "MoneyTree",
+      "fixture": "reversible-money-tree-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXMoneyTreeValidation"
+      ],
+      "artifacts": [],
+      "captureStates": [],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [],
+      "sourceContracts": [],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     }
   ]
 }

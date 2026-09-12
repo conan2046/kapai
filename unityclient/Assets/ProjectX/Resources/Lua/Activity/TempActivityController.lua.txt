@@ -33,13 +33,16 @@ local function readHudDiscount(operation, message)
     return true
 end
 
-function M.onPacket(message)
-    local operation = message:ReadByte()
+function M.onOperation(operation, message)
     if operation >= 89 and operation <= 91 then return readHudDiscount(operation, message) end
     if ActivityController.onTempActivity(operation, message) then return true end
     if WelfareController.onTempActivity(operation, message) then return true end
     Bridge:SetStatus("Unhandled /222 operation: " .. tostring(operation))
     return true
+end
+
+function M.onPacket(message)
+    return M.onOperation(message:ReadByte(), message)
 end
 
 return M

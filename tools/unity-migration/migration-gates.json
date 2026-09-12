@@ -244,11 +244,11 @@
           "calendarDurationMs": 1381476,
           "completionCheckDurationMs": 1247
         },
-      "G6": {
-        "startedUtc": "2026-09-09T14:01:26.4112051Z",
-        "startSource": "invalidation",
-        "completedUtc": "2026-09-09T14:38:49.4782358Z",
-        "completionSource": "explicit-user-authorized-exception"
+        "G6": {
+          "startedUtc": "2026-09-09T14:01:26.4112051Z",
+          "startSource": "invalidation",
+          "completedUtc": "2026-09-09T14:38:49.4782358Z",
+          "completionSource": "explicit-user-authorized-exception"
         }
       },
       "gateInvalidations": {
@@ -2348,6 +2348,27 @@
         }
       },
       "updatedUtc": "2026-09-04T09:47:08.4056526Z"
+    },
+    {
+      "module": "MoneyTree",
+      "gates": {
+        "G0": "pending",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/MONEYTREE.md",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-09-12T01:08:36.8332088Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-12T01:08:36.8362382Z",
+          "startSource": "module-scaffold"
+        }
+      }
     }
   ]
 }

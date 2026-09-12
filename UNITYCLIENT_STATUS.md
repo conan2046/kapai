@@ -1,17 +1,17 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-09-11。这里只维护实时状态、当前焦点、顺序和风险。
+> 最后更新：2026-09-12。这里只维护实时状态、当前焦点、顺序和风险。
 > 稳定流程见 `docs/unityclient/MIGRATION_GUIDE.md`；模块事实见 `docs/unityclient/modules/`；历史流水见 `docs/unityclient/history/`。
 
 ## 1. 当前焦点
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动模块 | 无；`Draw / 神将招募` 已收口 |
-| 当前门禁 | `G0-G6 complete / user final Play passed` |
-| 当前仅剩玩家缺陷 | 无；基础/高级单抽直接碎片中央图标修复已由用户真人复测确认通过 |
-| 下一步 | Draw 任务收口；后续模块必须新建独立任务并从其当前最早门禁开始 |
-| 禁止事项 | 不把本次 Draw 验收复用于其他模块；历史 runtime-v4 自动证据缺口继续披露，不伪造补齐 |
+| 唯一活动范围 | `Gameplay` 新增单人玩法：闯关、摇钱树、欢乐转盘 |
+| 当前门禁 | 定向实现已完成；历史 Gameplay G0-G3 证据已因列表和路由输入变化失效 |
+| 当前仅剩玩家缺陷 | 欢乐转盘重登后静默刷新钥匙数量的最新修复待用户真实 Play 复测 |
+| 下一步 | 先复测欢乐转盘钥匙持久化显示；再分别完成摇钱树、欢乐转盘、闯关的独立验收闭环 |
+| 禁止事项 | 不复用旧 Gameplay 4项证据；转盘不直接用元宝补钥匙；用户调整的活动 Prefab 以用户版本为准 |
 
 ## 2. 总进度
 
@@ -44,14 +44,17 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Hero | `G0 passed / G1-G6 invalidated` | 当前不启动；待有效 Cocos 状态重采 |
 | HeroEquip | `G0-G4 passed / G5 blocked` | 当前不启动；用户 Prefab 不覆盖 |
 | Shop | `G3 runtime-ready / early Play passed` | 正式 G1-G2、G4-G6 待后续独立任务 |
-| Gameplay | `G0-G3 passed / early Play retest pending` | 当前不启动；Steam仅保留 `function_id=1/3/9/10` |
+| Gameplay | `scope changed / revalidation required` | 当前表驱动入口为 `function_id=1/3/9/10/21/23/29`；旧4项证据失效 |
+| MoneyTree | `runtime implemented / Play pending` | `/222 op=17` 查询与摇取已接入；待真实Play验证 |
+| HappyWheel | `runtime implemented / latest fix Play pending` | 常驻十格奖池、钥匙商城、50条记录和 `/222 op=33` 已接入；待复测重登后的钥匙数量显示 |
+| Monopoly | `entry/resources integrated / business pending` | 已补玩法入口与正式地图资源；业务状态机待后续迁移 |
 | FengShenStory | `G0-G3 passed / early Play retest pending` | 父模块待后续独立任务 |
 | BattleFengShenStory | `G0-G6 complete` | 非分母战斗子模块，已收口 |
 | YouLi | `G0 passed / G1-G6 evidence missing` | 后续从当前源码重取 G1 |
 | ResourceFoundation | `R0-R4 passed / early Play passed` | YooAsset、Atlas、内存预算后置 |
 | Steam SQLite/发布 | `S0-S7 passed / S8 local accepted` | 物理干净机与真实 Steam Depot 暂缓 |
 
-`steam-excluded`：Friend、Chat、Team、Guild、Welfare、Activity、StaminaClaim、ResourceRecovery、Funds、SevenDay、KunLun、BloodFight、Arena。唯一范围表见 `docs/unityclient/STEAM_SCOPE.md`；历史实现和证据仅留档，禁止恢复迁移或计入分母。
+`steam-excluded`：Friend、Chat、Team、Guild主体、Welfare、Activity主体、StaminaClaim、ResourceRecovery、Funds、SevenDay、KunLun、BloodFight、Arena。用户于2026-09-12从Guild/Activity边界单独恢复 `MoneyTree/HappyWheel/Monopoly` 三个单人玩法；帮派种植与神树继续暂停。唯一范围表见 `docs/unityclient/STEAM_SCOPE.md`。
 
 ## 4. 当前验证基线
 
@@ -82,4 +85,8 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 
 - 本文件只改当前焦点、状态、顺序和风险；不得追加日期流水或长篇验证过程。
 - 模块结论写模块文档；控件事实写矩阵；机器门禁写 JSON；历史写 `history/`。
+
+## 8. 延后待办
+
+- `ProjectXApp.cs` 大文件拆分优化：待当前 Bug 修复阶段稳定后单独执行；优先按现有 partial/业务域继续拆分，禁止与功能修复混提或改变运行逻辑。
 - 新任务默认只读取本文件的“当前焦点”和目标模块所在行，不重复加载已完成模块细节。

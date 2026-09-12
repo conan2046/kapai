@@ -431,10 +431,10 @@ item_dat = {
 		sell = 1,
 		sort_priority = 1,
 		jiage = 50000,
-		item_from = "来源：转盘活动",
-		item_source = {},
+		item_from = "来源：商城",
+		item_source = {{13}},
 		script = 0,
-		use_jump = 0
+		use_jump = 13
 	},
 	{
 		id = 500,

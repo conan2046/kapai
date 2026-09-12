@@ -268,6 +268,8 @@ void UserShopManager::LoadData(CUser* pUser, const char * str)
 			}
 			if (hasInvalidItem)
 				tmp->RefreshGrids(it->first, pUser);
+			else
+				tmp->FillMissingGrids(it->first, pUser);
 		}
 	}
 }
@@ -342,12 +344,29 @@ void UserShopManager::CheckShopFreeCnt(CUser* pUser)
 void UserShopGrids::RefreshGrids(uint8 type, CUser* pUser)
 {
 	items.clear();
+	FillMissingGrids(type, pUser);
+}
+
+void UserShopGrids::FillMissingGrids(uint8 type, CUser* pUser)
+{
 	ShopCfgManager& mgr = sShopCfgManager;
 	ShopGridWeightCfgMap* mp = mgr.GetShopWeightCfg(type);
 	if (mp == NULL)
 		return;
 	for (ShopGridWeightCfgMapIt mit = mp->begin(); mit != mp->end(); ++mit)
 	{
+		bool hasGrid = false;
+		for (UserShopGridMapIt current = items.begin(); current != items.end(); ++current)
+		{
+			if (current->second.grid == mit->first)
+			{
+				hasGrid = true;
+				break;
+			}
+		}
+		if (hasGrid)
+			continue;
+
 		uint16 tid = 0;
 		while (true)
 		{

@@ -124,6 +124,9 @@ namespace ProjectX.Editor
         private const string GameplayPrefab = "Assets/ProjectX/res/csd/Prefabs/common/ActivityLayer.prefab";
         private const string GameplayDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/TaskPopupLayer.prefab";
         private const string GameplayFloatNoticePrefab = "Assets/ProjectX/Generated/FloatNoticeLayer.prefab";
+        private const string MoneyTreePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/GoldTreeLayer.prefab";
+        private const string HappyWheelPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ZhuanpanLayer.prefab";
+        private const string MonopolyPrefab = "Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameSceneLayer.prefab";
         private const string FloatNoticeBackground = "Assets/ProjectX/res/csd/UnityMigration/Sliced/res/UI/ui_shenjiang/ui_shenjiang_tips__L13_B13_R13_T13.png";
         private const string FloatNoticeFont = "Assets/ProjectX/res/xiaokaiSJ2.ttf";
         private const string YouLiPrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youlisanjie.prefab";
@@ -222,6 +225,9 @@ namespace ProjectX.Editor
             new PrefabSpec(GameplayPrefab, true, GameplayFramePrefab),
             new PrefabSpec(GameplayDetailPrefab, false, GameplayFramePrefab),
             new PrefabSpec(GameplayFloatNoticePrefab, false, GameplayFramePrefab),
+            new PrefabSpec(MoneyTreePrefab, false),
+            new PrefabSpec(HappyWheelPrefab, false),
+            new PrefabSpec(MonopolyPrefab, false),
             new PrefabSpec(YouLiPrefab, false),
             new PrefabSpec(YouLiDetailPrefab, false),
             new PrefabSpec(YouLiOneKeyPrefab, false),

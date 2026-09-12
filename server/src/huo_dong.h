@@ -1293,6 +1293,39 @@ struct SZhaDanInfo
 	uint8 notice;
 };
 
+struct SHappyWheelConfig
+{
+	SHappyWheelConfig()
+	{
+		enabled = 0;
+		rewardType = 2;
+		costItem = 0;
+		singleDrawCount = 1;
+		singleKeyCost = 1;
+		multiDrawCount = 10;
+		multiKeyCost = 9;
+		scorePerDraw = 10;
+		scoreExt32Idx = 12;
+		dailyResetExt32Idx = 469;
+		historyLimit = 10;
+		displaySlotCount = 10;
+	}
+
+	uint8 enabled;
+	uint8 rewardType;
+	uint16 costItem;
+	uint8 singleDrawCount;
+	uint8 singleKeyCost;
+	uint8 multiDrawCount;
+	uint8 multiKeyCost;
+	uint16 scorePerDraw;
+	uint16 scoreExt32Idx;
+	uint16 dailyResetExt32Idx;
+	uint8 historyLimit;
+	uint8 displaySlotCount;
+	string insufficientTip;
+};
+
 struct SZhaDanCostInfo
 {
 	SZhaDanCostInfo()
@@ -1639,7 +1672,8 @@ public:
 	bool InHuoDongLeijiTime(uint32 type);
 	string GetHuoDongLeiJiTimeDesc(uint32 type);
 	void GetZhaDanShowInfo(vector<struct SZhaDanInfo> &info, int type);
-	bool AddZhaDanAward(CUser *pUser, uint32 count, uint8 type, vector<string> &myHisTory, vector<string> &publicHistory, uint32 costYB, int& idx);
+	bool GetHappyWheelConfig(SHappyWheelConfig &config);
+	bool AddZhaDanAward(CUser *pUser, uint32 count, uint8 type, vector<string> &myHisTory, vector<string> &publicHistory, uint32 costYB, int& idx, vector<uint8> *awardIndexes = NULL);
 	void GetZhaDanPubHistory(vector<string> &publicHistory);
 	void AddZhaDanPubHistory(uint32 role_id, vector<string> &publicHistory);
 	string GetHuoDongName(uint32 type);
@@ -1746,6 +1780,7 @@ private:
 	bool InitInfo();
 
 	bool InitZhaDan();
+	bool InitHappyWheelConfig();
 	bool InitZhaDanInfo();
 	bool InitZhaDanHistory();
 	
@@ -1793,6 +1828,9 @@ private:
 	uint32 m_ybMaxRate;
 	vector<SZhaDanInfo> m_copyZhaDan;
 	uint32 m_copyMaxRate;
+	vector<SZhaDanInfo> m_happyWheel;
+	uint32 m_happyWheelMaxRate;
+	SHappyWheelConfig m_happyWheelConfig;
 	list<string> m_zhaDanPublicHistory;
 
 	// 限时抽活动的最大概率

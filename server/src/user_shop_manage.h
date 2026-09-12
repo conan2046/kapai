@@ -99,6 +99,7 @@ struct UserShopGrids
 	uint32 cd;					// 免费次数cd
 	UserShopGridMap items;
 	void RefreshGrids(uint8 type, CUser* pUser);
+	void FillMissingGrids(uint8 type, CUser* pUser);
 	void MakeMsg(CNetMessage& msg);
 	UserShopGrid* GetUserShopGrid(uint16 tid);
 };

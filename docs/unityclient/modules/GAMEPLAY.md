@@ -1,16 +1,20 @@
 # 玩法大厅（Gameplay）迁移证据
 
+> 2026-09-12范围变更：用户明确将 `21` 闯关、`23` 摇钱树、`29` 欢乐转盘迁入玩法大厅，并要求全部由数据表驱动。正式 `function.xlsx → function.json/function_dat.lua/function.dat → gameplay.json` 已重建；当前大厅应显示 `1/3/9/10/21/23/29`。本次输入变化使下文旧4项/5项运行证据失效，必须从受影响的最早门禁重新验证；下文旧结论仅保留为历史记录。
+
+> 当前子模块状态：摇钱树已接入 `/222 op=17` 查询/摇取与 `GoldTreeLayer`，待Unity真实Play；闯关已补正式地图资源及入口壳，业务状态机待迁移；欢乐转盘已改为常驻玩法，只消耗转盘钥匙，不直接以元宝补钥匙。正式商店配置已新增商品 `id=1018`（道具 `403` 转盘钥匙×1、30元宝、不限购占位，购买限制后续由用户改表）；十格奖池由 `happywheel-settings.csv`、`happywheel-rewards.csv` 生成 `happywheel.json` 与 SQLite `zha_dan_info` 种子，权重合计10000、历史上限50条。客户端与服务端 `/222 op=33` 已接入；最新“重登后静默拉取背包并恢复钥匙数量”修复待用户真实Play复测。
+
 > 当前门禁：G0-G4 passed；early user Play passed；cross-backend mapping passed；G5 paused for Arena；G6 pending。2026-09-02用户确认暂停Gameplay，等待竞技场`id=6`迁移后从G5继续。
 
-> Steam范围更新（2026-08-20）：`function_id=7/8/11/12/18/19/25/26`（决战昆仑、血战到底、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金）由 `gameplay.json: steamEnabled=false` 排除。当前Steam大厅为5项/8个控件；下文13项/16控件仅描述排除前的历史验收基线。
+> Steam范围更新（2026-09-12）：`function_id=7/8/11/12/18/19/25/26`（决战昆仑、血战到底、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金）继续由 `gameplay.json: steamEnabled=false` 排除；当前大厅为7项，旧4项/5项证据仅描述范围变更前的历史验收基线。
 
 ## 1. 本轮所有权
 
-- 本模块拥有：HUD 玩法入口、`PopFirstClassBg + ActivityLayer` 大厅框架、Steam 5 项双列列表、裁剪、等级锁、红点显示、关闭/返回及5个目标路由的边界反馈。
+- 本模块拥有：HUD 玩法入口、`PopFirstClassBg + ActivityLayer` 大厅框架、Steam 7 项双列列表、裁剪、等级锁、红点显示、关闭/返回及7个目标路由的边界反馈。
 - 本模块不拥有：13个入口点击后的独立业务页及其协议；尤其不迁移游历三界、封神列传、竞技场、决战昆仑、血战到底、法宝搜索、每日任务、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金。
 - `15/16/17` 玩法商店在当前 `function_dat.lua` 中均为 `page=0`，不属于大厅列表；支付、活动、基金、福利、竞技和社交业务继续排除。
 - 当前卡片主体 `TaskBtn1/2` 的 CSB `touchEnabled=false`；Lua虽添加监听但未启用触摸，新鲜原生单击也未进入详情。因此卡片选择与 `Main.WanFaInfoUI` 当前玩家不可达，排除而不伪迁。
-- 控件矩阵：`docs/unityclient/matrices/GAMEPLAY_CONTROLS.json`，Steam 当前8个真实控件，`workflowPolicyVersion=1`。
+- 控件矩阵：`docs/unityclient/matrices/GAMEPLAY_CONTROLS.json`；新增3个入口及列表状态尚待重新采集真实输入证据，`workflowPolicyVersion=1`。
 
 ## 2. 当前启动与真实入口闭包
 

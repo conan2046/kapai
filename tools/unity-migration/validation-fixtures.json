@@ -130,6 +130,13 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-HeroRebirthSqliteFixture.ps1"
+    },
+    {
+      "key": "reversible-money-tree-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-MoneyTreeSqliteFixture.ps1"
     }
   ]
 }

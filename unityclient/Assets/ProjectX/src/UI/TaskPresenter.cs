@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProjectX.Animation;
 using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
@@ -130,15 +131,58 @@ namespace ProjectX.UI
                 TaskRecord box = boxes[index];
                 SetVisible(panel, "Close", box.State < 2);
                 SetVisible(panel, "Open", box.State >= 2);
-                SetVisible(panel, "Node", box.State == 1);
+                SetActivityBoxClaimableEffect(panel, box.State == 1);
                 SetText(RequireTransform($"{BasePath}/Content/TitleBg/LoadingBg/Point_{index + 1}/Text"),
                     box.Target.ToString());
+                Graphic hitGraphic = panel.GetComponent<Graphic>();
+                if (hitGraphic == null)
+                {
+                    Image hitArea = panel.gameObject.AddComponent<Image>();
+                    hitArea.color = Color.clear;
+                    hitGraphic = hitArea;
+                }
+                hitGraphic.raycastTarget = true;
                 Button button = panel.GetComponent<Button>() ?? panel.gameObject.AddComponent<Button>();
-                button.targetGraphic = panel.GetComponent<Graphic>();
+                button.targetGraphic = hitGraphic;
                 button.onClick.RemoveAllListeners();
                 button.interactable = true;
                 button.onClick.AddListener(() => previewBox(box));
             }
+        }
+
+        private static void SetActivityBoxClaimableEffect(Transform panel, bool claimable)
+        {
+            Transform host = panel.Find("Node");
+            if (host == null) return;
+            host.gameObject.SetActive(claimable);
+            Transform effect = host.Find("RuntimeClaimableEffect");
+            if (!claimable)
+            {
+                effect?.gameObject.SetActive(false);
+                return;
+            }
+
+            ImodAnimationPlayer player;
+            if (effect == null)
+            {
+                GameObject effectObject = new GameObject("RuntimeClaimableEffect", typeof(RectTransform));
+                RectTransform rect = effectObject.GetComponent<RectTransform>();
+                rect.SetParent(host, false);
+                rect.anchoredPosition = Vector2.zero;
+                player = effectObject.AddComponent<ImodAnimationPlayer>();
+                player.SetPlayOnEnable(false);
+                if (!player.LoadLegacy("res2/animation/effect_tuitu_1"))
+                {
+                    UnityEngine.Object.Destroy(effectObject);
+                    return;
+                }
+                player.SetVisualScale(0.8f);
+                effect = rect;
+            }
+            else player = effect.GetComponent<ImodAnimationPlayer>();
+
+            effect.gameObject.SetActive(true);
+            if (player != null && player.IsLoaded && !player.IsPlaying) player.Play(0, true);
         }
 
         private void RenderRewards(Transform host, IReadOnlyList<TaskRewardDefinition> rewards)

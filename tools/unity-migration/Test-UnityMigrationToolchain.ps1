@@ -1338,7 +1338,7 @@ Assert-ToolchainTest (
     [int]$gameplayMatrix.hardGateVersion -eq 3 -and
     @($gameplayMatrix.controls | Where-Object {
         (Get-UnityMigrationControlVerificationKind -Matrix $gameplayMatrix -Control $_) -eq 'direct-control'
-    }).Count -eq 8 -and
+    }).Count -eq 11 -and
     $gameplayScenarioControlCount -eq 5 -and
     $commonSource.Contains('manualAcceptanceCurrent') -and
     $commonSource.Contains('must keep realEntryClick=false') -and
@@ -1638,6 +1638,17 @@ Assert-ToolchainTest (
     $settingsPresenterSource.Contains('slider.handleRect.SetSizeWithCurrentAnchors') -and
     $settingsPresenterSource.Contains('colors.disabledColor = Color.white')
 ) "Settings Slider no longer repairs the imported zero-size Cocos handle or preserves its disabled visual."
+Assert-ToolchainTest (
+    $settingsPresenterSource.Contains('if (secondBackground != null) secondBackground.enabled = false;') -and
+    $settingsPresenterSource.Contains('normalLabel.gameObject.SetActive(!selected);') -and
+    $settingsPresenterSource.Contains('choose.gameObject.SetActive(selected);')
+) "Settings tabs no longer disable the cloned root Image or switch normal/selected labels exclusively."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('HideOneLevelChildPagesForSettings();') -and
+    $projectXAppSource.Contains('child.name.StartsWith("DynamicUi_", StringComparison.Ordinal)') -and
+    [regex]::IsMatch($projectXAppSource,
+        'ShowSettings\(\)[\s\S]*?EnsureSettingsPresenter\(\);\s*HideOneLevelChildPagesForSettings\(\);\s*bagFrameView\.SetVisible\(true\);')
+) "Settings can again reactivate stale Hero child pages when it reuses OneLevelLayer."
 
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
@@ -2492,6 +2503,65 @@ $shopCatalogSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs") -Raw -Encoding UTF8
 $projectXAppSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$functionRouteCatalogSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/FunctionRouteCatalog.cs") -Raw -Encoding UTF8
+$functionRouteConfig = @(Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Configs/function-routes.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json)
+$bagControllerSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
+$dailyTaskConfig = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$configuredTaskJumpIds = @($dailyTaskConfig.items |
+    Where-Object { [int]$_.type -eq 2 -and [int]$_.jump -gt 0 } |
+    ForEach-Object { [int]$_.jump } | Sort-Object -Unique)
+$catalogTaskJumpIds = @($functionRouteConfig |
+    ForEach-Object { [int]$_.functionId } | Sort-Object -Unique)
+$missingTaskJumpIds = @($configuredTaskJumpIds | Where-Object { $_ -notin $catalogTaskJumpIds })
+Assert-ToolchainTest ($missingTaskJumpIds.Count -eq 0) `
+    "FunctionRouteCatalog no longer covers every nonzero type=2 daily_tasks.jump: $($missingTaskJumpIds -join ',')."
+$retainedTaskJumpIds = @(1, 3, 4, 9, 13, 1010, 1120, 1130, 1182)
+$excludedTaskJumpIds = @(2, 6, 7, 8, 1222, 2120, 2128)
+$routeConfigById = @{}
+foreach ($routeRow in $functionRouteConfig) { $routeConfigById[[int]$routeRow.functionId] = $routeRow }
+Assert-ToolchainTest (
+    @($retainedTaskJumpIds | Where-Object {
+        -not $routeConfigById.ContainsKey($_) -or
+        [string]$routeConfigById[$_].kind -notin @('Gameplay','World','Commerce','Draw','EquipmentCultivation','FaBaoCultivation')
+    }).Count -eq 0
+) "Retained Task jump ids are no longer mapped to real shared routes."
+Assert-ToolchainTest (
+    @($excludedTaskJumpIds | Where-Object {
+        -not $routeConfigById.ContainsKey($_) -or
+        [string]$routeConfigById[$_].kind -ne 'SteamExcluded'
+    }).Count -eq 0
+) "Steam-excluded Task jump ids are no longer explicitly blocked by the shared route catalog."
+Assert-ToolchainTest (
+    $functionRouteCatalogSource.Contains('private const string ResourcePath = "Configs/function-routes";') -and
+    $functionRouteCatalogSource.Contains('JsonConvert.DeserializeObject<RouteRow[]>')
+) "FunctionRouteCatalog no longer loads the data-driven function-routes config."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('private static bool CanOpenBagSource(int functionId) => FunctionRouteCatalog.CanOpen(functionId);') -and
+    $projectXAppSource.Contains('return item.Jump == 0 || FunctionRouteCatalog.CanOpen(item.Jump);') -and
+    $projectXAppSource.Contains('HandleConfiguredFunctionRoute(item.Jump, "Task");') -and
+    $projectXAppSource.Contains('HandleConfiguredFunctionRoute(functionId, "Bag source");')
+) "Task and Bag source navigation no longer share FunctionRouteCatalog policy and dispatch."
+Assert-ToolchainTest (
+    $projectXAppSource -match '(?s)private void BeginConfiguredCultivationRoute\(HeroEquipmentKind kind, int mode\).{0,700}CloseBagForItemJump\(\);.{0,300}heroEquipmentOpenPending = true;' -and
+    $bagControllerSource.Contains('M.drawHeaderRequested or M.equipmentSnapshotCallback ~= nil')
+) "Configured cultivation routes no longer isolate the equipment /8 snapshot from ordinary Bag navigation."
+Assert-ToolchainTest (
+    $taskPresenterSource.Contains('Image hitArea = panel.gameObject.AddComponent<Image>();') -and
+    $taskPresenterSource.Contains('hitArea.color = Color.clear;') -and
+    $taskPresenterSource.Contains('hitGraphic.raycastTarget = true;') -and
+    $taskPresenterSource.Contains('button.targetGraphic = hitGraphic;')
+) "Task activity boxes without a Prefab Graphic no longer receive a runtime raycast hit area."
+Assert-ToolchainTest (
+    $taskPresenterSource.Contains('SetActivityBoxClaimableEffect(panel, box.State == 1);') -and
+    $taskPresenterSource.Contains('player.LoadLegacy("res2/animation/effect_tuitu_1")') -and
+    $taskPresenterSource.Contains('player.SetVisualScale(0.8f);') -and
+    $taskPresenterSource.Contains('player.Play(0, true);')
+) "Claimable Task activity boxes no longer reproduce the Cocos receivable effect_tuitu_1 loop."
 Assert-ToolchainTest (
     [string]$mailEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
     [string]$mailEvidenceContract.fixedAccount.sqlitePath -eq
@@ -2961,13 +3031,12 @@ $enterGameplaySource = if ($enterGameplayStart -ge 0 -and $enterGameplayEnd -gt 
     $projectXAppSource.Substring($enterGameplayStart, $enterGameplayEnd - $enterGameplayStart)
 } else { "" }
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('EnterGameplay(17);') -and
+    $projectXAppSource.Contains('HandleConfiguredFunctionRoute(17, "HeroEquipment.Source");') -and
     -not $projectXAppSource.Contains('InvokeLuaOrFail(onGameplayShopOpened, "HeroEquipment.Source.GameplayShops", 17d);') -and
     $projectXAppSource.Contains('excluded functionId=17 source did not preserve the fragment flow with deferred feedback') -and
     $projectXAppSource.Contains('excluded functionId=17 source feedback passed real runtime assertions') -and
-    $enterGameplaySource.IndexOf('if (functionId == 16 || functionId == 17)', [StringComparison]::Ordinal) -ge 0 -and
-    $enterGameplaySource.IndexOf('if (functionId == 16 || functionId == 17)', [StringComparison]::Ordinal) -lt
-        $enterGameplaySource.IndexOf('services.GameplayCatalog.Find(functionId)', [StringComparison]::Ordinal) -and
+    $routeConfigById.ContainsKey(17) -and
+    [string]$routeConfigById[17].kind -eq 'SteamExcluded' -and
     [string]$heroEquipSourceTargetControl.protocolOp -eq '当前来源17为Steam排除的血战商店，不发/221'
 ) "HeroEquip regression: the excluded functionId=17 source still invokes a removed GameplayShops Lua route or lacks real-click feedback coverage."
 Assert-ToolchainTest (

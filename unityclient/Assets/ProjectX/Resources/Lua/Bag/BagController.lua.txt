@@ -12,6 +12,7 @@ local M = {
     validationQuantity = nil,
     g4Stage = nil,
     xunBaoTokenRequested = false,
+    happyWheelKeyRequested = false,
     drawClosureRequested = false,
     drawHeaderRequested = false,
     equipmentSnapshotCallback = nil
@@ -90,6 +91,11 @@ function M.requestXunBaoTokenSnapshot()
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
+function M.requestHappyWheelKeySnapshot()
+    M.happyWheelKeyRequested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
 function M.requestDrawClosureSnapshot()
     M.drawClosureRequested = true
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
@@ -115,6 +121,7 @@ function M.onDisconnected()
     M.requested = false
     M.awaitingSort = false
     M.xunBaoTokenRequested = false
+    M.happyWheelKeyRequested = false
     if M.g4Stage ~= "await_reconnect" then M.g4Stage = nil end
     M.equipmentSnapshotCallback = nil
 end
@@ -173,16 +180,22 @@ local function validateIncrementalUpdate(slot, itemId, quantity)
 end
 
 function M.onPacket(command, message)
-    if command == Protocol.ROLE_PACKAGE and (M.requested or M.xunBaoTokenRequested or M.drawClosureRequested or M.drawHeaderRequested
+    if command == Protocol.ROLE_PACKAGE and (M.requested or M.xunBaoTokenRequested or M.happyWheelKeyRequested
+        or M.drawClosureRequested or M.drawHeaderRequested
         or M.equipmentSnapshotCallback ~= nil) then
-        -- A main-screen click can still carry an obsolete package request from
-        -- the imported navigation layer. Once Draw is already open, its /8
-        -- response is strictly header data and must never replace the Draw UI.
-        local headerOnly = M.drawHeaderRequested or Bridge:IsDrawActive()
+        -- Draw and equipment use /8 only as authoritative counts for their own
+        -- surfaces. Those background snapshots must update the store without
+        -- opening the ordinary item bag or reconfiguring the shared OneLevelLayer.
+        local headerOnly = M.happyWheelKeyRequested or M.drawHeaderRequested or M.equipmentSnapshotCallback ~= nil
+            or Bridge:IsDrawActive()
         local serverCount = readFullPackage(message, true, headerOnly)
         local renderedCount = Bridge:GetBagCount()
         if M.xunBaoTokenRequested then
             M.xunBaoTokenRequested = false
+            return true
+        end
+        if M.happyWheelKeyRequested then
+            M.happyWheelKeyRequested = false
             return true
         end
         if M.drawHeaderRequested then

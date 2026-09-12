@@ -46,6 +46,7 @@ param(
   [switch]$Battle,
   [switch]$BattleListOnly,
   [switch]$UiQueries,
+  [switch]$HappyWheelParity,
   [switch]$NpcFlow,
   [switch]$InvalidRisky,
   [int]$FriendApplyRoleId = 0,
@@ -207,6 +208,7 @@ $consumptionText = if ($Consumption) { "true" } else { "false" }
 $battleText = if ($Battle) { "true" } else { "false" }
 $battleListOnlyText = if ($BattleListOnly) { "true" } else { "false" }
 $uiQueriesText = if ($UiQueries) { "true" } else { "false" }
+$happyWheelParityText = if ($HappyWheelParity) { "true" } else { "false" }
 $npcFlowText = if ($NpcFlow) { "true" } else { "false" }
 $invalidRiskyText = if ($InvalidRisky) { "true" } else { "false" }
 $friendApplyRoleIdText = $FriendApplyRoleId
@@ -272,6 +274,7 @@ CONSUMPTION = "$consumptionText"
 BATTLE = "$battleText"
 BATTLE_LIST_ONLY = "$battleListOnlyText"
 UI_QUERIES = "$uiQueriesText"
+HAPPYWHEEL_PARITY = "$happyWheelParityText"
 NPC_FLOW = "$npcFlowText"
 INVALID_RISKY = "$invalidRiskyText"
 FRIEND_APPLY_ROLE_ID = $friendApplyRoleIdText
@@ -640,11 +643,20 @@ if UI_QUERIES == 'true':
         ('chuangguan_enable_count', 213, u8(14)),
         ('tongtianta_noop', 214, u8(1)),
         ('tmp_huodong_gift_status', 222, u8(1) + u8(1)),
+        ('happywheel_status', 222, u8(33) + u8(1)),
         ('husong_noop', 229, u8(1)),
         ('stop_progressbar_noop', 304, u8(0) + u32(0) + u32(0)),
         ('xianyuan_info', 305, u8(1)),
         ('jingjie_info_noop', 306, u8(1)),
         ('fengshen_shilian_info', 320, u8(21)),
+    ])
+
+if HAPPYWHEEL_PARITY == 'true':
+    smokes.extend([
+        ('happywheel_shop_list', 221, u8(1) + u8(1)),
+        ('happywheel_status', 222, u8(33) + u8(1)),
+        ('happywheel_key_purchase', 221, u8(2) + u8(1) + u16(1018) + u16(1) + u8(0)),
+        ('happywheel_spin_once', 222, u8(33) + u8(2) + u8(0)),
     ])
 
 if NPC_FLOW == 'true':
@@ -1285,6 +1297,91 @@ if POSITIVE == 'true':
 	if AUTO_CREATE_ROLE == 'true' and '体力丹'.encode('utf-16le') not in all_response_data:
 		raise RuntimeError('stamina pill purchase did not return the expected item-name tip')
 	print('stamina_pill_tip=' + ('ok' if AUTO_CREATE_ROLE == 'true' else 'existing-role-authoritative-result'))
+if HAPPYWHEEL_PARITY == 'true':
+    shop_bodies = [body for body in recv_bodies.get(221, []) if len(body) >= 9 and body[0] == 1 and body[1] == 1]
+    if not shop_bodies:
+        raise RuntimeError('happywheel shop list response is missing')
+    shop = shop_bodies[-1]
+    if shop[2] != 1:
+        raise RuntimeError('happywheel shop list response failed: ' + shop.hex())
+    shop_count = shop[8]
+    if len(shop) != 9 + shop_count * 5:
+        raise RuntimeError('happywheel shop list response is malformed: ' + shop.hex())
+    shop_entries = []
+    for index in range(shop_count):
+        pos = 9 + index * 5
+        shop_entries.append((shop[pos], struct.unpack('<H', shop[pos + 1:pos + 3])[0]))
+    if (18, 1018) not in shop_entries:
+        raise RuntimeError('happywheel key product 1018 is not visible in shop grid 18')
+    wheel_bodies = [body for body in recv_bodies.get(222, []) if len(body) >= 3 and body[0] == 33 and body[1] == 1]
+    if not wheel_bodies:
+        raise RuntimeError('happywheel status response is missing')
+    wheel = wheel_bodies[-1]
+    if wheel[2] != 1 or len(wheel) < 24:
+        raise RuntimeError('happywheel status response failed or is too short')
+    reward_count = wheel[15]
+    if reward_count != 10:
+        raise RuntimeError('happywheel reward count mismatch: ' + str(reward_count))
+    configured_rewards = []
+    for index in range(reward_count):
+        pos = 16 + index * 7
+        configured_rewards.append((struct.unpack('<H', wheel[pos:pos + 2])[0],
+            struct.unpack('<I', wheel[pos + 2:pos + 6])[0]))
+    expected_rewards = [(60000, 100000), (851, 10), (852, 5), (853, 3), (854, 1),
+        (613, 5), (500, 1), (401, 1), (402, 1), (403, 1)]
+    if configured_rewards != expected_rewards:
+        raise RuntimeError('happywheel reward id/amount mapping mismatch: ' + str(configured_rewards))
+    tail = wheel[-10:]
+    cost_item = struct.unpack('<H', tail[1:3])[0]
+    score_per_draw = struct.unpack('<H', tail[7:9])[0]
+    if tail[0] != 1 or cost_item != 403 or tuple(tail[3:7]) != (1, 1, 10, 9) or score_per_draw != 10 or tail[9] != 50:
+        raise RuntimeError('happywheel config tail mismatch: ' + tail.hex())
+    history_pos = 16 + reward_count * 7
+    extra_count = wheel[history_pos]
+    history_pos += 1 + extra_count * 8
+    personal_history_count = wheel[history_pos]
+    if personal_history_count > tail[9]:
+        raise RuntimeError('happywheel personal history exceeded configured limit')
+    query_history_count = personal_history_count
+    history_pos += 1
+    for _ in range(personal_history_count):
+        _, history_pos = read_wire_string(wheel, history_pos)
+    if history_pos >= len(wheel):
+        raise RuntimeError('happywheel public history count is missing')
+    public_history_count = wheel[history_pos]
+    history_pos += 1
+    for _ in range(public_history_count):
+        _, history_pos = read_wire_string(wheel, history_pos)
+    if history_pos != len(wheel) - 10:
+        raise RuntimeError('happywheel query history framing mismatch')
+    spin_bodies = [body for body in recv_bodies.get(222, []) if len(body) >= 3 and body[0] == 33 and body[1] == 2]
+    if not spin_bodies:
+        raise RuntimeError('happywheel spin response is missing')
+    spin = spin_bodies[-1]
+    if spin[2] != 0 or spin[3] != 1 or len(spin) < 14:
+        raise RuntimeError('happywheel spin failed: ' + spin.hex())
+    score_before = struct.unpack('<I', wheel[3:7])[0]
+    score_after = struct.unpack('<I', spin[4:8])[0]
+    if score_after != score_before + 10 or spin[-3] != 1 or spin[-2] != 1 or spin[-1] >= 10:
+        raise RuntimeError('happywheel spin result mismatch: ' + spin.hex())
+    spin_history_pos = 9
+    spin_history_count = spin[spin_history_pos]
+    spin_history_pos += 1
+    for _ in range(spin_history_count):
+        _, spin_history_pos = read_wire_string(spin, spin_history_pos)
+    if spin_history_pos >= len(spin):
+        raise RuntimeError('happywheel spin public history count is missing')
+    spin_public_history_count = spin[spin_history_pos]
+    spin_history_pos += 1
+    for _ in range(spin_public_history_count):
+        _, spin_history_pos = read_wire_string(spin, spin_history_pos)
+    if spin_history_pos != len(spin) - 3:
+        raise RuntimeError('happywheel spin history framing mismatch')
+    if query_history_count == tail[9] and spin_history_count != tail[9]:
+        raise RuntimeError('happywheel spin did not preserve the complete capped history: '
+            + str(spin_history_count) + '/' + str(tail[9]))
+    print('happywheel_status=ok rewards=10 key=403 shop=1018@18 single=1/1 multi=10/9 score=10 history=query-'
+        + str(query_history_count) + '/50,spin-' + str(spin_history_count) + '/50 spin=ok')
 if UI_QUERIES == 'true':
     for response_type in (32, 33, 46, 53, 68, 101, 110, 152, 153, 154, 160, 176, 189, 191, 201, 204, 213, 214, 222, 229, 304, 305, 306):
         bodies = recv_bodies.get(response_type, [])
@@ -2762,7 +2859,8 @@ if RESULT_PATH:
             'mutations': MUTATIONS == 'true',
             'positive': POSITIVE == 'true',
             'battle': BATTLE == 'true',
-            'uiQueries': UI_QUERIES == 'true'
+            'uiQueries': UI_QUERIES == 'true',
+            'happyWheelParity': HAPPYWHEEL_PARITY == 'true'
         },
         'sentCases': sent_case_names,
         'receivedCount': len(recv_types),

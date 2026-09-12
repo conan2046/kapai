@@ -10330,6 +10330,18 @@ shop_dat = {
 		price_real = {100},
 		condition = {},
 		show = {{1,1}}
+	},
+	{
+		id = 1018,
+		type = 1,
+		cell = 18,
+		itemid = {403,0,1},
+		weight = 1,
+		count = {},
+		price = {{60001,0,30}},
+		price_real = {100},
+		condition = {},
+		show = {{1,10}}
 	}
 }
 

@@ -88,10 +88,27 @@ namespace ProjectX.Data
                 item?.Quality ?? 0);
         }
 
+        public RewardRecord DescribeServerReward(int type, int id, uint amount)
+        {
+            int displayId = id > 0 ? id : type;
+            ShopItemDefinition item = FindItem(displayId) ?? FindItem(type);
+            return new RewardRecord(type, checked((uint)Math.Max(0, id)), amount,
+                NonEmpty(item?.Name, $"奖励 #{displayId}"), item?.Picture ?? 0,
+                item?.Quality ?? 0);
+        }
+
         public bool TryGetItemPresentation(int itemId, out string description, out string source)
         {
             EnsureCocosItems();
             ShopItemDefinition item = FindCocosItem(itemId) ?? FindItem(itemId);
+            description = item?.Description ?? string.Empty;
+            source = item?.Source ?? string.Empty;
+            return item != null;
+        }
+
+        public bool TryGetServerItemPresentation(int itemId, out string description, out string source)
+        {
+            ShopItemDefinition item = FindItem(itemId);
             description = item?.Description ?? string.Empty;
             source = item?.Source ?? string.Empty;
             return item != null;

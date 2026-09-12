@@ -1,0 +1,143 @@
+local Protocol = require("Protocol")
+local BagController = require("Bag.BagController")
+
+local M = { pending = -1 }
+local HAPPY_WHEEL_OPERATION = 33
+
+local function writeRequest(requestType, drawType)
+    local message = Protocol.newMessage(Protocol.TEMP_ACTIVITY)
+    message:WriteByte(HAPPY_WHEEL_OPERATION)
+    message:WriteByte(requestType)
+    if requestType == 2 then message:WriteByte(drawType) end
+    Bridge:Send(message)
+end
+
+local function readHistory(message, add)
+    local count = message:ReadByte()
+    for _ = 1, count do add(message:ReadString()) end
+end
+
+local function discardServerHistory(message)
+    local count = message:ReadByte()
+    for _ = 1, count do message:ReadString() end
+end
+
+function M.onClick(functionId)
+    M.pending = -1
+    Bridge:ClearHappyWheelState()
+    Bridge:ShowHappyWheel(functionId)
+    -- Rehydrate the server-owned key count after login without opening the bag UI.
+    BagController.requestHappyWheelKeySnapshot()
+    writeRequest(1, 0)
+    Bridge:SetStatus("HappyWheel/222 op=33 query requested.")
+end
+
+function M.spin(drawType)
+    drawType = math.floor(tonumber(drawType) or -1)
+    if drawType < 0 or drawType > 1 or M.pending >= 0 or not Bridge:BeginHappyWheelSpin(drawType) then return false end
+    M.pending = drawType
+    writeRequest(2, drawType)
+    Bridge:SetStatus("HappyWheel/222 op=33 spin requested: type=" .. tostring(drawType) .. ".")
+    return true
+end
+
+function M.onOperation(operation, message)
+    if operation ~= HAPPY_WHEEL_OPERATION then return false end
+    local requestType = message:ReadByte()
+    local responseDrawType = -1
+    if requestType == 2 then responseDrawType = message:ReadByte() end
+    local success = message:ReadByte()
+    if success == 0 then
+        if M.pending >= 0 then Bridge:FailHappyWheelSpin() end
+        M.pending = -1
+        Bridge:ShowToast(message.Remaining > 0 and message:ReadString() or "欢乐转盘数据同步失败")
+        return true
+    end
+
+    if requestType == 1 then
+        local score = message:ReadUInt()
+        local activitySeconds = message:ReadUInt()
+        local resetSeconds = message:ReadUInt()
+        local rewardCount = message:ReadByte()
+        Bridge:BeginHappyWheelState()
+        for _ = 1, rewardCount do
+            Bridge:AddHappyWheelReward(message:ReadWord(), message:ReadUInt(), message:ReadByte())
+        end
+        local extraCount = message:ReadByte()
+        for _ = 1, extraCount do message:ReadUInt(); message:ReadUInt() end
+        readHistory(message, function(value) Bridge:AddHappyWheelHistory(value) end)
+        discardServerHistory(message)
+        if message.Remaining < 10 then
+            Bridge:ClearHappyWheelState()
+            Bridge:Fail("HappyWheel/222 query is missing standalone config tail.")
+            return true
+        end
+        local version = message:ReadByte()
+        if version ~= 1 then
+            Bridge:ClearHappyWheelState()
+            Bridge:Fail("HappyWheel/222 query config version is unsupported: " .. tostring(version) .. ".")
+            return true
+        end
+        local costItemId = message:ReadWord()
+        local singleDrawCount = message:ReadByte()
+        local singleKeyCost = message:ReadByte()
+        local multiDrawCount = message:ReadByte()
+        local multiKeyCost = message:ReadByte()
+        local scorePerDraw = message:ReadWord()
+        local historyLimit = message:ReadByte()
+        if message.Remaining ~= 0 then
+            Bridge:ClearHappyWheelState()
+            Bridge:Fail("HappyWheel/222 query has unread bytes=" .. tostring(message.Remaining) .. ".")
+            return true
+        end
+        Bridge:CommitHappyWheelState(score, activitySeconds, resetSeconds, costItemId,
+            singleDrawCount, singleKeyCost, multiDrawCount, multiKeyCost, scorePerDraw,
+            historyLimit)
+        Bridge:SetStatus("HappyWheel/222 query received: rewards=" .. tostring(rewardCount) .. ".")
+        return true
+    end
+
+    if requestType == 2 then
+        if M.pending < 0 or responseDrawType ~= M.pending then
+            if M.pending >= 0 then Bridge:FailHappyWheelSpin() end
+            M.pending = -1
+            Bridge:Fail("HappyWheel/222 spin identity mismatch: type=" .. tostring(responseDrawType) .. ".")
+            return true
+        end
+        local score = message:ReadUInt()
+        local selectedIndex = message:ReadByte()
+        Bridge:BeginHappyWheelSpinResult(score, selectedIndex)
+        readHistory(message, function(value) Bridge:AddHappyWheelSpinHistory(value) end)
+        discardServerHistory(message)
+        if message.Remaining < 2 then
+            Bridge:FailHappyWheelSpin()
+            M.pending = -1
+            Bridge:Fail("HappyWheel/222 spin is missing reward index tail.")
+            return true
+        end
+        local version = message:ReadByte()
+        local indexCount = message:ReadByte()
+        if version ~= 1 or message.Remaining ~= indexCount then
+            Bridge:FailHappyWheelSpin()
+            M.pending = -1
+            Bridge:Fail("HappyWheel/222 spin tail is invalid.")
+            return true
+        end
+        for _ = 1, indexCount do Bridge:AddHappyWheelSpinIndex(message:ReadByte()) end
+        Bridge:CommitHappyWheelSpinResult()
+        M.pending = -1
+        Bridge:SetStatus("HappyWheel/222 spin received: rewards=" .. tostring(indexCount) .. ".")
+        return true
+    end
+
+    if M.pending >= 0 then Bridge:FailHappyWheelSpin(); M.pending = -1 end
+    Bridge:Fail("HappyWheel/222 returned unsupported requestType=" .. tostring(requestType) .. ".")
+    return true
+end
+
+function M.reset()
+    M.pending = -1
+    Bridge:ClearHappyWheelState()
+end
+
+return M

@@ -21,7 +21,7 @@ using XLua;
 namespace ProjectX.Core
 {
     [LuaCallCSharp]
-    public sealed class ProjectXApp : MonoBehaviour
+    public sealed partial class ProjectXApp : MonoBehaviour
     {
         public const string LoginButtonPath = "Layer/Login/Btn_Play";
         public const string LoginServerButtonPath = "Layer/Login/Btn_Sever";
@@ -372,6 +372,8 @@ namespace ProjectX.Core
         private Button taskButton;
         private readonly List<TaskRecord> pendingTaskRecords = new List<TaskRecord>();
         private int pendingTaskType = 2;
+        private int pendingFunctionCultivationMode = -1;
+        private HeroEquipmentKind pendingFunctionCultivationKind = HeroEquipmentKind.Equipment;
         private CocosUiView errorView;
         private GameErrorPresenter errorPresenter;
         private CocosUiView loadingView;
@@ -528,6 +530,8 @@ namespace ProjectX.Core
         private CocosUiView gameplayView;
         private CocosUiView gameplayContentView;
         private CocosUiView gameplayDetailView;
+        private readonly Dictionary<string, CocosUiView> configuredGameplayViews =
+            new Dictionary<string, CocosUiView>(StringComparer.OrdinalIgnoreCase);
         private GameplayPresenter gameplayPresenter;
         private Button gameplayButton;
         private bool gameplayValidationRunning;
@@ -969,6 +973,10 @@ namespace ProjectX.Core
                 onXunBaoSearchTokenBagRequested = services.Lua.GetFunction("OnXunBaoSearchTokenBagRequested");
                 onSevenDayClicked = services.Lua.GetFunction("OnSevenDayClicked");
                 onSevenDayClaim = services.Lua.GetFunction("OnSevenDayClaim");
+                onMoneyTreeClicked = services.Lua.GetFunction("OnMoneyTreeClicked");
+                onMoneyTreeShake = services.Lua.GetFunction("OnMoneyTreeShake");
+                onHappyWheelClicked = services.Lua.GetFunction("OnHappyWheelClicked");
+                onHappyWheelSpin = services.Lua.GetFunction("OnHappyWheelSpin");
                 onStaminaClaimClicked = services.Lua.GetFunction("OnStaminaClaimClicked");
                 onStaminaClaimRequest = services.Lua.GetFunction("OnStaminaClaimRequest");
                 onStaminaClaimRefresh = services.Lua.GetFunction("OnStaminaClaimRefresh");
@@ -994,6 +1002,7 @@ namespace ProjectX.Core
             welfarePresenter?.Tick();
             activityPresenter?.Tick();
             drawPresenter?.Tick();
+            happyWheelPresenter?.Tick(Time.unscaledDeltaTime);
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
         }
 
@@ -1150,6 +1159,10 @@ namespace ProjectX.Core
             onXunBaoSearchTokenBagRequested?.Dispose();
             onSevenDayClicked?.Dispose();
             onSevenDayClaim?.Dispose();
+            onMoneyTreeClicked?.Dispose();
+            onMoneyTreeShake?.Dispose();
+            onHappyWheelClicked?.Dispose();
+            onHappyWheelSpin?.Dispose();
             onStaminaClaimClicked?.Dispose();
             onStaminaClaimRequest?.Dispose();
             onStaminaClaimRefresh?.Dispose();
@@ -1165,6 +1178,8 @@ namespace ProjectX.Core
             xunBaoPopupPresenter?.Dispose();
             xunBaoComposeAllPresenter?.Dispose();
             sevenDayPresenter?.Dispose();
+            moneyTreePresenter?.Dispose();
+            happyWheelPresenter?.Dispose();
             staminaClaimPresenter?.Dispose();
             resourceRecoveryPresenter?.Dispose();
             fundsPresenter?.Dispose();
@@ -1352,6 +1367,8 @@ namespace ProjectX.Core
                 CloseGameplayShops();
                 return true;
             }
+            if (TryHandleMoneyTreeBack()) return true;
+            if (TryHandleHappyWheelBack()) return true;
             if (IsGameplayOpen)
             {
                 bool popped = PopUiStackWithHudRefresh();
@@ -1378,6 +1395,7 @@ namespace ProjectX.Core
             bool popped = services?.UiStack.Pop() ?? false;
             if (popped && services.UiStack.Current == mainView)
             {
+                SetMainHudSurfaceVisible(true);
                 mainHudPresenter?.RefreshAfterVisibilityRestore();
                 Canvas.ForceUpdateCanvases();
             }
@@ -2328,13 +2346,6 @@ namespace ProjectX.Core
 
         public void EnterGameplay(int functionId)
         {
-            if (functionId == 16 || functionId == 17)
-            {
-                gameplayPresenter?.HideDetail();
-                ShowToast("玩法商店暂未纳入当前修复范围", 2f);
-                SetStatus($"Gameplay shop route deferred: function_id={functionId}.");
-                return;
-            }
             GameplayDefinition definition = services.GameplayCatalog.Find(functionId);
             if (definition == null) { Fail($"Gameplay route config is missing id={functionId}."); return; }
             if (services.Player.Level < definition.OpenLevel)
@@ -2354,65 +2365,52 @@ namespace ProjectX.Core
                 SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}, pending={pendingBefore}->{services.ProtocolRegistry.PendingCount}.");
                 return;
             }
-            if (functionId == 10)
+            gameplayPresenter?.HideDetail();
+            FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
+            switch (route.Target)
             {
-                gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onTaskClicked, "Gameplay.DailyTask");
-                return;
+                case "Task": InvokeLuaOrFail(onTaskClicked, "Gameplay.DailyTask"); return;
+                case "YouLi": InvokeLuaOrFail(onYouLiClicked, "Gameplay.YouLi"); return;
+                case "FengShenStory": InvokeLuaOrFail(onFengShenStoryClicked, "Gameplay.FengShenStory"); return;
+                case "Arena": InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena"); return;
+                case "XunBao": InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao"); return;
+                case "MoneyTree": InvokeLuaOrFail(onMoneyTreeClicked, "Gameplay.MoneyTree", (double)functionId); return;
+                case "HappyWheel": InvokeLuaOrFail(onHappyWheelClicked, "Gameplay.HappyWheel", (double)functionId); return;
+                case "GameplayShop": HandleCommerceRoute(functionId); return;
+                case "ImportedPrefab": OpenConfiguredGameplayPrefab(definition, route); return;
+                default:
+                    Fail($"Gameplay route target is missing: id={functionId}, target={route.Target}.");
+                    return;
             }
-            if (functionId == 1)
-            {
-                gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onYouLiClicked, "Gameplay.YouLi");
-                return;
-            }
-            if (functionId == 3)
-            {
-                gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onFengShenStoryClicked, "Gameplay.FengShenStory");
-                return;
-            }
-            if (functionId == 6)
-            {
-                gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena");
-                return;
-            }
-            if (functionId == 9)
-            {
-                gameplayPresenter?.HideDetail();
-                InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao");
-                return;
-            }
-            if (functionId == 15)
-            {
-                gameplayPresenter?.HideDetail();
-                HandleCommerceRoute(functionId);
-                return;
-            }
-            ShowToast($"{definition.Name}属于独立子玩法，首期大厅仅保留真实进入边界。", 3f);
-            SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}.");
         }
 
         private static string GameplayRouteOwner(int functionId)
         {
-            switch (functionId)
+            FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
+            return string.IsNullOrWhiteSpace(route.Target) ? route.Kind.ToString() : route.Target;
+        }
+
+        private void OpenConfiguredGameplayPrefab(GameplayDefinition definition, FunctionRouteDefinition route)
+        {
+            if (string.IsNullOrWhiteSpace(route.PrefabKey))
             {
-                case 1: return "YouLi";
-                case 3: return "FengShenStory";
-                case 6: return "Arena";
-                case 7: return "KunLun";
-                case 8: return "BloodFight";
-                case 9: return "XunBao";
-                case 10: return "Task";
-                case 11: return "SevenDay";
-                case 12: return "Friend";
-                case 18: return "StaminaClaim";
-                case 19: return "ResourceRecovery";
-                case 25:
-                case 26: return "Funds";
-                default: return "ExternalModule";
+                Fail($"Configured Gameplay prefab is missing: id={definition.Id}.");
+                return;
             }
+            Transform parent = string.Equals(route.Presentation, "gameplay-frame", StringComparison.OrdinalIgnoreCase)
+                ? gameplayView.GameObject.transform : GetDynamicUiRoot();
+            if (!configuredGameplayViews.TryGetValue(route.PrefabKey, out CocosUiView view) || view?.GameObject == null)
+            {
+                view = UiPrefabLoader.Load(route.PrefabKey, parent);
+                configuredGameplayViews[route.PrefabKey] = view;
+                if (!string.IsNullOrWhiteSpace(route.ClosePath))
+                    view.BindClick(route.ClosePath, () => HandleBack(), true);
+            }
+            if (string.Equals(route.Presentation, "gameplay-frame", StringComparison.OrdinalIgnoreCase))
+                gameplayContentView?.SetVisible(false);
+            if (services.UiStack.Current != view)
+                services.UiStack.Push(view, !string.Equals(route.Presentation, "gameplay-frame", StringComparison.OrdinalIgnoreCase));
+            SetStatus($"Gameplay route active: id={definition.Id}, prefab={route.PrefabKey}.");
         }
 
         public void UpdateGameplayHotPoint(int rawType, int rawState)
@@ -2437,11 +2435,12 @@ namespace ProjectX.Core
                 ? 705213u
                 : services.Options.GameplayIsolationUserId;
             int pendingAtEntry = 0;
-            int[] functionIds = { 1, 3, 9, 10 };
+            int[] functionIds = { 1, 3, 9, 10, 21, 23, 29 };
             string[] controlIds =
             {
                 "GAMEPLAY-04-ENTER-1", "GAMEPLAY-05-ENTER-3",
-                "GAMEPLAY-09-ENTER-9", "GAMEPLAY-10-ENTER-10"
+                "GAMEPLAY-09-ENTER-9", "GAMEPLAY-10-ENTER-10",
+                "GAMEPLAY-16-ENTER-21", "GAMEPLAY-17-ENTER-23", "GAMEPLAY-18-ENTER-29"
             };
             try
             {
@@ -2459,8 +2458,9 @@ namespace ProjectX.Core
                 EnsureGameplayPresenter();
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
-                if (!IsGameplayOpen || services.Gameplay.Count != 4 || services.Gameplay.OpenCount != 4
-                    || GameplayRenderedCount != 4 || GameplayEnterButtonCount != 4 || GameplayMissingIconCount != 0)
+                int configuredCount = functionIds.Length;
+                if (!IsGameplayOpen || services.Gameplay.Count != configuredCount || services.Gameplay.OpenCount != configuredCount
+                    || GameplayRenderedCount != configuredCount || GameplayEnterButtonCount != configuredCount || GameplayMissingIconCount != 0)
                 {
                     Fail($"Gameplay primary list mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, enter={GameplayEnterButtonCount}, missing={GameplayMissingIconCount}.");
                     yield break;
@@ -2475,8 +2475,8 @@ namespace ProjectX.Core
                     yield break;
                 }
                 MarkValidationControl("GAMEPLAY-01-HUD-ENTRY");
-                RecordValidationSemantic("gameplay-entry-list-current-ready-4", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
-                    "Current ready order=1,3,9,10; id6 is retained but migrationReady=false; ids7/8/11/12/18/19/25/26 are platform-excluded");
+                RecordValidationSemantic("gameplay-entry-list-current-ready-7", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
+                    "Current table-driven order=1,3,9,10,21,23,29; id6 and remaining excluded modules stay hidden");
                 bool arenaTemporarilyHidden = services.GameplayCatalog.Find(6) == null;
                 MarkValidationControl("GAMEPLAY-06-ENTER-6");
                 RecordValidationSemantic("gameplay-arena-hidden-until-ready", arenaTemporarilyHidden,
@@ -2540,8 +2540,8 @@ namespace ProjectX.Core
                     MarkValidationControl(controlIds[index]);
                     if (index == 0) yield return CaptureGameplayFrame("bootstrap-gameplay-unavailable.png");
                 }
-                RecordValidationSemantic("gameplay-enter-boundaries-current-ready-4", true,
-                    "4 ready EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
+                RecordValidationSemantic("gameplay-enter-boundaries-current-ready-7", true,
+                    "7 configured EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
 
                 // All local initial accounts are intentionally level 99 for feature testing.
                 // Preserve the source lock-state visual contract with an isolated in-memory
@@ -2550,11 +2550,11 @@ namespace ProjectX.Core
                 services.Gameplay.Load(services.GameplayCatalog.Items, 1);
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
-                if (!IsGameplayOpen || services.Gameplay.Count != 4 || services.Gameplay.OpenCount != 0 || GameplayEnterButtonCount != 0)
+                if (!IsGameplayOpen || services.Gameplay.Count != configuredCount || services.Gameplay.OpenCount != 0 || GameplayEnterButtonCount != 0)
                 { Fail($"Gameplay projected locked list mismatch: count={services.Gameplay.Count}, open={services.Gameplay.OpenCount}, enter={GameplayEnterButtonCount}."); yield break; }
                 yield return CaptureGameplayFrame("bootstrap-gameplay-locked.png");
                 RecordValidationSemantic("gameplay-lock-level", true,
-                    "level-1 source projection rendered N-level labels for all five Steam entries and exposed no EnterBtn; production test accounts remain level 99");
+                    "level-1 source projection rendered N-level labels for all seven configured entries and exposed no EnterBtn; production test accounts remain level 99");
                 services.Gameplay.Load(services.GameplayCatalog.Items, services.Player.Level);
                 yield return new WaitForEndOfFrame();
                 yield return CaptureGameplayFrame("bootstrap-gameplay-restart.png");
@@ -2628,12 +2628,12 @@ namespace ProjectX.Core
 
                 RecordValidationSemantic("gameplay-reconnect-account-isolation", true,
                     "real disconnect/reconnect restored primary; real locked and isolation accounts rebuilt independent stores; terminal primary restored");
-                RecordValidationSemantic("gameplay-control-matrix-13", validationControlIds.Count == 13,
-                    $"validated={validationControlIds.Count}/13");
-                if (validationControlIds.Count != 13)
-                { Fail($"Gameplay control coverage mismatch: {validationControlIds.Count}/13."); yield break; }
+                RecordValidationSemantic("gameplay-control-matrix-16", validationControlIds.Count == 16,
+                    $"validated={validationControlIds.Count}/16");
+                if (validationControlIds.Count != 16)
+                { Fail($"Gameplay control coverage mismatch: {validationControlIds.Count}/16."); yield break; }
                 gameplayValidationCompleted = true;
-                Complete($"COMPLETE: Gameplay 13/13 controls; 5 Steam entries/routes, projected lock state, real reconnect/account isolation, reversible SQLite fixture; user={primaryUserId} role={primaryRoleId}");
+                Complete($"COMPLETE: Gameplay 16/16 controls; 7 table-driven entries/routes, projected lock state, real reconnect/account isolation, reversible SQLite fixture; user={primaryUserId} role={primaryRoleId}");
             }
             finally
             {
@@ -4583,12 +4583,28 @@ namespace ProjectX.Core
         public void ShowSettings()
         {
             EnsureSettingsPresenter();
+            HideOneLevelChildPagesForSettings();
             bagFrameView.SetVisible(true);
             settingsView.SetVisible(true);
             settingsView.GameObject.transform.SetAsLastSibling();
             settingsPresenter.Refresh();
             if (services.UiStack.Current != settingsView) services.UiStack.Push(settingsView);
             SetStatus("System settings active.");
+        }
+
+        private void HideOneLevelChildPagesForSettings()
+        {
+            // UiStack hides only the shared OneLevelLayer root. Its lazy Hero child
+            // pages keep activeSelf=true and become visible again when Settings
+            // reuses the frame, so isolate the frame before enabling it.
+            HideHeroCultivationForNavigation();
+            Transform frame = bagFrameView?.GameObject.transform;
+            if (frame == null) return;
+            foreach (Transform child in frame.Cast<Transform>())
+            {
+                if (child.name.StartsWith("DynamicUi_", StringComparison.Ordinal))
+                    child.gameObject.SetActive(false);
+            }
         }
 
         public void RunSettingsValidation()
@@ -4979,6 +4995,7 @@ namespace ProjectX.Core
             activeHeroCultivationId = 0;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
+            pendingFunctionCultivationMode = -1;
             pendingHeroEquipment.Clear();
             pendingFaBao.Clear();
             pendingCultivation.Clear();
@@ -9064,6 +9081,8 @@ namespace ProjectX.Core
         {
             heroEquipmentOpenPending = false;
             EnsureHeroEquipmentPresenter();
+            HeroEquipmentKind displayKind = kind == 2 ? HeroEquipmentKind.FaBao : HeroEquipmentKind.Equipment;
+            if (TryOpenPendingFunctionCultivation(displayKind)) return;
             HideHeroCultivationForNavigation();
             int formationPosition = pendingHeroEquipmentPosition;
             pendingHeroEquipmentPosition = 0;
@@ -9079,7 +9098,6 @@ namespace ProjectX.Core
                     break;
                 }
             }
-            HeroEquipmentKind displayKind = kind == 2 ? HeroEquipmentKind.FaBao : HeroEquipmentKind.Equipment;
             bool openedFromHeroSlot = requestedSlot > 0 && heroEquipmentOpenedFromHeroDetails;
             if (openedFromHeroSlot)
             {
@@ -11109,6 +11127,7 @@ namespace ProjectX.Core
             heroG4ControlValidationRunning = false;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
+            pendingFunctionCultivationMode = -1;
             formationPopupView?.SetVisible(false);
             heroReplacementView?.SetVisible(false);
             heroCultivationView?.SetVisible(false);
@@ -13135,57 +13154,39 @@ namespace ProjectX.Core
                 bagView?.SetVisible(false);
         }
 
-        private static bool CanOpenBagSource(int functionId)
-        {
-            switch (functionId)
-            {
-                case 1:
-                case 3:
-                case 4:
-                case 6:
-                case 9:
-                case 10:
-                case 13:
-                case 15:
-                case 16:
-                case 17:
-                case 1010:
-                case 1011:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+        private static bool CanOpenBagSource(int functionId) => FunctionRouteCatalog.CanOpen(functionId);
 
         private void HandleBagSourceRoute(int functionId)
         {
-            switch (functionId)
+            HandleConfiguredFunctionRoute(functionId, "Bag source");
+        }
+
+        private void HandleConfiguredFunctionRoute(int functionId, string source)
+        {
+            FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
+            switch (route.Kind)
             {
-                case 1:
-                case 3:
-                case 6:
-                case 9:
-                case 10:
+                case FunctionRouteKind.Gameplay:
                     EnterGameplay(functionId);
                     return;
-                case 4:
+                case FunctionRouteKind.World:
                     HandleWorldClick();
                     return;
-                case 13:
-                case 15:
+                case FunctionRouteKind.Commerce:
                     HandleCommerceRoute(functionId);
                     return;
-                case 16:
-                case 17:
-                    ShowToast("玩法商店暂未纳入当前修复范围", 2f);
-                    SetStatus($"Bag source shop route deferred: function_id={functionId}.");
-                    return;
-                case 1010:
-                case 1011:
+                case FunctionRouteKind.Draw:
                     HandleDrawClick();
+                    return;
+                case FunctionRouteKind.EquipmentCultivation:
+                    BeginConfiguredCultivationRoute(HeroEquipmentKind.Equipment, route.Mode);
+                    return;
+                case FunctionRouteKind.FaBaoCultivation:
+                    BeginConfiguredCultivationRoute(HeroEquipmentKind.FaBao, route.Mode);
                     return;
                 default:
                     ShowToast("当前版本暂未开放", 2f);
+                    SetStatus($"{source} route is unavailable: function_id={functionId}, kind={route.Kind}.");
                     return;
             }
         }
@@ -14618,7 +14619,7 @@ namespace ProjectX.Core
             Button sourceRouteButton = heroItemSourceView.BindClick("Layer/Popup/itemlayer_1/Button_3", () =>
             {
                 heroItemSourceView.SetVisible(false);
-                EnterGameplay(17);
+                HandleConfiguredFunctionRoute(17, "HeroEquipment.Source");
             }, true);
             sourceRouteButton.interactable = true;
             heroItemSourceView.BindClick("Layer/Popup/Title/Btn_close", CloseHeroItemSource, true);
@@ -16177,7 +16178,7 @@ namespace ProjectX.Core
             ConfigureTaskFrame();
             try
             {
-                taskBackgroundView.BindClick("Layer/Panel_1/Title/CloseBtn", () => services.UiStack.Pop(), true);
+                taskBackgroundView.BindClick("Layer/Panel_1/Title/CloseBtn", () => PopUiStackWithHudRefresh(), true);
             }
             catch (InvalidOperationException exception)
             {
@@ -16187,20 +16188,9 @@ namespace ProjectX.Core
 
         private static bool IsTaskVisibleInCurrentClient(TaskRecord item)
         {
-            // These destinations are intentionally absent from the current public Unity UI.
-            // Keep the authoritative task payload untouched and filter only its presentation.
-            switch (item.Jump)
-            {
-                case 2:    // 封神试炼
-                case 6:    // 竞技场（保留模块，但当前 migrationReady=false）
-                case 7:    // 决战昆仑
-                case 8:    // 血战
-                case 2120: // 帮派捐献
-                case 2128: // 帮派副本
-                    return false;
-                default:
-                    return true;
-            }
+            // Keep the authoritative payload untouched. Only hide configured destinations
+            // that the shared Steam route catalog marks excluded or unsupported.
+            return item.Jump == 0 || FunctionRouteCatalog.CanOpen(item.Jump);
         }
 
         private void ConfigureTaskFrame()
@@ -16254,18 +16244,88 @@ namespace ProjectX.Core
         private void HandleTaskGo(TaskRecord item)
         {
             if (item.State != 0 || item.Jump == 0) return;
-            if (services.UiStack.Current == taskBackgroundView) services.UiStack.Pop();
-            switch (item.Jump)
+            if (services.UiStack.Current == taskBackgroundView) PopUiStackWithHudRefresh();
+            HandleConfiguredFunctionRoute(item.Jump, "Task");
+        }
+
+        private void BeginConfiguredCultivationRoute(HeroEquipmentKind kind, int mode)
+        {
+            // EquipmentController.open refreshes /8 before /319. If the route was
+            // entered from an item/stamina surface, remove that surface from the
+            // stack before the asynchronous equipment responses can reuse OneLevelLayer.
+            CloseBagForItemJump();
+            heroEquipmentOpenPending = true;
+            pendingFunctionCultivationKind = kind;
+            pendingFunctionCultivationMode = mode;
+            LuaFunction open = kind == HeroEquipmentKind.FaBao ? onFaBaoBagClicked : onEquipmentBagClicked;
+            string context = kind == HeroEquipmentKind.FaBao
+                ? "FunctionRoute.OpenFaBaoCultivation"
+                : "FunctionRoute.OpenEquipmentCultivation";
+            try
             {
-                case 6: InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena"); break;
-                case 9: InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao"); break;
-                case 1010: HandleDrawClick(); break;
-                case 2128:
-                case 2120: HandleGuildClick(); break;
-                default:
-                    SetStatus($"Task jump uses current function_id={item.Jump}; destination remains closed until its own entry is invoked.");
-                    break;
+                CallLua(open, context);
             }
+            catch (Exception exception)
+            {
+                heroEquipmentOpenPending = false;
+                pendingFunctionCultivationMode = -1;
+                Fail(exception.Message);
+            }
+        }
+
+        private bool TryOpenPendingFunctionCultivation(HeroEquipmentKind kind)
+        {
+            if (pendingFunctionCultivationMode < 0) return false;
+
+            int mode = pendingFunctionCultivationMode;
+            HeroEquipmentKind expectedKind = pendingFunctionCultivationKind;
+            pendingFunctionCultivationMode = -1;
+            if (kind != expectedKind)
+            {
+                Fail($"Task cultivation route returned the wrong kind: expected={expectedKind}, actual={kind}.");
+                return true;
+            }
+
+            uint uid;
+            int formationPosition;
+            if (kind == HeroEquipmentKind.FaBao)
+            {
+                FaBaoRecord target = services.FaBao.Items.FirstOrDefault();
+                uid = target.Uid;
+                formationPosition = target.FormationPosition;
+            }
+            else
+            {
+                HeroEquipmentRecord target = services.HeroEquipment.Items.FirstOrDefault();
+                uid = target.Uid;
+                formationPosition = target.FormationPosition;
+            }
+
+            if (uid == 0)
+            {
+                string message = kind == HeroEquipmentKind.FaBao ? "暂无可强化法宝" : "暂无可培养装备";
+                ShowToast(message, 2f);
+                SetStatus($"Task cultivation route has no target: kind={kind}, mode={mode}.");
+                return true;
+            }
+
+            HideHeroCultivationForNavigation();
+            heroEnhanceMasterView?.SetVisible(false);
+            gameplayView?.SetVisible(false);
+            heroFrameView.SetVisible(true);
+            heroFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            if (!heroEquipmentPresenter.PrepareCultivation(uid, Math.Max(1, formationPosition), kind, mode))
+            {
+                PopUiStackWithHudRefresh();
+                ShowToast("未找到对应养成对象", 2f);
+                SetStatus($"Task cultivation route target was rejected: uid={uid}, kind={kind}, mode={mode}.");
+                return true;
+            }
+
+            SetStatus($"Task cultivation route opened: uid={uid}, kind={kind}, mode={mode}.");
+            return true;
         }
 
         private void ShowTaskBoxPreview(TaskRecord item)

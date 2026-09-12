@@ -1930,6 +1930,34 @@
       "document": "docs/unityclient/modules/HEROREBIRTH.md",
       "controlMatrix": "docs/unityclient/matrices/HEROREBIRTH_CONTROLS.json",
       "g0Draft": ".local/unity-validation/herorebirth-g0-draft-latest.json"
+    },
+    {
+      "key": "MoneyTree",
+      "displayName": "摇钱树",
+      "status": "scaffolded",
+      "protocols": [
+        222
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup1/btn_wanfa -> Function_23/EnterBtn"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/huodong/GoldTreeLayer.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "server/config/xml/yaoqianshu.xml",
+        "server/config/json/vip.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXMoneyTreeValidation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/MONEYTREE_CONTROLS.json",
+      "document": "docs/unityclient/modules/MONEYTREE.md",
+      "g0Draft": ".local/unity-validation/moneytree-g0-draft-latest.json"
     }
   ]
 }

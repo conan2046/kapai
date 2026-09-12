@@ -168,6 +168,8 @@ namespace ProjectX.UI
             if (firstRect != null && secondRect != null)
                 secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
             SetTab(second, "设置", true);
+            Image secondBackground = second.GetComponent<Image>();
+            if (secondBackground != null) secondBackground.enabled = false;
             settingsTabButton = EnsureButton(second);
             settingsTabButton.onClick.RemoveAllListeners();
             settingsTabButton.interactable = false;
@@ -312,7 +314,9 @@ namespace ProjectX.UI
 
         private static void SetTab(Transform tab, string value, bool selected)
         {
-            SetText(tab.Find("BtnName"), value);
+            Transform normalLabel = tab.Find("BtnName");
+            SetText(normalLabel, value);
+            if (normalLabel != null) normalLabel.gameObject.SetActive(!selected);
             SetText(tab.Find("ChooseBg/BtnName"), value);
             Transform choose = tab.Find("ChooseBg");
             if (choose != null) choose.gameObject.SetActive(selected);

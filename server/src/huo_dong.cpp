@@ -4967,10 +4967,55 @@ bool CHuoDongAwardManager::InitInfo()
 
 bool CHuoDongAwardManager::InitZhaDan()
 {
+	if(!InitHappyWheelConfig())
+		return false;
 	if(!InitZhaDanInfo())
 		return false;
 	if(!InitZhaDanHistory())
 		return false;
+	return true;
+}
+
+bool CHuoDongAwardManager::InitHappyWheelConfig()
+{
+	const string file = "happywheel.json";
+	const char *keys[] = {
+		"enabled", "reward_type", "cost_item_id", "single_draw_count", "single_key_cost",
+		"multi_draw_count", "multi_key_cost", "score_per_draw", "score_ext32_idx",
+		"daily_reset_ext32_idx", "history_limit", "display_slot_count", "insufficient_tip"
+	};
+	const int types[] = {
+		EJPT_INT, EJPT_INT, EJPT_INT, EJPT_INT, EJPT_INT,
+		EJPT_INT, EJPT_INT, EJPT_INT, EJPT_INT,
+		EJPT_INT, EJPT_INT, EJPT_INT, EJPT_STRING
+	};
+	rapidjson::Document document;
+	rapidjson::Value rows;
+	if(!LoadJosnValue(file, keys, types, sizeof(types) / sizeof(types[0]), document, rows)
+		|| rows.Size() != 1)
+		return false;
+
+	const rapidjson::Value &row = rows[0];
+	SHappyWheelConfig config;
+	config.enabled = (uint8)row[keys[0]].GetInt();
+	config.rewardType = (uint8)row[keys[1]].GetInt();
+	config.costItem = (uint16)row[keys[2]].GetInt();
+	config.singleDrawCount = (uint8)row[keys[3]].GetInt();
+	config.singleKeyCost = (uint8)row[keys[4]].GetInt();
+	config.multiDrawCount = (uint8)row[keys[5]].GetInt();
+	config.multiKeyCost = (uint8)row[keys[6]].GetInt();
+	config.scorePerDraw = (uint16)row[keys[7]].GetInt();
+	config.scoreExt32Idx = (uint16)row[keys[8]].GetInt();
+	config.dailyResetExt32Idx = (uint16)row[keys[9]].GetInt();
+	config.historyLimit = (uint8)row[keys[10]].GetInt();
+	config.displaySlotCount = (uint8)row[keys[11]].GetInt();
+	config.insufficientTip = row[keys[12]].GetString();
+	if(config.rewardType < 2 || config.costItem == 0 || config.singleDrawCount == 0
+		|| config.singleKeyCost == 0 || config.multiDrawCount == 0 || config.multiKeyCost == 0
+		|| config.scorePerDraw == 0 || config.displaySlotCount == 0 || config.historyLimit == 0
+		|| config.insufficientTip.empty())
+		return false;
+	m_happyWheelConfig = config;
 	return true;
 }
 
@@ -4995,8 +5040,11 @@ bool CHuoDongAwardManager::InitZhaDanInfo()
 		m_ybMaxRate = 0;
 		m_copyZhaDan.clear();
 		m_copyMaxRate = 0;
+		m_happyWheel.clear();
+		m_happyWheelMaxRate = 0;
 		uint32 rate = 0;
 		uint32 cpRate = 0;
+		uint32 happyWheelRate = 0;
 		
 		while((row = pDb->GetRow()) != NULL)
 		{
@@ -5032,6 +5080,17 @@ bool CHuoDongAwardManager::InitZhaDanInfo()
 				rate += (uint32)atoi(row[5]);
 				m_ybZhaDan.push_back(info);
 				m_ybMaxRate += (uint32)atoi(row[5]);
+			}
+			else if (info.type == m_happyWheelConfig.rewardType)
+			{
+				if (atoi(row[5]) != 0)
+					info.rate = happyWheelRate + (uint32)atoi(row[5]);
+				else
+					info.rate = 0;
+
+				happyWheelRate += (uint32)atoi(row[5]);
+				m_happyWheel.push_back(info);
+				m_happyWheelMaxRate += (uint32)atoi(row[5]);
 			}
 		}
 	}
@@ -6630,6 +6689,21 @@ void CHuoDongAwardManager::GetZhaDanShowInfo(vector<struct SZhaDanInfo> &info, i
 				info.push_back(m_copyZhaDan[i]);
 		}
 	}
+	else if (type == m_happyWheelConfig.rewardType)
+	{
+		for (uint32 i = 0; i < m_happyWheel.size(); i++)
+		{
+			if (m_happyWheel[i].isShow)
+				info.push_back(m_happyWheel[i]);
+		}
+	}
+}
+
+bool CHuoDongAwardManager::GetHappyWheelConfig(SHappyWheelConfig &config)
+{
+	boost::recursive_mutex::scoped_lock lk(m_mutex);
+	config = m_happyWheelConfig;
+	return config.enabled == 1;
 }
 
 uint32 CHuoDongAwardManager::GetHDRandAwardIdx(HDRandAwardList &info,uint32 maxRate)
@@ -6848,12 +6922,12 @@ bool CHuoDongAwardManager::AddHDRandAward(CUser *pUser,  uint32 huodong_type, ui
 	return true;
 }
 
-bool CHuoDongAwardManager::AddZhaDanAward(CUser *pUser, uint32 count, uint8 type, vector<string> &myHisTory, vector<string> &publicHistory, uint32 costYB, int& idx)
+bool CHuoDongAwardManager::AddZhaDanAward(CUser *pUser, uint32 count, uint8 type, vector<string> &myHisTory, vector<string> &publicHistory, uint32 costYB, int& idx, vector<uint8> *awardIndexes)
 {
 	if(pUser == NULL)
 		return false;
 
-	if (type != 1 && type != 0)
+	if (type != 1 && type != 0 && type != m_happyWheelConfig.rewardType)
 		return false;
 
 	vector<SZhaDanInfo> *info = &m_ybZhaDan;
@@ -6863,6 +6937,13 @@ bool CHuoDongAwardManager::AddZhaDanAward(CUser *pUser, uint32 count, uint8 type
 		info = &m_copyZhaDan;
 		maxRate = m_copyMaxRate;
 	}
+	else if (type == m_happyWheelConfig.rewardType)
+	{
+		info = &m_happyWheel;
+		maxRate = m_happyWheelMaxRate;
+	}
+	if (info->empty() || maxRate == 0)
+		return false;
 
 	for (uint32 i = 0; i < count; i++)
 	{
@@ -6898,6 +6979,8 @@ bool CHuoDongAwardManager::AddZhaDanAward(CUser *pUser, uint32 count, uint8 type
 			ItemCurrencyLog(pUser->GetRoleId(),(*(info))[index].award,(*(info))[index].num,0,costYB,pUser->GetTongBao(), YBL_ZADAN_CHUIZI);
 		}
 		idx = index;
+		if (awardIndexes != NULL)
+			awardIndexes->push_back((uint8)index);
 	}
 	if (publicHistory.size() > 0)
 		AddZhaDanPubHistory(pUser->GetRoleId(), publicHistory);

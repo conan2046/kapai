@@ -17382,8 +17382,21 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 	case HD_ZHA_DAN_COPY:
 		{
 			CHuoDongAwardManager &awardManager = SingletonCHuoDongAwardManager::instance();
+			CGetDbConnect happyWheelDb;
+			CDatabaseSql *happyWheelDatabase = happyWheelDb.GetDbConnect();
+			const bool isStandaloneHappyWheel = op == HD_ZHA_DAN
+				&& happyWheelDatabase != NULL && happyWheelDatabase->IsSqlite();
+			SHappyWheelConfig happyWheelConfig;
+			if (isStandaloneHappyWheel && !awardManager.GetHappyWheelConfig(happyWheelConfig))
+			{
+				msg << PRO_ERROR << MakeStringColor(LANGUAGE_TRANSFORM_1607, TIPS_FAILURE_COLOR);
+				m_socketServer.SendMsg(pUser->GetSock(), msg);
+				return;
+			}
 			uint32 ext32Idx = 0;
-			if (awardManager.InHuoDongTime(CHuoDongAwardManager::ZHA_DAN))
+			if (isStandaloneHappyWheel)
+				ext32Idx = happyWheelConfig.scoreExt32Idx;
+			else if (awardManager.InHuoDongTime(CHuoDongAwardManager::ZHA_DAN))
 				ext32Idx = 12;
 			else if (awardManager.InHuoDongTime(CHuoDongAwardManager::ZHA_DAN_COPY))
 				ext32Idx = 468;
@@ -17394,20 +17407,40 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 				type = CHuoDongAwardManager::ZHA_DAN_COPY;
 				awardType = 0;
 			}
-			const uint32 AWARD_NUM = 10;
-			const uint16 YAO_SHI = 2384;
+			if (isStandaloneHappyWheel)
+				awardType = happyWheelConfig.rewardType;
+			const uint32 AWARD_NUM = isStandaloneHappyWheel
+				? happyWheelConfig.displaySlotCount : 10;
+			const uint16 YAO_SHI = isStandaloneHappyWheel
+				? happyWheelConfig.costItem : 2384;
 	
-			if (!awardManager.InHuoDongTime(type))
+			if (!isStandaloneHappyWheel && !awardManager.InHuoDongTime(type))
 				return;
-			uint32 endTime = awardManager.GetHuoDongEndTime(type);
 			uint32 curTime = GetSysTime();
-			if (pUser->GetExtData32(469) <= curTime)
+			uint32 endTime = isStandaloneHappyWheel ? 0 : awardManager.GetHuoDongEndTime(type);
+			uint32 resetExt32Idx = isStandaloneHappyWheel
+				? happyWheelConfig.dailyResetExt32Idx : 469;
+			if (pUser->GetExtData32(resetExt32Idx) <= curTime)
 			{
 				pUser->ClearZhaDanHistory();
-				pUser->SetExtData32(469, endTime);
+				if (isStandaloneHappyWheel)
+				{
+					uint32 secondsToMidnight = 24*3600 - GetHour()*3600
+						- GetMinute()*60 - GetSysTime()%60;
+					pUser->SetExtData32(resetExt32Idx, curTime + secondsToMidnight);
+				}
+				else
+					pUser->SetExtData32(resetExt32Idx, endTime);
 			}
 			HDPeiZhiInfo zhaDanCostInfo;
-			awardManager.GetPeiZhiInfo(zhaDanCostInfo, type, 1);
+			if (isStandaloneHappyWheel)
+			{
+				zhaDanCostInfo.index = 1;
+				zhaDanCostInfo.count = happyWheelConfig.singleKeyCost;
+				zhaDanCostInfo.YB = 0;
+			}
+			else
+				awardManager.GetPeiZhiInfo(zhaDanCostInfo, type, 1);
 			if (zhaDanCostInfo.index != 1)
 			{
 				msg << PRO_ERROR << MakeStringColor(LANGUAGE_TRANSFORM_1607, TIPS_FAILURE_COLOR);
@@ -17427,22 +17460,27 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 			msg>>op1;
 			if (op1 == 1) // 查看状态
 			{
-				int hour = GetHour();
-				int minute = GetMinute();
-				int second = GetSysTime()%60;
-				int leftTime = 24*3600 - hour*3600 - minute*60 - second;
-				
-				int endSec = endTime > curTime ? endTime - curTime : 0;
-				leftTime = endSec;
+				int leftTime = 0;
+				int endSec = 0;
+				if (isStandaloneHappyWheel)
+					endSec = pUser->GetExtData32(resetExt32Idx) > curTime
+						? pUser->GetExtData32(resetExt32Idx) - curTime : 0;
+				else
+				{
+					endSec = endTime > curTime ? endTime - curTime : 0;
+					leftTime = endSec;
+				}
 				msg<<PRO_SUCCESS<<pUser->GetExtData32(ext32Idx)<< leftTime << endSec;
 
 				msg<<(uint8)(AWARD_NUM);
-				for (uint32 i = 0; i < zhaDanInfo.size(); i++)
+				uint32 sentAwardCount = 0;
+				for (uint32 i = 0; i < zhaDanInfo.size() && sentAwardCount < AWARD_NUM; i++)
 				{
-					if (zhaDanInfo[i].isJinPin == 0)
+					if (isStandaloneHappyWheel || zhaDanInfo[i].isJinPin == 0)
 					{
 						UniversalMakeAwardMsg(zhaDanInfo[i].award, zhaDanInfo[i].num, zhaDanInfo[i].petQt, zhaDanInfo[i].petQtLv, msg);
 						msg << zhaDanInfo[i].isJinPin;
+						sentAwardCount++;
 					}
 				}
 
@@ -17456,27 +17494,50 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 					msg<<myHistory[i].c_str();
 				}
 
-				awardManager.GetZhaDanPubHistory(publicHistory);
+				if (!isStandaloneHappyWheel)
+					awardManager.GetZhaDanPubHistory(publicHistory);
 				msg<<(uint8)publicHistory.size();
 				for (uint32 i = 0; i < publicHistory.size(); i++)
 				{
 					msg<<publicHistory[i].c_str();
 				}
+				if (isStandaloneHappyWheel)
+				{
+					msg << (uint8)1 << happyWheelConfig.costItem
+						<< happyWheelConfig.singleDrawCount << happyWheelConfig.singleKeyCost
+						<< happyWheelConfig.multiDrawCount << happyWheelConfig.multiKeyCost
+						<< happyWheelConfig.scorePerDraw << happyWheelConfig.historyLimit;
+				}
 				m_socketServer.SendMsg(pUser->GetSock(),msg);
 			}
 			else if (op1 ==2) // 领取
 			{
-				const uint8 MAX_LOG_NUM = 10;
+				const uint8 MAX_LOG_NUM = isStandaloneHappyWheel
+					? happyWheelConfig.historyLimit : 10;
 				uint8 op_type = 0xff;  // 0 单抽  1 十连
 				msg>>op_type;
-				uint32 count = op_type == 0 ? 1 : 10;
+				if (op_type > 1)
+				{
+					msg << PRO_ERROR << MakeStringColor(LANGUAGE_TRANSFORM_1607, TIPS_FAILURE_COLOR);
+					m_socketServer.SendMsg(pUser->GetSock(), msg);
+					return;
+				}
+				uint32 count = op_type == 0
+					? (isStandaloneHappyWheel ? happyWheelConfig.singleDrawCount : 1)
+					: (isStandaloneHappyWheel ? happyWheelConfig.multiDrawCount : 10);
 
 				int needNum = 0;
 				if (op_type == 0)
-					needNum = 1;
+					needNum = isStandaloneHappyWheel ? happyWheelConfig.singleKeyCost : 1;
 				else
-					needNum = 9;
+					needNum = isStandaloneHappyWheel ? happyWheelConfig.multiKeyCost : 9;
 				int hasNum = pUser->GetItemNum(YAO_SHI);
+				if (isStandaloneHappyWheel && hasNum < needNum)
+				{
+					msg << PRO_ERROR << happyWheelConfig.insufficientTip.c_str();
+					m_socketServer.SendMsg(pUser->GetSock(), msg);
+					return;
+				}
 				int needBuy = hasNum < needNum ? needNum - hasNum : 0;
 
 				int costYB = zhaDanCostInfo.YB * needBuy;
@@ -17489,17 +17550,31 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 				}
 
 				vector<string> myHistory, publicHistory;
+				vector<uint8> awardIndexes;
 				int awardIdx = 0;
-				if (!awardManager.AddZhaDanAward(pUser, count, awardType, myHistory, publicHistory, costYB, awardIdx))
+				if (!awardManager.AddZhaDanAward(pUser, count, awardType, myHistory, publicHistory,
+					costYB, awardIdx, isStandaloneHappyWheel ? &awardIndexes : NULL))
+				{
+					msg << PRO_ERROR << MakeStringColor(LANGUAGE_TRANSFORM_1607, TIPS_FAILURE_COLOR);
+					m_socketServer.SendMsg(pUser->GetSock(), msg);
 					return;
+				}
 
 				pUser->DelPackageById(YAO_SHI, needNum);
 				pUser->AddTongBao(-costYB);
-				pUser->SetExtData32(ext32Idx,pUser->GetExtData32(ext32Idx)+count*10);
+				pUser->SetExtData32(ext32Idx,pUser->GetExtData32(ext32Idx)
+					+ count * (isStandaloneHappyWheel ? happyWheelConfig.scorePerDraw : 10));
 				msg<<PRO_SUCCESS<<pUser->GetExtData32(ext32Idx)<<(uint8)awardIdx;
 
 				if (myHistory.size() > 0)
-					pUser->SetZhaDanHistory(myHistory);	
+				{
+					pUser->SetZhaDanHistory(myHistory);
+					if (isStandaloneHappyWheel)
+					{
+						myHistory.clear();
+						pUser->GetZhaDanHistory(myHistory);
+					}
+				}
 				
 				uint8 size = (uint8)myHistory.size();
 				uint8 index;
@@ -17531,9 +17606,15 @@ void CPackageDeal::HuoDongTmpOption(CNetMessage *pMsg,int sock)
 					index = 0;
 				}
 
-				for (uint32 i = 0; i < publicHistory.size(); i++)
+				for (uint32 i = index; i < publicHistory.size(); i++)
 				{
 					msg<<publicHistory[i].c_str();
+				}
+				if (isStandaloneHappyWheel)
+				{
+					msg << (uint8)1 << (uint8)awardIndexes.size();
+					for (uint32 i = 0; i < awardIndexes.size(); i++)
+						msg << awardIndexes[i];
 				}
 				m_socketServer.SendMsg(pUser->GetSock(),msg);
 			}

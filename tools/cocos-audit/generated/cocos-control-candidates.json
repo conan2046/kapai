@@ -3281,19 +3281,17 @@
       "variable": "self.m_pUILayer",
       "path": "self.m_pUILayer",
       "event": "registerScriptHandler",
-      "callback": "self.m_pUILayer:registerScriptHandler(onNodeEvent) self:RegistMsgs() self:initButtonGroup() self:initBtns() self:InitData() self:InitOther() self:InitTouchEvt() self:ShowHeroInfo() self:QueryDataEnterGame() GameSdk:updateQuickPlayerInfo() LGameMsg.m_baseMsgWithOne:Change(LUILogicEvent.addBattleMenu) self:SendMsg(LGameMsg.m_baseMsgWithOne) performWithDelay(se",
+      "callback": "self.m_pUILayer:registerScriptHandler(onNodeEvent) self:RegistMsgs() self:initButtonGroup() self:initBtns() self:InitData() self:InitOther() self:InitTouchEvt() self:ShowHeroInfo() self:QueryDataEnterGame() if AppDef.LOCAL_TEST and AppDef.LOCAL_TEST_RUNTIME_SNAPSHOT_MODULE == \"Draw\" then local ok, replay = pcall(require, \"Validation.RuntimeSnapshotReplay\") i",
       "moduleTargets": [],
       "uiTargets": [],
       "protocolSymbols": [],
-      "csbRefs": [
-        "csd/common/UImain_cloudLayer.csb"
-      ],
+      "csbRefs": [],
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:377:coinAddBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:386:coinAddBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 377,
+      "line": 386,
       "function": "MainUI:InitData",
       "variable": "coinAddBtn",
       "path": "AddBtn",
@@ -3308,9 +3306,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:385:tiliAddBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:394:tiliAddBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 385,
+      "line": 394,
       "function": "MainUI:InitData",
       "variable": "tiliAddBtn",
       "path": "AddBtn",
@@ -3323,9 +3321,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1706:self.m_pHeroTgtHead:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1715:self.m_pHeroTgtHead:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1706,
+      "line": 1715,
       "function": "MainUI:ShowOneHeroTarget",
       "variable": "self.m_pHeroTgtHead",
       "path": "self.m_pHeroTgtHead",
@@ -3338,9 +3336,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1757:heroBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1766:heroBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1757,
+      "line": 1766,
       "function": "MainUI:ShowHeroTargetList",
       "variable": "heroBtn",
       "path": "heroBtn",
@@ -3353,9 +3351,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1768:panel:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1777:panel:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1768,
+      "line": 1777,
       "function": "MainUI:InitTouchEvt",
       "variable": "panel",
       "path": "panel",
@@ -3368,9 +3366,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1803:roleBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1812:roleBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1803,
+      "line": 1812,
       "function": "MainUI:InitTouchEvt",
       "variable": "roleBtn",
       "path": "Head",
@@ -3383,9 +3381,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1821:petEquipBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1830:petEquipBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1821,
+      "line": 1830,
       "function": "MainUI:InitTouchEvt",
       "variable": "petEquipBtn",
       "path": "petEquipBtn",
@@ -3400,9 +3398,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1846:btn_zhuangbei:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1855:btn_zhuangbei:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1846,
+      "line": 1855,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_zhuangbei",
       "path": "btn_zhuangbei",
@@ -3418,9 +3416,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1851:btn_fabao:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1860:btn_fabao:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1851,
+      "line": 1860,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_fabao",
       "path": "btn_fabao",
@@ -3436,9 +3434,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1875:bagBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1884:bagBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1875,
+      "line": 1884,
       "function": "MainUI:InitTouchEvt",
       "variable": "bagBtn",
       "path": "bagBtn",
@@ -3453,9 +3451,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1901:self.m_pFirstRechargeBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1910:self.m_pFirstRechargeBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1901,
+      "line": 1910,
       "function": "MainUI:InitTouchEvt",
       "variable": "self.m_pFirstRechargeBtn",
       "path": "self.m_pFirstRechargeBtn",
@@ -3471,9 +3469,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1909:petZheKou:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1918:petZheKou:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1909,
+      "line": 1918,
       "function": "MainUI:InitTouchEvt",
       "variable": "petZheKou",
       "path": "petZheKou",
@@ -3491,9 +3489,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1919:btn_Denglu:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1928:btn_Denglu:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1919,
+      "line": 1928,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_Denglu",
       "path": "btn_Denglu",
@@ -3510,9 +3508,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1928:btn_kaifuRank:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1937:btn_kaifuRank:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1928,
+      "line": 1937,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_kaifuRank",
       "path": "btn_kaifuRank",
@@ -3530,9 +3528,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1937:btn_zhuanpan:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1946:btn_zhuanpan:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1937,
+      "line": 1946,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_zhuanpan",
       "path": "btn_zhuanpan",
@@ -3550,9 +3548,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1944:self._huodong:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1953:self._huodong:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1944,
+      "line": 1953,
       "function": "MainUI:InitTouchEvt",
       "variable": "self._huodong",
       "path": "self._huodong",
@@ -3570,9 +3568,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1952:self._fuli:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1961:self._fuli:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1952,
+      "line": 1961,
       "function": "MainUI:InitTouchEvt",
       "variable": "self._fuli",
       "path": "self._fuli",
@@ -3588,9 +3586,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1959:taskBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1968:taskBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1959,
+      "line": 1968,
       "function": "MainUI:InitTouchEvt",
       "variable": "taskBtn",
       "path": "taskBtn",
@@ -3605,9 +3603,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1971:activityBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1980:activityBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1971,
+      "line": 1980,
       "function": "MainUI:InitTouchEvt",
       "variable": "activityBtn",
       "path": "activityBtn",
@@ -3623,9 +3621,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1978:chouKaBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1987:chouKaBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1978,
+      "line": 1987,
       "function": "MainUI:InitTouchEvt",
       "variable": "chouKaBtn",
       "path": "chouKaBtn",
@@ -3641,9 +3639,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:1985:rankBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:1994:rankBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 1985,
+      "line": 1994,
       "function": "MainUI:InitTouchEvt",
       "variable": "rankBtn",
       "path": "rankBtn",
@@ -3659,9 +3657,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2002:bpActBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2011:bpActBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2002,
+      "line": 2011,
       "function": "MainUI:InitTouchEvt",
       "variable": "bpActBtn",
       "path": "bpActBtn",
@@ -3676,9 +3674,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2009:petBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2018:petBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2009,
+      "line": 2018,
       "function": "MainUI:InitTouchEvt",
       "variable": "petBtn",
       "path": "petBtn",
@@ -3694,9 +3692,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2022:zhujueBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2031:zhujueBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2022,
+      "line": 2031,
       "function": "MainUI:InitTouchEvt",
       "variable": "zhujueBtn",
       "path": "zhujueBtn",
@@ -3713,9 +3711,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2032:settingBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2041:settingBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2032,
+      "line": 2041,
       "function": "MainUI:InitTouchEvt",
       "variable": "settingBtn",
       "path": "settingBtn",
@@ -3732,9 +3730,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2041:mailBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2050:mailBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2041,
+      "line": 2050,
       "function": "MainUI:InitTouchEvt",
       "variable": "mailBtn",
       "path": "mailBtn",
@@ -3750,9 +3748,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2049:friendBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2058:friendBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2049,
+      "line": 2058,
       "function": "MainUI:InitTouchEvt",
       "variable": "friendBtn",
       "path": "friendBtn",
@@ -3767,9 +3765,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2056:huishouBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2065:huishouBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2056,
+      "line": 2065,
       "function": "MainUI:InitTouchEvt",
       "variable": "huishouBtn",
       "path": "huishouBtn",
@@ -3784,9 +3782,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2061:fuben:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2070:fuben:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2061,
+      "line": 2070,
       "function": "MainUI:InitTouchEvt",
       "variable": "fuben",
       "path": "fuben",
@@ -3801,9 +3799,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2068:zhekouBtn1:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2077:zhekouBtn1:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2068,
+      "line": 2077,
       "function": "MainUI:InitTouchEvt",
       "variable": "zhekouBtn1",
       "path": "zhekouBtn1",
@@ -3819,9 +3817,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2070:zhekouBtn2:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2079:zhekouBtn2:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2070,
+      "line": 2079,
       "function": "MainUI:InitTouchEvt",
       "variable": "zhekouBtn2",
       "path": "zhekouBtn2",
@@ -3837,9 +3835,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2072:zhekouBtn3:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2081:zhekouBtn3:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2072,
+      "line": 2081,
       "function": "MainUI:InitTouchEvt",
       "variable": "zhekouBtn3",
       "path": "zhekouBtn3",
@@ -3855,9 +3853,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2081:NormalShopBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2090:NormalShopBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2081,
+      "line": 2090,
       "function": "MainUI:InitTouchEvt",
       "variable": "NormalShopBtn",
       "path": "btn_shangcheng",
@@ -3874,9 +3872,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2090:btn_jianghun:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2099:btn_jianghun:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2090,
+      "line": 2099,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_jianghun",
       "path": "btn_jianghun",
@@ -3892,9 +3890,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2098:btn_wanfaShop:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2107:btn_wanfaShop:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2098,
+      "line": 2107,
       "function": "MainUI:InitTouchEvt",
       "variable": "btn_wanfaShop",
       "path": "btn_wanfa",
@@ -3909,9 +3907,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2107:rechargeBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2116:rechargeBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2107,
+      "line": 2116,
       "function": "MainUI:InitTouchEvt",
       "variable": "rechargeBtn",
       "path": "rechargeBtn",
@@ -3926,9 +3924,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2113:qiriBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2122:qiriBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2113,
+      "line": 2122,
       "function": "MainUI:InitTouchEvt",
       "variable": "qiriBtn",
       "path": "qiriBtn",
@@ -3943,9 +3941,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2128:VipBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2137:VipBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2128,
+      "line": 2137,
       "function": "MainUI:InitTouchEvt",
       "variable": "VipBtn",
       "path": "VipBtn",
@@ -3960,9 +3958,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2151:shopBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2160:shopBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2151,
+      "line": 2160,
       "function": "MainUI:InitTouchEvt",
       "variable": "shopBtn",
       "path": "shopBtn",
@@ -3975,9 +3973,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2228:petBagBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2237:petBagBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2228,
+      "line": 2237,
       "function": "MainUI:InitTouchEvt",
       "variable": "petBagBtn",
       "path": "petBagBtn",
@@ -3990,9 +3988,9 @@
       "reachability": "static-candidate"
     },
     {
-      "id": "client/ProjectX/src/View/MainUI.lua:2251:onLineBtn:addClickEventListener",
+      "id": "client/ProjectX/src/View/MainUI.lua:2260:onLineBtn:addClickEventListener",
       "source": "client/ProjectX/src/View/MainUI.lua",
-      "line": 2251,
+      "line": 2260,
       "function": "MainUI:InitTouchEvt",
       "variable": "onLineBtn",
       "path": "onLineBtn",

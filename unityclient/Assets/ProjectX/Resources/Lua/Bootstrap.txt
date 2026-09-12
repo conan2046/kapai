@@ -28,6 +28,8 @@ local KunLunController = require("Gameplay.KunLunController")
 local BloodFightController = require("Gameplay.BloodFightController")
 local XunBaoController = require("Gameplay.XunBaoController")
 local SevenDayController = require("Gameplay.SevenDayController")
+local MoneyTreeController = require("Gameplay.MoneyTreeController")
+local HappyWheelController = require("Gameplay.HappyWheelController")
 local StaminaClaimController = require("StaminaClaim.StaminaClaimController")
 local ResourceRecoveryController = require("ResourceRecovery.ResourceRecoveryController")
 local FundsController = require("Funds.FundsController")
@@ -49,6 +51,9 @@ function OnDisconnected(reason)
     ShopController.onDisconnected()
     GameplayShopController.onDisconnected()
     SevenDayController.onDisconnected()
+    MoneyTreeController.reset()
+    HappyWheelController.reset()
+    FundsController.reset()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
 end
 function OnLoginClicked() LoginController.onLoginClicked() end
@@ -189,6 +194,10 @@ function OnXunBaoCompose(faBaoId) XunBaoController.compose(faBaoId) end
 function OnXunBaoComposeAll() XunBaoController.composeAll() end
 function OnSevenDayClicked() SevenDayController.onClick() end
 function OnSevenDayClaim(id) SevenDayController.claim(id) end
+function OnMoneyTreeClicked(functionId) MoneyTreeController.onClick(functionId) end
+function OnMoneyTreeShake(treeType) MoneyTreeController.shake(treeType) end
+function OnHappyWheelClicked(functionId) HappyWheelController.onClick(functionId) end
+function OnHappyWheelSpin(drawType) HappyWheelController.spin(drawType) end
 function OnStaminaClaimClicked() StaminaClaimController.onClick() end
 function OnStaminaClaimRequest(index, paid) StaminaClaimController.claim(index, paid) end
 function OnStaminaClaimRefresh() StaminaClaimController.refresh() end
@@ -208,8 +217,14 @@ function OnPacket(command, message)
         Bridge:SetStatus("Unhandled /319 op=" .. tostring(operation) .. ".")
         return
     end
-    if FundsController.onPacket(command, message) then return end
-    if command == Protocol.TEMP_ACTIVITY then TempActivityController.onPacket(message); return end
+    if command == Protocol.TEMP_ACTIVITY then
+        local operation = message:ReadByte()
+        if MoneyTreeController.onOperation(operation, message) then return end
+        if HappyWheelController.onOperation(operation, message) then return end
+        if FundsController.onOperation(operation, message) then return end
+        TempActivityController.onOperation(operation, message)
+        return
+    end
     if LoginController.onPacket(command, message) then return end
     if StaminaClaimController.onPacket(command, message) then return end
     if ResourceRecoveryController.onPacket(command, message) then return end

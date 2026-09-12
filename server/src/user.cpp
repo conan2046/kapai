@@ -580,7 +580,21 @@ void CUser::InitZhaDanHistory()
 			startTime = awardManager.GetHuoDongStartTime(CHuoDongAwardManager::ZHA_DAN_COPY);
 			endTime = awardManager.GetHuoDongEndTime(CHuoDongAwardManager::ZHA_DAN_COPY);
 		}
-		snprintf(sql, sizeof(sql), "select data from zha_dan_log where type = 0 and role_id=%d and UNIX_TIMESTAMP(time) >= %u and  UNIX_TIMESTAMP(time) <= %u order by id desc limit 10;", GetRoleId(), startTime, endTime);
+		if (pDb->IsSqlite())
+		{
+			SHappyWheelConfig happyWheelConfig;
+			if (!awardManager.GetHappyWheelConfig(happyWheelConfig))
+				return;
+			snprintf(sql, sizeof(sql),
+				"delete from happy_wheel_log where role_id=%d and id not in "
+				"(select id from happy_wheel_log where role_id=%d order by id desc limit %u);",
+				GetRoleId(), GetRoleId(), happyWheelConfig.historyLimit);
+			if (!pDb->Query(sql))
+				return;
+			snprintf(sql, sizeof(sql), "select data from happy_wheel_log where role_id=%d and created_at >= CAST(strftime('%%s','now','localtime','start of day','utc') AS INTEGER) order by id desc limit %u;", GetRoleId(), happyWheelConfig.historyLimit);
+		}
+		else
+			snprintf(sql, sizeof(sql), "select data from zha_dan_log where type = 0 and role_id=%d and UNIX_TIMESTAMP(time) >= %u and  UNIX_TIMESTAMP(time) <= %u order by id desc limit 10;", GetRoleId(), startTime, endTime);
 		if(!pDb->Query(sql))
 			return;
 		int num = pDb->GetRowNum();
@@ -621,30 +635,52 @@ void CUser::SetZhaDanHistory(vector<string> &history)
 		return;
 
 	char sql[40960];
-	snprintf(sql, sizeof(sql), "insert INTO `zha_dan_log` (`id`,`type`, `role_id`, `data`) values ");
+	uint32 historyLimit = 10;
+	if (pDb->IsSqlite())
+	{
+		SHappyWheelConfig happyWheelConfig;
+		if (!SingletonCHuoDongAwardManager::instance().GetHappyWheelConfig(happyWheelConfig))
+			return;
+		historyLimit = happyWheelConfig.historyLimit;
+		snprintf(sql, sizeof(sql), "insert INTO `happy_wheel_log` (`role_id`, `data`, `created_at`) values ");
+	}
+	else
+		snprintf(sql, sizeof(sql), "insert INTO `zha_dan_log` (`id`,`type`, `role_id`, `data`) values ");
 
 	for (uint32 i = 0; i < history.size(); i++)
 	{
 		int size = strlen(sql);
-		snprintf(sql + size, sizeof(sql) - size, " (NULL, '%d','%d','%s'),", 0, GetRoleId(), history[i].c_str());
+		if (pDb->IsSqlite())
+			snprintf(sql + size, sizeof(sql) - size, " ('%d','%s','%u'),", GetRoleId(), history[i].c_str(), (uint32)GetSysTime());
+		else
+			snprintf(sql + size, sizeof(sql) - size, " (NULL, '%d','%d','%s'),", 0, GetRoleId(), history[i].c_str());
 	}
 	sql[strlen(sql) - 1] = ';';
 	pDb->Query(sql);
+	if (pDb->IsSqlite())
+	{
+		char trimSql[512];
+		snprintf(trimSql, sizeof(trimSql),
+			"delete from happy_wheel_log where role_id=%d and id not in "
+			"(select id from happy_wheel_log where role_id=%d order by id desc limit %u);",
+			GetRoleId(), GetRoleId(), historyLimit);
+		pDb->Query(trimSql);
+	}
 
 	uint32 size = history.size();
 	uint32 list_size = m_zhaDanHistory.size();
 
-	if (size >= 10)
+	if (size >= historyLimit)
 	{
 		m_zhaDanHistory.clear();
-		for (uint32 i = 0; i < 10; i++)
+		for (uint32 i = 0; i < historyLimit; i++)
 		{
-			m_zhaDanHistory.push_back(history[size - 10 + i]);
+			m_zhaDanHistory.push_back(history[size - historyLimit + i]);
 		}
 	}
-	else if ((size + list_size) > 10)
+	else if ((size + list_size) > historyLimit)
 	{
-		int pop_num = list_size + size -10;
+		int pop_num = list_size + size - historyLimit;
 		for (int i = 0; i< pop_num; i++)
 			m_zhaDanHistory.pop_front();
 

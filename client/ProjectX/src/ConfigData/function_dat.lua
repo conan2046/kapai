@@ -419,8 +419,8 @@ function_dat = {
 	},
 	{
 		function_id = 21,
-		name = "昆仑寻宝",
-		open_condition = {{1,99}},
+		name = "闯关",
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -433,16 +433,16 @@ function_dat = {
 		end_time = 0,
 		show_weekday = {0},
 		show = 0,
-		page = 0,
-		icon = "",
+		page = 1,
+		icon = "ui_main_icon_kunlunshan",
 		show_reward = {},
-		des = "",
-		level_show = 0
+		des = "掷骰闯关并触发地图事件、奖励与战斗。",
+		level_show = 1
 	},
 	{
 		function_id = 22,
 		name = "境界",
-		open_condition = {{1,99}},
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -464,7 +464,7 @@ function_dat = {
 	{
 		function_id = 23,
 		name = "摇钱树",
-		open_condition = {{1,99}},
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -477,11 +477,11 @@ function_dat = {
 		end_time = 0,
 		show_weekday = {0},
 		show = 0,
-		page = 0,
-		icon = "",
+		page = 1,
+		icon = "ui_icon_wanfa_yaoqianshu",
 		show_reward = {},
-		des = "",
-		level_show = 0
+		des = "消耗次数摇取金币或绑元奖励。",
+		level_show = 1
 	},
 	{
 		function_id = 24,
@@ -552,7 +552,7 @@ function_dat = {
 	{
 		function_id = 27,
 		name = "答题",
-		open_condition = {{1,99}},
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -595,8 +595,8 @@ function_dat = {
 	},
 	{
 		function_id = 29,
-		name = "转盘",
-		open_condition = {{1,99}},
+		name = "欢乐转盘",
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -609,16 +609,16 @@ function_dat = {
 		end_time = 0,
 		show_weekday = {0},
 		show = 0,
-		page = 0,
-		icon = "",
+		page = 1,
+		icon = "ui_main_icon_huanlezhuanpan",
 		show_reward = {},
-		des = "",
-		level_show = 0
+		des = "消耗转盘钥匙抽取活动奖励并累计积分。",
+		level_show = 1
 	},
 	{
 		function_id = 30,
 		name = "转盘积分商店",
-		open_condition = {{1,99}},
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -640,7 +640,7 @@ function_dat = {
 	{
 		function_id = 31,
 		name = "转盘元宝商店",
-		open_condition = {{1,99}},
+		open_condition = {{1,10}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,

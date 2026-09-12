@@ -3,12 +3,12 @@
   "source": "server/sql/local_min_schema.sql",
   "sourceSha256": "91C71452B603940A96DD35C98EE3B14F383C50A09405BB9871AAD903C311F022",
   "output": "server/sql/sqlite/001_initial_schema.sql",
-  "outputSha256": "AE52932FEFBBF6281EAE70BC4CF07F7AB27C3943D76917148D186C15BB52FF60",
+  "outputSha256": "7A657DD5CEBEF7B4F9AAD223827F9EAB028C70D8AAFC3B7D5F8F10DA5D97F07F",
   "validation": {
-    "tableCount": 174,
+    "tableCount": 175,
     "sourceTableCount": 173,
-    "columnCount": 1360,
-    "explicitIndexCount": 34,
+    "columnCount": 1364,
+    "explicitIndexCount": 35,
     "schemaVersionRows": [
       [
         1,
@@ -1230,6 +1230,13 @@
       "autoColumn": "id",
       "primary": "`id`",
       "indexCount": 0
+    },
+    {
+      "name": "happy_wheel_log",
+      "columnCount": 4,
+      "autoColumn": "id",
+      "primary": "`id`",
+      "indexCount": 1
     }
   ]
 }

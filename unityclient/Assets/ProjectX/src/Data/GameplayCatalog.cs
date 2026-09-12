@@ -15,6 +15,7 @@ namespace ProjectX.Data
         [JsonProperty("openLevel")] public int OpenLevel { get; set; }
         [JsonProperty("icon")] public string Icon { get; set; }
         [JsonProperty("description")] public string Description { get; set; }
+        [JsonProperty("route")] public string Route { get; set; }
         [JsonProperty("steamEnabled")] public bool? SteamEnabled { get; set; }
         [JsonProperty("migrationReady")] public bool? MigrationReady { get; set; }
     }
