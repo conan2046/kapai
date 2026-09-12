@@ -465,7 +465,7 @@ namespace ProjectX.UI
             IReadOnlyList<RewardRecord> values = AggregateRewards(rewards.Items);
             RewardRecord heroExperience = values.FirstOrDefault(value => value.Type == 60052);
             RewardRecord petExperience = values.FirstOrDefault(value => value.Type == 60006);
-            Debug.Log($"[ProjectX][World] Settlement render: playerLevel={player.Level}, playerExperience={player.Experience}, playerRewardExperience={heroExperience.Amount}, petRewardExperience={petExperience.Amount}, rewardCount={values.Count}.");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][World] Settlement render: playerLevel={player.Level}, playerExperience={player.Experience}, playerRewardExperience={heroExperience.Amount}, petRewardExperience={petExperience.Amount}, rewardCount={values.Count}.");
             RewardRecord[] money = values.Where(IsCocosMoneyReward).Take(4).ToArray();
             renderedMoneyRewardCount = money.Length;
             for (int index = 0; index < money.Length; index++)

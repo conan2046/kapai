@@ -445,7 +445,7 @@ namespace ProjectX.Core
         private WorldPresenter worldPresenter;
         private WorldOutcomePresenter worldOutcomePresenter;
         private WorldBattlePlaybackPresenter worldBattlePlaybackPresenter;
-        private enum BattlePlaybackContext { None, World, FengShenStory }
+        private enum BattlePlaybackContext { None, World, FengShenStory, Monopoly }
         private BattlePlaybackContext battlePlaybackContext;
         private Coroutine worldBattlePlaybackCoroutine;
         private bool pendingWorldBattleResult;
@@ -975,6 +975,15 @@ namespace ProjectX.Core
                 onSevenDayClaim = services.Lua.GetFunction("OnSevenDayClaim");
                 onMoneyTreeClicked = services.Lua.GetFunction("OnMoneyTreeClicked");
                 onMoneyTreeShake = services.Lua.GetFunction("OnMoneyTreeShake");
+                onMonopolyClicked = services.Lua.GetFunction("OnMonopolyClicked");
+                onMonopolyRoll = services.Lua.GetFunction("OnMonopolyRoll");
+                onMonopolyMoveEnd = services.Lua.GetFunction("OnMonopolyMoveEnd");
+                onMonopolyReset = services.Lua.GetFunction("OnMonopolyReset");
+                onMonopolyQueryBuy = services.Lua.GetFunction("OnMonopolyQueryBuy");
+                onMonopolyBuyRoll = services.Lua.GetFunction("OnMonopolyBuyRoll");
+                onMonopolyFightGuard = services.Lua.GetFunction("OnMonopolyFightGuard");
+                onMonopolyPlayHand = services.Lua.GetFunction("OnMonopolyPlayHand");
+                onMonopolyClose = services.Lua.GetFunction("OnMonopolyClose");
                 onHappyWheelClicked = services.Lua.GetFunction("OnHappyWheelClicked");
                 onHappyWheelSpin = services.Lua.GetFunction("OnHappyWheelSpin");
                 onStaminaClaimClicked = services.Lua.GetFunction("OnStaminaClaimClicked");
@@ -1161,6 +1170,9 @@ namespace ProjectX.Core
             onSevenDayClaim?.Dispose();
             onMoneyTreeClicked?.Dispose();
             onMoneyTreeShake?.Dispose();
+            onMonopolyClicked?.Dispose(); onMonopolyRoll?.Dispose(); onMonopolyMoveEnd?.Dispose(); onMonopolyReset?.Dispose();
+            onMonopolyQueryBuy?.Dispose(); onMonopolyBuyRoll?.Dispose(); onMonopolyFightGuard?.Dispose(); onMonopolyClose?.Dispose();
+            onMonopolyPlayHand?.Dispose();
             onHappyWheelClicked?.Dispose();
             onHappyWheelSpin?.Dispose();
             onStaminaClaimClicked?.Dispose();
@@ -1179,6 +1191,7 @@ namespace ProjectX.Core
             xunBaoComposeAllPresenter?.Dispose();
             sevenDayPresenter?.Dispose();
             moneyTreePresenter?.Dispose();
+            monopolyPresenter?.Dispose();
             happyWheelPresenter?.Dispose();
             staminaClaimPresenter?.Dispose();
             resourceRecoveryPresenter?.Dispose();
@@ -1368,6 +1381,7 @@ namespace ProjectX.Core
                 return true;
             }
             if (TryHandleMoneyTreeBack()) return true;
+            if (TryHandleMonopolyBack()) return true;
             if (TryHandleHappyWheelBack()) return true;
             if (IsGameplayOpen)
             {
@@ -2375,6 +2389,7 @@ namespace ProjectX.Core
                 case "Arena": InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena"); return;
                 case "XunBao": InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao"); return;
                 case "MoneyTree": InvokeLuaOrFail(onMoneyTreeClicked, "Gameplay.MoneyTree", (double)functionId); return;
+                case "Monopoly": InvokeLuaOrFail(onMonopolyClicked, "Gameplay.Monopoly", (double)functionId); return;
                 case "HappyWheel": InvokeLuaOrFail(onHappyWheelClicked, "Gameplay.HappyWheel", (double)functionId); return;
                 case "GameplayShop": HandleCommerceRoute(functionId); return;
                 case "ImportedPrefab": OpenConfiguredGameplayPrefab(definition, route); return;
@@ -2968,7 +2983,7 @@ namespace ProjectX.Core
                     Fail($"BattleFengShenStory Cocos side action groups mismatch: models={worldBattlePlaybackPresenter.DirectionalModelCount}, correct={worldBattlePlaybackPresenter.UnitDirectionalActionsCorrect}, states=[{worldBattlePlaybackPresenter.UnitDirectionalState}].");
                     yield break;
                 }
-                Debug.Log($"[ProjectX][BattleFengShenStory] Directional states: {worldBattlePlaybackPresenter.UnitDirectionalState}");
+                ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][BattleFengShenStory] Directional states: {worldBattlePlaybackPresenter.UnitDirectionalState}");
                 MarkValidationControl("BFSB-03-AUTO");
                 float speedBefore = worldBattlePlaybackPresenter.PlaybackSpeed;
                 if (!InvokeEventSystemRaycastClick(worldBattlePlaybackPresenter.SpeedInteractionButton))
@@ -5558,7 +5573,7 @@ namespace ProjectX.Core
                 graphics = entries,
                 utc = DateTime.UtcNow.ToString("O"),
             }, Formatting.Indented));
-            Debug.Log($"[BagG5] Runtime graphic census written: {path}; graphics={entries.Length}.");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[BagG5] Runtime graphic census written: {path}; graphics={entries.Length}.");
         }
 
         private static string GetTransformPath(Transform target, Transform stop)
@@ -8638,7 +8653,7 @@ namespace ProjectX.Core
                 Fail("Hero G4 occupied row did not update the selected hero/position.");
                 yield break;
             }
-            Debug.Log($"[HeroG4] Formation row switch passed: before={selectedBeforeClick}, "
+            ProjectX.Diagnostics.ClientLog.Verbose($"[HeroG4] Formation row switch passed: before={selectedBeforeClick}, "
                 + $"after={heroPresenter.SelectedId}, position={heroPresenter.SelectedPosition}.");
             if (heroId == 11 && (!heroPresenter.HasVisibleSkillIcon
                     || heroPresenter.VisibleSkillName != "业火焚心"))
@@ -8649,7 +8664,7 @@ namespace ProjectX.Core
             }
             if (heroId == 11)
             {
-                Debug.Log("[HeroG4] Hero 11 skill render passed: 业火焚心 / skill_111.");
+                ProjectX.Diagnostics.ClientLog.Verbose("[HeroG4] Hero 11 skill render passed: 业火焚心 / skill_111.");
             }
             yield return CaptureHeroG5Evidence("HERO-02-OCCUPIED-ROW");
             if (FindRuntimeHeroRowButton("FormationLocked_", false) != null)
@@ -10676,20 +10691,24 @@ namespace ProjectX.Core
                 bool fengShenStoryReplay = operation == 5
                     && (IsFengShenStoryOpen || (services.Options.BattleFengShenStoryValidation && !IsWorldOpen));
                 bool worldReplay = operation == 5 && IsWorldOpen && !fengShenStoryReplay;
-                if (worldReplay || fengShenStoryReplay)
+                bool monopolyReplay = operation == 5 && IsMonopolyOpen && !worldReplay && !fengShenStoryReplay;
+                if (worldReplay || fengShenStoryReplay || monopolyReplay)
                 {
                     try
                     {
                         services.WorldBattleReplay.Load(message, 5);
-                        battlePlaybackContext = fengShenStoryReplay
-                            ? BattlePlaybackContext.FengShenStory : BattlePlaybackContext.World;
+                        battlePlaybackContext = fengShenStoryReplay ? BattlePlaybackContext.FengShenStory
+                            : monopolyReplay ? BattlePlaybackContext.Monopoly : BattlePlaybackContext.World;
                         if (fengShenStoryReplay && services.WorldBattleReplay.FightType != 19)
                             throw new InvalidDataException($"FengShenStory battle expected fightType=19, got {services.WorldBattleReplay.FightType}.");
+                        if (monopolyReplay && services.WorldBattleReplay.FightType != 21)
+                            throw new InvalidDataException($"Monopoly battle expected fightType=21, got {services.WorldBattleReplay.FightType}.");
+                        if (monopolyReplay) PrepareMonopolyBattlePlayback();
                         BeginWorldBattlePlayback();
                     }
                     catch (Exception exception)
                     {
-                        Fail($"{(fengShenStoryReplay ? "FengShenStory" : "World")} /38 battle replay failed: {exception.Message}");
+                        Fail($"{(fengShenStoryReplay ? "FengShenStory" : monopolyReplay ? "Monopoly" : "World")} /38 battle replay failed: {exception.Message}");
                     }
                     return;
                 }
@@ -10719,7 +10738,7 @@ namespace ProjectX.Core
                 && battlePlaybackContext == BattlePlaybackContext.FengShenStory;
             worldBattlePlaybackPresenter.Show();
             foreach (WorldBattleUnitRecord unit in replay.Units)
-                Debug.Log($"WORLD_BATTLE_UNIT_DATA position={unit.Position} type={unit.Type} picture={unit.Picture} "
+                ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_UNIT_DATA position={unit.Position} type={unit.Type} picture={unit.Picture} "
                     + $"quality={unit.Quality} scale={unit.ScaleRatio:0.##} state={unit.State} buffs={string.Join(",", unit.BuffIds)}");
             if (services.Options.WorldBattleValidation)
             {
@@ -10732,7 +10751,9 @@ namespace ProjectX.Core
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-START.png"));
             }
-            SetStatus($"{(battlePlaybackContext == BattlePlaybackContext.FengShenStory ? "FengShenStory" : "World")} authoritative /38 replay active: fight={replay.FightId}, units={replay.Units.Count}, actionGroups={replay.Actions.Count}.");
+            string playbackOwner = battlePlaybackContext == BattlePlaybackContext.FengShenStory ? "FengShenStory"
+                : battlePlaybackContext == BattlePlaybackContext.Monopoly ? "Monopoly" : "World";
+            SetStatus($"{playbackOwner} authoritative /38 replay active: fight={replay.FightId}, units={replay.Units.Count}, actionGroups={replay.Actions.Count}.");
             float battleStartElapsed = 0f;
             while (battleStartElapsed < 1.12f)
             {
@@ -10787,10 +10808,10 @@ namespace ProjectX.Core
                 bool actionHasPassiveCarry = preservePassiveDamage;
                 worldBattlePlaybackPresenter.BeginAction(action, actionHasPassiveCarry);
                 preservePassiveDamage = false;
-                Debug.Log($"WORLD_BATTLE_PRESENTATION sequence={action.Sequence} {worldBattlePlaybackPresenter.LastActionTrace}");
+                ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_PRESENTATION sequence={action.Sequence} {worldBattlePlaybackPresenter.LastActionTrace}");
                 string actionTargets = string.Join(",", action.Targets.Select(value =>
                     $"{value.Position}:hit={value.Hit}:crit={value.Critical}:damage={value.Damage}:healing={value.Healing}:state={value.State}:dead={value.Dead}:buffs=[{string.Join("/", value.BuffIds)}]"));
-                Debug.Log($"WORLD_BATTLE_ACTION_DATA sequence={action.Sequence} round={action.Round} "
+                ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_ACTION_DATA sequence={action.Sequence} round={action.Round} "
                     + $"type={action.FirstActionType} source={action.FirstSourcePosition} skill={action.SkillId} "
                     + $"sourceState={action.SourceState} sourceBuffs=[{string.Join("/", action.SourceBuffIds)}] targets={actionTargets}");
                 if (services.Options.WorldBattleValidation)
@@ -10987,6 +11008,11 @@ namespace ProjectX.Core
             // queued; Continue/Replay performs the eventual lifecycle cleanup.
             if (!pendingWorldBattleResult) worldBattlePlaybackPresenter.Hide();
             worldBattlePlaybackCoroutine = null;
+            if (battlePlaybackContext == BattlePlaybackContext.Monopoly)
+            {
+                CompleteMonopolyBattlePlayback();
+                yield break;
+            }
             if (pendingWorldBattleResult)
             {
                 int stars = pendingWorldBattleStars;
@@ -11559,7 +11585,7 @@ namespace ProjectX.Core
             }
             string screenshot = BuildUiMigrationPath("steam-hud-exclusions.png");
             ScreenCapture.CaptureScreenshot(screenshot);
-            Debug.Log($"[SteamHudExclusionAcceptance] PASS hidden={paths.Length} screenshot={screenshot}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[SteamHudExclusionAcceptance] PASS hidden={paths.Length} screenshot={screenshot}");
         }
 
         private void BindHudBoundary(CocosUiView owner, string path, string message)
@@ -13279,7 +13305,7 @@ namespace ProjectX.Core
                     && !services.Formation.DisplayHeroes.Contains(item.Id))
                 .Take(6).ToArray();
             if (HasCommandLineFlag("-projectXDrawClosureValidation"))
-                Debug.Log($"[ProjectX][DrawClosure] replacement display=[{string.Join(",", services.Formation.DisplayHeroes)}] "
+                ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][DrawClosure] replacement display=[{string.Join(",", services.Formation.DisplayHeroes)}] "
                     + $"combat=[{string.Join(",", services.Formation.CombatHeroes)}] candidates=[{string.Join(",", candidates.Select(item => item.Id))}]");
             Transform template = heroReplacementView.Binding.Find("Layer/yingxionghuanjiangUI/ItemCell")?.transform;
             if (template == null) throw new InvalidOperationException("Hero replacement ItemCell was not found.");
@@ -17965,7 +17991,7 @@ namespace ProjectX.Core
                 Transform viewport = heroBagView?.Binding.Find("Layer/yingxiongbeibaoUI/TableView")?.transform;
                 int activeRows = viewport == null ? -1 : viewport.GetComponentsInChildren<Transform>(false)
                     .Count(value => value.name.StartsWith("VirtualRow_", StringComparison.Ordinal));
-                Debug.Log($"[ProjectX][DrawG5] hero-list bag={heroBagView?.GameObject.activeSelf}/"
+                ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][DrawG5] hero-list bag={heroBagView?.GameObject.activeSelf}/"
                     + $"{heroBagView?.GameObject.activeInHierarchy} target={target?.gameObject.activeSelf}/"
                     + $"{target?.gameObject.activeInHierarchy} rows={activeRows} heroes={services.Heroes.Count} "
                     + $"entry={pendingHeroEntry} current={services.UiStack.Current?.GameObject?.name}");
@@ -18568,12 +18594,10 @@ namespace ProjectX.Core
 
         private void HandleRequestTimeout(RequestContext context)
         {
-            string detail = $"{context.Protocol.Name} 请求超时（{context.Protocol.TimeoutSeconds:F0}秒）";
-            SetStatus(detail);
+            // 本地后端可能在超时窗口后返回有效回包；超时只做内部请求清理，
+            // 不再中断玩家当前界面或显示网络超时提示。
             if (context.Protocol.Command == 221)
                 InvokeLuaOrFail(onShopRequestTimeout, "Shop.OnRequestTimeout");
-            EnsureErrorPresenter();
-            errorPresenter?.Show("网络超时", detail);
         }
 
         private void CallLua(LuaFunction function, string context, params object[] arguments)

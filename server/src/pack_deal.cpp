@@ -13479,6 +13479,12 @@ void CPackageDeal::ChuangGuanOption(CNetMessage *pMsg,int sock)
 				SendSysInfo(pUser,MakeStringColor(LANGUAGE_TRANSFORM_3,TIPS_FAILURE_COLOR).c_str());
 				return;
 			}
+			if (gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1"
+				&& !xunBao.PrepareLocalSinglePlayerMap())
+			{
+				SendSysInfo(pUser, MakeStringColor(LANGUAGE_TRANSFORM_3, TIPS_FAILURE_COLOR).c_str());
+				return;
+			}
 			xunBao.NotifyMapInfo();
 			break;
 		}
@@ -13490,10 +13496,12 @@ void CPackageDeal::ChuangGuanOption(CNetMessage *pMsg,int sock)
 		xunBao.Roll();
 		break;
 
-/*	case CXunBaoManage::ECGOp_Hand:
-		xunBao.PlayHand();
+	case CXunBaoManage::ECGOp_Hand:
+		// Unity migration validates the original single-player hand event locally.
+		// Keep the production/KunLun path unchanged while the legacy handler remains disabled there.
+		if (gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+			xunBao.PlayHand();
 		break;
-*/
 	case CXunBaoManage::ECGOp_Robber:
 		{
 			if(pUser->GetFightId() > 0)

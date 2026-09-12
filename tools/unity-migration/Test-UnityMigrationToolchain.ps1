@@ -3305,7 +3305,8 @@ Assert-ToolchainTest (
     -not $worldPlaybackSource.Contains('Vector3.Lerp(moveStart, moveEnd, Mathf.SmoothStep') -and
     $worldPlaybackSource.Contains('if (model.MoveSeconds > 0f) return model.MoveSeconds;') -and
     $worldPlaybackSource.Contains('ResolveLegacyAnimationDuration(') -and
-    $worldPlaybackSource.Contains('ImodAnimationData.Parse(assets.Animation.text)') -and
+    $worldPlaybackSource.Contains('ImodAnimationResources.TryLoadPrepared(path') -and
+    $worldPlaybackSource.Contains('ImodAnimationData data = assets.Data;') -and
     $worldPlaybackSource.Contains('unit.Model.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));') -and
     $worldPlaybackSource.Contains('timelineEnd = Mathf.Max(timelineEnd, cursor + duration)') -and
     $worldPlaybackSource.Contains('timelineEnd + .1f') -and
@@ -3752,7 +3753,8 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('ShowCombatMarker(unit, "skill_0")') -and
     $worldPlaybackSource.Contains('IsInRightSide(unit.Data.Position) ? 195f : -195f') -and
     $worldPlaybackSource.Contains('if (activeAction.FirstActionType != 6)') -and
-    $worldPlaybackSource.Contains('buffIds.Distinct().Take(10)') -and
+    $worldPlaybackSource.Contains('unit.BuffBuffer.Contains(buffId)') -and
+    $worldPlaybackSource.Contains('if (unchanged)') -and
     $projectXAppSource.Contains('WORLD_BATTLE_UNIT_DATA position={unit.Position}') -and
     $projectXAppSource.Contains('sourceBuffs=[{string.Join("/", action.SourceBuffIds)}]') -and
     $projectXAppSource.Contains('bool preservePassiveDamage = false;') -and

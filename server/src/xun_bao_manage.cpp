@@ -437,6 +437,54 @@ bool CXunBaoManage::CreateMap()
 	return true;
 }
 
+bool CXunBaoManage::PrepareLocalSinglePlayerMap()
+{
+	if (!CreateMap())
+		return false;
+	if (m_fights.empty())
+	{
+		m_hasMatch = true;
+		return true;
+	}
+	bool alreadyPrepared = true;
+	for (size_t i = 0; i < m_fights.size(); ++i)
+	{
+		if (m_fights[i].robot_ == 0 || m_fights[i].uid_ == 0)
+		{
+			alreadyPrepared = false;
+			break;
+		}
+	}
+	if (alreadyPrepared)
+	{
+		m_hasMatch = true;
+		return true;
+	}
+
+	const int robotSize = 20;
+	int robots[robotSize + 1];
+	if (!RandomSequence(robots, robotSize, robotSize))
+		return false;
+
+	CRobotMgr& mgr = SingletonCRobotMgr::instance();
+	for (size_t i = 0; i < m_fights.size(); ++i)
+	{
+		SRobotData robot;
+		mgr.GetRobot(EROT_KunLun, 2000 + robots[i % robotSize], robot);
+		xunBaoFight& fight = m_fights[i];
+		fight.uid_ = robot.id;
+		fight.name_ = robot.name;
+		fight.lv_ = 1;
+		fight.career_ = robot.head;
+		fight.sex_ = robot.sex;
+		fight.robot_ = 1;
+		fight.pwoer = robot.power;
+	}
+	sort(m_fights.begin(), m_fights.end());
+	m_hasMatch = true;
+	return true;
+}
+
 void CXunBaoManage::AddEvent(uint8 cellId, uint8 evt)
 {
 	m_xunBao[cellId - 1] = evt;
@@ -560,14 +608,23 @@ void CXunBaoManage::LoadMatchFights(CNetMessage& msg)
 
 void CXunBaoManage::NotifyMapInfo()
 {
+	const bool localSinglePlayer = gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1";
+	if (localSinglePlayer)
+	{
+		if (!PrepareLocalSinglePlayerMap())
+			return;
+	}
+	else
+	{
 #ifdef KUA_FU
-	if (m_pUser->HaveBitSet(614))
-		m_hasMatch = false;
+		if (m_pUser->HaveBitSet(614))
+			m_hasMatch = false;
 #else
-	if (!m_pUser->HaveBitSet(614))
-		m_hasMatch = false;
+		if (!m_pUser->HaveBitSet(614))
+			m_hasMatch = false;
 #endif
-	if (!m_hasMatch)
+	}
+	if (!localSinglePlayer && !m_hasMatch)
 	{
 		if (m_hasMatch)
 		{
@@ -774,6 +831,8 @@ void CXunBaoManage::PlayHand()
 		m_state = 0;
 		msg << MakeStringColor(LANGUAGE_TRANSFORM_19, TIPS_WARNING_COLOR);
 	}
+	if (res != 2)
+		ClearEvt(m_curIdx);
 	sock.SendMsg(m_pUser->GetSock(), msg);
 }
 
@@ -948,7 +1007,10 @@ void CXunBaoManage::DoStopEvt()
 		char infoMsg[512];
 		snprintf(infoMsg, sizeof(infoMsg), LANGUAGE_TRANSFORM_12, ROLE_NAME_COLOR, m_pUser->GetName());
 		SysInfoToAllUser(infoMsg);
-		break;
+		// ClearMap() empties m_xunBao and resets m_curIdx. Send the already-built
+		// terminal event now; do not fall through to ClearEvt(m_curIdx).
+		sock.SendMsg(m_pUser->GetSock(), msg);
+		return;
 
 	case XBE_Hand:
 		m_state = 2;
@@ -1617,6 +1679,8 @@ void CXunBaoManage::DoRandomEvent()
 
 void CXunBaoManage::ClearEvt(uint8 cellId)
 {
+	if (cellId == 0 || cellId > m_xunBao.size())
+		return;
 	m_xunBao[cellId - 1] = 0;
 }
 

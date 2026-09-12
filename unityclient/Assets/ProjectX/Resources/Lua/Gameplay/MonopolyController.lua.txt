@@ -1,0 +1,128 @@
+local Protocol = require("Protocol")
+
+local M = { pending = 0 }
+local CMD = Protocol.CHUANG_GUAN
+
+local function send(op, extra)
+    local message = Protocol.newMessage(CMD)
+    message:WriteByte(op)
+    if extra ~= nil then message:WriteByte(extra) end
+    Bridge:Send(message)
+    M.pending = op
+end
+
+function M.onClick(functionId)
+    M.pending = 0
+    Bridge:ShowMonopoly(functionId)
+    send(15)
+end
+
+function M.roll() if M.pending == 0 then send(3) end end
+function M.moveEnd() send(4) end
+function M.resetBoard() if M.pending == 0 then send(8) end end
+function M.queryBuy() if M.pending == 0 then send(22) end end
+function M.buyRoll() if M.pending == 0 then send(21) end end
+function M.fightGuard() if M.pending == 0 then send(12, 1) end end
+function M.playHand(choice) if M.pending == 0 then send(6, choice) end end
+function M.close()
+    local message = Protocol.newMessage(CMD)
+    message:WriteByte(24)
+    Bridge:Send(message)
+    M.pending = 0
+    Bridge:CloseMonopolyFromServer()
+end
+
+local function readBattleResult(message)
+    local stars = message:ReadByte()
+    local count = message:ReadByte()
+    local summary = {}
+    for _ = 1, count do
+        local itemType = message:ReadWord()
+        local itemId = message:ReadUInt()
+        local amount = message:ReadUInt()
+        table.insert(summary, tostring(itemType) .. ":" .. tostring(itemId) .. "x" .. tostring(amount))
+    end
+    return stars, table.concat(summary, ",")
+end
+
+function M.onPacket(command, message)
+    if command ~= CMD then return false end
+    local start = message.Position
+    local op = message:ReadByte()
+    if op >= 25 then message.Position = start; return false end
+    M.pending = 0
+
+    if op == 15 then
+        local timediff = message:ReadUInt()
+        local exp, coin, gold = message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
+        local rollMax, rollUse = message:ReadUInt(), message:ReadUInt()
+        local monsterMax, monsterKill = message:ReadUInt(), message:ReadUInt()
+        local cellCount, current = message:ReadUInt(), message:ReadUInt()
+        Bridge:BeginMonopolyBoard(timediff, exp, coin, gold, rollMax, rollUse, monsterMax, monsterKill, cellCount, current)
+        for _ = 1, cellCount do
+            local cellId, eventId, eventCount = message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
+            local roleId, career, level, sex, power, name, awardType, awardAmount = 0, 0, 0, 0, 0, "", 0, 0
+            if eventId == 2 then
+                roleId, career, level, sex, power = message:ReadUInt(), message:ReadUInt(), message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
+                name = message:ReadString()
+                local awardCount = message:ReadByte()
+                for index = 1, awardCount do
+                    local currentType, currentAmount = message:ReadWord(), message:ReadWord()
+                    if index == 1 then awardType, awardAmount = currentType, currentAmount end
+                end
+            end
+            Bridge:AddMonopolyCell(cellId, eventId, eventCount, roleId, career, level, sex, power, name, awardType, awardAmount)
+        end
+        Bridge:CommitMonopolyBoard()
+    elseif op == 3 then
+        local success = message:ReadByte()
+        if success == 1 then
+            Bridge:CompleteMonopolyRoll(message:ReadUInt(), message:ReadUInt(), message:ReadUInt(), message:ReadUInt())
+        else
+            local code = message:ReadUInt()
+            local detail = message.Remaining > 0 and message:ReadString() or "掷骰失败"
+            if code == 1 then Bridge:ShowMonopolyGuard()
+            else Bridge:FailMonopolyOperation(code, detail) end
+        end
+    elseif op == 4 then
+        local eventId = message:ReadByte()
+        local target = eventId == 8 and message:ReadUInt() or 0
+        Bridge:ResolveMonopolyEvent(eventId, target)
+    elseif op == 6 then
+        local success = message:ReadByte()
+        local result = message:ReadByte()
+        local detail = message.Remaining > 0 and message:ReadString() or ""
+        if success == 1 then Bridge:CompleteMonopolyHand(result, detail)
+        else Bridge:FailMonopolyOperation(result, detail ~= "" and detail or "猜拳失败") end
+    elseif op == 8 then
+        send(15)
+    elseif op == 10 then
+        local win = message:ReadByte()
+        local dest, exp, coin, gold = message:ReadUInt(), message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
+        local maxKill, curKill = message:ReadUInt(), message:ReadUInt()
+        local stars, rewards = readBattleResult(message)
+        Bridge:CompleteMonopolyBattle(win, dest, exp, coin, gold, maxKill, curKill, stars, rewards)
+    elseif op == 21 then
+        local success = message:ReadByte()
+        if success == 1 then Bridge:CompleteMonopolyBuy(message:ReadUInt(), message:ReadUInt())
+        else
+            local code = message.Remaining > 0 and message:ReadByte() or 0
+            Bridge:FailMonopolyOperation(code, "购买骰子次数失败")
+        end
+    elseif op == 22 then
+        local success = message:ReadByte()
+        if success == 1 then
+            Bridge:ShowMonopolyBuy(message:ReadUInt(), message:ReadUInt(), message:ReadUInt(), message:ReadUInt())
+        else Bridge:FailMonopolyOperation(0, "购买信息获取失败") end
+    elseif op == 23 then
+        Bridge:UpdateMonopolyRewards(message:ReadUInt(), message:ReadUInt(), message:ReadUInt())
+    elseif op == 24 then
+        Bridge:CloseMonopolyFromServer()
+    else
+        Bridge:Fail("Monopoly/213 unsupported single-player op=" .. tostring(op) .. ".")
+    end
+    return true
+end
+
+function M.reset() M.pending = 0; Bridge:ClearMonopolyState() end
+return M

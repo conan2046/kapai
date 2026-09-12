@@ -7691,10 +7691,10 @@ void CFight::ClearChaoFeng(uint8 diePos)
 				if(rit->paraList.empty() || rit->paraList[0] == (int)diePos)
 				{
 					SpecialBuffPassAttr(pos, ESBUFF_ChaoFeng, false);	// 清除
-					rit++;
-					
-					list<SFightBuffData>::iterator del_it(rit.base());
-					m_members[pos-1].buff_list.erase(del_it);
+					list<SFightBuffData>::iterator del_it = rit.base();
+					--del_it;
+					list<SFightBuffData>::iterator next_it = m_members[pos-1].buff_list.erase(del_it);
+					rit = list<SFightBuffData>::reverse_iterator(next_it);
 					continue;
 				}
 			}

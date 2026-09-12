@@ -117,7 +117,7 @@ namespace ProjectX.Network
             foreach (ushort command in emptyCommands) pending.Remove(command);
             foreach (RequestContext context in expired)
             {
-                ClientLog.Warning("Protocol", $"TIMEOUT {context.Protocol.Name}",
+                ClientLog.Info("Protocol", $"TIMEOUT {context.Protocol.Name}",
                     $"cmd={context.Protocol.Command} request={context.Id} elapsed={context.ElapsedSeconds:F3}s");
                 RequestTimedOut?.Invoke(context);
             }
@@ -151,6 +151,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(128, "MSG_CLIENT_XINSHI", "Mail"));
             registry.Register(new ProtocolDefinition(199, "MSG_HUODONG_OPTION", "Welfare"));
             registry.Register(new ProtocolDefinition(206, "MSG_SYNC_TIME", "Core"));
+            registry.Register(new ProtocolDefinition(213, "MSG_CHUANG_GUAN", "Monopoly"));
             registry.Register(new ProtocolDefinition(220, "MSG_VIP_OPTION", "VIP/Hud", expectsResponse: false));
             registry.Register(new ProtocolDefinition(221, "MSG_SHOP", "Shop"));
             registry.Register(new ProtocolDefinition(222, "MSG_TMP_HUODONG", "Activity/MoneyTree/HappyWheel/Funds"));

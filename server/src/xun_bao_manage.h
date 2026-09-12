@@ -301,6 +301,9 @@ public:
 
 public:
 	bool CreateMap();
+	// local_test has no match server. Build the original configuration-driven
+	// single-player board with robot guards while leaving production matching intact.
+	bool PrepareLocalSinglePlayerMap();
 	void LoadMap(const char *row);
 	void SaveMap(string& str);
 	void ClearMap(bool clearSum = false);

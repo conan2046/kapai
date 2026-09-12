@@ -162,7 +162,7 @@ namespace ProjectX.LuaRuntime
         {
             status = value ?? string.Empty;
             LastRunStatus = status;
-            Debug.Log($"[FirstPlayableLoop] {status}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[FirstPlayableLoop] {status}");
         }
 
         public void Complete(string value)
@@ -173,7 +173,7 @@ namespace ProjectX.LuaRuntime
             SetStatus(value);
             ScreenCapture.CaptureScreenshot(GetArtifactPath("first-playable-loop-main.png"));
             WriteResult(true, value);
-            Debug.Log("[FirstPlayableLoop] COMPLETE");
+            ProjectX.Diagnostics.ClientLog.Verbose("[FirstPlayableLoop] COMPLETE");
         }
 
         public void Fail(string value)

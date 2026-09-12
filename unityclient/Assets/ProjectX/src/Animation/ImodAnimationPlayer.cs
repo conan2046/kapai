@@ -21,6 +21,7 @@ namespace ProjectX.Animation
 
         private readonly List<Sprite> moduleSprites = new List<Sprite>();
         private readonly List<ImodAnimationPlayer> additionalLayers = new List<ImodAnimationPlayer>();
+        private bool ownsSprites;
         private ImodAnimationData data;
         private RectTransform partTransform;
         private Image partImage;
@@ -99,17 +100,18 @@ namespace ProjectX.Animation
 
         public bool LoadLegacy(string legacyPath)
         {
-            if (!ImodAnimationResources.TryLoad(legacyPath, out ImodAnimationAssets assets))
+            if (!ImodAnimationResources.TryLoadPrepared(legacyPath, out ImodAnimationPreparedAssets assets))
                 return false;
-            Load(assets.Animation, assets.Texture);
+            LoadPrepared(assets);
             return true;
         }
 
         public bool LoadLegacy(string texturePath, string animationPath)
         {
-            if (!ImodAnimationResources.TryLoad(texturePath, animationPath, out ImodAnimationAssets assets))
+            if (!ImodAnimationResources.TryLoadPrepared(texturePath, animationPath,
+                    out ImodAnimationPreparedAssets assets))
                 return false;
-            Load(assets.Animation, assets.Texture);
+            LoadPrepared(assets);
             return true;
         }
 
@@ -119,7 +121,8 @@ namespace ProjectX.Animation
             int zOrder = 1,
             Color? layerColor = null)
         {
-            if (!ImodAnimationResources.TryLoad(texturePath, animationPath, out ImodAnimationAssets assets))
+            if (!ImodAnimationResources.TryLoadPrepared(texturePath, animationPath,
+                    out ImodAnimationPreparedAssets assets))
                 return false;
             var layerObject = new GameObject(
                 $"__ImodLayer_{additionalLayers.Count + 1}", typeof(RectTransform));
@@ -128,7 +131,7 @@ namespace ProjectX.Animation
             rect.SetSiblingIndex(Mathf.Clamp(zOrder, 0, transform.childCount - 1));
             ImodAnimationPlayer player = layerObject.AddComponent<ImodAnimationPlayer>();
             player.playOnEnable = false;
-            player.Load(assets.Animation, assets.Texture);
+            player.LoadPrepared(assets);
             player.SetColor(layerColor ?? Color.white);
             player.SetSpeedScale(speed);
             player.SetFlippedX(flippedX);
@@ -145,6 +148,22 @@ namespace ProjectX.Animation
             texture = image;
             data = ImodAnimationData.Parse(json.text);
             BuildSprites();
+            Stop();
+            actionIndex = -1;
+            sequenceIndex = 0;
+            RenderFrame(data.actions.Length > 0 && data.actions[0].frames.Length > 0
+                ? data.actions[0].frames[0].frame : -1);
+        }
+
+        private void LoadPrepared(ImodAnimationPreparedAssets assets)
+        {
+            if (!assets.IsValid) throw new ArgumentException("Prepared Imod animation is incomplete.", nameof(assets));
+            animationJson = assets.Animation;
+            texture = assets.Texture;
+            data = assets.Data;
+            ClearSprites();
+            moduleSprites.AddRange(assets.Sprites);
+            ownsSprites = false;
             Stop();
             actionIndex = -1;
             sequenceIndex = 0;
@@ -289,6 +308,7 @@ namespace ProjectX.Animation
         private void BuildSprites()
         {
             ClearSprites();
+            ownsSprites = true;
             foreach (ImodModule module in data.modules)
             {
                 int y = texture.height - module.y - module.height;
@@ -319,13 +339,15 @@ namespace ProjectX.Animation
 
         private void ClearSprites()
         {
-            foreach (Sprite sprite in moduleSprites)
-                if (sprite != null)
-                {
-                    if (Application.isPlaying) Destroy(sprite);
-                    else DestroyImmediate(sprite);
-                }
+            if (ownsSprites)
+                foreach (Sprite sprite in moduleSprites)
+                    if (sprite != null)
+                    {
+                        if (Application.isPlaying) Destroy(sprite);
+                        else DestroyImmediate(sprite);
+                    }
             moduleSprites.Clear();
+            ownsSprites = false;
         }
 
         private void EnsureRenderer()

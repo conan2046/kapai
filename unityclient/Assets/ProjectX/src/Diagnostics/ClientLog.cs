@@ -33,6 +33,9 @@ namespace ProjectX.Diagnostics
         public static void Warning(string module, string message, string context = null) => Write(LogType.Warning, module, message, context);
         public static void Error(string module, string message, string context = null) => Write(LogType.Error, module, message, context);
 
+        [System.Diagnostics.Conditional("PROJECTX_VERBOSE_LOGS")]
+        public static void Verbose(string message) => Debug.Log(message);
+
         private static void Write(LogType level, string module, string message, string context)
         {
             string safeModule = string.IsNullOrWhiteSpace(module) ? "General" : module;
@@ -44,7 +47,12 @@ namespace ProjectX.Diagnostics
                 + (string.IsNullOrEmpty(context) ? string.Empty : $" | {context}");
             if (level == LogType.Error || level == LogType.Exception) Debug.LogError(line);
             else if (level == LogType.Warning) Debug.LogWarning(line);
-            else Debug.Log(line);
+            else
+            {
+#if PROJECTX_VERBOSE_LOGS
+                Debug.Log(line);
+#endif
+            }
         }
     }
 }

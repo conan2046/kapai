@@ -29,6 +29,7 @@ local BloodFightController = require("Gameplay.BloodFightController")
 local XunBaoController = require("Gameplay.XunBaoController")
 local SevenDayController = require("Gameplay.SevenDayController")
 local MoneyTreeController = require("Gameplay.MoneyTreeController")
+local MonopolyController = require("Gameplay.MonopolyController")
 local HappyWheelController = require("Gameplay.HappyWheelController")
 local StaminaClaimController = require("StaminaClaim.StaminaClaimController")
 local ResourceRecoveryController = require("ResourceRecovery.ResourceRecoveryController")
@@ -52,6 +53,7 @@ function OnDisconnected(reason)
     GameplayShopController.onDisconnected()
     SevenDayController.onDisconnected()
     MoneyTreeController.reset()
+    MonopolyController.reset()
     HappyWheelController.reset()
     FundsController.reset()
     Bridge:SetStatus("Disconnected: " .. tostring(reason))
@@ -196,6 +198,15 @@ function OnSevenDayClicked() SevenDayController.onClick() end
 function OnSevenDayClaim(id) SevenDayController.claim(id) end
 function OnMoneyTreeClicked(functionId) MoneyTreeController.onClick(functionId) end
 function OnMoneyTreeShake(treeType) MoneyTreeController.shake(treeType) end
+function OnMonopolyClicked(functionId) MonopolyController.onClick(functionId) end
+function OnMonopolyRoll() MonopolyController.roll() end
+function OnMonopolyMoveEnd() MonopolyController.moveEnd() end
+function OnMonopolyReset() MonopolyController.resetBoard() end
+function OnMonopolyQueryBuy() MonopolyController.queryBuy() end
+function OnMonopolyBuyRoll() MonopolyController.buyRoll() end
+function OnMonopolyFightGuard() MonopolyController.fightGuard() end
+function OnMonopolyPlayHand(choice) MonopolyController.playHand(choice) end
+function OnMonopolyClose() MonopolyController.close() end
 function OnHappyWheelClicked(functionId) HappyWheelController.onClick(functionId) end
 function OnHappyWheelSpin(drawType) HappyWheelController.spin(drawType) end
 function OnStaminaClaimClicked() StaminaClaimController.onClick() end
@@ -243,6 +254,7 @@ function OnPacket(command, message)
     if GuildController.onPacket(command, message) then return end
     if FengShenStoryController.onPacket(command, message) then return end
     if ArenaController.onPacket(command, message) then return end
+    if MonopolyController.onPacket(command, message) then return end
     if KunLunController.onPacket(command, message) then return end
     if BloodFightController.onPacket(command, message) then return end
     if WorldController.onPacket(command, message) then return end

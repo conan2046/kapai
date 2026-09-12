@@ -239,7 +239,7 @@ namespace ProjectX.UI
                     selectedSlot = capturedItem.Slot;
                     UpdateSelectionVisuals();
                     ShowDetails(capturedItem, true);
-                    Debug.Log($"[BagPresenter] Selected slot={capturedItem.Slot}, itemId={capturedItem.ItemId}, name={capturedItem.Name}.");
+                    ProjectX.Diagnostics.ClientLog.Verbose($"[BagPresenter] Selected slot={capturedItem.Slot}, itemId={capturedItem.ItemId}, name={capturedItem.Name}.");
                 });
                 itemButtons[item.Slot] = button;
                 itemSlots[item.Slot] = slot;

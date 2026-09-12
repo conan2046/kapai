@@ -32,6 +32,8 @@ namespace ProjectX.UI
             public ulong CurrentHp;
             public string AnimationBase;
             public readonly List<GameObject> BuffVisuals = new List<GameObject>();
+            public readonly List<byte> RenderedBuffIds = new List<byte>();
+            public readonly List<byte> BuffBuffer = new List<byte>();
         }
 
         private sealed class ScheduledClip
@@ -60,6 +62,15 @@ namespace ProjectX.UI
         private readonly List<ScheduledClip> activeClips = new List<ScheduledClip>();
         private readonly List<ScheduledShake> activeShakes = new List<ScheduledShake>();
         private readonly List<GameObject> activeEffects = new List<GameObject>();
+        private readonly Dictionary<string, Stack<GameObject>> pooledSkillEffects =
+            new Dictionary<string, Stack<GameObject>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<GameObject, string> skillEffectPaths =
+            new Dictionary<GameObject, string>();
+        private readonly Dictionary<string, float> animationDurations =
+            new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, AudioClip> battleAudioClips =
+            new Dictionary<string, AudioClip>(StringComparer.OrdinalIgnoreCase);
+        private readonly Queue<string> pendingBattleAssetPrewarm = new Queue<string>();
         private readonly Image startShade;
         private readonly ImodAnimationPlayer startEffect;
         private readonly AudioSource battleAudio;
@@ -447,13 +458,14 @@ namespace ProjectX.UI
             // skipped after the click. The World fixture is level 99, so hiding
             // the button when CanSkip is false is not source-equivalent.
             skipButton.gameObject.SetActive(true);
-            Debug.Log($"[ProjectX][World] Battle controls: packetCanSkip={store.CanSkip}, skipVisible={skipButton.gameObject.activeSelf}, maxTurns={store.MaxTurns}.");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][World] Battle controls: packetCanSkip={store.CanSkip}, skipVisible={skipButton.gameObject.activeSelf}, maxTurns={store.MaxTurns}.");
             UpdateRoundDisplay(Mathf.Max(1, store.CurrentTurn));
             foreach (WorldBattleUnitRecord unit in store.Units.Take(18))
             {
                 UnitView view = CreateUnit(unitLayer, unit, ResolveDisplayedPosition(unit), unit.IsEnemy);
                 units[unit.Position] = view;
             }
+            QueueBattleAssetsForPrewarm();
             ConfigureFormationHud();
             ConfigureFormationMarkers();
             // FightLayer renders positions 10..18 on the left and the local
@@ -674,6 +686,8 @@ namespace ProjectX.UI
 
         public void SetBattleStartElapsed(float elapsedSeconds)
         {
+            if (pendingBattleAssetPrewarm.Count > 0)
+                ImodAnimationResources.TryLoadPrepared(pendingBattleAssetPrewarm.Dequeue(), out _);
             // LBattleLogic:PlayBattleStartAnimate keeps a 150-alpha black
             // LayerColor for 0.9 s and fades it over the following 0.2 s.
             float fade = Mathf.InverseLerp(.9f, 1.1f, Mathf.Max(0f, elapsedSeconds));
@@ -860,6 +874,7 @@ namespace ProjectX.UI
             numberRoot.anchoredPosition = new Vector2(0f, 30f);
             numberRoot.sizeDelta = new Vector2(348f, 30f);
             numberRoot.localScale = Vector3.zero;
+            EnsureBattleNumberCapacity(numberRoot, 10);
             numberObject.SetActive(false);
             healthView.GameObject.SetActive(true);
             return fill;
@@ -1009,20 +1024,24 @@ namespace ProjectX.UI
                 DurationSeconds = Mathf.Max(.01f, shake.DurationSeconds),
                 Strength = shake.Strength
             });
-            Debug.Log($"WORLD_BATTLE_SHAKE id={shake.Id} start={clip.StartSeconds + clip.DurationSeconds * shake.DelayRatio:0.###} duration={shake.DurationSeconds:0.###} strength={shake.Strength:0.###}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_SHAKE id={shake.Id} start={clip.StartSeconds + clip.DurationSeconds * shake.DelayRatio:0.###} duration={shake.DurationSeconds:0.###} strength={shake.Strength:0.###}");
         }
 
         private void PlayBattleSound(string soundFile)
         {
             if (string.IsNullOrWhiteSpace(soundFile)) return;
-            AudioClip clip = Resources.Load<AudioClip>("ProjectXAudio/battle/" + soundFile);
+            if (!battleAudioClips.TryGetValue(soundFile, out AudioClip clip))
+            {
+                clip = Resources.Load<AudioClip>("ProjectXAudio/battle/" + soundFile);
+                battleAudioClips[soundFile] = clip;
+            }
             if (clip == null)
             {
                 Debug.LogWarning($"WORLD_BATTLE_AUDIO_MISSING sound={soundFile}");
                 return;
             }
             battleAudio.PlayOneShot(clip);
-            Debug.Log($"WORLD_BATTLE_AUDIO sound={soundFile}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_AUDIO sound={soundFile}");
         }
 
         private void ApplyCameraShake(float elapsedSeconds)
@@ -1048,7 +1067,8 @@ namespace ProjectX.UI
             if (effect == null || string.IsNullOrWhiteSpace(effect.File)) return;
             bool rightSide = ResolveSkillEffectRightSide(effect);
             string path = ResolveSkillEffectPath(effect);
-            GameObject value = new GameObject($"SkillEffect_{effect.Id}", typeof(RectTransform));
+            GameObject value = AcquireSkillEffect(path, effect.Id, out ImodAnimationPlayer player);
+            if (value == null) return;
             RectTransform rect = value.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(.5f, .5f);
             rect.sizeDelta = new Vector2(500f, 500f);
@@ -1071,17 +1091,37 @@ namespace ProjectX.UI
                 rect.localPosition = battleLayer.InverseTransformPoint(worldPoint);
             }
             rect.localScale = Vector3.one * Mathf.Max(.01f, effect.Scale);
-            ImodAnimationPlayer player = value.AddComponent<ImodAnimationPlayer>();
-            if (!player.LoadLegacy(path))
-            {
-                UnityEngine.Object.Destroy(value);
-                return;
-            }
             player.SetFlippedX(effect.ResourceType == 2 && rightSide);
             player.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));
             player.Play(0, false);
+            value.SetActive(true);
             value.transform.SetAsLastSibling();
             activeEffects.Add(value);
+        }
+
+        private GameObject AcquireSkillEffect(string path, uint effectId, out ImodAnimationPlayer player)
+        {
+            if (pooledSkillEffects.TryGetValue(path, out Stack<GameObject> pool))
+                while (pool.Count > 0)
+                {
+                    GameObject cached = pool.Pop();
+                    if (cached == null) continue;
+                    cached.name = $"SkillEffect_{effectId}";
+                    player = cached.GetComponent<ImodAnimationPlayer>();
+                    return cached;
+                }
+
+            var value = new GameObject($"SkillEffect_{effectId}", typeof(RectTransform));
+            player = value.AddComponent<ImodAnimationPlayer>();
+            player.SetPlayOnEnable(false);
+            if (!player.LoadLegacy(path))
+            {
+                UnityEngine.Object.Destroy(value);
+                player = null;
+                return null;
+            }
+            skillEffectPaths[value] = path;
+            return value;
         }
 
         private bool ResolveSkillEffectRightSide(BattleSkillEffectDefinition effect)
@@ -1100,22 +1140,92 @@ namespace ProjectX.UI
             return path;
         }
 
-        private static float ResolveLegacyAnimationDuration(string path)
+        private float ResolveLegacyAnimationDuration(string path)
         {
-            if (string.IsNullOrWhiteSpace(path)
-                || !ImodAnimationResources.TryLoad(path, out ImodAnimationAssets assets)) return 0f;
+            if (string.IsNullOrWhiteSpace(path)) return 0f;
+            if (animationDurations.TryGetValue(path, out float cached)) return cached;
+            if (!ImodAnimationResources.TryLoadPrepared(path, out ImodAnimationPreparedAssets assets)) return 0f;
             try
             {
-                ImodAnimationData data = ImodAnimationData.Parse(assets.Animation.text);
+                ImodAnimationData data = assets.Data;
                 if (data.actions == null || data.actions.Length == 0
                     || data.actions[0].frames == null) return 0f;
-                int ticks = data.actions[0].frames.Sum(frame => Mathf.Max(1, frame.durationTicks));
-                return ticks / (float)Mathf.Max(1, data.frameRate);
+                int ticks = 0;
+                foreach (ImodActionFrame frame in data.actions[0].frames)
+                    ticks += Mathf.Max(1, frame.durationTicks);
+                float duration = ticks / (float)Mathf.Max(1, data.frameRate);
+                animationDurations[path] = duration;
+                return duration;
             }
             catch
             {
                 return 0f;
             }
+        }
+
+        private void QueueBattleAssetsForPrewarm()
+        {
+            pendingBattleAssetPrewarm.Clear();
+            var animationPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var skillEffectPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (WorldBattleActionRecord action in store.Actions)
+            {
+                if (action == null) continue;
+                units.TryGetValue(action.FirstSourcePosition, out UnitView source);
+                if (source?.Model != null && !string.IsNullOrWhiteSpace(source.AnimationBase))
+                {
+                    animationPaths.Add(source.AnimationBase + (action.SkillId > 0 ? "sf1" : "gj"));
+                    if (action.SourceDead) animationPaths.Add(source.AnimationBase + "sw");
+                }
+                foreach (WorldBattleTargetRecord targetRecord in action.Targets)
+                {
+                    if (units.TryGetValue(targetRecord.Position, out UnitView target)
+                        && target?.Model != null && !string.IsNullOrWhiteSpace(target.AnimationBase)
+                        && targetRecord.Hit)
+                        animationPaths.Add(target.AnimationBase + (targetRecord.Dead ? "sw" : "bj"));
+                    if (targetRecord.ProtectorPosition != 0
+                        && units.TryGetValue(targetRecord.ProtectorPosition, out UnitView protector)
+                        && protector?.Model != null && !string.IsNullOrWhiteSpace(protector.AnimationBase))
+                        animationPaths.Add(protector.AnimationBase
+                            + (targetRecord.ProtectorDead ? "sw" : "bj"));
+                }
+                BattleActionDefinition definition = presentationCatalog.ResolveAction(
+                    action?.SkillId ?? 0, action?.FirstActionType ?? 0);
+                if (definition == null) continue;
+                foreach (BattleActionClip clip in definition.Clips)
+                {
+                    if (clip.Type == BattleClipType.ModelAnimation
+                        && presentationCatalog.TryGetModelAction(clip.DefinitionId,
+                            out BattleModelActionDefinition model)
+                        && source?.Model != null && !string.IsNullOrWhiteSpace(source.AnimationBase)
+                        && !string.IsNullOrWhiteSpace(model.ActionSuffix))
+                        animationPaths.Add(source.AnimationBase + model.ActionSuffix);
+                    else if (clip.Type == BattleClipType.HurtAnimation
+                        && presentationCatalog.TryGetHurtAction(clip.DefinitionId,
+                            out BattleHurtDefinition hurt)
+                        && !string.IsNullOrWhiteSpace(hurt.ActionSuffix))
+                        foreach (WorldBattleTargetRecord targetRecord in action.Targets)
+                            if (units.TryGetValue(targetRecord.Position, out UnitView target)
+                                && target?.Model != null && !string.IsNullOrWhiteSpace(target.AnimationBase))
+                                animationPaths.Add(target.AnimationBase + hurt.ActionSuffix);
+                    else if (clip.Type == BattleClipType.SkillAnimation
+                        && presentationCatalog.TryGetSkillEffect(clip.DefinitionId,
+                            out BattleSkillEffectDefinition effect)
+                        && effect != null && !string.IsNullOrWhiteSpace(effect.File))
+                    {
+                        string basePath = "Skill/" + effect.File;
+                        if (effect.ResourceType == 3)
+                        {
+                            skillEffectPaths.Add(basePath + "_l");
+                            skillEffectPaths.Add(basePath + "_r");
+                        }
+                        else skillEffectPaths.Add(basePath);
+                    }
+                }
+            }
+
+            foreach (string path in animationPaths) pendingBattleAssetPrewarm.Enqueue(path);
+            foreach (string path in skillEffectPaths) pendingBattleAssetPrewarm.Enqueue(path);
         }
 
         private Vector3 ResolveMovePoint(uint moveType)
@@ -1227,7 +1337,22 @@ namespace ProjectX.UI
         private void ClearActionEffects()
         {
             foreach (GameObject effect in activeEffects)
-                if (effect != null) UnityEngine.Object.Destroy(effect);
+            {
+                if (effect == null) continue;
+                effect.SetActive(false);
+                effect.transform.SetParent(battleLayer, false);
+                if (!skillEffectPaths.TryGetValue(effect, out string path))
+                {
+                    UnityEngine.Object.Destroy(effect);
+                    continue;
+                }
+                if (!pooledSkillEffects.TryGetValue(path, out Stack<GameObject> pool))
+                {
+                    pool = new Stack<GameObject>();
+                    pooledSkillEffects[path] = pool;
+                }
+                pool.Push(effect);
+            }
             activeEffects.Clear();
         }
 
@@ -1452,6 +1577,27 @@ namespace ProjectX.UI
         private void RefreshBuffs(UnitView unit, IReadOnlyList<byte> buffIds)
         {
             if (unit?.Root == null) return;
+            unit.BuffBuffer.Clear();
+            if (buffIds != null)
+                for (int index = 0; index < buffIds.Count && unit.BuffBuffer.Count < 10; index++)
+                {
+                    byte buffId = buffIds[index];
+                    if (!unit.BuffBuffer.Contains(buffId)) unit.BuffBuffer.Add(buffId);
+                }
+            bool unchanged = unit.RenderedBuffIds.Count == unit.BuffBuffer.Count;
+            if (unchanged)
+                for (int index = 0; index < unit.BuffBuffer.Count; index++)
+                    if (unit.RenderedBuffIds[index] != unit.BuffBuffer[index])
+                    {
+                        unchanged = false;
+                        break;
+                    }
+            if (unchanged)
+            {
+                BringHealthNodeToFront(unit);
+                return;
+            }
+
             foreach (GameObject visual in unit.BuffVisuals)
             {
                 if (visual == null) continue;
@@ -1459,7 +1605,9 @@ namespace ProjectX.UI
                 UnityEngine.Object.Destroy(visual);
             }
             unit.BuffVisuals.Clear();
-            if (buffIds == null || buffIds.Count == 0)
+            unit.RenderedBuffIds.Clear();
+            unit.RenderedBuffIds.AddRange(unit.BuffBuffer);
+            if (unit.RenderedBuffIds.Count == 0)
             {
                 BringHealthNodeToFront(unit);
                 return;
@@ -1469,7 +1617,7 @@ namespace ProjectX.UI
             int below = 0;
             // BattleUnitNode:AddBuff keeps one node per buff id even when the
             // protocol repeats the same state for multiple stack instances.
-            foreach (byte buffId in buffIds.Distinct().Take(10))
+            foreach (byte buffId in unit.RenderedBuffIds)
             {
                 if (!presentationCatalog.TryGetBuff(buffId, out BattleBuffDefinition buff)
                     || string.IsNullOrWhiteSpace(buff.ResourceName)) continue;
@@ -1558,16 +1706,18 @@ namespace ProjectX.UI
 
         private void BuildBattleNumber(RectTransform rootRect, string digits, Color color)
         {
-            foreach (Transform child in rootRect) UnityEngine.Object.Destroy(child.gameObject);
+            EnsureBattleNumberCapacity(rootRect, digits.Length);
+            for (int index = 0; index < rootRect.childCount; index++)
+                rootRect.GetChild(index).gameObject.SetActive(false);
             float glyphWidth = 29f;
             float startX = -(digits.Length - 1) * glyphWidth * .5f;
             for (int index = 0; index < digits.Length; index++)
             {
                 int digit = digits[index] - '0';
                 if (digit < 0 || digit > 9) continue;
-                GameObject glyphObject = new GameObject($"Digit_{index}_{digit}", typeof(RectTransform), typeof(Image));
+                GameObject glyphObject = rootRect.GetChild(index).gameObject;
+                glyphObject.name = $"Digit_{index}_{digit}";
                 RectTransform glyphRect = glyphObject.GetComponent<RectTransform>();
-                glyphRect.SetParent(rootRect, false);
                 glyphRect.anchorMin = glyphRect.anchorMax = new Vector2(.5f, .5f);
                 glyphRect.anchoredPosition = new Vector2(startX + index * glyphWidth, 0f);
                 glyphRect.sizeDelta = new Vector2(glyphWidth, 30f);
@@ -1575,6 +1725,22 @@ namespace ProjectX.UI
                 glyph.sprite = battleNumberAtlasSprites[digit + 2];
                 glyph.color = color;
                 glyph.raycastTarget = false;
+                glyphObject.SetActive(true);
+            }
+        }
+
+        private static void EnsureBattleNumberCapacity(RectTransform rootRect, int capacity)
+        {
+            while (rootRect.childCount < capacity)
+            {
+                int index = rootRect.childCount;
+                var glyphObject = new GameObject($"DamageGlyph_{index}", typeof(RectTransform), typeof(Image));
+                RectTransform glyphRect = glyphObject.GetComponent<RectTransform>();
+                glyphRect.SetParent(rootRect, false);
+                glyphRect.anchorMin = glyphRect.anchorMax = new Vector2(.5f, .5f);
+                Image glyph = glyphObject.GetComponent<Image>();
+                glyph.raycastTarget = false;
+                glyphObject.SetActive(false);
             }
         }
 
@@ -1652,8 +1818,10 @@ namespace ProjectX.UI
             float rise = Mathf.Clamp01((sinceImpact - settleStart) / .3f);
             float eased = 1f - Mathf.Cos(rise * Mathf.PI * .5f);
             label.anchoredPosition = unit.NumberBasePosition + new Vector2(0f, 125f * eased);
-            foreach (Image glyph in label.GetComponentsInChildren<Image>(true))
+            for (int index = 0; index < label.childCount; index++)
             {
+                Image glyph = label.GetChild(index).GetComponent<Image>();
+                if (glyph == null || !glyph.gameObject.activeSelf) continue;
                 Color color = glyph.color;
                 color.a = 1f - rise;
                 glyph.color = color;
