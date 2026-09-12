@@ -3622,7 +3622,7 @@ Assert-ToolchainTest (
     -not $worldPlaybackSource.Contains('skipButton.gameObject.SetActive(store.CanSkip);') -and
     $worldPlaybackSource.Contains('private static readonly int[] CocosSpeedLabels = { 1, 2, 3, 5, 10, 15 };') -and
     $worldPlaybackSource.Contains('private static readonly float[] CocosPlaybackFactors = { 1f, 2f, 3f, 3.5f, 4f, 4.5f };') -and
-    $worldPlaybackSource.Contains('unit.Model.Play(ResolveUnitActionIndex(unit), loop);') -and
+    $worldPlaybackSource.Contains('unit.Model.Play(actionIndex, loop);') -and
     $worldPlaybackSource.Contains('return unit?.Data != null && !unit.Data.IsEnemy ? 1 : 0;') -and
     $worldPlaybackSource.Contains('value.Model.IsFlippedX == ResolveUnitFlipX(value)') -and
     $worldPlaybackSource.Contains('value.Model.CurrentFrameBelongsToCurrentAction') -and
@@ -3727,8 +3727,8 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('PlayConfiguredClip(scheduled)') -and
     $worldPlaybackSource.Contains('player.LoadLegacy(path)') -and
     $worldPlaybackSource.Contains('if (!impactApplied) ApplyImpact();') -and
-    $worldPlaybackSource.Contains('PlayUnitAnimation(target, record.Dead ? "sw" : "bj", false)') -and
-    $worldPlaybackSource.Contains('PlayUnitAnimation(unit, "sw", false)') -and
+    $worldPlaybackSource.Contains('if (!SetUnitDeathState(target, record.Dead)) PlayUnitAnimation(target, "bj", false);') -and
+    $worldPlaybackSource.Contains('RestoreUnitPose(unit);') -and
     $worldPlaybackSource.Contains('view.HealthFill = CreateHealthBar(rect, unit, enemy, view.HitDefinition,') -and
     $worldPlaybackSource.Contains('ApplyHpDelta(target, -(long)record.Damage)') -and
     $worldPlaybackSource.Contains('public float ImpactProgress => impactProgress;') -and
@@ -3817,6 +3817,17 @@ Assert-ToolchainTest (
     $worldReplaySource.Contains('SourceHpChanged') -and
     $worldReplaySource.Contains('SkillId')
 ) "World regression: the authoritative /38 playback or current Cocos replay-return lifecycle drifted."
+Assert-ToolchainTest (
+    $worldPlaybackSource.Contains('bool dead = protocolDead || unit.CurrentHp == 0;') -and
+    $worldPlaybackSource.Contains('if (!preserveDamage || activeSource.IsDead) HideDamage(activeSource);') -and
+    $worldPlaybackSource.Contains('if (!preserveDamage || target.IsDead) HideDamage(target);') -and
+    $worldPlaybackSource.Contains('if (unit.IsDead || unit.CurrentHp == 0) HideDamage(unit);') -and
+    $worldPlaybackSource.Contains('if (unit.HealthRoot != null) unit.HealthRoot.gameObject.SetActive(false);') -and
+    $worldPlaybackSource.Contains('loop && unit.Model.IsPlaying && unit.Model.CurrentAction == actionIndex') -and
+    $worldPlaybackSource.Contains('string.Equals(source, legacyPath + ".ani", StringComparison.OrdinalIgnoreCase)') -and
+    [regex]::IsMatch($projectXAppSource,
+        'WaitForSecondsRealtime\(\.18f\s*/ Mathf\.Max\(1f, worldBattlePlaybackPresenter\.PlaybackSpeed\)\)')
+) "World battle terminal-state regression: zero-HP death, floating damage cleanup, or scaled inter-action pacing was removed."
 Assert-ToolchainTest (
     $battlePresentationCatalogSource.Contains('LDataConstMgr:GetBTAction/GetBTModelAct/GetBTSkAct/GetBTHurtAct') -and
     $battlePresentationCatalogSource.Contains('actionType == 3 && skillId <= uint.MaxValue - 100000') -and

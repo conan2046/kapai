@@ -10955,7 +10955,8 @@ namespace ProjectX.Core
                 if (!deathFrameCaptured && stableDeadPositions.Count >= (captureFengShenStory ? 1 : 2))
                     stableDeathCaptureRound = Mathf.Max(stableDeathCaptureRound, action.Round + 1);
                 if (worldBattlePlaybackPresenter.SkipRequested) break;
-                yield return new WaitForSecondsRealtime(.18f);
+                yield return new WaitForSecondsRealtime(.18f
+                    / Mathf.Max(1f, worldBattlePlaybackPresenter.PlaybackSpeed));
             }
             if (preservePassiveDamage && !worldBattlePlaybackPresenter.SkipRequested)
                 yield return new WaitForSecondsRealtime(.5f

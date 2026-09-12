@@ -30,6 +30,7 @@ namespace ProjectX.UI
             public Text SkillLabel;
             public Image CombatMarker;
             public ulong CurrentHp;
+            public bool IsDead;
             public string AnimationBase;
             public readonly List<GameObject> BuffVisuals = new List<GameObject>();
             public readonly List<byte> RenderedBuffIds = new List<byte>();
@@ -485,7 +486,7 @@ namespace ProjectX.UI
             // activated so no enable/load transition can leave actionIndex=1
             // while still displaying action-0 frame 0.
             foreach (UnitView unit in units.Values.Where(value => value?.Model != null))
-                PlayUnitAnimation(unit, "zd", true);
+                RestoreUnitPose(unit);
             root.transform.SetAsLastSibling();
             Canvas.ForceUpdateCanvases();
             foreach (UnitView unit in units.Values) unit.Home = unit.Root.localPosition;
@@ -570,7 +571,7 @@ namespace ProjectX.UI
                 UnitView view = CreateUnit(unitLayer, unit, ResolveDisplayedPosition(unit), unit.IsEnemy);
                 units[unit.Position] = view;
                 view.Home = view.Root.localPosition;
-                PlayUnitAnimation(view, "zd", true);
+                RestoreUnitPose(view);
             }
             ConfigureFormationMarkers();
         }
@@ -618,23 +619,30 @@ namespace ProjectX.UI
             if (activeSource != null)
             {
                 activeSource.Root.localPosition = activeSource.Home;
-                if (!preserveDamage) HideDamage(activeSource);
                 HideSkillName(activeSource);
-                if (activeAction == null || !activeAction.SourceDead) PlayUnitAnimation(activeSource, "zd", true);
+                SetUnitDeathState(activeSource, activeAction?.SourceDead == true);
+                if (!preserveDamage || activeSource.IsDead) HideDamage(activeSource);
+                RestoreUnitPose(activeSource);
             }
             foreach (UnitView target in activeTargets)
             {
                 SetUnitColor(target, Color.white);
-                if (!preserveDamage) HideDamage(target);
-                WorldBattleTargetRecord record = activeAction?.Targets.FirstOrDefault(value => value.Position == target.Data.Position);
-                if (record == null || !record.Dead) PlayUnitAnimation(target, "zd", true);
+                WorldBattleTargetRecord record = FindTargetRecord(target.Data.Position);
+                SetUnitDeathState(target, record?.Dead == true);
+                if (!preserveDamage || target.IsDead) HideDamage(target);
+                RestoreUnitPose(target);
             }
             foreach (UnitView protector in activeProtectors)
             {
                 protector.Root.localPosition = protector.Home;
-                if (!preserveDamage) HideDamage(protector);
-                PlayUnitAnimation(protector, "zd", true);
+                if (!preserveDamage || protector.IsDead) HideDamage(protector);
+                RestoreUnitPose(protector);
             }
+            // Passive damage can be carried into the next visible action, but a
+            // dead unit will no longer be ticked by that action.  Clear it here
+            // so its final number cannot remain frozen over the death pose.
+            foreach (UnitView unit in units.Values)
+                if (unit.IsDead || unit.CurrentHp == 0) HideDamage(unit);
             activeSource = activeTarget = null;
             activeActionType = 0;
             activeAction = null;
@@ -651,8 +659,15 @@ namespace ProjectX.UI
 
         public void ShowOutcome()
         {
-            foreach (UnitView unit in units.Values.Where(value => value.Data.IsEnemy == store.Won))
-                PlayUnitAnimation(unit, "sw", false);
+            foreach (UnitView unit in units.Values)
+            {
+                HideDamage(unit);
+                if (unit.Data.IsEnemy == store.Won)
+                {
+                    unit.IsDead = true;
+                    RestoreUnitPose(unit);
+                }
+            }
         }
 
         public void Hide()
@@ -820,6 +835,8 @@ namespace ProjectX.UI
             view.CombatMarker.preserveAspect = true;
             view.CombatMarker.raycastTarget = false;
             view.CombatMarker.gameObject.SetActive(false);
+            SetUnitDeathState(view, (unit.State & 0x01) != 0);
+            RestoreUnitPose(view);
             return view;
         }
 
@@ -1009,7 +1026,8 @@ namespace ProjectX.UI
                 foreach (UnitView target in activeTargets)
                 {
                     WorldBattleTargetRecord record = activeAction?.Targets.FirstOrDefault(value => value.Position == target.Data.Position);
-                    if (record != null && record.Hit && !record.Dead && !string.IsNullOrWhiteSpace(hurt.ActionSuffix))
+                    if (record != null && record.Hit && !target.IsDead && !record.Dead
+                        && !string.IsNullOrWhiteSpace(hurt.ActionSuffix))
                         PlayUnitAnimation(target, hurt.ActionSuffix, false);
                 }
             }
@@ -1370,19 +1388,20 @@ namespace ProjectX.UI
                         ApplyHpDelta(target, -(long)record.Damage);
                         ShowDamage(target, $"-{record.Damage}", record.Critical
                             ? new Color(1f, .82f, .08f, 1f) : new Color(1f, .22f, .12f, 1f), record.Critical);
-                        PlayUnitAnimation(target, record.Dead ? "sw" : "bj", false);
+                        if (!SetUnitDeathState(target, record.Dead)) PlayUnitAnimation(target, "bj", false);
                         ApplyProtectorImpact(record);
                         ApplyRetaliationImpact(record);
                     }
                     else if (activeAction.FirstActionType == 1)
                     {
                         ShowCombatMarker(target, "dodgetext");
-                        PlayUnitAnimation(target, "zd", true);
+                        if (!SetUnitDeathState(target, record.Dead)) PlayUnitAnimation(target, "zd", true);
                     }
                     else if (activeAction.FirstActionType == 2)
                     {
                         ApplyHpDelta(target, record.Healing);
                         ShowDamage(target, $"+{record.Healing}", new Color(.2f, 1f, .32f, 1f));
+                        SetUnitDeathState(target, record.Dead);
                     }
                     else if (activeAction.FirstActionType == 6)
                     {
@@ -1390,15 +1409,16 @@ namespace ProjectX.UI
                         {
                             ApplyHpDelta(target, -(long)record.Damage);
                             ShowDamage(target, $"-{record.Damage}", new Color(1f, .22f, .12f, 1f));
-                            PlayUnitAnimation(target, record.Dead ? "sw" : "bj", false);
+                            if (!SetUnitDeathState(target, record.Dead)) PlayUnitAnimation(target, "bj", false);
                         }
                         if (record.Healing > 0)
                         {
                             ApplyHpDelta(target, record.Healing);
                             ShowDamage(target, $"+{record.Healing}", new Color(.2f, 1f, .32f, 1f));
+                            SetUnitDeathState(target, record.Dead);
                         }
                     }
-                    else if (record.Dead) PlayUnitAnimation(target, "sw", false);
+                    else SetUnitDeathState(target, record.Dead);
                     RefreshBuffs(target, record.BuffIds);
                 }
             }
@@ -1411,7 +1431,7 @@ namespace ProjectX.UI
                     ShowDamage(activeSource, sourceDelta > 0 ? $"+{sourceDelta}" : sourceDelta.ToString(),
                         sourceDelta > 0 ? new Color(.2f, 1f, .32f, 1f) : new Color(1f, .22f, .12f, 1f));
                 }
-                if (activeAction.SourceDead) PlayUnitAnimation(activeSource, "sw", false);
+                SetUnitDeathState(activeSource, activeAction.SourceDead);
                 // BAT_PASSIVE carries only target state in LBattleLogic. When
                 // source and target are the same unit, its empty default source
                 // array is not authoritative and must not erase the target
@@ -1430,7 +1450,7 @@ namespace ProjectX.UI
                 ShowDamage(protector, $"-{record.ProtectorDamage}", new Color(1f, .45f, .12f, 1f));
             else if (record.ProtectorHealing > 0)
                 ShowDamage(protector, $"+{record.ProtectorHealing}", new Color(.2f, 1f, .32f, 1f));
-            PlayUnitAnimation(protector, record.ProtectorDead ? "sw" : "bj", false);
+            if (!SetUnitDeathState(protector, record.ProtectorDead)) PlayUnitAnimation(protector, "bj", false);
             RefreshBuffs(protector, record.ProtectorBuffIds);
         }
 
@@ -1451,7 +1471,8 @@ namespace ProjectX.UI
                 ApplyHpDelta(activeSource, -(long)retaliationDamage);
                 ShowDamage(activeSource, $"-{retaliationDamage}", record.CounterCritical
                     ? new Color(1f, .82f, .08f, 1f) : new Color(1f, .22f, .12f, 1f), record.CounterCritical);
-                PlayUnitAnimation(activeSource, "bj", false);
+                if (!SetUnitDeathState(activeSource, activeAction?.SourceDead == true))
+                    PlayUnitAnimation(activeSource, "bj", false);
             }
             if (retaliationHealing > 0)
             {
@@ -1471,18 +1492,82 @@ namespace ProjectX.UI
                 unit.HealthFill.fillAmount = maximum <= 0 ? 0f : Mathf.Clamp01((float)((double)current / maximum));
         }
 
+        private WorldBattleTargetRecord FindTargetRecord(byte position)
+        {
+            if (activeAction == null) return null;
+            foreach (WorldBattleTargetRecord record in activeAction.Targets)
+                if (record.Position == position) return record;
+            return null;
+        }
+
+        private bool SetUnitDeathState(UnitView unit, bool protocolDead)
+        {
+            if (unit == null) return true;
+            bool dead = protocolDead || unit.CurrentHp == 0;
+            bool changed = unit.IsDead != dead;
+            unit.IsDead = dead;
+            if (dead)
+            {
+                string deathPath = unit.AnimationBase + "sw";
+                if (changed || unit.Model == null
+                    || !IsCurrentAnimation(unit.Model, deathPath))
+                    PlayUnitAnimation(unit, "sw", false);
+            }
+            else if (changed)
+            {
+                if (unit.HealthRoot != null) unit.HealthRoot.gameObject.SetActive(true);
+                PlayUnitAnimation(unit, "zd", true);
+            }
+            return dead;
+        }
+
+        private void RestoreUnitPose(UnitView unit)
+        {
+            if (unit == null) return;
+            if (unit.IsDead || unit.CurrentHp == 0)
+            {
+                unit.IsDead = true;
+                string deathPath = unit.AnimationBase + "sw";
+                if (unit.Model != null
+                    && !IsCurrentAnimation(unit.Model, deathPath))
+                    PlayUnitAnimation(unit, "sw", false);
+                if (unit.HealthRoot != null) unit.HealthRoot.gameObject.SetActive(false);
+                return;
+            }
+            if (unit.HealthRoot != null) unit.HealthRoot.gameObject.SetActive(true);
+            PlayUnitAnimation(unit, "zd", true);
+        }
+
         private bool PlayUnitAnimation(UnitView unit, string suffix, bool loop)
         {
             if (unit?.Model == null || string.IsNullOrWhiteSpace(unit.AnimationBase)) return false;
-            if (!unit.Model.LoadLegacy(unit.AnimationBase + suffix)) return false;
+            string animationPath = unit.AnimationBase + suffix;
+            int actionIndex = ResolveUnitActionIndex(unit);
+            unit.Model.SetFlippedX(ResolveUnitFlipX(unit));
+            unit.Model.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));
+            // EndAction touches several units every few tenths of a second at
+            // high speed.  Do not reload/restart an idle loop that is already
+            // correct; the prepared asset cache cannot avoid that rebinding cost.
+            if (loop && unit.Model.IsPlaying && unit.Model.CurrentAction == actionIndex
+                && IsCurrentAnimation(unit.Model, animationPath))
+                return true;
+            if (!unit.Model.LoadLegacy(animationPath)) return false;
             unit.Model.SetFlippedX(ResolveUnitFlipX(unit));
             unit.Model.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));
             try
             {
-                unit.Model.Play(ResolveUnitActionIndex(unit), loop);
+                unit.Model.Play(actionIndex, loop);
                 return true;
             }
             catch { return false; }
+        }
+
+        private static bool IsCurrentAnimation(ImodAnimationPlayer player, string legacyPath)
+        {
+            if (player == null || string.IsNullOrWhiteSpace(legacyPath)) return false;
+            string source = player.CurrentAnimationSource;
+            return string.Equals(source, legacyPath, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(source, legacyPath + ".ani", StringComparison.OrdinalIgnoreCase);
         }
 
         private static void SetUnitColor(UnitView unit, Color color)
