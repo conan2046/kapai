@@ -17,9 +17,8 @@ namespace ProjectX.UI
     public sealed class MonopolyPresenter : IDisposable
     {
         private readonly CocosUiView mapView, hudView, handView;
-        private readonly Action roll, queryBuy, reset, close, moveEnd, fight;
+        private readonly Action roll, queryBuy, reset, close, moveEnd, showGuardConfirmation, fightImmediately;
         private readonly Action<byte> playHand;
-        private readonly Action<string> toast;
         private readonly RectTransform map;
         private readonly MonopolyRuntime runtime;
         private readonly Text rollText, killText, expText, coinText, goldText;
@@ -35,11 +34,12 @@ namespace ProjectX.UI
         private Texture2D atlas, handAtlas;
         private uint current = 1, rollMax, rollUse, monsterMax, monsterKill, exp, coin, gold;
         private byte selectedHand;
-        private bool finished;
+        private bool finished, autoFightAfterMove, guardAwaitingRetry;
 
         public MonopolyPresenter(CocosUiView mapView, CocosUiView hudView, CocosUiView handView, byte playerModel, int playerLevel,
-            Action roll, Action queryBuy, Action reset, Action close, Action moveEnd, Action fight,
-            Action<byte> playHand, Action<string> toast, Action help)
+            Action roll, Action queryBuy, Action reset, Action close, Action moveEnd,
+            Action showGuardConfirmation, Action fightImmediately,
+            Action<byte> playHand, Action help)
         {
             this.mapView = mapView ?? throw new ArgumentNullException(nameof(mapView));
             this.hudView = hudView ?? throw new ArgumentNullException(nameof(hudView));
@@ -49,9 +49,9 @@ namespace ProjectX.UI
             this.reset = reset ?? throw new ArgumentNullException(nameof(reset));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.moveEnd = moveEnd ?? throw new ArgumentNullException(nameof(moveEnd));
-            this.fight = fight ?? throw new ArgumentNullException(nameof(fight));
+            this.showGuardConfirmation = showGuardConfirmation ?? throw new ArgumentNullException(nameof(showGuardConfirmation));
+            this.fightImmediately = fightImmediately ?? throw new ArgumentNullException(nameof(fightImmediately));
             this.playHand = playHand ?? throw new ArgumentNullException(nameof(playHand));
-            this.toast = toast ?? throw new ArgumentNullException(nameof(toast));
             map = Require(mapView, "Layer/bg").GetComponent<RectTransform>();
             NormalizeRoot(mapView.GameObject.transform);
             NormalizeRoot(hudView.GameObject.transform);
@@ -59,6 +59,7 @@ namespace ProjectX.UI
             BuildMapTiles();
             runtime = mapView.GameObject.GetComponent<MonopolyRuntime>() ?? mapView.GameObject.AddComponent<MonopolyRuntime>();
             runtime.Initialize(map, new Vector2(4000f, 2496f), new Vector2(1334f, 750f));
+            runtime.SetDragBlocker(Require(hudView, "Layer/Panel/GoldCheck").GetComponent<RectTransform>());
             CreatePlayer(playerModel);
 
             rollText = RequireText(hudView, "Layer/Panel/BtnPanel/Times/Value");
@@ -66,7 +67,12 @@ namespace ProjectX.UI
             coinText = RequireText(hudView, "Layer/Panel/Reward/ListView/Coin/Value");
             goldText = RequireText(hudView, "Layer/Panel/Reward/ListView/Gold/Value");
             expText = RequireText(hudView, "Layer/Panel/Reward/ListView/kunlunbi/Value");
-            rollButton = hudView.BindClick("Layer/Panel/BtnPanel/EnterBtn", () => { if (!finished) this.roll(); }, true);
+            rollButton = hudView.BindClick("Layer/Panel/BtnPanel/EnterBtn", () =>
+            {
+                if (finished) return;
+                if (guardAwaitingRetry) showGuardConfirmation();
+                else this.roll();
+            }, true);
             hudView.BindClick("Layer/Panel/BtnPanel/Times/AddBtn", this.queryBuy, true);
             hudView.BindClick("Layer/Panel/Refresh", this.reset, true);
             hudView.BindClick("Layer/Panel/Title/CloseBtn", this.close, true);
@@ -98,7 +104,6 @@ namespace ProjectX.UI
                     if (enabled && playerLevel < 56)
                     {
                         autoToggle.SetIsOnWithoutNotify(false);
-                        toast("56级开启自动闯关");
                         return;
                     }
                     PlayerPrefs.SetInt("ProjectX.Monopoly.AutoPlay", enabled ? 1 : 0);
@@ -127,6 +132,8 @@ namespace ProjectX.UI
             this.monsterMax = monsterMax; this.monsterKill = monsterKill;
             this.exp = exp; this.coin = coin; this.gold = gold;
             finished = false;
+            autoFightAfterMove = false;
+            guardAwaitingRetry = false;
             cells.Clear();
             foreach (MonopolyCell cell in values) cells[cell.Id] = cell;
             RebuildEvents();
@@ -139,6 +146,13 @@ namespace ProjectX.UI
             runtime.CancelAuto();
             rollMax = maximum; rollUse = remaining; Render();
             rollButton.interactable = false;
+            // The server clamps a roll that crosses the next live guard to the
+            // cell immediately before it while retaining the original stop index.
+            uint naturalDestination = Math.Min(82u, current + dice);
+            MonopolyCell guard;
+            autoFightAfterMove = destination < naturalDestination
+                && cells.TryGetValue(destination + 1, out guard) && guard.EventId == 2;
+            guardAwaitingRetry = false;
             runtime.ShowDice(dice, () => MoveTo(destination, () =>
             {
                 current = destination;
@@ -151,21 +165,36 @@ namespace ProjectX.UI
         {
             if (eventId == 8 && target > 0 && target <= 82)
             {
+                autoFightAfterMove = false;
                 ConsumeCell(current);
-                int delta = (int)target - (int)current;
-                toast(delta >= 0 ? $"随机事件：前进{delta}格" : $"随机事件：后退{-delta}格");
                 rollButton.interactable = false;
                 MoveTo(target, () => { current = target; moveEnd(); });
                 return;
             }
-            if (eventId == 2) { rollButton.interactable = false; fight(); return; }
+            if (eventId == 2)
+            {
+                autoFightAfterMove = false;
+                guardAwaitingRetry = true;
+                rollButton.interactable = false;
+                showGuardConfirmation();
+                return;
+            }
             if (eventId == 4) { ShowHand(); return; }
-            if (eventId == 5) { ConsumeCell(current); finished = true; rollButton.interactable = false; toast("本轮闯关完成，可重置后继续"); return; }
+            if (eventId == 5) { Finish(); return; }
             if (eventId == 3 || eventId == 6 || eventId == 7) ConsumeCell(current);
-            if (eventId != 0)
-                toast(EventMessage(eventId));
+            if (StartAutomaticGuardFight()) return;
             rollButton.interactable = rollUse > 0;
             ScheduleAutoRoll();
+        }
+
+        public void Finish()
+        {
+            ConsumeCell(current);
+            finished = true;
+            autoFightAfterMove = false;
+            guardAwaitingRetry = false;
+            rollButton.interactable = false;
+            runtime.CancelAuto();
         }
 
         public void BattleResult(bool win, uint destination, uint totalExp, uint totalCoin, uint totalGold,
@@ -173,7 +202,8 @@ namespace ProjectX.UI
         {
             exp = totalExp; coin = totalCoin; gold = totalGold;
             monsterMax = maximumKills; monsterKill = currentKills;
-            toast(win ? $"守卫挑战胜利  {stars}星  {rewards}" : "守卫挑战失败");
+            autoFightAfterMove = false;
+            guardAwaitingRetry = !win;
             if (win && destination > current)
             {
                 ConsumeCell(current + 1);
@@ -197,15 +227,26 @@ namespace ProjectX.UI
             ApplyHandSprite(handRightImage, handRight, HandKey(own), handRightBase);
             ApplyHandSprite(handResultImage, handResult, result == 1 ? "win" : result == 2 ? "draw" : "loss", handResultBase);
             handLeft.gameObject.SetActive(true); handRight.gameObject.SetActive(true); handResult.gameObject.SetActive(true);
-            toast(!string.IsNullOrWhiteSpace(detail) ? detail : result == 1 ? "猜拳胜利，获得事件奖励" : result == 2 ? "猜拳平局，请重新出拳" : "猜拳失败");
             if (result != 2) ConsumeCell(current);
             runtime.ScheduleHandResult(1.5f, () =>
             {
                 if (result == 2) { ShowHand(); return; }
                 handView.SetVisible(false);
+                if (StartAutomaticGuardFight()) return;
                 rollButton.interactable = rollUse > 0 && !finished;
                 ScheduleAutoRoll();
             });
+        }
+
+        private bool StartAutomaticGuardFight()
+        {
+            if (!autoFightAfterMove) return false;
+            autoFightAfterMove = false;
+            guardAwaitingRetry = false;
+            rollButton.interactable = false;
+            runtime.CancelAuto();
+            fightImmediately();
+            return true;
         }
 
         public void SetBusy(bool busy) => rollButton.interactable = !busy && rollUse > 0 && !finished;
@@ -477,11 +518,6 @@ namespace ProjectX.UI
             if (cells.TryGetValue(id, out cell)) cell.EventId = 0;
         }
 
-        private static string EventMessage(uint eventId) => eventId switch
-        {
-            0 => string.Empty, 1 => "回到起点", 3 => "获得宝箱奖励", 4 => "完成猜拳事件",
-            6 => "获得元宝奖励", 7 => "获得金币奖励", _ => "事件处理完成"
-        };
         private static string HeroPrefix(uint model)
         {
             string[] values = { "Z", "B", "Y", "H", "K", "J" };
@@ -506,7 +542,7 @@ namespace ProjectX.UI
 
     public sealed class MonopolyRuntime : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
-        private RectTransform map, player, dice;
+        private RectTransform map, player, dice, dragBlocker;
         private ImodAnimationPlayer playerStandAnimation, playerRunAnimation;
         private int playerDirection = 2;
         private ImodAnimationPlayer diceAnimation;
@@ -516,6 +552,7 @@ namespace ProjectX.UI
         public bool IsMoving => moveRoutine != null;
         public void Initialize(RectTransform map, Vector2 mapSize, Vector2 viewport)
         { this.map = map; this.mapSize = mapSize; this.viewport = viewport; }
+        public void SetDragBlocker(RectTransform value) => dragBlocker = value;
         public void SetPlayer(RectTransform value, ImodAnimationPlayer standAnimation, ImodAnimationPlayer runAnimation)
         {
             player = value;
@@ -574,7 +611,7 @@ namespace ProjectX.UI
                 diceAnimation.SetPlayOnEnable(false);
                 if (!diceAnimation.LoadLegacy("UI/shaizi"))
                     throw new InvalidOperationException("Monopoly formal dice animation UI/shaizi failed to load.");
-                diceAnimation.SetSpeedScale(.45f);
+                diceAnimation.SetSpeedScale(.5f);
 
                 GameObject resultNode = new GameObject("DiceResult", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
                 RectTransform resultRect = resultNode.GetComponent<RectTransform>();
@@ -582,7 +619,16 @@ namespace ProjectX.UI
                 resultRect.sizeDelta = new Vector2(150f, 150f);
                 diceResult = resultNode.GetComponent<RawImage>(); diceResult.raycastTarget = false;
             }
-            diceResult.texture = texture; diceResult.color = Color.white; diceResult.gameObject.SetActive(false);
+            dice.localScale = Vector3.one;
+            diceResult.texture = texture;
+            diceResult.uvRect = new Rect(0f, 0f, 1f, 1f);
+            RectTransform finalResultRect = diceResult.rectTransform;
+            finalResultRect.anchoredPosition = Vector2.zero;
+            finalResultRect.localRotation = Quaternion.identity;
+            finalResultRect.localScale = Vector3.one;
+            finalResultRect.sizeDelta = new Vector2(texture.width, texture.height);
+            diceResult.color = Color.white;
+            diceResult.gameObject.SetActive(false);
             diceAnimation.gameObject.SetActive(true); dice.gameObject.SetActive(true);
             if (diceRoutine != null) StopCoroutine(diceRoutine);
             diceAnimation.Play(0, false);
@@ -619,13 +665,23 @@ namespace ProjectX.UI
         public void OnDrag(PointerEventData eventData)
         {
             if (map == null || IsMoving) return;
+            if (dragBlocker != null && RectTransformUtility.RectangleContainsScreenPoint(
+                    dragBlocker, eventData.pressPosition, eventData.pressEventCamera))
+                return;
             map.anchoredPosition = Clamp(map.anchoredPosition + eventData.delta);
         }
         private IEnumerator MoveRoutine(IReadOnlyList<Vector2> points, Vector2? finalFacingPoint, Action done)
         {
             if (player == null) { done?.Invoke(); moveRoutine = null; yield break; }
             if (playerStandAnimation != null) playerStandAnimation.gameObject.SetActive(false);
-            if (playerRunAnimation != null) playerRunAnimation.gameObject.SetActive(true);
+            if (playerRunAnimation != null)
+            {
+                playerRunAnimation.gameObject.SetActive(true);
+                // A backward random event leaves the hidden run clip playing in
+                // its old direction. Reapply the forward standing direction at
+                // the start of every new path before evaluating the first step.
+                if (playerRunAnimation.IsLoaded) PlayFacing(playerRunAnimation, playerDirection);
+            }
             foreach (Vector2 target in points)
             {
                 Vector2 start = player.anchoredPosition; float elapsed = 0f;
@@ -688,11 +744,10 @@ namespace ProjectX.UI
                 diceResult.gameObject.SetActive(true);
                 diceResult.transform.SetAsLastSibling();
             }
-            // Keep the authoritative server result still for a readable beat
-            // before movement starts.
-            yield return new WaitForSecondsRealtime(.35f);
+            // Required sequence: animation -> native-size result held for two seconds
+            // -> movement starts while the result fades out over half a second.
+            yield return new WaitForSecondsRealtime(2f);
             finished?.Invoke();
-            yield return new WaitForSecondsRealtime(1f);
             float elapsed = 0f;
             while (elapsed < .5f)
             {

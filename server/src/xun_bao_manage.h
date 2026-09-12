@@ -245,6 +245,7 @@ class CXunBaoManage
 public:
 	enum ECGOp
 	{
+		ECGOp_EntryDenied = 0, // Unity 本地单人入口被拒绝
 		ECGOp_Join = 1, // 加入
 		ECGOp_Sync = 2, // 同步数据
 		ECGOp_Roll = 3, // roll点

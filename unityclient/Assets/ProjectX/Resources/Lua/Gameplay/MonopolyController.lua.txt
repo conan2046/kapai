@@ -1,6 +1,6 @@
 local Protocol = require("Protocol")
 
-local M = { pending = 0 }
+local M = { pending = 0, functionId = 0 }
 local CMD = Protocol.CHUANG_GUAN
 
 local function send(op, extra)
@@ -13,7 +13,7 @@ end
 
 function M.onClick(functionId)
     M.pending = 0
-    Bridge:ShowMonopoly(functionId)
+    M.functionId = functionId
     send(15)
 end
 
@@ -52,7 +52,10 @@ function M.onPacket(command, message)
     if op >= 25 then message.Position = start; return false end
     M.pending = 0
 
-    if op == 15 then
+    if op == 0 then
+        Bridge:RejectMonopolyEntry("今日次数已用完")
+    elseif op == 15 then
+        Bridge:ShowMonopoly(M.functionId)
         local timediff = message:ReadUInt()
         local exp, coin, gold = message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
         local rollMax, rollUse = message:ReadUInt(), message:ReadUInt()
@@ -87,7 +90,18 @@ function M.onPacket(command, message)
     elseif op == 4 then
         local eventId = message:ReadByte()
         local target = eventId == 8 and message:ReadUInt() or 0
-        Bridge:ResolveMonopolyEvent(eventId, target)
+        if eventId == 5 then
+            Bridge:BeginMonopolyFinishRewards()
+            if message.Remaining > 0 then
+                local rewardCount = message:ReadByte()
+                for _ = 1, rewardCount do
+                    Bridge:AddMonopolyFinishReward(message:ReadWord(), message:ReadUInt(), message:ReadUInt())
+                end
+            end
+            Bridge:CompleteMonopolyFinish()
+        else
+            Bridge:ResolveMonopolyEvent(eventId, target)
+        end
     elseif op == 6 then
         local success = message:ReadByte()
         local result = message:ReadByte()

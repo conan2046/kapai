@@ -902,7 +902,11 @@ void CXunBaoManage::Roll()
 
 	// 处理 当前位置未处理的事件
 	DoStopEvt();
-	if (m_state == 1)
+	// The packaged Unity single-player flow rolls first, then automatically
+	// enters the guard battle when movement reaches the blocked cell. Preserve
+	// the legacy online/Cocos confirmation path outside local_test.
+	if (m_state == 1
+		&& gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) != "1")
 	{
 		msg << (uint8)PRO_ERROR;
 		msg << (uint32)CXunBaoManage::FIGHT_CELL;
@@ -1001,7 +1005,13 @@ void CXunBaoManage::DoStopEvt()
 		return;
 
 	case XBE_End:
-		AddChuangguanMaterial(XBE_End);
+		{
+			MultiAward terminalAwards;
+			AddChuangguanMaterial(XBE_End, false, &terminalAwards);
+			// Keep finishEvent authoritative: append the exact rewards that were
+			// granted above so migrated clients can show the common reward panel.
+			MakeMultiAwardMsg(terminalAwards, msg);
+		}
 		ClearMap();
 		m_pUser->SetExtData8(21, m_pUser->GetExtData8(21) + 1);	// 完成次数+1
 		char infoMsg[512];

@@ -278,6 +278,8 @@ namespace ProjectX.Animation
             // Values below 1 therefore play faster, values above 1 play slower.
             remaining -= deltaSeconds / speed;
             int guard = 0;
+            bool sequenceChanged = false;
+            bool completed = false;
             while (remaining <= 0f && playing && guard++ < 1024)
             {
                 ImodAction action = data.actions[actionIndex];
@@ -287,13 +289,27 @@ namespace ProjectX.Animation
                     if (loop) sequenceIndex = 0;
                     else
                     {
+                        sequenceIndex = action.frames.Length - 1;
                         playing = false;
-                        Completed?.Invoke(actionIndex);
-                        return;
+                        completed = true;
+                        break;
                     }
                 }
-                ApplySequenceFrame();
+                ImodActionFrame item = action.frames[sequenceIndex];
+                remaining += Mathf.Max(1, item.durationTicks) / (float)Mathf.Max(1, data.frameRate);
+                sequenceChanged = true;
             }
+            // A high playback multiplier can cross many Imod frames in one
+            // Unity frame. Rendering each skipped frame multiplies Canvas work
+            // without ever presenting those intermediate images. Advance the
+            // clock in the loop, then publish only the final visible frame.
+            if (sequenceChanged)
+            {
+                ImodActionFrame item = data.actions[actionIndex].frames[sequenceIndex];
+                RenderFrame(item.frame);
+                FrameChanged?.Invoke(actionIndex, item.frame);
+            }
+            if (completed) Completed?.Invoke(actionIndex);
         }
 
         private void ApplySequenceFrame()

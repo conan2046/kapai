@@ -14,6 +14,7 @@ namespace ProjectX.Core
         private CocosUiView monopolyView, monopolyHudView, monopolyHandView;
         private MonopolyPresenter monopolyPresenter;
         private readonly List<MonopolyCell> pendingMonopolyCells = new List<MonopolyCell>();
+        private readonly List<RewardRecord> pendingMonopolyFinishRewards = new List<RewardRecord>();
         private uint pendingMonopolyCurrent, pendingMonopolyRollMax, pendingMonopolyRollUse;
         private uint pendingMonopolyMonsterMax, pendingMonopolyMonsterKill, pendingMonopolyExp, pendingMonopolyCoin, pendingMonopolyGold;
         private bool hasPendingMonopolyBattleResult, pendingMonopolyBattleWin;
@@ -21,6 +22,7 @@ namespace ProjectX.Core
         private uint pendingMonopolyBattleGold, pendingMonopolyBattleMaxKill, pendingMonopolyBattleCurKill;
         private uint pendingMonopolyBattleStars;
         private string pendingMonopolyBattleRewards = string.Empty;
+        private bool monopolyBattlePlaybackActive, monopolyBattlePlaybackReturned;
 
         private bool IsMonopolyOpen => monopolyView != null && monopolyView.GameObject != null
             && services?.UiStack.Current == monopolyView;
@@ -32,10 +34,20 @@ namespace ProjectX.Core
             if (definition == null || route.Target != "Monopoly" || string.IsNullOrWhiteSpace(route.PrefabKey))
             { Fail($"Monopoly route config is incomplete: id={functionId}."); return; }
             EnsureMonopolyPresenter(route);
+            toastPresenter?.Clear();
+            RefreshStandardCurrencyHeader(monopolyHudView.Binding, "Layer/Panel/GoldCheck");
             gameplayPresenter?.HideDetail(); gameplayContentView?.SetVisible(false);
             if (services.UiStack.Current != monopolyView) services.UiStack.Push(monopolyView, true);
             monopolyHudView.SetVisible(true);
-            SetStatus("Monopoly/213 single-player board active; op=15 query requested.");
+            SetStatus("Monopoly/213 single-player board active after the op=15 map response.");
+        }
+
+        public void RejectMonopolyEntry(string detail)
+        {
+            string message = string.IsNullOrWhiteSpace(detail) ? "今日次数已用完" : detail;
+            EnsureErrorPresenter();
+            errorPresenter.Show("昆仑寻宝", message);
+            SetStatus($"Monopoly entry rejected: {message}");
         }
 
         public void BeginMonopolyBoard(double timediff, double exp, double coin, double gold, double rollMax,
@@ -70,10 +82,49 @@ namespace ProjectX.Core
             => monopolyPresenter?.RollTo(checked((uint)destination), checked((uint)dice), checked((uint)maximum), checked((uint)remaining));
         public void ResolveMonopolyEvent(double eventId, double target)
             => monopolyPresenter?.ResolveEvent(checked((uint)eventId), checked((uint)target));
+        public void BeginMonopolyFinishRewards() => pendingMonopolyFinishRewards.Clear();
+        public void AddMonopolyFinishReward(double type, double id, double amount)
+        {
+            int rewardType = checked((int)type);
+            int rewardId = checked((int)id);
+            uint rewardAmount = checked((uint)amount);
+            int displayId = rewardId > 0 ? rewardId : rewardType;
+            RewardRecord described = services.ShopCatalog.DescribeReward(rewardType, rewardId, rewardAmount);
+            string name = described.Name;
+            int picture = described.Picture;
+            int quality = described.Quality;
+
+            // The legacy item table treats treasure maps as special package items.
+            // Cocos binds 2442 directly to item/equip10050.png and this display name.
+            if (displayId == 2442 && (picture <= 0 || name.StartsWith("奖励 #", StringComparison.Ordinal)))
+            {
+                name = "高级藏宝图";
+                picture = 10050;
+                quality = 0;
+            }
+            pendingMonopolyFinishRewards.Add(new RewardRecord(rewardType, checked((uint)displayId),
+                rewardAmount, name, picture, quality));
+        }
+        public void CompleteMonopolyFinish()
+        {
+            monopolyPresenter?.Finish();
+            if (pendingMonopolyFinishRewards.Count > 0)
+            {
+                services.Rewards.Replace("通关奖励", pendingMonopolyFinishRewards);
+                pendingMonopolyFinishRewards.Clear();
+                EnsureRewardPresenter();
+                rewardPresenter.Show();
+                SetStatus("Monopoly finishEvent received; authoritative terminal rewards are visible.");
+            }
+            else
+            {
+                SetStatus("Monopoly finishEvent received without an authoritative reward payload.");
+            }
+        }
         public void UpdateMonopolyRewards(double exp, double coin, double gold)
             => monopolyPresenter?.UpdateRewards(checked((uint)exp), checked((uint)coin), checked((uint)gold));
         public void CompleteMonopolyBuy(double maximum, double remaining)
-        { monopolyPresenter?.UpdateRolls(checked((uint)maximum), checked((uint)remaining)); ShowToast("骰子次数购买成功", 2f); }
+            => monopolyPresenter?.UpdateRolls(checked((uint)maximum), checked((uint)remaining));
         public void CompleteMonopolyBattle(double win, double destination, double exp, double coin, double gold,
             double maxKill, double curKill, double stars, string rewards)
         {
@@ -88,20 +139,31 @@ namespace ProjectX.Core
             pendingMonopolyBattleRewards = rewards ?? string.Empty;
             hasPendingMonopolyBattleResult = true;
             if (battlePlaybackContext != BattlePlaybackContext.Monopoly
-                || (worldBattlePlaybackCoroutine == null && worldBattlePlaybackPresenter?.IsVisible != true))
+                || monopolyBattlePlaybackReturned
+                || (!monopolyBattlePlaybackActive
+                    && worldBattlePlaybackCoroutine == null
+                    && worldBattlePlaybackPresenter?.IsVisible != true))
                 ApplyPendingMonopolyBattleResult();
         }
         public void CompleteMonopolyHand(double result, string detail)
             => monopolyPresenter?.CompleteHand(checked((uint)result), detail ?? string.Empty);
         public void FailMonopolyOperation(double code, string detail)
-        { monopolyPresenter?.SetBusy(false); ShowToast(string.IsNullOrWhiteSpace(detail) ? $"闯关操作失败({code})" : detail, 3f); }
+        {
+            monopolyPresenter?.SetBusy(false);
+            SetStatus(string.IsNullOrWhiteSpace(detail) ? $"Monopoly operation failed: code={code}." : $"Monopoly operation failed: {detail}");
+        }
         public void ShowMonopolyGuard() => ShowMonopolyGuardConfirmation();
-        public void ClearMonopolyState() { pendingMonopolyCells.Clear(); monopolyPresenter?.SetBusy(false); }
+        public void ClearMonopolyState()
+        {
+            pendingMonopolyCells.Clear();
+            pendingMonopolyFinishRewards.Clear();
+            monopolyPresenter?.SetBusy(false);
+        }
 
         public void ShowMonopolyBuy(double useType, double price, double bought, double maximum)
         {
             EnsureErrorPresenter();
-            if (bought >= maximum) { ShowToast("本轮购买次数已达上限", 2f); return; }
+            if (bought >= maximum) return;
             errorPresenter.ShowConfirmation("购买骰子", $"消耗{checked((uint)price)}（货币类型{checked((uint)useType)}）购买1次骰子？\n本轮已购买 {checked((uint)bought)}/{checked((uint)maximum)} 次。",
                 () => InvokeLuaOrFail(onMonopolyBuyRoll, "Monopoly.BuyRoll"));
         }
@@ -127,8 +189,9 @@ namespace ProjectX.Core
                 () => InvokeLuaOrFail(onMonopolyClose, "Monopoly.Close"),
                 () => InvokeLuaOrFail(onMonopolyMoveEnd, "Monopoly.MoveEnd"),
                 ShowMonopolyGuardConfirmation,
+                () => InvokeLuaOrFail(onMonopolyFightGuard, "Monopoly.FightGuard"),
                 choice => InvokeLuaOrFail(onMonopolyPlayHand, "Monopoly.PlayHand", (double)choice),
-                message => ShowToast(message, 3f), ShowMonopolyHelp);
+                ShowMonopolyHelp);
             monopolyPresenter.BindRuntimePlayer();
         }
 
@@ -146,6 +209,8 @@ namespace ProjectX.Core
         }
         private void PrepareMonopolyBattlePlayback()
         {
+            monopolyBattlePlaybackActive = true;
+            monopolyBattlePlaybackReturned = false;
             monopolyPresenter?.SetBusy(true);
             monopolyHandView?.SetVisible(false);
             monopolyHudView?.SetVisible(false);
@@ -153,6 +218,15 @@ namespace ProjectX.Core
         }
         private void CompleteMonopolyBattlePlayback()
         {
+            monopolyBattlePlaybackActive = false;
+            monopolyBattlePlaybackReturned = true;
+            // Monopoly has no separate battle-settlement layer. In particular,
+            // an explicit skip returns directly to the board while op=10 may
+            // still be in flight; do not let the completed playback overlay
+            // prevent that late authoritative result from being applied.
+            pendingWorldBattleResult = false;
+            pendingWorldBattleStars = 0;
+            worldBattlePlaybackPresenter?.Hide();
             monopolyView?.SetVisible(true);
             monopolyHudView?.SetVisible(true);
             ApplyPendingMonopolyBattleResult();
@@ -162,6 +236,7 @@ namespace ProjectX.Core
         {
             if (!hasPendingMonopolyBattleResult) return;
             hasPendingMonopolyBattleResult = false;
+            monopolyBattlePlaybackReturned = false;
             monopolyPresenter?.BattleResult(pendingMonopolyBattleWin, pendingMonopolyBattleDestination,
                 pendingMonopolyBattleExp, pendingMonopolyBattleCoin, pendingMonopolyBattleGold,
                 pendingMonopolyBattleMaxKill, pendingMonopolyBattleCurKill, pendingMonopolyBattleStars,

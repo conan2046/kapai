@@ -3210,6 +3210,15 @@ Assert-ToolchainTest (
     $imodAnimationPlayerSource.Contains('moduleSprites.Count == data.modules.Length') -and
     $imodAnimationPlayerSource.Contains('moduleSprites[part.module] == null')
 ) "Imod runtime regression: Play-mode assembly reload no longer rebuilds the generated sprite cache before rendering."
+Assert-ToolchainTest (
+    $imodAnimationPlayerSource.Contains('bool sequenceChanged = false;') -and
+    $imodAnimationPlayerSource.Contains('remaining += Mathf.Max(1, item.durationTicks)') -and
+    $imodAnimationPlayerSource.Contains('sequenceIndex = action.frames.Length - 1;') -and
+    [regex]::IsMatch($imodAnimationPlayerSource,
+        'while \(remaining <= 0f[\s\S]*?if \(sequenceChanged\)[\s\S]*?RenderFrame\(item\.frame\);') -and
+    -not [regex]::IsMatch($imodAnimationPlayerSource,
+        'while \(remaining <= 0f[\s\S]*?ApplySequenceFrame\(\);')
+) "Imod high-speed regression: skipped animation frames are rendered one-by-one again."
 
 $heroSqliteFixtureSource = Get-Content -LiteralPath (
     Join-Path $root "tools/unity-migration/Invoke-HeroSqliteFixture.py") -Raw -Encoding UTF8

@@ -13476,7 +13476,17 @@ void CPackageDeal::ChuangGuanOption(CNetMessage *pMsg,int sock)
 			int joinCnt = pUser->GetExtData8(21); // 当天进入次数
 			if (joinCnt >= CXunBaoManage::JOIN_LIMIT)
 			{
-				SendSysInfo(pUser,MakeStringColor(LANGUAGE_TRANSFORM_3,TIPS_FAILURE_COLOR).c_str());
+				if (gyu::util::CIniFile::GetValue("local_test", "server", gConfigFile) == "1")
+				{
+					CNetMessage denied;
+					denied.SetType(MSG_CHUANG_GUAN);
+					denied << (uint8)CXunBaoManage::ECGOp_EntryDenied;
+					m_socketServer.SendMsg(pUser->GetSock(), denied);
+				}
+				else
+				{
+					SendSysInfo(pUser,MakeStringColor(LANGUAGE_TRANSFORM_3,TIPS_FAILURE_COLOR).c_str());
+				}
 				return;
 			}
 			if (gyu::util::CIniFile::GetValue("local_test","server",gConfigFile) == "1"

@@ -5094,6 +5094,11 @@ namespace ProjectX.Core
 
         public void ShowToast(string message, float visibleSeconds = 2f)
         {
+            if (IsMonopolyOpen)
+            {
+                toastPresenter?.Clear();
+                return;
+            }
             EnsureCommonPresenters();
             // During an authoritative equipment refresh OneLevelLayer can be
             // temporarily inactive while its cultivation child remains the owner
@@ -14834,6 +14839,7 @@ namespace ProjectX.Core
         {
             RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");
             RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");
+            RefreshStandardCurrencyHeader(monopolyHudView?.Binding, "Layer/Panel/GoldCheck");
         }
 
         private void RefreshStandardCurrencyHeader(CocosUiBinding binding, string rootPath)
