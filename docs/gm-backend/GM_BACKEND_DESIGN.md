@@ -100,12 +100,44 @@
 
 ## 4. GM 账号与鉴权（复用 op 11）
 
-- GM 账号存 **`admin` 表**，口令 **MD5**（op 11 校验逻辑）。
-- 登录成功后服务端 `SetAdminLevel(ADMIN_LEVEL)`，后续操作以此为准。
-- Web 后台需：
-  1. 补 `admin` 表结构（`userId/pwd/name` 等，参照 op 11/12 SQL）
-  2. 补 GM 账号数据（MD5 口令）
-  3. 登录走 op 11，会话期间保持连接
+### 4.1 admin 表真实结构：仓库 schema 是 stub，需自建
+
+实测（已查两份 schema）：
+
+- `server/sql/local_min_schema.sql:26`（MySQL 源）：`admin` 仅 `id int AUTO_INCREMENT`
+- `server/sql/sqlite/001_initial_schema.sql:6`（SQLite 生成）：`admin` 仅 `id INTEGER PRIMARY KEY AUTOINCREMENT`
+
+**但代码 op 11/12 需要 `userId / name / pwd`**：
+- op 11：`select userId,pwd from admin where userID='%u' and pwd=MD5('%s')`
+- op 12：`select name,pwd from admin where name='%s' and pwd=MD5('%s')` / `update admin set pwd=MD5(...)`
+
+→ 需补建（单机 SQLite）：
+```sql
+ALTER TABLE admin ADD COLUMN userId INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE admin ADD COLUMN name  TEXT    NOT NULL DEFAULT '';
+ALTER TABLE admin ADD COLUMN pwd   TEXT    NOT NULL DEFAULT '';
+-- 插入 GM 账号（pwd 为口令的 MD5 32位小写）
+INSERT INTO admin (userId,name,pwd) VALUES (1,'gm','<md5(password)>');
+```
+登录成功后服务端 `SetAdminLevel(ADMIN_LEVEL)`，后续操作以此为准。
+
+### 4.2 🔴 阻塞项：SQLite 未注册 `md5()` 函数
+
+op 11/12 依赖 **SQL 层 MySQL 内置 `MD5()`**。但 SQLite 兼容函数注册表 `SqliteRegisterCompatibility()`（`server/src/gyu/g_database.cpp:573-587`）**只注册了**：
+
+`unix_timestamp` / `from_unixtime` / `now` / `concat` / `if` / `greatest` —— **没有 `md5`**。
+
+→ 单机 SQLite 下 op 11/12 会直接失败（`no such function: MD5`），GM 登录不可用。同样影响 op 11 之外的 `md5()` 依赖路径（`pack_deal.cpp:25286`、`script_call.cpp:5627` 的账号口令）。
+
+**解决方案（推荐 A）**：
+
+| 方案 | 做法 | 评价 |
+|---|---|---|
+| **A. 注册 SQLite md5 函数** | 在 `SqliteRegisterCompatibility()` 增一行：`sqlite3_create_function_v2(db,"md5",1,SQLITE_UTF8\|SQLITE_DETERMINISTIC,NULL,SqliteMd5,NULL,NULL,NULL)`，实现复用现有 OpenSSL `MD5String()`（`gyu/g_utility.cpp:183`） | ✅ 最小改动、一次性解决，顺带修复其它 md5 依赖 |
+| B. 改 op 11/12 用 C++ 算 MD5 | 服务端先 `MD5String()` 算哈希，SQL 里用 `pwd='<hash>'` 比较 | ✅ 可行，但需改两处业务代码，且不修其它 md5 路径 |
+| C. 绕过 SQL 校验 | GM 登录改常量比对 | ❌ 不安全，不推荐 |
+
+> 结论：**先做 4.1 建表 + 4.2 方案 A 注册 md5 函数**，GM 登录才成立；这是服务端唯一另一处小改动（与 §3b 的 VIP op 合计两处）。
 
 ---
 
@@ -127,15 +159,17 @@
 
 ## 6. 实施排期
 
-| 阶段 | 内容 | 产出 |
-|---|---|---|
-| P0 | 核对 `admin` 表真实结构；确认 LocalServer 端口/协议可达；定位 VIP 处理方案 | 落地前置确认 |
-| P1 | 补 `admin` 表 + GM 账号（MD5）；跑通 op 11 登录 | Web 后台可鉴权登录 |
-| P2 | 实现 op 15 发邮件（货币 + 道具），账号/角色树 | **核心能力：网页端给账号发资源邮件** |
-| P3 | 扩展多 `HDAT_*`（神将/宠物装备/法宝/各类货币） | 全资源覆盖 |
-| P4 | 全服邮件(op16)、广播(op10/14)、运营操作(SpecChat 1~7) 按需接入 | 完整控台 |
+| 阶段 | 内容 | 改动位置 | 产出 |
+|---|---|---|---|
+| **P0** | ① SQLite 注册 `md5()` 函数（方案 A）② 补 `admin` 表列 + GM 账号 ③ 新增 VIP op（写 ExtData32 槽位 457 + 重算） | 服务端：2 处小改 + 建表 | GM 登录与 VIP 链路打通 |
+| **P1** | Web 后台跑通 op 11 登录 | 前端/工具 | 后台可鉴权登录 |
+| **P2** | 实现 op 15 发邮件（货币 + 道具）+ 账号/角色树 | 前端/工具 | **核心能力：网页端给账号发资源邮件** |
+| **P3** | 扩展多 `HDAT_*`（神将/宠物装备/法宝/各类货币），接 op 19 附件预览 | 前端/工具 | 全资源覆盖 |
+| **P4** | 全服邮件(op16)、红点(op17)、广播(op10/14)、运营操作(SpecChat 1~7) 按需接入 | 前端/工具 | 完整控台 |
 
-> 服务端基本零改动；工作量集中在 Web 后台的协议封装与 UI。
+> 服务端总改动：**2 处**（md5 函数注册 + VIP op）。其余全部在 Web 后台侧实现。
+
+> 服务端改动控制在上述 2 处；工作量主要集中在 Web 后台的协议封装与 UI。
 
 ---
 
@@ -150,8 +184,15 @@
 
 ## 8. 待确认/风险
 
-1. **VIP 发放无对应 `HDAT_*`** ——需确认 VIP 如何经邮件发放（或改用直接改等级字段的独立路径）。
-2. **`admin` 表真实结构** ——fixture 为空 stub，需按 op 11/12 SQL 反推并核对实际库。
-3. **`MSG_MGR` 在正式包是否开放** ——若与 `_DEBUG` 或 `local_test` 绑定，需明确 Web 后台适用环境。
-4. LocalServer 端口/报文手足 ——`8711` 为 `LOCAL_TEST` 直连端口，需确认管理协议是否同端口。
+**已解决（本次查实）**
+
+- ✅ VIP 路径：由 `chongzhi+ExVipExp(ExtData32#457)` 推导，**不可走邮件**；且 `SetVipLevel` 仅内存会被覆盖 → 新增 op（详见 §3b）。
+- ✅ admin 表结构：仓库 schema 均为 stub，需自建 `userId/name/pwd`（详见 §4.1）。
+
+**仍需确认**
+
+1. 🔴 **SQLite 无 `md5()` 函数**（§4.2）——GM 登录、账号口令等依赖 SQL `MD5()` 的路径在单机版会失败，必须先注册函数或改代码，属**开工前置阻塞**。
+2. **`MSG_MGR` 在正式包是否开放** ——若与 `_DEBUG` 或 `local_test` 绑定，需明确 Web 后台适用环境（也决定是否需要按 §7 做开关）。
+3. **LocalServer 端口与报文格式** ——`8711` 为 `LOCAL_TEST` 直连端口，需确认管理协议（`MSG_MGR`）是否同端口，以及报文头与收发格式（客户端 netcode 需对齐）。
+4. `admin` 表除 `userId/name/pwd` 外是否还有其它生产列（如权限分级），需对照线上真实库确认。
 5. SQLite 单写者：Web 后台查询走只读或经服务端，绝不并行直写。
