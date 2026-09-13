@@ -23,6 +23,7 @@ namespace ProjectX.Editor
         private const string LoginPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab";
         private const string LoginServerListPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab";
         private const string RoleCreatePrefab = "Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab";
+        private const string OldMemoryPrefab = "Assets/ProjectX/res/csd/Prefabs/Login/OldMemoryLayer.prefab";
         private const string NoticePrefab = "Assets/ProjectX/res/csd/Prefabs/NoticeLayer.prefab";
         private const string MainPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
         private const string MainCloudPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImain_cloudLayer.prefab";
@@ -132,7 +133,7 @@ namespace ProjectX.Editor
         private const string AnswerPrefab = "Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab";
         private const string MonopolyHudPrefab = "Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameLayer.prefab";
         private const string MonopolyHandPrefab = "Assets/ProjectX/res/csd/Prefabs/caiquanLayer.prefab";
-        private const string FloatNoticeBackground = "Assets/ProjectX/res/csd/UnityMigration/Sliced/res/UI/ui_shenjiang/ui_shenjiang_tips__L13_B13_R13_T13.png";
+        private const string FloatNoticeBackground = "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_tips.png";
         private const string FloatNoticeFont = "Assets/ProjectX/res/xiaokaiSJ2.ttf";
         private const string YouLiPrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youlisanjie.prefab";
         private const string YouLiDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/youli/youli.prefab";
@@ -174,6 +175,7 @@ namespace ProjectX.Editor
             new PrefabSpec(LoginPrefab, true),
             new PrefabSpec(LoginServerListPrefab, false),
             new PrefabSpec(RoleCreatePrefab, false),
+            new PrefabSpec(OldMemoryPrefab, false),
             new PrefabSpec(NoticePrefab, false),
             new PrefabSpec(MainPrefab, false),
             new PrefabSpec(MainCloudPrefab, false),

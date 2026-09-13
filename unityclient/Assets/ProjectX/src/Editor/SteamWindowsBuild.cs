@@ -25,6 +25,7 @@ namespace ProjectX.Editor
             public int schemaVersion = 1;
             public string generatedAt;
             public string target = "Windows x64";
+            public string compression;
             public string clientEntry = "ProjectX.exe";
             public string serverEntry = "ProjectX_Data/StreamingAssets/ProjectXServer/kapai.exe";
             public string database = "Application.persistentDataPath/LocalServer/projectx.db";
@@ -55,7 +56,7 @@ namespace ProjectX.Editor
                     scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).Select(scene => scene.path).ToArray(),
                     locationPathName = outputExe,
                     target = BuildTarget.StandaloneWindows64,
-                    options = BuildOptions.None
+                    options = BuildOptions.CompressWithLz4HC
                 };
                 BuildReport report = BuildPipeline.BuildPlayer(options);
                 if (report.summary.result != BuildResult.Succeeded)
@@ -68,7 +69,7 @@ namespace ProjectX.Editor
                 PackageServer(repositoryRoot, serverRoot);
                 ValidateReleaseTree(outputDirectory);
                 string packageManifest = WritePackageManifest(outputDirectory);
-                UnityEngine.Debug.Log($"[SteamWindowsBuild] Passed: {outputExe} manifest={packageManifest}");
+                UnityEngine.Debug.Log($"[SteamWindowsBuild:LZ4HC] Passed: {outputExe} manifest={packageManifest}");
                 exitCode = 0;
             }
             catch (Exception exception)
@@ -112,7 +113,11 @@ namespace ProjectX.Editor
 
         private static string WritePackageManifest(string outputDirectory)
         {
-            var manifest = new PackageManifest { generatedAt = DateTime.UtcNow.ToString("o") };
+            var manifest = new PackageManifest
+            {
+                generatedAt = DateTime.UtcNow.ToString("o"),
+                compression = "LZ4HC"
+            };
             string manifestPath = Path.Combine(outputDirectory, "steam-package-manifest.json");
             IEnumerable<string> files = Directory.GetFiles(outputDirectory, "*", SearchOption.AllDirectories)
                 .Where(file => !string.Equals(Path.GetFullPath(file), Path.GetFullPath(manifestPath),
