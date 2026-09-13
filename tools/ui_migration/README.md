@@ -79,6 +79,31 @@ python tools/ui_migration/prepare_unity_project.py --scope welfare
 python tools/ui_migration/prepare_unity_project.py --scope timeline
 ```
 
+九宫格资源按原图聚合：只有一个 Border 时保持 Sprite Single；同一原图存在多个
+Border 时改为 Sprite Multiple，每个 Border 对应一个同纹理 Sprite 子资源，不再复制
+`__L*_B*_R*_T*.png`。已有冻结 Manifest 的工程先生成迁移计划和备份，再由 Unity
+批处理迁移现有 Prefab/Scene 的 Sprite GUID+fileID：
+
+```powershell
+python tools/ui_migration/consolidate_sliced_sprites.py
+python tools/ui_migration/consolidate_sliced_sprites.py --apply `
+  --backup-root .local/resource-dedupe-multiple-backup-<timestamp>
+& '<Unity.exe>' -batchmode -quit -projectPath unityclient `
+  -executeMethod ProjectX.Editor.CocosUiImporter.MigrateSlicedSpritesBatch
+python tools/ui_migration/consolidate_sliced_sprites.py `
+  --finalize-report .local/ui-sliced-multiple-report.json
+& '<Unity.exe>' -batchmode -quit -projectPath unityclient `
+  -executeMethod ProjectX.Editor.CocosUiImporter.ValidateSlicedSpritesBatch
+```
+
+只有需要从 CSD/CSB 正式重建当前 scope 时，才先运行对应的
+`prepare_unity_project.py --scope <scope>`，避免借资源清理扩大现有迁移范围。
+
+迁移器只替换 Sprite 引用并配置 TextureImporter，不重建 Prefab；用户在 Prefab 中的
+布局和业务组件保持不变。Unity 校验通过后才删除旧 `UnityMigration/Sliced` PNG 与
+`.meta`。`timeline/referenced/welfare` 增量准备会复用完整 Manifest 的主 Border 和
+Multiple Sprite 状态，避免不同 scope 反复改写同一原图。
+
 仅需调试 10 个代表界面时可加 `--scope baseline`。
 
 当前运行包为 386 个 CSB：325 个存在同路径 CSD，61 个必须由 CSB 解码器兜底。旧版“333 + 23”是按文件名合并后的历史口径。

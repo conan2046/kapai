@@ -34,8 +34,13 @@ from prepare_unity_project import (  # noqa: E402
     _normalize_animation,
     _normalize_resource,
     _scale9_border,
+    _select_canonical_borders,
     _select_copy_asset,
     _slice_variant_path,
+)
+from consolidate_sliced_sprites import (  # noqa: E402
+    _build_mapping,
+    _rewrite_resource_paths,
 )
 
 
@@ -358,6 +363,133 @@ class ResourceValidationTests(unittest.TestCase):
             _slice_variant_path("Assets/ProjectX/res/res/lock.png", border),
             "Assets/ProjectX/res/csd/UnityMigration/Sliced/res/lock__L14_B19_R14_T19.png",
         )
+
+    def test_selects_most_used_scale9_border_as_canonical(self) -> None:
+        source = "Assets/ProjectX/res/res/button.png"
+        selected = _select_canonical_borders(
+            {
+                source: {
+                    (15, 11, 15, 11): 9,
+                    (80, 20, 80, 20): 2,
+                    (0, 0, 163, 56): 1,
+                }
+            }
+        )
+
+        self.assertEqual(selected[source], (15, 11, 15, 11))
+
+    def test_selects_scale9_border_deterministically_when_counts_tie(self) -> None:
+        source = "Assets/ProjectX/res/res/panel.png"
+        selected = _select_canonical_borders(
+            {source: {(20, 10, 20, 10): 1, (10, 10, 10, 10): 1}}
+        )
+
+        self.assertEqual(selected[source], (10, 10, 10, 10))
+
+    def test_canonical_scale9_border_reuses_source_texture(self) -> None:
+        source = "Assets/ProjectX/res/res/button.png"
+        node = {
+            "name": "Button",
+            "sourceType": "ButtonObjectData",
+            "attributes": {
+                "Scale9Enable": True,
+                "LeftEage": 15,
+                "BottomEage": 11,
+                "RightEage": 15,
+                "TopEage": 11,
+            },
+            "resources": [
+                {"property": "NormalFileData", "path": "res/button.png", "type": "Normal"}
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            unity_project = Path(temp)
+            image_path = unity_project / source
+            image_path.parent.mkdir(parents=True)
+            Image.new("RGBA", (164, 57), (255, 255, 255, 255)).save(image_path)
+            variants: dict[str, dict] = {}
+            borders: dict[str, dict] = {}
+
+            normalized = _normalize_node(
+                node,
+                unity_project,
+                variants,
+                borders,
+                {source: (15, 11, 15, 11)},
+            )
+
+        self.assertEqual(normalized["resources"][0]["assetPath"], source)
+        self.assertEqual(variants, {})
+        self.assertEqual(borders[source]["border"], {"x": 15, "y": 11, "z": 15, "w": 11})
+
+    def test_multiple_scale9_borders_share_one_texture_with_named_sprites(self) -> None:
+        source = "Assets/ProjectX/res/res/panel.png"
+        node = {
+            "name": "Panel",
+            "sourceType": "ImageViewObjectData",
+            "attributes": {
+                "Scale9Enable": True,
+                "LeftEage": 20,
+                "BottomEage": 10,
+                "RightEage": 20,
+                "TopEage": 10,
+            },
+            "resources": [
+                {"property": "FileData", "path": "res/panel.png", "type": "Normal"}
+            ],
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            unity_project = Path(temp)
+            image_path = unity_project / source
+            image_path.parent.mkdir(parents=True)
+            Image.new("RGBA", (100, 60), (255, 255, 255, 255)).save(image_path)
+            borders: dict[str, dict] = {}
+            normalized = _normalize_node(
+                node,
+                unity_project,
+                {},
+                borders,
+                {source: (10, 10, 10, 10)},
+                {source},
+            )
+
+        resource = normalized["resources"][0]
+        self.assertEqual(resource["assetPath"], source)
+        self.assertEqual(resource["spriteName"], "panel__L20_B10_R20_T10")
+        self.assertEqual(len(borders), 1)
+        self.assertEqual(next(iter(borders.values()))["assetPath"], source)
+
+    def test_consolidation_maps_legacy_variant_to_sprite_sub_asset(self) -> None:
+        source = "Assets/ProjectX/res/res/panel.png"
+        variant = (
+            "Assets/ProjectX/res/csd/UnityMigration/Sliced/res/"
+            "panel__L20_B10_R20_T10.png"
+        )
+        definitions = [
+            {
+                "assetPath": source,
+                "sourceAssetPath": source,
+                "border": {"x": 10, "y": 10, "z": 10, "w": 10},
+            },
+            {
+                "assetPath": variant,
+                "sourceAssetPath": source,
+                "border": {"x": 20, "y": 10, "z": 20, "w": 10},
+            },
+        ]
+
+        mapping, converted, plan = _build_mapping(definitions)
+        document = {"resources": [{"assetPath": variant}]}
+        changes = _rewrite_resource_paths(document, mapping)
+
+        self.assertEqual(changes, 2)
+        self.assertEqual(document["resources"][0]["assetPath"], source)
+        self.assertEqual(
+            document["resources"][0]["spriteName"],
+            "panel__L20_B10_R20_T10",
+        )
+        self.assertEqual({item["assetPath"] for item in converted}, {source})
+        self.assertEqual(len(plan), 2)
 
     def test_normalizes_text_font_color_outline_and_shadow(self) -> None:
         node = {

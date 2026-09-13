@@ -35,6 +35,9 @@ namespace ProjectX.Editor
         [Serializable] private sealed class SpriteBorderDefinition
         {
             public string assetPath;
+            public string sourceAssetPath;
+            public string spriteName;
+            public bool canonical;
             public UiVector4 border;
         }
 
@@ -136,6 +139,19 @@ namespace ProjectX.Editor
             public string path;
             public string type;
             public string assetPath;
+            public string spriteName;
+        }
+
+        [Serializable] private sealed class SlicedSpriteMigrationPlan
+        {
+            public SlicedSpriteMigrationEntry[] entries;
+        }
+
+        [Serializable] private sealed class SlicedSpriteMigrationEntry
+        {
+            public string oldAssetPath;
+            public string sourceAssetPath;
+            public string spriteName;
         }
 
         [MenuItem("Tools/ProjectX UI/Import All Prefabs")]
@@ -152,6 +168,71 @@ namespace ProjectX.Editor
         public static void ImportAllPrefabsBatch()
         {
             ImportBaselines(true);
+        }
+
+        public static void MigrateSlicedSpritesBatch()
+        {
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string repoRoot = Path.GetFullPath(Path.Combine(projectRoot, ".."));
+            string planPath = Path.Combine(repoRoot, ".local", "ui-sliced-multiple-plan.json");
+            string reportPath = Path.Combine(repoRoot, ".local", "ui-sliced-multiple-report.json");
+            if (!File.Exists(planPath))
+                throw new FileNotFoundException("Sliced sprite migration plan is missing", planPath);
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
+                File.ReadAllText(ToAbsolutePath(ManifestPath)));
+            SlicedSpriteMigrationPlan plan = JsonConvert.DeserializeObject<SlicedSpriteMigrationPlan>(
+                File.ReadAllText(planPath));
+            if (manifest?.spriteBorders == null || plan?.entries == null)
+                throw new InvalidDataException("Invalid sliced sprite migration input.");
+
+            var oldGuids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (SlicedSpriteMigrationEntry entry in plan.entries)
+            {
+                string oldGuid = AssetDatabase.AssetPathToGUID(entry.oldAssetPath);
+                if (string.IsNullOrWhiteSpace(oldGuid))
+                    throw new MissingReferenceException(
+                        $"Legacy sliced sprite is missing: {entry.oldAssetPath}");
+                oldGuids[entry.oldAssetPath] = oldGuid;
+            }
+
+            ConfigureReferencedTextures(manifest);
+
+            var replacements = new List<object>();
+            foreach (SlicedSpriteMigrationEntry entry in plan.entries)
+            {
+                Sprite sprite = LoadSpriteAtPath(entry.sourceAssetPath, entry.spriteName);
+                if (sprite == null)
+                    throw new MissingReferenceException(
+                        $"Multiple sprite sub-asset is missing: {entry.sourceAssetPath}#{entry.spriteName}");
+                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite, out string newGuid, out long newFileId))
+                    throw new InvalidDataException(
+                        $"Cannot resolve sprite identifier: {entry.sourceAssetPath}#{entry.spriteName}");
+                string oldReference = $"fileID: 21300000, guid: {oldGuids[entry.oldAssetPath]}";
+                string newReference = $"fileID: {newFileId}, guid: {newGuid}";
+                replacements.Add(new
+                {
+                    entry.oldAssetPath,
+                    entry.sourceAssetPath,
+                    entry.spriteName,
+                    oldReference,
+                    newReference,
+                });
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(reportPath));
+            File.WriteAllText(
+                reportPath,
+                JsonConvert.SerializeObject(
+                    new
+                    {
+                        ok = true,
+                        entries = plan.entries.Length,
+                        replacements,
+                    },
+                    Formatting.Indented));
+            Debug.Log(
+                $"ProjectX sliced sprite mapping completed: {plan.entries.Length} entries.");
         }
 
         [InitializeOnLoadMethod]
@@ -452,21 +533,21 @@ namespace ProjectX.Editor
             }
 
             foreach (string assetPath in spritePaths)
-                if (AssetDatabase.LoadAssetAtPath<Sprite>(assetPath) == null)
+                if (LoadSpriteAtPath(assetPath, null) == null)
                     throw new MissingReferenceException($"Sprite import failed: {assetPath}");
             summary.sprites = spritePaths.Count;
             if (manifest.spriteBorders != null)
             {
                 foreach (SpriteBorderDefinition definition in manifest.spriteBorders)
                 {
-                    Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(definition.assetPath);
+                    Sprite sprite = LoadSpriteAtPath(definition.assetPath, definition.spriteName);
                     if (sprite == null)
                         throw new MissingReferenceException(
-                            $"Sliced sprite import failed: {definition.assetPath}");
+                            $"Sliced sprite import failed: {definition.assetPath}#{definition.spriteName}");
                     Vector4 expected = definition.border?.Value ?? Vector4.zero;
                     if (expected == Vector4.zero || sprite.border != expected)
                         throw new InvalidDataException(
-                            $"Sprite border mismatch in {definition.assetPath}: "
+                            $"Sprite border mismatch in {definition.assetPath}#{definition.spriteName}: "
                             + $"expected {expected}, actual {sprite.border}");
                     summary.slicedSprites++;
                 }
@@ -594,86 +675,97 @@ namespace ProjectX.Editor
         private static void ValidateSpriteBindings(
             UiNode node,
             CocosUiBinding binding,
-            ValidationSummary summary)
+            ValidationSummary summary,
+            bool namedSpritesOnly = false)
         {
             GameObject target = binding.Find(node.nodePath, node.nodeType, node.actionTag);
             switch (node.nodeType)
             {
                 case "ImageViewObjectData":
                 case "SpriteObjectData":
-                    ValidateResourceSprite(node, "FileData", target?.GetComponent<Image>()?.sprite, summary);
+                    ValidateResourceSprite(node, "FileData", target?.GetComponent<Image>()?.sprite, summary, namedSpritesOnly);
                     break;
                 case "PanelObjectData" when FindResource(node, "FileData") != null:
-                    ValidateResourceSprite(node, "FileData", target?.GetComponent<Image>()?.sprite, summary);
+                    ValidateResourceSprite(node, "FileData", target?.GetComponent<Image>()?.sprite, summary, namedSpritesOnly);
                     break;
                 case "LoadingBarObjectData":
-                    ValidateResourceSprite(node, "ImageFileData", target?.GetComponent<Image>()?.sprite, summary);
+                    ValidateResourceSprite(node, "ImageFileData", target?.GetComponent<Image>()?.sprite, summary, namedSpritesOnly);
                     break;
                 case "ButtonObjectData":
                     Button button = target?.GetComponent<Button>();
-                    ValidateResourceSprite(node, "NormalFileData", target?.GetComponent<Image>()?.sprite, summary);
+                    ValidateResourceSprite(node, "NormalFileData", target?.GetComponent<Image>()?.sprite, summary, namedSpritesOnly);
                     ValidateResourceSprite(
-                        node, "PressedFileData", button != null ? button.spriteState.pressedSprite : null, summary);
+                        node, "PressedFileData", button != null ? button.spriteState.pressedSprite : null, summary, namedSpritesOnly);
                     ValidateResourceSprite(
-                        node, "DisabledFileData", button != null ? button.spriteState.disabledSprite : null, summary);
+                        node, "DisabledFileData", button != null ? button.spriteState.disabledSprite : null, summary, namedSpritesOnly);
                     break;
                 case "CheckBoxObjectData":
                     Toggle toggle = target?.GetComponent<Toggle>();
-                    ValidateResourceSprite(node, "NormalBackFileData", target?.GetComponent<Image>()?.sprite, summary);
+                    ValidateResourceSprite(node, "NormalBackFileData", target?.GetComponent<Image>()?.sprite, summary, namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "NodeNormalFileData",
                         target?.transform.Find("__Checkmark")?.GetComponent<Image>()?.sprite,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "PressedBackFileData",
                         toggle != null ? toggle.spriteState.pressedSprite : null,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "DisableBackFileData",
                         toggle != null ? toggle.spriteState.disabledSprite : null,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     break;
                 case "SliderObjectData":
                     Slider slider = target?.GetComponent<Slider>();
-                    ValidateResourceSprite(node, "BackGroundData", target?.GetComponent<Image>()?.sprite, summary);
+                    ValidateResourceSprite(node, "BackGroundData", target?.GetComponent<Image>()?.sprite, summary, namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "ProgressBarData",
                         target?.transform.Find("__Fill")?.GetComponent<Image>()?.sprite,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "BallNormalData",
                         target?.transform.Find("__Handle")?.GetComponent<Image>()?.sprite,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "BallPressedData",
                         slider != null ? slider.spriteState.pressedSprite : null,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     ValidateResourceSprite(
                         node,
                         "BallDisabledData",
                         slider != null ? slider.spriteState.disabledSprite : null,
-                        summary);
+                        summary,
+                        namedSpritesOnly);
                     break;
             }
 
             if (node.children != null)
                 foreach (UiNode child in node.children)
-                    ValidateSpriteBindings(child, binding, summary);
+                    ValidateSpriteBindings(child, binding, summary, namedSpritesOnly);
         }
 
         private static void ValidateResourceSprite(
             UiNode node,
             string property,
             Sprite actual,
-            ValidationSummary summary)
+            ValidationSummary summary,
+            bool namedSpritesOnly = false)
         {
             UiResource resource = FindResource(node, property);
+            if (namedSpritesOnly && string.IsNullOrWhiteSpace(resource?.spriteName))
+                return;
             if (resource == null
                 || string.Equals(resource.type, "Default", StringComparison.OrdinalIgnoreCase)
                 || string.IsNullOrWhiteSpace(resource.path)
@@ -682,10 +774,11 @@ namespace ProjectX.Editor
             if (string.IsNullOrWhiteSpace(resource.assetPath))
                 throw new MissingReferenceException(
                     $"Sprite asset path is empty in {node.nodePath}/{property}: {resource.path}");
-            Sprite expected = AssetDatabase.LoadAssetAtPath<Sprite>(resource.assetPath);
+            Sprite expected = LoadSpriteAtPath(resource.assetPath, resource.spriteName);
             if (expected == null)
                 throw new MissingReferenceException(
-                    $"Sprite asset is missing in {node.nodePath}/{property}: {resource.assetPath}");
+                    $"Sprite asset is missing in {node.nodePath}/{property}: "
+                    + $"{resource.assetPath}#{resource.spriteName}");
             if (actual != expected)
                 throw new MissingReferenceException(
                     $"Sprite binding mismatch in {node.nodePath}/{property}: "
@@ -710,6 +803,33 @@ namespace ProjectX.Editor
                 throw new InvalidDataException($"Invalid normalized UI document: {assetPath}");
             NormalizeMainHudDocument(document);
             return document;
+        }
+
+        public static void ValidateSlicedSpritesBatch()
+        {
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
+                File.ReadAllText(ToAbsolutePath(ManifestPath)));
+            if (manifest?.documents == null || manifest.spriteBorders == null)
+                throw new InvalidDataException("Invalid UI migration manifest.");
+
+            int definitions = 0;
+            foreach (SpriteBorderDefinition definition in manifest.spriteBorders)
+            {
+                Sprite sprite = LoadSpriteAtPath(definition.assetPath, definition.spriteName);
+                if (sprite == null)
+                    throw new MissingReferenceException(
+                        $"Sliced sprite import failed: {definition.assetPath}#{definition.spriteName}");
+                Vector4 expected = definition.border?.Value ?? Vector4.zero;
+                if (expected == Vector4.zero || sprite.border != expected)
+                    throw new InvalidDataException(
+                        $"Sprite border mismatch in {definition.assetPath}#{definition.spriteName}: "
+                        + $"expected {expected}, actual {sprite.border}");
+                definitions++;
+            }
+
+            Debug.Log(
+                $"ProjectX sliced Sprite validation completed: {definitions} definitions, 0 errors.");
         }
 
         private static void NormalizeMainHudDocument(UiDocument document)
@@ -776,12 +896,20 @@ namespace ProjectX.Editor
         private static void ConfigureReferencedTextures(ImportManifest manifest)
         {
             var texturePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var borders = new Dictionary<string, Vector4>(StringComparer.OrdinalIgnoreCase);
+            var borderGroups = new Dictionary<string, List<SpriteBorderDefinition>>(
+                StringComparer.OrdinalIgnoreCase);
             if (manifest.spriteBorders != null)
                 foreach (SpriteBorderDefinition definition in manifest.spriteBorders)
                 {
                     texturePaths.Add(definition.assetPath);
-                    borders[definition.assetPath] = definition.border?.Value ?? Vector4.zero;
+                    if (!borderGroups.TryGetValue(
+                            definition.assetPath,
+                            out List<SpriteBorderDefinition> definitions))
+                    {
+                        definitions = new List<SpriteBorderDefinition>();
+                        borderGroups[definition.assetPath] = definitions;
+                    }
+                    definitions.Add(definition);
                 }
             foreach (ImportDocument item in manifest.documents)
                 CollectTexturePaths(ReadDocument(item.documentAssetPath).root, texturePaths);
@@ -791,20 +919,52 @@ namespace ProjectX.Editor
                 TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
                 if (importer == null)
                     continue;
-                Vector4 desiredBorder = borders.TryGetValue(assetPath, out Vector4 configuredBorder)
-                    ? configuredBorder
+                borderGroups.TryGetValue(assetPath, out List<SpriteBorderDefinition> definitions);
+                bool useMultiple = definitions != null
+                                   && definitions.Exists(
+                                       definition => !string.IsNullOrWhiteSpace(definition.spriteName));
+                Vector4 desiredBorder = !useMultiple && definitions != null && definitions.Count > 0
+                    ? definitions[0].border?.Value ?? Vector4.zero
                     : Vector4.zero;
                 bool changed = importer.textureType != TextureImporterType.Sprite
-                               || importer.spriteImportMode != SpriteImportMode.Single
+                               || importer.spriteImportMode != (
+                                   useMultiple ? SpriteImportMode.Multiple : SpriteImportMode.Single)
                                || importer.mipmapEnabled
                                || importer.spriteBorder != desiredBorder;
                 importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spriteImportMode = useMultiple
+                    ? SpriteImportMode.Multiple
+                    : SpriteImportMode.Single;
                 importer.spriteBorder = desiredBorder;
                 importer.alphaIsTransparency = true;
                 importer.mipmapEnabled = false;
                 importer.wrapMode = TextureWrapMode.Clamp;
                 importer.filterMode = FilterMode.Bilinear;
+                if (useMultiple)
+                {
+                    Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+                    if (texture == null)
+                        throw new MissingReferenceException($"Texture import failed: {assetPath}");
+                    definitions.Sort((left, right) => string.CompareOrdinal(
+                        left.spriteName, right.spriteName));
+                    var sprites = new SpriteMetaData[definitions.Count];
+                    for (int index = 0; index < definitions.Count; index++)
+                    {
+                        SpriteBorderDefinition definition = definitions[index];
+                        sprites[index] = new SpriteMetaData
+                        {
+                            name = definition.spriteName,
+                            rect = new Rect(0f, 0f, texture.width, texture.height),
+                            alignment = (int)SpriteAlignment.Center,
+                            pivot = new Vector2(0.5f, 0.5f),
+                            border = definition.border?.Value ?? Vector4.zero,
+                        };
+                    }
+#pragma warning disable 0618
+                    importer.spritesheet = sprites;
+#pragma warning restore 0618
+                    changed = true;
+                }
                 if (changed)
                     importer.SaveAndReimport();
             }
@@ -1001,7 +1161,7 @@ namespace ProjectX.Editor
             image.raycastTarget = node.touchEnabled;
             UiResource resource = FindResource(node, preferredProperty) ?? FindFirstImage(node);
             if (HasRenderableResource(resource))
-                image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(resource.assetPath);
+                image.sprite = LoadSpriteAtPath(resource.assetPath, resource.spriteName);
             else
                 image.color = new Color(image.color.r, image.color.g, image.color.b, 0f);
             image.type = node.scale9 ? Image.Type.Sliced : Image.Type.Simple;
@@ -1174,7 +1334,20 @@ namespace ProjectX.Editor
             UiResource resource = FindResource(node, property);
             return resource == null || string.IsNullOrWhiteSpace(resource.assetPath)
                 ? null
-                : AssetDatabase.LoadAssetAtPath<Sprite>(resource.assetPath);
+                : LoadSpriteAtPath(resource.assetPath, resource.spriteName);
+        }
+
+        private static Sprite LoadSpriteAtPath(string assetPath, string spriteName)
+        {
+            if (string.IsNullOrWhiteSpace(assetPath))
+                return null;
+            if (string.IsNullOrWhiteSpace(spriteName))
+                return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(assetPath))
+                if (asset is Sprite sprite
+                    && string.Equals(sprite.name, spriteName, StringComparison.Ordinal))
+                    return sprite;
+            return null;
         }
 
         private static void CreatePreviewScene(ImportManifest manifest)

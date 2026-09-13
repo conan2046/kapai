@@ -241,11 +241,109 @@ def _slice_variant_path(source_asset_path: str, border: tuple[int, int, int, int
     )
 
 
+def _sprite_name(
+    source_asset_path: str,
+    border: tuple[int, int, int, int],
+    canonical: bool,
+) -> str:
+    stem = PurePosixPath(source_asset_path).stem
+    if canonical:
+        return stem
+    left, bottom, right, top = border
+    return f"{stem}__L{left}_B{bottom}_R{right}_T{top}"
+
+
+def _border_value(border: tuple[int, int, int, int]) -> dict[str, int]:
+    return {
+        "x": border[0],
+        "y": border[1],
+        "z": border[2],
+        "w": border[3],
+    }
+
+
+def _collect_scale9_usage(
+    node: dict[str, Any],
+    unity_project: Path,
+    usage: dict[str, dict[tuple[int, int, int, int], int]],
+) -> None:
+    attrs = node.get("attributes", {})
+    if bool(attrs.get("Scale9Enable", False)):
+        for item in node.get("resources", []):
+            resource = _normalize_resource(item)
+            source_asset_path = resource["assetPath"]
+            if not source_asset_path.lower().endswith(".png"):
+                continue
+            source_file = unity_project / _safe_relative(source_asset_path)
+            if not source_file.exists():
+                raise FileNotFoundError(
+                    f"Scale9 source image is missing: {source_asset_path}"
+                )
+            border = _scale9_border(node, source_file)
+            counts = usage.setdefault(source_asset_path, {})
+            counts[border] = counts.get(border, 0) + 1
+    for child in node.get("children", []):
+        _collect_scale9_usage(child, unity_project, usage)
+
+
+def _select_canonical_borders(
+    usage: dict[str, dict[tuple[int, int, int, int], int]],
+) -> dict[str, tuple[int, int, int, int]]:
+    return {
+        source_asset_path: min(
+            counts,
+            key=lambda border: (-counts[border], border),
+        )
+        for source_asset_path, counts in usage.items()
+        if counts
+    }
+
+
+def _existing_canonical_borders(
+    manifest_path: Path,
+) -> dict[str, tuple[int, int, int, int]]:
+    if not manifest_path.exists():
+        return {}
+    result: dict[str, tuple[int, int, int, int]] = {}
+    for item in _read_json(manifest_path).get("spriteBorders", []):
+        asset_path = str(item.get("assetPath", ""))
+        source_asset_path = str(item.get("sourceAssetPath", ""))
+        border = item.get("border", {})
+        is_canonical = bool(item.get("canonical", False)) or (
+            asset_path == source_asset_path and not item.get("spriteName")
+        )
+        if not asset_path or not is_canonical:
+            continue
+        result[source_asset_path] = tuple(
+            int(border.get(component, 0)) for component in ("x", "y", "z", "w")
+        )
+    return result
+
+
+def _existing_multiple_sprite_sources(manifest_path: Path) -> set[str]:
+    if not manifest_path.exists():
+        return set()
+    return {
+        str(item.get("sourceAssetPath", ""))
+        for item in _read_json(manifest_path).get("spriteBorders", [])
+        if item.get("spriteName") and item.get("sourceAssetPath")
+    }
+
+
 def _normalize_node(
     node: dict[str, Any],
     unity_project: Path,
     slice_variants: dict[str, dict[str, Any]],
+    sprite_borders: dict[str, dict[str, Any]] | None = None,
+    canonical_borders: dict[str, tuple[int, int, int, int]] | None = None,
+    multiple_sprite_sources: set[str] | None = None,
 ) -> dict[str, Any]:
+    if sprite_borders is None:
+        sprite_borders = slice_variants
+    if canonical_borders is None:
+        canonical_borders = {}
+    if multiple_sprite_sources is None:
+        multiple_sprite_sources = set()
     attrs = node.get("attributes", {})
     resources = [_normalize_resource(item) for item in node.get("resources", [])]
     font_resource = next(
@@ -268,21 +366,22 @@ def _normalize_node(
                     f"Scale9 source image is missing: {source_asset_path}"
                 )
             border = _scale9_border(node, source_file)
-            variant_path = _slice_variant_path(source_asset_path, border)
-            slice_variants.setdefault(
-                variant_path,
-                {
-                    "assetPath": variant_path,
-                    "sourceAssetPath": source_asset_path,
-                    "border": {
-                        "x": border[0],
-                        "y": border[1],
-                        "z": border[2],
-                        "w": border[3],
-                    },
-                },
-            )
-            resource["assetPath"] = variant_path
+            canonical = canonical_borders.get(source_asset_path) == border
+            multiple = source_asset_path in multiple_sprite_sources
+            definition = {
+                "assetPath": source_asset_path,
+                "sourceAssetPath": source_asset_path,
+                "border": _border_value(border),
+                "canonical": canonical,
+            }
+            definition_key = source_asset_path
+            if multiple:
+                sprite_name = _sprite_name(source_asset_path, border, canonical)
+                definition["spriteName"] = sprite_name
+                definition_key = f"{source_asset_path}#{sprite_name}"
+                resource["spriteName"] = sprite_name
+            sprite_borders.setdefault(definition_key, definition)
+            resource["assetPath"] = source_asset_path
     return {
         "name": str(node.get("name") or "Node"),
         "nodePath": str(node.get("nodePath") or node.get("name") or "Node"),
@@ -318,7 +417,14 @@ def _normalize_node(
         "rect": node.get("unityRect", {}),
         "resources": resources,
         "children": [
-            _normalize_node(child, unity_project, slice_variants)
+            _normalize_node(
+                child,
+                unity_project,
+                slice_variants,
+                sprite_borders,
+                canonical_borders,
+                multiple_sprite_sources,
+            )
             for child in node.get("children", [])
         ],
     }
@@ -588,7 +694,31 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
     shutil.copy2(default_font_source, default_font_destination)
     generated_assets.append("Assets/ProjectX/res/MicrosoftArial.ttf")
 
+    scale9_usage: dict[str, dict[tuple[int, int, int, int], int]] = {}
+    for _, ir, _, _ in pending_documents:
+        _collect_scale9_usage(ir["root"], unity_project, scale9_usage)
+
+    if scope == "all":
+        canonical_borders = _select_canonical_borders(scale9_usage)
+    else:
+        existing = _existing_canonical_borders(data_root / "unity-import-manifest.json")
+        canonical_borders = {
+            source_asset_path: border
+            for source_asset_path, border in existing.items()
+            if border in scale9_usage.get(source_asset_path, {})
+        }
+    multiple_sprite_sources = {
+        source_asset_path
+        for source_asset_path, counts in scale9_usage.items()
+        if len(counts) > 1
+    }
+    if scope != "all":
+        multiple_sprite_sources.update(
+            _existing_multiple_sprite_sources(data_root / "unity-import-manifest.json")
+        )
+
     slice_variants: dict[str, dict[str, Any]] = {}
+    sprite_borders: dict[str, dict[str, Any]] = {}
     for spec, ir, source, document_relative in pending_documents:
         _write_json(
             data_root / document_relative,
@@ -596,19 +726,19 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
                 "schemaVersion": 1,
                 "name": spec["name"],
                 "source": source,
-                "root": _normalize_node(ir["root"], unity_project, slice_variants),
+                "root": _normalize_node(
+                    ir["root"],
+                    unity_project,
+                    slice_variants,
+                    sprite_borders,
+                    canonical_borders,
+                    multiple_sprite_sources,
+                ),
                 "animation": _normalize_animation(
                     ir.get("animation"), ir.get("animationList")
                 ),
             },
         )
-
-    for variant in slice_variants.values():
-        source = unity_project / _safe_relative(variant["sourceAssetPath"])
-        destination = unity_project / _safe_relative(variant["assetPath"])
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-        generated_assets.append(variant["assetPath"])
 
     result = {
         "schemaVersion": 1,
@@ -618,14 +748,29 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
         "prefabRoot": "Assets/ProjectX/res/csd/Prefabs",
         "previewScene": "Assets/ProjectX/Scenes/UIMigrationPreview.unity",
         "documents": documents,
-        "spriteBorders": sorted(slice_variants.values(), key=lambda item: item["assetPath"]),
+        "spriteBorders": sorted(
+            sprite_borders.values(),
+            key=lambda item: (item["assetPath"], item.get("spriteName", "")),
+        ),
         "generatedAssets": sorted(set(generated_assets)),
         "statistics": {
             "scope": scope,
             "documents": len(documents),
             "logicalResources": len(resources),
             "generatedAssets": len(set(generated_assets)),
-            "slicedSpriteVariants": len(slice_variants),
+            "slicedSpriteVariants": 0,
+            "slicedSpriteDefinitions": len(sprite_borders),
+            "canonicalSlicedSources": len(
+                {
+                    item["sourceAssetPath"]
+                    for item in sprite_borders.values()
+                    if item.get("canonical", False)
+                }
+            ),
+            "multipleSpriteSources": len(multiple_sprite_sources),
+            "slicedSpriteSubAssets": sum(
+                1 for item in sprite_borders.values() if item.get("spriteName")
+            ),
             "artRecoveryPlaceholders": len(placeholders),
             "decodableImageSubstitutions": len(source_substitutions),
         },
