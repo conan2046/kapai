@@ -33,8 +33,11 @@ namespace ProjectX.Core
         private readonly int port;
         private readonly float timeoutSeconds;
         private readonly string dataRoot;
+        private readonly bool formalSinglePlayerSeed;
         private readonly ConcurrentQueue<Tuple<string, bool>> processLines =
             new ConcurrentQueue<Tuple<string, bool>>();
+        private readonly object snapshotSync = new object();
+        private readonly AutoResetEvent snapshotCompleted = new AutoResetEvent(false);
         private Process process;
         private Semaphore ownershipLease;
         private bool leaseHeld;
@@ -42,9 +45,12 @@ namespace ProjectX.Core
         private bool ownsProcess;
         private float deadline;
         private bool disposed;
+        private string pendingSnapshotToken = string.Empty;
+        private string pendingSnapshotError = string.Empty;
 
         public LocalServerSupervisor(string executablePath, string configDirectory,
-            string sqlitePath, string sqliteSchemaPath, int port = 8711, float timeoutSeconds = 20f)
+            string sqlitePath, string sqliteSchemaPath, int port = 8711, float timeoutSeconds = 20f,
+            bool formalSinglePlayerSeed = false)
         {
             this.executablePath = Path.GetFullPath(executablePath ?? throw new ArgumentNullException(nameof(executablePath)));
             this.configDirectory = Path.GetFullPath(configDirectory ?? throw new ArgumentNullException(nameof(configDirectory)));
@@ -53,6 +59,7 @@ namespace ProjectX.Core
             dataRoot = Path.GetDirectoryName(this.sqlitePath);
             this.port = port;
             this.timeoutSeconds = Math.Max(1f, timeoutSeconds);
+            this.formalSinglePlayerSeed = formalSinglePlayerSeed;
         }
 
         public LocalServerState State { get; private set; } = LocalServerState.NotStarted;
@@ -64,7 +71,6 @@ namespace ProjectX.Core
         public int ProcessId => process != null && !SafeHasExited(process) ? process.Id : 0;
         public bool GracefulShutdownCompleted { get; private set; }
         public string LogPath { get; private set; } = string.Empty;
-        public string LatestBackupPath { get; private set; } = string.Empty;
         public bool RecoveredOrphanProcess { get; private set; }
 
         public event Action<string> Failed;
@@ -79,6 +85,13 @@ namespace ProjectX.Core
         }
 
         public static LocalServerSupervisor CreateDefault()
+        {
+            string userRoot = Path.Combine(Application.persistentDataPath, "LocalServer");
+            return CreateForDatabase(Path.Combine(userRoot, "projectx.db"));
+        }
+
+        public static LocalServerSupervisor CreateForDatabase(string databasePath,
+            bool formalSinglePlayerSeed = false)
         {
             string serverRoot;
             string configRoot;
@@ -97,12 +110,12 @@ namespace ProjectX.Core
                 configRoot = Path.Combine(serverRoot, "config");
                 schemaPath = Path.Combine(serverRoot, "sqlite", "001_initial_schema.sql");
             }
-            string userRoot = Path.Combine(Application.persistentDataPath, "LocalServer");
             return new LocalServerSupervisor(
                 Path.Combine(serverRoot, "kapai.exe"),
                 configRoot,
-                Path.Combine(userRoot, "projectx.db"),
-                schemaPath);
+                databasePath,
+                schemaPath,
+                formalSinglePlayerSeed: formalSinglePlayerSeed);
         }
 
         public void Start()
@@ -186,6 +199,8 @@ namespace ProjectX.Core
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
+                if (formalSinglePlayerSeed)
+                    startInfo.EnvironmentVariables["PROJECTX_SINGLE_PLAYER_FORMAL_SEED"] = "1";
                 process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
                 process.OutputDataReceived += (_, args) => QueueServerLine(args.Data, false);
                 process.ErrorDataReceived += (_, args) => QueueServerLine(args.Data, true);
@@ -235,6 +250,53 @@ namespace ProjectX.Core
 
             if (IsReady && SafeHasExited(process))
                 SetFailed($"本机游戏服务运行中异常退出（exit={SafeExitCode(process)}），请重新启动客户端。");
+        }
+
+        public void CreateSnapshot(string destinationPath)
+        {
+            if (disposed || !IsReady || !ownsProcess || process == null || SafeHasExited(process))
+                throw new InvalidOperationException("本机游戏服务未处于可保存状态。");
+            if (string.IsNullOrWhiteSpace(destinationPath))
+                throw new ArgumentException("SQLite 快照路径不能为空。", nameof(destinationPath));
+            string destination = Path.GetFullPath(destinationPath);
+            if (destination.IndexOfAny(new[] { '\r', '\n', '\t' }) >= 0)
+                throw new InvalidOperationException("SQLite 快照路径包含非法字符。");
+            Directory.CreateDirectory(Path.GetDirectoryName(destination));
+            if (File.Exists(destination))
+                throw new InvalidOperationException("SQLite 快照目标已存在。");
+
+            string token = Guid.NewGuid().ToString("N");
+            lock (snapshotSync)
+            {
+                if (!string.IsNullOrEmpty(pendingSnapshotToken))
+                    throw new InvalidOperationException("已有存档快照正在生成。");
+                pendingSnapshotToken = token;
+                pendingSnapshotError = string.Empty;
+                snapshotCompleted.Reset();
+            }
+
+            try
+            {
+                process.StandardInput.WriteLine($"snapshot\t{token}\t{destination}");
+                process.StandardInput.Flush();
+                if (!snapshotCompleted.WaitOne(TimeSpan.FromSeconds(15)))
+                    throw new TimeoutException("本机游戏服务生成存档快照超时。");
+                lock (snapshotSync)
+                {
+                    if (!string.IsNullOrEmpty(pendingSnapshotError))
+                        throw new InvalidOperationException("本机游戏服务生成存档快照失败。");
+                }
+                if (!HasSqliteHeader(destination))
+                    throw new InvalidOperationException("本机游戏服务生成的存档快照无效。");
+            }
+            finally
+            {
+                lock (snapshotSync)
+                {
+                    pendingSnapshotToken = string.Empty;
+                    pendingSnapshotError = string.Empty;
+                }
+            }
         }
 
         public void Dispose()
@@ -364,6 +426,23 @@ namespace ProjectX.Core
         private void QueueServerLine(string line, bool error)
         {
             if (string.IsNullOrWhiteSpace(line)) return;
+            if (line.StartsWith("[local] snapshot\t", StringComparison.Ordinal))
+            {
+                string[] fields = line.Split(new[] { '\t' }, 4);
+                if (fields.Length >= 3)
+                {
+                    lock (snapshotSync)
+                    {
+                        if (string.Equals(fields[1], pendingSnapshotToken, StringComparison.Ordinal))
+                        {
+                            pendingSnapshotError = string.Equals(fields[2], "ok", StringComparison.Ordinal)
+                                ? string.Empty
+                                : fields.Length >= 4 ? fields[3] : "snapshot failed";
+                            snapshotCompleted.Set();
+                        }
+                    }
+                }
+            }
             processLines.Enqueue(Tuple.Create(line, error));
         }
 
@@ -384,9 +463,7 @@ namespace ProjectX.Core
         private void PrepareWritableState()
         {
             string logsDirectory = Path.Combine(dataRoot, "Logs");
-            string backupsDirectory = Path.Combine(dataRoot, "Backups");
             Directory.CreateDirectory(logsDirectory);
-            Directory.CreateDirectory(backupsDirectory);
             LogPath = Path.Combine(logsDirectory, "kapai-current.log");
             if (File.Exists(LogPath) && new FileInfo(LogPath).Length > 0)
             {
@@ -396,15 +473,6 @@ namespace ProjectX.Core
             RetainNewest(logsDirectory, "kapai-*.log", 5);
             logWriter = new StreamWriter(new FileStream(LogPath, FileMode.Create, FileAccess.Write, FileShare.Read))
             { AutoFlush = true };
-
-            if (File.Exists(sqlitePath) && new FileInfo(sqlitePath).Length > 0)
-            {
-                LatestBackupPath = Path.Combine(backupsDirectory,
-                    "projectx-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmssfff") + ".db");
-                File.Copy(sqlitePath, LatestBackupPath, false);
-                RetainNewest(backupsDirectory, "projectx-*.db", 3);
-                ClientLog.Info("LocalServer", "启动前数据库备份完成。", LatestBackupPath);
-            }
         }
 
         private static void RetainNewest(string directory, string pattern, int retainCount)
@@ -428,5 +496,22 @@ namespace ProjectX.Core
 
         private static string NormalizePath(string path) =>
             string.IsNullOrWhiteSpace(path) ? string.Empty : Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
+
+        private static bool HasSqliteHeader(string path)
+        {
+            try
+            {
+                byte[] expected = { 0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66,
+                    0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00 };
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    if (stream.Length < expected.Length) return false;
+                    foreach (byte value in expected)
+                        if (stream.ReadByte() != value) return false;
+                }
+                return true;
+            }
+            catch { return false; }
+        }
     }
 }

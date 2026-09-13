@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <cstdlib>
 #include <sstream>
 #include "pet_equip_manage.h"
 #include "chou_ka_manager.h"
@@ -47,6 +48,12 @@ extern string mdCheckHost;
 extern int mdCheckPort;
 extern std::map<uint16,SkillInfoNode> skillInfoListMap;
 extern vector<uint32> topBangPai;
+
+static bool UseFormalSinglePlayerSeed()
+{
+	const char *value = std::getenv("PROJECTX_SINGLE_PLAYER_FORMAL_SEED");
+	return value != NULL && strcmp(value, "1") == 0;
+}
 
 struct SUnityAnswerSettings
 {
@@ -990,54 +997,59 @@ void CPackageDeal::UserLogin(CNetMessage *pMsg,int sock)
 			m_onlineUser.DelUser(pUser);
 			return;
 		}
-		const uint32 localTestMoney = 1000000;
-		const string localTestTongBaoText = gyu::util::CIniFile::GetValue(
-			"local_test_tongbao", "server", gConfigFile);
-		const string localTestBdTongBaoText = gyu::util::CIniFile::GetValue(
-			"local_test_bd_tongbao", "server", gConfigFile);
-		const uint32 localTestTongBao = localTestTongBaoText.empty()
-			? 100000 : (uint32)strtoul(localTestTongBaoText.c_str(), NULL, 10);
-		const uint32 localTestBdTongBao = localTestBdTongBaoText.empty()
-			? 100000 : (uint32)strtoul(localTestBdTongBaoText.c_str(), NULL, 10);
-		const uint32 preserveLevelUserId = (uint32)atoi(
-			gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
-		const uint32 preserveBalanceUserId = (uint32)atoi(
-			gyu::util::CIniFile::GetValue("local_preserve_balance_user_id","server",gConfigFile).c_str());
-		const bool preserveLocalBalance = preserveBalanceUserId > 0 && preserveBalanceUserId == userId;
-		if(preserveLevelUserId > 0 && preserveLevelUserId == userId)
+		// Steam single-player still needs local_test transport and protocol fallbacks,
+		// but its persistent save must never receive disposable validation boosts.
+		if(!UseFormalSinglePlayerSeed())
 		{
-			cout << "[local] UserLogin: preserve role level for fixture userId=" << userId << endl;
+			const uint32 localTestMoney = 1000000;
+			const string localTestTongBaoText = gyu::util::CIniFile::GetValue(
+				"local_test_tongbao", "server", gConfigFile);
+			const string localTestBdTongBaoText = gyu::util::CIniFile::GetValue(
+				"local_test_bd_tongbao", "server", gConfigFile);
+			const uint32 localTestTongBao = localTestTongBaoText.empty()
+				? 100000 : (uint32)strtoul(localTestTongBaoText.c_str(), NULL, 10);
+			const uint32 localTestBdTongBao = localTestBdTongBaoText.empty()
+				? 100000 : (uint32)strtoul(localTestBdTongBaoText.c_str(), NULL, 10);
+			const uint32 preserveLevelUserId = (uint32)atoi(
+				gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
+			const uint32 preserveBalanceUserId = (uint32)atoi(
+				gyu::util::CIniFile::GetValue("local_preserve_balance_user_id","server",gConfigFile).c_str());
+			const bool preserveLocalBalance = preserveBalanceUserId > 0 && preserveBalanceUserId == userId;
+			if(preserveLevelUserId > 0 && preserveLevelUserId == userId)
+			{
+				cout << "[local] UserLogin: preserve role level for fixture userId=" << userId << endl;
+				if(!preserveLocalBalance)
+				{
+					snprintf(sql, sizeof(sql),
+						"update role_info set money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+						localTestMoney, roleId);
+					pDb->Query(sql);
+				}
+			}
+			else
+			{
+				if(preserveLocalBalance)
+					snprintf(sql, sizeof(sql),
+						"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),99) where id=%u", roleId);
+				else
+					snprintf(sql, sizeof(sql),
+						"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),99),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
+						localTestMoney, roleId);
+				pDb->Query(sql);
+			}
+			string userTab = GetUserInfoTab(serverId);
 			if(!preserveLocalBalance)
 			{
 				snprintf(sql, sizeof(sql),
-					"update role_info set money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
-					localTestMoney, roleId);
+					"update %s set money=greatest(money,%u),bd_money=greatest(bd_money,%u) where id=%u",
+					userTab.c_str(), localTestTongBao, localTestBdTongBao, userId);
 				pDb->Query(sql);
+				YB = std::max(YB, localTestTongBao);
+				bangYB = std::max(bangYB, localTestBdTongBao);
 			}
+			pUser->SetTongBao(YB,0);
+			pUser->SetTongBao(bangYB,1);
 		}
-		else
-		{
-			if(preserveLocalBalance)
-				snprintf(sql, sizeof(sql),
-					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),99) where id=%u", roleId);
-			else
-				snprintf(sql, sizeof(sql),
-					"update role_info set level=greatest(cast(ifnull(nullif(level,''),'0') as unsigned),99),money=greatest(cast(ifnull(nullif(money,''),'0') as unsigned),%u) where id=%u",
-					localTestMoney, roleId);
-			pDb->Query(sql);
-		}
-		string userTab = GetUserInfoTab(serverId);
-		if(!preserveLocalBalance)
-		{
-			snprintf(sql, sizeof(sql),
-				"update %s set money=greatest(money,%u),bd_money=greatest(bd_money,%u) where id=%u",
-				userTab.c_str(), localTestTongBao, localTestBdTongBao, userId);
-			pDb->Query(sql);
-			YB = std::max(YB, localTestTongBao);
-			bangYB = std::max(bangYB, localTestBdTongBao);
-		}
-		pUser->SetTongBao(YB,0);
-		pUser->SetTongBao(bangYB,1);
 	}
 
 	msg<<PRO_SUCCESS;
@@ -1370,14 +1382,15 @@ void CPackageDeal::CreateRole(CNetMessage *pMsg,int sock)
 
 	uint32 reg_time = (uint32)GetSysTime();
 	string localTest = gyu::util::CIniFile::GetValue("local_test","server",gConfigFile);
+	const bool formalSinglePlayerSeed = localTest == "1" && UseFormalSinglePlayerSeed();
 	const uint32 preserveLevelUserId = (uint32)atoi(
 		gyu::util::CIniFile::GetValue("local_preserve_level_user_id","server",gConfigFile).c_str());
 	const bool preserveLocalLevel = localTest == "1" && preserveLevelUserId > 0 &&
 		preserveLevelUserId == pUser->GetUserId();
-	uint8 initLevel = (localTest == "1" && !preserveLocalLevel) ? 99 : 1;
-	uint32 initMoney = (localTest == "1") ? 1000000 : 0;
-	uint32 initTongBao = (localTest == "1") ? 100000 : 0;
-	uint32 initBdTongBao = (localTest == "1") ? 100000 : 0;
+	uint8 initLevel = (localTest == "1" && !formalSinglePlayerSeed && !preserveLocalLevel) ? 99 : 1;
+	uint32 initMoney = (localTest == "1" && !formalSinglePlayerSeed) ? 1000000 : 0;
+	uint32 initTongBao = (localTest == "1" && !formalSinglePlayerSeed) ? 100000 : 0;
+	uint32 initBdTongBao = (localTest == "1" && !formalSinglePlayerSeed) ? 100000 : 0;
 	snprintf(sql,sizeof(sql),"insert into role_info (name,sex,head,model,level,kuafu_state,state,reg_time,money) values('%s',%d,%d,%d,%u,%d,0,%u,%u)",
 		name.c_str(), (int)sex, (int)head, (int)model, (uint32)initLevel, EKFS_IN_LOCAL, reg_time, initMoney);
 	if(!pDb->Query(sql))
@@ -1392,6 +1405,21 @@ void CPackageDeal::CreateRole(CNetMessage *pMsg,int sock)
 	string userTab = GetUserInfoTab(pUser->GetServerId());
 	if(localTest == "1")
 	{
+		if(formalSinglePlayerSeed)
+		{
+			// The shared SQLite schema retains a local-test inventory trigger for
+			// disposable protocol fixtures. Undo it only for a real Steam save.
+			snprintf(sql, sizeof(sql), "update role_info set level=1,money=0,package='' where id=%u", roleId);
+			if(!pDb->Query(sql))
+			{
+				snprintf(sql, sizeof(sql), "delete from role_info where id=%u", roleId);
+				pDb->Query(sql);
+				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_856,TIPS_FAILURE_COLOR);
+				RemoveFastRoleName(sex,name);
+				m_socketServer.SendMsg(pUser->GetSock(),msg);
+				return;
+			}
+		}
 		if(!RepairLocalRoleNullFields(pDb, roleId))
 		{
 			cout << "[local] CreateRole: role null-field repair failed roleId=" << roleId

@@ -27,7 +27,6 @@ namespace ProjectX.Editor
             public string crashDetection;
             public string loopbackBinding;
             public string writableLog;
-            public string backupRotation;
             public string gracefulShutdown;
             public int maximumConcurrentKapai;
             public int residualKapai;
@@ -119,10 +118,6 @@ namespace ProjectX.Editor
                 crashOwner.Start();
                 WaitForTerminal(crashOwner, 30f);
                 Require(crashOwner.State == LocalServerState.ReadyOwned, "Crash probe server was not ready.");
-                Require(!string.IsNullOrWhiteSpace(crashOwner.LatestBackupPath)
-                        && File.Exists(crashOwner.LatestBackupPath),
-                    "Existing SQLite database was not backed up before restart.");
-                report.backupRotation = "Passed";
                 Process.GetProcessById(crashOwner.ProcessId).Kill();
                 float crashDeadline = Time.realtimeSinceStartup + 8f;
                 while (crashOwner.State != LocalServerState.Failed && Time.realtimeSinceStartup < crashDeadline)

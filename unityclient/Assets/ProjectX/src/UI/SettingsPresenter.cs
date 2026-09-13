@@ -42,7 +42,8 @@ namespace ProjectX.UI
 
         public SettingsPresenter(CocosUiView view, CocosUiView frameView, PlayerStore player,
             CurrencyStore currencies, ResourceService resources, Action close, Action returnToLogin,
-            Action<string> setStatus)
+            Action<string> setStatus, bool singlePlayerMode = false, Action saveGame = null,
+            Action exitGame = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
@@ -61,11 +62,25 @@ namespace ProjectX.UI
             ConfigureSlider(effectsSlider);
             BindAudioControls();
 
-            announcementButton = view.BindClick("Layer/Panel/BtnList/Btn_1",
-                () => this.setStatus("游戏公告属于 NoticeUI /88 边界；Settings 不读取或伪造公告正文。"), true);
-            activationButton = view.BindClick("Layer/Panel/BtnList/Btn_5",
-                () => this.setStatus("兑换码属于 Welfare.NewActiveCodeUI /199 op=18 边界；Settings 不处理兑换。"), true);
-            returnToLoginButton = view.BindClick("Layer/Panel/BtnList/Btn_4", returnToLogin, true);
+            if (singlePlayerMode)
+            {
+                announcementButton = view.BindClick("Layer/Panel/BtnList/Btn_1",
+                    saveGame ?? throw new ArgumentNullException(nameof(saveGame)), true);
+                SetText(binding, "Layer/Panel/BtnList/Btn_1/BtnName", "保存游戏");
+                activationButton = view.BindClick("Layer/Panel/BtnList/Btn_5", () => { }, true);
+                activationButton.gameObject.SetActive(false);
+                returnToLoginButton = view.BindClick("Layer/Panel/BtnList/Btn_4",
+                    exitGame ?? throw new ArgumentNullException(nameof(exitGame)), true);
+                SetText(binding, "Layer/Panel/BtnList/Btn_4/BtnName", "离开游戏");
+            }
+            else
+            {
+                announcementButton = view.BindClick("Layer/Panel/BtnList/Btn_1",
+                    () => this.setStatus("游戏公告属于 NoticeUI /88 边界；Settings 不读取或伪造公告正文。"), true);
+                activationButton = view.BindClick("Layer/Panel/BtnList/Btn_5",
+                    () => this.setStatus("兑换码属于 Welfare.NewActiveCodeUI /199 op=18 边界；Settings 不处理兑换。"), true);
+                returnToLoginButton = view.BindClick("Layer/Panel/BtnList/Btn_4", returnToLogin, true);
+            }
             ConfigureFrame(close);
         }
 
@@ -83,13 +98,28 @@ namespace ProjectX.UI
 
         public void Refresh()
         {
+            SetActive(frameBinding, "Layer/GoldCheck", true);
+            SetActive(frameBinding, "Layer/Panel_12/Bg/Btn_ListView", true);
+            SetActive(binding, "Layer/Panel/SystemBg/ImageBg", true);
+            SetActive(binding, "Layer/Panel/BtnList", true);
             ConfigureFrame(null);
             SetText(binding, "Layer/Panel/SystemBg/ImageBg/Name", $"角色：{player.Name}");
-            SetText(binding, "Layer/Panel/SystemBg/ImageBg/ServerName", "服务器：本地测试服");
+            SetText(binding, "Layer/Panel/SystemBg/ImageBg/ServerName", "存档：本地");
             SetText(binding, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", player.Level.ToString());
             GameObject headObject = binding.Find("Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage");
             Image head = headObject != null ? headObject.GetComponent<Image>() : null;
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
+            LoadValues();
+        }
+
+        public void RefreshForTitle()
+        {
+            ConfigureFrame(null);
+            SetText(frameBinding, "Layer/Panel_12/Title/TitleName", "游戏设置");
+            SetActive(frameBinding, "Layer/GoldCheck", false);
+            SetActive(frameBinding, "Layer/Panel_12/Bg/Btn_ListView", false);
+            SetActive(binding, "Layer/Panel/SystemBg/ImageBg", false);
+            SetActive(binding, "Layer/Panel/BtnList", false);
             LoadValues();
         }
 
@@ -351,6 +381,12 @@ namespace ProjectX.UI
 
         private static void SetText(CocosUiBinding target, string path, string value) =>
             SetText(target.Find(path)?.transform, value);
+
+        private static void SetActive(CocosUiBinding target, string path, bool active)
+        {
+            GameObject node = target?.Find(path);
+            if (node != null) node.SetActive(active);
+        }
 
         private static void SetText(Transform target, string value)
         {

@@ -2832,9 +2832,9 @@ Assert-ToolchainTest (
 ) "S7 lifecycle no longer requests production save/shutdown before force-kill fallback."
 Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('Path.Combine(dataRoot, "Logs")') -and
-    $localServerSupervisorSource.Contains('Path.Combine(dataRoot, "Backups")') -and
-    $localServerSupervisorSource.Contains('RetainNewest(backupsDirectory, "projectx-*.db", 3)')
-) "S7 player data no longer writes rotating logs and pre-start backups below persistentDataPath."
+    -not $localServerSupervisorSource.Contains('Path.Combine(dataRoot, "Backups")') -and
+    -not $localServerSupervisorSource.Contains('RetainNewest(backupsDirectory, "projectx-*.db", 3)')
+) "S7 player data must keep rotating logs without generating player-visible pre-start backups."
 Assert-ToolchainTest (
     $steamBuildSource.Contains('BuildTarget.StandaloneWindows64') -and
     $steamBuildSource.Contains('clientEntry = "ProjectX.exe"') -and

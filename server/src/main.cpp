@@ -22,6 +22,7 @@
 #include <zlib.h>
 #include <boost/thread/thread.hpp>
 #include <boost/format.hpp>
+#include <sqlite3.h>
 #include "award_manager.h"
 #include "rank.h"
 #include "arena.h"
@@ -32,6 +33,7 @@ using namespace std;
 const char *gConfigFile = "config";
 CDatabaseSql g_LoginDB;
 boost::recursive_mutex G_LoginDB_Mutex;
+static string gSqliteDatabasePath;
 
 vector<SChongZhiData> G_CZ_INFO_A;
 vector<SChongZhiData> G_CZ_INFO_IOS;
@@ -3802,6 +3804,56 @@ static bool PrepareSqliteDatabase(const SSqliteStartupOptions &options)
 	return true;
 }
 
+static string SanitizeSnapshotError(string value)
+{
+	for(size_t index = 0; index < value.size(); ++index)
+		if(value[index] == '\r' || value[index] == '\n' || value[index] == '\t') value[index] = ' ';
+	return value;
+}
+
+static bool CreateSqliteSnapshot(const string &destinationPath, string &error)
+{
+	CGetDbConnect getDb;
+	CDatabaseSql *saveDb = getDb.GetDbConnect();
+	if(saveDb == NULL)
+	{
+		error = "database connection unavailable while flushing current player data";
+		return false;
+	}
+	SingletonOnlineUser::instance().ForEachUser(boost::bind(EachUser, _1, saveDb));
+
+	sqlite3 *source = NULL;
+	sqlite3 *destination = NULL;
+	sqlite3_backup *backup = NULL;
+	int rc = sqlite3_open_v2(gSqliteDatabasePath.c_str(), &source,
+		SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, NULL);
+	if(rc != SQLITE_OK)
+	{
+		error = source != NULL ? sqlite3_errmsg(source) : "source database open failed";
+		if(source != NULL) sqlite3_close(source);
+		return false;
+	}
+	rc = sqlite3_open_v2(destinationPath.c_str(), &destination,
+		SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, NULL);
+	if(rc == SQLITE_OK)
+		backup = sqlite3_backup_init(destination, "main", source, "main");
+	if(rc != SQLITE_OK || backup == NULL)
+	{
+		error = destination != NULL ? sqlite3_errmsg(destination) : "snapshot database open failed";
+		if(destination != NULL) sqlite3_close(destination);
+		sqlite3_close(source);
+		return false;
+	}
+
+	rc = sqlite3_backup_step(backup, -1);
+	const int finishRc = sqlite3_backup_finish(backup);
+	const bool completed = rc == SQLITE_DONE && finishRc == SQLITE_OK;
+	if(!completed) error = sqlite3_errmsg(destination);
+	sqlite3_close(destination);
+	sqlite3_close(source);
+	return completed;
+}
+
 static void WaitForLocalShutdownCommand()
 {
 	string command;
@@ -3812,6 +3864,24 @@ static void WaitForLocalShutdownCommand()
 			cout << "[local] graceful shutdown requested by owning client" << endl;
 			SigHandler(SIGTERM);
 			return;
+		}
+		const string snapshotPrefix = "snapshot\t";
+		if(command.compare(0, snapshotPrefix.size(), snapshotPrefix) == 0)
+		{
+			const size_t tokenEnd = command.find('\t', snapshotPrefix.size());
+			if(tokenEnd == string::npos || tokenEnd + 1 >= command.size())
+			{
+				cout << "[local] snapshot\tinvalid\terror\tinvalid snapshot command" << endl;
+				continue;
+			}
+			const string token = command.substr(snapshotPrefix.size(), tokenEnd - snapshotPrefix.size());
+			const string destinationPath = command.substr(tokenEnd + 1);
+			string error;
+			if(CreateSqliteSnapshot(destinationPath, error))
+				cout << "[local] snapshot\t" << token << "\tok" << endl;
+			else
+				cout << "[local] snapshot\t" << token << "\terror\t"
+					<< SanitizeSnapshotError(error) << endl;
 		}
 	}
 }
@@ -3842,6 +3912,7 @@ int main(int argc,char **argv)
 		return -1;
 	if(sqliteOptions.enabled)
 	{
+		gSqliteDatabasePath = sqliteOptions.databasePath;
 		cout << "[local] main: Prepare SQLite" << endl;
 		if(!PrepareSqliteDatabase(sqliteOptions))
 			return -1;

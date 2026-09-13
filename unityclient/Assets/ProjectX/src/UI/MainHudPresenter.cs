@@ -60,7 +60,8 @@ namespace ProjectX.UI
         private bool discountEntriesEnabled = true;
 
         public MainHudPresenter(CocosUiView view, CocosUiView chatView, PlayerStore player,
-            CurrencyStore currencies, ChatStore chat, Core.ResourceService resources)
+            CurrencyStore currencies, ChatStore chat, Core.ResourceService resources,
+            bool seedStableRedDots = true)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.chatView = chatView ?? throw new ArgumentNullException(nameof(chatView));
@@ -142,7 +143,7 @@ namespace ProjectX.UI
                 discountButtons[index] = view.Binding.Find(root);
                 discountTimeTexts[index] = view.Binding.Find(root + "/Image/Text")?.GetComponent<Text>();
             }
-            InitializeStableRedDots();
+            InitializeStableRedDots(seedStableRedDots);
             chatPanel = chatView.Binding.Find("Layer/Panel_Chat")?.GetComponent<RectTransform>();
             chatList = chatView.Binding.Find("Layer/Panel_Chat/ListView")?.GetComponent<RectTransform>();
             chatBackground = chatView.Binding.Find("Layer/Panel_Chat/bg")?.GetComponent<RectTransform>();
@@ -474,10 +475,11 @@ namespace ProjectX.UI
             if (child != null) child.gameObject.SetActive(visible);
         }
 
-        private void InitializeStableRedDots()
+        private void InitializeStableRedDots(bool seedStableRedDots)
         {
             foreach (Transform child in view.GameObject.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
+            if (!seedStableRedDots) return;
             foreach (string path in StableVisiblePromptPaths)
                 view.Binding.Find(path)?.SetActive(true);
         }

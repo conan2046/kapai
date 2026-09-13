@@ -50,6 +50,9 @@ namespace ProjectX.UI
         public string LoginSignature => signatureInput == null ? "local" : signatureInput.text.Trim();
         public bool IsHandoverVisible => FindLogin("Btn_Login")?.activeInHierarchy == true;
         public bool IsServerListVisible => serverList?.GameObject != null && serverList.GameObject.activeSelf;
+        public bool HasSinglePlayerControls => FindLogin("steam/Btn_New") != null
+            && FindLogin("steam/Btn_Old") != null && FindLogin("steam/Btn_Tools") != null
+            && FindLogin("steam/Btn_Exit") != null;
 
         public void ShowLocalServer(string serverName)
         {
@@ -69,8 +72,35 @@ namespace ProjectX.UI
             SetActive("Btn_Sever", true);
             SetActive("Btn_Play", true);
             SetActive("Btn_handover", true);
+            SetActive("steam", false);
             Text label = FindLogin("Btn_Sever/SeverName")?.GetComponent<Text>();
             if (label != null) label.text = string.IsNullOrWhiteSpace(serverName) ? "本地测试服" : serverName;
+        }
+
+        public void ShowSinglePlayerTitle()
+        {
+            background.SetVisible(true);
+            SetText(background, "Layer/UI_Login/Versions", "Steam 单机版");
+            login.SetVisible(true);
+            serverList?.SetVisible(false);
+            roleCreate?.SetVisible(false);
+            foreach (string path in new[]
+            {
+                "InputField_user", "InputField_ps", "Btn_Register", "Btn_Login",
+                "Btn_Login_sdk", "Btn_Login_qq", "Btn_Login_wx", "bg",
+                "Btn_Sever", "Btn_Play", "Btn_handover"
+            }) SetActive(path, false);
+            SetActive("steam", true);
+        }
+
+        public void BindSinglePlayerControls(Action newGame, Action oldMemories, Action settings, Action exit)
+        {
+            if (!HasSinglePlayerControls)
+                throw new InvalidOperationException("loginLayer/steam is missing one or more title buttons.");
+            login.BindClick(Root + "/steam/Btn_New", newGame ?? throw new ArgumentNullException(nameof(newGame)), true);
+            login.BindClick(Root + "/steam/Btn_Old", oldMemories ?? throw new ArgumentNullException(nameof(oldMemories)), true);
+            login.BindClick(Root + "/steam/Btn_Tools", settings ?? throw new ArgumentNullException(nameof(settings)), true);
+            login.BindClick(Root + "/steam/Btn_Exit", exit ?? throw new ArgumentNullException(nameof(exit)), true);
         }
 
         public void BindLoginControls(Action enter, Action<uint, string> accountSubmit, Action<string> showError)

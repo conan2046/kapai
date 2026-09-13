@@ -58,6 +58,14 @@ namespace ProjectX.Core
             return LoadFirst($"RoleBust/{resolvedHead}_touxiang", $"MonsterBust/{resolvedHead}_tou");
         }
 
+        public Sprite LoadPlayerSavePortrait(int picture)
+        {
+            if (picture <= 0) return null;
+            int resolvedHead = picture == 4 || picture == 5 ? picture : 5;
+            return LoadFirst($"MonsterBust/{picture}", $"RoleBust/{resolvedHead}_touxiang",
+                $"MonsterBust/{picture}_tou", "MonsterBust/1", "MonsterBust/head_defult");
+        }
+
         public Sprite LoadEquipmentIcon(string picture) => LoadEquipmentIcon(picture, out _);
 
         public Sprite LoadEquipmentIcon(string picture, out bool usedPlaceholder)

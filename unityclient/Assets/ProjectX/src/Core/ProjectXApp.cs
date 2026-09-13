@@ -23,6 +23,9 @@ namespace ProjectX.Core
     [LuaCallCSharp]
     public sealed partial class ProjectXApp : MonoBehaviour
     {
+        private const string SinglePlayerFlowValidationFlag = "-projectXSinglePlayerFlowValidation";
+        private const string SinglePlayerSaveRootPrefix = "-projectXSinglePlayerSaveRoot=";
+
         public const string LoginButtonPath = "Layer/Login/Btn_Play";
         public const string LoginServerButtonPath = "Layer/Login/Btn_Sever";
         public const string BagPath = "Layer/Main_UI/ButtonGroup1/btn_Bag";
@@ -45,6 +48,8 @@ namespace ProjectX.Core
         public const string RankingPath = "Layer/Main_UI/ButtonGroup1/btn_paihangbang";
         public const string DrawPath = "Layer/Main_UI/ButtonGroup1/btn_zhaomu";
         public const string GameplayPath = "Layer/Main_UI/ButtonGroup1/btn_wanfa";
+        public const string MainCharacterPath = "Layer/Main_UI/ButtonGroup1/btn_zhujue";
+        public const string EquipmentMenuPath = "Layer/Main_UI/ButtonGroup1/btn_chuandai";
         public const string EquipmentBagPath = "Layer/Main_UI/tankuang2/btn_zhuangbei";
         public const string FaBaoBagPath = "Layer/Main_UI/tankuang2/btn_fabao";
         private static readonly HashSet<string> SteamExcludedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -191,6 +196,12 @@ namespace ProjectX.Core
         private StartupPresenter startupPresenter;
         private LocalServerSupervisor localServerSupervisor;
         private LoginPresenter loginPresenter;
+        private CocosUiView oldMemoryView;
+        private OldMemoryPresenter oldMemoryPresenter;
+        private SinglePlayerSaveService singlePlayerSaves;
+        private bool singlePlayerTitleEnabled;
+        private bool localSaveServerStarting;
+        private int activeSaveSlotId;
         private NoticePresenter noticePresenter;
         private readonly List<NoticeRecord> pendingGameNotices = new List<NoticeRecord>();
         private bool gameNoticeRequested;
@@ -780,12 +791,50 @@ namespace ProjectX.Core
             Instance = this;
             DontDestroyOnLoad(gameObject);
             AppLaunchOptions launchOptions = AppLaunchOptions.Current();
+            singlePlayerTitleEnabled = ShouldUseSinglePlayerTitle(launchOptions);
+            if (singlePlayerTitleEnabled)
+            {
+                singlePlayerSaves = new SinglePlayerSaveService(ResolveSinglePlayerSaveRoot());
+                InitializeApplication(launchOptions);
+                return;
+            }
             if (LocalServerSupervisor.ShouldRun(launchOptions))
             {
                 StartCoroutine(PrepareLocalServerThenInitialize(launchOptions));
                 return;
             }
             InitializeApplication(launchOptions);
+        }
+
+        private static bool ShouldUseSinglePlayerTitle(AppLaunchOptions options)
+        {
+            if (Application.isBatchMode || options == null || options.Automation
+                || options.HasFlag("-projectXExternalServer")) return false;
+            string[] arguments = Environment.GetCommandLineArgs();
+            if (arguments.Any(argument => string.Equals(argument,
+                SinglePlayerFlowValidationFlag, StringComparison.OrdinalIgnoreCase))) return true;
+            return !arguments.Any(argument =>
+                argument != null && argument.StartsWith("-projectX", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string ResolveSinglePlayerSaveRoot()
+        {
+            string[] arguments = Environment.GetCommandLineArgs();
+            bool validation = arguments.Any(argument => string.Equals(argument,
+                SinglePlayerFlowValidationFlag, StringComparison.OrdinalIgnoreCase));
+            if (!validation) return Application.persistentDataPath;
+
+            string argument = arguments.FirstOrDefault(value => value != null
+                && value.StartsWith(SinglePlayerSaveRootPrefix, StringComparison.OrdinalIgnoreCase));
+            string candidate = argument == null
+                ? string.Empty
+                : argument.Substring(SinglePlayerSaveRootPrefix.Length).Trim().Trim('"');
+            if (string.IsNullOrWhiteSpace(candidate) || !Path.IsPathRooted(candidate))
+            {
+                throw new InvalidOperationException(
+                    "Single-player flow validation requires an absolute isolated save root.");
+            }
+            return Path.GetFullPath(candidate);
         }
 
         private IEnumerator PrepareLocalServerThenInitialize(AppLaunchOptions launchOptions)
@@ -1235,8 +1284,10 @@ namespace ProjectX.Core
             gameplayPresenter?.Dispose();
             youLiPresenter?.Dispose();
             startupPresenter?.Dispose();
+            oldMemoryPresenter?.Dispose();
             loginPresenter?.Dispose();
             noticePresenter?.Dispose();
+            singlePlayerSaves?.CompleteSession();
             services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
             services?.Dispose();
             if (localServerSupervisor != null)
@@ -1250,7 +1301,17 @@ namespace ProjectX.Core
 
         private void HandleLocalServerFailure(string detail)
         {
-            Fail(detail);
+            if (!singlePlayerTitleEnabled)
+            {
+                Fail(detail);
+                return;
+            }
+
+            ClientLog.Error("SinglePlayer", "Local runtime stopped", detail ?? string.Empty);
+            StopSinglePlayerServer();
+            ShowLoginUi();
+            BindLoginClick(false);
+            ShowLoginError("当前回忆已中断，请重新进入。");
         }
 
         private void OnGUI()
@@ -1276,6 +1337,11 @@ namespace ProjectX.Core
         public bool IsFormationPopupOpen => formationPopupView?.GameObject.activeSelf == true;
         public bool HandleBack()
         {
+            if (oldMemoryPresenter?.IsVisible == true)
+            {
+                CloseOldMemoryMenu();
+                return true;
+            }
             if (TryHandleJingJieBack()) return true;
             if (formationPopupView?.GameObject.activeSelf == true)
             {
@@ -1482,7 +1548,13 @@ namespace ProjectX.Core
                 services.ProtocolRegistry.TrackSend(message.OutgoingCommand);
                 services.Network.Send(message);
             }
-            catch (Exception exception) { Fail($"Send failed: {exception.Message}"); }
+            catch (Exception exception)
+            {
+                if (singlePlayerTitleEnabled)
+                    ClientLog.Error("SinglePlayer", "Protocol send failed", exception.Message);
+                else
+                    Fail($"Send failed: {exception.Message}");
+            }
         }
 
         public void SendUntracked(LegacyTcpMessage message)
@@ -1493,7 +1565,13 @@ namespace ProjectX.Core
                     $"cmd={message.OutgoingCommand} untracked");
                 services.Network.Send(message);
             }
-            catch (Exception exception) { Fail($"Send failed: {exception.Message}"); }
+            catch (Exception exception)
+            {
+                if (singlePlayerTitleEnabled)
+                    ClientLog.Error("SinglePlayer", "Optional protocol send failed", exception.Message);
+                else
+                    Fail($"Send failed: {exception.Message}");
+            }
         }
 
         public void ShowLoginUi()
@@ -1559,6 +1637,7 @@ namespace ProjectX.Core
             friendView?.SetVisible(false);
             chatMiniView?.SetVisible(false);
             chatView?.SetVisible(false);
+            oldMemoryPresenter?.Hide();
             if (loginView == null) { Fail("Login/loginLayer CocosUiBinding was not found."); return; }
             if (loginBackgroundView == null) { Fail("Login/LoginBgLayer CocosUiBinding was not found."); return; }
             // Account switching must restore an actual stack root.  Leaving the
@@ -1566,17 +1645,27 @@ namespace ProjectX.Core
             // deferred module callback hide the login layer during Draw G4.
             services.UiStack.SetRoot(loginView);
             loginPresenter = loginPresenter ?? new LoginPresenter(loginBackgroundView, loginView, loginServerListView, roleCreateView);
-            loginPresenter.ShowLocalServer("本地测试服");
+            if (singlePlayerTitleEnabled) loginPresenter.ShowSinglePlayerTitle();
+            else loginPresenter.ShowLocalServer("本地测试服");
             EnsureErrorPresenter();
             EnsureCommonPresenters();
             services.State.Change(AppState.Login, "Login UI shown");
-            SetStatus("Login UI ready.");
+            SetStatus(singlePlayerTitleEnabled ? "Single-player title ready." : "Login UI ready.");
         }
 
         public void BindLoginClick(bool autoInvoke)
         {
             try
             {
+                if (singlePlayerTitleEnabled)
+                {
+                    loginPresenter.BindSinglePlayerControls(
+                        StartNewSinglePlayerGame,
+                        () => ShowSinglePlayerSaves(SinglePlayerSaveMenuMode.Continue),
+                        ShowTitleSettings,
+                        ExitApplication);
+                    return;
+                }
                 loginPresenter.BindLoginControls(HandleLoginClick, HandleAccountSubmit, ShowLoginError);
                 Button button = loginView.Binding.Find(LoginButtonPath)?.GetComponent<Button>();
                 loginView.BindClick(LoginServerButtonPath, () => loginPresenter.ShowServerList(
@@ -1586,6 +1675,225 @@ namespace ProjectX.Core
                     StartCoroutine(InvokeButtonNextFrame(button));
             }
             catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        private void StartNewSinglePlayerGame()
+        {
+            try
+            {
+                SinglePlayerSaveSlot emptySlot = singlePlayerSaves.GetSlots()
+                    .FirstOrDefault(slot => !slot.Exists);
+                if (emptySlot != null)
+                {
+                    SetStatus($"Creating a new single-player role in Slot {emptySlot.SlotId:00}.");
+                    BeginSinglePlayerSlot(emptySlot.SlotId, true);
+                    return;
+                }
+
+                ShowSinglePlayerSaves(SinglePlayerSaveMenuMode.NewGame);
+            }
+            catch (Exception exception)
+            {
+                ShowLoginError("新游戏启动失败：" + exception.Message);
+            }
+        }
+
+        private void ShowSinglePlayerSaves(SinglePlayerSaveMenuMode mode)
+        {
+            try
+            {
+                if (mode == SinglePlayerSaveMenuMode.SaveCurrent
+                    && (activeSaveSlotId <= 0 || !services.Player.IsLoaded))
+                    throw new InvalidOperationException("当前尚未进入可保存的单机游戏。");
+                EnsureOldMemoryPresenter();
+                oldMemoryPresenter.Show(mode);
+                if (services.UiStack.Current != oldMemoryView)
+                    services.UiStack.Push(oldMemoryView);
+                if (mode == SinglePlayerSaveMenuMode.SaveCurrent)
+                    bagFrameView?.SetVisible(false);
+                SetStatus(mode == SinglePlayerSaveMenuMode.NewGame
+                    ? "New single-player role slot selection active."
+                    : mode == SinglePlayerSaveMenuMode.SaveCurrent
+                        ? "In-game save slot selection active."
+                        : "Existing single-player role slot selection active.");
+            }
+            catch (Exception exception) { ShowLoginError("存档列表打开失败：" + exception.Message); }
+        }
+
+        private void EnsureOldMemoryPresenter()
+        {
+            if (oldMemoryPresenter != null) return;
+            oldMemoryView = services.UiRouter.FindBySource("Generated/OldMemoryLayer");
+            if (oldMemoryView == null)
+                throw new InvalidOperationException("Generated/OldMemoryLayer was not registered.");
+            oldMemoryPresenter = new OldMemoryPresenter(oldMemoryView, singlePlayerSaves, services.Resources,
+                BeginSinglePlayerSlot, SaveCurrentSinglePlayerSlot, CloseOldMemoryMenu,
+                ShowTitleConfirmation, ShowLoginError, SetStatus);
+        }
+
+        private void CloseOldMemoryMenu()
+        {
+            SinglePlayerSaveMenuMode mode = oldMemoryPresenter?.Mode ?? SinglePlayerSaveMenuMode.Continue;
+            oldMemoryPresenter?.Hide();
+            if (services?.UiStack.Current == oldMemoryView) services.UiStack.Pop();
+            if (mode == SinglePlayerSaveMenuMode.SaveCurrent && settingsView != null
+                && services?.UiStack.Current == settingsView)
+                bagFrameView?.SetVisible(true);
+            SetStatus(mode == SinglePlayerSaveMenuMode.SaveCurrent
+                ? "System settings active."
+                : "Single-player title ready.");
+        }
+
+        private void SaveCurrentSinglePlayerSlot(int targetSlotId)
+        {
+            if (activeSaveSlotId <= 0 || singlePlayerSaves?.ActiveSlotId != activeSaveSlotId
+                || localServerSupervisor?.IsReady != true || !services.Player.IsLoaded)
+                throw new InvalidOperationException("当前游戏尚未进入可保存状态。");
+
+            string stagingPath = singlePlayerSaves.CreateSnapshotStagingPath(targetSlotId);
+            try
+            {
+                localServerSupervisor.CreateSnapshot(stagingPath);
+                if (targetSlotId == activeSaveSlotId)
+                {
+                    singlePlayerSaves.DiscardSnapshotStaging(stagingPath);
+                    singlePlayerSaves.UpdatePlayer(activeSaveSlotId, services.Player.RoleId,
+                        services.Player.Name, services.Player.Model, services.Player.Level, services.Player.Power);
+                }
+                else
+                {
+                    singlePlayerSaves.CommitCurrentSnapshot(activeSaveSlotId, targetSlotId, stagingPath,
+                        services.Player.RoleId, services.Player.Name, services.Player.Model,
+                        services.Player.Level, services.Player.Power);
+                }
+                SetStatus($"当前进度已保存到存档 {targetSlotId:00}。");
+            }
+            catch (Exception exception)
+            {
+                try { singlePlayerSaves.DiscardSnapshotStaging(stagingPath); }
+                catch { }
+                ClientLog.Error("SinglePlayer", "Save current snapshot failed", exception.Message);
+                throw new InvalidOperationException("保存当前进度失败，请重试。");
+            }
+        }
+
+        private void ShowTitleConfirmation(string heading, string detail, Action confirmed)
+        {
+            EnsureErrorPresenter();
+            errorPresenter.ShowConfirmation(heading, detail, confirmed);
+        }
+
+        private void BeginSinglePlayerSlot(int slotId, bool startNew)
+        {
+            if (localSaveServerStarting) return;
+            StartCoroutine(PrepareSinglePlayerSlotThenLogin(slotId, startNew));
+        }
+
+        private IEnumerator PrepareSinglePlayerSlotThenLogin(int slotId, bool startNew)
+        {
+            localSaveServerStarting = true;
+            oldMemoryPresenter?.Hide();
+            loginView?.SetVisible(false);
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null)
+            {
+                localSaveServerStarting = false;
+                ShowLoginError("启动界面不存在，无法读取存档。");
+                yield break;
+            }
+            startupPresenter?.Dispose();
+            startupPresenter = new StartupPresenter(canvas);
+            startupPresenter.ShowServerPreparation(startNew ? "正在创建新的回忆…" : "正在读取旧的回忆…");
+            try
+            {
+                string databasePath = singlePlayerSaves.PrepareForPlay(slotId, startNew);
+                services.Config.LocalUserId = singlePlayerSaves.ResolveLocalUserId(
+                    slotId, startNew, services.Options.LocalUserId);
+                activeSaveSlotId = slotId;
+                localServerSupervisor = LocalServerSupervisor.CreateForDatabase(
+                    databasePath, formalSinglePlayerSeed: true);
+                localServerSupervisor.Start();
+            }
+            catch (Exception exception)
+            {
+                ClientLog.Error("SinglePlayer", "Save preparation failed", exception.Message);
+                startupPresenter.Dispose();
+                startupPresenter = null;
+                activeSaveSlotId = 0;
+                localSaveServerStarting = false;
+                ShowLoginUi();
+                BindLoginClick(false);
+                ShowLoginError("存档准备失败，请重试。");
+                yield break;
+            }
+            while (!localServerSupervisor.IsTerminal)
+            {
+                localServerSupervisor.Tick();
+                yield return null;
+            }
+            if (!localServerSupervisor.IsReady)
+            {
+                string detail = localServerSupervisor.Detail;
+                ClientLog.Error("SinglePlayer", "Save runtime preparation failed", detail ?? string.Empty);
+                localServerSupervisor.Dispose();
+                localServerSupervisor = null;
+                startupPresenter.Dispose();
+                startupPresenter = null;
+                activeSaveSlotId = 0;
+                localSaveServerStarting = false;
+                ShowLoginUi();
+                BindLoginClick(false);
+                ShowLoginError("存档准备失败，请重试。");
+                yield break;
+            }
+            startupPresenter.Dispose();
+            startupPresenter = null;
+            localServerSupervisor.Failed += HandleLocalServerFailure;
+            singlePlayerSaves.BeginSession(slotId);
+            loginPresenter.ShowLocalServer($"本地存档 {slotId:00}");
+            loginView.SetVisible(false);
+            localSaveServerStarting = false;
+            HandleLoginClick();
+        }
+
+        private void ShowTitleSettings()
+        {
+            try
+            {
+                EnsureSettingsPresenter();
+                oldMemoryPresenter?.Hide();
+                HideOneLevelChildPagesForSettings();
+                bagFrameView.SetVisible(true);
+                settingsView.SetVisible(true);
+                settingsView.GameObject.transform.SetAsLastSibling();
+                settingsPresenter.RefreshForTitle();
+                if (services.UiStack.Current != settingsView) services.UiStack.Push(settingsView);
+                SetStatus("Title settings active.");
+            }
+            catch (Exception exception) { ShowLoginError("设置打开失败：" + exception.Message); }
+        }
+
+        private void StopSinglePlayerServer()
+        {
+            singlePlayerSaves?.CompleteSession();
+            if (localServerSupervisor != null)
+            {
+                localServerSupervisor.Failed -= HandleLocalServerFailure;
+                localServerSupervisor.Dispose();
+                localServerSupervisor = null;
+            }
+            activeSaveSlotId = 0;
+            localSaveServerStarting = false;
+        }
+
+        private void ExitApplication()
+        {
+            StopSinglePlayerServer();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         public void InvokeLoginForValidation()
@@ -1616,6 +1924,7 @@ namespace ProjectX.Core
 
         public void ShowRoleCreateUi()
         {
+            HideRoleCreateConnectionLoading();
             loginPresenter?.ShowRoleCreate(HandleRoleCreateClick, HandleRoleRandomClick,
                 ReturnFromRoleCreate, ShowLoginError, false);
             services.State.Change(AppState.Login, "Role creation UI shown");
@@ -1626,6 +1935,7 @@ namespace ProjectX.Core
         {
             try
             {
+                HideRoleCreateConnectionLoading();
                 loginPresenter?.ShowRoleCreate(HandleRoleCreateClick, HandleRoleRandomClick,
                     ReturnFromRoleCreate, ShowLoginError, false);
                 if (autoInvoke && loginPresenter != null)
@@ -1635,6 +1945,13 @@ namespace ProjectX.Core
                 }
             }
             catch (Exception exception) { Fail(exception.Message); }
+        }
+
+        private void HideRoleCreateConnectionLoading()
+        {
+            HideLoading("connect");
+            HideLoading("reconnect");
+            HideLoading("auto-reconnect");
         }
 
         public bool ValidateRoleCreateUi(out string detail)
@@ -1983,6 +2300,7 @@ namespace ProjectX.Core
             EnsureMainHudPresenter();
             BindPlayerHudControls();
             ApplySteamFeatureExclusions();
+            ApplySteamHudFunctionUnlocks();
             if (HasCommandLineFlag("-projectXSteamHudExclusionAcceptance"))
                 StartCoroutine(CaptureSteamHudExclusionAcceptance());
             EnsureMainTaskTracker();
@@ -4998,6 +5316,7 @@ namespace ProjectX.Core
         public void ReturnToLogin()
         {
             services.Network.Disconnect();
+            if (singlePlayerTitleEnabled) StopSinglePlayerServer();
             mainHudPresenter?.Dispose();
             mainHudPresenter = null;
             mainTaskTracker?.Dispose();
@@ -5038,6 +5357,7 @@ namespace ProjectX.Core
             toastPresenter?.Clear();
             rewardPresenter?.Hide();
             ShowLoginUi();
+            if (singlePlayerTitleEnabled) BindLoginClick(false);
         }
 
         public void InitializePlayer(uint roleId, string name, int sex, int model, int head, int level,
@@ -5049,13 +5369,18 @@ namespace ProjectX.Core
                 checked((ulong)power), potential, soul, unchecked((ushort)packageCapacity));
             services.Currencies.Initialize(money, premium, boundPremium, soul, guildContribution);
             services.Mails.ConfigureAccount(roleId);
+            if (singlePlayerTitleEnabled && activeSaveSlotId > 0)
+                singlePlayerSaves?.UpdatePlayer(activeSaveSlotId, roleId, name, model, level, checked((ulong)power));
         }
 
         public void AddPlayerExperience(uint amount) => services.Player.AddExperience(amount);
         public void SetPlayerPower(double value) => services.Player.SetPower(checked((ulong)value));
         public void SetPlayerVipLevel(int value) => services.Player.SetVipLevel(checked((byte)value));
-        public void SetPlayerLevelAndPower(int level, double value) =>
+        public void SetPlayerLevelAndPower(int level, double value)
+        {
             services.Player.SetLevelAndPower(unchecked((ushort)level), checked((ulong)value));
+            ApplySteamHudFunctionUnlocks();
+        }
         public void SetPlayerPotential(uint value) => services.Player.SetPotential(value);
         public void SetPlayerSoul(uint value)
         {
@@ -5098,11 +5423,25 @@ namespace ProjectX.Core
 
         public void ShowLoading(string key, string message = null, float autoClearSeconds = 15f)
         {
+            if (singlePlayerTitleEnabled && IsNetworkLoadingKey(key))
+            {
+                loadingPresenter?.Hide(key);
+                Debug.Log($"[ProjectX][SinglePlayer] Network activity | "
+                    + (string.IsNullOrWhiteSpace(message) ? key : message));
+                return;
+            }
             EnsureCommonPresenters();
             loadingPresenter.Show(key, message, autoClearSeconds);
         }
 
         public void HideLoading(string key) => loadingPresenter?.Hide(key);
+
+        private static bool IsNetworkLoadingKey(string key)
+        {
+            return string.Equals(key, "connect", StringComparison.Ordinal)
+                || string.Equals(key, "reconnect", StringComparison.Ordinal)
+                || string.Equals(key, "auto-reconnect", StringComparison.Ordinal);
+        }
 
         public void ShowToast(string message, float visibleSeconds = 2f)
         {
@@ -11245,6 +11584,14 @@ namespace ProjectX.Core
 
         private void ReturnFromRoleCreate()
         {
+            if (singlePlayerTitleEnabled)
+            {
+                services.Network.Disconnect();
+                StopSinglePlayerServer();
+                ShowLoginUi();
+                BindLoginClick(false);
+                return;
+            }
             loginPresenter?.ShowLocalServer("本地测试服");
             services.UiStack.SetRoot(loginView);
             services.State.Change(AppState.Login, "Returned from role creation");
@@ -11253,6 +11600,15 @@ namespace ProjectX.Core
 
         private void ShowLoginConnectionFailure(bool timedOut)
         {
+            if (singlePlayerTitleEnabled)
+            {
+                ClientLog.Warning("SinglePlayer", timedOut
+                    ? "Local save connection timed out"
+                    : "Local save connection failed", disconnectReason ?? string.Empty);
+                ReturnFromConnectionFailure();
+                return;
+            }
+
             EnsureErrorPresenter();
             string detail = timedOut
                 ? "无法连接服务器,是否重新连接？\n连接已超时"
@@ -11275,6 +11631,7 @@ namespace ProjectX.Core
 
         private void ReturnFromConnectionFailure()
         {
+            if (singlePlayerTitleEnabled) StopSinglePlayerServer();
             ShowLoginUi();
             BindLoginClick(false);
         }
@@ -11563,6 +11920,7 @@ namespace ProjectX.Core
                 FriendPath,
                 GuildPath,
                 ActivityPath,
+                RankingPath,
                 ChatPath,
                 TeamLegacyPath,
                 "Layer/Main_UI/ButtonGroup4/btn_Qiri",
@@ -11582,6 +11940,35 @@ namespace ProjectX.Core
             chatMiniView?.SetVisible(false);
             mainHudPresenter?.SetWelfareVisible(false);
             mainHudPresenter?.SetDiscountEntriesEnabled(false);
+        }
+
+        private void ApplySteamHudFunctionUnlocks()
+        {
+            if (!singlePlayerTitleEnabled || mainView == null || services?.Player == null) return;
+            int level = services.Player.Level;
+
+            // Unity equivalent of Cocos MainUI:SetButtonVisible/dealFunctionOpen.
+            // A locked feature owns neither a visible icon nor a visible Prompt.
+            SetSteamHudFeatureVisible(MailPath, level >= 3);             // 1221 社交/邮件
+            SetSteamHudFeatureVisible(EquipmentMenuPath, level >= 5);   // 1110 装备背包
+            SetSteamHudFeatureVisible(MainCharacterPath, level >= 10);  // 1050 主角入口
+            SetSteamHudFeatureVisible(TaskPath, level >= 13);           // 10 每日任务
+            SetSteamHudFeatureVisible(GameplayPath, level >= 29);       // 270 玩法
+
+            SetSteamHudFeatureVisible(EquipmentBagPath, level >= 5);    // 1110 装备背包
+            SetSteamHudFeatureVisible(FaBaoBagPath, level >= 15);       // 1180 法宝系统
+            SetSteamHudFeatureVisible("Layer/Main_UI/tankuang1/btn_jianghun", level >= 2);
+            SetSteamHudFeatureVisible("Layer/Main_UI/tankuang1/btn_wanfa", false);
+        }
+
+        private void SetSteamHudFeatureVisible(string path, bool visible)
+        {
+            GameObject node = mainView?.Binding.Find(path);
+            if (node == null) return;
+            node.SetActive(visible);
+            if (visible) return;
+            foreach (Transform child in node.GetComponentsInChildren<Transform>(true))
+                if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
 
         private IEnumerator CaptureSteamHudExclusionAcceptance()
@@ -13244,7 +13631,9 @@ namespace ProjectX.Core
             if (settingsView == null || bagFrameView == null)
                 throw new InvalidOperationException("Settings SystemLayer/OneLevelLayer CocosUiBinding was not found.");
             settingsPresenter = settingsPresenter ?? new SettingsPresenter(settingsView, bagFrameView,
-                services.Player, services.Currencies, services.Resources, () => HandleBack(), ReturnToLogin, SetStatus);
+                services.Player, services.Currencies, services.Resources, () => HandleBack(), ReturnToLogin,
+                SetStatus, singlePlayerTitleEnabled,
+                () => ShowSinglePlayerSaves(SinglePlayerSaveMenuMode.SaveCurrent), ExitApplication);
         }
 
         private void EnsureRewardPresenter()
@@ -18588,7 +18977,8 @@ namespace ProjectX.Core
             chatMiniView = chatMiniView ?? services.UiRouter.FindBySource("/ChatLayer.csd");
             if (chatMiniView == null) throw new InvalidOperationException("HUD ChatLayer view was not found.");
             mainHudPresenter = new MainHudPresenter(mainView, chatMiniView, services.Player,
-                services.Currencies, services.Chat, services.Resources);
+                services.Currencies, services.Chat, services.Resources,
+                seedStableRedDots: !singlePlayerTitleEnabled);
         }
 
         private void EnsureErrorPresenter()
