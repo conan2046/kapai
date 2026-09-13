@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ProjectX.Core;
 using ProjectX.Data;
 using ProjectX.UI.Migration;
@@ -14,6 +15,9 @@ namespace ProjectX.UI
         public const string EffectsClosedKey = "ProjectX.Settings.IsEffectClosed";
         public const string MusicVolumeKey = "ProjectX.Settings.MusicVolume";
         public const string EffectsVolumeKey = "ProjectX.Settings.EffectsVolume";
+        public const string ResolutionWidthKey = "ProjectX.Settings.ResolutionWidth";
+        public const string ResolutionHeightKey = "ProjectX.Settings.ResolutionHeight";
+        public const string FullScreenKey = "ProjectX.Settings.FullScreen";
 
         private readonly CocosUiView view;
         private readonly CocosUiView frameView;
@@ -23,10 +27,15 @@ namespace ProjectX.UI
         private readonly CurrencyStore currencies;
         private readonly ResourceService resources;
         private readonly Action<string> setStatus;
+        private readonly bool singlePlayerMode;
         private readonly Toggle musicMuted;
         private readonly Slider musicSlider;
         private readonly Toggle effectsMuted;
         private readonly Slider effectsSlider;
+        private readonly Dropdown resolutionDropdown;
+        private readonly Toggle fullScreenToggle;
+        private readonly List<Vector2Int> resolutionOptions = new List<Vector2Int>();
+        private readonly Button saveDisplayButton;
         private readonly Button returnToLoginButton;
         private readonly Button announcementButton;
         private readonly Button activationButton;
@@ -37,6 +46,7 @@ namespace ProjectX.UI
         private Button goldAddButton;
         private Button premiumAddButton;
         private bool refreshing;
+        private bool refreshingDisplay;
         private bool simulatePersistenceUnavailable;
         private bool simulateAudioUnavailable;
 
@@ -51,6 +61,7 @@ namespace ProjectX.UI
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.setStatus = setStatus ?? (_ => { });
+            this.singlePlayerMode = singlePlayerMode;
             binding = view.Binding;
             frameBinding = frameView.Binding;
 
@@ -61,6 +72,11 @@ namespace ProjectX.UI
             ConfigureSlider(musicSlider);
             ConfigureSlider(effectsSlider);
             BindAudioControls();
+
+            resolutionDropdown = Require<Dropdown>(binding, "Layer/Panel/SystemBg/Resolution/Dropdown");
+            fullScreenToggle = Require<Toggle>(binding, "Layer/Panel/SystemBg/Resolution/FullScreen");
+            BindDisplayControls();
+            saveDisplayButton = view.BindClick("Layer/Panel/BtnList/Btn_6", SaveDisplaySelection, true);
 
             if (singlePlayerMode)
             {
@@ -88,12 +104,16 @@ namespace ProjectX.UI
         public float EffectsVolume => effectsSlider.value / 100f;
         public bool MusicClosed => musicMuted.isOn;
         public bool EffectsClosed => effectsMuted.isOn;
+        public Vector2Int SelectedResolution => resolutionOptions[resolutionDropdown.value];
+        public bool FullScreen => fullScreenToggle.isOn;
         public float AppliedMusicVolume { get; private set; } = 1f;
         public float AppliedEffectsVolume { get; private set; } = 1f;
         public string LastFailure { get; private set; } = string.Empty;
         public bool HasAllControls => closeButton != null && infoTabButton != null && settingsTabButton != null
             && staminaAddButton != null && goldAddButton != null && premiumAddButton != null
-            && announcementButton != null && activationButton != null && returnToLoginButton != null;
+            && announcementButton != null && activationButton != null && returnToLoginButton != null
+            && resolutionDropdown != null && fullScreenToggle != null && saveDisplayButton != null
+            && resolutionOptions.Count > 0;
         public bool PremiumAddDisabled => premiumAddButton != null && !premiumAddButton.interactable;
 
         public void Refresh()
@@ -102,6 +122,13 @@ namespace ProjectX.UI
             SetActive(frameBinding, "Layer/Panel_12/Bg/Btn_ListView", true);
             SetActive(binding, "Layer/Panel/SystemBg/ImageBg", true);
             SetActive(binding, "Layer/Panel/BtnList", true);
+            SetActive(binding, "Layer/Panel/BtnList/Btn_6", true);
+            if (singlePlayerMode)
+            {
+                SetActive(binding, "Layer/Panel/BtnList/Btn_1", true);
+                SetActive(binding, "Layer/Panel/BtnList/Btn_4", true);
+                SetActive(binding, "Layer/Panel/BtnList/Btn_5", false);
+            }
             ConfigureFrame(null);
             SetText(binding, "Layer/Panel/SystemBg/ImageBg/Name", $"角色：{player.Name}");
             SetText(binding, "Layer/Panel/SystemBg/ImageBg/ServerName", "存档：本地");
@@ -110,6 +137,7 @@ namespace ProjectX.UI
             Image head = headObject != null ? headObject.GetComponent<Image>() : null;
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             LoadValues();
+            RefreshDisplayControls();
         }
 
         public void RefreshForTitle()
@@ -119,8 +147,13 @@ namespace ProjectX.UI
             SetActive(frameBinding, "Layer/GoldCheck", false);
             SetActive(frameBinding, "Layer/Panel_12/Bg/Btn_ListView", false);
             SetActive(binding, "Layer/Panel/SystemBg/ImageBg", false);
-            SetActive(binding, "Layer/Panel/BtnList", false);
+            SetActive(binding, "Layer/Panel/BtnList", true);
+            SetActive(binding, "Layer/Panel/BtnList/Btn_1", false);
+            SetActive(binding, "Layer/Panel/BtnList/Btn_4", false);
+            SetActive(binding, "Layer/Panel/BtnList/Btn_5", false);
+            SetActive(binding, "Layer/Panel/BtnList/Btn_6", true);
             LoadValues();
+            RefreshDisplayControls();
         }
 
         public void InvokeClose() => closeButton.onClick.Invoke();
@@ -235,6 +268,197 @@ namespace ProjectX.UI
             musicSlider.onValueChanged.AddListener(value => SaveVolume(true, value));
             effectsMuted.onValueChanged.AddListener(value => SetMuted(false, value));
             effectsSlider.onValueChanged.AddListener(value => SaveVolume(false, value));
+        }
+
+        private void BindDisplayControls()
+        {
+            resolutionOptions.Clear();
+            for (int index = 0; index < resolutionDropdown.options.Count; index++)
+            {
+                string label = resolutionDropdown.options[index].text;
+                if (!TryParseResolution(label, out Vector2Int resolution))
+                    throw new InvalidOperationException($"Settings resolution option is invalid: {label}");
+                resolutionOptions.Add(resolution);
+            }
+            if (resolutionOptions.Count == 0)
+                throw new InvalidOperationException("Settings resolution dropdown has no options.");
+
+            resolutionDropdown.onValueChanged.RemoveAllListeners();
+            fullScreenToggle.onValueChanged.RemoveAllListeners();
+            resolutionDropdown.onValueChanged.AddListener(NormalizePendingResolutionSelection);
+            fullScreenToggle.onValueChanged.AddListener(_ =>
+            {
+                if (!refreshingDisplay) setStatus("显示模式已修改，点击保存后生效。");
+            });
+            RefreshDisplayControls();
+        }
+
+        private void RefreshDisplayControls()
+        {
+            bool hasSavedResolution = TryReadSavedDisplayPreferences(out Vector2Int savedResolution,
+                out bool savedFullScreen);
+            Vector2Int requested = hasSavedResolution
+                ? savedResolution
+                : new Vector2Int(Screen.width, Screen.height);
+            int selectedIndex = FindClosestResolutionIndex(requested, GetCurrentDisplayResolution());
+            refreshingDisplay = true;
+            resolutionDropdown.SetValueWithoutNotify(selectedIndex);
+            resolutionDropdown.RefreshShownValue();
+            fullScreenToggle.SetIsOnWithoutNotify(hasSavedResolution ? savedFullScreen : Screen.fullScreen);
+            refreshingDisplay = false;
+        }
+
+        private void NormalizePendingResolutionSelection(int requestedIndex)
+        {
+            if (refreshingDisplay) return;
+            if (requestedIndex < 0 || requestedIndex >= resolutionOptions.Count) return;
+
+            Vector2Int displayLimit = GetCurrentDisplayResolution();
+            int resolvedIndex = FindClosestResolutionIndex(resolutionOptions[requestedIndex], displayLimit);
+            Vector2Int requested = resolutionOptions[requestedIndex];
+            Vector2Int resolved = resolutionOptions[resolvedIndex];
+            if (resolvedIndex != requestedIndex)
+            {
+                refreshingDisplay = true;
+                resolutionDropdown.SetValueWithoutNotify(resolvedIndex);
+                resolutionDropdown.RefreshShownValue();
+                refreshingDisplay = false;
+                setStatus($"{requested.x} x {requested.y} 超过当前屏幕 {displayLimit.x} x {displayLimit.y}，已重置为 {resolved.x} x {resolved.y}；点击保存后生效。");
+                return;
+            }
+            setStatus($"已选择 {resolved.x} x {resolved.y}，点击保存后生效。");
+        }
+
+        private void SaveDisplaySelection()
+        {
+            int requestedIndex = resolutionDropdown.value;
+            if (requestedIndex < 0 || requestedIndex >= resolutionOptions.Count) return;
+
+            Vector2Int displayLimit = GetCurrentDisplayResolution();
+            int resolvedIndex = FindClosestResolutionIndex(resolutionOptions[requestedIndex], displayLimit);
+            Vector2Int resolved = resolutionOptions[resolvedIndex];
+            if (resolvedIndex != requestedIndex)
+            {
+                refreshingDisplay = true;
+                resolutionDropdown.SetValueWithoutNotify(resolvedIndex);
+                resolutionDropdown.RefreshShownValue();
+                refreshingDisplay = false;
+            }
+
+            try
+            {
+                if (simulatePersistenceUnavailable)
+                    throw new InvalidOperationException("simulated persistence unavailable");
+                PlayerPrefs.SetInt(ResolutionWidthKey, resolved.x);
+                PlayerPrefs.SetInt(ResolutionHeightKey, resolved.y);
+                PlayerPrefs.SetInt(FullScreenKey, fullScreenToggle.isOn ? 1 : 0);
+                PlayerPrefs.Save();
+                FullScreenMode mode = fullScreenToggle.isOn
+                    ? FullScreenMode.FullScreenWindow
+                    : FullScreenMode.Windowed;
+                Screen.SetResolution(resolved.x, resolved.y, mode);
+                ApplyEditorGameViewResolution(resolved.x, resolved.y);
+                LastFailure = string.Empty;
+                setStatus($"显示设置已保存并生效：{resolved.x} x {resolved.y}（{(fullScreenToggle.isOn ? "全屏" : "窗口")}）。");
+            }
+            catch (Exception exception)
+            {
+                LastFailure = "显示设置保存失败：" + exception.Message;
+                setStatus(LastFailure);
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void ApplySavedDisplayPreferencesOnLaunch()
+        {
+            if (Application.isBatchMode
+                || !TryReadSavedDisplayPreferences(out Vector2Int savedResolution, out bool savedFullScreen)) return;
+            Vector2Int displayLimit = GetCurrentDisplayResolution();
+            int width = Mathf.Min(savedResolution.x, displayLimit.x);
+            int height = Mathf.Min(savedResolution.y, displayLimit.y);
+            FullScreenMode mode = savedFullScreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;
+            Screen.SetResolution(width, height, mode);
+            ApplyEditorGameViewResolution(width, height);
+        }
+
+        private static void ApplyEditorGameViewResolution(int width, int height)
+        {
+#if UNITY_EDITOR
+            Type runnerType = Type.GetType("ProjectX.Editor.BootstrapAppRunner, Assembly-CSharp-Editor");
+            System.Reflection.MethodInfo method = runnerType?.GetMethod(
+                "ApplyPlayerSelectedGameViewResolution",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+            method?.Invoke(null, new object[] { width, height });
+#endif
+        }
+
+        private static bool TryReadSavedDisplayPreferences(out Vector2Int resolution, out bool fullScreen)
+        {
+            resolution = default;
+            fullScreen = Screen.fullScreen;
+            if (!PlayerPrefs.HasKey(ResolutionWidthKey) || !PlayerPrefs.HasKey(ResolutionHeightKey))
+                return false;
+            int width = PlayerPrefs.GetInt(ResolutionWidthKey, 0);
+            int height = PlayerPrefs.GetInt(ResolutionHeightKey, 0);
+            if (width <= 0 || height <= 0) return false;
+            resolution = new Vector2Int(width, height);
+            fullScreen = PlayerPrefs.GetInt(FullScreenKey, Screen.fullScreen ? 1 : 0) != 0;
+            return true;
+        }
+
+        private int FindClosestResolutionIndex(Vector2Int requested, Vector2Int displayLimit)
+        {
+            int bestIndex = -1;
+            long bestDistance = long.MaxValue;
+            for (int index = 0; index < resolutionOptions.Count; index++)
+            {
+                Vector2Int option = resolutionOptions[index];
+                if (option.x > displayLimit.x || option.y > displayLimit.y) continue;
+                long distance = ResolutionDistance(option, requested);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                bestIndex = index;
+            }
+            if (bestIndex >= 0) return bestIndex;
+
+            // Extremely small displays may not fit even the smallest configured option.
+            // Keep the selection inside the configured list and choose the nearest one.
+            for (int index = 0; index < resolutionOptions.Count; index++)
+            {
+                long distance = ResolutionDistance(resolutionOptions[index], displayLimit);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                bestIndex = index;
+            }
+            return Mathf.Max(0, bestIndex);
+        }
+
+        private static Vector2Int GetCurrentDisplayResolution()
+        {
+            Resolution current = Screen.currentResolution;
+            int width = current.width > 0 ? current.width : Screen.width;
+            int height = current.height > 0 ? current.height : Screen.height;
+            return new Vector2Int(Mathf.Max(1, width), Mathf.Max(1, height));
+        }
+
+        private static long ResolutionDistance(Vector2Int left, Vector2Int right)
+        {
+            long width = left.x - right.x;
+            long height = left.y - right.y;
+            return width * width + height * height;
+        }
+
+        private static bool TryParseResolution(string value, out Vector2Int resolution)
+        {
+            resolution = default;
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            string[] parts = value.Split(new[] { 'x', 'X', '×' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2
+                || !int.TryParse(parts[0].Trim(), out int width)
+                || !int.TryParse(parts[1].Trim(), out int height)
+                || width <= 0 || height <= 0) return false;
+            resolution = new Vector2Int(width, height);
+            return true;
         }
 
         private void LoadValues()

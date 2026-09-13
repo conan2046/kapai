@@ -38,8 +38,8 @@ namespace ProjectX.Editor
         {
             EditorApplication.update -= Monitor;
             EditorApplication.update += Monitor;
-            EditorApplication.delayCall -= ApplyRequiredGameViewResolution;
-            EditorApplication.delayCall += ApplyRequiredGameViewResolution;
+            EditorApplication.delayCall -= ApplyRequiredGameViewResolutionForAutomation;
+            EditorApplication.delayCall += ApplyRequiredGameViewResolutionForAutomation;
         }
 
         [MenuItem("Tools/ProjectX App/Set GameView 1334x750", priority = 89)]
@@ -47,6 +47,22 @@ namespace ProjectX.Editor
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
             SetGameViewResolution(RequiredGameViewWidth, RequiredGameViewHeight);
+        }
+
+        public static bool ApplyPlayerSelectedGameViewResolution(int width, int height)
+        {
+            bool automation = SessionState.GetBool(ArmedKey, false)
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXAutomation") >= 0;
+            if (automation || EditorApplication.isCompiling || EditorApplication.isUpdating) return false;
+            SetGameViewResolution(width, height);
+            return true;
+        }
+
+        private static void ApplyRequiredGameViewResolutionForAutomation()
+        {
+            bool automation = SessionState.GetBool(ArmedKey, false)
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXAutomation") >= 0;
+            if (automation) ApplyRequiredGameViewResolution();
         }
 
         [MenuItem("Tools/ProjectX App/Capture Current Draw Evidence", priority = 90)]
