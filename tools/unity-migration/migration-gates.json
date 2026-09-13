@@ -2483,6 +2483,43 @@
         }
       },
       "updatedUtc": "2026-09-13T00:00:00Z"
+    },
+    {
+      "module": "Answer",
+      "gates": {
+        "G0": "passed",
+        "G1": "pending",
+        "G2": "pending",
+        "G3": "pending",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/ANSWER.md",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-09-13T01:53:29.6757149Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-13T01:53:29.6809724Z",
+          "startSource": "module-scaffold",
+          "completedUtc": "2026-09-13T02:16:15.4290706Z",
+          "calendarDurationMs": 1366429,
+          "completionCheckDurationMs": 350
+        },
+        "G1": {
+          "startedUtc": "2026-09-13T02:16:15.4290706Z",
+          "startSource": "previous-gate-complete"
+        }
+      },
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/ANSWER.md",
+          "docs/unityclient/matrices/ANSWER_CONTROLS.json",
+          "docs/unityclient/matrices/ANSWER_COVERAGE.json",
+          ".local/unity-validation/answer-g0-draft-latest.json"
+        ]
+      },
+      "updatedUtc": "2026-09-13T02:16:15.4581416Z"
     }
   ]
 }

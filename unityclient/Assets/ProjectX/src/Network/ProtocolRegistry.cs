@@ -149,6 +149,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(25, "PRO_UPDATE_PET", "Hero", expectsResponse: false));
             registry.Register(new ProtocolDefinition(88, "PRO_GONGGAO", "LoginMain", expectsResponse: false));
             registry.Register(new ProtocolDefinition(128, "MSG_CLIENT_XINSHI", "Mail"));
+            registry.Register(new ProtocolDefinition(198, "MSG_EVERY_QUETION", "Answer"));
             registry.Register(new ProtocolDefinition(199, "MSG_HUODONG_OPTION", "Welfare"));
             registry.Register(new ProtocolDefinition(206, "MSG_SYNC_TIME", "Core"));
             registry.Register(new ProtocolDefinition(213, "MSG_CHUANG_GUAN", "Monopoly"));

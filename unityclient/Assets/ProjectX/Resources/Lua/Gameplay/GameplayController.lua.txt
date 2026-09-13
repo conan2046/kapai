@@ -9,6 +9,7 @@ function M.onClick()
         or Bridge:HasCommandLineFlag("-projectXBattleFengShenStoryValidation") then Bridge:EnterGameplay(3) end
     if Bridge:HasCommandLineFlag("-projectXArenaValidation") then Bridge:EnterGameplay(6) end
     if Bridge:HasCommandLineFlag("-projectXXunBaoValidation") then Bridge:EnterGameplay(9) end
+    if Bridge:HasCommandLineFlag("-projectXAnswerValidation") then Bridge:EnterGameplay(27) end
     if Bridge:HasCommandLineFlag("-projectXGameplayShopsValidation")
         or Bridge:HasCommandLineFlag("-projectXGameplayShopsVisualValidation") then
         Bridge:EnterGameplay(15)

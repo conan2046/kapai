@@ -7,11 +7,11 @@
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动范围 | `JingJie` 境界系统 Cocos → Unity 迁移 |
-| 当前门禁 | `G0 passed / G1 blocked`；Unity 定向运行6/6控件、6/6语义通过，缺当前 Cocos 原生基线 |
-| 当前仅剩玩家缺陷 | Unity 用户真人Play已通过；11–20阶正式图标05/06仍缺源文件 |
-| 下一步 | 提交并推送本轮境界迁移；后续补当前 Cocos 原生 G1，解锁正式后续门禁 |
-| 禁止事项 | 不用占位图替代05/06；不把MCP回调截图当真实输入；不擅改境界属性累计口径 |
+| 唯一活动范围 | `Answer` 每日答题 Unity接入 |
+| 当前门禁 | `G0 passed / Unity-Only定向批处理11/11通过 / 用户真人Play通过 / G1-G6中央门禁仍待新鲜Cocos基线` |
+| 当前仅剩玩家缺陷 | 无；答题中文题目、固定奖励显示、最终金币和每日次数提示已由用户确认测试通过 |
+| 下一步 | 答题功能收口并发布；如后续需要标准G1-G6，再单独补Cocos原生基线与双端视觉证据 |
+| 禁止事项 | 不修改Cocos客户端/NPC流程；不把MCP自动点击当真人验收；金币1000仅为临时配置值 |
 
 ## 2. 总进度
 
@@ -19,10 +19,10 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR |
 | Functional | `待逐控件重审` | 旧页面/协议主链百分比已作废 |
-| Strict Validated | `8/17 = 47.1%` | Login、Settings、PlayerHud、Bag、Task、World、Mail、XunBao |
+| Strict Validated | `8/18 = 44.4%` | Login、Settings、PlayerHud、Bag、Task、World、Mail、XunBao |
 
 GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加严格证据分子；BattleFengShenStory 为非分母战斗子模块。完成率不得在其他文档重复维护。
-当前 Steam 业务模块分母固定为 17。
+当前 Steam 业务模块分母固定为 18。
 
 ## 3. 模块状态
 
@@ -44,7 +44,8 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Hero | `G0 passed / G1-G6 invalidated` | 当前不启动；待有效 Cocos 状态重采 |
 | HeroEquip | `G0-G4 passed / G5 blocked` | 当前不启动；用户 Prefab 不覆盖 |
 | Shop | `G3 runtime-ready / early Play passed` | 正式 G1-G2、G4-G6 待后续独立任务 |
-| Gameplay | `scope changed / revalidation required` | 当前表驱动入口为 `function_id=1/3/9/10/21/23/29`；旧4项证据失效 |
+| Gameplay | `scope changed / revalidation required` | 当前表驱动入口为 `function_id=1/3/9/10/21/23/27/29`；旧4项/7项证据失效 |
+| Answer | `implemented / Chinese question bank installed / user Play passed` | 38道中文题已更新至SQLite/MySQL；固定品质框+金币图标+默认1000已验收，Cocos逻辑不改，manualPassed=true；中央G1-G6待补证据 |
 | MoneyTree | `runtime implemented / Play pending` | `/222 op=17` 查询与摇取已接入；待真实Play验证 |
 | HappyWheel | `runtime implemented / latest fix Play pending` | 常驻十格奖池、钥匙商城、50条记录和 `/222 op=33` 已接入；待复测重登后的钥匙数量显示 |
 | JingJie | `G0 passed / G1 blocked / Unity user Play passed` | `/306 op=1/4`、20阶配置、Prefab、预览和突破动画已接入；2026-09-13 用户测试通过，待当前Cocos原生基线 |

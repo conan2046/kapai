@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "steamProgressPolicy": {
-    "denominator": 17,
+    "denominator": 18,
     "nonDenominatorSubmodules": [
       "HeroCultivation",
       "EnhanceMaster",
@@ -1994,6 +1994,38 @@
       "controlMatrix": "docs/unityclient/matrices/JINGJIE_CONTROLS.json",
       "document": "docs/unityclient/modules/JINGJIE.md",
       "g0Draft": ".local/unity-validation/jingjie-g0-draft-latest.json"
+    },
+    {
+      "key": "Answer",
+      "displayName": "每日答题",
+      "status": "user-play-passed-g1-evidence-missing",
+      "protocols": [
+        198
+      ],
+      "entries": [
+        "Layer/Main_UI/ButtonGroup1/btn_wanfa -> Function_27/EnterBtn"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab"
+      ],
+      "configs": [
+        "server/config/json/function.json",
+        "server/config/source/answer-settings.csv",
+        "outputs/answer-question-bank/question.xlsx",
+        "server/config/source/question.csv",
+        "server/sql/sqlite/seeds/question.sql",
+        "server/sql/mysql/seeds/question.sql",
+        "server/sql/sqlite/001_initial_schema.sql"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXAnswerValidation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/ANSWER_CONTROLS.json",
+      "document": "docs/unityclient/modules/ANSWER.md",
+      "g0Draft": ".local/unity-validation/answer-g0-draft-latest.json"
     }
   ]
 }

@@ -27,6 +27,7 @@ namespace ProjectX.UI
         private readonly ScrollRect listScroll;
         private readonly Transform rowTemplate;
         private Button frameCloseButton;
+        private Text frameTitle;
 
         public GameplayPresenter(CocosUiView frameView, CocosUiView contentView,
             GameplayStore store, ResourceService resources, Action<int> enter, Action close)
@@ -83,6 +84,18 @@ namespace ProjectX.UI
 
         public void HideDetail() { }
 
+        public void SetFeatureFrame(string title, Action featureClose)
+        {
+            if (frameTitle != null) frameTitle.text = title ?? string.Empty;
+            frameCloseButton = Bind(frameCloseButton?.transform, featureClose ?? close);
+        }
+
+        public void RestoreHubFrame()
+        {
+            if (frameTitle != null) frameTitle.text = "玩法";
+            frameCloseButton = Bind(frameCloseButton?.transform, close);
+        }
+
         public void ResetScrollToTop()
         {
             if (listScroll == null) return;
@@ -119,8 +132,8 @@ namespace ProjectX.UI
             Transform popup = FindDirect(shopBackground, "Popup")
                 ?? throw new InvalidOperationException("Gameplay shop/shop_bg Popup was not found.");
             Transform titleRoot = FindDirect(popup, "Title");
-            Text title = FindDirect(titleRoot, "Title")?.GetComponent<Text>();
-            if (title != null) title.text = "玩法";
+            frameTitle = FindDirect(titleRoot, "Title")?.GetComponent<Text>();
+            if (frameTitle != null) frameTitle.text = "玩法";
             frameCloseButton = Bind(FindDirect(popup, "Btn_close"), close);
             SetVisible(FindDirect(shopBackground, "Btn_ListView"), false);
 

@@ -975,6 +975,9 @@ namespace ProjectX.Core
                 onSevenDayClaim = services.Lua.GetFunction("OnSevenDayClaim");
                 onMoneyTreeClicked = services.Lua.GetFunction("OnMoneyTreeClicked");
                 onMoneyTreeShake = services.Lua.GetFunction("OnMoneyTreeShake");
+                onAnswerClicked = services.Lua.GetFunction("OnAnswerClicked");
+                onAnswerSelected = services.Lua.GetFunction("OnAnswerSelected");
+                onAnswerNextRequested = services.Lua.GetFunction("OnAnswerNextRequested");
                 onJingJieClicked = services.Lua.GetFunction("OnJingJieClicked");
                 onJingJieUpgrade = services.Lua.GetFunction("OnJingJieUpgrade");
                 onMonopolyClicked = services.Lua.GetFunction("OnMonopolyClicked");
@@ -1173,6 +1176,9 @@ namespace ProjectX.Core
             onSevenDayClaim?.Dispose();
             onMoneyTreeClicked?.Dispose();
             onMoneyTreeShake?.Dispose();
+            onAnswerClicked?.Dispose();
+            onAnswerSelected?.Dispose();
+            onAnswerNextRequested?.Dispose();
             onMonopolyClicked?.Dispose(); onMonopolyRoll?.Dispose(); onMonopolyMoveEnd?.Dispose(); onMonopolyReset?.Dispose();
             onMonopolyQueryBuy?.Dispose(); onMonopolyBuyRoll?.Dispose(); onMonopolyFightGuard?.Dispose(); onMonopolyClose?.Dispose();
             onMonopolyPlayHand?.Dispose();
@@ -1194,6 +1200,7 @@ namespace ProjectX.Core
             xunBaoComposeAllPresenter?.Dispose();
             sevenDayPresenter?.Dispose();
             moneyTreePresenter?.Dispose();
+            answerPresenter?.Dispose();
             monopolyPresenter?.Dispose();
             happyWheelPresenter?.Dispose();
             staminaClaimPresenter?.Dispose();
@@ -2393,6 +2400,7 @@ namespace ProjectX.Core
                 case "Arena": InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena"); return;
                 case "XunBao": InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao"); return;
                 case "MoneyTree": InvokeLuaOrFail(onMoneyTreeClicked, "Gameplay.MoneyTree", (double)functionId); return;
+                case "Answer": InvokeLuaOrFail(onAnswerClicked, "Gameplay.Answer", (double)functionId); return;
                 case "Monopoly": InvokeLuaOrFail(onMonopolyClicked, "Gameplay.Monopoly", (double)functionId); return;
                 case "HappyWheel": InvokeLuaOrFail(onHappyWheelClicked, "Gameplay.HappyWheel", (double)functionId); return;
                 case "GameplayShop": HandleCommerceRoute(functionId); return;
@@ -2454,12 +2462,12 @@ namespace ProjectX.Core
                 ? 705213u
                 : services.Options.GameplayIsolationUserId;
             int pendingAtEntry = 0;
-            int[] functionIds = { 1, 3, 9, 10, 21, 23, 29 };
+            int[] functionIds = { 1, 3, 9, 10, 21, 23, 27, 29 };
             string[] controlIds =
             {
                 "GAMEPLAY-04-ENTER-1", "GAMEPLAY-05-ENTER-3",
                 "GAMEPLAY-09-ENTER-9", "GAMEPLAY-10-ENTER-10",
-                "GAMEPLAY-16-ENTER-21", "GAMEPLAY-17-ENTER-23", "GAMEPLAY-18-ENTER-29"
+                "GAMEPLAY-16-ENTER-21", "GAMEPLAY-17-ENTER-23", "GAMEPLAY-19-ENTER-27", "GAMEPLAY-18-ENTER-29"
             };
             try
             {
@@ -2494,8 +2502,8 @@ namespace ProjectX.Core
                     yield break;
                 }
                 MarkValidationControl("GAMEPLAY-01-HUD-ENTRY");
-                RecordValidationSemantic("gameplay-entry-list-current-ready-7", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
-                    "Current table-driven order=1,3,9,10,21,23,29; id6 and remaining excluded modules stay hidden");
+                RecordValidationSemantic("gameplay-entry-list-current-ready-8", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
+                    "Current table-driven order=1,3,9,10,21,23,27,29; id6 and remaining excluded modules stay hidden");
                 bool arenaTemporarilyHidden = services.GameplayCatalog.Find(6) == null;
                 MarkValidationControl("GAMEPLAY-06-ENTER-6");
                 RecordValidationSemantic("gameplay-arena-hidden-until-ready", arenaTemporarilyHidden,
@@ -2559,8 +2567,8 @@ namespace ProjectX.Core
                     MarkValidationControl(controlIds[index]);
                     if (index == 0) yield return CaptureGameplayFrame("bootstrap-gameplay-unavailable.png");
                 }
-                RecordValidationSemantic("gameplay-enter-boundaries-current-ready-7", true,
-                    "7 configured EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
+                RecordValidationSemantic("gameplay-enter-boundaries-current-ready-8", true,
+                    "8 configured EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
 
                 // All local initial accounts are intentionally level 99 for feature testing.
                 // Preserve the source lock-state visual contract with an isolated in-memory
@@ -2573,7 +2581,7 @@ namespace ProjectX.Core
                 { Fail($"Gameplay projected locked list mismatch: count={services.Gameplay.Count}, open={services.Gameplay.OpenCount}, enter={GameplayEnterButtonCount}."); yield break; }
                 yield return CaptureGameplayFrame("bootstrap-gameplay-locked.png");
                 RecordValidationSemantic("gameplay-lock-level", true,
-                    "level-1 source projection rendered N-level labels for all seven configured entries and exposed no EnterBtn; production test accounts remain level 99");
+                    "level-1 source projection rendered N-level labels for all eight configured entries and exposed no EnterBtn; production test accounts remain level 99");
                 services.Gameplay.Load(services.GameplayCatalog.Items, services.Player.Level);
                 yield return new WaitForEndOfFrame();
                 yield return CaptureGameplayFrame("bootstrap-gameplay-restart.png");

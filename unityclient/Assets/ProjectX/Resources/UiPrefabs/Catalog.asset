@@ -13,26 +13,6 @@ MonoBehaviour:
   m_Name: Catalog
   m_EditorClassIdentifier:
   entries:
-  - key: GameSceneLayer
-    source: cocosstudio/csd/kunlunxunbao/GameSceneLayer.csd
-    parentKey:
-    defaultActive: 0
-  - key: GameLayer
-    source: cocosstudio/csd/kunlunxunbao/GameLayer.csd
-    parentKey:
-    defaultActive: 0
-  - key: caiquanLayer
-    source: cocosstudio/csd/caiquanLayer.csd
-    parentKey:
-    defaultActive: 0
-  - key: GoldTreeLayer
-    source: cocosstudio/csd/huodong/GoldTreeLayer.csd
-    parentKey:
-    defaultActive: 0
-  - key: ZhuanpanLayer
-    source: cocosstudio/csd/huodong/ZhuanpanLayer.csd
-    parentKey:
-    defaultActive: 0
   - key: ActivityLayer
     source: cocosstudio/csd/common/ActivityLayer.csd
     parentKey: shop_bg
@@ -45,6 +25,10 @@ MonoBehaviour:
     source: cocosstudio/csd/huodong/ActivityRankingLayer.csd
     parentKey:
     defaultActive: 0
+  - key: AnswerLayer
+    source: cocosstudio/csd/dati/AnswerLayer.csd
+    parentKey:
+    defaultActive: 0
   - key: BattleFightLayer
     source: cocosstudio/csd/common/FightLayer.csd
     parentKey:
@@ -55,6 +39,10 @@ MonoBehaviour:
     defaultActive: 0
   - key: beibao
     source: cocosstudio/csd/zhujue/beibao.csd
+    parentKey:
+    defaultActive: 0
+  - key: caiquanLayer
+    source: cocosstudio/csd/caiquanLayer.csd
     parentKey:
     defaultActive: 0
   - key: ChatLayer
@@ -113,6 +101,14 @@ MonoBehaviour:
     source: cocosstudio/csd/common/FriendLayer.csd
     parentKey:
     defaultActive: 0
+  - key: GameLayer
+    source: cocosstudio/csd/kunlunxunbao/GameLayer.csd
+    parentKey:
+    defaultActive: 0
+  - key: GameSceneLayer
+    source: cocosstudio/csd/kunlunxunbao/GameSceneLayer.csd
+    parentKey:
+    defaultActive: 0
   - key: GangsApplyLayer
     source: cocosstudio/csd/bangpai/GangsApplyLayer.csd
     parentKey:
@@ -127,6 +123,10 @@ MonoBehaviour:
     defaultActive: 0
   - key: GangsMemberLayer
     source: cocosstudio/csd/bangpai/GangsMemberLayer.csd
+    parentKey:
+    defaultActive: 0
+  - key: GoldTreeLayer
+    source: cocosstudio/csd/huodong/GoldTreeLayer.csd
     parentKey:
     defaultActive: 0
   - key: guaiwubaoxiangLayer
@@ -523,6 +523,10 @@ MonoBehaviour:
     defaultActive: 0
   - key: zhandoutongji
     source: cocosstudio/csd/common/zhandoutongji.csd
+    parentKey:
+    defaultActive: 0
+  - key: ZhuanpanLayer
+    source: cocosstudio/csd/huodong/ZhuanpanLayer.csd
     parentKey:
     defaultActive: 0
   - key: zhuxianchengjiu

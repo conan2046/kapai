@@ -48,6 +48,79 @@ extern int mdCheckPort;
 extern std::map<uint16,SkillInfoNode> skillInfoListMap;
 extern vector<uint32> topBangPai;
 
+struct SUnityAnswerSettings
+{
+	SUnityAnswerSettings()
+		:isUnitySqlite(false), valid(false), dailyAttemptLimit(0),
+		 fallbackRewardType(0), fallbackRewardAmount(0)
+	{
+	}
+
+	bool isUnitySqlite;
+	bool valid;
+	uint8 dailyAttemptLimit;
+	uint16 fallbackRewardType;
+	uint32 fallbackRewardAmount;
+};
+
+static SUnityAnswerSettings LoadUnityAnswerSettings()
+{
+	SUnityAnswerSettings settings;
+	CGetDbConnect getDb;
+	CDatabaseSql *pDb = getDb.GetDbConnect();
+	if(pDb == NULL || !pDb->IsSqlite())
+		return settings;
+
+	settings.isUnitySqlite = true;
+	if(!pDb->Query("select daily_attempt_limit,fallback_reward_type,fallback_reward_amount from answer_settings where id=1"))
+		return settings;
+	char **row = pDb->GetRow();
+	if(row == NULL || row[0] == NULL || row[1] == NULL || row[2] == NULL)
+		return settings;
+
+	const int dailyAttemptLimit = atoi(row[0]);
+	const int fallbackRewardType = atoi(row[1]);
+	const int fallbackRewardAmount = atoi(row[2]);
+	if(dailyAttemptLimit < 1 || dailyAttemptLimit > 255 || fallbackRewardType != 60000 || fallbackRewardAmount < 1)
+		return settings;
+
+	settings.valid = true;
+	settings.dailyAttemptLimit = (uint8)dailyAttemptLimit;
+	settings.fallbackRewardType = (uint16)fallbackRewardType;
+	settings.fallbackRewardAmount = (uint32)fallbackRewardAmount;
+	return settings;
+}
+
+static bool GetUnityAnswerUsedCount(uint32 roleId, int& usedCount)
+{
+	usedCount = 0;
+	CGetDbConnect getDb;
+	CDatabaseSql *pDb = getDb.GetDbConnect();
+	if(pDb == NULL || !pDb->IsSqlite())
+		return false;
+	std::ostringstream sql;
+	sql << "select used_count from answer_daily_progress where role_id=" << roleId
+		<< " and day_key=date('now','localtime')";
+	if(!pDb->Query(sql.str().c_str()))
+		return false;
+	char **row = pDb->GetRow();
+	if(row != NULL && row[0] != NULL)
+		usedCount = atoi(row[0]);
+	return true;
+}
+
+static bool AddUnityAnswerUsedCount(uint32 roleId)
+{
+	CGetDbConnect getDb;
+	CDatabaseSql *pDb = getDb.GetDbConnect();
+	if(pDb == NULL || !pDb->IsSqlite())
+		return false;
+	std::ostringstream sql;
+	sql << "insert into answer_daily_progress(role_id,day_key,used_count) values("
+		<< roleId << ",date('now','localtime'),1) on conflict(role_id,day_key) do update set used_count=used_count+1";
+	return pDb->Query(sql.str().c_str());
+}
+
 static bool RepairLocalRoleNullFields(CDatabaseSql *pDb, uint32 roleId)
 {
 	if(pDb == NULL || roleId == 0)
@@ -5598,7 +5671,21 @@ void CPackageDeal::AnswerQuestionOption(CNetMessage *pMsg,int sock)
 	uint8 op = 0;
 	msg>>op;
 	static uint8 MaxTiMuCnt = 10;
-	static uint8 MaxDaTiTimes = 1;
+	uint8 MaxDaTiTimes = 1;
+	const SUnityAnswerSettings unitySettings = LoadUnityAnswerSettings();
+	if(unitySettings.isUnitySqlite)
+	{
+		if(!unitySettings.valid && op == 1)
+		{
+			msg.ReWrite();
+			msg.SetType(MSG_ANSWER_QUESION);
+			msg<<op<<PRO_ERROR<<"答题配置缺失";
+			m_socketServer.SendMsg(pUser->GetSock(),msg);
+			return;
+		}
+		if(unitySettings.valid)
+			MaxDaTiTimes = unitySettings.dailyAttemptLimit;
+	}
 	switch (op)
 	{
 	case 1: // 获取问题
@@ -5606,9 +5693,18 @@ void CPackageDeal::AnswerQuestionOption(CNetMessage *pMsg,int sock)
 			msg.ReWrite();
 			msg.SetType(MSG_ANSWER_QUESION);
 			msg<<op;
-			if (pUser->GetExtData8(ED8_6) >= MaxDaTiTimes) // 当天答题场次已满
+			int usedAnswerCount = pUser->GetExtData8(ED8_6);
+			if(unitySettings.isUnitySqlite && !GetUnityAnswerUsedCount(pUser->GetRoleId(), usedAnswerCount))
 			{
-				msg<<PRO_ERROR<<MakeStringColor(LANGUAGE_TRANSFORM_1057,TIPS_FAILURE_COLOR);
+				msg<<PRO_ERROR<<"答题次数读取失败";
+				m_socketServer.SendMsg(pUser->GetSock(),msg);
+				return;
+			}
+			if (usedAnswerCount >= MaxDaTiTimes) // 当天答题场次已满
+			{
+				msg<<PRO_ERROR<<(unitySettings.isUnitySqlite
+					? "今日答题次数已用完"
+					: MakeStringColor(LANGUAGE_TRANSFORM_1057,TIPS_FAILURE_COLOR));
 				m_socketServer.SendMsg(pUser->GetSock(),msg);
 				return;
 			}
@@ -5639,7 +5735,13 @@ void CPackageDeal::AnswerQuestionOption(CNetMessage *pMsg,int sock)
 				pUser->SetExtData32(ED32_6,GetSysTime()); // 记录当前答题时间
 				if (pUser->GetExtData8(ED8_35) >= MaxTiMuCnt)
 				{
-					pUser->AddExtData8(ED8_6, 1); // 增加答题次数
+					if(unitySettings.isUnitySqlite)
+					{
+						if(!AddUnityAnswerUsedCount(pUser->GetRoleId()))
+							std::cout << "Unity Answer daily progress update failed role=" << pUser->GetRoleId() << std::endl;
+					}
+					else
+						pUser->AddExtData8(ED8_6, 1); // Cocos/MySQL保留原每日计数
 				}
 				pUser->SetBitSet(433);
 				SingletonCMissionManager::instance().VerifyNewBranchMissionFinish(pUser, EMISS_DC_62); // TODO
@@ -5685,6 +5787,17 @@ void CPackageDeal::AnswerQuestionOption(CNetMessage *pMsg,int sock)
 			{
 				MultiAward rad;
 				sAwardManager.GetRankAward(CRankMgr::ERT_DaTiZhengQueShu, pUser->GetExtData8(ED8_683), rad);
+				if (rad.empty() && unitySettings.isUnitySqlite && unitySettings.valid)
+				{
+					SAwardData fallback;
+					fallback.type = unitySettings.fallbackRewardType;
+					fallback.typeId = 0;
+					fallback.num = unitySettings.fallbackRewardAmount;
+					rad.push_back(fallback);
+					std::cout << "Unity Answer reward config missing; fallback gold role="
+						<< pUser->GetRoleId() << " correct=" << (int)pUser->GetExtData8(ED8_683)
+						<< " amount=" << unitySettings.fallbackRewardAmount << std::endl;
+				}
 				SendAndMakeAwardMsg(pUser, rad, msg, false, MUT_DaTi);
 			}
 			m_socketServer.SendMsg(pUser->GetSock(), msg);

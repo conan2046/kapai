@@ -21,6 +21,7 @@
 | 邮件 | `MAIL.md` |
 | 神将招募/抽卡 | `DRAW.md` |
 | 玩法大厅 | `GAMEPLAY.md` |
+| 每日答题 | `ANSWER.md` |
 | 世界/副本 | `WORLD.md` |
 | 封神列传 | `FENGSHEN_STORY.md` |
 | 封神列传战斗 | `BATTLEFENGSHENSTORY.md` |

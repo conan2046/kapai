@@ -22,10 +22,10 @@ $output = foreach ($route in $routes) {
     [ordered]@{
         id = $id
         name = [string]$row.name
-        page = [int]$row.page
+        page = if ($null -ne $route.pageOverride) { [int]$route.pageOverride } else { [int]$row.page }
         openLevel = [int]$levelCondition[1]
-        icon = [string]$row.icon
-        description = [string]$row.des
+        icon = if ($null -ne $route.iconOverride) { [string]$route.iconOverride } else { [string]$row.icon }
+        description = if ($null -ne $route.descriptionOverride) { [string]$route.descriptionOverride } else { [string]$row.des }
         route = [string]$route.target
         steamEnabled = ([string]$route.kind -ne 'SteamExcluded')
     }

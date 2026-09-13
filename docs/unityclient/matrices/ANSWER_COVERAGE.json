@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "module": "Answer",
+  "scopeDecision": {
+    "decision": "仅Unity新增玩法大厅function_id=27直达答题；Cocos NPC入口和MySQL行为不改。覆盖/198十题流程、数据表每日次数与缺失奖励金币兜底。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-09-13"
+  },
+  "scenarios": [
+    {"id":"answer-entry-question","kind":"success","given":"固定账号达到function_id=27开放等级且今日次数未用完","when":"从Unity玩法大厅点击答题入口","then":"直接请求/198 op=1并在成功回包后显示原AnswerLayer"},
+    {"id":"answer-ten-question-round","kind":"success","given":"题库可用且当前轮已开始","when":"连续提交四选一或超时答案直至第10题","then":"/198 op=1/2推进、显示正误反馈并按原流程结算关闭"},
+    {"id":"answer-daily-limit","kind":"failure-boundary","given":"当日used_count达到answer_settings.daily_attempt_limit","when":"再次点击Function_27入口","then":"只提示今日答题次数已用完且不显示AnswerLayer"},
+    {"id":"answer-reward-fallback","kind":"failure-boundary","given":"reward_rank type=41缺失或未返回奖励","when":"第10题结算","then":"仅SQLite路径按answer-settings.csv发金币，MySQL/Cocos保持原逻辑"}
+  ],
+  "sources": [
+    {
+      "id": "answer-function-entry",
+      "sourceFiles": ["server/config/json/function.json","unityclient/Assets/ProjectX/Resources/Configs/function-routes.json","unityclient/Assets/ProjectX/Resources/Configs/gameplay.json"],
+      "recordTotal": 1,
+      "businessIds": ["27"],
+      "branchType": "function_id=27开放等级与Unity玩法大厅直达路由",
+      "mappings": [
+        {"businessIds":["27"],"successScenarioIds":["answer-entry-question"],"failureBoundaryScenarioIds":["answer-daily-limit"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "answer-protocol-198",
+      "sourceFiles": ["server/src/protocol.h","server/src/pack_deal.cpp","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua","unityclient/Assets/ProjectX/Resources/Lua/Gameplay/AnswerController.lua.txt"],
+      "recordTotal": 2,
+      "businessIds": ["op1","op2"],
+      "branchType": "/198取题、答题、反馈、十题结算与入口失败回包",
+      "mappings": [
+        {"businessIds":["op1"],"successScenarioIds":["answer-entry-question","answer-ten-question-round"],"failureBoundaryScenarioIds":["answer-daily-limit"]},
+        {"businessIds":["op2"],"successScenarioIds":["answer-ten-question-round"],"failureBoundaryScenarioIds":["answer-reward-fallback"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "answer-question-bank",
+      "sourceFiles": ["outputs/answer-question-bank/question.xlsx","server/config/source/question.csv","server/sql/sqlite/seeds/question.sql","server/sql/mysql/seeds/question.sql"],
+      "recordTotal": 38,
+      "businessIds": ["1-38"],
+      "branchType": "中文文物题策划源、UTF-8运行源及SQLite/MySQL种子",
+      "mappings": [
+        {"businessIds":["1-38"],"successScenarioIds":["answer-entry-question","answer-ten-question-round"],"failureBoundaryScenarioIds":[]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "answer-settings-and-reward",
+      "sourceFiles": ["server/config/source/answer-settings.csv","server/config/json/reward_rank.json","server/sql/sqlite/001_initial_schema.sql","server/src/pack_deal.cpp"],
+      "recordTotal": 2,
+      "businessIds": ["answer_settings:1","reward_rank:41"],
+      "branchType": "Unity每日次数权威配置、按日进度和缺失rank奖励金币兜底",
+      "mappings": [
+        {"businessIds":["answer_settings:1"],"successScenarioIds":["answer-entry-question"],"failureBoundaryScenarioIds":["answer-daily-limit"]},
+        {"businessIds":["reward_rank:41"],"successScenarioIds":["answer-ten-question-round"],"failureBoundaryScenarioIds":["answer-reward-fallback"]}
+      ],
+      "excluded": []
+    }
+  ]
+}

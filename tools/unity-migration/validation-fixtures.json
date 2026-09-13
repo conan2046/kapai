@@ -144,6 +144,13 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-JingJieSqliteFixture.ps1"
+    },
+    {
+      "key": "reversible-answer-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-AnswerSqliteFixture.ps1"
     }
   ]
 }

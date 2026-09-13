@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "module": "Answer",
+  "coverageList": "docs/unityclient/matrices/ANSWER_COVERAGE.json",
+  "workflowPolicyVersion": 1,
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000003,
+    "width": 1334,
+    "height": 750,
+    "platformBoundary": "Unity-only; Cocos client and NPC flow remain unchanged",
+    "entry": "Function_27/EnterBtn",
+    "protocol": 198,
+    "questionCount": 10,
+    "fixture": "tools/unity-migration/Invoke-AnswerSqliteFixture.ps1"
+  },
+  "manualAcceptance": {
+    "passed": true,
+    "confirmedByUser": true,
+    "confirmedDate": "2026-09-13",
+    "statement": "测试通过"
+  },
+  "acceptanceExamples": [
+    {
+      "id": "answer-unity-entry-and-function-gate",
+      "given": "function_id=27在正式function表中配置10级开放，Unity玩法大厅使用同一openLevel",
+      "when": "低于10级查看入口或10级以上点击Function_27/EnterBtn",
+      "then": "低等级沿用大厅锁定态；开放后直接请求/198 op=1，不寻路、不进入场景、不访问NPC198"
+    },
+    {
+      "id": "answer-complete-round",
+      "given": "固定账号今日答题次数为0且题库可用",
+      "when": "连续完成10题，包括四选一、20秒倒计时和正误反馈",
+      "then": "每题由/198 op=1/2推进；第10题统一结算并返回玩法大厅，原答题UI和过程不改变"
+    },
+    {
+      "id": "answer-daily-limit",
+      "given": "answer_settings.daily_attempt_limit=1且玩家今日已完成1轮",
+      "when": "再次点击玩法大厅答题入口",
+      "then": "服务端返回今日答题次数已用完；客户端仅提示且不打开AnswerLayer"
+    },
+    {
+      "id": "answer-missing-reward-fallback",
+      "given": "答题rank奖励配置未返回任何奖励",
+      "when": "提交第10题并结算",
+      "then": "仅Unity SQLite路径按answer-settings.csv发放type=60000金币；Cocos/MySQL奖励逻辑保持原样"
+    }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "knownGaps": [
+      {
+        "id": "ANSWER-GAP-COCOS-NPC-DIVERGENCE",
+        "handling": "产品明确要求Unity不使用场景NPC；Cocos旧NPC198与/191 op=1002链路只作源证据，不迁入Unity",
+        "evidence": "docs/COCOS_ANSWER_SYSTEM.md"
+      },
+      {
+        "id": "ANSWER-GAP-REWARD-AMOUNT-TEMPORARY",
+        "handling": "缺失奖励暂定金币1000，保留在正式answer-settings.csv中供后续策划改表",
+        "evidence": "server/config/source/answer-settings.csv"
+      }
+    ]
+  },
+  "controls": [
+    { "id": "ANSWER-01-GAMEPLAY-ENTRY", "page": "Gameplay", "path": "Function_27/EnterBtn", "visibleCondition": "level>=function[27].open[0]", "cocosCallback": "Unity-only entry; Cocos remains NPC198 -> /191 op=1002", "protocol": "/198 op=1 after Unity click", "unityBinding": "EnterGameplay(27) -> AnswerController.onClick -> /198 op=1", "successEvidence": "成功回包后才显示AnswerLayer", "failureEvidence": "失败只提示且不打开UI", "reconnectEvidence": "重连后重新点击并由服务端次数裁决", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-02-QUESTION-UI", "page": "Answer", "path": "Layer/Panel/AnswerBg", "visibleCondition": "/198 op=1 success", "cocosCallback": "AnswerUI:UpdateUi", "protocol": "/198 op=1 response", "unityBinding": "AnswerPresenter.ShowQuestion", "successEvidence": "题号、题干、剩余题数和四个答案均来自回包", "failureEvidence": "配置或题库失败保持大厅", "reconnectEvidence": "断线后不复用旧题或旧pending", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-03-ANSWER-A", "page": "Answer", "path": "Layer/Panel/AnswerBg/SubjectBg/Button_1", "visibleCondition": "答案A存在", "cocosCallback": "AnswerUI:ButtonCallback(1)", "protocol": "/198 op=2 answer=1", "unityBinding": "SubmitAnswer(1)", "successEvidence": "/198 op=2 answer=1", "failureEvidence": "pending期间不可重复提交", "reconnectEvidence": "重连后按钮只绑定当前题", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-04-ANSWER-B", "page": "Answer", "path": "Layer/Panel/AnswerBg/SubjectBg/Button_2", "visibleCondition": "答案B存在", "cocosCallback": "AnswerUI:ButtonCallback(2)", "protocol": "/198 op=2 answer=2", "unityBinding": "SubmitAnswer(2)", "successEvidence": "/198 op=2 answer=2", "failureEvidence": "pending期间不可重复提交", "reconnectEvidence": "重连后按钮只绑定当前题", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-05-ANSWER-C", "page": "Answer", "path": "Layer/Panel/AnswerBg/SubjectBg/Button_3", "visibleCondition": "答案C存在", "cocosCallback": "AnswerUI:ButtonCallback(3)", "protocol": "/198 op=2 answer=3", "unityBinding": "SubmitAnswer(3)", "successEvidence": "/198 op=2 answer=3", "failureEvidence": "pending期间不可重复提交", "reconnectEvidence": "重连后按钮只绑定当前题", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-06-ANSWER-D", "page": "Answer", "path": "Layer/Panel/AnswerBg/SubjectBg/Button_4", "visibleCondition": "答案D存在", "cocosCallback": "AnswerUI:ButtonCallback(4)", "protocol": "/198 op=2 answer=4", "unityBinding": "SubmitAnswer(4)", "successEvidence": "/198 op=2 answer=4", "failureEvidence": "pending期间不可重复提交", "reconnectEvidence": "重连后按钮只绑定当前题", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-07-COUNTDOWN", "page": "Answer", "path": "Layer/Panel/AnswerBg/RewardBg/TimeBg/Text", "visibleCondition": "题目显示", "cocosCallback": "AnswerUI:Update倒计时并在0秒提交5", "protocol": "/198 op=2 answer=5 on timeout", "unityBinding": "AnswerCountdown 20秒；到0提交answer=5", "successEvidence": "每题从20秒重置并递减", "failureEvidence": "选择答案或关闭后停止计时", "reconnectEvidence": "新题重新从20秒开始且旧计时器销毁", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-08-RIGHT-WRONG-FEEDBACK", "page": "Answer", "path": "RightText|WrongText|Button_N/RightImage", "visibleCondition": "/198 op=2 result", "cocosCallback": "AnswerUI:AnswerResult", "protocol": "/198 op=2 response", "unityBinding": "AnswerPresenter.ShowResult", "successEvidence": "显示正误文案及正确答案印章", "failureEvidence": "反馈期间答案按钮禁用", "reconnectEvidence": "旧题结果不进入新会话", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-09-REWARD-PROGRESS", "page": "Answer", "path": "RewardBg/RightBg|Bg1|Bg2|Bg3|Reward|Reward/Icon|Reward/Value", "visibleCondition": "题目或结果显示", "cocosCallback": "AnswerUI更新正确数、剩余题和奖励文本", "protocol": "/198 op=1/2 authoritative values", "unityBinding": "正确数、剩余题、本题金币、累计金币；Prefab固定品质框和金币图标", "successEvidence": "Reward品质框、金币Icon和默认1000数量均来自Prefab固定节点；过程数值采用/198权威值", "failureEvidence": "不得动态创建奖励节点或显示空白奖励格", "reconnectEvidence": "切号/重连后累计显示归零并重建", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-10-FINAL-REWARD-CLOSE", "page": "Answer", "path": "question 10 result -> Gameplay", "visibleCondition": "remaining=0", "cocosCallback": "AnswerUI最后一题结果后结束当前轮", "protocol": "/198 op=2 appended MultiAward", "unityBinding": "1秒反馈后显示总金币并关闭AnswerLayer", "successEvidence": "最终MultiAward已发放且大厅恢复", "failureEvidence": "无奖励时只走配置化金币降级", "reconnectEvidence": "奖励到账后重登货币保持服务端值", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true },
+    { "id": "ANSWER-11-DAILY-LIMIT", "page": "Gameplay", "path": "Function_27/EnterBtn", "visibleCondition": "used_count>=daily_attempt_limit", "cocosCallback": "Unity-only table limit; Cocos continues ExtData8 limit", "protocol": "/198 op=1 failure", "unityBinding": "/198 op=1 failure -> RejectAnswerEntry", "successEvidence": "精确提示今日答题次数已用完且AnswerLayer不显示", "failureEvidence": "不得进入答题UI或发送答案", "reconnectEvidence": "重登后仍按answer_daily_progress当日记录拒绝", "status": "complete", "realEntryClick": true, "automationPassed": true, "manualPassed": true }
+  ]
+}

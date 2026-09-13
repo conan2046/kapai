@@ -3597,10 +3597,22 @@
         "-projectXJingJieValidation"
       ],
       "artifacts": [
-        {"path": "build/ui-migration/jingjie-main.png", "lifecycle": "runtime"},
-        {"path": "build/ui-migration/jingjie-preview.png", "lifecycle": "runtime"},
-        {"path": "build/ui-migration/jingjie-upgrade-success.png", "lifecycle": "runtime"},
-        {"path": "build/ui-migration/jingjie-reconnect.png", "lifecycle": "runtime"}
+        {
+          "path": "build/ui-migration/jingjie-main.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/jingjie-preview.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/jingjie-upgrade-success.png",
+          "lifecycle": "runtime"
+        },
+        {
+          "path": "build/ui-migration/jingjie-reconnect.png",
+          "lifecycle": "runtime"
+        }
       ],
       "captureStates": [
         "jingjie-main",
@@ -3643,6 +3655,95 @@
             "POWER_QUANTITY = 100000",
             "AssertMutated",
             "JingJie authoritative breakthrough assertion failed"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "answer-default",
+      "module": "Answer",
+      "fixture": "reversible-answer-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXAnswerValidation"
+      ],
+      "artifacts": [
+        "build/ui-migration/bootstrap-answer-question.png",
+        "build/ui-migration/bootstrap-answer-result.png",
+        "build/ui-migration/bootstrap-answer-daily-limit.png"
+      ],
+      "captureStates": [
+        "question",
+        "result",
+        "daily-limit"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "answer-unity-only-entry",
+        "answer-authoritative-question",
+        "answer-ten-question-loop",
+        "answer-daily-table-limit",
+        "answer-reward-fallback"
+      ],
+      "sourceContracts": [
+        {
+          "path": "server/src/pack_deal.cpp",
+          "contains": [
+            "GetUnityAnswerUsedCount",
+            "今日答题次数已用完",
+            "fallbackRewardType"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/AnswerController.lua.txt",
+          "contains": [
+            "Protocol.ANSWER",
+            "Bridge:ShowAnswerQuestion",
+            "Bridge:CompleteAnswerChoice"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab",
+          "contains": [
+            "cocosPath: Layer/Panel/AnswerBg/RewardBg/Reward",
+            "cocosPath: Layer/Panel/AnswerBg/RewardBg/Reward/Icon",
+            "guid: 7167f524563491a4f82fa89bf68e91ac",
+            "m_Text: 1000"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-AnswerSqliteFixture.py",
+          "contains": [
+            "AssertMutated",
+            "answer_daily_progress",
+            "ANSWER_QUESTION_COUNT = 35"
+          ]
+        },
+        {
+          "path": "server/config/source/question.csv",
+          "contains": [
+            "汝窑天蓝釉刻花鹅颈瓶属于哪个年代？",
+            "豕形铜尊背部盖子是什么动物形状？"
+          ]
+        },
+        {
+          "path": "tools/local/Export-QuestionBank.ps1",
+          "contains": [
+            "question.csv must contain at least 21 data rows",
+            "Question bank valid"
+          ]
+        },
+        {
+          "path": "tools/local/Import-QuestionWorkbook.py",
+          "contains": [
+            "Question workbook must contain 38 data rows",
+            "question.csv is stale"
           ]
         }
       ],

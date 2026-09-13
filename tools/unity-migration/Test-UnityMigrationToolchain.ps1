@@ -1338,7 +1338,7 @@ Assert-ToolchainTest (
     [int]$gameplayMatrix.hardGateVersion -eq 3 -and
     @($gameplayMatrix.controls | Where-Object {
         (Get-UnityMigrationControlVerificationKind -Matrix $gameplayMatrix -Control $_) -eq 'direct-control'
-    }).Count -eq 11 -and
+    }).Count -eq 12 -and
     $gameplayScenarioControlCount -eq 5 -and
     $commonSource.Contains('manualAcceptanceCurrent') -and
     $commonSource.Contains('must keep realEntryClick=false') -and

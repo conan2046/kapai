@@ -245,6 +245,7 @@ namespace ProjectX.Editor
             bool drawValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0;
             bool gameplayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayValidation") >= 0;
+            bool answerValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXAnswerValidation") >= 0;
             bool youLiValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXYouLiValidation") >= 0;
             bool fengShenStoryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFengShenStoryValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBattleFengShenStoryValidation") >= 0;
@@ -424,6 +425,14 @@ namespace ProjectX.Editor
                 }
                 if (taskG4Validation)
                 {
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (answerValidation)
+                {
+                    // Answer owns three stabilized screenshots and reaches COMPLETE
+                    // only after the second entry is rejected by the daily limit.
                     WriteResult(true, status);
                     Finish(true);
                     return;

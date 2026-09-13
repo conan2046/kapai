@@ -1,0 +1,106 @@
+local Protocol = require("Protocol")
+
+local M = { pending = false, selected = 0, remaining = 0 }
+
+local function requestQuestion()
+    if M.pending then return false end
+    M.pending = true
+    local message = Protocol.newMessage(Protocol.ANSWER)
+    message:WriteByte(1)
+    Bridge:Send(message)
+    return true
+end
+
+function M.onClick(functionId)
+    M.selected = 0
+    M.remaining = 0
+    if requestQuestion() then
+        Bridge:SetStatus("Answer/198 entry requested from Gameplay id=" .. tostring(functionId) .. ".")
+    end
+end
+
+function M.select(index)
+    index = math.floor(tonumber(index) or 0)
+    if M.pending or index < 1 or index > 5 then return false end
+    M.pending = true
+    M.selected = index
+    local message = Protocol.newMessage(Protocol.ANSWER)
+    message:WriteByte(2)
+    message:WriteByte(index)
+    Bridge:Send(message)
+    return true
+end
+
+function M.nextQuestion()
+    requestQuestion()
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.ANSWER then return false end
+    local operation = message:ReadByte()
+    if operation == 1 then
+        M.pending = false
+        local success = message:ReadByte()
+        if success == 0 then
+            local tip = message.Remaining > 0 and message:ReadString() or "答题数据同步失败"
+            Bridge:RejectAnswerEntry(tip)
+            return true
+        end
+        local questionIndex = message:ReadByte()
+        M.remaining = message:ReadByte()
+        local question = message:ReadString()
+        local rawAnswers = message:ReadString()
+        local answers = {}
+        for value in string.gmatch(rawAnswers .. "|", "(.-)|") do answers[#answers + 1] = value end
+        while #answers < 4 do answers[#answers + 1] = "" end
+        if message.Remaining ~= 0 then
+            Bridge:Fail("Answer/198 question has unread bytes=" .. tostring(message.Remaining) .. ".")
+            return true
+        end
+        Bridge:ShowAnswerQuestion(questionIndex, M.remaining, question,
+            answers[1], answers[2], answers[3], answers[4])
+        return true
+    end
+    if operation == 2 then
+        M.pending = false
+        local success = message:ReadByte()
+        local correctIndex = M.selected
+        local currentReward = 0
+        if success == 0 then
+            correctIndex = message:ReadByte()
+            currentReward = message:ReadUInt()
+            if message.Remaining > 0 then message:ReadString() end
+        else
+            currentReward = message:ReadUInt()
+        end
+
+        local finalGold = 0
+        if M.remaining == 0 and message.Remaining > 0 then
+            local rewardCount = message:ReadByte()
+            for _ = 1, rewardCount do
+                local rewardType = message:ReadWord()
+                message:ReadUInt()
+                local rewardAmount = message:ReadUInt()
+                if rewardType == 60000 then finalGold = finalGold + rewardAmount end
+            end
+        end
+        if message.Remaining ~= 0 then
+            Bridge:Fail("Answer/198 result has unread bytes=" .. tostring(message.Remaining) .. ".")
+            return true
+        end
+        Bridge:CompleteAnswerChoice(success ~= 0, correctIndex, currentReward, finalGold)
+        return true
+    end
+    M.pending = false
+    Bridge:Fail("Answer/198 returned unsupported operation=" .. tostring(operation) .. ".")
+    return true
+end
+
+function M.reset()
+    M.pending = false
+    M.selected = 0
+    M.remaining = 0
+    Bridge:ResetAnswerState()
+end
+
+return M

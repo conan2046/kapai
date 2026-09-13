@@ -29,6 +29,7 @@ local BloodFightController = require("Gameplay.BloodFightController")
 local XunBaoController = require("Gameplay.XunBaoController")
 local SevenDayController = require("Gameplay.SevenDayController")
 local MoneyTreeController = require("Gameplay.MoneyTreeController")
+local AnswerController = require("Gameplay.AnswerController")
 local JingJieController = require("JingJie.JingJieController")
 local MonopolyController = require("Gameplay.MonopolyController")
 local HappyWheelController = require("Gameplay.HappyWheelController")
@@ -54,6 +55,7 @@ function OnDisconnected(reason)
     GameplayShopController.onDisconnected()
     SevenDayController.onDisconnected()
     MoneyTreeController.reset()
+    AnswerController.reset()
     JingJieController.reset()
     MonopolyController.reset()
     HappyWheelController.reset()
@@ -200,6 +202,9 @@ function OnSevenDayClicked() SevenDayController.onClick() end
 function OnSevenDayClaim(id) SevenDayController.claim(id) end
 function OnMoneyTreeClicked(functionId) MoneyTreeController.onClick(functionId) end
 function OnMoneyTreeShake(treeType) MoneyTreeController.shake(treeType) end
+function OnAnswerClicked(functionId) AnswerController.onClick(functionId) end
+function OnAnswerSelected(index) AnswerController.select(index) end
+function OnAnswerNextRequested() AnswerController.nextQuestion() end
 function OnJingJieClicked() JingJieController.onClick() end
 function OnJingJieUpgrade() JingJieController.upgrade() end
 function OnMonopolyClicked(functionId) MonopolyController.onClick(functionId) end
@@ -233,6 +238,7 @@ function OnPacket(command, message)
         return
     end
     if JingJieController.onPacket(command, message) then return end
+    if AnswerController.onPacket(command, message) then return end
     if command == Protocol.TEMP_ACTIVITY then
         local operation = message:ReadByte()
         if MoneyTreeController.onOperation(operation, message) then return end

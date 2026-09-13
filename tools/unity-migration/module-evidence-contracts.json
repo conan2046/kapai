@@ -3974,6 +3974,106 @@
         },
         "artifactCopies": []
       }
+    },
+    {
+      "module": "Answer",
+      "g5": {
+        "requireUiResourceMaps": true,
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/Answer/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/Answer/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/Answer/compare/g5",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/Activity/AnswerUI.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/res/csd/dati/AnswerLayer.csb",
+          "server/config/json/function.json",
+          "server/config/json/reward_rank.json",
+          "server/src/pack_deal.cpp"
+        ],
+        "pairs": [
+          {
+            "id": "ANSWER-QUESTION",
+            "cocos": "ANSWER-QUESTION.png",
+            "unity": "ANSWER-QUESTION.png"
+          },
+          {
+            "id": "ANSWER-RESULT",
+            "cocos": "ANSWER-RESULT.png",
+            "unity": "ANSWER-RESULT.png"
+          }
+        ]
+      },
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-AnswerSqliteFixture.ps1",
+        "snapshot": ".local/unity-validation/answer-sqlite-fixture-latest.json",
+        "resultEvidence": ".local/unity-validation/answer-fixed-account-latest.json",
+        "reloginRequired": true,
+        "g3ValidationFlags": [
+          "-projectXAnswerValidation"
+        ],
+        "extraFlags": [
+          "-projectXAnswerValidation"
+        ],
+        "skipPostValidationFixtureAssert": false,
+        "postValidationAdapterAction": "AssertMutated",
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "answer-sqlite-only",
+              "description": "只允许修改Application.persistentDataPath/LocalServer/projectx.db；Cocos/MySQL路径保持原行为"
+            },
+            {
+              "id": "answer-deterministic-round",
+              "description": "固定账号7200057/1000003清零ExtData8[6/35/683]及answer_daily_progress当日次数，完成10题后次数必须达到配置上限"
+            },
+            {
+              "id": "answer-configured-gold-fallback",
+              "description": "answer_settings由answer-settings.csv生成；rank奖励缺失时必须发type=60000金币且数量大于0"
+            },
+            {
+              "id": "answer-exact-restore",
+              "description": "整库不可变快照；恢复后SHA256与integrity_check通过，重登业务哈希一致且备份残留为0"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/bootstrap-answer-question.png",
+            "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-QUESTION.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-answer-result.png",
+            "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-RESULT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-answer-daily-limit.png",
+            "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-DAILY-LIMIT.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-answer-question-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-QUESTION-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-answer-result-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-RESULT-ui-resource-map.md"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-answer-daily-limit-ui-resource-map.md",
+            "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-DAILY-LIMIT-ui-resource-map.md"
+          }
+        ]
+      }
     }
   ]
 }

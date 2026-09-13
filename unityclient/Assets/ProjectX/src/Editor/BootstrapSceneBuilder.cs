@@ -129,6 +129,7 @@ namespace ProjectX.Editor
         private const string MoneyTreePrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/GoldTreeLayer.prefab";
         private const string HappyWheelPrefab = "Assets/ProjectX/res/csd/Prefabs/huodong/ZhuanpanLayer.prefab";
         private const string MonopolyPrefab = "Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameSceneLayer.prefab";
+        private const string AnswerPrefab = "Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab";
         private const string MonopolyHudPrefab = "Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameLayer.prefab";
         private const string MonopolyHandPrefab = "Assets/ProjectX/res/csd/Prefabs/caiquanLayer.prefab";
         private const string FloatNoticeBackground = "Assets/ProjectX/res/csd/UnityMigration/Sliced/res/UI/ui_shenjiang/ui_shenjiang_tips__L13_B13_R13_T13.png";
@@ -281,6 +282,7 @@ namespace ProjectX.Editor
             new PrefabSpec(HeroBookAchievementsPrefab, false),
             new PrefabSpec(HeroBookLevelResultPrefab, false),
             new PrefabSpec(HeroRecyclePrefab, false),
+            new PrefabSpec(AnswerPrefab, false),
             new PrefabSpec(HeroRebirthChoosePrefab, false),
             new PrefabSpec(HeroRebirthConfirmPrefab, false),
             new PrefabSpec(HeroEnhanceMasterPrefab, false),
