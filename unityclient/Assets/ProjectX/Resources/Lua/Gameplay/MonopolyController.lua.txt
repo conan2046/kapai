@@ -55,7 +55,10 @@ function M.onPacket(command, message)
     if op == 0 then
         Bridge:RejectMonopolyEntry("今日次数已用完")
     elseif op == 15 then
-        Bridge:ShowMonopoly(M.functionId)
+        -- The local server can restore an unfinished board during login before
+        -- the player has selected function 21.  Consume that authoritative
+        -- packet, but do not open/fail an unrelated module with functionId=0.
+        if M.functionId ~= 0 then Bridge:ShowMonopoly(M.functionId) end
         local timediff = message:ReadUInt()
         local exp, coin, gold = message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
         local rollMax, rollUse = message:ReadUInt(), message:ReadUInt()
