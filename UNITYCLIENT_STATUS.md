@@ -1,17 +1,17 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-09-12。这里只维护实时状态、当前焦点、顺序和风险。
+> 最后更新：2026-09-13。这里只维护实时状态、当前焦点、顺序和风险。
 > 稳定流程见 `docs/unityclient/MIGRATION_GUIDE.md`；模块事实见 `docs/unityclient/modules/`；历史流水见 `docs/unityclient/history/`。
 
 ## 1. 当前焦点
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动范围 | `Gameplay` 新增单人玩法：闯关、摇钱树、欢乐转盘 |
-| 当前门禁 | 定向实现已完成；历史 Gameplay G0-G3 证据已因列表和路由输入变化失效 |
-| 当前仅剩玩家缺陷 | 欢乐转盘重登后静默刷新钥匙数量的最新修复待用户真实 Play 复测 |
-| 下一步 | 先复测欢乐转盘钥匙持久化显示；再分别完成摇钱树、欢乐转盘、闯关的独立验收闭环 |
-| 禁止事项 | 不复用旧 Gameplay 4项证据；转盘不直接用元宝补钥匙；用户调整的活动 Prefab 以用户版本为准 |
+| 唯一活动范围 | `JingJie` 境界系统 Cocos → Unity 迁移 |
+| 当前门禁 | `G0 passed / G1 blocked`；Unity 定向运行6/6控件、6/6语义通过，缺当前 Cocos 原生基线 |
+| 当前仅剩玩家缺陷 | Unity 用户真人Play已通过；11–20阶正式图标05/06仍缺源文件 |
+| 下一步 | 提交并推送本轮境界迁移；后续补当前 Cocos 原生 G1，解锁正式后续门禁 |
+| 禁止事项 | 不用占位图替代05/06；不把MCP回调截图当真实输入；不擅改境界属性累计口径 |
 
 ## 2. 总进度
 
@@ -19,10 +19,10 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR |
 | Functional | `待逐控件重审` | 旧页面/协议主链百分比已作废 |
-| Strict Validated | `8/16 = 50.0%` | Login、Settings、PlayerHud、Bag、Task、World、Mail、XunBao |
+| Strict Validated | `8/17 = 47.1%` | Login、Settings、PlayerHud、Bag、Task、World、Mail、XunBao |
 
 GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加严格证据分子；BattleFengShenStory 为非分母战斗子模块。完成率不得在其他文档重复维护。
-当前 Steam 业务模块分母固定为 16。
+当前 Steam 业务模块分母固定为 17。
 
 ## 3. 模块状态
 
@@ -47,6 +47,7 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Gameplay | `scope changed / revalidation required` | 当前表驱动入口为 `function_id=1/3/9/10/21/23/29`；旧4项证据失效 |
 | MoneyTree | `runtime implemented / Play pending` | `/222 op=17` 查询与摇取已接入；待真实Play验证 |
 | HappyWheel | `runtime implemented / latest fix Play pending` | 常驻十格奖池、钥匙商城、50条记录和 `/222 op=33` 已接入；待复测重登后的钥匙数量显示 |
+| JingJie | `G0 passed / G1 blocked / Unity user Play passed` | `/306 op=1/4`、20阶配置、Prefab、预览和突破动画已接入；2026-09-13 用户测试通过，待当前Cocos原生基线 |
 | Monopoly | `entry/resources integrated / business pending` | 已补玩法入口与正式地图资源；业务状态机待后续迁移 |
 | FengShenStory | `G0-G3 passed / early Play retest pending` | 父模块待后续独立任务 |
 | BattleFengShenStory | `G0-G6 complete` | 非分母战斗子模块，已收口 |

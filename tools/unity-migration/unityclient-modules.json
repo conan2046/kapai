@@ -1,13 +1,14 @@
 {
   "schemaVersion": 2,
   "steamProgressPolicy": {
-    "denominator": 16,
+    "denominator": 17,
     "nonDenominatorSubmodules": [
       "HeroCultivation",
       "EnhanceMaster",
       "BattleMeetMonster",
       "BattleFengShenStory",
-      "HeroRebirth"
+      "HeroRebirth",
+      "JingJie"
     ]
   },
   "visualFidelityPolicy": {
@@ -1934,7 +1935,7 @@
     {
       "key": "MoneyTree",
       "displayName": "摇钱树",
-      "status": "scaffolded",
+      "status": "runtime-user-tested-g1-blocked",
       "protocols": [
         222
       ],
@@ -1958,6 +1959,41 @@
       "controlMatrix": "docs/unityclient/matrices/MONEYTREE_CONTROLS.json",
       "document": "docs/unityclient/modules/MONEYTREE.md",
       "g0Draft": ".local/unity-validation/moneytree-g0-draft-latest.json"
+    },
+    {
+      "key": "JingJie",
+      "displayName": "境界",
+      "status": "scaffolded",
+      "protocols": [
+        306
+      ],
+      "entries": [
+        "Cocos Layer/Main_UI/ButtonGroup1/btn_zhujue -> Unity Layer/Main_UI/ButtonGroup1/btn_jingjie and Layer/Main_UI/Head -> EMID_JINGJIE=22"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/JingjieLayer.prefab",
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/zhujue/Jingjieyulan.prefab"
+      ],
+      "configs": [
+        "client/ProjectX/src/ConfigData/function_dat.lua",
+        "client/ProjectX/src/ConfigData/jingjie_config_dat.lua",
+        "client/ProjectX/src/ConfigData/item_dat.lua",
+        "server/config/json/function.json",
+        "server/config/json/jingjie_config.json",
+        "server/config/json/item.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/jingjie.json",
+        "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/res2/animation/effect_jingjietupo_1.json"
+      ],
+      "mutatesServer": true,
+      "validationFlags": [
+        "-projectXJingJieValidation"
+      ],
+      "screenshots": [],
+      "controlMatrix": "docs/unityclient/matrices/JINGJIE_CONTROLS.json",
+      "document": "docs/unityclient/modules/JINGJIE.md",
+      "g0Draft": ".local/unity-validation/jingjie-g0-draft-latest.json"
     }
   ]
 }

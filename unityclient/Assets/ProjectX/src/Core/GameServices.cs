@@ -37,6 +37,7 @@ namespace ProjectX.Core
             GameplayCatalog = new GameplayCatalog();
             Gameplay = new GameplayStore();
             MoneyTree = new MoneyTreeStore();
+            JingJie = new JingJieViewState();
             HappyWheel = new HappyWheelStore();
             YouLiCatalog = new YouLiCatalog();
             YouLi = new YouLiStore();
@@ -98,6 +99,7 @@ namespace ProjectX.Core
         public GameplayCatalog GameplayCatalog { get; }
         public GameplayStore Gameplay { get; }
         public MoneyTreeStore MoneyTree { get; }
+        public JingJieViewState JingJie { get; }
         public HappyWheelStore HappyWheel { get; }
         public YouLiCatalog YouLiCatalog { get; }
         public YouLiStore YouLi { get; }
@@ -164,6 +166,7 @@ namespace ProjectX.Core
             Draw.Clear();
             Gameplay.Clear();
             MoneyTree.Clear();
+            JingJie.Clear();
             HappyWheel.Clear();
             YouLi.Clear();
             FengShenStory.Clear();

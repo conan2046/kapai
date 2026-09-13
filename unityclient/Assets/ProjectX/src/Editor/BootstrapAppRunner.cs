@@ -252,6 +252,7 @@ namespace ProjectX.Editor
             bool kunLunValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXKunLunValidation") >= 0;
             bool bloodFightValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXBloodFightValidation") >= 0;
             bool xunBaoValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXXunBaoValidation") >= 0;
+            bool jingJieValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXJingJieValidation") >= 0;
             bool sevenDayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXSevenDayValidation") >= 0;
             bool staminaClaimValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXStaminaClaimValidation") >= 0;
             bool resourceRecoveryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXResourceRecoveryValidation") >= 0;
@@ -326,6 +327,11 @@ namespace ProjectX.Editor
             {
                 SessionState.SetInt(SettingsPhaseKey, 1);
                 app.RunSettingsValidation();
+                return;
+            }
+            if (jingJieValidation && status == "Main UI active.")
+            {
+                app.BeginJingJieValidation();
                 return;
             }
             if (loginValidation && status == "No role found. RoleCreateLayer is active."
@@ -423,6 +429,12 @@ namespace ProjectX.Editor
                     return;
                 }
                 if (shopG3Validation || shopG4Validation)
+                {
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (jingJieValidation)
                 {
                     WriteResult(true, status);
                     Finish(true);

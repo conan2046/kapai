@@ -1,0 +1,64 @@
+local Protocol = require("Protocol")
+
+local M = { active = false, pending = false }
+
+function M.onClick()
+    M.active = true
+    Bridge:ShowJingJie()
+end
+
+function M.upgrade()
+    if M.pending or not Bridge:BeginJingJieUpgrade() then return false end
+    M.pending = true
+    local message = Protocol.newMessage(Protocol.JING_JIE)
+    message:WriteByte(4)
+    Bridge:Send(message)
+    Bridge:SetStatus("JingJie /306 op=4 breakthrough requested.")
+    return true
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.JING_JIE then return false end
+    local operation = message:ReadByte()
+    if operation == 1 then
+        local id = message:ReadWord()
+        if message.Remaining ~= 0 then
+            Bridge:Fail("JingJie /306 op=1 has unread bytes=" .. tostring(message.Remaining) .. ".")
+            return true
+        end
+        Bridge:ApplyJingJieCurrent(id)
+        return true
+    end
+    if operation == 4 then
+        local success = message:ReadByte()
+        local detail = message:ReadString()
+        if success == 0 then
+            M.pending = false
+            Bridge:FailJingJieUpgrade(detail)
+            return true
+        end
+        -- UpgradeJingJie serializes nextId from a C++ int (uint32 on wire).
+        -- The legacy Cocos client reads only a word and silently ignores the
+        -- high two bytes; Unity consumes the complete authoritative packet.
+        local id = message:ReadUInt()
+        if message.Remaining ~= 0 then
+            M.pending = false
+            Bridge:FailJingJieUpgrade("境界突破回包格式错误")
+            Bridge:Fail("JingJie /306 op=4 has unread bytes=" .. tostring(message.Remaining) .. ".")
+            return true
+        end
+        M.pending = false
+        Bridge:CompleteJingJieUpgrade(id, detail)
+        return true
+    end
+    Bridge:Fail("JingJie /306 returned unsupported op=" .. tostring(operation) .. ".")
+    return true
+end
+
+function M.reset()
+    M.active = false
+    M.pending = false
+    Bridge:ClearJingJieState()
+end
+
+return M

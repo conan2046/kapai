@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "module": "JingJie",
+  "scenarios": [
+    {"id":"jingjie-display-success","kind":"success","given":"等级开放且收到权威境界","when":"打开页面或预览","then":"按配置与Prefab显示当前、下一阶、成本和20阶预览"},
+    {"id":"jingjie-upgrade-success","kind":"success","given":"下一阶所有条件满足","when":"发送/306 op=4","then":"服务端扣除灵石金币并回推新境界"},
+    {"id":"jingjie-failure-boundaries","kind":"failure-boundary","given":"未开放、已满阶、任一成本不足、非法回包或断线","when":"进入、突破或重连","then":"不伪造成功并由权威op=1恢复"}
+  ],
+  "sources": [
+    {"id":"jingjie-entry","sourceFiles":["client/ProjectX/src/View/MainUI.lua","client/ProjectX/src/core/AppDef.lua","client/ProjectX/src/ConfigData/function_dat.lua","unityclient/Assets/ProjectX/src/Core/ProjectXApp.JingJie.cs"],"recordTotal":1,"businessIds":["function:22"],"branchType":"主界面入口与10级开放条件","mappings":[{"businessIds":["function:22"],"successScenarioIds":["jingjie-display-success"],"failureBoundaryScenarioIds":["jingjie-failure-boundaries"]}],"excluded":[]},
+    {"id":"jingjie-protocol","sourceFiles":["server/src/pack_deal.cpp","server/src/user.cpp","unityclient/Assets/ProjectX/Resources/Lua/JingJie/JingJieController.lua.txt"],"recordTotal":2,"businessIds":["306:op1","306:op4"],"branchType":"境界登录同步与突破请求回包","mappings":[{"businessIds":["306:op1"],"successScenarioIds":["jingjie-display-success"],"failureBoundaryScenarioIds":["jingjie-failure-boundaries"]},{"businessIds":["306:op4"],"successScenarioIds":["jingjie-upgrade-success"],"failureBoundaryScenarioIds":["jingjie-failure-boundaries"]}],"excluded":[]},
+    {"id":"jingjie-config-rows","sourceFiles":["client/ProjectX/src/ConfigData/jingjie_config_dat.lua","server/config/json/jingjie_config.json","unityclient/Assets/ProjectX/Resources/Configs/jingjie.json"],"recordTotal":20,"businessIds":["jingjie:1","jingjie:2","jingjie:3","jingjie:4","jingjie:5","jingjie:6","jingjie:7","jingjie:8","jingjie:9","jingjie:10","jingjie:11","jingjie:12","jingjie:13","jingjie:14","jingjie:15","jingjie:16","jingjie:17","jingjie:18","jingjie:19","jingjie:20"],"branchType":"20阶名称品质门槛成本属性与图标配置","mappings":[{"businessIds":["jingjie:1","jingjie:2","jingjie:3","jingjie:4","jingjie:5","jingjie:6","jingjie:7","jingjie:8","jingjie:9","jingjie:10","jingjie:11","jingjie:12","jingjie:13","jingjie:14","jingjie:15","jingjie:16","jingjie:17","jingjie:18","jingjie:19","jingjie:20"],"successScenarioIds":["jingjie-display-success","jingjie-upgrade-success"],"failureBoundaryScenarioIds":["jingjie-failure-boundaries"]}],"excluded":[]}
+  ]
+}

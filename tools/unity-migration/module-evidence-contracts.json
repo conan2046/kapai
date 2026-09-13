@@ -3887,6 +3887,93 @@
         },
         "artifactCopies": []
       }
+    },
+    {
+      "module": "JingJie",
+      "g5": {
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/JingJie/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/JingJie/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/JingJie/compare/g5",
+        "requireUiResourceMaps": true,
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/MainUI.lua",
+          "client/ProjectX/src/View/JingJie/jingjieMainUI.lua",
+          "client/ProjectX/src/View/JingJie/jingjieUI.lua",
+          "client/ProjectX/src/View/JingJie/JingJiePreViewUI.lua",
+          "client/ProjectX/src/Data/LJingJieData.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/res/csd/zhujue/JingjieLayer.csb",
+          "client/ProjectX/res/csd/zhujue/Jingjieyulan.csb",
+          "client/ProjectX/res/res2/animation/effect_jingjietupo_1.ani",
+          "server/src/pack_deal.cpp",
+          "server/src/user.cpp",
+          "server/config/json/jingjie_config.json"
+        ],
+        "pairs": [
+          {
+            "id": "JINGJIE-MAIN",
+            "cocos": "JINGJIE-MAIN.png",
+            "unity": "JINGJIE-MAIN.png"
+          },
+          {
+            "id": "JINGJIE-PREVIEW",
+            "cocos": "JINGJIE-PREVIEW.png",
+            "unity": "JINGJIE-PREVIEW.png"
+          },
+          {
+            "id": "JINGJIE-UPGRADE-SUCCESS",
+            "cocos": "JINGJIE-UPGRADE-SUCCESS.png",
+            "unity": "JINGJIE-UPGRADE-SUCCESS.png"
+          }
+        ]
+      },
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-JingJieSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/JingJie/fixture/jingjie-sqlite-fixture-snapshot.json",
+        "resultEvidence": ".local/unity-validation/jingjie-fixed-account-latest.json",
+        "reloginRequired": true,
+        "extraFlags": [
+          "-projectXJingJieValidation"
+        ],
+        "skipPostValidationFixtureAssert": false,
+        "postValidationAdapterAction": "AssertMutated",
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "jingjie-sqlite-only",
+              "description": "只允许修改 Application.persistentDataPath/LocalServer/projectx.db，禁止用 MySQL 或客户端假数据替代"
+            },
+            {
+              "id": "account-role-link",
+              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000003"
+            },
+            {
+              "id": "deterministic-stage-one-breakthrough",
+              "description": "把 ExtData16[65] 精确准备为0，真实 /306 op=4 必须突破到境界1，并由 op=1 回推权威境界"
+            },
+            {
+              "id": "configured-gold-cost-deduction",
+              "description": "当前 jingjie_config 已按产品决策移除缺失道具861-865，仅使用金币；第1阶准备金币100000与可重算战力夹具，突破后必须扣10000且满足前端50000战力门槛"
+            },
+            {
+              "id": "exact-restore-surface",
+              "description": "整库不可变快照；恢复后 SHA256 和 integrity_check 通过，重登后境界/金币稳定业务哈希相等且备份残留为0"
+            }
+          ]
+        },
+        "artifactCopies": []
+      }
     }
   ]
 }

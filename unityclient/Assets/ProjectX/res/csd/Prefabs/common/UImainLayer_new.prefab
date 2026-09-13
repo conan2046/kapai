@@ -3824,7 +3824,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cocosPath: Layer/Main_UI/ButtonGroup1/btn_zhujue/temp_bg
+  cocosPath: Layer/Main_UI/ButtonGroup1/btn_jingjie/temp_bg
   nodeType: ImageViewObjectData
   tag: 3841
   actionTag: -126579852
@@ -3856,8 +3856,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 28b618812342f954cb870f68c5c64154, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 7290542c3c956ee43adaea881b1ca9e8, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -10216,7 +10216,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cocosPath: Layer/Main_UI/ButtonGroup1/btn_zhujue/temp_text
+  cocosPath: Layer/Main_UI/ButtonGroup1/btn_jingjie/temp_text
   nodeType: TextObjectData
   tag: 3842
   actionTag: -662837518
@@ -10261,7 +10261,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u4E3B\u89D2"
+  m_Text: "\u5883\u754C"
 --- !u!114 &6159257490335213229
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12412,22 +12412,22 @@ MonoBehaviour:
     tag: 137
     actionTag: -494952685
     target: {fileID: 6132408813086552422}
-  - path: Layer/Main_UI/ButtonGroup1/btn_zhujue
+  - path: Layer/Main_UI/ButtonGroup1/btn_jingjie
     nodeType: ButtonObjectData
     tag: 3840
     actionTag: 668599202
     target: {fileID: 8366564468108180823}
-  - path: Layer/Main_UI/ButtonGroup1/btn_zhujue/temp_bg
+  - path: Layer/Main_UI/ButtonGroup1/btn_jingjie/temp_bg
     nodeType: ImageViewObjectData
     tag: 3841
     actionTag: -126579852
     target: {fileID: 1968825602981029265}
-  - path: Layer/Main_UI/ButtonGroup1/btn_zhujue/temp_text
+  - path: Layer/Main_UI/ButtonGroup1/btn_jingjie/temp_text
     nodeType: TextObjectData
     tag: 3842
     actionTag: -662837518
     target: {fileID: 4584203634601209824}
-  - path: Layer/Main_UI/ButtonGroup1/btn_zhujue/Prompt
+  - path: Layer/Main_UI/ButtonGroup1/btn_jingjie/Prompt
     nodeType: ImageViewObjectData
     tag: 3843
     actionTag: 439836221
@@ -19117,7 +19117,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cocosPath: Layer/Main_UI/ButtonGroup1/btn_zhujue/Prompt
+  cocosPath: Layer/Main_UI/ButtonGroup1/btn_jingjie/Prompt
   nodeType: ImageViewObjectData
   tag: 3843
   actionTag: 439836221
@@ -19609,12 +19609,12 @@ GameObject:
   - component: {fileID: 4961242777230416000}
   - component: {fileID: 1903128545037920400}
   m_Layer: 0
-  m_Name: btn_zhujue
+  m_Name: btn_jingjie
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2202232967564664609
 RectTransform:
   m_ObjectHideFlags: 0
@@ -19632,8 +19632,8 @@ RectTransform:
   - {fileID: 8061267360823423468}
   m_Father: {fileID: 2818296273652393161}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.2188, y: -8.3928}
-  m_AnchorMax: {x: 0.2188, y: -8.3928}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 85, y: 85}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -19649,7 +19649,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cocosPath: Layer/Main_UI/ButtonGroup1/btn_zhujue
+  cocosPath: Layer/Main_UI/ButtonGroup1/btn_jingjie
   nodeType: ButtonObjectData
   tag: 3840
   actionTag: 668599202

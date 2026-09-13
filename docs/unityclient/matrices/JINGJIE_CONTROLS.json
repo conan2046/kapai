@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "module": "JingJie",
+  "coverageList": "docs/unityclient/matrices/JINGJIE_COVERAGE.json",
+  "workflowPolicyVersion": 1,
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000003,
+    "resolution": "1334x750",
+    "included": ["function_id=22主角入口", "OneLevelLayer公共框", "JingjieLayer", "Jingjieyulan", "/306 op=1/4", "突破条件与权威回包", "effect_jingjietupo_1"],
+    "excluded": ["已注释的/306 op=2改名", "已注释的/306 op=3模型修改", "缺失的05/06境界图标补画", "境界属性数值重平衡"]
+  },
+  "acceptanceExamples": [
+    {"id":"jingjie-authoritative-display","given":"固定角色等级不低于10且登录收到/306 op=1 currentId","when":"真实点击主界面境界按钮或角色头像","then":"打开公共主角框与境界页，显示当前境界、下一境界、七项属性及等级、战力、金币条件"},
+    {"id":"jingjie-upgrade-success","given":"下一境界存在且等级、战力、金币均满足","when":"真实点击突破并收到/306 op=4成功与随后op=1","then":"服务端扣除配置金币，当前境界按权威id刷新并播放一次突破动画"},
+    {"id":"jingjie-upgrade-local-rejection","given":"等级、战力或金币任一条件不足","when":"点击突破","then":"按Cocos顺序显示对应提示且不发送/306 op=4，不乐观修改境界与资源"},
+    {"id":"jingjie-preview-and-max","given":"境界页已打开","when":"打开境界预览或权威currentId达到20","then":"预览列出20阶；满阶显示最高境界面板并隐藏下一阶、条件、成本和突破按钮"},
+    {"id":"jingjie-reconnect-authority","given":"页面曾打开或突破成功","when":"关闭重进、断线重连或重新登录","then":"清除待处理态并由新的/306 op=1重建境界，页面无重复监听和旧动画残留"}
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "evidence": {
+      "entry": ".local/unity-validation/jingjie-g2-source-audit.json#entryClosure",
+      "protocols": ".local/unity-validation/jingjie-g2-source-audit.json#protocolOwnership",
+      "configsAssets": ".local/unity-validation/jingjie-g2-source-audit.json#configAssetClosure",
+      "transforms": ".local/unity-validation/jingjie-g2-source-audit.json#runtimeTransformClosure"
+    },
+    "knownGaps": [
+      {"id":"JINGJIE-GAP-ICON-05-06","handling":"正式配置11-20阶引用ui_jingjie_icon_jingjie_05/06，但仓库与策划目录均未找到源PNG；Unity禁止占位，当前缺图时隐藏Image。","evidence":"client/ProjectX/src/ConfigData/jingjie_config_dat.lua; unityclient/Assets/ProjectX/Resources/JingJieIcons"},
+      {"id":"JINGJIE-GAP-ATTRIBUTE-ACCUMULATION","handling":"配置attr表现为累计值，但服务端加载时继续逐阶MergeAttrList；迁移保持当前服务端权威，不擅自改数值，需数值策划确认。","evidence":"server/src/user.cpp; server/config/json/jingjie_config.json"}
+    ]
+  },
+  "controls": [
+    {"id":"JINGJIE-01-ENTRY","page":"主界面","path":"Layer/Main_UI/ButtonGroup1/btn_jingjie","cocosCallback":"Cocos btn_zhujue -> Utils:OpenFunction(EMID_JINGJIE=22)","unityBinding":"BindJingJieEntry -> OnJingJieClicked -> ShowJingJie","successEvidence":"Unity真实入口点击后页面激活；当前Cocos对照仍待补","failureEvidence":"等级低于10时入口隐藏且不打开页面","reconnectEvidence":"重登录后按Player.Level重算入口显示","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"JINGJIE-02-CLOSE","page":"主角公共框","path":"Layer/Panel_12/Title/CloseBtn","cocosCallback":"jingjieMainUI removeUI","unityBinding":"TryHandleJingJieBack -> UiStack pop","successEvidence":"关闭后返回主界面且HUD恢复","failureEvidence":"预览打开时优先关闭预览不穿透","reconnectEvidence":"重进重新绑定权威状态","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"JINGJIE-03-PREVIEW","page":"境界","path":"Panel_L或Panel_End/title_bg/Btn_xiangxi","cocosCallback":"JingJieUI:CheckClicked -> JingJiePreViewUI","unityBinding":"JingJieRenderBridge.ShowPreview","successEvidence":"20阶名称和七项属性可滚动显示","failureEvidence":"关闭后遮罩和预览不残留","reconnectEvidence":"重进预览从配置重新生成","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"JINGJIE-04-PREVIEW-CLOSE","page":"境界预览","path":"Layer/Popup/Btn_close","cocosCallback":"JingJiePreViewUI close","unityBinding":"JingJieRenderBridge.HidePreview","successEvidence":"预览关闭并回到境界页","failureEvidence":"不得关闭底层主角框","reconnectEvidence":"断线清态后不保留预览","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"JINGJIE-06-UPGRADE","page":"境界","path":"Panel_tupo/Button","cocosCallback":"JingJieUI:TupoClicked -> QueryJingJieInfo(4)","unityBinding":"TryBeginUpgrade -> OnJingJieUpgrade -> /306 op=4","successEvidence":"权威回包刷新currentId并播放effect_jingjietupo_1 action0","failureEvidence":"等级/战力/金币不足时按顺序拒绝；服务端失败不修改本地状态","reconnectEvidence":"断线清pending并由op=1恢复","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true},
+    {"id":"JINGJIE-07-HEAD-ENTRY","page":"主界面","path":"Layer/Main_UI/Head","cocosCallback":"Cocos角色头像入口边界","unityBinding":"BindJingJieEntry -> HandleJingJieClick","successEvidence":"点击角色头像打开同一境界页面","failureEvidence":"未满足开放等级时不打开","reconnectEvidence":"重登录后重新绑定且无重复监听","status":"complete","realEntryClick":true,"automationPassed":true,"manualPassed":true}
+  ]
+}

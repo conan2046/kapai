@@ -3587,6 +3587,71 @@
         "minimumBytes": 4096,
         "requireUniqueHashes": true
       }
+    },
+    {
+      "key": "jing-jie-default",
+      "module": "JingJie",
+      "fixture": "reversible-jing-jie-fixed-account",
+      "requiredGate": "G3",
+      "flags": [
+        "-projectXJingJieValidation"
+      ],
+      "artifacts": [
+        {"path": "build/ui-migration/jingjie-main.png", "lifecycle": "runtime"},
+        {"path": "build/ui-migration/jingjie-preview.png", "lifecycle": "runtime"},
+        {"path": "build/ui-migration/jingjie-upgrade-success.png", "lifecycle": "runtime"},
+        {"path": "build/ui-migration/jingjie-reconnect.png", "lifecycle": "runtime"}
+      ],
+      "captureStates": [
+        "jingjie-main",
+        "jingjie-preview",
+        "jingjie-upgrade-success",
+        "jingjie-reconnect"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "jingjie-config-20-rows",
+        "jingjie-authoritative-goldcheck",
+        "jingjie-authoritative-upgrade",
+        "jingjie-cost-deduction",
+        "jingjie-upgrade-effect",
+        "jingjie-reconnect-authority"
+      ],
+      "sourceContracts": [
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.JingJie.cs",
+          "contains": [
+            "InvokeEventSystemRaycastClick(entry)",
+            "JINGJIE-07-HEAD-ENTRY",
+            "Layer/Main_UI/ButtonGroup1/btn_jingjie",
+            "JINGJIE-06-UPGRADE",
+            "services.Network.Disconnect(\"JingJie deliberate reconnect validation\")",
+            "jingjie-reconnect-authority"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/JingJieRenderBridge.cs",
+          "contains": [
+            "PreviewRowCount",
+            "IsUpgradeEffectVisible",
+            "LoadLegacy(\"res2/animation/effect_jingjietupo_1\")"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-JingJieSqliteFixture.py",
+          "contains": [
+            "POWER_QUANTITY = 100000",
+            "AssertMutated",
+            "JingJie authoritative breakthrough assertion failed"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
     }
   ]
 }

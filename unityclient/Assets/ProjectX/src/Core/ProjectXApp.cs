@@ -975,6 +975,8 @@ namespace ProjectX.Core
                 onSevenDayClaim = services.Lua.GetFunction("OnSevenDayClaim");
                 onMoneyTreeClicked = services.Lua.GetFunction("OnMoneyTreeClicked");
                 onMoneyTreeShake = services.Lua.GetFunction("OnMoneyTreeShake");
+                onJingJieClicked = services.Lua.GetFunction("OnJingJieClicked");
+                onJingJieUpgrade = services.Lua.GetFunction("OnJingJieUpgrade");
                 onMonopolyClicked = services.Lua.GetFunction("OnMonopolyClicked");
                 onMonopolyRoll = services.Lua.GetFunction("OnMonopolyRoll");
                 onMonopolyMoveEnd = services.Lua.GetFunction("OnMonopolyMoveEnd");
@@ -1028,6 +1030,7 @@ namespace ProjectX.Core
         private void OnDestroy()
         {
             ReleaseHeroAuxiliaryViews();
+            DisposeJingJie();
             if (services != null)
                 services.Currencies.Changed -= RefreshSharedCurrencyHeaders;
             if (heroEquipmentFragmentBagSubscribed && services != null)
@@ -1266,6 +1269,7 @@ namespace ProjectX.Core
         public bool IsFormationPopupOpen => formationPopupView?.GameObject.activeSelf == true;
         public bool HandleBack()
         {
+            if (TryHandleJingJieBack()) return true;
             if (formationPopupView?.GameObject.activeSelf == true)
             {
                 formationPopupView.SetVisible(false);
@@ -5181,9 +5185,12 @@ namespace ProjectX.Core
                     $"/1004 and /18 preserve premium={services.Currencies.Premium} separately from boundPremium={services.Currencies.BoundPremium}");
 
                 for (int index = 1; index <= 11; index++) MarkValidationControl($"HUD-{index:00}-" + HudControlSuffix(index));
+                Button headEntry = mainView.Binding.Find(JingJieHeadPath)?.GetComponent<Button>();
+                if (headEntry == null || !headEntry.interactable)
+                { Fail("HUD Head/JingJie completed route is missing or disabled."); yield break; }
+                MarkValidationControl("HUD-12-HEAD-BOUNDARY");
                 string[] identityBoundaryPaths =
                 {
-                    "Layer/Main_UI/Head",
                     "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn",
                     "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn"
                 };
@@ -5191,7 +5198,7 @@ namespace ProjectX.Core
                 {
                     if (!AuditHudBoundary(mainView, identityBoundaryPaths[index], out string boundaryDetail))
                     { Fail($"HUD identity/currency boundary failed: {boundaryDetail}"); yield break; }
-                    MarkValidationControl($"HUD-{index + 12:00}-" + HudControlSuffix(index + 12));
+                    MarkValidationControl($"HUD-{index + 13:00}-" + HudControlSuffix(index + 13));
                 }
                 Button premiumAdd = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
                 if (premiumAdd == null || premiumAdd.interactable)
@@ -11479,7 +11486,7 @@ namespace ProjectX.Core
         public void BindPlayerHudControls()
         {
             if (mainView == null || chatMiniView == null) return;
-            BindHudBoundary(mainView, "Layer/Main_UI/Head", "角色详情由 Role 模块负责，当前仅保留入口边界。");
+            BindJingJieEntry();
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
             mainView.BindClick("Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn",
                 () => HandleCommerceRoute(13), true);
@@ -11515,7 +11522,6 @@ namespace ProjectX.Core
                 BindHudBoundary(mainView, $"Layer/Main_UI/ButtonGroup8/btn_Zhekou{index}", "折扣礼包与支付不属于 HUD，当前不可用。");
             string[] conditionallyHidden =
             {
-                "Layer/Main_UI/ButtonGroup1/btn_zhujue",
                 "Layer/Main_UI/ButtonGroup4/btn_PetZhekou",
                 "Layer/Main_UI/ButtonGroup4/btn_Denglu",
                 "Layer/Main_UI/ButtonGroup4/btn_kaifuRank",

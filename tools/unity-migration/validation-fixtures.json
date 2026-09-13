@@ -137,6 +137,13 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-MoneyTreeSqliteFixture.ps1"
+    },
+    {
+      "key": "reversible-jing-jie-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-JingJieSqliteFixture.ps1"
     }
   ]
 }

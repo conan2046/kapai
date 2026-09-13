@@ -36,6 +36,8 @@ namespace ProjectX.Editor
         private const string ErrorPrefab = "Assets/ProjectX/res/csd/Prefabs/MessageBoxLayer.prefab";
         private const string RewardPrefab = "Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab";
         private const string HeroFramePrefab = "Assets/ProjectX/res/csd/Prefabs/OneLevelLayer.prefab";
+        private const string JingJiePrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/JingjieLayer.prefab";
+        private const string JingJiePreviewPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/Jingjieyulan.prefab";
         private const string HeroListPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab";
         private const string HeroDetailPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab";
         private const string HeroReplacementPrefab = "Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxionghuanjiang.prefab";
@@ -269,6 +271,8 @@ namespace ProjectX.Editor
 
         private static readonly PrefabSpec[] DynamicOnlyPrefabSpecs =
         {
+            new PrefabSpec(JingJiePrefab, false, HeroFramePrefab),
+            new PrefabSpec(JingJiePreviewPrefab, false, HeroFramePrefab),
             new PrefabSpec(HeroBookPrefab, false),
             new PrefabSpec(HeroBookUpgradePrefab, false),
             new PrefabSpec(HeroBookActivateResultPrefab, false),

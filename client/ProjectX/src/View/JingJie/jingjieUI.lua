@@ -191,6 +191,7 @@ function JingJieUI:InitTupo(isend)
 	end
 	local zhanliLabel = bglimit:getChildByName("Panel_zhanli"):getChildByName("Text"):getChildByName("value")
 	zhanliLabel:setString(curinfo.zhanli_limit)
+	zhanliLabel:setColor(AppDef.UIColor.WHITE)
 	local zhanli = LRoleDataMgr.MyHeroInfo.zhanDouLiInAll
 	if zhanli < curinfo.zhanli_limit then
 		zhanliLabel:setColor(AppDef.UIColor.RED)
@@ -198,20 +199,34 @@ function JingJieUI:InitTupo(isend)
 	local icon = bgcost:getChildByName("btn_Material")
 	local numLabel = icon:getChildByName("Value")
 	local data = curinfo.tupo_cost
-	local item = Utils:GetItemCellValue(icon,0,data[1][1],true, false,0,nil,true, true)
-	local mynum = LRoleDataMgr.Equip:CountItemNumById(data[1][1])
-	numLabel:setString(mynum .."/" ..data[1][3])
-	numLabel:setLocalZOrder(1000)
+	local materialCost = nil
+	local moneyCost = 0
+	for _,cost in ipairs(data) do
+		if cost[1] == 60000 then
+			moneyCost = moneyCost + cost[3]
+		elseif materialCost == nil then
+			materialCost = cost
+		end
+	end
 	self.isMaterial = true
-	if mynum < data[1][3] then
-		self.isMaterial = false
-		numLabel:setColor(AppDef.UIColor.RED)
+	icon:setVisible(materialCost ~= nil)
+	if materialCost ~= nil then
+		Utils:GetItemCellValue(icon,0,materialCost[1],true, false,0,nil,true, true)
+		local mynum = LRoleDataMgr.Equip:CountItemNumById(materialCost[1])
+		numLabel:setString(mynum .."/" ..materialCost[3])
+		numLabel:setLocalZOrder(1000)
+		numLabel:setColor(AppDef.UIColor.WHITE)
+		if mynum < materialCost[3] then
+			self.isMaterial = false
+			numLabel:setColor(AppDef.UIColor.RED)
+		end
 	end
 	local coinLabel = bgcost:getChildByName("xiaohao"):getChildByName("Num")
-	coinLabel:setString(data[2][2])
+	coinLabel:setString(moneyCost)
+	coinLabel:setColor(AppDef.UIColor.WHITE)
 	local money = LRoleDataMgr.MyHeroInfo.DetailData:getMoney()
-	if money < data[2][2] then
-		numLabel:setColor(AppDef.UIColor.RED)
+	if money < moneyCost then
+		coinLabel:setColor(AppDef.UIColor.RED)
 	end
 end
 
@@ -232,8 +247,14 @@ function JingJieUI:TupoClicked(sender)
 		return
 	end
 
+	local moneyCost = 0
+	for _,cost in ipairs(curinfo.tupo_cost) do
+		if cost[1] == 60000 then
+			moneyCost = moneyCost + cost[3]
+		end
+	end
 	local money = LRoleDataMgr.MyHeroInfo.DetailData:getMoney()
-	if money < curinfo.tupo_cost[2][2] then
+	if money < moneyCost then
 		Utils:ShowScrollTips(GUITips.RSI_BP_SKILL_UPTIPS3)
 		return
 	end
