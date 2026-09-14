@@ -7,6 +7,7 @@
 #include <regex>
 #include <sstream>
 #include <vector>
+#include "g_utility.h"
 
 #if defined(GYU_ENABLE_SQLITE)
 #include <sqlite3.h>
@@ -570,6 +571,19 @@ static void SqliteGreatest(sqlite3_context *context, int argc, sqlite3_value **a
 		sqlite3_result_double(context, greatest);
 }
 
+static void SqliteMd5(sqlite3_context *context, int argc, sqlite3_value **argv)
+{
+	if(argc != 1 || sqlite3_value_type(argv[0]) == SQLITE_NULL)
+	{
+		sqlite3_result_null(context);
+		return;
+	}
+	const unsigned char *text = sqlite3_value_text(argv[0]);
+	std::string input = text != NULL ? reinterpret_cast<const char*>(text) : std::string();
+	gyu::util::MD5String(input);
+	sqlite3_result_text(context, input.c_str(), (int)input.size(), SQLITE_TRANSIENT);
+}
+
 static int SqliteRegisterCompatibility(sqlite3 *database)
 {
 	int rc = sqlite3_create_function_v2(database, "unix_timestamp", -1, SQLITE_UTF8, NULL, SqliteUnixTimestamp, NULL, NULL, NULL);
@@ -583,6 +597,8 @@ static int SqliteRegisterCompatibility(sqlite3 *database)
 		rc = sqlite3_create_function_v2(database, "if", 3, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, SqliteIf, NULL, NULL, NULL);
 	if(rc == SQLITE_OK)
 		rc = sqlite3_create_function_v2(database, "greatest", -1, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, SqliteGreatest, NULL, NULL, NULL);
+	if(rc == SQLITE_OK)
+		rc = sqlite3_create_function_v2(database, "md5", 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC, NULL, SqliteMd5, NULL, NULL, NULL);
 	return rc;
 }
 #endif

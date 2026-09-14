@@ -4,7 +4,23 @@ PRAGMA foreign_keys=ON;
 BEGIN IMMEDIATE;
 
 CREATE TABLE IF NOT EXISTS `admin` (
-  `id` INTEGER PRIMARY KEY AUTOINCREMENT
+  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+  `userId` INTEGER NOT NULL DEFAULT '0',
+  `name` TEXT NOT NULL DEFAULT '',
+  `pwd` TEXT NOT NULL DEFAULT ''
+);
+
+-- GM backend seed account (userId=1 / name='gm' / 口令 gm123456)。
+-- 使用当前 LocalServer 注册的 SQL md5() 生成哈希，避免构建差异。
+INSERT INTO `admin` (`userId`,`name`,`pwd`)
+SELECT 1,'gm',MD5('gm123456')
+WHERE NOT EXISTS (SELECT 1 FROM `admin` WHERE `name`='gm');
+
+CREATE TABLE IF NOT EXISTS `admin_log` (
+  `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+  `role_id` INTEGER NOT NULL DEFAULT '0',
+  `msg` TEXT,
+  `time` TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS `allows` (

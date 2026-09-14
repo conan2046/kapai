@@ -2261,32 +2261,32 @@ void AddRoleExp(uint32 roleId,uint32 exp)
 	}
 }
 
-void AddTongBao(uint32 roleId,int tongbao,int type)
+bool AddTongBao(uint32 roleId,int tongbao,int type)
 {
 	ShareUserPtr p = SingletonOnlineUser::instance().GetUserByRoleId(roleId);
 	CUser *pUser = p.get();
 	if (pUser != NULL)
 	{
-		pUser->AddTongBao(tongbao,type);
+		return pUser->AddTongBao(tongbao,type);
 	}
 	else
 	{
 		vector<int> idList;
 		GetServerIdList(idList);
 		if(idList.empty())
-			return;
+			return false;
 		
 		CGetDbConnect getDb;
 		CDatabaseSql *pDb = getDb.GetDbConnect();
 		if (pDb == NULL)
-			return;
+			return false;
 		char sqlBuf[256];
 		for(uint16 i=0;i < idList.size();i++)
 		{
 			string userTab = GetUserInfoTab(idList[i]);
 			snprintf(sqlBuf,sizeof(sqlBuf),"select id from %s where role0=%u limit 1",userTab.c_str(),roleId);
 			if(!pDb->Query(sqlBuf))
-				return;
+				return false;
 			if(pDb->GetRowNum() == 0)
 				continue;
 			char **row = pDb->GetRow();
@@ -2296,17 +2296,20 @@ void AddTongBao(uint32 roleId,int tongbao,int type)
 			if(type == 1)
 			{
 				snprintf(sqlBuf,sizeof(sqlBuf),"update %s set bd_money=bd_money+%d where id=%d",userTab.c_str(),tongbao,userId);
-				pDb->Query(sqlBuf);
+				if(!pDb->Query(sqlBuf))
+					return false;
 			}
 			else
 			{
 				snprintf(sqlBuf,sizeof(sqlBuf),"update %s set money=money+%d where id=%d",userTab.c_str(),tongbao,userId);
-				pDb->Query(sqlBuf);
+				if(!pDb->Query(sqlBuf))
+					return false;
 				SaveDate(userId,1077,tongbao);
 			}
-			return;
+			return true;
 		}
 	}
+	return false;
 }
 
 uint8 GetPetSpeed(int qinmi)

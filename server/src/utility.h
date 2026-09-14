@@ -786,7 +786,7 @@ uint32 ReadPetBuf(SPet *pPet,uint8 *buf,uint32 bufLen,bool useDefName=false, uin
 uint32 ReadItemBuf(SItemInstance *item,uint8 *buf,uint32 bufLen);
 uint32 WriteItemBuf(SItemInstance *item,uint8 *buf,uint32 bufLen);
 
-void AddTongBao(unsigned int roleId,int tongbao,int type=0);
+bool AddTongBao(unsigned int roleId,int tongbao,int type=0);
 
 uint64 GetTime();
 

@@ -1252,6 +1252,7 @@ public:
 	void UpdateZhenFaPetInfo(uint8 pos, bool notify = true);
 	void SendPetUpdateInfo(uint16 petId,int type);
 	void UpdateUserLevelUpInfo(uint64 oldZhanDouLi, uint64 oldPetZhanDouLi);
+	void UpdateUserLevelUpInfo(uint16 oldLevel, uint64 oldZhanDouLi, uint64 oldPetZhanDouLi);
 
     SItemInstance *GetItem(uint16 pos)
     {
@@ -3110,5 +3111,4 @@ inline uint32 CUser::GetFightId()
 
 
 #endif
-
 

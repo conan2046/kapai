@@ -7559,11 +7559,16 @@ void CUser::SendMsgToTeamMember(const char *msg)
 
 void CUser::UpdateUserLevelUpInfo(uint64 oldZhanDouLi, uint64 oldPetZhanDouLi)
 {
+	UpdateUserLevelUpInfo(m_level > 0 ? m_level - 1 : 0, oldZhanDouLi, oldPetZhanDouLi);
+}
+
+void CUser::UpdateUserLevelUpInfo(uint16 oldLevel, uint64 oldZhanDouLi, uint64 oldPetZhanDouLi)
+{
 	CSocketServer &sock = SingletonSocket::instance();
 	CNetMessage msg;
 	msg.SetType(MSG_UPDATE_USER_LEVELUP_INFO);
 	//			老等级			老战斗力	老神将总战斗力
-	msg<<(uint8)(m_level-1)<<oldZhanDouLi<<oldPetZhanDouLi;
+	msg<<(uint8)oldLevel<<oldZhanDouLi<<oldPetZhanDouLi;
 	//		等级	战斗力		当前战斗力
 	msg<<m_level<<GetZhanDouLi()<<GetChuZhanPet_AllZhanDouLi();
 	SendChuZhanPetId(msg);

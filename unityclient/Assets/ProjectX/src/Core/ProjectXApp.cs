@@ -5379,6 +5379,9 @@ namespace ProjectX.Core
         public void SetPlayerLevelAndPower(int level, double value)
         {
             services.Player.SetLevelAndPower(unchecked((ushort)level), checked((ulong)value));
+            if (singlePlayerTitleEnabled && activeSaveSlotId > 0)
+                singlePlayerSaves?.UpdatePlayer(activeSaveSlotId, services.Player.RoleId,
+                    services.Player.Name, services.Player.Model, level, checked((ulong)value));
             ApplySteamHudFunctionUnlocks();
         }
         public void SetPlayerPotential(uint value) => services.Player.SetPotential(value);

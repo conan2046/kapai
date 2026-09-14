@@ -11426,10 +11426,20 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 				int tongbao = 0;
 				uint8 bangDing = 0;
 				msg>>roleId>>tongbao>>bangDing;
-				AddTongBao(roleId,tongbao,bangDing);
-				ItemCurrencyLog(roleId,bangDing,0,0,-tongbao,pUser->GetTongBao(),YBL_JIATONGBAO);
-				WriteAdminLog(pUser->GetRoleId(),LANGUAGE_TRANSFORM_1332,roleId,tongbao);
-				retMsg = LANGUAGE_TRANSFORM_1333;
+				if(roleId == 0 || tongbao <= 0 || bangDing > 1)
+				{
+					retMsg = "ERR|参数错误";
+				}
+				else if(AddTongBao(roleId,tongbao,bangDing))
+				{
+					ItemCurrencyLog(roleId,bangDing,0,0,-tongbao,pUser->GetTongBao(),YBL_JIATONGBAO);
+					WriteAdminLog(pUser->GetRoleId(),LANGUAGE_TRANSFORM_1332,roleId,tongbao);
+					retMsg = "OK|通宝已发放";
+				}
+				else
+				{
+					retMsg = "ERR|目标角色不存在或通宝发放失败";
+				}
 			}
 			break;
 		case 2://加物品
@@ -11441,15 +11451,16 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 				uint8 num = 0;
 				uint8 level = 0;
 				msg>>roleId>>tmplId>>num>>level;
-				if(num == 0)
+				if(roleId == 0 || tmplId == 0 || num == 0)
 				{
-					return;
+					retMsg = "ERR|参数错误";
+					break;
 				}
 				CItemTemplateManager &itemMgr = SingletonItemManager::instance();
 				SItemTemplate *pItem = itemMgr.GetItem(tmplId);
 				if(pItem == NULL)
 				{
-					retMsg = LANGUAGE_TRANSFORM_1334;
+					retMsg = "ERR|物品模板不存在";
 				}
 				else
 				{
@@ -11459,7 +11470,7 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 					item.level = level;
 					if(AddPackage(roleId,item))
 					{
-						retMsg = LANGUAGE_TRANSFORM_1335;
+						retMsg = "OK|物品已发放";
 						if(pUser != NULL)
 							WriteAdminLog(pUser->GetRoleId(),LANGUAGE_TRANSFORM_1336,roleId,level,tmplId,num);
 						else
@@ -11467,7 +11478,7 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 					}
 					else
 					{
-						retMsg = LANGUAGE_TRANSFORM_1338;
+						retMsg = "ERR|目标角色不存在、背包已满或物品发放失败";
 					}
 				}
 			}
@@ -11513,18 +11524,44 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 				uint32 roleId = 0;
 				uint8 level = 0;
 				msg>>roleId>>level;
-				retMsg = LANGUAGE_TRANSFORM_1343;
+				if(roleId == 0 || level == 0)
+				{
+					retMsg = "ERR|参数错误";
+					break;
+				}
 				ShareUserPtr p = m_onlineUser.GetUserByRoleId(roleId);
 				if(p.get() != NULL)
 				{
+					uint16 oldLevel = p->GetLevel();
+					uint64 oldZhanDouLi = p->GetZhanDouLi();
+					uint64 oldPetZhanDouLi = p->GetChuZhanPet_AllZhanDouLi();
+					snprintf(sql,sizeof(sql),"update role_info set level=%d where id=%u",level,roleId);
+					if(!pDb->Query(sql))
+					{
+						retMsg = "ERR|等级修改失败";
+						break;
+					}
 					p->SetLevel(level);
+					SingletonCRankMgr::instance().UpdateData(CRankMgr::ERT_Level, roleId, level, p->GetExp());
+					p->UpdateUserLevelUpInfo(oldLevel, oldZhanDouLi, oldPetZhanDouLi);
+					WriteAdminLog(pUser->GetRoleId(),"修改角色%u等级为%d",roleId,(int)level);
+					retMsg = "OK|等级已修改并同步在线客户端";
 					break;
 				}
-				snprintf(sql,sizeof(sql),"update role_info set level=%d where id=%d",level,roleId);
-				pDb->Query(sql);
-
-				snprintf(sql,sizeof(sql),LANGUAGE_TRANSFORM_1344,roleId,(int)level);
-				pDb->Query(sql);
+				snprintf(sql,sizeof(sql),"select id from role_info where id=%u limit 1",roleId);
+				if(!pDb->Query(sql) || pDb->GetRow() == NULL)
+				{
+					retMsg = "ERR|目标角色不存在";
+					break;
+				}
+				snprintf(sql,sizeof(sql),"update role_info set level=%d where id=%u",level,roleId);
+				if(!pDb->Query(sql))
+				{
+					retMsg = "ERR|等级修改失败";
+					break;
+				}
+				WriteAdminLog(pUser->GetRoleId(),"修改角色%u等级为%d",roleId,(int)level);
+				retMsg = "OK|等级已修改";
 			}
 			break;
 		case 6:
@@ -11630,11 +11667,8 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 			break;
 		case 13:
 			{
-				string sql;
-				msg>>sql;
-				if(sql.size() > 0)
-					pDb->Query(sql.c_str());
-				return;
+				// 裸 SQL 无法建立可审计、可约束的权限边界，永久禁用。
+				retMsg = "ERR|op13 raw SQL disabled";
 			}
 			break;
 		case 14:
@@ -11781,6 +11815,34 @@ void CPackageDeal::ServerMgr(CNetMessage *pMsg,int sock)
 						pU->SetChatTime(0);
 					retMsg = LANGUAGE_SSJ_0535;
 				}
+			}
+			break;
+		case 21:	// 查询当前在线的本机存档角色
+			{
+				if(pUser == NULL || pUser->AdminLevel() != ADMIN_LEVEL)
+					return;
+				list<uint32> roleIds;
+				m_onlineUser.GetUserList(roleIds);
+				if(roleIds.empty())
+				{
+					retMsg = "ERR|当前没有已进入存档的在线角色";
+					break;
+				}
+				if(roleIds.size() != 1)
+				{
+					retMsg = "ERR|检测到多个在线角色，请仅保留一个本机客户端";
+					break;
+				}
+				ShareUserPtr active = m_onlineUser.GetUserByRoleId(roleIds.front());
+				CUser *activeUser = active.get();
+				if(activeUser == NULL)
+				{
+					retMsg = "ERR|在线角色状态已变更，请重试";
+					break;
+				}
+				snprintf(sql,sizeof(sql),"OK|ACTIVE|%u|%u|%s",activeUser->GetRoleId(),
+					(uint32)activeUser->GetLevel(),activeUser->GetName());
+				retMsg = sql;
 			}
 			break;
 		default:

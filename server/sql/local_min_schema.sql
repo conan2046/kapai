@@ -25,6 +25,21 @@
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE IF NOT EXISTS `admin` (
   `id` int NOT NULL AUTO_INCREMENT,
+  `userId` int NOT NULL DEFAULT '0',
+  `name` varchar(64) NOT NULL DEFAULT '',
+  `pwd` varchar(64) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+INSERT INTO `admin` (`userId`,`name`,`pwd`)
+SELECT 1,'gm',MD5('gm123456')
+WHERE NOT EXISTS (SELECT 1 FROM `admin` WHERE `name`='gm');
+
+CREATE TABLE IF NOT EXISTS `admin_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `role_id` int NOT NULL DEFAULT '0',
+  `msg` text,
+  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;

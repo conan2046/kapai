@@ -83,6 +83,7 @@ if(KAPAI_BUILD_DATABASE_SMOKE)
     add_executable(kapai_database_smoke
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/database_smoke.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/gyu/g_database.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/gyu/g_utility.cpp"
     )
     target_include_directories(kapai_database_smoke PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -92,8 +93,17 @@ if(KAPAI_BUILD_DATABASE_SMOKE)
     )
     target_compile_definitions(kapai_database_smoke PRIVATE GYU_ENABLE_SQLITE=1)
     target_link_libraries(kapai_database_smoke PRIVATE Boost::thread Boost::system "${MYSQL_LIBRARY}" "${SQLITE3_LIBRARY}")
+    if(ZLIB_FOUND)
+        target_link_libraries(kapai_database_smoke PRIVATE ZLIB::ZLIB)
+    endif()
+    if(OpenSSL_FOUND)
+        target_link_libraries(kapai_database_smoke PRIVATE OpenSSL::Crypto)
+    endif()
+    if(WIN32)
+        target_link_libraries(kapai_database_smoke PRIVATE ws2_32)
+    endif()
     if(MSVC)
-        target_compile_options(kapai_database_smoke PRIVATE /utf-8 /FS)
+        target_compile_options(kapai_database_smoke PRIVATE /utf-8 /FS /FI"${CMAKE_CURRENT_SOURCE_DIR}/src/win_compat.h")
         target_compile_definitions(kapai_database_smoke PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
     endif()
 endif()

@@ -3758,6 +3758,55 @@ static bool GetSqliteStartupOptions(int argc, char **argv, SSqliteStartupOptions
 	return true;
 }
 
+static bool EnsureLegacySqliteAdminSchema(CDatabaseSql &database)
+{
+	if(!database.Query("SELECT 1 FROM sqlite_master WHERE type='table' AND name='admin' LIMIT 1"))
+	{
+		cout << "SQLite admin table check failed: " << database.GetErrMsg() << endl;
+		return false;
+	}
+	if(database.GetRow() == NULL)
+		return true;
+
+	struct SAdminColumnMigration
+	{
+		const char *name;
+		const char *definition;
+	};
+	const SAdminColumnMigration migrations[] =
+	{
+		{"userId", "INTEGER NOT NULL DEFAULT 0"},
+		{"name", "TEXT NOT NULL DEFAULT ''"},
+		{"pwd", "TEXT NOT NULL DEFAULT ''"}
+	};
+	for(size_t index = 0; index < sizeof(migrations) / sizeof(migrations[0]); ++index)
+	{
+		string check = "SELECT 1 FROM pragma_table_info('admin') WHERE name='";
+		check += migrations[index].name;
+		check += "' LIMIT 1";
+		if(!database.Query(check.c_str()))
+		{
+			cout << "SQLite admin column check failed column=" << migrations[index].name
+				<< " error=" << database.GetErrMsg() << endl;
+			return false;
+		}
+		if(database.GetRow() != NULL)
+			continue;
+		string alter = "ALTER TABLE admin ADD COLUMN ";
+		alter += migrations[index].name;
+		alter += " ";
+		alter += migrations[index].definition;
+		if(!database.Query(alter.c_str()))
+		{
+			cout << "SQLite admin column migration failed column=" << migrations[index].name
+				<< " error=" << database.GetErrMsg() << endl;
+			return false;
+		}
+		cout << "[local] SQLite migrated legacy admin column=" << migrations[index].name << endl;
+	}
+	return true;
+}
+
 static bool PrepareSqliteDatabase(const SSqliteStartupOptions &options)
 {
 	string schema;
@@ -3772,6 +3821,8 @@ static bool PrepareSqliteDatabase(const SSqliteStartupOptions &options)
 		cout << "SQLite database open failed path=" << options.databasePath << " error=" << database.GetErrMsg() << endl;
 		return false;
 	}
+	if(!EnsureLegacySqliteAdminSchema(database))
+		return false;
 	if(!database.ExecuteScript(schema.c_str()))
 	{
 		cout << "SQLite schema migration failed path=" << options.schemaPath << " error=" << database.GetErrMsg() << endl;
