@@ -224,7 +224,7 @@ namespace ProjectX.UI
                 Sprite sprite = item.Picture > 0 ? resources.LoadItemIcon(item.Picture, out placeholder) : null;
                 if (sprite == null || placeholder) missingIconCount++;
             }
-            list.SetItems(BuildRows(items));
+            list.SetItemsPreservingScroll(BuildRows(items));
             if (items.Count == 0)
             {
                 selectedId = 0;
@@ -251,7 +251,8 @@ namespace ProjectX.UI
             if (!store.TryGet(id, out _)) return false;
             selectedId = id;
             selectedQuantity = 1;
-            Render();
+            list.RefreshVisibleItems();
+            RenderDetails();
             return true;
         }
 
@@ -260,6 +261,7 @@ namespace ProjectX.UI
             selectedId = 0;
             selectedQuantity = 1;
             quantityPresenter.Hide();
+            list.ScrollToTop();
         }
 
         public void Dispose()

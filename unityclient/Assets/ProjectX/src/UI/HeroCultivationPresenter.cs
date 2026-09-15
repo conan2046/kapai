@@ -108,6 +108,18 @@ namespace ProjectX.UI
 
             Canvas.ForceUpdateCanvases();
             string[] labels = { "升级", "升星", "突破", "修炼", "信息" };
+            for (int index = 0; index < tabs.Count; index++)
+            {
+                Transform normalLabel = tabs[index].Find("BtnName");
+                Transform chosen = tabs[index].Find("ChooseBg");
+                bool selected = index == page;
+                if (normalLabel == null || normalLabel.gameObject.activeSelf == selected
+                    || chosen == null || chosen.gameObject.activeSelf != selected)
+                {
+                    detail = $"tab {labels[index]} visual state was not restored for selected={selected}";
+                    return false;
+                }
+            }
             int[] order = { 1, 2, 3, 4, 0 };
             foreach (int index in order)
             {
@@ -1180,7 +1192,12 @@ namespace ProjectX.UI
         {
             Text normal = tab.Find("BtnName")?.GetComponent<Text>();
             Text chosen = tab.Find("ChooseBg/BtnName")?.GetComponent<Text>();
-            if (normal != null) normal.text = label; if (chosen != null) chosen.text = label;
+            if (normal != null)
+            {
+                normal.text = label;
+                normal.gameObject.SetActive(!selected);
+            }
+            if (chosen != null) chosen.text = label;
             Transform choose = tab.Find("ChooseBg"); if (choose != null) choose.gameObject.SetActive(selected);
             Button button = tab.GetComponent<Button>(); if (button != null) button.interactable = !selected;
         }

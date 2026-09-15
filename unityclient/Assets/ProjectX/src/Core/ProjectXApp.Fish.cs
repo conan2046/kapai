@@ -149,7 +149,9 @@ namespace ProjectX.Core
                 }
             }
             if (fishPresenter != null) return;
-            fishPresenter = new FishPresenter(fishView, services.Fish, services.Resources,
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
+            fishPresenter = new FishPresenter(fishView, frame,
+                services.Fish, services.Resources,
                 services.ShopCatalog, RequestFishStart, RequestFishStop, RequestFishCollect,
                 CloseFish, ShowFishHelp);
         }
@@ -267,16 +269,17 @@ namespace ProjectX.Core
             bool basketScrollStructure = basketScroll != null && basketScroll.viewport != null
                 && basketScroll.content != null && basketScroll.vertical && !basketScroll.horizontal
                 && basketScroll.viewport.GetComponent<RectMask2D>() != null
-                && basketDragSurface != null && basketDragSurface.raycastTarget;
-            RecordValidationSemantic("fish-basket-formal-bag-grid-scroll", basketScrollStructure,
+                && basketDragSurface != null && basketDragSurface.raycastTarget
+                && fishPresenter.HasSourceBasketHierarchy && !fishPresenter.IsOuterFrameVisible;
+            RecordValidationSemantic("fish-basket-source-list-scroll", basketScrollStructure,
                 $"vertical={basketScroll?.vertical},horizontal={basketScroll?.horizontal},raycast={basketDragSurface?.raycastTarget},viewport={basketScroll?.viewport?.rect.height:F0}");
             if (!basketScrollStructure)
             {
-                Fail("Fish basket did not reuse a clipped vertical bag ScrollRect with a raycast surface.");
+                Fail("Fish basket did not reuse FishUI/yulan/ListView as a clipped vertical ScrollRect with a raycast surface.");
                 yield break;
             }
             RuntimeInputDispatchResult basketClose = RuntimeInputDispatcher.Dispatch(
-                "DynamicUi_OneLevelLayer/Panel_12/Title/CloseBtn", "FISH-09-BASKET-CLOSE", "click");
+                "Layer/FishUI/yulan/btn_Close", "FISH-09-BASKET-CLOSE", "click");
             if (!basketClose.Dispatched || fishPresenter.IsBasketVisible)
             {
                 Fail("Fish basket close did not receive a real click: " + basketClose.Error);
@@ -322,10 +325,15 @@ namespace ProjectX.Core
 
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
+            if (!fishPresenter.HasRenderableBasketQuantities)
+            {
+                Fail("Fish basket quantity labels have a zero-sized RectTransform.");
+                yield break;
+            }
             ushort firstSlot = 0xffff;
             foreach (FishBasketSlot slot in fish.Slots) { firstSlot = slot.SlotIndex; break; }
             RuntimeInputDispatchResult select = RuntimeInputDispatcher.Dispatch(
-                "FishBasketView/beibao_layer/Bag/TableView/RuntimeFishBasketContent/Row_1/Item1/RuntimeHitArea",
+                "Layer/FishUI/yulan/ListView/RuntimeFishBasketContent/Row_1/RuntimeHitArea",
                 "FISH-07-BASKET-SLOT", "click");
             if (!select.Dispatched)
             {
@@ -333,7 +341,7 @@ namespace ProjectX.Core
                 yield break;
             }
             RuntimeInputDispatchResult collect = RuntimeInputDispatcher.Dispatch(
-                "FishBasketView/beibao_layer/item/Btn_use", "FISH-08-BASKET-COLLECT", "click");
+                "Layer/FishUI/yulan/btn_shouhuo", "FISH-08-BASKET-COLLECT", "click");
             if (!collect.Dispatched)
             {
                 Fail("Fish collect button did not receive an EventSystem/raycast click: " + collect.Error);
@@ -353,7 +361,7 @@ namespace ProjectX.Core
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
             basketClose = RuntimeInputDispatcher.Dispatch(
-                "DynamicUi_OneLevelLayer/Panel_12/Title/CloseBtn", "FISH-09-BASKET-CLOSE", "click");
+                "Layer/FishUI/yulan/btn_Close", "FISH-09-BASKET-CLOSE", "click");
             if (!basketClose.Dispatched || fishPresenter.IsBasketVisible)
             {
                 Fail("Fish basket did not close after collecting the first catch: " + basketClose.Error);
@@ -400,13 +408,16 @@ namespace ProjectX.Core
             MarkValidationControl("FISH-02-EXIT");
             deadline = Time.realtimeSinceStartup + 3f;
             while (IsFishOpen && Time.realtimeSinceStartup < deadline) yield return null;
-            if (IsFishOpen)
+            bool sharedFrameReleased = oneLevelFrameCoordinator?.Mode == OneLevelFrameMode.Hidden
+                && oneLevelFrameView?.GameObject.activeSelf == false
+                && gameplayView?.GameObject.transform.parent != oneLevelFrameView?.GameObject.transform;
+            if (IsFishOpen || !sharedFrameReleased)
             {
-                Fail("Fish exit did not restore the gameplay hub.");
+                Fail("Fish exit did not release the shared OneLevelLayer or restore the gameplay hub.");
                 yield break;
             }
             RecordValidationSemantic("fish-exit-restores-normal-ui", true,
-                "Fish standalone view popped after a real exit click; fishing model lifecycle ended with the view");
+                "Fish view popped; shared OneLevelLayer is hidden and the gameplay frame remains outside it");
             Complete("COMPLETE: Fish 9/9 controls real-input /217 cycle passed; ready=54/33/1086/619/dir2/shape2000, gold=1000->900->800->700, collect=1, persistedCatch=1, stopped and exited");
         }
 

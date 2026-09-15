@@ -11,8 +11,8 @@ namespace ProjectX.UI
     public sealed class FishPresenter : IDisposable
     {
         private const string FishRootPath = "Layer/FishUI";
-        private const string BasketRootPath = "Layer/beibao_layer";
 
+        private readonly CocosUiView view;
         private readonly FishStore store;
         private readonly ResourceService resources;
         private readonly ShopCatalog items;
@@ -20,8 +20,9 @@ namespace ProjectX.UI
         private readonly Action stop;
         private readonly Action<ushort> collect;
         private readonly GameObject sceneRuntime;
-        private readonly CocosUiView basketView;
+        private readonly OneLevelFrameCoordinator oneLevelFrame;
         private readonly CocosUiView oneLevelView;
+        private readonly GameObject basketRoot;
         private readonly GameObject basketViewportObject;
         private readonly GameObject basketRowTemplate;
         private readonly RectTransform basketContent;
@@ -32,9 +33,6 @@ namespace ProjectX.UI
         private readonly GameObject frameHelpButton;
         private readonly Text startLabel;
         private readonly Text basketButtonLabel;
-        private readonly Text detailName;
-        private readonly Text detailDescription;
-        private readonly Image detailIcon;
         private readonly Button startButton;
         private readonly Button collectButton;
         private readonly Image progressFill;
@@ -45,11 +43,17 @@ namespace ProjectX.UI
         private ushort selectedSlot = ushort.MaxValue;
         private bool moduleVisible;
 
-        public FishPresenter(CocosUiView view, FishStore store, ResourceService resources,
+        public FishPresenter(CocosUiView view, OneLevelFrameCoordinator oneLevelFrame,
+            FishStore store, ResourceService resources,
             ShopCatalog items, Action start, Action stop, Action<ushort> collect,
             Action close, Action help)
         {
             if (view == null || view.GameObject == null) throw new ArgumentNullException(nameof(view));
+            if (oneLevelFrame == null || oneLevelFrame.View?.GameObject == null)
+                throw new ArgumentNullException(nameof(oneLevelFrame));
+            this.view = view;
+            this.oneLevelFrame = oneLevelFrame;
+            oneLevelView = oneLevelFrame.View;
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -84,22 +88,11 @@ namespace ProjectX.UI
             progressFill.fillOrigin = 0;
 
             Transform gameplayFrame = view.GameObject.transform.parent;
-            Transform containerParent = gameplayFrame != null ? gameplayFrame.parent : null;
-            if (gameplayFrame == null || containerParent == null)
+            if (gameplayFrame == null || gameplayFrame.parent == null)
                 throw new InvalidOperationException("Fish UI requires the gameplay frame hierarchy.");
-            oneLevelView = UiPrefabLoader.Load("OneLevelLayer", containerParent);
             view.GameObject.transform.SetParent(oneLevelView.GameObject.transform, false);
             view.GameObject.transform.SetSiblingIndex(0);
-            gameplayFrame.SetParent(oneLevelView.GameObject.transform, false);
-            gameplayFrame.SetAsLastSibling();
-            basketView = UiPrefabLoader.Load("beibao", view.GameObject.transform);
-            basketView.GameObject.name = "FishBasketView";
             Normalize(oneLevelView.GameObject.transform);
-            Normalize(basketView.GameObject.transform);
-            Hide(oneLevelView, "Layer/Bg");
-            Hide(oneLevelView, "Layer/GoldCheck");
-            Hide(oneLevelView, "Layer/Panel_12/Bg/Btn_ListView");
-            Hide(oneLevelView, "Layer/Panel_12/SubBtnList");
             frameTitle = RequireText(oneLevelView, "Layer/Panel_12/Title/TitleName");
             ConfigureFrameTitle(frameTitle);
             frameHelpButton = Require(oneLevelView, "Layer/Panel_12/Title/TitleName/Button_1");
@@ -108,15 +101,14 @@ namespace ProjectX.UI
             {
                 if (IsBasketVisible) SetBasketVisible(false); else close();
             }, true);
-            basketViewportObject = Require(basketView, BasketRootPath + "/Bag/TableView");
-            basketRowTemplate = Require(basketView, BasketRootPath + "/Bag/ItemCell");
+            basketRoot = Require(view, FishRootPath + "/yulan");
+            basketViewportObject = Require(view, FishRootPath + "/yulan/ListView");
+            basketRowTemplate = Require(view, FishRootPath + "/yulan/Item");
             basketRowTemplate.SetActive(false);
             basketContent = ConfigureBasketScroll(basketViewportObject, out basketScroll);
-            detailName = RequireText(basketView, BasketRootPath + "/item/Namebg/Name");
-            detailDescription = RequireText(basketView, BasketRootPath + "/item/miaoshu/Content");
-            detailIcon = Require(basketView, BasketRootPath + "/item/Node/Icon").GetComponent<Image>();
-            collectButton = basketView.BindClick(BasketRootPath + "/item/Btn_use", CollectSelected, true);
-            RequireText(basketView, BasketRootPath + "/item/Btn_use/Text").text = "收获";
+            view.BindClick(FishRootPath + "/yulan/btn_Close", () => SetBasketVisible(false), true);
+            collectButton = view.BindClick(FishRootPath + "/yulan/btn_shouhuo", CollectSelected, true);
+            RequireText(view, FishRootPath + "/yulan/btn_shouhuo/Text").text = "收获";
             SetBasketVisible(false);
             SetModuleVisible(false);
 
@@ -128,18 +120,38 @@ namespace ProjectX.UI
         }
 
         public int RenderedSlotCount => basketSlotButtons.Count;
-        public bool IsBasketVisible => basketView.GameObject.activeSelf;
+        public bool IsBasketVisible => basketRoot.activeSelf;
+        public bool IsOuterFrameVisible => oneLevelView.Binding.Find("Layer/Panel_12")?.activeSelf == true;
         public ScrollRect BasketScroll => basketScroll;
+        public bool HasSourceBasketHierarchy => basketContent != null
+            && basketContent.name == "RuntimeFishBasketContent"
+            && basketContent.parent == basketViewportObject.transform
+            && basketRoot.transform.Find("ListView/RuntimeFishBasketContent") == basketContent
+            && view.GameObject.transform.Find("FishBasketView") == null;
+        public bool HasRenderableBasketQuantities
+        {
+            get
+            {
+                foreach (GameObject row in basketRows)
+                {
+                    Text value = row?.transform.Find("bg_Icon/Value")?.GetComponent<Text>();
+                    if (value == null || value.rectTransform.rect.width <= 0f
+                        || value.rectTransform.rect.height <= 0f) return false;
+                }
+                return basketRows.Count == basketSlotButtons.Count;
+            }
+        }
 
         public void SetModuleVisible(bool visible)
         {
             moduleVisible = visible;
-            if (!visible) basketView.SetVisible(false);
-            oneLevelView.SetVisible(true);
-            SetVisible(oneLevelView, "Layer/Panel_12", visible);
-            SetVisible(oneLevelView, "Layer/Bg", false);
-            SetVisible(oneLevelView, "Layer/GoldCheck", false);
-            if (!visible) return;
+            if (!visible)
+            {
+                basketRoot.SetActive(false);
+                oneLevelFrame.Apply(OneLevelFrameMode.Hidden);
+                return;
+            }
+            oneLevelFrame.Apply(OneLevelFrameMode.Fish);
             SetBasketVisible(false);
         }
 
@@ -148,8 +160,6 @@ namespace ProjectX.UI
             store.Changed -= Render;
             store.Caught -= HandleCaught;
             ClearBasketRows();
-            UiPrefabLoader.Release(basketView);
-            UiPrefabLoader.Release(oneLevelView);
             if (sceneRuntime != null) UnityEngine.Object.Destroy(sceneRuntime);
         }
 
@@ -221,14 +231,14 @@ namespace ProjectX.UI
         private void SetBasketVisible(bool visible)
         {
             visible = moduleVisible && visible;
-            basketView.SetVisible(visible);
-            oneLevelView.SetVisible(true);
-            SetVisible(oneLevelView, "Layer/Panel_12/BlackBg", visible);
-            SetVisible(oneLevelView, "Layer/Panel_12/Bg", visible);
-            SetVisible(oneLevelView, "Layer/Panel_12/Title/TitleName/Button_1", !visible);
+            basketRoot.SetActive(visible);
+            oneLevelFrame.Apply(!moduleVisible
+                ? OneLevelFrameMode.Hidden
+                : visible ? OneLevelFrameMode.FishBasket : OneLevelFrameMode.Fish);
+            SetVisible(oneLevelView, "Layer/Panel_12/Title/TitleName/Button_1", true);
             if (!moduleVisible) return;
             oneLevelView.GameObject.transform.SetAsLastSibling();
-            if (visible) basketView.GameObject.transform.SetAsLastSibling();
+            if (visible) basketRoot.transform.SetAsLastSibling();
             RenderHeader();
             Canvas.ForceUpdateCanvases();
         }
@@ -305,15 +315,15 @@ namespace ProjectX.UI
             RectTransform templateRect = basketRowTemplate.GetComponent<RectTransform>();
             float rowHeight = Mathf.Max(1f,
                 templateRect.rect.height > 0 ? templateRect.rect.height : templateRect.sizeDelta.y);
-            int rowCount = Mathf.Max(1, Mathf.CeilToInt(slots.Count / 5f));
-            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
-                CreateBasketRow(slots, rowIndex, rowHeight);
+            int rowCount = slots.Count;
+            for (int rowIndex = 0; rowIndex < slots.Count; rowIndex++)
+                CreateBasketRow(slots[rowIndex], rowIndex, rowHeight);
             basketContent.sizeDelta = new Vector2(basketContent.sizeDelta.x, rowCount * rowHeight);
             UpdateBasketSelection();
-            ShowSelectedDetails(slots);
+            collectButton.interactable = selectedSlot != ushort.MaxValue;
         }
 
-        private void CreateBasketRow(IReadOnlyList<FishBasketSlot> slots, int rowIndex, float rowHeight)
+        private void CreateBasketRow(FishBasketSlot slot, int rowIndex, float rowHeight)
         {
             GameObject row = UnityEngine.Object.Instantiate(basketRowTemplate, basketContent, false);
             row.name = $"Row_{rowIndex + 1}";
@@ -324,65 +334,29 @@ namespace ProjectX.UI
             rowRect.anchoredPosition = new Vector2(0f, -rowIndex * rowHeight);
             basketRows.Add(row);
 
-            for (int column = 0; column < 5; column++)
+            RewardRecord item = items.DescribeServerReward(slot.ItemId, 0, slot.Quantity);
+            Text name = row.transform.Find("Name")?.GetComponent<Text>();
+            if (name != null)
             {
-                Transform slotNode = row.transform.Find($"Item{column + 1}");
-                if (slotNode == null) continue;
-                int itemIndex = rowIndex * 5 + column;
-                bool occupied = itemIndex < slots.Count;
-                slotNode.gameObject.SetActive(occupied);
-                if (!occupied) continue;
-
-                FishBasketSlot slot = slots[itemIndex];
-                RewardRecord item = items.DescribeServerReward(slot.ItemId, 0, slot.Quantity);
-                Text name = slotNode.Find("Name")?.GetComponent<Text>();
-                if (name != null)
-                {
-                    name.text = item.Name;
-                    name.color = QualityColor(item.Quality);
-                }
-                ApplyIcon(slotNode.Find("Icon")?.GetComponent<Image>(),
-                    item.Picture > 0 ? item.Picture : slot.ItemId);
-                ApplyQuality(slotNode, item.Quality);
-                AddQuantityLabel(slotNode, slotNode.Find("Icon"), slot.Quantity);
-                Button button = ConfigureItemHitArea(slotNode);
-                ushort capturedSlot = slot.SlotIndex;
-                button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() =>
-                {
-                    selectedSlot = capturedSlot;
-                    UpdateBasketSelection();
-                    ShowSelectedDetails(store.Slots);
-                });
-                basketSlotButtons[slot.SlotIndex] = button;
+                name.text = item.Name;
+                name.color = QualityColor(item.Quality);
             }
-        }
-
-        private void ShowSelectedDetails(IReadOnlyCollection<FishBasketSlot> slots)
-        {
-            FishBasketSlot selected = default;
-            bool found = false;
-            foreach (FishBasketSlot slot in slots)
+            Transform iconRoot = row.transform.Find("bg_Icon");
+            ApplyIcon(iconRoot?.Find("Icon")?.GetComponent<Image>(),
+                item.Picture > 0 ? item.Picture : slot.ItemId);
+            Image qualityFrame = iconRoot?.GetComponent<Image>();
+            if (qualityFrame != null) ItemQualityVisual.ApplyFrame(qualityFrame, item.Quality, resources);
+            Text quantity = iconRoot?.Find("Value")?.GetComponent<Text>();
+            if (quantity != null) quantity.text = slot.Quantity.ToString();
+            Button button = ConfigureItemHitArea(row.transform);
+            ushort capturedSlot = slot.SlotIndex;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
             {
-                if (slot.SlotIndex != selectedSlot) continue;
-                selected = slot;
-                found = true;
-                break;
-            }
-            if (!found)
-            {
-                detailName.text = "鱼篓为空";
-                detailDescription.text = "暂无鱼类";
-                detailIcon.enabled = false;
-                collectButton.interactable = false;
-                return;
-            }
-            RewardRecord item = items.DescribeServerReward(selected.ItemId, 0, selected.Quantity);
-            detailName.text = item.Name;
-            detailName.color = QualityColor(item.Quality);
-            detailDescription.text = $"当前格数量：{selected.Quantity}/{store.StackLimit}\n点击收获可取出这一格。";
-            ApplyIcon(detailIcon, item.Picture > 0 ? item.Picture : selected.ItemId);
-            collectButton.interactable = true;
+                selectedSlot = capturedSlot;
+                UpdateBasketSelection();
+            });
+            basketSlotButtons[slot.SlotIndex] = button;
         }
 
         private void UpdateBasketSelection()
@@ -409,42 +383,6 @@ namespace ProjectX.UI
             image.enabled = sprite != null;
             image.preserveAspect = true;
             image.raycastTarget = false;
-        }
-
-        private void ApplyQuality(Transform slot, int quality)
-        {
-            Transform icon = slot.Find("Icon");
-            if (icon == null) return;
-            GameObject qualityObject = new GameObject("RuntimeQuality", typeof(RectTransform),
-                typeof(CanvasRenderer), typeof(Image));
-            qualityObject.transform.SetParent(slot, false);
-            RectTransform source = icon.GetComponent<RectTransform>();
-            RectTransform rect = qualityObject.GetComponent<RectTransform>();
-            CopyRect(source, rect);
-            Image image = qualityObject.GetComponent<Image>();
-            image.sprite = resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}");
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-            qualityObject.transform.SetSiblingIndex(icon.GetSiblingIndex());
-        }
-
-        private static void AddQuantityLabel(Transform slot, Transform icon, int quantity)
-        {
-            GameObject labelObject = new GameObject("RuntimeQuantity", typeof(RectTransform),
-                typeof(CanvasRenderer), typeof(Text), typeof(Outline));
-            labelObject.transform.SetParent(slot, false);
-            RectTransform source = icon?.GetComponent<RectTransform>();
-            if (source != null) CopyRect(source, labelObject.GetComponent<RectTransform>());
-            Text label = labelObject.GetComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontSize = 17;
-            label.alignment = TextAnchor.LowerRight;
-            label.color = Color.white;
-            label.text = quantity.ToString();
-            label.raycastTarget = false;
-            Outline outline = labelObject.GetComponent<Outline>();
-            outline.effectColor = Color.black;
-            outline.effectDistance = new Vector2(1f, -1f);
         }
 
         private static Button ConfigureItemHitArea(Transform slot)
@@ -521,16 +459,6 @@ namespace ProjectX.UI
             rect.anchoredPosition = anchoredPosition;
             rect.sizeDelta = sizeDelta;
             return rect;
-        }
-
-        private static void CopyRect(RectTransform source, RectTransform target)
-        {
-            target.anchorMin = source.anchorMin;
-            target.anchorMax = source.anchorMax;
-            target.pivot = source.pivot;
-            target.anchoredPosition = source.anchoredPosition;
-            target.sizeDelta = source.sizeDelta;
-            target.localScale = source.localScale;
         }
 
         private static GameObject Require(CocosUiView view, string path) =>

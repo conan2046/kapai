@@ -16,7 +16,6 @@ namespace ProjectX.Core
         public const string JingJieHeadPath = "Layer/Main_UI/Head";
         private LuaFunction onJingJieClicked;
         private LuaFunction onJingJieUpgrade;
-        private CocosUiView jingJieFrameView;
         private CocosUiView jingJieView;
         private CocosUiView jingJiePreviewView;
         private JingJieRenderBridge jingJieRenderBridge;
@@ -69,7 +68,7 @@ namespace ProjectX.Core
                 RecordValidationSemantic("jingjie-authoritative-goldcheck", true, currencyDetail);
                 yield return CaptureJingJieFrame("jingjie-main.png");
 
-                Button frameClose = jingJieFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                Button frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemRaycastClick(frameClose) || IsJingJieOpen)
                 {
                     Fail("JingJie frame close did not return to HUD through EventSystem.");
@@ -278,7 +277,7 @@ namespace ProjectX.Core
 
         private bool ValidateJingJieCurrencyHeader(out string detail)
         {
-            CocosUiBinding binding = jingJieFrameView?.Binding;
+            CocosUiBinding binding = oneLevelFrameView?.Binding;
             if (binding == null || services == null)
             {
                 detail = "shared OneLevelLayer or services are unavailable";
@@ -302,10 +301,10 @@ namespace ProjectX.Core
             EnsureJingJieBridge();
             HideOtherOneLevelChildren();
             ConfigureJingJieFrame();
-            jingJieFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             jingJieRenderBridge.Show();
-            jingJieFrameView.GameObject.transform.SetAsLastSibling();
-            if (services.UiStack.Current != jingJieFrameView) services.UiStack.Push(jingJieFrameView);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
             SetStatus(services.JingJie.HasAuthoritativeState
                 ? $"JingJie UI active: current={services.JingJie.CurrentId}."
                 : "JingJie UI active: awaiting /306 op=1 authority.");
@@ -356,7 +355,7 @@ namespace ProjectX.Core
                 jingJieRenderBridge.HidePreview();
                 return true;
             }
-            if (!IsJingJieOpen || services?.UiStack.Current != jingJieFrameView) return false;
+            if (!IsJingJieOpen || services?.UiStack.Current != oneLevelFrameView) return false;
             jingJieRenderBridge.Hide();
             return PopUiStackWithHudRefresh();
         }
@@ -364,20 +363,18 @@ namespace ProjectX.Core
         private void EnsureJingJieBridge()
         {
             if (jingJieRenderBridge != null) return;
-            jingJieFrameView = services.UiRouter.FindBySource("OneLevelLayer");
-            if (jingJieFrameView == null)
-                throw new InvalidOperationException("JingJie shared OneLevelLayer was not found.");
+            EnsureOneLevelFrame();
             jingJieView = services.UiRouter.FindBySource("zhujue/JingjieLayer")
-                ?? UiPrefabLoader.Load("JingjieLayer", jingJieFrameView.GameObject.transform);
+                ?? UiPrefabLoader.Load("JingjieLayer", oneLevelFrameView.GameObject.transform);
             jingJiePreviewView = services.UiRouter.FindBySource("zhujue/Jingjieyulan")
-                ?? UiPrefabLoader.Load("Jingjieyulan", jingJieFrameView.GameObject.transform);
+                ?? UiPrefabLoader.Load("Jingjieyulan", oneLevelFrameView.GameObject.transform);
             if (jingJieView == null || jingJiePreviewView == null)
                 throw new InvalidOperationException("JingJie imported Prefabs were not found.");
             jingJieConfig = jingJieConfig ?? new JingJieConfigData();
             jingJieRenderBridge = new JingJieRenderBridge(jingJieView, jingJiePreviewView,
                 services.JingJie, jingJieConfig, services.Player, services.Currencies, services.Bag,
                 services.Resources, RequestJingJieUpgrade, ShowJingJieMaterial, message => ShowToast(message, 2f));
-            jingJieFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
             jingJiePreviewView.SetVisible(false);
         }
 
@@ -391,7 +388,7 @@ namespace ProjectX.Core
 
         private void HideOtherOneLevelChildren()
         {
-            Transform frame = jingJieFrameView?.GameObject.transform;
+            Transform frame = oneLevelFrameView?.GameObject.transform;
             if (frame == null) return;
             foreach (Transform child in frame)
                 if (child.name.StartsWith("DynamicUi_", StringComparison.Ordinal)
@@ -402,7 +399,8 @@ namespace ProjectX.Core
 
         private void ConfigureJingJieFrame()
         {
-            CocosUiBinding binding = jingJieFrameView.Binding;
+            EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
+            CocosUiBinding binding = oneLevelFrameView.Binding;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {

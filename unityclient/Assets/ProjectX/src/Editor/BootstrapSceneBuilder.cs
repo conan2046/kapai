@@ -180,7 +180,7 @@ namespace ProjectX.Editor
             new PrefabSpec(MainPrefab, false),
             new PrefabSpec(MainCloudPrefab, false),
             new PrefabSpec(BackupMainPrefab, false),
-            new PrefabSpec(BagPrefab, false),
+            new PrefabSpec(BagPrefab, false, HeroFramePrefab),
             new PrefabSpec(BagInputPrefab, false),
             new PrefabSpec(BagGiftPrefab, false),
             new PrefabSpec(SettingsPrefab, false),

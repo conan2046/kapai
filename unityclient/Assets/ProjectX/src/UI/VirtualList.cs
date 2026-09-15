@@ -74,8 +74,24 @@ namespace ProjectX.UI
             return true;
         }
 
-        public void SetItems(IReadOnlyList<T> values)
+        public void ScrollToTop()
         {
+            if (scrollRect == null || content == null) return;
+            scrollRect.StopMovement();
+            scrollRect.verticalNormalizedPosition = 1f;
+            content.anchoredPosition = new Vector2(content.anchoredPosition.x, 0f);
+            RefreshVisible(true);
+        }
+
+        public void RefreshVisibleItems() => RefreshVisible(true);
+
+        public void SetItems(IReadOnlyList<T> values) => SetItems(values, false);
+
+        public void SetItemsPreservingScroll(IReadOnlyList<T> values) => SetItems(values, true);
+
+        private void SetItems(IReadOnlyList<T> values, bool preserveScrollPosition)
+        {
+            float previousOffset = content.anchoredPosition.y;
             items = values ?? Array.Empty<T>();
             content.sizeDelta = new Vector2(content.sizeDelta.x, items.Count * itemHeight);
             int visibleCount = Math.Max(1, Mathf.CeilToInt(Math.Max(viewport.rect.height, itemHeight * 5f) / itemHeight) + 2);
@@ -93,7 +109,11 @@ namespace ProjectX.UI
                 rows.Add(row);
             }
             for (int i = required; i < rows.Count; i++) rows[i].gameObject.SetActive(false);
-            content.anchoredPosition = new Vector2(content.anchoredPosition.x, 0f);
+            float maximumOffset = Math.Max(0f, content.rect.height - viewport.rect.height);
+            float targetOffset = preserveScrollPosition
+                ? Mathf.Clamp(previousOffset, 0f, maximumOffset)
+                : 0f;
+            content.anchoredPosition = new Vector2(content.anchoredPosition.x, targetOffset);
             lastFirstIndex = -1;
             RefreshVisible(true);
         }

@@ -20,6 +20,7 @@ namespace ProjectX.UI
         public const string FullScreenKey = "ProjectX.Settings.FullScreen";
 
         private readonly CocosUiView view;
+        private readonly OneLevelFrameCoordinator oneLevelFrame;
         private readonly CocosUiView frameView;
         private readonly CocosUiBinding binding;
         private readonly CocosUiBinding frameBinding;
@@ -50,13 +51,15 @@ namespace ProjectX.UI
         private bool simulatePersistenceUnavailable;
         private bool simulateAudioUnavailable;
 
-        public SettingsPresenter(CocosUiView view, CocosUiView frameView, PlayerStore player,
+        public SettingsPresenter(CocosUiView view, OneLevelFrameCoordinator oneLevelFrame,
+            PlayerStore player,
             CurrencyStore currencies, ResourceService resources, Action close, Action returnToLogin,
             Action<string> setStatus, bool singlePlayerMode = false, Action saveGame = null,
             Action exitGame = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
-            this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
+            this.oneLevelFrame = oneLevelFrame ?? throw new ArgumentNullException(nameof(oneLevelFrame));
+            frameView = oneLevelFrame.View;
             this.player = player ?? throw new ArgumentNullException(nameof(player));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
@@ -198,6 +201,7 @@ namespace ProjectX.UI
 
         private void ConfigureFrame(Action close)
         {
+            oneLevelFrame.Apply(OneLevelFrameMode.Standard);
             RectTransform root = frameBinding.transform as RectTransform;
             if (root != null)
             {
@@ -252,7 +256,7 @@ namespace ProjectX.UI
             {
                 closeButton = frameView.BindClick("Layer/Panel_12/Title/CloseBtn", () =>
                 {
-                    frameView.SetVisible(false);
+                    oneLevelFrame.SetVisible(false);
                     close();
                 }, true);
             }

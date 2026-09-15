@@ -210,7 +210,8 @@ namespace ProjectX.Core
         private CocosUiView mainView;
         private CocosUiView mainCloudView;
         private CocosUiView bagView;
-        private CocosUiView bagFrameView;
+        private CocosUiView oneLevelFrameView;
+        private OneLevelFrameCoordinator oneLevelFrameCoordinator;
         private CocosUiView bagInputView;
         private CocosUiView bagPopupFrameView;
         private CocosUiView bagGiftView;
@@ -253,7 +254,6 @@ namespace ProjectX.Core
         private float bagUseRewardCaptureUntil;
         private Coroutine bagUseRewardRoutine;
         private readonly List<List<RewardRecord>> pendingWorldSweepGroups = new List<List<RewardRecord>>();
-        private CocosUiView heroFrameView;
         private CocosUiView heroListView;
         private CocosUiView heroDetailView;
         private CocosUiView heroBagView;
@@ -736,7 +736,7 @@ namespace ProjectX.Core
                 .Select(pair => $"{pair.Key}: {pair.Value}").ToArray();
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
         public int RewardCount => services?.Rewards.Count ?? 0;
-        public bool IsHeroOpen => heroFrameView != null && services?.UiStack.Current == heroFrameView;
+        public bool IsHeroOpen => oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView;
         private bool IsHeroEquipmentSurfaceVisible => heroEquipmentListView?.GameObject.activeSelf == true
             || heroEquipmentDetailView?.GameObject.activeSelf == true
             || heroEquipmentChangeView?.GameObject.activeSelf == true
@@ -752,7 +752,7 @@ namespace ProjectX.Core
             || heroEquipmentAutoDivineView?.GameObject.activeSelf == true
             || heroEquipmentDivineEffectView?.GameObject.activeSelf == true;
         public bool IsHeroEquipmentOpen => IsHeroEquipmentSurfaceVisible
-            && heroFrameView != null && services?.UiStack.Current == heroFrameView;
+            && oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView;
         public int HeroEquipmentCount => services?.HeroEquipment.Count ?? 0;
         public int FaBaoCount => services?.FaBao.Count ?? 0;
         public int HeroEquipmentMissingIconCount => heroEquipmentPresenter?.MissingIconCount ?? 0;
@@ -1383,7 +1383,7 @@ namespace ProjectX.Core
                 gameplayView?.SetVisible(false);
                 heroListView?.SetVisible(true);
                 heroDetailView?.SetVisible(true);
-                heroFrameView?.SetVisible(true);
+                SetOneLevelFrameVisible(true);
                 ConfigureHeroFrame(false);
                 return true;
             }
@@ -1412,7 +1412,7 @@ namespace ProjectX.Core
                     RestoreHeroAfterEquipmentSlot();
                     return true;
                 }
-                heroFrameView?.SetVisible(false);
+                SetOneLevelFrameVisible(false);
                 return PopUiStackWithHudRefresh();
             }
             // World remains active underneath the Hero overlay, so this return
@@ -1461,7 +1461,7 @@ namespace ProjectX.Core
                 errorPresenter?.Hide();
                 rewardPresenter?.Hide();
                 RestoreShopFramePanel();
-                bagFrameView?.SetVisible(false);
+                SetOneLevelFrameVisible(false);
             }
             if (IsGameplayShopOpen)
             {
@@ -1481,9 +1481,9 @@ namespace ProjectX.Core
             if (IsBagOpen)
             {
                 bagFlowPresenter?.CloseAll();
-                bagFrameView?.SetVisible(false);
+                SetOneLevelFrameVisible(false);
             }
-            if (IsSettingsOpen) bagFrameView?.SetVisible(false);
+            if (IsSettingsOpen) SetOneLevelFrameVisible(false);
             bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;
             bool stackPopped = PopUiStackWithHudRefresh();
             if (stackPopped && restoreWorldFormation)
@@ -1604,7 +1604,7 @@ namespace ProjectX.Core
             mainView?.SetVisible(false);
             mainCloudView?.SetVisible(false);
             bagView?.SetVisible(false);
-            bagFrameView?.SetVisible(false);
+            SetOneLevelFrameVisible(false);
             bagInputView?.SetVisible(false);
             bagPopupFrameView?.SetVisible(false);
             bagGiftView?.SetVisible(false);
@@ -1617,7 +1617,7 @@ namespace ProjectX.Core
             resourceRecoveryView?.SetVisible(false);
             errorView?.SetVisible(false);
             loadingView?.SetVisible(false);
-            heroFrameView?.SetVisible(false);
+            SetOneLevelFrameVisible(false);
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
@@ -1722,7 +1722,7 @@ namespace ProjectX.Core
                 if (services.UiStack.Current != oldMemoryView)
                     services.UiStack.Push(oldMemoryView);
                 if (mode == SinglePlayerSaveMenuMode.SaveCurrent)
-                    bagFrameView?.SetVisible(false);
+                    SetOneLevelFrameVisible(false);
                 SetStatus(mode == SinglePlayerSaveMenuMode.NewGame
                     ? "New single-player role slot selection active."
                     : mode == SinglePlayerSaveMenuMode.SaveCurrent
@@ -1750,7 +1750,7 @@ namespace ProjectX.Core
             if (services?.UiStack.Current == oldMemoryView) services.UiStack.Pop();
             if (mode == SinglePlayerSaveMenuMode.SaveCurrent && settingsView != null
                 && services?.UiStack.Current == settingsView)
-                bagFrameView?.SetVisible(true);
+                SetOneLevelFrameVisible(true);
             SetStatus(mode == SinglePlayerSaveMenuMode.SaveCurrent
                 ? "System settings active."
                 : "Single-player title ready.");
@@ -1875,7 +1875,7 @@ namespace ProjectX.Core
                 EnsureSettingsPresenter();
                 oldMemoryPresenter?.Hide();
                 HideOneLevelChildPagesForSettings();
-                bagFrameView.SetVisible(true);
+                SetOneLevelFrameVisible(true);
                 settingsView.SetVisible(true);
                 settingsView.GameObject.transform.SetAsLastSibling();
                 settingsPresenter.RefreshForTitle();
@@ -2406,9 +2406,9 @@ namespace ProjectX.Core
             heroEquipmentStrengthView?.SetVisible(false);
             heroEquipmentFragmentView?.SetVisible(false);
             ConfigureMailFrame();
-            bagFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             if (services.UiStack.Current != mailView) services.UiStack.Push(mailView);
-            bagFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             mailView.GameObject.transform.SetAsLastSibling();
             SetStatus($"Mail UI active: {services.Mails.Count} mails.");
         }
@@ -2445,12 +2445,12 @@ namespace ProjectX.Core
             heroEquipmentCultivateView?.SetVisible(false);
             heroEquipmentStrengthView?.SetVisible(false);
             heroEquipmentFragmentView?.SetVisible(false);
-            bagFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             ConfigureShopFrame();
             if (services.UiStack.Current != shopView)
             {
                 services.UiStack.Push(shopView);
-                bagFrameView.GameObject.transform.SetAsLastSibling();
+                oneLevelFrameView.GameObject.transform.SetAsLastSibling();
                 shopView.GameObject.transform.SetAsLastSibling();
             }
             SetStatus($"Shop UI active: {services.Shop.Count} goods.");
@@ -4943,7 +4943,7 @@ namespace ProjectX.Core
         {
             EnsureSettingsPresenter();
             HideOneLevelChildPagesForSettings();
-            bagFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             settingsView.SetVisible(true);
             settingsView.GameObject.transform.SetAsLastSibling();
             settingsPresenter.Refresh();
@@ -4957,7 +4957,7 @@ namespace ProjectX.Core
             // pages keep activeSelf=true and become visible again when Settings
             // reuses the frame, so isolate the frame before enabling it.
             HideHeroCultivationForNavigation();
-            Transform frame = bagFrameView?.GameObject.transform;
+            Transform frame = oneLevelFrameView?.GameObject.transform;
             if (frame == null) return;
             foreach (Transform child in frame.Cast<Transform>())
             {
@@ -4985,7 +4985,7 @@ namespace ProjectX.Core
                 }
 
                 settingsPresenter.InvokeClose();
-                if (IsSettingsOpen || bagFrameView.GameObject.activeSelf)
+                if (IsSettingsOpen || oneLevelFrameView.GameObject.activeSelf)
                 {
                     Fail("Settings CloseBtn did not return to the main UI.");
                     return;
@@ -5501,7 +5501,7 @@ namespace ProjectX.Core
             heroAttributesView?.SetVisible(false);
             formationPopupView?.SetVisible(false);
 
-            Text title = heroFrameView?.Binding.Find(
+            Text title = oneLevelFrameView?.Binding.Find(
                 "Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             string cultivationTitle = heroEquipmentPresenter?.ActiveKind == HeroEquipmentKind.FaBao
                 ? "法宝"
@@ -5833,7 +5833,7 @@ namespace ProjectX.Core
             // Imported Prefabs can retain their serialized active state from the
             // last editor build. A real Bag entry must explicitly isolate itself
             // from every Hero surface before becoming the UiStack top.
-            heroFrameView?.SetVisible(false);
+            SetOneLevelFrameVisible(false);
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
@@ -5852,9 +5852,9 @@ namespace ProjectX.Core
             heroEquipmentFragmentView?.SetVisible(false);
             gameplayContentView?.SetVisible(false);
             gameplayDetailView?.SetVisible(false);
-            bagFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             if (services.UiStack.Current != bagView) services.UiStack.Push(bagView);
-            bagFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             bagView.GameObject.transform.SetAsLastSibling();
             if (pendingBagSelectionItemId > 0)
             {
@@ -6026,9 +6026,9 @@ namespace ProjectX.Core
             heroEquipmentPresenter.HideDetails();
             heroEquipmentFragmentView?.SetVisible(false);
             heroEquipmentListView?.SetVisible(true);
-            heroFrameView?.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             ConfigureHeroEquipmentFrame(HeroEquipmentKind.Equipment);
-            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             heroEquipmentListView?.GameObject.transform.SetAsLastSibling();
         }
 
@@ -6391,7 +6391,7 @@ namespace ProjectX.Core
                 && Time.realtimeSinceStartup < sourceDeadline) yield return null;
             if (!IsGameplayShopOpen || GameplayShopRenderedCount <= 0)
             { Fail("Bag G4 source action did not open populated migrated GameplayShops destination."); yield break; }
-            if (bagFrameView.GameObject.activeSelf || bagView.GameObject.activeSelf
+            if (oneLevelFrameView.GameObject.activeSelf || bagView.GameObject.activeSelf
                 || bagSourceView.GameObject.activeSelf || bagEquipmentInfoView.GameObject.activeSelf
                 || !bagPopupFrameView.GameObject.activeSelf)
             {
@@ -6402,7 +6402,7 @@ namespace ProjectX.Core
             HandleBack();
             yield return null;
             if (!IsBagOpen || IsBagSourceOpen || IsGameplayShopOpen
-                || !bagFrameView.GameObject.activeSelf || bagPopupFrameView.GameObject.activeSelf)
+                || !oneLevelFrameView.GameObject.activeSelf || bagPopupFrameView.GameObject.activeSelf)
             { Fail("Bag G4 source action did not return from GameplayShops to Bag cleanly."); yield break; }
 
             RecordValidationSemantic("bag-source-route-boundary", true,
@@ -6425,9 +6425,9 @@ namespace ProjectX.Core
             EnsureBagPresenter();
             ConfigureBagFrame();
             bagPresenter.Render();
-            bagFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             services.UiStack.Push(bagView);
-            bagFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             bagView.GameObject.transform.SetAsLastSibling();
             return IsBagOpen;
         }
@@ -7928,7 +7928,7 @@ namespace ProjectX.Core
                 restoreChatMiniAfterGameplayShop =
                     chatMiniView != null && chatMiniView.GameObject.activeSelf;
                 restoreBagFrameAfterGameplayShop = IsBagOpen
-                    && bagFrameView != null && bagFrameView.GameObject.activeSelf;
+                    && oneLevelFrameView != null && oneLevelFrameView.GameObject.activeSelf;
                 gameplayContentView = gameplayContentView
                     ?? services.UiRouter.FindBySource("common/ActivityLayer");
                 gameplayShopActivityLayer = gameplayContentView?.GameObject.transform;
@@ -7938,7 +7938,7 @@ namespace ProjectX.Core
             }
             chatMiniView?.SetVisible(false);
             gameplayContentView?.SetVisible(false);
-            if (restoreBagFrameAfterGameplayShop) bagFrameView?.SetVisible(false);
+            if (restoreBagFrameAfterGameplayShop) SetOneLevelFrameVisible(false);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
             CocosUiView target = gameplayShopsPresenter.ActiveView;
@@ -8209,7 +8209,7 @@ namespace ProjectX.Core
             shopPresenter.Render();
             yield return null;
             Text tab = shopView.Binding.Find("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
-            GameObject sharedPanel = bagFrameView.Binding.Find("Layer/Panel_12");
+            GameObject sharedPanel = oneLevelFrameView.Binding.Find("Layer/Panel_12");
             Button runtimeClose = shopRuntimeCloseButton?.GetComponent<Button>();
             RecordValidationSemantic("shop-frame-panel-hidden", sharedPanel != null && !sharedPanel.activeSelf,
                 $"panel={sharedPanel?.activeSelf}");
@@ -8460,7 +8460,7 @@ namespace ProjectX.Core
             { Fail("Shop G4 reward close control failed."); yield break; }
             MarkValidationControl("SHOP-21-REWARD-CLOSE");
 
-            Button headerCoin = bagFrameView.Binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
+            Button headerCoin = oneLevelFrameView.Binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
             if (headerCoin == null || !headerCoin.interactable)
             { Fail("Shop G4 header coin add was not bound."); yield break; }
             if (!InvokeEventSystemRaycastClick(headerCoin))
@@ -8757,8 +8757,8 @@ namespace ProjectX.Core
                 SetHeroFramePageVisibility(!showBag, !showBag, showBag, false, false);
                 ConfigureHeroFrame(showBag);
             }
-            heroFrameView.GameObject.transform.SetAsLastSibling();
-            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
             SetStatus(showBag
                 ? $"Hero bag UI active: {services.Heroes.Count} heroes."
                 : $"Hero formation UI active: {services.Heroes.Count} heroes, formation={services.Formation.ActiveFormationId}.");
@@ -8943,11 +8943,11 @@ namespace ProjectX.Core
         public bool InvokeHeroCloseForValidation()
         {
             if (!IsHeroOpen) return true;
-            Button close = RequireBoundButton(heroFrameView, "Layer/Panel_12/Title/CloseBtn", "hero close");
+            Button close = RequireBoundButton(oneLevelFrameView, "Layer/Panel_12/Title/CloseBtn", "hero close");
             if (!InvokeEventSystemClick(close)) return false;
             if (!IsHeroOpen)
             {
-                heroFrameView?.SetVisible(false);
+                SetOneLevelFrameVisible(false);
                 heroListView?.SetVisible(false);
                 heroDetailView?.SetVisible(false);
                 heroBagView?.SetVisible(false);
@@ -9081,7 +9081,7 @@ namespace ProjectX.Core
                 yield break;
             }
             yield return CaptureHeroG5Evidence("HERO-06-CULTIVATE");
-            if (!InvokeHeroPointer(heroFrameView, "Layer/Panel_12/Title/CloseBtn", "cultivation return")) yield break;
+            if (!InvokeHeroPointer(oneLevelFrameView, "Layer/Panel_12/Title/CloseBtn", "cultivation return")) yield break;
             if (heroCultivationView?.GameObject.activeSelf == true || heroLevelUpView?.GameObject.activeSelf == true)
             {
                 Fail("Hero G4 cultivation return did not restore the formation view.");
@@ -9504,9 +9504,9 @@ namespace ProjectX.Core
             }
             heroBagView?.SetVisible(false);
             heroEquipmentFragmentView?.SetVisible(false);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
-            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
             if (requestedSlot > 0)
             {
                 heroEquipmentOpenedFromHeroDetails = true;
@@ -9523,7 +9523,7 @@ namespace ProjectX.Core
                 heroEquipmentPresenter.Show(formationPosition, displayKind);
                 heroEquipmentListView.GameObject.transform.SetAsLastSibling();
             }
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             SetStatus($"Hero equipment UI active: equipment={services.HeroEquipment.Count}, fabao={services.FaBao.Count}.");
         }
 
@@ -9637,10 +9637,10 @@ namespace ProjectX.Core
                 yield break;
             }
 
-            if (services.UiStack.Current == heroFrameView
+            if (services.UiStack.Current == oneLevelFrameView
                 || services.UiStack.Current?.GameObject?.name == "OneLevelLayer")
             {
-                Button initialClose = heroFrameView?.Binding.Find(
+                Button initialClose = oneLevelFrameView?.Binding.Find(
                     "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(initialClose))
                 { Fail("HeroEquip G5 visual runner could not close the bootstrap equipment frame."); yield break; }
@@ -9725,7 +9725,7 @@ namespace ProjectX.Core
             yield return null;
             yield return CaptureHeroEquipmentG5State("g1-equipment-pieces-empty.png");
 
-            Button frameClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(frameClose))
             { Fail("HeroEquip G5 visual equipment frame did not close."); yield break; }
             yield return null;
@@ -9733,7 +9733,7 @@ namespace ProjectX.Core
             // subpage to the equipment list. A second real close leaves the module.
             if (IsHeroEquipmentOpen)
             {
-                frameClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(frameClose))
                 { Fail("HeroEquip G5 visual equipment list did not close after returning from fragments."); yield break; }
             }
@@ -9786,10 +9786,10 @@ namespace ProjectX.Core
             int divineLevelBefore = divineBefore.GetLevel(4);
             FaBaoRecord[] faBaoBefore = services.FaBao.Items.OrderBy(value => value.Uid).ToArray();
 
-            if (services.UiStack.Current == heroFrameView
+            if (services.UiStack.Current == oneLevelFrameView
                 || services.UiStack.Current?.GameObject?.name == "OneLevelLayer")
             {
-                Button bootstrapFrameClose = heroFrameView?.Binding.Find(
+                Button bootstrapFrameClose = oneLevelFrameView?.Binding.Find(
                     "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(bootstrapFrameClose))
                 { Fail("HeroEquip G4 could not close the bootstrap-opened OneLevelLayer through EventSystem."); yield break; }
@@ -9828,12 +9828,12 @@ namespace ProjectX.Core
             while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsHeroEquipmentOpen) { Fail("HeroEquip G4 equipment bag did not open."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-equipment-bag.png");
-            Button equipmentTab = heroFrameView.Binding.Find(
+            Button equipmentTab = oneLevelFrameView.Binding.Find(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.GetComponent<Button>();
             if (equipmentTab == null || equipmentTab.interactable)
             { Fail("HeroEquip G4 selected equipment tab state was not source-equivalent."); yield break; }
             MarkValidationControl("HE-04-EQUIPMENT-BAG-TAB");
-            Button equipmentHelp = heroFrameView.Binding.Find(
+            Button equipmentHelp = oneLevelFrameView.Binding.Find(
                 "Layer/Panel_12/Title/TitleName/Button_1")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentHelp) || !IsErrorVisible)
             { Fail("HeroEquip G4 equipment help EventSystem input did not open the real help dialog."); yield break; }
@@ -10325,7 +10325,7 @@ namespace ProjectX.Core
             for (int tab = 0; tab < cultivateTabIds.Length; tab++)
             {
                 string tabName = tab == 0 ? "Button1" : $"Button{tab + 1}_StrengthRuntime";
-                Button tabButton = heroFrameView.Binding.Find(
+                Button tabButton = oneLevelFrameView.Binding.Find(
                     $"Layer/Panel_12/Bg/Btn_ListView/Panel_10/{tabName}")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(tabButton))
                 { Fail($"HeroEquip G4 cultivate tab EventSystem input unavailable: {cultivateTabIds[tab]}"); yield break; }
@@ -10365,13 +10365,13 @@ namespace ProjectX.Core
             }
             yield return null;
             if (IsGameplayShopOpen || !IsToastVisible || heroItemSourceView.GameObject.activeSelf
-                || !heroEquipmentFragmentView.GameObject.activeSelf || !heroFrameView.GameObject.activeSelf)
+                || !heroEquipmentFragmentView.GameObject.activeSelf || !oneLevelFrameView.GameObject.activeSelf)
             {
                 Fail("HeroEquip G4 excluded functionId=17 source did not preserve the fragment flow with deferred feedback.");
                 yield break;
             }
             MarkValidationControl("HE-78-SOURCE-DYNAMIC-TARGET");
-            Button equipmentFrameClose = heroFrameView.Binding.Find(
+            Button equipmentFrameClose = oneLevelFrameView.Binding.Find(
                 "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentFrameClose))
             { Fail("HeroEquip G4 source return could not close the restored equipment frame."); yield break; }
@@ -10390,7 +10390,7 @@ namespace ProjectX.Core
                 Fail($"HeroEquip G4 could not reopen the wear submenu for FaBao isolation: "
                     + $"main={mainView.GameObject.activeSelf}, wearToggle={wearToggle != null}, "
                     + $"toggleActive={wearToggle?.gameObject.activeInHierarchy}, menu={wearMenu?.activeInHierarchy}, "
-                    + $"frame={heroFrameView.GameObject.activeSelf}, stack={services.UiStack.Current?.GameObject?.name}.");
+                    + $"frame={oneLevelFrameView.GameObject.activeSelf}, stack={services.UiStack.Current?.GameObject?.name}.");
                 yield break;
             }
             yield return null;
@@ -10402,18 +10402,18 @@ namespace ProjectX.Core
             while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsHeroEquipmentOpen)
             { Fail("HeroEquip G4 FaBao sibling bag did not open."); yield break; }
-            Button faBaoTab = heroFrameView.Binding.Find(
+            Button faBaoTab = oneLevelFrameView.Binding.Find(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.GetComponent<Button>();
             if (faBaoTab == null || faBaoTab.interactable)
             { Fail("HeroEquip G4 selected FaBao tab state was not source-equivalent."); yield break; }
             MarkValidationControl("HE-11-FABAO-BAG-TAB");
-            GameObject faBaoFragmentTab = heroFrameView.Binding.Find(
+            GameObject faBaoFragmentTab = oneLevelFrameView.Binding.Find(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime");
             if (faBaoFragmentTab == null || faBaoFragmentTab.activeInHierarchy)
             { Fail("HeroEquip G4 excluded FaBao fragment tab was not hidden."); yield break; }
             MarkValidationControl("HE-12-FABAO-FRAGMENT-TAB");
             MarkValidationControl("HE-15-FABAO-FRAGMENT-ACTIONS-DEFERRED");
-            Button faBaoHelp = heroFrameView.Binding.Find(
+            Button faBaoHelp = oneLevelFrameView.Binding.Find(
                 "Layer/Panel_12/Title/TitleName/Button_1")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(faBaoHelp) || !IsErrorVisible)
             { Fail("HeroEquip G4 FaBao help EventSystem input did not open the real help dialog."); yield break; }
@@ -10425,7 +10425,7 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(faBaoListItem) || !heroEquipmentPresenter.IsDetailVisible)
             { Fail("HeroEquip G4 FaBao list item did not open detail through EventSystem."); yield break; }
             MarkValidationControl("HE-14-FABAO-LIST-ITEM");
-            Button frameClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(frameClose))
             { Fail("HeroEquip G4 equipment frame close EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-03-BAG-CLOSE");
@@ -10438,7 +10438,7 @@ namespace ProjectX.Core
                 Fail("HeroEquip G4 formation entry for six-slot boundary was unavailable: "
                     + $"button={formationEntry != null}, active={formationEntry?.gameObject.activeInHierarchy}, "
                     + $"interactable={formationEntry?.interactable}, main={mainView?.GameObject.activeSelf}, "
-                    + $"heroFrame={heroFrameView?.GameObject.activeSelf}, equipmentList={heroEquipmentListView?.GameObject.activeSelf}, "
+                    + $"heroFrame={oneLevelFrameView?.GameObject.activeSelf}, equipmentList={heroEquipmentListView?.GameObject.activeSelf}, "
                     + $"equipmentDetail={heroEquipmentDetailView?.GameObject.activeSelf}, stack={services.UiStack.Current?.GameObject?.name}.");
                 yield break;
             }
@@ -10455,7 +10455,7 @@ namespace ProjectX.Core
                     Fail($"HeroEquip G4 hero slot {slot} EventSystem input unavailable: "
                         + $"button={slotButton != null}, active={slotButton?.gameObject.activeInHierarchy}, "
                         + $"interactable={slotButton?.interactable}, heroDetail={heroDetailView.GameObject.activeSelf}, "
-                        + $"frame={heroFrameView.GameObject.activeSelf}, source={heroItemSourceView?.GameObject.activeSelf}, "
+                        + $"frame={oneLevelFrameView.GameObject.activeSelf}, source={heroItemSourceView?.GameObject.activeSelf}, "
                         + $"stack={services.UiStack.Current?.GameObject?.name}.");
                     yield break;
                 }
@@ -10488,7 +10488,7 @@ namespace ProjectX.Core
                 }
                 else if (IsHeroEquipmentOpen)
                 {
-                    Button slotFrameClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                    Button slotFrameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                     if (!InvokeEventSystemClick(slotFrameClose))
                     { Fail($"HeroEquip G4 hero slot {slot} could not return through frame close."); yield break; }
                     yield return null;
@@ -10500,12 +10500,12 @@ namespace ProjectX.Core
                         + $"openedFromHero={heroEquipmentOpenedFromHeroDetails}, equipmentSurface={IsHeroEquipmentSurfaceVisible}, "
                         + $"change={heroEquipmentChangeView?.GameObject.activeSelf}, detail={heroEquipmentDetailView?.GameObject.activeSelf}, "
                         + $"list={heroEquipmentListView?.GameObject.activeSelf}, source={heroItemSourceView?.GameObject.activeSelf}, "
-                        + $"frame={heroFrameView?.GameObject.activeSelf}, stack={services.UiStack.Current?.GameObject?.name}.");
+                        + $"frame={oneLevelFrameView?.GameObject.activeSelf}, stack={services.UiStack.Current?.GameObject?.name}.");
                     yield break;
                 }
             }
 
-            Button finalHeroClose = heroFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button finalHeroClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(finalHeroClose))
             { Fail("HeroEquip G4 final hero-detail close EventSystem input unavailable."); yield break; }
             deadline = Time.realtimeSinceStartup + 8f;
@@ -11520,7 +11520,7 @@ namespace ProjectX.Core
             multiShopView?.SetVisible(false);
             if (!preserveBagForScenario)
             {
-                bagFrameView?.SetVisible(false);
+                SetOneLevelFrameVisible(false);
                 bagView?.SetVisible(false);
             }
             services.HeroEquipment.Clear();
@@ -12365,9 +12365,9 @@ namespace ProjectX.Core
             MarkValidationControl("MAIL-09-ATTACHMENT-DETAIL");
             yield return CaptureMailValidationScreenshot("bootstrap-mail-detail.png");
             bagFlowPresenter.CloseAll();
-            bagFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             mailView.SetVisible(true);
-            bagFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             mailView.GameObject.transform.SetAsLastSibling();
             InvokeLuaOrFail(onMailValidationClaim, "Mail.ValidationClaim", (double)mailId);
         }
@@ -13556,14 +13556,14 @@ namespace ProjectX.Core
         private void EnsureBagPresenter()
         {
             bagView = bagView ?? services.UiRouter.FindBySource("zhujue/beibao");
-            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            EnsureOneLevelFrame();
             bagInputView = bagInputView ?? services.UiRouter.FindBySource("EnterNumLayer");
             bagPopupFrameView = bagPopupFrameView ?? services.UiRouter.FindBySource("shop/shop_bg");
             bagGiftView = bagGiftView ?? services.UiRouter.FindBySource("common/OpenBox_1Layer");
             bagSourceView = bagSourceView ?? services.UiRouter.FindBySource("common/huoqutujing");
             bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")
                 ?? UiPrefabLoader.Load("HeroEquipmentDetail", GetDynamicUiRoot());
-            if (bagView == null || bagFrameView == null || bagInputView == null || bagPopupFrameView == null
+            if (bagView == null || oneLevelFrameView == null || bagInputView == null || bagPopupFrameView == null
                 || bagGiftView == null || bagSourceView == null || bagEquipmentInfoView == null)
                 throw new InvalidOperationException("Bag required CocosUiBinding was not found.");
             bagFlowPresenter = bagFlowPresenter ?? new BagFlowPresenter(
@@ -13579,7 +13579,7 @@ namespace ProjectX.Core
                 HandleBagSourceRoute,
                 CanOpenBagSource,
                 SetStatus);
-            bagPresenter = bagPresenter ?? new BagPresenter(bagView, bagFrameView, services.Bag, services.Resources,
+            bagPresenter = bagPresenter ?? new BagPresenter(bagView, oneLevelFrameView, services.Bag, services.Resources,
                 item =>
                 {
                     bagFlowPresenter.ShowUseFlow(item);
@@ -13589,7 +13589,7 @@ namespace ProjectX.Core
                 () =>
                 {
                     bagFlowPresenter.CloseAll();
-                    bagFrameView.SetVisible(false);
+                    SetOneLevelFrameVisible(false);
                     HandleBack();
                 });
         }
@@ -13597,7 +13597,7 @@ namespace ProjectX.Core
         private void CloseBagForItemJump()
         {
             bagFlowPresenter?.CloseAll();
-            bagFrameView?.SetVisible(false);
+            SetOneLevelFrameVisible(false);
             if (services?.UiStack.Current == bagView)
                 services.UiStack.Pop();
             else
@@ -13644,10 +13644,10 @@ namespace ProjectX.Core
         private void EnsureSettingsPresenter()
         {
             settingsView = settingsView ?? services.UiRouter.FindBySource("zhujue/SystemLayer");
-            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
-            if (settingsView == null || bagFrameView == null)
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
+            if (settingsView == null || oneLevelFrameView == null)
                 throw new InvalidOperationException("Settings SystemLayer/OneLevelLayer CocosUiBinding was not found.");
-            settingsPresenter = settingsPresenter ?? new SettingsPresenter(settingsView, bagFrameView,
+            settingsPresenter = settingsPresenter ?? new SettingsPresenter(settingsView, frame,
                 services.Player, services.Currencies, services.Resources, () => HandleBack(), ReturnToLogin,
                 SetStatus, singlePlayerTitleEnabled,
                 () => ShowSinglePlayerSaves(SinglePlayerSaveMenuMode.SaveCurrent), ExitApplication);
@@ -13663,18 +13663,18 @@ namespace ProjectX.Core
 
         private void EnsureHeroPresenter()
         {
-            heroFrameView = heroFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            EnsureOneLevelFrame();
             heroListView = heroListView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongListLayer");
             heroDetailView = heroDetailView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongInfoLayer");
             heroBagView = heroBagView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongbeibao");
-            if (heroFrameView == null || heroListView == null || heroDetailView == null || heroBagView == null)
+            if (oneLevelFrameView == null || heroListView == null || heroDetailView == null || heroBagView == null)
                 throw new InvalidOperationException("Hero frame/formation/bag CocosUiBindings were not found.");
             heroPresenter = heroPresenter ?? new HeroPresenter(heroListView, heroDetailView, heroBagView,
                 services.Heroes, services.Formation, services.Player, services.HeroEquipment, services.FaBao,
                 services.Resources, ShowHeroReplacement, ShowHeroCultivation, ShowHeroEnhanceMaster,
                 ShowHeroEquipmentSlot, ShowHeroAttributes,
                 id => InvokeLuaOrFail(onHeroSelected, "Hero.Select", id), message => ShowToast(message, 2f));
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
             heroBagView.BindClick("Layer/yingxiongbeibaoUI/cell", ShowHeroBook, true);
             heroBagView.BindClick("Layer/yingxiongbeibaoUI/recycle", () => ShowHeroRecycle(true), true);
@@ -13717,10 +13717,10 @@ namespace ProjectX.Core
             heroReplacementView = heroReplacementView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxionghuanjiang");
             if (heroReplacementView == null)
                 throw new InvalidOperationException("Hero replacement CocosUiBinding was not found.");
-            heroFrameView?.SetVisible(true);
-            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             ConfigureHeroFrame(false);
-            Text replacementTitle = heroFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text replacementTitle = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (replacementTitle != null) replacementTitle.text = string.Empty;
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
@@ -13978,13 +13978,13 @@ namespace ProjectX.Core
                     heroCultivationHelpFrameView = new CocosUiView(dedicatedBinding);
                 }
             }
-            CocosUiView[] required = { heroFrameView, heroCultivationView, heroLevelUpView,
+            CocosUiView[] required = { oneLevelFrameView, heroCultivationView, heroLevelUpView,
                 heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView, heroInfoView,
                 heroCultivationTalentView, heroCultivationHelpFirstView, heroCultivationHelpSecondView,
                 heroCultivationAttributeView, heroCultivationNumberView, heroCultivationHelpFrameView };
             if (required.Any(view => view == null))
                 throw new InvalidOperationException("Hero cultivation G3 CocosUiBindings were not found.");
-            heroCultivationPresenter = new HeroCultivationPresenter(heroFrameView, heroCultivationView,
+            heroCultivationPresenter = new HeroCultivationPresenter(oneLevelFrameView, heroCultivationView,
                 heroLevelUpView, heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView,
                 heroInfoView, heroCultivationTalentView, heroCultivationHelpFirstView,
                 heroCultivationHelpSecondView, heroCultivationAttributeView, heroCultivationNumberView,
@@ -14008,7 +14008,7 @@ namespace ProjectX.Core
             bool returnToBag = pendingHeroEntry == HeroEntry.Bag;
             SetHeroFramePageVisibility(!returnToBag, !returnToBag, returnToBag, false, false);
             ConfigureHeroFrame(returnToBag);
-            heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
         }
 
         public void RunEnhanceMasterG3Validation()
@@ -14159,7 +14159,7 @@ namespace ProjectX.Core
             heroEquipmentOpenedFromHeroDetails = true;
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
-            heroFrameView?.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             Complete($"COMPLETE: EnhanceMaster G3 40/40 controls; six master tabs, equipment four modes, FaBao two modes and material scroll; user={GetLocalUserId()} role={GetPlayerRoleId()}");
         }
 
@@ -14186,7 +14186,7 @@ namespace ProjectX.Core
             heroCultivationPresenter?.Hide();
             heroCultivationView?.SetVisible(false);
             heroLevelUpView?.SetVisible(false);
-            Transform panel = heroFrameView?.Binding.Find(
+            Transform panel = oneLevelFrameView?.Binding.Find(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             if (panel == null) return;
             foreach (Transform tab in panel.Cast<Transform>()
@@ -14489,8 +14489,8 @@ namespace ProjectX.Core
             EnsureHeroEquipmentPresenter();
             heroEnhanceMasterView?.SetVisible(false);
             gameplayView?.SetVisible(false);
-            heroFrameView?.SetVisible(true);
-            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             if (!heroEquipmentPresenter.PrepareCultivation(uid, formationPosition, kind, mode))
                 ShowToast("未找到对应养成对象", 2f);
         }
@@ -14700,6 +14700,23 @@ namespace ProjectX.Core
             if (target != null) target.SetActive(visible);
         }
 
+        private OneLevelFrameCoordinator EnsureOneLevelFrame()
+        {
+            if (oneLevelFrameCoordinator != null && oneLevelFrameCoordinator.View?.GameObject != null)
+                return oneLevelFrameCoordinator;
+            oneLevelFrameView = services.UiAssets.GetOrCreate("OneLevelLayer");
+            if (oneLevelFrameView == null || oneLevelFrameView.GameObject == null)
+                throw new InvalidOperationException("Shared OneLevelLayer was not found.");
+            oneLevelFrameCoordinator = new OneLevelFrameCoordinator(oneLevelFrameView);
+            return oneLevelFrameCoordinator;
+        }
+
+        private void SetOneLevelFrameVisible(bool visible)
+        {
+            if (visible) EnsureOneLevelFrame().SetVisible(true);
+            else oneLevelFrameCoordinator?.SetVisible(false);
+        }
+
         private void ShowHeroEquipmentAt(int formationPosition, HeroEquipmentKind kind)
         {
             EnsureHeroEquipmentPresenter();
@@ -14708,9 +14725,9 @@ namespace ProjectX.Core
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
-            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
             heroEquipmentPresenter.Show(Mathf.Clamp(formationPosition, 1, 5), kind);
             heroEquipmentListView.GameObject.transform.SetAsLastSibling();
         }
@@ -14720,14 +14737,14 @@ namespace ProjectX.Core
             EnsureHeroEquipmentPresenter();
             heroFragmentBagActive = false;
             ConfigureHeroEquipmentFrame(HeroEquipmentKind.Equipment);
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "装备碎片";
-            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             SelectHeroEquipmentTab(tabs, false);
             heroEquipmentPresenter.HideDetails();
             heroEquipmentListView.SetVisible(false);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             heroEquipmentFragmentView.SetVisible(true);
             heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();
             RenderHeroEquipmentFragments();
@@ -14741,8 +14758,8 @@ namespace ProjectX.Core
             heroEquipmentPresenter.RenderKind(HeroEquipmentKind.Equipment);
             heroEquipmentFragmentView.SetVisible(false);
             heroEquipmentListView.SetVisible(true);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             heroEquipmentListView.GameObject.transform.SetAsLastSibling();
         }
 
@@ -15106,9 +15123,9 @@ namespace ProjectX.Core
             heroListView?.SetVisible(true);
             heroDetailView?.SetVisible(true);
             heroBagView?.SetVisible(false);
-            heroFrameView?.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             ConfigureHeroFrame(false);
-            heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
         }
 
         private void ShowHeroAttributes(int heroId)
@@ -15177,9 +15194,15 @@ namespace ProjectX.Core
         private void ConfigureBagFrame()
         {
             // OneLevelLayer is shared with Hero. Reapply its authoritative header
-            // state on every Bag response so no previous module title, tab or
-            // placeholder currency survives.
-            CocosUiBinding binding = bagFrameView.Binding;
+            // and visibility state on every Bag response so no previous module
+            // title, hidden frame, tab or placeholder currency survives.
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
+            frame.Apply(OneLevelFrameMode.Standard);
+            // Bag is a OneLevel child page. Keep it inside the shared frame;
+            // otherwise its full-screen root becomes a Canvas sibling and draws
+            // over the title, tabs and currency nodes even though they are active.
+            frame.AttachContent(bagView);
+            CocosUiBinding binding = oneLevelFrameView.Binding;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -15210,7 +15233,8 @@ namespace ProjectX.Core
 
         private void ConfigureHeroFrame(bool showBag)
         {
-            CocosUiBinding binding = heroFrameView.Binding;
+            EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
+            CocosUiBinding binding = oneLevelFrameView.Binding;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -15258,7 +15282,7 @@ namespace ProjectX.Core
 
         private void RefreshSharedCurrencyHeaders()
         {
-            RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");
+            RefreshStandardCurrencyHeader(oneLevelFrameView?.Binding, "Layer/GoldCheck");
             RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");
             RefreshStandardCurrencyHeader(monopolyHudView?.Binding, "Layer/Panel/GoldCheck");
         }
@@ -15332,9 +15356,9 @@ namespace ProjectX.Core
             }
             heroFragmentBagActive = true;
             ConfigureHeroFrame(true);
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "神将碎片";
-            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform panel = tabs?.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             Transform second = panel?.Find("Button2_Runtime");
@@ -15362,14 +15386,14 @@ namespace ProjectX.Core
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
             ReleaseHeroAuxiliaryViews();
-            heroFrameView?.SetVisible(false);
+            SetOneLevelFrameVisible(false);
             services?.UiStack.Pop();
         }
 
         private void ShowHeroBook()
         {
             EnsureHeroPresenter();
-            heroBookView = heroBookView ?? UiPrefabLoader.Load("HeroBook", heroFrameView.GameObject.transform);
+            heroBookView = heroBookView ?? UiPrefabLoader.Load("HeroBook", oneLevelFrameView.GameObject.transform);
             Transform overlayRoot = GetDynamicUiRoot();
             heroBookUpgradeView = heroBookUpgradeView ?? UiPrefabLoader.Load("HeroBookUpgrade", overlayRoot);
             heroBookActivateResultView = heroBookActivateResultView
@@ -15417,7 +15441,7 @@ namespace ProjectX.Core
             EnsureHeroPresenter();
             heroRecycleOpenedFromBag = fromBag;
             heroRecycleEntryPending = false;
-            heroRecycleView = heroRecycleView ?? UiPrefabLoader.Load("HeroRecycle", heroFrameView.GameObject.transform);
+            heroRecycleView = heroRecycleView ?? UiPrefabLoader.Load("HeroRecycle", oneLevelFrameView.GameObject.transform);
             heroRebirthChooseFrameView = heroRebirthChooseFrameView
                 ?? UiPrefabLoader.Load("shop_bg", GetDynamicUiRoot());
             heroRebirthChooseView = heroRebirthChooseView
@@ -15438,19 +15462,19 @@ namespace ProjectX.Core
             heroBagView?.SetVisible(false);
             heroBookView?.SetVisible(false);
             ConfigureHeroFrame(true);
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "回收";
-            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform panel = tabs?.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             Transform second = panel?.Find("Button2_Runtime");
             if (first != null) SetTabText(first, "神将", true);
             if (second != null) second.gameObject.SetActive(false);
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", CloseHeroRecycle, true);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", CloseHeroRecycle, true);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             heroRebirthPresenter.Show();
-            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
         }
 
         public void RunHeroRebirthG3Validation()
@@ -15524,7 +15548,7 @@ namespace ProjectX.Core
             MarkValidationControl("HR-20-EMPTY-STATE");
             yield return CaptureHeroRebirthEvidence("HR-20-empty-state.png");
 
-            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform tabPanel = tabs?.Find("Panel_10");
             Transform heroTab = tabPanel?.Find("Button1");
             Transform excludedTab = tabPanel?.Find("Button2_Runtime");
@@ -15539,7 +15563,7 @@ namespace ProjectX.Core
             MarkValidationControl("HR-06-FABAO-TAB-BOUNDARY");
             MarkValidationControl("HR-07-SECOND-TAB");
 
-            Button frameClose = RequireBoundButton(heroFrameView,
+            Button frameClose = RequireBoundButton(oneLevelFrameView,
                 "Layer/Panel_12/Title/CloseBtn", "HeroRebirth close");
             if (!InvokeEventSystemRaycastClick(frameClose) || IsHeroOpen)
             {
@@ -15893,7 +15917,7 @@ namespace ProjectX.Core
             MarkValidationControl("HR-24-SUCCESS-LIFECYCLE");
             yield return CaptureHeroRebirthEvidence("HR-24-success-reset.png");
 
-            frameClose = RequireBoundButton(heroFrameView,
+            frameClose = RequireBoundButton(oneLevelFrameView,
                 "Layer/Panel_12/Title/CloseBtn", "HeroRebirth post-success close");
             if (!InvokeEventSystemRaycastClick(frameClose))
             {
@@ -15927,7 +15951,7 @@ namespace ProjectX.Core
             if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
             if (IsHeroOpen)
             {
-                Button reconnectHeroClose = RequireBoundButton(heroFrameView,
+                Button reconnectHeroClose = RequireBoundButton(oneLevelFrameView,
                     "Layer/Panel_12/Title/CloseBtn", "HeroRebirth reconnect Hero page close");
                 if (!InvokeEventSystemRaycastClick(reconnectHeroClose) || IsHeroOpen)
                 {
@@ -15950,7 +15974,7 @@ namespace ProjectX.Core
                 yield break;
             }
             yield return CaptureHeroRebirthEvidence("HR-24-reconnected.png");
-            frameClose = RequireBoundButton(heroFrameView,
+            frameClose = RequireBoundButton(oneLevelFrameView,
                 "Layer/Panel_12/Title/CloseBtn", "HeroRebirth reconnect close");
             if (!InvokeEventSystemRaycastClick(frameClose))
             {
@@ -16009,7 +16033,7 @@ namespace ProjectX.Core
             if (IsGameNoticeOpen) noticePresenter?.InvokeClose();
             if (IsHeroOpen)
             {
-                Button terminalHeroClose = RequireBoundButton(heroFrameView,
+                Button terminalHeroClose = RequireBoundButton(oneLevelFrameView,
                     "Layer/Panel_12/Title/CloseBtn", "HeroRebirth terminal Hero page close");
                 if (!InvokeEventSystemRaycastClick(terminalHeroClose) || IsHeroOpen)
                 {
@@ -16115,8 +16139,8 @@ namespace ProjectX.Core
                 return;
             }
             ReleaseHeroAuxiliaryViews();
-            heroFrameView?.SetVisible(false);
-            if (services?.UiStack.Current == heroFrameView) services.UiStack.Pop();
+            SetOneLevelFrameVisible(false);
+            if (services?.UiStack.Current == oneLevelFrameView) services.UiStack.Pop();
         }
 
         private void ShowHeroRebirthItemDetail(HeroRebirthReward reward)
@@ -16169,13 +16193,13 @@ namespace ProjectX.Core
             heroBookView?.SetVisible(target == heroBookView);
             heroRecycleView?.SetVisible(target == heroRecycleView);
             ConfigureHeroFrame(true);
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = titleValue;
-            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             if (tabs != null) tabs.gameObject.SetActive(false);
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", RestoreHeroBagFromAuxiliary, true);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", RestoreHeroBagFromAuxiliary, true);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             target.GameObject.transform.SetAsLastSibling();
         }
 
@@ -16195,19 +16219,19 @@ namespace ProjectX.Core
             heroBagView?.SetVisible(false);
             heroEquipmentFragmentView?.SetVisible(false);
             heroBookView.SetVisible(true);
-            heroFrameView?.SetVisible(true);
-            Transform tabs = heroFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            SetOneLevelFrameVisible(true);
+            Transform tabs = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             if (tabs != null) tabs.gameObject.SetActive(false);
-            Text title = heroFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "神将图鉴";
-            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             heroBookView.GameObject.transform.SetAsLastSibling();
         }
 
         private void RestoreHeroBagFromAuxiliary()
         {
             ReleaseHeroAuxiliaryViews();
-            heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             ShowHeroBagListTab();
         }
 
@@ -16285,8 +16309,8 @@ namespace ProjectX.Core
 
         private Transform GetDynamicUiRoot()
         {
-            if (heroFrameView?.GameObject != null && heroFrameView.GameObject.transform.parent != null)
-                return heroFrameView.GameObject.transform.parent;
+            if (oneLevelFrameView?.GameObject != null && oneLevelFrameView.GameObject.transform.parent != null)
+                return oneLevelFrameView.GameObject.transform.parent;
             Canvas canvas = FindObjectOfType<Canvas>();
             if (canvas == null) throw new InvalidOperationException("Dynamic UI Canvas was not found.");
             return canvas.transform;
@@ -16423,21 +16447,21 @@ namespace ProjectX.Core
         private void ConfigureHeroEquipmentFrame(HeroEquipmentKind kind)
         {
             ConfigureHeroFrame(false);
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = kind == HeroEquipmentKind.Equipment ? "装备背包" : "法宝背包";
-            Transform tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             ConfigureHeroEquipmentTabs(tabs, kind);
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             ConfigureHeroEquipmentHelp(kind);
         }
 
         private void ConfigureHeroEquipmentHelp(HeroEquipmentKind kind)
         {
             const string helpPath = "Layer/Panel_12/Title/TitleName/Button_1";
-            GameObject help = heroFrameView.Binding.Find(helpPath);
+            GameObject help = oneLevelFrameView.Binding.Find(helpPath);
             if (help == null) return;
             help.SetActive(true);
-            heroFrameView.BindClick(helpPath, () => errorPresenter?.ShowHelp(
+            oneLevelFrameView.BindClick(helpPath, () => errorPresenter?.ShowHelp(
                 kind == HeroEquipmentKind.Equipment
                     ? "装备强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
                       "装备精炼等级上限由装备品质决定。\n" +
@@ -16533,11 +16557,11 @@ namespace ProjectX.Core
             services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeishenzhu",
                 heroEquipmentDivineView, equipment && selectedMode == 3);
             BindHeroEquipmentCultivationPortrait();
-            Text title = heroFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = kind == HeroEquipmentKind.FaBao ? "法宝" : "装备";
-            GameObject tabs = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
+            GameObject tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
             if (tabs != null) tabs.SetActive(true);
-            Transform panel = heroFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform panel = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (first == null) return;
             foreach (Transform staleTab in panel.Cast<Transform>()
@@ -16765,10 +16789,10 @@ namespace ProjectX.Core
             HideHeroCultivationForNavigation();
             heroEnhanceMasterView?.SetVisible(false);
             gameplayView?.SetVisible(false);
-            heroFrameView.SetVisible(true);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
-            if (services.UiStack.Current != heroFrameView) services.UiStack.Push(heroFrameView);
-            heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             if (!heroEquipmentPresenter.PrepareCultivation(uid, Math.Max(1, formationPosition), kind, mode))
             {
                 PopUiStackWithHudRefresh();
@@ -17027,11 +17051,11 @@ namespace ProjectX.Core
         private void EnsureMailPresenter()
         {
             mailView = mailView ?? services.UiRouter.FindBySource("MailLayer");
-            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
-            if (mailView == null || bagFrameView == null)
+            EnsureOneLevelFrame();
+            if (mailView == null || oneLevelFrameView == null)
                 throw new InvalidOperationException("MailLayer/OneLevelLayer CocosUiBinding was not found.");
             EnsureBagPresenter();
-            mailPresenter = mailPresenter ?? new MailPresenter(mailView, bagFrameView, services.Mails, services.Resources,
+            mailPresenter = mailPresenter ?? new MailPresenter(mailView, oneLevelFrameView, services.Mails, services.Resources,
                 id => InvokeLuaOrFail(onMailClaimClicked, "Mail.OnClaimClicked", (double)id),
                 id => InvokeLuaOrFail(onMailReadClicked, "Mail.OnReadClicked", (double)id),
                 id => InvokeLuaOrFail(onMailDeleteClicked, "Mail.OnDeleteClicked", (double)id),
@@ -17040,7 +17064,7 @@ namespace ProjectX.Core
                 () =>
                 {
                     bagFlowPresenter.CloseAll();
-                    bagFrameView.SetVisible(false);
+                    SetOneLevelFrameVisible(false);
                     HandleBack();
                 },
                 item => bagFlowPresenter.ShowMailAttachment(item));
@@ -17048,7 +17072,8 @@ namespace ProjectX.Core
 
         private void ConfigureMailFrame()
         {
-            CocosUiBinding binding = bagFrameView.Binding;
+            EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
+            CocosUiBinding binding = oneLevelFrameView.Binding;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -17087,9 +17112,9 @@ namespace ProjectX.Core
         private void EnsureShopPresenter()
         {
             shopView = shopView ?? services.UiRouter.FindBySource("shop/shangcheng");
-            bagFrameView = bagFrameView ?? services.UiRouter.FindBySource("OneLevelLayer");
+            EnsureOneLevelFrame();
             bagInputView = bagInputView ?? services.UiRouter.FindBySource("EnterNumLayer");
-            if (shopView == null || bagFrameView == null || bagInputView == null)
+            if (shopView == null || oneLevelFrameView == null || bagInputView == null)
                 throw new InvalidOperationException("Shop required CocosUiBinding was not found.");
             shopPresenter = shopPresenter ?? new ShopPresenter(shopView, services.Shop, services.Currencies,
                 services.Resources, services.ServerTime, bagInputView, ShowShopPurchaseConfirmation,
@@ -17098,7 +17123,8 @@ namespace ProjectX.Core
 
         private void ConfigureShopFrame()
         {
-            CocosUiBinding binding = bagFrameView.Binding;
+            EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
+            CocosUiBinding binding = oneLevelFrameView.Binding;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -17160,7 +17186,7 @@ namespace ProjectX.Core
             errorPresenter?.Hide();
             rewardPresenter?.Hide();
             RestoreShopFramePanel();
-            bagFrameView?.SetVisible(false);
+            SetOneLevelFrameVisible(false);
             HandleBack();
         }
 
@@ -17227,17 +17253,17 @@ namespace ProjectX.Core
             if (restoreBagFrameAfterGameplayShop && IsBagOpen)
             {
                 ConfigureBagFrame();
-                bagFrameView?.SetVisible(true);
-                bagFrameView?.GameObject.transform.SetAsLastSibling();
+                SetOneLevelFrameVisible(true);
+                oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
                 bagView?.GameObject.transform.SetAsLastSibling();
             }
             if (restoreChatMiniAfterGameplayShop) chatMiniView?.SetVisible(true);
             if (restoreHeroEquipmentAfterGameplayShop)
             {
-                heroFrameView?.SetVisible(true);
+                SetOneLevelFrameVisible(true);
                 heroEquipmentFragmentView?.SetVisible(true);
-                heroFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
-                heroFrameView?.GameObject.transform.SetAsLastSibling();
+                oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
+                oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
                 heroEquipmentFragmentView?.GameObject.transform.SetAsLastSibling();
             }
             restoreChatMiniAfterGameplayShop = false;
@@ -18015,7 +18041,7 @@ namespace ProjectX.Core
             drawTenResultView = drawTenResultView ?? services.UiRouter.FindBySource("chouka/shilianchouka");
             drawPreviewView = drawPreviewView ?? services.UiRouter.FindBySource("chouka/jiangliyulan");
             drawHeroPreviewView = drawHeroPreviewView ?? services.UiRouter.FindBySource("chouka/shenjiangyulan");
-            CocosUiView drawPreviewFrame = services.UiRouter.FindBySource("OneLevelLayer");
+            CocosUiView drawPreviewFrame = EnsureOneLevelFrame().View;
             if (drawView == null || drawSingleResultView == null || drawTenResultView == null || drawPreviewView == null
                 || drawHeroPreviewView == null || drawPreviewFrame == null)
                 throw new InvalidOperationException("Current HappyDraw imported CocosUiBindings were not found by full relative path.");
@@ -18089,7 +18115,7 @@ namespace ProjectX.Core
             if (fengShenStoryView == null || fengShenStoryLevelView == null || rewardView == null
                 || heroItemSourceView == null || errorPresenter == null)
                 throw new InvalidOperationException("Current FengShenStory imported main/level CocosUiBindings were not found.");
-            CocosUiView firstClassFrame = services.UiRouter.FindBySource("OneLevelLayer");
+            CocosUiView firstClassFrame = EnsureOneLevelFrame().View;
             GameObject commonHeaderTemplate = firstClassFrame?.Binding.Find("Layer/Panel_12/Title");
             GameObject commonCurrencyTemplate = firstClassFrame?.Binding.Find("Layer/GoldCheck");
             fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
@@ -18552,15 +18578,15 @@ namespace ProjectX.Core
             heroListView.SetVisible(false);
             heroDetailView.SetVisible(false);
             heroBagView.SetVisible(true);
-            heroFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             Transform heroBagTransform = heroBagView.GameObject.transform;
-            if (heroBagTransform.parent != heroFrameView.GameObject.transform)
-                heroBagTransform.SetParent(heroFrameView.GameObject.transform, false);
+            if (heroBagTransform.parent != oneLevelFrameView.GameObject.transform)
+                heroBagTransform.SetParent(oneLevelFrameView.GameObject.transform, false);
             heroBagTransform.SetAsLastSibling();
             ConfigureHeroFrame(true);
             heroPresenter.Render();
-            if (services.UiStack.Current != heroFrameView)
-                services.UiStack.Push(heroFrameView);
+            if (services.UiStack.Current != oneLevelFrameView)
+                services.UiStack.Push(oneLevelFrameView);
             Canvas.ForceUpdateCanvases();
             Button target = FindHeroBagButton("郑伦");
             if (target == null) { Fail("Draw closure target hero was not rendered in the hero list."); yield break; }
@@ -18571,12 +18597,12 @@ namespace ProjectX.Core
                 Fail("Draw closure target hero row did not select hero 64.");
                 yield break;
             }
-            heroFrameView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             heroBagView.SetVisible(false);
             heroListView.SetVisible(true);
             heroDetailView.SetVisible(true);
             ConfigureHeroFrame(false);
-            heroFrameView.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             RequireBoundButton(heroDetailView, "Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0", "Draw closure cultivate").onClick.Invoke();
             if (heroCultivationView?.GameObject.activeSelf != true || heroLevelUpView?.GameObject.activeSelf != true)
             {
@@ -18635,13 +18661,13 @@ namespace ProjectX.Core
             // incomparable even though the authoritative position was correct.
             formationPopupView?.SetVisible(false);
             heroReplacementView?.SetVisible(false);
-            heroFrameView?.SetVisible(true);
+            SetOneLevelFrameVisible(true);
             heroListView?.SetVisible(true);
             heroDetailView?.SetVisible(true);
             heroBagView?.SetVisible(false);
             ConfigureHeroFrame(false);
             heroPresenter?.Render();
-            heroFrameView?.GameObject.transform.SetAsLastSibling();
+            oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             yield return CaptureDrawG5Evidence("DRAW-FORMATION-MOUNTED");
             StartCoroutine(RequestDrawClosureModuleReentryNextFrame());
         }
