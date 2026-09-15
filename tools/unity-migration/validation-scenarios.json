@@ -3573,9 +3573,7 @@
       "module": "MoneyTree",
       "fixture": "reversible-money-tree-fixed-account",
       "requiredGate": "G3",
-      "flags": [
-        "-projectXMoneyTreeValidation"
-      ],
+      "flags": [],
       "artifacts": [],
       "captureStates": [],
       "controlCoverageRequired": true,
@@ -3744,6 +3742,91 @@
           "contains": [
             "Question workbook must contain 38 data rows",
             "question.csv is stale"
+          ]
+        }
+      ],
+      "visualAssertions": {
+        "width": 1334,
+        "height": 750,
+        "minimumBytes": 4096,
+        "requireUniqueHashes": true
+      }
+    },
+    {
+      "key": "fish-default",
+      "module": "Fish",
+      "fixture": "reversible-fish-fixed-account",
+      "requiredGate": "G2",
+      "flags": [
+        "-projectXFishValidation"
+      ],
+      "artifacts": [
+        "build/ui-migration/bootstrap-fish-ready.png",
+        "build/ui-migration/bootstrap-fish-fishing.png",
+        "build/ui-migration/bootstrap-fish-basket.png"
+      ],
+      "captureStates": [
+        "ready-pose",
+        "fishing-countdown",
+        "basket-stopped"
+      ],
+      "controlCoverageRequired": true,
+      "semanticAssertionKeys": [
+        "fish-authoritative-identity",
+        "fish-ready-config-and-pose",
+        "fish-start-authoritative-charge-and-duration",
+        "fish-weighted-catch-stack-and-auto-continue",
+        "fish-collect-whole-stack",
+        "fish-second-cycle-independent-duration-and-persistence",
+        "fish-stop-keeps-ready-pose-and-basket",
+        "fish-exit-restores-normal-ui"
+      ],
+      "sourceContracts": [
+        {
+          "path": "server/src/fish_single_player.cpp",
+          "contains": [
+            "select gold_cost,cycle_min_seconds,cycle_max_seconds,basket_capacity,fish_stack_limit,auto_continue",
+            "select item_id,weight from fish_reward",
+            "slots[i].itemId != fishId || slots[i].quantity >= settings.stackLimit",
+            "slots.size() >= settings.capacity",
+            "FISH_OP_SUCCESS"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FishController.lua.txt",
+          "contains": [
+            "Protocol.FISH",
+            "function M.start()",
+            "function M.collect(slotIndex)",
+            "Bridge:CompleteFishCatch"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Fish.cs",
+          "contains": [
+            "RuntimeInputDispatcher.Dispatch",
+            "FISH-05-ROD-TOGGLE",
+            "fish-ready-config-and-pose",
+            "COMPLETE: Fish 9/9 controls"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/UI/FishPresenter.cs",
+          "contains": [
+            "fishRoot.Find(\"FishScene\")",
+            "fishScene.Find(\"pos\")",
+            "Monster/btm2000_zd",
+            "FishingShape2000",
+            "basketSlotButtons[slot.SlotIndex]",
+            "label.text = quantity.ToString()"
+          ]
+        },
+        {
+          "path": "tools/unity-migration/Invoke-FishSqliteFixture.py",
+          "contains": [
+            "AssertMutated",
+            "basket_capacity\": 9999",
+            "fish_stack_limit\": 999"
           ]
         }
       ],

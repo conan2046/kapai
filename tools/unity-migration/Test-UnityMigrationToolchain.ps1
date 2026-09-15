@@ -512,6 +512,10 @@ Assert-ToolchainTest (
     $docsValidatorSource.Contains('-SkipEvidenceFileValidation:(-not $RequireLocalEvidence)') -and
     $docsValidatorSource.Contains('$requiresFile = $field -eq "uiMapping" -or $RequireLocalEvidence')
 ) "Static docs validation again requires machine-local screenshots or no longer provides an explicit local-evidence mode."
+Assert-ToolchainTest (
+    $commonSource.Contains('$hasCurrentCocosException = $currentCocosUnreachable -and $exclusionEvidence -and') -and
+    $commonSource.Contains('(-not $hasCurrentCocosException -and @($matches[0].g5.pairs).Count -eq 0)')
+) "G3 workflow again rejects an evidence-backed current-Cocos-unreachable module or permits an unevidenced empty G5 pair set."
 
 $manifest = (Import-UnityMigrationManifest -Root $root).Value
 $battleMeetMonsterModule = @($manifest.modules | Where-Object { $_.key -eq "BattleMeetMonster" })[0]

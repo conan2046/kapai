@@ -1386,6 +1386,52 @@ CREATE TABLE IF NOT EXISTS `answer_daily_progress` (
   PRIMARY KEY (`role_id`, `day_key`)
 );
 
+CREATE TABLE IF NOT EXISTS `fish_settings` (
+  `id` INTEGER PRIMARY KEY,
+  `gold_cost` INTEGER NOT NULL DEFAULT '100',
+  `cycle_min_seconds` INTEGER NOT NULL DEFAULT '10',
+  `cycle_max_seconds` INTEGER NOT NULL DEFAULT '20',
+  `basket_capacity` INTEGER NOT NULL DEFAULT '9999',
+  `fish_stack_limit` INTEGER NOT NULL DEFAULT '999',
+  `auto_continue` INTEGER NOT NULL DEFAULT '1'
+);
+
+CREATE TABLE IF NOT EXISTS `fish_reward` (
+  `id` INTEGER PRIMARY KEY,
+  `item_id` INTEGER NOT NULL,
+  `weight` INTEGER NOT NULL,
+  `enabled` INTEGER NOT NULL DEFAULT '1',
+  `sort` INTEGER NOT NULL DEFAULT '0',
+  `use_reward_id` INTEGER NOT NULL DEFAULT '0'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_fish_reward_item_id`
+  ON `fish_reward` (`item_id`);
+
+CREATE TABLE IF NOT EXISTS `fish_position` (
+  `id` INTEGER PRIMARY KEY,
+  `scene_id` INTEGER NOT NULL DEFAULT '54',
+  `map_id` INTEGER NOT NULL DEFAULT '33',
+  `x` INTEGER NOT NULL DEFAULT '1086',
+  `y` INTEGER NOT NULL DEFAULT '619',
+  `dir` INTEGER NOT NULL DEFAULT '2',
+  `flip` INTEGER NOT NULL DEFAULT '1',
+  `fishing_shape_id` INTEGER NOT NULL DEFAULT '2000'
+);
+
+CREATE TABLE IF NOT EXISTS `fish_basket_slots` (
+  `role_id` INTEGER NOT NULL,
+  `slot_index` INTEGER NOT NULL,
+  `item_id` INTEGER NOT NULL,
+  `quantity` INTEGER NOT NULL,
+  PRIMARY KEY (`role_id`, `slot_index`),
+  CHECK (`slot_index` >= 0 AND `slot_index` < 9999),
+  CHECK (`quantity` > 0 AND `quantity` <= 999)
+);
+
+CREATE INDEX IF NOT EXISTS `idx_fish_basket_role_item`
+  ON `fish_basket_slots` (`role_id`, `item_id`, `slot_index`);
+
 CREATE TABLE IF NOT EXISTS `qunxian_paihang` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT
 );
@@ -2031,6 +2077,47 @@ ON CONFLICT(id) DO UPDATE SET
   fallback_reward_type=excluded.fallback_reward_type,
   fallback_reward_amount=excluded.fallback_reward_amount;
 -- END GENERATED UNITY ANSWER SETTINGS SEED
+
+-- BEGIN GENERATED UNITY FISH SEED
+INSERT INTO fish_settings (id,gold_cost,cycle_min_seconds,cycle_max_seconds,basket_capacity,fish_stack_limit,auto_continue) VALUES
+(1,100,10,20,9999,999,1)
+ON CONFLICT(id) DO UPDATE SET
+  gold_cost=excluded.gold_cost,
+  cycle_min_seconds=excluded.cycle_min_seconds,
+  cycle_max_seconds=excluded.cycle_max_seconds,
+  basket_capacity=excluded.basket_capacity,
+  fish_stack_limit=excluded.fish_stack_limit,
+  auto_continue=excluded.auto_continue;
+
+INSERT INTO fish_position (id,scene_id,map_id,x,y,dir,flip,fishing_shape_id) VALUES
+(1,54,33,1086,619,2,1,2000)
+ON CONFLICT(id) DO UPDATE SET
+  scene_id=excluded.scene_id,
+  map_id=excluded.map_id,
+  x=excluded.x,
+  y=excluded.y,
+  dir=excluded.dir,
+  flip=excluded.flip,
+  fishing_shape_id=excluded.fishing_shape_id;
+
+INSERT INTO fish_reward (id,item_id,weight,enabled,sort,use_reward_id) VALUES
+(1,580,50,1,1,0),
+(2,581,35,1,2,0),
+(3,582,15,1,3,0),
+(4,10580,80,1,4,0),
+(5,10581,65,1,5,0),
+(6,10582,40,1,6,0),
+(7,10583,25,1,7,0),
+(8,10584,15,1,8,0),
+(9,10585,5,1,9,0),
+(10,10586,1,1,10,0)
+ON CONFLICT(id) DO UPDATE SET
+  item_id=excluded.item_id,
+  weight=excluded.weight,
+  enabled=excluded.enabled,
+  sort=excluded.sort,
+  use_reward_id=excluded.use_reward_id;
+-- END GENERATED UNITY FISH SEED
 
 -- BEGIN GENERATED QUESTION BANK SEED
 DELETE FROM question;

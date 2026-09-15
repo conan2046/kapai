@@ -3877,9 +3877,7 @@
         "snapshot": ".local/ui-fidelity/MoneyTree/unity/g5/money-tree-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/MoneyTree/unity/g6/money-tree-fixed-unity-result.json",
         "reloginRequired": true,
-        "extraFlags": [
-          "-projectXMoneyTreeValidation"
-        ],
+        "extraFlags": [],
         "skipPostValidationFixtureAssert": false,
         "dataPreflight": {
           "requiresLogin": true,
@@ -4071,6 +4069,93 @@
           {
             "source": "build/ui-migration/bootstrap-answer-daily-limit-ui-resource-map.md",
             "destination": ".local/ui-fidelity/Answer/unity/g5/ANSWER-DAILY-LIMIT-ui-resource-map.md"
+          }
+        ]
+      }
+    },
+    {
+      "module": "Fish",
+      "g5": {
+        "requireUiResourceMaps": true,
+        "width": 1334,
+        "height": 750,
+        "cocosDirectory": ".local/ui-fidelity/Fish/cocos/g1",
+        "unityDirectory": ".local/ui-fidelity/Fish/unity/g5",
+        "compareDirectory": ".local/ui-fidelity/Fish/compare/g5",
+        "cocosBaselineInputs": [
+          "client/ProjectX/src/View/Activity/ActivityFunction.lua",
+          "client/ProjectX/src/View/Activity/FishUI.lua",
+          "client/ProjectX/src/View/Activity/FishBasketDelegate.lua",
+          "client/ProjectX/src/View/Activity/FishControlDelegate.lua",
+          "client/ProjectX/src/View/Activity/FishUserListDelegate.lua",
+          "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+          "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua",
+          "client/ProjectX/res/csd/FishLayer.csb",
+          "server/src/huo_dong.h",
+          "server/src/huo_dong.cpp",
+          "server/src/pack_deal.cpp",
+          "server/src/user.cpp",
+          "server/sql/item_template.sql",
+          "server/config/dat/map33.map"
+        ],
+        "pairs": []
+      },
+      "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePath": "AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db",
+        "sqliteSchema": "server/sql/sqlite/001_initial_schema.sql",
+        "userId": 7200057,
+        "roleId": 1000003,
+        "terminalUserId": 7200057,
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-FishSqliteFixture.ps1",
+        "snapshot": ".local/unity-validation/fish-sqlite-fixture-latest.json",
+        "resultEvidence": ".local/unity-validation/fish-fixed-account-latest.json",
+        "reloginRequired": true,
+        "g3ValidationFlags": [
+          "-projectXFishValidation"
+        ],
+        "extraFlags": [],
+        "copyArtifactsInG3": true,
+        "skipPostValidationFixtureAssert": false,
+        "postValidationAdapterAction": "AssertMutated",
+        "dataPreflight": {
+          "requiresLogin": true,
+          "requirements": [
+            {
+              "id": "fish-sqlite-only",
+              "description": "只允许修改Application.persistentDataPath/LocalServer/projectx.db；MySQL仅用于Cocos与本地服务端兼容回归"
+            },
+            {
+              "id": "fish-fixed-identity",
+              "description": "固定userId=7200057必须唯一绑定roleId=1000003，开放等级按最终function_id=32配置准备"
+            },
+            {
+              "id": "fish-deterministic-session",
+              "description": "准备10级、1000金币、空鱼篓以及10种配置鱼；鱼篓独立容量9999格、同鱼单格上限999，不再准备每日次数或多人房间态"
+            },
+            {
+              "id": "fish-authoritative-reward",
+              "description": "真实垂钓必须验证每次开钓扣除配置金币100、周期为10到20秒动态整数、10种鱼按配置权重产出、同鱼优先补未满格、满9999格且无可补叠加格时直接舍弃；不产出主角经验或互动币"
+            },
+            {
+              "id": "fish-exact-restore",
+              "description": "整库不可变快照；恢复后SHA256与integrity_check通过，重登业务哈希一致且备份残留为0"
+            }
+          ]
+        },
+        "artifactCopies": [
+          {
+            "source": "build/ui-migration/bootstrap-fish-ready.png",
+            "destination": ".local/ui-fidelity/Fish/unity/g3/bootstrap-fish-ready.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fish-fishing.png",
+            "destination": ".local/ui-fidelity/Fish/unity/g3/bootstrap-fish-fishing.png"
+          },
+          {
+            "source": "build/ui-migration/bootstrap-fish-basket.png",
+            "destination": ".local/ui-fidelity/Fish/unity/g3/bootstrap-fish-basket.png"
           }
         ]
       }

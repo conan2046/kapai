@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "module": "Fish",
+  "coverageList": "docs/unityclient/matrices/FISH_COVERAGE.json",
+  "workflowPolicyVersion": 1,
+  "scope": {
+    "fixedUserId": 7200057,
+    "fixedRoleId": 1000003,
+    "resolution": "1334x750",
+    "included": [
+      "EAID=6旧入口与function_id=32新入口",
+      "场景54/map33假传送与固定钓位(1086,619,dir=2,flip=true)",
+      "进入后立即切换ShapeId=2000钓鱼造型；开始后进入权威Fishing，收竿回持竿待机，退出恢复正常角色",
+      "/217单机保留op=0/2/4/5/6/8/9/10/11",
+      "鱼篓容量9999格、同种鱼优先补未满格、单格堆叠上限999、满栈后新增同鱼种格、每格右下角显示数量",
+      "10级开放、每日不限次、无扣次",
+      "成功放竿每次扣100金币，每轮独立随机10至20秒产出",
+      "帮助、放竿/收竿、鱼篓查看/选择/领取、关闭与重连"
+    ],
+    "excluded": [
+      "房间列表与房间人数",
+      "房间内玩家/钓鱼玩家列表及广播",
+      "抢夺他人鱼及120秒被抢锁定",
+      "稀有鱼全服播报",
+      "12:30-12:50限时窗",
+      "主角钓鱼经验与EEHDT_Fish交互币掉落",
+      "多人副本实例、角色行走、寻路与场景传送",
+      "原2/3号钓鱼区域、钓点选择与热区点击"
+    ]
+  },
+  "acceptanceExamples": [
+    {
+      "id": "fish-entry-map",
+      "given": "固定账号达到10级且function_id=32开放",
+      "when": "真实点击玩法大厅Function_32/EnterBtn",
+      "then": "打开FishLayer并铺满map33静态底图；角色固定在(1086,619)，朝向dir=2、flip=true，立即切换ShapeId=2000钓鱼造型并保持Ready；此时不发op5、不扣金币、不启动倒计时"
+    },
+    {
+      "id": "fish-start-cycle",
+      "given": "FishLayer已打开，角色在固定钓位以ShapeId=2000持竿待机，鱼篓存在可补同鱼栈或空格且金币不少于100",
+      "when": "真实点击开始钓鱼",
+      "then": "固定发送/217 op=5(dir=2)，服务端成功开始时扣除配置金币100并返回本轮10至20秒权威时长；业务态切为Fishing，钓鱼造型保持；到期由权威op=11产出配置鱼种并为下一轮重新抽取时长"
+    },
+    {
+      "id": "fish-basket-collect",
+      "given": "固定账号鱼篓中至少有一条鱼",
+      "when": "打开我的鱼篓、选择有效鱼格并点击领取",
+      "then": "发送/217 op=6与选中索引，成功后鱼进入背包并由op=4刷新鱼篓；空格领取只提示且不发包"
+    },
+    {
+      "id": "fish-stop-close-reconnect",
+      "given": "玩家处于Fishing或持竿待机Ready状态",
+      "when": "点击收竿、关闭页面、断线重连或重新登录",
+      "then": "Fishing先由/217 op=10权威停止并回到ShapeId=2000持竿待机；页面关闭后恢复正常角色模型并清理监听、计时器与钓鱼模型，重连仅由新回包重建状态"
+    },
+    {
+      "id": "fish-function-gate",
+      "given": "固定账号未达到10级",
+      "when": "查看或点击Function_32入口",
+      "then": "入口按function配置显示锁定或精确拒绝提示，不打开FishLayer、不发送/217"
+    },
+    {
+      "id": "fish-insufficient-gold",
+      "given": "固定账号金币小于配置消耗100",
+      "when": "在固定钓位点击开始钓鱼",
+      "then": "权威拒绝开始并精确提示金币不足，金币不变、不进入倒计时、不产出奖励，角色仍保持ShapeId=2000持竿待机"
+    },
+    {
+      "id": "fish-config-boundary",
+      "given": "fish_settings、fish_reward、fish_position、10种item镜像、map33或ShapeId=2000钓鱼模型/动画任一配置/资源缺失，周期范围、权重、坐标或dir非法",
+      "when": "进入模块或尝试放竿",
+      "then": "停止当前动作并报告具体配置错误，不使用占位鱼种、默认概率、临时钓位、普通角色站立或错误地图"
+    },
+    {
+      "id": "fish-basket-full-discard",
+      "given": "鱼篓已占满9999格，且本轮鱼种不存在数量小于999的同种格",
+      "when": "权威结算本轮鱼产出",
+      "then": "本次鱼直接舍弃，不新增、不覆盖、不修改任何鱼格，并明确提示鱼篓已满；后续用途结算不触发"
+    },
+    {
+      "id": "fish-multiplayer-removed",
+      "given": "Steam单机FishLayer已打开",
+      "when": "检查全部可见控件与/217收发",
+      "then": "不存在玩家列表、查看他人鱼篓、抢夺入口、房间广播与全服播报；op=1/3/7/12/13/14/15/16不再收发"
+    }
+  ],
+  "sourceAudit": {
+    "entryClosureComplete": true,
+    "protocolOwnershipComplete": true,
+    "configAssetClosureComplete": true,
+    "runtimeTransformClosureComplete": true,
+    "knownGaps": []
+  },
+  "controls": [
+    {"id":"FISH-01-ENTRY","page":"玩法大厅","path":"Function_32/EnterBtn","cocosCallback":"ActivityFunction EAID_FISH=6 -> QueryFishingInfo(2,0,-1)","unityBinding":"planned: EnterGameplay(32) -> FishController entry request","successEvidence":"10级及以上点击后打开FishLayer/map33，固定到(1086,619)并立即显示ShapeId=2000钓鱼造型；业务态仍为Ready且每日不限次","failureEvidence":"低于10级或map33/钓鱼模型资源缺失时不打开、不发业务请求","reconnectEvidence":"重登后仅按function开放等级重算，无每日计数","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-02-CLOSE","page":"钓鱼地图","path":"Layer/FishUI/CloseBtn (planned)","cocosCallback":"FishUI:AutoMoveClick / LUIFishEvent.QuitFishState -> op10","unityBinding":"planned: FishPresenter close -> stop-if-needed -> restore normal hero -> UiStack pop","successEvidence":"Ready直接恢复正常角色并关闭；Fishing先权威停止，再恢复正常角色并关闭","failureEvidence":"停止失败时页面保留、继续显示钓鱼造型并提示","reconnectEvidence":"关闭或断线后钓鱼模型、计时器、pending与监听归零","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-03-HELP","page":"钓鱼地图","path":"Layer/FishUI/Panel/btn_Help","cocosCallback":"FishUI:helpButtonCallback","unityBinding":"planned: FishPresenter.ShowHelp","successEvidence":"显示单机规则、鱼篓与产出说明","failureEvidence":"关闭帮助不穿透底层开始/鱼篓按钮","reconnectEvidence":"重进不残留帮助遮罩","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-04-FIXED-POSITION","page":"钓鱼地图","path":"fish_position[scene=54,map=33] visual state","cocosCallback":"FishControlDelegate fishAreaConfig[1] source constraint + HeroNode::SetFishingMode","unityBinding":"planned: FishPresenter.PlaceFishingHero(1086,619,dir=2,flip=true,shapeId=2000)","successEvidence":"假传送完成后角色固定在用户黑圈位置并立即显示原版钓鱼造型；Ready不发op5、不扣金币、不启动倒计时","failureEvidence":"坐标、dir、shapeId或正式模型动画缺失时阻止进入且报告配置错误","reconnectEvidence":"重进从fish_position重建唯一固定钓位与钓鱼造型，不生成2/3号区域热区","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-05-ROD-TOGGLE","page":"钓鱼地图","path":"Layer/FishUI/Panel_caozuo/btn_shouqi","cocosCallback":"FishControlDelegate:YuGanClick -> op5/op10","unityBinding":"planned: FishPresenter.ToggleRod -> FishController start/stop","successEvidence":"Ready点击开始固定op5(dir=2)，权威成功后扣100金币并进入Fishing；Fishing点击收竿后回ShapeId=2000持竿待机Ready","failureEvidence":"金币不足或服务器拒绝时不扣金币、不启动倒计时，保持持竿待机且不乐观切状态","reconnectEvidence":"重连清pending并由op8/11或入口查询重建业务态；页面内始终保持钓鱼造型","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-06-BASKET-OPEN","page":"钓鱼地图","path":"Layer/FishUI/Panel_caozuo/btn_yulan","cocosCallback":"FishControlDelegate:YuLanClick -> ShowFishBasket(true) -> op4(self)","unityBinding":"planned: FishPresenter.OpenBasket -> /217 op4(self)","successEvidence":"显示本人已占用鱼格；容量上限9999格，列表按可见项虚拟化或分页，不把10种鱼误当固定10格","failureEvidence":"op4失败不展示旧鱼篓","reconnectEvidence":"重进重新请求本人鱼篓","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-07-BASKET-SLOT","page":"我的鱼篓","path":"Layer/FishUI/yulan/ListView/Item","cocosCallback":"FishBasketDelegate:TableCellTouched","unityBinding":"planned: FishPresenter.SelectBasketSlot(index)","successEvidence":"每格显示鱼名/图标，右下角显示权威数量1至999；同种鱼优先补已有未满格，满999后才新增同鱼种格；鲫鱼1000条显示为999与1两格","failureEvidence":"单格数量越界、存在多个未满同鱼种格或超过9999个已占用格时拒绝错误状态；9999格已满且无同鱼未满格时新鱼直接舍弃且不改旧格","reconnectEvidence":"刷新或重登后格子顺序、鱼种与数量由权威状态重建","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-08-BASKET-COLLECT","page":"我的鱼篓","path":"Layer/FishUI/yulan/btn_shouhuo","cocosCallback":"FishBasketDelegate:GetButtonClick -> QueryFishingInfo(6,index)","unityBinding":"planned: FishPresenter.CollectSelected -> /217 op6(index)","successEvidence":"领取成功后背包增加对应鱼且op4刷新鱼篓","failureEvidence":"空格、越界、背包不足或重复点击不产生重复奖励","reconnectEvidence":"重登后背包权威鱼数量保持且鱼篓无已领取项","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false},
+    {"id":"FISH-09-BASKET-CLOSE","page":"我的鱼篓","path":"Layer/FishUI/yulan/btn_Close","cocosCallback":"FishBasketDelegate:Close","unityBinding":"planned: FishPresenter.CloseBasket","successEvidence":"仅关闭鱼篓并返回仍显示钓鱼造型的地图","failureEvidence":"不关闭底层FishLayer、不触发收竿","reconnectEvidence":"断线或页面退出后鱼篓遮罩不残留","status":"planned","realEntryClick":false,"automationPassed":false,"manualPassed":false}
+  ]
+}

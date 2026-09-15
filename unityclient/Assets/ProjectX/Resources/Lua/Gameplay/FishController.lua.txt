@@ -1,0 +1,121 @@
+local Protocol = require("Protocol")
+
+local M = { opened = false }
+
+local function send(operation, value, writeWord)
+    local message = Protocol.newMessage(Protocol.FISH)
+    message:WriteByte(operation)
+    if value ~= nil then
+        if writeWord then message:WriteUShort(value) else message:WriteByte(value) end
+    end
+    Bridge:Send(message)
+end
+
+local function failure(message, fallback)
+    Bridge:ShowToast(message.Remaining > 0 and message:ReadString() or fallback)
+end
+
+function M.onClick(functionId)
+    M.opened = true
+    Bridge:ShowFish(functionId)
+    send(2)
+    Bridge:SetStatus("Fish/217 join requested for fake scene 54 point 1.")
+end
+
+function M.start() send(5, 2, false) end
+function M.stop() send(10) end
+function M.collect(slotIndex) send(6, math.floor(tonumber(slotIndex) or 0), true) end
+function M.exit()
+    if not M.opened then return end
+    M.opened = false
+    send(9)
+end
+
+function M.onPacket(command, message)
+    if command ~= Protocol.FISH then return false end
+    local operation = message:ReadByte()
+    local success = message:ReadByte()
+    if success == 0 then
+        failure(message, "钓鱼操作失败")
+        return true
+    end
+
+    if operation == 2 then
+        local sceneId = message:ReadInt()
+        local mapId = message:ReadInt()
+        local x = message:ReadInt()
+        local y = message:ReadInt()
+        local direction = message:ReadByte()
+        local flip = message:ReadByte() ~= 0
+        local shapeId = message:ReadInt()
+        local gold = message:ReadUInt()
+        local cost = message:ReadUInt()
+        local minSeconds = message:ReadUShort()
+        local maxSeconds = message:ReadUShort()
+        local capacity = message:ReadUShort()
+        local stackLimit = message:ReadUShort()
+        local fishing = message:ReadByte() ~= 0
+        local remaining = message:ReadUShort()
+        Bridge:ConfigureFish(sceneId, mapId, x, y, direction, flip, shapeId, gold,
+            cost, minSeconds, maxSeconds, capacity, stackLimit, fishing, remaining)
+        send(4)
+        return true
+    end
+
+    if operation == 4 then
+        local count = message:ReadUShort()
+        Bridge:BeginFishBasket()
+        for _ = 1, count do
+            Bridge:AddFishBasketSlot(message:ReadUShort(), message:ReadUShort(), message:ReadUShort())
+        end
+        if message.Remaining ~= 0 then
+            Bridge:ClearFishState()
+            Bridge:Fail("Fish/217 basket has unread bytes=" .. tostring(message.Remaining) .. ".")
+            return true
+        end
+        Bridge:CommitFishBasket()
+        Bridge:SetStatus("Fish/217 ready: basket slots=" .. tostring(count) .. ".")
+        return true
+    end
+
+    if operation == 5 then
+        Bridge:BeginFishCycle(message:ReadUShort(), message:ReadByte(), message:ReadUInt())
+        return true
+    end
+
+    if operation == 6 then
+        Bridge:CompleteFishCollect(message:ReadUShort(), message:ReadUShort(), message:ReadUShort())
+        return true
+    end
+
+    if operation == 8 then
+        Bridge:SyncFishTime(message:ReadUShort())
+        return true
+    end
+
+    if operation == 9 then
+        Bridge:ClearFishState()
+        return true
+    end
+
+    if operation == 10 then
+        Bridge:CompleteFishStop(message:ReadUInt())
+        return true
+    end
+
+    if operation == 11 then
+        Bridge:CompleteFishCatch(message:ReadUShort(), message:ReadUShort(), message:ReadUShort(),
+            message:ReadByte() ~= 0, message:ReadUShort(), message:ReadUInt())
+        return true
+    end
+
+    Bridge:Fail("Fish/217 unsupported operation=" .. tostring(operation) .. ".")
+    return true
+end
+
+function M.reset()
+    M.opened = false
+    Bridge:ClearFishState()
+end
+
+return M

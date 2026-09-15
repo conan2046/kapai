@@ -1422,7 +1422,16 @@ function Assert-UnityMigrationModuleWorkflowContract {
         $contracts = (Import-UnityMigrationJson -Root $Root `
             -Path "tools/unity-migration/module-evidence-contracts.json").Value
         $matches = @($contracts.modules | Where-Object { $_.module -ieq ([string]$ModuleConfig.key) })
-        if ($matches.Count -ne 1 -or $null -eq $matches[0].g5 -or @($matches[0].g5.pairs).Count -eq 0 -or
+        $currentCocosUnreachable = -not [bool](Get-UnityMigrationPropertyValue -Object $ModuleConfig `
+            -Name "currentCocosReachable" -Default $true) -and
+            [bool](Get-UnityMigrationPropertyValue -Object $ModuleConfig `
+                -Name "excludedFromCurrentCocosParityDenominator" -Default $false)
+        $exclusionEvidence = [string](Get-UnityMigrationPropertyValue -Object $ModuleConfig `
+            -Name "exclusionEvidence" -Default "")
+        $hasCurrentCocosException = $currentCocosUnreachable -and $exclusionEvidence -and
+            (Test-Path -LiteralPath (Resolve-UnityMigrationPath -Root $Root -Path $exclusionEvidence) -PathType Leaf)
+        if ($matches.Count -ne 1 -or $null -eq $matches[0].g5 -or
+            (-not $hasCurrentCocosException -and @($matches[0].g5.pairs).Count -eq 0) -or
             [int]$matches[0].g5.width -ne 1334 -or [int]$matches[0].g5.height -ne 750) {
             throw "Module '$($ModuleConfig.key)' requires a unique 1334x750 G5 evidence contract before G3."
         }

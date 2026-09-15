@@ -531,8 +531,13 @@ foreach ($contract in @($evidenceContractEntry.Value.modules | Where-Object {
     $contractMigrationExcluded = $null -ne $contractModule -and
         [bool](Get-UnityMigrationPropertyValue -Object $contractModule `
             -Name "migrationExcluded" -Default $false)
+    $contractGateRecords = @($gateEntry.Value.modules | Where-Object { $_.module -ieq $key })
+    $contractG0Passed = $contractGateRecords.Count -eq 1 -and
+        [string]$contractGateRecords[0].gates.G0 -eq "passed"
+    $contractG1Passed = $contractGateRecords.Count -eq 1 -and
+        [string]$contractGateRecords[0].gates.G1 -eq "passed"
     $fixedAccount = Get-UnityMigrationPropertyValue -Object $contract -Name "fixedAccount" -Default $null
-    if ($null -ne $fixedAccount -and -not $contractMigrationExcluded) {
+    if ($null -ne $fixedAccount -and -not $contractMigrationExcluded -and $contractG0Passed) {
         foreach ($contractFailure in @(Get-UnityMigrationFixedAccountContractFailures `
             -Root $root -Module $key -FixedAccount $fixedAccount)) {
             Add-Failure $contractFailure
@@ -551,7 +556,7 @@ foreach ($contract in @($evidenceContractEntry.Value.modules | Where-Object {
         if ($contractCurrentCocosUnreachable -and $allPairIds.Count -ne 0) {
             Add-Failure "Evidence contract $key must not fabricate G5 pairs for a current-Cocos-unreachable flow."
         }
-        elseif (-not $contractCurrentCocosUnreachable -and
+        elseif ($contractG1Passed -and -not $contractCurrentCocosUnreachable -and
             ($pairIds.Count -eq 0 -or @($allPairIds | Sort-Object -Unique).Count -ne $allPairIds.Count)) {
             Add-Failure "Evidence contract $key has empty or duplicate G5 pair ids."
         }

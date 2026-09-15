@@ -883,7 +883,7 @@ namespace ProjectX.Core
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
                 if (services.Options.ManualReconnectValidation || services.Options.ScenarioManagedReconnect
-                    || services.Options.GameplayValidation
+                    || services.Options.GameplayValidation || services.Options.FishValidation
                     || services.Options.DrawClosureValidation || services.Options.WorldBattleValidation)
                     services.Config.AutoReconnect = false;
                 services.Network.StateChanged += HandleNetworkState;
@@ -1024,6 +1024,11 @@ namespace ProjectX.Core
                 onSevenDayClaim = services.Lua.GetFunction("OnSevenDayClaim");
                 onMoneyTreeClicked = services.Lua.GetFunction("OnMoneyTreeClicked");
                 onMoneyTreeShake = services.Lua.GetFunction("OnMoneyTreeShake");
+                onFishClicked = services.Lua.GetFunction("OnFishClicked");
+                onFishStart = services.Lua.GetFunction("OnFishStart");
+                onFishStop = services.Lua.GetFunction("OnFishStop");
+                onFishCollect = services.Lua.GetFunction("OnFishCollect");
+                onFishExit = services.Lua.GetFunction("OnFishExit");
                 onAnswerClicked = services.Lua.GetFunction("OnAnswerClicked");
                 onAnswerSelected = services.Lua.GetFunction("OnAnswerSelected");
                 onAnswerNextRequested = services.Lua.GetFunction("OnAnswerNextRequested");
@@ -1225,6 +1230,11 @@ namespace ProjectX.Core
             onSevenDayClaim?.Dispose();
             onMoneyTreeClicked?.Dispose();
             onMoneyTreeShake?.Dispose();
+            onFishClicked?.Dispose();
+            onFishStart?.Dispose();
+            onFishStop?.Dispose();
+            onFishCollect?.Dispose();
+            onFishExit?.Dispose();
             onAnswerClicked?.Dispose();
             onAnswerSelected?.Dispose();
             onAnswerNextRequested?.Dispose();
@@ -1249,6 +1259,7 @@ namespace ProjectX.Core
             xunBaoComposeAllPresenter?.Dispose();
             sevenDayPresenter?.Dispose();
             moneyTreePresenter?.Dispose();
+            fishPresenter?.Dispose();
             answerPresenter?.Dispose();
             monopolyPresenter?.Dispose();
             happyWheelPresenter?.Dispose();
@@ -1458,6 +1469,7 @@ namespace ProjectX.Core
                 return true;
             }
             if (TryHandleMoneyTreeBack()) return true;
+            if (TryHandleFishBack()) return true;
             if (TryHandleMonopolyBack()) return true;
             if (TryHandleHappyWheelBack()) return true;
             if (IsGameplayOpen)
@@ -2718,6 +2730,7 @@ namespace ProjectX.Core
                 case "Arena": InvokeLuaOrFail(onArenaClicked, "Gameplay.Arena"); return;
                 case "XunBao": InvokeLuaOrFail(onXunBaoClicked, "Gameplay.XunBao"); return;
                 case "MoneyTree": InvokeLuaOrFail(onMoneyTreeClicked, "Gameplay.MoneyTree", (double)functionId); return;
+                case "Fish": InvokeLuaOrFail(onFishClicked, "Gameplay.Fish", (double)functionId); return;
                 case "Answer": InvokeLuaOrFail(onAnswerClicked, "Gameplay.Answer", (double)functionId); return;
                 case "Monopoly": InvokeLuaOrFail(onMonopolyClicked, "Gameplay.Monopoly", (double)functionId); return;
                 case "HappyWheel": InvokeLuaOrFail(onHappyWheelClicked, "Gameplay.HappyWheel", (double)functionId); return;
@@ -2780,12 +2793,13 @@ namespace ProjectX.Core
                 ? 705213u
                 : services.Options.GameplayIsolationUserId;
             int pendingAtEntry = 0;
-            int[] functionIds = { 1, 3, 9, 10, 21, 23, 27, 29 };
+            int[] functionIds = { 1, 3, 9, 10, 21, 23, 27, 29, 32 };
             string[] controlIds =
             {
                 "GAMEPLAY-04-ENTER-1", "GAMEPLAY-05-ENTER-3",
                 "GAMEPLAY-09-ENTER-9", "GAMEPLAY-10-ENTER-10",
-                "GAMEPLAY-16-ENTER-21", "GAMEPLAY-17-ENTER-23", "GAMEPLAY-19-ENTER-27", "GAMEPLAY-18-ENTER-29"
+                "GAMEPLAY-16-ENTER-21", "GAMEPLAY-17-ENTER-23", "GAMEPLAY-19-ENTER-27", "GAMEPLAY-18-ENTER-29",
+                "GAMEPLAY-20-ENTER-32"
             };
             try
             {
@@ -2821,7 +2835,7 @@ namespace ProjectX.Core
                 }
                 MarkValidationControl("GAMEPLAY-01-HUD-ENTRY");
                 RecordValidationSemantic("gameplay-entry-list-current-ready-8", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
-                    "Current table-driven order=1,3,9,10,21,23,27,29; id6 and remaining excluded modules stay hidden");
+                    "Current table-driven order=1,3,9,10,21,23,27,29,32; id6 and remaining excluded modules stay hidden");
                 bool arenaTemporarilyHidden = services.GameplayCatalog.Find(6) == null;
                 MarkValidationControl("GAMEPLAY-06-ENTER-6");
                 RecordValidationSemantic("gameplay-arena-hidden-until-ready", arenaTemporarilyHidden,
@@ -2886,7 +2900,7 @@ namespace ProjectX.Core
                     if (index == 0) yield return CaptureGameplayFrame("bootstrap-gameplay-unavailable.png");
                 }
                 RecordValidationSemantic("gameplay-enter-boundaries-current-ready-8", true,
-                    "8 configured EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
+                    "9 configured EnterBtn listeners closed the hub and reported target owner without opening target views or sending target protocols");
 
                 // All local initial accounts are intentionally level 99 for feature testing.
                 // Preserve the source lock-state visual contract with an isolated in-memory

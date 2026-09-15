@@ -261,6 +261,7 @@ namespace ProjectX.Editor
             bool drawValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawValidation") >= 0
                 || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXDrawClosureValidation") >= 0;
             bool gameplayValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXGameplayValidation") >= 0;
+            bool fishValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFishValidation") >= 0;
             bool answerValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXAnswerValidation") >= 0;
             bool youLiValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXYouLiValidation") >= 0;
             bool fengShenStoryValidation = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFengShenStoryValidation") >= 0
@@ -349,6 +350,11 @@ namespace ProjectX.Editor
             if (jingJieValidation && status == "Main UI active.")
             {
                 app.BeginJingJieValidation();
+                return;
+            }
+            if (fishValidation && status == "Main UI active.")
+            {
+                app.BeginFishValidation();
                 return;
             }
             if (loginValidation && status == "No role found. RoleCreateLayer is active."
@@ -449,6 +455,12 @@ namespace ProjectX.Editor
                 {
                     // Answer owns three stabilized screenshots and reaches COMPLETE
                     // only after the second entry is rejected by the daily limit.
+                    WriteResult(true, status);
+                    Finish(true);
+                    return;
+                }
+                if (fishValidation)
+                {
                     WriteResult(true, status);
                     Finish(true);
                     return;

@@ -29,6 +29,7 @@ local BloodFightController = require("Gameplay.BloodFightController")
 local XunBaoController = require("Gameplay.XunBaoController")
 local SevenDayController = require("Gameplay.SevenDayController")
 local MoneyTreeController = require("Gameplay.MoneyTreeController")
+local FishController = require("Gameplay.FishController")
 local AnswerController = require("Gameplay.AnswerController")
 local JingJieController = require("JingJie.JingJieController")
 local MonopolyController = require("Gameplay.MonopolyController")
@@ -55,6 +56,7 @@ function OnDisconnected(reason)
     GameplayShopController.onDisconnected()
     SevenDayController.onDisconnected()
     MoneyTreeController.reset()
+    FishController.reset()
     AnswerController.reset()
     JingJieController.reset()
     MonopolyController.reset()
@@ -202,6 +204,11 @@ function OnSevenDayClicked() SevenDayController.onClick() end
 function OnSevenDayClaim(id) SevenDayController.claim(id) end
 function OnMoneyTreeClicked(functionId) MoneyTreeController.onClick(functionId) end
 function OnMoneyTreeShake(treeType) MoneyTreeController.shake(treeType) end
+function OnFishClicked(functionId) FishController.onClick(functionId) end
+function OnFishStart() FishController.start() end
+function OnFishStop() FishController.stop() end
+function OnFishCollect(slotIndex) FishController.collect(slotIndex) end
+function OnFishExit() FishController.exit() end
 function OnAnswerClicked(functionId) AnswerController.onClick(functionId) end
 function OnAnswerSelected(index) AnswerController.select(index) end
 function OnAnswerNextRequested() AnswerController.nextQuestion() end
@@ -239,6 +246,7 @@ function OnPacket(command, message)
     end
     if JingJieController.onPacket(command, message) then return end
     if AnswerController.onPacket(command, message) then return end
+    if FishController.onPacket(command, message) then return end
     if command == Protocol.TEMP_ACTIVITY then
         local operation = message:ReadByte()
         if MoneyTreeController.onOperation(operation, message) then return end

@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "module": "Fish",
+  "scopeDecision": {
+    "decision": "Steam单机采用场景54/map33假传送，角色固定在(1086,619)、dir=2、flip=true，传入后立即切换原版ShapeId=2000钓鱼造型；此时业务态为Ready，开始后才进入权威Fishing，收竿回持竿待机，退出恢复正常角色。保留容量9999格鱼篓与当前10种配置化鱼产出；10是鱼种数而非固定格数。同种鱼优先补已有未满格，单格堆叠上限999，满后新增同鱼种格，每格右下角显示数量；9999格均占用且本轮鱼种无未满同种格时，新鱼直接舍弃。每轮独立随机10至20秒。鱼的后续消耗用途暂不处理。移除主角钓鱼经验、交互币、房间、他人列表、抢夺、全服播报、限时窗、行走寻路传送与钓点选择。",
+    "confirmedByUser": true,
+    "confirmedDate": "2026-09-14",
+    "g0BlockedBy": []
+  },
+  "scenarios": [
+    {"id":"fish-entry-map","kind":"success","given":"固定账号达到10级且function_id=32开放，map33与ShapeId=2000正式资源可解析","when":"点击Function_32入口","then":"假传送进入场景54/map33表现，角色固定在(1086,619)、dir=2、flip=true并立即切换ShapeId=2000钓鱼造型；业务态仍为Ready，不发op5、不扣金币、不启动倒计时，每日不限次"},
+    {"id":"fish-start-cycle","kind":"success","given":"角色已在固定钓位以ShapeId=2000持竿待机、产出鱼存在可补同种格或鱼篓仍有空格，且金币不少于100","when":"点击开始钓鱼并等待周期结束","then":"固定发送op5(dir=2)，成功时权威扣100金币、业务态切为Fishing并返回本轮10至20秒时长；钓鱼造型保持，到期只产出配置鱼种并为下一轮重抽时长"},
+    {"id":"fish-basket-collect","kind":"success","given":"鱼篓存在有效鱼","when":"选择鱼格并领取","then":"背包增加对应鱼且鱼篓刷新"},
+    {"id":"fish-stop-close-reconnect","kind":"success","given":"模块处于Fishing或持竿待机Ready","when":"收竿、关闭或重连","then":"收竿回ShapeId=2000持竿待机；退出页面恢复正常角色模型并清理钓鱼模型、计时器与pending；重连由权威状态重建"},
+    {"id":"fish-function-gate","kind":"failure-boundary","given":"未达10级","when":"查看或点击入口","then":"锁定或拒绝且不进入模块"},
+    {"id":"fish-insufficient-gold","kind":"failure-boundary","given":"金币小于配置消耗100","when":"在固定钓位点击开始钓鱼","then":"不扣金币、不进入Fishing、不产出奖励并精确提示，仍保持ShapeId=2000持竿待机"},
+    {"id":"fish-protocol-error","kind":"failure-boundary","given":"服务端返回op0或业务失败","when":"客户端解析回包","then":"精确提示且不乐观修改状态"},
+    {"id":"fish-config-boundary","kind":"failure-boundary","given":"fish_settings/fish_reward/fish_position/10种item镜像/map33/ShapeId=2000模型动画缺失或非法","when":"进入模块或开始钓鱼","then":"停止并报告具体配置错误，不使用临时钓位、普通角色站立或占位资源"},
+    {"id":"fish-basket-full-discard","kind":"failure-boundary","given":"鱼篓9999格均已占用且本轮鱼种无未满同种格","when":"结算本轮鱼产出","then":"直接舍弃本次鱼，不新增、不覆盖、不修改任何鱼格，并明确提示鱼篓已满"},
+    {"id":"fish-empty-or-invalid-slot","kind":"failure-boundary","given":"选中空鱼格、越界索引或背包不足","when":"点击领取","then":"不发奖、不重复领取并精确提示"},
+    {"id":"fish-multiplayer-removed","kind":"exclusion","given":"Steam单机模块已打开","when":"检查UI与/217收发","then":"多人、抢夺和全服广播分支均不可达"}
+  ],
+  "sources": [
+    {
+      "id": "fish-entry-map-scope",
+      "sourceFiles": [
+        "client/ProjectX/src/core/AppDef.lua",
+        "client/ProjectX/src/View/Activity/ActivityFunction.lua",
+        "server/sql/_all_sql.sql",
+        "server/config/dat/map33.map",
+        "../concept/策划文档/03正式版本/04剧情文档/钓鱼场景/map33.jpg",
+        "../concept/data/excel/xml配置表/新表/function.xlsx"
+      ],
+      "recordTotal": 7,
+      "businessIds": ["EAID:6", "function:32", "open-level:10", "daily-times:unlimited", "consume-timing:none", "scene:54", "map:33"],
+      "branchType": "旧活动入口、Steam玩法入口、场景记录与静态地图资产",
+      "mappings": [
+        {"businessIds":["EAID:6","function:32","open-level:10","daily-times:unlimited","consume-timing:none","scene:54","map:33"],"successScenarioIds":["fish-entry-map"],"failureBoundaryScenarioIds":["fish-function-gate","fish-config-boundary"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "fish-protocol-217",
+      "sourceFiles": [
+        "server/src/protocol.h",
+        "server/src/huo_dong.h",
+        "server/src/huo_dong.cpp",
+        "server/src/pack_deal.cpp",
+        "client/ProjectX/src/NetWork/LuaNetSendMsg.lua",
+        "client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua"
+      ],
+      "recordTotal": 17,
+      "businessIds": ["op0","op1","op2","op3","op4","op5","op6","op7","op8","op9","op10","op11","op12","op13","op14","op15","op16"],
+      "branchType": "/217旧端17个op与Steam单机保留/移除边界",
+      "mappings": [
+        {"businessIds":["op0"],"successScenarioIds":["fish-entry-map","fish-start-cycle"],"failureBoundaryScenarioIds":["fish-protocol-error"]},
+        {"businessIds":["op2"],"successScenarioIds":["fish-entry-map"],"failureBoundaryScenarioIds":["fish-function-gate","fish-protocol-error"]},
+        {"businessIds":["op4","op6"],"successScenarioIds":["fish-basket-collect"],"failureBoundaryScenarioIds":["fish-empty-or-invalid-slot","fish-protocol-error"]},
+        {"businessIds":["op5","op8","op11"],"successScenarioIds":["fish-start-cycle"],"failureBoundaryScenarioIds":["fish-config-boundary","fish-protocol-error"]},
+        {"businessIds":["op9","op10"],"successScenarioIds":["fish-stop-close-reconnect"],"failureBoundaryScenarioIds":["fish-protocol-error"]}
+      ],
+      "excluded": [
+        {"businessIds":["op1","op3","op7","op12","op13","op14","op15","op16"],"productEvidence":"2026-09-14用户明确删除房间/玩家列表/抢夺/全服广播/限时活动语义；docs/unityclient/modules/FISH.md §1.1/§1.2"}
+      ]
+    },
+    {
+      "id": "fish-item-catalog",
+      "sourceFiles": ["../concept/data/excel/xml配置表/新表/item.xlsx", "../concept/data/excel/xml配置表/新表/fish_reward.xlsx", "server/sql/item_template.sql", "server/src/user.cpp", "server/config/json/item.json", "server/config/json/fish_reward.json", "unityclient/Assets/ProjectX/Resources/Configs/item.json", "unityclient/Assets/ProjectX/Resources/Configs/fish_reward.json", "server/sql/sqlite/001_initial_schema.sql"],
+      "recordTotal": 10,
+      "businessIds": ["item:580", "item:581", "item:582", "item:10580", "item:10581", "item:10582", "item:10583", "item:10584", "item:10585", "item:10586"],
+      "branchType": "首版10种配置化鱼道具；旧3种保留50/35/15，新7种使用未占用ID；正式Excel、服务端JSON、Unity JSON与SQLite镜像已落地",
+      "mappings": [
+        {"businessIds":["item:580","item:581","item:582","item:10580","item:10581","item:10582","item:10583","item:10584","item:10585","item:10586"],"successScenarioIds":["fish-start-cycle","fish-basket-collect"],"failureBoundaryScenarioIds":["fish-config-boundary"]}
+      ],
+      "excluded": []
+    },
+    {
+      "id": "fish-fixed-position-and-model",
+      "sourceFiles": ["client/ProjectX/src/View/Activity/FishControlDelegate.lua", "client/ProjectX/frameworks/runtime-src/Classes/Game/MapObj/HeroNode.cpp", "client/ProjectX/frameworks/runtime-src/Classes/Game/MapObj/MapModelAni.cpp", "client/ProjectX/frameworks/runtime-src/Classes/Game/Map/MapObjNode.cpp", "client/ProjectX/res/Monster/btm2000_zd.ani", "client/ProjectX/res/Monster/btm2000_zd.png", "../concept/data/excel/xml配置表/新表/fish_position.xlsx", "unityclient/Assets/ProjectX/Resources/Fish/Map/map33.jpg", "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/Monster/btm2000_zd.json", "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/Monster/btm2000_zd.png"],
+      "recordTotal": 6,
+      "businessIds": ["area:1/dir:2", "area:2/dir:6", "area:3/dir:4", "fixed-position:1086,619", "fishing-shape:2000", "entry-face:2"],
+      "branchType": "原版3个合法站位区域、用户选定的固定钓位与原版ShapeId=2000钓鱼造型链",
+      "mappings": [
+        {"businessIds":["area:1/dir:2","fixed-position:1086,619","fishing-shape:2000","entry-face:2"],"successScenarioIds":["fish-entry-map","fish-start-cycle","fish-stop-close-reconnect"],"failureBoundaryScenarioIds":["fish-config-boundary"]}
+      ],
+      "excluded": [
+        {"businessIds":["area:2/dir:6","area:3/dir:4"],"productEvidence":"2026-09-14用户选择1号区域黑圈位置作为唯一固定钓位；2/3号区域及钓点选择不接入单机UI；docs/unityclient/modules/FISH.md §5A"}
+      ]
+    },
+    {
+      "id": "fish-retained-mechanics",
+      "sourceFiles": ["server/src/huo_dong.h", "server/src/huo_dong.cpp", "server/src/user.cpp", "../concept/data/excel/xml配置表/新表/fish_settings.xlsx", "server/config/json/fish_settings.json", "unityclient/Assets/ProjectX/Resources/Configs/fish_settings.json", "tools/unity-migration/Invoke-FishSqliteFixture.ps1"],
+      "recordTotal": 10,
+      "businessIds": ["gold-cost:100", "cycle-min:10", "cycle-max:20", "cycle-rng:uniform-integer", "basket-capacity-slots:9999", "fish-stack-limit:999", "auto-continue:1", "legacy-exp-activity:11", "legacy-exp-ratio:0.05", "legacy-exchange-event:Fish"],
+      "branchType": "成功放竿金币消耗、每轮独立等概率整数周期、鱼篓格数容量、同种鱼先补栈后开格、单格堆叠上限与自动续钓",
+      "mappings": [
+        {"businessIds":["gold-cost:100","cycle-min:10","cycle-max:20","cycle-rng:uniform-integer","basket-capacity-slots:9999","fish-stack-limit:999","auto-continue:1"],"successScenarioIds":["fish-start-cycle","fish-basket-collect"],"failureBoundaryScenarioIds":["fish-insufficient-gold","fish-config-boundary","fish-empty-or-invalid-slot","fish-basket-full-discard"]}
+      ],
+      "excluded": [
+        {"businessIds":["legacy-exp-activity:11","legacy-exp-ratio:0.05"],"productEvidence":"2026-09-14用户确认主角不再需要经验，整条AddExp链删除；docs/unityclient/modules/FISH.md §1.1/§4"},
+        {"businessIds":["legacy-exchange-event:Fish"],"productEvidence":"2026-09-14用户确认移除交互币；其为独立限时兑换材料，不是钓鱼消耗；docs/unityclient/modules/FISH.md §3/§4"}
+      ]
+    }
+  ]
+}

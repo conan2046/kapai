@@ -1,17 +1,17 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-09-13。这里只维护实时状态、当前焦点、顺序和风险。
+> 最后更新：2026-09-15。这里只维护实时状态、当前焦点、顺序和风险。
 > 稳定流程见 `docs/unityclient/MIGRATION_GUIDE.md`；模块事实见 `docs/unityclient/modules/`；历史流水见 `docs/unityclient/history/`。
 
 ## 1. 当前焦点
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动范围 | `Answer` 每日答题 Unity接入 |
-| 当前门禁 | `G0 passed / Unity-Only定向批处理11/11通过 / 用户真人Play通过 / G1-G6中央门禁仍待新鲜Cocos基线` |
-| 当前仅剩玩家缺陷 | 无；答题中文题目、固定奖励显示、最终金币和每日次数提示已由用户确认测试通过 |
-| 下一步 | 答题功能收口并发布；如后续需要标准G1-G6，再单独补Cocos原生基线与双端视觉证据 |
-| 禁止事项 | 不修改Cocos客户端/NPC流程；不把MCP自动点击当真人验收；金币1000仅为临时配置值 |
+| 唯一活动范围 | `Fish` 钓鱼 Steam 单机化迁移 |
+| 当前门禁 | `G3 passed / user Play accepted / G4-G6 pending` |
+| 当前仅剩玩家缺陷 | 无；本阶段统一顶部、鱼篓滚动、Prefab 场景与 pos 挂点已由用户实际测试通过 |
+| 下一步 | Fish 本阶段收口；等待用户选择下一个模块，后续若重开严格迁移验收再执行 G4-G6 |
+| 禁止事项 | 后续调整必须以用户维护的 `FishLayer.prefab` 为基础；未经用户明确许可不操作 Unity |
 
 ## 2. 总进度
 
@@ -19,10 +19,10 @@
 |---|---:|---|
 | Static | `386 CSB 已审计` | 325 个同路径 CSD，61 个 CSB 兜底 IR |
 | Functional | `待逐控件重审` | 旧页面/协议主链百分比已作废 |
-| Strict Validated | `8/18 = 44.4%` | Login、Settings、PlayerHud、Bag、Task、World、Mail、XunBao |
+| Strict Validated | `8/19 = 42.1%` | Login、Settings、PlayerHud、Bag、Task、World、Mail、XunBao |
 
 GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加严格证据分子；BattleFengShenStory 为非分母战斗子模块。完成率不得在其他文档重复维护。
-当前 Steam 业务模块分母固定为 18。
+当前 Steam 业务模块分母固定为 19（2026-09-14 用户确认钓鱼纳入范围，由 18 调整为 19）。
 
 ## 3. 模块状态
 
@@ -46,6 +46,7 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Shop | `G3 runtime-ready / early Play passed` | 正式 G1-G2、G4-G6 待后续独立任务 |
 | Gameplay | `scope changed / revalidation required` | 当前表驱动入口为 `function_id=1/3/9/10/21/23/27/29`；旧4项/7项证据失效 |
 | Answer | `implemented / Chinese question bank installed / user Play passed` | 38道中文题已更新至SQLite/MySQL；固定品质框+金币图标+默认1000已验收，Cocos逻辑不改，manualPassed=true；中央G1-G6待补证据 |
+| Fish | `G3 passed / user Play accepted` | Unity 单机实现与固定账号 9/9 真实点击回归已通过；Cocos 仅作源码基线且不声称运行截图；用户已在最后一次统一顶部层级与 Prefab `FishScene/pos` 挂点调整后实际测试通过，`manualPassed=true`；G4-G6 待后续重新开启 |
 | MoneyTree | `runtime implemented / Play pending` | `/222 op=17` 查询与摇取已接入；待真实Play验证 |
 | HappyWheel | `runtime implemented / latest fix Play pending` | 常驻十格奖池、钥匙商城、50条记录和 `/222 op=33` 已接入；待复测重登后的钥匙数量显示 |
 | JingJie | `G0 passed / G1 blocked / Unity user Play passed` | `/306 op=1/4`、20阶配置、Prefab、预览和突破动画已接入；2026-09-13 用户测试通过，待当前Cocos原生基线 |
@@ -57,6 +58,10 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Steam SQLite/发布 | `S0-S7 passed / S8 local accepted` | 物理干净机与真实 Steam Depot 暂缓 |
 
 `steam-excluded`：Friend、Chat、Team、Guild主体、Welfare、Activity主体、StaminaClaim、ResourceRecovery、Funds、SevenDay、KunLun、BloodFight、Arena。用户于2026-09-12从Guild/Activity边界单独恢复 `MoneyTree/HappyWheel/Monopoly` 三个单人玩法；帮派种植与神树继续暂停。唯一范围表见 `docs/unityclient/STEAM_SCOPE.md`。
+
+`Fish G0`：2026-09-14 已通过，冻结固定账号 `7200057/1000003`、9个控件、5类来源与50个业务ID。用户确认采用场景54/map33假传送，角色固定在1号区域黑圈位置 `(1086,619)`、`dir=2`、`flip=true`，传入后立即将正常角色模型切为原版 `ShapeId=2000` 钓鱼造型；此时业务态仍为Ready，不扣费、不倒计时，点击开始后才进入权威Fishing；收竿回持竿待机，退出模块恢复正常角色模型。`function_id=32` 10级开放、每日不限次、无扣次、每次成功放竿扣100金币（配置可调）、每轮独立随机10–20秒；鱼篓容量9999格，同种鱼优先补已有未满格，单格上限999，满栈后新增同鱼种格，每格右下角显示数量；10只是当前鱼种数，不是固定格数。9999格均占用且本轮鱼种不存在未满同种格时，新获得的鱼直接舍弃，不改动原鱼格。首版10种鱼走 `fish_reward` 权重配置；后续消耗用途暂不处理。旧主角经验与 `EEHDT_Fish` 限时兑换材料掉落整链删除。正式 Excel→JSON/SQLite 镜像、map33、原版 `btm2000_zd` 与 Unity 40帧/5动作动画、7张新鱼 RGBA 图标及可逆 SQLite 夹具均已落地；整库精确恢复、重登业务哈希、完整性与残留0通过。G1 因原版限时/房间/传送条件及 Computer Use 无原生窗口，由用户明确授权改为源码基线例外：忽略 Cocos 客户端全部表现，直接进入 Unity 实现，最终只做 Cocos 代码语义与 Unity 代码/实际表现对照。
+
+`Fish G3`：2026-09-14 固定账号真实点击玩法入口、`Function_32/EnterBtn`、帮助、鱼篓开关、开始、鱼格领取、收杆与退出；验证 Ready 金币1000不扣费，开始后1000→900，首轮10–20秒产鱼并自动续钓至800，领取整格后第二轮产鱼并续钓至700，最终保留1条鱼、停止并退出。三张1334×750截图、运行结果、SQLite恢复、重登玩家业务哈希与残留0均通过。2026-09-15 正式 UI 收敛为 `DynamicUi_OneLevelLayer` 页面容器并隐藏 `Bg/GoldCheck/shop_bg`，地图场景与定位点改由用户维护的 `FishLayer.prefab/FishScene/pos` 提供；用户在最后一次变更后实际测试确认无误，`manualPassed=true`。本阶段停在 G3，G4-G6 未执行。
 
 ## 4. 当前验证基线
 

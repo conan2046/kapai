@@ -66,6 +66,7 @@ namespace ProjectX.UI
         public int EnterButtonCount => enterButtons.Count;
         public bool EmptyStateVisible => RenderedCount == 0;
         public float VerticalNormalizedPosition => listScroll == null ? 1f : listScroll.verticalNormalizedPosition;
+        public ScrollRect ScrollControl => listScroll;
         public bool CardBodiesInert => runtimeRows.TrueForAll(row =>
             row == null || AllCardBodiesInert(row.transform));
 
@@ -169,6 +170,14 @@ namespace ProjectX.UI
             if (viewport == null) throw new InvalidOperationException("Gameplay ActivityBg has no RectTransform.");
             if (activityBackground.GetComponent<RectMask2D>() == null)
                 activityBackground.gameObject.AddComponent<RectMask2D>();
+            Graphic dragSurface = activityBackground.GetComponent<Graphic>();
+            if (dragSurface == null)
+            {
+                Image transparentSurface = activityBackground.gameObject.AddComponent<Image>();
+                transparentSurface.color = Color.clear;
+                dragSurface = transparentSurface;
+            }
+            dragSurface.raycastTarget = true;
             ScrollRect scroll = activityBackground.GetComponent<ScrollRect>()
                 ?? activityBackground.gameObject.AddComponent<ScrollRect>();
             scroll.horizontal = false;

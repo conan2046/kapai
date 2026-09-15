@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "steamProgressPolicy": {
-    "denominator": 18,
+    "denominator": 19,
     "nonDenominatorSubmodules": [
       "HeroCultivation",
       "EnhanceMaster",
@@ -1935,7 +1935,7 @@
     {
       "key": "MoneyTree",
       "displayName": "摇钱树",
-      "status": "runtime-user-tested-g1-blocked",
+      "status": "runtime-implemented-play-pending",
       "protocols": [
         222
       ],
@@ -1952,9 +1952,7 @@
         "server/config/json/vip.json"
       ],
       "mutatesServer": true,
-      "validationFlags": [
-        "-projectXMoneyTreeValidation"
-      ],
+      "validationFlags": [],
       "screenshots": [],
       "controlMatrix": "docs/unityclient/matrices/MONEYTREE_CONTROLS.json",
       "document": "docs/unityclient/modules/MONEYTREE.md",
@@ -1963,7 +1961,7 @@
     {
       "key": "JingJie",
       "displayName": "境界",
-      "status": "scaffolded",
+      "status": "g0-passed-g1-blocked-unity-user-play-passed",
       "protocols": [
         306
       ],
@@ -2026,6 +2024,59 @@
       "controlMatrix": "docs/unityclient/matrices/ANSWER_CONTROLS.json",
       "document": "docs/unityclient/modules/ANSWER.md",
       "g0Draft": ".local/unity-validation/answer-g0-draft-latest.json"
+    },
+    {
+      "key": "Fish",
+      "displayName": "钓鱼",
+      "status": "g3-runtime-passed-awaiting-user-early-play",
+      "scopeDecision": "用户于2026-09-14明确将EAID=6钓鱼纳入Steam单机范围并按单机化玩法迁移修改：采用场景54/map33假传送，玩家固定在原1号区域黑圈位置(1086,619)、dir=2、flip=true，不提供钓点选择。传入后立即把正常角色切为原版ShapeId=2000钓鱼造型；此时业务态为Ready且不扣费、不倒计时，点击开始后才固定发送op5(dir=2)并进入权威Fishing；收竿回持竿待机，退出恢复正常角色。沿用function_id=32，10级开放、每日不限次、无扣次，成功放竿每次扣100金币（配置可调）；每轮独立随机10至20秒；鱼篓容量9999格，同种鱼优先补已有未满格，单格上限999，满栈后新增同鱼种格，每格右下角显示数量，10只是当前鱼种数而不是固定格数；9999格均占用且本轮鱼种无未满同种格时，新鱼直接舍弃且不改原格。鱼种奖励由fish_reward配置权重驱动，首版共10种，保留580/581/582=50/35/15并新增7种；后续消耗用途暂不处理。抢夺、房间、他人列表、全服播报、限时窗、行走/寻路/传送、主角钓鱼经验与EEHDT_Fish交互币掉落整链移除。Steam业务模块分母18->19。正式Excel/JSON/SQLite镜像、map33、ShapeId=2000对应btm2000_zd.png/.ani及Unity动画、7张新鱼图标、可恢复SQLite夹具均已落地并完成恢复验证。",
+      "protocols": [
+        217
+      ],
+      "entries": [
+        "client/ProjectX/src/View/Activity/ActivityFunction.lua:142 EAID_FISH=6 -> QueryFishingInfo(2,0,-1)"
+      ],
+      "prefabs": [
+        "unityclient/Assets/ProjectX/res/csd/Prefabs/FishLayer.prefab"
+      ],
+      "configs": [
+        "../concept/data/excel/xml配置表/新表/function.xlsx",
+        "../concept/data/excel/xml配置表/新表/item.xlsx",
+        "../concept/data/excel/xml配置表/新表/fish_settings.xlsx",
+        "../concept/data/excel/xml配置表/新表/fish_reward.xlsx",
+        "../concept/data/excel/xml配置表/新表/fish_position.xlsx",
+        "../concept/策划文档/03正式版本/04剧情文档/钓鱼场景/map33.jpg",
+        "server/config/json/function.json",
+        "server/config/json/item.json",
+        "server/config/json/fish_settings.json",
+        "server/config/json/fish_reward.json",
+        "server/config/json/fish_position.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/item.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/fish_settings.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/fish_reward.json",
+        "unityclient/Assets/ProjectX/Resources/Configs/fish_position.json",
+        "unityclient/Assets/ProjectX/Resources/Fish/Map/map33.jpg",
+        "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/Monster/btm2000_zd.json",
+        "server/sql/item_template.sql",
+        "server/sql/sqlite/001_initial_schema.sql",
+        "server/config/dat/map33.map"
+      ],
+      "mutatesServer": true,
+      "currentCocosReachable": false,
+      "excludedFromCurrentCocosParityDenominator": true,
+      "exclusionReason": "2026-09-14用户明确授权忽略受限时、房间和传送条件阻断的Cocos客户端全部运行表现，仅以现有Lua/C++/协议/CSB/资源源码为迁移基线；不得伪造Cocos截图。",
+      "exclusionEvidence": ".local/unity-validation/fish-g1-user-authorized-source-only.json",
+      "validationFlags": [
+        "-projectXFishValidation"
+      ],
+      "screenshots": [
+        "build/ui-migration/bootstrap-fish-ready.png",
+        "build/ui-migration/bootstrap-fish-fishing.png",
+        "build/ui-migration/bootstrap-fish-basket.png"
+      ],
+      "controlMatrix": "docs/unityclient/matrices/FISH_CONTROLS.json",
+      "document": "docs/unityclient/modules/FISH.md",
+      "g0Draft": ".local/unity-validation/fish-g0-draft-latest.json"
     }
   ]
 }

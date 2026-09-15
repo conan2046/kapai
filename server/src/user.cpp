@@ -27,6 +27,7 @@
 #include "blood_fight_manage.h"
 #include "user_shop_manage.h"
 #include "role_simple_mgr.h"
+#include "fish_single_player.h"
 using namespace std;
 
 extern CDatabaseSql g_LoginDB;
@@ -16283,6 +16284,11 @@ void CUser::TongTianTaSaoDang(CNetMessage &msg)
 // 钓鱼定时器
 void CUser::TryFishTimeout()
 {
+	if(CFishSinglePlayerService::Instance().IsEnabled())
+	{
+		CFishSinglePlayerService::Instance().Tick(this);
+		return;
+	}
 	if (!SingletonFishManager::instance().IsInHuoDongTime()) // 活动时间判断
 		return;
 	if (m_pFishRoom == NULL) // 是否在钓鱼判断

@@ -151,6 +151,13 @@
       "mutatesServer": true,
       "cleanup": "snapshot-relogin-restore-cleanup-assert",
       "adapter": "tools/unity-migration/Invoke-AnswerSqliteFixture.ps1"
+    },
+    {
+      "key": "reversible-fish-fixed-account",
+      "roleMode": "fixed-account",
+      "mutatesServer": true,
+      "cleanup": "snapshot-relogin-restore-cleanup-assert",
+      "adapter": "tools/unity-migration/Invoke-FishSqliteFixture.ps1"
     }
   ]
 }

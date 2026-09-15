@@ -25,6 +25,7 @@
 #include "role_simple_mgr.h"
 #include "friend.h"
 #include "config_para.h"
+#include "fish_single_player.h"
 #ifdef _DEBUG_CHY
 #include "gm_tool.h"
 #include "user_spirit.h"
@@ -13788,6 +13789,34 @@ void CPackageDeal::FishOption(CNetMessage *pMsg,int sock)
 	// CHECK_SYSTEM_OPEN(SOT_Fish)
 	uint8 op = 0;
 	msg>>op;
+	CFishSinglePlayerService& singlePlayer = CFishSinglePlayerService::Instance();
+	if(singlePlayer.IsEnabled())
+	{
+		switch(op)
+		{
+		case CFishManager::EFOP_Join: singlePlayer.Join(pUser); break;
+		case CFishManager::EFOP_FishList: singlePlayer.SendBasket(pUser); break;
+		case CFishManager::EFOP_Fish:
+			{
+				uint8 face = 0;
+				msg >> face;
+				singlePlayer.Start(pUser, face);
+				break;
+			}
+		case CFishManager::EFOP_GetFish:
+			{
+				uint16 slotIndex = 0;
+				msg >> slotIndex;
+				singlePlayer.Collect(pUser, slotIndex);
+				break;
+			}
+		case CFishManager::EFOP_FishTime: singlePlayer.SyncTime(pUser); break;
+		case CFishManager::EFOP_StopFish: singlePlayer.Stop(pUser); break;
+		case CFishManager::EFOP_Exit: singlePlayer.Exit(pUser); break;
+		default: singlePlayer.Join(pUser); break;
+		}
+		return;
+	}
 
 	CFishManager& fishMgr = SingletonFishManager::instance();
 	switch (op)

@@ -905,7 +905,7 @@
         "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/DRAW.md",
-      "note": "2026-09-10 hardGateVersion=4 pilot retains G0-G5 and replaces 56 missing per-control images with 28/28 dual-engine runtime JSON, 9/9 visual states, per-engine Computer Use samples, exact SQLite restore and final user Play. Current runtime, real-input and final Play evidence is still pending.",
+      "note": "2026-09-11 user final Play passed after the direct-fragment and duplicate-fragment result fixes, so the targeted bug is accepted with manualPassed=true. Central G6 remains pending because the runtime-v4 per-control evidence debt is still disclosed and runtimeV4StrictGatePassed=false.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/matrices/DRAW_CONTROLS.json"
@@ -927,6 +927,7 @@
           ".local/ui-fidelity/Draw/compare/g5-20260730/manual-acceptance.json"
         ],
         "G6": [
+          "docs/unityclient/matrices/DRAW_CONTROLS.json",
           ".local/unity-validation/runtime-snapshots/Draw/current/summary.json",
           ".local/unity-validation/runtime-snapshots/Draw/current/compare-report.json",
           ".local/unity-validation/draw-sqlite-fixture-latest.json",
@@ -935,7 +936,7 @@
           "UNITYCLIENT_STATUS.md"
         ]
       },
-      "updatedUtc": "2026-09-10T00:00:00Z"
+      "updatedUtc": "2026-09-14T08:27:52.547Z"
     },
     {
       "module": "HeroEquip",
@@ -2520,6 +2521,103 @@
         ]
       },
       "updatedUtc": "2026-09-13T02:16:15.4581416Z"
+    },
+    {
+      "module": "Fish",
+      "gates": {
+        "G0": "passed",
+        "G1": "passed",
+        "G2": "passed",
+        "G3": "passed",
+        "G4": "pending",
+        "G5": "pending",
+        "G6": "pending"
+      },
+      "evidence": "docs/unityclient/modules/FISH.md",
+      "note": "2026-09-14 Fish G0 passed for fixed Unity identity 7200057/1000003, 9 controls and 50 business IDs. The standalone scene54/map33 fake transfer fixes the hero at Cocos (1086,619), dir=2, flip=true and immediately displays ShapeId=2000 while business state remains Ready; Start alone begins the authoritative cycle, Stop keeps the fishing appearance, and Exit restores the normal hero. Function32 opens at level10 with unlimited daily play and no attempt counter. Each successful cast costs configurable 100 gold, samples an independent uniform integer duration from 10 through 20 seconds, and awards one of 10 configured fish. Basket capacity is 9999 occupied cells; identical fish fill the earliest partial same-item cell to 999 before allocating a new cell, and a catch is discarded when no partial same-item cell or empty cell exists. Legacy protagonist EXP, EEHDT_Fish, multiplayer rooms, other-player lists, grabbing, broadcasts, time window, walking, pathfinding and real transport are excluded. Formal Excel to JSON mirrors, map33, original btm2000_zd resources and converted 40-frame/5-action Unity animation, seven RGBA icons, SQLite schema, and reversible fixture are present. The fixture passed exact restore, integrity and zero residue. G1 Cocos runtime visuals were explicitly waived by the user because the original feature is gated by time, room and transport conditions and Computer Use exposed no native app surface. G1 therefore uses current Cocos Lua/C++/protocol/CSB/map/animation source only; no Cocos screenshot is claimed. Unity real-input, SQLite-authoritative and final user Play acceptance remain mandatory.",
+      "timingPolicyVersion": 1,
+      "timingPolicyStartedUtc": "2026-09-14T08:47:03.9932639Z",
+      "gateTimings": {
+        "G0": {
+          "startedUtc": "2026-09-14T08:47:03.9932639Z",
+          "startSource": "explicit-start",
+          "completedUtc": "2026-09-14T13:28:27.6697898Z",
+          "calendarDurationMs": 16884670,
+          "completionCheckDurationMs": 434
+        },
+        "G1": {
+          "startedUtc": "2026-09-14T13:28:27.6697898Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-14T13:41:12.3745822Z",
+          "completionSource": "explicit-user-authorized-exception"
+        },
+        "G2": {
+          "startedUtc": "2026-09-14T13:41:12.3745822Z",
+          "startSource": "previous-gate-user-authorized-exception",
+          "completedUtc": "2026-09-14T14:41:05.6299116Z",
+          "calendarDurationMs": 3593630,
+          "completionCheckDurationMs": 169
+        },
+        "G3": {
+          "startedUtc": "2026-09-14T14:41:05.6299116Z",
+          "startSource": "previous-gate-complete",
+          "completedUtc": "2026-09-14T15:13:22.7404721Z",
+          "calendarDurationMs": 1937740,
+          "completionCheckDurationMs": 360
+        },
+        "G4": {
+          "startedUtc": "2026-09-14T15:13:22.7404721Z",
+          "startSource": "previous-gate-complete"
+        }
+      },
+      "gateEvidence": {
+        "G0": [
+          "docs/unityclient/modules/FISH.md",
+          "docs/unityclient/matrices/FISH_CONTROLS.json",
+          "docs/unityclient/matrices/FISH_COVERAGE.json",
+          ".local/unity-validation/fish-sqlite-fixture-latest.json",
+          "server/config/json/fish_settings.json",
+          "server/config/json/fish_reward.json",
+          "server/config/json/fish_position.json",
+          "unityclient/Assets/ProjectX/Resources/Fish/Map/map33.jpg",
+          "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/Monster/btm2000_zd.json",
+          ".local/unity-validation/fish-g0-draft-latest.json"
+        ],
+        "G1": [
+          ".local/unity-validation/fish-g1-user-authorized-source-only.json",
+          "docs/unityclient/modules/FISH.md",
+          "docs/unityclient/matrices/FISH_CONTROLS.json"
+        ],
+        "G2": [
+          "docs/unityclient/modules/FISH.md",
+          "docs/unityclient/matrices/FISH_CONTROLS.json",
+          "tools/unity-migration/validation-scenarios.json",
+          "server/src/fish_single_player.cpp",
+          "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Fish.cs"
+        ],
+        "G3": [
+          ".local/unity-validation/fish-g3-runtime-latest.json",
+          ".local/unity-validation/fish-fixed-account-runner-latest.json",
+          ".local/unity-validation/fish-fixed-account-data-preflight-latest.json",
+          ".local/unity-validation/fish-sqlite-fixture-latest.json",
+          "build/ui-migration/bootstrap-fish-ready.png",
+          "build/ui-migration/bootstrap-fish-fishing.png",
+          "build/ui-migration/bootstrap-fish-basket.png"
+        ]
+      },
+      "gateRevalidations": {
+        "G2": {
+          "checkedUtc": "2026-09-14T14:41:23.2229236Z",
+          "evidence": [
+            "docs/unityclient/modules/FISH.md",
+            "docs/unityclient/matrices/FISH_CONTROLS.json",
+            "tools/unity-migration/validation-scenarios.json",
+            "server/src/fish_single_player.cpp",
+            "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Fish.cs"
+          ]
+        }
+      },
+      "updatedUtc": "2026-09-14T15:13:22.7672173Z"
     }
   ]
 }

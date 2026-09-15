@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <title>钓鱼场景54固定钓位（已选1号区域黑圈位置）</title>
+  <image href="file:///E:/neiwang_kapai/concept/%E7%AD%96%E5%88%92%E6%96%87%E6%A1%A3/03%E6%AD%A3%E5%BC%8F%E7%89%88%E6%9C%AC/04%E5%89%A7%E6%83%85%E6%96%87%E6%A1%A3/%E9%92%93%E9%B1%BC%E5%9C%BA%E6%99%AF/map33.jpg" x="0" y="0" width="1920" height="1080"/>
+
+  <!-- Cocos uses a bottom-left origin. These polygons have been converted to SVG's top-left origin. -->
+  <polygon points="623,143 490,250 1349,775 1520,645" fill="#ff3b30" fill-opacity="0.25" stroke="#ff3b30" stroke-width="8"/>
+  <polygon points="690,122 1576,619 1681,531 933,66" fill="#ffd60a" fill-opacity="0.25" stroke="#ffd60a" stroke-width="8"/>
+  <polygon points="1051,838 943,752 678,929 803,1021" fill="#0a84ff" fill-opacity="0.28" stroke="#0a84ff" stroke-width="8"/>
+
+  <g font-family="Microsoft YaHei, sans-serif" font-weight="700" text-anchor="middle">
+    <circle cx="996" cy="453" r="42" fill="#ff3b30" stroke="#ffffff" stroke-width="7"/>
+    <text x="996" y="469" font-size="46" fill="#ffffff">1</text>
+    <text x="996" y="525" font-size="30" fill="#ffffff" stroke="#30100d" stroke-width="7" paint-order="stroke">点1 · dir=2</text>
+
+    <circle cx="1220" cy="334" r="42" fill="#ffd60a" stroke="#ffffff" stroke-width="7"/>
+    <text x="1220" y="350" font-size="46" fill="#1c1c1e">2</text>
+    <text x="1220" y="405" font-size="30" fill="#ffffff" stroke="#302800" stroke-width="7" paint-order="stroke">点2 · dir=6</text>
+
+    <circle cx="869" cy="885" r="42" fill="#0a84ff" stroke="#ffffff" stroke-width="7"/>
+    <text x="869" y="901" font-size="46" fill="#ffffff">3</text>
+    <text x="869" y="958" font-size="30" fill="#ffffff" stroke="#001b35" stroke-width="7" paint-order="stroke">点3 · dir=4</text>
+  </g>
+
+  <!-- User-selected fixed position: Cocos bottom-left (1086,619) = SVG top-left (1086,461). -->
+  <g font-family="Microsoft YaHei, sans-serif" font-weight="700">
+    <circle cx="1086" cy="461" r="38" fill="#000000" fill-opacity="0.12" stroke="#000000" stroke-width="12"/>
+    <circle cx="1086" cy="461" r="6" fill="#000000"/>
+    <path d="M1120 433 L1245 350" fill="none" stroke="#000000" stroke-width="9" stroke-linecap="round"/>
+    <rect x="1230" y="292" width="520" height="118" rx="18" fill="#000000" fill-opacity="0.82"/>
+    <text x="1256" y="337" font-size="30" fill="#ffffff">已选固定钓位 · 1号区域</text>
+    <text x="1256" y="381" font-size="25" fill="#ffffff">Cocos (1086,619) · dir=2 · flip=true</text>
+  </g>
+
+  <g transform="translate(28 28)" font-family="Microsoft YaHei, sans-serif">
+    <rect x="0" y="0" width="610" height="205" rx="18" fill="#111111" fill-opacity="0.78"/>
+    <text x="24" y="43" font-size="30" font-weight="700" fill="#ffffff">场景54 / map33 · 固定钓位已选定</text>
+    <text x="24" y="86" font-size="25" fill="#ff817a">红色：点1，朝向 dir=2</text>
+    <text x="24" y="121" font-size="25" fill="#ffe266">黄色：点2，朝向 dir=6</text>
+    <text x="24" y="156" font-size="25" fill="#70b7ff">蓝色：点3，朝向 dir=4</text>
+    <text x="24" y="191" font-size="25" fill="#ffffff">黑圈：唯一固定钓位；点2/3不接入</text>
+  </g>
+</svg>

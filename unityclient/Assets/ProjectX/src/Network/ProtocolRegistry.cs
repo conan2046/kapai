@@ -153,6 +153,7 @@ namespace ProjectX.Network
             registry.Register(new ProtocolDefinition(199, "MSG_HUODONG_OPTION", "Welfare"));
             registry.Register(new ProtocolDefinition(206, "MSG_SYNC_TIME", "Core"));
             registry.Register(new ProtocolDefinition(213, "MSG_CHUANG_GUAN", "Monopoly"));
+            registry.Register(new ProtocolDefinition(217, "MSG_FISH", "Fish"));
             registry.Register(new ProtocolDefinition(220, "MSG_VIP_OPTION", "VIP/Hud", expectsResponse: false));
             registry.Register(new ProtocolDefinition(221, "MSG_SHOP", "Shop"));
             registry.Register(new ProtocolDefinition(222, "MSG_TMP_HUODONG", "Activity/MoneyTree/HappyWheel/Funds"));

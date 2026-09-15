@@ -37,6 +37,7 @@ namespace ProjectX.Core
             GameplayCatalog = new GameplayCatalog();
             Gameplay = new GameplayStore();
             MoneyTree = new MoneyTreeStore();
+            Fish = new FishStore();
             JingJie = new JingJieViewState();
             HappyWheel = new HappyWheelStore();
             YouLiCatalog = new YouLiCatalog();
@@ -99,6 +100,7 @@ namespace ProjectX.Core
         public GameplayCatalog GameplayCatalog { get; }
         public GameplayStore Gameplay { get; }
         public MoneyTreeStore MoneyTree { get; }
+        public FishStore Fish { get; }
         public JingJieViewState JingJie { get; }
         public HappyWheelStore HappyWheel { get; }
         public YouLiCatalog YouLiCatalog { get; }
@@ -166,6 +168,7 @@ namespace ProjectX.Core
             Draw.Clear();
             Gameplay.Clear();
             MoneyTree.Clear();
+            Fish.Clear();
             JingJie.Clear();
             HappyWheel.Clear();
             YouLi.Clear();
