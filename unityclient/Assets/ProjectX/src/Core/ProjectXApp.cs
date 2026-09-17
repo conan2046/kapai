@@ -5851,6 +5851,22 @@ namespace ProjectX.Core
             // store without navigating either active business screen to the
             // ordinary item bag.
             if (IsDrawOpen || IsHeroOpen || IsHeroEquipmentSurfaceVisible || heroEquipmentOpenPending) return;
+            // Jingjie's 背包 tab requests /8 for its own embedded bag surface.
+            // The store was already replaced above; do NOT let the response run
+            // ConfigureBagFrame(), which would retitle the shared frame to
+            // 道具背包 and disable the 境界 tab, hijacking the Jingjie surface.
+            //
+            // But we must still REPAINT. ShowJingJieBag() runs when the tab is
+            // clicked — before this response arrives — so its own Render() paints
+            // the still-empty store. Returning here without rendering left the
+            // embedded bag permanently blank even though the data had arrived
+            // (the reported "从头像打开背包没有数据").
+            if (IsJingJieBagSurfaceActive)
+            {
+                EnsureBagPresenter();
+                bagPresenter?.Render();
+                return;
+            }
             EnsureBagPresenter();
             if (!bagInitialSelectionApplied)
             {

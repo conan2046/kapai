@@ -22,9 +22,26 @@ namespace ProjectX.Core
         private JingJieConfigData jingJieConfig;
         private bool jingJieEntrySubscribed;
         private bool jingJieValidationRunning;
+        private enum JingJieSurfaceMode { JingJie, Bag }
+        private JingJieSurfaceMode jingJieSurfaceMode = JingJieSurfaceMode.JingJie;
+        private bool jingJieBagDataRequested;
 
-        public bool IsJingJieOpen => jingJieView?.GameObject.activeInHierarchy == true;
+        // The Jingjie PAGE is open when either of its two surfaces is on screen:
+        // the 境界 content itself, or the embedded 背包 tab (which hides
+        // jingJieView). Testing only jingJieView reports "closed" while the bag
+        // tab is showing, which silently disables IsJingJieBagSurfaceActive and
+        // lets the ordinary bag path hijack the shared frame.
+        public bool IsJingJieOpen =>
+            jingJieView?.GameObject.activeInHierarchy == true
+            || (jingJieSurfaceMode == JingJieSurfaceMode.Bag
+                && bagView?.GameObject.activeInHierarchy == true
+                && oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView);
         public bool IsJingJiePreviewOpen => jingJieRenderBridge?.IsPreviewVisible == true;
+        // True while the Jingjie page is showing its embedded 背包 tab. EndBagUpdate
+        // consults this so the /8 response refreshes the store without navigating
+        // the shared frame back to the ordinary bag surface.
+        public bool IsJingJieBagSurfaceActive =>
+            IsJingJieOpen && jingJieSurfaceMode == JingJieSurfaceMode.Bag;
         public int JingJieCurrentId => services?.JingJie.CurrentId ?? 0;
 
         public void BeginJingJieValidation()
@@ -355,7 +372,30 @@ namespace ProjectX.Core
                 jingJieRenderBridge.HidePreview();
                 return true;
             }
-            if (!IsJingJieOpen || services?.UiStack.Current != oneLevelFrameView) return false;
+            // The shared OneLevelLayer is also used by the ordinary Bag entry
+            // (btn_Bag -> HandleBagClick -> /8 -> ConfigureBagFrame), and by Hero.
+            // ShowJingJieBag() rebinds the frame's CloseBtn from BagPresenter's own
+            // closeAction to this method. If this method then declines because the
+            // 境界 page is not "open", the X button becomes permanently dead and the
+            // frame can never be dismissed — the reported "背包界面关不掉".
+            //
+            // So when the frame is up but is NOT owned by an open Jingjie page,
+            // fall back to the ordinary bag close: tear down the bag flow, hide the
+            // shared frame, and let HandleBack() unwind the UI stack.
+            bool frameVisible = oneLevelFrameView != null && oneLevelFrameView.GameObject.activeInHierarchy;
+            if (!IsJingJieOpen || services?.UiStack.Current != oneLevelFrameView)
+            {
+                if (!frameVisible || bagView == null) return false;
+                bagFlowPresenter?.CloseAll();
+                SetOneLevelFrameVisible(false);
+                HandleBack();
+                return true;
+            }
+            if (jingJieSurfaceMode == JingJieSurfaceMode.Bag)
+            {
+                ShowJingJieSurface();
+                return true;
+            }
             jingJieRenderBridge.Hide();
             return PopUiStackWithHudRefresh();
         }
@@ -414,12 +454,305 @@ namespace ProjectX.Core
             Transform help = title?.transform.Find("Button_1");
             if (help != null) help.gameObject.SetActive(false);
             Transform first = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
-            if (first != null) SetTabText(first, "境界", true);
             Transform second = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
-            if (second != null) second.gameObject.SetActive(false);
+            if (second != null) second.gameObject.SetActive(true);
+            SetJingJieTabs(first, second, true);
             RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
+        }
+
+        private void SetJingJieTabs(Transform first, Transform second, bool selectedFirst = true)
+        {
+            if (first != null) SetTabText(first, "境界", selectedFirst);
+            // Button2_Runtime is NOT a preset node in JingJie's OneLevelFrame; it
+            // must be runtime-cloned from Button1, matching the established two-tab
+            // pattern (e.g. SelectHeroEquipmentTab's 装备/碎片 pair). Without this
+            // clone the "背包" tab is never created, so Find() returns null and the
+            // tab silently never appears.
+            if (first != null && second == null)
+            {
+                second = Instantiate(first.gameObject, first.parent, false).transform;
+                second.name = "Button2_Runtime";
+            }
+            if (second != null)
+            {
+                RectTransform firstRect = first as RectTransform;
+                RectTransform secondRect = second as RectTransform;
+                if (firstRect != null && secondRect != null)
+                    secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
+                SetTabText(second, "背包", !selectedFirst);
+                second.gameObject.SetActive(true);
+                Button secondButton = EnsureTabClick(second);
+                secondButton.onClick.RemoveAllListeners();
+                secondButton.onClick.AddListener(ShowJingJieBag);
+            }
+            if (first != null)
+            {
+                Button firstButton = EnsureTabClick(first);
+                firstButton.onClick.RemoveAllListeners();
+                firstButton.onClick.AddListener(ShowJingJieSurface);
+            }
+            jingJieSurfaceMode = selectedFirst ? JingJieSurfaceMode.JingJie : JingJieSurfaceMode.Bag;
+            // Order the frame so this surface's tabs win the raycast against the
+            // embedded bag grid (see RaiseJingJieTabs for why not a Canvas).
+            RaiseJingJieTabs(!selectedFirst);
+        }
+
+        // Makes a tab clickable WITHOUT touching the state SetTabText just installed.
+        //
+        // ⚠️ HISTORY — the previous version called EnableOwnTabGraphic + EnsureRuntimeButton
+        // here, which BROKE the selected/unselected artwork (user-reported, see §13):
+        //   * EnableOwnTabGraphic() did `own.enabled = true` and
+        //     `ChooseBg.SetActive(true)` unconditionally, so the UNSELECTED tab also
+        //     showed the "chosen" plate — both tabs looked selected.
+        //   * It never applied SetTabText's `background.color = alpha 0` for unselected,
+        //     so the unselected tab stayed fully opaque (measured alpha=1.00).
+        //   * EnsureRuntimeButton(name collision) + `interactable = true` overrode
+        //     SetTabText's `interactable = !selected`, re-enabling the selected tab.
+        //
+        // The authoritative pattern is SelectHeroEquipmentTab (ProjectXApp.cs:15297),
+        // which only calls SetTabText and relies on the tab's own imported artwork for
+        // raycasting. That works for Hero because nothing overlaps its tab column.
+        // Here the embedded bag grid spans the frame, so an extra *invisible* raycast
+        // carrier is added as a child of the tab. It carries no sprite and alpha 0, so
+        // it cannot affect the visible selected/unselected state, and it lives inside
+        // the tab so it shares the tab's lifetime and disappears with the page.
+        private static Button EnsureTabClick(Transform tab)
+        {
+            Graphic own = tab.GetComponent<Graphic>();
+            if (own != null) own.raycastTarget = true;
+            Button button = tab.GetComponent<Button>();
+            if (button == null) button = tab.gameObject.AddComponent<Button>();
+            Transform carrier = tab.Find("RuntimeClickArea");
+            Image carrierImage;
+            if (carrier == null)
+            {
+                var go = new GameObject("RuntimeClickArea", typeof(RectTransform), typeof(Image));
+                carrier = go.transform;
+                carrier.SetParent(tab, false);
+                carrierImage = go.GetComponent<Image>();
+                RectTransform carrierRect = carrier as RectTransform;
+                carrierRect.anchorMin = Vector2.zero;
+                carrierRect.anchorMax = Vector2.one;
+                carrierRect.offsetMin = Vector2.zero;
+                carrierRect.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                carrierImage = carrier.GetComponent<Image>();
+                if (carrierImage == null) carrierImage = carrier.gameObject.AddComponent<Image>();
+            }
+            // Fully transparent but still raycastable: an Image with alpha 0 and
+            // raycastTarget=true (no CanvasRenderer cull) is a valid raycast target.
+            carrierImage.color = new Color(0f, 0f, 0f, 0f);
+            carrierImage.raycastTarget = true;
+            // Keep it last so it wins against the tab's own children.
+            carrier.SetAsLastSibling();
+            // ⚠️ Button.transition MUST be turned off and targetGraphic re-pointed.
+            // Cocos exports these tabs as ColorTint with targetGraphic = the tab's own
+            // Image. In that configuration Selectable drives the tab Image's colour on
+            // every state change using normalColor (alpha 1), which OVERWRITES the
+            // alpha-0 that SetTabText assigns to the unselected tab — so the unselected
+            // tab silently becomes opaque again ("both tabs highlighted").
+            // Routing targetGraphic to the invisible carrier keeps the tint harmless:
+            // the carrier's own colour is alpha 0, so any tint multiplied into it stays
+            // invisible, and the tab's authored selected/unselected artwork is then
+            // owned solely by SetTabText.
+            button.transition = Selectable.Transition.None;
+            button.targetGraphic = carrierImage;
+            return button;
+        }
+
+        // Keep the shared frame's tab row above embedded content (the bag grid).
+        //
+        // Two earlier attempts were both wrong and are recorded here so nobody
+        // repeats them:
+        //   1. Adding a Canvas to Panel_10 left a NON-ROOT canvas nested in the frame.
+        //      Unity then fell back to screen-space-overlay sorting and promoted the
+        //      whole tab subtree above every layer; the tabs kept painting and
+        //      raycasting after the page closed, so the frame could not be dismissed.
+        //   2. Adding a Canvas to the frame ROOT would re-sort the frame's own
+        //      children and break the Bg / content / Panel_12 order established in
+        //      ShowJingJieBag.
+        //
+        // The bag's per-row RuntimeHitArea is a full-width Image on a later sibling,
+        // so it simply wins the raycast inside a shared canvas. The correct fix is
+        // plain sibling ordering — no canvases, no sorting overrides, nothing that
+        // can outlive the frame.
+        //
+        // ⚠️ THIRD correction (2026-09-17). Two orderings were tried and both were
+        // wrong; the measured frame geometry explains why:
+        //
+        //   frame root children     World rect
+        //   --------------------    ----------------------------------------
+        //   Bg                      (full screen backdrop)
+        //   DynamicUi_beibao        X[0,1334] Y[0,750] — no layout of its own;
+        //                           only beibao_layer/Bag/Image  X[545,1145] Y[90,668]
+        //                           and    beibao_layer/Bag/TableView X[552,1137] Y[120,643]
+        //                           are actually painted.
+        //   GoldCheck               currency header (top strip)
+        //   Panel_12                X[0,1334] Y[0,750]
+        //     Bg/bg1_0  ui_common_bg              X[108,1226] Y[66,684]   <- frame skin
+        //     Bg/bg1_2  ui_common_yangpizhi_bg    X[122,1148] Y[81,669]   <- OPAQUE parchment
+        //     Bg/bg1_4  ui_common_diwen_youyeqian X[1145,1224] Y[85,644]
+        //     Bg/bg1_3  ui_juee_dizuo             X[108,1226] Y[57,82]
+        //     Title/TitleName                     Y[697,750]
+        //     Bg/Btn_ListView/Panel_10/Button1    X[1146,1224] Y[566,666]  <- 境界 tab
+        //     Bg/Btn_ListView/Panel_10/Button2_*  X[1146,1224] Y[466,566]  <- 背包 tab
+        //
+        // Panel_12 is the LAST child, so its opaque parchment (bg1_2, 1026x588) paints
+        // OVER the bag sheet and the user sees an empty cream box. Pinning Panel_12 to
+        // the top (the previous "fix") produced exactly the reported blank screenshot.
+        //
+        // The ordinary bag entry gets this right by putting the bag LAST:
+        //     oneLevelFrameView.SetAsLastSibling();
+        //     bagView.SetAsLastSibling();          // ProjectXApp.cs:5901-5902
+        // so the bag sheet covers the parchment, and because the bag sheet only spans
+        // X[545,1145] Y[90,668] the frame's title (Y 697-750) and the tab column
+        // (X 1146-1224) stay outside it — both remain fully visible and hit-testable
+        // with no extra canvas or raycast trickery. Mirror that here.
+        private void RaiseJingJieTabs(bool raise)
+        {
+            if (oneLevelFrameView == null) return;
+            CocosUiBinding frameBinding = oneLevelFrameView.Binding;
+            if (frameBinding == null) return;
+            Transform frameRoot = frameBinding.transform;
+            Transform panel12 = frameBinding.Find("Layer/Panel_12")?.transform;
+            Transform goldCheck = frameBinding.Find("Layer/GoldCheck")?.transform;
+            Transform layerBg = frameBinding.Find("Layer/Bg")?.transform;
+            Transform bagRoot = bagView?.GameObject != null ? bagView.GameObject.transform : null;
+            // Keep the imported order for everything except the bag: Bg(0) < Panel_12(1)
+            // < GoldCheck(2) < bag(last).
+            if (layerBg != null) layerBg.SetSiblingIndex(0);
+            if (panel12 != null) panel12.SetSiblingIndex(Mathf.Min(1, frameRoot.childCount - 1));
+            if (goldCheck != null) goldCheck.SetSiblingIndex(Mathf.Min(2, frameRoot.childCount - 1));
+            if (raise)
+            {
+                // bag surface: the bag sheet goes on top (same as the ordinary bag entry).
+                if (bagRoot != null) bagRoot.SetAsLastSibling();
+            }
+            else
+            {
+                // 境界 surface: the bag is hidden anyway; keep it under the skin.
+                if (bagRoot != null) bagRoot.SetSiblingIndex(Mathf.Min(3, frameRoot.childCount - 1));
+            }
+        }
+
+        // REMOVED (2026-09-17, §13): EnableOwnTabGraphic() forced
+        // `own.enabled = true` + `ChooseBg.SetActive(true)` on EVERY tab it was given,
+        // including the unselected one. That made both tabs render their "chosen" plate
+        // (user-reported: 境界/背包 both highlighted) and left the unselected tab's own
+        // Image opaque because it never applied SetTabText's alpha-0 rule.
+        // Selected/unselected artwork is now owned exclusively by SetTabText.
+
+        private void ShowJingJieSurface()
+        {
+            bagView?.SetVisible(false);
+            // Allow the next 背包 entry to re-request the authoritative snapshot.
+            jingJieBagDataRequested = false;
+            // Restore the frame's original sibling order when leaving bag mode so
+            // the 境界 content renders over the frame backdrop again.
+            RestoreJingJieFrameOrder();
+            jingJieView?.SetVisible(true);
+            jingJiePreviewView?.SetVisible(false);
+            jingJieRenderBridge?.Show();
+            Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "主角";
+            Transform first = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            Transform second = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
+            SetJingJieTabs(first, second, true);
+        }
+
+        // Restores the shared frame to its imported child order:
+        // Bg(0) / Panel_12(1) / GoldCheck(2).
+        private void RestoreJingJieFrameOrder()
+        {
+            RaiseJingJieTabs(false);
+        }
+
+        // Fire the same Lua callback the ordinary main-UI bag entry uses so the
+        // server sends /8; EndBagUpdate then fills services.Bag and the bag grid
+        // repaints. Without this the embedded bag renders an empty local store.
+        private void EnsureJingJieBagDataRequested()
+        {
+            if (jingJieBagDataRequested) return;
+            jingJieBagDataRequested = true;
+            InvokeLuaOrFail(onBagClicked, "JingJie.BagSnapshot");
+        }
+
+        private void ShowJingJieBag()
+        {
+            EnsureBagPresenter();
+            // If the bag view could not be created, do NOT touch the frame: an
+            // earlier version created/hid everything first and only then bailed out
+            // on `bagView == null`, leaving the shared frame open with an empty
+            // surface and no way to dismiss it (the reported "背包关不掉").
+            if (bagView == null) return;
+            // BagPresenter's constructor overwrites the frame CloseBtn binding with
+            // its own closeAction. Re-assert Jingjie's so X in bag mode returns to
+            // the 境界 surface instead of closing the whole frame.
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
+            frame.Apply(OneLevelFrameMode.Standard);
+            jingJieView?.SetVisible(false);
+            jingJiePreviewView?.SetVisible(false);
+            // Reparent the bag INSIDE the shared frame (ConfigureBagFrame does the
+            // same); otherwise its full-screen root stays a Canvas sibling and is
+            // not laid out for the frame.
+            frame.AttachContent(bagView);
+            bagView.SetVisible(true);
+            // AUTHORITATIVE DATA: the ordinary main-UI bag entry (HandleBagClick)
+            // fires the Lua callback that requests /8; EndBagUpdate then fills
+            // services.Bag and BagPresenter.Render() paints it. Rendering straight
+            // from the local store here would always be empty on a fresh session
+            // (itemCount=0), which is why the tab previously showed no items.
+            // Re-request the snapshot the same way the real bag entry does.
+            EnsureJingJieBagDataRequested();
+            bagPresenter?.Render();
+            SetOneLevelFrameVisible(true);
+            CocosUiBinding frameBinding = oneLevelFrameView.Binding;
+            Transform frameRoot = frameBinding.transform;
+            // LAYERING: the frame root itself is normalised first; then RaiseJingJieTabs
+            // (called at the end of SetJingJieTabs) installs Bg < Panel_12 < GoldCheck
+            // < bag so the bag sheet paints over the opaque parchment backdrop. See the
+            // geometry table on RaiseJingJieTabs — putting Panel_12 on top instead is
+            // what produced the blank "empty cream box" screenshot.
+            // Same normalisation ConfigureBagFrame performs after AttachContent:
+            // without it the frame root keeps a non-zero anchoredPosition and the
+            // reparented bag lands at local y=-750 (off-screen), so its rows never
+            // become active even though the store has data.
+            RectTransform rootRect = frameRoot as RectTransform;
+            if (rootRect != null)
+            {
+                rootRect.pivot = new Vector2(0f, 1f);
+                rootRect.anchorMin = rootRect.anchorMax = new Vector2(0f, 1f);
+                rootRect.anchoredPosition = Vector2.zero;
+                rootRect.localScale = Vector3.one;
+            }
+            // The BAG's own anchors must be normalised too. Imported prefabs can
+            // arrive with pivot/anchorMin/anchorMax = (0,0) (bottom-left), and when
+            // a child's anchor does not match its parent's pivot, anchoredPosition
+            // (0,0) resolves to localPosition (0,-750) — i.e. one full frame height
+            // BELOW the frame, off-screen. The data and the row objects were both
+            // fine (rows=49 active=49, itemCount=245) yet nothing was visible, which
+            // is why this looked like "没有数据". Mirror the frame root's top-left
+            // anchoring so the two agree regardless of the prefab's imported state.
+            RectTransform bagRect = bagView.GameObject.transform as RectTransform;
+            if (bagRect != null)
+            {
+                bagRect.pivot = new Vector2(0f, 1f);
+                bagRect.anchorMin = bagRect.anchorMax = new Vector2(0f, 1f);
+                bagRect.anchoredPosition = Vector2.zero;
+                bagRect.localScale = Vector3.one;
+            }
+            Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "背包";
+            Transform first = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            Transform second = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
+            // SetJingJieTabs ends by calling RaiseJingJieTabs(true), which pins
+            // Panel_12 to the top of the frame — the sibling order we want here.
+            SetJingJieTabs(first, second, false);
         }
 
         private void DisposeJingJie()
