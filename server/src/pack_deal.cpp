@@ -26149,6 +26149,26 @@ void CPackageDeal::DealGuanQia(CNetMessage *pMsg, int sock)
 	case 27: // 查询挑战信息
 		gq.MakeNodeMsg(pUser, msg);
 		break;
+	case 28: // 连战请求（龙崖模式，config.fuben_AB == 2）：**只打一场**
+		msg >> type >> mapId >> nodeId;
+		{
+			uint8 count = 0;
+			msg >> count;
+			if (type == 1)
+			{
+				CHECK_SYSTEM_OPEN(SOT_4)
+			}
+			else
+			{
+				CHECK_SYSTEM_OPEN(SOT_5)
+			}
+			gq.GuanQiaAutoChain(pUser, type, mapId, nodeId, count, msg);
+			// 与 case 6 一致：结果帧（op=8 胜利 / op=28 失败）由副本模块自行下发，
+			// 此处 return，避免函数末尾再补发一个空帧。
+			return;
+		}
+	case 29: // 连战中断（龙崖模式）：服务端无会话状态（每场独立），客户端停发即可
+		return;
 	}
 	m_socketServer.SendMsg(sock, msg);
 }

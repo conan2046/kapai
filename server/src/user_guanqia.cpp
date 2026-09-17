@@ -5,6 +5,7 @@
 #include "user_spirit.h"
 #include "award_manager.h"
 #include "rank.h"
+#include "config_para.h"
 #include <cstdlib>
 
 extern const char *gConfigFile;
@@ -705,6 +706,8 @@ void CUserGuanQia::MakeUserGuanQiaMsg(uint8 type, CNetMessage &msg)
 			continue;
 		msg << cfg->id << score.sumStar << (uint8)score.fixIds.size();
 	}
+	// 龙崖改造：模式下发（方案甲）—— op=1 载荷末尾带回 fuben_AB，客户端据此切 UI
+	msg << (uint8)GetFubenMode();
 }
 
 void CUserGuanQia::MakeSinggleGuanQiaMsg(uint8 type, uint32 mapId, CNetMessage &msg)
@@ -885,42 +888,72 @@ void CUserGuanQia::GetFixAward(CUser* pUser, uint8 type, uint32 mapId, uint32 fi
 
 void CUserGuanQia::EnterGuanQiaFight(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, CNetMessage &msg)
 {
+	// 单场执行体已抽出为 RunSingleNodeFight；op=5 保留为默认副本模式入口，
+	// 模式 2（龙崖）由 op=28（GuanQiaAutoChain）驱动。
+	RunSingleNodeFight(pUser, type, mapId, nodeId, GetFubenMode(), 0, 0, msg);
+}
+
+// 龙崖副本模式开关：config.fuben_AB（1=默认副本模式 2=龙崖副本模式）
+uint8 CUserGuanQia::GetFubenMode()
+{
+	int mode = SingletonCParaMgr::instance().GetInt("fuben_AB");
+	if (mode == FUBEN_MODE_LONGYA)
+		return FUBEN_MODE_LONGYA;
+	return FUBEN_MODE_DEFAULT;
+}
+
+// 本章第一关：nodes 是 map<uint32, MapNodeCfg>（按 nodeId 升序），首项即第一关
+uint32 CUserGuanQia::GetChapterFirstNodeId(uint32 mapId)
+{
+	SingleZhangJieCfg* zcfg = sCGuanQiaCfgMgr.GetZhangJieCfg(mapId);
+	if (zcfg == NULL || zcfg->nodes.empty())
+		return 0;
+	return zcfg->nodes.begin()->first;
+}
+
+int CUserGuanQia::RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId,
+	uint8 mode, uint8 chainIndex, uint8 chainTotal, CNetMessage &msg)
+{
 	SingleGuanQiaScore* gqScore = GetUserGuanQia(type, mapId);
 	if (gqScore == NULL)
 	{
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
-		return;
+		return ENFR_Error;
 	}
-	
+
 	if (gqScore->nodeStars.find(nodeId) == gqScore->nodeStars.end())
 	{
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
-		return;
+		return ENFR_Error;
 	}
 	MapNodeCfg* cfg = sCGuanQiaCfgMgr.GetMapNodeCfg(mapId, nodeId);
 	if (cfg == NULL)
 	{
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151,TIPS_FAILURE_COLOR);
-		return;
+		return ENFR_Error;
 	}
-	uint8 curCnt = GetCurAttackCnt(nodeId);
-	if (cfg->maxTimes != 255 && curCnt >= cfg->maxTimes)
+	// 模式 2（龙崖）：豁免次数与体力门槛；模式 1 保持原样
+	if (mode != FUBEN_MODE_LONGYA)
 	{
-		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0163,TIPS_FAILURE_COLOR);
-		return;
+		uint8 curCnt = GetCurAttackCnt(nodeId);
+		if (cfg->maxTimes != 255 && curCnt >= cfg->maxTimes)
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0163,TIPS_FAILURE_COLOR);
+			return ENFR_Error;
+		}
+		// 体力判断
+		CUserSpirit& sp = pUser->GetUserSpirit();
+		if (sp.GetCurSpirit() < cfg->spiritCost)
+		{
+			msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0150,TIPS_FAILURE_COLOR);
+			return ENFR_Error;
+		}
 	}
-	// 体力判断
-	CUserSpirit& sp = pUser->GetUserSpirit();
-	if (sp.GetCurSpirit() < cfg->spiritCost)
-	{
-		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0150,TIPS_FAILURE_COLOR);
-		return;
-	}
-	
+
 	ApplyLocalTestFightSeed(nodeId);
 	ShareFightPtr pFight = SingletonFightManager::instance().CreateFight();
 	if (pFight.get() == NULL)
-		return;
+		return ENFR_Error;
 
 	bool canSkip = (cfg->type == 1);
 	m_curType = type;
@@ -940,14 +973,68 @@ void CUserGuanQia::EnterGuanQiaFight(CUser* pUser, uint8 type, uint32 mapId, uin
 	if (result.win)
 	{
 		star = pFight->CalculateFightStar(CFight::EGT_GROUP1, result.win);
-		GuanQiaWin(pUser, star);
+		// BOSS（type==3）视为本章通关 → 不下发下一关（chainNextNodeId = 0）
+		uint32 chainNextNodeId = (cfg->type == 3) ? 0 : cfg->nextNodeId;
+		GuanQiaWin(pUser, star, chainIndex, chainTotal, chainNextNodeId);
 		sCMissionManager.UpdateQuestState(pUser, EMQCT_13, 1, type);
+		UpdateUserRecord(pUser->GetRoleId(), ERT_GuanQia, nodeId, star);
+		return ENFR_Win;
 	}
-	UpdateUserRecord(pUser->GetRoleId(), ERT_GuanQia, nodeId, star);
-	
-//	CNetMessage fightMsg;
-//	if(pFight->GetFightAllNetMsg(fightMsg, EFPT_PlayBack_1))
-//		SaveFightNetMsg(fightMsg, 99, pUser->GetRoleId(), 0);
+	// 模式 2 失败不写入记录；模式 1 保持现状（无条件写入）
+	if (mode != FUBEN_MODE_LONGYA)
+		UpdateUserRecord(pUser->GetRoleId(), ERT_GuanQia, nodeId, star);
+	return ENFR_Lose;
+}
+
+void CUserGuanQia::GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, uint8 count, CNetMessage &msg)
+{
+	uint32 firstNodeId = GetChapterFirstNodeId(mapId);
+	if (firstNodeId == 0)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
+		return;
+	}
+	uint32 curNodeId = (nodeId == 0) ? firstNodeId : nodeId;
+	if (count == 0)
+		count = 1;
+
+	// 本场序号：从本章第一关沿 nextNodeId 走到当前关（上限 255 防死循环）
+	uint8 chainIndex = 1;
+	uint32 walk = firstNodeId;
+	while (walk != 0 && walk != curNodeId && chainIndex < 255)
+	{
+		MapNodeCfg* wc = sCGuanQiaCfgMgr.GetMapNodeCfg(mapId, walk);
+		if (wc == NULL || wc->nextNodeId == 0)
+			break;
+		walk = wc->nextNodeId;
+		++chainIndex;
+	}
+
+	MapNodeCfg* cfg = sCGuanQiaCfgMgr.GetMapNodeCfg(mapId, curNodeId);
+	if (cfg == NULL)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151,TIPS_FAILURE_COLOR);
+		return;
+	}
+
+	int ret = RunSingleNodeFight(pUser, type, mapId, curNodeId, FUBEN_MODE_LONGYA, chainIndex, count, msg);
+	if (ret == ENFR_Error)
+		return;			// 硬前置失败，msg 已写入错误帧
+	if (ret == ENFR_Win)
+		return;			// 胜利：GuanQiaWin 已下发 op=8（含下一关）
+
+	// 失败：不弹结算，下发轻量回包 → 客户端等 2 秒后从本章第一关重跑
+	MakeChainLoseMsg(pUser, mapId, curNodeId, firstNodeId, chainIndex, count);
+}
+
+void CUserGuanQia::MakeChainLoseMsg(CUser* pUser, uint32 mapId, uint32 nodeId, uint32 nextNodeId,
+	uint8 chainIndex, uint8 chainTotal)
+{
+	CNetMessage msg;
+	msg.ReWrite();
+	msg.SetType(MSG_GUANQIA);
+	msg << (uint8)28 << mapId << nodeId << nextNodeId << chainIndex << chainTotal;
+	SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
 }
 
 int CUserGuanQia::GetCurAttackCnt(uint32 nodeId)
@@ -1001,9 +1088,11 @@ void CUserGuanQia::GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32
 	}
 	// 体力判断
 	CUserSpirit& sp = pUser->GetUserSpirit();
-	uint8 spiritCnt = sp.GetCurSpirit() / cfg->spiritCost;
+	// 龙崖改造：模式 2 下体力消耗按 0 处理 → 这里必须防除零（原 R13 的坑）。
+	// 模式 1 的 `spiritCost` 恒 > 0，行为与改前完全一致。
+	uint8 spiritCnt = cfg->spiritCost > 0 ? (uint8)(sp.GetCurSpirit() / cfg->spiritCost) : lessCnt;
 	uint8 realCnt = lessCnt > spiritCnt ? spiritCnt : lessCnt;
-	uint8 scnt = sp.GetCurSpirit() / cfg->spiritCost;
+	uint8 scnt = spiritCnt;
 	if (realCnt > scnt)
 		realCnt = scnt;
 	if (realCnt > 5)
@@ -1022,16 +1111,12 @@ void CUserGuanQia::GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32
 	for (size_t ci = 0; ci < realCnt; ++ci)
 	{
 		std::vector<SAwardData> awvec;
-		SAwardData ad;
-		ad.type = HDAT_RoleExp;
-		ad.num = pUser->GetLevel() * 2 * cfg->spiritCost;
+		// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给），
+		// 此处不再发放（原 pUser->AddMaterial(ad)）也不再展示。
 		amgr.GetAwardById(cfg->rewardId, awvec);
-		awvec.push_back(ad);
 		msg << (uint8)ci;
 		MakeMultiAwardMsg(cfg->moneyAward, msg);
 		MakeMultiAwardMsg(awvec, msg);
-		awvec.pop_back();
-		pUser->AddMaterial(ad);
 		MergeAwardList(awards, cfg->moneyAward);
 		MergeAwardList(awards, awvec);
 	}
@@ -1136,7 +1221,7 @@ void CUserGuanQia::AddNewSinggleGuanQia(uint8 type, uint32 mapId, uint32 nodeId)
 	guanQia->curNodeId = nodeId;
 }
 
-void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star)
+void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 chainIndex, uint8 chainTotal, uint32 chainNextNodeId)
 {
 	// 关卡次数
 	NodeBeAttackCntIt it = m_nodeBeAttackCnt.find(m_curNodeId);
@@ -1240,11 +1325,9 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star)
 		MergeAwardList(awards, nma);
 	}
 	sCMissionManager.UpdateQuestState(pUser, EMQCT_40, 1, m_curNodeId);
-	SAwardData ad;
-	ad.type = HDAT_RoleExp;
-	ad.num = pUser->GetLevel() * 2 * cfg->spiritCost;
-	awards.push_back(ad);
-	msg << star;
+	// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给）
+	// 连战序号：chainIndex / chainTotal（0 表示非连战），chainNextNodeId = 下一关（0 = 本章已通关）
+	msg << star << chainIndex << chainTotal << chainNextNodeId;
 	MakeMultiAwardMsg(awards, msg);
 	LogLocalTestMessageFingerprint("guanqia-result", msg);
 	m_curNodeId = 0;
@@ -1252,7 +1335,10 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star)
 	m_curType = 0;
 	SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
 	CUserSpirit& sp = pUser->GetUserSpirit();
-	sp.SubSpirit(pUser, cfg->spiritCost);
+	// 龙崖改造：**模式 2 仍然扣除体力**（不清调用），只是扣除数量在模式 2 下取 0
+	// —— 等价于把配置表 `maplist.Hope` 在模式 2 下按 0 处理；模式 1 保持原值。
+	uint32 realSpiritCost = (GetFubenMode() == FUBEN_MODE_LONGYA) ? 0 : cfg->spiritCost;
+	sp.SubSpirit(pUser, (uint16)realSpiritCost);
 	pUser->AddMultiAward(awards, true, false, MUT_GuanQiaNode);
 
 }
@@ -1458,11 +1544,7 @@ void CUserGuanQia::TiaoZhanLieZhuan(CUser* pUser, CNetMessage &msg)
 		MultiAward awards = cfg->moneyAward;
 		MergeAwardList(awards, cfg->firstAward);
 
-		SAwardData ad;
-		ad.type = HDAT_RoleExp;
-		ad.num = pUser->GetLevel() * 2 * cfg->spiritCost;
-		awards.push_back(ad);
-
+		// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给）
 		MakeFightEndMsg(pUser, 3, msg, &awards, MUT_GuanQiaLieZhuan);
 		SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
 

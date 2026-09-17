@@ -195,6 +195,18 @@ struct LieZhuanGuanQia
 	uint32 curNodeId;				// 当前章节序号
 };
 
+// 单场副本战斗的执行结果（龙崖连战用）
+enum ENodeFightResult
+{
+	ENFR_Error = 0,	// 硬前置失败：msg 已写入错误帧，调用方应终止连战
+	ENFR_Win   = 1,	// 胜利
+	ENFR_Lose  = 2,	// 战斗失败（非配置/门槛错误）
+};
+
+// 副本模式：config.fuben_AB，1=默认副本模式，2=龙崖副本模式
+#define FUBEN_MODE_DEFAULT	1
+#define FUBEN_MODE_LONGYA	2
+
 class CUserGuanQia
 {
 public:
@@ -221,8 +233,25 @@ public:
 	uint32 GetGuanQiaStar(uint8 type);
 	void GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, CNetMessage &msg);
 	void GuanQiaReset(CUser* pUser, uint32 nodeId, CNetMessage &msg);
-	void GuanQiaWin(CUser* pUser, uint8 star);
+	void GuanQiaWin(CUser* pUser, uint8 star, uint8 chainIndex = 0, uint8 chainTotal = 0, uint32 chainNextNodeId = 0);
 	void AddNewSinggleGuanQia(uint8 type, uint32 mapId, uint32 nodeId);
+
+	// 龙崖副本模式（config.fuben_AB == 2）
+	// 读取模式开关：1=默认副本模式 2=龙崖副本模式；读取失败按 1 处理
+	static uint8 GetFubenMode();
+	// 单场执行体：从 EnterGuanQiaFight 抽出的「一场」逻辑。
+	// mode==2 时豁免次数/体力门槛，且失败不写 UpdateUserRecord。
+	int RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId,
+		uint8 mode, uint8 chainIndex, uint8 chainTotal, CNetMessage &msg);
+	// 连战请求（op=28）：**只打一场**，逐场由客户端驱动。
+	// 胜利 → GuanQiaWin 下发 op=8（带本场序号/总场次/下一关）
+	// 失败 → 下发 op=28 轻量回包（下一关 = 本章第一关），不弹结算
+	void GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, uint8 count, CNetMessage &msg);
+	// 连战失败回包（/320 op=28）
+	void MakeChainLoseMsg(CUser* pUser, uint32 mapId, uint32 nodeId, uint32 nextNodeId,
+		uint8 chainIndex, uint8 chainTotal);
+	// 取本章第一关节点 id（按 nodeId 升序的 map 首项），失败返回 0
+	uint32 GetChapterFirstNodeId(uint32 mapId);
 
 	// 获取试炼信息
 	void GetShiLianMsg(CUser* pUser, CNetMessage &msg);
