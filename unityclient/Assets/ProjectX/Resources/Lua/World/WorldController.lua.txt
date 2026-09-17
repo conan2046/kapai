@@ -21,7 +21,13 @@ local M = {
     validationStageId = 0,
     validationChapterId = 0,
     validationRewardCount = 0,
-    requestedStageId = 0
+    requestedStageId = 0,
+    -- 龙崖改造：连战状态（op=1 下发的 fuben_AB == 2 时开启）
+    chainMode = false,      -- 是否为龙崖副本模式
+    chainAuto = false,      -- 「自动挑战」勾选（由 Unity/C# 侧设置）
+    chainCount = 10,        -- 本局连战总场次
+    chainIndex = 0,         -- 当前第几场（服务端回包为准）
+    chainNextNodeId = 0     -- 下一关（失败时 = 本章第一关，BOSS 通关 = 0）
 }
 
 local function send(op, write)
@@ -65,6 +71,32 @@ local function challengeStage(stageId)
         message:WriteUInt(chapterId)
         message:WriteUInt(stageId)
     end)
+end
+
+-- 龙崖模式：连战请求（/320 op=28）。语义 = 「请求本场」，只打一场，
+-- 结果由服务端下发：胜利 → op=8（带本场序号 / 总场次 / 下一关），
+--                   失败 → op=28 轻量回包（下一关 = 本章第一关），不弹结算。
+local function challengeChainStage(stageId, count)
+    local chapterId = Bridge:GetWorldSelectedChapterId()
+    if chapterId == 0 or stageId == 0 then return end
+    send(28, function(message)
+        message:WriteByte(M.mapType)
+        message:WriteUInt(chapterId)
+        message:WriteUInt(stageId)
+        message:WriteByte(count or M.chainCount)
+    end)
+end
+
+-- 龙崖模式：连战失败回包（/320 op=28），不弹结算，仅记录下一关
+local function readChainLose(message)
+    local _mapId = message:ReadUInt()
+    local _stageId = message:ReadUInt()
+    M.chainNextNodeId = message:ReadUInt()
+    M.chainIndex = message:ReadByte()
+    local _chainTotal = message:ReadByte()
+    if message.Remaining ~= 0 then fail("World/320 op=28 unread bytes: " .. tostring(message.Remaining)); return end
+    -- 不调用 ShowWorldBattleResult：失败不中断，交给 Unity 等 2 秒后走位到下一关
+    if M.chainNextNodeId ~= 0 then Bridge:ContinueWorldChain(M.chainNextNodeId) end
 end
 
 local function sweepStage(stageId)
@@ -166,8 +198,47 @@ function M.challengeSelected()
     if stageId == 0 then fail("World/320 has no unlocked stage to challenge."); return end
     M.validationStageId = stageId
     M.validationStage = M.validationStage and "await_battle" or nil
-    challengeStage(stageId)
+    if M.chainMode then
+        M.chainIndex = 1
+        M.chainNextNodeId = 0
+        challengeChainStage(stageId, M.chainCount)
+    else
+        challengeStage(stageId)
+    end
 end
+
+-- 龙崖模式：由 Unity（ContinueBattleOutcomeControl）在单场结束 2 秒后调用。
+-- 返回 true 表示已发起下一场；false 表示不再继续（未开启自动 / 已通关 / 非龙崖模式）。
+function M.continueChain()
+    if not M.chainMode or not M.chainAuto then return false end
+    local nextStage = M.chainNextNodeId
+    if nextStage == 0 then return false end
+    challengeChainStage(nextStage, M.chainCount)
+    return true
+end
+
+-- 龙崖模式：章节通关、结算确认后「重跑本章」（nodeId=0 → 服务端取本章第一关）
+function M.restartChain()
+    local chapterId = Bridge:GetWorldSelectedChapterId()
+    if chapterId == 0 then return false end
+    send(28, function(message)
+        message:WriteByte(M.mapType)
+        message:WriteUInt(chapterId)
+        message:WriteUInt(0)
+        message:WriteByte(M.chainCount)
+    end)
+    return true
+end
+
+function M.cancelChain()
+    if not M.chainMode then return end
+    M.chainNextNodeId = 0
+    send(29, function(message) message:WriteByte(M.mapType) end)
+end
+
+function M.setChainAuto(value) M.chainAuto = value and true or false end
+function M.setChainAutoNext(value) M.chainAutoNext = value and true or false end
+function M.setChainCount(count) if count and count > 0 then M.chainCount = count end end
 function M.refreshAfterBattle()
     M.validationStage = "verify_world"
     requestWorld()
@@ -201,17 +272,20 @@ local function readWorld(message)
         local claimedBoxes = message:ReadByte()
         Bridge:SetWorldChapterProgress(chapterId, stars, claimedBoxes)
     end
+    -- 龙崖改造：模式下发（方案甲）—— op=1 载荷末尾的 fuben_AB，2 = 龙崖副本模式
+    M.chainMode = message.Remaining > 0 and message:ReadByte() == 2 or false
     if message.Remaining ~= 0 then fail("World/320 op=1 unread bytes: " .. tostring(message.Remaining)); return end
+    -- 注意：必须在 EndWorldChapterList（内部 EnsureWorldPresenter）之后下发模式，
+    -- 否则 WorldPresenter 尚未创建，模式会被丢掉。
     Bridge:EndWorldChapterList(currentChapter, currentStage)
+    Bridge:SetWorldChainMode(M.chainMode)
     if M.validationStage == "await_isolation_world" then
         M.validationStage = "await_isolation_chapter"
         requestChapter(currentChapter)
         return
     end
-    local chapter = currentChapter
-    if chapter == 0 then chapter = Bridge:GetFirstWorldChapterId() end
-    if chapter == 0 then fail("World/320 returned no chapter."); return end
-    requestChapter(chapter)
+    -- 龙崖改造：进副本先停在章节选择页（chapterPage），由玩家手动选章节后
+    -- 再进入大底图。原「自动打开当前章节」逻辑移除。
 end
 
 local function readChapter(message)
@@ -319,6 +393,11 @@ local function readBattleResult(message)
     local unlockedBoxId = message:ReadUInt()
     local unlockedStarBoxId = message:ReadUInt()
     local stars = message:ReadByte()
+    -- 龙崖改造：连战序号 / 总场次 / 下一关（非连战时为 0 / 0 / 0）
+    local chainIndex = message:ReadByte()
+    local _chainTotal = message:ReadByte()
+    M.chainIndex = chainIndex
+    M.chainNextNodeId = message:ReadUInt()
     local rewardCount = message:ReadByte()
     Bridge:BeginRewardUpdate(rewardCount)
     local visibleRewardCount = 0
@@ -329,9 +408,15 @@ local function readBattleResult(message)
     end
     if message.Remaining ~= 0 then fail("World/320 op=8 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:ApplyWorldBattleResult(foughtCount, foughtStageId, unlockedChapterId, unlockedStageId,
-        unlockedBoxId, unlockedStarBoxId, stars)
+        unlockedBoxId, unlockedStarBoxId, stars, chainIndex, _chainTotal, M.chainNextNodeId)
     M.validationRewardCount = visibleRewardCount
-    Bridge:ShowWorldBattleResult(stars)
+    -- 龙崖模式：还有下一关（未到 BOSS）时不弹结算，交给 Unity 等 2 秒后走位继续；
+    -- 章节通关（chainNextNodeId == 0）才出结算。
+    if M.chainMode and M.chainNextNodeId ~= 0 then
+        Bridge:ContinueWorldChain(M.chainNextNodeId)
+    else
+        Bridge:ShowWorldBattleResult(stars)
+    end
     if M.validationStage == "await_battle" then
         M.validationStage = "await_result_capture"
         Bridge:CaptureWorldBattleAndRefresh(visibleRewardCount)
@@ -427,6 +512,7 @@ function M.onPacket(command, message)
     elseif op == 6 then readSweep(message)
     elseif op == 7 then readReset(message)
     elseif op == 8 then readBattleResult(message)
+    elseif op == 28 then readChainLose(message)
     elseif op == 11 then
         local success = message:ReadByte()
         if success == 0 then fail("World/320 op=11 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown")); return true end

@@ -175,6 +175,13 @@ function OnWorldAchievementRequest() WorldController.requestAchievement() end
 function OnWorldAchievementClaim(index) WorldController.claimAchievement(index) end
 function OnWorldRefresh() WorldController.refreshAfterBattle() end
 function OnWorldValidateIsolation() WorldController.validateAccountIsolation() end
+-- 龙崖副本模式（config.fuben_AB == 2）自动连战
+function OnWorldSetChainAuto(enabled) WorldController.setChainAuto(enabled) end
+function OnWorldSetChainAutoNext(enabled) WorldController.setChainAutoNext(enabled) end
+function OnWorldSetChainCount(count) WorldController.setChainCount(count) end
+function OnWorldContinueChain() WorldController.continueChain() end
+function OnWorldCancelChain() WorldController.cancelChain() end
+function OnWorldRestartChain() WorldController.restartChain() end
 function OnWelfareClicked() WelfareController.onClick() end
 function OnWelfareClaimSign() WelfareController.claimSign() end
 function OnActivityClicked() ActivityController.onClick() end

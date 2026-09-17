@@ -44,6 +44,12 @@ namespace ProjectX.UI
         private int renderedFriendlyStatisticsCount;
         private int renderedEnemyStatisticsCount;
         private bool returnBattleAfterStatistics;
+        // 龙崖副本模式（fuben_AB == 2）：本局连战次数设置（C5）
+        private readonly Action<int> setChainCountRequest;
+        private bool chainMode;
+        private int chainCount = 10;
+        private GameObject chainCountRoot;
+        private Text chainCountValue;
 
         public WorldOutcomePresenter(CocosUiView worldView, CocosUiView sweepView, CocosUiView battleView,
             CocosUiView statisticsView, GameObject statisticsFrameTemplate,
@@ -51,7 +57,7 @@ namespace ProjectX.UI
             WorldBattleReplayStore replay,
             Action requestSweepAgain, Action requestContinue,
             Action requestReplay, Action showStatisticsUnavailable, Action showReviveUnavailable,
-            Action<string> validationControl = null)
+            Action<string> validationControl = null, Action<int> setChainCountRequest = null)
         {
             if (worldView == null) throw new ArgumentNullException(nameof(worldView));
             this.sweepView = sweepView ?? throw new ArgumentNullException(nameof(sweepView));
@@ -70,6 +76,7 @@ namespace ProjectX.UI
             this.showStatisticsUnavailable = showStatisticsUnavailable ?? throw new ArgumentNullException(nameof(showStatisticsUnavailable));
             this.showReviveUnavailable = showReviveUnavailable ?? throw new ArgumentNullException(nameof(showReviveUnavailable));
             this.validationControl = validationControl;
+            this.setChainCountRequest = setChainCountRequest;
 
             Reparent(sweepView, worldView.GameObject.transform);
             Transform overlayParent = worldView.GameObject.transform.parent ?? worldView.GameObject.transform;
@@ -105,6 +112,93 @@ namespace ProjectX.UI
         public bool IsVictoryTitleEffectVisible => victoryTitleEffect?.IsEffectVisible == true;
         public bool IsVictoryTitleEffectPlaying => victoryTitleEffect?.IsPlaying == true;
 
+        // 龙崖副本模式（fuben_AB == 2）
+        // C12：隐藏结算层「回放」入口；C5：显示「本局连战次数」设置
+        public void SetChainMode(bool enabled)
+        {
+            chainMode = enabled;
+            if (replayInteractionButton != null) replayInteractionButton.gameObject.SetActive(!enabled);
+            if (chainCountRoot != null) chainCountRoot.SetActive(enabled);
+        }
+
+        public void SetChainCount(int count)
+        {
+            if (count <= 0) return;
+            chainCount = count;
+            if (chainCountValue != null) chainCountValue.text = count.ToString();
+        }
+
+        private void EnsureChainCountControl()
+        {
+            if (chainCountRoot != null)
+            {
+                chainCountRoot.SetActive(chainMode);
+                return;
+            }
+            Transform host = battleView.GameObject.transform.Find("WorldBattleBackdrop")
+                ?? battleView.GameObject.transform;
+            chainCountRoot = new GameObject("ChainCountPanel", typeof(RectTransform));
+            chainCountRoot.transform.SetParent(host, false);
+            RectTransform rect = chainCountRoot.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0f);
+            rect.anchorMax = new Vector2(0.5f, 0f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, 60f);
+            rect.sizeDelta = new Vector2(360f, 48f);
+            chainCountRoot.transform.SetAsLastSibling();
+            CreateChainLabel("Caption", "本局连战次数", 150f, -130f);
+            chainCountValue = CreateChainLabel("Value", chainCount.ToString(), 60f, 25f);
+            CreateChainButton("Minus", "-", -25f, () => StepChainCount(-1));
+            CreateChainButton("Plus", "+", 75f, () => StepChainCount(1));
+            chainCountRoot.SetActive(chainMode);
+        }
+
+        private void StepChainCount(int delta)
+        {
+            int next = Mathf.Clamp(chainCount + delta, 1, 99);
+            SetChainCount(next);
+            setChainCountRequest?.Invoke(next);
+        }
+
+        private Text CreateChainLabel(string name, string value, float width, float x)
+        {
+            GameObject node = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            node.transform.SetParent(chainCountRoot.transform, false);
+            RectTransform rect = node.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(x, 0f);
+            rect.sizeDelta = new Vector2(width, 40f);
+            Text text = node.GetComponent<Text>();
+            text.text = value;
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = 24;
+            text.color = new Color(0.96f, 0.88f, 0.68f, 1f);
+            text.alignment = TextAnchor.MiddleCenter;
+            text.raycastTarget = false;
+            return text;
+        }
+
+        private void CreateChainButton(string name, string label, float x, Action action)
+        {
+            GameObject node = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image),
+                typeof(Button));
+            node.transform.SetParent(chainCountRoot.transform, false);
+            RectTransform rect = node.GetComponent<RectTransform>();
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(x, 0f);
+            rect.sizeDelta = new Vector2(44f, 40f);
+            Image image = node.GetComponent<Image>();
+            image.color = new Color(0.18f, 0.15f, 0.11f, 0.9f);
+            image.raycastTarget = true;
+            Button button = node.GetComponent<Button>();
+            button.targetGraphic = image;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+            CreateChainLabel(name + "Text", label, 44f, x);
+        }
+
         public void ShowSweep(int sweepCount, IEnumerable<IEnumerable<RewardRecord>> groupedRewards)
         {
             returnBattleAfterStatistics = false;
@@ -134,6 +228,8 @@ namespace ProjectX.UI
                 SetActive(battleView, $"Layer/Panel/victorypanel/win_bg/starlayer/Star{index}", index <= stars);
             battleView.GameObject.SetActive(true);
             EnsureBattleBackdrop();
+            // 龙崖模式：结算层并入「本局连战次数」设置入口（C5）
+            if (chainMode) EnsureChainCountControl();
             ApplyVictoryTitle(stars, showStars);
             for (int index = 0; index < 3; index++)
             {

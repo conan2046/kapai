@@ -42,6 +42,16 @@ namespace ProjectX.UI
         private readonly Action openYouLi;
         private readonly Action close;
         private readonly Action<string> validationControl;
+        // 龙崖副本模式（fuben_AB == 2）自动连战
+        private readonly Action<bool> setChainAuto;
+        private readonly Action<int> setChainCount;
+        // CheckBox_2「自动挑战下一章」
+        private readonly Action<bool> setChainAutoNext;
+        private bool chainMode;
+        private bool chainAuto;
+        private bool chainAutoNext;
+        private int chainCount = 10;
+        private Text chainCountLabel;
         private readonly VirtualList<ListEntry> list;
         private readonly ScrollRect stageMapScroll;
         private readonly RectTransform stageMapContent;
@@ -50,6 +60,12 @@ namespace ProjectX.UI
         private bool showDetail;
         private bool showDropdown;
         private int chapterPageStart;
+        // 龙崖模式 2：连战进行中（挑战发起后置位，控制布点层 kapaiguaiwuLayer 的显隐）
+        private bool chainStageActive;
+
+        // 视角以主角为中心：主角在视口内的纵向落点比例。
+        // 0 = 主角脚底贴视口底边，0.5 = 主角居中（默认），1 = 主角贴视口顶边。
+        private const float StageCameraVerticalAnchor = 0.5f;
 
         public WorldPresenter(CocosUiView worldView, CocosUiView stageView, CocosUiView mapView, CocosUiView detailView,
             WorldStore store, HeroStore heroes, FormationStore formation, PlayerStore player, ResourceService resources, CurrencyStore currencies,
@@ -58,7 +74,10 @@ namespace ProjectX.UI
             Action<uint> requestChapter, Action<uint> requestStage, Action challenge, Action sweep,
             Action<WorldStageRecord> requestReset, Action<uint> claimBox, Action<WorldStageRecord> showNormalBox,
             Action openFormation, Action<bool> openHeroFormation, Action openAchievement, Action openYouLi, Action close,
-            Action<string> validationControl = null)
+            Action<string> validationControl = null,
+            // 龙崖副本模式（fuben_AB == 2）
+            Action<bool> setChainAuto = null, Action<int> setChainCount = null,
+            Action<bool> setChainAutoNext = null)
         {
             this.worldView = worldView ?? throw new ArgumentNullException(nameof(worldView));
             this.stageView = stageView ?? throw new ArgumentNullException(nameof(stageView));
@@ -85,10 +104,24 @@ namespace ProjectX.UI
             this.openYouLi = openYouLi ?? throw new ArgumentNullException(nameof(openYouLi));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.validationControl = validationControl;
+            this.setChainAuto = setChainAuto;
+            this.setChainCount = setChainCount;
+            this.setChainAutoNext = setChainAutoNext;
 
-            EnsureWorldMapBackdrop();
+            // 层级（恢复原版顺序）：WorldMapNewLayer（根，承载 chapterPage 章节选择）
+            //   ← kapaiguaiwuLayer（布点） ← DadituuiLayer（大底图 + 新 bg，最后挂载=最上层，
+            //   bg 通用条/挑战按钮天然可点）。WorldMapNewLayer 的旧 bg（无数据占位版）隐藏。
             ReparentOverlay(stageView, worldView.GameObject.transform, false);
-            ReparentOverlay(mapView, worldView.GameObject.transform, true);
+            if (mapView.GameObject != worldView.GameObject)
+                ReparentOverlay(mapView, worldView.GameObject.transform, true);
+            SetActive(worldView, "bg", false);
+            Transform barTransform = mapView.GameObject.transform.Find("bg");
+            if (barTransform != null)
+            {
+                // bg 整条装饰底图不拦射线，避免挡住布点层节点点击与横向拖拽
+                Image barBackground = barTransform.GetComponent<Image>();
+                if (barBackground != null) barBackground.raycastTarget = false;
+            }
             ReparentOverlay(detailView, stageView.GameObject.transform, false);
             ConfigureDetailMask();
             (stageMapScroll, stageMapContent) = CreateStageMapScroll();
@@ -118,9 +151,13 @@ namespace ProjectX.UI
                 if (showChapters) close();
                 else ShowChapterList();
                 Mark("WORLD-08-STAGE-CLOSE");
-            }, true);
+            });
+            // 用户口径：不再动态创建 RuntimeInteraction_Layer_Title_CloseBtn 画布代理，
+            // 直接使用预制体原生 Title/CloseBtn 节点（mapView 已是最上层，无遮挡）。
             Bind(worldView, "Layer/Button_1", () => { NavigateChapter(-1); Mark("WORLD-02-CHAPTER-PREV"); });
             Bind(worldView, "Layer/Button_2", () => { NavigateChapter(1); Mark("WORLD-03-CHAPTER-NEXT"); });
+            // 龙崖副本模式：`bg/Button_1` = 挑战，`bg/CheckBox_1` = 自动挑战（C2）
+            BindChainControls();
             for (int index = 1; index <= 5; index++)
             {
                 int slot = index - 1;
@@ -151,12 +188,15 @@ namespace ProjectX.UI
             SetActive(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", true);
             SetActive(mapView, "Layer/Panel_youxia/Button_fengshenshilian", false);
             SetActive(mapView, "Layer/Panel_youxia/Button_youlisanjie", true);
-            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", false);
+            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", true);
             // The imported decorative title background overlaps Button_xiala.
             // Cocos does not treat that ImageView as an input surface, while a
             // Unity Image defaults to raycastTarget=true and blocks real clicks.
             Image titleBackground = Find(mapView, "Layer/Title/bg")?.GetComponent<Image>();
             if (titleBackground != null) titleBackground.raycastTarget = false;
+
+            // 默认按类型 1 姿态全开；Lua 下发 fuben_AB 后由 SetChainMode 收敛为对应口径
+            ApplyChainEntryVisibility();
 
             store.Changed += Render;
             heroes.Changed += Render;
@@ -180,10 +220,22 @@ namespace ProjectX.UI
         {
             showDetail = false;
             showDropdown = false;
-            // /320 op=1 is the Cocos world/chapters surface regardless of a
-            // previous op=2 cache.  Do not leak a prior chapter's stage rows over
-            // the actual world map while a fresh world response is being rendered.
+            // /320 op=1 → 章节选择页（chapterPage），选章节后进入大底图
             showChapters = true;
+            Render();
+        }
+
+        // 连战中止（中断/退出）→ 回到大底图态，布点层收起
+        public void EndChainStage()
+        {
+            chainStageActive = false;
+            Render();
+        }
+
+        // 自动挑战下一章：op=2 关卡列表就绪后由 ProjectXApp 调用，切到布点连战态
+        public void BeginChainStage()
+        {
+            chainStageActive = true;
             Render();
         }
 
@@ -198,22 +250,103 @@ namespace ProjectX.UI
         public void ShowSelectedStage()
         {
             showChapters = false;
-            showDetail = store.SelectedStage != null;
+            // 龙崖模式（C13）：绕过关卡详情面板，点关卡不再弹详情
+            showDetail = !chainMode && store.SelectedStage != null;
             showDropdown = false;
             Render();
         }
 
+        // 龙崖副本模式：fuben_AB == 2
+        public void SetChainMode(bool enabled)
+        {
+            chainMode = enabled;
+            if (!enabled) chainStageActive = false;
+            SetActive(mapView, "bg", enabled);
+            ApplyChainEntryVisibility();
+            Render();
+        }
+
+        public void SetChainCount(int count)
+        {
+            if (count <= 0) return;
+            chainCount = count;
+            if (chainCountLabel != null) chainCountLabel.text = count.ToString();
+        }
+
+        private void BindChainControls()
+        {
+            if (Find(mapView, "bg/Button_1") != null)
+            {
+                Bind(mapView, "bg/Button_1", () => { chainStageActive = true; challenge(); Mark("WORLD-14-CHALLENGE"); });
+                SetButtonLabel(mapView, "bg/Button_1", "挑战");
+            }
+            GameObject autoNode = Find(mapView, "bg/CheckBox_1");
+            if (autoNode != null)
+            {
+                Toggle auto = autoNode.GetComponent<Toggle>() ?? autoNode.AddComponent<Toggle>();
+                auto.isOn = chainAuto;
+                auto.onValueChanged.RemoveAllListeners();
+                auto.onValueChanged.AddListener(value =>
+                {
+                    chainAuto = value;
+                    setChainAuto?.Invoke(value);
+                    Mark("WORLD-35-CHAIN-AUTO");
+                });
+            }
+            // CheckBox_2「自动挑战下一章」：预制体加节点后自动接线（缺节点时静默跳过）
+            GameObject autoNextNode = Find(mapView, "bg/CheckBox_2");
+            if (autoNextNode != null)
+            {
+                Toggle autoNext = autoNextNode.GetComponent<Toggle>() ?? autoNextNode.AddComponent<Toggle>();
+                autoNext.isOn = chainAutoNext;
+                autoNext.onValueChanged.RemoveAllListeners();
+                autoNext.onValueChanged.AddListener(value =>
+                {
+                    chainAutoNext = value;
+                    setChainAutoNext?.Invoke(value);
+                    Mark("WORLD-36-CHAIN-AUTO-NEXT");
+                });
+            }
+        }
+
+        // 类型 1：全显；类型 2（chainMode）：Panel_1 只留 队伍(duiwu)/阵容(btn_zhenrong)，
+        // Panel_youxia / Panel_zuoshang / Popup 隐藏（用户口径 2026-09-17）。
+        // C13：详情面板「扫荡 / 重置」类型 2 继续隐藏。
+        // bg/Panel_2/ListView_1 = 类型 1/2 共用的奖励条，两种模式都显示。
+        private void ApplyChainEntryVisibility()
+        {
+            bool normal = !chainMode;
+            SetActive(mapView, "Layer/Panel_1/Box1", normal);
+            SetActive(mapView, "Layer/Panel_1/Box2", normal);
+            SetActive(mapView, "Layer/Panel_1/Box3", normal);
+            SetActive(mapView, "Layer/Panel_1/xing_0", normal);
+            SetActive(mapView, "Layer/Panel_1/xingshu", normal);
+            SetActive(mapView, "Layer/Panel_1/xing", normal);
+            SetActive(mapView, "Layer/Panel_1/slider_bg", normal);
+            SetActive(mapView, "Layer/Panel_1/jindutiao", normal);
+            SetActive(mapView, "Layer/Panel_1/Button_paihangbang", normal);
+            SetActive(mapView, "Layer/Panel_youxia", normal);
+            SetActive(mapView, "Layer/Panel_zuoshang", normal);
+            if (chainMode) showDropdown = false;
+            SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_3", normal);
+            SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_4/TimesBg/AddBtn", normal);
+        }
+
         public void Render()
         {
-            // The Cocos root owns the chapter-page map. DadituuiLayer contributes
-            // the shared top chrome on both chapter and stage surfaces.
-            stageView.GameObject.SetActive(!showChapters);
+            // 布点层（kapaiguaiwuLayer）：类型 1 常显；类型 2 仅在连战进行中显示
+            stageView.GameObject.SetActive(!showChapters && (!chainMode || chainStageActive));
+            // chapterPage 常驻显示（prefab 默认关闭，这里恒定激活）：自带全屏章节底图 +
+            // 章节按钮，大底图/连战态由上层（kapaiguaiwu / Dadituui）覆盖
+            SetActive(worldView, "chapterPage", true);
             mapView.GameObject.SetActive(!showDetail);
             detailView.GameObject.SetActive(DetailVisible);
             RefreshInteractionButtons();
-            SetActive(mapView, "Layer/Panel_1", !showChapters);
+            // Panel_1（宝箱/星星/排行/队伍/阵容）默认打开：类型 2 由 ApplyChainEntryVisibility
+            // 只收起其子节点（Box/星星/排行），根节点常开
+            SetActive(mapView, "Layer/Panel_1", true);
             GameObject popup = Find(mapView, "Layer/Popup");
-            if (popup != null) popup.SetActive(!showChapters && !showDetail && showDropdown);
+            if (popup != null) popup.SetActive(!chainMode && !showChapters && !showDetail && showDropdown);
             IReadOnlyList<ListEntry> entries = (showChapters || showDropdown)
                 ? store.Chapters.Select(ListEntry.ForChapter).ToArray()
                 : store.Stages.Select(ListEntry.ForStage).ToArray();
@@ -221,6 +354,7 @@ namespace ProjectX.UI
             RenderWorldChapters();
             RenderStageMap();
             RenderStarBoxes();
+            RenderBossRewardPreview();
             string chapterName = store.SelectedChapterName;
             if (string.IsNullOrWhiteSpace(chapterName)
                 && WorldVisualCatalog.TryGetChapter(store.SelectedChapterId, out WorldChapterVisualDefinition selectedVisual))
@@ -356,6 +490,68 @@ namespace ProjectX.UI
                     background.preserveAspect = false;
                 }
             }
+        }
+
+        // 大底图「通关奖励」（ListView_1）：汇总本章节全部怪物（关卡）的胜利收益——
+        // 相同资源（Type+Id）合并同一格子、数量累积，保持首次出现顺序。
+        // BagIcon1 为第一格显示位，余量按 Reward_N 克隆；图标走 ResourceService.LoadItemIcon。
+        private void RenderBossRewardPreview()
+        {
+            GameObject list = Find(mapView, "bg/Panel_2/ListView_1");
+            if (list == null) return;
+            Transform template = list.transform.Find("BagIcon1");
+            if (template == null) return;
+            List<RewardRecord> merged = new List<RewardRecord>();
+            List<uint> totals = new List<uint>();
+            Dictionary<string, int> indexByReward = new Dictionary<string, int>();
+            foreach (WorldStageRecord stage in store.Stages)
+            {
+                foreach (RewardRecord reward in stage.Rewards)
+                {
+                    if (reward.Amount == 0) continue;
+                    string key = reward.Type + "_" + reward.Id;
+                    if (indexByReward.TryGetValue(key, out int slot))
+                    {
+                        totals[slot] += reward.Amount;
+                        continue;
+                    }
+                    indexByReward[key] = merged.Count;
+                    merged.Add(reward);
+                    totals.Add(reward.Amount);
+                }
+            }
+            for (int index = list.transform.childCount - 1; index >= 0; index--)
+            {
+                Transform child = list.transform.GetChild(index);
+                if (child != template && child.name != "BagIcon1")
+                    UnityEngine.Object.Destroy(child.gameObject);
+            }
+            for (int slot = 0; slot < merged.Count; slot++)
+            {
+                Transform row = slot == 0 ? template
+                    : UnityEngine.Object.Instantiate(template, list.transform);
+                if (slot > 0) row.name = "Reward_" + (slot + 1);
+                ApplyRewardRow(row, merged[slot], totals[slot]);
+            }
+        }
+
+        // BagIcon1 结构（用户预制体）：BagIcon1=品质底框，子节点 Icon=道具图标，子节点 Num=数量
+        private void ApplyRewardRow(Transform row, RewardRecord reward, uint total)
+        {
+            row.gameObject.SetActive(true);
+            Transform iconTransform = row.Find("Icon");
+            if (iconTransform != null)
+            {
+                Image icon = iconTransform.GetComponent<Image>();
+                if (icon != null)
+                {
+                    Sprite sprite = reward.Picture > 0 ? resources.LoadItemIcon(reward.Picture) : null;
+                    if (sprite != null) icon.sprite = sprite;
+                }
+            }
+            Transform numTransform = row.Find("Num");
+            Text num = numTransform != null ? numTransform.GetComponent<Text>() : null;
+            if (num != null) num.text = FormatCompact(total);
         }
 
         private void RenderCurrencies()
@@ -644,45 +840,8 @@ namespace ProjectX.UI
             maskObject.transform.SetAsFirstSibling();
         }
 
-        private void EnsureWorldMapBackdrop()
-        {
-            const string name = "WorldMapBackdrop";
-            Transform existing = worldView.GameObject.transform.Find(name);
-            if (existing != null) return;
-            Sprite sprite = Resources.Load<Sprite>("WorldUI/worldmap");
-            if (sprite == null)
-            {
-                Texture2D texture = Resources.Load<Texture2D>("WorldUI/worldmap");
-                if (texture == null) return;
-                sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
-                    new Vector2(0.5f, 0.5f), 100f);
-            }
-            // `chapterPage/Image` is the opaque Cocos background node.  Replacing
-            // that node is required: adding a sibling beneath it leaves the
-            // original white ImageView in front of the new texture.
-            Image cocosBackground = Find(worldView, "Layer/chapterPage/Image")?.GetComponent<Image>();
-            if (cocosBackground != null)
-            {
-                cocosBackground.sprite = sprite;
-                cocosBackground.enabled = true;
-                cocosBackground.preserveAspect = false;
-                return;
-            }
-
-            Transform contentRoot = worldView.GameObject.transform;
-            GameObject layer = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            layer.transform.SetParent(contentRoot, false);
-            RectTransform rect = layer.GetComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            Image image = layer.GetComponent<Image>();
-            image.sprite = sprite;
-            image.preserveAspect = false;
-            image.raycastTarget = false;
-            layer.transform.SetAsFirstSibling();
-        }
+        // 大底图态的底图由 chapterPage 自带的全屏背景承载（原版行为），
+        // 不再动态创建 ChapterBackdrop / 使用 worldmap.png 兜底假图。
 
         private (ScrollRect scroll, RectTransform content) CreateStageMapScroll()
         {
@@ -722,6 +881,7 @@ namespace ProjectX.UI
         private void RenderStageMap()
         {
             if (stageMapScroll == null || stageMapContent == null) return;
+            // 详情弹出时隐藏；章节列表态不显示
             bool visible = !showChapters && !showDetail;
             stageMapScroll.gameObject.SetActive(visible);
             if (!visible) return;
@@ -919,16 +1079,21 @@ namespace ProjectX.UI
             int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
             if (currentIndex < 0) currentIndex = 0;
             currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
-            float fightX = map.RoleCoordinates[currentIndex].x;
+
+            // 视角机制：以主角为中心（不再使用 camera_coor 关键帧插值）。
+            // 与 RenderStagePlayer 同一基准：_myNode:setPosition(x, y+33)。
+            Vector2 player = map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f);
             RectTransform root = stageView.GameObject.transform as RectTransform;
-            float halfScreen = root != null && root.rect.width > 0f ? root.rect.width * .5f : 667f;
-            float aimX = -fightX;
-            if (fightX >= halfScreen) aimX += halfScreen;
-            float maximumScroll = Mathf.Max(0f, map.Size.x * (750f / 1080f) - halfScreen * 2f);
-            aimX = Mathf.Clamp(aimX, -maximumScroll, 0f);
-            scroll.anchoredPosition = new Vector2(aimX, -FindStageCameraY(-aimX, map.CameraCoordinates));
+            float viewWidth = root != null && root.rect.width > 0f ? root.rect.width : 1334f;
+            float viewHeight = root != null && root.rect.height > 0f ? root.rect.height : 750f;
+            float contentWidth = map.Size.x * (750f / 1080f);
+            float contentHeight = map.Size.y * (750f / 1080f);
+            float scrollX = Mathf.Clamp(player.x - viewWidth * .5f, 0f, Mathf.Max(0f, contentWidth - viewWidth));
+            float scrollY = Mathf.Clamp(player.y - viewHeight * StageCameraVerticalAnchor, 0f, Mathf.Max(0f, contentHeight - viewHeight));
+            scroll.anchoredPosition = new Vector2(-scrollX, -scrollY);
         }
 
+        // 旧的 camera_coor 关键帧插值：视角改为“以主角为中心”后不再被调用，保留便于回退。
         private static float FindStageCameraY(float x, IReadOnlyList<Vector2> coordinates)
         {
             if (coordinates == null || coordinates.Count == 0) return 0f;

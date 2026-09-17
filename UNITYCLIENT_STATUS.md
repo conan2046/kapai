@@ -40,7 +40,7 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | HeroRebirth | `G0-G6 complete` | 24/24，用户最终确认，已收口；用户 Prefab 只读 |
 | HeroCultivation | `G0-G6 user exception` | 51/51；Cocos缺口和历史未闭环台账继续披露，不复用例外 |
 | GameplayShops | `G0-G6 user exception` | 仅 `function_id=15/type=2`；其他商店不在范围 |
-| Draw | `G0-G6 complete` | 2026-09-11 用户最终真人 Play 确认通过；`manualPassed=true`，历史 runtime-v4 自动证据缺口保留披露 |
+| Draw | `G0-G5 passed / targeted bug user Play passed / G6 evidence pending` | 2026-09-11 用户最终真人 Play 确认定向修复通过；`manualPassed=true`，但 runtime-v4 严格控件证据仍有缺口，中央G6保持pending |
 | Hero | `G0 passed / G1-G6 invalidated` | 当前不启动；待有效 Cocos 状态重采 |
 | HeroEquip | `G0-G4 passed / G5 blocked` | 当前不启动；用户 Prefab 不覆盖 |
 | Shop | `G3 runtime-ready / early Play passed` | 正式 G1-G2、G4-G6 待后续独立任务 |
