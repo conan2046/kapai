@@ -391,13 +391,27 @@ namespace ProjectX.Core
                 HandleBack();
                 return true;
             }
+            // USER RULING (2026-09-17): the X button dismisses the WHOLE shared frame
+            // from either surface. Bag mode used to call ShowJingJieSurface() first,
+            // which stepped back to 境界 and required a SECOND press to actually leave
+            // (reported defect). Both surfaces now terminate through the same path:
+            // tear down the bag surface, hide the jingjie content, pop the frame.
             if (jingJieSurfaceMode == JingJieSurfaceMode.Bag)
             {
-                ShowJingJieSurface();
-                return true;
+                bagFlowPresenter?.CloseAll();
+                bagView?.SetVisible(false);
+                jingJieBagDataRequested = false;
+                RestoreJingJieFrameOrder();
             }
             jingJieRenderBridge.Hide();
-            return PopUiStackWithHudRefresh();
+            if (!PopUiStackWithHudRefresh())
+            {
+                // Nothing to pop (the frame was never pushed / is the stack root).
+                // Dismiss it explicitly rather than leaving a content-less shared
+                // frame on screen with no way out.
+                SetOneLevelFrameVisible(false);
+            }
+            return true;
         }
 
         private void EnsureJingJieBridge()
