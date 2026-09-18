@@ -168,6 +168,17 @@ namespace ProjectX.Core
         // CheckBox_2「自动挑战下一章」：BOSS 结算确认后自动进入下一章并发起连战
         private bool worldChainAutoNext;
         private uint pendingAutoNextChapter;
+        // 章节列表首屏的「通关奖励」条（ListView_1）需要当前章节的关卡列表才能汇总；
+        // 这个标记表示本次 op=2 只是为了喂奖励条，回包后不要从章节列表切到关卡地图。
+        private uint pendingRewardPreviewChapter;
+        private bool stageListIsRewardPreview;
+        // 记住玩家上次挑战（选中）的章节：下次进副本直接定位到它，而不是进度最新的章节。
+        // 存 PlayerPrefs（按角色分键），跨会话生效；运行时用 lastWorldChapterId 缓存避免频繁读盘。
+        private const string LastWorldChapterKeyPrefix = "ProjectX.World.LastChapter.";
+        private uint lastWorldChapterId;
+        // 「自动挑战」：龙崖模式下勾选 = 本章无限循环（BOSS 结算后重跑本章、中途失败回
+        // 第一关重打）；不勾选 = 从第一关连打到 BOSS 就结束（中途失败出结算收尾）。
+        // ⚠️ 它不影响「胜利后走位续战到下一关」——那条是无条件的。
         private bool worldChainAuto;
         private int worldChainCount = 10;
         private int worldChainIndex;
@@ -475,6 +486,13 @@ namespace ProjectX.Core
         private enum BattlePlaybackContext { None, World, FengShenStory, Monopoly }
         private BattlePlaybackContext battlePlaybackContext;
         private Coroutine worldBattlePlaybackCoroutine;
+        // 龙崖连战：本场战斗出发时主角所在关卡（走位起点）。/320 op=8 会先把
+        // WorldStore.CurrentStageId 推到新关，必须在它被改写之前抓下来。
+        private uint worldChainWalkFromStageId;
+        // 走位时长 —— 对齐 Cocos FuBenDetailUI:ModelMove 的 cc.MoveTo:create(2, ...)
+        private const float WorldChainWalkSeconds = 2f;
+        // 等 /38 回放播完的超时兜底（一场回放约 14 秒；异常路径不至于无限等待）
+        private const float MaxWorldBattlePlaybackWait = 60f;
         private bool pendingWorldBattleResult;
         private bool suppressFengShenSettlementForSkippedPlayback;
         private int pendingWorldBattleStars;
@@ -7316,8 +7334,58 @@ namespace ProjectX.Core
             services.World.ReplaceChapters(pendingWorldMapType, checked((uint)currentChapterId),
                 checked((uint)currentStageId), pendingWorldChapters);
             EnsureWorldPresenter();
-            worldPresenter.ShowWorld();
+            // 默认章节＝上次挑战过的章节（没有记录时退回进度章）
+            uint preferredChapterId = ResolveLastWorldChapterId();
+            worldPresenter.ShowWorld(preferredChapterId);
+            // 底栏「通关奖励」条（DadituuiLayer/bg/Panel_2/ListView_1）由
+            // WorldPresenter.RenderBossRewardPreview() 汇总 store.Stages[].Rewards 绘制。
+            // 而 SelectedChapterId / Stages 只在 ReplaceStages（/320 op=2 回包）里赋值，
+            // 章节列表态下恒为 0 / 空 ⇒ 奖励条永远是空的（进副本看到一条空框）。
+            // 这里补一次「当前章节」请求（与章节行点击同一条 Lua 通路 World.RequestChapter），
+            // 把玩家当前章节的关卡列表拉下来，奖励条即可在章节选择页显示本章通关收益。
+            StartCoroutine(RequestWorldRewardPreviewChapter(
+                preferredChapterId != 0 ? preferredChapterId : checked((uint)currentChapterId)));
             SetStatus($"World/320 map: {services.World.ChapterCount} chapters, current={checked((uint)currentChapterId)}/{checked((uint)currentStageId)}.");
+        }
+
+        // 延后一帧再发：EndWorldChapterList 是 Lua op=1 回调的同步出口，
+        // 直接在里面回呼 Lua 会重入 Lua 状态机。
+        // 玩家点了某个章节（＝选中并准备挑战它）时记录，下次进副本默认回到这一章。
+        private void RememberLastWorldChapter(uint chapterId)
+        {
+            if (chapterId == 0) return;
+            lastWorldChapterId = chapterId;
+            PlayerPrefs.SetInt(LastWorldChapterKey, checked((int)chapterId));
+            PlayerPrefs.Save();
+        }
+
+        private string LastWorldChapterKey
+        {
+            get
+            {
+                uint roleId = services != null && services.Player != null ? services.Player.RoleId : 0;
+                return LastWorldChapterKeyPrefix + roleId;
+            }
+        }
+
+        // 取上次章节：先看运行时缓存，没有再读本地存档；仍没有则为 0（调用方退回进度章）。
+        private uint ResolveLastWorldChapterId()
+        {
+            if (lastWorldChapterId != 0) return lastWorldChapterId;
+            int saved = PlayerPrefs.GetInt(LastWorldChapterKey, 0);
+            lastWorldChapterId = saved > 0 ? checked((uint)saved) : 0;
+            return lastWorldChapterId;
+        }
+
+        private IEnumerator RequestWorldRewardPreviewChapter(uint chapterId)
+        {
+            yield return null;
+            if (chapterId == 0) yield break;
+            if (services.World.Chapters.All(value => value.Id != chapterId)) yield break;
+            // 已有该章节的关卡数据就不重复请求（例如从别处返回章节列表）。
+            if (services.World.SelectedChapterId == chapterId && services.World.StageCount > 0) yield break;
+            pendingRewardPreviewChapter = chapterId;
+            InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)chapterId);
         }
 
         public double GetFirstWorldChapterId() => services.World.Chapters.FirstOrDefault()?.Id ?? 0;
@@ -7336,6 +7404,11 @@ namespace ProjectX.Core
             pendingWorldStages.Clear();
             pendingWorldStarBoxes.Clear();
             pendingWorldStage = null;
+            // 判定这次 op=2 是不是「只为喂通关奖励条」的后台预热请求，并立刻清掉挂起标记
+            // （避免回包丢失时污染后续的章节行点击）。
+            stageListIsRewardPreview = pendingRewardPreviewChapter != 0
+                && checked((uint)chapterId) == pendingRewardPreviewChapter;
+            pendingRewardPreviewChapter = 0;
             if (expectedCount > pendingWorldStages.Capacity) pendingWorldStages.Capacity = expectedCount;
         }
 
@@ -7408,9 +7481,20 @@ namespace ProjectX.Core
             EnsureWorldPresenter();
             worldFormationReturnPending = false;
             worldFormationReturnToDetail = false;
-            worldPresenter.ShowStages();
+            // 只为喂「通关奖励」条（ListView_1）而发的后台 op=2：保持章节列表首屏，
+            // 只重绘一次让奖励条汇总出数据，不要切到关卡地图打断玩家的章节选择。
+            // （标记在 BeginWorldStageList 里按章节号判定并清除。）
+            bool rewardPreviewOnly = stageListIsRewardPreview;
+            stageListIsRewardPreview = false;
+            if (rewardPreviewOnly) worldPresenter.Render();
+            // 类型 2（龙崖）：点章节图标＝「选中」该章——只刷新选中头像与下方奖励条，
+            // 章节列表必须留在原地，玩家才能连续切换已通关章节；离开章节页改由
+            // 点「挑战」(bg/Button_1) 或连战开始触发（BeginChainStage 内收起）。
+            else if (worldChainMode) worldPresenter.Render();
+            else worldPresenter.ShowStages();
             StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
             SetStatus($"World/320 chapter {pendingWorldChapterId}: {services.World.StageCount} stages.");
+            if (rewardPreviewOnly) return;
             // 「自动挑战下一章」：下一章关卡列表就绪后自动发起连战
             if (pendingAutoNextChapter != 0 && services.World.SelectedChapterId == pendingAutoNextChapter
                 && services.World.StageCount > 0)
@@ -7448,12 +7532,28 @@ namespace ProjectX.Core
             double unlockedStageId, double unlockedBoxId, double unlockedStarBoxId, int stars,
             int chainIndex = 0, int chainTotal = 0, double chainNextStageId = 0)
         {
+            // 走位起点＝**本场刚打完的这一关**（它必定属于当前选中的章）。
+            // ⚠️ 不能用 CurrentStageId：那是服务端的 curNodeId，跨章选关时它仍停在
+            // 「别的章」的关卡上（例如进度第 6 章时去打第 1 章，它一直是 10055）。
+            // 这个 id 在 store.Stages（当前章）里找不到 → ResolveStagePlayerPosition
+            // 回落 index 0 → 主角瞬移到「章节第一个点」再跑向下一关，
+            // 表现就是玩家看到的「从章节初始位置跑过去」。
+            uint foughtStage = foughtStageId > 0 ? checked((uint)foughtStageId) : 0u;
+            uint walkFromStageId = foughtStage != 0 ? foughtStage : services.World.CurrentStageId;
             services.World.ApplyBattleResult(checked((byte)foughtCount), checked((uint)foughtStageId),
                 checked((uint)unlockedChapterId), checked((uint)unlockedStageId), checked((byte)stars));
             // 龙崖连战：序号 / 总场次 / 下一关（0 = 本章已通关）
             worldChainIndex = chainIndex;
             if (chainTotal > 0) worldChainCount = chainTotal;
             worldChainNextStageId = chainNextStageId > 0 ? checked((uint)chainNextStageId) : 0u;
+            if (worldChainNextStageId > 0 && walkFromStageId > 0 && worldChainMode)
+            {
+                // 还有下一场 → 锁住走位起点。结算回调已把主角推到终点，不回锁就没有
+                // 「从当前点走到下一个目标点」的过程（原版 FuBenDetailUI:ModelMove）。
+                worldChainWalkFromStageId = walkFromStageId;
+                EnsureWorldPresenter();
+                worldPresenter?.HoldStageWalkOrigin(walkFromStageId);
+            }
             SetStatus($"World/320 PvE result: stage={checked((uint)foughtStageId)}, stars={stars}, next={checked((uint)unlockedStageId)}, box={checked((uint)unlockedBoxId)}/{checked((uint)unlockedStarBoxId)}"
                 + (chainTotal > 0 ? $", chain={chainIndex}/{chainTotal}, chainNext={worldChainNextStageId}." : "."));
         }
@@ -7475,6 +7575,9 @@ namespace ProjectX.Core
         public void SetWorldChainAuto(bool enabled)
         {
             worldChainAuto = enabled;
+            // 逻辑态与 CheckBox_1 勾选态必须一致：否则会出现「界面上没勾但仍在循环重跑」
+            // 这类不可解释的状态。
+            worldPresenter?.SetChainAutoState(enabled);
             InvokeLuaOrFail(onWorldSetChainAuto, "World.SetChainAuto", enabled ? 1d : 0d);
             SetStatus($"World chain auto challenge {(enabled ? "on" : "off")}.");
         }
@@ -7498,7 +7601,12 @@ namespace ProjectX.Core
         public void ContinueWorldChain(double nextStageId)
         {
             uint next = nextStageId > 0 ? checked((uint)nextStageId) : 0u;
-            if (!worldChainMode || next == 0) return;
+            if (!worldChainMode || next == 0)
+            {
+                // 没有下一场就不会走位：释放结算时锁住的走位起点，别让主角停在旧点
+                worldPresenter?.ReleaseStageWalkHold();
+                return;
+            }
             if (worldChainContinueCoroutine != null) StopCoroutine(worldChainContinueCoroutine);
             worldChainContinueCoroutine = StartCoroutine(ContinueWorldChainAfterDelay(next));
         }
@@ -7506,15 +7614,21 @@ namespace ProjectX.Core
         // BOSS 通关、结算确认后：若「自动挑战」仍勾选 → 2 秒后重跑本章
         private IEnumerator RestartWorldChainAfterDelay()
         {
-            yield return new WaitForSecondsRealtime(2f);
+            yield return new WaitForSecondsRealtime(WorldChainWalkSeconds);
             worldChainContinueCoroutine = null;
+            // 章节结算时已收起布点层（EndChainStage）；重跑本章要把它放回来
+            worldPresenter?.BeginChainStage();
             InvokeLuaOrFail(onWorldRestartChain, "World.RestartChain");
         }
 
         private IEnumerator ContinueWorldChainAfterDelay(uint nextStageId)
         {
-            // 龙崖节奏：出战斗 → 等 2 秒 → 走位到下一个怪 → 再进战斗
-            yield return new WaitForSecondsRealtime(2f);
+            // 龙崖节奏必须等 /38 回放播完再往下走（玩家点「跳过」时协程会提前结束并置空）。
+            // 旧实现是「点挑战后无条件等 2 秒就 Hide 回放层」，于是战斗才播完起手动画
+            // 画面就被切走 —— 玩家观感就是被踢出战斗。超时只为兜住异常路径。
+            float playbackDeadline = Time.realtimeSinceStartup + MaxWorldBattlePlaybackWait;
+            while (worldBattlePlaybackCoroutine != null && Time.realtimeSinceStartup < playbackDeadline)
+                yield return null;
             worldChainContinueCoroutine = null;
             pendingWorldBattleResult = false;
             pendingWorldBattleStars = 0;
@@ -7522,11 +7636,11 @@ namespace ProjectX.Core
             EnsureWorldPresenter();
             services.World.SelectStage(nextStageId);
             worldPresenter.ShowStages();
-            if (!worldChainAuto)
-            {
-                SetStatus($"World chain paused at stage {nextStageId}: auto challenge is off.");
-                yield break;
-            }
+            // 客户端走位：播跑步动画 + 镜头平滑跟随，2 秒走到下一个目标点后才请求战斗
+            // （原版 FuBenDetailUI:ModelMove → ModelMove 完成回调里才发挑战）
+            yield return worldPresenter.PlayStageWalk(nextStageId, WorldChainWalkSeconds);
+            // ⚠️ 这里**不判**「自动挑战」：胜利后走位续战是无条件的（用户口径 2026-09-17）。
+            // 勾选框只决定 BOSS 结算后是否重跑本章、以及中途失败是否回第一关重打。
             InvokeLuaOrFail(onWorldContinueChain, "World.ContinueChain");
         }
 
@@ -7537,6 +7651,7 @@ namespace ProjectX.Core
                 StopCoroutine(worldChainContinueCoroutine);
                 worldChainContinueCoroutine = null;
             }
+            worldPresenter?.ReleaseStageWalkHold();
             worldPresenter?.EndChainStage();
             InvokeLuaOrFail(onWorldCancelChain, "World.CancelChain");
         }
@@ -7612,6 +7727,14 @@ namespace ProjectX.Core
         {
             EnsureWorldOutcomePresenter();
             bool fengShenStory = battlePlaybackContext == BattlePlaybackContext.FengShenStory;
+            if (!fengShenStory)
+            {
+                // 本章已结束（Lua 侧 chainNextNodeId == 0 才走这条）：收起连战布点层
+                // kapaiguaiwuLayer，回大底图 DadituuiLayer。胜败都走这里 —— 失败时
+                // 服务端下发的是本章第一关（≠0），会继续连战，不会到这一步。
+                worldPresenter?.ReleaseStageWalkHold();
+                worldPresenter?.EndChainStage();
+            }
             worldOutcomePresenter.ShowBattle(stars, !fengShenStory);
             SetStatus($"{(fengShenStory ? "FengShenStory" : "World")} battle result active: stars={stars}, rewards={services.Rewards.Count}.");
             if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
@@ -11604,6 +11727,7 @@ namespace ProjectX.Core
                 if (hasChapter)
                 {
                     pendingAutoNextChapter = nextChapter;
+                    RememberLastWorldChapter(nextChapter);
                     InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)nextChapter);
                     SetStatus($"World chain auto next chapter: requesting {nextChapter}.");
                 }
@@ -12860,45 +12984,60 @@ namespace ProjectX.Core
             uint currentChapterId = services.World.SelectedChapterId;
             Button next = worldView.Binding.Find("Layer/Button_2")?.GetComponent<Button>();
             Button previous = worldView.Binding.Find("Layer/Button_1")?.GetComponent<Button>();
-            if (next == null || previous == null || !next.interactable || !previous.interactable)
+            if (next == null || previous == null)
             {
-                Fail("World chapter navigation controls are unavailable.");
+                Fail("World chapter paging controls are unavailable.");
                 yield break;
             }
-            int currentChapterIndex = services.World.Chapters.ToList()
-                .FindIndex(value => value.Id == currentChapterId);
-            if (currentChapterIndex < 0 || services.World.Chapters.Count < 2)
-            {
-                Fail("World chapter navigation has no authoritative adjacent chapter.");
-                yield break;
-            }
-            bool previousFirst = currentChapterIndex > 0;
-            Button firstNavigation = previousFirst ? previous : next;
-            Button secondNavigation = previousFirst ? next : previous;
-            if (!InvokeEventSystemRaycastClick(firstNavigation))
-            {
-                Fail($"World {(previousFirst ? "previous" : "next")} chapter control did not receive a real EventSystem raycast click.");
-                yield break;
-            }
+            // Cocos NormalFuBenUI:ShowCurPage / leftEvent / rightEvetn / ChangePage ——
+            // Button_1 / Button_2 是章节选择页的**翻页**键（每页 5 章）：首/末页各自隐藏，
+            // 点击只改页码、不请求章节，因此这里不能用 SelectedChapterId 变化做断言。
             float deadline = Time.realtimeSinceStartup + 8f;
-            while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == currentChapterId)
-                && Time.realtimeSinceStartup < deadline) yield return null;
-            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId == currentChapterId)
+            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            int pageCount = worldPresenter.ChapterPageCount;
+            if (pageCount < 2)
             {
-                Fail($"World {(previousFirst ? "previous" : "next")} chapter control did not return an authoritative chapter.");
+                Fail($"World chapter paging needs at least two pages, got {pageCount}.");
                 yield break;
             }
-            if (!InvokeEventSystemRaycastClick(secondNavigation))
+            int pageBefore = worldPresenter.ChapterPageIndex;
+            bool hasPrevious = pageBefore > 0;
+            bool hasNext = pageBefore < pageCount - 1;
+            if (previous.gameObject.activeInHierarchy != hasPrevious
+                || next.gameObject.activeInHierarchy != hasNext)
             {
-                Fail($"World {(previousFirst ? "next" : "previous")} chapter control did not receive a real EventSystem raycast click.");
+                Fail($"World chapter paging arrow visibility mismatch at page {pageBefore}/{pageCount}: previous={previous.gameObject.activeInHierarchy} expected={hasPrevious}, next={next.gameObject.activeInHierarchy} expected={hasNext}.");
                 yield break;
             }
-            deadline = Time.realtimeSinceStartup + 8f;
-            while ((services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
-                && Time.realtimeSinceStartup < deadline) yield return null;
-            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+            Button advance = hasNext ? next : previous;
+            Button retreat = hasNext ? previous : next;
+            int advancedPage = hasNext ? pageBefore + 1 : pageBefore - 1;
+            if (!advance.gameObject.activeInHierarchy || !advance.interactable
+                || !InvokeEventSystemRaycastClick(advance))
             {
-                Fail($"World {(previousFirst ? "next" : "previous")} chapter control did not return to the authoritative current chapter.");
+                Fail($"World {(hasNext ? "next" : "previous")} chapter page control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            yield return null;
+            if (worldPresenter.ChapterPageIndex != advancedPage
+                || services.World.SelectedChapterId != currentChapterId
+                || services.ProtocolRegistry.PendingCount != 0)
+            {
+                Fail($"World chapter page turn was not client-side: page={worldPresenter.ChapterPageIndex} expected={advancedPage}, selected={services.World.SelectedChapterId}/{currentChapterId}, pending={services.ProtocolRegistry.PendingCount}.");
+                yield break;
+            }
+            if (!retreat.gameObject.activeInHierarchy || !retreat.interactable
+                || !InvokeEventSystemRaycastClick(retreat))
+            {
+                Fail($"World {(hasNext ? "previous" : "next")} chapter page control did not receive a real EventSystem raycast click.");
+                yield break;
+            }
+            yield return null;
+            if (worldPresenter.ChapterPageIndex != pageBefore
+                || services.World.SelectedChapterId != currentChapterId)
+            {
+                Fail($"World chapter page control did not restore page {pageBefore}: page={worldPresenter.ChapterPageIndex}, selected={services.World.SelectedChapterId}/{currentChapterId}.");
                 yield break;
             }
             // DadituuiLayer CloseBtn owns only the stage-map -> world-map step.
@@ -12917,8 +13056,15 @@ namespace ProjectX.Core
                 Fail("World current chapter surface close did not return to WorldMapNewLayer.");
                 yield break;
             }
-            Button chapterNode = currentChapterIndex >= 0
-                ? worldView.Binding.Find($"Layer/chapterPage/btn_{currentChapterIndex + 1}")?.GetComponent<Button>()
+            // 节点下标必须相对**当前页**：原版 BigMapPage 的 btn_N 是页内 1..5，
+            // 全章节下标 = (page - 1) * 5 + j。这里取「当前章节」在本页的格子。
+            int currentChapterIndex = services.World.Chapters.ToList()
+                .FindIndex(value => value.Id == services.World.CurrentChapterId);
+            int chapterNodeIndex = currentChapterIndex >= 0
+                ? currentChapterIndex - worldPresenter.ChapterPageStart
+                : -1;
+            Button chapterNode = chapterNodeIndex >= 0 && chapterNodeIndex < 5
+                ? worldView.Binding.Find($"Layer/chapterPage/btn_{chapterNodeIndex + 1}")?.GetComponent<Button>()
                 : null;
             if (chapterNode == null || !chapterNode.interactable)
             {
@@ -12932,9 +13078,10 @@ namespace ProjectX.Core
             }
             deadline = Time.realtimeSinceStartup + 8f;
             while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline) yield return null;
-            if (services.ProtocolRegistry.PendingCount != 0 || services.World.SelectedChapterId != currentChapterId)
+            if (services.ProtocolRegistry.PendingCount != 0
+                || services.World.SelectedChapterId != services.World.CurrentChapterId)
             {
-                Fail("World chapter node did not preserve the authoritative current chapter.");
+                Fail("World chapter node did not open the authoritative current chapter.");
                 yield break;
             }
             Button dropdown = worldMapView.Binding.Find("Layer/Panel_zuoshang/Button_xiala")?.GetComponent<Button>();
@@ -17618,7 +17765,7 @@ namespace ProjectX.Core
             worldPresenter = worldPresenter ?? new WorldPresenter(worldView, worldStageView, worldMapView, worldDetailView,
                 services.World, services.Heroes, services.Formation, services.Player, services.Resources, services.Currencies,
                 services.ShopCatalog, services.EquipmentCatalog,
-                id => InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)id),
+                id => { RememberLastWorldChapter(checked((uint)id)); InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)id); },
                 id => { services.World.SelectStage(id); InvokeLuaOrFail(onWorldRequestStage, "World.RequestStage", (double)id); },
                 () => InvokeLuaOrFail(onWorldChallenge, "World.Challenge"),
                 () => InvokeLuaOrFail(onWorldSweep, "World.Sweep"),

@@ -24,7 +24,11 @@ local M = {
     requestedStageId = 0,
     -- 龙崖改造：连战状态（op=1 下发的 fuben_AB == 2 时开启）
     chainMode = false,      -- 是否为龙崖副本模式
-    chainAuto = false,      -- 「自动挑战」勾选（由 Unity/C# 侧设置）
+    -- 「自动挑战」勾选（由 Unity/C# 侧设置）。语义（用户口径 2026-09-17）：
+    --   勾选 = 本章无限循环：BOSS 结算后重跑本章，中途失败也回本章第一关重打；
+    --   不勾 = 本章从第一关连打到 BOSS 就结束（中途失败则出结算收尾）。
+    -- ⚠️ 它**不**约束「胜利后走位续战到下一关」，那条是无条件的。
+    chainAuto = false,
     chainCount = 10,        -- 本局连战总场次
     chainIndex = 0,         -- 当前第几场（服务端回包为准）
     chainNextNodeId = 0     -- 下一关（失败时 = 本章第一关，BOSS 通关 = 0）
@@ -95,8 +99,14 @@ local function readChainLose(message)
     M.chainIndex = message:ReadByte()
     local _chainTotal = message:ReadByte()
     if message.Remaining ~= 0 then fail("World/320 op=28 unread bytes: " .. tostring(message.Remaining)); return end
-    -- 不调用 ShowWorldBattleResult：失败不中断，交给 Unity 等 2 秒后走位到下一关
-    if M.chainNextNodeId ~= 0 then Bridge:ContinueWorldChain(M.chainNextNodeId) end
+    -- 失败：「自动挑战」勾着 → 回本章第一关继续（服务端下发的 chainNextNodeId 即第一关）；
+    --        未勾选 → 不续战，清掉本场奖励后出结算收尾，别把玩家晾在路中间。
+    if M.chainAuto and M.chainNextNodeId ~= 0 then
+        Bridge:ContinueWorldChain(M.chainNextNodeId)
+    else
+        Bridge:BeginRewardUpdate(0)
+        Bridge:ShowWorldBattleResult(0)
+    end
 end
 
 local function sweepStage(stageId)
@@ -207,10 +217,12 @@ function M.challengeSelected()
     end
 end
 
--- 龙崖模式：由 Unity（ContinueBattleOutcomeControl）在单场结束 2 秒后调用。
--- 返回 true 表示已发起下一场；false 表示不再继续（未开启自动 / 已通关 / 非龙崖模式）。
+-- 龙崖模式：由 Unity 在单场回放播完、走位到下一目标点之后调用。
+-- 返回 true 表示已发起下一场；false 表示不再继续（非龙崖模式 / 已通关）。
+-- ⚠️ **不判 chainAuto**：胜利后走位续战是无条件的（不勾「自动挑战」= 从第一关连打到
+-- BOSS 就结束，中途胜利照样打下一关；勾选框只管 BOSS 后重跑本章与中途失败重来）。
 function M.continueChain()
-    if not M.chainMode or not M.chainAuto then return false end
+    if not M.chainMode then return false end
     local nextStage = M.chainNextNodeId
     if nextStage == 0 then return false end
     challengeChainStage(nextStage, M.chainCount)
@@ -410,8 +422,10 @@ local function readBattleResult(message)
     Bridge:ApplyWorldBattleResult(foughtCount, foughtStageId, unlockedChapterId, unlockedStageId,
         unlockedBoxId, unlockedStarBoxId, stars, chainIndex, _chainTotal, M.chainNextNodeId)
     M.validationRewardCount = visibleRewardCount
-    -- 龙崖模式：还有下一关（未到 BOSS）时不弹结算，交给 Unity 等 2 秒后走位继续；
-    -- 章节通关（chainNextNodeId == 0）才出结算。
+    -- 龙崖模式：还有下一关（未到 BOSS）时不弹结算，交给 Unity 等回放播完再走位续战。
+    -- ⚠️ 这里**不受「自动挑战」约束**：不勾选 = 本章从第一关连打到 BOSS 就结束，
+    -- 「勾选」只影响两件事 —— ① BOSS 结算确认后是否重跑本章（C# ContinueBattleOutcome）；
+    -- ② 中途失败是否回本章第一关继续（readChainLose）。
     if M.chainMode and M.chainNextNodeId ~= 0 then
         Bridge:ContinueWorldChain(M.chainNextNodeId)
     else

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
@@ -48,7 +49,12 @@ namespace ProjectX.UI
         // CheckBox_2「自动挑战下一章」
         private readonly Action<bool> setChainAutoNext;
         private bool chainMode;
+        // 「自动挑战」勾选（默认不勾）。勾选 = 本章无限循环：BOSS 结算后重跑本章、中途失败
+        // 回第一关重打；不勾 = 从第一关连打到 BOSS 就结束。
         private bool chainAuto;
+        // 程序化同步勾选框时抑制回调，避免 isOn 与 setChainAuto 互相回灌
+        private bool suppressChainAutoCallback;
+        private Toggle chainAutoToggle;
         private bool chainAutoNext;
         private int chainCount = 10;
         private Text chainCountLabel;
@@ -56,10 +62,22 @@ namespace ProjectX.UI
         private readonly ScrollRect stageMapScroll;
         private readonly RectTransform stageMapContent;
         private ImodAnimationPlayer stagePlayerModel;
+        // 最近一次渲染使用的地图视觉（走位需要按 role_coor 解析起终点）
+        private WorldMapVisualDefinition stageMapVisual;
+        // 连战走位进行中：Render 不再改写主角与镜头，改由 PlayStageWalk 逐帧接管。
+        // 服务端结算（/320 op=8）会先把 CurrentStageId 推到新关，若不在结算时锁住，
+        // 主角会在同一帧瞬移到终点，走位就没有起点可走了。
+        private bool stageWalking;
+        private Vector2 stageWalkFrom;
         private bool showChapters = true;
         private bool showDetail;
         private bool showDropdown;
         private int chapterPageStart;
+        // 章节选择页当前页（0 基，每页 5 章）。原版 NormalFuBenUI 用 PageView 的
+        // currentPageIndex 表达同一件事：进入副本时定位到「当前章节」所在页
+        // （ShowCurPage），随后由 Button_1 / Button_2（leftEvent / rightEvetn）
+        // 以 ±1 页翻页，与「选中章节」无关。
+        private int chapterPageIndex;
         // 龙崖模式 2：连战进行中（挑战发起后置位，控制布点层 kapaiguaiwuLayer 的显隐）
         private bool chainStageActive;
 
@@ -154,8 +172,12 @@ namespace ProjectX.UI
             });
             // 用户口径：不再动态创建 RuntimeInteraction_Layer_Title_CloseBtn 画布代理，
             // 直接使用预制体原生 Title/CloseBtn 节点（mapView 已是最上层，无遮挡）。
-            Bind(worldView, "Layer/Button_1", () => { NavigateChapter(-1); Mark("WORLD-02-CHAPTER-PREV"); });
-            Bind(worldView, "Layer/Button_2", () => { NavigateChapter(1); Mark("WORLD-03-CHAPTER-NEXT"); });
+            // 原版 NormalFuBenUI:InitControlUI —— `_leftBtn = Button_1` / `_rightBtn = Button_2`
+            // 都是**翻页**键：leftEvent → ChangePage(currentPageIndex - 1, true)，
+            // rightEvetn → ChangePage(currentPageIndex + 1, true)。它们只切换章节选择页
+            // 的页码，不请求章节（请求章节是点章节节点 btn_N 的事）。
+            Bind(worldView, "Layer/Button_1", () => { TurnChapterPage(-1); Mark("WORLD-02-CHAPTER-PREV"); });
+            Bind(worldView, "Layer/Button_2", () => { TurnChapterPage(1); Mark("WORLD-03-CHAPTER-NEXT"); });
             // 龙崖副本模式：`bg/Button_1` = 挑战，`bg/CheckBox_1` = 自动挑战（C2）
             BindChainControls();
             for (int index = 1; index <= 5; index++)
@@ -216,19 +238,31 @@ namespace ProjectX.UI
         public Button FindInteractionButton(string path) =>
             interactionButtons.TryGetValue(path, out Button button) ? button : null;
 
-        public void ShowWorld()
+        // preferredChapterId：进副本时要定位到的章节（＝上次挑战过的那一章）。
+        // 为 0 时退回原版口径：定位到「进度章节」所在页。
+        public void ShowWorld(uint preferredChapterId = 0)
         {
             showDetail = false;
             showDropdown = false;
+            // 回到章节选择页：任何残留的走位锁定都要释放
+            stageWalking = false;
             // /320 op=1 → 章节选择页（chapterPage），选章节后进入大底图
             showChapters = true;
+            // 原版 NormalFuBenUI:GotChapterList → ShowCurPage()：每次拿到章节列表
+            // 都把页码定位到「当前章节」所在页（每页 5 章）。
+            // 这里优先用「上次挑战的章节」，让玩家回到上次打的地方。
+            chapterPageIndex = ChapterPageIndexFor(preferredChapterId != 0
+                ? preferredChapterId : store.CurrentChapterId);
             Render();
         }
 
-        // 连战中止（中断/退出）→ 回到大底图态，布点层收起
+        // 连战中止（中断/退出/本章结算）→ 回到大底图态，布点层收起
         public void EndChainStage()
         {
             chainStageActive = false;
+            // 连战结束就不该再锁住主角。中途退出副本等异常路径不会走到
+            // ReleaseStageWalkHold，漏了这一步下次进副本主角会停在旧点不渲染。
+            stageWalking = false;
             Render();
         }
 
@@ -236,6 +270,8 @@ namespace ProjectX.UI
         public void BeginChainStage()
         {
             chainStageActive = true;
+            // 连战要用到布点层做走位，而布点层在章节列表态是收起的 → 这里离开章节页
+            showChapters = false;
             Render();
         }
 
@@ -273,21 +309,38 @@ namespace ProjectX.UI
             if (chainCountLabel != null) chainCountLabel.text = count.ToString();
         }
 
+        /// <summary>
+        /// 同步「自动挑战」勾选框。只改内部字段与 UI，不再回调 setChainAuto ——
+        /// 调用方（ProjectXApp.SetWorldChainAuto）已经负责把状态下发给 Lua，
+        /// 这里再回调一次会形成 isOn ↔ setChainAuto 的回灌。
+        /// </summary>
+        public void SetChainAutoState(bool value)
+        {
+            chainAuto = value;
+            if (chainAutoToggle == null || chainAutoToggle.isOn == value) return;
+            suppressChainAutoCallback = true;
+            chainAutoToggle.isOn = value;
+            suppressChainAutoCallback = false;
+        }
+
         private void BindChainControls()
         {
             if (Find(mapView, "bg/Button_1") != null)
             {
-                Bind(mapView, "bg/Button_1", () => { chainStageActive = true; challenge(); Mark("WORLD-14-CHALLENGE"); });
+                Bind(mapView, "bg/Button_1", () => { chainStageActive = true; showChapters = false; Render(); challenge(); Mark("WORLD-14-CHALLENGE"); });
                 SetButtonLabel(mapView, "bg/Button_1", "挑战");
             }
             GameObject autoNode = Find(mapView, "bg/CheckBox_1");
             if (autoNode != null)
             {
                 Toggle auto = autoNode.GetComponent<Toggle>() ?? autoNode.AddComponent<Toggle>();
-                auto.isOn = chainAuto;
+                chainAutoToggle = auto;
                 auto.onValueChanged.RemoveAllListeners();
+                // 按逻辑态复位勾选框（程序化，不回调 setChainAuto）
+                SetChainAutoState(chainAuto);
                 auto.onValueChanged.AddListener(value =>
                 {
+                    if (suppressChainAutoCallback) return;
                     chainAuto = value;
                     setChainAuto?.Invoke(value);
                     Mark("WORLD-35-CHAIN-AUTO");
@@ -400,12 +453,32 @@ namespace ProjectX.UI
             Render();
         }
 
-        private void NavigateChapter(int delta)
+        // 章节选择页总页数（每页 5 章）。原版：_pageNum = ceil(getMapNumByType(1) / 5)。
+        public int ChapterPageCount => Math.Max(1, (store.Chapters.Count + 4) / 5);
+
+        // 当前章节选择页页码（0 基），供校验脚本断言。
+        public int ChapterPageIndex => chapterPageIndex;
+
+        // 当前页第一格在 Chapters 里的下标。
+        public int ChapterPageStart => chapterPageStart;
+
+        // 原版：_mapIndex = getPageNumByChapter(curChapterId) = ceil(chapter % 1000 / 5)，
+        // 再 setCurrentPageIndex(_mapIndex - 1)。章节列表连续且自 1001 起时两者等价；
+        // 这里改用「列表下标 / 5」以兼容列表稀疏的情形。
+        private int ChapterPageIndexFor(uint chapterId)
         {
-            int current = Math.Max(0, store.Chapters.ToList().FindIndex(value => value.Id == store.SelectedChapterId));
-            int target = current + delta;
-            if (target < 0 || target >= store.Chapters.Count) return;
-            requestChapter(store.Chapters[target].Id);
+            int index = store.Chapters.ToList().FindIndex(value => value.Id == chapterId);
+            return Math.Max(0, index) / 5;
+        }
+
+        // 原版 NormalFuBenUI:leftEvent / rightEvetn → ChangePage(curIndex ± 1, true)：
+        // 只在 [0, pageNum - 1] 内翻页，越界即不动，并同步左/右键显隐（见 RenderWorldChapters）。
+        private void TurnChapterPage(int delta)
+        {
+            int target = chapterPageIndex + delta;
+            if (target < 0 || target >= ChapterPageCount) return;
+            chapterPageIndex = target;
+            Render();
         }
 
         private void OpenChapterSlot(int slot)
@@ -425,9 +498,11 @@ namespace ProjectX.UI
 
         private void RenderWorldChapters()
         {
-            int currentIndex = Math.Max(0, store.Chapters.ToList()
-                .FindIndex(value => value.Id == store.CurrentChapterId));
-            chapterPageStart = currentIndex / 5 * 5;
+            // 页码只由 ShowWorld（进入副本）与 Button_1/Button_2（翻页）改变；
+            // 这里只做越界收敛，绝不再按 CurrentChapterId 重置，否则翻页结果会被
+            // 任意一次 Render（货币刷新、op=2 回包…）冲掉。
+            chapterPageIndex = Math.Max(0, Math.Min(chapterPageIndex, ChapterPageCount - 1));
+            chapterPageStart = chapterPageIndex * 5;
             WorldChapterVisualDefinition pageVisual = null;
             for (int index = 0; index < 5; index++)
             {
@@ -435,11 +510,19 @@ namespace ProjectX.UI
                 WorldChapterRecord chapter = chapterIndex < store.Chapters.Count
                     ? store.Chapters[chapterIndex] : null;
                 string root = $"Layer/chapterPage/btn_{index + 1}";
-                SetActive(worldView, root, chapter != null);
+                // 章节图标只在章节选择页出现。非章节页（大底图 / 连战布点）时
+                // `DynamicUi_kapaiguaiwuLayer/RuntimeStageMapViewport` 是一张
+                // color.a = 0 但 raycastTarget = true 的全屏 viewport，
+                // 正好压在 chapterPage 之上：玩家**看得见**图标（它是全透明的），
+                // 点击却被它吃掉，表现就是「点节点图标无效」。
+                // 原版 Cocos 里章节选择页与大底图/布点态互斥，这里保持同一口径。
+                SetActive(worldView, root, showChapters && chapter != null);
                 if (chapter == null) continue;
 
                 WorldVisualCatalog.TryGetChapter(chapter.Id, out WorldChapterVisualDefinition visual);
                 pageVisual = pageVisual ?? visual;
+                // 非章节页：底图（chapterPage/Image）继续按当前页首章刷新，图标整体跳过
+                if (!showChapters) continue;
                 GameObject buttonObject = Find(worldView, root);
                 if (buttonObject != null && visual != null)
                 {
@@ -456,6 +539,12 @@ namespace ProjectX.UI
 
                 bool unlocked = chapter.Id <= store.CurrentChapterId;
                 bool current = chapter.Id == store.CurrentChapterId;
+                // 「选中章」= 玩家在章节选择页点过的那一章（没点过时退回进度章）。
+                // 头像标记的是「我选了哪一章」，而不是「我的进度在哪一章」——
+                // 用户口径：已通关章节也必须能被选中并显示头像，否则点了第 1 章
+                // 回来头像还停在进度章（第 6 章），看起来像「点击无效」。
+                bool selected = chapter.Id == (store.SelectedChapterId > 0
+                    ? store.SelectedChapterId : store.CurrentChapterId);
                 SetText(worldView, root + "/Label/Text", chapter.Name);
                 SetText(worldView, root + "/Label/Text/xuhao", (chapter.Id % 1000).ToString());
                 SetText(worldView, root + "/Text_xing", $"{chapter.OwnedStars}/{chapter.MaximumStars}");
@@ -463,9 +552,9 @@ namespace ProjectX.UI
                 SetActive(worldView, root + "/Label", unlocked);
                 SetActive(worldView, root + "/Text_xing", unlocked);
                 SetActive(worldView, root + "/suo", !unlocked);
-                SetActive(worldView, root + "/HeadBg", current);
+                SetActive(worldView, root + "/HeadBg", selected);
                 Image portrait = Find(worldView, root + "/HeadBg/Icon")?.GetComponent<Image>();
-                if (portrait != null && current)
+                if (portrait != null && selected)
                 {
                     portrait.sprite = resources.LoadPlayerRoundPortrait(player.Head);
                     portrait.enabled = portrait.sprite != null;
@@ -477,6 +566,14 @@ namespace ProjectX.UI
                     && chapter.OwnedStars >= chapter.MaximumStars);
                 SetActive(worldView, root + "/boxBg", chapter.ClaimedBoxes > 0);
             }
+
+            // 原版 ChangePage：self._leftBtn:setVisible(curIndex > 0) /
+            // self._rightBtn:setVisible(curIndex < self._pageNum - 1) —— 首/末页各自收起。
+            // 翻页键只在章节选择页有意义（大底图态原版整个 WorldMapNewLayer 都是隐藏的）。
+            bool pageTurnAvailable = showChapters;
+            SetActive(worldView, "Layer/Button_1", pageTurnAvailable && chapterPageIndex > 0);
+            SetActive(worldView, "Layer/Button_2",
+                pageTurnAvailable && chapterPageIndex < ChapterPageCount - 1);
 
             SetActive(worldView, "Layer/Image_qipao_L", false);
             SetActive(worldView, "Layer/Image_qipao_R", false);
@@ -889,6 +986,7 @@ namespace ProjectX.UI
             WorldMapVisualDefinition mapVisual = null;
             if (WorldVisualCatalog.TryGetChapter(store.SelectedChapterId, out chapterVisual))
                 WorldVisualCatalog.TryGetMap(chapterVisual.BundleId, out mapVisual);
+            stageMapVisual = mapVisual;
             RenderStageBackdrop(mapVisual);
 
             // FuBenDetailUI positions and fills these native Cocos nodes from
@@ -1040,57 +1138,174 @@ namespace ProjectX.UI
             RenderMonsterModel(node.transform, stage.Id);
         }
 
-        private void RenderStagePlayer(WorldMapVisualDefinition map)
+        private void EnsureStagePlayerModel(Transform scroll)
         {
-            Transform scroll = Find(stageView, "Layer/ScrollPanel")?.transform;
-            if (scroll == null || map == null || map.RoleCoordinates.Length == 0)
-            {
-                if (stagePlayerModel != null) stagePlayerModel.gameObject.SetActive(false);
-                return;
-            }
-            int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
-            if (currentIndex < 0) currentIndex = 0;
-            currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
-
             GameObject value = stagePlayerModel != null ? stagePlayerModel.gameObject
                 : new GameObject("RuntimeStagePlayer", typeof(RectTransform));
             RectTransform rect = value.GetComponent<RectTransform>();
             rect.SetParent(scroll, false);
             rect.anchorMin = rect.anchorMax = Vector2.zero;
             rect.pivot = new Vector2(0.5f, 0f);
-            rect.anchoredPosition = map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f);
             rect.sizeDelta = Vector2.zero;
             rect.localScale = Vector3.one;
             stagePlayerModel = value.GetComponent<ImodAnimationPlayer>()
                 ?? value.AddComponent<ImodAnimationPlayer>();
-            string legacyPath = player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd";
-            bool loaded = stagePlayerModel.LoadLegacy(legacyPath);
-            value.SetActive(loaded);
-            if (!loaded) return;
+        }
+
+        private void ApplyStagePlayerPosition(Vector2 player)
+        {
+            RectTransform rect = stagePlayerModel != null
+                ? stagePlayerModel.transform as RectTransform : null;
+            if (rect != null) rect.anchoredPosition = player;
+        }
+
+        // 沿用既有口径：action 4 = 朝右（原版 ModelAni::UpdateFace，HMS_RIGHT -> m_iAniInd 4）
+        private void TryPlayStagePlayerClip()
+        {
+            if (stagePlayerModel == null) return;
             try { stagePlayerModel.Play(4, true); }
             catch (ArgumentOutOfRangeException) { stagePlayerModel.Play(0, true); }
             catch (InvalidOperationException) { stagePlayerModel.Play(0, true); }
         }
 
+        private void RenderStagePlayer(WorldMapVisualDefinition map)
+        {
+            // 连战走位进行中：主角与镜头由 PlayStageWalk 逐帧接管
+            if (stageWalking) return;
+            Transform scroll = Find(stageView, "Layer/ScrollPanel")?.transform;
+            if (scroll == null || map == null || map.RoleCoordinates.Length == 0)
+            {
+                if (stagePlayerModel != null) stagePlayerModel.gameObject.SetActive(false);
+                return;
+            }
+            EnsureStagePlayerModel(scroll);
+            if (stagePlayerModel == null) return;
+            int currentIndex = store.Stages.ToList().FindIndex(value2 => value2.Id == store.CurrentStageId);
+            if (currentIndex < 0) currentIndex = 0;
+            currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
+            ApplyStagePlayerPosition(map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f));
+            bool loaded = stagePlayerModel.LoadLegacy(player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd");
+            stagePlayerModel.gameObject.SetActive(loaded);
+            if (!loaded) return;
+            TryPlayStagePlayerClip();
+        }
+
+        /// <summary>
+        /// 连战走位起点锁定。服务端 /320 op=8 会先把 WorldStore.CurrentStageId 推到新关，
+        /// 若不在结算回调里锁住，主角会在同一帧瞬移到终点，走位便没有起点可走。
+        /// </summary>
+        public void HoldStageWalkOrigin(uint fromStageId)
+        {
+            stageWalkFrom = ResolveStagePlayerPosition(fromStageId);
+            // 起点不属于本章（异常/跨章残留）→ 不锁，走位整体跳过，主角维持原渲染位置
+            if (stageWalkFrom == Vector2.zero)
+            {
+                stageWalking = false;
+                return;
+            }
+            stageWalking = true;
+            ApplyStagePlayerPosition(stageWalkFrom);
+            ApplyStageCameraForPlayer(stageWalkFrom);
+        }
+
+        /// <summary>走位未启动就取消连战（异常/关模式）时释放锁定，恢复正常渲染。</summary>
+        public void ReleaseStageWalkHold()
+        {
+            if (!stageWalking) return;
+            stageWalking = false;
+            Render();
+        }
+
+        // 只服务连战走位（RenderStagePlayer 有自己的落位逻辑，那里找不到回落 index 0
+        // 是正确的——跨章时主角就应显示在本章第一关）。
+        // 走位这里**不能**回落 index 0：那会把主角瞬移到「章节第一个点」再跑向下一关，
+        // 玩家看到的就是「从章节初始位置跑过去」。起点不属于本章时直接放弃走位。
+        private Vector2 ResolveStagePlayerPosition(uint stageId)
+        {
+            if (stageMapVisual == null || stageMapVisual.RoleCoordinates.Length == 0) return Vector2.zero;
+            int index = store.Stages.ToList().FindIndex(value => value.Id == stageId);
+            if (index < 0) return Vector2.zero;
+            index = Mathf.Clamp(index, 0, stageMapVisual.RoleCoordinates.Length - 1);
+            return stageMapVisual.RoleCoordinates[index] + new Vector2(0f, 33f);
+        }
+
+        /// <summary>
+        /// 连战走位：对齐 Cocos FuBenDetailUI:ModelMove —— 播跑步动画 + MoveTo(2s) 到下一关点，
+        /// 到位后切回站立动画。原版镜头是移动结束后以恒速 500px/s 追过去，这里改为逐帧跟随
+        /// 主角（用户口径：镜头平滑跟随）。
+        /// </summary>
+        public IEnumerator PlayStageWalk(uint toStageId, float duration)
+        {
+            if (!stageWalking || stageMapVisual == null || stagePlayerModel == null)
+            {
+                stageWalking = false;
+                yield break;
+            }
+            Vector2 to = ResolveStagePlayerPosition(toStageId);
+            if (to == Vector2.zero)
+            {
+                stageWalking = false;
+                yield break;
+            }
+            stagePlayerModel.gameObject.SetActive(true);
+            stagePlayerModel.SetFlippedX(to.x < stageWalkFrom.x);
+            bool loaded = stagePlayerModel.LoadLegacy(player.Model == 4 ? "hero/H_0_pb" : "hero/K_0_pb");
+            if (loaded) TryPlayStagePlayerClip();
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                Vector2 position = Vector2.Lerp(stageWalkFrom, to, Mathf.Clamp01(elapsed / duration));
+                ApplyStagePlayerPosition(position);
+                ApplyStageCameraForPlayer(position);
+                yield return null;
+            }
+            ApplyStagePlayerPosition(to);
+            ApplyStageCameraForPlayer(to);
+            stageWalking = false;
+            stagePlayerModel.SetFlippedX(false);
+            if (stagePlayerModel.LoadLegacy(player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd"))
+                TryPlayStagePlayerClip();
+        }
+
         private void PositionStageCamera(WorldMapVisualDefinition map)
         {
-            RectTransform scroll = Find(stageView, "Layer/ScrollPanel")?.GetComponent<RectTransform>();
-            if (scroll == null || map == null || map.RoleCoordinates.Length == 0) return;
+            // 连战走位进行中：镜头由 PlayStageWalk 逐帧跟随主角
+            if (stageWalking) return;
+            if (Find(stageView, "Layer/ScrollPanel") == null) return;
+            if (map == null || map.RoleCoordinates.Length == 0) return;
             int currentIndex = store.Stages.ToList().FindIndex(value => value.Id == store.CurrentStageId);
             if (currentIndex < 0) currentIndex = 0;
             currentIndex = Mathf.Clamp(currentIndex, 0, map.RoleCoordinates.Length - 1);
-
             // 视角机制：以主角为中心（不再使用 camera_coor 关键帧插值）。
             // 与 RenderStagePlayer 同一基准：_myNode:setPosition(x, y+33)。
-            Vector2 player = map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f);
+            ApplyStageCameraForPlayer(map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f));
+        }
+
+        private void ApplyStageCameraForPlayer(Vector2 playerPosition)
+        {
+            if (stageMapVisual == null) return;
+            ApplyStageCameraScroll(ComputeStageCameraScroll(stageMapVisual, playerPosition));
+        }
+
+        private Vector2 ComputeStageCameraScroll(WorldMapVisualDefinition map, Vector2 playerPosition)
+        {
             RectTransform root = stageView.GameObject.transform as RectTransform;
             float viewWidth = root != null && root.rect.width > 0f ? root.rect.width : 1334f;
             float viewHeight = root != null && root.rect.height > 0f ? root.rect.height : 750f;
             float contentWidth = map.Size.x * (750f / 1080f);
             float contentHeight = map.Size.y * (750f / 1080f);
-            float scrollX = Mathf.Clamp(player.x - viewWidth * .5f, 0f, Mathf.Max(0f, contentWidth - viewWidth));
-            float scrollY = Mathf.Clamp(player.y - viewHeight * StageCameraVerticalAnchor, 0f, Mathf.Max(0f, contentHeight - viewHeight));
-            scroll.anchoredPosition = new Vector2(-scrollX, -scrollY);
+            float scrollX = Mathf.Clamp(playerPosition.x - viewWidth * .5f, 0f, Mathf.Max(0f, contentWidth - viewWidth));
+            float scrollY = Mathf.Clamp(playerPosition.y - viewHeight * StageCameraVerticalAnchor, 0f,
+                Mathf.Max(0f, contentHeight - viewHeight));
+            return new Vector2(scrollX, scrollY);
+        }
+
+        private void ApplyStageCameraScroll(Vector2 scroll)
+        {
+            RectTransform panel = Find(stageView, "Layer/ScrollPanel")?.GetComponent<RectTransform>();
+            if (panel == null) return;
+            panel.anchoredPosition = new Vector2(-scroll.x, -scroll.y);
         }
 
         // 旧的 camera_coor 关键帧插值：视角改为“以主角为中心”后不再被调用，保留便于回退。
