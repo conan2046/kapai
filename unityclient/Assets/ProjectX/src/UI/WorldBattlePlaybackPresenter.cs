@@ -24,6 +24,8 @@ namespace ProjectX.UI
             public BattleUnitHitDefinition HitDefinition;
             public RectTransform NumberRoot;
             public Text StatusLabel;
+            public RectTransform StatusBubble;
+            public Font OriginalStatusFont;
             public Vector2 NumberBasePosition;
             public bool NumberCritical;
             public Text NameLabel;
@@ -554,7 +556,15 @@ namespace ProjectX.UI
             }
             ShowSkillName(activeSource, action);
             if (action != null && !string.IsNullOrWhiteSpace(action.Message))
-                ShowDamage(activeSource, action.Message, new Color(.98f, .88f, .42f, 1f));
+            {
+                // The server routes both spoken lines (EFOT_Dialog = 7, skill.h:37) and
+                // passive/resource notifications such as "战意 +N" (EFOT_Passive = 6,
+                // fight.cpp:12393 sends rageText) through action.Message.  Only a real
+                // dialog line (effect type 7) should get the speech bubble; passive
+                // notifications render as plain floating text without the bubble.
+                bool isSpeech = action.FirstActionType == 7;
+                ShowDamage(activeSource, action.Message, Color.white, false, isSpeech);
+            }
             else if (action?.FirstActionType == 5)
                 ShowDamage(activeSource, action.FirstTargetHit ? "逃跑成功" : "逃跑失败",
                     action.FirstTargetHit ? new Color(.35f, 1f, .55f, 1f) : new Color(1f, .42f, .32f, 1f));
@@ -815,10 +825,47 @@ namespace ProjectX.UI
                 enemy ? new Color(.02f, .34f, .62f, 1f) : new Color(.48f, .05f, .42f, 1f), TextAnchor.MiddleCenter);
             view.NameLabel.rectTransform.anchoredPosition = new Vector2(0f, -20f);
             view.NameLabel.text = unit.Name ?? string.Empty;
-            view.StatusLabel = CreateText(rect, "BattleStatus", new Vector2(.5f, .7f), new Vector2(220f, 50f), 28,
-                new Color(1f, .22f, .12f, 1f), TextAnchor.MiddleCenter);
+            // BattleUnitNode:SpeakMsg renders the line inside a BattleSpeakBkg
+            // bubble floating above the HP bar.  Parent the bubble and text to
+            // DynamicUi_BattleHpNode (healthRoot) so they inherit the HP bar's
+            // local space; anchor them at their bottom centre so the bubble grows
+            // upward from a fixed offset above the HP bar.
+            GameObject statusBubble = new GameObject("BattleStatusBkg", typeof(RectTransform), typeof(Image));
+            RectTransform statusBubbleRect = statusBubble.GetComponent<RectTransform>();
+            statusBubbleRect.SetParent(healthRoot, false);
+            statusBubbleRect.anchorMin = statusBubbleRect.anchorMax = new Vector2(.5f, 0f);
+            statusBubbleRect.pivot = new Vector2(.5f, 0f);
+            statusBubbleRect.anchoredPosition = new Vector2(0f, 15f);
+            statusBubbleRect.sizeDelta = new Vector2(238f, 70f);
+            Image statusBubbleImage = statusBubble.GetComponent<Image>();
+            // Sprite.border is read-only, so build a sliced sprite with the
+            // Cocos Scale9 insets (5,27,130,50) via Sprite.Create instead.
+            Texture2D bubbleTexture = Resources.Load<Texture2D>("ProjectXBattle/BattleSpeakBkg");
+            Sprite bubbleSprite = bubbleTexture == null
+                ? null
+                : Sprite.Create(bubbleTexture,
+                    new Rect(0f, 0f, bubbleTexture.width, bubbleTexture.height),
+                    new Vector2(.5f, .5f), 100f, 0u, SpriteMeshType.FullRect, new Vector4(5f, 27f, 130f, 50f));
+            if (bubbleSprite != null)
+            {
+                statusBubbleImage.sprite = bubbleSprite;
+                statusBubbleImage.type = Image.Type.Sliced;
+                statusBubbleImage.color = Color.white;
+            }
+            else
+            {
+                statusBubbleImage.color = new Color(0f, 0f, 0f, .55f);
+            }
+            statusBubbleImage.raycastTarget = false;
+            view.StatusBubble = statusBubbleRect;
+            view.StatusLabel = CreateText(healthRoot, "BattleStatus", new Vector2(.5f, 0f), new Vector2(214f, 46f), 24,
+                Color.white, TextAnchor.MiddleCenter);
             view.StatusLabel.fontStyle = FontStyle.Bold;
+            // Keep the default font around so non-dialog text (e.g. buff values)
+            // can be restored without forcing the calligraphy family on everything.
+            view.OriginalStatusFont = view.StatusLabel.font;
             view.StatusLabel.gameObject.SetActive(false);
+            statusBubble.gameObject.SetActive(false);
             view.SkillLabel = CreateText(rect, "SkillName", new Vector2(.5f, 1.12f), new Vector2(240f, 42f), 24,
                 new Color(1f, .88f, .05f, 1f), TextAnchor.MiddleCenter);
             view.SkillLabel.fontStyle = FontStyle.Bold;
@@ -1762,7 +1809,15 @@ namespace ProjectX.UI
             healthRoot.SetAsLastSibling();
         }
 
-        private void ShowDamage(UnitView unit, string value, Color color, bool critical = false)
+        private static Font s_speakFont;
+
+        private static Font GetSpeakFont()
+        {
+            if (s_speakFont == null) s_speakFont = Resources.Load<Font>("ProjectXBattle/xiaokaiSJ2");
+            return s_speakFont;
+        }
+
+        private void ShowDamage(UnitView unit, string value, Color color, bool critical = false, bool isDialog = false)
         {
             if (unit == null || string.IsNullOrWhiteSpace(value)) return;
             string trimmed = value.Trim();
@@ -1779,14 +1834,65 @@ namespace ProjectX.UI
                 unit.NumberBasePosition = unit.NumberRoot.anchoredPosition;
                 unit.NumberCritical = critical;
                 if (unit.StatusLabel != null) unit.StatusLabel.gameObject.SetActive(false);
+                if (unit.StatusBubble != null) unit.StatusBubble.gameObject.SetActive(false);
                 return;
             }
 
             if (unit.StatusLabel == null) return;
             unit.StatusLabel.text = value;
-            unit.StatusLabel.color = color;
-            unit.StatusLabel.rectTransform.anchoredPosition = Vector2.zero;
-            unit.StatusLabel.gameObject.SetActive(true);
+            unit.StatusLabel.color = isDialog ? Color.white : color;
+            unit.StatusLabel.font = isDialog ? (GetSpeakFont() ?? unit.OriginalStatusFont) : unit.OriginalStatusFont;
+
+            if (isDialog)
+            {
+                // Match Cocos SpeakMsg: fixed 165px text width, auto height,
+                // bubble width 165+25 and height msgHeight+20.
+                const float textWidth = 165f;
+                const float bubblePadX = 25f;
+                const float bubblePadY = 20f;
+                unit.StatusLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+                unit.StatusLabel.verticalOverflow = VerticalWrapMode.Overflow;
+                // The bubble and text are children of DynamicUi_BattleHpNode (HealthRoot).
+                // Anchor them at their bottom centre so the bubble grows upward from a
+                // fixed offset above the HP bar.
+                unit.StatusLabel.rectTransform.anchorMin = new Vector2(.5f, 0f);
+                unit.StatusLabel.rectTransform.anchorMax = new Vector2(.5f, 0f);
+                unit.StatusLabel.rectTransform.pivot = new Vector2(.5f, 0f);
+                unit.StatusLabel.rectTransform.sizeDelta = new Vector2(textWidth, 0f);
+                unit.StatusLabel.gameObject.SetActive(true);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(unit.StatusLabel.rectTransform);
+                float textHeight = unit.StatusLabel.preferredHeight;
+                float clampedTextWidth = Mathf.Min(unit.StatusLabel.preferredWidth, textWidth);
+                float bubbleHeight = textHeight + bubblePadY;
+                unit.StatusLabel.rectTransform.sizeDelta = new Vector2(clampedTextWidth, textHeight);
+                // The bubble/text share the same bottom anchor on HealthRoot, so
+                // anchoredPosition is relative to the HP bar's bottom edge.
+                const float baseY = 15f;
+                if (unit.StatusBubble != null)
+                {
+                    unit.StatusBubble.anchorMin = unit.StatusBubble.anchorMax = new Vector2(.5f, 0f);
+                    unit.StatusBubble.pivot = new Vector2(.5f, 0f);
+                    unit.StatusBubble.sizeDelta = new Vector2(textWidth + bubblePadX, bubbleHeight);
+                    unit.StatusBubble.anchoredPosition = new Vector2(0f, baseY);
+                    unit.StatusBubble.gameObject.SetActive(true);
+                }
+                // Vertically centre the text inside the bubble while the bubble's
+                // bottom stays fixed just above the HP bar.
+                unit.StatusLabel.rectTransform.anchoredPosition = new Vector2(0f, baseY + (bubbleHeight - textHeight) * .5f);
+            }
+            else
+            {
+                // Non-dialog text (e.g. "逃跑成功") uses the plain StatusLabel,
+                // parented under the HP node.  Keep it bottom-centre aligned like the
+                // dialog branch, but hide the bubble and reset to the default size.
+                unit.StatusLabel.rectTransform.anchorMin = new Vector2(.5f, 0f);
+                unit.StatusLabel.rectTransform.anchorMax = new Vector2(.5f, 0f);
+                unit.StatusLabel.rectTransform.pivot = new Vector2(.5f, 0f);
+                unit.StatusLabel.rectTransform.sizeDelta = new Vector2(214f, 46f);
+                unit.StatusLabel.rectTransform.anchoredPosition = new Vector2(0f, 15f);
+                if (unit.StatusBubble != null) unit.StatusBubble.gameObject.SetActive(false);
+                unit.StatusLabel.gameObject.SetActive(true);
+            }
         }
 
         private void BuildBattleNumber(RectTransform rootRect, string digits, Color color)
@@ -1918,6 +2024,7 @@ namespace ProjectX.UI
         {
             if (unit?.NumberRoot != null) unit.NumberRoot.gameObject.SetActive(false);
             if (unit?.StatusLabel != null) unit.StatusLabel.gameObject.SetActive(false);
+            if (unit?.StatusBubble != null) unit.StatusBubble.gameObject.SetActive(false);
             if (unit?.CombatMarker != null) unit.CombatMarker.gameObject.SetActive(false);
         }
 
