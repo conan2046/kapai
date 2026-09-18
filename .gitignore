@@ -90,3 +90,26 @@ __pycache__/
 !AGENTS.md
 !LOCAL_*.md
 !PROTOCOL_COVERAGE.md
+
+# ============================================================
+# 本地临时 / 垃圾文件（不入库，避免误提交）
+# 本区块必须位于白名单(!*.md 等)之后，方可覆盖其"强制纳入"
+# ============================================================
+
+# 打表 / 编辑前的本地备份（如 function.dat.bak_20260917_*）
+*.bak*
+
+# Unity 运行时截图
+Captures/
+
+# 第三方 Steam SDK（本地构建用，体积大）
+tools/steamworks_sdk_165/
+
+# 配置映射试点目录（本地临时工具/产物；已跟踪的 config-map.html 不受影响）
+docs/config-map/
+
+# AI 工作产出文档（本地工作区，不入库）
+outputs/
+
+# 空目录 meta（Screenshots 目录已移除）
+unityclient/Assets/Screenshots.meta
