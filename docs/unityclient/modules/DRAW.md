@@ -2,7 +2,7 @@
 
 ## 当前结论
 
-- 当前 `G0-G6 complete / user final Play passed`：2026-09-11 用户真人点击基础/高级 `Btn_Recruit_2` 复现“直接碎片道具中央无图标”。源码修复后，正式奖池229条映射全量通过；恢复后的账号1未注入奖励随机实抽得到基础碎片2458和高级新神将64，实际回包、持久化业务变化与结果 UI 一致。用户在最后一次相关变更后明确反馈“测试通过”，`manualPassed=true`，Draw 收口。MCP EventSystem 仍只计诊断，历史 runtime-v4 自动证据缺口继续披露。
+- 当前 `G0-G5 passed / targeted bug user Play passed / central G6 evidence pending`：2026-09-11 用户真人点击基础/高级 `Btn_Recruit_2` 复现“直接碎片道具中央无图标”。源码修复后，正式奖池229条映射全量通过；恢复后的账号1未注入奖励随机实抽得到基础碎片2458和高级新神将64，实际回包、持久化业务变化与结果 UI 一致。用户在最后一次相关变更后明确反馈“测试通过”，`manualPassed=true`，定向Bug修复已验收；但 MCP EventSystem 仍只计诊断，runtime-v4 严格控件证据缺口继续披露，不升级为中央G6通过。
 - 当前 Unity 固定 SQLite 身份为 `7200057/1000003`，隔离身份为 `1/1000001`；夹具只操作 `Application.persistentDataPath/LocalServer/projectx.db`，必须整库快照、恢复、重登业务哈希、`PRAGMA integrity_check` 与残留 0 全通过。
 - 历史 28/28 控件、6/6 语义、9/9 双端视觉及恢复 SHA 仅作回放输入和差异线索；v4 门禁不读取旧逐控件布尔值，也不把缺失的 56 张逐控件图片重新定义为通过证据。
 - 两次真正 `BootstrapSceneBuilder.BuildBatch` 的场景 SHA-256 均为 `CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。
@@ -230,6 +230,6 @@ pwsh -File tools/unity-migration/Test-BootstrapSceneIdempotence.ps1
 
 ## 8. 完成边界与后续
 
-- 直接碎片和重复神将转换两条权威结果分支均已修复；正式229条奖池配置的全部35种直接奖励资源映射通过，抽取结果按“实际回包→业务数据→UI”一致性验收，不要求跨端随机结果相同。2026-09-11 用户最终真人 Play 明确通过，Draw G6 收口。
+- 直接碎片和重复神将转换两条权威结果分支均已修复；正式229条奖池配置的全部35种直接奖励资源映射通过，抽取结果按“实际回包→业务数据→UI”一致性验收，不要求跨端随机结果相同。2026-09-11 用户最终真人 Play 明确通过，定向Bug修复收口；中央G6仍等待runtime-v4严格控件证据。
 - 概率公示、支付/渠道合规和友情点外部产出链不属于本模块。
 - 本任务不进入下一模块；后续模块使用新任务。
