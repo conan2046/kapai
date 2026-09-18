@@ -660,6 +660,28 @@ function_dat = {
 		level_show = 0
 	},
 	{
+		function_id = 32,
+		name = "钓鱼",
+		open_condition = {{1,10}},
+		Default_display = 0,
+		type = 0,
+		OPEN_TIPS = 0,
+		Word_TIPS = "恭喜你开启此功能",
+		unopen_tips = "",
+		tips_cv = "",
+		show_icon = 0,
+		before_time = 0,
+		start_time = 0,
+		end_time = 0,
+		show_weekday = {0},
+		show = 0,
+		page = 1,
+		icon = "ui_icon_wanfa_diaoyu",
+		show_reward = {},
+		des = "进入瑶池固定钓位，消耗金币垂钓并收集鱼类。",
+		level_show = 1
+	},
+	{
 		function_id = 556,
 		name = "首充",
 		open_condition = {{1,16}},
@@ -1960,7 +1982,7 @@ function_dat = {
 	{
 		function_id = 1253,
 		name = "加速战斗X3",
-		open_condition = {{1,4}},
+		open_condition = {{1,9999}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -1982,7 +2004,7 @@ function_dat = {
 	{
 		function_id = 1254,
 		name = "加速战斗X5",
-		open_condition = {{1,7}},
+		open_condition = {{1,9999}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -2004,7 +2026,7 @@ function_dat = {
 	{
 		function_id = 1255,
 		name = "加速战斗X10",
-		open_condition = {{1,10}},
+		open_condition = {{1,9999}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
@@ -2026,7 +2048,7 @@ function_dat = {
 	{
 		function_id = 1256,
 		name = "加速战斗X15",
-		open_condition = {{1,12}},
+		open_condition = {{1,9999}},
 		Default_display = 0,
 		type = 0,
 		OPEN_TIPS = 0,
