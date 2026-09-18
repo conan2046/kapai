@@ -154,7 +154,7 @@ namespace ProjectX.Editor
             public string spriteName;
         }
 
-        [MenuItem("Tools/ProjectX UI/Import All Prefabs")]
+        [MenuItem("Tools/ProjectX 界面/导入全部 Prefab")]
         public static void ImportBaselinesMenu()
         {
             ImportBaselines(true);
@@ -241,7 +241,7 @@ namespace ProjectX.Editor
             EditorApplication.delayCall += RebuildMainHudPrefabIfNeeded;
         }
 
-        [MenuItem("Tools/ProjectX UI/Apply Main HUD Horizontal Layout")]
+        [MenuItem("Tools/ProjectX 界面/应用主 HUD 水平布局")]
         public static void ApplyMainHudHorizontalLayoutMenu()
         {
             RebuildMainHudPrefab(true);

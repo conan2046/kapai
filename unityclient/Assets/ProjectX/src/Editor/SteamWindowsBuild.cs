@@ -32,7 +32,7 @@ namespace ProjectX.Editor
             public List<PackageEntry> files = new List<PackageEntry>();
         }
 
-        [MenuItem("Tools/ProjectX App/Build Steam Windows Package", priority = 120)]
+        [MenuItem("Tools/ProjectX 应用/构建 Steam Windows 包", priority = 120)]
         public static void BuildMenu() => Build(false);
 
         public static void BuildBatch() => Build(true);

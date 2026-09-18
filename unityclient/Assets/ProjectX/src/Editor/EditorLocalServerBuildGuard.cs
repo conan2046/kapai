@@ -21,7 +21,7 @@ namespace ProjectX.Editor
             EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
         }
 
-        [MenuItem("Tools/ProjectX App/Ensure Editor Local Server", priority = 110)]
+        [MenuItem("Tools/ProjectX 应用/确保编辑器本地服务器", priority = 110)]
         public static void EnsureFromMenu()
         {
             if (EnsureServerBuilt(false))

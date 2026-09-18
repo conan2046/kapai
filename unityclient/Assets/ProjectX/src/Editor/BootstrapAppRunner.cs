@@ -42,7 +42,7 @@ namespace ProjectX.Editor
             EditorApplication.delayCall += ApplyRequiredGameViewResolutionForAutomation;
         }
 
-        [MenuItem("Tools/ProjectX App/Set GameView 1334x750", priority = 89)]
+        [MenuItem("Tools/ProjectX 应用/设置 GameView 1334x750", priority = 89)]
         public static void ApplyRequiredGameViewResolution()
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
@@ -65,7 +65,7 @@ namespace ProjectX.Editor
             if (automation) ApplyRequiredGameViewResolution();
         }
 
-        [MenuItem("Tools/ProjectX App/Capture Current Draw Evidence", priority = 90)]
+        [MenuItem("Tools/ProjectX 应用/捕获当前绘制证据", priority = 90)]
         public static void CaptureCurrentDrawEvidence()
         {
             if (!EditorApplication.isPlaying || ProjectXApp.Instance == null)
@@ -79,7 +79,7 @@ namespace ProjectX.Editor
             Debug.Log("[BootstrapAppRunner] Draw evidence capture queued: " + path);
         }
 
-        [MenuItem("Tools/ProjectX App/Run Bootstrap Validation", priority = 91)]
+        [MenuItem("Tools/ProjectX 应用/运行 Bootstrap 验证", priority = 91)]
         public static void Run()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

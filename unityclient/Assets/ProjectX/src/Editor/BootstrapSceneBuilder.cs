@@ -309,7 +309,7 @@ namespace ProjectX.Editor
             new PrefabSpec("Assets/ProjectX/res/csd/Prefabs/HPNode.prefab", false)
         };
 
-        [MenuItem("Tools/ProjectX App/Ensure Bootstrap Scene", priority = 90)]
+        [MenuItem("Tools/ProjectX 应用/确保 Bootstrap 场景", priority = 90)]
         public static void Build()
         {
             EnsureFloatNoticePrefab();
@@ -567,7 +567,7 @@ namespace ProjectX.Editor
             return true;
         }
 
-        [MenuItem("Tools/ProjectX App/Force Rebuild Bootstrap Scene", priority = 91)]
+        [MenuItem("Tools/ProjectX 应用/强制重建 Bootstrap 场景", priority = 91)]
         public static void ForceRebuild()
         {
             EnsureFloatNoticePrefab();
@@ -616,7 +616,7 @@ namespace ProjectX.Editor
             Build();
         }
 
-        [MenuItem("Tools/ProjectX App/Validate Resource Foundation", priority = 92)]
+        [MenuItem("Tools/ProjectX 应用/验证资源基础", priority = 92)]
         public static void ValidateResourceFoundationBatch()
         {
             Build();

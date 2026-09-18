@@ -27,7 +27,7 @@ namespace ProjectX.Editor
             "res2/skill_name/battle_pet_anger_burning", "UI/role",
         };
 
-        [MenuItem("Tools/ProjectX UI/Validate Imod Animation")]
+        [MenuItem("Tools/ProjectX 界面/验证 Imod 动画")]
         public static void ValidateMenu() => ValidateAllImodAnimationsBatch();
 
         public static void ValidateAllImodAnimationsBatch()

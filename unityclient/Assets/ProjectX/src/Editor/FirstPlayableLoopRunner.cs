@@ -28,7 +28,7 @@ namespace ProjectX.Editor
             EditorApplication.delayCall += RunPendingRequest;
         }
 
-        [MenuItem("Tools/ProjectX Lua/Run First Playable Loop %#l", priority = 100)]
+        [MenuItem("Tools/ProjectX Lua/运行首次可玩循环 %#l", priority = 100)]
         public static void Run()
         {
             if (EditorApplication.isPlaying || EditorApplication.isPlayingOrWillChangePlaymode)
