@@ -16,14 +16,14 @@ namespace ProjectX.UI
             return provider.Instantiate(key, parent);
         }
 
-        public static void Release(CocosUiView view)
+        public static bool Release(CocosUiView view)
         {
-            if (view == null) return;
+            if (view == null) return false;
             if (provider == null)
                 throw new InvalidOperationException("UI asset provider has not been configured.");
-            // Parent release also releases registered children.  Subsequent child
+            // Parent release also releases registered children. Subsequent child
             // cleanup must therefore be idempotent during page teardown/OnDestroy.
-            provider.Release(view);
+            return provider.Release(view);
         }
     }
 }

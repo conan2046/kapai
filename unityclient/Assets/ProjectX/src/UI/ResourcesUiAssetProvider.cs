@@ -91,14 +91,24 @@ namespace ProjectX.UI
         public bool Release(CocosUiView view)
         {
             if (view == null) return false;
-            string singletonKey = singletons.FirstOrDefault(pair => ReferenceEquals(pair.Value, view)).Key;
-            bool owned = transients.Remove(view);
+            // UiRouter may wrap an already-owned binding in a new CocosUiView.
+            // Ownership is therefore tied to the runtime GameObject, not the
+            // short-lived wrapper instance passed by the caller.
+            GameObject target = view.GameObject;
+            string singletonKey = singletons
+                .Where(pair => pair.Value?.GameObject != null && pair.Value.GameObject == target)
+                .Select(pair => pair.Key)
+                .FirstOrDefault();
+            CocosUiView transient = transients
+                .FirstOrDefault(item => item?.GameObject != null && item.GameObject == target);
+            bool owned = transient != null;
+            if (owned) transients.Remove(transient);
             if (!string.IsNullOrEmpty(singletonKey))
             {
                 ReleaseSingletonTree(singletonKey);
                 owned = true;
             }
-            else if (owned && view.GameObject != null) DestroyOwned(view.GameObject);
+            else if (owned && target != null) DestroyOwned(target);
             return owned;
         }
 
