@@ -1672,6 +1672,13 @@ void CEquipManeger::LoadData(char* inStr)
 	InitSuitAndQHDS();
 }
 
+void CEquipManeger::GetWornEquipment(uint8 fpos, FormationEquipMap &snapshot) const
+{
+    snapshot.clear();
+    AllWearEquipSuitMap::const_iterator found=m_formationEquips.find(fpos);
+    if(found!=m_formationEquips.end())snapshot=found->second.wearEquips;
+}
+
 void CEquipManeger::GetSuitSkills(uint8 fpos, vector<SSkillData> &skillList)
 {
 	WearEquipSuit* suit = GetWearEquipSuit(fpos);
@@ -1716,6 +1723,7 @@ void CEquipManeger::CalcEquipSuitAttr(uint8 fpos)
 	if (it != m_formationEquips.end())
 	{
 		WearEquipSuit& wearEquips = it->second;
+        wearEquips.suitAttrs.clear();
 		FormationEquipMap& emap = wearEquips.wearEquips;
 		U8tU8Map suitCnt;
 		for (FormationEquipMapIt eit = emap.begin(); eit != emap.end(); ++eit)

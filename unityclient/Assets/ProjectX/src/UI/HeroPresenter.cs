@@ -41,6 +41,8 @@ namespace ProjectX.UI
         private int selectedId;
         private int selectedPosition = 1;
         private bool selectionInitialized;
+        private Button buildEntry;
+        private Action<int> openBuild;
         private static readonly int[] FormationOpenLevels = { 1, 2, 5, 11, 15 };
 
         public HeroPresenter(CocosUiView listView, CocosUiView detailView, CocosUiView bagView,
@@ -109,6 +111,24 @@ namespace ProjectX.UI
         }
 
         public int ItemCount => heroes.Items.Count;
+        public void ConfigureBuildEntry(Action<int> callback)
+        {
+            openBuild = callback;
+            if (buildEntry != null) return;
+            var host = Require(detailView,"Layer/EquipUI/Bg");
+            var obj = new GameObject("HeroBuildEntry",typeof(RectTransform),typeof(Image),typeof(Button));
+            obj.transform.SetParent(host.transform,false);
+            var rt=(RectTransform)obj.transform;
+            rt.anchorMin=rt.anchorMax=new Vector2(1,1);rt.pivot=new Vector2(1,1);
+            rt.anchoredPosition=new Vector2(-24,-18);rt.sizeDelta=new Vector2(146,40);
+            var image=obj.GetComponent<Image>();image.color=new Color(.55f,.28f,.10f);
+            buildEntry=obj.GetComponent<Button>();buildEntry.targetGraphic=image;
+            buildEntry.onClick.AddListener(()=>{if(selectedId>0)openBuild?.Invoke(selectedId);});
+            var label=new GameObject("Label",typeof(RectTransform),typeof(Text));label.transform.SetParent(obj.transform,false);
+            var lr=(RectTransform)label.transform;lr.anchorMin=Vector2.zero;lr.anchorMax=Vector2.one;lr.offsetMin=lr.offsetMax=Vector2.zero;
+            var t=label.GetComponent<Text>();t.font=summary.font;t.fontSize=18;t.text="技能·流派";
+            t.color=new Color(1,.9f,.7f);t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;
+        }
         public int BagItemCount { get; private set; }
         public int SelectedId => selectedId;
         public int SelectedPosition => selectedPosition;
@@ -196,6 +216,7 @@ namespace ProjectX.UI
             faBao.Changed -= Render;
             list.Dispose();
             bagList.Dispose();
+            if (buildEntry != null) UnityEngine.Object.Destroy(buildEntry.gameObject);
         }
 
         private void BindRow(RectTransform row, FormationSlot slot, int index)
@@ -305,7 +326,7 @@ namespace ProjectX.UI
                 attackType.text = definition.PhysicalAttack ? "类型：物" : "类型：法";
                 skillName.text = definition.SkillName;
                 skillDescription.text = HeroCatalog.ResolveSkillDescription(
-                    definition.SkillDescription, hero.PrimarySkillLevel);
+                    definition.SkillDescription, hero.PrimarySkillLevel) + "\n基础技能数值；当前流派改动与完整四技能请查看“技能·流派”。";
                 if (skillIcon != null)
                 {
                     skillIcon.sprite = definition.SkillId > 0

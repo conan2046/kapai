@@ -1,5 +1,7 @@
 # 神将技能机制整理与技能—装备流派系统设计
 
+> 2026-09-18：全员数值策划初稿见 [神将—法宝—装备—流派 V2](design/hero-build-v2/README.md)。含59名神将四技能基线及A/B改动、70件法宝与完整装备效果；尚未冻结或实装。当前暂停分支代码开发，先评审策划。
+
 > 状态：设计方案，不代表已实装；不修改现有战斗数值、存档或 Unity 迁移门禁。
 > 关联总案：`docs/DRAGON_CLIFF_CORE_GAMEPLAY_PLAN.md`。
 > 特殊词条详细方案：`docs/EQUIPMENT_SPECIAL_AFFIX_DESIGN.md`。

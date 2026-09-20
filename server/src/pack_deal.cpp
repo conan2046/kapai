@@ -17,6 +17,7 @@
 #include <sstream>
 #include "pet_equip_manage.h"
 #include "chou_ka_manager.h"
+#include "hero_build.h"
 #include "blood_fight_manage.h"
 #include "user_shop_manage.h"
 #include "rank.h"
@@ -3423,6 +3424,40 @@ void CPackageDeal::PetOption(CNetMessage *pMsg,int sock)
 	msg>>op;
 	if(op == 0)
 		return;
+	if (op == 40 || op == 41)
+	{
+		// Query carries op+heroId; set carries op+heroId+branch+strategy.
+		// Reject truncated or trailing payloads before extraction so malformed
+		// packets cannot silently select the legacy branch/strategy zero.
+		const unsigned int expectedLen = (op == 40) ? 3u : 5u;
+		if (msg.GetDataLenExceptHead() != expectedLen)
+			return;
+		uint16 heroId = 0;
+		uint8 branch = 0, strategy = 0;
+		msg >> heroId;
+		if (op == 41) msg >> branch >> strategy;
+		string error;
+		SharePetPtr buildPet = pUser->GetPet(heroId);
+		bool success = buildPet.get() != NULL;
+		if (!success) error = "该神将尚未开放流派，或尚未拥有";
+		else if (op == 41) success = pUser->SetHeroBuild(heroId, branch, strategy, error);
+		msg.ReWrite();
+		msg.SetType(PRO_PET);
+		msg << op << heroId << (uint8)(success ? 1 : 0);
+		if (success)
+		{
+			uint8 saved = pUser->GetExtData8(HeroBuild::SaveKey(heroId));
+			msg << HeroBuild::Branch(saved) << HeroBuild::Strategy(saved);
+			uint8 skillCount = 0;
+			for (int i=0;i<PET_MAX_SKILL_NUM;++i) if(buildPet->skill[i]!=0) ++skillCount;
+			msg << skillCount;
+			for (int i=0;i<PET_MAX_SKILL_NUM;++i)
+				if(buildPet->skill[i]!=0) msg << buildPet->skill[i] << buildPet->skillLevel[i];
+		}
+		else msg << error;
+		m_socketServer.SendMsg(sock, msg);
+		return;
+	}
 	switch (op)
 	{
 	case 1:// 获取所有神将

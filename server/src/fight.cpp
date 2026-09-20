@@ -16,6 +16,7 @@
 #include <boost/format.hpp>
 #include <sys/socket.h>
 #include "blood_fight_manage.h"
+#include "hero_build.h"
 using namespace std;
 
 extern list<ArenaPaiHangData> arenaPaiHang;
@@ -777,6 +778,7 @@ void CFight::Clear()
 	m_fightTurn = 0;
 	m_teamRage[0] = 0;
 	m_teamRage[1] = 0;
+	m_curActionPos=0;
 	m_tacticUsedThisTurn[0] = false;
 	m_tacticUsedThisTurn[1] = false;
 	m_cfgFightId = 0;
@@ -877,7 +879,24 @@ uint8 CFight::AddPet(SharePetPtr pet,uint8 pos,uint32 userId,uint8 zhenfaPos)
 	if(pos == 0 || pos > MAX_MEMBER || pet.get() == NULL)
 		return 0;
 	uint8 petPos = AddTmplNoLock(pet,pos,zhenfaPos);
+	if (petPos == 0) return 0;
 	m_members[pos-1].petOwner = userId;
+	// Snapshot settings once; never consult a mutable role setting during AI.
+	if (HeroBuild::Supported(pet->id))
+	{
+		ShareUserPtr owner = SingletonOnlineUser::instance().GetUserByRoleId(userId);
+		if (owner.get() != NULL && owner->GetPet(pet->id).get() == pet.get())
+		{
+			HeroBuildSnapshotEquipment(pos,owner.get(),pet->id);
+			uint8 saved = owner->GetExtData8(HeroBuild::SaveKey(pet->id));
+			uint8 branch = HeroBuild::Branch(saved), strategy = HeroBuild::Strategy(saved);
+			if (HeroBuild::Valid(branch, strategy))
+			{
+				m_members[pos-1].heroBuildBranch = branch;
+				m_members[pos-1].heroBuildStrategy = strategy;
+			}
+		}
+	}
 	return petPos;
 }
 
@@ -945,6 +964,13 @@ int CFight::GetUnitSpeed(uint8 pos)
 			speed *= (1 - GetStatePara1(pos,ESBUFF_SpeedDes)/10000.0 + GetStatePara1(pos,ESBUFF_AddSpeed)/10000.0);
 			if(m_fightTurn < 2)
 				speed = speed * (10000 + GetAffixValue(pos,29,1)) / 10000;
+            if(m_fightTurn<2)speed=speed*(10000+HeroBuildArtifactValue(pos,8))/10000;
+			if(m_fightTurn < 2 && IsHeroBuild(pos,27,1))speed=speed*110/100;
+			if(IsHeroBuild(pos,28,1))speed=speed*(100+HeroBuildState(pos,281)*4)/100;
+			if(m_fightTurn < 2 && IsHeroBuild(pos,13,1))speed=(int)((int64)speed*115/100);
+			if(IsHeroBuild(pos,22,2))speed=speed*95/100;
+            if(IsHeroBuild(pos,59,1))speed=speed*95/100;
+			if(IsHeroBuild(pos,14,2))speed=(int)((int64)speed*(100-HeroBuildState(pos,144)*3)/100);
 			return speed;
 		}
 	}
@@ -1577,7 +1603,11 @@ int CFight::GetUnitAttack(uint8 pos)
 	SFightMember *p = GetFightMember(pos);
 	if(p == NULL)
 		return 0;
-	int attack = p->unitAttr.attack * (1 + p->unitAttr.attack_percent_fight/10000.0) * (1 + GetStatePara1(pos,ESBUFF_DamagePercentAdd)/10000.0 - GetStatePara1(pos,ESBUFF_DamagePercentDes)/10000.0 - GetStatePara1(pos,ESBUFF_JinGuZhou)/10000.0);
+	int weaken=GetStatePara1(pos,ESBUFF_DamagePercentDes)+GetStatePara1(pos,ESBUFF_JinGuZhou);
+    if(HeroBuildBoss(pos))weaken=std::min(2000,weaken);
+    int attack=p->unitAttr.attack*(1+p->unitAttr.attack_percent_fight/10000.0)*(1+(GetStatePara1(pos,ESBUFF_DamagePercentAdd)-weaken)/10000.0);
+	if(IsHeroBuild(pos,22,2))attack=attack*110/100;
+	if(IsHeroBuild(pos,14,1))attack=(int)((int64)attack*(100+HeroBuildState(pos,141)*4)/100);
 	if(attack < 1)
 		attack = 1;
 	return attack;
@@ -1588,11 +1618,21 @@ int CFight::GetUnitFangYu(uint8 pos,uint8 attackType)
 	SFightMember *p = GetFightMember(pos);
 	if(p == NULL)
 		return 0;
-	int fang = 0;
-	if(attackType == 1)	// 物攻
-		fang = p->unitAttr.wufang * (1 + p->unitAttr.wufang_percent_fight/10000.0) * (1 - GetStatePara1(pos,ESBUFF_FangYuDes)/10000.0 - GetStatePara1(pos,ESBUFF_WuFangDes)/10000.0);
-	else	// 法防
-		fang = p->unitAttr.fafang * (1 + p->unitAttr.fafang_percent_fight/10000.0) * (1 - GetStatePara1(pos,ESBUFF_FangYuDes)/10000.0 - GetStatePara1(pos,ESBUFF_FaFangDes )/10000.0);
+    int weaken=GetStatePara1(pos,ESBUFF_FangYuDes)+GetStatePara1(pos,attackType==1?ESBUFF_WuFangDes:ESBUFF_FaFangDes);
+    weaken=std::min(HeroBuildBoss(pos)?2000:10000,weaken);
+    int fang=(attackType==1?p->unitAttr.wufang*(1+p->unitAttr.wufang_percent_fight/10000.0):p->unitAttr.fafang*(1+p->unitAttr.fafang_percent_fight/10000.0))*(1-weaken/10000.0);
+    if(attackType==1 && HeroBuildState(pos,31401)>m_fightTurn)fang=fang*108/100;
+    if(attackType!=1)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(pos,allies,count);int bonus=0;
+        for(uint8 i=0;i<count;++i)if(IsAlive(allies[i]) && IsHeroBuild(allies[i],31,2))
+        {
+            SFightMember *source=GetFightMember(allies[i]);
+            for(size_t j=0;j<source->passive_skill.size();++j)if(source->passive_skill[j].id==314)
+                bonus=std::max(bonus,(1000+(source->passive_skill[j].level-1)*100)/2);
+        }
+        fang=(int)((int64)fang*(10000+bonus)/10000);
+    }
 	if(fang < 1)
 		fang = 1;
 	return fang;
@@ -1600,28 +1640,23 @@ int CFight::GetUnitFangYu(uint8 pos,uint8 attackType)
 
 float CFight::CalUnitZengShangLv(uint8 src,uint8 target,uint8 attackType,int extMianshangLv)
 {
-	SFightMember *pSrc = GetFightMember(src);
-	SFightMember *pTar = GetFightMember(target);
-	if(pSrc == NULL || pTar == NULL)
-		return 1.0;
-	float ratio = 1.0;
-	if(attackType == 1)	// 物攻
-	{
-		ratio += (pSrc->unitAttr.zengshangLv + GetStatePara1(src,ESBUFF_ZengShangLvAdd) - GetStatePara1(src,ESBUFF_ZengShangLvDes))/10000.0;
-		ratio -= (pTar->unitAttr.wumianLv + GetStatePara1(target,ESBUFF_JianShangLvAdd) - GetStatePara1(target,ESBUFF_JianShangLvDes) + GetStatePara1(target,ESBUFF_WuMianLvAdd) - GetStatePara1(target,ESBUFF_WuMianLvDes) + GetStatePara3(target,ESBUFF_ShieldMianShang) + GetStatePara1(target,ESBUFF_Protect) + GetStatePara1(target,ESBUFF_MianShangTemp))/10000.0;
-	}
-	else	// 法防
-	{
-		ratio += (pSrc->unitAttr.zengshangLv + GetStatePara1(src,ESBUFF_ZengShangLvAdd) - GetStatePara1(src,ESBUFF_ZengShangLvDes))/10000.0;
-		ratio -= (pTar->unitAttr.famianLv + GetStatePara1(target,ESBUFF_JianShangLvAdd) - GetStatePara1(target,ESBUFF_JianShangLvDes) + GetStatePara1(target,ESBUFF_FaMianLvAdd) - GetStatePara1(target,ESBUFF_FaMianLvDes) + GetStatePara3(target,ESBUFF_ShieldMianShang) + GetStatePara1(target,ESBUFF_Protect) + GetStatePara1(target,ESBUFF_MianShangTemp))/10000.0;
-	}
-	ratio -= extMianshangLv/10000.0;
-	if(ratio < 0.1)
-		ratio = 0.1;
-
-	if(showFightLog)
-		cout<<">>> CFight::CalUnitZengShangLv  src="<<(int)src<<", target="<<(int)target<<", 盾para2="<<GetStatePara3(target,ESBUFF_ShieldMianShang)<<", ratio = "<<ratio<<endl;
-	return ratio;
+    SFightMember *attacker=GetFightMember(src),*victim=GetFightMember(target);
+    if(!attacker || !victim)return 1.0f;
+    int guard=extMianshangLv+GetStatePara1(target,ESBUFF_JianShangLvAdd)-GetStatePara1(target,ESBUFF_JianShangLvDes)
+        +GetStatePara3(target,ESBUFF_ShieldMianShang)+GetStatePara1(target,ESBUFF_Protect)+GetStatePara1(target,ESBUFF_MianShangTemp);
+    guard+=attackType==1?victim->unitAttr.wumianLv+GetStatePara1(target,ESBUFF_WuMianLvAdd)-GetStatePara1(target,ESBUFF_WuMianLvDes)
+        :victim->unitAttr.famianLv+GetStatePara1(target,ESBUFF_FaMianLvAdd)-GetStatePara1(target,ESBUFF_FaMianLvDes);
+    if(IsHeroBuild(target,33,2))
+    {
+        uint8 enemies[GROUP_MEMBER],count=0;GetAnotherGroup(target,enemies,count);int charmed=0;
+        for(uint8 i=0;i<count;++i)if(IsAlive(enemies[i]) && HaveBuff(enemies[i],ESBUFF_MeiHuo))++charmed;
+        guard+=std::min(4,charmed)*300;
+    }
+    if(HeroBuildSetPieces(target,2)>=4 && GetHp(target)*100<GetMaxHp(target)*40)guard+=1500;
+    int group=target<=GROUP2_BEGIN?EGT_GROUP1:EGT_GROUP2;
+    if(GetTeamRage(target)>=GetAffixValue(target,48,2) && !m_tacticUsedThisTurn[group])guard+=GetAffixValue(target,48,1);
+    if(m_fightTurn<2)guard+=GetTeamBestAffixValue(target,12,1);
+    return std::max(0.1f,1.0f-std::min(6000,guard)/10000.0f);
 }
 
 float CFight::CalUnitAddShangHaiLv(uint8 src,uint8 target,uint8 attackType)
@@ -1676,6 +1711,8 @@ float CFight::CalUnitShangHaiJianMianLv(uint8 src,uint8 target,uint8 attackType)
 		ratio -= -(GetStatePara1(target,ESBUFF_GetFaDamageAdd) + GetStatePara1(target,ESBUFF_WuMianAndGetFaDamageAdd))/10000.0;
 	}
 
+    ratio=std::min(1.5f,ratio);
+
 	uint16 srcZhenFaId = (src <= GROUP2_BEGIN) ? m_zhenfaId[0] : m_zhenfaId[1];
 	int srcZhanFaLv = (src <= GROUP2_BEGIN) ? m_zhenfaLevel[0] : m_zhenfaLevel[1];
 	uint16 tarZhenFaId = (target <= GROUP2_BEGIN) ? m_zhenfaId[0] : m_zhenfaId[1];
@@ -1703,7 +1740,11 @@ int CFight::CalculateDamage(uint8 src,uint8 target,vector<SAttrData> &attrList,v
 	if(pTarget == NULL || pSrc == NULL)
 		return 1;
 	int attackType = pSrc->attackType;
-	int damage = GetUnitAttack(src) - GetUnitFangYu(target,attackType) * (1.0 - GetAttrValue(attrList,ESkill_PassAttr_HuShiFang)/10000.0);
+    int ignoreDefense=GetAttrValue(attrList,ESkill_PassAttr_HuShiFang);
+    if(HeroBuildSetPieces(src,6)>=4)ignoreDefense=10000-(10000-ignoreDefense)*85/100;
+    if(attackType==2 && HaveBuff(target,ESBUFF_FaFangDes))ignoreDefense=10000-(int)((int64)(10000-ignoreDefense)*(10000-std::max(0,std::min(10000,GetAffixValue(src,27,1))))/10000);
+    ignoreDefense=std::max(0,std::min(6000,ignoreDefense));
+    int damage=GetUnitAttack(src)-GetUnitFangYu(target,attackType)*(1.0-ignoreDefense/10000.0);
 	float damRatio = CalUnitZengShangLv(src,target,attackType,GetAttrValue(tarAttrList,ESkill_PassAttr_ImproveMianShangLv));
 	float addDamPercent = CalUnitAddShangHaiLv(src,target,attackType);
 	float offsetDamRatio = CalUnitShangHaiJianMianLv(src,target,attackType);
@@ -1721,6 +1762,10 @@ int CFight::CalculateDamage(uint8 src,uint8 target,vector<SAttrData> &attrList,v
 		damage = 1;
 	damage += GetAttrValue(attrList,ESkill_PassAttr_Damage);
 	addDamPercent += GetAttrValue(attrList,ESkill_PassAttr_DamagePer)/10000.0;
+	addDamPercent += HeroBuildDamagePercent(src,target,0)/10000.0;
+    addDamPercent+=HeroBuildEquipmentDamage(src,target)/10000.0;
+    addDamPercent+=(pSrc->unitAttr.zengshangLv+GetStatePara1(src,ESBUFF_ZengShangLvAdd)-GetStatePara1(src,ESBUFF_ZengShangLvDes))/10000.0;
+    addDamPercent=std::max(0.0f,std::min(2.0f,addDamPercent));
 	if(showFightLog)
 		cout<<", src="<<(int)src<<",  target="<<(int)target<<", damageB = "<<damage<<", damRatio="<<damRatio<<", addDamPercent="<<addDamPercent<<", offsetDamRatio="<<offsetDamRatio<<endl;
 
@@ -1745,6 +1790,14 @@ void CFight::GetLiveMember(uint8 *arr,uint8 &num)
 
 bool CFight::CalculateIsFuHuo(uint8 src,int &fuhuoHp)
 {
+    if(HaveBuff(src,ESBUFF_ForbidFuHuo) || HeroBuildState(src,200070)>=2 || HeroBuildState(src,260000+src)>0)return false;
+    if(IsHeroBuild(src,36,2))
+    {
+        if(HeroBuildState(src,36300)>0 || HaveBuff(src,ESBUFF_ForbidFuHuo))return false;
+        SFightMember *member=GetFightMember(src);bool learned=false;
+        for(size_t i=0;i<member->passive_skill.size();++i)if(member->passive_skill[i].id==363)learned=true;
+        if(learned){HeroBuildState(src,36300)=1;fuhuoHp=(int)(GetMaxHp(src)*35/100);return true;}
+    }
 	vector<SAttrData> attr;
 	vector<ESkillTriggerType> trigger;
 	trigger.push_back(ESkill_Trigger_AttackByZhiSi);
@@ -1776,8 +1829,8 @@ int CFight::CalculateHitRatio(uint8 src,uint8 target)
 	mingzhongLv += GetAttrValue(attrList,EAT_MingZhongLv) /10000.0;
 
 	float ratio = 1.0 + mingzhongLv - shanbiLv;
-	if(ratio < 0.0)
-		ratio = 0.0;
+	if(ratio < 0.1)
+		ratio = 0.1;
 	if(ratio > 1.0)
 		ratio = 1.0;
 	return ratio*10000;
@@ -1800,7 +1853,7 @@ int CFight::GetBaoJiDamage(uint8 src,int damage,int passBaojiAdd)
 	SFightMember *pSrc = GetFightMember(src);
 	if(pSrc == NULL)
 		return 0;
-	damage *= (pSrc->unitAttr.baojiAdd + GetStatePara1(src,ESBUFF_BaoJiShangHaiAdd) + passBaojiAdd)/10000.0;
+	damage *= std::max(15000,std::min(30000,pSrc->unitAttr.baojiAdd + GetStatePara1(src,ESBUFF_BaoJiShangHaiAdd) + passBaojiAdd))/10000.0;
 	return damage;
 }
 
@@ -1824,9 +1877,10 @@ bool CFight::CalculateBaoJiRatio(uint8 src,uint8 target,int &damage,vector<SAttr
 	float ratio = baojiLv - baojiKangLv;
 	if(ratio < 0.0)
 		ratio = 0.0;
-	else if(ratio > 1.0)
-		ratio = 1.0;
+	else if(ratio > 0.8)
+		ratio = 0.8;
 
+	ratio=std::max(0.0f,std::min(0.8f,ratio));
 	int r = Random(1,10000);
 	if(r <= (int)(ratio*10000))
 	{
@@ -1849,6 +1903,7 @@ bool CFight::CalculateBaoJiRatio(uint8 src,uint8 target,int &damage,vector<SAttr
 	if(ratio < 0.0)
 		return false;
 
+	ratio=std::max(0.0f,std::min(0.8f,ratio));
 	int r = Random(1,10000);
 	if(r <= (int)(ratio*10000))
 	{
@@ -1878,6 +1933,7 @@ bool CFight::CalculateBaoJiRatio_AddHp(uint8 src,vector<SAttrData> &attrList)
 	if(ratio < 0.0)
 		return false;
 	
+	ratio=std::max(0.0f,std::min(0.8f,ratio));
 	int r = Random(1,10000);
 	if(r <= (int)(ratio*10000))
 		return true;
@@ -1897,6 +1953,8 @@ bool CFight::CalculateFanJiRatio(uint8 src,uint8 target,vector<SAttrData> &attrL
 	
 	int fanjiLv = pTarget->unitAttr.fanjiLv*(1 - GetAttrValue(attrList,EAT_FanJiLv)/10000.0) - pSrc->unitAttr.fanjikangLv + extFanJiLv;
 	fanjiLv += GetStatePara1(target,ESBUFF_FanZhengAllAdd);
+    if(IsHeroBuild(target,44,2))
+    {uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(target,allies,count);for(uint8 i=0;i<count;++i)if(GetHeroId(allies[i])==43){fanjiLv+=1000;break;}}
 	int r = Random(1,10000);
 	if(r <= fanjiLv)
 		return true;
@@ -1979,6 +2037,7 @@ uint8 CFight::GetUnitSkillLevel(uint8 pos,uint16 skillId)
 
 uint8 CFight::NormalButtle(uint8 src,uint8 target)
 {
+    if(m_heroBuildSecondaryDamage && HeroBuildState(src,200091)==0 && !HeroBuildTryExtraAttack(src))return 0;
 	if(m_forceEnd)
 		return 0;
 	if(target == 0)
@@ -2174,7 +2233,7 @@ void CFight::ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src)
 	{
 		std::sort(randSeq.begin(), randSeq.begin()+delSize);
 	}
-	int stealBufIdx = randSeq[Random(1,delSize) - 1];
+	int stealBufIdx = buffPos[randSeq[Random(1,delSize) - 1]-1]+1;
 	idx = 0;
 	for(list<SFightBuffData>::iterator it = m_members[pos-1].buff_list.begin(); it != m_members[pos-1].buff_list.end(); )
 	{
@@ -2183,7 +2242,7 @@ void CFight::ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src)
 		bool isDel = false;
 		for(uint16 i=0; i < delSize; i++)
 		{
-			if(idx == randSeq[i]-1)
+			if(idx == buffPos[randSeq[i]-1])
 			{
 				isDel = true;
 				break;
@@ -2211,10 +2270,28 @@ void CFight::ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src)
 		}
 		idx++;
 	}
+    if(delNum>0 && IsHeroBuild(src,37,2) && HeroBuildState(src,37200)>0)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);GetSkillTargetSelCondition(allies,count,ESkill_Select_MinCurHp);
+        if(count>0){vector<int> shield(2,(int)(GetMaxHp(src)*8/100));AddBuff(allies[0],src,ESBUFF_Shield,2,&shield,372);}
+    }
+
+    if(delNum>0 && GetHeroId(src)==50 && HeroBuildState(src,50200)>0)
+    {
+        if(IsHeroBuild(src,50,1) && HeroBuildState(src,50201)==0)
+        {
+            HeroBuildState(src,50201)=1;uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);GetSkillTargetSelCondition(allies,count,ESkill_Select_MinCurHp);
+            if(count>0)HeroBuildHpAction(src,allies[0],GetUnitAttack(src)*40/100,502);
+        }
+        if(IsHeroBuild(src,50,2))
+        {int amount=std::min(8-HeroBuildState(src,50202),delNum*4);if(amount>0){HeroBuildState(src,50202)+=amount;AddTeamRage(src,amount);}}
+    }
+
 }
 
 void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src)
 {
+    if(GetFightMember(src)!=NULL)HeroBuildState(src,90010)=0;
 	if(pos == 0 || pos > MAX_MEMBER || buffNum == 0)
 		return;
 	if(m_members[pos-1].memPtr.empty())
@@ -2250,7 +2327,7 @@ void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src)
 		bool isDel = false;
 		for(uint16 i=0; i < delSize; i++)
 		{
-			if(idx == randSeq[i] - 1)
+			if(idx == buffPos[randSeq[i]-1])
 			{
 				isDel = true;
 				break;
@@ -2273,6 +2350,7 @@ void CFight::ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src)
 		}
 		idx++;
 	}
+    if(GetFightMember(src)!=NULL)HeroBuildState(src,90010)=delNum;
 }
 
 void CFight::ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList,uint8 src)
@@ -2374,25 +2452,150 @@ bool CFight::HaveState(uint8 pos, int state)
 	return false;
 }
 
-void CFight::AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn, vector<int> *para)
+void CFight::AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn, vector<int> *para,uint16 originSkill)
 {
 	if(buffId == 0 || buffId >= ESBUFF_MAX || effectTurn == 0)
 		return;
 	if(pos == 0 || pos > MAX_MEMBER)
 		return;
+    vector<int> controlReplacement;
+    if(HeroBuildBoss(pos) && (IsAffixHardControl(buffId) || buffId==ESBUFF_ForbidFuHuo))
+    {
+        if(buffId==ESBUFF_ForbidFuHuo)return;
+        if(HeroBuildState(pos,200080)==m_fightTurn+1)return;
+        HeroBuildState(pos,200080)=m_fightTurn+1;buffId=ESBUFF_SpeedDes;effectTurn=1;
+        controlReplacement.assign(1,1000);para=&controlReplacement;
+    }
+    else if(IsAffixHardControl(buffId))
+    {
+        int &count=HeroBuildState(pos,230000+buffId),&lastEnd=HeroBuildState(pos,240000+buffId),&immune=HeroBuildState(pos,250000+buffId);
+        if(immune==m_fightTurn+1)return;
+        if((immune>0 && immune<m_fightTurn+1) || m_fightTurn>=lastEnd+2)count=0;
+        if(++count>=3){immune=m_fightTurn+1;return;}
+        if(count==2)effectTurn=std::max(1,(int)effectTurn/2);
+        lastEnd=m_fightTurn+effectTurn;
+    }
 	if(IsAffixHardControl(buffId) && src > 0 && src <= MAX_MEMBER && GetAffixTier(src,30) > 0
 		&& Random(1,10000) <= GetAffixValue(src,30,1))
 		effectTurn += GetAffixValue(src,30,2) > 0 ? 1 : 0;
-	if(!HaveBuff(pos, buffId))
-		SpecialBuffPassAttr(pos, buffId, true);	// 添加buff时触发
+    vector<int> branchPoison;
+    if(IsHeroBuild(src,53,1) && originSkill==531 && buffId==ESBUFF_FuDu)
+    {buffId=ESBUFF_ShiDu;effectTurn=3;branchPoison.push_back(GetUnitAttack(src)*20/100);branchPoison.push_back(0);para=&branchPoison;}
+	bool hadBuff = HaveBuff(pos,buffId);
+	// New branch buffs refresh their own origin; repeated kills/hits must not
+	// stack a temporary speed boost or vulnerability by appending duplicates.
+	if(originSkill>0 && !IsShieldBuff(buffId)
+		&& buffId!=ESBUFF_GetDamageAdd && buffId!=ESBUFF_GetWuDamageAdd && buffId!=ESBUFF_GetFaDamageAdd
+		&& buffId!=ESBUFF_ShiXinDu && buffId!=ESBUFF_ShiDu && buffId!=ESBUFF_FuDu
+		&& buffId!=ESBUFF_ZhuoShao && buffId!=ESBUFF_JinGuZhou && buffId!=ESBUFF_Blooding)
+	{
+		list<SFightBuffData> &buffs=m_members[pos-1].buff_list;
+		for(list<SFightBuffData>::iterator it=buffs.begin();it!=buffs.end();)
+			if(it->srcPos==src && it->id==buffId && it->originSkill==originSkill)it=buffs.erase(it);else ++it;
+	}
 
 	SFightBuffData data;
 	data.srcPos = src;
 	data.id = buffId;
 	data.leftTurn = effectTurn;
+	data.originSkill = originSkill;
+    data.appliedDuringRound=pos==m_curActionPos?m_fightTurn:-1;
 	if(para != NULL)
 		data.paraList = *para;
+	if((buffId==ESBUFF_GetDamageAdd || buffId==ESBUFF_GetWuDamageAdd || buffId==ESBUFF_GetFaDamageAdd) && !data.paraList.empty())
+	{
+		list<SFightBuffData> &buffs=m_members[pos-1].buff_list;
+		for(list<SFightBuffData>::const_iterator it=buffs.begin();it!=buffs.end();++it)
+			if(it->id==buffId && !it->paraList.empty() && it->paraList[0]>data.paraList[0])return;
+		for(list<SFightBuffData>::iterator it=buffs.begin();it!=buffs.end();)
+			if(it->id==buffId)it=buffs.erase(it);else ++it;
+	}
+	if (IsShieldBuff(buffId) && !data.paraList.empty())
+	{
+		int efficiency=10000;
+        if(HeroBuildSetPieces(src,9)>=2)efficiency+=1200;
+        int shieldTargetBit=1<<(pos-1);
+        if(HeroBuildArtifactValue(src,1)>0 && ((HeroBuildState(src,101101)&shieldTargetBit)!=0 || HeroBuildState(src,101001)<5))
+        {
+            if((HeroBuildState(src,101101)&shieldTargetBit)==0){HeroBuildState(src,101101)|=shieldTargetBit;++HeroBuildState(src,101001);}
+            efficiency+=HeroBuildArtifactValue(src,1);
+        }
+        if(IsHeroBuild(src,34,1) && originSkill==342 && src==pos)efficiency+=2500;
+        if(IsHeroBuild(src,35,1) && originSkill==353)efficiency+=1500;
+        if(IsHeroBuild(src,36,1) && originSkill==122)efficiency+=2000;
+		int first=pos<=GROUP2_BEGIN?1:GROUP2_BEGIN+1,last=pos<=GROUP2_BEGIN?GROUP2_BEGIN:MAX_MEMBER;
+		for(int ally=first;ally<=last;++ally)
+			if(IsAlive((uint8)ally) && IsHeroBuild((uint8)ally,12,1)){efficiency+=1200;break;}
+		if(IsHeroBuild(src,12,1))
+		{
+			if(originSkill==121)
+			{
+				efficiency+=2500;
+				if(data.paraList.size()>2)data.paraList[2]+=800;
+			}
+			if(originSkill==122){efficiency+=2000;++data.leftTurn;}
+		}
+		if(IsHeroBuild(src,12,2))
+		{
+			if(originSkill==121)efficiency-=1500;
+			if(originSkill==122)efficiency-=2000;
+		}
+		data.paraList[0]=(int)((int64)data.paraList[0]*efficiency/10000);
+		// V2 shields refresh the same source/type and share a total HP cap.
+		int64 otherShield = 0;
+		list<SFightBuffData> &buffs = m_members[pos-1].buff_list;
+		for (list<SFightBuffData>::iterator it=buffs.begin();it!=buffs.end();)
+		{
+			if (it->id==buffId && it->srcPos==src)
+			{
+				it=buffs.erase(it);
+				continue;
+			}
+			if (IsShieldBuff(it->id) && it->leftTurn>0 && !it->paraList.empty())
+				otherShield += std::max(0,it->paraList[0]);
+			++it;
+		}
+		int64 room = std::max<int64>(0,GetMaxHp(pos)/2-otherShield);
+		data.paraList[0] = (int)std::min<int64>(data.paraList[0],room);
+		if (data.paraList[0]<=0)
+		{
+			if (hadBuff && !HaveBuff(pos,buffId)) SpecialBuffPassAttr(pos,buffId,false);
+			return;
+		}
+		if (data.paraList.size()>1) data.paraList[1]=data.paraList[0];
+	}
+    bool poison=buffId==ESBUFF_ShiDu || buffId==ESBUFF_FuDu || buffId==ESBUFF_ShiXinDu;
+    bool dot=poison || buffId==ESBUFF_ZhuoShao || buffId==ESBUFF_Blooding || buffId==ESBUFF_JinGuZhou;
+    if(dot)
+    {
+        data.leftTurn=std::min(5,(int)data.leftTurn);int stacks=0;
+        list<SFightBuffData> &buffs=m_members[pos-1].buff_list;
+        for(list<SFightBuffData>::const_iterator it=buffs.begin();it!=buffs.end();++it)
+            if(it->srcPos==src && (it->id==buffId || (poison && (it->id==ESBUFF_ShiDu || it->id==ESBUFF_FuDu || it->id==ESBUFF_ShiXinDu))))++stacks;
+        while(stacks>=5)
+        {
+            list<SFightBuffData>::iterator oldest=buffs.end();
+            for(list<SFightBuffData>::iterator it=buffs.begin();it!=buffs.end();++it)
+                if(it->srcPos==src && (it->id==buffId || (poison && (it->id==ESBUFF_ShiDu || it->id==ESBUFF_FuDu || it->id==ESBUFF_ShiXinDu)))
+                    && (oldest==buffs.end() || it->leftTurn<oldest->leftTurn))oldest=it;
+            if(oldest==buffs.end())break;buffs.erase(oldest);--stacks;
+        }
+    }
+    if(buffId==ESBUFF_AddHpContinue && src>0 && src<=MAX_MEMBER)HeroBuildState(src,104000+pos)=0;
+    if(originSkill==10011 && !data.paraList.empty())
+    {
+        list<SFightBuffData> &buffs=m_members[pos-1].buff_list;
+        for(list<SFightBuffData>::const_iterator it=buffs.begin();it!=buffs.end();++it)
+            if(it->originSkill==10011 && !it->paraList.empty() && it->paraList[0]>data.paraList[0])return;
+        for(list<SFightBuffData>::iterator it=buffs.begin();it!=buffs.end();)if(it->originSkill==10011)it=buffs.erase(it);else ++it;
+    }
+	if (!hadBuff) SpecialBuffPassAttr(pos,buffId,true);
 	m_members[pos-1].buff_list.push_back(data);
+    if(IsShieldBuff(buffId) && IsHeroBuild(src,34,1) && originSkill==342 && pos==src && !data.paraList.empty())
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroupExceptSelf(src,allies,count);GetSkillTargetSelCondition(allies,count,ESkill_Select_MinCurHp);
+        if(count>0){vector<int> shield(2,data.paraList[0]*30/100);AddBuff(allies[0],src,ESBUFF_Shield,2,&shield,342);}
+    }
 
 	if(IsShieldBuff(buffId) && pos == src && src <= MAX_MEMBER && para != NULL && !para->empty() && TryTriggerAffix(src,2))
 	{
@@ -2413,7 +2616,7 @@ void CFight::AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn, vect
 			}
 		}
 		if(target > 0)
-			AddAffixShield(src,target,(*para)[0] * GetAffixValue(src,2,1) / 10000,effectTurn,2);
+			AddAffixShield(src,target,data.paraList[0] * GetAffixValue(src,2,1) / 10000,effectTurn,2);
 	}
 	if(buffId == ESBUFF_ChaoFeng && src > 0 && src <= MAX_MEMBER && GetAffixTier(src,10) > 0)
 	{
@@ -2540,7 +2743,8 @@ bool CFight::ShieldBrokenCheck(uint8 pos,uint8 src)
 				int val = data.paraList.size() > 1 ? data.paraList[1] : 0;
 				vector<ESkillTriggerType> trigger;
 				trigger.push_back(ESkill_Trigger_SelfShieldMiss);
-				int res = CalculatePassiveSkill_ExtUnitAndBuff(pos, 0, trigger, 0, 0, val);
+				bool branchShield=IsHeroBuild(data.srcPos,12,1)||IsHeroBuild(data.srcPos,12,2);
+				int res = branchShield ? 0 : CalculatePassiveSkill_ExtUnitAndBuff(pos, 0, trigger, 0, 0, val);
 				m_members[pos-1].buff_list.erase(del_it);
 				removed.push_back(data);
 				actualBroken = true;
@@ -2554,6 +2758,7 @@ bool CFight::ShieldBrokenCheck(uint8 pos,uint8 src)
 	}
 	for(uint16 i=0;i<removed.size();i++)
 	{
+		HeroBuildShieldLost(pos,src,removed[i],false);
 		int original = removed[i].paraList.size() > 1 ? removed[i].paraList[1] : 0;
 		OnAffixShieldLost(pos,removed[i].srcPos,original,true);
 	}
@@ -2597,7 +2802,11 @@ int CFight::GetStatePara1(uint8 pos,uint16 buffId)
 			val += it->paraList[0];
 		}
 	}
-	return val;
+    if(buffId==ESBUFF_JinLiaoShu)val=std::max(0,std::min(10000,val));
+    if(HeroBuildBoss(pos) && (buffId==ESBUFF_SpeedDes || buffId==ESBUFF_DamagePercentDes || buffId==ESBUFF_FangYuDes
+        || buffId==ESBUFF_WuFangDes || buffId==ESBUFF_FaFangDes || buffId==ESBUFF_WuGongDes || buffId==ESBUFF_FaGongDes
+        || buffId==ESBUFF_FuMianKangDes || buffId==ESBUFF_ReduceMingZhongLv))val=std::min(2000,val);
+    return val;
 }
 
 int CFight::GetStatePara2(uint8 pos,uint16 buffId)
@@ -2663,6 +2872,7 @@ void CFight::DecAllStateEffectTurn(uint8 pos)
 	vector<SFightBuffData> expired;
 	for(list<SFightBuffData>::iterator it = m_members[pos-1].buff_list.begin(); it != m_members[pos-1].buff_list.end(); )
 	{
+        if(it->appliedDuringRound==m_fightTurn){++it;continue;}
 		it->leftTurn--;
 		if(it->leftTurn <= 0)
 		{
@@ -2673,8 +2883,8 @@ void CFight::DecAllStateEffectTurn(uint8 pos)
 			{
 				vector<ESkillTriggerType> shieldTrigger;
 				shieldTrigger.push_back(ESkill_Trigger_SelfShieldMiss);
-				int shieldDamage = del_it->paraList[1];
-				if(shieldDamage > 0)
+				int shieldDamage = del_it->paraList.size()>1 ? std::max(0,del_it->paraList[1]-del_it->paraList[0]) : 0;
+				if(shieldDamage > 0 && !IsHeroBuild(data.srcPos,12,1) && !IsHeroBuild(data.srcPos,12,2))
 				{
 					CalculatePassiveSkill_ExtUnitAndBuff(pos, 0, shieldTrigger, 0, 0, shieldDamage, NULL, true);
 				}
@@ -2690,7 +2900,10 @@ void CFight::DecAllStateEffectTurn(uint8 pos)
 		}
 	}
 	for(uint16 i=0;i<expired.size();i++)
+	{
+		if(IsShieldBuff(expired[i].id))HeroBuildShieldLost(pos,0,expired[i],true);
 		OnAffixBuffRemoved(pos,0,expired[i],true);
+	}
 }
 
 void CFight::DecAllSkillCD(uint8 pos)
@@ -2698,7 +2911,7 @@ void CFight::DecAllSkillCD(uint8 pos)
 	SFightMember *p = GetFightMember(pos);
 	if(p != NULL)
 	{
-		p->DecAllSkillCD();
+		p->DecAllSkillCD(1,false);
 	}
 }
 
@@ -7673,34 +7886,19 @@ int CFight::GetPower(uint8 pos)
 
 void CFight::ClearChaoFeng(uint8 diePos)
 {
-	uint8 begin = 1;
-	uint8 end = GROUP2_BEGIN;
-	if(diePos <= GROUP2_BEGIN)
-	{
-		begin += GROUP_MEMBER;
-		end += GROUP_MEMBER;
-	}
-
-	for(uint8 pos=begin;pos <= end;pos++)
-	{
-		// 后添加生效
-		for(list<SFightBuffData>::reverse_iterator rit=m_members[pos-1].buff_list.rbegin(); rit != m_members[pos-1].buff_list.rend(); )
-		{
-			if(rit->id == ESBUFF_ChaoFeng)
-			{
-				if(rit->paraList.empty() || rit->paraList[0] == (int)diePos)
-				{
-					SpecialBuffPassAttr(pos, ESBUFF_ChaoFeng, false);	// 清除
-					rit++;
-					
-					list<SFightBuffData>::iterator del_it(rit.base());
-					m_members[pos-1].buff_list.erase(del_it);
-					continue;
-				}
-			}
-			rit++;
-		}
-	}
+    uint8 begin=diePos<=GROUP2_BEGIN?GROUP2_BEGIN+1:1;
+    uint8 end=diePos<=GROUP2_BEGIN?MAX_MEMBER:GROUP2_BEGIN;
+    for(uint8 pos=begin;pos<=end;++pos)
+    {
+        bool removed=false;list<SFightBuffData> &buffs=m_members[pos-1].buff_list;
+        for(list<SFightBuffData>::iterator it=buffs.begin();it!=buffs.end();)
+        {
+            if(it->id==ESBUFF_ChaoFeng && (it->paraList.empty() || it->paraList[0]==diePos))
+            {it=buffs.erase(it);removed=true;}
+            else ++it;
+        }
+        if(removed)SpecialBuffPassAttr(pos,ESBUFF_ChaoFeng,false);
+    }
 }
 
 int CFight::GetChaoFengTarget(uint8 pos)
@@ -7730,6 +7928,9 @@ void CFight::DecreaseHp(uint8 pos, uint8 srcPos, int &hp,int &absorpionHp,bool i
 	SFightMember *p = GetFightMember(pos);
 	if(p == NULL)
 		return;
+    bool revival=hp<0 && !IsAlive(pos);
+    if(revival && (HaveBuff(pos,ESBUFF_ForbidFuHuo) || HeroBuildState(pos,200070)>=2 || HeroBuildState(pos,260000+srcPos)>0)){hp=0;return;}
+	if(hp<0 && IsAlive(pos) && IsHeroBuild(pos,25,1))hp=(int)((int64)hp*90/100);
 	SFightMember *pSrc = GetFightMember(srcPos);
 	
 	// 盾抵消伤害
@@ -7743,7 +7944,7 @@ void CFight::DecreaseHp(uint8 pos, uint8 srcPos, int &hp,int &absorpionHp,bool i
 				pSrc->sum_damage += absorpionHp;
 		}
 
-		if(activeTongShengGongSi && HaveBuff(pos,ESBUFF_GongTongShengSi))
+		if(activeTongShengGongSi && srcPos!=0 && srcPos!=pos && HeroBuildState(pos,200092)==0 && !IsHeroBuild(pos,47,2) && HaveBuff(pos,ESBUFF_GongTongShengSi))
 		{
 			uint8 member[GROUP_MEMBER];
 			uint8 num = 0;
@@ -7755,10 +7956,11 @@ void CFight::DecreaseHp(uint8 pos, uint8 srcPos, int &hp,int &absorpionHp,bool i
 				for(uint8 i=0;i < num;i++)
 				{
 //					if(HaveBuff(member[i],ESBUFF_GongTongShengSi))
-					tarMem[tarNum++] = member[i];
+					if(!IsHeroBuild(member[i],47,2))tarMem[tarNum++] = member[i];
 				}
 				if(tarNum > 0)
 				{
+                    GetSkillTargetSelCondition(tarMem,tarNum,ESkill_Select_MinCurHpPer);tarNum=1;
 					int damage = hp/(tarNum+1);
 					if(damage < 1)
 						damage = 1;
@@ -7779,8 +7981,11 @@ void CFight::DecreaseHp(uint8 pos, uint8 srcPos, int &hp,int &absorpionHp,bool i
 		}
 	}
 
+    bool previouslyAlive=IsAlive(pos);
 	int maxHp = GetMaxHp(pos);
+    if(IsHeroBuild(pos,34,2) && p->hp*100<GetMaxHp(pos)*30)HeroBuildState(pos,34400)=m_fightTurn+1;
 	int val = p->AddHp(-hp,maxHp);
+    if(IsHeroBuild(pos,34,2) && p->hp*100<GetMaxHp(pos)*30)HeroBuildState(pos,34400)=m_fightTurn+1;
 	if(val < 0)
 	{
 		p->sum_beDamage += -val;
@@ -7820,6 +8025,7 @@ void CFight::DecreaseHp(uint8 pos, uint8 srcPos, int &hp,int &absorpionHp,bool i
 			else	// 复活
 			{
 				p->AddHp(addFuHuoHp,maxHp);
+                ++HeroBuildState(pos,200070);HeroBuildState(pos,260000+pos)=1;p->heroBuildRevivedTurn=m_fightTurn;
 				p->sum_cure += addFuHuoHp;
 			}
 		}
@@ -7830,8 +8036,15 @@ void CFight::DecreaseHp(uint8 pos, uint8 srcPos, int &hp,int &absorpionHp,bool i
 		{
 			ClearState(pos, EFST_STATE_Die);
 			DelDieUnit(pos);
+            if(revival){++HeroBuildState(pos,200070);HeroBuildState(pos,260000+srcPos)=1;p->heroBuildRevivedTurn=m_fightTurn;}
 		}
 	}
+
+    if(previouslyAlive && !IsAlive(pos) && srcPos>0 && !IsSameGroup(pos,srcPos) && !p->affixSummoned && HeroBuildSetPieces(srcPos,4)>=4)
+    {
+        HeroBuildState(srcPos,105004)=std::min(3,HeroBuildState(srcPos,105004)+1);
+        vector<int> attack(1,HeroBuildState(srcPos,105004)*600);AddBuff(srcPos,srcPos,ESBUFF_DamagePercentAdd,255,&attack,11004);
+    }
 
 	if(!m_forceEnd)
 	{
@@ -7930,7 +8143,7 @@ void CFight::TurnOver(uint8 pos)
 				m_members[pos-1].select = false;
 			}
 		}
-		DecAllSkillCD(pos);
+        // Natural cooldown advances at the next normal action opportunity.
 //		DecAllStateEffectTurn(pos);
 		if(!IsAlive(pos))
 			return;
@@ -7999,7 +8212,13 @@ int CFight::CalculateSkillDamage(uint8 src,uint8 target,int skillId,int skillLev
 		return 1;
 
 	int attackType = pSrc->attackType;
-	int damage = GetUnitAttack(src) - GetUnitFangYu(target,attackType) * (1.0 - GetAttrValue(attrList,ESkill_PassAttr_HuShiFang)/10000.0);
+    int ignoreDefense=GetAttrValue(attrList,ESkill_PassAttr_HuShiFang);
+    if(attackType==2 && IsHeroBuild(src,54,1) && skillId==541 && HaveBuff(target,ESBUFF_FaMianLvDes))ignoreDefense=10000-(10000-ignoreDefense)*90/100;
+    if(attackType==2 && IsHeroBuild(src,56,2) && (skillId==561 || skillId==562))ignoreDefense=10000-(10000-ignoreDefense)*85/100;
+    if(HeroBuildSetPieces(src,6)>=4)ignoreDefense=10000-(10000-ignoreDefense)*85/100;
+    if(attackType==2 && HaveBuff(target,ESBUFF_FaFangDes))ignoreDefense=10000-(int)((int64)(10000-ignoreDefense)*(10000-std::max(0,std::min(10000,GetAffixValue(src,27,1))))/10000);
+    ignoreDefense=std::max(0,std::min(6000,ignoreDefense));
+    int damage=GetUnitAttack(src)-GetUnitFangYu(target,attackType)*(1.0-std::min(10000,ignoreDefense)/10000.0);
 	if(attackType == 1)	// 物攻
 	{
 		// 物理攻击无效
@@ -8027,9 +8246,11 @@ int CFight::CalculateSkillDamage(uint8 src,uint8 target,int skillId,int skillLev
 	else if(pActive->effect_type == ESkill_Active_AttackByDesHp)
 	{
 		int needHp = (pActive->para[0] + pActive->para_levelAdd[0] * (skillLevel - 1))/10000.0 * GetMaxHp(src);
+		if(IsHeroBuild(src,42,2) && skillId==422)needHp=std::min((int)(GetMaxHp(src)*15/100),std::max(0,(int)pSrc->hp-1));
 		if(pSrc->hp < needHp)
 			needHp = pSrc->hp;
 		damage = needHp*((pActive->para[1] + pActive->para_levelAdd[1] * (skillLevel - 1))/10000.0) + pActive->para[2] + pActive->para_levelAdd[2] * (skillLevel-1);
+		if(IsHeroBuild(src,42,2) && skillId==422)damage=damage*125/100;
 		selfDamage = needHp;
 	}
 	else if(pActive->effect_type == ESkill_Active_Wait)
@@ -8047,6 +8268,10 @@ int CFight::CalculateSkillDamage(uint8 src,uint8 target,int skillId,int skillLev
 	float offsetDamRatio = CalUnitShangHaiJianMianLv(src,target,attackType);
 	damage += GetAttrValue(attrList,ESkill_PassAttr_Damage);
 	addDamPercent += GetAttrValue(attrList,ESkill_PassAttr_DamagePer)/10000.0;
+	addDamPercent += HeroBuildDamagePercent(src,target,skillId)/10000.0;
+    addDamPercent+=HeroBuildEquipmentDamage(src,target)/10000.0;
+    addDamPercent+=(pSrc->unitAttr.zengshangLv+GetStatePara1(src,ESBUFF_ZengShangLvAdd)-GetStatePara1(src,ESBUFF_ZengShangLvDes))/10000.0;
+    addDamPercent=std::max(0.0f,std::min(2.0f,addDamPercent));
 	if(showFightLog)
 		cout<<", src="<<(int)src<<",  target="<<(int)target<<", SkillDamageB = "<<damage<<", zhengshangLv="<<zhengshangLv<<", addDamPercent="<<addDamPercent<<", offsetDamRatio="<<offsetDamRatio<<endl;
 
@@ -8216,10 +8441,12 @@ int CFight::CalculateFanShang(uint8 src,uint8 target,int damage,vector<SAttrData
 
 	int fanzhenLv = pTarget->unitAttr.fanzhenLv*(1 - GetAttrValue(attrList,EAT_FanZhenLv)/10000.0) - pSrc->unitAttr.fanzhenkangLv;
 	fanzhenLv += GetStatePara1(target,ESBUFF_FanZhengAllAdd) + GetStatePara1(target,ESBUFF_FanZhengLvAdd);
+	if(IsHeroBuild(target,23,2) && HaveBuff(target,ESBUFF_JianShangLvAdd))fanzhenLv+=2000;
 	int r = Random(1,10000);
 	if(r <= fanzhenLv)
 	{
 		damage *= (pTarget->unitAttr.fanzhenAdd + GetStatePara2(target,ESBUFF_FanZhengAllAdd))/10000.0;
+		if(IsHeroBuild(target,23,2))damage=damage*(HaveBuff(target,ESBUFF_FanZhengAllAdd)?145:120)/100;
 		if(damage < 1)
 			damage = 1;
 		return damage;
@@ -8270,8 +8497,11 @@ uint8 CFight::CalculateSkill_AddHp(uint8 src,uint16 skillId,int skillLevel)
 	{
 		uint8 tar = allTarget[i];
 		bool wasAlive = IsAlive(tar);
+		if (!wasAlive && GetHeroId(src) == 10 && pSrc->heroBuildBranch != 0
+			&& skillId == 102 && pSrc->heroBuildRevivedTargets[tar-1])
+			continue;
 		// 禁止复活
-		if(!IsAlive(tar) && HaveBuff(tar,ESBUFF_ForbidFuHuo))
+		if(!IsAlive(tar) && (HaveBuff(tar,ESBUFF_ForbidFuHuo) || HeroBuildState(tar,200070)>=2 || HeroBuildState(tar,260000+src)>0))
 			continue;
 		
 		// 触发被动技能，加血时
@@ -8286,32 +8516,41 @@ uint8 CFight::CalculateSkill_AddHp(uint8 src,uint16 skillId,int skillLevel)
 		CalculatePassiveSkill_ExtUnitAndBuff(src,tar,triggerList,skillId,skillLevel,moreHp);
 		
 		int addHpPer = GetAttrValue(attrData,ESkill_PassAttr_AddHpPer);
+        addHpPer+=HeroBuildArtifactValue(src,2)+(HeroBuildSetPieces(src,10)>=2?1000:0);
+        if(HeroBuildSetPieces(tar,5)>=4 && GetHp(tar)*100<GetMaxHp(tar)*40)addHpPer+=1000;
+		if (skillId == 101 && IsHeroBuild(src,10,1)) addHpPer += 2500;
+		if (skillId == 101 && IsHeroBuild(src,10,2)) addHpPer -= 1000;
+        if(IsHeroBuild(src,50,1) && skillId==501 && GetHp(tar)*100<GetMaxHp(tar)*35)addHpPer+=3000;
+        if(skillId==421 && IsHeroBuild(src,42,1))addHpPer+=2000+(GetHp(src)*100<GetMaxHp(src)*40?1500:0);
+        if(skillId==391 && IsHeroBuild(src,39,1))addHpPer+=2000;
+        if(skillId==311 && IsHeroBuild(src,31,1) && GetHp(tar)*100<GetMaxHp(tar)*35)addHpPer+=3000;
+        if(skillId==311 && IsHeroBuild(src,31,2))addHpPer-=1000;
 		bool baoji = CalculateBaoJiRatio_AddHp(src,attrData);
 		int addHp = GetSkillAddHpValue(src,tar,skillId,skillLevel);
 		if(GetMaxHp(tar) > 0 && GetHp(tar) * 10000 / GetMaxHp(tar) < GetAffixValue(src,6,2))
-			addHp = addHp * (10000 + GetAffixValue(src,6,1)) / 10000;
+			addHpPer += GetAffixValue(src,6,1);
 		if(baoji)
 		{
 			addHp = GetBaoJiDamage(src,addHp);
-			if(HaveBuff(tar,ESBUFF_JinLiaoShu))
-				addHp *= 1 - GetStatePara1(tar,ESBUFF_JinLiaoShu)/10000.0;
 		}
-		addHp *= -(1 + addHpPer/10000.0 + GetStatePara1(tar,ESBUFF_ImproveCureHp)/10000.0);
+		addHp *= -(1 + std::max(-10000,std::min(10000,addHpPer+GetStatePara1(tar,ESBUFF_ImproveCureHp)))/10000.0);
+		if(wasAlive && HaveBuff(tar,ESBUFF_JinLiaoShu))
+			addHp=(int)((int64)addHp*std::max(0,10000-GetStatePara1(tar,ESBUFF_JinLiaoShu))/10000);
+		if (skillId == 102 && GetHeroId(src) == 10 && pSrc->heroBuildBranch != 0)
+		{
+			// A/B replaces the entire revive formula, not just its multiplier.
+			addHp = -(int)(GetMaxHp(tar) * (pSrc->heroBuildBranch == 1 ? 25 : 40) / 100);
+			baoji = false;
+		}
 
+        if(skillId==352 && IsHeroBuild(src,35,2)){addHp=-(int)(GetMaxHp(tar)*35/100);baoji=false;}
 		int sHp = GetHp(tar);
 		int absorpionHp = 0;
 		DecreaseHp(tar, src, addHp,absorpionHp);
 		int tempHp = sHp - GetHp(tar) - addHp;
+		HeroBuildAfterHeal(src,tar,skillId,sHp,tempHp,wasAlive);
 		if(tempHp > moreHp)
 			moreHp = tempHp;
-		if(tempHp > 0 && TryTriggerAffix(src,5))
-		{
-			int shieldHp = tempHp * GetAffixValue(src,5,1) / 10000;
-			int cap = (int)(GetMaxHp(tar) * GetAffixValue(src,5,2) / 10000);
-			if(cap > 0 && shieldHp > cap)
-				shieldHp = cap;
-			AddAffixShield(src,tar,shieldHp,2,5);
-		}
 		if(!wasAlive && IsAlive(tar) && TryTriggerAffix(src,8))
 		{
 			vector<int> guardPara(1,GetAffixValue(src,8,1));
@@ -8341,6 +8580,26 @@ uint8 CFight::CalculateSkill_AddHp(uint8 src,uint16 skillId,int skillLevel)
 	}
 	m_actionMsg.WriteData(numPos,&num,sizeof(num));
 //	MakeBuffList(src,m_actionMsg);
+	if (skillId == 102 && IsHeroBuild(src,10,2) && num == 1)
+		AddTeamRage(src,15);
+	if (skillId == 101 && IsHeroBuild(src,10,1))
+	{
+		uint8 allies[GROUP_MEMBER], count = 0;
+		GetMeGroup(src,allies,count);
+		uint8 lowest = 0;
+		for (uint8 i=0;i<count;++i)
+			if (lowest == 0 || GetHp(allies[i])*GetMaxHp(lowest) < GetHp(lowest)*GetMaxHp(allies[i]))
+				lowest = allies[i];
+		if (lowest != 0)
+		{
+			vector<int> guard(1,800);
+			AddBuff(lowest,src,ESBUFF_MianShangTemp,2,&guard);
+			m_extActionMsg.SetType(m_extActionMsg.GetType()+1);
+			m_extActionMsg << (uint8)EFOT_Passive << src << (uint16)101 << string("") << (uint8)1;
+			m_extActionMsg << lowest << (int)0 << (int)0 << (int)0;
+			MakeBuffList(lowest,m_extActionMsg);
+		}
+	}
 
 	if(moreHp > 0)
 	{
@@ -8373,6 +8632,62 @@ void CFight::GetPassivePara(uint8 src,vector<int> &para,SSkillAdditiveEffect *pA
 	for(uint8 k=0;k < SSkillAdditiveEffect::MAX_PARA_NUM;k++)
 	{
 		int value = pActive->para[k] + pActive->para_levelAdd[k] * (skillLevel - 1);
+		if(k==1 && pActive->id>=134 && pActive->id<=138 && IsHeroBuild(src,13,1))value=value*120/100;
+		if(k==0 && pActive->id==145 && IsHeroBuild(src,14,2))value+=2000;
+        if(k==0 && pActive->id==455 && IsHeroBuild(src,45,1))value=10000;
+        if(k==1 && pActive->id==484 && IsHeroBuild(src,48,2))value+=500;
+        if(k==1 && pActive->id==504 && IsHeroBuild(src,50,2))value+=1000;
+        if(k==1 && pActive->id==514 && IsHeroBuild(src,51,1))value+=500;
+        if(k==1 && pActive->id==523 && IsHeroBuild(src,52,1))value+=800;
+        if(k==1 && pActive->id==524 && IsHeroBuild(src,52,2))value+=800;
+        if(k==1 && pActive->id==533 && IsHeroBuild(src,53,2))value+=1000;
+        if(k==1 && pActive->id==133 && IsHeroBuild(src,55,1))value+=500;
+        if(k==1 && pActive->id==554 && IsHeroBuild(src,55,2))value+=800;
+        if(k==1 && (pActive->id==583 || pActive->id==584) && IsHeroBuild(src,58,1))value-=500;
+        if(pActive->id==613 && IsHeroBuild(src,61,2)){if(k==1)value=value*125/100;if(k==2)value=20000;}
+        if(k==1 && pActive->id==222 && IsHeroBuild(src,62,2))value=value*125/100;
+        if(k==1 && pActive->id==633 && IsHeroBuild(src,63,2))value-=500;
+        if(k==1 && pActive->id==56 && IsHeroBuild(src,64,1))value+=1000;
+        if(k==1 && pActive->id==653 && IsHeroBuild(src,65,1))value-=800;
+        if(k==1 && pActive->id==654 && IsHeroBuild(src,65,2))value+=800;
+        if(pActive->id==674 && IsHeroBuild(src,67,1)){if(k==0)value=6000;if(k==1)value=600;}
+
+        if(pActive->id==373 && IsHeroBuild(src,37,2)){if(k==0)value=7000;if(k==3)value=2;}
+        if(k==1 && pActive->id==374 && IsHeroBuild(src,37,1))value+=500;
+        if(k==0 && pActive->id==394 && IsHeroBuild(src,39,1))value+=1500;
+        if(k==1 && pActive->id==393 && IsHeroBuild(src,39,2))value+=1500;
+        if(k==1 && pActive->id==401 && IsHeroBuild(src,40,1))value+=1200;
+        if(k==1 && pActive->id==402 && IsHeroBuild(src,40,1))value+=2000;
+
+        if(pActive->id==344 && GetHeroId(src)==34 && GetFightMember(src)->heroBuildBranch!=0)
+        {if(k==1)value=IsHeroBuild(src,34,1)?4500:3000;if(k==2)value=IsHeroBuild(src,34,1)?2000:3500;}
+        if(pActive->id==364 && IsHeroBuild(src,36,2)){if(k==1)value=4000;if(k==2)value+=1000;}
+
+        if(k==1 && pActive->id==262 && IsHeroBuild(src,26,2))value+=1500;
+        if(k==1 && pActive->id==283 && IsHeroBuild(src,28,2))value+=500;
+        if(k==1 && pActive->id==294 && IsHeroBuild(src,29,2) && HeroBuildState(src,29401)<=5)value+=300;
+
+        if(pActive->id==233 && GetHeroId(src)==23 && GetFightMember(src)->heroBuildBranch!=0)
+        {if(k==0)value=IsHeroBuild(src,23,1)?8000:5000;if(k==1 && IsHeroBuild(src,23,1))value=6000;}
+        if(k==1 && pActive->id==234 && IsHeroBuild(src,23,1))value+=1000;
+        if(k==1 && pActive->id==235 && IsHeroBuild(src,23,2))value+=800;
+
+        if(k==1 && pActive->id==193 && IsHeroBuild(src,19,1))value=value*115/100;
+        if(k==1 && pActive->id==194 && IsHeroBuild(src,19,2))value+=800;
+        if(k==1 && pActive->id==212 && IsHeroBuild(src,21,2))value+=1500;
+        if(k==1 && pActive->id==222 && IsHeroBuild(src,22,2))value=value*125/100;
+
+		if(k==0 && pActive->id==164 && IsHeroBuild(src,16,2))
+		{
+			SFightMember *member=GetFightMember(src);
+			for(list<SFightBuffData>::const_iterator it=member->buff_list.begin();it!=member->buff_list.end();++it)
+				if(IsAffixHardControl(it->id)){value=7000;break;}
+		}
+		if(k==1 && IsHeroBuild(src,14,1))
+		{
+			if(pActive->id==144)value=600;
+			if(pActive->id==146)value=-400;
+		}
 		if(value != 0)
 			para.push_back(value);
 	}
@@ -8389,6 +8704,7 @@ void CFight::GetPassiveBuffPara(uint8 src,vector<int> &para,SSkillAdditiveEffect
 		if(k == 3)
 			continue;
 		int value = pActive->para[k] + pActive->para_levelAdd[k] * (skillLevel - 1);
+        if(k==0 && pActive->id==455 && IsHeroBuild(src,45,1))value=10000;
 		if(pActive->buffId == ESBUFF_ShiXinDu && para.size() == 2)	// 添加伤害上限
 			value = GetUnitAttack(src) * (value/10000.0);
 		else if(pActive->buffId == ESBUFF_ShiDu && para.size() == 1)
@@ -8454,6 +8770,8 @@ void CFight::GetBuffPara(uint8 src,vector<int> &para,SSkillActiveEffect *pActive
 			value = GetMaxHp(src) * (value/10000.0);
 			para.push_back(value);
 		}
+		if(pActive->buffId==ESBUFF_AddHpContinue && IsHeroBuild(src,35,1))value=value*120/100;
+        if(pActive->buffId==ESBUFF_AddHpContinue && IsHeroBuild(src,67,1))value=value*120/100;
 		if(value > 0)
 			para.push_back(value);
 	}
@@ -8497,6 +8815,7 @@ uint8 CFight::CalculateSkill_AddBuff(uint8 src,uint16 skillId,int skillLevel)
 		return 0;
 	pSrc->target = allTarget[0];
 	uint8 effectTurn = pActive->para[2] + pActive->para_levelAdd[2] * (skillLevel - 1);
+	if(IsHeroBuild(src,17,2) && skillId==171)effectTurn=1;
 
 	uint16 actionNum = m_actionMsg.GetType() + 1;
 	m_actionMsg.SetType(actionNum);
@@ -8510,11 +8829,12 @@ uint8 CFight::CalculateSkill_AddBuff(uint8 src,uint16 skillId,int skillLevel)
 		if(pTarget == NULL)
 			continue;
 		uint8 isActive = 0;
-		if(!pTarget->InNotEffectBuff(pActive->buffId))
+		if(!pTarget->InNotEffectBuff(pActive->buffId) || (HeroBuildBoss(allTarget[i]) && IsAffixHardControl(pActive->buffId)))
 		{
 			ClearBuffNotMerge(allTarget[i],pBuff);
 			vector<int> para;
 			GetBuffPara(src,para,pActive,skillLevel);
+			if(IsHeroBuild(src,17,1) && skillId==171 && !para.empty())para[0]=std::max(0,para[0]-1000);
 
 			vector<SAttrData> attrData;
 			vector<ESkillTriggerType> trigger;
@@ -8533,8 +8853,8 @@ uint8 CFight::CalculateSkill_AddBuff(uint8 src,uint16 skillId,int skillLevel)
 				para.push_back(jinliaoDamageRatio);
 			}
 
-			uint8 turn = (allTarget[i] == m_curActionPos) ? effectTurn+1 : effectTurn;
-			AddBuff(allTarget[i], src, pActive->buffId, turn, &para);
+			uint8 turn = effectTurn;
+			AddBuff(allTarget[i], src, pActive->buffId, turn, &para,skillId);
 
 			if(showFightLog)
 				cout<<" src="<<(int)src<<", skillId="<<skillId<<", buffType="<<pActive->buffId<<" , skillTarget="<<(int)allTarget[i]<<endl;
@@ -8636,6 +8956,30 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 			int trigger = triggerList[j];
 			vector<int> passiveList;
 			skillMgr.GetSkillPassiveData(skillData.id,trigger,passiveList);
+            if(skillData.id==471 && IsHeroBuild(src,47,2))passiveList.clear();
+            if(skillData.id==514 && IsHeroBuild(src,51,2))passiveList.clear();
+            if(skillData.id==613 && IsHeroBuild(src,61,2) && (HeroBuildState(src,61300)>0 || pSrc->affixSummoned))passiveList.clear();
+            if((skillData.id==603 || skillData.id==604) && GetHeroId(src)==60 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==462 && IsHeroBuild(src,46,1) && trigger==ESkill_Trigger_Attacking)
+            {
+                if(target>0 && HeroBuildState(src,46200+target)>0)passiveList.clear();
+                else{const int effects[]={466,467,468};passiveList.assign(1,effects[std::min(2,HeroBuildState(src,46250))]);}
+            }
+            if(skillData.id==313 && GetHeroId(src)==31 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==162 && trigger==ESkill_Trigger_Attacking && GetHeroId(src)==16 && pSrc->heroBuildBranch!=0)
+            {
+                int weapon=162;
+                if(pSrc->heroBuildBranch==2)
+                {
+                    if(HeroBuildState(src,16103)>0){const int weapons[]={162,165,166};weapon=weapons[std::min(2,HeroBuildState(src,16101))];}
+                    else weapon=!HaveDeBuffState(target)?165:HaveShieldState(target)?166:162;
+                }
+                passiveList.assign(1,weapon);
+            }
+			if(skillData.id==153 && IsHeroBuild(src,15,1))passiveList.erase(std::remove(passiveList.begin(),passiveList.end(),153),passiveList.end());
+			if(skillData.id==144 && (IsHeroBuild(src,14,2) || (IsHeroBuild(src,14,1) && HeroBuildState(src,14401)>4)))passiveList.clear();
+			if(skillData.id==134 && trigger==ESkill_Trigger_FightBegin && IsHeroBuild(src,13,1))
+				passiveList.assign(1,HeroBuildOpeningEffect(src));
 			if(passiveList.empty())
 				continue;
 			for(uint16 k=0;k < passiveList.size();k++)
@@ -8646,6 +8990,13 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 					continue;
 				vector<int> para;
 				GetPassivePara(src,para,pEffect,skillData.level);
+                if(skillData.id==154 && trigger==ESkill_Trigger_UnitDied && GetHeroId(src)==15 && pSrc->heroBuildBranch!=0 && para.size()>=3)
+                {
+                    SFightMember *fallen=GetFightMember(target);
+                    if(fallen==NULL || fallen->affixSummoned)continue;
+                    para[1]=pSrc->heroBuildBranch==1?400:((src<=GROUP2_BEGIN)==(target<=GROUP2_BEGIN)?300:600);
+                    para[2]=5;
+                }
 				uint16 size = para.size();
 				if(size < 1)
 					continue;
@@ -8687,7 +9038,11 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 								if(size < 3)
 									break;
 								int attrType = pEffect->buffId;
-								pSrc->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
+								if(skillData.id==404 && IsHeroBuild(src,40,2))
+                                {vector<int> evasion(1,para[1]+800);AddBuff(src,src,ESBUFF_ShanBiLvAdd,1,&evasion,404);}
+                                else if(skillData.id==414 && IsHeroBuild(src,41,1))
+                                {vector<int> attack(1,para[1]+500);AddBuff(src,src,ESBUFF_DamagePercentAdd,2,&attack,414);}
+                                else pSrc->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]>0?std::min(5,para[2]):5);
 								showPassiveId = passiveId;
 								showPos = src;
 							}
@@ -8735,7 +9090,7 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 							{
 								if(size < 3)
 									break;
-								if(!IsAlive(target) && !HaveState(target, EFST_STATE_Escape))	// 死亡
+								if(!IsAlive(target) && !HaveState(target, EFST_STATE_Escape) && !GetFightMember(target)->affixSummoned)	// 死亡
 								{
 									int attrType = pEffect->buffId;
 									pSrc->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
@@ -8780,7 +9135,8 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 										if(pTar == NULL)
 											continue;
 										int attrType = pEffect->buffId;
-										pTar->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
+										SFightLimitData *aura=pTar->GetPassSkillLimitData(skillData.id,passiveType,attrType);
+                                        if(aura && std::abs(para[1])>std::abs(aura->_value))pTar->SetPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1);
 									}
 								}
 								showPassiveId = passiveId;
@@ -8794,10 +9150,13 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 							{
 								if(size < 3)
 									break;
-								if(!IsAlive(target) && !HaveState(target, EFST_STATE_Escape))	// 死亡
+								if(!IsAlive(target) && !HaveState(target, EFST_STATE_Escape) && !GetFightMember(target)->affixSummoned)	// 死亡
 								{
 									int attrType = pEffect->buffId;
-									pSrc->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
+									bool limitedGrowth=skillData.id==154 && GetHeroId(src)==15 && pSrc->heroBuildBranch!=0;
+                                    if(limitedGrowth && HeroBuildState(src,15400)>=5)break;
+                                    bool grew=pSrc->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
+                                    if(limitedGrowth && grew)++HeroBuildState(src,15400);
 									showPassiveId = passiveId;
 									showPos = src;
 								}
@@ -8823,7 +9182,8 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 										if(pTar == NULL)
 											continue;
 										int attrType = pEffect->buffId;
-										pTar->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
+										SFightLimitData *aura=pTar->GetPassSkillLimitData(skillData.id,passiveType,attrType);
+                                        if(aura && std::abs(para[1])>std::abs(aura->_value))pTar->SetPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1);
 									}
 								}
 								showPassiveId = passiveId;
@@ -8854,7 +9214,7 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 									break;
 								if(IsSameGroup(src,target))
 								{
-									if(!IsAlive(target) && !HaveState(target, EFST_STATE_Escape))	// 死亡
+									if(!IsAlive(target) && !HaveState(target, EFST_STATE_Escape) && !GetFightMember(target)->affixSummoned)	// 死亡
 									{
 										int attrType = pEffect->buffId;
 										pSrc->AddPassSkillLimitAttrData(skillData.id,passiveType,attrType,para[1],1,para[2]);
@@ -8908,6 +9268,8 @@ void CFight::CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<E
 								if(pMem != NULL)
 								{
 									int decAttack = pMem->unitAttr.attack * (para[1]/10000.0);
+                                    if(IsHeroBuild(src,68,1) && skillData.id==684)
+                                    {int opening=HeroBuildState(src,68400)>0?HeroBuildState(src,68400):pSrc->unitAttr.attack;decAttack=std::min(decAttack,opening*20/100);}
 									pMem->unitAttr.attack -= decAttack;
 									pSrc->unitAttr.attack += decAttack;
 									showPassiveId = passiveId;
@@ -8963,6 +9325,30 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 			int trigger = triggerList[j];
 			vector<int> passiveList;
 			skillMgr.GetSkillPassiveData(skillData.id,trigger,passiveList);
+            if(skillData.id==471 && IsHeroBuild(src,47,2))passiveList.clear();
+            if(skillData.id==514 && IsHeroBuild(src,51,2))passiveList.clear();
+            if(skillData.id==613 && IsHeroBuild(src,61,2) && (HeroBuildState(src,61300)>0 || pSrc->affixSummoned))passiveList.clear();
+            if((skillData.id==603 || skillData.id==604) && GetHeroId(src)==60 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==462 && IsHeroBuild(src,46,1) && trigger==ESkill_Trigger_Attacking)
+            {
+                if(target>0 && HeroBuildState(src,46200+target)>0)passiveList.clear();
+                else{const int effects[]={466,467,468};passiveList.assign(1,effects[std::min(2,HeroBuildState(src,46250))]);}
+            }
+            if(skillData.id==313 && GetHeroId(src)==31 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==162 && trigger==ESkill_Trigger_Attacking && GetHeroId(src)==16 && pSrc->heroBuildBranch!=0)
+            {
+                int weapon=162;
+                if(pSrc->heroBuildBranch==2)
+                {
+                    if(HeroBuildState(src,16103)>0){const int weapons[]={162,165,166};weapon=weapons[std::min(2,HeroBuildState(src,16101))];}
+                    else weapon=!HaveDeBuffState(target)?165:HaveShieldState(target)?166:162;
+                }
+                passiveList.assign(1,weapon);
+            }
+			if(skillData.id==153 && IsHeroBuild(src,15,1))passiveList.erase(std::remove(passiveList.begin(),passiveList.end(),153),passiveList.end());
+			if(skillData.id==144 && (IsHeroBuild(src,14,2) || (IsHeroBuild(src,14,1) && HeroBuildState(src,14401)>4)))passiveList.clear();
+			if(skillData.id==134 && trigger==ESkill_Trigger_FightBegin && IsHeroBuild(src,13,1))
+				passiveList.assign(1,HeroBuildOpeningEffect(src));
 			if(passiveList.empty())
 				continue;
 			for(uint16 k=0;k < passiveList.size();k++)
@@ -8973,6 +9359,13 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 					continue;
 				vector<int> para;
 				GetPassivePara(src,para,pEffect,skillData.level);
+                if(skillData.id==154 && trigger==ESkill_Trigger_UnitDied && GetHeroId(src)==15 && pSrc->heroBuildBranch!=0 && para.size()>=3)
+                {
+                    SFightMember *fallen=GetFightMember(target);
+                    if(fallen==NULL || fallen->affixSummoned)continue;
+                    para[1]=pSrc->heroBuildBranch==1?400:((src<=GROUP2_BEGIN)==(target<=GROUP2_BEGIN)?300:600);
+                    para[2]=5;
+                }
 				uint16 size = para.size();
 				if(size < 1)
 					continue;
@@ -8991,7 +9384,7 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 								if(size < 3)
 									break;
 								int hpPer = 10000.0 * (pSrc->hp / (float)GetMaxHp(src));
-								if(hpPer < para[1])
+								if(hpPer < para[1] || (skillData.id==344 && IsHeroBuild(src,34,2) && HeroBuildState(src,34400)==m_fightTurn+1))
 								{
 									t.attrType = ESkill_PassAttr_ImproveMianShangLv;
 									t.attrValue = para[2];
@@ -9073,6 +9466,9 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 									break;
 								t.attrType = ESkill_PassAttr_Damage;
 								t.attrValue = pSrc->unitAttr.attack * (para[1] / 10000.0);
+                                if(skillData.id==193 && IsHeroBuild(src,19,1))
+                                {if(HeroBuildState(src,193)>=3 || m_heroBuildSecondaryDamage)t.attrValue=0;}
+
 							}
 							else if(passiveType == ESkill_Pass_IgnoreFang)
 							{
@@ -9124,6 +9520,7 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 								damage = (damage > damLimit) ? damLimit : damage;
 								t.attrType = ESkill_PassAttr_Damage;
 								t.attrValue = damage;
+                                if(IsHeroBuild(src,29,1) && skillData.id==291 && HeroBuildBoss(target))t.attrValue=GetUnitAttack(src)*80/100;
 							}
 							else if(passiveType == ESkill_Pass_CureTarHp)	// 为施法者自己加血
 							{
@@ -9191,6 +9588,7 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 							}
 							else if(passiveType == ESkill_Pass_ZhaoHuan)
 							{
+                                if(GetHeroId(src)==17 && pSrc->heroBuildBranch!=0)break;
 								if(size < 3)
 									break;
 								t.attrType = ESkill_PassAttr_FanJiLv;
@@ -9205,6 +9603,12 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 									break;
 								t.attrType = ESkill_PassAttr_FanShang;
 								t.attrValue = pSrc->hp * (para[1] / 10000.0);
+                                if(IsHeroBuild(src,18,1) && skillData.id==183)
+                                {
+                                    if(HeroBuildState(src,18300)!=m_fightTurn+1){HeroBuildState(src,18300)=m_fightTurn+1;HeroBuildState(src,18301)=0;}
+                                    if(HeroBuildState(src,18301)>=2 || m_heroBuildSecondaryDamage)t.attrValue=0;
+                                    else t.attrValue=t.attrValue*120/100;
+                                }
 							}
 							else if(passiveType == ESkill_Pass_ReduceDamage)
 							{
@@ -9402,6 +9806,7 @@ void CFight::CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkill
 									break;
 								t.attrType = ESkill_PassAttr_AddHp;
 								t.attrValue = pSrc->unitAttr.attack * (para[1] / 10000.0);
+
 							}
 						}
 						break;
@@ -9894,6 +10299,30 @@ void CFight::CalculatePassiveSkill_ActionBuff(uint8 src,uint8 target,const vecto
 			int trigger = triggerList[j];
 			vector<int> passiveList;
 			skillMgr.GetSkillPassiveData(skillData.id,trigger,passiveList);
+            if(skillData.id==471 && IsHeroBuild(src,47,2))passiveList.clear();
+            if(skillData.id==514 && IsHeroBuild(src,51,2))passiveList.clear();
+            if(skillData.id==613 && IsHeroBuild(src,61,2) && (HeroBuildState(src,61300)>0 || pSrc->affixSummoned))passiveList.clear();
+            if((skillData.id==603 || skillData.id==604) && GetHeroId(src)==60 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==462 && IsHeroBuild(src,46,1) && trigger==ESkill_Trigger_Attacking)
+            {
+                if(target>0 && HeroBuildState(src,46200+target)>0)passiveList.clear();
+                else{const int effects[]={466,467,468};passiveList.assign(1,effects[std::min(2,HeroBuildState(src,46250))]);}
+            }
+            if(skillData.id==313 && GetHeroId(src)==31 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==162 && trigger==ESkill_Trigger_Attacking && GetHeroId(src)==16 && pSrc->heroBuildBranch!=0)
+            {
+                int weapon=162;
+                if(pSrc->heroBuildBranch==2)
+                {
+                    if(HeroBuildState(src,16103)>0){const int weapons[]={162,165,166};weapon=weapons[std::min(2,HeroBuildState(src,16101))];}
+                    else weapon=!HaveDeBuffState(target)?165:HaveShieldState(target)?166:162;
+                }
+                passiveList.assign(1,weapon);
+            }
+			if(skillData.id==153 && IsHeroBuild(src,15,1))passiveList.erase(std::remove(passiveList.begin(),passiveList.end(),153),passiveList.end());
+			if(skillData.id==144 && (IsHeroBuild(src,14,2) || (IsHeroBuild(src,14,1) && HeroBuildState(src,14401)>4)))passiveList.clear();
+			if(skillData.id==134 && trigger==ESkill_Trigger_FightBegin && IsHeroBuild(src,13,1))
+				passiveList.assign(1,HeroBuildOpeningEffect(src));
 			if(passiveList.empty())
 				continue;
 			for(uint16 k=0;k < passiveList.size();k++)
@@ -9916,6 +10345,13 @@ void CFight::CalculatePassiveSkill_ActionBuff(uint8 src,uint8 target,const vecto
 				vector<int> para;
 				// 取配置
 				GetPassivePara(src,para,pEffect,skillData.level);
+                if(skillData.id==154 && trigger==ESkill_Trigger_UnitDied && GetHeroId(src)==15 && pSrc->heroBuildBranch!=0 && para.size()>=3)
+                {
+                    SFightMember *fallen=GetFightMember(target);
+                    if(fallen==NULL || fallen->affixSummoned)continue;
+                    para[1]=pSrc->heroBuildBranch==1?400:((src<=GROUP2_BEGIN)==(target<=GROUP2_BEGIN)?300:600);
+                    para[2]=5;
+                }
 				uint16 size = para.size();
 				if(size < 1)
 					continue;
@@ -10038,6 +10474,31 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 			int trigger = triggerList[j];
 			vector<int> passiveList;
 			skillMgr.GetSkillPassiveData(skillData.id,trigger,passiveList);
+            if(skillData.id==471 && IsHeroBuild(src,47,2))passiveList.clear();
+            if(skillData.id==514 && IsHeroBuild(src,51,2))passiveList.clear();
+            if(skillData.id==613 && IsHeroBuild(src,61,2) && (HeroBuildState(src,61300)>0 || pSrc->affixSummoned))passiveList.clear();
+            if((skillData.id==603 || skillData.id==604) && GetHeroId(src)==60 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==462 && IsHeroBuild(src,46,1) && trigger==ESkill_Trigger_Attacking)
+            {
+                if(target>0 && HeroBuildState(src,46200+target)>0)passiveList.clear();
+                else{const int effects[]={466,467,468};passiveList.assign(1,effects[std::min(2,HeroBuildState(src,46250))]);}
+            }
+            if(skillData.id==423 && IsHeroBuild(src,42,2) && HeroBuildState(src,42300)>0)passiveList.clear();
+            if(skillData.id==313 && GetHeroId(src)==31 && pSrc->heroBuildBranch!=0)passiveList.clear();
+            if(skillData.id==162 && trigger==ESkill_Trigger_Attacking && GetHeroId(src)==16 && pSrc->heroBuildBranch!=0)
+            {
+                int weapon=162;
+                if(pSrc->heroBuildBranch==2)
+                {
+                    if(HeroBuildState(src,16103)>0){const int weapons[]={162,165,166};weapon=weapons[std::min(2,HeroBuildState(src,16101))];}
+                    else weapon=!HaveDeBuffState(target)?165:HaveShieldState(target)?166:162;
+                }
+                passiveList.assign(1,weapon);
+            }
+			if(skillData.id==153 && IsHeroBuild(src,15,1))passiveList.erase(std::remove(passiveList.begin(),passiveList.end(),153),passiveList.end());
+			if(skillData.id==144 && (IsHeroBuild(src,14,2) || (IsHeroBuild(src,14,1) && HeroBuildState(src,14401)>4)))passiveList.clear();
+			if(skillData.id==134 && trigger==ESkill_Trigger_FightBegin && IsHeroBuild(src,13,1))
+				passiveList.assign(1,HeroBuildOpeningEffect(src));
 			if(passiveList.empty())
 				continue;
 			for(uint16 k=0;k < passiveList.size();k++)
@@ -10051,9 +10512,31 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 				if(pEffect == NULL)
 					continue;
 				int additiveId = pEffect->type;
+                if(skillData.id==353 && IsHeroBuild(src,35,1))
+                {if(HeroBuildState(src,35300)>0)continue;HeroBuildState(src,35300)=1;}
+
+				if(m_heroBuildSecondaryDamage && additiveId!=ESkill_Pass_CureTarHp)continue;
 				// 取目标
 				vector<uint8> allTarget;
 				GetPassiveSkill_Target(allTarget,trigger,additiveId,src,target,pEffect->buffId);
+                if(IsHeroBuild(src,66,1) && skillData.id==663)
+                {
+                    uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);GetSkillTargetSelCondition(allies,count,ESkill_Select_MaxDamage);
+                    allTarget.clear();if(count>0)allTarget.push_back(allies[0]);
+                }
+                if(IsHeroBuild(src,67,1) && skillData.id==674)
+                {if(HeroBuildState(src,67400)>0)continue;HeroBuildState(src,67400)=1;}
+                if(IsHeroBuild(src,45,1) && skillData.id==453 && pEffect->id==455 && allTarget.size()>2)allTarget.resize(2);
+                if(IsHeroBuild(src,26,2) && skillData.id==262 && allTarget.size()>3)allTarget.resize(3);
+                if(IsHeroBuild(src,22,1) && skillData.id==223 && trigger==ESkill_Trigger_TurnBegin)
+                {
+                    if(HeroBuildState(src,22300)==m_fightTurn+1)continue;
+                    HeroBuildState(src,22300)=m_fightTurn+1;allTarget.clear();
+                    uint8 enemies[GROUP_MEMBER],count=0;GetAnotherGroup(src,enemies,count);
+                    for(uint8 i=0;i<count;++i)if(IsAlive(enemies[i]) && !HaveBuff(enemies[i],ESBUFF_FengYin)
+                        && !GetFightMember(enemies[i])->InNotEffectBuff(ESBUFF_FengYin))allTarget.push_back(enemies[i]);
+                    if(!allTarget.empty()){uint8 chosen=allTarget[Random(0,(int)allTarget.size()-1)];allTarget.assign(1,chosen);}
+                }
 				if(allTarget.empty())
 					continue;
 
@@ -10078,22 +10561,31 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 						continue;
 					uint8 effectTurn = pEffect->para[3] + pEffect->para_levelAdd[3] * (skillData.level - 1);
 					int ratio = para[0];	// 概率
-					vector<int> passPara;
+					if (skillData.id == 111 && pEffect->buffId == ESBUFF_JinGuZhou && IsHeroBuild(src,11,1)) ++effectTurn;
+					if (skillData.id == 112 && pEffect->buffId == ESBUFF_JinLiaoShu && IsHeroBuild(src,11,2)) ratio += 2000;
+					vector<int> basePassPara;
 					if(size > 1)
-						passPara.assign(para.begin()+1,para.end());
+						basePassPara.assign(para.begin()+1,para.end());
 					for(uint8 k=0;k < allTarget.size();k++)
 					{
 						uint8 tar = allTarget[k];
 						if(tar == 0)
 							continue;
-						if(pEffect->buffId != ESBUFF_ForbidFuHuo)
+						uint16 targetBuff=pEffect->buffId;
+						vector<int> passPara=basePassPara;
+						int targetRatio=ratio;
+						uint8 targetTurn=effectTurn;
+						HeroBuildControlBuff(src,tar,skillData.id,targetBuff,targetRatio,targetTurn,passPara);
+                        if(IsHeroBuild(src,68,2) && skillData.id==682 && targetBuff==ESBUFF_ForbidFuHuo && HeroBuildBoss(tar))
+                        {targetBuff=ESBUFF_GetDamageAdd;passPara.assign(1,1000);targetTurn=2;}
+						if(targetBuff != ESBUFF_ForbidFuHuo)
 						{
 							if(!IsAlive(tar))
 								continue;
 						}
 						if(pBuff->type == 1)	// 增益
 						{
-							if(Random(1,10000) > ratio) // 未生效
+							if(Random(1,10000) > targetRatio) // 未生效
 								continue;
 						}
 						else	// 减益
@@ -10101,9 +10593,12 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 							SFightMember *pOther = GetFightMember(tar);
 							if(pOther == NULL)
 								continue;
-							if(pOther->InNotEffectBuff(pEffect->buffId))
+							if(pOther->InNotEffectBuff(targetBuff) && !(HeroBuildBoss(tar) && IsAffixHardControl(targetBuff)))
+							{
+								HeroBuildControlFailed(src,tar,skillData.id,targetBuff);
 								continue;
-							int deRatio = pSrc->unitAttr.fumianAdd + ratio + GetStatePara1(src,ESBUFF_FuMianQiangHuaAdd);
+							}
+							int deRatio = pSrc->unitAttr.fumianAdd + targetRatio + GetStatePara1(src,ESBUFF_FuMianQiangHuaAdd);
 							if(attrData != NULL)
 							{
 								deRatio += GetAttrValue(*attrData,ESkill_PassAttr_FuMian);
@@ -10114,17 +10609,21 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 								deRatio -= pOther->unitAttr.fumianKangAdd;
 							}
 							deRatio -= GetStatePara1(tar,ESBUFF_FuMianKangAdd) - GetStatePara1(tar,ESBUFF_FuMianKangDes);
-							if(pEffect->buffId == ESBUFF_ShiXinDu || pEffect->buffId == ESBUFF_ShiDu || pEffect->buffId == ESBUFF_FuDu)
+                            if(IsHeroBuild(tar,52,2))deRatio+=800;
+							if(IsHeroBuild(tar,16,2) && HeroBuildState(tar,16401)==m_fightTurn+1 && IsAffixHardControl(targetBuff))deRatio-=1500;
+							if(targetBuff == ESBUFF_ShiXinDu || targetBuff == ESBUFF_ShiDu || targetBuff == ESBUFF_FuDu)
 								deRatio -= GetStatePara1(tar,ESBUFF_ZhongDuKangAdd) + GetAttrValue(pOther->passive_attr,ESkill_Pass_AddZhongDuKang);
 							if(Random(1,10000) > deRatio) // 未生效
 							{
-								if(IsAffixHardControl(pEffect->buffId))
+								HeroBuildDebuffResisted(src,targetBuff);
+								HeroBuildControlFailed(src,tar,skillData.id,targetBuff);
+								if(IsAffixHardControl(targetBuff))
 									OnAffixControlResisted(src,tar);
 								continue;
 							}
 						}
 						
-						if(pEffect->buffId == ESBUFF_FanJian)
+						if(targetBuff == ESBUFF_FanJian)
 						{
 							vector<SAttrData> fanjianAttrData;
 							vector<ESkillTriggerType> fanjianTrigger;
@@ -10132,7 +10631,7 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 							CalculatePassiveSkill_ExtValue(src,0,fanjianTrigger,fanjianAttrData,skillId,skillLevel);
 							passPara.push_back(GetAttrValue(fanjianAttrData,ESkill_PassAttr_FanJianDamRatio));
 						}
-						else if(pEffect->buffId == ESBUFF_JinLiaoShu)	// 禁疗术特殊处理
+						else if(targetBuff == ESBUFF_JinLiaoShu)	// 禁疗术特殊处理
 						{
 							vector<SAttrData> jinliaoAttrData;
 							vector<ESkillTriggerType> jinliaoTrigger;
@@ -10142,8 +10641,9 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 						}
 						
 //						ClearBuffNotMerge(tar,pBuff);
-						uint8 turn = (tar == m_curActionPos) ? effectTurn+1 : effectTurn;
-						AddBuff(tar, src, pEffect->buffId, turn, &passPara);
+						uint8 turn = targetTurn;
+						AddBuff(tar, src, targetBuff, turn, &passPara,skillData.id);
+						HeroBuildDebuffApplied(src,tar,skillData.id,targetBuff);
 						
 						if(additiveId == ESkill_Pass_AddBuffForMemberMinHp
 							|| (trigger == ESkill_Trigger_TurnBegin && additiveId == ESkill_Pass_AddBuffByRandom)
@@ -10178,13 +10678,25 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 				{
 					// 取配置
 					GetPassivePara(src,para,pEffect,skillData.level);
+                if(skillData.id==154 && trigger==ESkill_Trigger_UnitDied && GetHeroId(src)==15 && pSrc->heroBuildBranch!=0 && para.size()>=3)
+                {
+                    SFightMember *fallen=GetFightMember(target);
+                    if(fallen==NULL || fallen->affixSummoned)continue;
+                    para[1]=pSrc->heroBuildBranch==1?400:((src<=GROUP2_BEGIN)==(target<=GROUP2_BEGIN)?300:600);
+                    para[2]=5;
+                }
 					uint16 size = para.size();
 					if(size < 1)
 						continue;
-					int ratio = para[0];
-					int r = Random(1,10000);
-					if(r > ratio)	// 未生效
-						continue;
+                    bool lotus=skillData.id==164 && GetHeroId(src)==16 && pSrc->heroBuildBranch!=0;
+                    if(lotus && HeroBuildState(src,16400)==m_fightTurn+1)continue;
+                    if(lotus)HeroBuildState(src,16400)=m_fightTurn+1;
+                    int ratio=para[0];
+                    if(Random(1,10000)>ratio)
+                    {
+                        if(lotus && pSrc->heroBuildBranch==2)HeroBuildState(src,16401)=m_fightTurn+1;
+                        continue;
+                    }
 
 					for(uint8 k=0;k < allTarget.size();k++)
 					{
@@ -10219,13 +10731,15 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 									{
 										if(size < 2)
 											break;
-										ClearRandomEnBuff(tar,para[1],src);
+										HeroBuildState(src,37200)=skillData.id==372?1:0;HeroBuildState(src,50200)=skillData.id==502?1:0;
+                                        ClearRandomEnBuff(tar,para[1],src);HeroBuildState(src,37200)=0;HeroBuildState(src,50200)=0;
 									}
 									else if(additiveId == ESkill_Pass_DamageToMoreUnit)
 									{
 										if(size < 2)
 											break;
 										int damage = val * (para[1] / 10000.0);
+                                        if(IsHeroBuild(src,26,2) && skillData.id==262)damage=std::min(damage,GetUnitAttack(src)*80/100);
 										DecreaseHp(tar, src, damage, absorpionHp, false, &fuhuoHp);
 
 										addType = 1;
@@ -10239,7 +10753,12 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 										int addHp = GetHp(target) * (para[1] / 10000.0);
 										int damLimit = pSrc->unitAttr.attack * (para[2] / 10000.0);
 										addHp = -((addHp > damLimit) ? damLimit : addHp);
+                                        int beforeHeal=GetHp(tar);
+                                        if(GetHeroId(src)==31 && pSrc->heroBuildBranch!=0 && HaveBuff(tar,ESBUFF_JinLiaoShu))
+                                            addHp=(int)((int64)addHp*std::max(0,10000-GetStatePara1(tar,ESBUFF_JinLiaoShu))/10000);
 										DecreaseHp(tar, src, addHp, absorpionHp, false, &fuhuoHp);
+                                        if(GetHeroId(src)==31 && pSrc->heroBuildBranch!=0)
+                                            HeroBuildAfterHeal(src,tar,skillData.id,beforeHeal,std::max(0,beforeHeal-(int)GetHp(tar)-addHp),true);
 
 										addType = 1;
 										pos = tar;
@@ -10258,6 +10777,8 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 											break;
 										uint8 deBuffNum = para[2];
 										ClearRandomDeBuff(tar,deBuffNum,src);
+                                        if(skillData.id==383 && IsHeroBuild(src,38,2) && HeroBuildState(src,90010)>0 && HeroBuildState(src,38301)==0)
+                                        {HeroBuildState(src,38301)=1;vector<int> speed(1,1000);AddBuff(tar,src,ESBUFF_AddSpeed,1,&speed,383);}
 
 										addType = 2;
 										pos = tar;
@@ -10292,7 +10813,16 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 										if(size < 2)
 											break;
 										int debuffNum = para[1];
+										auto countNegative=[&]()->int {
+											int count=0;SFightMember *member=GetFightMember(tar);
+											for(list<SFightBuffData>::const_iterator it=member->buff_list.begin();it!=member->buff_list.end();++it)
+											{SSkillBuff *cfg=skillMgr.GetBuffCfg(it->id);if(cfg && cfg->type==2)++count;}
+											return count;
+										};
+										int before=countNegative();
 										ClearRandomDeBuff(tar,debuffNum,src);
+										if(skillData.id==164 && IsHeroBuild(src,16,1) && countNegative()<before)
+										{vector<int> boost(1,1000);AddBuff(src,src,ESBUFF_ZengShangLvAdd,1,&boost,164);}
 
 										addType = 2;
 										pos = tar;
@@ -10304,6 +10834,17 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 											break;
 										int loseHp = GetMaxHp(tar) - GetHp(tar);
 										int addHp = - loseHp * (para[1] / 10000.0);
+                                        if(skillData.id==343 && GetHeroId(src)==34 && pSrc->heroBuildBranch!=0)
+                                        {
+                                            if(HeroBuildState(src,34301)==m_fightTurn+1)break;HeroBuildState(src,34301)=m_fightTurn+1;
+                                            if(IsHeroBuild(src,34,1))
+                                            {
+                                                if(GetHp(src)*100>GetMaxHp(src)*70){vector<int> shield(2,(int)(GetMaxHp(src)*5/100));AddBuff(src,src,ESBUFF_Shield,2,&shield,343);addHp=0;}
+                                                else addHp=addHp*125/100;
+                                            }
+                                            else if(GetHp(src)*100<GetMaxHp(src)*40 && (HeroBuildState(src,34300)==0 || m_fightTurn+1-HeroBuildState(src,34300)>=2))
+                                            {addHp*=2;HeroBuildState(src,34300)=m_fightTurn+1;}
+                                        }
 										DecreaseHp(tar, src, addHp, absorpionHp, false, &fuhuoHp);
 
 										addType = 2;
@@ -10335,6 +10876,8 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 									{
 										if(size < 2)
 											break;
+										bool branchNuwa = GetHeroId(src) == 10 && pSrc->heroBuildBranch != 0;
+										if (branchNuwa && pSrc->heroBuildSelfRevived) break;
 										if(HaveBuff(tar,ESBUFF_ForbidFuHuo))
 											break;
 										if(HaveState(tar, EFST_STATE_Die))
@@ -10343,7 +10886,14 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 											DelDieUnit(tar);
 
 											int hp = -GetMaxHp(tar) * (para[1] / 10000.0);
+											if (branchNuwa && pSrc->heroBuildBranch == 2)
+												hp = -(int)(GetMaxHp(tar)*35/100);
 											DecreaseHp(tar, src, hp, absorpionHp, false, &fuhuoHp);
+											if (branchNuwa && IsAlive(tar))
+											{
+												pSrc->heroBuildSelfRevived = true;
+												pSrc->heroBuildRevivedTurn = m_fightTurn;
+											}
 											addType = 2;
 											pos = tar;
 											addValue = -hp;
@@ -10381,10 +10931,13 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 										if(HaveBuff(tar,ESBUFF_ForbidFuHuo))
 											break;
 										SFightLimitData *pData = pSrc->GetPassSkillLimitData(skillData.id,additiveId);
-										if(pData != NULL && pData->_count == 0)
+										bool branchWei=skillData.id==354 && IsHeroBuild(src,35,2);
+                                        if(branchWei && (HeroBuildState(src,35400)>0 || pSrc->heroBuildRevivedTargets[tar-1]))break;
+                                        if(branchWei || (pData != NULL && pData->_count == 0))
 										{
-											pData->_count++;
+											if(pData!=NULL)pData->_count++;
 											int addHp = -GetMaxHp(tar) * (para[1] / 10000.0);
+                                            if(branchWei){addHp=-(int)(GetMaxHp(tar)*30/100);HeroBuildState(src,35400)=1;pSrc->heroBuildRevivedTargets[tar-1]=true;GetFightMember(tar)->heroBuildRevivedTurn=m_fightTurn;}
 											DecreaseHp(tar, src, addHp, absorpionHp);
 
 											addType = 2;
@@ -10435,7 +10988,9 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 											break;
 										if(buffData != NULL)
 										{
-											uint8 turn = (tar == m_curActionPos) ? para[1]+1 : para[1];
+											uint8 turn = para[1];
+                                            if(skillData.id==373 && IsHeroBuild(src,37,2))
+                                            {if(HeroBuildState(src,37300)>0)break;HeroBuildState(src,37300)=1;}
 											AddBuff(tar, src, buffData->id, turn, &(buffData->paraList));
 
 											addType = 2;
@@ -10451,7 +11006,12 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 									{
 										if(size < 2)
 											break;
-										int addHp = - pSrc->unitAttr.attack * (para[1] / 10000.0);
+										if(skillData.id==394 && IsHeroBuild(src,39,1))
+                                        {
+                                            if(HeroBuildState(src,39400)!=m_fightTurn+1){HeroBuildState(src,39400)=m_fightTurn+1;HeroBuildState(src,39401)=0;}
+                                            if(HeroBuildState(src,39401)>=3)break;++HeroBuildState(src,39401);
+                                        }
+                                        int addHp = - pSrc->unitAttr.attack * (para[1] / 10000.0);
 										DecreaseHp(tar, src, addHp, absorpionHp, false, &fuhuoHp);	// 加血
 
 										addType = 2;
@@ -10572,6 +11132,13 @@ int CFight::CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const ve
 		uint8 otherNum = m_otherMsg.GetType() + count;
 		m_otherMsg.SetType(otherNum);
 	}
+    if(IsHeroBuild(src,42,2) && std::find(triggerList.begin(),triggerList.end(),ESkill_Trigger_DieAndAddToAllUnit)!=triggerList.end())HeroBuildState(src,42300)=1;
+    if(IsHeroBuild(src,61,2) && !pSrc->affixSummoned && HeroBuildState(src,61300)==0
+        && std::find(triggerList.begin(),triggerList.end(),ESkill_Trigger_DieAndAddToOtherUnit)!=triggerList.end())
+    {
+        for(size_t i=0;i<pSrc->passive_skill.size();++i)if(pSrc->passive_skill[i].id==613)
+        {HeroBuildState(src,61300)=1;AddTeamRage(src,8);break;}
+    }
 	return res;
 }
 
@@ -10588,7 +11155,18 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		m_actionMsg<<(uint8)EHIT_ShanBi;
 		return 1;
 	}
+    if(isFanji || m_heroBuildSecondaryDamage)
+    {
+        uint8 enemies[GROUP_MEMBER],count=0;GetAnotherGroup(src,enemies,count);
+        for(uint8 i=0;i<count;++i)if(IsAlive(enemies[i]) && IsHeroBuild(enemies[i],17,2))
+        {
+            uint8 receiver=enemies[i];
+            if(HeroBuildState(receiver,17300)!=m_fightTurn+1){HeroBuildState(receiver,17300)=m_fightTurn+1;HeroBuildState(receiver,17301)=0;}
+            if(HeroBuildState(receiver,17301)<2){++HeroBuildState(receiver,17301);AddTeamRage(receiver,5);}
+        }
+    }
 	int64 targetHpBefore = pTarget->hp;
+	bool heroBuildHadShield=HaveShieldState(target);
 	if(GetAffixTier(src,18) > 0 && pSrc->affixState[18] > 0)
 		attrData.push_back(SAttrData(EAT_BaoJiLv,pSrc->affixState[18] * GetAffixValue(src,18,1)));
 
@@ -10609,6 +11187,7 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		|| HaveBuff(target,ESBUFF_FengYin) || HaveBuff(target,ESBUFF_HunShui)
 		|| HaveBuff(target,ESBUFF_HunLuan) || HaveBuff(target,ESBUFF_MeiHuo)
 		|| HaveBuff(target,ESBUFF_FanJian) || HaveBuff(target,ESBUFF_NOT_MOVE);
+	if(IsHeroBuild(src,13,2) && (targetControlled || HeroBuildVulnerable(target)))attrData.push_back(SAttrData(EAT_MingZhongLv,2000));
 	if(targetControlled)
 	{
 		int hitAdd = GetAffixValue(src,32,2);
@@ -10624,20 +11203,74 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	
 	// 命中
 	int hitRatio = CalculateHitRatio(src,target) + GetAttrValue(attrData,EAT_MingZhongLv);
-	if(hitRatio > 10000)
-		hitRatio = 10000;
+	hitRatio=std::max(1000,std::min(10000,hitRatio));
 	int r = Random(1,10000);
 	if(r > hitRatio)	// 闪避
 	{
 		if(showFightLog)
 			cout<<"--  src="<<(int)src<<", target="<<(int)target<<", skill="<<skillId<<" , random="<<r<<", hitRatio="<<hitRatio<<LANGUAGE_TRANSFORM_620<<endl;
 		m_actionMsg<<(uint8)EHIT_ShanBi;
+        if(IsHeroBuild(target,62,1) && !m_heroBuildSecondaryDamage && HeroBuildState(target,62100)!=m_fightTurn+1)
+        {
+            bool active=false;for(list<SFightBuffData>::const_iterator it=pTarget->buff_list.begin();it!=pTarget->buff_list.end();++it)
+                if(it->originSkill==621 && it->id==ESBUFF_ShanBiLvAdd && it->leftTurn>0)active=true;
+            if(active && HeroBuildTryExtraAttack(target)){HeroBuildState(target,62100)=m_fightTurn+1;HeroBuildDamageAction(target,src,GetUnitAttack(target)*60/100,621);}
+        }
 		return 1;
 	}
 
 	m_actionMsg<<(uint8)EHIT_MingZhong;
+    if(IsHeroBuild(src,19,1) && !m_heroBuildSecondaryDamage && !isFanji && HeroBuildState(src,193)<3)
+        for(size_t k=0;k<pSrc->passive_skill.size();++k)if(pSrc->passive_skill[k].id==193){++HeroBuildState(src,193);break;}
+
 
 	bool ignoreDun = (GetAttrValue(attrData,ESkill_PassAttr_IgnoreDun) > 0) ? true : false;
+	int damageAdd = 0;
+    uint8 controller=GetStateSrcPos(src,ESBUFF_FanJian);
+    if(controller>0 && IsHeroBuild(controller,20,1) && HeroBuildState(src,20300)!=m_fightTurn+1)
+    {damageAdd+=2000;HeroBuildState(src,20300)=m_fightTurn+1;}
+
+	if(!firstAttack && !isFanji)
+		damageAdd += GetAffixValue(src,21,1)*std::min(3,HeroBuildState(src,101006)); // 连击升温
+	if(!firstAttack && !isFanji)
+		damageAdd += GetAffixValue(src,22,2); // 追击专注
+	if(!firstAttack && !isFanji && pSrc->affixState[23] > 0)
+	{
+		damageAdd += pSrc->affixState[23];
+		pSrc->affixState[23] = 0;
+	}
+	if(HaveShieldState(target))
+		damageAdd += GetAffixValue(src,25,1); // 破盾剑意
+	if(targetControlled)
+		damageAdd += GetAffixValue(src,32,1); // 趁虚而入
+	if(HaveZhongDuState(target) || HaveBuff(target,ESBUFF_ZhuoShao) || HaveBuff(target,ESBUFF_Blooding))
+		damageAdd += GetAffixValue(src,35,1); // 病入膏肓
+	if(HaveDeBuffState(target))
+	{
+		int perDebuff = GetAffixValue(src,39,1);
+		int maxDebuffs = GetAffixValue(src,39,2);
+        std::set<int> categories;
+        for(list<SFightBuffData>::const_iterator it=pTarget->buff_list.begin();it!=pTarget->buff_list.end();++it)
+        {
+            uint16 id=it->id;
+            if(id==ESBUFF_ShiDu || id==ESBUFF_FuDu || id==ESBUFF_ShiXinDu)categories.insert(1);
+            else if(id==ESBUFF_ZhuoShao)categories.insert(2);
+            else if(id==ESBUFF_Blooding)categories.insert(3);
+            else if(IsAffixHardControl(id))categories.insert(4);
+            else if(id==ESBUFF_DamagePercentDes || id==ESBUFF_WuGongDes || id==ESBUFF_FaGongDes || id==ESBUFF_JinGuZhou)categories.insert(5);
+            else if(id==ESBUFF_WuFangDes || id==ESBUFF_FaFangDes || id==ESBUFF_FangYuDes)categories.insert(6);
+            else if(id==ESBUFF_SpeedDes)categories.insert(7);
+            else if(id==ESBUFF_JinLiaoShu)categories.insert(8);
+            else if(id==ESBUFF_GetDamageAdd || id==ESBUFF_GetWuDamageAdd || id==ESBUFF_GetFaDamageAdd)categories.insert(9);
+            else if(id==ESBUFF_ReduceMingZhongLv)categories.insert(10);
+            else if(id==ESBUFF_FuMianKangDes)categories.insert(11);
+        }
+        int debuffCount=(int)categories.size();
+		if(maxDebuffs > 0 && debuffCount > maxDebuffs)
+			debuffCount = maxDebuffs;
+		damageAdd += perDebuff * debuffCount;
+	}
+	if(damageAdd>0)attrData.push_back(SAttrData(ESkill_PassAttr_DamagePer,damageAdd));
 	int damage = 0;
 	int absorpionHp = 0;
 	if(skillId == 0)
@@ -10654,49 +11287,18 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	{
 		damage = CalculateSkillDamage(src,target,skillId,skillLevel,selfDamage,attrData,tarAttrData);
 	}
+	if(m_heroBuildSecondaryDamage && HeroBuildState(src,90000)>0)
+		damage=(int)((int64)damage*HeroBuildState(src,90000)/10000);
+	if(IsHeroBuild(src,16,2) && skillId==161)damage=(int)((int64)damage*45/100);
+	if(IsHeroBuild(src,44,1) && skillId==441)damage=(int)((int64)damage*40/100);
+	if(GetHeroId(src)==16 && GetFightMember(src)->heroBuildBranch!=0 && skillId==162 && HeroBuildState(src,16202)>0)
+		damage=(int)((int64)damage*70/100);
+	if(IsHeroBuild(src,15,1) && skillId==152 && HeroBuildState(src,15201)>0)
+		damage=(int)((int64)damage*70/100);
 
-	int damageAdd = 0;
-	if(!firstAttack && !isFanji)
-		damageAdd += GetAffixValue(src,21,1); // 连击升温
-	if(!firstAttack && !isFanji)
-		damageAdd += GetAffixValue(src,22,2); // 追击专注
-	if(!firstAttack && !isFanji && pSrc->affixState[23] > 0)
-	{
-		damageAdd += pSrc->affixState[23];
-		pSrc->affixState[23] = 0;
-	}
-	if(HaveShieldState(target))
-		damageAdd += GetAffixValue(src,25,1); // 破盾剑意
-	if(HaveBuff(target,ESBUFF_FaFangDes))
-	{
-		int ignoreDef = GetAffixValue(src,27,1); // 法防穿透
-		if(ignoreDef > 0 && pSrc->attackType == 2)
-			damage = damage * 10000 / (10000 - (ignoreDef > 9000 ? 9000 : ignoreDef));
-	}
-	if(targetControlled)
-		damageAdd += GetAffixValue(src,32,1); // 趁虚而入
-	if(HaveZhongDuState(target) || HaveBuff(target,ESBUFF_ZhuoShao) || HaveBuff(target,ESBUFF_Blooding))
-		damageAdd += GetAffixValue(src,35,1); // 病入膏肓
-	if(HaveDeBuffState(target))
-	{
-		int perDebuff = GetAffixValue(src,39,1);
-		int maxDebuffs = GetAffixValue(src,39,2);
-		int debuffCount = 0;
-		for(list<SFightBuffData>::const_iterator it=pTarget->buff_list.begin();it!=pTarget->buff_list.end();++it)
-		{
-			SSkillBuff *pBuffCfg = SingletonCSkillMgr::instance().GetBuffCfg(it->id);
-			if(pBuffCfg != NULL && pBuffCfg->type == 2)
-				debuffCount++;
-		}
-		if(maxDebuffs > 0 && debuffCount > maxDebuffs)
-			debuffCount = maxDebuffs;
-		damageAdd += perDebuff * debuffCount;
-	}
-	if(damageAdd > 0)
-		damage = damage * (10000 + damageAdd) / 10000;
 	if(!firstAttack && !isFanji)	// 连击伤害，第二次攻击，且不是反击
 	{
-		damage *= (pSrc->unitAttr.lianjiAdd + GetAttrValue(attrData,EAT_LianJiAdd) + GetStatePara1(src,ESBUFF_LianJiLvShangHaiAdd))/10000.0;
+		damage *= IsHeroBuild(src,19,2)?0.8:(pSrc->unitAttr.lianjiAdd + GetAttrValue(attrData,EAT_LianJiAdd) + GetStatePara1(src,ESBUFF_LianJiLvShangHaiAdd))/10000.0;
 	}
 	
 	if(showFightLog)
@@ -10713,23 +11315,6 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	if(damage < 1)
 		damage = 1;
 
-	// 守势：战意达到阈值且本回合尚未释放战法时获得减伤。
-	int targetGroup = target <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2;
-	int guardThreshold = GetAffixValue(target,48,2);
-	int guardReduction = GetAffixValue(target,48,1);
-	if(guardReduction > 0 && GetTeamRage(target) >= guardThreshold && !m_tacticUsedThisTurn[targetGroup])
-	{
-		damage = damage * (10000 - guardReduction) / 10000;
-		if(damage < 1)
-			damage = 1;
-	}
-	int openingGuard = m_fightTurn < 2 ? GetTeamBestAffixValue(target,12,1) : 0;
-	if(openingGuard > 0)
-	{
-		damage = damage * (10000 - openingGuard) / 10000;
-		if(damage < 1)
-			damage = 1;
-	}
 
 	uint8 protect = 0;
 	int proDamage = 0;
@@ -10738,7 +11323,10 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	int fanzhenDamage = 0;
 	int fuhuoHp = 0;
 	// 暴击
-	if(CalculateBaoJiRatio(src,target,damage,attrData)) // 暴击
+    if(HeroBuildSetPieces(src,5)>=4 && GetHp(src)*100<GetMaxHp(src)*40)attrData.push_back(SAttrData(EAT_BaoJiAdd,2500));
+    if(IsHeroBuild(src,56,1) && skillId==561 && GetHp(target)*100>GetMaxHp(target)*70)
+    {attrData.push_back(SAttrData(EAT_BaoJiLv,1500));attrData.push_back(SAttrData(EAT_BaoJiAdd,1500));}
+    if(!(IsHeroBuild(src,56,2) && (skillId==561 || skillId==562)) && CalculateBaoJiRatio(src,target,damage,attrData)) // 暴击
 	{
 		if(pSrc->type != EFMT_PET && pTarget->celue == ONLY_PET)
 			damage = 1;
@@ -10784,13 +11372,18 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	if(!isFanji)	// 主动攻击
 	{
 		int protectDamagePer = 0;
-		if(HaveBuff(target,ESBUFF_Protect))
+        if(HeroBuildState(target,47101)>m_fightTurn && !IsHeroBuild(target,47,2))
+        {
+            uint8 guardian=HeroBuildState(target,47100);
+            if(IsAlive(guardian) && IsHeroBuild(guardian,47,2)){protect=guardian;protectDamagePer=5000;}
+        }
+		if(protect==0 && !IsHeroBuild(target,47,2) && HaveBuff(target,ESBUFF_Protect))
 		{
 			protect = GetStatePara3(target,ESBUFF_Protect);
 			protectDamagePer = GetStatePara1(target,ESBUFF_Protect);
 		}
 		// 触发被动分担伤害判定（没有保护者的情况下）
-		if(protect == 0)
+		if(protect == 0 && !IsHeroBuild(target,47,2))
 		{
 			uint8 member[GROUP_MEMBER];
 			uint8 num = 0;
@@ -10819,6 +11412,13 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		{
 			proDamage = damage * (protectDamagePer/10000.0);
 			int shareReduction = GetAffixValue(protect,11,1);
+            if(IsHeroBuild(protect,47,2))shareReduction+=2000;
+            if(IsHeroBuild(protect,23,1))shareReduction+=2000;
+            if(GetHeroId(protect)==23 && GetFightMember(protect)->heroBuildBranch!=0)
+            {
+                if(HeroBuildState(protect,23300)!=m_fightTurn+1){HeroBuildState(protect,23300)=m_fightTurn+1;HeroBuildState(protect,23301)=0;HeroBuildState(protect,23302)=0;}
+                ++HeroBuildState(protect,23301);
+            }
 			if(shareReduction > 0)
 				proDamage = proDamage * (10000 - shareReduction) / 10000;
 			damage *= (1 - protectDamagePer/10000.0);
@@ -10826,18 +11426,24 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 				proDamage = 1;
 			if(damage < 1)
 				damage = 1;
-			DecreaseHp(protect, src, proDamage, absorpionHp, false, &fuhuoHp);
-			if(proDamage > 0)
-				GrantDamageTakenRage(protect);
+			DecreaseHp(protect, src, proDamage, absorpionHp, false, &fuhuoHp,false);
+            // Shared damage is not a direct-hit resource event.
 			DecHunShuiTimes(target);
 			m_actionMsg<<protect<<proDamage<<absorpionHp<<fuhuoHp;
+            if(IsAlive(protect) && IsHeroBuild(protect,23,1) && HeroBuildState(protect,23301)<=2)
+            {vector<int> shield(2,(int)(GetMaxHp(protect)*5/100));AddBuff(protect,protect,ESBUFF_Shield,2,&shield,234);}
+            if(!m_heroBuildSecondaryDamage && IsAlive(protect) && IsAlive(src) && IsHeroBuild(protect,23,2) && HeroBuildState(protect,23302)<2 && HeroBuildTryExtraAttack(protect))
+            {++HeroBuildState(protect,23302);HeroBuildDamageAction(protect,src,GetUnitAttack(protect)*80/100,233);}
 			MakeBuffList(protect,m_actionMsg);
-			if(IsAlive(protect) && IsAlive(src) && TryTriggerAffix(protect,9))
+			if(!m_heroBuildSecondaryDamage && IsAlive(protect) && IsAlive(src) && TryTriggerAffix(protect,9) && HeroBuildTryExtraAttack(protect))
 			{
 				int counterDamage = GetUnitAttack(protect) * GetAffixValue(protect,9,1) / 10000;
 				AddAffixHpAction(protect,src,counterDamage,9);
 			}
-			DecreaseHp(target, src, damage, absorpionHp, ignoreDun, &fuhuoHp);
+            if(proDamage>0)HeroBuildEquipmentShare(protect,src);
+            HeroBuildState(target,200092)=1;
+			HeroBuildDirectDamage(src,target,skillId,damage,absorpionHp,ignoreDun,&fuhuoHp);
+            HeroBuildState(target,200092)=0;
 			if(damage > 0)
 				GrantDamageTakenRage(target);
 			if(!IsAlive(protect))
@@ -10845,7 +11451,7 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		}
 		else	// 无保护者
 		{
-			DecreaseHp(target, src, damage, absorpionHp, ignoreDun, &fuhuoHp);
+			HeroBuildDirectDamage(src,target,skillId,damage,absorpionHp,ignoreDun,&fuhuoHp);
 			if(damage > 0)
 				GrantDamageTakenRage(target);
 			DecHunShuiTimes(target);
@@ -10857,7 +11463,7 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	}
 	else
 	{
-		DecreaseHp(target, src, damage, absorpionHp, ignoreDun, &fuhuoHp);
+		HeroBuildDirectDamage(src,target,skillId,damage,absorpionHp,ignoreDun,&fuhuoHp);
 		if(damage > 0)
 			GrantDamageTakenRage(target);
 		DecHunShuiTimes(target);
@@ -10865,6 +11471,27 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 	int actualDamage = (int)(targetHpBefore - GetHp(target));
 	if(actualDamage < 0)
 		actualDamage = 0;
+	if(!isFanji && firstAttack && !m_heroBuildSecondaryDamage)HeroBuildAfterDirectHit(src,target,skillId,heroBuildHadShield,actualDamage+absorpionHp);
+    if(skillId==0 && !isFanji && !m_heroBuildSecondaryDamage && actualDamage+absorpionHp>0)HeroBuildState(src,200030)=1;
+    if(!m_heroBuildSecondaryDamage)HeroBuildEquipmentHit(src,target,skillId,actualDamage+absorpionHp);
+    if(isFanji && actualDamage>0 && !IsAlive(target) && HeroBuildSetPieces(src,3)>=4 && HeroBuildState(src,105003)!=m_fightTurn+1)
+    {
+        HeroBuildState(src,105003)=m_fightTurn+1;HeroBuildHpAction(src,src,(int)(GetMaxHp(src)*8/100),11003);
+        HeroSkillRoleCfg *role=SingletonCSkillMgr::instance().GetHeroSkillRoleCfg(GetHeroId(src));
+        if(role)GetFightMember(src)->DecSkillCD(role->regularSkillId,1);
+    }
+    if(actualDamage>0 && !m_heroBuildSecondaryDamage && IsHeroBuild(target,57,2) && IsAlive(target))
+    {
+        if(HeroBuildState(target,57400)!=m_fightTurn+1){HeroBuildState(target,57400)=m_fightTurn+1;HeroBuildState(target,57401)=0;}
+        if(HeroBuildState(target,57401)<2)
+        {
+            ++HeroBuildState(target,57401);
+            if(HeroBuildState(target,57403)<=m_fightTurn)HeroBuildState(target,57402)=0;
+            HeroBuildState(target,57402)=std::min(4,HeroBuildState(target,57402)+1);HeroBuildState(target,57403)=m_fightTurn+2;
+            uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(target,allies,count);vector<int> attack(1,HeroBuildState(target,57402)*300);
+            for(uint8 i=0;i<count;++i)AddBuff(allies[i],target,ESBUFF_DamagePercentAdd,2,&attack,574);
+        }
+    }
 	if(isFanji && actualDamage > 0 && GetAffixTier(src,13) > 0)
 	{
 		int cap = (int)(GetMaxHp(src) * GetAffixValue(src,13,2) / 10000);
@@ -10885,7 +11512,7 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		bravePara.push_back(GetAffixValue(target,16,1));
 		AddBuff(target,target,ESBUFF_FanZhengAllAdd,2,&bravePara);
 	}
-	if(!IsAlive(target) && !isFanji)
+	if(!IsAlive(target) && !isFanji && !m_heroBuildSecondaryDamage)
 	{
 		if(TryTriggerAffix(src,23))
 		{
@@ -10948,20 +11575,34 @@ uint8 CFight::BasicFightAction(uint8 src,uint8 target,uint16 skillId,uint16 skil
 		}
 	}
 
+	if(!isFanji && firstAttack && !m_heroBuildSecondaryDamage && IsAlive(target)) HeroBuildAfterHit(src,target,skillId);
 	if(!isFanji)	// 反震
 	{
-		if(m_forceEnd)	// 强制结束，没有反伤
+		if(m_forceEnd || m_heroBuildSecondaryDamage)	// 强制结束或追击，不触发反伤
 		{
 			m_actionMsg<<fanzhen;
 		}
 		else
 		{
 			// 反伤
-			fanzhenDamage += CalculateFanShang(src,target,srcDamage,attrData) + GetAttrValue(tarAttrData,ESkill_PassAttr_FanShang);
+			if(HeroBuildState(target,200050)!=m_fightTurn+1){HeroBuildState(target,200050)=m_fightTurn+1;HeroBuildState(target,200051)=0;}
+            if(actualDamage>0 && HeroBuildState(target,200051)<3)
+                fanzhenDamage=std::min(actualDamage/2,CalculateFanShang(src,target,actualDamage,attrData)+GetAttrValue(tarAttrData,ESkill_PassAttr_FanShang));
 			if(fanzhenDamage > 0)
 			{
+                if(IsHeroBuild(target,18,1) && GetAttrValue(tarAttrData,ESkill_PassAttr_FanShang)>0)++HeroBuildState(target,18301);
 				fanzhen = 1;
-				DecreaseHp(src, target, fanzhenDamage, absorpionHp, false, &fuhuoHp);
+                if(IsHeroBuild(target,23,2) && HeroBuildState(target,200051)<2)AddTeamRage(target,3);
+                if(IsHeroBuild(target,23,1))
+                {
+                    uint8 allies[GROUP_MEMBER],count=0;GetMeGroupExceptSelf(target,allies,count);
+                    GetSkillTargetSelCondition(allies,count,ESkill_Select_MinCurHp);
+                    if(count>0)HeroBuildHpAction(target,allies[0],(int)(GetMaxHp(target)*2/100),232);
+                }
+                ++HeroBuildState(target,200051);
+                bool previousSecondary=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+                DecreaseHp(src,target,fanzhenDamage,absorpionHp,false,&fuhuoHp,false);
+                m_heroBuildSecondaryDamage=previousSecondary;
 				m_actionMsg<<fanzhen<<fanzhenDamage<<absorpionHp<<fuhuoHp;
 				if(IsAlive(target) && TryTriggerAffix(target,14))
 				{
@@ -11022,11 +11663,23 @@ uint8 CFight::CalculateOnceAction(uint8 src,uint8 target,uint16 skillId,uint16 s
 	uint16 fanjiPos = m_actionMsg.GetDataLen();
 	uint8 fanji = 0;	// 0 不反击 1 反击
 	m_actionMsg<<fanji;
-	if(!m_forceEnd)
+	if(!m_forceEnd && !m_heroBuildSecondaryDamage)
 	{
 		if(!IsAlive(target) || HaveBuff(target,ESBUFF_HunShui))
 			return 1;
-		if(CalculateFanJiRatio(src,target,srcAttrData,GetAttrValue(tarAttrData,ESkill_PassAttr_FanJiLv)))
+        SFightMember *defender=GetFightMember(target);
+        bool dog=GetHeroId(target)==17 && defender->heroBuildBranch!=0;
+        bool counter=false;
+        if(dog)
+        {
+            if(HeroBuildState(target,17400)!=m_fightTurn+1){HeroBuildState(target,17400)=m_fightTurn+1;HeroBuildState(target,17401)=0;}
+            int chance=defender->heroBuildBranch==1?6500:4500;
+            if(defender->heroBuildBranch==2 && GetFightMember(src)->attackType==1 && HaveBuff(target,ESBUFF_WuMianAndGetFaDamageAdd))chance=10000;
+            counter=HeroBuildState(target,17401)<2 && Random(1,10000)<=chance;
+            if(counter)++HeroBuildState(target,17401);
+        }
+        else counter=CalculateFanJiRatio(src,target,srcAttrData,GetAttrValue(tarAttrData,ESkill_PassAttr_FanJiLv));
+        if(counter && HeroBuildTryExtraAttack(target))
 		{
 			fanji = 1;
 			if(showFightLog)
@@ -11038,7 +11691,24 @@ uint8 CFight::CalculateOnceAction(uint8 src,uint8 target,uint16 skillId,uint16 s
 			tarAttrData.clear();
 			CalculatePassiveSkill_ExtValue(target,src,srcTrigger,srcAttrData);
 			CalculatePassiveSkill_ExtValue(src,target,tarTrigger,tarAttrData);
-			res = BasicFightAction(target,src,0,0,damage,srcAttrData,tarAttrData,isFanji,firstAttack);
+            bool previousSecondary=m_heroBuildSecondaryDamage;
+            if(dog)
+            {
+                int multiplier=defender->heroBuildBranch==1?8000:10500;
+                for(size_t k=0;k<defender->passive_skill.size();++k)
+                    if(defender->passive_skill[k].id==174 && defender->heroBuildBranch==2)multiplier+=(defender->passive_skill[k].level-1)*500;
+                if(defender->heroBuildBranch==2 && HeroBuildVulnerable(src))multiplier=multiplier*125/100;
+                srcAttrData.push_back(SAttrData(ESkill_PassAttr_FanJiAdd,multiplier-defender->unitAttr.fanjiAdd-GetAttrValue(srcAttrData,ESkill_PassAttr_FanJiAdd)));
+                m_heroBuildSecondaryDamage=true;
+            }
+            res = BasicFightAction(target,src,0,0,damage,srcAttrData,tarAttrData,isFanji,firstAttack);
+            m_heroBuildSecondaryDamage=previousSecondary;
+            if(dog && res==0 && IsHeroBuild(target,17,2) && IsAlive(src) && HeroBuildVulnerable(src))
+            {
+                for(list<SFightBuffData>::iterator it=GetFightMember(src)->buff_list.begin();it!=GetFightMember(src)->buff_list.end();++it)
+                    if(it->id==ESBUFF_GetDamageAdd && it->originSkill==172 && !it->paraList.empty())
+                    {it->paraList[0]+=500;it->originSkill=174;break;}
+            }
 			if(res == 2)
 				fanji = 0;
 			if(res == 0 && TryTriggerAffix(target,15) && Random(1,10000) <= GetAffixValue(target,15,1))
@@ -11080,13 +11750,14 @@ uint8 CFight::CalculateNormal_DamageHp(uint8 src,uint8 target)
 	uint16 lianjiPos = m_actionMsg.GetDataLen();
 	uint8 lianjishu = 1;
 	m_actionMsg<<lianjishu;
-	if(CalculateLianJiRatio(src,target))	// 连击
+	if(!m_heroBuildSecondaryDamage && CalculateLianJiRatio(src,target))	// 连击
 		lianjishu = 2;
 
 	uint8 lianjiNum = 0;
 	int selfDamage = 0;
 	for(uint8 j=0;j < lianjishu;j++)
 	{
+        HeroBuildState(src,101006)=j;
 		if(m_forceEnd)
 			break;
 		if(!IsAlive(src) || !IsAlive(target))
@@ -11148,17 +11819,21 @@ uint8 CFight::CalculateSkill_DamageHp(uint8 src,uint16 skillId,int skillLevel)
 	m_actionMsg<<(uint8)EFOT_DamageHp<<src<<skillId;
 
 	uint16 lianjiPos = m_actionMsg.GetDataLen();
+	bool triple=(IsHeroBuild(src,16,2) && skillId==161)||(IsHeroBuild(src,44,1) && skillId==441);
 	uint8 lianjishu = 1;
 	m_actionMsg<<lianjishu;
 
 	pSrc->target = allTarget[0];
-	if(CalculateLianJiRatio(src,allTarget[0])) // 主单位判定连击数
+	if(!triple && !m_heroBuildSecondaryDamage && CalculateLianJiRatio(src,allTarget[0])) // 主单位判定连击数
 		lianjishu = 2;
+	if(triple){lianjishu=3;HeroBuildState(src,16103)=1;HeroBuildState(src,163)=0;}
 
 	uint8 lianjiNum = 0;
 	int selfDamage = 0;	// 以血换血 扣血值
 	for(uint8 j=0;j < lianjishu;j++)
 	{
+        HeroBuildState(src,101006)=j;
+		if(triple)HeroBuildState(src,16101)=j;
 		if(m_forceEnd)
 			break;
 		if(!IsAlive(src))
@@ -11183,12 +11858,13 @@ uint8 CFight::CalculateSkill_DamageHp(uint8 src,uint16 skillId,int skillLevel)
 		for(uint8 i = 0; i < tarNum; i++)
 		{
 			uint8 tar = allTarget[i];
+            if(IsHeroBuild(src,46,1) && skillId==462)HeroBuildState(src,46250)=i;
 			if(!IsAlive(tar))
 				continue;
 			m_actionMsg<<tar;
 
 			int tSelfDam = 0;
-			bool firstAttack = (j == 0 ? true : false);
+			bool firstAttack = j==0 || triple;
 			if(CalculateOnceAction(src,tar,skillId,skillLevel,tSelfDam,firstAttack) > 0)
 			{
 				if(selfDamage == 0)
@@ -11208,11 +11884,11 @@ uint8 CFight::CalculateSkill_DamageHp(uint8 src,uint16 skillId,int skillLevel)
 		trigger.push_back(ESkill_Trigger_AfterAttackUnit);
 		CalculatePassiveSkill_ExtUnitAndBuff(src,0,trigger,skillId,skillLevel);
 		
-		if(isShieldBreak)
+		if(isShieldBreak && !triple)
 			break;
 	}
 	m_actionMsg.WriteData(lianjiPos,&lianjiNum,sizeof(lianjiNum));
-	if(lianjiNum > 1 && TryTriggerAffix(src,24))
+	if(lianjiNum > 1 && !triple && TryTriggerAffix(src,24))
 		AddTeamRage(src,GetAffixValue(src,24,1));
 
 	int absorpionHp = 0;
@@ -11220,15 +11896,51 @@ uint8 CFight::CalculateSkill_DamageHp(uint8 src,uint16 skillId,int skillLevel)
 	if(!m_forceEnd)
 	{
 		if(selfDamage > 0)
-			DecreaseHp(src, 0 , selfDamage, absorpionHp, false, &fuhuoHp);
+        {
+            if(IsHeroBuild(src,42,2) && skillId==422)selfDamage=std::min(selfDamage,std::max(0,(int)GetHp(src)-1));
+            DecreaseHp(src, 0 , selfDamage, absorpionHp, false, &fuhuoHp);
+        }
 	}
 	m_actionMsg<<-selfDamage<<absorpionHp<<fuhuoHp;
 //	MakeBuffList(src,m_actionMsg);
+	if(triple)HeroBuildState(src,16103)=0;
+    if(IsHeroBuild(src,61,1) && skillId==611)
+    {vector<int> guard(1,1200);AddBuff(src,src,ESBUFF_JianShangLvAdd,2,&guard,611);}
+    if(IsHeroBuild(src,55,1) && skillId==551)
+    {vector<int> speed(1,1500);AddBuff(src,src,ESBUFF_AddSpeed,2,&speed,551);}
+    if(IsHeroBuild(src,45,1) && skillId==451)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);GetSkillTargetSelCondition(allies,count,ESkill_Select_MinCurHp);
+        if(count>0){ClearRandomDeBuff(allies[0],1,src);HeroBuildHpAction(src,allies[0],GetUnitAttack(src)*30/100,451);}
+    }
+    if(IsHeroBuild(src,45,2) && skillId==452)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);vector<int> speed(1,1200);
+        for(uint8 i=0;i<count;++i)if(allies[i]==src || GetHeroId(allies[i])==46)AddBuff(allies[i],src,ESBUFF_AddSpeed,2,&speed,452);
+    }
+    if(IsHeroBuild(src,47,2) && skillId==471)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroupExceptSelf(src,allies,count);GetSkillTargetSelCondition(allies,count,ESkill_Select_MaxDamage);
+        if(count>0){HeroBuildState(allies[0],47100)=src;HeroBuildState(allies[0],47101)=m_fightTurn+2;}
+    }
+    if(IsHeroBuild(src,38,1) && skillId==382)HeroBuildState(src,38200)=m_fightTurn+2;
+    if(IsHeroBuild(src,39,2) && skillId==392)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);
+        for(uint8 i=0;i<count;++i)ClearRandomDeBuff(allies[i],1,src);
+    }
+    if(!m_heroBuildSecondaryDamage && IsHeroBuild(src,28,1) && skillId==281)HeroBuildState(src,281)=std::min(5,HeroBuildState(src,281)+1);
+    if(!m_heroBuildSecondaryDamage && IsHeroBuild(src,24,2) && skillId==242)
+    {
+        uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);vector<int> attack(1,1000);
+        for(uint8 i=0;i<count;++i)AddBuff(allies[i],src,ESBUFF_DamagePercentAdd,2,&attack,242);
+    }
 	return 1;
 }
 
 uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 {
+    if(m_heroBuildSecondaryDamage && HeroBuildState(src,200091)==0 && !HeroBuildTryExtraAttack(src))return 0;
 	if(m_forceEnd)
 		return 0;
 	if(skillId == 0)
@@ -11239,7 +11951,12 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 	int skillLevel = pSrc->GetSkillLevel(skillId);
 	if(skillLevel == 0)
 		return 0;
-	pSrc->SetSkillCD(skillId);
+	if(GetHeroId(src)==16 && pSrc->heroBuildBranch!=0 && skillId==162)
+	{
+		HeroBuildState(src,16202)=HeroBuildState(src,16201)==m_fightTurn+1?1:0;
+		HeroBuildState(src,16201)=m_fightTurn+1;
+	}
+
 
 	CSkillMgr &mgr = SingletonCSkillMgr::instance();
 	SSkillCfgData *pSkillCfg = mgr.GetSkillCfg(skillId);
@@ -11269,6 +11986,7 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 			{
 				int val = pPassEff->para[1] + (skillLevel - 1)*pPassEff->para_levelAdd[1];
 				int maxTimes = pPassEff->para[2] + (skillLevel - 1)*pPassEff->para_levelAdd[2];
+                if(IsHeroBuild(src,68,1) && skillId==681){val=2000;maxTimes=5;}
 				if(maxTimes > pSrc->GetSkillExtDataPara(skillId,2))
 				{
 					vector<int> paraList;
@@ -11285,6 +12003,12 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 		cout<<"--- "<<(int)src<<" :use skill: "<<(int)skillId<<" to:"<<endl;
 	}
 	
+    int previousCd=0;for(size_t i=0;i<pSrc->skill_list.size();++i)if(pSrc->skill_list[i].id==skillId)previousCd=pSrc->skill_list[i].leftCD;
+    if(!m_heroBuildSecondaryDamage)pSrc->SetSkillCD(skillId);
+    auto finish=[&](uint8 success)->uint8{
+        if(!success && !m_heroBuildSecondaryDamage)for(size_t i=0;i<pSrc->skill_list.size();++i)if(pSrc->skill_list[i].id==skillId)pSrc->skill_list[i].leftCD=previousCd;
+        return success;
+    };
 	int skillType = pActive->effect_type;
 	switch(skillType)
 	{
@@ -11294,7 +12018,7 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 		case ESkill_Active_AttackByHpPer:
 		case ESkill_Active_AttackByDesHp:
 			{
-				return CalculateSkill_DamageHp(src,skillId,skillLevel);
+				return finish(CalculateSkill_DamageHp(src,skillId,skillLevel));
 			}
 			break;
 		// 加血
@@ -11302,7 +12026,7 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 		case ESkill_Active_AddHpNormal:
 		case ESkill_Active_FuHuo:	// 复活
 			{
-				return CalculateSkill_AddHp(src,skillId,skillLevel);
+				return finish(CalculateSkill_AddHp(src,skillId,skillLevel));
 			}
 			break;
 		// 等待一回合
@@ -11311,8 +12035,8 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 				if(HaveBuff(src,ESBUFF_WaitForTurn))	// 第二回合攻击
 				{
 					ClearBuff(src,ESBUFF_WaitForTurn);
-					pSrc->SetSkillCD(skillId);
-					return CalculateSkill_DamageHp(src,skillId,skillLevel);
+					/* Cooldown commits only after the action succeeds. */
+					return finish(CalculateSkill_DamageHp(src,skillId,skillLevel));
 				}
 				else	// 第一回合施放buff并等待
 				{
@@ -11333,20 +12057,20 @@ uint8 CFight::SkillButtle(uint8 src,uint16 skillId)
 					m_actionMsg<<(uint8)EFOT_Buff<<src<<skillId<<targetNum<<target<<isActive;
 					MakeBuffList(target,m_actionMsg);
 //					MakeBuffList(src,m_actionMsg);
-					return 1;
+					return finish(1);
 				}
 			}
 			break;
 		// buff
 		case ESkill_Active_AddBuff:
 			{
-				return CalculateSkill_AddBuff(src,skillId,skillLevel);
+				return finish(CalculateSkill_AddBuff(src,skillId,skillLevel));
 			}
 			break;
 		// clearBuff
 		case ESkill_Active_ClearBuff:
 			{
-				return CalculateSkill_ClearBuff(src,skillId,skillLevel);
+				return finish(CalculateSkill_ClearBuff(src,skillId,skillLevel));
 			}
 			break;
 
@@ -11854,6 +12578,7 @@ void CFight::CalculateTaoPao(CUser *pUser,uint8 pos)
 
 uint8 CFight::UnitPassiveAction(uint8 pos,EFightStep step,CNetMessage &msg,int data)
 {
+    if(step==EFStep_UserActBegin)return HeroBuildPeriodicActions(pos,msg);
 	const int Buff2[] = {ESBUFF_ShiXinDu,ESBUFF_ShiDu,ESBUFF_FuDu,ESBUFF_ZhuoShao,ESBUFF_JinGuZhou,ESBUFF_AddHpContinue,ESBUFF_Blooding}; // 开始行动前
 	const int Buff4[] = {ESBUFF_JinLiaoShu}; 
 
@@ -11902,9 +12627,16 @@ uint8 CFight::UnitPassiveAction(uint8 pos,EFightStep step,CNetMessage &msg,int d
 				damage = (damage > valLimit) ? valLimit : damage;
 			}
 			else if(pBuff[i] == ESBUFF_ShiDu)
-			{
-				damage = val + GetStatePara2(pos,pBuff[i]);
-			}
+            {
+                damage=val+GetStatePara2(pos,pBuff[i]);
+                for(list<SFightBuffData>::const_iterator poison=p->buff_list.begin();poison!=p->buff_list.end();++poison)
+                    if(poison->id==ESBUFF_ShiDu && IsHeroBuild(poison->srcPos,60,1) && Random(1,10000)<=3000)
+                    {
+                        for(list<SFightBuffData>::iterator debuff=p->buff_list.begin();debuff!=p->buff_list.end();++debuff)
+                            if(debuff->srcPos==poison->srcPos && debuff->originSkill==604)debuff->leftTurn=std::min(3,(int)debuff->leftTurn+1);
+                        break;
+                    }
+            }
 			else if(pBuff[i] == ESBUFF_FuDu)
 			{
 				int valLimit = GetStatePara2(pos,pBuff[i]);
@@ -11914,9 +12646,9 @@ uint8 CFight::UnitPassiveAction(uint8 pos,EFightStep step,CNetMessage &msg,int d
 			else if(pBuff[i] == ESBUFF_ZhuoShao)
 				damage = val;
 			else if(pBuff[i] == ESBUFF_JinGuZhou)
-				damage = GetStatePara2(pos,pBuff[i]);
+				damage = HeroBuildDotDamage(srcPos,pos,pBuff[i],GetStatePara2(pos,pBuff[i]));
 			else if(pBuff[i] == ESBUFF_JinLiaoShu)
-				damage = data * (GetStatePara2(pos,pBuff[i])/10000.0);
+				damage = HeroBuildDotDamage(srcPos,pos,pBuff[i],data);
 			else if(pBuff[i] == ESBUFF_AddHpContinue)
 				addHp = val;
 			else if(pBuff[i] == ESBUFF_Blooding)
@@ -11942,7 +12674,7 @@ uint8 CFight::UnitPassiveAction(uint8 pos,EFightStep step,CNetMessage &msg,int d
 				MakeBuffList(pos,msg);
 				addNum++;
 				int actualDamage = (int)(hpBefore - GetHp(pos));
-				if(damage > 0 && actualDamage > 0 && srcPos > 0 && GetAffixTier(srcPos,36) > 0)
+				if(pBuff[i] != ESBUFF_JinLiaoShu && damage > 0 && actualDamage > 0 && srcPos > 0 && GetAffixTier(srcPos,36) > 0)
 				{
 					SFightMember *pDotSrc = GetFightMember(srcPos);
 					if(pDotSrc != NULL && IsAlive(srcPos))
@@ -12244,12 +12976,57 @@ uint16 CFight::GetUnitAISkillId(uint8 pos)
 	HeroSkillRoleCfg *pRoleCfg = mgr.GetHeroSkillRoleCfg(heroId);
 	if(pRoleCfg != NULL)
 	{
-		int tacticCost = GetTacticCost(pos,*pRoleCfg);
-		if(p->CanUseSkill(pRoleCfg->tacticSkillId) && GetTeamRage(pos) >= tacticCost
-			&& IsRoleSkillUseful(pos,pRoleCfg->tacticSkillId))
-			return pRoleCfg->tacticSkillId;
-		if(p->CanUseSkill(pRoleCfg->regularSkillId) && IsRoleSkillUseful(pos,pRoleCfg->regularSkillId))
-			return pRoleCfg->regularSkillId;
+        const uint16 regular=pRoleCfg->regularSkillId,tactic=pRoleCfg->tacticSkillId;
+        auto effectFor=[&](uint16 id)->SSkillActiveEffect*{SSkillCfgData *c=mgr.GetSkillCfg(id);return c?mgr.GetActiveEffectCfg(c->activeEffect.GetEffectId()):NULL;};
+        SSkillActiveEffect *r=effectFor(regular),*t=effectFor(tactic);
+        auto heals=[](SSkillActiveEffect *e)->bool{return e && (e->effect_type==ESkill_Active_AddHpByDam || e->effect_type==ESkill_Active_AddHpNormal);};
+        auto revives=[](SSkillActiveEffect *e)->bool{return e && e->effect_type==ESkill_Active_FuHuo;};
+        uint8 allies[GROUP_MEMBER],enemies[GROUP_MEMBER],ac=0,ec=0,lowest=0,highest=0;
+        GetMeGroup(pos,allies,ac);GetAnotherGroup(pos,enemies,ec);int hurt=0,untaunted=0,maxOwnedDots=0;bool execute=false,exposed=false;
+        for(uint8 i=0;i<ac;++i)
+        {
+            uint8 x=allies[i];if(GetHp(x)*100<GetMaxHp(x)*70)++hurt;
+            if(!lowest || GetHp(x)*GetMaxHp(lowest)<GetHp(lowest)*GetMaxHp(x))lowest=x;
+        }
+        for(uint8 i=0;i<ec;++i)
+        {
+            uint8 x=enemies[i];if(!highest || GetUnitAttack(x)>GetUnitAttack(highest))highest=x;
+            if(!HaveBuff(x,ESBUFF_ChaoFeng))++untaunted;
+            if(GetHp(x)*100<GetMaxHp(x)*35)execute=true;
+            if(HeroBuildVulnerable(x) || HaveBuff(x,ESBUFF_FaFangDes) || HaveBuff(x,ESBUFF_WuFangDes))exposed=true;
+            int dots=0;for(list<SFightBuffData>::const_iterator it=GetFightMember(x)->buff_list.begin();it!=GetFightMember(x)->buff_list.end();++it)
+                if(it->srcPos==pos && (it->id==ESBUFF_ShiDu || it->id==ESBUFF_FuDu || it->id==ESBUFF_ShiXinDu || it->id==ESBUFF_ZhuoShao || it->id==ESBUFF_Blooding))++dots;
+            maxOwnedDots=std::max(maxOwnedDots,dots);
+        }
+        bool critical=lowest && GetHp(lowest)*100<GetMaxHp(lowest)*35;
+        bool emergency=p->heroBuildStrategy==1 && ((revives(t) && HaveDieMember(pos)) || (heals(t) && critical));
+        bool canTactic=p->CanUseSkill(tactic) && HeroBuild::CanSpend(p->heroBuildStrategy,GetTeamRage(pos),GetTacticCost(pos,*pRoleCfg),emergency) && IsRoleSkillUseful(pos,tactic);
+        bool canRegular=p->CanUseSkill(regular) && (IsRoleSkillUseful(pos,regular) || (p->heroBuildStrategy==1 && heals(r) && critical));
+        switch(p->heroBuildStrategy)
+        {
+        case 1:
+            if(canTactic && revives(t) && HaveDieMember(pos))return tactic;
+            if(canRegular && revives(r) && HaveDieMember(pos))return regular;
+            if(critical){if(canTactic && heals(t))return tactic;if(canRegular && heals(r))return regular;}
+            if(hurt>=2){if(canTactic && heals(t) && t->target_num>=2)return tactic;if(canRegular && heals(r) && r->target_num>=2)return regular;}
+            break;
+        case 2:
+            if(canTactic && ((lowest && GetHp(lowest)*100<GetMaxHp(lowest)*50 && !HaveShieldState(lowest) && !HaveBuff(lowest,ESBUFF_Protect))
+                || GetHp(pos)*100<GetMaxHp(pos)*40 || untaunted>=2))return tactic;
+            break;
+        case 3:
+            if(highest)
+            {
+                bool controlled=false;for(list<SFightBuffData>::const_iterator it=GetFightMember(highest)->buff_list.begin();it!=GetFightMember(highest)->buff_list.end();++it)if(IsAffixHardControl(it->id))controlled=true;
+                if(!controlled || HeroBuildBoss(highest))
+                {if(canRegular && !HaveBuff(highest,ESBUFF_FuMianKangDes))return regular;if(canTactic)return tactic;}
+            }
+            break;
+        case 4:if(canTactic && (execute || exposed))return tactic;break;
+        case 5:if(canTactic && maxOwnedDots>=3)return tactic;break;
+        default:if(canTactic)return tactic;break;
+        }
+        if(canRegular)return regular;
 		return 0;
 	}
 	const vector<SSkillData> &skillList = p->GetUnitSkillList();
@@ -12352,6 +13129,39 @@ uint16 CFight::GetHeroId(uint8 pos)
 
 bool CFight::IsRoleSkillUseful(uint8 pos,uint16 skillId)
 {
+	SFightMember *branchMember=GetFightMember(pos);
+	if(branchMember!=NULL && branchMember->heroBuildBranch!=0)
+	{
+		if(IsHeroBuild(pos,42,1) && skillId==422)return false;
+		if(GetHeroId(pos)==16 && skillId==162 && HeroBuildState(pos,16201)==m_fightTurn+1)return false;
+		if((GetHeroId(pos)==11 && skillId==111)||(GetHeroId(pos)==13 && skillId==131))
+		{
+			uint8 enemies[GROUP_MEMBER],count=0;GetAnotherGroup(pos,enemies,count);
+			int valid=0;bool bossCondition=false;
+			for(uint8 i=0;i<count;++i)
+			{
+				if(!IsAlive(enemies[i]))continue;
+				SFightMember *enemy=GetFightMember(enemies[i]);
+				if(skillId==111)
+				{
+					++valid;
+					if(HeroBuildBoss(enemies[i]) && !HaveBuff(enemies[i],ESBUFF_JinGuZhou))bossCondition=true;
+				}
+				else if(!enemy->InNotEffectBuff(ESBUFF_ChenMo) && !HaveBuff(enemies[i],ESBUFF_ChenMo))
+				{
+					++valid;
+					if(HeroBuildBoss(enemies[i]))bossCondition=true;
+				}
+			}
+			return bossCondition || valid>=(skillId==111?2:3);
+		}
+		if(GetHeroId(pos)==14 && skillId==142)
+		{
+			uint8 enemies[GROUP_MEMBER],count=0;GetAnotherGroup(pos,enemies,count);
+			for(uint8 i=0;i<count;++i)if(IsAlive(enemies[i]) && HaveShieldState(enemies[i]))return true;
+			return false;
+		}
+	}
 	SSkillCfgData *pSkillCfg = SingletonCSkillMgr::instance().GetSkillCfg(skillId);
 	if(pSkillCfg == NULL)
 		return false;
@@ -12359,9 +13169,39 @@ bool CFight::IsRoleSkillUseful(uint8 pos,uint16 skillId)
 	if(pActive == NULL)
 		return false;
 	if(pActive->effect_type == ESkill_Active_FuHuo)
-		return HaveDieMember(pos);
+	{
+		SFightMember *member = GetFightMember(pos);
+		if (GetHeroId(pos) == 10 && member != NULL && member->heroBuildBranch != 0)
+		{
+			int begin = pos <= GROUP2_BEGIN ? 1 : GROUP2_BEGIN+1;
+			int end = pos <= GROUP2_BEGIN ? GROUP2_BEGIN : MAX_MEMBER;
+			for(int ally=begin;ally<=end;++ally)
+				if(!IsEmpty((uint8)ally) && !IsAlive((uint8)ally)
+					&& !HaveBuff((uint8)ally,ESBUFF_ForbidFuHuo) && !member->heroBuildRevivedTargets[ally-1] && HeroBuildState(ally,200070)<2 && HeroBuildState(ally,260000+pos)==0)
+					return true;
+			return false;
+		}
+		uint8 targets[GROUP_MEMBER],count=0;GetSkillTargetRange(pos,skillId,GetFightMember(pos)->GetSkillLevel(skillId),targets,count);return count>0;
+	}
 	if(pActive->effect_type == ESkill_Active_AddHpByDam || pActive->effect_type == ESkill_Active_AddHpNormal)
+	{
+		if (skillId==101 && GetHeroId(pos)==10 && GetFightMember(pos)->heroBuildBranch!=0)
+		{
+			uint8 allies[GROUP_MEMBER], count=0;
+			GetMeGroup(pos,allies,count);
+			int totalMissing=0, lowCount=0;
+			for(uint8 i=0;i<count;++i)
+			{
+				int64 maximum=GetMaxHp(allies[i]);
+				if(maximum<=0)continue;
+				int ratio=(int)(GetHp(allies[i])*10000/maximum);
+				totalMissing+=10000-ratio;
+				if(ratio<7000)++lowCount;
+			}
+			return lowCount>=2 || (count>0 && totalMissing>=1800*count);
+		}
 		return HaveLoseHpMember(pos);
+	}
 	return true;
 }
 
@@ -12372,11 +13212,24 @@ int CFight::GetTeamRage(uint8 pos) const
 	return m_teamRage[pos <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2];
 }
 
-void CFight::AddTeamRage(uint8 pos,int value)
+void CFight::AddTeamRage(uint8 pos,int value,bool extra)
 {
 	if(pos == 0 || pos > MAX_MEMBER || value == 0)
 		return;
 	int group = pos <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2;
+    if(extra && value>0)
+    {
+        int first=pos<=GROUP2_BEGIN?1:GROUP2_BEGIN+1;
+        if(HeroBuildState(first,200009)>0)
+        {value=std::min(value,std::max(0,20-HeroBuildState(first,200008)));HeroBuildState(first,200008)+=value;}
+        else
+        {
+            if(HeroBuildState(pos,200010)!=m_fightTurn+1){HeroBuildState(pos,200010)=m_fightTurn+1;HeroBuildState(pos,200011)=0;}
+            if(HeroBuildState(first,200012)!=m_fightTurn+1){HeroBuildState(first,200012)=m_fightTurn+1;HeroBuildState(first,200013)=0;}
+            value=std::min(value,std::min(std::max(0,12-HeroBuildState(pos,200011)),std::max(0,30-HeroBuildState(first,200013))));
+            HeroBuildState(pos,200011)+=value;HeroBuildState(first,200013)+=value;
+        }
+    }
 	int before = m_teamRage[group];
 	m_teamRage[group] += value;
 	if(m_teamRage[group] < 0)
@@ -12480,19 +13333,20 @@ void CFight::AddAffixHpAction(uint8 src,uint8 target,int hp,uint16 affixId,bool 
 	int absorptionHp = 0;
 	int reviveHp = 0;
 	int value = hp;
-	DecreaseHp(target,src,value,absorptionHp,ignoreShield,&reviveHp);
+    if(value<0)value=(int)((int64)value*std::max(0,10000-GetStatePara1(target,ESBUFF_JinLiaoShu))/10000);
+    bool previousSecondary=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+    DecreaseHp(target,src,value,absorptionHp,ignoreShield,&reviveHp,false);
+    m_heroBuildSecondaryDamage=previousSecondary;
 	int delta = (int)(GetHp(target) - beforeHp);
 	if(delta == 0 && absorptionHp == 0)
 		return;
-	if(!IsAlive(target) && GetFightMember(src) != NULL)
-		m_members[src-1].AddKillUnit(target);
+
 	uint16 actionNum = m_extActionMsg.GetType() + 1;
 	m_extActionMsg.SetType(actionNum);
 	m_extActionMsg<<(uint8)EFOT_Passive<<src<<(uint16)(5000+affixId)<<string("")<<(uint8)1;
 	m_extActionMsg<<target<<delta<<absorptionHp<<reviveHp;
 	MakeBuffList(target,m_extActionMsg);
-	if(hp > 0)
-		ShieldBrokenCheck(target,src);
+
 }
 
 void CFight::OnAffixShieldLost(uint8 target,uint8 shieldSrc,int absorbedHp,bool broken)
@@ -12541,6 +13395,7 @@ void CFight::OnAffixBuffRemoved(uint8 target,uint8 remover,const SFightBuffData 
 	}
 	if(remover == 0 || remover > MAX_MEMBER)
 		return;
+    if(!expired)HeroBuildEquipmentCleanse(remover);
 	SSkillBuff *pBuffCfg = SingletonCSkillMgr::instance().GetBuffCfg(data.id);
 	if(pBuffCfg == NULL)
 		return;
@@ -12573,6 +13428,7 @@ void CFight::OnAffixControlResisted(uint8 src,uint8 target)
 
 void CFight::OnAffixUnitDied(uint8 pos)
 {
+    HeroBuildEquipmentDeath(pos);
 	if(TryTriggerAffix(pos,41))
 	{
 		uint8 members[GROUP_MEMBER];
@@ -12643,6 +13499,11 @@ int CFight::GetTacticCost(uint8 pos,const HeroSkillRoleCfg &roleCfg)
 
 void CFight::InitTeamRageFromAffixes()
 {
+    HeroBuildState(1,200009)=HeroBuildState(GROUP2_BEGIN+1,200009)=1;
+	for(uint8 pos=1;pos<=MAX_MEMBER;++pos)
+		if(IsAlive(pos) && IsHeroBuild(pos,13,2))AddTeamRage(pos,10);
+    for(uint8 pos=1;pos<=MAX_MEMBER;++pos)
+        if(IsAlive(pos) && IsHeroBuild(pos,17,1)){vector<int> guard(1,1200);AddBuff(pos,pos,ESBUFF_MianShangTemp,2,&guard,173);}
 	for(int group=0;group<2;group++)
 	{
 		int begin = group == EGT_GROUP1 ? 1 : GROUP2_BEGIN + 1;
@@ -12663,6 +13524,7 @@ void CFight::InitTeamRageFromAffixes()
 		if(bestPos != 0 && bestOpening > 0)
 			AddTeamRage(bestPos,bestOpening);
 	}
+    HeroBuildState(1,200009)=HeroBuildState(GROUP2_BEGIN+1,200009)=0;
 }
 
 void CFight::GrantDamageTakenRage(uint8 pos)
@@ -12670,8 +13532,10 @@ void CFight::GrantDamageTakenRage(uint8 pos)
 	SFightMember *pMember = GetFightMember(pos);
 	if(pMember == NULL || pMember->rageDamagedThisAction)
 		return;
-	pMember->rageDamagedThisAction = true;
-	AddTeamRage(pos,3);
+    if(m_heroBuildSecondaryDamage)return;
+    if(HeroBuildState(pos,200031)!=m_fightTurn+1){HeroBuildState(pos,200031)=m_fightTurn+1;HeroBuildState(pos,200032)=0;}
+    if(HeroBuildState(pos,200032)>=3)return;
+    ++HeroBuildState(pos,200032);pMember->rageDamagedThisAction=true;AddTeamRage(pos,3,false);
 }
 
 uint8 CFight::AddNewFightUnit(CNetMessage &msg)
@@ -12787,7 +13651,7 @@ uint8 CFight::ShowDialog(CNetMessage &msg)
 
 uint8 CFight::NotKilledAction(uint8 src,CNetMessage &msg)
 {
-	if(m_forceEnd)
+	if(m_forceEnd || m_heroBuildSecondaryDamage || HeroBuildState(src,200090)==m_fightTurn+1 || GetFightMember(src)->heroBuildRevivedTurn==m_fightTurn)
 		return 0;
 	if(!IsAlive(src))
 		return 0;
@@ -12806,10 +13670,14 @@ uint8 CFight::NotKilledAction(uint8 src,CNetMessage &msg)
 
 	if(GetAttrValue(attrData,ESkill_PassAttr_AttackActionAgain) > 0)
 	{
+		HeroBuildState(src,200090)=m_fightTurn+1;HeroBuildState(src,200091)=1;
+        bool previousSecondary=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+        if(IsHeroBuild(src,15,1) && skillId==152)HeroBuildState(src,15201)=1;
 		if(pSrc->option == EOTNormal)
 			NormalButtle(src,pSrc->target);
 		else
 			SkillButtle(src,skillId);
+		HeroBuildState(src,15201)=0;HeroBuildState(src,200091)=0;m_heroBuildSecondaryDamage=previousSecondary;
 		MakeBuffList(src, m_actionMsg);
 	}
 	return MergeUnitAcionMsg(msg);
@@ -12832,12 +13700,47 @@ uint8 CFight::KilledAction(uint8 src,CNetMessage &msg)
 		return 0;
 	uint8 killNum = pSrc->killList.size();
 	pSrc->ClearKillUnit();
+	if(IsHeroBuild(src,15,1))
+	{
+		int speed=2000;
+		for(size_t i=0;i<pSrc->passive_skill.size();++i)
+			if(pSrc->passive_skill[i].id==153)speed+=1100+(pSrc->passive_skill[i].level-1)*100;
+		vector<int> boost(1,speed);AddBuff(src,src,ESBUFF_AddSpeed,2,&boost,153);
+	}
 
 	uint8 anotherGroup[MAX_MEMBER];
 	uint8 anotherNum = 0;
 	GetAnotherGroup(src,anotherGroup,anotherNum);
 	if(anotherNum == 0)
 		return 0;
+	if(GetHeroId(src)==16 && pSrc->heroBuildBranch!=0)
+	{
+		// B replaces the old kill chase with successful weapon stacks.
+		if(pSrc->heroBuildBranch==2 || pSrc->heroBuildRevivedTurn==m_fightTurn)return 0;
+		if(HeroBuildState(src,16300)!=m_fightTurn+1){HeroBuildState(src,16300)=m_fightTurn+1;HeroBuildState(src,16301)=0;}
+		if(HeroBuildState(src,16301)>=2 || Random(1,10000)>8000)return 0;
+		++HeroBuildState(src,16301);
+		GetSkillTargetSelCondition(anotherGroup,anotherNum,ESkill_Select_MinCurHp);
+		bool previous=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+		HeroBuildState(src,90000)=9000;NormalButtle(src,anotherGroup[0]);
+		HeroBuildState(src,90000)=0;m_heroBuildSecondaryDamage=previous;pSrc->ClearKillUnit();
+		return MergeUnitAcionMsg(msg);
+	}
+	if(GetHeroId(src)==15 && pSrc->heroBuildBranch!=0)
+	{
+		if(pSrc->heroBuildRevivedTurn==m_fightTurn || HeroBuildState(src,15303)==m_fightTurn+1)return 0;
+		if(pSrc->heroBuildBranch==2)
+		{
+			HeroBuildState(src,15303)=m_fightTurn+1;
+			GetSkillTargetSelCondition(anotherGroup,anotherNum,ESkill_Select_MinCurHp);
+			bool previous=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+			HeroBuildState(src,90000)=8000;
+			NormalButtle(src,anotherGroup[0]);
+			HeroBuildState(src,90000)=0;m_heroBuildSecondaryDamage=previous;
+			pSrc->ClearKillUnit();
+			return MergeUnitAcionMsg(msg);
+		}
+	}
 	uint16 skillId = (pSrc->option == EOTSkill) ? pSrc->para : 0;
 	uint16 skillLv = (pSrc->option == EOTSkill) ? (pSrc->GetSkillLevel(skillId)) : 0;
 	// 击杀目标时，属性变化
@@ -12854,13 +13757,42 @@ uint8 CFight::KilledAction(uint8 src,CNetMessage &msg)
 	if(GetAttrValue(attrData,ESkill_PassAttr_NormalAttack) > 0)	// 额外普攻
 	{
 		GetSkillTargetSelCondition(anotherGroup,anotherNum,ESkill_Select_MinCurHp);
-		NormalButtle(src,anotherGroup[0]);
+        bool linked=false;
+        if(IsHeroBuild(src,43,2)){uint8 allies[GROUP_MEMBER],count=0;GetMeGroup(src,allies,count);for(uint8 i=0;i<count;++i)if(GetHeroId(allies[i])==44)linked=true;}
+        if(IsHeroBuild(src,59,2))
+        {
+            if(HeroBuildState(src,59400)!=m_fightTurn+1){HeroBuildState(src,59400)=m_fightTurn+1;HeroBuildState(src,59401)=0;}
+            if(HeroBuildState(src,59401)>=2 || !HeroBuildTryExtraAttack(src))return 0;
+            ++HeroBuildState(src,59401);HeroBuildDamageAction(src,anotherGroup[0],GetUnitAttack(src)*80/100,594);pSrc->ClearKillUnit();
+        }
+        else if(linked || IsHeroBuild(src,44,1))
+        {
+            if(HeroBuildState(src,43400)!=m_fightTurn+1){HeroBuildState(src,43400)=m_fightTurn+1;HeroBuildState(src,43401)=0;}
+            if((linked && HeroBuildState(src,43401)>=2) || (!linked && HeroBuildState(src,44401)>0))return 0;
+            ++HeroBuildState(src,43401);++HeroBuildState(src,44401);
+            bool previous=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;HeroBuildState(src,90000)=linked?12000:10000;
+            NormalButtle(src,anotherGroup[0]);HeroBuildState(src,90000)=0;m_heroBuildSecondaryDamage=previous;pSrc->ClearKillUnit();
+        }
+        else
+        {bool previous=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;NormalButtle(src,anotherGroup[0]);m_heroBuildSecondaryDamage=previous;pSrc->ClearKillUnit();}
 	}
 	else if(GetAttrValue(attrData,ESkill_PassAttr_UseSameSkill) > 0)  // 额外释放技能
 	{
 		if(pSrc->option != EOTSkill)
 			return 0;
-		SkillButtle(src,skillId);
+        if(IsHeroBuild(src,21,2))
+        {
+            if(HeroBuildState(src,21400)==m_fightTurn+1)return 0;
+            HeroBuildState(src,21400)=m_fightTurn+1;bool previous=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+            HeroBuildState(src,90000)=6500;SkillButtle(src,skillId);HeroBuildState(src,90000)=0;
+            m_heroBuildSecondaryDamage=previous;pSrc->ClearKillUnit();
+        }
+        else
+        {
+            if(IsHeroBuild(src,15,1))HeroBuildState(src,15303)=m_fightTurn+1;
+            bool previous=m_heroBuildSecondaryDamage;m_heroBuildSecondaryDamage=true;
+            SkillButtle(src,skillId);m_heroBuildSecondaryDamage=previous;pSrc->ClearKillUnit();
+        }
 	}
 	else
 	{
@@ -12904,7 +13836,15 @@ uint8 CFight::DiePassiveAcion(CNetMessage &msg)
 		uint8 pos = m_dieList[i];
 		if(!IsAlive(pos) && !HaveState(pos, EFST_STATE_Escape))
 		{
+			bool revivedBefore = m_members[pos-1].heroBuildSelfRevived;
 			CalculatePassiveSkill_ExtUnitAndBuff(pos,0,trigger,0,0);
+			if (!revivedBefore && m_members[pos-1].heroBuildSelfRevived && IsHeroBuild(pos,10,1))
+			{
+				uint8 allies[GROUP_MEMBER], count=0;
+				GetMeGroup(pos,allies,count);
+				for(uint8 ally=0;ally<count;++ally)
+					HeroBuildHpAction(pos,allies[ally],m_members[pos-1].unitAttr.attack/2,104);
+			}
 		}
 	}
 
@@ -13006,12 +13946,14 @@ void CFight::CalculateFight(CNetMessage &msg)
 	m_otherMsg.ReWrite();
 	m_extActionMsg.ReWrite();
 	m_shareDamageMsg.ReWrite();
+	m_curActionPos=0;
 	m_tacticUsedThisTurn[0] = false;
 	m_tacticUsedThisTurn[1] = false;
 	for(uint8 affixPos=1;affixPos<=MAX_MEMBER;affixPos++)
 	{
 		if(!IsEmpty(affixPos))
 		{
+            HeroBuildState(affixPos,200040)=m_fightTurn;
 			memset(m_members[affixPos-1].affixTurnCount,0,sizeof(m_members[affixPos-1].affixTurnCount));
 			memset(m_members[affixPos-1].affixTurnValue,0,sizeof(m_members[affixPos-1].affixTurnValue));
 			if(m_members[affixPos-1].affixState[23] > 0 && m_fightTurn > m_members[affixPos-1].affixState[0])
@@ -13046,6 +13988,8 @@ void CFight::CalculateFight(CNetMessage &msg)
 	if(m_fightTurn == 0)
 	{
 		InitTeamRageFromAffixes();
+        HeroBuildEquipmentOpening();
+        for(uint8 i=0;i<num;++i)if(IsHeroBuild(allMem[i],68,1))HeroBuildState(allMem[i],68400)=GetUnitAttack(allMem[i]);
 		for(uint8 i = 0; i < num; i++)
 		{
 			if(!IsAlive(allMem[i]))
@@ -13058,6 +14002,7 @@ void CFight::CalculateFight(CNetMessage &msg)
 			passList.push_back(ESkill_Pass_Attr);
 			passList.push_back(ESkill_Pass_DescAttackAndAddToSelf);
 			CalculatePassiveSkill_ExtAttrEffect(allMem[i],0,trigger,passList);
+            if(GetHeroId(allMem[i])==60 && GetFightMember(allMem[i])->heroBuildBranch!=0)HeroBuildBeforeAction(allMem[i]);
 
 			trigger.clear();
 			trigger.push_back(ESkill_Trigger_FightBeginAddToAllUnit);
@@ -13092,6 +14037,8 @@ void CFight::CalculateFight(CNetMessage &msg)
 		if(!IsAlive(src))
 			continue;
 		m_curActionPos = src;
+		if (m_members[src-1].heroBuildRevivedTurn == m_fightTurn)
+			continue;
 
 		damageNum += MemberActionEffectOther(src,msg);
 
@@ -13117,6 +14064,8 @@ void CFight::CalculateFight(CNetMessage &msg)
 		vector<ESkillPassitiveType> passList;
 		passList.push_back(ESkill_Pass_Attr);
 		passList.push_back(ESkill_Pass_DescSelfAllCD);
+		DecAllSkillCD(src);
+		HeroBuildBeforeAction(src);
 		CalculatePassiveSkill_ExtAttrEffect(src,0,trigger,passList);
 
 		// 行动时，触发被动
@@ -13130,8 +14079,7 @@ void CFight::CalculateFight(CNetMessage &msg)
 		uint8 target = 0;
 		GetOption(src,option,para,target);
 		SetOption(src,option,para,target);
-		if(option == EOTNone)
-			continue;
+		if(option == EOTNone){DecAllStateEffectTurn(src);continue;}
 		m_actionList.push_back(src);
 
 		// 行动时，触发被动
@@ -13155,22 +14103,20 @@ void CFight::CalculateFight(CNetMessage &msg)
 
 		if(option == EOTNormal)	// 普通攻击
 		{
-			if(NormalButtle(src,target) > 0)
-				AddTeamRage(src,8);
+            if(NormalButtle(src,target)>0 && HeroBuildState(src,200030)>0)AddTeamRage(src,8,false);
 		}
 		else if(option == EOTSkill)	// 使用技能
 		{
 			HeroSkillRoleCfg *pRoleCfg = SingletonCSkillMgr::instance().GetHeroSkillRoleCfg(GetHeroId(src));
 			bool isTactic = pRoleCfg != NULL && para == pRoleCfg->tacticSkillId;
 			bool isRegular = pRoleCfg != NULL && para == pRoleCfg->regularSkillId;
-			if(isTactic)
-			{
-				AddTeamRage(src,-GetTacticCost(src,*pRoleCfg));
-				m_tacticUsedThisTurn[src <= GROUP2_BEGIN ? EGT_GROUP1 : EGT_GROUP2] = true;
-			}
-			SkillButtle(src,para);
-			if(isRegular)
-				AddTeamRage(src,12 + GetAffixValue(src,46,1));
+            int group=src<=GROUP2_BEGIN?EGT_GROUP1:EGT_GROUP2;
+            int rageBefore=GetTeamRage(src);bool usedBefore=m_tacticUsedThisTurn[group];
+            if(isTactic){AddTeamRage(src,-GetTacticCost(src,*pRoleCfg));m_tacticUsedThisTurn[group]=true;}
+            uint8 success=SkillButtle(src,para);
+            if(!success && isTactic){m_teamRage[group]=rageBefore;m_tacticUsedThisTurn[group]=usedBefore;}
+            if(success && isRegular)
+            {AddTeamRage(src,12,false);AddTeamRage(src,GetAffixValue(src,46,1));HeroBuildEquipmentRegular(src);}
 		}
 		else if(option == EOTEscape)	// 逃跑
 		{
@@ -13203,12 +14149,18 @@ void CFight::CalculateFight(CNetMessage &msg)
 		damageNum += DiePassiveAcion(msg);
 		if(!m_members[src-1].killList.empty())
 		{
-			AddTeamRage(src,10 * (int)m_members[src-1].killList.size());
+            int validKills=0;for(size_t killed=0;killed<m_members[src-1].killList.size();++killed)
+                if(!GetFightMember(m_members[src-1].killList[killed])->affixSummoned)++validKills;
+            AddTeamRage(src,10*validKills,false);
 			if(TryTriggerAffix(src,20) && Random(1,10000) <= GetAffixValue(src,20,1))
 				m_members[src-1].DecAllSkillCD(GetAffixValue(src,20,2));
 		}
-		for(uint16 dieIndex=0;dieIndex<m_dieList.size();dieIndex++)
-			AddTeamRage(m_dieList[dieIndex],15);
+        for(uint16 dieIndex=0;dieIndex<m_dieList.size();dieIndex++)
+        {
+            uint8 fallen=m_dieList[dieIndex];
+            if(!GetFightMember(fallen)->affixSummoned && HeroBuildState(fallen,200034)==0)
+            {HeroBuildState(fallen,200034)=1;AddTeamRage(fallen,15,false);}
+        }
 		damageNum += MergeUnitAcionMsg(msg,addOtherMsg);
 
 		// 非击杀 重新出手判断
@@ -14111,7 +15063,7 @@ void CFight::GetAllUnitByOrder(uint8 *arr, uint8 &num)
 	{
 		bool haveOpeningSpeedAffix = false;
 		for(uint8 i=0;i<num;i++)
-			if(GetAffixTier(arr[i],29) > 0)
+			if(GetAffixTier(arr[i],29) > 0 || IsHeroBuild(arr[i],13,1))
 			{
 				haveOpeningSpeedAffix = true;
 				break;
@@ -14210,6 +15162,8 @@ uint8 CFight::FindYuanHuPos(uint8 groupPos)
 		SFightMember *pSrc = GetFightMember(pos);
 		if(pSrc == NULL)
 			continue;
+        if(GetHeroId(pos)==23 && pSrc->heroBuildBranch!=0 && (!IsAlive(pos)
+            || (HeroBuildState(pos,23300)==m_fightTurn+1 && HeroBuildState(pos,23301)>=3)))continue;
 		for(uint16 i=0;i < pSrc->passive_skill.size();i++)
 		{
 			SSkillData &skillData = pSrc->passive_skill[i];
@@ -14286,8 +15240,27 @@ void CFight::GetAnotherGroup(uint8 me,uint8 *arr,uint8 &num)
 void CFight::GetSkillTargetRange(uint8 me,uint16 skillId,uint16 skillLv,uint8 *array,uint8 &num)
 {
 	num = 0;
+    if(IsHeroBuild(me,35,2) && skillId==352)
+    {
+        int begin=me<=GROUP2_BEGIN?1:GROUP2_BEGIN+1,end=me<=GROUP2_BEGIN?GROUP2_BEGIN:MAX_MEMBER;uint8 best=0;
+        for(int pos=begin;pos<=end;++pos)if(!IsEmpty(pos) && !IsAlive(pos) && !HaveBuff(pos,ESBUFF_ForbidFuHuo) && HeroBuildState(pos,200070)<2 && HeroBuildState(pos,260000+me)==0)
+            if(best==0 || GetUnitAttack(pos)>GetUnitAttack(best))best=pos;
+        if(best>0){array[0]=best;num=1;}return;
+    }
 	if(array == NULL)
 		return;
+	if(skillId==132 && GetHeroId(me)==13 && GetFightMember(me)->heroBuildBranch!=0)
+	{
+		uint8 enemies[GROUP_MEMBER],count=0,best=0;GetAnotherGroup(me,enemies,count);
+		for(uint8 i=0;i<count;++i)
+		{
+			uint8 candidate=enemies[i];
+			if(!IsAlive(candidate))continue;
+			if(best==0 || (HeroBuildVulnerable(best) && !HeroBuildVulnerable(candidate))
+				|| (HeroBuildVulnerable(best)==HeroBuildVulnerable(candidate) && GetUnitAttack(candidate)>GetUnitAttack(best)))best=candidate;
+		}
+		if(best>0){array[0]=best;num=1;}return;
+	}
 	
 	CSkillMgr &mgr = SingletonCSkillMgr::instance();
 	SSkillCfgData *pSkillCfg = mgr.GetSkillCfg(skillId);
@@ -14477,10 +15450,32 @@ void CFight::GetSkillTargetRange(uint8 me,uint16 skillId,uint16 skillLv,uint8 *a
 		return;
 	}
 
-	GetSkillTargetSelCondition(array,num,pActive->target_select);
+    if(!alive)
+    {
+        uint8 valid=0;for(uint8 i=0;i<num;++i)if(!HaveBuff(array[i],ESBUFF_ForbidFuHuo) && HeroBuildState(array[i],200070)<2 && HeroBuildState(array[i],260000+me)==0)array[valid++]=array[i];num=valid;
+    }
+	GetSkillTargetSelCondition(array,num,IsHeroBuild(me,40,2) && skillId==402?ESkill_Select_MaxDamage:pActive->target_select);
 
-	if(num > (uint8)pActive->target_num)
-		num = pActive->target_num;
+    int strategy=GetFightMember(me)->heroBuildStrategy;
+    if(strategy>0 && num>1 && pActive->target_range!=ESkill_Range_Self)
+    {
+        auto dotCount=[&](uint8 x)->int{int count=0;for(list<SFightBuffData>::const_iterator it=GetFightMember(x)->buff_list.begin();it!=GetFightMember(x)->buff_list.end();++it)
+            if(it->srcPos==me && (it->id==ESBUFF_ShiDu || it->id==ESBUFF_FuDu || it->id==ESBUFF_ShiXinDu || it->id==ESBUFF_ZhuoShao || it->id==ESBUFF_Blooding))++count;return count;};
+        std::stable_sort(array,array+num,[&](uint8 x,uint8 y)->bool{
+            if(myGroup && (strategy==1 || strategy==2))
+            {
+                if(strategy==2 && HaveShieldState(x)!=HaveShieldState(y))return !HaveShieldState(x);
+                int64 left=GetHp(x)*GetMaxHp(y),right=GetHp(y)*GetMaxHp(x);return left!=right?left<right:x<y;
+            }
+            if(!myGroup && strategy==3)return GetUnitAttack(x)!=GetUnitAttack(y)?GetUnitAttack(x)>GetUnitAttack(y):x<y;
+            if(!myGroup && strategy==4){int64 left=GetHp(x)*GetMaxHp(y),right=GetHp(y)*GetMaxHp(x);return left!=right?left<right:x<y;}
+            if(!myGroup && strategy==5){int dx=dotCount(x),dy=dotCount(y);HeroSkillRoleCfg *role=mgr.GetHeroSkillRoleCfg(GetHeroId(me));bool burst=role && skillId==role->tacticSkillId;return dx!=dy?(burst?dx>dy:dx<dy):x<y;}
+            return false;
+        });
+    }
+
+	uint8 targetLimit=IsHeroBuild(me,49,1) && skillId==491?3:pActive->target_num;
+	if(num>targetLimit)num=targetLimit;
 }
 
 void CFight::GetSkillTargetSelCondition(uint8 *array,uint8 &num,int target_select)

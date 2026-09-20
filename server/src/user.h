@@ -2090,6 +2090,7 @@ public:
 	void SetBasicAttrOff();
 	bool CopyOnlineUserData(CUser* pSrcUser);
 	void SaveData();
+	bool SetHeroBuild(uint16 heroId, uint8 branch, uint8 strategy, string &error);
 
     uint8 NoLockGetExtData8(uint16 pos);
     uint16 NoLockGetExtData16(uint16 pos);
@@ -2198,7 +2199,7 @@ private:
 	vector<UserMysteryItem> m_shenhunItem;
 	uint32 m_fightdata_pos;
 
-    void NoLockSaveData(CDatabaseSql *pDb);
+    bool NoLockSaveData(CDatabaseSql *pDb);
 
     bool m_callLevelScript;
     bool m_logout;

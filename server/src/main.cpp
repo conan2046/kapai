@@ -3818,6 +3818,9 @@ static void WaitForLocalShutdownCommand()
 
 int main(int argc,char **argv)
 {
+	// Explicit offline regression: no database, sockets or player saves opened.
+	if (argc == 2 && string(argv[1]) == "--hero-build-regression")
+		return CFight::RunHeroBuildRegression() ? 0 : 1;
 	SServerBasicCfg cfg;
 	cout << "[local] main: InitDB" << endl;
 	if(!InitDB(cfg))

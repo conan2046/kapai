@@ -584,6 +584,7 @@ public:
 	void GetEquipAttr(uint8 pos, MultiAttr& attrs);
 
 	void GetSuitSkills(uint8 fpos, vector<SSkillData> &skillList);
+	void GetWornEquipment(uint8 fpos, FormationEquipMap &snapshot) const;
 
 public:
 	uint8 GetYCLevelCnt(uint8 type, uint16 lv);

@@ -464,6 +464,7 @@ public:
 	{
 		Clear();
 	}
+	static bool RunHeroBuildRegression();
 	void Clear();
 
 	void SetGroupZhenFaData(uint16 zhenfaId,uint8 zhenfaLevel,uint8 group=EGT_GROUP1);
@@ -591,11 +592,16 @@ private:
 			srcPos = 0;
 			id = 0;
 			leftTurn = 0;
+			originSkill = 0;
+            appliedDuringRound=-1;periodicTicked=false;
 			paraList.clear();
 		}
 		uint8 srcPos;	// 施法者pos
 		uint16 id;
 		int leftTurn;
+		uint16 originSkill;
+        int appliedDuringRound;
+        bool periodicTicked;
 		vector<int> paraList;	// 参数
 	};
 	
@@ -816,7 +822,7 @@ private:
 	void ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src=0);
 	void ClearMulBuff(uint8 pos,uint16 buffId,uint8 src);
 	void ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList=NULL,uint8 src=0);
-	void AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn=0, vector<int> *para=NULL);
+	void AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn=0, vector<int> *para=NULL,uint16 originSkill=0);
 
 	void SetState(uint8 pos, int state);
 	void ClearState(uint8 pos, int state);
@@ -837,9 +843,45 @@ private:
 	void GetOption(uint8 pos,uint8 &option,int &para,uint8 &target);
 	uint16 GetUnitAISkillId(uint8 pos);
 	uint16 GetHeroId(uint8 pos);
+	bool IsHeroBuild(uint8 pos,uint16 hero,uint8 branch);
+    bool HeroBuildBoss(uint8 pos);
+	void HeroBuildAfterHeal(uint8 src,uint8 target,uint16 skillId,int beforeHp,int overheal,bool wasAlive);
+	void HeroBuildHpAction(uint8 src,uint8 target,int healing,uint16 skillId);
+	int HeroBuildDotDamage(uint8 src,uint8 target,uint16 buffId,int damage);
+	void HeroBuildDebuffApplied(uint8 src,uint8 target,uint16 skillId,uint16 buffId);
+	void HeroBuildDebuffResisted(uint8 src,uint16 buffId);
+	void HeroBuildAfterHit(uint8 src,uint8 target,uint16 skillId);
+	void HeroBuildDamageAction(uint8 src,uint8 target,int damage,uint16 skillId);
+	bool HeroBuildShieldLost(uint8 target,uint8 attacker,const SFightBuffData &shield,bool expired);
+	int HeroBuildOpeningEffect(uint8 src);
+	bool HeroBuildVulnerable(uint8 target);
+	int HeroBuildDamagePercent(uint8 src,uint8 target,uint16 skillId);
+	void HeroBuildControlBuff(uint8 src,uint8 target,uint16 skillId,uint16 buffId,int &ratio,uint8 &turn,vector<int> &parameters);
+	void HeroBuildControlFailed(uint8 src,uint8 target,uint16 skillId,uint16 buffId);
+	static bool RunHeroBuildControlRegression();
+	static bool RunHeroBuildBurstRegression();
+	int &HeroBuildState(uint8 pos,int key);
+	int HeroBuildArtifactValue(uint8 pos,int family);
+	int HeroBuildSetPieces(uint8 pos,int setId);
+	void HeroBuildSnapshotEquipment(uint8 pos,CUser *owner,uint16 heroId);
+	void HeroBuildEquipmentOpening();
+	void HeroBuildEquipmentAction(uint8 pos);
+	void HeroBuildEquipmentHeal(uint8 src,uint8 target,bool revived,bool periodic=false);
+	void HeroBuildEquipmentCleanse(uint8 src);
+	void HeroBuildEquipmentShare(uint8 protector,uint8 attacker);
+	void HeroBuildEquipmentDeath(uint8 pos);
+	void HeroBuildEquipmentHit(uint8 src,uint8 target,uint16 skillId,int damage);
+	void HeroBuildEquipmentRegular(uint8 src);
+	int HeroBuildEquipmentDamage(uint8 src,uint8 target);
+	bool HeroBuildTryExtraAttack(uint8 pos);
+	uint8 HeroBuildPeriodicActions(uint8 target,CNetMessage &msg);
+	static bool RunHeroBuildEquipmentRegression();
+	void HeroBuildBeforeAction(uint8 pos);
+	void HeroBuildAfterDirectHit(uint8 src,uint8 target,uint16 skillId,bool hadShield,int actualDamage);
+	void HeroBuildDirectDamage(uint8 src,uint8 target,uint16 skillId,int &damage,int &absorbed,bool ignoreShield,int *revived);
 	bool IsRoleSkillUseful(uint8 pos,uint16 skillId);
 	int GetTeamRage(uint8 pos) const;
-	void AddTeamRage(uint8 pos,int value);
+	void AddTeamRage(uint8 pos,int value,bool extra=true);
 	int GetTacticCost(uint8 pos,const HeroSkillRoleCfg &roleCfg);
 	int GetAffixTier(uint8 pos,uint16 affixId) const;
 	int GetAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex) const;
@@ -1033,6 +1075,25 @@ private:
 		bool killUnit_ext_IsLimit;
 		bool rageDamagedThisAction;
 		bool affixSummoned;
+		uint8 heroBuildBranch;
+		uint8 heroBuildStrategy;
+		bool heroBuildSelfRevived;
+		int heroBuildRevivedTurn;
+		int heroBuildHealCdTurn;
+		int heroBuildHealRageTurn;
+		int heroBuildHealRage;
+		bool heroBuildRevivedTargets[MAX_MEMBER];
+		int heroBuildCounterTurn[MAX_MEMBER];
+		uint8 heroBuildCounterCount[MAX_MEMBER];
+		int heroBuildExtendTurn[MAX_MEMBER];
+		int heroBuildAntihealApplied[MAX_MEMBER];
+		bool heroBuildAntihealSlowed[MAX_MEMBER];
+		int heroBuildResistRefundTurn;
+		int heroBuildShieldTurn;
+		int heroBuildShieldExplosions;
+		int heroBuildShieldConverted;
+		int heroBuildShieldHealTurn[MAX_MEMBER];
+		map<int,int> heroBuildState;
 		uint8 affixTurnCount[49];
 		uint8 affixBattleCount[49];
 		int affixState[49];
@@ -1099,6 +1160,23 @@ private:
 			killUnit_ext_IsLimit = false;
 			rageDamagedThisAction = false;
 			affixSummoned = false;
+			heroBuildBranch = 0;
+			heroBuildStrategy = 0;
+			heroBuildSelfRevived = false;
+			heroBuildRevivedTurn = -1;
+			heroBuildHealCdTurn = -1;
+			heroBuildHealRageTurn = -1;
+			heroBuildHealRage = 0;
+			memset(heroBuildRevivedTargets,0,sizeof(heroBuildRevivedTargets));
+			for(int i=0;i<MAX_MEMBER;++i)
+			{
+				heroBuildCounterTurn[i]=heroBuildExtendTurn[i]=heroBuildAntihealApplied[i]=-100;
+				heroBuildCounterCount[i]=0;heroBuildAntihealSlowed[i]=false;
+			}
+			heroBuildResistRefundTurn=-100;
+			heroBuildShieldTurn=-100;heroBuildShieldExplosions=0;heroBuildShieldConverted=0;
+			heroBuildState.clear();
+			for(int i=0;i<MAX_MEMBER;++i)heroBuildShieldHealTurn[i]=-100;
 			memset(affixTurnCount,0,sizeof(affixTurnCount));
 			memset(affixBattleCount,0,sizeof(affixBattleCount));
 			memset(affixState,0,sizeof(affixState));
@@ -1193,6 +1271,18 @@ private:
 			return &it->second;
 		}
 
+        void ApplyPassiveAttributeDelta(vector<SAttrData> &attributes)
+        {
+            SUnitBasicAttr before=unitAttr;
+            unitAttr.AddAttrValue(attributes);
+            // Attribute events contain deltas, not a complete equipment sheet.
+            // Updating critical chance must not erase an earlier HP/attack aura.
+            unitAttr.attack=before.attack+(int)((int64)before.attackBase*GetAttrValue(attributes,EAT_AttackAdd)/10000)+GetAttrValue(attributes,EAT_Attack);
+            unitAttr.wufang=before.wufang+(int)((int64)before.wufangBase*GetAttrValue(attributes,EAT_WuFangAdd)/10000)+GetAttrValue(attributes,EAT_WuFang);
+            unitAttr.fafang=before.fafang+(int)((int64)before.fafangBase*GetAttrValue(attributes,EAT_FaFangAdd)/10000)+GetAttrValue(attributes,EAT_FaFang);
+            unitAttr.maxHp=std::max<int64>(1,before.maxHp+before.maxHpBase*GetAttrValue(attributes,EAT_QiXueAdd)/10000+GetAttrValue(attributes,EAT_QiXue));
+            if(hp>unitAttr.maxHp)hp=unitAttr.maxHp;
+        }
 		bool AddPassSkillLimitAttrData(uint64 skillId,uint64 additiveType,uint16 attrType,int addPerValue,int num,int countLimit)
 		{
 			SFightLimitData *pData = GetPassSkillLimitData(skillId,additiveType,attrType);
@@ -1205,7 +1295,7 @@ private:
 			pData->_count += addNum;
 			vector<SAttrData> attrList;
 			attrList.push_back(SAttrData(attrType,addValue));
-			unitAttr.AddAttrValue(attrList);
+			ApplyPassiveAttributeDelta(attrList);
 			pData->_value += addValue;
 			return true;
 		}
@@ -1219,7 +1309,7 @@ private:
 			pData->_count -= decNum;
 			vector<SAttrData> attrList;
 			attrList.push_back(SAttrData(attrType,-decValue));
-			unitAttr.AddAttrValue(attrList);
+			ApplyPassiveAttributeDelta(attrList);
 			pData->_value -= decValue;
 			return true;
 		}
@@ -1233,7 +1323,7 @@ private:
 			pData->_count = num;
 			vector<SAttrData> attrList;
 			attrList.push_back(SAttrData(attrType,addValue-srcValue));
-			unitAttr.AddAttrValue(attrList);
+			ApplyPassiveAttributeDelta(attrList);
 			pData->_value = addValue;
 			return true;
 		}
@@ -1333,33 +1423,27 @@ private:
 			return false;
 		}
 
-		void DecAllSkillCD(int cd=1)
-		{
-			for(uint16 i=0;i < skill_list.size();i++)
-			{
-				if(skill_list[i].leftCD > 0)
-				{
-					if(skill_list[i].leftCD >= cd)
-						skill_list[i].leftCD -= cd;
-					else
-						skill_list[i].leftCD = 0;
-				}
-			}
-		}
+		void DecAllSkillCD(int cd=1,bool passive=true)
+        {
+            for(uint16 i=0;i<skill_list.size();++i)
+            {
+                if(passive)DecSkillCD(skill_list[i].id,cd);
+                else if(cd>0)skill_list[i].leftCD=std::max(0,(int)skill_list[i].leftCD-cd);
+            }
+        }
 
-		void DecSkillCD(uint16 skillId,int decCD)
-		{
-			for(uint16 i=0;i < skill_list.size();i++)
-			{
-				if(skill_list[i].id == skillId)
-				{
-					skill_list[i].leftCD -= decCD;
-					if(skill_list[i].leftCD < 0)
-						skill_list[i].leftCD = 0;
-					break;
-				}
-			}
-		}
+        void DecSkillCD(uint16 skillId,int decCD)
+        {
+            if(decCD<=0)return;
+            int epoch=heroBuildState[200040]+1;
+            if(heroBuildState[210000+skillId]!=epoch)
+            {heroBuildState[210000+skillId]=epoch;heroBuildState[220000+skillId]=0;}
+            for(uint16 i=0;i<skill_list.size();++i)if(skill_list[i].id==skillId)
+            {
+                int amount=std::min(std::max(0,(int)skill_list[i].leftCD),std::min(decCD,std::max(0,2-heroBuildState[220000+skillId])));
+                skill_list[i].leftCD-=amount;heroBuildState[220000+skillId]+=amount;break;
+            }
+        }
 
 		uint16 GetSkillNum(){	return skill_list.size();}
 
@@ -1438,6 +1522,7 @@ private:
 	vector<SFightZhuZhanCfg> m_zhuzhan;
 	vector<uint8> m_dieList;
 	vector<uint8> m_actionList;
+	bool m_heroBuildSecondaryDamage = false;
 	CNetMessage m_actionMsg;
 	CNetMessage m_otherMsg;	// 战斗回合数据缓存
 	CNetMessage m_extActionMsg;	// 战斗回合数据缓存

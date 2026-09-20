@@ -884,6 +884,41 @@ local function readHeroComposeResponse(message)
     Bridge:ShowToast("神将合成成功", 2)
 end
 
+function M.requestBuild(heroId, branch, strategy)
+    local message = Protocol.newMessage(Protocol.HERO)
+    message:WriteByte(branch < 0 and 40 or 41)
+    message:WriteWord(heroId)
+    if branch >= 0 then
+        message:WriteByte(branch)
+        message:WriteByte(strategy)
+    end
+    Bridge:Send(message)
+end
+
+local function readBuildResponse(message)
+    local heroId, success = message:ReadWord(), message:ReadByte()
+    local branch, strategy, error = 0, 0, ""
+    local levels = {}
+    if success == 1 then
+        branch, strategy = message:ReadByte(), message:ReadByte()
+        local count = message:ReadByte()
+        if count > 4 then
+            Bridge:SetHeroBuildState(heroId, 0, 0, "技能数量异常，请重新打开。", "")
+            return
+        end
+        for i = 1, count do
+            local skill, level = message:ReadWord(), message:ReadWord()
+            levels[#levels + 1] = tostring(skill) .. ":" .. tostring(level)
+        end
+    else
+        error = message:ReadString()
+    end
+    if message.Remaining ~= 0 then
+        error = "流派响应格式异常，请重新打开。"
+    end
+    Bridge:SetHeroBuildState(heroId, branch, strategy, error, table.concat(levels, ";"))
+end
+
 function M.onPacket(command, message)
     if command == Protocol.UPDATE_PET_INFO then readPetUpdate(message); return true end
     if command == Protocol.UPDATE_PET then return readFullPetPush(message) end
@@ -894,6 +929,7 @@ function M.onPacket(command, message)
         elseif op == 4 or op == 5 or op == 6 or op == 7 or op == 12 then readCultivationResponse(op, message)
         elseif op == 8 or op == 9 then readRebirthResponse(op, message)
         elseif op == 11 then readHeroComposeResponse(message)
+        elseif op == 40 or op == 41 then readBuildResponse(message)
         else return false end
         return true
     end
@@ -908,6 +944,7 @@ function M.onPacket(command, message)
 end
 
 function M.reset()
+    Bridge:ResetHeroBuildUi()
     local keepClosure = Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
         and (M.closureStage == "await_reconnect" or M.closureStage == "await_account_isolation")
     M.requested, M.snapshotOnly, M.mutationStage, M.mutationHero = false, false, nil, nil

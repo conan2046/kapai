@@ -51,6 +51,9 @@ namespace ProjectX.Data
     {
         [JsonProperty("id")] public int Id { get; set; }
         [JsonProperty("suit")] public int[][][] Effects { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+        [JsonProperty("two_description")] public string TwoDescription { get; set; }
+        [JsonProperty("four_description")] public string FourDescription { get; set; }
     }
 
     [Serializable]

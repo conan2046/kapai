@@ -270,6 +270,8 @@ namespace ProjectX.Core
         private CocosUiView heroAttributesView;
         private CocosUiView heroItemSourceView;
         private HeroPresenter heroPresenter;
+        private HeroBuildPresenter heroBuildPresenter;
+        private int heroBuildRequestVersion;
         private int activeHeroCultivationId;
         private bool heroG4ControlValidationRunning;
         private CocosUiView formationPopupView;
@@ -1123,6 +1125,7 @@ namespace ProjectX.Core
             bagFlowPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
+            heroBuildPresenter?.Dispose();
             heroCultivationPresenter?.Dispose();
             heroEquipmentPresenter?.Dispose();
             taskPresenter?.Dispose();
@@ -12493,6 +12496,7 @@ namespace ProjectX.Core
                 services.Resources, ShowHeroReplacement, ShowHeroCultivation, ShowHeroEnhanceMaster,
                 ShowHeroEquipmentSlot, ShowHeroAttributes,
                 id => InvokeLuaOrFail(onHeroSelected, "Hero.Select", id), message => ShowToast(message, 2f));
+            heroPresenter.ConfigureBuildEntry(ShowHeroBuild);
             heroFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
             heroBagView.BindClick("Layer/yingxiongbeibaoUI/cell", ShowHeroBook, true);
@@ -12501,6 +12505,47 @@ namespace ProjectX.Core
 
         public int GetEquipmentPart(int templateId)
             => services.EquipmentCatalog.GetEquipment(templateId).Part;
+
+        private void ShowHeroBuild(int heroId)
+        {
+            if (heroBuildPresenter == null)
+            {
+                Text sample = heroDetailView.Binding.GetComponentInChildren<Text>(true);
+                heroBuildPresenter = new HeroBuildPresenter(heroDetailView.Binding.transform,
+                    sample.font, RequestHeroBuild);
+            }
+            heroBuildPresenter.Open(heroId);
+        }
+
+        private void RequestHeroBuild(int heroId,int branch,int strategy)
+        {
+            int version=++heroBuildRequestVersion;
+            using (LuaFunction function=services.Lua.GetFunction("OnHeroBuildRequest"))
+                InvokeLuaOrFail(function,"Hero.Build",heroId,branch,strategy);
+            StartCoroutine(HeroBuildTimeout(heroId,version));
+        }
+
+        private IEnumerator HeroBuildTimeout(int heroId,int version)
+        {
+            yield return new WaitForSecondsRealtime(8);
+            if(version==heroBuildRequestVersion)
+                heroBuildPresenter?.Receive(heroId,0,0,"请求超时，请关闭后重新打开。原设置未在界面中改写。");
+        }
+
+        public void SetHeroBuildState(int heroId,int branch,int strategy,string error,string levels)
+        {
+            if(heroBuildPresenter==null || !heroBuildPresenter.IsShowing(heroId))return;
+            if(branch<0 || branch>2 || strategy<0 || strategy>5)
+                error="服务端返回了无效的流派设置，请重新打开。";
+            ++heroBuildRequestVersion;
+            heroBuildPresenter?.Receive(heroId,branch,strategy,error,levels);
+        }
+
+        public void ResetHeroBuildUi()
+        {
+            ++heroBuildRequestVersion;
+            heroBuildPresenter?.Reset();
+        }
 
         private void ShowFormationPopup()
         {

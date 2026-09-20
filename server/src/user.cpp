@@ -1,4 +1,5 @@
 #include "user.h"
+#include "hero_build.h"
 #include "arena.h"
 #include "scene_manager.h"
 #include "utility.h"
@@ -8516,10 +8517,10 @@ void CUser::SaveDataSimple()
 	pDb->Query(fmt.str().c_str());
 }
 
-void CUser::NoLockSaveData(CDatabaseSql *pDb)
+bool CUser::NoLockSaveData(CDatabaseSql *pDb)
 {
-	if(m_roleId == 0)
-		return;
+	if(m_roleId == 0 || pDb == NULL)
+		return false;
 	SingletonCSimpleRoleDataMgr::instance().UpdateLastLoginTime(m_roleId);
 
 	boost::format fmt("update role_info set state=~1&state,sex=%2%,level=%3%,exp=%4%,package='%5%',money=%6%,pet='%7%',title='%8%',hots='%9%',bitset='%10%',"\
@@ -8534,8 +8535,9 @@ void CUser::NoLockSaveData(CDatabaseSql *pDb)
 //	if (zeroTime > countTime)
 //		countTime = zeroTime;
 	
-	uint32 sumt = GetExtData32(450);
-	sumt = sumt + GetSysTime() - entergametime_;
+	const time_t saveAt = GetSysTime();
+	const uint32 previousOnlineSeconds = GetExtData32(450);
+	uint32 sumt = previousOnlineSeconds + max((time_t)0, saveAt - entergametime_);
 	SetExtData32(450, sumt);
 
 	string pack;
@@ -8679,10 +8681,13 @@ void CUser::NoLockSaveData(CDatabaseSql *pDb)
 		% m_roleId		// 1
 		;
 
-	if(pDb != NULL)
+	if(!pDb->Query(fmt.str().c_str()))
 	{
-		pDb->Query(fmt.str().c_str());
+		SetExtData32(450, previousOnlineSeconds);
+		return false;
 	}
+	entergametime_ = saveAt;
+	return true;
 }
 
 void CUser::SaveData(CDatabaseSql *pDb,bool lock)

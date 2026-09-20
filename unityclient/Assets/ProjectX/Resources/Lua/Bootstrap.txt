@@ -60,6 +60,7 @@ function OnTaskClicked() TaskController.onClick() end
 function OnTaskClaimClicked(taskType, id) TaskController.claim(taskType, id) end
 function OnHeroClicked() HeroController.onClick() end
 function OnHeroSelected(heroId) HeroController.selectHero(heroId) end
+function OnHeroBuildRequest(heroId, branch, strategy) HeroController.requestBuild(heroId, branch, strategy) end
 function OnFormationMove(heroId, position) HeroController.moveHero(heroId, position) end
 function OnFormationSwap(sourcePosition, targetPosition) HeroController.swapFormation(sourcePosition, targetPosition) end
 function OnFormationUpgrade(formationId) HeroController.upgradeFormation(formationId) end
