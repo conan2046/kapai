@@ -91,9 +91,10 @@ namespace ProjectX.UI
             }
 
             RectTransform pointer = Find(Base + "/Panel_17/ZhenImage")?.GetComponent<RectTransform>();
+            RectTransform selection = Find(Base + "/Panel_17/RewardBg/Choose")?.GetComponent<RectTransform>();
             effect = view.GameObject.GetComponent<HappyWheelSpinEffect>()
                 ?? view.GameObject.AddComponent<HappyWheelSpinEffect>();
-            effect.Initialize(pointer);
+            effect.Initialize(pointer, selection);
             store.Changed += RenderState;
             store.Spun += HandleSpun;
             bag.Changed += Render;
@@ -362,14 +363,18 @@ namespace ProjectX.UI
     public sealed class HappyWheelSpinEffect : MonoBehaviour
     {
         private RectTransform pointer;
+        private RectTransform selection;
         private Coroutine routine;
         private float baseAngle;
+        private float selectionBaseAngle;
         public float StateReceivedAt { get; private set; }
 
-        public void Initialize(RectTransform target)
+        public void Initialize(RectTransform target, RectTransform selectionTarget)
         {
             pointer = target;
+            selection = selectionTarget;
             baseAngle = pointer != null ? pointer.localEulerAngles.z : 0f;
+            selectionBaseAngle = selection != null ? selection.localEulerAngles.z : 0f;
             MarkStateReceived();
         }
 
@@ -378,7 +383,7 @@ namespace ProjectX.UI
         public void Play(int selectedIndex, int slotCount, Action completed)
         {
             Clear();
-            if (!isActiveAndEnabled || pointer == null)
+            if (!isActiveAndEnabled || (pointer == null && selection == null))
             {
                 completed?.Invoke();
                 return;
@@ -394,7 +399,8 @@ namespace ProjectX.UI
 
         private IEnumerator SpinRoutine(int selectedIndex, int slotCount, Action completed)
         {
-            float start = pointer.localEulerAngles.z;
+            float start = pointer != null ? pointer.localEulerAngles.z : baseAngle;
+            float selectionStart = selection != null ? selection.localEulerAngles.z : selectionBaseAngle;
             float slotAngle = 360f / Mathf.Max(1, slotCount);
             float desired = Mathf.Repeat(baseAngle - selectedIndex * slotAngle, 360f);
             float clockwiseDistance = Mathf.Repeat(start - desired, 360f);
@@ -406,10 +412,19 @@ namespace ProjectX.UI
                 elapsed += Time.unscaledDeltaTime;
                 float progress = Mathf.Clamp01(elapsed / duration);
                 float eased = 1f - Mathf.Pow(1f - progress, 3f);
-                pointer.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpUnclamped(start, target, eased));
+                float angle = Mathf.LerpUnclamped(start, target, eased);
+                if (pointer != null)
+                    pointer.localRotation = Quaternion.Euler(0f, 0f, angle);
+                if (selection != null)
+                    selection.localRotation = Quaternion.Euler(
+                        0f, 0f, selectionStart + (angle - start));
                 yield return null;
             }
-            pointer.localRotation = Quaternion.Euler(0f, 0f, target);
+            if (pointer != null)
+                pointer.localRotation = Quaternion.Euler(0f, 0f, target);
+            if (selection != null)
+                selection.localRotation = Quaternion.Euler(
+                    0f, 0f, selectionStart + (target - start));
             routine = null;
             completed?.Invoke();
         }

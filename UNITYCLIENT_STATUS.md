@@ -1,16 +1,16 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-09-15。这里只维护实时状态、当前焦点、顺序和风险。
+> 最后更新：2026-09-21。这里只维护实时状态、当前焦点、顺序和风险。
 > 稳定流程见 `docs/unityclient/MIGRATION_GUIDE.md`；模块事实见 `docs/unityclient/modules/`；历史流水见 `docs/unityclient/history/`。
 
 ## 1. 当前焦点
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动范围 | `Fish` 钓鱼 Steam 单机化迁移 |
-| 当前门禁 | `G3 passed / user Play accepted / G4-G6 pending` |
-| 当前仅剩玩家缺陷 | 无；本阶段统一顶部、鱼篓滚动、Prefab 场景与 pos 挂点已由用户实际测试通过 |
-| 下一步 | Fish 本阶段收口；等待用户选择下一个模块，后续若重开严格迁移验收再执行 G4-G6 |
+| 唯一活动范围 | `HappyWheel` 幸运转盘功能验收 |
+| 当前门禁 | `FengShenStory、MoneyTree、HappyWheel 功能验收通过；下一项为大富翁` |
+| 当前阻塞 | 大富翁业务状态机待验收 |
+| 下一步 | 进入大富翁，验证地图、格子状态、随机结果与返回刷新 |
 | 禁止事项 | 后续调整必须以用户维护的 `FishLayer.prefab` 为基础；未经用户明确许可不操作 Unity |
 
 ## 2. 总进度
@@ -44,14 +44,14 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Hero | `G0 passed / G1-G6 invalidated` | 当前不启动；待有效 Cocos 状态重采 |
 | HeroEquip | `G0-G4 passed / G5 blocked` | 当前不启动；用户 Prefab 不覆盖 |
 | Shop | `G3 runtime-ready / early Play passed` | 正式 G1-G2、G4-G6 待后续独立任务 |
-| Gameplay | `scope changed / revalidation required` | 当前表驱动入口为 `function_id=1/3/9/10/21/23/27/29`；旧4项/7项证据失效 |
+| Gameplay | `G4 passed / G5 blocked / G6 pending` | Arena `id=6` 已排除；真实 ScrollRect 滚动、用户 Play、重连与账号隔离均已通过；G5 等待 Cocos 跨后端映射 |
 | Answer | `implemented / Chinese question bank installed / user Play passed` | 38道中文题已更新至SQLite/MySQL；固定品质框+金币图标+默认1000已验收，Cocos逻辑不改，manualPassed=true；中央G1-G6待补证据 |
-| Fish | `G3 passed / user Play accepted` | Unity 单机实现与固定账号 9/9 真实点击回归已通过；Cocos 仅作源码基线且不声称运行截图；用户已在最后一次统一顶部层级与 Prefab `FishScene/pos` 挂点调整后实际测试通过，`manualPassed=true`；G4-G6 待后续重新开启 |
-| MoneyTree | `runtime implemented / Play pending` | `/222 op=17` 查询与摇取已接入；待真实Play验证 |
-| HappyWheel | `runtime implemented / latest fix Play pending` | 常驻十格奖池、钥匙商城、50条记录和 `/222 op=33` 已接入；待复测重登后的钥匙数量显示 |
+| Fish | `G3 passed / user Play accepted` | Unity 单机实现与固定账号 9/9 真实点击回归已通过；Cocos 仅作源码基线且不声称运行截图；用户已在最后一次统一顶部层级与 Prefab `FishScene/pos` 挂点调整后实际测试通过，包含早收网结算逻辑，`manualPassed=true`；G4-G6 待后续重新开启 |
+| MoneyTree | `功能验收通过` | 用户已多次真实 Play；查询、摇取、消耗与结果刷新无业务问题；本轮 MCP 截图插件报错不计为功能错误 |
+| HappyWheel | `功能验收通过` | 已修复多次抽取后的累计角度偏移；用户连续三次真实 Play确认最终高亮与指针同格，奖励与日志正常 |
 | JingJie | `G0 passed / G1 blocked / Unity user Play passed` | `/306 op=1/4`、20阶配置、Prefab、预览和突破动画已接入；2026-09-13 用户测试通过，待当前Cocos原生基线 |
 | Monopoly | `entry/resources integrated / business pending` | 已补玩法入口与正式地图资源；业务状态机待后续迁移 |
-| FengShenStory | `G0-G3 passed / early Play retest pending` | 父模块待后续独立任务 |
+| FengShenStory | `功能验收通过` | 2026-09-21真实 Play：货币栏、首通奖励、挑战结算、体力/货币扣增、关卡推进均正常；Console 0错误/警告；不再按迁移G4-G6阻塞 |
 | BattleFengShenStory | `G0-G6 complete` | 非分母战斗子模块，已收口 |
 | YouLi | `G0 passed / G1-G6 evidence missing` | 后续从当前源码重取 G1 |
 | ResourceFoundation | `R0-R4 passed / early Play passed` | YooAsset、Atlas、内存预算后置 |

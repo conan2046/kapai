@@ -2,7 +2,7 @@
 
 ## 当前门禁
 
-- 当前：G0-G3 passed；2026-08-29当前Cocos动态证据、persistentDataPath SQLite数据预检与Unity `BuildBatch`均已重做。等待修复后的早期真人Play复测；反馈闭环前G4-G6保持pending。
+- 当前：功能 Bug 验收通过（2026-09-21）。真实 Play 已验证入口、货币栏、首通奖励、挑战成功结算、体力/货币变化、关卡推进和 Console 无错误；迁移 G4-G6 不作为当前功能阻塞。
 - 旧 `logic-validated-visual-pending`、旧截图、旧 Runner、旧 SHA 与 7200025 证据只作线索，不计入本轮门禁。
 - 唯一范围：`玩法大厅 → function_id=3 → 封神列传`；World 仅作共享 `/320` 回归面。
 
