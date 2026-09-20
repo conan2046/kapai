@@ -334,16 +334,58 @@ void CFishSinglePlayerService::SyncTime(CUser* pUser)
 void CFishSinglePlayerService::Stop(CUser* pUser)
 {
 	if(pUser == NULL) return;
+	FishSettings settings;
+	if(!LoadSettings(settings)) { SendError(pUser, FISH_OP_STOP, "钓鱼配置缺失"); return; }
+	boost::mutex::scoped_lock lock(m_mutex);
+	Session& session = m_sessions[pUser->GetRoleId()];
+	if(!session.fishing)
 	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		Session& session = m_sessions[pUser->GetRoleId()];
-		session.fishing = false;
-		session.duration = 0;
-		session.finishAt = 0;
+		CNetMessage response;
+		response.SetType(MSG_FISH);
+		response << FISH_OP_STOP << PRO_SUCCESS << (uint32)pUser->GetMoney();
+		SingletonSocket::instance().SendMsg(pUser->GetSock(), response);
+		return;
 	}
+
+	// 收网按点击时刻结算：已过去的时间占本轮时长的比例就是成功率。
+	// 到期但尚未被 Tick 处理时，按 100% 处理，避免边界点击损失奖励。
+	time_t now = GetSysTime();
+	uint32 elapsed = now > session.finishAt - session.duration
+		? (uint32)(now - (session.finishAt - session.duration)) : 0;
+	uint32 successPercent = session.duration == 0
+		? 0 : elapsed * 100 / session.duration;
+	if(successPercent > 100) successPercent = 100;
+
+	CatchResult result;
+	bool settled = false;
+	if(successPercent >= 100 || Random(1, 100) <= (int)successPercent)
+	{
+		uint16 fishId = 0;
+		if(!RollFish(fishId) || !AddCatch(pUser->GetRoleId(), fishId, settings, result))
+		{
+			session.fishing = false;
+			session.duration = 0;
+			session.finishAt = 0;
+			SendError(pUser, FISH_OP_SUCCESS, "钓鱼结算失败");
+			return;
+		}
+		settled = true;
+	}
+	if(!settled)
+	{
+		result.itemId = 0;
+		result.slotIndex = 0xffff;
+		result.quantity = 0;
+		result.discarded = true;
+	}
+	session.fishing = false;
+	session.duration = 0;
+	session.finishAt = 0;
+
 	CNetMessage response;
 	response.SetType(MSG_FISH);
-	response << FISH_OP_STOP << PRO_SUCCESS << (uint32)pUser->GetMoney();
+	response << FISH_OP_SUCCESS << PRO_SUCCESS << result.itemId << result.slotIndex << result.quantity
+		<< (uint8)(result.discarded ? 1 : 0) << (uint16)0 << (uint32)pUser->GetMoney();
 	SingletonSocket::instance().SendMsg(pUser->GetSock(), response);
 }
 

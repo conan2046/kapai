@@ -251,8 +251,7 @@ def main():
         delta = FIXTURE_MONEY - current["money"]
         total_fish = sum(int(row[2]) for row in current["basket"])
         valid_ids = set(EXPECTED_FISH_IDS)
-        if (current["integrity"] != "ok" or delta < 100 or delta % 100 != 0 or total_fish < 1
-                or delta // 100 not in (total_fish, total_fish + 1)
+        if (current["integrity"] != "ok" or delta != 300 or total_fish != 1
                 or any(int(row[1]) not in valid_ids or int(row[2]) < 1 or int(row[2]) > 999 for row in current["basket"])):
             raise RuntimeError(f"Fish completion mutation assertion failed: delta={delta}, state={current}")
         snapshot["mutated"] = current

@@ -11912,7 +11912,6 @@ void CUser::TimeOut(int &saveNum,const int limitSaveNum)
 //	GetHuoYueDuInfo(this);
 
 //	ClearTimeoutTitle();
-	TryFishTimeout();
 	//SaoDangFuBenTimeout();
 
 	CHuoDongAwardManager &awardManager = SingletonCHuoDongAwardManager::instance();

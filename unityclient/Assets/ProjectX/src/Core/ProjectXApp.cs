@@ -5877,7 +5877,8 @@ namespace ProjectX.Core
             // Hero cultivation materials. A delayed response must update the
             // store without navigating either active business screen to the
             // ordinary item bag.
-            if (IsDrawOpen || IsHeroOpen || IsHeroEquipmentSurfaceVisible || heroEquipmentOpenPending) return;
+            if (IsDrawOpen || IsHeroOpen || IsHeroEquipmentSurfaceVisible || heroEquipmentOpenPending
+                || IsFishOpen) return;
             // Jingjie's 背包 tab requests /8 for its own embedded bag surface.
             // The store was already replaced above; do NOT let the response run
             // ConfigureBagFrame(), which would retitle the shared frame to

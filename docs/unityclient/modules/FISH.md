@@ -156,7 +156,7 @@
 
 ## 7. 门禁计划（G0-G6）
 
-1. **G0 前置（已闭环）**：固定账号 `7200057/1000003`；9个控件与50个业务ID见 `FISH_CONTROLS.json` / `FISH_COVERAGE.json`；正式 Excel→JSON、地图、`ShapeId=2000` 模型动画、10种鱼图标/配置和 SQLite 结构均已落地。可逆夹具已完成 `Setup → AssertSetup → Restore → AssertRestored → AssertReloginHash → Cleanup → AssertCleanup`，原库 SHA256、`integrity_check=ok`、重登业务哈希和残留0通过；不建立每日次数、主角经验或交互币状态。
+1. **G0 前置（已闭环）**：固定账号 `7200057/1000003`；10个控件与50个业务ID见 `FISH_CONTROLS.json` / `FISH_COVERAGE.json`；正式 Excel→JSON、地图、`ShapeId=2000` 模型动画、10种鱼图标/配置和 SQLite 结构均已落地。可逆夹具已完成 `Setup → AssertSetup → Restore → AssertRestored → AssertReloginHash → Cleanup → AssertCleanup`，原库 SHA256、`integrity_check=ok`、重登业务哈希和残留0通过；不建立每日次数、主角经验或交互币状态。
 2. **G1 源码闭包（用户授权例外）**：Cocos 入口 → `FishUI`/三个 Delegate → 协议 → 服务端 `CFishManager` 已作为源码基线；用户明确要求忽略 Cocos 客户端全部表现，直接迁移 Unity，故不采、不伪造 Cocos 运行截图。例外证据：`.local/unity-validation/fish-g1-user-authorized-source-only.json`。
 3. **G2 审计**：共享协议217、配置资源（`function.json` 含 `function_id=32`、`fish_settings.json`、`fish_reward.json`、`fish_position.json`）、`FishLayer.prefab` 的节点与 Transform 一致性；方案B底图、固定坐标换算、`ShapeId=2000` 正式模型/动画与加载路径。
 4. **G3 定向（已通过，用户已实际验收）**：固定账号真实点击玩法大厅与 `Function_32/EnterBtn`，进入场景54/map33固定钓位并立即显示 `ShapeId=2000`；Ready 未扣费，开始后金币 `1000→900`、首轮时长落在10~20秒，首鱼入鱼篓后自动续钓扣至800，鱼格选中后通过正式“收获”按钮整组领取，再次产鱼并续钓扣至700，真实收竿、关闭鱼篓和退出均通过。2026-09-15 使用25个配置鱼格验证鱼篓真实 EventSystem 拖动，纵向位置 `1.00→0.00`，内容高度710大于视口523；最后调整为 `DynamicUi_OneLevelLayer` 容器层级、隐藏 `Bg/GoldCheck/shop_bg`、Prefab 内置 `FishScene/pos` 挂点后，用户实际测试确认无误。证据：`.local/unity-validation/fish-g3-runtime-latest.json`、`.local/unity-validation/fish-formal-basket-scroll-result.txt`、`unityclient/Captures/fish-formal-ui-final-*.png`。

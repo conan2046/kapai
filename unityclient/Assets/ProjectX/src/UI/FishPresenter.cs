@@ -268,7 +268,7 @@ namespace ProjectX.UI
 
             RenderHeader();
             stateText.text = store.IsFishing ? "垂钓中" : "准备";
-            startLabel.text = store.IsFishing ? "收杆" : "开始";
+            startLabel.text = store.IsFishing ? "收网" : "开始";
             basketButtonLabel.text = "鱼篓";
             startButton.interactable = store.IsFishing || store.Gold >= store.GoldCost;
             if (store.IsFishing && store.RemainingSeconds > currentCycleDuration - .5d)
@@ -298,7 +298,7 @@ namespace ProjectX.UI
                 return;
             }
             double remaining = store.RemainingSeconds;
-            countdownText.text = $"{Math.Ceiling(remaining):0}s";
+            countdownText.text = remaining <= 0d ? "结算中" : $"{Math.Ceiling(remaining):0}s";
             progressFill.fillAmount = currentCycleDuration > 0
                 ? Mathf.Clamp01(1f - (float)(remaining / currentCycleDuration))
                 : 0f;

@@ -72,10 +72,17 @@ namespace ProjectX.Core
             services.Fish.ApplyCatch(checked((ushort)itemId), checked((ushort)slotIndex),
                 checked((ushort)quantity), discarded, checked((ushort)nextDuration), checked((uint)gold));
             services.Currencies.Set(CurrencyIds.Gold, checked((long)gold));
-            RewardRecord item = services.ShopCatalog.DescribeServerReward(itemId, 0, 1);
-            ShowToast(discarded
-                ? $"鱼篓已满，{item.Name}已舍弃"
-                : $"钓到{item.Name}，当前格 {quantity}/{services.Fish.StackLimit}", 2.5f);
+            if (itemId == 0)
+            {
+                ShowToast("提前收网，未获得鱼", 2.5f);
+            }
+            else
+            {
+                RewardRecord item = services.ShopCatalog.DescribeServerReward(itemId, 0, 1);
+                ShowToast(discarded
+                    ? $"鱼篓已满，{item.Name}已舍弃"
+                    : $"钓到{item.Name}，当前格 {quantity}/{services.Fish.StackLimit}", 2.5f);
+            }
         }
 
         public void CompleteFishCollect(int slotIndex, int itemId, int quantity)
@@ -83,6 +90,11 @@ namespace ProjectX.Core
             services.Fish.ApplyCollected(checked((ushort)slotIndex));
             RewardRecord item = services.ShopCatalog.DescribeServerReward(itemId, 0, checked((uint)quantity));
             ShowToast($"已收获 {item.Name} ×{quantity}", 2f);
+
+            // Fish op6 moves the authoritative reward into the normal package.
+            // Refresh /8 now so the next Bag open sees the server-owned item;
+            // EndBagUpdate keeps the response data-only while Fish is visible.
+            InvokeLuaOrFail(onBagClicked, "Bag.RefreshAfterFishCollect");
         }
 
         public void SyncFishTime(int remainingSeconds) =>
@@ -107,7 +119,7 @@ namespace ProjectX.Core
 
         private void ShowFishHelp()
         {
-            ShowToast("10级开启；每轮消耗100金币；10~20秒随机完成；同鱼单格最多999条；鱼篓最多9999格，满后新增鱼直接舍弃。", 6f);
+            ShowToast("10级开启；每轮消耗100金币；10~20秒随机完成；可提前收网，成功率=已用时/本轮时长；同鱼单格最多999条；鱼篓最多9999格，满后新增鱼直接舍弃。", 6f);
         }
 
         private void CloseFish()
@@ -398,6 +410,15 @@ namespace ProjectX.Core
             }
             yield return CaptureFishFrame("bootstrap-fish-basket.png");
 
+            RuntimeInputDispatchResult finalBasketClose = RuntimeInputDispatcher.Dispatch(
+                "Layer/FishUI/yulan/btn_Close", "FISH-09-BASKET-CLOSE", "click");
+            if (!finalBasketClose.Dispatched || fishPresenter.IsBasketVisible)
+            {
+                Fail("Fish basket did not close before module exit: " + finalBasketClose.Error);
+                yield break;
+            }
+            yield return new WaitForEndOfFrame();
+
             RuntimeInputDispatchResult close = RuntimeInputDispatcher.Dispatch(
                 "DynamicUi_OneLevelLayer/Panel_12/Title/CloseBtn", "FISH-02-EXIT", "click");
             if (!close.Dispatched)
@@ -418,7 +439,7 @@ namespace ProjectX.Core
             }
             RecordValidationSemantic("fish-exit-restores-normal-ui", true,
                 "Fish view popped; shared OneLevelLayer is hidden and the gameplay frame remains outside it");
-            Complete("COMPLETE: Fish 9/9 controls real-input /217 cycle passed; ready=54/33/1086/619/dir2/shape2000, gold=1000->900->800->700, collect=1, persistedCatch=1, stopped and exited");
+            Complete("COMPLETE: Fish 10/10 controls real-input /217 cycle passed; ready=54/33/1086/619/dir2/shape2000, gold=1000->900->800->700, collect=1, persistedCatch=1, stopped and exited");
         }
 
         private IEnumerator CaptureFishFrame(string fileName)

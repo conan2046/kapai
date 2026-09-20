@@ -2879,6 +2879,7 @@ void CMainClass::TimeOut()
 {
 	time_t saveOnlineNum = GetSysTime();
 	time_t userTimeOut = GetSysTime();
+	time_t fishTimeOut = GetSysTime();
 	const int limitSaveOnceNum = 6;
 	int saveRoleOnceNum = 0;
 	string serverId;
@@ -2907,6 +2908,18 @@ void CMainClass::TimeOut()
 	while(sExit)
 	{
 		saveRoleOnceNum = 0;
+		if(GetSysTime() - fishTimeOut >= 1)
+		{
+			fishTimeOut = GetSysTime();
+			list<uint32> fishUserList;
+			m_onlineUser.GetUserList(fishUserList);
+			for(list<uint32>::iterator i = fishUserList.begin(); i != fishUserList.end(); i++)
+			{
+				ShareUserPtr ptr = m_onlineUser.GetUserByRoleId(*i);
+				CUser *pUser = ptr.get();
+				if(pUser != NULL) pUser->TryFishTimeout();
+			}
+		}
 		if(GetSysTime() - userTimeOut > 10)
 		{
 			gyu::util::TimePrint tPrint("==>>> CMainClass::TimeOut");

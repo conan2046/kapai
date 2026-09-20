@@ -11,7 +11,7 @@
     {"id":"fish-entry-map","kind":"success","given":"固定账号达到10级且function_id=32开放，map33与ShapeId=2000正式资源可解析","when":"点击Function_32入口","then":"假传送进入场景54/map33表现，角色固定在(1086,619)、dir=2、flip=true并立即切换ShapeId=2000钓鱼造型；业务态仍为Ready，不发op5、不扣金币、不启动倒计时，每日不限次"},
     {"id":"fish-start-cycle","kind":"success","given":"角色已在固定钓位以ShapeId=2000持竿待机、产出鱼存在可补同种格或鱼篓仍有空格，且金币不少于100","when":"点击开始钓鱼并等待周期结束","then":"固定发送op5(dir=2)，成功时权威扣100金币、业务态切为Fishing并返回本轮10至20秒时长；钓鱼造型保持，到期只产出配置鱼种并为下一轮重抽时长"},
     {"id":"fish-basket-collect","kind":"success","given":"鱼篓存在有效鱼","when":"选择鱼格并领取","then":"背包增加对应鱼且鱼篓刷新"},
-    {"id":"fish-stop-close-reconnect","kind":"success","given":"模块处于Fishing或持竿待机Ready","when":"收竿、关闭或重连","then":"收竿回ShapeId=2000持竿待机；退出页面恢复正常角色模型并清理钓鱼模型、计时器与pending；重连由权威状态重建"},
+    {"id":"fish-stop-close-reconnect","kind":"success","given":"模块处于Fishing或持竿待机Ready","when":"Fishing中点击收网、关闭或重连","then":"收网按点击时刻结算，成功率=已用时/本轮时长；成功获得鱼，失败不产出且不自动续轮；退出页面恢复正常角色模型并清理钓鱼模型、计时器与pending；重连由权威状态重建"},
     {"id":"fish-function-gate","kind":"failure-boundary","given":"未达10级","when":"查看或点击入口","then":"锁定或拒绝且不进入模块"},
     {"id":"fish-insufficient-gold","kind":"failure-boundary","given":"金币小于配置消耗100","when":"在固定钓位点击开始钓鱼","then":"不扣金币、不进入Fishing、不产出奖励并精确提示，仍保持ShapeId=2000持竿待机"},
     {"id":"fish-protocol-error","kind":"failure-boundary","given":"服务端返回op0或业务失败","when":"客户端解析回包","then":"精确提示且不乐观修改状态"},
