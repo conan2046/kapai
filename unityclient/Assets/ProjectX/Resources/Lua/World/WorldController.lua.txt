@@ -24,12 +24,9 @@ local M = {
     requestedStageId = 0,
     -- 龙崖改造：连战状态（op=1 下发的 fuben_AB == 2 时开启）
     chainMode = false,      -- 是否为龙崖副本模式
-    -- 「自动挑战」勾选（由 Unity/C# 侧设置）。语义（用户口径 2026-09-17）：
-    --   勾选 = 本章无限循环：BOSS 结算后重跑本章，中途失败也回本章第一关重打；
-    --   不勾 = 本章从第一关连打到 BOSS 就结束（中途失败则出结算收尾）。
-    -- ⚠️ 它**不**约束「胜利后走位续战到下一关」，那条是无条件的。
+    -- 「自动挑战」控制失败后回本章第一关重试，以及 Boss 胜利后重跑当前章节。
+    -- 普通关胜利后的下一关续战不依赖该开关；「自动挑战下一章」由结算层处理。
     chainAuto = false,
-    chainCount = 10,        -- 本局连战总场次
     chainIndex = 0,         -- 当前第几场（服务端回包为准）
     chainNextNodeId = 0     -- 下一关（失败时 = 本章第一关，BOSS 通关 = 0）
 }
@@ -80,14 +77,15 @@ end
 -- 龙崖模式：连战请求（/320 op=28）。语义 = 「请求本场」，只打一场，
 -- 结果由服务端下发：胜利 → op=8（带本场序号 / 总场次 / 下一关），
 --                   失败 → op=28 轻量回包（下一关 = 本章第一关），不弹结算。
-local function challengeChainStage(stageId, count)
+local function challengeChainStage(stageId)
     local chapterId = Bridge:GetWorldSelectedChapterId()
     if chapterId == 0 or stageId == 0 then return end
     send(28, function(message)
         message:WriteByte(M.mapType)
         message:WriteUInt(chapterId)
         message:WriteUInt(stageId)
-        message:WriteByte(count or M.chainCount)
+        -- 保留旧协议字段；连战不按次数限制，服务端忽略该字段。
+        message:WriteByte(0)
     end)
 end
 
@@ -99,6 +97,13 @@ local function readChainLose(message)
     M.chainIndex = message:ReadByte()
     local _chainTotal = message:ReadByte()
     if message.Remaining ~= 0 then fail("World/320 op=28 unread bytes: " .. tostring(message.Remaining)); return end
+    -- op=28 的失败回包本身就是龙崖连战证据。若章节列表的模式尾字段因
+    -- 旧服务端/热重载没有及时同步，不能把这场失败再落回普通副本流程。
+    if M.chainIndex > 0 and not M.chainMode then
+        M.chainMode = true
+        Bridge:SetWorldChainMode(true)
+    end
+    Bridge:ApplyWorldChainLose(M.chainNextNodeId)
     -- 失败：「自动挑战」勾着 → 回本章第一关继续（服务端下发的 chainNextNodeId 即第一关）；
     --        未勾选 → 不续战，清掉本场奖励后出结算收尾，别把玩家晾在路中间。
     if M.chainAuto and M.chainNextNodeId ~= 0 then
@@ -211,7 +216,7 @@ function M.challengeSelected()
     if M.chainMode then
         M.chainIndex = 1
         M.chainNextNodeId = 0
-        challengeChainStage(stageId, M.chainCount)
+        challengeChainStage(stageId)
     else
         challengeStage(stageId)
     end
@@ -219,17 +224,18 @@ end
 
 -- 龙崖模式：由 Unity 在单场回放播完、走位到下一目标点之后调用。
 -- 返回 true 表示已发起下一场；false 表示不再继续（非龙崖模式 / 已通关）。
--- ⚠️ **不判 chainAuto**：胜利后走位续战是无条件的（不勾「自动挑战」= 从第一关连打到
--- BOSS 就结束，中途胜利照样打下一关；勾选框只管 BOSS 后重跑本章与中途失败重来）。
+-- 普通关胜利后的本章顺序续战不受 chainAuto 限制；失败重试由 chainAuto 控制。
+-- 本章 Boss 后是否切下一章由 chainAutoNext 控制。
 function M.continueChain()
     if not M.chainMode then return false end
     local nextStage = M.chainNextNodeId
     if nextStage == 0 then return false end
-    challengeChainStage(nextStage, M.chainCount)
+    challengeChainStage(nextStage)
     return true
 end
 
--- 龙崖模式：章节通关、结算确认后「重跑本章」（nodeId=0 → 服务端取本章第一关）
+-- 龙崖模式：本章 Boss 胜利后，只勾「自动挑战」时从本章第一关重新开始。
+-- 不使用次数限制；旧协议字段仅保留兼容位。
 function M.restartChain()
     local chapterId = Bridge:GetWorldSelectedChapterId()
     if chapterId == 0 then return false end
@@ -237,7 +243,7 @@ function M.restartChain()
         message:WriteByte(M.mapType)
         message:WriteUInt(chapterId)
         message:WriteUInt(0)
-        message:WriteByte(M.chainCount)
+        message:WriteByte(0)
     end)
     return true
 end
@@ -250,7 +256,6 @@ end
 
 function M.setChainAuto(value) M.chainAuto = value and true or false end
 function M.setChainAutoNext(value) M.chainAutoNext = value and true or false end
-function M.setChainCount(count) if count and count > 0 then M.chainCount = count end end
 function M.refreshAfterBattle()
     M.validationStage = "verify_world"
     requestWorld()
@@ -410,6 +415,12 @@ local function readBattleResult(message)
     local _chainTotal = message:ReadByte()
     M.chainIndex = chainIndex
     M.chainNextNodeId = message:ReadUInt()
+    -- 连战 op=28 的胜利回包带本场序号；它比 op=1 的模式尾字段更接近
+    -- 当前请求事实，避免模式状态短暂丢失时首个普通怪被误当成最终结算。
+    if chainIndex > 0 and not M.chainMode then
+        M.chainMode = true
+        Bridge:SetWorldChainMode(true)
+    end
     local rewardCount = message:ReadByte()
     Bridge:BeginRewardUpdate(rewardCount)
     local visibleRewardCount = 0
@@ -422,11 +433,10 @@ local function readBattleResult(message)
     Bridge:ApplyWorldBattleResult(foughtCount, foughtStageId, unlockedChapterId, unlockedStageId,
         unlockedBoxId, unlockedStarBoxId, stars, chainIndex, _chainTotal, M.chainNextNodeId)
     M.validationRewardCount = visibleRewardCount
-    -- 龙崖模式：还有下一关（未到 BOSS）时不弹结算，交给 Unity 等回放播完再走位续战。
-    -- ⚠️ 这里**不受「自动挑战」约束**：不勾选 = 本章从第一关连打到 BOSS 就结束，
-    -- 「勾选」只影响两件事 —— ① BOSS 结算确认后是否重跑本章（C# ContinueBattleOutcome）；
-    -- ② 中途失败是否回本章第一关继续（readChainLose）。
-    if M.chainMode and M.chainNextNodeId ~= 0 then
+    -- op=8 只表示本场胜利：只要不是 Boss（nextNodeId ~= 0），无论是否勾选
+    -- 「自动挑战」都要按顺序挑战本章下一关。CheckBox_1 只控制失败后的重试，
+    -- 以及 Boss 胜利后的当前章节循环；CheckBox_2 由结算层处理切章。
+    if (M.chainMode or chainIndex > 0) and M.chainNextNodeId ~= 0 then
         Bridge:ContinueWorldChain(M.chainNextNodeId)
     else
         Bridge:ShowWorldBattleResult(stars)

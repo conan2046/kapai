@@ -160,7 +160,6 @@ namespace ProjectX.Core
         // 龙崖副本模式（config.fuben_AB == 2）自动连战
         private LuaFunction onWorldSetChainAuto;
         private LuaFunction onWorldSetChainAutoNext;
-        private LuaFunction onWorldSetChainCount;
         private LuaFunction onWorldContinueChain;
         private LuaFunction onWorldCancelChain;
         private LuaFunction onWorldRestartChain;
@@ -176,11 +175,9 @@ namespace ProjectX.Core
         // 存 PlayerPrefs（按角色分键），跨会话生效；运行时用 lastWorldChapterId 缓存避免频繁读盘。
         private const string LastWorldChapterKeyPrefix = "ProjectX.World.LastChapter.";
         private uint lastWorldChapterId;
-        // 「自动挑战」：龙崖模式下勾选 = 本章无限循环（BOSS 结算后重跑本章、中途失败回
-        // 第一关重打）；不勾选 = 从第一关连打到 BOSS 就结束（中途失败出结算收尾）。
-        // ⚠️ 它不影响「胜利后走位续战到下一关」——那条是无条件的。
+        // 「自动挑战」：控制失败重试与 Boss 胜利后的本章循环；普通关胜利后始终顺序续战。
+        // 「自动挑战下一章」：只控制本章 Boss 胜利结算确认后的下一章切换。
         private bool worldChainAuto;
-        private int worldChainCount = 10;
         private int worldChainIndex;
         private uint worldChainNextStageId;
         private Coroutine worldChainContinueCoroutine;
@@ -486,11 +483,15 @@ namespace ProjectX.Core
         private enum BattlePlaybackContext { None, World, FengShenStory, Monopoly }
         private BattlePlaybackContext battlePlaybackContext;
         private Coroutine worldBattlePlaybackCoroutine;
+        private Coroutine worldChainAutoSettlementCoroutine;
+        private bool worldBattleBackgrounded;
+        private bool worldBattleInFlight;
         // 龙崖连战：本场战斗出发时主角所在关卡（走位起点）。/320 op=8 会先把
         // WorldStore.CurrentStageId 推到新关，必须在它被改写之前抓下来。
         private uint worldChainWalkFromStageId;
         // 走位时长 —— 对齐 Cocos FuBenDetailUI:ModelMove 的 cc.MoveTo:create(2, ...)
         private const float WorldChainWalkSeconds = 2f;
+        private const float WorldChainAutoSettlementSeconds = 2f;
         // 等 /38 回放播完的超时兜底（一场回放约 14 秒；异常路径不至于无限等待）
         private const float MaxWorldBattlePlaybackWait = 60f;
         private bool pendingWorldBattleResult;
@@ -519,6 +520,9 @@ namespace ProjectX.Core
         private bool worldG4BattleReplayValidated;
         private bool worldFormationReturnPending;
         private bool worldFormationReturnToDetail;
+        // 打开阵容前 World 是否停在章节选择页（showChapters）。关闭阵容后按原状态还原，
+        // 避免无条件 ShowStages() 把 chapterPage 的 btn_1..5 / Button_1 / Button_2 藏掉。
+        private bool worldFormationReturnToChapters;
         private bool worldYouLiReturnPending;
         private bool worldFormationPopupRequestPending;
         private uint selectedWorldBoxStageId;
@@ -1028,7 +1032,6 @@ namespace ProjectX.Core
                 onWorldValidateIsolation = services.Lua.GetFunction("OnWorldValidateIsolation");
                 onWorldSetChainAuto = services.Lua.GetFunction("OnWorldSetChainAuto");
                 onWorldSetChainAutoNext = services.Lua.GetFunction("OnWorldSetChainAutoNext");
-                onWorldSetChainCount = services.Lua.GetFunction("OnWorldSetChainCount");
                 onWorldContinueChain = services.Lua.GetFunction("OnWorldContinueChain");
                 onWorldCancelChain = services.Lua.GetFunction("OnWorldCancelChain");
                 onWorldRestartChain = services.Lua.GetFunction("OnWorldRestartChain");
@@ -1240,7 +1243,6 @@ namespace ProjectX.Core
             onWorldValidateIsolation?.Dispose();
             onWorldSetChainAuto?.Dispose();
             onWorldSetChainAutoNext?.Dispose();
-            onWorldSetChainCount?.Dispose();
             onWorldContinueChain?.Dispose();
             onWorldCancelChain?.Dispose();
             onWorldRestartChain?.Dispose();
@@ -2688,8 +2690,15 @@ namespace ProjectX.Core
         public void ShowWorld()
         {
             EnsureWorldPresenter();
+            bool battleActive = worldBattleInFlight
+                || worldBattlePlaybackCoroutine != null
+                || pendingWorldBattleResult;
+            worldBattleBackgrounded = false;
+            if (!battleActive) worldBattleInFlight = false;
+            worldBattleForegroundRequested = false;
             worldFormationReturnPending = false;
             worldFormationReturnToDetail = false;
+            worldFormationReturnToChapters = false;
             worldYouLiReturnPending = false;
             worldPresenter.ShowWorld();
             if (services.UiStack.Current != worldView) services.UiStack.Push(worldView);
@@ -7481,6 +7490,7 @@ namespace ProjectX.Core
             EnsureWorldPresenter();
             worldFormationReturnPending = false;
             worldFormationReturnToDetail = false;
+            worldFormationReturnToChapters = false;
             // 只为喂「通关奖励」条（ListView_1）而发的后台 op=2：保持章节列表首屏，
             // 只重绘一次让奖励条汇总出数据，不要切到关卡地图打断玩家的章节选择。
             // （标记在 BeginWorldStageList 里按章节号判定并清除。）
@@ -7515,6 +7525,7 @@ namespace ProjectX.Core
             // 等一帧让布点层渲染就绪，再置连战态并发起挑战（沿用当前选中关）
             yield return null;
             worldPresenter?.BeginChainStage();
+            worldBattleInFlight = true;
             InvokeLuaOrFail(onWorldChallenge, "World.Challenge");
         }
 
@@ -7544,7 +7555,6 @@ namespace ProjectX.Core
                 checked((uint)unlockedChapterId), checked((uint)unlockedStageId), checked((byte)stars));
             // 龙崖连战：序号 / 总场次 / 下一关（0 = 本章已通关）
             worldChainIndex = chainIndex;
-            if (chainTotal > 0) worldChainCount = chainTotal;
             worldChainNextStageId = chainNextStageId > 0 ? checked((uint)chainNextStageId) : 0u;
             if (worldChainNextStageId > 0 && walkFromStageId > 0 && worldChainMode)
             {
@@ -7556,6 +7566,13 @@ namespace ProjectX.Core
             }
             SetStatus($"World/320 PvE result: stage={checked((uint)foughtStageId)}, stars={stars}, next={checked((uint)unlockedStageId)}, box={checked((uint)unlockedBoxId)}/{checked((uint)unlockedStarBoxId)}"
                 + (chainTotal > 0 ? $", chain={chainIndex}/{chainTotal}, chainNext={worldChainNextStageId}." : "."));
+        }
+
+        // /320 op=28 失败回包不携带完整奖励结果，但结算层仍需知道这是失败，
+        // 以阻止「自动挑战下一章」把失败误判为 Boss 胜利。
+        public void ApplyWorldChainLose(double nextStageId)
+        {
+            worldChainNextStageId = nextStageId > 0 ? checked((uint)nextStageId) : 0u;
         }
 
         // 龙崖副本模式（fuben_AB == 2）：模式下发、自动挑战开关、连战续接
@@ -7590,13 +7607,6 @@ namespace ProjectX.Core
             SetStatus($"World chain auto next chapter {(enabled ? "on" : "off")}.");
         }
 
-        public void SetWorldChainCount(int count)
-        {
-            if (count <= 0) return;
-            worldChainCount = count;
-            InvokeLuaOrFail(onWorldSetChainCount, "World.SetChainCount", (double)count);
-        }
-
         // Lua 在「本场结束且还有下一关」时调用（胜利未到 BOSS、或失败回到第一关）。
         public void ContinueWorldChain(double nextStageId)
         {
@@ -7607,18 +7617,9 @@ namespace ProjectX.Core
                 worldPresenter?.ReleaseStageWalkHold();
                 return;
             }
+            worldBattleInFlight = true;
             if (worldChainContinueCoroutine != null) StopCoroutine(worldChainContinueCoroutine);
             worldChainContinueCoroutine = StartCoroutine(ContinueWorldChainAfterDelay(next));
-        }
-
-        // BOSS 通关、结算确认后：若「自动挑战」仍勾选 → 2 秒后重跑本章
-        private IEnumerator RestartWorldChainAfterDelay()
-        {
-            yield return new WaitForSecondsRealtime(WorldChainWalkSeconds);
-            worldChainContinueCoroutine = null;
-            // 章节结算时已收起布点层（EndChainStage）；重跑本章要把它放回来
-            worldPresenter?.BeginChainStage();
-            InvokeLuaOrFail(onWorldRestartChain, "World.RestartChain");
         }
 
         private IEnumerator ContinueWorldChainAfterDelay(uint nextStageId)
@@ -7635,12 +7636,22 @@ namespace ProjectX.Core
             worldBattlePlaybackPresenter?.Hide();
             EnsureWorldPresenter();
             services.World.SelectStage(nextStageId);
-            worldPresenter.ShowStages();
-            // 客户端走位：播跑步动画 + 镜头平滑跟随，2 秒走到下一个目标点后才请求战斗
-            // （原版 FuBenDetailUI:ModelMove → ModelMove 完成回调里才发挑战）
-            yield return worldPresenter.PlayStageWalk(nextStageId, WorldChainWalkSeconds);
-            // ⚠️ 这里**不判**「自动挑战」：胜利后走位续战是无条件的（用户口径 2026-09-17）。
-            // 勾选框只决定 BOSS 结算后是否重跑本章、以及中途失败是否回第一关重打。
+            bool background = !CanShowWorldBattleUi();
+            if (!background)
+            {
+                worldPresenter.ShowStages();
+                // 客户端走位：播跑步动画 + 镜头平滑跟随，2 秒走到下一个目标点后才请求战斗
+                // （原版 FuBenDetailUI:ModelMove → ModelMove 完成回调里才发挑战）
+                yield return worldPresenter.PlayStageWalk(nextStageId, WorldChainWalkSeconds);
+            }
+            else
+            {
+                // 后台战斗不能跳过原有节奏，也不能把章节地图重新显示出来。
+                // 保留同等等待时间后再发起下一场，避免退出即瞬间结算/连战。
+                yield return new WaitForSecondsRealtime(WorldChainWalkSeconds);
+            }
+            // Lua 已确认这是本章普通关胜利，并请求顺序续战；失败重试由 op=28 单独处理。
+            worldBattleInFlight = true;
             InvokeLuaOrFail(onWorldContinueChain, "World.ContinueChain");
         }
 
@@ -7726,7 +7737,27 @@ namespace ProjectX.Core
         private void ShowWorldBattleResultNow(int stars)
         {
             EnsureWorldOutcomePresenter();
+            if (worldChainAutoSettlementCoroutine != null)
+            {
+                StopCoroutine(worldChainAutoSettlementCoroutine);
+                worldChainAutoSettlementCoroutine = null;
+            }
             bool fengShenStory = battlePlaybackContext == BattlePlaybackContext.FengShenStory;
+            if (!fengShenStory && !CanShowWorldBattleUi())
+            {
+                // 玩家已经离开当前章节：结算仍以协议为准，但战斗层不能重新
+                // 抢回前台。自动模式继续走既有后续逻辑；手动模式保持后台结束。
+                worldBattlePlaybackPresenter?.Hide();
+                worldBattleResultView?.SetVisible(false);
+                worldBattleStatisticsView?.SetVisible(false);
+                pendingWorldBattleResult = false;
+                worldBattleInFlight = false;
+                if (worldChainMode && worldChainNextStageId == 0
+                    && (worldChainAuto || worldChainAutoNext))
+                    ContinueBattleOutcomeControl();
+                SetStatus("World battle completed in background because the current chapter view is not active.");
+                return;
+            }
             if (!fengShenStory)
             {
                 // 本章已结束（Lua 侧 chainNextNodeId == 0 才走这条）：收起连战布点层
@@ -7737,9 +7768,68 @@ namespace ProjectX.Core
             }
             worldOutcomePresenter.ShowBattle(stars, !fengShenStory);
             SetStatus($"{(fengShenStory ? "FengShenStory" : "World")} battle result active: stars={stars}, rewards={services.Rewards.Count}.");
+            // 龙崖 Boss 胜利：任一自动流程开启时，结算面板展示 2 秒后自动执行“继续”。
+            // 普通关和失败不走这里；两个自动开关都关闭时必须等待玩家点击。
+            if (!fengShenStory && worldChainMode && worldChainNextStageId == 0
+                && (worldChainAuto || worldChainAutoNext))
+                worldChainAutoSettlementCoroutine = StartCoroutine(AutoContinueWorldChainSettlement());
             if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
                 StartCoroutine(CaptureWorldBattleResult(services.Rewards.Count));
             pendingWorldBattleResult = false;
+            worldBattleInFlight = false;
+        }
+
+        private bool CanShowWorldBattleUi()
+        {
+            return !worldBattleBackgrounded && IsWorldOpen
+                && (worldPresenter?.IsCurrentChapterView == true || worldBattleForegroundRequested);
+        }
+
+        private bool worldBattleForegroundRequested;
+
+        private void HandleWorldChallengeRequest()
+        {
+            bool hasBattle = worldBattleInFlight
+                || worldBattlePlaybackCoroutine != null
+                || pendingWorldBattleResult;
+            if (hasBattle)
+            {
+                worldBattleBackgrounded = false;
+                worldBattleForegroundRequested = true;
+                worldBattlePlaybackPresenter?.SetVisible(true);
+                SetStatus("World challenge clicked while a battle is active; resumed the existing battle.");
+                return;
+            }
+            worldBattleForegroundRequested = true;
+            worldBattleInFlight = true;
+            InvokeLuaOrFail(onWorldChallenge, "World.Challenge");
+        }
+
+        private void BackgroundWorldBattle()
+        {
+            worldBattleBackgrounded = true;
+            worldBattleForegroundRequested = false;
+            if (worldChainAutoSettlementCoroutine != null)
+            {
+                StopCoroutine(worldChainAutoSettlementCoroutine);
+                worldChainAutoSettlementCoroutine = null;
+            }
+            worldBattlePlaybackPresenter?.Hide();
+            worldBattleResultView?.SetVisible(false);
+            worldBattleStatisticsView?.SetVisible(false);
+            worldSweepView?.SetVisible(false);
+            SetStatus("World battle presentation moved to background after leaving the current chapter.");
+        }
+
+        private IEnumerator AutoContinueWorldChainSettlement()
+        {
+            yield return new WaitForSecondsRealtime(WorldChainAutoSettlementSeconds);
+            worldChainAutoSettlementCoroutine = null;
+            if (worldOutcomePresenter?.IsBattleVisible == true)
+            {
+                SetStatus("World chain auto settlement: closing result after 2 seconds.");
+                worldOutcomePresenter.InvokeContinue();
+            }
         }
 
         public void ApplyWorldReset(double stageId, int usedResets, int cost)
@@ -11344,7 +11434,9 @@ namespace ProjectX.Core
                 // fightType disambiguate FengShenStory from World.
                 bool fengShenStoryReplay = operation == 5
                     && (IsFengShenStoryOpen || (services.Options.BattleFengShenStoryValidation && !IsWorldOpen));
-                bool worldReplay = operation == 5 && IsWorldOpen && !fengShenStoryReplay;
+                bool worldReplay = operation == 5
+                    && (IsWorldOpen || worldBattleInFlight)
+                    && !fengShenStoryReplay;
                 bool monopolyReplay = operation == 5 && IsMonopolyOpen && !worldReplay && !fengShenStoryReplay;
                 if (worldReplay || fengShenStoryReplay || monopolyReplay)
                 {
@@ -11392,7 +11484,11 @@ namespace ProjectX.Core
             WorldBattleReplayStore replay = services.WorldBattleReplay;
             bool captureFengShenStory = services.Options.BattleFengShenStoryValidation
                 && battlePlaybackContext == BattlePlaybackContext.FengShenStory;
-            worldBattlePlaybackPresenter.Show();
+            bool backgroundAtStart = battlePlaybackContext == BattlePlaybackContext.World
+                && !CanShowWorldBattleUi();
+            worldBattlePlaybackPresenter.Show(!backgroundAtStart);
+            if (backgroundAtStart)
+                SetStatus("World battle replay running in background; authoritative action timing is preserved.");
             foreach (WorldBattleUnitRecord unit in replay.Units)
                 ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_UNIT_DATA position={unit.Position} type={unit.Type} picture={unit.Picture} "
                     + $"quality={unit.Quality} scale={unit.ScaleRatio:0.##} state={unit.State} buffs={string.Join(",", unit.BuffIds)}");
@@ -11456,7 +11552,7 @@ namespace ProjectX.Core
             foreach (WorldBattleActionRecord action in replay.Actions)
             {
                 actionIndex++;
-                if (worldBattlePlaybackPresenter.SkipRequested) break;
+            if (worldBattlePlaybackPresenter.SkipRequested) break;
                 bool passiveAction = action.FirstActionType == 6;
                 if (!passiveAction && preservePassiveDamage)
                     yield return new WaitForSecondsRealtime(.5f
@@ -11653,6 +11749,18 @@ namespace ProjectX.Core
                 }
                 yield break;
             }
+            if (battlePlaybackContext == BattlePlaybackContext.World && !CanShowWorldBattleUi())
+            {
+                worldBattlePlaybackPresenter.Hide();
+                worldBattlePlaybackCoroutine = null;
+                if (pendingWorldBattleResult)
+                {
+                    int stars = pendingWorldBattleStars;
+                    pendingWorldBattleResult = false;
+                    ShowWorldBattleResultNow(stars);
+                }
+                yield break;
+            }
             worldBattlePlaybackPresenter.ShowOutcome();
             if (services.Options.WorldBattleValidation)
             {
@@ -11692,6 +11800,11 @@ namespace ProjectX.Core
 
         private void ContinueBattleOutcomeControl()
         {
+            if (worldChainAutoSettlementCoroutine != null)
+            {
+                StopCoroutine(worldChainAutoSettlementCoroutine);
+                worldChainAutoSettlementCoroutine = null;
+            }
             if (battlePlaybackContext == BattlePlaybackContext.FengShenStory)
             {
                 // FirstFightResultUI sends ExitBattle before closing its result
@@ -11712,16 +11825,18 @@ namespace ProjectX.Core
             // World UI and leaves the player looking at a dead battlefield.
             pendingWorldBattleResult = false;
             worldBattlePlaybackPresenter?.Hide();
-            // 龙崖模式：结算确认后的去向由勾选状态决定
-            if (worldChainMode && worldChainAuto)
+            // 本章内逐关续战由 Lua 在存在下一关时处理；结算层区分 Boss 胜利与失败。
+            if (worldChainMode && worldChainNextStageId != 0)
             {
-                // 「自动挑战」仍勾选 → 2 秒后重跑本章（不发 op=1，避免章节被服务端推进）
-                if (worldChainContinueCoroutine != null) StopCoroutine(worldChainContinueCoroutine);
-                worldChainContinueCoroutine = StartCoroutine(RestartWorldChainAfterDelay());
+                // 失败时服务端下发本章第一关作为 nextNodeId；自动挑战未勾选时停止，
+                // 不能因为 CheckBox_2 勾选就把普通关失败误判成 Boss 胜利并切下一章。
+                worldPresenter?.ShowChapterPage();
+                StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
+                SetStatus("World chain stopped after defeat: returned to chapter page.");
             }
             else if (worldChainMode && worldChainAutoNext)
             {
-                // 「自动挑战下一章」勾选 → 请求下一章关卡，EndWorldStageList 回包后自动发起连战
+                // nextNodeId == 0 表示本章 Boss 胜利；此时才允许「自动挑战下一章」切章。
                 uint nextChapter = services.World.CurrentChapterId;
                 bool hasChapter = nextChapter > 0 && services.World.Chapters.Any(value => value.Id == nextChapter);
                 if (hasChapter)
@@ -11737,6 +11852,14 @@ namespace ProjectX.Core
                     SetStatus("World chain auto next chapter: no further chapter, staying put.");
                 }
             }
+            else if (worldChainMode && worldChainAuto)
+            {
+                // Boss 胜利、只勾「自动挑战」：从本章第一关重新开始，不切下一章。
+                worldPresenter?.BeginChainStage();
+                worldBattleInFlight = true;
+                InvokeLuaOrFail(onWorldRestartChain, "World.RestartChain");
+                SetStatus("World chain auto challenge: restarting current chapter.");
+            }
             else if (!worldChainMode)
             {
                 // 类型 1：保持原刷新行为（结算确认 → op=1 刷新章节状态）
@@ -11744,8 +11867,12 @@ namespace ProjectX.Core
             }
             else
             {
-                // 类型 2 未勾任何自动 → 停在本章大底图（不重发 op=1，避免章节推进/章节选择页顶起）
-                SetStatus("World chain stopped after settlement: staying on current chapter.");
+                // 类型 2 未勾任何自动：返回章节选择页。
+                // 不能只调用 ShowStages() 停在大底图，否则 WorldMapNewLayer 根节点虽在，
+                // chapterPage 的 btn_1..5 / Button_1 / Button_2 会因 showChapters=false 被隐藏。
+                worldPresenter?.ShowChapterPage();
+                StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
+                SetStatus("World chain stopped after settlement: returned to chapter page.");
             }
         }
 
@@ -17767,7 +17894,7 @@ namespace ProjectX.Core
                 services.ShopCatalog, services.EquipmentCatalog,
                 id => { RememberLastWorldChapter(checked((uint)id)); InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)id); },
                 id => { services.World.SelectStage(id); InvokeLuaOrFail(onWorldRequestStage, "World.RequestStage", (double)id); },
-                () => InvokeLuaOrFail(onWorldChallenge, "World.Challenge"),
+                HandleWorldChallengeRequest,
                 () => InvokeLuaOrFail(onWorldSweep, "World.Sweep"),
                 ShowWorldResetConfirmation,
                 id => InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)id),
@@ -17777,6 +17904,10 @@ namespace ProjectX.Core
                 {
                     worldFormationReturnPending = true;
                     worldFormationReturnToDetail = returnToDetail;
+                    // 快照打开阵容前的章节页状态：从章节选择页点 btn_zhenrong 进入时，
+                    // 关闭阵容必须回到章节页（btn_1..5 / Button_1 / Button_2 保持可见），
+                    // 不能像从大底图进入那样回落 ShowStages()。
+                    worldFormationReturnToChapters = worldPresenter != null && worldPresenter.ShowingChapters;
                     HandleFormationClick();
                 },
                 ShowWorldAchievement,
@@ -17785,7 +17916,8 @@ namespace ProjectX.Core
                 controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); },
                 // 龙崖副本模式：`bg/CheckBox_1`「自动挑战」/ `bg/CheckBox_2`「自动挑战下一章」→ 通知 Lua
                 setChainAuto: enabled => SetWorldChainAuto(enabled),
-                setChainAutoNext: enabled => SetWorldChainAutoNext(enabled));
+                setChainAutoNext: enabled => SetWorldChainAutoNext(enabled),
+                leaveCurrentChapter: BackgroundWorldBattle);
             // 关键：op=1 到达时 worldPresenter 可能尚未创建（模式下发早于
             // EndWorldChapterList → EnsureWorldPresenter），因此在这里补一次。
             worldPresenter.SetChainMode(worldChainMode);
@@ -17794,10 +17926,13 @@ namespace ProjectX.Core
         private void RestoreWorldAfterHeroFormation()
         {
             bool restoreDetail = worldFormationReturnToDetail;
+            bool restoreChapters = worldFormationReturnToChapters;
             worldFormationReturnPending = false;
             worldFormationReturnToDetail = false;
+            worldFormationReturnToChapters = false;
             formationPopupView?.SetVisible(false);
             if (restoreDetail) worldPresenter?.ShowSelectedStage();
+            else if (restoreChapters) worldPresenter?.ShowChapterPage();
             else worldPresenter?.ShowStages();
             StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
         }
@@ -18325,9 +18460,7 @@ namespace ProjectX.Core
                 controlId =>
                 {
                     if (services.Options.WorldBattleValidation) MarkValidationControl(controlId);
-                },
-                // 龙崖副本模式：结算层的「本局连战次数」设置（C5）
-                setChainCountRequest: count => SetWorldChainCount(count));
+                });
             // 同步模式（结算层 C5/C12 依赖）
             worldOutcomePresenter.SetChainMode(worldChainMode);
         }

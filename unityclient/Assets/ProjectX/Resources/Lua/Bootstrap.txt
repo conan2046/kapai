@@ -178,7 +178,6 @@ function OnWorldValidateIsolation() WorldController.validateAccountIsolation() e
 -- 龙崖副本模式（config.fuben_AB == 2）自动连战
 function OnWorldSetChainAuto(enabled) WorldController.setChainAuto(enabled) end
 function OnWorldSetChainAutoNext(enabled) WorldController.setChainAutoNext(enabled) end
-function OnWorldSetChainCount(count) WorldController.setChainCount(count) end
 function OnWorldContinueChain() WorldController.continueChain() end
 function OnWorldCancelChain() WorldController.cancelChain() end
 function OnWorldRestartChain() WorldController.restartChain() end

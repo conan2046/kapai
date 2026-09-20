@@ -432,6 +432,7 @@ namespace ProjectX.UI
         }
 
         public bool IsVisible => root.activeSelf;
+        public void SetVisible(bool visible) => root.SetActive(visible);
         public Button SpeedInteractionButton => speedButton;
         public Button SkipInteractionButton => skipButton;
         public bool AutoControlVisible => importedView?.Binding.Find("Layer/FightUI/Buttons/btn_Auto")?.activeInHierarchy == true;
@@ -448,7 +449,7 @@ namespace ProjectX.UI
             }
         }
 
-        public void Show()
+        public void Show(bool visible = true)
         {
             ClearUnits();
             battleRootHome = root.transform.localPosition;
@@ -482,7 +483,8 @@ namespace ProjectX.UI
             skipButton.transform.SetAsLastSibling();
             startShade.transform.SetAsLastSibling();
             startEffect.transform.SetAsLastSibling();
-            root.SetActive(true);
+            // 后台战斗仍需完整执行动作与时序，但不把 FightLayer 暴露给玩家。
+            root.SetActive(visible);
             // The imported FightLayer is normally inactive while units are
             // created. Reassert the Cocos stand group after the hierarchy is
             // activated so no enable/load transition can leave actionIndex=1
@@ -968,6 +970,18 @@ namespace ProjectX.UI
 
         private void BuildActionTimeline(WorldBattleActionRecord action)
         {
+            // EFOT_Dialog（7）只表示战斗中的头顶气泡，不是攻击动作。
+            // Cocos 的 BattleUnitNode 在此期间保持待机姿态；不能走下面的
+            // 无配置回退 gj，否则神将会在说话时误播一次攻击动画。
+            if (action?.FirstActionType == 7)
+            {
+                actionDurationSeconds = 1f;
+                impactProgress = 0f;
+                recommendedSkillCaptureProgress = 0f;
+                PlayUnitAnimation(activeSource, "zd", true);
+                LastActionTrace = $"dialog-idle skill={action.SkillId} type={action.FirstActionType}";
+                return;
+            }
             BattleActionDefinition definition = presentationCatalog.ResolveAction(action?.SkillId ?? 0, action?.FirstActionType ?? 0);
             if (definition == null || definition.Clips.Count == 0)
             {
@@ -1105,6 +1119,10 @@ namespace ProjectX.UI
                 Debug.LogWarning($"WORLD_BATTLE_AUDIO_MISSING sound={soundFile}");
                 return;
             }
+            // 后台回放时根节点会被隐藏，Unity 会禁用其 AudioSource；此时仍要
+            // 消费音效时序，但不能对 disabled AudioSource 调用 PlayOneShot。
+            if (battleAudio == null || !battleAudio.enabled || !battleAudio.gameObject.activeInHierarchy)
+                return;
             battleAudio.PlayOneShot(clip);
             ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_AUDIO sound={soundFile}");
         }

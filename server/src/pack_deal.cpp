@@ -26152,8 +26152,8 @@ void CPackageDeal::DealGuanQia(CNetMessage *pMsg, int sock)
 	case 28: // 连战请求（龙崖模式，config.fuben_AB == 2）：**只打一场**
 		msg >> type >> mapId >> nodeId;
 		{
-			uint8 count = 0;
-			msg >> count;
+			uint8 chainTotal = 0; // 兼容旧协议字段；连战不按次数限制，0 表示未知总数。
+			msg >> chainTotal;
 			if (type == 1)
 			{
 				CHECK_SYSTEM_OPEN(SOT_4)
@@ -26162,7 +26162,7 @@ void CPackageDeal::DealGuanQia(CNetMessage *pMsg, int sock)
 			{
 				CHECK_SYSTEM_OPEN(SOT_5)
 			}
-			gq.GuanQiaAutoChain(pUser, type, mapId, nodeId, count, msg);
+			gq.GuanQiaAutoChain(pUser, type, mapId, nodeId, chainTotal, msg);
 			// 与 case 6 一致：结果帧（op=8 胜利 / op=28 失败）由副本模块自行下发，
 			// 此处 return，避免函数末尾再补发一个空帧。
 			return;

@@ -888,9 +888,9 @@ void CUserGuanQia::GetFixAward(CUser* pUser, uint8 type, uint32 mapId, uint32 fi
 
 void CUserGuanQia::EnterGuanQiaFight(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, CNetMessage &msg)
 {
-	// 单场执行体已抽出为 RunSingleNodeFight；op=5 保留为默认副本模式入口，
-	// 模式 2（龙崖）由 op=28（GuanQiaAutoChain）驱动。
-	RunSingleNodeFight(pUser, type, mapId, nodeId, GetFubenMode(), 0, 0, msg);
+	// op=5 是普通副本入口。龙崖模式必须由 op=28 显式进入，不能由全局开关
+	// 改写普通挑战的次数、体力和记录语义。
+	RunSingleNodeFight(pUser, type, mapId, nodeId, FUBEN_MODE_DEFAULT, 0, 0, msg);
 }
 
 // 龙崖副本模式开关：config.fuben_AB（1=默认副本模式 2=龙崖副本模式）
@@ -975,7 +975,7 @@ int CUserGuanQia::RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uin
 		star = pFight->CalculateFightStar(CFight::EGT_GROUP1, result.win);
 		// BOSS（type==3）视为本章通关 → 不下发下一关（chainNextNodeId = 0）
 		uint32 chainNextNodeId = (cfg->type == 3) ? 0 : cfg->nextNodeId;
-		GuanQiaWin(pUser, star, chainIndex, chainTotal, chainNextNodeId);
+		GuanQiaWin(pUser, star, mode, chainIndex, chainTotal, chainNextNodeId);
 		sCMissionManager.UpdateQuestState(pUser, EMQCT_13, 1, type);
 		UpdateUserRecord(pUser->GetRoleId(), ERT_GuanQia, nodeId, star);
 		return ENFR_Win;
@@ -986,8 +986,14 @@ int CUserGuanQia::RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uin
 	return ENFR_Lose;
 }
 
-void CUserGuanQia::GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, uint8 count, CNetMessage &msg)
+void CUserGuanQia::GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, uint8 chainTotal, CNetMessage &msg)
 {
+	if (GetFubenMode() != FUBEN_MODE_LONGYA)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
+		return;
+	}
+
 	uint32 firstNodeId = GetChapterFirstNodeId(mapId);
 	if (firstNodeId == 0)
 	{
@@ -995,9 +1001,6 @@ void CUserGuanQia::GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint
 		return;
 	}
 	uint32 curNodeId = (nodeId == 0) ? firstNodeId : nodeId;
-	if (count == 0)
-		count = 1;
-
 	// 本场序号：从本章第一关沿 nextNodeId 走到当前关（上限 255 防死循环）
 	uint8 chainIndex = 1;
 	uint32 walk = firstNodeId;
@@ -1009,6 +1012,11 @@ void CUserGuanQia::GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint
 		walk = wc->nextNodeId;
 		++chainIndex;
 	}
+	if (walk != curNodeId)
+	{
+		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
+		return;
+	}
 
 	MapNodeCfg* cfg = sCGuanQiaCfgMgr.GetMapNodeCfg(mapId, curNodeId);
 	if (cfg == NULL)
@@ -1017,14 +1025,14 @@ void CUserGuanQia::GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint
 		return;
 	}
 
-	int ret = RunSingleNodeFight(pUser, type, mapId, curNodeId, FUBEN_MODE_LONGYA, chainIndex, count, msg);
+	int ret = RunSingleNodeFight(pUser, type, mapId, curNodeId, FUBEN_MODE_LONGYA, chainIndex, chainTotal, msg);
 	if (ret == ENFR_Error)
 		return;			// 硬前置失败，msg 已写入错误帧
 	if (ret == ENFR_Win)
 		return;			// 胜利：GuanQiaWin 已下发 op=8（含下一关）
 
 	// 失败：不弹结算，下发轻量回包 → 客户端等 2 秒后从本章第一关重跑
-	MakeChainLoseMsg(pUser, mapId, curNodeId, firstNodeId, chainIndex, count);
+	MakeChainLoseMsg(pUser, mapId, curNodeId, firstNodeId, chainIndex, chainTotal);
 }
 
 void CUserGuanQia::MakeChainLoseMsg(CUser* pUser, uint32 mapId, uint32 nodeId, uint32 nextNodeId,
@@ -1221,7 +1229,7 @@ void CUserGuanQia::AddNewSinggleGuanQia(uint8 type, uint32 mapId, uint32 nodeId)
 	guanQia->curNodeId = nodeId;
 }
 
-void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 chainIndex, uint8 chainTotal, uint32 chainNextNodeId)
+void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainIndex, uint8 chainTotal, uint32 chainNextNodeId)
 {
 	// 关卡次数
 	NodeBeAttackCntIt it = m_nodeBeAttackCnt.find(m_curNodeId);
@@ -1337,7 +1345,7 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 chainIndex, uint8 
 	CUserSpirit& sp = pUser->GetUserSpirit();
 	// 龙崖改造：**模式 2 仍然扣除体力**（不清调用），只是扣除数量在模式 2 下取 0
 	// —— 等价于把配置表 `maplist.Hope` 在模式 2 下按 0 处理；模式 1 保持原值。
-	uint32 realSpiritCost = (GetFubenMode() == FUBEN_MODE_LONGYA) ? 0 : cfg->spiritCost;
+	uint32 realSpiritCost = (mode == FUBEN_MODE_LONGYA) ? 0 : cfg->spiritCost;
 	sp.SubSpirit(pUser, (uint16)realSpiritCost);
 	pUser->AddMultiAward(awards, true, false, MUT_GuanQiaNode);
 

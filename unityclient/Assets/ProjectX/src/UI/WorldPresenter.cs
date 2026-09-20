@@ -42,22 +42,20 @@ namespace ProjectX.UI
         private readonly Action openAchievement;
         private readonly Action openYouLi;
         private readonly Action close;
+        private readonly Action leaveCurrentChapter;
         private readonly Action<string> validationControl;
         // 龙崖副本模式（fuben_AB == 2）自动连战
         private readonly Action<bool> setChainAuto;
-        private readonly Action<int> setChainCount;
         // CheckBox_2「自动挑战下一章」
         private readonly Action<bool> setChainAutoNext;
         private bool chainMode;
-        // 「自动挑战」勾选（默认不勾）。勾选 = 本章无限循环：BOSS 结算后重跑本章、中途失败
-        // 回第一关重打；不勾 = 从第一关连打到 BOSS 就结束。
+        // 「自动挑战」控制失败重试与 Boss 胜利后的本章循环；普通关胜利后始终顺序续战。
+        // 「自动挑战下一章」只控制 Boss 胜利结算后的下一章切换。
         private bool chainAuto;
         // 程序化同步勾选框时抑制回调，避免 isOn 与 setChainAuto 互相回灌
         private bool suppressChainAutoCallback;
         private Toggle chainAutoToggle;
         private bool chainAutoNext;
-        private int chainCount = 10;
-        private Text chainCountLabel;
         private readonly VirtualList<ListEntry> list;
         private readonly ScrollRect stageMapScroll;
         private readonly RectTransform stageMapContent;
@@ -94,8 +92,9 @@ namespace ProjectX.UI
             Action openFormation, Action<bool> openHeroFormation, Action openAchievement, Action openYouLi, Action close,
             Action<string> validationControl = null,
             // 龙崖副本模式（fuben_AB == 2）
-            Action<bool> setChainAuto = null, Action<int> setChainCount = null,
-            Action<bool> setChainAutoNext = null)
+            Action<bool> setChainAuto = null,
+            Action<bool> setChainAutoNext = null,
+            Action leaveCurrentChapter = null)
         {
             this.worldView = worldView ?? throw new ArgumentNullException(nameof(worldView));
             this.stageView = stageView ?? throw new ArgumentNullException(nameof(stageView));
@@ -121,9 +120,9 @@ namespace ProjectX.UI
             this.openAchievement = openAchievement ?? throw new ArgumentNullException(nameof(openAchievement));
             this.openYouLi = openYouLi ?? throw new ArgumentNullException(nameof(openYouLi));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
+            this.leaveCurrentChapter = leaveCurrentChapter;
             this.validationControl = validationControl;
             this.setChainAuto = setChainAuto;
-            this.setChainCount = setChainCount;
             this.setChainAutoNext = setChainAutoNext;
 
             // 层级（恢复原版顺序）：WorldMapNewLayer（根，承载 chapterPage 章节选择）
@@ -166,6 +165,7 @@ namespace ProjectX.UI
             Bind(mapView, "Layer/Panel_zuoshang/Button_xiala", () => { showDropdown = !showDropdown; Render(); Mark("WORLD-04-CHAPTER-DROPDOWN"); });
             Bind(mapView, "Layer/Title/CloseBtn", () =>
             {
+                leaveCurrentChapter?.Invoke();
                 if (showChapters) close();
                 else ShowChapterList();
                 Mark("WORLD-08-STAGE-CLOSE");
@@ -231,6 +231,7 @@ namespace ProjectX.UI
         public int RenderedRewardCount { get; private set; }
         public bool DetailVisible => showDetail && store.SelectedStage != null;
         public bool ChapterListVisible => showChapters;
+        public bool IsCurrentChapterView => !showChapters;
 
         public Button FindNormalBoxButton(uint stageId) =>
             normalBoxButtons.TryGetValue(stageId, out Button button) ? button : null;
@@ -283,6 +284,17 @@ namespace ProjectX.UI
             Render();
         }
 
+        // 从神将/阵容等覆盖界面返回章节选择页：只恢复 UI 状态（不发协议、不动页码），
+        // 用于「打开阵容前正停在章节页」的还原，替代无条件 ShowStages() 把
+        // chapterPage 图标与翻页键藏掉的问题。
+        public void ShowChapterPage()
+        {
+            showDetail = false;
+            showDropdown = false;
+            showChapters = true;
+            Render();
+        }
+
         public void ShowSelectedStage()
         {
             showChapters = false;
@@ -300,13 +312,6 @@ namespace ProjectX.UI
             SetActive(mapView, "bg", enabled);
             ApplyChainEntryVisibility();
             Render();
-        }
-
-        public void SetChainCount(int count)
-        {
-            if (count <= 0) return;
-            chainCount = count;
-            if (chainCountLabel != null) chainCountLabel.text = count.ToString();
         }
 
         /// <summary>
@@ -458,6 +463,10 @@ namespace ProjectX.UI
 
         // 当前章节选择页页码（0 基），供校验脚本断言。
         public int ChapterPageIndex => chapterPageIndex;
+
+        // 是否正停在章节选择页（showChapters）。供 ProjectXApp 在打开阵容等覆盖
+        // 界面前快照，关闭覆盖界面后按原状态还原。
+        public bool ShowingChapters => showChapters;
 
         // 当前页第一格在 Chapters 里的下标。
         public int ChapterPageStart => chapterPageStart;

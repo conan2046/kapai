@@ -233,7 +233,8 @@ public:
 	uint32 GetGuanQiaStar(uint8 type);
 	void GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, CNetMessage &msg);
 	void GuanQiaReset(CUser* pUser, uint32 nodeId, CNetMessage &msg);
-	void GuanQiaWin(CUser* pUser, uint8 star, uint8 chainIndex = 0, uint8 chainTotal = 0, uint32 chainNextNodeId = 0);
+	void GuanQiaWin(CUser* pUser, uint8 star, uint8 mode,
+		uint8 chainIndex = 0, uint8 chainTotal = 0, uint32 chainNextNodeId = 0);
 	void AddNewSinggleGuanQia(uint8 type, uint32 mapId, uint32 nodeId);
 
 	// 龙崖副本模式（config.fuben_AB == 2）
@@ -246,7 +247,7 @@ public:
 	// 连战请求（op=28）：**只打一场**，逐场由客户端驱动。
 	// 胜利 → GuanQiaWin 下发 op=8（带本场序号/总场次/下一关）
 	// 失败 → 下发 op=28 轻量回包（下一关 = 本章第一关），不弹结算
-	void GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, uint8 count, CNetMessage &msg);
+	void GuanQiaAutoChain(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, uint8 chainTotal, CNetMessage &msg);
 	// 连战失败回包（/320 op=28）
 	void MakeChainLoseMsg(CUser* pUser, uint32 mapId, uint32 nodeId, uint32 nextNodeId,
 		uint8 chainIndex, uint8 chainTotal);
