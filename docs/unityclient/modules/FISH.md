@@ -149,7 +149,7 @@
    - 入口解锁：复用既有 `open_condition`，配置为 **10级**。
    - 次数控制：**每日不限次，无扣次时机**；不向 `function` 表添加 `daily_times`，不建立玩家每日次数状态。
    - 时段：已取消 `12:30-12:50`；如需限定开放日，改用 `show_weekday` 与 `start_time`/`end_time`，不再走 `IsInHuoDongTime()`。
-   - 源表：`../concept/data/excel/xml配置表/新表/function.xlsx`（Sheet1，124 行；已用Artifact Tool只读核验A1:T124，`function_id=32`为空白行且无次数字段）。
+   - 源表：`../concept/data/excel/xml配置表/新表/function.xlsx`（Sheet1，124 行；`function_id=32` 已配置为“钓鱼”、10级开放、`page=1`、图标 `ui_icon_wanfa_diaoyu`，无每日次数字段）。已同步生成 `server/config/json/function.json`、`client/ProjectX/src/ConfigData/function_dat.lua` 与 Unity `Resources/Configs/gameplay.json`。
 6. `unityclient/Assets/ProjectX/Resources/Configs/function-routes.json` 新增 `{"functionId":32,"kind":"Gameplay","target":"Fish","prefabKey":"FishLayer","presentation":"standalone"}`，并在玩法大厅入口列表加入该 id。
 7. Unity 侧新增：`Resources/Lua/Gameplay/FishController.lua.txt`、`src/Data/FishStore.cs`、`src/UI/FishPresenter.cs`、`src/Core/ProjectXApp.Fish.cs`；`FishPresenter` 承担方案 B 的底图铺放、固定玩家站位、`ShapeId=2000` 钓鱼造型生命周期，以及 `Ready/Fishing` 业务状态切换。正式层级以 `DynamicUi_OneLevelLayer` 为页面容器，`DynamicUi_FishLayer` 直接挂在其下，顶部标题、帮助、关闭使用容器自身的 `Panel_12`；Fish 打开时固定隐藏容器根 `Bg`、整个 `GoldCheck` 和同层 `DynamicUi_shop_bg` 玩法大厅分支。鱼篓展开时仍复用同一顶部预制体与 `zhujue/beibao.prefab`，不创建 `FishTitle/FishExitButton/FishHelpButton/FishGold/FishCost` 或另一套格子美术与背包外框。
 8. 服务端：`TryFishTimeout` 改读 `fish_settings/fish_reward`；`op=5` 放竿成功后原子扣除100金币并产生首轮10~20秒时长，每轮结束后重抽下一轮时长；删除 `AddExp` 与 `DropExchangeItem(EEHDT_Fish)`；删除抢夺分支；`IsInHuoDongTime()` 短路；鱼篓最多9999个已占用格。获得鱼时先定位同 `item_id` 且数量小于999的最早格并加1；不存在未满格时才尝试分配新格；若已占满9999格则本次鱼直接舍弃，不新增/覆盖格子，并给出明确的“鱼篓已满，本次鱼已舍弃”提示。每格数量强校验 `1~999`。客户端复用背包五列格子和纵向 `ScrollRect` 显示已占用格，并在每格右下角显示数量；补齐10种鱼的 JSON/SQLite镜像。

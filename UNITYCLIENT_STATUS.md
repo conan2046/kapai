@@ -7,10 +7,10 @@
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动范围 | `HappyWheel` 幸运转盘功能验收 |
-| 当前门禁 | `FengShenStory、MoneyTree、HappyWheel 功能验收通过；下一项为大富翁` |
-| 当前阻塞 | 大富翁业务状态机待验收 |
-| 下一步 | 进入大富翁，验证地图、格子状态、随机结果与返回刷新 |
+| 唯一活动范围 | `World` 三类战斗公共状态隔离 |
+| 当前门禁 | `FengShenStory、MoneyTree、HappyWheel、闯关（Monopoly/大富翁）功能验收通过；下一项为战斗公共状态隔离` |
+| 当前阻塞 | `WorldBattleReplayStore / Presenter / 回放协程 / 跳过状态仍为公共全局状态` |
+| 下一步 | `隔离 FightType=16/19/21 的回放、跳过、结算等待与 pending 结果，再做并行战斗定向验证` |
 | 禁止事项 | 后续调整必须以用户维护的 `FishLayer.prefab` 为基础；未经用户明确许可不操作 Unity |
 
 ## 2. 总进度
@@ -50,7 +50,7 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | MoneyTree | `功能验收通过` | 用户已多次真实 Play；查询、摇取、消耗与结果刷新无业务问题；本轮 MCP 截图插件报错不计为功能错误 |
 | HappyWheel | `功能验收通过` | 已修复多次抽取后的累计角度偏移；用户连续三次真实 Play确认最终高亮与指针同格，奖励与日志正常 |
 | JingJie | `G0 passed / G1 blocked / Unity user Play passed` | `/306 op=1/4`、20阶配置、Prefab、预览和突破动画已接入；2026-09-13 用户测试通过，待当前Cocos原生基线 |
-| Monopoly | `entry/resources integrated / business pending` | 已补玩法入口与正式地图资源；业务状态机待后续迁移 |
+| Monopoly | `闯关功能验收通过` | 2026-09-21 用户完成真实闯关战斗链路测试；地图、随机移动、守卫战 `/38` 回放、FightType=21 回放结束与返回刷新通过；正式 G5/G6 证据仍不虚报 |
 | FengShenStory | `功能验收通过` | 2026-09-21真实 Play：货币栏、首通奖励、挑战结算、体力/货币扣增、关卡推进均正常；Console 0错误/警告；不再按迁移G4-G6阻塞 |
 | BattleFengShenStory | `G0-G6 complete` | 非分母战斗子模块，已收口 |
 | YouLi | `G0 passed / G1-G6 evidence missing` | 后续从当前源码重取 G1 |
