@@ -150,8 +150,14 @@ namespace ProjectX.UI
             // cell immediately before it while retaining the original stop index.
             uint naturalDestination = Math.Min(82u, current + dice);
             MonopolyCell guard;
-            autoFightAfterMove = destination < naturalDestination
-                && cells.TryGetValue(destination + 1, out guard) && guard.EventId == 2;
+            uint nextCellEvent = 0;
+            autoFightAfterMove = false;
+            if (destination < naturalDestination && cells.TryGetValue(destination + 1, out guard))
+            {
+                nextCellEvent = guard.EventId;
+                autoFightAfterMove = nextCellEvent == 2;
+            }
+            Debug.Log($"[ProjectX][Monopoly] RollTo current={current} dice={dice} protocolDestination={destination} naturalDestination={naturalDestination} autoFightAfterMove={autoFightAfterMove} nextCellEvent={nextCellEvent}");
             guardAwaitingRetry = false;
             runtime.ShowDice(dice, () => MoveTo(destination, () =>
             {
@@ -200,6 +206,7 @@ namespace ProjectX.UI
         public void BattleResult(bool win, uint destination, uint totalExp, uint totalCoin, uint totalGold,
             uint maximumKills, uint currentKills, uint stars, string rewards)
         {
+            Debug.Log($"[ProjectX][Monopoly] BattleResult win={win} destination={destination} current={current} autoFightAfterMove={autoFightAfterMove}");
             exp = totalExp; coin = totalCoin; gold = totalGold;
             monsterMax = maximumKills; monsterKill = currentKills;
             autoFightAfterMove = false;
@@ -744,10 +751,9 @@ namespace ProjectX.UI
                 diceResult.gameObject.SetActive(true);
                 diceResult.transform.SetAsLastSibling();
             }
-            // Required sequence: animation -> native-size result held for two seconds
-            // -> movement starts while the result fades out over half a second.
-            yield return new WaitForSecondsRealtime(2f);
-            finished?.Invoke();
+            // Required sequence: animation -> native-size result held for half a second
+            // -> result fades out and is hidden -> movement starts.
+            yield return new WaitForSecondsRealtime(.5f);
             float elapsed = 0f;
             while (elapsed < .5f)
             {
@@ -756,7 +762,14 @@ namespace ProjectX.UI
                     diceResult.color = new Color(1f, 1f, 1f, 1f - Mathf.Clamp01(elapsed / .5f));
                 yield return null;
             }
-            dice.gameObject.SetActive(false); diceRoutine = null;
+            if (diceResult != null)
+            {
+                diceResult.color = Color.clear;
+                diceResult.gameObject.SetActive(false);
+            }
+            dice.gameObject.SetActive(false);
+            diceRoutine = null;
+            finished?.Invoke();
         }
         private IEnumerator AutoRoutine(float delay, Action action)
         {

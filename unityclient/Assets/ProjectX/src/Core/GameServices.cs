@@ -31,6 +31,8 @@ namespace ProjectX.Core
             Guild = new GuildStore();
             World = new WorldStore();
             WorldBattleReplay = new WorldBattleReplayStore();
+            FengShenBattleReplay = new WorldBattleReplayStore();
+            MonopolyBattleReplay = new WorldBattleReplayStore();
             Welfare = new WelfareStore();
             Activity = new ActivityStore();
             Draw = new DrawStore();
@@ -94,6 +96,8 @@ namespace ProjectX.Core
         public GuildStore Guild { get; }
         public WorldStore World { get; }
         public WorldBattleReplayStore WorldBattleReplay { get; }
+        public WorldBattleReplayStore FengShenBattleReplay { get; }
+        public WorldBattleReplayStore MonopolyBattleReplay { get; }
         public WelfareStore Welfare { get; }
         public ActivityStore Activity { get; }
         public DrawStore Draw { get; }
@@ -163,6 +167,8 @@ namespace ProjectX.Core
             Guild.Clear();
             World.Clear();
             WorldBattleReplay.Clear();
+            FengShenBattleReplay.Clear();
+            MonopolyBattleReplay.Clear();
             Welfare.Clear();
             Activity.Clear();
             Draw.Clear();

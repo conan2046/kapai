@@ -13,6 +13,8 @@ namespace ProjectX.Core
         private LuaFunction onMonopolyPlayHand;
         private CocosUiView monopolyView, monopolyHudView, monopolyHandView;
         private MonopolyPresenter monopolyPresenter;
+        private int monopolyFunctionId;
+        private bool pendingMonopolyRestartAfterFinish;
         private readonly List<MonopolyCell> pendingMonopolyCells = new List<MonopolyCell>();
         private readonly List<RewardRecord> pendingMonopolyFinishRewards = new List<RewardRecord>();
         private uint pendingMonopolyCurrent, pendingMonopolyRollMax, pendingMonopolyRollUse;
@@ -33,6 +35,7 @@ namespace ProjectX.Core
             FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
             if (definition == null || route.Target != "Monopoly" || string.IsNullOrWhiteSpace(route.PrefabKey))
             { Fail($"Monopoly route config is incomplete: id={functionId}."); return; }
+            monopolyFunctionId = functionId;
             EnsureMonopolyPresenter(route);
             toastPresenter?.Clear();
             RefreshStandardCurrencyHeader(monopolyHudView.Binding, "Layer/Panel/GoldCheck");
@@ -45,6 +48,15 @@ namespace ProjectX.Core
         public void RejectMonopolyEntry(string detail)
         {
             string message = string.IsNullOrWhiteSpace(detail) ? "今日次数已用完" : detail;
+            bool closingAfterFinish = pendingMonopolyRestartAfterFinish;
+            pendingMonopolyRestartAfterFinish = false;
+            if (closingAfterFinish)
+            {
+                TryHandleMonopolyBack();
+                ShowToast(message, 3f);
+                SetStatus($"Monopoly finish reward closed; no remaining attempts: {message}");
+                return;
+            }
             EnsureErrorPresenter();
             errorPresenter.Show("昆仑寻宝", message);
             SetStatus($"Monopoly entry rejected: {message}");
@@ -75,6 +87,11 @@ namespace ProjectX.Core
             monopolyPresenter?.Replace(pendingMonopolyCurrent, pendingMonopolyRollMax, pendingMonopolyRollUse,
                 pendingMonopolyMonsterMax, pendingMonopolyMonsterKill, pendingMonopolyExp, pendingMonopolyCoin,
                 pendingMonopolyGold, pendingMonopolyCells);
+            if (pendingMonopolyRestartAfterFinish)
+            {
+                pendingMonopolyRestartAfterFinish = false;
+                SetStatus("Monopoly finish reward closed; authoritative remaining attempts opened a new round at start.");
+            }
             SetStatus($"Monopoly/213 op=15 received: cells={pendingMonopolyCells.Count}, current={pendingMonopolyCurrent}, rolls={pendingMonopolyRollUse}/{pendingMonopolyRollMax}.");
         }
 
@@ -113,6 +130,7 @@ namespace ProjectX.Core
                 services.Rewards.Replace("通关奖励", pendingMonopolyFinishRewards);
                 pendingMonopolyFinishRewards.Clear();
                 EnsureRewardPresenter();
+                rewardPresenter.SetCloseHandler(HandleMonopolyFinishRewardClosed);
                 rewardPresenter.Show();
                 SetStatus("Monopoly finishEvent received; authoritative terminal rewards are visible.");
             }
@@ -120,6 +138,13 @@ namespace ProjectX.Core
             {
                 SetStatus("Monopoly finishEvent received without an authoritative reward payload.");
             }
+        }
+
+        private void HandleMonopolyFinishRewardClosed()
+        {
+            pendingMonopolyRestartAfterFinish = true;
+            InvokeLuaOrFail(onMonopolyClicked, "Gameplay.Monopoly.RestartAfterFinish", (double)(monopolyFunctionId == 0 ? 21 : monopolyFunctionId));
+            SetStatus("Monopoly finish reward closed; checking authoritative remaining attempts.");
         }
         public void UpdateMonopolyRewards(double exp, double coin, double gold)
             => monopolyPresenter?.UpdateRewards(checked((uint)exp), checked((uint)coin), checked((uint)gold));
@@ -141,8 +166,8 @@ namespace ProjectX.Core
             if (battlePlaybackContext != BattlePlaybackContext.Monopoly
                 || monopolyBattlePlaybackReturned
                 || (!monopolyBattlePlaybackActive
-                    && worldBattlePlaybackCoroutine == null
-                    && worldBattlePlaybackPresenter?.IsVisible != true))
+                    && monopolyBattlePlaybackCoroutine == null
+                    && monopolyBattlePlaybackPresenter?.IsVisible != true))
                 ApplyPendingMonopolyBattleResult();
         }
         public void CompleteMonopolyHand(double result, string detail)
@@ -224,12 +249,13 @@ namespace ProjectX.Core
             // an explicit skip returns directly to the board while op=10 may
             // still be in flight; do not let the completed playback overlay
             // prevent that late authoritative result from being applied.
-            pendingWorldBattleResult = false;
-            pendingWorldBattleStars = 0;
-            worldBattlePlaybackPresenter?.Hide();
+            monopolyBattlePlaybackPresenter?.Hide();
             monopolyView?.SetVisible(true);
             monopolyHudView?.SetVisible(true);
             ApplyPendingMonopolyBattleResult();
+            // The presenter is reused by later guard fights. A skip click is
+            // scoped to the replay that has just returned to the board.
+            monopolyBattlePlaybackPresenter?.ResetSkipRequest();
             SetStatus("Monopoly fightType=21 playback completed and returned to the board.");
         }
         private void ApplyPendingMonopolyBattleResult()

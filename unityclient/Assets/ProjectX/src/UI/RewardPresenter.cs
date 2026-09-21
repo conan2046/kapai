@@ -24,6 +24,7 @@ namespace ProjectX.UI
         private readonly Button confirmButton;
         private readonly Button closeButton;
         private Action confirmAction;
+        private Action closeAction;
         private Action<RewardRecord> itemClick;
         private Func<RewardRecord, Sprite> itemIconResolver;
         private bool showQualityFrames = true;
@@ -144,6 +145,11 @@ namespace ProjectX.UI
             Render();
         }
 
+        public void SetCloseHandler(Action callback)
+        {
+            closeAction = callback;
+        }
+
         public void ConfigureItemVisuals(Func<RewardRecord, Sprite> iconResolver, bool useQualityFrames)
         {
             itemIconResolver = iconResolver;
@@ -206,6 +212,14 @@ namespace ProjectX.UI
             showQualityFrames = true;
         }
 
+        private void HandleClose()
+        {
+            Action callback = closeAction;
+            closeAction = null;
+            Hide();
+            callback?.Invoke();
+        }
+
         public void Render()
         {
             IReadOnlyList<RewardRecord> items = store.Items;
@@ -255,7 +269,7 @@ namespace ProjectX.UI
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(Hide);
+            button.onClick.AddListener(HandleClose);
             return button;
         }
 

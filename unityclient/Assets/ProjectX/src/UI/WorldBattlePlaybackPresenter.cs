@@ -436,6 +436,10 @@ namespace ProjectX.UI
         public Button SpeedInteractionButton => speedButton;
         public Button SkipInteractionButton => skipButton;
         public bool AutoControlVisible => importedView?.Binding.Find("Layer/FightUI/Buttons/btn_Auto")?.activeInHierarchy == true;
+        // Skip is a per-playback input. The presenter is reused by Monopoly
+        // guard fights, so the owner must clear the previous battle's request
+        // before loading a new replay.
+        public void ResetSkipRequest() => SkipRequested = false;
         public int ActiveFormationMarkerCount
         {
             get
@@ -457,6 +461,7 @@ namespace ProjectX.UI
                 speedStep = Mathf.Clamp(loadSpeedStep(), 0, CocosSpeedLabels.Length - 1);
             ApplySpeedStep(false);
             SkipRequested = false;
+            Debug.LogWarning($"[ProjectX][WorldBattle] Show reset skip context={store.FightType} canSkip={store.CanSkip} visible={visible}");
             // Cocos keeps btn_jump visible whenever the account-level feature is
             // unlocked; the packet flag only controls whether this battle may be
             // skipped after the click. The World fixture is level 99, so hiding
@@ -502,6 +507,7 @@ namespace ProjectX.UI
             if (store.CanSkip)
             {
                 SkipRequested = true;
+                Debug.LogWarning($"[ProjectX][WorldBattle] SkipRequested=true fight={store.FightId} fightType={store.FightType}");
                 return;
             }
             showControlMessage?.Invoke("精英、BOSS关无法跳过！");

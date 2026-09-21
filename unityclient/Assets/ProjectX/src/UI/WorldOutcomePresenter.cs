@@ -22,7 +22,7 @@ namespace ProjectX.UI
         private readonly ResourceService resources;
         private readonly PlayerStore player;
         private readonly HeroStore heroes;
-        private readonly WorldBattleReplayStore replay;
+        private WorldBattleReplayStore replay;
         private readonly Action requestSweepAgain;
         private readonly Action requestContinue;
         private readonly Action requestReplay;
@@ -85,6 +85,11 @@ namespace ProjectX.UI
             Bind(battleView, "Layer/Panel/firPanel/tontguanxinxilayer/Button_reborn", () => { Revive(); Mark("WORLD-24-BATTLE-REVIVE"); });
             rewards.Changed += Render;
             HideAll();
+        }
+
+        public void SetReplayStore(WorldBattleReplayStore value)
+        {
+            replay = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         public bool IsSweepVisible => sweepView.GameObject.activeSelf;
