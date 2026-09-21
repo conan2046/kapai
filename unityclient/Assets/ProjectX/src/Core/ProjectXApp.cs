@@ -181,6 +181,7 @@ namespace ProjectX.Core
         private int worldChainIndex;
         private uint worldChainNextStageId;
         private Coroutine worldChainContinueCoroutine;
+        private int worldChainContinueToken;
         private LuaFunction onWelfareClicked;
         private LuaFunction onWelfareClaimSign;
         private LuaFunction onActivityClicked;
@@ -495,15 +496,52 @@ namespace ProjectX.Core
             _ => services.WorldBattleReplay
         };
 
-        private WorldBattlePlaybackPresenter ActiveBattlePlaybackPresenter => battlePlaybackContext switch
+        private WorldBattleReplayStore GetBattleReplayStore(BattlePlaybackContext context)
         {
-            BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackPresenter,
-            BattlePlaybackContext.Monopoly => monopolyBattlePlaybackPresenter,
-            _ => worldBattleWorldPresenter
-        };
+            return context switch
+            {
+                BattlePlaybackContext.FengShenStory => services.FengShenBattleReplay,
+                BattlePlaybackContext.Monopoly => services.MonopolyBattleReplay,
+                _ => services.WorldBattleReplay
+            };
+        }
+
+        private WorldBattlePlaybackPresenter GetBattlePlaybackPresenter(BattlePlaybackContext context)
+        {
+            return context switch
+            {
+                BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackPresenter,
+                BattlePlaybackContext.Monopoly => monopolyBattlePlaybackPresenter,
+                _ => worldBattleWorldPresenter
+            };
+        }
+
+        private WorldBattlePlaybackPresenter ActiveBattlePlaybackPresenter
+            => GetBattlePlaybackPresenter(battlePlaybackContext);
         private Coroutine worldBattlePlaybackCoroutine;
         private Coroutine fengShenBattlePlaybackCoroutine;
         private Coroutine monopolyBattlePlaybackCoroutine;
+
+        private sealed class BattlePlaybackRuntimeState
+        {
+            public bool PendingResult;
+            public int PendingStars;
+            public bool SuppressSettlementForSkippedPlayback;
+        }
+
+        private readonly BattlePlaybackRuntimeState worldBattleRuntime = new BattlePlaybackRuntimeState();
+        private readonly BattlePlaybackRuntimeState fengShenBattleRuntime = new BattlePlaybackRuntimeState();
+        private readonly BattlePlaybackRuntimeState monopolyBattleRuntime = new BattlePlaybackRuntimeState();
+
+        private BattlePlaybackRuntimeState GetBattlePlaybackRuntime(BattlePlaybackContext context)
+        {
+            return context switch
+            {
+                BattlePlaybackContext.FengShenStory => fengShenBattleRuntime,
+                BattlePlaybackContext.Monopoly => monopolyBattleRuntime,
+                _ => worldBattleRuntime
+            };
+        }
 
         private Coroutine ActiveBattlePlaybackCoroutine => battlePlaybackContext switch
         {
@@ -519,6 +557,7 @@ namespace ProjectX.Core
             else worldBattlePlaybackCoroutine = null;
         }
         private Coroutine worldChainAutoSettlementCoroutine;
+        private int worldChainAutoSettlementToken;
         private bool worldBattleBackgrounded;
         private bool worldBattleInFlight;
         // 龙崖连战：本场战斗出发时主角所在关卡（走位起点）。/320 op=8 会先把
@@ -529,9 +568,6 @@ namespace ProjectX.Core
         private const float WorldChainAutoSettlementSeconds = 2f;
         // 等 /38 回放播完的超时兜底（一场回放约 14 秒；异常路径不至于无限等待）
         private const float MaxWorldBattlePlaybackWait = 60f;
-        private bool pendingWorldBattleResult;
-        private bool suppressFengShenSettlementForSkippedPlayback;
-        private int pendingWorldBattleStars;
         private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
         private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
         private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
@@ -1528,6 +1564,11 @@ namespace ProjectX.Core
                 }
                 return worldYouLiPopped;
             }
+            // Monopoly can keep the World map objects active underneath its own
+            // board during the return transition. Resolve the topmost Monopoly
+            // owner before the generic World branch, otherwise Back hides World
+            // presentation and leaves the Monopoly UiStack entry unpopped.
+            if (TryHandleMonopolyBack()) return true;
             if (IsWorldOpen)
             {
                 HideWorldBoxAward();
@@ -1557,7 +1598,6 @@ namespace ProjectX.Core
             }
             if (TryHandleMoneyTreeBack()) return true;
             if (TryHandleFishBack()) return true;
-            if (TryHandleMonopolyBack()) return true;
             if (TryHandleHappyWheelBack()) return true;
             if (IsGameplayOpen)
             {
@@ -2731,7 +2771,7 @@ namespace ProjectX.Core
             EnsureWorldPresenter();
             bool battleActive = worldBattleInFlight
                 || worldBattlePlaybackCoroutine != null
-                || pendingWorldBattleResult;
+                || worldBattleRuntime.PendingResult;
             worldBattleBackgrounded = false;
             if (!battleActive) worldBattleInFlight = false;
             worldBattleForegroundRequested = false;
@@ -2929,12 +2969,7 @@ namespace ProjectX.Core
                 }
                 MarkValidationControl("GAMEPLAY-01-HUD-ENTRY");
                 RecordValidationSemantic("gameplay-entry-list-current-ready-8", services.Gameplay.Items.Select(value => value.Definition.Id).SequenceEqual(functionIds),
-                    "Current table-driven order=1,3,9,10,21,23,27,29,32; id6 and remaining excluded modules stay hidden");
-                bool arenaTemporarilyHidden = services.GameplayCatalog.Find(6) == null;
-                MarkValidationControl("GAMEPLAY-06-ENTER-6");
-                RecordValidationSemantic("gameplay-arena-hidden-until-ready", arenaTemporarilyHidden,
-                    "Arena remains in product scope but migrationReady=false prevents an unfinished entry from being exposed");
-                if (!arenaTemporarilyHidden) { Fail("Gameplay exposed Arena before its migration gate was ready."); yield break; }
+                    "Current table-driven order=1,3,9,10,21,23,27,29; Arena id6 is outside the Steam Gameplay scope");
                 bool shopsExcluded = new[] { 15, 16, 17 }.All(id =>
                 {
                     GameplayDefinition route = services.GameplayCatalog.Find(id);
@@ -2970,17 +3005,36 @@ namespace ProjectX.Core
                 { Fail("Gameplay real re-entry did not rebuild the activity list."); yield break; }
                 yield return CaptureGameplayFrame("bootstrap-gameplay-reenter.png");
 
+                ScrollRect gameplayScroll = gameplayPresenter.ScrollControl;
+                float scrollBefore = gameplayPresenter.VerticalNormalizedPosition;
                 gameplayPresenter.ScrollToBottom();
                 Canvas.ForceUpdateCanvases();
                 yield return new WaitForEndOfFrame();
+                float scrollAfter = gameplayPresenter.VerticalNormalizedPosition;
+                Graphic gameplayScrollSurface = gameplayScroll?.viewport?.GetComponent<Graphic>();
+                bool gameplayScrollWorked = gameplayScroll != null
+                    && gameplayScroll.content != null && gameplayScroll.viewport != null
+                    && gameplayScroll.content.rect.height > gameplayScroll.viewport.rect.height + 1f
+                    && gameplayScrollSurface != null && gameplayScrollSurface.raycastTarget
+                    && scrollAfter < scrollBefore - 0.01f;
+                RecordValidationSemantic("gameplay-real-scroll", gameplayScrollWorked,
+                    $"content={gameplayScroll?.content?.rect.height:F1},viewport={gameplayScroll?.viewport?.rect.height:F1},normalized={scrollBefore:F2}->{scrollAfter:F2},raycast={gameplayScrollSurface?.raycastTarget == true}");
+                if (!gameplayScrollWorked)
+                {
+                    Fail($"Gameplay list did not perform a real safe scroll: content={gameplayScroll?.content?.rect.height:F1}, viewport={gameplayScroll?.viewport?.rect.height:F1}, normalized={scrollBefore:F2}->{scrollAfter:F2}.");
+                    yield break;
+                }
                 MarkValidationControl("GAMEPLAY-03-LIST-SCROLL");
                 yield return CaptureGameplayFrame("bootstrap-gameplay-list-scrolled.png");
                 RecordValidationSemantic("gameplay-scroll-lifecycle", true,
-                    $"Steam rows remained safely clipped; close/reenter rebuilt the list; normalized={gameplayPresenter.VerticalNormalizedPosition:F2}");
+                    $"Steam rows remained safely clipped; close/reenter rebuilt the list; normalized={scrollAfter:F2}");
 
                 int routePendingBefore = services.ProtocolRegistry.PendingCount;
                 for (int index = 0; index < functionIds.Length; index++)
                 {
+                    // Fish has its own authoritative /217 validation. Its Gameplay card
+                    // remains visible, but entering it is expected to enqueue that protocol.
+                    if (functionIds[index] == 32) continue;
                     if (!IsGameplayOpen) gameplayButton.onClick.Invoke();
                     yield return new WaitForEndOfFrame();
                     lastGameplayBoundaryId = 0;
@@ -3227,6 +3281,8 @@ namespace ProjectX.Core
             EnsureFengShenStoryPresenter();
             if (services.UiStack.Current != fengShenStoryView) services.UiStack.Push(fengShenStoryView);
             SetStatus("FengShenStory current main UI active; awaiting /320 op=24.");
+            if (deferredFengShenRewardPush)
+                StartCoroutine(PresentDeferredFengShenRewardPushAfterReturn());
         }
 
         public void SetFengShenStoryState(double chapterId, double levelId, int count)
@@ -3278,7 +3334,7 @@ namespace ProjectX.Core
             services.FengShenStory.SetRewardPush(pendingFengShenRewards);
             pendingFengShenRewards.Clear();
             if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
-                && (suppressFengShenSettlementForSkippedPlayback
+                && (fengShenBattleRuntime.SuppressSettlementForSkippedPlayback
                     || fengShenBattlePlaybackPresenter?.SkipRequested == true))
             {
                 // Explicit skip returns directly to the parent map. Consume a
@@ -3291,11 +3347,20 @@ namespace ProjectX.Core
             if (battlePlaybackContext == BattlePlaybackContext.FengShenStory
                 && (fengShenBattlePlaybackCoroutine != null
                     || fengShenBattlePlaybackPresenter?.IsVisible == true
-                    || pendingWorldBattleResult
+                    || fengShenBattleRuntime.PendingResult
                     || worldOutcomePresenter?.IsBattleVisible == true
                     || worldOutcomePresenter?.IsStatisticsVisible == true))
             {
                 deferredFengShenRewardPush = true;
+                return;
+            }
+            if (!IsFengShenStoryOpen && !IsFengShenStoryAuthoritativeVisible)
+            {
+                // A late FengShenStory op26 must remain queued while another
+                // battle/map owns the visible stack; never raise its reward
+                // modal over World or Monopoly presentation.
+                deferredFengShenRewardPush = true;
+                SetStatus("FengShenStory reward push deferred until its parent UI is visible.");
                 return;
             }
             PresentFengShenRewardPush();
@@ -5423,6 +5488,7 @@ namespace ProjectX.Core
 
         public void ReturnToLogin()
         {
+            ResetBattlePlaybackStateAfterDisconnect();
             services.Network.Disconnect();
             if (singlePlayerTitleEnabled) StopSinglePlayerServer();
             mainHudPresenter?.Dispose();
@@ -7506,7 +7572,9 @@ namespace ProjectX.Core
             || worldBattlePlaybackPresenter?.IsVisible == true
             || fengShenBattlePlaybackPresenter?.IsVisible == true
             || monopolyBattlePlaybackPresenter?.IsVisible == true
-            || pendingWorldBattleResult
+            || worldBattleRuntime.PendingResult
+            || fengShenBattleRuntime.PendingResult
+            || monopolyBattleRuntime.PendingResult
             || worldOutcomePresenter?.IsBattleVisible == true
             || worldOutcomePresenter?.IsStatisticsVisible == true;
 
@@ -7568,6 +7636,8 @@ namespace ProjectX.Core
         {
             // 等一帧让布点层渲染就绪，再置连战态并发起挑战（沿用当前选中关）
             yield return null;
+            if (battlePlaybackContext != BattlePlaybackContext.World || !IsWorldOpen)
+                yield break;
             worldPresenter?.BeginChainStage();
             worldBattleInFlight = true;
             InvokeLuaOrFail(onWorldChallenge, "World.Challenge");
@@ -7625,8 +7695,8 @@ namespace ProjectX.Core
             worldChainMode = enabled;
             if (enabled)
             {
-                pendingWorldBattleResult = false;
-                pendingWorldBattleStars = 0;
+                worldBattleRuntime.PendingResult = false;
+                worldBattleRuntime.PendingStars = 0;
             }
             worldPresenter?.SetChainMode(enabled);
             worldOutcomePresenter?.SetChainMode(enabled);
@@ -7657,16 +7727,24 @@ namespace ProjectX.Core
             uint next = nextStageId > 0 ? checked((uint)nextStageId) : 0u;
             if (!worldChainMode || next == 0)
             {
+                worldChainContinueToken++;
+                if (worldChainContinueCoroutine != null) StopCoroutine(worldChainContinueCoroutine);
+                worldChainContinueCoroutine = null;
                 // 没有下一场就不会走位：释放结算时锁住的走位起点，别让主角停在旧点
                 worldPresenter?.ReleaseStageWalkHold();
                 return;
             }
             worldBattleInFlight = true;
-            if (worldChainContinueCoroutine != null) StopCoroutine(worldChainContinueCoroutine);
-            worldChainContinueCoroutine = StartCoroutine(ContinueWorldChainAfterDelay(next));
+            if (worldChainContinueCoroutine != null)
+            {
+                worldChainContinueToken++;
+                StopCoroutine(worldChainContinueCoroutine);
+            }
+            int continueToken = ++worldChainContinueToken;
+            worldChainContinueCoroutine = StartCoroutine(ContinueWorldChainAfterDelay(next, continueToken));
         }
 
-        private IEnumerator ContinueWorldChainAfterDelay(uint nextStageId)
+        private IEnumerator ContinueWorldChainAfterDelay(uint nextStageId, int token)
         {
             // 龙崖节奏必须等 /38 回放播完再往下走（玩家点「跳过」时协程会提前结束并置空）。
             // 旧实现是「点挑战后无条件等 2 秒就 Hide 回放层」，于是战斗才播完起手动画
@@ -7674,10 +7752,21 @@ namespace ProjectX.Core
             float playbackDeadline = Time.realtimeSinceStartup + MaxWorldBattlePlaybackWait;
             while (worldBattlePlaybackCoroutine != null && Time.realtimeSinceStartup < playbackDeadline)
                 yield return null;
+            if (token != worldChainContinueToken || battlePlaybackContext != BattlePlaybackContext.World)
+            {
+                // A Monopoly/FengShenStory overlay may replace the active
+                // playback context while this World continuation is waiting.
+                // Do not leave a dead Coroutine handle behind: ShowWorld()
+                // treats it as an active battle and the next World fight then
+                // remains permanently blocked.
+                if (token == worldChainContinueToken)
+                    worldChainContinueCoroutine = null;
+                yield break;
+            }
             worldChainContinueCoroutine = null;
-            pendingWorldBattleResult = false;
-            pendingWorldBattleStars = 0;
-            worldBattlePlaybackPresenter?.Hide();
+            worldBattleRuntime.PendingResult = false;
+            worldBattleRuntime.PendingStars = 0;
+            worldBattleWorldPresenter?.Hide();
             EnsureWorldPresenter();
             services.World.SelectStage(nextStageId);
             bool background = !CanShowWorldBattleUi();
@@ -7694,6 +7783,8 @@ namespace ProjectX.Core
                 // 保留同等等待时间后再发起下一场，避免退出即瞬间结算/连战。
                 yield return new WaitForSecondsRealtime(WorldChainWalkSeconds);
             }
+            if (token != worldChainContinueToken || battlePlaybackContext != BattlePlaybackContext.World)
+                yield break;
             // Lua 已确认这是本章普通关胜利，并请求顺序续战；失败重试由 op=28 单独处理。
             worldBattleInFlight = true;
             InvokeLuaOrFail(onWorldContinueChain, "World.ContinueChain");
@@ -7703,6 +7794,7 @@ namespace ProjectX.Core
         {
             if (worldChainContinueCoroutine != null)
             {
+                worldChainContinueToken++;
                 StopCoroutine(worldChainContinueCoroutine);
                 worldChainContinueCoroutine = null;
             }
@@ -7746,55 +7838,57 @@ namespace ProjectX.Core
         {
             battlePlaybackContext = BattlePlaybackContext.World;
             services.Rewards.Replace("关卡结算", pendingRewards);
-            if (worldBattlePlaybackCoroutine != null || worldBattlePlaybackPresenter?.IsVisible == true)
+            if (worldBattlePlaybackCoroutine != null || worldBattleWorldPresenter?.IsVisible == true)
             {
-                pendingWorldBattleResult = true;
-                pendingWorldBattleStars = stars;
+                worldBattleRuntime.PendingResult = true;
+                worldBattleRuntime.PendingStars = stars;
                 SetStatus($"World authoritative result queued until /38 playback completes: stars={stars}, rewards={services.Rewards.Count}.");
                 return;
             }
-            ShowWorldBattleResultNow(stars);
+            ShowWorldBattleResultNow(stars, BattlePlaybackContext.World);
         }
 
         public void ShowFengShenStoryBattleResult(int stars)
         {
             battlePlaybackContext = BattlePlaybackContext.FengShenStory;
             services.Rewards.Replace("封神列传结算", pendingRewards);
-            if (suppressFengShenSettlementForSkippedPlayback
-                || ActiveBattlePlaybackPresenter?.SkipRequested == true)
+            if (fengShenBattleRuntime.SuppressSettlementForSkippedPlayback
+                || fengShenBattlePlaybackPresenter?.SkipRequested == true)
             {
-                pendingWorldBattleResult = false;
-                pendingWorldBattleStars = 0;
+                fengShenBattleRuntime.PendingResult = false;
+                fengShenBattleRuntime.PendingStars = 0;
                 SetStatus($"FengShenStory skipped playback consumed op10 without presenting settlement: stars={stars}, rewards={services.Rewards.Count}.");
                 return;
             }
             if (fengShenBattlePlaybackCoroutine != null || fengShenBattlePlaybackPresenter?.IsVisible == true)
             {
-                pendingWorldBattleResult = true;
-                pendingWorldBattleStars = stars;
+                fengShenBattleRuntime.PendingResult = true;
+                fengShenBattleRuntime.PendingStars = stars;
                 SetStatus($"FengShenStory authoritative result queued until natural playback completes: stars={stars}, rewards={services.Rewards.Count}.");
                 return;
             }
-            ShowWorldBattleResultNow(stars);
+            ShowWorldBattleResultNow(stars, BattlePlaybackContext.FengShenStory);
         }
 
-        private void ShowWorldBattleResultNow(int stars)
+        private void ShowWorldBattleResultNow(int stars, BattlePlaybackContext context)
         {
             EnsureWorldOutcomePresenter();
+            WorldBattlePlaybackPresenter playbackPresenter = GetBattlePlaybackPresenter(context);
             if (worldChainAutoSettlementCoroutine != null)
             {
+                worldChainAutoSettlementToken++;
                 StopCoroutine(worldChainAutoSettlementCoroutine);
                 worldChainAutoSettlementCoroutine = null;
             }
-            bool fengShenStory = battlePlaybackContext == BattlePlaybackContext.FengShenStory;
+            bool fengShenStory = context == BattlePlaybackContext.FengShenStory;
             if (!fengShenStory && !CanShowWorldBattleUi())
             {
                 // 玩家已经离开当前章节：结算仍以协议为准，但战斗层不能重新
                 // 抢回前台。自动模式继续走既有后续逻辑；手动模式保持后台结束。
-                worldBattlePlaybackPresenter?.Hide();
+                playbackPresenter?.Hide();
                 worldBattleResultView?.SetVisible(false);
                 worldBattleStatisticsView?.SetVisible(false);
-                pendingWorldBattleResult = false;
+                GetBattlePlaybackRuntime(context).PendingResult = false;
                 worldBattleInFlight = false;
                 if (worldChainMode && worldChainNextStageId == 0
                     && (worldChainAuto || worldChainAutoNext))
@@ -7802,6 +7896,7 @@ namespace ProjectX.Core
                 SetStatus("World battle completed in background because the current chapter view is not active.");
                 return;
             }
+            worldOutcomePresenter.SetReplayStore(GetBattleReplayStore(context));
             if (!fengShenStory)
             {
                 // 本章已结束（Lua 侧 chainNextNodeId == 0 才走这条）：收起连战布点层
@@ -7816,16 +7911,22 @@ namespace ProjectX.Core
             // 普通关和失败不走这里；两个自动开关都关闭时必须等待玩家点击。
             if (!fengShenStory && worldChainMode && worldChainNextStageId == 0
                 && (worldChainAuto || worldChainAutoNext))
-                worldChainAutoSettlementCoroutine = StartCoroutine(AutoContinueWorldChainSettlement());
+            {
+                int autoSettlementToken = ++worldChainAutoSettlementToken;
+                worldChainAutoSettlementCoroutine = StartCoroutine(
+                    AutoContinueWorldChainSettlement(BattlePlaybackContext.World, autoSettlementToken));
+            }
             if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
                 StartCoroutine(CaptureWorldBattleResult(services.Rewards.Count));
-            pendingWorldBattleResult = false;
-            worldBattleInFlight = false;
+            GetBattlePlaybackRuntime(context).PendingResult = false;
+            if (context == BattlePlaybackContext.World)
+                worldBattleInFlight = false;
         }
 
         private bool CanShowWorldBattleUi()
         {
             return !worldBattleBackgrounded && IsWorldOpen
+                && !IsMonopolyOpen && !IsFengShenStoryOpen
                 && (worldPresenter?.IsCurrentChapterView == true || worldBattleForegroundRequested);
         }
 
@@ -7835,7 +7936,7 @@ namespace ProjectX.Core
         {
             bool hasBattle = worldBattleInFlight
                 || worldBattlePlaybackCoroutine != null
-                || pendingWorldBattleResult;
+                || worldBattleRuntime.PendingResult;
             if (hasBattle)
             {
                 worldBattleBackgrounded = false;
@@ -7855,6 +7956,7 @@ namespace ProjectX.Core
             worldBattleForegroundRequested = false;
             if (worldChainAutoSettlementCoroutine != null)
             {
+                worldChainAutoSettlementToken++;
                 StopCoroutine(worldChainAutoSettlementCoroutine);
                 worldChainAutoSettlementCoroutine = null;
             }
@@ -7865,9 +7967,18 @@ namespace ProjectX.Core
             SetStatus("World battle presentation moved to background after leaving the current chapter.");
         }
 
-        private IEnumerator AutoContinueWorldChainSettlement()
+        private IEnumerator AutoContinueWorldChainSettlement(BattlePlaybackContext context, int token)
         {
             yield return new WaitForSecondsRealtime(WorldChainAutoSettlementSeconds);
+            if (token != worldChainAutoSettlementToken || battlePlaybackContext != context)
+            {
+                // A page transition or another battle owner may invalidate
+                // this delayed settlement. Clear only our own token's handle;
+                // never erase a newer auto-settlement coroutine.
+                if (token == worldChainAutoSettlementToken)
+                    worldChainAutoSettlementCoroutine = null;
+                yield break;
+            }
             worldChainAutoSettlementCoroutine = null;
             if (worldOutcomePresenter?.IsBattleVisible == true)
             {
@@ -11474,36 +11585,34 @@ namespace ProjectX.Core
                 message.Position = start;
                 // /320 op=25 starts the LieZhuan challenge, but every authoritative
                 // fast-fight replay is wrapped by CFight::GetFightAllNetMsg as
-                // PRO_FIGHT_OPTION /38 op=5.  The active owner and nested /21
-                // fightType disambiguate FengShenStory from World.
-                bool fengShenStoryReplay = operation == 5
-                    && (IsFengShenStoryOpen || (services.Options.BattleFengShenStoryValidation && !IsWorldOpen));
-                // Monopoly owns the guard replay whenever its board is open.
-                // IsWorldOpen/worldBattleInFlight can remain true during the
-                // return transition, so Monopoly must win this classification.
-                bool monopolyReplay = operation == 5 && IsMonopolyOpen && !fengShenStoryReplay;
-                bool worldReplay = operation == 5
-                    && (IsWorldOpen || worldBattleInFlight)
-                    && !fengShenStoryReplay
-                    && !monopolyReplay;
-                if (worldReplay || fengShenStoryReplay || monopolyReplay)
+                // PRO_FIGHT_OPTION /38 op=5.  The nested /21 fightType is the
+                // authoritative owner; UI visibility is only presentation state
+                // and can still point at Monopoly while a World fight runs in the
+                // background.
+                if (operation == 5)
                 {
                     try
                     {
-                        battlePlaybackContext = fengShenStoryReplay ? BattlePlaybackContext.FengShenStory
-                            : monopolyReplay ? BattlePlaybackContext.Monopoly : BattlePlaybackContext.World;
-                        WorldBattleReplayStore replay = ActiveBattleReplayStore;
-                        replay.Load(message, 5);
-                        if (fengShenStoryReplay && replay.FightType != 19)
-                            throw new InvalidDataException($"FengShenStory battle expected fightType=19, got {replay.FightType}.");
-                        if (monopolyReplay && replay.FightType != 21)
-                            throw new InvalidDataException($"Monopoly battle expected fightType=21, got {replay.FightType}.");
-                        if (monopolyReplay) PrepareMonopolyBattlePlayback();
+                        byte[] payload = message.SnapshotPayload();
+                        WorldBattleReplayStore parsedReplay = new WorldBattleReplayStore();
+                        parsedReplay.Load(new LegacyTcpMessage(payload), 5);
+                        BattlePlaybackContext replayContext = parsedReplay.FightType switch
+                        {
+                            19 => BattlePlaybackContext.FengShenStory,
+                            21 => BattlePlaybackContext.Monopoly,
+                            16 => BattlePlaybackContext.World,
+                            _ => throw new InvalidDataException(
+                                $"Unsupported /38 fightType={parsedReplay.FightType}; expected 16, 19, or 21.")
+                        };
+                        battlePlaybackContext = replayContext;
+                        WorldBattleReplayStore replay = GetBattleReplayStore(replayContext);
+                        replay.Load(new LegacyTcpMessage(payload), 5);
+                        if (replayContext == BattlePlaybackContext.Monopoly) PrepareMonopolyBattlePlayback();
                         BeginWorldBattlePlayback();
                     }
                     catch (Exception exception)
                     {
-                        Fail($"{(fengShenStoryReplay ? "FengShenStory" : monopolyReplay ? "Monopoly" : "World")} /38 battle replay failed: {exception.Message}");
+                        Fail($"/38 battle replay failed: {exception.Message}");
                     }
                     return;
                 }
@@ -11528,10 +11637,10 @@ namespace ProjectX.Core
             chatMiniView?.SetVisible(false);
             toastPresenter?.Clear();
             if (ActiveBattlePlaybackCoroutine != null) StopCoroutine(ActiveBattlePlaybackCoroutine);
-            suppressFengShenSettlementForSkippedPlayback = false;
+            GetBattlePlaybackRuntime(battlePlaybackContext).SuppressSettlementForSkippedPlayback = false;
             // 龙崖模式 2：BOSS 结算经 ShowWorldBattleResult 排队（pending=true）后，
             // /38 回放可能晚到并触发本函数；此处不得冲掉已排队的结算，否则 BOSS 结算丢失。
-            if (!pendingWorldBattleResult) pendingWorldBattleResult = false;
+            // Preserve a result already queued for this same battle context.
             Coroutine playbackCoroutine = StartCoroutine(PlayWorldBattleReplay());
             if (battlePlaybackContext == BattlePlaybackContext.FengShenStory) fengShenBattlePlaybackCoroutine = playbackCoroutine;
             else if (battlePlaybackContext == BattlePlaybackContext.Monopoly) monopolyBattlePlaybackCoroutine = playbackCoroutine;
@@ -11541,6 +11650,7 @@ namespace ProjectX.Core
         private IEnumerator PlayWorldBattleReplay()
         {
             BattlePlaybackContext battlePlaybackContext = this.battlePlaybackContext;
+            BattlePlaybackRuntimeState runtime = GetBattlePlaybackRuntime(battlePlaybackContext);
             WorldBattlePlaybackPresenter worldBattlePlaybackPresenter = battlePlaybackContext switch
             {
                 BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackPresenter,
@@ -11807,9 +11917,9 @@ namespace ProjectX.Core
                 // Only an explicit skip returns straight to the parent map.
                 // Natural completion continues below into the authoritative
                 // op10 settlement lifecycle.
-                suppressFengShenSettlementForSkippedPlayback = true;
-                pendingWorldBattleResult = false;
-                pendingWorldBattleStars = 0;
+                runtime.SuppressSettlementForSkippedPlayback = true;
+                runtime.PendingResult = false;
+                runtime.PendingStars = 0;
                 deferredFengShenRewardPush = false;
                 services.FengShenStory.AcknowledgeRewardPush();
                 worldBattleResultView?.SetVisible(false);
@@ -11833,11 +11943,11 @@ namespace ProjectX.Core
             {
                 worldBattlePlaybackPresenter.Hide();
                 ClearBattlePlaybackCoroutine(battlePlaybackContext);
-                if (battlePlaybackContext != BattlePlaybackContext.Monopoly && pendingWorldBattleResult)
+                if (battlePlaybackContext != BattlePlaybackContext.Monopoly && runtime.PendingResult)
                 {
-                    int stars = pendingWorldBattleStars;
-                    pendingWorldBattleResult = false;
-                    ShowWorldBattleResultNow(stars);
+                    int stars = runtime.PendingStars;
+                    runtime.PendingResult = false;
+                    ShowWorldBattleResultNow(stars, battlePlaybackContext);
                 }
                 yield break;
             }
@@ -11852,7 +11962,7 @@ namespace ProjectX.Core
             // Current Cocos keeps the completed battle scene, units and HUD
             // beneath zhandoujiesuanLayer. Hide only when no settlement is
             // queued; Continue/Replay performs the eventual lifecycle cleanup.
-            if (battlePlaybackContext != BattlePlaybackContext.Monopoly && !pendingWorldBattleResult)
+            if (battlePlaybackContext != BattlePlaybackContext.Monopoly && !runtime.PendingResult)
                 worldBattlePlaybackPresenter.Hide();
             ClearBattlePlaybackCoroutine(battlePlaybackContext);
             if (battlePlaybackContext == BattlePlaybackContext.Monopoly)
@@ -11860,30 +11970,32 @@ namespace ProjectX.Core
                 CompleteMonopolyBattlePlayback();
                 yield break;
             }
-            if (battlePlaybackContext != BattlePlaybackContext.Monopoly && pendingWorldBattleResult)
+            if (battlePlaybackContext != BattlePlaybackContext.Monopoly && runtime.PendingResult)
             {
-                int stars = pendingWorldBattleStars;
-                pendingWorldBattleResult = false;
+                int stars = runtime.PendingStars;
+                runtime.PendingResult = false;
                 if (services.Options.WorldBattleValidation)
                     MarkValidationControl("WORLD-31-BATTLE-TO-SETTLEMENT");
-                ShowWorldBattleResultNow(stars);
+                ShowWorldBattleResultNow(stars, battlePlaybackContext);
             }
         }
 
         private void ReturnFromWorldBattleReplayControl()
         {
-            pendingWorldBattleResult = false;
-            worldBattlePlaybackPresenter?.Hide();
-            EnsureWorldPresenter();
+            BattlePlaybackContext context = battlePlaybackContext;
+            GetBattlePlaybackRuntime(context).PendingResult = false;
+                GetBattlePlaybackPresenter(context)?.Hide();
+                EnsureWorldPresenter();
             worldPresenter.ShowStages();
             SetStatus("World replay control entered the current Cocos transient chapter-map state.");
-            StartCoroutine(ReplayWorldBattleAfterCocosDelay());
+            StartCoroutine(ReplayWorldBattleAfterCocosDelay(context));
         }
 
         private void ContinueBattleOutcomeControl()
         {
             if (worldChainAutoSettlementCoroutine != null)
             {
+                worldChainAutoSettlementToken++;
                 StopCoroutine(worldChainAutoSettlementCoroutine);
                 worldChainAutoSettlementCoroutine = null;
             }
@@ -11894,8 +12006,8 @@ namespace ProjectX.Core
                 // sibling playback overlay must leave the stack here as well.
                 // Otherwise the deferred reward modal covers a still-live fight
                 // and closing that modal reveals the completed battlefield.
-                pendingWorldBattleResult = false;
-                worldBattlePlaybackPresenter?.Hide();
+                fengShenBattleRuntime.PendingResult = false;
+                fengShenBattlePlaybackPresenter?.Hide();
                 InvokeLuaOrFail(onFengShenStoryClicked, "FengShenStory.Continue");
                 if (deferredFengShenRewardPush)
                     StartCoroutine(PresentDeferredFengShenRewardPushAfterReturn());
@@ -11905,8 +12017,8 @@ namespace ProjectX.Core
             // the chapter map.  The settlement view hides itself, but its
             // sibling playback overlay otherwise remains above the refreshed
             // World UI and leaves the player looking at a dead battlefield.
-            pendingWorldBattleResult = false;
-            worldBattlePlaybackPresenter?.Hide();
+            worldBattleRuntime.PendingResult = false;
+            worldBattleWorldPresenter?.Hide();
             // 本章内逐关续战由 Lua 在存在下一关时处理；结算层区分 Boss 胜利与失败。
             if (worldChainMode && worldChainNextStageId != 0)
             {
@@ -11961,35 +12073,45 @@ namespace ProjectX.Core
         private IEnumerator PresentDeferredFengShenRewardPushAfterReturn()
         {
             yield return new WaitForEndOfFrame();
-            if (deferredFengShenRewardPush) PresentFengShenRewardPush();
+            if (deferredFengShenRewardPush && IsFengShenStoryOpen
+                && fengShenBattlePlaybackCoroutine == null
+                && monopolyBattlePlaybackCoroutine == null
+                && worldBattlePlaybackCoroutine == null)
+                PresentFengShenRewardPush();
         }
 
         private void ReplayBattleOutcomeControl()
         {
-            if (battlePlaybackContext == BattlePlaybackContext.FengShenStory)
+            BattlePlaybackContext context = battlePlaybackContext;
+            if (context == BattlePlaybackContext.FengShenStory)
             {
-                pendingWorldBattleResult = false;
-                worldBattlePlaybackPresenter?.Hide();
+                fengShenBattleRuntime.PendingResult = false;
+                fengShenBattlePlaybackPresenter?.Hide();
                 EnsureFengShenStoryPresenter();
                 SetStatus("FengShenStory replay control entered the current Cocos transient parent state.");
-                StartCoroutine(ReplayWorldBattleAfterCocosDelay());
+                StartCoroutine(ReplayWorldBattleAfterCocosDelay(context));
                 return;
             }
             ReturnFromWorldBattleReplayControl();
         }
 
-        private IEnumerator ReplayWorldBattleAfterCocosDelay()
+        private IEnumerator ReplayWorldBattleAfterCocosDelay(BattlePlaybackContext context)
         {
             // FirstFightResultUI:OnBtnReplayClick closes immediately, then calls
             // ReplayBattle(true) after 0.5 seconds.  Current native evidence for
             // stage 10023 proves the transient map, replay and second settlement.
             yield return new WaitForSecondsRealtime(.5f);
+            if (battlePlaybackContext != context)
+            {
+                SetStatus($"Discarded stale {context} replay request after the active battle context changed to {battlePlaybackContext}.");
+                yield break;
+            }
             BeginWorldBattlePlayback();
             // BeginWorldBattlePlayback clears any result queued for the previous
             // run. Queue the cached authoritative result only after that reset so
             // this replay reaches its own second settlement.
-            pendingWorldBattleResult = true;
-            SetStatus($"{(battlePlaybackContext == BattlePlaybackContext.FengShenStory ? "FengShenStory" : "World")} cached authoritative /38 replay restarted after the current Cocos 0.5-second delay.");
+            GetBattlePlaybackRuntime(context).PendingResult = true;
+            SetStatus($"{(context == BattlePlaybackContext.FengShenStory ? "FengShenStory" : "World")} cached authoritative /38 replay restarted after the current Cocos 0.5-second delay.");
         }
 
         private void HandleNetworkState(NetworkState state)
@@ -12005,6 +12127,7 @@ namespace ProjectX.Core
             HideLoading("reconnect");
             HideLoading("auto-reconnect");
             services.ProtocolRegistry.ClearPending();
+            ResetBattlePlaybackStateAfterDisconnect();
             disconnectReason = reason;
             services.State.Change(AppState.Disconnected, reason);
             SetStatus($"Disconnected: {reason}");
@@ -12109,6 +12232,60 @@ namespace ProjectX.Core
             {
                 autoReconnectRunning = false;
             }
+        }
+
+        private void ResetBattlePlaybackStateAfterDisconnect()
+        {
+            if (worldBattlePlaybackCoroutine != null) StopCoroutine(worldBattlePlaybackCoroutine);
+            if (fengShenBattlePlaybackCoroutine != null) StopCoroutine(fengShenBattlePlaybackCoroutine);
+            if (monopolyBattlePlaybackCoroutine != null) StopCoroutine(monopolyBattlePlaybackCoroutine);
+            if (worldChainContinueCoroutine != null)
+            {
+                worldChainContinueToken++;
+                StopCoroutine(worldChainContinueCoroutine);
+            }
+            if (worldChainAutoSettlementCoroutine != null)
+            {
+                worldChainAutoSettlementToken++;
+                StopCoroutine(worldChainAutoSettlementCoroutine);
+            }
+            worldBattlePlaybackCoroutine = null;
+            fengShenBattlePlaybackCoroutine = null;
+            monopolyBattlePlaybackCoroutine = null;
+            worldChainContinueCoroutine = null;
+            worldChainAutoSettlementCoroutine = null;
+
+            worldBattleWorldPresenter?.Hide();
+            fengShenBattlePlaybackPresenter?.Hide();
+            monopolyBattlePlaybackPresenter?.Hide();
+            worldSweepView?.SetVisible(false);
+            worldBattleResultView?.SetVisible(false);
+            worldBattleStatisticsView?.SetVisible(false);
+            monopolyView?.SetVisible(false);
+            monopolyHudView?.SetVisible(false);
+            monopolyHandView?.SetVisible(false);
+
+            worldBattleRuntime.PendingResult = false;
+            worldBattleRuntime.PendingStars = 0;
+            worldBattleRuntime.SuppressSettlementForSkippedPlayback = false;
+            fengShenBattleRuntime.PendingResult = false;
+            fengShenBattleRuntime.PendingStars = 0;
+            fengShenBattleRuntime.SuppressSettlementForSkippedPlayback = false;
+            monopolyBattleRuntime.PendingResult = false;
+            monopolyBattleRuntime.PendingStars = 0;
+            monopolyBattleRuntime.SuppressSettlementForSkippedPlayback = false;
+            services.WorldBattleReplay.Clear();
+            services.FengShenBattleReplay.Clear();
+            services.MonopolyBattleReplay.Clear();
+            hasPendingMonopolyBattleResult = false;
+            monopolyBattlePlaybackActive = false;
+            monopolyBattlePlaybackReturned = false;
+            worldBattleInFlight = false;
+            worldBattleBackgrounded = false;
+            worldBattleForegroundRequested = false;
+            battlePlaybackContext = BattlePlaybackContext.None;
+            pendingRewards.Clear();
+            services.Rewards.Clear();
         }
 
         private void HandleLoginClick() => InvokeLuaOrFail(onLoginClicked, "Login.OnLoginClicked");
@@ -12421,7 +12598,7 @@ namespace ProjectX.Core
             BindHudBoundary(mainView, FriendPath, "好友业务属于 Social，当前仅保留入口边界。");
             mainView.BindClick(HeroRecyclePath, HandleHeroRecycleClick, true);
             BindHudBoundary(mainView, WorldPath, "世界与副本业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, GameplayPath, "玩法业务不属于主界面 HUD，当前仅保留入口边界。");
+            mainView.BindClick(GameplayPath, HandleGameplayClick, true);
             BindHudBoundary(mainView, "Layer/Main_UI/btn_online", "在线奖励领取属于 Welfare，HUD 仅显示状态。");
             for (int index = 1; index <= 3; index++)
                 BindHudBoundary(mainView, $"Layer/Main_UI/ButtonGroup8/btn_Zhekou{index}", "折扣礼包与支付不属于 HUD，当前不可用。");
@@ -18534,7 +18711,7 @@ namespace ProjectX.Core
             worldOutcomePresenter = worldOutcomePresenter ?? new WorldOutcomePresenter(worldView, worldSweepView,
                 worldBattleResultView, worldBattleStatisticsView, statisticsFrameTemplate,
                 services.Rewards, services.Resources, services.Player, services.Heroes,
-                services.WorldBattleReplay,
+                ActiveBattleReplayStore,
                 () => InvokeLuaOrFail(onWorldSweep, "World.SweepAgain"),
                 ContinueBattleOutcomeControl,
                 ReplayBattleOutcomeControl,

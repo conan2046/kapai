@@ -234,6 +234,16 @@ namespace ProjectX.Core
         }
         private void PrepareMonopolyBattlePlayback()
         {
+            // A World chain continuation can be waiting for its replay/map
+            // delay when the guard fight arrives. Suspend that continuation
+            // while Monopoly owns the foreground; it is resumed on return to
+            // World using the preserved chainNextStageId.
+            if (worldChainContinueCoroutine != null)
+            {
+                worldChainContinueToken++;
+                StopCoroutine(worldChainContinueCoroutine);
+                worldChainContinueCoroutine = null;
+            }
             monopolyBattlePlaybackActive = true;
             monopolyBattlePlaybackReturned = false;
             monopolyPresenter?.SetBusy(true);
@@ -280,6 +290,18 @@ namespace ProjectX.Core
             monopolyHandView?.SetVisible(false);
             bool popped = PopUiStackWithHudRefresh();
             if (popped) gameplayContentView?.SetVisible(true);
+            if (popped && worldBattleInFlight)
+            {
+                // Restore the owner that was active before the guard overlay.
+                // Without this, ShowWorld() sees a stale Monopoly context and
+                // refuses to resume the ordinary World battle.
+                battlePlaybackContext = BattlePlaybackContext.World;
+                worldBattleBackgrounded = false;
+                worldBattleForegroundRequested = true;
+                if (worldChainMode && worldChainNextStageId != 0
+                    && worldChainContinueCoroutine == null)
+                    ContinueWorldChain(worldChainNextStageId);
+            }
             return popped;
         }
     }

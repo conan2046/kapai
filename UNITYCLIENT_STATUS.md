@@ -8,9 +8,9 @@
 | 项 | 当前值 |
 |---|---|
 | 唯一活动范围 | `World` 三类战斗公共状态隔离 |
-| 当前门禁 | `FengShenStory、MoneyTree、HappyWheel、闯关（Monopoly/大富翁）功能验收通过；下一项为战斗公共状态隔离` |
-| 当前阻塞 | `WorldBattleReplayStore / Presenter / 回放协程 / 跳过状态仍为公共全局状态` |
-| 下一步 | `隔离 FightType=16/19/21 的回放、跳过、结算等待与 pending 结果，再做并行战斗定向验证` |
+| 当前门禁 | `FengShenStory、MoneyTree、HappyWheel、闯关（Monopoly/大富翁）功能验收通过；World 三类战斗公共状态隔离用户 Play 通过` |
+| 当前阻塞 | `无；Unity SQLite 单机真实回放、结算、返回和交错链路已复测` |
+| 下一步 | `本任务收口；保留未提交工作区，后续如需发布再单独做范围审查和提交` |
 | 禁止事项 | 后续调整必须以用户维护的 `FishLayer.prefab` 为基础；未经用户明确许可不操作 Unity |
 
 ## 2. 总进度
@@ -33,7 +33,7 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | PlayerHud | `G0-G6 complete` | 用户最终确认，已收口 |
 | Bag | `G0-G6 complete` | 用户最终确认，已收口 |
 | Task | `G0-G6 complete` | 已收口 |
-| World | `G0-G6 complete` | 32/32，已收口 |
+| World | `G0-G6 complete / 公共状态隔离用户 Play 通过` | 32/32 历史门禁已收口；用户真实验证 FightType=16/19/21 交错回放、结算/跳过、返回地图、普通副本自动续战和退出/重进；Unity Console 无业务错误 |
 | Mail | `G0-G6 complete` | 用户最终确认，已收口 |
 | XunBao | `G0-G6 complete` | 21/21，用户最终确认，已收口 |
 | EnhanceMaster | `G0-G6 complete` | 40/40，用户最终确认，已收口 |
@@ -71,6 +71,19 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Draw 碎片定向条件 | 必须分别覆盖直接碎片道具（`reward.Type<60000`）和重复神将转换（`type=60002 + transformItemId>0`）；`DuplicateFragment` 只保证后一条高级首次抽取前置 | `tools/unity-migration/Invoke-DrawSqliteFixture.ps1` |
 | 最近严格完成模块 | XunBao 21/21、7/7双端状态、6/6语义、用户最终Play通过 | `docs/unityclient/modules/XUNBAO.md` |
 | Steam本机发布 | Unity可独立双击运行；外部干净机/Depot不在当前阻塞口径 | 对应 S0-S8 本地证据与历史文档 |
+
+### World 公共战斗状态隔离：下一步验收内容
+
+| 场景 | 必须验证 | 通过条件 |
+|---|---|---|
+| FightType=16 → FightType=21 | 普通副本自动挑战后台继续时进入闯关并触发守卫战 | 通过：replay store、Presenter、回放协程互不覆盖；`/38` 按权威 FightType=21 路由，副本自动链路继续 |
+| FightType=21 结算返回 | 闯关回放结束、结算回调、返回地图 | 通过：闯关 pending、地图位置、奖励、守卫格和刷新结果未串入公共 World 状态 |
+| FightType=16 连战 | 普通副本手动/自动/连战连续两场 | 通过：chainIndex、chainNextNodeId、自动续战未被闯关回放清空；后续请求仍为 FightType=16 |
+| FightType=19 自然结算 | 封神列传回放完成后等待 `/10` 结算 | 通过：stars、rewardPush、结算等待归 FengShenStory，普通副本/闯关状态不改变 |
+| FightType=19 跳过 | 封神列传点击跳过并返回地图 | 通过：仅封神跳过抑制生效，无错误结算；下一场 SkipRequested 重新初始化 |
+| 退出/重进恢复 | 在任一战斗回放期间离开页面再返回 | 通过：无旧战场覆盖、旧奖励弹窗覆盖或公共协程残留；Unity Console 0 error |
+
+验收证据要求：真实 EventSystem/raycast 输入、玩家可见回放/结算、协议或 Unity SQLite 权威结果、当前源码与 MCP Console/状态记录必须同时具备；未启动本地服务端时只记脚本/编辑器测试通过，不记真实战斗链路通过。
 
 ## 5. 总迁移顺序
 
