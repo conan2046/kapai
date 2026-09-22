@@ -85,7 +85,7 @@ namespace ProjectX.Data
 
         public TaskStore(ConfigService configs, EquipmentCatalog equipmentCatalog)
         {
-            TaskDefinitionCollection collection = configs.Load<TaskDefinitionCollection>("Config/daily_tasks");
+            TaskDefinitionCollection collection = configs.Load<TaskDefinitionCollection>("ProjectXData/Tasks/daily_tasks");
             definitions = (collection.items ?? Array.Empty<TaskDefinition>())
                 .GroupBy(item => item.id)
                 .ToDictionary(group => group.Key, group => group.First());
@@ -185,9 +185,9 @@ namespace ProjectX.Data
 
         private void LoadFormalXunBaoDefinitions(EquipmentCatalog equipmentCatalog)
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/daily");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/daily");
             if (asset == null)
-                throw new InvalidOperationException("Formal task config is missing: Resources/Configs/daily.json");
+                throw new InvalidOperationException("Formal task config is missing: Resources/ProjectXData/Configs/daily.json");
             FormalTaskDefinition[] values = JsonConvert.DeserializeObject<FormalTaskDefinition[]>(asset.text)
                 ?? Array.Empty<FormalTaskDefinition>();
             foreach (FormalTaskDefinition value in values.Where(item => item != null && item.Type == 3))

@@ -29,7 +29,7 @@ $validationFixtures = (Import-UnityMigrationJson -Root $root `
 $drawPoolConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_config.json").Value
 $drawPoolBasic = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_basic.json").Value
 $drawItemConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/item.json").Value
-$heroBookHeroConfig = (Import-UnityMigrationJson -Root $root -Path "unityclient/Assets/ProjectX/Resources/Configs/hero.json").Value
+$heroBookHeroConfig = (Import-UnityMigrationJson -Root $root -Path "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hero.json").Value
 
 function Assert-ToolchainTest {
     param(
@@ -1974,7 +1974,7 @@ $csbDumpSource = Get-Content -LiteralPath (Join-Path $root "tools/ui_migration/n
 $projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 $xunBaoFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-XunBaoSqliteFixture.py") -Raw -Encoding UTF8
 $xunBaoItemSource = Get-Content -LiteralPath (Join-Path $root "server/config/json/item.json") -Raw -Encoding UTF8
-$xunBaoUnityItemSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Configs/item.json") -Raw -Encoding UTF8
+$xunBaoUnityItemSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json") -Raw -Encoding UTF8
 $xunBaoLootingSource = Get-Content -LiteralPath (Join-Path $root "server/config/json/fabao_looting.json") -Raw -Encoding UTF8
 $xunBaoManifest = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/unityclient-modules.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $xunBaoModule = @($xunBaoManifest.modules | Where-Object { $_.key -eq "XunBao" })[0]
@@ -2510,12 +2510,12 @@ $projectXAppSource = Get-Content -LiteralPath `
 $functionRouteCatalogSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/src/Core/FunctionRouteCatalog.cs") -Raw -Encoding UTF8
 $functionRouteConfig = @(Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Configs/function-routes.json") -Raw -Encoding UTF8 |
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/function-routes.json") -Raw -Encoding UTF8 |
     ConvertFrom-Json)
 $bagControllerSource = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
 $dailyTaskConfig = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    (Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXData/Tasks/daily_tasks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $configuredTaskJumpIds = @($dailyTaskConfig.items |
     Where-Object { [int]$_.type -eq 2 -and [int]$_.jump -gt 0 } |
     ForEach-Object { [int]$_.jump } | Sort-Object -Unique)
@@ -2777,7 +2777,7 @@ Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('if (options.HasFlag("-projectXExternalServer")) return false;') -and
     $localServerSupervisorSource.Contains('return !Application.isEditor || !Application.isBatchMode;') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, ".local", "server-build", "server-win", "Debug")') -and
-    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "config")') -and
+    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "unityserver", "config")') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql")')
 ) "S6 supervisor no longer isolates immutable packaged assets from the writable player database or the external-server validation path."
 $localServerPreparationIndex = $projectXAppSource.IndexOf(
@@ -3887,12 +3887,12 @@ Assert-ToolchainTest (
     $battleBuffIconFiles.Count -eq 56 -and
     $battleSkillNameFiles.Count -eq 8 -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXBattle/SkillName/skill_0.png')).Hash.ToLowerInvariant() -eq '0e232540ab573df9a2e641c0ac5b9511fbf7c41422242b1a0e9d4bca94ea8021' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'f36abb669b33aebcd8da55184648bfc2129e34b36214095319d13633c0bf7612' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_attack_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'ec065fb2f070a57735b11fff44a72b4cd2d6cc19fc4ba6f4cfb442eb0a6ac325' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_effect_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'aab57c44cafdaef99a6ee10e8b64ccab0b619a5276de91b46989869e9ee9465a' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/skill_behit_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'abefd49b70812b95a1fe3304530b0472ed503def4feee2d09eb016a92d2a3583' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/hit_monster.dat.bytes')).Hash.ToLowerInvariant() -eq '79ce0eaf3b8efef4e8b2fa36421f34f7291672343fd91fb6a469309bee71fecc' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXConfig/battle/zhenfa_config_dat.txt')).Hash.ToLowerInvariant() -eq '9d86d4a4df2ee54d538052f6e5de4a58ebb5a5c8b1f6dbb7185b65e1fb236949' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'f36abb669b33aebcd8da55184648bfc2129e34b36214095319d13633c0bf7612' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_attack_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'ec065fb2f070a57735b11fff44a72b4cd2d6cc19fc4ba6f4cfb442eb0a6ac325' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_effect_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'aab57c44cafdaef99a6ee10e8b64ccab0b619a5276de91b46989869e9ee9465a' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_behit_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'abefd49b70812b95a1fe3304530b0472ed503def4feee2d09eb016a92d2a3583' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/hit_monster.dat.bytes')).Hash.ToLowerInvariant() -eq '79ce0eaf3b8efef4e8b2fa36421f34f7291672343fd91fb6a469309bee71fecc' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/zhenfa_config_dat.txt')).Hash.ToLowerInvariant() -eq '9d86d4a4df2ee54d538052f6e5de4a58ebb5a5c8b1f6dbb7185b65e1fb236949' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png')).Hash.ToLowerInvariant() -eq 'ac67a9df960289479ccf49e06f73ec252ff84d451f8178717dea540da5072d87'
 ) "Shared battle presentation config parser or hydrated Cocos resource hashes drifted."
 Assert-ToolchainTest (
@@ -3986,11 +3986,11 @@ Assert-ToolchainTest (
     @($heroBookHeroConfig).Count -eq 49 -and
     @($heroBookHeroConfig | Where-Object { [int]$_.id -gt 0 }).Count -eq 48 -and
     [int]@($heroBookHeroConfig | Where-Object { [int]$_.id -eq 25 })[0].quality -eq 5 -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/Configs/hero.json')).TrimEnd() -ceq
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hero.json')).TrimEnd() -ceq
         (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/hero.json')).TrimEnd() -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/Configs/star.json')).TrimEnd() -ceq
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/star.json')).TrimEnd() -ceq
         (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/star.json')).TrimEnd() -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/Configs/handbook.json')).TrimEnd() -ceq
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/handbook.json')).TrimEnd() -ceq
         (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/handbook.json')).TrimEnd()
 ) "HeroBook popup resources or authoritative star/handbook configuration drifted."
 Assert-ToolchainTest (

@@ -27,15 +27,15 @@ namespace ProjectX.Data
 
         public GameplayCatalog()
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/gameplay");
-            if (asset == null) throw new InvalidOperationException("Gameplay config is missing: Resources/Configs/gameplay.json");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/gameplay");
+            if (asset == null) throw new InvalidOperationException("Gameplay config is missing: Resources/ProjectXData/Configs/gameplay.json");
             routes = (JsonConvert.DeserializeObject<GameplayDefinition[]>(asset.text) ?? Array.Empty<GameplayDefinition>())
                 .Where(value => value != null && value.Id < 999
                     && value.SteamEnabled != false && value.MigrationReady != false)
                 .OrderBy(value => value.Id)
                 .ToList();
             items = routes.Where(value => value.Page != 0).ToList();
-            ClientLog.Info("Config", "Loaded Configs/gameplay",
+            ClientLog.Info("Config", "Loaded ProjectXData/Configs/gameplay",
                 $"{items.Count} visible records, {routes.Count} routable records");
         }
 

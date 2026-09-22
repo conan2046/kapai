@@ -268,7 +268,7 @@ namespace ProjectX.Core
                 "- Unity dynamic asset: `unityclient/Assets/ProjectX/Resources/UiPrefabs/AnswerLayer.asset`",
                 "- Unity presenter: `unityclient/Assets/ProjectX/src/UI/AnswerPresenter.cs`",
                 "- Protocol: `/198 op=1/2`",
-                "- Formal settings: `server/config/source/answer-settings.csv`",
+                "- Formal settings: `unityserver/config/source/answer-settings.csv`",
                 "- Runtime nodes: `Layer/Panel/AnswerBg`, four `SubjectBg/Button_1..4`, result stamps, countdown and reward counters",
                 "- Prefab-owned reward nodes: `RewardBg/Reward` quality frame, `Reward/Icon` gold icon and `Reward/Value` default amount; none are created at runtime.",
                 "- Dynamic question/answer text and protocol reward counters: `未解析` until the paired runtime result is inspected.",

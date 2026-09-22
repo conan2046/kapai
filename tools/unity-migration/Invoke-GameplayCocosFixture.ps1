@@ -137,7 +137,7 @@ function Get-GameplayCrossBackendState {
         inputs = [ordered]@{
             cocosConfig = "client/ProjectX/src/ConfigData/function_dat.lua"
             cocosConfigSha256 = Get-Sha256 $sourcePath
-            unityConfig = "unityclient/Assets/ProjectX/Resources/Configs/gameplay.json"
+            unityConfig = "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/gameplay.json"
             unityConfigSha256 = Get-Sha256 $unityConfigPath
         }
         checkedUtc = [DateTime]::UtcNow.ToString("O")

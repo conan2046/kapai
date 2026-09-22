@@ -7,7 +7,7 @@ function Assert-Build([bool]$Condition, [string]$Message) {
 }
 
 $masterPath = Join-Path $Root 'server/config/json/hero_build_profile.json'
-$unityPath = Join-Path $Root 'unityclient/Assets/ProjectX/Resources/Configs/hero_build_profile.json'
+$unityPath = Join-Path $Root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hero_build_profile.json'
 Assert-Build ((Get-FileHash $masterPath).Hash -eq (Get-FileHash $unityPath).Hash) 'Build profile JSON copies differ.'
 $profiles = @(Get-Content -Raw -Encoding UTF8 $masterPath | ConvertFrom-Json)
 $roles = @(Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'server/config/json/hero_skill_role.json') | ConvertFrom-Json)

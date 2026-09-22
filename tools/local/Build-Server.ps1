@@ -188,7 +188,7 @@ if (-not $SkipAppLocal) {
         }
     }
 
-    $ConfigDir = Join-Path $Root "server\config"
+    $ConfigDir = Join-Path $Root "unityserver\runtime"
     foreach ($DllName in "libmysql.dll", "libssl-3-x64.dll", "libcrypto-3-x64.dll") {
         $DllPath = Join-Path $ConfigDir $DllName
         if (-not (Test-Path $DllPath)) {

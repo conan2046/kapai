@@ -118,10 +118,10 @@ namespace ProjectX.Data
         private static void LoadAuthoritativeDefinitions()
         {
             if (authoritativeLoaded) return;
-            TextAsset petAsset = Resources.Load<TextAsset>("Configs/pet_basic_config");
-            TextAsset skillAsset = Resources.Load<TextAsset>("Configs/skill_basic");
-            TextAsset activeEffectAsset = Resources.Load<TextAsset>("Configs/skill_active_effect");
-            TextAsset additiveEffectAsset = Resources.Load<TextAsset>("Configs/skill_additive_effect");
+            TextAsset petAsset = Resources.Load<TextAsset>("ProjectXData/Configs/pet_basic_config");
+            TextAsset skillAsset = Resources.Load<TextAsset>("ProjectXData/Configs/skill_basic");
+            TextAsset activeEffectAsset = Resources.Load<TextAsset>("ProjectXData/Configs/skill_active_effect");
+            TextAsset additiveEffectAsset = Resources.Load<TextAsset>("ProjectXData/Configs/skill_additive_effect");
             if (petAsset == null || skillAsset == null || activeEffectAsset == null || additiveEffectAsset == null)
             {
                 if (!missingResourcesLogged)
@@ -264,7 +264,7 @@ namespace ProjectX.Data
 
         public static IEnumerable<int> GetDrawPreviewHeroes(byte poolKind)
         {
-            // Synchronized from server/config/json/draw_config.json. Cocos groups
+            // Synchronized from unityserver/config/json/draw_config.json. Cocos groups
             // normal=type 1/2, high=3/4 and friend=5/6 in its reward preview.
             // Actual rewards remain exclusively server-authoritative /224 results.
             switch (poolKind)

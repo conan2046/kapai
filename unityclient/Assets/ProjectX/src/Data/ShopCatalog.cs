@@ -51,9 +51,9 @@ namespace ProjectX.Data
 
         public ShopCatalog()
         {
-            Load("Configs/shop", shops, value => value.Id);
-            Load("Configs/item", items, value => value.Id);
-            Load("Configs/hecheng", synthesis, value => value.Id);
+            Load("ProjectXData/Configs/shop", shops, value => value.Id);
+            Load("ProjectXData/Configs/item", items, value => value.Id);
+            Load("ProjectXData/Configs/hecheng", synthesis, value => value.Id);
             foreach (SynthesisDefinition definition in synthesis.Values)
             {
                 if (definition.Type != 2 && definition.Type != 4) continue;

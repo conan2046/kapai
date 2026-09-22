@@ -133,10 +133,10 @@ namespace ProjectX.Data
 
         private void Load()
         {
-            TextAsset levelAsset = Resources.Load<TextAsset>("Configs/handbook");
-            TextAsset starAsset = Resources.Load<TextAsset>("Configs/star");
-            TextAsset qualityAsset = Resources.Load<TextAsset>("Configs/quality");
-            TextAsset heroAsset = Resources.Load<TextAsset>("Configs/hero");
+            TextAsset levelAsset = Resources.Load<TextAsset>("ProjectXData/Configs/handbook");
+            TextAsset starAsset = Resources.Load<TextAsset>("ProjectXData/Configs/star");
+            TextAsset qualityAsset = Resources.Load<TextAsset>("ProjectXData/Configs/quality");
+            TextAsset heroAsset = Resources.Load<TextAsset>("ProjectXData/Configs/hero");
             if (levelAsset == null || starAsset == null || qualityAsset == null || heroAsset == null)
                 throw new InvalidOperationException("HeroBook authoritative hero/handbook/star/quality JSON resources are missing.");
             foreach (RawLevel raw in JsonConvert.DeserializeObject<List<RawLevel>>(levelAsset.text) ?? new List<RawLevel>())

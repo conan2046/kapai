@@ -165,7 +165,7 @@ namespace ProjectX.Core
                 $"- Unity Presenter: `{unityPresenter}`",
                 "- Protocol: `/319 op=28/29/30/31/36`",
                 "- Formal tables: `concept/data/excel/xml配置表/新表/fabao_looting.xlsx`, `item.xlsx`",
-                "- Runtime configs: `server/config/json/fabao_looting.json`, `hecheng.json`, `fabao.json`, `item.json`",
+                "- Runtime configs: `unityserver/config/json/fabao_looting.json`, `hecheng.json`, `fabao.json`, `item.json`",
                 $"- Dynamic mapping: {dynamicNote}",
                 ""
             });

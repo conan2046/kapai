@@ -169,8 +169,8 @@ namespace ProjectX.Data
 
         public EquipmentCatalog()
         {
-            Load("Configs/equip", equipment);
-            Load("Configs/fabao", faBao);
+            Load("ProjectXData/Configs/equip", equipment);
+            Load("ProjectXData/Configs/fabao", faBao);
             LoadStrength();
             LoadSuits();
             LoadComposition();
@@ -301,16 +301,16 @@ namespace ProjectX.Data
 
         private void LoadFaBaoCultivation()
         {
-            LoadByLevel("Configs/fabao_qianghua", faBaoStrength);
-            LoadByLevel("Configs/fabao_jinglian", faBaoRefine);
+            LoadByLevel("ProjectXData/Configs/fabao_qianghua", faBaoStrength);
+            LoadByLevel("ProjectXData/Configs/fabao_jinglian", faBaoRefine);
             ClientLog.Info("Config", "Loaded FaBao cultivation configs",
                 $"strength={faBaoStrength.Count}, refine={faBaoRefine.Count}");
         }
 
         private void LoadMasters()
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/master");
-            if (asset == null) throw new InvalidOperationException("Equipment master config is missing: Resources/Configs/master.json");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/master");
+            if (asset == null) throw new InvalidOperationException("Equipment master config is missing: Resources/ProjectXData/Configs/master.json");
             EquipmentMasterDefinition[] values = JsonConvert.DeserializeObject<EquipmentMasterDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentMasterDefinition>();
             foreach (EquipmentMasterDefinition value in values)
@@ -323,22 +323,22 @@ namespace ProjectX.Data
                 }
                 group[value.Level] = value;
             }
-            ClientLog.Info("Config", "Loaded Configs/master", $"types={masters.Count}, records={values.Length}");
+            ClientLog.Info("Config", "Loaded ProjectXData/Configs/master", $"types={masters.Count}, records={values.Length}");
         }
 
         private void LoadCultivation()
         {
-            LoadByLevel("Configs/equip_jinglian", refine);
-            LoadByLevel("Configs/equip_juexing", awaken);
-            LoadByLevel("Configs/equip_shenzhu", divine);
-            TextAsset qualityAsset = Resources.Load<TextAsset>("Configs/quality");
-            if (qualityAsset == null) throw new InvalidOperationException("Equipment quality config is missing: Resources/Configs/quality.json");
+            LoadByLevel("ProjectXData/Configs/equip_jinglian", refine);
+            LoadByLevel("ProjectXData/Configs/equip_juexing", awaken);
+            LoadByLevel("ProjectXData/Configs/equip_shenzhu", divine);
+            TextAsset qualityAsset = Resources.Load<TextAsset>("ProjectXData/Configs/quality");
+            if (qualityAsset == null) throw new InvalidOperationException("Equipment quality config is missing: Resources/ProjectXData/Configs/quality.json");
             EquipmentQualityDefinition[] qualityValues = JsonConvert.DeserializeObject<EquipmentQualityDefinition[]>(qualityAsset.text)
                 ?? Array.Empty<EquipmentQualityDefinition>();
             foreach (EquipmentQualityDefinition value in qualityValues)
                 if (value != null && value.Quality > 0 && value.RefineRatio > 0) qualities[value.Quality] = value;
-            TextAsset asset = Resources.Load<TextAsset>("Configs/item");
-            if (asset == null) throw new InvalidOperationException("Equipment material config is missing: Resources/Configs/item.json");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/item");
+            if (asset == null) throw new InvalidOperationException("Equipment material config is missing: Resources/ProjectXData/Configs/item.json");
             EquipmentMaterialDefinition[] values = JsonConvert.DeserializeObject<EquipmentMaterialDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentMaterialDefinition>();
             foreach (EquipmentMaterialDefinition value in values)
@@ -367,8 +367,8 @@ namespace ProjectX.Data
 
         private void LoadComposition()
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/hecheng");
-            if (asset == null) throw new InvalidOperationException("Equipment composition config is missing: Resources/Configs/hecheng.json");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/hecheng");
+            if (asset == null) throw new InvalidOperationException("Equipment composition config is missing: Resources/ProjectXData/Configs/hecheng.json");
             EquipmentComposeDefinition[] values = JsonConvert.DeserializeObject<EquipmentComposeDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentComposeDefinition>();
             foreach (EquipmentComposeDefinition value in values)
@@ -408,24 +408,24 @@ namespace ProjectX.Data
 
         private void LoadSuits()
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/suit");
-            if (asset == null) throw new InvalidOperationException("Equipment suit config is missing: Resources/Configs/suit.json");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/suit");
+            if (asset == null) throw new InvalidOperationException("Equipment suit config is missing: Resources/ProjectXData/Configs/suit.json");
             EquipmentSuitDefinition[] values = JsonConvert.DeserializeObject<EquipmentSuitDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentSuitDefinition>();
             foreach (EquipmentSuitDefinition value in values)
                 if (value != null && value.Id > 0) suits[value.Id] = value;
-            ClientLog.Info("Config", "Loaded Configs/suit", $"{suits.Count} records");
+            ClientLog.Info("Config", "Loaded ProjectXData/Configs/suit", $"{suits.Count} records");
         }
 
         private void LoadStrength()
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/equip_qianghua");
-            if (asset == null) throw new InvalidOperationException("Equipment strength config is missing: Resources/Configs/equip_qianghua.json");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/equip_qianghua");
+            if (asset == null) throw new InvalidOperationException("Equipment strength config is missing: Resources/ProjectXData/Configs/equip_qianghua.json");
             EquipmentStrengthDefinition[] values = JsonConvert.DeserializeObject<EquipmentStrengthDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentStrengthDefinition>();
             foreach (EquipmentStrengthDefinition value in values)
                 if (value != null && value.Level > 0) strength[value.Level] = value;
-            ClientLog.Info("Config", "Loaded Configs/equip_qianghua", $"{strength.Count} records");
+            ClientLog.Info("Config", "Loaded ProjectXData/Configs/equip_qianghua", $"{strength.Count} records");
         }
 
         private static void Load(string resourcePath, IDictionary<int, EquipmentDefinition> target)

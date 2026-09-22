@@ -156,7 +156,7 @@ namespace ProjectX.Data
                 || string.IsNullOrEmpty(mapList) || string.IsNullOrEmpty(fightConfig)
                 || string.IsNullOrEmpty(monsters))
             {
-                Debug.LogError("[World] Original Cocos visual configuration is missing from Resources/WorldUI/Config.");
+                Debug.LogError("[World] Unity world visual configuration is missing from Resources/ProjectXData/World.");
                 return;
             }
 
@@ -403,7 +403,7 @@ namespace ProjectX.Data
         }
 
         private static string Load(string name) =>
-            Resources.Load<TextAsset>("WorldUI/Config/" + name)?.text ?? string.Empty;
+            Resources.Load<TextAsset>("ProjectXData/World/" + name)?.text ?? string.Empty;
 
         private static int ParseInt(string value) =>
             int.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);

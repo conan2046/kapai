@@ -37,9 +37,9 @@ namespace ProjectX.Data
 
         public JingJieConfigData()
         {
-            TextAsset asset = Resources.Load<TextAsset>("Configs/jingjie");
+            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/jingjie");
             if (asset == null)
-                throw new InvalidOperationException("JingJie authoritative config is missing: Resources/Configs/jingjie.json");
+                throw new InvalidOperationException("JingJie authoritative config is missing: Resources/ProjectXData/Configs/jingjie.json");
             JingJieDefinition[] values = JsonConvert.DeserializeObject<JingJieDefinition[]>(asset.text)
                 ?? Array.Empty<JingJieDefinition>();
             byId = values.ToDictionary(value => value.Id);

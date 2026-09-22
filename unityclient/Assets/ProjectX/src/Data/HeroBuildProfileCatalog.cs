@@ -14,10 +14,10 @@ namespace ProjectX.Data
             get
             {
                 if (profiles != null) return profiles;
-                TextAsset asset = Resources.Load<TextAsset>("Configs/hero_build_profile");
+                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/hero_build_profile");
                 if (asset == null)
                 {
-                    ClientLog.Warning("Config", "Missing Configs/hero_build_profile; build guidance unavailable.");
+                    ClientLog.Warning("Config", "Missing ProjectXData/Configs/hero_build_profile; build guidance unavailable.");
                     return profiles = Array.Empty<HeroBuildProfile>();
                 }
                 profiles = JsonConvert.DeserializeObject<HeroBuildProfile[]>(asset.text)

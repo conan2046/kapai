@@ -628,7 +628,7 @@ namespace ProjectX.Editor
             if (File.Exists(resCopy) && EditorUtility.DisplayDialog("同步 Resources", "是否同时覆盖 Unity Resources 的 map_res_dat.txt？", "是", "否"))
             {
                 File.WriteAllText(resCopy, text);
-                Debug.Log("[MapEditor] 已同步 Resources/WorldUI/Config/map_res_dat.txt");
+                Debug.Log("[MapEditor] 已同步 Resources/ProjectXData/World/map_res_dat.txt");
             }
         }
 

@@ -101,7 +101,7 @@ namespace ProjectX.Core
                 string repositoryRoot = Directory.GetParent(Application.dataPath)?.Parent?.FullName
                     ?? throw new InvalidOperationException("Repository root could not be resolved for Editor Play.");
                 serverRoot = Path.Combine(repositoryRoot, ".local", "server-build", "server-win", "Debug");
-                configRoot = Path.Combine(repositoryRoot, "server", "config");
+                configRoot = Path.Combine(repositoryRoot, "unityserver", "config");
                 schemaPath = Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql");
             }
             else

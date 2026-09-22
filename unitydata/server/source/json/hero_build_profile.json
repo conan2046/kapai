@@ -1,0 +1,406 @@
+[
+  {
+    "id": 101,
+    "hero_id": 10,
+    "hero_name": "女娲娘娘",
+    "branch": "A",
+    "name": "杨柳护生",
+    "core_affixes": [
+      "HEAL-01",
+      "HEAL-02"
+    ],
+    "support_tags": [
+      "HEAL",
+      "SHIELD",
+      "TACTIC"
+    ],
+    "strategy_hint": "优先有效治疗，再用溢疗护盾保护队友"
+  },
+  {
+    "id": 102,
+    "hero_id": 10,
+    "hero_name": "女娲娘娘",
+    "branch": "B",
+    "name": "起死回生",
+    "core_affixes": [
+      "HEAL-04",
+      "TACTIC-01",
+      "TACTIC-03"
+    ],
+    "support_tags": [
+      "HEAL",
+      "SHIELD"
+    ],
+    "strategy_hint": "预留复活战意，兼顾还魂后的生存"
+  },
+  {
+    "id": 111,
+    "hero_id": 11,
+    "hero_name": "接引道人",
+    "branch": "A",
+    "name": "紧箍咒伤",
+    "core_affixes": [
+      "DOT-03",
+      "DEBUFF-03"
+    ],
+    "support_tags": [
+      "DOT",
+      "DEBUFF",
+      "TACTIC"
+    ],
+    "strategy_hint": "先铺负面状态，再集中咒伤收益"
+  },
+  {
+    "id": 112,
+    "hero_id": 11,
+    "hero_name": "接引道人",
+    "branch": "B",
+    "name": "禁疗反制",
+    "core_affixes": [
+      "DEBUFF-01",
+      "CONTROL-03"
+    ],
+    "support_tags": [
+      "DEBUFF",
+      "CONTROL",
+      "TACTIC"
+    ],
+    "strategy_hint": "围绕禁疗与控制反制治疗型敌人"
+  },
+  {
+    "id": 121,
+    "hero_id": 12,
+    "hero_name": "准提道人",
+    "branch": "A",
+    "name": "护宗盾阵",
+    "core_affixes": [
+      "SHIELD-02",
+      "SHIELD-03",
+      "TACTIC-03"
+    ],
+    "support_tags": [
+      "SHIELD",
+      "GUARD"
+    ],
+    "strategy_hint": "维持群盾覆盖，降低战法循环消耗"
+  },
+  {
+    "id": 122,
+    "hero_id": 12,
+    "hero_name": "准提道人",
+    "branch": "B",
+    "name": "化盾爆破",
+    "core_affixes": [
+      "SHIELD-01",
+      "BREAK-02"
+    ],
+    "support_tags": [
+      "SHIELD",
+      "BREAK"
+    ],
+    "strategy_hint": "利用护盾破裂与破盾事件打出联动"
+  },
+  {
+    "id": 131,
+    "hero_id": 13,
+    "hero_name": "孔宣",
+    "branch": "A",
+    "name": "五色封禁",
+    "core_affixes": [
+      "CONTROL-01",
+      "CONTROL-02"
+    ],
+    "support_tags": [
+      "CONTROL",
+      "DEBUFF",
+      "TACTIC"
+    ],
+    "strategy_hint": "先手沉默，优先压制敌方施法"
+  },
+  {
+    "id": 132,
+    "hero_id": 13,
+    "hero_name": "孔宣",
+    "branch": "B",
+    "name": "羽翼破阵",
+    "core_affixes": [
+      "CONTROL-04",
+      "DEBUFF-02",
+      "DEBUFF-03"
+    ],
+    "support_tags": [
+      "CONTROL",
+      "DEBUFF",
+      "BREAK"
+    ],
+    "strategy_hint": "铺设易伤，集中攻击受控目标"
+  },
+  {
+    "id": 141,
+    "hero_id": 14,
+    "hero_name": "多宝道人",
+    "branch": "A",
+    "name": "诛仙群攻",
+    "core_affixes": [
+      "CRIT-02",
+      "TACTIC-02"
+    ],
+    "support_tags": [
+      "CRIT",
+      "COMBO",
+      "TACTIC"
+    ],
+    "strategy_hint": "保持群攻与战意循环"
+  },
+  {
+    "id": 142,
+    "hero_id": 14,
+    "hero_name": "多宝道人",
+    "branch": "B",
+    "name": "戮仙破盾",
+    "core_affixes": [
+      "BREAK-01",
+      "BREAK-02",
+      "BREAK-04"
+    ],
+    "support_tags": [
+      "BREAK",
+      "TACTIC"
+    ],
+    "strategy_hint": "针对敌方护盾形成破盾收益链"
+  },
+  {
+    "id": 151,
+    "hero_id": 15,
+    "hero_name": "金灵圣母",
+    "branch": "A",
+    "name": "碎甲先手",
+    "core_affixes": [
+      "DEBUFF-02",
+      "CONTROL-01"
+    ],
+    "support_tags": [
+      "DEBUFF",
+      "BREAK",
+      "CRIT"
+    ],
+    "strategy_hint": "先手铺破甲，为后续集火创造条件"
+  },
+  {
+    "id": 152,
+    "hero_id": 15,
+    "hero_name": "金灵圣母",
+    "branch": "B",
+    "name": "愤恨收割",
+    "core_affixes": [
+      "CRIT-01",
+      "CRIT-03",
+      "COMBO-03"
+    ],
+    "support_tags": [
+      "CRIT",
+      "COMBO"
+    ],
+    "strategy_hint": "优先可击杀目标，衔接击杀与追击"
+  },
+  {
+    "id": 161,
+    "hero_id": 16,
+    "hero_name": "哪吒",
+    "branch": "A",
+    "name": "三头点杀",
+    "core_affixes": [
+      "CRIT-01",
+      "COMBO-02"
+    ],
+    "support_tags": [
+      "CRIT",
+      "COMBO"
+    ],
+    "strategy_hint": "围绕单体多段伤害与斩杀配装"
+  },
+  {
+    "id": 162,
+    "hero_id": 16,
+    "hero_name": "哪吒",
+    "branch": "B",
+    "name": "法宝乱舞",
+    "core_affixes": [
+      "COMBO-01",
+      "COMBO-04",
+      "CRIT-04"
+    ],
+    "support_tags": [
+      "COMBO",
+      "TACTIC"
+    ],
+    "strategy_hint": "多段追击产战意，击杀后加快循环"
+  },
+  {
+    "id": 171,
+    "hero_id": 17,
+    "hero_name": "杨戬",
+    "branch": "A",
+    "name": "八九承伤",
+    "core_affixes": [
+      "GUARD-01",
+      "COUNTER-04"
+    ],
+    "support_tags": [
+      "GUARD",
+      "SHIELD",
+      "COUNTER"
+    ],
+    "strategy_hint": "承受物理伤害并保护后排核心"
+  },
+  {
+    "id": 172,
+    "hero_id": 17,
+    "hero_name": "杨戬",
+    "branch": "B",
+    "name": "哮天反击",
+    "core_affixes": [
+      "COUNTER-01",
+      "COUNTER-03",
+      "GUARD-01"
+    ],
+    "support_tags": [
+      "COUNTER",
+      "GUARD"
+    ],
+    "strategy_hint": "以受击反打衔接回复与战意"
+  },
+  {
+    "id": 231,
+    "hero_id": 23,
+    "hero_name": "黄飞虎",
+    "branch": "A",
+    "name": "霸王援护",
+    "core_affixes": [
+      "GUARD-01",
+      "GUARD-03",
+      "COUNTER-01"
+    ],
+    "support_tags": [
+      "GUARD",
+      "COUNTER",
+      "SHIELD"
+    ],
+    "strategy_hint": "分担核心伤害，兼顾反击续航"
+  },
+  {
+    "id": 232,
+    "hero_id": 23,
+    "hero_name": "黄飞虎",
+    "branch": "B",
+    "name": "反震铁壁",
+    "core_affixes": [
+      "COUNTER-02",
+      "COUNTER-04"
+    ],
+    "support_tags": [
+      "COUNTER",
+      "GUARD"
+    ],
+    "strategy_hint": "围绕反震与大额受伤后的自保配装"
+  },
+  {
+    "id": 311,
+    "hero_id": 31,
+    "hero_name": "太乙真人",
+    "branch": "A",
+    "name": "残血急救",
+    "core_affixes": [
+      "HEAL-02",
+      "HEAL-03"
+    ],
+    "support_tags": [
+      "HEAL",
+      "TACTIC"
+    ],
+    "strategy_hint": "优先挽救残血队友并净化减益"
+  },
+  {
+    "id": 312,
+    "hero_id": 31,
+    "hero_name": "太乙真人",
+    "branch": "B",
+    "name": "溢疗扩散",
+    "core_affixes": [
+      "HEAL-01",
+      "HEAL-02"
+    ],
+    "support_tags": [
+      "HEAL",
+      "SHIELD"
+    ],
+    "strategy_hint": "有效治疗优先，溢出治疗转为保护"
+  },
+  {
+    "id": 341,
+    "hero_id": 34,
+    "hero_name": "帝辛",
+    "branch": "A",
+    "name": "王威群嘲",
+    "core_affixes": [
+      "GUARD-02",
+      "GUARD-04",
+      "COUNTER-02"
+    ],
+    "support_tags": [
+      "GUARD",
+      "COUNTER"
+    ],
+    "strategy_hint": "覆盖群嘲承伤，并利用反震输出"
+  },
+  {
+    "id": 342,
+    "hero_id": 34,
+    "hero_name": "帝辛",
+    "branch": "B",
+    "name": "残血不灭",
+    "core_affixes": [
+      "COUNTER-04",
+      "GUARD-04"
+    ],
+    "support_tags": [
+      "COUNTER",
+      "GUARD",
+      "SHIELD"
+    ],
+    "strategy_hint": "提高残血阶段生存与受击续航"
+  },
+  {
+    "id": 601,
+    "hero_id": 60,
+    "hero_name": "吕岳",
+    "branch": "A",
+    "name": "瘟疫扩散",
+    "core_affixes": [
+      "DOT-01",
+      "DOT-03",
+      "DEBUFF-03"
+    ],
+    "support_tags": [
+      "DOT",
+      "DEBUFF"
+    ],
+    "strategy_hint": "先叠毒并扩散异常，再放大持续伤害"
+  },
+  {
+    "id": 602,
+    "hero_id": 60,
+    "hero_name": "吕岳",
+    "branch": "B",
+    "name": "瘟癀侵蚀",
+    "core_affixes": [
+      "DOT-04",
+      "DEBUFF-03"
+    ],
+    "support_tags": [
+      "DOT",
+      "DEBUFF"
+    ],
+    "strategy_hint": "集中侵蚀单体目标，兼顾毒伤回复"
+  }
+]

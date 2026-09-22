@@ -451,14 +451,13 @@ namespace ProjectX.Editor
             CopyResourceIfChanged(
                 Path.Combine(cocosRoot, "res", "res", "UI", "ui_zhandou", "bg0.jpg"),
                 "Assets/ProjectX/Resources/WorldUI/battle_scene_bg.jpg");
-            // The source-tree copy is an unresolved LFS pointer in this checkout;
-            // the native Cocos runtime consumes this hydrated simulator copy.
+            string unityClientDataRoot = Path.Combine(repositoryRoot, "unitydata", "client", "source");
             CopyResourceIfChanged(
-                Path.Combine(cocosRoot, "simulator", "win32", "res", "ConfigData", "hit_monster.dat"),
-                "Assets/ProjectX/Resources/ProjectXConfig/battle/hit_monster.dat.bytes");
+                Path.Combine(unityClientDataRoot, "Battle", "hit_monster.dat.bytes"),
+                "Assets/ProjectX/Resources/ProjectXData/Battle/hit_monster.dat.bytes");
             CopyResourceIfChanged(
-                Path.Combine(cocosRoot, "src", "ConfigData", "zhenfa_config_dat.lua"),
-                "Assets/ProjectX/Resources/ProjectXConfig/battle/zhenfa_config_dat.txt");
+                Path.Combine(unityClientDataRoot, "Battle", "zhenfa_config_dat.txt"),
+                "Assets/ProjectX/Resources/ProjectXData/Battle/zhenfa_config_dat.txt");
             CopyResourceIfChanged(
                 Path.Combine(cocosRoot, "simulator", "win32", "res", "res", "UI", "ImageNum", "num_lan.png"),
                 "Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png");
@@ -480,8 +479,8 @@ namespace ProjectX.Editor
                      })
             {
                 CopyResourceIfChanged(
-                    Path.Combine(cocosRoot, "src", "ConfigData", configName + ".lua"),
-                    $"Assets/ProjectX/Resources/WorldUI/Config/{configName}.txt");
+                    Path.Combine(unityClientDataRoot, "World", configName + ".txt"),
+                    $"Assets/ProjectX/Resources/ProjectXData/World/{configName}.txt");
             }
             for (int map = 1; map <= 6; map++)
             {
@@ -498,14 +497,14 @@ namespace ProjectX.Editor
                     Path.Combine(cocosRoot, "res", "res", "UI", "Icon", "ui_map_icon", $"fuben_map{world}.png"),
                     $"Assets/ProjectX/Resources/WorldUI/Chapters/fuben_map{world}.png");
             }
-            string petBasicConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "pet_basic_config.xml");
-            string skillBasicConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "skill_basic.xml");
-            string skillActiveEffectConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "skill_active_effect.xml");
-            string skillAdditiveEffectConfig = Path.Combine(repositoryRoot, "server", "config", "xml", "skill_additive_effect.xml");
-            CopyResourceIfChanged(petBasicConfig, "Assets/ProjectX/Resources/Configs/pet_basic_config.xml");
-            CopyResourceIfChanged(skillBasicConfig, "Assets/ProjectX/Resources/Configs/skill_basic.xml");
-            CopyResourceIfChanged(skillActiveEffectConfig, "Assets/ProjectX/Resources/Configs/skill_active_effect.xml");
-            CopyResourceIfChanged(skillAdditiveEffectConfig, "Assets/ProjectX/Resources/Configs/skill_additive_effect.xml");
+            string petBasicConfig = Path.Combine(unityClientDataRoot, "Configs", "pet_basic_config.xml");
+            string skillBasicConfig = Path.Combine(unityClientDataRoot, "Configs", "skill_basic.xml");
+            string skillActiveEffectConfig = Path.Combine(unityClientDataRoot, "Configs", "skill_active_effect.xml");
+            string skillAdditiveEffectConfig = Path.Combine(unityClientDataRoot, "Configs", "skill_additive_effect.xml");
+            CopyResourceIfChanged(petBasicConfig, "Assets/ProjectX/Resources/ProjectXData/Configs/pet_basic_config.xml");
+            CopyResourceIfChanged(skillBasicConfig, "Assets/ProjectX/Resources/ProjectXData/Configs/skill_basic.xml");
+            CopyResourceIfChanged(skillActiveEffectConfig, "Assets/ProjectX/Resources/ProjectXData/Configs/skill_active_effect.xml");
+            CopyResourceIfChanged(skillAdditiveEffectConfig, "Assets/ProjectX/Resources/ProjectXData/Configs/skill_additive_effect.xml");
             IEnumerable<int> heroSkillIds = XDocument.Load(petBasicConfig).Root?.Elements("CONTENT")
                 .Select(element => (element.Attribute("skill")?.Value ?? "").Split(';').FirstOrDefault())
                 .Select(value => int.TryParse(value, out int parsed) ? parsed : 0)
@@ -521,8 +520,8 @@ namespace ProjectX.Editor
             foreach (string configName in new[] { "fabao_qianghua", "fabao_jinglian", "master", "daily" })
             {
                 CopyResourceIfChanged(
-                    Path.Combine(repositoryRoot, "server", "config", "json", configName + ".json"),
-                    $"Assets/ProjectX/Resources/Configs/{configName}.json");
+                    Path.Combine(unityClientDataRoot, "Configs", configName + ".json"),
+                    $"Assets/ProjectX/Resources/ProjectXData/Configs/{configName}.json");
             }
             CopyResourceIfChanged(
                 "Assets/ProjectX/res/res/UI/ui_shenjiang/ui_shenjiang_zhanli_A.png",

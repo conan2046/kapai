@@ -44,7 +44,7 @@ namespace ProjectX.Core
 
     internal static class FunctionRouteCatalog
     {
-        private const string ResourcePath = "Configs/function-routes";
+        private const string ResourcePath = "ProjectXData/Configs/function-routes";
         private static Dictionary<int, FunctionRouteDefinition> routes;
 
         public static FunctionRouteDefinition Resolve(int functionId)

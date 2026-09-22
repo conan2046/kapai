@@ -116,7 +116,7 @@ namespace ProjectX.Data
     // LDataConstMgr:GetBTAction/GetBTModelAct/GetBTSkAct/GetBTHurtAct.
     public sealed class BattlePresentationCatalog
     {
-        public const string ResourceRoot = "ProjectXConfig/battle/";
+        public const string ResourceRoot = "ProjectXData/Battle/";
 
         private readonly Dictionary<uint, BattleActionDefinition> actions;
         private readonly Dictionary<uint, BattleModelActionDefinition> modelActions;

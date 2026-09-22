@@ -1,0 +1,796 @@
+map_achievement_dat = {
+	{
+		id = 1,
+		type = 1,
+		condition = 15,
+		reward = {2431,0,6}
+	},
+	{
+		id = 2,
+		type = 1,
+		condition = 30,
+		reward = {2431,0,6}
+	},
+	{
+		id = 3,
+		type = 1,
+		condition = 45,
+		reward = {2431,0,6}
+	},
+	{
+		id = 4,
+		type = 1,
+		condition = 60,
+		reward = {2431,0,6}
+	},
+	{
+		id = 5,
+		type = 1,
+		condition = 75,
+		reward = {2431,0,6}
+	},
+	{
+		id = 6,
+		type = 1,
+		condition = 90,
+		reward = {2431,0,30}
+	},
+	{
+		id = 7,
+		type = 2,
+		condition = 105,
+		reward = {2432,0,6}
+	},
+	{
+		id = 8,
+		type = 2,
+		condition = 120,
+		reward = {2432,0,6}
+	},
+	{
+		id = 9,
+		type = 2,
+		condition = 135,
+		reward = {2432,0,6}
+	},
+	{
+		id = 10,
+		type = 2,
+		condition = 150,
+		reward = {2432,0,6}
+	},
+	{
+		id = 11,
+		type = 2,
+		condition = 165,
+		reward = {2432,0,6}
+	},
+	{
+		id = 12,
+		type = 2,
+		condition = 180,
+		reward = {2432,0,30}
+	},
+	{
+		id = 13,
+		type = 3,
+		condition = 210,
+		reward = {1000,0,1}
+	},
+	{
+		id = 14,
+		type = 3,
+		condition = 240,
+		reward = {1000,0,1}
+	},
+	{
+		id = 15,
+		type = 3,
+		condition = 270,
+		reward = {1000,0,1}
+	},
+	{
+		id = 16,
+		type = 3,
+		condition = 300,
+		reward = {1000,0,1}
+	},
+	{
+		id = 17,
+		type = 3,
+		condition = 330,
+		reward = {1000,0,1}
+	},
+	{
+		id = 18,
+		type = 3,
+		condition = 360,
+		reward = {1001,0,5}
+	},
+	{
+		id = 19,
+		type = 4,
+		condition = 390,
+		reward = {1000,0,1}
+	},
+	{
+		id = 20,
+		type = 4,
+		condition = 420,
+		reward = {1000,0,1}
+	},
+	{
+		id = 21,
+		type = 4,
+		condition = 450,
+		reward = {1000,0,1}
+	},
+	{
+		id = 22,
+		type = 4,
+		condition = 480,
+		reward = {1000,0,1}
+	},
+	{
+		id = 23,
+		type = 4,
+		condition = 510,
+		reward = {1000,0,1}
+	},
+	{
+		id = 24,
+		type = 4,
+		condition = 540,
+		reward = {1001,0,5}
+	},
+	{
+		id = 25,
+		type = 5,
+		condition = 570,
+		reward = {60001,0,50}
+	},
+	{
+		id = 26,
+		type = 5,
+		condition = 600,
+		reward = {60001,0,50}
+	},
+	{
+		id = 27,
+		type = 5,
+		condition = 630,
+		reward = {60001,0,50}
+	},
+	{
+		id = 28,
+		type = 5,
+		condition = 660,
+		reward = {60001,0,50}
+	},
+	{
+		id = 29,
+		type = 5,
+		condition = 690,
+		reward = {60001,0,50}
+	},
+	{
+		id = 30,
+		type = 5,
+		condition = 720,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 31,
+		type = 6,
+		condition = 750,
+		reward = {60001,0,50}
+	},
+	{
+		id = 32,
+		type = 6,
+		condition = 780,
+		reward = {60001,0,50}
+	},
+	{
+		id = 33,
+		type = 6,
+		condition = 810,
+		reward = {60001,0,50}
+	},
+	{
+		id = 34,
+		type = 6,
+		condition = 840,
+		reward = {60001,0,50}
+	},
+	{
+		id = 35,
+		type = 6,
+		condition = 870,
+		reward = {60001,0,50}
+	},
+	{
+		id = 36,
+		type = 6,
+		condition = 900,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 37,
+		type = 7,
+		condition = 930,
+		reward = {60001,0,50}
+	},
+	{
+		id = 38,
+		type = 7,
+		condition = 960,
+		reward = {60001,0,50}
+	},
+	{
+		id = 39,
+		type = 7,
+		condition = 990,
+		reward = {60001,0,50}
+	},
+	{
+		id = 40,
+		type = 7,
+		condition = 1020,
+		reward = {60001,0,50}
+	},
+	{
+		id = 41,
+		type = 7,
+		condition = 1050,
+		reward = {60001,0,50}
+	},
+	{
+		id = 42,
+		type = 7,
+		condition = 1080,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 43,
+		type = 8,
+		condition = 1110,
+		reward = {60001,0,50}
+	},
+	{
+		id = 44,
+		type = 8,
+		condition = 1140,
+		reward = {60001,0,50}
+	},
+	{
+		id = 45,
+		type = 8,
+		condition = 1170,
+		reward = {60001,0,50}
+	},
+	{
+		id = 46,
+		type = 8,
+		condition = 1200,
+		reward = {60001,0,50}
+	},
+	{
+		id = 47,
+		type = 8,
+		condition = 1230,
+		reward = {60001,0,50}
+	},
+	{
+		id = 48,
+		type = 8,
+		condition = 1260,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 49,
+		type = 9,
+		condition = 1290,
+		reward = {60001,0,50}
+	},
+	{
+		id = 50,
+		type = 9,
+		condition = 1320,
+		reward = {60001,0,50}
+	},
+	{
+		id = 51,
+		type = 9,
+		condition = 1350,
+		reward = {60001,0,50}
+	},
+	{
+		id = 52,
+		type = 9,
+		condition = 1380,
+		reward = {60001,0,50}
+	},
+	{
+		id = 53,
+		type = 9,
+		condition = 1410,
+		reward = {60001,0,50}
+	},
+	{
+		id = 54,
+		type = 9,
+		condition = 1440,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 55,
+		type = 10,
+		condition = 1470,
+		reward = {60001,0,50}
+	},
+	{
+		id = 56,
+		type = 10,
+		condition = 1500,
+		reward = {60001,0,50}
+	},
+	{
+		id = 57,
+		type = 10,
+		condition = 1530,
+		reward = {60001,0,50}
+	},
+	{
+		id = 58,
+		type = 10,
+		condition = 1560,
+		reward = {60001,0,50}
+	},
+	{
+		id = 59,
+		type = 10,
+		condition = 1590,
+		reward = {60001,0,50}
+	},
+	{
+		id = 60,
+		type = 10,
+		condition = 1620,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 61,
+		type = 11,
+		condition = 1650,
+		reward = {60001,0,50}
+	},
+	{
+		id = 62,
+		type = 11,
+		condition = 1680,
+		reward = {60001,0,50}
+	},
+	{
+		id = 63,
+		type = 11,
+		condition = 1710,
+		reward = {60001,0,50}
+	},
+	{
+		id = 64,
+		type = 11,
+		condition = 1740,
+		reward = {60001,0,50}
+	},
+	{
+		id = 65,
+		type = 11,
+		condition = 1770,
+		reward = {60001,0,50}
+	},
+	{
+		id = 66,
+		type = 11,
+		condition = 1800,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 67,
+		type = 12,
+		condition = 1830,
+		reward = {60001,0,50}
+	},
+	{
+		id = 68,
+		type = 12,
+		condition = 1860,
+		reward = {60001,0,50}
+	},
+	{
+		id = 69,
+		type = 12,
+		condition = 1890,
+		reward = {60001,0,50}
+	},
+	{
+		id = 70,
+		type = 12,
+		condition = 1920,
+		reward = {60001,0,50}
+	},
+	{
+		id = 71,
+		type = 12,
+		condition = 1950,
+		reward = {60001,0,50}
+	},
+	{
+		id = 72,
+		type = 12,
+		condition = 1980,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 73,
+		type = 13,
+		condition = 2010,
+		reward = {60001,0,50}
+	},
+	{
+		id = 74,
+		type = 13,
+		condition = 2040,
+		reward = {60001,0,50}
+	},
+	{
+		id = 75,
+		type = 13,
+		condition = 2070,
+		reward = {60001,0,50}
+	},
+	{
+		id = 76,
+		type = 13,
+		condition = 2100,
+		reward = {60001,0,50}
+	},
+	{
+		id = 77,
+		type = 13,
+		condition = 2130,
+		reward = {60001,0,50}
+	},
+	{
+		id = 78,
+		type = 13,
+		condition = 2160,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 79,
+		type = 14,
+		condition = 2190,
+		reward = {60001,0,50}
+	},
+	{
+		id = 80,
+		type = 14,
+		condition = 2220,
+		reward = {60001,0,50}
+	},
+	{
+		id = 81,
+		type = 14,
+		condition = 2250,
+		reward = {60001,0,50}
+	},
+	{
+		id = 82,
+		type = 14,
+		condition = 2280,
+		reward = {60001,0,50}
+	},
+	{
+		id = 83,
+		type = 14,
+		condition = 2310,
+		reward = {60001,0,50}
+	},
+	{
+		id = 84,
+		type = 14,
+		condition = 2340,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 85,
+		type = 15,
+		condition = 2370,
+		reward = {60001,0,50}
+	},
+	{
+		id = 86,
+		type = 15,
+		condition = 2400,
+		reward = {60001,0,50}
+	},
+	{
+		id = 87,
+		type = 15,
+		condition = 2430,
+		reward = {60001,0,50}
+	},
+	{
+		id = 88,
+		type = 15,
+		condition = 2460,
+		reward = {60001,0,50}
+	},
+	{
+		id = 89,
+		type = 15,
+		condition = 2490,
+		reward = {60001,0,50}
+	},
+	{
+		id = 90,
+		type = 15,
+		condition = 2520,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 91,
+		type = 16,
+		condition = 2550,
+		reward = {60001,0,50}
+	},
+	{
+		id = 92,
+		type = 16,
+		condition = 2580,
+		reward = {60001,0,50}
+	},
+	{
+		id = 93,
+		type = 16,
+		condition = 2610,
+		reward = {60001,0,50}
+	},
+	{
+		id = 94,
+		type = 16,
+		condition = 2640,
+		reward = {60001,0,50}
+	},
+	{
+		id = 95,
+		type = 16,
+		condition = 2670,
+		reward = {60001,0,50}
+	},
+	{
+		id = 96,
+		type = 16,
+		condition = 2700,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 97,
+		type = 17,
+		condition = 2730,
+		reward = {60001,0,50}
+	},
+	{
+		id = 98,
+		type = 17,
+		condition = 2760,
+		reward = {60001,0,50}
+	},
+	{
+		id = 99,
+		type = 17,
+		condition = 2790,
+		reward = {60001,0,50}
+	},
+	{
+		id = 100,
+		type = 17,
+		condition = 2820,
+		reward = {60001,0,50}
+	},
+	{
+		id = 101,
+		type = 17,
+		condition = 2850,
+		reward = {60001,0,50}
+	},
+	{
+		id = 102,
+		type = 17,
+		condition = 2880,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 103,
+		type = 18,
+		condition = 2910,
+		reward = {60001,0,50}
+	},
+	{
+		id = 104,
+		type = 18,
+		condition = 2940,
+		reward = {60001,0,50}
+	},
+	{
+		id = 105,
+		type = 18,
+		condition = 2970,
+		reward = {60001,0,50}
+	},
+	{
+		id = 106,
+		type = 18,
+		condition = 3000,
+		reward = {60001,0,50}
+	},
+	{
+		id = 107,
+		type = 18,
+		condition = 3030,
+		reward = {60001,0,50}
+	},
+	{
+		id = 108,
+		type = 18,
+		condition = 3060,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 109,
+		type = 19,
+		condition = 3090,
+		reward = {60001,0,50}
+	},
+	{
+		id = 110,
+		type = 19,
+		condition = 3120,
+		reward = {60001,0,50}
+	},
+	{
+		id = 111,
+		type = 19,
+		condition = 3150,
+		reward = {60001,0,50}
+	},
+	{
+		id = 112,
+		type = 19,
+		condition = 3180,
+		reward = {60001,0,50}
+	},
+	{
+		id = 113,
+		type = 19,
+		condition = 3210,
+		reward = {60001,0,50}
+	},
+	{
+		id = 114,
+		type = 19,
+		condition = 3240,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 115,
+		type = 20,
+		condition = 3270,
+		reward = {60001,0,50}
+	},
+	{
+		id = 116,
+		type = 20,
+		condition = 3300,
+		reward = {60001,0,50}
+	},
+	{
+		id = 117,
+		type = 20,
+		condition = 3330,
+		reward = {60001,0,50}
+	},
+	{
+		id = 118,
+		type = 20,
+		condition = 3360,
+		reward = {60001,0,50}
+	},
+	{
+		id = 119,
+		type = 20,
+		condition = 3390,
+		reward = {60001,0,50}
+	},
+	{
+		id = 120,
+		type = 20,
+		condition = 3420,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 121,
+		type = 21,
+		condition = 3450,
+		reward = {60001,0,50}
+	},
+	{
+		id = 122,
+		type = 21,
+		condition = 3480,
+		reward = {60001,0,50}
+	},
+	{
+		id = 123,
+		type = 21,
+		condition = 3510,
+		reward = {60001,0,50}
+	},
+	{
+		id = 124,
+		type = 21,
+		condition = 3540,
+		reward = {60001,0,50}
+	},
+	{
+		id = 125,
+		type = 21,
+		condition = 3570,
+		reward = {60001,0,50}
+	},
+	{
+		id = 126,
+		type = 21,
+		condition = 3600,
+		reward = {60001,0,2000}
+	},
+	{
+		id = 127,
+		type = 22,
+		condition = 3630,
+		reward = {60001,0,50}
+	},
+	{
+		id = 128,
+		type = 22,
+		condition = 3660,
+		reward = {60001,0,50}
+	},
+	{
+		id = 129,
+		type = 22,
+		condition = 3690,
+		reward = {60001,0,50}
+	},
+	{
+		id = 130,
+		type = 22,
+		condition = 3720,
+		reward = {60001,0,50}
+	},
+	{
+		id = 131,
+		type = 22,
+		condition = 3750,
+		reward = {60001,0,50}
+	},
+	{
+		id = 132,
+		type = 22,
+		condition = 3780,
+		reward = {60001,0,2000}
+	}
+}
+
+return map_achievement_dat

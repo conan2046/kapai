@@ -21,7 +21,7 @@ namespace ProjectX.Core
 
     internal static class FunctionUnlockCatalog
     {
-        private const string ResourcePath = "Configs/function-unlocks";
+        private const string ResourcePath = "ProjectXData/Configs/function-unlocks";
         private static Dictionary<int, FunctionUnlockDefinition> definitions;
 
         public static FunctionUnlockDefinition Resolve(int functionId)
