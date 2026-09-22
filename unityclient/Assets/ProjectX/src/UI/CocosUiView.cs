@@ -10,7 +10,8 @@ namespace ProjectX.UI
         Hidden,
         Standard,
         Fish,
-        FishBasket
+        FishBasket,
+        FengShenStory
     }
 
     public sealed class OneLevelFrameCoordinator
@@ -49,7 +50,8 @@ namespace ProjectX.UI
             View.SetVisible(true);
             bool standard = mode == OneLevelFrameMode.Standard;
             bool fish = mode == OneLevelFrameMode.Fish;
-            SetActive("Layer/Bg", standard);
+            bool fengShenStory = mode == OneLevelFrameMode.FengShenStory;
+            SetActive("Layer/Bg", standard || fengShenStory);
             SetActive("Layer/Panel_12", standard || fish);
             SetActive("Layer/Panel_12/BlackBg", false);
             SetActive("Layer/Panel_12/Bg", standard);

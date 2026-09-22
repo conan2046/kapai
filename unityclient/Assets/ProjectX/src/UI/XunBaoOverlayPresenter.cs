@@ -173,6 +173,10 @@ namespace ProjectX.UI
         {
             RenderedBatchCount = 0;
             ExpectedBatchCount = 0;
+            // OnDestroy can run after the imported result view has already
+            // destroyed RuntimeContent. Unity's destroyed-object reference is
+            // not C# null, so guard before touching childCount/GetChild.
+            if (listContent == null) return;
             for (int index = listContent.childCount - 1; index >= 0; index--)
             {
                 Transform child = listContent.GetChild(index);

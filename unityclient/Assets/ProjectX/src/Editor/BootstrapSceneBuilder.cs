@@ -228,7 +228,10 @@ namespace ProjectX.Editor
             new PrefabSpec(DrawPreviewPrefab, false, DrawPrefab),
             new PrefabSpec(DrawHeroPreviewPrefab, false, DrawPrefab),
             new PrefabSpec(DrawExchangePrefab, false),
-            new PrefabSpec(GameplayFramePrefab, false, HeroFramePrefab),
+            // Gameplay uses shop_bg as a root-level bottom frame. It must not
+            // be composed under OneLevelLayer: the gameplay ActivityLayer is a
+            // sibling surface, while Panel_12/GoldCheck belong only to Hero/Bag.
+            new PrefabSpec(GameplayFramePrefab, false),
             new PrefabSpec(GameplayPrefab, true),
             new PrefabSpec(GameplayDetailPrefab, false, GameplayFramePrefab),
             new PrefabSpec(GameplayFloatNoticePrefab, false, GameplayFramePrefab),
