@@ -4,14 +4,16 @@
 
 > 当前答题子模块状态：Unity专属 `Function_27 -> /198 -> AnswerLayer` 已实现；每日次数由 `answer_settings`/`answer_daily_progress` 控制，缺失rank奖励只在SQLite路径临时发金币。自动化与真人Play待执行，详见 `ANSWER.md`。
 
-> 当前门禁：G0-G4 passed；early user Play passed；cross-backend mapping passed；G5 paused for Arena；G6 pending。2026-09-02用户确认暂停Gameplay，等待竞技场`id=6`迁移后从G5继续。
+> 当前门禁：范围变更后需从最早受影响门禁重新核验；Arena `id=6` 已由 Steam 范围明确排除，不属于 Gameplay 验收分母，也不阻塞 Gameplay。现有 G5/G6 证据不得因 Arena 排除而推进，需按当前8项范围补齐定向证据。
 
 > Steam范围更新（2026-09-13）：`function_id=7/8/11/12/18/19/25/26`继续由 `gameplay.json: steamEnabled=false` 排除；当前大厅为8项，旧4项/5项/7项证据仅描述范围变更前的历史验收基线。
+
+> 2026-09-20 正式源 G4：已修复Fish入口图标不可解码副本与旧Arena断言；固定账号标准 batch 通过16/16控件、当前滚动/重连/账号隔离断言，用户 Play 已确认，G4已通过。G5当前仅阻塞于 Cocos 跨后端映射证据缺失（本机 MySQL `127.0.0.1:3306` 未启动），G6待G5完成。
 
 ## 1. 本轮所有权
 
 - 本模块拥有：HUD 玩法入口、`PopFirstClassBg + ActivityLayer` 大厅框架、Steam 8 项双列列表、裁剪、等级锁、红点显示、关闭/返回及8个目标路由的边界反馈。
-- 本模块不拥有：13个入口点击后的独立业务页及其协议；尤其不迁移游历三界、封神列传、竞技场、决战昆仑、血战到底、法宝搜索、每日任务、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金。
+- 本模块不拥有：8个入口点击后的独立业务页及其协议；尤其不迁移竞技场（`function_id=6`，Steam 排除）、决战昆仑、血战到底、七日目标、好友赠送、体力领取、资源找回、成长基金、活跃基金等独立业务页。
 - `15/16/17` 玩法商店在当前 `function_dat.lua` 中均为 `page=0`，不属于大厅列表；支付、活动、基金、福利、竞技和社交业务继续排除。
 - 当前卡片主体 `TaskBtn1/2` 的 CSB `touchEnabled=false`；Lua虽添加监听但未启用触摸，新鲜原生单击也未进入详情。因此卡片选择与 `Main.WanFaInfoUI` 当前玩家不可达，排除而不伪迁。
 - 控件矩阵：`docs/unityclient/matrices/GAMEPLAY_CONTROLS.json`；新增3个入口及列表状态尚待重新采集真实输入证据，`workflowPolicyVersion=1`。
@@ -65,13 +67,12 @@ src/main.lua
 - Unity不得把该不可达旧链变成可点击新功能；若未来Cocos修复触摸，须由新的模块/范围变更重新冻结。
 - 当前链无 Timeline、Imod、ANI 或独立特效调用。
 
-## 4. 当前 13 项配置与路由边界
+## 4. 当前 Steam 8 项配置与路由边界
 
 | id | 名称 | page | 等级 | 图标 | 目标所有者 |
 |---:|---|---:|---:|---|---|
 | 1 | 游历三界 | 1 | 26 | `ui_icon_doushenzhilu` | `WanFa.YouLiMainUI` |
 | 3 | 封神列传 | 1 | 32 | `ui_main_icon_fengshenliezhuan` | `FengShenStory.FengShenStoryMainUI` |
-| 6 | 竞技场 | 1 | 10 | `ui_icon_doushenzhilu` | `WanFa.KaPaiArenaUI` |
 | 7 | 决战昆仑 | 1 | 34 | `ui_main_icon_juezhankunlun` | `JueZhanKunLun.KunLunJueZhanUI` |
 | 8 | 血战到底 | 1 | 24 | `ui_main_icon_xuezhan` | `XueZhan.XueZhanMainUI` 特殊请求分支 |
 | 9 | 法宝搜索 | 1 | 15 | `ui_main_icon_xunbao` | `WanFa.XunBaoMainUI` |
@@ -83,7 +84,7 @@ src/main.lua
 | 25 | 成长基金 | 3 | 1 | `ui_icon_tujianshuxing` | 基金/支付前置后续模块 |
 | 26 | 活跃基金 | 3 | 1 | `ui_main_icon_renwu` | 基金/支付前置后续模块 |
 
-配置源：`client/ProjectX/src/ConfigData/function_dat.lua`；运行时由 `JsonConfig.m_functionConfig` 读取。13项顺序按当前 Lua 数组顺序冻结。
+配置源：`client/ProjectX/src/ConfigData/function_dat.lua`；运行时由 `JsonConfig.m_functionConfig` 读取。当前 Steam 8项顺序按 `1/3/9/10/21/23/27/29` 冻结；Arena `id=6` 只保留在 Steam 排除边界，不进入本模块列表或验收。
 
 ## 5. 红点与 `/65` 所有权
 
@@ -167,8 +168,8 @@ src/main.lua
 
 ## 11. G4 固定账号逻辑验收
 
-- 2026-09-02标准batch固定账号结果`success=true`：13/13控件、4个当前可见Steam入口/路由边界、13/13语义断言通过。
-- 当前Unity主账号 `7200057/1000003`、临时隔离账号 `705213/1000006`；锁定态由同一权威列表做等级1投影；覆盖滚动、当前4个可见参加按钮、竞技场隐藏边界、空配置、不可用反馈、断线/重连、重进/重启、切号隔离及切回主账号。
+- 2026-09-02标准batch固定账号结果`success=true`：历史13项合同、4个当时可见Steam入口/路由边界、13/13语义断言通过；该结果不代表当前8项范围的最终证据。
+- 当前Unity主账号 `7200057/1000003`、临时隔离账号 `705213/1000006`；锁定态由同一权威列表做等级1投影；覆盖滚动、当前可见参加按钮、空配置、不可用反馈、断线/重连、重进/重启、切号隔离及切回主账号。竞技场隐藏属于 Steam 排除边界，不是 Gameplay 控件。
 - 大厅不拥有业务子页协议；`/65` 继续由共享红点控制器独占，昆仑 `/213 op=25` 由主界面全局刷新后本地计算，大厅仅消费稳定缓存。
 - `reversible-sqlite-readonly`合同通过；测试过程临时创建隔离身份，结束后整库恢复哈希 `0D2C8C4BBC698E40600C47D91147929E9EB6E1077B3EFAFABED88C368235B419`，残留0。
 - 证据：`.local/unity-validation/gameplay-fixed-account-latest.json`、`.local/unity-validation/gameplay-fixed-account-runner-latest.json`。
@@ -177,10 +178,10 @@ src/main.lua
 
 - 跨后端映射已通过：Cocos/MySQL `7200057/1000115/T00057/99` 与Unity/SQLite `7200057/1000003/T00057/40`保持同逻辑userId、同角色名，两端等级均覆盖共享4入口最高32级阈值；角色主键不混用、不强求物理相等。
 - 当前路由映射：Unity迁移就绪可见 `1/3/9/10/21/23/27/29`；其中27为Unity专属大厅直达答题，Cocos仍保留旧NPC链；`7/8/11/12/18/19/25/26`为产品排除，`6`继续屏蔽。
-- `Test-UnityModuleG5Preflight.ps1 -Module Gameplay -RequireInputs`当前准确阻塞于`id=6`。Cocos保留竞技场卡片，Unity按已验收G4合同隐藏未完成入口，故9态全帧视觉不能通过。
-- 禁止通过改矩阵值、改哈希、临时隐藏Cocos竞技场或复用旧图绕过。重拍应等待`id=6`产品呈现决策落定，避免证据再次失效。
+- `Test-UnityModuleG5Preflight.ps1 -Module Gameplay -RequireInputs` 的旧阻塞记录指向`id=6`，但该模块已被 Steam 范围明确排除；该旧记录不再构成当前 Gameplay 阻塞。
+- 不得把 Arena 重新加入 Gameplay 当前矩阵、列表或 G5 视觉分母；当前应从范围变更后最早受影响门禁补齐8项证据。
 - 映射证据：`.local/unity-validation/gameplay-cross-backend-mapping-latest.json`；阻塞记录：`.local/unity-validation/gameplay-operation-ledger.json`。
-- 用户决策：2026-09-02确认“暂停 Gameplay，等后续 Arena 迁移后收口”。恢复点为G5 Cocos 9态重拍；此前不启动Cocos取证、不进入G6。证据：`.local/unity-validation/gameplay-pause-decision-latest.json`。
+- 历史暂停记录仅保留为审计背景；2026-09-20本轮用户已明确 Arena 不启动且不得阻塞 Gameplay，当前恢复点改为按8项范围重做最早受影响的定向验证。
 
 ## 13. 2026-08-27 当前工作树审计
 
@@ -189,14 +190,14 @@ src/main.lua
 - `Test-UnityModuleG5Preflight.ps1 -Module Gameplay -RequireInputs`曾发现旧合同缺`cocosBaselineInputs`；当前已补齐入口/View/红点/配置/CSB/夹具输入，并在本工作树重新生成G1证据与基线，不复用E盘旧`.local`。
 - 当前G1、G2、G3、G4已串行通过；2026-09-02 SQLite标准batch为13/13控件、13/13语义断言、整库精确恢复与残留0。不得引用旧两次BuildBatch、旧G5差异或旧`manualPassed=true`恢复完成态。
 - 两次真实 `BootstrapSceneBuilder.BuildBatch` 均通过，SHA-256 同为 `BED14CC26A6E055C8C00B4B647E54D7B706B7D0C2651CFF9915D1165094CE4E3`。
-- 2026-08-02结果仅作诊断线索；当前收口顺序是处理竞技场`id=6`可见性依赖→重拍9态→G5→G6最终真人确认。
+- 2026-08-02结果仅作诊断线索；当前收口顺序是核对8项范围→从最早受影响门禁定向验证→补新鲜G5/G6证据。Arena `id=6` 不在此顺序内。
 - Cocos、Unity Editor、服务端、本地MySQL与 Computer Use 残留进程均在收口前清理；模块边界只含大厅与13个路由，不宣称任何子页完成。
 - 当前审计证据：`.local/unity-validation/gameplay-operation-ledger.json`、`.local/unity-validation/gameplay-g6-docs-audit.json`；旧G6证据路径当前不存在。
 
 ## 14. Steam SQLite S5（2026-08-20）
 
 - 证据：`.local/unity-validation/steam-sqlite-s5-gameplay-latest.json`，状态 `Passed`。
-- 当前可交付大厅配置严格为`1/3/9/10`；竞技场`6`仍保留在产品范围，但因自身门禁为`G0 pending`以`migrationReady=false`暂时隐藏，大厅不得暴露不可用空壳；对应每日任务同步过滤。共享红点当前只展示寻宝`type=103`，竞技场正式迁完开放后再恢复`type=101`。血战入口`8`已排除，因此`type=51`不属于本轮范围，未被错误带回。
+- 历史可交付口径曾为`1/3/9/10`；当前范围已收敛为`1/3/9/10/21/23/27/29`。竞技场`6`属于 Steam 排除项，不进入产品范围、Gameplay 列表或验收分母；不得以其 `G0 pending` 或红点状态阻塞本模块。血战入口`8`已排除，因此`type=51`不属于本轮范围，未被错误带回。
 - SQLite/MySQL新隔离角色均执行两轮`/65 op=1`的`101/103`查询；运行期双方各47响应、重启各21响应，归属回包均为4字节`op=1,type,state=0`且逐字节一致，manifest单边协议0、结构差异0。
 - 大厅继续只消费`Shared/HotPointController`缓存，打开大厅不重发协议、不修改服务器。数据库`mission/xunbao/blood_fight/save_data/hots`、角色等级/经验/货币和账号货币原始值一致，归属写入0。
 - 中央工具链`131/131`；只删除隔离库`fxl_game_gameplay_s5_v1`，正式`fxl_game_local`及MySQL源码/驱动/构建/Schema/脚本/回归全部保留。S5下一模块为`YouLi`。

@@ -513,7 +513,13 @@ try {
                     status = [string]$result.status
                     screenWidth = [int]$result.screenWidth
                     screenHeight = [int]$result.screenHeight
+                    captureStates = @($scenario.captureStates)
+                    screenshots = @($scenario.artifacts)
+                    validatedControlIds = @($result.validatedControlIds)
+                    passedSemanticAssertions = @($result.passedSemanticAssertions)
+                    failedSemanticAssertions = @($result.failedSemanticAssertions)
                     sourceContractFingerprint = $sourceContractFingerprint
+                    resultEvidence = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-runner-latest.json"
                     dataPreflightEvidence = ".local/unity-validation/$(([string]$moduleConfig.key).ToLowerInvariant())-fixed-account-data-preflight-latest.json"
                     serverRuntimeEvidence = $serverRuntimeEvidenceReference
                     serverRuntimeEvidenceSha256 = $serverRuntimeEvidenceSha256

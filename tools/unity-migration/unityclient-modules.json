@@ -1050,7 +1050,7 @@
     {
       "key": "Gameplay",
       "displayName": "玩法大厅",
-      "status": "g3-passed-early-user-play-fix-retest-pending",
+      "status": "g4-passed-g5-blocked-by-missing-cocos-cross-backend-mapping-g6-pending",
       "protocols": [
         65
       ],
@@ -2028,7 +2028,7 @@
     {
       "key": "Fish",
       "displayName": "钓鱼",
-      "status": "g3-runtime-passed-awaiting-user-early-play",
+      "status": "g3-runtime-passed-user-early-play-accepted-g4-g6-pending",
       "scopeDecision": "用户于2026-09-14明确将EAID=6钓鱼纳入Steam单机范围并按单机化玩法迁移修改：采用场景54/map33假传送，玩家固定在原1号区域黑圈位置(1086,619)、dir=2、flip=true，不提供钓点选择。传入后立即把正常角色切为原版ShapeId=2000钓鱼造型；此时业务态为Ready且不扣费、不倒计时，点击开始后才固定发送op5(dir=2)并进入权威Fishing；收竿回持竿待机，退出恢复正常角色。沿用function_id=32，10级开放、每日不限次、无扣次，成功放竿每次扣100金币（配置可调）；每轮独立随机10至20秒；鱼篓容量9999格，同种鱼优先补已有未满格，单格上限999，满栈后新增同鱼种格，每格右下角显示数量，10只是当前鱼种数而不是固定格数；9999格均占用且本轮鱼种无未满同种格时，新鱼直接舍弃且不改原格。鱼种奖励由fish_reward配置权重驱动，首版共10种，保留580/581/582=50/35/15并新增7种；后续消耗用途暂不处理。抢夺、房间、他人列表、全服播报、限时窗、行走/寻路/传送、主角钓鱼经验与EEHDT_Fish交互币掉落整链移除。Steam业务模块分母18->19。正式Excel/JSON/SQLite镜像、map33、ShapeId=2000对应btm2000_zd.png/.ani及Unity动画、7张新鱼图标、可恢复SQLite夹具均已落地并完成恢复验证。",
       "protocols": [
         217

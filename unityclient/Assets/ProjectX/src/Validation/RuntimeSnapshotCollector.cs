@@ -326,7 +326,7 @@ namespace ProjectX.Validation
                 if (changed) continue;
 
                 RuntimeInputDispatchResult open = RuntimeInputDispatcher.Dispatch(
-                    "Layer/Main_UI/ButtonGroup1/btn_zhaomu", "DRAW-01-MAIN-ENTRY", "open");
+                    "Layer/Bg/btn_zhaomu", "DRAW-01-MAIN-ENTRY", "open");
                 if (open.Dispatched)
                 {
                     yield return null;

@@ -37,13 +37,11 @@ namespace ProjectX.UI
         private readonly Dictionary<int, bool> serverRedDots = new Dictionary<int, bool>();
         private static readonly string[] StableVisiblePromptPaths =
         {
-            "Layer/Main_UI/ButtonGroup1/btn_wanfa/Prompt",
-            "Layer/Main_UI/ButtonGroup1/btn_chuandai/Prompt",
-            "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao/Prompt",
-            "Layer/Main_UI/ButtonGroup1/btn_zhenrong/Prompt",
-            "Layer/Main_UI/ButtonGroup1/btn_zhaomu/Prompt",
-            "Layer/Main_UI/ButtonGroup1/btn_renwu/Prompt",
-            "Layer/Main_UI/ButtonGroup1/btn_shangcheng/Prompt"
+            "Layer/Bg/btn_wanfa/Prompt",
+            "Layer/Bg/btn_chuandai/Prompt",
+            "Layer/Bg/btn_zhenrong/Prompt",
+            "Layer/Bg/btn_zhaomu/Prompt",
+            "Layer/Bg/btn_shangcheng/Prompt"
         };
         private readonly List<GameObject> summaryRows = new List<GameObject>();
         private readonly RectTransform chatPanel;
@@ -302,15 +300,12 @@ namespace ProjectX.UI
             serverRedDots[redType] = visible;
             string target = redType switch
             {
-                >= 1 and <= 5 => "Layer/Main_UI/ButtonGroup3/btn_bangpai",
                 21 or 22 => "Layer/Main_UI/ButtonGroup7/btn_friend",
                 31 => "Layer/Main_UI/ButtonGroup7/btn_mail",
-                41 or 51 or 101 or 103 => "Layer/Main_UI/ButtonGroup1/btn_wanfa",
+                41 or 51 or 101 or 103 => "Layer/Bg/btn_wanfa",
                 61 or 63 or 64 => "Layer/Main_UI/btn_fuben",
-                71 or 72 => "Layer/Main_UI/ButtonGroup1/btn_shangcheng",
-                102 => "Layer/Main_UI/ButtonGroup1/btn_renwu",
+                71 or 72 => "Layer/Bg/btn_shangcheng",
                 111 or 121 => "Layer/Main_UI/ButtonGroup1/btn_fuli",
-                131 => "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao",
                 201 => "Layer/Main_UI/ButtonGroup4/btn_Qiri",
                 _ => string.Empty
             };
@@ -488,15 +483,12 @@ namespace ProjectX.UI
         {
             return redType switch
             {
-                >= 1 and <= 5 => "Layer/Main_UI/ButtonGroup3/btn_bangpai",
                 21 or 22 => "Layer/Main_UI/ButtonGroup7/btn_friend",
                 31 => "Layer/Main_UI/ButtonGroup7/btn_mail",
-                41 or 51 or 101 or 103 => "Layer/Main_UI/ButtonGroup1/btn_wanfa",
+                41 or 51 or 101 or 103 => "Layer/Bg/btn_wanfa",
                 61 or 63 or 64 => "Layer/Main_UI/btn_fuben",
-                71 or 72 => "Layer/Main_UI/ButtonGroup1/btn_shangcheng",
-                102 => "Layer/Main_UI/ButtonGroup1/btn_renwu",
+                71 or 72 => "Layer/Bg/btn_shangcheng",
                 111 or 121 => "Layer/Main_UI/ButtonGroup1/btn_fuli",
-                131 => "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao",
                 201 => "Layer/Main_UI/ButtonGroup4/btn_Qiri",
                 _ => string.Empty
             };

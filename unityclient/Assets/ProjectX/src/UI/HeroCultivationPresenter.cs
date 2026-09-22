@@ -490,6 +490,12 @@ namespace ProjectX.UI
             if (listObject == null || panel == null || first == null)
                 throw new InvalidOperationException("Hero cultivation tab template is missing.");
             panel.parent.gameObject.SetActive(true);
+            // The same Panel_10 is also used by the unified hero hub. Its
+            // third runtime button is the hub's "碎片" tab, not a cultivation
+            // page. Hide it while the five cultivation pages are active so it
+            // cannot occupy the same slot as HeroCultivationTab3.
+            Transform hubThird = panel.Find("Button3_Runtime");
+            if (hubThird != null) hubThird.gameObject.SetActive(false);
             // Cultivation pages are full-screen siblings under OneLevelLayer.
             // A nested sorting canvas keeps the visible right-side tabs above
             // their transparent raycast surfaces, matching Cocos touch order.

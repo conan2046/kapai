@@ -9,7 +9,7 @@ namespace ProjectX.UI
     public sealed class MainTaskTrackerPresenter : IDisposable
     {
         private const string PanelPath = "Layer/Main_UI/Panel_QuestAndTeam";
-        private const string PromptPath = "Layer/Main_UI/ButtonGroup1/btn_renwu/Prompt";
+        private const string PromptPath = "Layer/Bg/btn_renwu/Prompt";
         private readonly TaskStore store;
         private readonly VirtualList<TaskRecord> list;
         private readonly GameObject panel;
@@ -22,8 +22,8 @@ namespace ProjectX.UI
         {
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.openTasks = openTasks ?? throw new ArgumentNullException(nameof(openTasks));
-            prompt = main?.Binding.Find(PromptPath)
-                ?? throw new InvalidOperationException("Main task red-dot node was not found.");
+            // The old Bg/btn_renwu entry is removable after the task route was unified.
+            prompt = main?.Binding.Find(PromptPath);
             panel = backup?.Binding.Find(PanelPath)
                 ?? throw new InvalidOperationException("Backup main task tracker panel was not found.");
             GameObject mainRoot = main.Binding.Find("Layer/Main_UI")
@@ -43,7 +43,7 @@ namespace ProjectX.UI
         }
 
         public int ItemCount => list.Count;
-        public bool IsHotPointVisible => prompt.activeSelf;
+        public bool IsHotPointVisible => prompt?.activeSelf == true;
         public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;
 
         public void SetServerHotPoint(bool visible)
@@ -72,6 +72,7 @@ namespace ProjectX.UI
 
         private void RenderHotPoint()
         {
+            if (prompt == null) return;
             // Once the daily list is loaded it is the authoritative state. This
             // also prevents a delayed /65 visible push from surviving a claim.
             if (store.Count > 0) prompt.SetActive(store.HasClaimable);

@@ -73,24 +73,17 @@
         "G1": "passed",
         "G2": "passed",
         "G3": "passed",
-        "G4": "pending",
+        "G4": "passed",
         "G5": "pending",
-        "G6": "passed"
+        "G6": "pending"
       },
       "evidence": "docs/unityclient/modules/GAMEPLAY.md",
-      "note": "2026-09-02 current-worktree G1-G3 passed. The first early user Play white screen and cross-page LFS gaps were repaired. Gameplay now uses persistentDataPath SQLite user 7200057/role 1000003 with an exact whole-database restore contract; current G3 batch passed 13/13 controls and 13 semantic assertions. User retest is pending before G4. Hard-gate v3 models five lifecycle states without fake realEntryClick=true.",
+      "note": "2026-09-20 formal-source G0-G4 passed after Arena exclusion. Gameplay now uses persistentDataPath SQLite user 7200057/role 1000003 with exact restore; G3 batch passed 16/16 controls and current scroll/reconnect/isolation assertions; user Play accepted G4. G5 is blocked only by missing Cocos cross-backend mapping because local MySQL 127.0.0.1:3306 is unavailable; G6 remains pending.",
       "gateEvidence": {
         "G0": [
           "docs/unityclient/modules/GAMEPLAY.md",
           "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json",
           ".local/unity-validation/gameplay-dirty-baseline.txt"
-        ],
-        "G4": [
-          ".local/unity-validation/gameplay-fixed-account-latest.json",
-          ".local/unity-validation/gameplay-fixed-account-runner-latest.json",
-          ".local/ui-fidelity/Gameplay/fixture/gameplay-sqlite-fixture-snapshot.json",
-          ".local/ui-fidelity/Gameplay/fixture/gameplay-fixed-unity-result.json",
-          ".local/unity-validation/gameplay-operation-ledger.json"
         ],
         "G5": [
           ".local/ui-fidelity/Gameplay/compare/g5-live-20260802/report.json",
@@ -134,9 +127,14 @@
           ".local/unity-validation/gameplay-fixed-account-data-preflight-latest.json",
           "build/ui-migration/unity-gameplay-fixed-account.log",
           ".local/unity-validation/gameplay-operation-ledger.json"
+        ],
+        "G4": [
+          ".local/unity-validation/gameplay-early-user-play-latest.json",
+          ".local/unity-validation/gameplay-g3-runtime-latest.json",
+          ".local/unity-validation/gameplay-fixed-account-data-preflight-latest.json"
         ]
       },
-      "updatedUtc": "2026-09-02T05:20:36Z"
+      "updatedUtc": "2026-09-20T15:22:35.5023587Z"
     },
     {
       "module": "GameplayShops",

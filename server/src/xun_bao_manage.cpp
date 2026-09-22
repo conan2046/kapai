@@ -480,7 +480,9 @@ bool CXunBaoManage::PrepareLocalSinglePlayerMap()
 		fight.robot_ = 1;
 		fight.pwoer = robot.power;
 	}
-	sort(m_fights.begin(), m_fights.end());
+	// m_fights is indexed by m_report.killer_ and is serialized in the same
+	// order as guard cells in NotifyMapInfo. Sorting by power breaks that
+	// positional contract and can let a roll cross the next guard.
 	m_hasMatch = true;
 	return true;
 }
@@ -603,7 +605,8 @@ void CXunBaoManage::LoadMatchFights(CNetMessage& msg)
 		}
 	}
 
-	sort(m_fights.begin(), m_fights.end());
+	// Keep fight records in map-cell order. NotifyMapInfo and killer_ both use
+	// this order to resolve the guard currently blocking the path.
 }
 
 void CXunBaoManage::NotifyMapInfo()
@@ -940,8 +943,17 @@ void CXunBaoManage::Roll()
 
 	// 2. 随机数
 	int roll = Random(1, 6);
+	uint8 rollStartIdx = m_curIdx;
 	m_stopIdx = m_curIdx + roll;
+	uint8 requestedStopIdx = m_stopIdx;
 	CalcStopCell();
+	uint8 nextGuardCid = 0;
+	if (m_report.killer_ < m_fights.size())
+		nextGuardCid = m_fights[m_report.killer_].cid_;
+	cout << "[local][Monopoly] roll current=" << (uint32)rollStartIdx
+		<< " roll=" << roll << " requestedStop=" << (uint32)requestedStopIdx
+		<< " resolvedStop=" << (uint32)m_curIdx << " killer=" << m_report.killer_
+		<< " nextGuard=" << (uint32)nextGuardCid << " state=" << (uint32)m_state << endl;
 	msg << PRO_SUCCESS;
 	msg << (uint32)m_curIdx << roll;
 	msg << (uint32_t)currroll;  // 筛子总数
@@ -962,6 +974,9 @@ void CXunBaoManage::CalcStopCell()
 		return;
 	}
 	uint8 fightCid = m_fights[m_report.killer_].cid_;
+	cout << "[local][Monopoly] calc current=" << (uint32)m_curIdx
+		<< " requestedStop=" << (uint32)m_stopIdx << " killer=" << m_report.killer_
+		<< " guard=" << (uint32)fightCid << endl;
 	if ((m_curIdx < fightCid && m_stopIdx >= fightCid) || m_stopIdx == fightCid - 1)
 	{
 		m_state = 1;

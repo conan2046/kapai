@@ -15,7 +15,7 @@ MonoBehaviour:
   entries:
   - key: ActivityLayer
     source: cocosstudio/csd/common/ActivityLayer.csd
-    parentKey: shop_bg
+    parentKey:
     defaultActive: 1
   - key: ActivityLevelLayer
     source: cocosstudio/csd/huodong/ActivityLevelLayer.csd
@@ -255,7 +255,7 @@ MonoBehaviour:
     defaultActive: 0
   - key: jianghunshop
     source: cocosstudio/csd/shop/jianghunshop.csd
-    parentKey:
+    parentKey: shop_bg
     defaultActive: 0
   - key: jiangliyulan
     source: cocosstudio/csd/chouka/jiangliyulan.csd
@@ -351,7 +351,7 @@ MonoBehaviour:
     defaultActive: 0
   - key: shangcheng
     source: cocosstudio/csd/shop/shangcheng.csd
-    parentKey:
+    parentKey: shop_bg
     defaultActive: 0
   - key: shenjiangxiangxishuxing
     source: cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd
@@ -375,7 +375,7 @@ MonoBehaviour:
     defaultActive: 1
   - key: shop_bg
     source: cocosstudio/csd/shop/shop_bg.csd
-    parentKey:
+    parentKey: OneLevelLayer
     defaultActive: 0
   - key: SignLayer
     source: cocosstudio/csd/SignLayer.csd

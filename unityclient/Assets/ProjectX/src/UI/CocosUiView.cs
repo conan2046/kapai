@@ -92,6 +92,8 @@ namespace ProjectX.UI
         public CocosUiView(CocosUiBinding binding)
         {
             Binding = binding ?? throw new ArgumentNullException(nameof(binding));
+            if (Binding.GetComponent<UiButtonFeedbackScope>() == null)
+                Binding.gameObject.AddComponent<UiButtonFeedbackScope>();
             ApplyLegacyTextPixelRoundingPadding(Binding.gameObject);
         }
 
@@ -111,6 +113,14 @@ namespace ProjectX.UI
             GameObject node = Binding.Find(nodePath);
             if (node == null)
                 throw new InvalidOperationException($"UI node was not found: {nodePath}");
+
+            return BindClickNode(node, callback, addButtonIfMissing, nodePath);
+        }
+
+        public Button BindClickNode(GameObject node, Action callback, bool addButtonIfMissing = false, string nodePath = null)
+        {
+            if (!IsAlive) throw new InvalidOperationException("The UI view has already been destroyed.");
+            if (node == null) throw new InvalidOperationException($"UI node was not found: {nodePath ?? "<null>"}");
             Button button = node.GetComponent<Button>();
             if (button == null && addButtonIfMissing)
             {
@@ -118,10 +128,24 @@ namespace ProjectX.UI
                 button.targetGraphic = node.GetComponent<Graphic>();
             }
             if (button == null)
-                throw new InvalidOperationException($"Button component was not found: {nodePath}");
+                throw new InvalidOperationException($"Button component was not found: {nodePath ?? node.name}");
+            UiButtonPressFeedback.Ensure(button);
             button.interactable = true;
             if (button.targetGraphic == null)
                 button.targetGraphic = node.GetComponent<Graphic>() ?? node.GetComponentInChildren<Graphic>(true);
+
+            // Some moved legacy buttons have no usable Graphic of their own.
+            // Add a transparent hit target so the Unity Button stays clickable
+            // after the hierarchy migration.
+            if (button.targetGraphic == null)
+            {
+                Image hitTarget = node.GetComponent<Image>();
+                if (hitTarget == null) hitTarget = node.AddComponent<Image>();
+                hitTarget.color = new Color(0f, 0f, 0f, 0f);
+                hitTarget.raycastTarget = true;
+                button.targetGraphic = hitTarget;
+            }
+
             if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => callback());

@@ -23,19 +23,25 @@ namespace ProjectX.Core
     [LuaCallCSharp]
     public sealed partial class ProjectXApp : MonoBehaviour
     {
+        private enum ShopHubTab
+        {
+            Shop,
+            Soul
+        }
+
         private const string SinglePlayerFlowValidationFlag = "-projectXSinglePlayerFlowValidation";
         private const string SinglePlayerSaveRootPrefix = "-projectXSinglePlayerSaveRoot=";
 
         public const string LoginButtonPath = "Layer/Login/Btn_Play";
         public const string LoginServerButtonPath = "Layer/Login/Btn_Sever";
-        public const string BagPath = "Layer/Main_UI/ButtonGroup1/btn_Bag";
+        public const string BagPath = "Layer/Bg/btn_Bag";
         public const string SettingsPath = "Layer/Main_UI/ButtonGroup7/btn_xitong";
-        public const string TaskPath = "Layer/Main_UI/ButtonGroup1/btn_renwu";
-        public const string FormationPath = "Layer/Main_UI/ButtonGroup1/btn_zhenrong";
-        public const string HeroBagPath = "Layer/Main_UI/ButtonGroup1/btn_shenjiangbeibao";
+        public const string TaskPath = "Layer/Bg/btn_renwu";
+        public const string FormationPath = "Layer/Bg/btn_zhenrong";
+        public const string HeroBagPath = "Layer/Bg/btn_shenjiangbeibao";
         public const string HeroRecyclePath = "Layer/Main_UI/ButtonGroup7/btn_huishou";
         public const string MailPath = "Layer/Main_UI/ButtonGroup7/btn_mail";
-        public const string ShopPath = "Layer/Main_UI/ButtonGroup1/btn_shangcheng";
+        public const string ShopPath = "Layer/Bg/btn_shangcheng";
         public const string ShopSubmenuPath = "Layer/Main_UI/tankuang1/btn_shangcheng";
         public const string ShopCoinShortcutPath = "Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn";
         public const string FriendPath = "Layer/Main_UI/ButtonGroup7/btn_friend";
@@ -46,10 +52,10 @@ namespace ProjectX.Core
         public const string WelfareLegacyPath = "Layer/Main_UI/ButtonGroup8/btn_fuli";
         public const string ActivityPath = "Layer/Main_UI/ButtonGroup1/btn_huodong";
         public const string RankingPath = "Layer/Main_UI/ButtonGroup1/btn_paihangbang";
-        public const string DrawPath = "Layer/Main_UI/ButtonGroup1/btn_zhaomu";
-        public const string GameplayPath = "Layer/Main_UI/ButtonGroup1/btn_wanfa";
+        public const string DrawPath = "Layer/Bg/btn_zhaomu";
+        public const string GameplayPath = "Layer/Bg/btn_wanfa";
         public const string MainCharacterPath = "Layer/Main_UI/ButtonGroup1/btn_zhujue";
-        public const string EquipmentMenuPath = "Layer/Main_UI/ButtonGroup1/btn_chuandai";
+        public const string EquipmentMenuPath = "Layer/Bg/btn_chuandai";
         public const string EquipmentBagPath = "Layer/Main_UI/tankuang2/btn_zhuangbei";
         public const string FaBaoBagPath = "Layer/Main_UI/tankuang2/btn_fabao";
         private static readonly HashSet<string> SteamExcludedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -427,10 +433,13 @@ namespace ProjectX.Core
         private bool mailValidationSawRedDot;
         private CocosUiView shopView;
         private ShopPresenter shopPresenter;
-        private GameObject shopRuntimeCloseButton;
         private GameObject shopFramePanel;
         private bool shopFramePanelWasActive;
         private bool shopFramePanelStateCaptured;
+        private GameObject shopGoldCheck;
+        private bool shopGoldCheckWasActive;
+        private bool shopGoldCheckStateCaptured;
+        private bool shopHubOpen;
         private readonly List<ShopRecord> pendingShopRecords = new List<ShopRecord>();
         private byte pendingShopType;
         private ushort pendingShopRefreshTimes;
@@ -705,7 +714,6 @@ namespace ProjectX.Core
         private CocosUiView soulShopView;
         private CocosUiView multiShopView;
         private GameplayShopsPresenter gameplayShopsPresenter;
-        private GameObject gameplayShopBackdrop;
         private CocosUiView gameplayShopItemInfoView;
         private GameplayShopItemInfoPresenter gameplayShopItemInfoPresenter;
         private readonly List<SevenDayTaskRecord> pendingSevenDayTasks = new List<SevenDayTaskRecord>();
@@ -1477,6 +1485,11 @@ namespace ProjectX.Core
                 return true;
             }
             if (TryHandleJingJieBack()) return true;
+            if (heroHubOpen && formationPopupView?.GameObject.activeSelf == true)
+            {
+                CloseHeroHub();
+                return true;
+            }
             if (formationPopupView?.GameObject.activeSelf == true)
             {
                 formationPopupView.SetVisible(false);
@@ -1495,6 +1508,15 @@ namespace ProjectX.Core
             if (heroReplacementView?.GameObject.activeSelf == true)
             {
                 heroReplacementView.SetVisible(false);
+                if (heroHubOpen)
+                {
+                    // Replacement is opened from the unified hero hub. The
+                    // legacy list/detail restore path leaves Panel_10 in the
+                    // replacement screen's stale state and loses the Hub
+                    // tabs, so restore through the active Hub tab instead.
+                    ShowHeroHubTab(heroHubTab);
+                    return true;
+                }
                 heroListView?.SetVisible(true);
                 heroDetailView?.SetVisible(true);
                 heroBagView?.SetVisible(false);
@@ -2451,13 +2473,7 @@ namespace ProjectX.Core
 
         public void BindBagClick(bool autoInvoke)
         {
-            try
-            {
-                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-                Button button = mainView.BindClick(BagPath, HandleBagClick, true);
-                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
-            }
-            catch (Exception exception) { Fail(exception.Message); }
+            // Legacy main-HUD bag entry removed from UImainLayer_new.
         }
 
         public void BindSettingsClick()
@@ -2472,13 +2488,7 @@ namespace ProjectX.Core
 
         public void BindTaskClick(bool autoInvoke)
         {
-            try
-            {
-                mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-                taskButton = mainView.BindClick(TaskPath, HandleTaskClick, true);
-                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(taskButton));
-            }
-            catch (Exception exception) { Fail(exception.Message); }
+            // Legacy main-HUD task entry removed from UImainLayer_new.
         }
 
         public void BindHeroClick(bool autoInvoke)
@@ -2487,11 +2497,10 @@ namespace ProjectX.Core
             {
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 Button formationButton = mainView.BindClick(FormationPath, HandleFormationClick, true);
-                Button bagButton = mainView.BindClick(HeroBagPath, HandleHeroBagClick, true);
                 if (autoInvoke)
                 {
                     if (!HasCommandLineFlag("-projectXHeroRebirthG4Validation") || !heroRebirthG4ValidationRunning)
-                        StartCoroutine(InvokeButtonNextFrame(HasCommandLineFlag("-projectXHeroBagValidation") ? bagButton : formationButton));
+                        StartCoroutine(InvokeButtonNextFrame(formationButton));
                 }
             }
             catch (Exception exception) { Fail(exception.Message); }
@@ -2515,6 +2524,8 @@ namespace ProjectX.Core
         {
             EnsureMailPresenter();
             bagView?.SetVisible(false);
+            gameplayContentView?.SetVisible(false);
+            gameplayDetailView?.SetVisible(false);
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
@@ -2545,17 +2556,22 @@ namespace ProjectX.Core
             try
             {
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-                Button toggle = mainView.BindClick(ShopPath, ToggleShopSubmenu, true);
-                Button entry = mainView.BindClick(ShopSubmenuPath, HandleShopClick, true);
+                GameObject shopNode = FindMainHudNode(ShopPath);
+                if (shopNode == null) throw new InvalidOperationException($"UI node was not found: {ShopPath}");
+                Button entry = mainView.BindClickNode(shopNode, HandleShopClick, true, ShopPath);
                 mainView.BindClick(ShopCoinShortcutPath, HandleShopClick, true);
-                if (autoInvoke) StartCoroutine(InvokeShopEntryNextFrames(toggle, entry));
+                if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(entry));
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
 
         public void ShowShop()
         {
+            if (IsGameplayShopOpen && shopHubOpen)
+                CloseGameplayShops();
+            shopHubOpen = true;
             EnsureShopPresenter();
+            EnsureGameplayShopsPresenter();
             bagView?.SetVisible(false);
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
@@ -2572,6 +2588,8 @@ namespace ProjectX.Core
             heroEquipmentCultivateView?.SetVisible(false);
             heroEquipmentStrengthView?.SetVisible(false);
             heroEquipmentFragmentView?.SetVisible(false);
+            soulShopView?.SetVisible(false);
+            multiShopView?.SetVisible(false);
             SetOneLevelFrameVisible(true);
             ConfigureShopFrame();
             if (services.UiStack.Current != shopView)
@@ -2580,7 +2598,23 @@ namespace ProjectX.Core
                 oneLevelFrameView.GameObject.transform.SetAsLastSibling();
                 shopView.GameObject.transform.SetAsLastSibling();
             }
+            bagPopupFrameView.SetVisible(true);
+            ConfigureShopHubTabs(ShopHubTab.Shop);
             SetStatus($"Shop UI active: {services.Shop.Count} goods.");
+        }
+
+        private void ShowShopHubSoulTab()
+        {
+            shopHubOpen = true;
+            if (IsShopOpen)
+            {
+                shopPresenter?.ResetTransientState();
+                RestoreShopFramePanel();
+                shopView?.SetVisible(false);
+                services.UiStack.Pop();
+            }
+            ShowGameplayShop(15);
+            ConfigureShopHubTabs(ShopHubTab.Soul);
         }
 
         public void BindFriendClick(bool autoInvoke)
@@ -2652,6 +2686,8 @@ namespace ProjectX.Core
                     mainView.Binding.Find(GuildPath)?.SetActive(false);
                     return;
                 }
+                if (mainView.Binding.Find(GuildPath) == null)
+                    return; // Legacy guild group removed from UImainLayer_new.
                 Button button = mainView.BindClick(GuildPath, HandleGuildClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
@@ -2726,7 +2762,9 @@ namespace ProjectX.Core
             try
             {
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-                gameplayButton = mainView.BindClick(GameplayPath, HandleGameplayClick, true);
+                GameObject gameplayNode = FindMainHudNode(GameplayPath);
+                if (gameplayNode == null) throw new InvalidOperationException($"UI node was not found: {GameplayPath}");
+                gameplayButton = mainView.BindClickNode(gameplayNode, HandleGameplayClick, true, GameplayPath);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(gameplayButton));
             }
             catch (Exception exception) { Fail(exception.Message); }
@@ -5742,22 +5780,17 @@ namespace ProjectX.Core
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-first-entry.png");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-client-restart.png");
 
-                ToggleWearSubmenu();
-                yield return new WaitForSecondsRealtime(.25f);
-                if (mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf != true)
-                { Fail("HUD wear submenu did not expand through btn_chuandai."); yield break; }
-                MarkValidationControl("HUD-15-WEAR-TOGGLE");
-                if (!AuditHudBoundary(mainView, EquipmentBagPath, out string equipmentBoundary))
-                { Fail($"HUD equipment route boundary failed: {equipmentBoundary}"); yield break; }
-                MarkValidationControl("HUD-16-EQUIP-ROUTE");
-                if (!AuditHudBoundary(mainView, FaBaoBagPath, out string faBaoBoundary))
-                { Fail($"HUD fabao route boundary failed: {faBaoBoundary}"); yield break; }
-                MarkValidationControl("HUD-17-FABAO-ROUTE");
-                yield return CapturePlayerHudFrame("bootstrap-playerhud-wear-expanded.png");
-                Button wearDismiss = hudSubmenuDismissOverlay?.GetComponent<Button>();
-                if (!InvokeEventSystemClick(wearDismiss)
-                    || mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf == true)
-                { Fail("HUD wear submenu did not collapse through the blank-area overlay."); yield break; }
+                Button wearEntry = mainView.Binding.Find(EquipmentMenuPath)?.GetComponent<Button>();
+                if (!InvokeEventSystemClick(wearEntry))
+                { Fail("HUD direct wear entry EventSystem input was unavailable."); yield break; }
+                float wearDeadline = Time.realtimeSinceStartup + 12f;
+                while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < wearDeadline) yield return null;
+                if (!IsHeroEquipmentOpen || mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf == true)
+                { Fail("HUD wear entry did not open the equipment bag directly."); yield break; }
+                MarkValidationControl("HUD-15-WEAR-EQUIPMENT-BAG");
+                yield return CapturePlayerHudFrame("bootstrap-playerhud-wear-equipment-bag.png");
+                if (!HandleBack() || IsHeroEquipmentOpen)
+                { Fail("HUD direct wear equipment bag did not close cleanly."); yield break; }
 
                 ToggleShopSubmenu();
                 yield return new WaitForSecondsRealtime(.25f);
@@ -8461,9 +8494,13 @@ namespace ProjectX.Core
             }
             chatMiniView?.SetVisible(false);
             gameplayContentView?.SetVisible(false);
-            if (restoreBagFrameAfterGameplayShop) SetOneLevelFrameVisible(false);
+            // shop_bg is now mounted under OneLevelLayer, so the shared parent
+            // must stay visible while the gameplay/soul shop is displayed.
+            SetOneLevelFrameVisible(true);
             CocosUiView previous = gameplayShopsPresenter.ActiveView;
             gameplayShopsPresenter.ShowFunction(functionId);
+            if (!services.GameplayShops.TryGet(gameplayShopsPresenter.SelectedType, out _))
+                gameplayShopsPresenter.SelectType(gameplayShopsPresenter.SelectedType, true);
             CocosUiView target = gameplayShopsPresenter.ActiveView;
             gameplayDetailView?.SetVisible(false);
             Transform gameplayNotice =
@@ -8472,9 +8509,8 @@ namespace ProjectX.Core
             if (services.UiStack.Current == previous && previous != target) services.UiStack.Pop();
             if (services.UiStack.Current != target) services.UiStack.Push(target);
             ConfigureGameplayShopsFrame();
-            EnsureGameplayShopBackdrop();
-            gameplayShopBackdrop.SetActive(true);
-            gameplayShopBackdrop.transform.SetAsLastSibling();
+            oneLevelFrameView.Binding.Find("Layer/Panel_12")?.SetActive(false);
+            oneLevelFrameView.Binding.Find("Layer/GoldCheck")?.SetActive(false);
             bagPopupFrameView.SetVisible(true);
             bagPopupFrameView.GameObject.transform.SetAsLastSibling();
             target.GameObject.transform.SetAsLastSibling();
@@ -8733,12 +8769,15 @@ namespace ProjectX.Core
             yield return null;
             Text tab = shopView.Binding.Find("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
             GameObject sharedPanel = oneLevelFrameView.Binding.Find("Layer/Panel_12");
-            Button runtimeClose = shopRuntimeCloseButton?.GetComponent<Button>();
+            GameObject goldCheck = oneLevelFrameView.Binding.Find("Layer/GoldCheck");
+            Button shopClose = bagPopupFrameView?.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
             RecordValidationSemantic("shop-frame-panel-hidden", sharedPanel != null && !sharedPanel.activeSelf,
                 $"panel={sharedPanel?.activeSelf}");
-            RecordValidationSemantic("shop-owned-close", runtimeClose != null && runtimeClose.interactable
-                && runtimeClose.targetGraphic != null && runtimeClose.targetGraphic.raycastTarget,
-                $"close={runtimeClose != null}");
+            RecordValidationSemantic("shop-gold-check-hidden", goldCheck != null && !goldCheck.activeSelf,
+                $"goldCheck={goldCheck?.activeSelf}");
+            RecordValidationSemantic("shop-shared-close", shopClose != null && shopClose.interactable
+                && shopClose.targetGraphic != null && shopClose.targetGraphic.raycastTarget,
+                $"close={shopClose != null}");
             RecordValidationSemantic("shop-tab", tab?.text == "道具购买", $"actual={tab?.text}");
             RecordValidationSemantic("shop-details", !string.IsNullOrWhiteSpace(item.Name)
                 && !string.IsNullOrWhiteSpace(item.Description) && item.UnitCost > 0,
@@ -8983,19 +9022,9 @@ namespace ProjectX.Core
             { Fail("Shop G4 reward close control failed."); yield break; }
             MarkValidationControl("SHOP-21-REWARD-CLOSE");
 
-            Button headerCoin = oneLevelFrameView.Binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.GetComponent<Button>();
-            if (headerCoin == null || !headerCoin.interactable)
-            { Fail("Shop G4 header coin add was not bound."); yield break; }
-            if (!InvokeEventSystemRaycastClick(headerCoin))
-            { Fail("Shop G4 header coin add did not receive a real EventSystem/raycast click."); yield break; }
-            float deadline = Time.realtimeSinceStartup + 10f;
-            while (services.ProtocolRegistry.PendingCount != 0 && Time.realtimeSinceStartup < deadline)
-                yield return null;
-            if (!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)
-            { Fail("Shop G4 header coin add did not reload Shop."); yield break; }
-            MarkValidationControl("SHOP-04-HEADER-COIN-PLUS");
+            MarkValidationControl("SHOP-04-HEADER-HIDDEN");
 
-            Button close = shopRuntimeCloseButton?.GetComponent<Button>();
+            Button close = bagPopupFrameView?.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
             if (close == null || !close.interactable) { Fail("Shop G4 close was not bound."); yield break; }
             if (!InvokeEventSystemRaycastClick(close))
             { Fail("Shop G4 close did not receive a real EventSystem/raycast click."); yield break; }
@@ -9007,7 +9036,7 @@ namespace ProjectX.Core
             { Fail("Shop G4 main coin shortcut was not bound."); yield break; }
             if (!InvokeEventSystemRaycastClick(shortcut))
             { Fail("Shop G4 main coin shortcut did not receive a real EventSystem/raycast click."); yield break; }
-            deadline = Time.realtimeSinceStartup + 10f;
+            float deadline = Time.realtimeSinceStartup + 10f;
             while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)
                 && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsShopOpen || services.Shop.Count == 0)
@@ -9217,6 +9246,13 @@ namespace ProjectX.Core
                 return;
             }
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
+            if (heroHubOpen)
+            {
+                heroEntryRequestPending = false;
+                ShowHeroHubTab(heroHubTab);
+                SetStatus($"Hero hub tab active: {heroHubTab}; heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
             bool explicitEntry = heroEntryRequestPending;
             heroEntryRequestPending = false;
             bool heroPageVisible = IsHeroOpen;
@@ -10174,7 +10210,7 @@ namespace ProjectX.Core
             float deadline = Time.realtimeSinceStartup + 30f;
             while (mainView?.GameObject.activeInHierarchy != true && Time.realtimeSinceStartup < deadline)
                 yield return null;
-            Button wearToggle = mainView?.Binding.Find("Layer/Main_UI/ButtonGroup1/btn_chuandai")?.GetComponent<Button>();
+            Button wearToggle = mainView?.Binding.Find("Layer/Bg/btn_chuandai")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(wearToggle))
             { Fail("HeroEquip G5 visual wear toggle was unavailable."); yield break; }
             yield return null;
@@ -10326,7 +10362,7 @@ namespace ProjectX.Core
                 if (IsGameNoticeOpen) InvokeGameNoticeClose();
                 yield return null;
             }
-            Button wearToggle = mainView.Binding.Find("Layer/Main_UI/ButtonGroup1/btn_chuandai")?.GetComponent<Button>();
+            Button wearToggle = mainView.Binding.Find("Layer/Bg/btn_chuandai")?.GetComponent<Button>();
             float inputReadyDeadline = Time.realtimeSinceStartup + 8f;
             while ((wearToggle == null || EventSystem.current == null || !wearToggle.gameObject.activeInHierarchy
                     || !wearToggle.interactable) && Time.realtimeSinceStartup < inputReadyDeadline)
@@ -12387,6 +12423,7 @@ namespace ProjectX.Core
         }
         private void HandleFormationClick()
         {
+            RequestHeroHub(HeroHubTab.Formation);
             pendingHeroEntry = HeroEntry.Formation;
             heroEntryRequestPending = true;
             chatMiniView?.SetVisible(false);
@@ -12395,6 +12432,7 @@ namespace ProjectX.Core
         }
         private void HandleHeroBagClick()
         {
+            RequestHeroHub(HeroHubTab.Heroes);
             pendingHeroEntry = HeroEntry.Bag;
             heroEntryRequestPending = true;
             chatMiniView?.SetVisible(false);
@@ -12461,7 +12499,7 @@ namespace ProjectX.Core
 
         private Vector2 CalculateShopSubmenuPosition(RectTransform submenu)
         {
-            RectTransform button = mainView?.Binding.Find(ShopPath)?.GetComponent<RectTransform>();
+            RectTransform button = FindMainHudNode(ShopPath)?.GetComponent<RectTransform>();
             RectTransform parent = submenu.parent as RectTransform;
             if (button == null || parent == null)
                 return hudShopSubmenuOrigin;
@@ -12551,9 +12589,27 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Gameplay open failed: {exception.Message}"); }
         }
 
+        private GameObject FindMainHudNode(string path)
+        {
+            GameObject node = mainView?.Binding.Find(path);
+            if (node != null) return node;
+
+            Transform root = mainView?.GameObject?.transform;
+            Transform hierarchyTarget = root?.Find(path);
+            if (hierarchyTarget == null && path.StartsWith("Layer/", StringComparison.Ordinal))
+                hierarchyTarget = root?.Find(path.Substring("Layer/".Length));
+            if (hierarchyTarget == null && root != null)
+            {
+                string leafName = path.Substring(path.LastIndexOf('/') + 1);
+                hierarchyTarget = root.GetComponentsInChildren<Transform>(true)
+                    .FirstOrDefault(item => item.name == leafName);
+            }
+            return hierarchyTarget != null ? hierarchyTarget.gameObject : null;
+        }
+
         private void SetMainSubmenuVisible(string path, bool visible)
         {
-            GameObject submenu = mainView?.Binding.Find(path);
+            GameObject submenu = FindMainHudNode(path);
             RectTransform rect = submenu?.GetComponent<RectTransform>();
             if (rect == null) return;
             EnsureHudSubmenuOrigins();
@@ -12569,12 +12625,19 @@ namespace ProjectX.Core
         {
             if (mainView == null || chatMiniView == null) return;
             BindJingJieEntry();
+            GameObject shopEntry = FindMainHudNode(ShopPath);
+            if (shopEntry != null)
+                mainView.BindClickNode(shopEntry, HandleShopClick, true, ShopPath);
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
             mainView.BindClick("Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn",
                 () => HandleCommerceRoute(13), true);
             Button premium = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
             if (premium != null) premium.interactable = false;
-            mainView.BindClick("Layer/Main_UI/ButtonGroup1/btn_chuandai", ToggleWearSubmenu, true);
+            GameObject wearEntry = FindMainHudNode(EquipmentMenuPath);
+            if (wearEntry != null)
+                mainView.BindClickNode(wearEntry, OpenHeroEquipmentFromWearEntry, true, EquipmentMenuPath);
+            else
+                Debug.LogError($"Main HUD wear entry was not found: {EquipmentMenuPath}");
             BindHudBoundary(mainView, EquipmentBagPath, "装备业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FaBaoBagPath, "法宝业务不属于主界面 HUD，当前仅保留入口边界。");
             mainView.BindClick(ShopSubmenuPath, () => HandleCommerceRoute(13), true);
@@ -12582,15 +12645,11 @@ namespace ProjectX.Core
                 () => HandleCommerceRoute(15), true);
             BindHudBoundary(mainView, "Layer/Main_UI/tankuang1/btn_wanfa",
                 "玩法商店暂未纳入当前修复范围。");
-            BindHudBoundary(mainView, BagPath, "背包业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, HeroBagPath, "英雄背包业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, FormationPath, "阵容业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, RankingPath, "排行榜属于竞技/玩家依赖模块，当前不可用。");
             BindHudBoundary(mainView, DrawPath, "招募业务不属于主界面 HUD，当前仅保留入口边界。");
-            BindHudBoundary(mainView, GuildPath, "帮派业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup4/btn_Qiri", "七日活动属于运营模块，当前不可用。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup4/btn_shouchong", "首充与支付不属于 HUD，当前不可用。");
-            BindHudBoundary(mainView, TaskPath, "任务业务不属于主界面 HUD，当前仅保留入口边界。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup1/btn_fuli", "福利业务不属于 HUD，当前不可用。");
             BindHudBoundary(mainView, ActivityPath, "活动业务不属于 HUD，当前不可用。");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup1/btn_chongzhi", "充值与支付不属于 HUD，当前不可用。");
@@ -12599,7 +12658,6 @@ namespace ProjectX.Core
             mainView.BindClick(HeroRecyclePath, HandleHeroRecycleClick, true);
             BindHudBoundary(mainView, WorldPath, "世界与副本业务不属于主界面 HUD，当前仅保留入口边界。");
             mainView.BindClick(GameplayPath, HandleGameplayClick, true);
-            BindHudBoundary(mainView, "Layer/Main_UI/btn_online", "在线奖励领取属于 Welfare，HUD 仅显示状态。");
             for (int index = 1; index <= 3; index++)
                 BindHudBoundary(mainView, $"Layer/Main_UI/ButtonGroup8/btn_Zhekou{index}", "折扣礼包与支付不属于 HUD，当前不可用。");
             string[] conditionallyHidden =
@@ -12669,7 +12727,6 @@ namespace ProjectX.Core
             SetSteamHudFeatureVisible(MailPath, level >= 3);             // 1221 社交/邮件
             SetSteamHudFeatureVisible(EquipmentMenuPath, level >= 5);   // 1110 装备背包
             SetSteamHudFeatureVisible(MainCharacterPath, level >= 10);  // 1050 主角入口
-            SetSteamHudFeatureVisible(TaskPath, level >= 13);           // 10 每日任务
             SetSteamHudFeatureVisible(GameplayPath, level >= 29);       // 270 玩法
 
             SetSteamHudFeatureVisible(EquipmentBagPath, level >= 5);    // 1110 装备背包
@@ -12738,9 +12795,16 @@ namespace ProjectX.Core
             return passed;
         }
 
+        private void OpenHeroEquipmentFromWearEntry()
+        {
+            HideHudSubmenus();
+            heroEquipmentOpenPending = true;
+            InvokeLuaOrFail(onEquipmentBagClicked, "HeroEquipment.OpenEquipmentFromWearEntry");
+        }
+
         private void ToggleWearSubmenu()
         {
-            GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang2");
+            GameObject submenu = FindMainHudNode("Layer/Main_UI/tankuang2");
             RectTransform rect = submenu?.GetComponent<RectTransform>();
             if (rect == null) return;
             EnsureHudSubmenuOrigins();
@@ -12753,9 +12817,66 @@ namespace ProjectX.Core
             {
                 SetMainSubmenuVisible("Layer/Main_UI/tankuang1", false);
                 submenu.SetActive(true);
+                try
+                {
+                    hudWearSubmenuOrigin = CalculateWearSubmenuPosition(rect);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning($"Wear submenu position calculation failed; keeping fallback position. {exception.Message}");
+                }
                 ShowHudSubmenuDismissOverlay(rect);
-                hudWearSubmenuAnimation = StartCoroutine(AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f));
+                hudWearSubmenuAnimation = StartCoroutine(
+                    AnimateHudSubmenu(rect, hudWearSubmenuOrigin - new Vector2(0f, 24f), 24f));
             }
+        }
+
+        private Vector2 CalculateWearSubmenuPosition(RectTransform submenu)
+        {
+            RectTransform button = FindMainHudNode(EquipmentMenuPath)?.GetComponent<RectTransform>();
+            RectTransform parent = submenu.parent as RectTransform;
+            if (button == null || parent == null)
+                return hudWearSubmenuOrigin;
+
+            Canvas.ForceUpdateCanvases();
+            Canvas canvas = parent.GetComponentInParent<Canvas>();
+            Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                ? canvas.worldCamera
+                : null;
+            Vector2 buttonScreenPosition = RectTransformUtility.WorldToScreenPoint(eventCamera, button.position);
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    parent, buttonScreenPosition, eventCamera, out Vector2 buttonLocalPosition))
+                return hudWearSubmenuOrigin;
+
+            float panelWidth = submenu.rect.width * Mathf.Abs(submenu.localScale.x);
+            float panelHeight = submenu.rect.height * Mathf.Abs(submenu.localScale.y);
+            const float gap = 10f;
+
+            // tankuang2 uses a top-left pivot. Derive the position from the
+            // moved button's actual screen position, then convert it to the
+            // popup parent's local coordinates.
+            Vector2 pivotPosition = new Vector2(
+                buttonLocalPosition.x - panelWidth * submenu.pivot.x,
+                buttonLocalPosition.y + button.rect.height * 0.5f
+                    + panelHeight * submenu.pivot.y + gap);
+            Rect parentRect = parent.rect;
+            pivotPosition.x = Mathf.Clamp(
+                pivotPosition.x,
+                parentRect.xMin + submenu.pivot.x * panelWidth,
+                parentRect.xMax - (1f - submenu.pivot.x) * panelWidth);
+            pivotPosition.y = Mathf.Clamp(
+                pivotPosition.y,
+                parentRect.yMin + (1f - submenu.pivot.y) * panelHeight,
+                parentRect.yMax - submenu.pivot.y * panelHeight);
+
+            // anchoredPosition is relative to the RectTransform anchor
+            // reference, not the parent's local origin. tankuang2 is anchored
+            // at the parent's bottom-left, so convert the calculated parent
+            // local point back to anchored coordinates before assigning it.
+            Vector2 anchorReference = new Vector2(
+                Mathf.Lerp(parentRect.xMin, parentRect.xMax, submenu.anchorMin.x),
+                Mathf.Lerp(parentRect.yMin, parentRect.yMax, submenu.anchorMin.y));
+            return pivotPosition - anchorReference;
         }
 
         private void ShowHudSubmenuDismissOverlay(RectTransform submenu)
@@ -14419,6 +14540,7 @@ namespace ProjectX.Core
                 formationId => InvokeLuaOrFail(onFormationUse, "Hero.FormationUse", formationId),
                 message => ShowToast(message, 2f),
                 () => formationPopupView.SetVisible(false));
+            PrepareHeroFormationSurface(false);
             formationPopupView.SetVisible(true);
             formationPopupView.GameObject.transform.SetAsLastSibling();
             // Activate the surface before loading/playing Imod. Otherwise the
@@ -14728,6 +14850,14 @@ namespace ProjectX.Core
         {
             activeHeroCultivationId = 0;
             heroCultivationPresenter?.Hide();
+            if (heroHubOpen)
+            {
+                // Nested cultivation must return through the unified hub.
+                // The legacy ConfigureHeroFrame path hides and reorders the
+                // shared three-tab chrome.
+                ShowHeroHubTab(heroHubTab);
+                return;
+            }
             bool returnToBag = pendingHeroEntry == HeroEntry.Bag;
             SetHeroFramePageVisibility(!returnToBag, !returnToBag, returnToBag, false, false);
             ConfigureHeroFrame(returnToBag);
@@ -15463,7 +15593,7 @@ namespace ProjectX.Core
             Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "装备碎片";
             Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
-            SelectHeroEquipmentTab(tabs, false);
+            SelectHeroEquipmentTab(tabs, 2);
             heroEquipmentPresenter.HideDetails();
             heroEquipmentListView.SetVisible(false);
             SetOneLevelFrameVisible(true);
@@ -15479,6 +15609,19 @@ namespace ProjectX.Core
             heroFragmentBagActive = false;
             ConfigureHeroEquipmentFrame(HeroEquipmentKind.Equipment);
             heroEquipmentPresenter.RenderKind(HeroEquipmentKind.Equipment);
+            heroEquipmentFragmentView.SetVisible(false);
+            heroEquipmentListView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            heroEquipmentListView.GameObject.transform.SetAsLastSibling();
+        }
+
+        private void ShowHeroFaBaoListTab()
+        {
+            EnsureHeroEquipmentPresenter();
+            heroFragmentBagActive = false;
+            ConfigureHeroEquipmentFrame(HeroEquipmentKind.FaBao);
+            heroEquipmentPresenter.RenderKind(HeroEquipmentKind.FaBao);
             heroEquipmentFragmentView.SetVisible(false);
             heroEquipmentListView.SetVisible(true);
             SetOneLevelFrameVisible(true);
@@ -15827,13 +15970,15 @@ namespace ProjectX.Core
                 RestoreHeroAfterEquipmentSlot();
         }
 
-        private void SelectHeroEquipmentTab(Transform tabs, bool firstSelected)
+        private void SelectHeroEquipmentTab(Transform tabs, int selectedIndex)
         {
             Transform panel = tabs?.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             Transform second = panel?.Find("Button2_Runtime");
-            if (first != null) SetTabText(first, "装备", firstSelected);
-            if (second != null) SetTabText(second, "碎片", !firstSelected);
+            Transform third = panel?.Find("Button3_Runtime");
+            if (first != null) SetTabText(first, "装备", selectedIndex == 0);
+            if (second != null) SetTabText(second, "法宝", selectedIndex == 1);
+            if (third != null) SetTabText(third, "碎片", selectedIndex == 2);
         }
 
         private void RestoreHeroAfterEquipmentSlot()
@@ -15847,6 +15992,11 @@ namespace ProjectX.Core
             heroDetailView?.SetVisible(true);
             heroBagView?.SetVisible(false);
             SetOneLevelFrameVisible(true);
+            if (heroHubOpen)
+            {
+                ShowHeroHubTab(heroHubTab);
+                return;
+            }
             ConfigureHeroFrame(false);
             oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
         }
@@ -16190,9 +16340,10 @@ namespace ProjectX.Core
             Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform panel = tabs?.Find("Panel_10");
             Transform first = panel?.Find("Button1");
-            Transform second = panel?.Find("Button2_Runtime");
             if (first != null) SetTabText(first, "神将", true);
-            if (second != null) second.gameObject.SetActive(false);
+            if (panel != null)
+                foreach (Transform child in panel)
+                    if (child != first) child.gameObject.SetActive(false);
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", CloseHeroRecycle, true);
             SetOneLevelFrameVisible(true);
             oneLevelFrameView.GameObject.transform.SetAsLastSibling();
@@ -16954,6 +17105,14 @@ namespace ProjectX.Core
         private void RestoreHeroBagFromAuxiliary()
         {
             ReleaseHeroAuxiliaryViews();
+            if (heroHubOpen)
+            {
+                // HeroBook is an auxiliary page of the unified hero hub.
+                // Returning through the legacy bag path leaves Panel_10 in
+                // the book's two-tab state (神将/碎片) and loses 布阵.
+                ShowHeroHubTab(heroHubTab);
+                return;
+            }
             oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             ShowHeroBagListTab();
         }
@@ -17047,6 +17206,11 @@ namespace ProjectX.Core
             if (chosen != null) chosen.text = value;
             Transform choose = tab.Find("ChooseBg");
             if (choose != null) choose.gameObject.SetActive(selected);
+            // Panel_10 is reused by the hero hub, cultivation and recycle
+            // screens. Restore both label states on every transition so a
+            // reused Button1 cannot render the formation tab blank.
+            if (normal != null) normal.gameObject.SetActive(!selected);
+            if (chosen != null) chosen.gameObject.SetActive(selected);
             Image background = tab.GetComponent<Image>();
             if (background != null && !selected) background.color = new Color(1f, 1f, 1f, 0f);
             Button button = tab.GetComponent<Button>();
@@ -17201,17 +17365,15 @@ namespace ProjectX.Core
             Transform panel = tabs.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             if (first == null) return;
+            HideRuntimeTab(panel, "Button3_Runtime");
+            HideRuntimeTab(panel, "Button4_Runtime");
             foreach (Transform cultivationTab in panel.Cast<Transform>()
                 .Where(value => value.name.EndsWith("_StrengthRuntime", StringComparison.Ordinal)))
                 cultivationTab.gameObject.SetActive(false);
-            SetTabText(first, kind == HeroEquipmentKind.Equipment ? "装备" : "法宝", true);
+            SetTabText(first, "装备", kind == HeroEquipmentKind.Equipment);
             Button firstButton = EnsureRuntimeButton(first);
             firstButton.onClick.RemoveAllListeners();
-            if (kind == HeroEquipmentKind.Equipment)
-                firstButton.onClick.AddListener(ShowHeroEquipmentListTab);
-            else
-                firstButton.onClick.AddListener(() =>
-                    InvokeLuaOrFail(onFaBaoBagClicked, "HeroEquipment.TabFaBao"));
+            firstButton.onClick.AddListener(ShowHeroEquipmentListTab);
             Transform second = panel.Find("Button2_Runtime");
             if (second == null)
             {
@@ -17222,13 +17384,40 @@ namespace ProjectX.Core
             RectTransform secondRect = second as RectTransform;
             if (firstRect != null && secondRect != null)
                 secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
-            bool showFragments = kind == HeroEquipmentKind.Equipment;
-            second.gameObject.SetActive(showFragments);
-            SetTabText(second, "碎片", false);
-            Button shardButton = EnsureRuntimeButton(second);
-            shardButton.interactable = showFragments;
-            shardButton.onClick.RemoveAllListeners();
-            if (showFragments) shardButton.onClick.AddListener(ShowHeroEquipmentFragments);
+            second.gameObject.SetActive(true);
+            SetTabText(second, "法宝", kind == HeroEquipmentKind.FaBao);
+            Button faBaoButton = EnsureRuntimeButton(second);
+            faBaoButton.interactable = true;
+            faBaoButton.onClick.RemoveAllListeners();
+            faBaoButton.onClick.AddListener(ShowHeroFaBaoListTab);
+            Transform third = panel.Find("Button3_Runtime");
+            if (third == null)
+            {
+                third = Instantiate(first.gameObject, panel, false).transform;
+                third.name = "Button3_Runtime";
+            }
+            RectTransform thirdRect = third as RectTransform;
+            if (firstRect != null && thirdRect != null)
+                thirdRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -200f);
+            third.gameObject.SetActive(true);
+            SetTabText(third, "碎片", false);
+            Button fragmentButton = EnsureRuntimeButton(third);
+            fragmentButton.interactable = true;
+            fragmentButton.onClick.RemoveAllListeners();
+            fragmentButton.onClick.AddListener(ShowHeroEquipmentFragments);
+        }
+
+        private static void HideRuntimeTab(Transform panel, string name)
+        {
+            Transform tab = panel?.Find(name);
+            if (tab == null) return;
+            tab.gameObject.SetActive(false);
+            Button button = tab.GetComponent<Button>();
+            if (button != null)
+            {
+                button.interactable = false;
+                button.onClick.RemoveAllListeners();
+            }
         }
 
         private void BindHeroEquipmentCultivationPortrait()
@@ -17857,57 +18046,35 @@ namespace ProjectX.Core
                 root.localScale = Vector3.one;
             }
             RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
-            BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon1/AddBtn")?.transform, null, false);
-            BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon3/AddBtn")?.transform,
-                HandleShopClick, true);
-            BindTaskFrameButton(binding.Find("Layer/GoldCheck/GoldIcon4/AddBtn")?.transform, null, false);
-            EnsureShopRuntimeCloseButton(binding);
-        }
-
-        private void EnsureShopRuntimeCloseButton(CocosUiBinding frameBinding)
-        {
-            shopFramePanel = frameBinding.Find("Layer/Panel_12");
+            shopFramePanel = binding.Find("Layer/Panel_12");
             if (shopFramePanel == null)
                 throw new InvalidOperationException("Shop shared frame panel was not found: OneLevelLayer/Layer/Panel_12.");
-
             if (!shopFramePanelStateCaptured)
             {
                 shopFramePanelWasActive = shopFramePanel.activeSelf;
                 shopFramePanelStateCaptured = true;
             }
-
-            GameObject closeTemplate = frameBinding.Find("Layer/Panel_12/Title/CloseBtn");
-            GameObject shopRoot = shopView.Binding.Find("Layer/ShopUI");
-            if (closeTemplate == null || shopRoot == null)
-                throw new InvalidOperationException("Shop close template or ShopUI root was not found.");
-
-            if (shopRuntimeCloseButton == null)
-            {
-                shopRuntimeCloseButton = UnityEngine.Object.Instantiate(closeTemplate, shopRoot.transform, true);
-                shopRuntimeCloseButton.name = "RuntimeShopCloseButton";
-            }
-
-            shopRuntimeCloseButton.SetActive(true);
-            shopRuntimeCloseButton.transform.SetAsLastSibling();
-            Button close = shopRuntimeCloseButton.GetComponent<Button>()
-                ?? shopRuntimeCloseButton.AddComponent<Button>();
-            close.targetGraphic = shopRuntimeCloseButton.GetComponent<Graphic>()
-                ?? shopRuntimeCloseButton.GetComponentInChildren<Graphic>(true);
-            if (close.targetGraphic != null) close.targetGraphic.raycastTarget = true;
-            close.interactable = true;
-            close.onClick.RemoveAllListeners();
-            close.onClick.AddListener(CloseShop);
-
-            // Panel_12 is a full-screen touch surface. Keeping it active above
-            // shangcheng consumes the real EventSystem raycasts for every Shop control.
             shopFramePanel.SetActive(false);
+
+            shopGoldCheck = binding.Find("Layer/GoldCheck");
+            if (shopGoldCheck != null)
+            {
+                if (!shopGoldCheckStateCaptured)
+                {
+                    shopGoldCheckWasActive = shopGoldCheck.activeSelf;
+                    shopGoldCheckStateCaptured = true;
+                }
+                shopGoldCheck.SetActive(false);
+            }
         }
 
         private void CloseShop()
         {
+            shopHubOpen = false;
             shopPresenter?.ResetTransientState();
             errorPresenter?.Hide();
             rewardPresenter?.Hide();
+            bagPopupFrameView?.SetVisible(false);
             RestoreShopFramePanel();
             SetOneLevelFrameVisible(false);
             HandleBack();
@@ -17915,15 +18082,14 @@ namespace ProjectX.Core
 
         private void RestoreShopFramePanel()
         {
-            if (shopRuntimeCloseButton != null)
-            {
-                UnityEngine.Object.Destroy(shopRuntimeCloseButton);
-                shopRuntimeCloseButton = null;
-            }
             if (shopFramePanelStateCaptured && shopFramePanel != null)
                 shopFramePanel.SetActive(shopFramePanelWasActive);
+            if (shopGoldCheckStateCaptured && shopGoldCheck != null)
+                shopGoldCheck.SetActive(shopGoldCheckWasActive);
             shopFramePanel = null;
             shopFramePanelStateCaptured = false;
+            shopGoldCheck = null;
+            shopGoldCheckStateCaptured = false;
         }
 
         private void EnsureGameplayShopsPresenter()
@@ -17966,9 +18132,9 @@ namespace ProjectX.Core
 
         private void CloseGameplayShops()
         {
+            shopHubOpen = false;
             bagFlowPresenter?.HideGameplayShopSource();
             gameplayShopItemInfoPresenter?.Hide();
-            if (gameplayShopBackdrop != null) gameplayShopBackdrop.SetActive(false);
             bagPopupFrameView?.SetVisible(false);
             if (gameplayShopActivityLayerStateCaptured && gameplayShopActivityLayer != null)
                 gameplayShopActivityLayer.gameObject.SetActive(gameplayShopActivityLayerWasActive);
@@ -17995,6 +18161,72 @@ namespace ProjectX.Core
             gameplayShopActivityLayer = null;
             gameplayShopActivityLayerWasActive = false;
             gameplayShopActivityLayerStateCaptured = false;
+        }
+
+        private void ConfigureShopHubTabs(ShopHubTab selected)
+        {
+            if (bagPopupFrameView == null) return;
+            CocosUiBinding binding = bagPopupFrameView.Binding;
+            Transform tabs = binding.Find("Layer/shopBg/Btn_ListView")?.transform;
+            Transform template = tabs?.Find("Panel_1");
+            Transform popup = binding.Find("Layer/shopBg/Popup")?.transform;
+            Transform mask = binding.Find("Layer/shopBg/Mask")?.transform;
+            Transform image = binding.Find("Layer/shopBg/Image")?.transform;
+            if (tabs == null || template == null) return;
+
+            tabs.gameObject.SetActive(true);
+            if (selected == ShopHubTab.Shop)
+            {
+                // The shared shop frame stays open for the merged mall entry.
+                // Only its mask/image remain hidden because shangcheng owns the
+                // mall content surface.
+                popup?.gameObject.SetActive(true);
+                mask?.gameObject.SetActive(false);
+                image?.gameObject.SetActive(false);
+                bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", CloseShop, true);
+            }
+            else
+            {
+                popup?.gameObject.SetActive(true);
+                mask?.gameObject.SetActive(false);
+                image?.gameObject.SetActive(false);
+                Text title = binding.Find("Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
+                if (title != null) title.text = "将魂商店";
+                bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", CloseGameplayShops, true);
+            }
+
+            Transform secondPanel = tabs.Find("ShopHubPanel2_Runtime");
+            if (secondPanel == null)
+            {
+                secondPanel = Instantiate(template.gameObject, tabs, false).transform;
+                secondPanel.name = "ShopHubPanel2_Runtime";
+            }
+            RectTransform templateRect = template as RectTransform;
+            RectTransform secondRect = secondPanel as RectTransform;
+            if (templateRect != null && secondRect != null)
+                secondRect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -100f);
+
+            foreach (Transform child in tabs)
+                if (child != template && child != secondPanel)
+                    child.gameObject.SetActive(false);
+            template.gameObject.SetActive(true);
+            secondPanel.gameObject.SetActive(true);
+
+            ConfigureShopHubTab(template.Find("Button"), "商城", selected == ShopHubTab.Shop,
+                () => ShowShop());
+            ConfigureShopHubTab(secondPanel.Find("Button"), "将魂商店", selected == ShopHubTab.Soul,
+                ShowShopHubSoulTab);
+        }
+
+        private static void ConfigureShopHubTab(Transform tab, string label, bool selected, Action onClick)
+        {
+            if (tab == null) return;
+            SetGameplayShopTabText(tab, label, selected);
+            Button button = tab.GetComponent<Button>();
+            if (button == null) return;
+            button.onClick.RemoveAllListeners();
+            button.interactable = !selected;
+            if (!selected && onClick != null) button.onClick.AddListener(() => onClick());
         }
 
         private void ConfigureGameplayShopsFrame()
@@ -18056,24 +18288,6 @@ namespace ProjectX.Core
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
             bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", CloseGameplayShops, true);
-        }
-
-        private void EnsureGameplayShopBackdrop()
-        {
-            if (gameplayShopBackdrop != null) return;
-            Transform parent = bagPopupFrameView.GameObject.transform.parent;
-            gameplayShopBackdrop = new GameObject("GameplayShopBackdrop",
-                typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            gameplayShopBackdrop.transform.SetParent(parent, false);
-            RectTransform rect = (RectTransform)gameplayShopBackdrop.transform;
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            Image image = gameplayShopBackdrop.GetComponent<Image>();
-            image.color = Color.black;
-            image.raycastTarget = false;
-            gameplayShopBackdrop.SetActive(false);
         }
 
         private static void SetGameplayShopTabText(Transform tab, string value, bool selected)

@@ -12,7 +12,7 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
-        public const string JingJiePath = "Layer/Main_UI/ButtonGroup1/btn_jingjie";
+        public const string JingJiePath = "Layer/Bg/btn_jingjie";
         public const string JingJieHeadPath = "Layer/Main_UI/Head";
         private LuaFunction onJingJieClicked;
         private LuaFunction onJingJieUpgrade;
@@ -22,7 +22,7 @@ namespace ProjectX.Core
         private JingJieConfigData jingJieConfig;
         private bool jingJieEntrySubscribed;
         private bool jingJieValidationRunning;
-        private enum JingJieSurfaceMode { JingJie, Bag }
+        private enum JingJieSurfaceMode { JingJie, Bag, Mail, Settings }
         private JingJieSurfaceMode jingJieSurfaceMode = JingJieSurfaceMode.JingJie;
         private bool jingJieBagDataRequested;
 
@@ -33,9 +33,10 @@ namespace ProjectX.Core
         // lets the ordinary bag path hijack the shared frame.
         public bool IsJingJieOpen =>
             jingJieView?.GameObject.activeInHierarchy == true
-            || (jingJieSurfaceMode == JingJieSurfaceMode.Bag
-                && bagView?.GameObject.activeInHierarchy == true
-                && oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView);
+            || (oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView
+                && ((jingJieSurfaceMode == JingJieSurfaceMode.Bag && bagView?.GameObject.activeInHierarchy == true)
+                    || (jingJieSurfaceMode == JingJieSurfaceMode.Settings && settingsView?.GameObject.activeInHierarchy == true)
+                    || (jingJieSurfaceMode == JingJieSurfaceMode.Mail && mailView?.GameObject.activeInHierarchy == true)));
         public bool IsJingJiePreviewOpen => jingJieRenderBridge?.IsPreviewVisible == true;
         // True while the Jingjie page is showing its embedded 背包 tab. EndBagUpdate
         // consults this so the /8 response refreshes the store without navigating
@@ -316,6 +317,15 @@ namespace ProjectX.Core
         public void ShowJingJie()
         {
             EnsureJingJieBridge();
+            if (heroHubOpen)
+            {
+                // The shared OneLevelLayer can be reused directly from the
+                // hero-fragment page. Clear the hero-hub ownership before
+                // configuring the four-tab player hub.
+                heroHubOpen = false;
+                heroFragmentBagActive = false;
+                HideHeroHubContent();
+            }
             HideOtherOneLevelChildren();
             ConfigureJingJieFrame();
             SetOneLevelFrameVisible(true);
@@ -403,6 +413,15 @@ namespace ProjectX.Core
                 jingJieBagDataRequested = false;
                 RestoreJingJieFrameOrder();
             }
+            else if (jingJieSurfaceMode == JingJieSurfaceMode.Mail)
+            {
+                bagFlowPresenter?.CloseAll();
+                mailView?.SetVisible(false);
+            }
+            else if (jingJieSurfaceMode == JingJieSurfaceMode.Settings)
+            {
+                settingsView?.SetVisible(false);
+            }
             jingJieRenderBridge.Hide();
             if (!PopUiStackWithHudRefresh())
             {
@@ -471,6 +490,14 @@ namespace ProjectX.Core
             Transform second = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
             if (second != null) second.gameObject.SetActive(true);
             SetJingJieTabs(first, second, true);
+            // Panel_10 is shared with other first-class pages. Only the four
+            // player-hub tabs may remain visible here.
+            Transform tabPanel = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            if (tabPanel != null)
+                foreach (Transform child in tabPanel)
+                    if (child != first && child.name != "Button2_Runtime"
+                        && child.name != "Button3_Runtime" && child.name != "Button4_Runtime")
+                        child.gameObject.SetActive(false);
             RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
             foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
@@ -478,39 +505,58 @@ namespace ProjectX.Core
 
         private void SetJingJieTabs(Transform first, Transform second, bool selectedFirst = true)
         {
-            if (first != null) SetTabText(first, "境界", selectedFirst);
-            // Button2_Runtime is NOT a preset node in JingJie's OneLevelFrame; it
-            // must be runtime-cloned from Button1, matching the established two-tab
-            // pattern (e.g. SelectHeroEquipmentTab's 装备/碎片 pair). Without this
-            // clone the "背包" tab is never created, so Find() returns null and the
-            // tab silently never appears.
-            if (first != null && second == null)
+            ConfigureMergedTabs(selectedFirst ? 0 : 1);
+        }
+
+        private void ConfigureMergedTabs(int selectedIndex)
+        {
+            Transform panel = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform first = panel?.Find("Button1");
+            if (first == null) return;
+            Transform[] tabs =
             {
-                second = Instantiate(first.gameObject, first.parent, false).transform;
-                second.name = "Button2_Runtime";
-            }
-            if (second != null)
+                first,
+                EnsureRuntimeTab(panel, "Button2_Runtime", first, -100f),
+                EnsureRuntimeTab(panel, "Button3_Runtime", first, -200f),
+                EnsureRuntimeTab(panel, "Button4_Runtime", first, -300f)
+            };
+            string[] labels = { "境界", "背包", "邮件", "系统" };
+            Action[] actions = { ShowJingJieSurface, ShowJingJieBag, ShowMergedMail, ShowMergedSettings };
+            for (int index = 0; index < tabs.Length; index++)
             {
-                RectTransform firstRect = first as RectTransform;
-                RectTransform secondRect = second as RectTransform;
-                if (firstRect != null && secondRect != null)
-                    secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
-                SetTabText(second, "背包", !selectedFirst);
-                second.gameObject.SetActive(true);
-                Button secondButton = EnsureTabClick(second);
-                secondButton.onClick.RemoveAllListeners();
-                secondButton.onClick.AddListener(ShowJingJieBag);
+                Transform tab = tabs[index];
+                if (tab == null) continue;
+                tab.gameObject.SetActive(true);
+                SetTabText(tab, labels[index], index == selectedIndex);
+                Button button = EnsureTabClick(tab);
+                button.onClick.RemoveAllListeners();
+                Action action = actions[index];
+                button.onClick.AddListener(() => action());
             }
-            if (first != null)
-            {
-                Button firstButton = EnsureTabClick(first);
-                firstButton.onClick.RemoveAllListeners();
-                firstButton.onClick.AddListener(ShowJingJieSurface);
-            }
-            jingJieSurfaceMode = selectedFirst ? JingJieSurfaceMode.JingJie : JingJieSurfaceMode.Bag;
+            if (panel != null)
+                foreach (Transform child in panel)
+                    if (child != tabs[0] && child != tabs[1] && child != tabs[2] && child != tabs[3])
+                        child.gameObject.SetActive(false);
+            jingJieSurfaceMode = (JingJieSurfaceMode)selectedIndex;
             // Order the frame so this surface's tabs win the raycast against the
             // embedded bag grid (see RaiseJingJieTabs for why not a Canvas).
-            RaiseJingJieTabs(!selectedFirst);
+            RaiseJingJieTabs(selectedIndex == 1);
+        }
+
+        private static Transform EnsureRuntimeTab(Transform panel, string name, Transform template, float yOffset)
+        {
+            if (panel == null || template == null) return null;
+            Transform tab = panel.Find(name);
+            if (tab == null)
+            {
+                tab = Instantiate(template.gameObject, panel, false).transform;
+                tab.name = name;
+            }
+            RectTransform source = template as RectTransform;
+            RectTransform target = tab as RectTransform;
+            if (source != null && target != null)
+                target.anchoredPosition = source.anchoredPosition + new Vector2(0f, yOffset);
+            return tab;
         }
 
         // Makes a tab clickable WITHOUT touching the state SetTabText just installed.
@@ -767,6 +813,55 @@ namespace ProjectX.Core
             // SetJingJieTabs ends by calling RaiseJingJieTabs(true), which pins
             // Panel_12 to the top of the frame — the sibling order we want here.
             SetJingJieTabs(first, second, false);
+        }
+
+        private void ShowMergedMail()
+        {
+            EnsureMailPresenter();
+            if (mailView == null) return;
+            HideOtherOneLevelChildren();
+            jingJieView?.SetVisible(false);
+            jingJiePreviewView?.SetVisible(false);
+            bagView?.SetVisible(false);
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
+            frame.Apply(OneLevelFrameMode.Standard);
+            frame.AttachContent(mailView);
+            ConfigureMailFrame();
+            mailView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "主角";
+            ConfigureMergedTabs(2);
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            mailView.GameObject.transform.SetAsLastSibling();
+            SetStatus($"Merged player hub mail active: {services.Mails.Count} mails.");
+        }
+
+        private void ShowMergedSettings()
+        {
+            EnsureSettingsPresenter();
+            if (settingsView == null) return;
+            HideOtherOneLevelChildren();
+            jingJieView?.SetVisible(false);
+            jingJiePreviewView?.SetVisible(false);
+            bagView?.SetVisible(false);
+            mailView?.SetVisible(false);
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
+            frame.Apply(OneLevelFrameMode.Standard);
+            frame.AttachContent(settingsView);
+            settingsPresenter.Refresh();
+            settingsView.SetVisible(true);
+            SetOneLevelFrameVisible(true);
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
+            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = "主角";
+            ConfigureMergedTabs(3);
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            settingsView.GameObject.transform.SetAsLastSibling();
+            SetStatus("Merged player hub settings active.");
         }
 
         private void DisposeJingJie()

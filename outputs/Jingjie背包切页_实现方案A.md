@@ -936,3 +936,84 @@ Button2(背包)  alpha=0.00  interactable=True   ChooseBg=False  ✅ 未选中
    需要"手动控制 Graphic 的 alpha"时，必须同时 `transition = None` 或把 `targetGraphic` 移出那个 Graphic。
 4. **点击问题的正解是"加一个透明射线载体"，不是"打开视觉图层"。**
    载体 alpha 0 + `raycastTarget=true` + `cull=false` 即可命中，且完全不影响美术。
+
+---
+
+## 14. 实机回归（第八轮，2026-09-17）：关闭口径 → 「任一界面一次关整页」
+
+### 14.1 现象（用户反馈）
+
+`头像 → 境界 → 背包`，在背包里点右上角 X，**先返回境界界面，要点第二次才关掉整页**。
+
+> 用户裁决：**「应该是在境界、背包任一界面中点击关闭，都把整个节点关闭。」**
+
+### 14.2 根因
+
+`ProjectXApp.JingJie.cs` 的 `TryHandleJingJieBack()` 里，Bag 分支是「两段式后退」：
+
+```csharp
+if (jingJieSurfaceMode == JingJieSurfaceMode.Bag)
+{
+    ShowJingJieSurface();   // ❌ 退回境界面，而不是关页
+    return true;
+}
+jingJieRenderBridge.Hide();
+return PopUiStackWithHudRefresh();
+```
+
+这是我为了「背包里 X 别把整页关掉」而刻意做的设计，与用户现在的要求相反。
+
+### 14.3 修复
+
+两个 surface **收敛到同一条终止路径**，只在关页前额外拆掉背包面：
+
+```csharp
+// USER RULING (2026-09-17): the X button dismisses the WHOLE shared frame from
+// either surface. Bag mode used to call ShowJingJieSurface() first, which stepped
+// back to 境界 and required a SECOND press to actually leave (reported defect).
+if (jingJieSurfaceMode == JingJieSurfaceMode.Bag)
+{
+    bagFlowPresenter?.CloseAll();      // 先关掉可能开着的使用/来源等子弹层
+    bagView?.SetVisible(false);
+    jingJieBagDataRequested = false;   // 下次进背包重新拉 /8 快照
+    RestoreJingJieFrameOrder();        // Bg < Panel_12 < GoldCheck
+}
+jingJieRenderBridge.Hide();
+if (!PopUiStackWithHudRefresh())
+{
+    // 栈内无可 pop（帧即根视图）→ 显式收起，避免留下「无内容的空帧」
+    SetOneLevelFrameVisible(false);
+}
+return true;                           // 原先直接 return PopUiStackWithHudRefresh()
+```
+
+两点补充说明：
+
+1. **`return true`（而非 `return PopUiStackWithHudRefresh()`）是必要的。** `HandleBack()`（`ProjectXApp.cs:1384`）
+   以「返回 `true` 即已处理」来决定是否继续向下派发；若 pop 失败返回 `false`，后续 handler 会被继续执行。
+2. **`HandleBack()` 走同一方法 ⇒ 返回键 / Esc 在背包面也直接关整页**，与 X 一致。
+
+### 14.4 第八轮验收（Slot01，MCP `InvokeEventSystemRaycastClick` 真实射线点击）
+
+| 路径 | 点击一次 X 之后 | 判定 |
+|---|---|---|
+| 头像 → 境界 → X | `frame=False bag=False jj=False uimain=True` | ✅ 一次关整页 |
+| **头像 → 境界 → 背包 → X** | `frame=False bag=False jj=False uimain=True` | ✅ 一次关整页（本次修复点） |
+| 头像 → 境界 → 背包 → 切回境界 → X | `frame=False` | ✅ 一次关整页 |
+| **普通背包入口 `btn_Bag` → X** | `frame=False` | ✅ 未回归（`frameVisible` 回退分支仍生效） |
+
+帧根子节点顺序复核：
+
+```
+境界态  [0] Bg  [1] Panel_12  [2] GoldCheck  [3] DynamicUi_beibao(off)  [4] DynamicUi_JingjieLayer(on)
+背包态  [0] Bg  [1] Panel_12  [2] GoldCheck  [3] DynamicUi_JingjieLayer(off)  [4] DynamicUi_Jingjieyulan(off)  [5] DynamicUi_beibao(on)
+```
+
+console **0 error / 0 warning**。
+
+### 14.5 教训
+
+- **`TryHandleJingJieBack()` 现在是「帧的唯一出口」**：BagPresenter 的 `CloseBtn` 回调被 `ShowJingJieBag()` 接管后，
+  普通背包入口的 X 也走这个方法（靠 `frameVisible` 回退分支）。**任何在其中的 `return false` 都必须先证明
+  「确实没有别的东西可以处理」**，否则 X 会静默死掉（第二轮踩过）。
+- **共享帧的关闭语义应在写第一版时就和用户对齐**：「后退一层」还是「直接关页」是产品口径，不是实现细节。

@@ -13,7 +13,7 @@ namespace ProjectX.LuaRuntime
     [LuaCallCSharp]
     public sealed class FirstPlayableLoopBridge : MonoBehaviour
     {
-        public const string BagPath = "Layer/Main_UI/ButtonGroup1/btn_Bag";
+        public const string BagPath = "Layer/Bg/btn_Bag";
         public const string LoginButtonPath = "Layer/Login/Btn_Login";
 
         private NetworkService network;
@@ -151,6 +151,11 @@ namespace ProjectX.LuaRuntime
             try
             {
                 mainView = mainView ?? uiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
+                if (mainView.Binding.Find(BagPath) == null)
+                {
+                    SetStatus("Legacy main-HUD bag entry is removed from UImainLayer_new.");
+                    return;
+                }
                 Button button = mainView.BindClick(BagPath, HandleBagClick, true);
                 SetStatus("Main UI ready. Bag click is bound to BagController.");
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
