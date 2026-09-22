@@ -1198,13 +1198,26 @@ namespace ProjectX.UI
         {
             Text normal = tab.Find("BtnName")?.GetComponent<Text>();
             Text chosen = tab.Find("ChooseBg/BtnName")?.GetComponent<Text>();
+            Transform choose = tab.Find("ChooseBg");
+            if (choose != null) choose.gameObject.SetActive(selected);
+
+            bool hasVisibleSelectedLabel = selected && chosen != null;
+            if (chosen != null)
+            {
+                chosen.text = label;
+                chosen.enabled = true;
+                Color chosenColor = chosen.color;
+                chosenColor.a = 1f;
+                chosen.color = chosenColor;
+                chosen.gameObject.SetActive(selected);
+            }
             if (normal != null)
             {
                 normal.text = label;
-                normal.gameObject.SetActive(!selected);
+                // Some reused/runtime tabs have no selected-state label. Keep
+                // the ordinary label as the visible fallback in that case.
+                normal.gameObject.SetActive(!hasVisibleSelectedLabel);
             }
-            if (chosen != null) chosen.text = label;
-            Transform choose = tab.Find("ChooseBg"); if (choose != null) choose.gameObject.SetActive(selected);
             Button button = tab.GetComponent<Button>(); if (button != null) button.interactable = !selected;
         }
         private static void SetText(CocosUiView view, string path, string value)

@@ -14,12 +14,14 @@ namespace ProjectX.UI
         private const float RowSpacing = 2f;
         private const float FirstRowTopOffset = 65f;
         private const float ActivityHorizontalLayoutCorrection = -16f;
+        private static readonly Color LockedColor = new Color32(128, 128, 128, 255);
 
         private readonly CocosUiView frameView;
         private readonly CocosUiView contentView;
         private readonly GameplayStore store;
         private readonly ResourceService resources;
         private readonly Action<int> enter;
+        private readonly Action<GameplayDefinition> locked;
         private readonly Action close;
         private readonly List<GameObject> runtimeRows = new List<GameObject>();
         private readonly Dictionary<int, Button> enterButtons = new Dictionary<int, Button>();
@@ -30,13 +32,15 @@ namespace ProjectX.UI
         private Text frameTitle;
 
         public GameplayPresenter(CocosUiView frameView, CocosUiView contentView,
-            GameplayStore store, ResourceService resources, Action<int> enter, Action close)
+            GameplayStore store, ResourceService resources, Action<int> enter,
+            Action<GameplayDefinition> locked, Action close)
         {
             this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
             this.contentView = contentView ?? throw new ArgumentNullException(nameof(contentView));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.enter = enter ?? throw new ArgumentNullException(nameof(enter));
+            this.locked = locked ?? throw new ArgumentNullException(nameof(locked));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
 
             NormalizeRoot(frameView.GameObject.transform);
@@ -245,7 +249,8 @@ namespace ProjectX.UI
             card.gameObject.name = $"Function_{value.Definition.Id}";
             card.gameObject.SetActive(true);
             int functionId = value.Definition.Id;
-            Button cardButton = card.GetComponent<Button>();
+            bool isLocked = !value.IsOpen;
+            Button cardButton = card.GetComponent<Button>() ?? card.gameObject.AddComponent<Button>();
             if (cardButton != null)
             {
                 cardButton.onClick.RemoveAllListeners();
@@ -259,16 +264,23 @@ namespace ProjectX.UI
                 colors.fadeDuration = 0f;
                 cardButton.colors = colors;
                 cardButton.transition = Selectable.Transition.None;
-                cardButton.interactable = false;
+                cardButton.interactable = isLocked;
+                if (isLocked) cardButton.onClick.AddListener(() => locked(value.Definition));
                 if (cardButton.targetGraphic != null) cardButton.targetGraphic.color = Color.white;
             }
 
             SetNamedText(card, "TaskName", value.Definition.Name);
             Text taskName = FindDirect(card, "TaskName")?.GetComponent<Text>();
-            if (taskName != null) taskName.alignment = TextAnchor.MiddleLeft;
+            if (taskName != null)
+            {
+                taskName.alignment = TextAnchor.MiddleLeft;
+                taskName.color = isLocked ? LockedColor : Color.white;
+            }
             Transform openLevel = FindDirect(card, "OpenLevel");
             SetText(openLevel, $"{value.Definition.OpenLevel}级开启");
-            SetVisible(openLevel, !value.IsOpen);
+            SetVisible(openLevel, isLocked);
+            Text openLevelText = openLevel?.GetComponent<Text>();
+            if (openLevelText != null) openLevelText.color = LockedColor;
 
             Transform enterButton = FindDirect(card, "EnterBtn");
             SetVisible(enterButton, value.IsOpen);
@@ -286,9 +298,10 @@ namespace ProjectX.UI
                 icon.sprite = sprite;
                 icon.enabled = sprite != null;
                 icon.preserveAspect = true;
+                icon.color = isLocked ? LockedColor : Color.white;
             }
             if (sprite == null) MissingIconCount++;
-            SetVisible(FindDirect(card, "Prompt"), value.HasHotPoint);
+            SetVisible(FindDirect(card, "Prompt"), value.IsOpen && value.HasHotPoint);
             SetVisible(FindDirect(card, "Choose"), false);
             SetVisible(FindDirect(card, "State"), false);
             SetVisible(FindDirect(card, "win"), false);
@@ -301,7 +314,11 @@ namespace ProjectX.UI
             {
                 if (!child.name.StartsWith("Function_", StringComparison.Ordinal)) continue;
                 Button button = child.GetComponent<Button>();
-                if (button != null && button.interactable) return false;
+                if (button == null || !button.interactable) continue;
+                // A locked card is intentionally clickable so it can explain its
+                // unlock condition. The actual EnterBtn remains inert/hidden.
+                Transform enterButton = FindDirect(child, "EnterBtn");
+                if (enterButton == null || enterButton.gameObject.activeSelf) return false;
             }
             return true;
         }

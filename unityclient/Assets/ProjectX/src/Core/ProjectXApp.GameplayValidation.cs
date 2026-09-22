@@ -116,7 +116,7 @@ namespace ProjectX.Core
                     yield break;
                 }
                 RecordValidationSemantic("gameplay-card-body-inert", true,
-                    "TaskBtn1/2 keep non-interactable Button bodies; only EnterBtn has a listener");
+                    "unlocked TaskBtn1/2 bodies remain inert; locked cards use the body only to show their unlock condition");
                 bool cacheOwnerSafe = services.ProtocolRegistry.PendingCount == pendingAtEntry;
                 RecordValidationSemantic("gameplay-redpoint-shared-owner", cacheOwnerSafe,
                     $"Gameplay open sent no /65; shared cache rendered current states; pending={pendingAtEntry}->{services.ProtocolRegistry.PendingCount}");

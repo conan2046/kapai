@@ -266,9 +266,10 @@ namespace ProjectX.Core
 
         private void HandleJingJieClick()
         {
-            if (services.Player.Level < 10)
+            FunctionUnlockDefinition unlock = FunctionUnlockCatalog.Resolve(22);
+            if (services.Player.Level < unlock.OpenLevel)
             {
-                ShowToast("10级开启主角境界", 2f);
+                ShowToast($"{unlock.OpenLevel}级开启主角境界", 2f);
                 return;
             }
             InvokeLuaOrFail(onJingJieClicked, "JingJie.Open");
@@ -277,8 +278,12 @@ namespace ProjectX.Core
         private void BindJingJieEntry()
         {
             if (mainView == null) return;
-            mainView.BindClick(JingJiePath, HandleJingJieClick, true);
-            mainView.BindClick(JingJieHeadPath, HandleJingJieClick, true);
+            GameObject entry = FindMainHudNode(JingJiePath);
+            if (entry != null)
+                mainView.BindClickNode(entry, HandleJingJieClick, true, JingJiePath);
+            GameObject head = FindMainHudNode(JingJieHeadPath);
+            if (head != null)
+                mainView.BindClickNode(head, HandleJingJieClick, true, JingJieHeadPath);
             if (!jingJieEntrySubscribed)
             {
                 services.Player.Changed += RefreshJingJieEntry;
@@ -289,8 +294,11 @@ namespace ProjectX.Core
 
         private void RefreshJingJieEntry()
         {
-            GameObject entry = mainView?.Binding.Find(JingJiePath);
-            if (entry != null) entry.SetActive(services?.Player.Level >= 10);
+            GameObject entry = FindMainHudNode(JingJiePath);
+            if (entry == null) return;
+            bool locked = services?.Player.Level < FunctionUnlockCatalog.Resolve(22).OpenLevel;
+            entry.SetActive(true);
+            SetHudFeatureVisual(entry.transform, locked);
         }
 
         private bool ValidateJingJieCurrencyHeader(out string detail)
@@ -708,6 +716,12 @@ namespace ProjectX.Core
 
         private void ShowJingJieSurface()
         {
+            // All player-hub pages share OneLevelLayer. Switching back from
+            // Settings/Mail must explicitly hide the previous content; UiStack
+            // only owns the shared frame root, not its dynamically attached
+            // children.
+            settingsView?.SetVisible(false);
+            mailView?.SetVisible(false);
             bagView?.SetVisible(false);
             // Allow the next 背包 entry to re-request the authoritative snapshot.
             jingJieBagDataRequested = false;
@@ -716,6 +730,7 @@ namespace ProjectX.Core
             RestoreJingJieFrameOrder();
             jingJieView?.SetVisible(true);
             jingJiePreviewView?.SetVisible(false);
+            jingJieView?.GameObject.transform.SetAsLastSibling();
             jingJieRenderBridge?.Show();
             Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "主角";

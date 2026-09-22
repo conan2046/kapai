@@ -5012,7 +5012,9 @@ namespace ProjectX.Core
             BindHudBoundary(mainView, FriendPath, "好友业务属于 Social，当前仅保留入口边界。");
             mainView.BindClick(HeroRecyclePath, HandleHeroRecycleClick, true);
             BindHudBoundary(mainView, WorldPath, "世界与副本业务不属于主界面 HUD，当前仅保留入口边界。");
-            mainView.BindClick(GameplayPath, HandleGameplayClick, true);
+            GameObject gameplayEntry = FindMainHudNode(GameplayPath);
+            if (gameplayEntry != null)
+                mainView.BindClickNode(gameplayEntry, HandleGameplayClick, true, GameplayPath);
             for (int index = 1; index <= 3; index++)
                 BindHudBoundary(mainView, $"Layer/Main_UI/ButtonGroup8/btn_Zhekou{index}", "折扣礼包与支付不属于 HUD，当前不可用。");
             string[] conditionallyHidden =
@@ -5078,26 +5080,59 @@ namespace ProjectX.Core
             int level = services.Player.Level;
 
             // Unity equivalent of Cocos MainUI:SetButtonVisible/dealFunctionOpen.
-            // A locked feature owns neither a visible icon nor a visible Prompt.
-            SetSteamHudFeatureVisible(MailPath, level >= 3);             // 1221 社交/邮件
-            SetSteamHudFeatureVisible(EquipmentMenuPath, level >= 5);   // 1110 装备背包
-            SetSteamHudFeatureVisible(MainCharacterPath, level >= 10);  // 1050 主角入口
-            SetSteamHudFeatureVisible(GameplayPath, level >= 29);       // 270 玩法
-
-            SetSteamHudFeatureVisible(EquipmentBagPath, level >= 5);    // 1110 装备背包
-            SetSteamHudFeatureVisible(FaBaoBagPath, level >= 15);       // 1180 法宝系统
-            SetSteamHudFeatureVisible("Layer/Main_UI/tankuang1/btn_jianghun", level >= 2);
-            SetSteamHudFeatureVisible("Layer/Main_UI/tankuang1/btn_wanfa", false);
+            // Locked entries remain in the HUD as grey icon/text and explain their
+            // level requirement when clicked. Rebind first so a feature that becomes
+            // available after a level-up regains its normal route callback.
+            BindPlayerHudControls();
+            SetSteamHudFeatureVisible(MailPath, FunctionUnlockCatalog.Resolve(1221).OpenLevel, "邮件", level);
+            SetSteamHudFeatureVisible(EquipmentMenuPath, FunctionUnlockCatalog.Resolve(1110).OpenLevel, "装备", level);
+            SetSteamHudFeatureVisible(MainCharacterPath, FunctionUnlockCatalog.Resolve(1050).OpenLevel, "主角", level);
+            SetSteamHudFeatureVisible(GameplayPath, FunctionUnlockCatalog.Resolve(1170).OpenLevel, "玩法", level);
+            SetSteamHudFeatureVisible(EquipmentBagPath, FunctionUnlockCatalog.Resolve(1110).OpenLevel, "装备背包", level);
+            SetSteamHudFeatureVisible(FaBaoBagPath, FunctionUnlockCatalog.Resolve(1180).OpenLevel, "法宝", level);
+            SetSteamHudFeatureVisible("Layer/Main_UI/tankuang1/btn_jianghun",
+                FunctionUnlockCatalog.Resolve(15).OpenLevel, "将魂商店", level);
         }
 
-        private void SetSteamHudFeatureVisible(string path, bool visible)
+        private void SetSteamHudFeatureVisible(string path, int requiredLevel, string featureName, int level)
         {
-            GameObject node = mainView?.Binding.Find(path);
+            GameObject node = FindMainHudNode(path);
             if (node == null) return;
-            node.SetActive(visible);
-            if (visible) return;
-            foreach (Transform child in node.GetComponentsInChildren<Transform>(true))
-                if (child.name == "Prompt") child.gameObject.SetActive(false);
+            bool locked = level < requiredLevel;
+            node.SetActive(true);
+            SetHudFeatureVisual(node.transform, locked);
+
+            Button button = node.GetComponent<Button>();
+            if (button == null) return;
+            button.interactable = true;
+            if (!locked) return;
+
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
+            {
+                string message = $"达到{requiredLevel}级后解锁{featureName}";
+                ShowToast(message, 3f);
+                SetStatus($"HUD feature locked: path={path}, requiredLevel={requiredLevel}, currentLevel={services.Player.Level}.");
+            });
+        }
+
+        private static void SetHudFeatureVisual(Transform root, bool locked)
+        {
+            Color color = locked ? new Color32(128, 128, 128, 255) : Color.white;
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.name == "Prompt")
+                {
+                    if (locked) child.gameObject.SetActive(false);
+                    continue;
+                }
+
+                bool iconOrLabel = child == root || child.name == "temp_bg" || child.name == "temp_text"
+                    || child.name == "Icon" || child.name == "Text" || child.name == "Label";
+                if (!iconOrLabel) continue;
+                foreach (Graphic graphic in child.GetComponents<Graphic>())
+                    graphic.color = color;
+            }
         }
 
         private IEnumerator CaptureSteamHudExclusionAcceptance()
@@ -6496,9 +6531,9 @@ namespace ProjectX.Core
                     return;
                 }
             }
-            else if (services.Player.Level < 15)
+            else if (services.Player.Level < FunctionUnlockCatalog.Resolve(1180).OpenLevel)
             {
-                ShowToast("15级开启，上仙请升级", 2f);
+                ShowToast($"{FunctionUnlockCatalog.Resolve(1180).OpenLevel}级开启，上仙请升级", 2f);
                 return;
             }
 
@@ -9034,7 +9069,14 @@ namespace ProjectX.Core
                 throw new InvalidOperationException("Current Gameplay imported CocosUiBindings were not found by full relative path.");
             gameplayPresenter = gameplayPresenter ?? new GameplayPresenter(gameplayView, gameplayContentView,
                 services.Gameplay, services.Resources,
-                id => InvokeLuaOrFail(onGameplayEntered, "Gameplay.Entered", (double)id), () => HandleBack());
+                id => InvokeLuaOrFail(onGameplayEntered, "Gameplay.Entered", (double)id),
+                definition =>
+                {
+                    string message = $"达到{definition.OpenLevel}级后解锁{definition.Name}";
+                    ShowToast(message, 3f);
+                    SetStatus($"Gameplay locked: id={definition.Id}, requiredLevel={definition.OpenLevel}, currentLevel={services.Player.Level}.");
+                },
+                () => HandleBack());
         }
 
         private void EnsureYouLiPresenter()

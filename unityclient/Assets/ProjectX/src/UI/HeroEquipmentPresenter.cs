@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
+using ProjectX.Core;
 using ProjectX.Data;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -1428,7 +1429,8 @@ namespace ProjectX.UI
 
         private bool CanOpenCultivation(DisplayRecord item, int mode)
         {
-            int minimumLevel = mode == 0 ? 6 : mode == 1 ? 30 : mode == 2 ? 50 : 70;
+            int[] functionIds = { 1120, 1130, 1140, 1150 };
+            int minimumLevel = FunctionUnlockCatalog.Resolve(functionIds[Mathf.Clamp(mode, 0, functionIds.Length - 1)]).OpenLevel;
             if (getPlayerLevel() < minimumLevel)
             {
                 showFeedback?.Invoke($"{minimumLevel}级开启");
