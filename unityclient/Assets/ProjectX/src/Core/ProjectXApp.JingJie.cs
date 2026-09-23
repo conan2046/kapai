@@ -22,8 +22,7 @@ namespace ProjectX.Core
         private JingJieConfigData jingJieConfig;
         private bool jingJieEntrySubscribed;
         private bool jingJieValidationRunning;
-        private enum JingJieSurfaceMode { JingJie, Bag, Mail, Settings }
-        private JingJieSurfaceMode jingJieSurfaceMode = JingJieSurfaceMode.JingJie;
+        private PlayerHubTab jingJieSurfaceMode = PlayerHubTab.JingJie;
         private bool jingJieBagDataRequested;
 
         // The Jingjie PAGE is open when either of its two surfaces is on screen:
@@ -34,15 +33,15 @@ namespace ProjectX.Core
         public bool IsJingJieOpen =>
             jingJieView?.GameObject.activeInHierarchy == true
             || (oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView
-                && ((jingJieSurfaceMode == JingJieSurfaceMode.Bag && bagView?.GameObject.activeInHierarchy == true)
-                    || (jingJieSurfaceMode == JingJieSurfaceMode.Settings && settingsView?.GameObject.activeInHierarchy == true)
-                    || (jingJieSurfaceMode == JingJieSurfaceMode.Mail && mailView?.GameObject.activeInHierarchy == true)));
+                && ((jingJieSurfaceMode == PlayerHubTab.Bag && bagView?.GameObject.activeInHierarchy == true)
+                    || (jingJieSurfaceMode == PlayerHubTab.Settings && settingsView?.GameObject.activeInHierarchy == true)
+                    || (jingJieSurfaceMode == PlayerHubTab.Mail && mailView?.GameObject.activeInHierarchy == true)));
         public bool IsJingJiePreviewOpen => jingJieRenderBridge?.IsPreviewVisible == true;
         // True while the Jingjie page is showing its embedded 背包 tab. EndBagUpdate
         // consults this so the /8 response refreshes the store without navigating
         // the shared frame back to the ordinary bag surface.
         public bool IsJingJieBagSurfaceActive =>
-            IsJingJieOpen && jingJieSurfaceMode == JingJieSurfaceMode.Bag;
+            IsJingJieOpen && jingJieSurfaceMode == PlayerHubTab.Bag;
         public int JingJieCurrentId => services?.JingJie.CurrentId ?? 0;
 
         public void BeginJingJieValidation()
@@ -338,7 +337,6 @@ namespace ProjectX.Core
             ConfigureJingJieFrame();
             SetOneLevelFrameVisible(true);
             jingJieRenderBridge.Show();
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
             SetStatus(services.JingJie.HasAuthoritativeState
                 ? $"JingJie UI active: current={services.JingJie.CurrentId}."
@@ -414,19 +412,19 @@ namespace ProjectX.Core
             // which stepped back to 境界 and required a SECOND press to actually leave
             // (reported defect). Both surfaces now terminate through the same path:
             // tear down the bag surface, hide the jingjie content, pop the frame.
-            if (jingJieSurfaceMode == JingJieSurfaceMode.Bag)
+            if (jingJieSurfaceMode == PlayerHubTab.Bag)
             {
                 bagFlowPresenter?.CloseAll();
                 bagView?.SetVisible(false);
                 jingJieBagDataRequested = false;
                 RestoreJingJieFrameOrder();
             }
-            else if (jingJieSurfaceMode == JingJieSurfaceMode.Mail)
+            else if (jingJieSurfaceMode == PlayerHubTab.Mail)
             {
                 bagFlowPresenter?.CloseAll();
                 mailView?.SetVisible(false);
             }
-            else if (jingJieSurfaceMode == JingJieSurfaceMode.Settings)
+            else if (jingJieSurfaceMode == PlayerHubTab.Settings)
             {
                 settingsView?.SetVisible(false);
             }
@@ -518,37 +516,32 @@ namespace ProjectX.Core
 
         private void ConfigureMergedTabs(int selectedIndex)
         {
-            Transform panel = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
-            Transform first = panel?.Find("Button1");
-            if (first == null) return;
-            Transform[] tabs =
+            EnsureOneLevelFrame();
+            PlayerHubTab selected = (PlayerHubTab)Mathf.Clamp(selectedIndex, 0, 3);
+            playerHubTabCoordinator?.Configure(selected);
+            jingJieSurfaceMode = selected;
+            // Keep the shared frame order stable; tab selection changes only
+            // visibility and graphics, never the sibling position.
+            NormalizePlayerHubSurfaceOrder();
+        }
+
+        private void HandlePlayerHubTabSelected(PlayerHubTab tab)
+        {
+            switch (tab)
             {
-                first,
-                EnsureRuntimeTab(panel, "Button2_Runtime", first, -100f),
-                EnsureRuntimeTab(panel, "Button3_Runtime", first, -200f),
-                EnsureRuntimeTab(panel, "Button4_Runtime", first, -300f)
-            };
-            string[] labels = { "境界", "背包", "邮件", "系统" };
-            Action[] actions = { ShowJingJieSurface, ShowJingJieBag, ShowMergedMail, ShowMergedSettings };
-            for (int index = 0; index < tabs.Length; index++)
-            {
-                Transform tab = tabs[index];
-                if (tab == null) continue;
-                tab.gameObject.SetActive(true);
-                SetTabText(tab, labels[index], index == selectedIndex);
-                Button button = EnsureTabClick(tab);
-                button.onClick.RemoveAllListeners();
-                Action action = actions[index];
-                button.onClick.AddListener(() => action());
+                case PlayerHubTab.JingJie:
+                    ShowJingJieSurface();
+                    break;
+                case PlayerHubTab.Bag:
+                    ShowJingJieBag();
+                    break;
+                case PlayerHubTab.Mail:
+                    ShowMergedMail();
+                    break;
+                case PlayerHubTab.Settings:
+                    ShowMergedSettings();
+                    break;
             }
-            if (panel != null)
-                foreach (Transform child in panel)
-                    if (child != tabs[0] && child != tabs[1] && child != tabs[2] && child != tabs[3])
-                        child.gameObject.SetActive(false);
-            jingJieSurfaceMode = (JingJieSurfaceMode)selectedIndex;
-            // Order the frame so this surface's tabs win the raycast against the
-            // embedded bag grid (see RaiseJingJieTabs for why not a Canvas).
-            RaiseJingJieTabs(selectedIndex == 1);
         }
 
         private static Transform EnsureRuntimeTab(Transform panel, string name, Transform template, float yOffset)
@@ -632,78 +625,47 @@ namespace ProjectX.Core
             return button;
         }
 
-        // Keep the shared frame's tab row above embedded content (the bag grid).
-        //
-        // Two earlier attempts were both wrong and are recorded here so nobody
-        // repeats them:
-        //   1. Adding a Canvas to Panel_10 left a NON-ROOT canvas nested in the frame.
-        //      Unity then fell back to screen-space-overlay sorting and promoted the
-        //      whole tab subtree above every layer; the tabs kept painting and
-        //      raycasting after the page closed, so the frame could not be dismissed.
-        //   2. Adding a Canvas to the frame ROOT would re-sort the frame's own
-        //      children and break the Bg / content / Panel_12 order established in
-        //      ShowJingJieBag.
-        //
-        // The bag's per-row RuntimeHitArea is a full-width Image on a later sibling,
-        // so it simply wins the raycast inside a shared canvas. The correct fix is
-        // plain sibling ordering — no canvases, no sorting overrides, nothing that
-        // can outlive the frame.
-        //
-        // ⚠️ THIRD correction (2026-09-17). Two orderings were tried and both were
-        // wrong; the measured frame geometry explains why:
-        //
-        //   frame root children     World rect
-        //   --------------------    ----------------------------------------
-        //   Bg                      (full screen backdrop)
-        //   DynamicUi_beibao        X[0,1334] Y[0,750] — no layout of its own;
-        //                           only beibao_layer/Bag/Image  X[545,1145] Y[90,668]
-        //                           and    beibao_layer/Bag/TableView X[552,1137] Y[120,643]
-        //                           are actually painted.
-        //   GoldCheck               currency header (top strip)
-        //   Panel_12                X[0,1334] Y[0,750]
-        //     Bg/bg1_0  ui_common_bg              X[108,1226] Y[66,684]   <- frame skin
-        //     Bg/bg1_2  ui_common_yangpizhi_bg    X[122,1148] Y[81,669]   <- OPAQUE parchment
-        //     Bg/bg1_4  ui_common_diwen_youyeqian X[1145,1224] Y[85,644]
-        //     Bg/bg1_3  ui_juee_dizuo             X[108,1226] Y[57,82]
-        //     Title/TitleName                     Y[697,750]
-        //     Bg/Btn_ListView/Panel_10/Button1    X[1146,1224] Y[566,666]  <- 境界 tab
-        //     Bg/Btn_ListView/Panel_10/Button2_*  X[1146,1224] Y[466,566]  <- 背包 tab
-        //
-        // Panel_12 is the LAST child, so its opaque parchment (bg1_2, 1026x588) paints
-        // OVER the bag sheet and the user sees an empty cream box. Pinning Panel_12 to
-        // the top (the previous "fix") produced exactly the reported blank screenshot.
-        //
-        // The ordinary bag entry gets this right by putting the bag LAST:
-        //     oneLevelFrameView.SetAsLastSibling();
-        //     bagView.SetAsLastSibling();          // ProjectXApp.cs:5901-5902
-        // so the bag sheet covers the parchment, and because the bag sheet only spans
-        // X[545,1145] Y[90,668] the frame's title (Y 697-750) and the tab column
-        // (X 1146-1224) stay outside it — both remain fully visible and hit-testable
-        // with no extra canvas or raycast trickery. Mirror that here.
-        private void RaiseJingJieTabs(bool raise)
+        // Keep the shared player-hub children in one authored order. Switching
+        // tabs only changes visibility; it must not move the active page to the
+        // end of the hierarchy and change which surface paints/raycasts first.
+        // The bag stays after Panel_12 so its content remains above the opaque
+        // parchment, while the tab row remains a stable child of Panel_12.
+        private void NormalizePlayerHubSurfaceOrder()
         {
             if (oneLevelFrameView == null) return;
             CocosUiBinding frameBinding = oneLevelFrameView.Binding;
             if (frameBinding == null) return;
             Transform frameRoot = frameBinding.transform;
-            Transform panel12 = frameBinding.Find("Layer/Panel_12")?.transform;
-            Transform goldCheck = frameBinding.Find("Layer/GoldCheck")?.transform;
-            Transform layerBg = frameBinding.Find("Layer/Bg")?.transform;
-            Transform bagRoot = bagView?.GameObject != null ? bagView.GameObject.transform : null;
-            // Keep the imported order for everything except the bag: Bg(0) < Panel_12(1)
-            // < GoldCheck(2) < bag(last).
-            if (layerBg != null) layerBg.SetSiblingIndex(0);
-            if (panel12 != null) panel12.SetSiblingIndex(Mathf.Min(1, frameRoot.childCount - 1));
-            if (goldCheck != null) goldCheck.SetSiblingIndex(Mathf.Min(2, frameRoot.childCount - 1));
-            if (raise)
+            Transform[] fixedOrder =
             {
-                // bag surface: the bag sheet goes on top (same as the ordinary bag entry).
-                if (bagRoot != null) bagRoot.SetAsLastSibling();
+                frameBinding.Find("Layer/Bg")?.transform,
+                frameBinding.Find("Layer/Panel_12")?.transform,
+                frameBinding.Find("Layer/GoldCheck")?.transform,
+                jingJiePreviewView?.GameObject?.transform,
+                jingJieView?.GameObject?.transform,
+                bagView?.GameObject?.transform,
+                mailView?.GameObject?.transform,
+                settingsView?.GameObject?.transform
+            };
+            int nextIndex = 0;
+            bool alreadyOrdered = true;
+            foreach (Transform child in fixedOrder)
+            {
+                if (child == null || child.parent != frameRoot) continue;
+                if (child.GetSiblingIndex() != nextIndex)
+                {
+                    alreadyOrdered = false;
+                    break;
+                }
+                nextIndex++;
             }
-            else
+            if (alreadyOrdered) return;
+
+            nextIndex = 0;
+            foreach (Transform child in fixedOrder)
             {
-                // 境界 surface: the bag is hidden anyway; keep it under the skin.
-                if (bagRoot != null) bagRoot.SetSiblingIndex(Mathf.Min(3, frameRoot.childCount - 1));
+                if (child == null || child.parent != frameRoot) continue;
+                child.SetSiblingIndex(nextIndex++);
             }
         }
 
@@ -727,10 +689,9 @@ namespace ProjectX.Core
             jingJieBagDataRequested = false;
             // Restore the frame's original sibling order when leaving bag mode so
             // the 境界 content renders over the frame backdrop again.
-            RestoreJingJieFrameOrder();
+            NormalizePlayerHubSurfaceOrder();
             jingJieView?.SetVisible(true);
             jingJiePreviewView?.SetVisible(false);
-            jingJieView?.GameObject.transform.SetAsLastSibling();
             jingJieRenderBridge?.Show();
             Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "主角";
@@ -739,11 +700,11 @@ namespace ProjectX.Core
             SetJingJieTabs(first, second, true);
         }
 
-        // Restores the shared frame to its imported child order:
-        // Bg(0) / Panel_12(1) / GoldCheck(2).
+        // Kept as a named call site for close/back paths; the order is shared by
+        // all four player-hub tabs and is independent of the selected tab.
         private void RestoreJingJieFrameOrder()
         {
-            RaiseJingJieTabs(false);
+            NormalizePlayerHubSurfaceOrder();
         }
 
         // Fire the same Lua callback the ordinary main-UI bag entry uses so the
@@ -756,8 +717,9 @@ namespace ProjectX.Core
             InvokeLuaOrFail(onBagClicked, "JingJie.BagSnapshot");
         }
 
-        private void ShowJingJieBag()
+        private void ShowJingJieBag(bool requestSnapshot = true)
         {
+            EnsureJingJieBridge();
             EnsureBagPresenter();
             // If the bag view could not be created, do NOT touch the frame: an
             // earlier version created/hid everything first and only then bailed out
@@ -775,7 +737,8 @@ namespace ProjectX.Core
             // Reparent the bag INSIDE the shared frame (ConfigureBagFrame does the
             // same); otherwise its full-screen root stays a Canvas sibling and is
             // not laid out for the frame.
-            frame.AttachContent(bagView);
+            frame.AttachContent(bagView, keepSiblingOrder: true);
+            NormalizePlayerHubSurfaceOrder();
             bagView.SetVisible(true);
             // AUTHORITATIVE DATA: the ordinary main-UI bag entry (HandleBagClick)
             // fires the Lua callback that requests /8; EndBagUpdate then fills
@@ -783,16 +746,14 @@ namespace ProjectX.Core
             // from the local store here would always be empty on a fresh session
             // (itemCount=0), which is why the tab previously showed no items.
             // Re-request the snapshot the same way the real bag entry does.
-            EnsureJingJieBagDataRequested();
+            if (requestSnapshot) EnsureJingJieBagDataRequested();
             bagPresenter?.Render();
             SetOneLevelFrameVisible(true);
             CocosUiBinding frameBinding = oneLevelFrameView.Binding;
             Transform frameRoot = frameBinding.transform;
-            // LAYERING: the frame root itself is normalised first; then RaiseJingJieTabs
-            // (called at the end of SetJingJieTabs) installs Bg < Panel_12 < GoldCheck
-            // < bag so the bag sheet paints over the opaque parchment backdrop. See the
-            // geometry table on RaiseJingJieTabs — putting Panel_12 on top instead is
-            // what produced the blank "empty cream box" screenshot.
+            // LAYERING: the frame root and player-hub children use a stable order;
+            // the bag remains after Panel_12 so its sheet paints over the opaque
+            // parchment backdrop without moving when the selected tab changes.
             // Same normalisation ConfigureBagFrame performs after AttachContent:
             // without it the frame root keeps a non-zero anchoredPosition and the
             // reparented bag lands at local y=-750 (off-screen), so its rows never
@@ -825,13 +786,13 @@ namespace ProjectX.Core
             if (title != null) title.text = "背包";
             Transform first = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
             Transform second = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
-            // SetJingJieTabs ends by calling RaiseJingJieTabs(true), which pins
-            // Panel_12 to the top of the frame — the sibling order we want here.
             SetJingJieTabs(first, second, false);
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
         }
 
         private void ShowMergedMail()
         {
+            EnsureJingJieBridge();
             EnsureMailPresenter();
             if (mailView == null) return;
             HideOtherOneLevelChildren();
@@ -840,7 +801,8 @@ namespace ProjectX.Core
             bagView?.SetVisible(false);
             OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
             frame.Apply(OneLevelFrameMode.Standard);
-            frame.AttachContent(mailView);
+            frame.AttachContent(mailView, keepSiblingOrder: true);
+            NormalizePlayerHubSurfaceOrder();
             ConfigureMailFrame();
             mailView.SetVisible(true);
             SetOneLevelFrameVisible(true);
@@ -849,13 +811,12 @@ namespace ProjectX.Core
             if (title != null) title.text = "主角";
             ConfigureMergedTabs(2);
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-            mailView.GameObject.transform.SetAsLastSibling();
             SetStatus($"Merged player hub mail active: {services.Mails.Count} mails.");
         }
 
         private void ShowMergedSettings()
         {
+            EnsureJingJieBridge();
             EnsureSettingsPresenter();
             if (settingsView == null) return;
             HideOtherOneLevelChildren();
@@ -865,7 +826,8 @@ namespace ProjectX.Core
             mailView?.SetVisible(false);
             OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
             frame.Apply(OneLevelFrameMode.Standard);
-            frame.AttachContent(settingsView);
+            frame.AttachContent(settingsView, keepSiblingOrder: true);
+            NormalizePlayerHubSurfaceOrder();
             settingsPresenter.Refresh();
             settingsView.SetVisible(true);
             SetOneLevelFrameVisible(true);
@@ -874,8 +836,6 @@ namespace ProjectX.Core
             if (title != null) title.text = "主角";
             ConfigureMergedTabs(3);
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-            settingsView.GameObject.transform.SetAsLastSibling();
             SetStatus("Merged player hub settings active.");
         }
 

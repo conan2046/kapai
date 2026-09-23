@@ -48,15 +48,34 @@ namespace ProjectX.Core
             multiShopView?.SetVisible(false);
             SetOneLevelFrameVisible(true);
             ConfigureShopFrame();
+            NormalizeShopLayerOrder();
             if (services.UiStack.Current != shopView)
             {
                 services.UiStack.Push(shopView);
-                oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-                shopView.GameObject.transform.SetAsLastSibling();
             }
             bagPopupFrameView.SetVisible(true);
             ConfigureShopHubTabs(ShopHubTab.Shop);
             SetStatus($"Shop UI active: {services.Shop.Count} goods.");
+        }
+
+        private void NormalizeShopLayerOrder()
+        {
+            Transform oneLevel = oneLevelFrameView?.GameObject?.transform;
+            Transform shopBackground = bagPopupFrameView?.GameObject?.transform;
+            Transform shopContent = shopView?.GameObject?.transform;
+            if (oneLevel == null || shopBackground == null)
+                return;
+
+            Transform parent = oneLevel.parent;
+            if (parent == null || shopBackground.parent != parent)
+                return;
+
+            int firstIndex = Mathf.Min(oneLevel.GetSiblingIndex(),
+                shopBackground.GetSiblingIndex());
+            oneLevel.SetSiblingIndex(firstIndex);
+            shopBackground.SetSiblingIndex(firstIndex + 1);
+            if (shopContent != null && shopContent.parent == parent)
+                shopContent.SetSiblingIndex(firstIndex + 2);
         }
 
         private void ShowShopHubSoulTab()

@@ -138,8 +138,30 @@ namespace ProjectX.UI
                 throw new InvalidOperationException($"UI prefab has no CocosUiBinding: {key}");
             }
             instance.SetActive(active);
+            NormalizeFixedRootOrder(key, instance.transform);
             Resources.UnloadAsset(reference);
             return new CocosUiView(binding);
+        }
+
+        private void NormalizeFixedRootOrder(string key, Transform instance)
+        {
+            if (instance == null || !string.Equals(key, "OneLevelLayer", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(key, "shop_bg", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            Transform oneLevel = string.Equals(key, "OneLevelLayer", StringComparison.OrdinalIgnoreCase)
+                ? instance
+                : root.Find("DynamicUi_OneLevelLayer");
+            Transform shopBackground = string.Equals(key, "shop_bg", StringComparison.OrdinalIgnoreCase)
+                ? instance
+                : root.Find("DynamicUi_shop_bg");
+            if (oneLevel == null || shopBackground == null || oneLevel.parent != root
+                || shopBackground.parent != root)
+                return;
+
+            int firstIndex = Math.Min(oneLevel.GetSiblingIndex(), shopBackground.GetSiblingIndex());
+            oneLevel.SetSiblingIndex(firstIndex);
+            shopBackground.SetSiblingIndex(firstIndex + 1);
         }
 
         private void ReleaseSingletonTree(string key)

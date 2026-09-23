@@ -26,7 +26,7 @@ namespace ProjectX.UI
 
         public void SetVisible(bool visible) => View.SetVisible(visible);
 
-        public void AttachContent(CocosUiView content)
+        public void AttachContent(CocosUiView content, bool keepSiblingOrder = false)
         {
             if (content == null || !content.IsAlive) return;
 
@@ -34,7 +34,8 @@ namespace ProjectX.UI
             Transform contentTransform = content.GameObject.transform;
             if (contentTransform.parent != frame)
                 contentTransform.SetParent(frame, false);
-            contentTransform.SetAsLastSibling();
+            if (!keepSiblingOrder)
+                contentTransform.SetAsLastSibling();
         }
 
         public void Apply(OneLevelFrameMode mode)
@@ -107,6 +108,20 @@ namespace ProjectX.UI
         {
             GameObject gameObject = GameObject;
             if (gameObject != null) gameObject.SetActive(visible);
+        }
+
+        /// <summary>
+        /// Shows a modal/popup view above its current parent's other children.
+        /// Functional pages must use SetVisible instead so their reserved
+        /// sibling order remains stable.
+        /// </summary>
+        public void ShowPopup()
+        {
+            GameObject gameObject = GameObject;
+            if (gameObject == null) return;
+            gameObject.SetActive(true);
+            if (gameObject.transform.parent != null)
+                gameObject.transform.SetAsLastSibling();
         }
 
         public Button BindClick(string nodePath, Action callback, bool addButtonIfMissing = false)

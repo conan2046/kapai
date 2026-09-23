@@ -27,7 +27,6 @@ namespace ProjectX.Editor
         private const string NoticePrefab = "Assets/ProjectX/res/csd/Prefabs/NoticeLayer.prefab";
         private const string MainPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab";
         private const string MainCloudPrefab = "Assets/ProjectX/res/csd/Prefabs/common/UImain_cloudLayer.prefab";
-        private const string BackupMainPrefab = "Assets/ProjectX/res/csd/Prefabs/UImainLayer_backup.prefab";
         private const string BagPrefab = "Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab";
         private const string BagInputPrefab = "Assets/ProjectX/res/csd/Prefabs/EnterNumLayer.prefab";
         private const string BagGiftPrefab = "Assets/ProjectX/res/csd/Prefabs/common/OpenBox_1Layer.prefab";
@@ -179,7 +178,6 @@ namespace ProjectX.Editor
             new PrefabSpec(NoticePrefab, false),
             new PrefabSpec(MainPrefab, false),
             new PrefabSpec(MainCloudPrefab, false),
-            new PrefabSpec(BackupMainPrefab, false),
             new PrefabSpec(BagPrefab, false, HeroFramePrefab),
             new PrefabSpec(BagInputPrefab, false),
             new PrefabSpec(BagGiftPrefab, false),

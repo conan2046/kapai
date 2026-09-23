@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using ProjectX.Diagnostics;
+using ProjectX.UI;
 using UnityEngine;
 
 namespace ProjectX.Core
 {
-    public sealed class ResourceService : IDisposable
+    public sealed class ResourceService : IDisposable, IUiResourceProvider
     {
         private readonly Dictionary<string, Sprite> sprites = new Dictionary<string, Sprite>(StringComparer.Ordinal);
         private readonly HashSet<string> missingPaths = new HashSet<string>(StringComparer.Ordinal);

@@ -66,7 +66,8 @@ namespace ProjectX.Core
             // Bag is a OneLevel child page. Keep it inside the shared frame;
             // otherwise its full-screen root becomes a Canvas sibling and draws
             // over the title, tabs and currency nodes even though they are active.
-            frame.AttachContent(bagView);
+            frame.AttachContent(bagView, keepSiblingOrder: true);
+            NormalizePlayerHubSurfaceOrder();
             CocosUiBinding binding = oneLevelFrameView.Binding;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)

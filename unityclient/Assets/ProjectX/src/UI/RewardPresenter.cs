@@ -200,8 +200,7 @@ namespace ProjectX.UI
                     action?.Invoke();
                 });
             Render();
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         public void Hide()

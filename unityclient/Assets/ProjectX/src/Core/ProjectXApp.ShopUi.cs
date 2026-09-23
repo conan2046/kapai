@@ -83,6 +83,7 @@ namespace ProjectX.Core
             bagPopupFrameView = bagPopupFrameView ?? services.UiRouter.FindBySource("shop/shop_bg");
             if (soulShopView == null || multiShopView == null || bagPopupFrameView == null)
                 throw new InvalidOperationException("GameplayShops Cocos bindings were not found.");
+            NormalizeShopLayerOrder();
             gameplayShopsPresenter = gameplayShopsPresenter ?? new GameplayShopsPresenter(
                 soulShopView, multiShopView, services.GameplayShops, services.Currencies,
                 services.ShopCatalog, services.Bag, services.Resources, services.ServerTime,

@@ -83,7 +83,10 @@ namespace ProjectX.Editor
         public static void Run()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
-                throw new InvalidOperationException("Unity is already entering or running Play Mode.");
+            {
+                Debug.LogWarning("[BootstrapAppRunner] Unity is already entering or running Play Mode; duplicate run request ignored.");
+                return;
+            }
             if (!File.Exists(Path.Combine(Directory.GetParent(Application.dataPath).FullName, BootstrapScene)))
                 throw new FileNotFoundException("Bootstrap scene is missing. Rebuild it first.", BootstrapScene);
 
@@ -943,7 +946,14 @@ namespace ProjectX.Editor
         {
             SessionState.SetBool(ArmedKey, false);
             SessionState.SetString(CompletionStatusKey, string.Empty);
-            EditorApplication.Exit(success ? 0 : 1);
+            // Manual menu runs must return to the editor instead of closing it.
+            // Only batch/explicit automation runs own the editor process lifetime.
+            bool automation = Application.isBatchMode
+                || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXAutomation") >= 0;
+            if (automation)
+                EditorApplication.Exit(success ? 0 : 1);
+            else
+                EditorApplication.isPlaying = false;
         }
 
         private static void WriteResult(bool success, string status)

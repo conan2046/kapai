@@ -204,8 +204,7 @@ namespace ProjectX.UI
             sourceChoice = choice;
             popupFrameView.SetVisible(false);
             giftView.SetVisible(false);
-            sourceView.SetVisible(true);
-            sourceView.GameObject.transform.SetAsLastSibling();
+            sourceView.ShowPopup();
             SetText(sourceView, "Layer/Popup/Panel_name/txt_name", choice.Name);
             SetText(sourceView, "Layer/Popup/Panel_name/txt_num", $"数量：{choice.Quantity}");
             SetText(sourceView, "Layer/Popup/Panel_name/txt_tips", choice.Description);
@@ -398,8 +397,7 @@ namespace ProjectX.UI
             quantity = 0;
             inputDigitMask = 0;
             RenderQuantity();
-            inputView.SetVisible(true);
-            inputView.GameObject.transform.SetAsLastSibling();
+            inputView.ShowPopup();
         }
 
         private void ConfigureGift()
@@ -510,8 +508,8 @@ namespace ProjectX.UI
             giftView.SetVisible(true);
             GameObject tabs = popupFrameView.Binding.Find("Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
-            popupFrameView.GameObject.transform.SetAsLastSibling();
-            giftView.GameObject.transform.SetAsLastSibling();
+            popupFrameView.ShowPopup();
+            giftView.ShowPopup();
             ScrollRect scroll = Require(giftView, "Layer/OpenBox/Panel/Bg/ListView").GetComponent<ScrollRect>();
             if (scroll != null) scroll.horizontalNormalizedPosition = 0f;
         }
@@ -564,8 +562,8 @@ namespace ProjectX.UI
                 {
                     popupFrameView.SetVisible(true);
                     giftView.SetVisible(true);
-                    popupFrameView.GameObject.transform.SetAsLastSibling();
-                    giftView.GameObject.transform.SetAsLastSibling();
+                    popupFrameView.ShowPopup();
+                    giftView.ShowPopup();
                 }
             });
             Bind(sourceView, "Layer/Popup/Panel_name/Panel_icon", ShowEquipmentInfo);
@@ -576,8 +574,7 @@ namespace ProjectX.UI
             sourceChoice = choice;
             popupFrameView.SetVisible(true);
             giftView.SetVisible(true);
-            sourceView.SetVisible(true);
-            sourceView.GameObject.transform.SetAsLastSibling();
+            sourceView.ShowPopup();
             SetText(sourceView, "Layer/Popup/Panel_name/txt_name", choice.Name);
             SetText(sourceView, "Layer/Popup/Panel_name/txt_num", "数量：0");
             SetText(sourceView, "Layer/Popup/Panel_name/txt_tips", choice.Description);
@@ -632,8 +629,7 @@ namespace ProjectX.UI
             Bind(equipmentInfoView, "Layer/zhuangbeiInfoUI/Popup/Btn_close", () =>
             {
                 equipmentInfoView.SetVisible(false);
-                sourceView.SetVisible(true);
-                sourceView.GameObject.transform.SetAsLastSibling();
+                sourceView.ShowPopup();
             });
             foreach (string path in new[]
             {
@@ -666,8 +662,7 @@ namespace ProjectX.UI
             if (sourceChoice == null) return;
             EquipmentDefinition definition = equipmentCatalog.GetEquipmentByFragment(sourceChoice.Id);
             sourceView.SetVisible(false);
-            equipmentInfoView.SetVisible(true);
-            equipmentInfoView.GameObject.transform.SetAsLastSibling();
+            equipmentInfoView.ShowPopup();
             SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name", definition.Name);
             SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content", definition.Description);
             if (definition.BaseAttribute != null && definition.BaseAttribute.Length >= 2)

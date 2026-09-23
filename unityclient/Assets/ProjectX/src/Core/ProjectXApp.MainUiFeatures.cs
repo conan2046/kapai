@@ -20,10 +20,6 @@ namespace ProjectX.Core
                     mainHudPresenter?.SetWelfareVisible(false);
                     return;
                 }
-                CocosUiView legacy = services.UiRouter.FindBySource("UImainLayer_backup");
-                if (legacy?.Binding.Find(WelfareLegacyPath) == null)
-                    throw new InvalidOperationException($"Legacy welfare entry evidence is missing: {WelfareLegacyPath}");
-                legacy.SetVisible(false);
                 Button button = EnsureRuntimeWelfareEntry();
                 MakeButtonVisualTransparent(button);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));

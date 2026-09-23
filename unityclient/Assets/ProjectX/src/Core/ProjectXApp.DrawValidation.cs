@@ -457,8 +457,7 @@ namespace ProjectX.Core
                 .Find("RuntimeExchangeTitle")?.GetComponent<Text>();
             if (exchangeTitle != null) exchangeTitle.color = new Color(.96f, .80f, .60f, 1f);
             RenderDrawExchangeRows();
-            drawExchangeView.SetVisible(true);
-            drawExchangeView.GameObject.transform.SetAsLastSibling();
+            drawExchangeView.ShowPopup();
         }
 
         private void HideDrawExchange()

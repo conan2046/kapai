@@ -92,8 +92,7 @@ namespace ProjectX.UI
             quantity = Mathf.Clamp(current, 1, maximum);
             accepted = onAccepted ?? throw new ArgumentNullException(nameof(onAccepted));
             Render();
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         public void Hide()

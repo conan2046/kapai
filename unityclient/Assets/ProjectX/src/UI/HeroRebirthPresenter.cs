@@ -160,8 +160,7 @@ namespace ProjectX.UI
 
         public void Show()
         {
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
             Render();
         }
 
@@ -253,10 +252,8 @@ namespace ProjectX.UI
             SetText(chooseFrame, "Layer/shopBg/Popup/Title/Title", "选择神将");
             GameObject tabs = chooseFrame.Binding.Find("Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
-            chooseFrame.SetVisible(true);
-            chooseView.SetVisible(true);
-            chooseFrame.GameObject.transform.SetAsLastSibling();
-            chooseView.GameObject.transform.SetAsLastSibling();
+            chooseFrame.ShowPopup();
+            chooseView.ShowPopup();
             if (candidates.Count == 0) feedback("暂无可重生神将");
         }
 
@@ -293,8 +290,7 @@ namespace ProjectX.UI
             SetText(confirmView, "Layer/Popup/Btn_Cancel/Text", "取消");
             SetText(confirmView, "Layer/Popup/Btn_Confirm/Text", "确定");
             confirmRewardList.SetItems(ToRewardRows(rewards));
-            confirmView.SetVisible(true);
-            confirmView.GameObject.transform.SetAsLastSibling();
+            confirmView.ShowPopup();
         }
 
         private void CloseConfirmation() => confirmView.SetVisible(false);

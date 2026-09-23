@@ -92,8 +92,7 @@ namespace ProjectX.UI
             legacyBottomButton.SetActive(false);
             runtimeCloseControl.SetActive(true);
             closeButton.interactable = true;
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
             sequence.Play(batches, AppendBatch);
         }
 
@@ -364,8 +363,7 @@ namespace ProjectX.UI
                     RenderedRewardCount++;
                 }
             }
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
             if (timeline != null && timeline.Duration > 0)
                 timeline.Play(0, timeline.Duration, false);
             Canvas.ForceUpdateCanvases();
@@ -713,8 +711,7 @@ namespace ProjectX.UI
             composePanel.SetActive(ReferenceEquals(selected, composePanel));
             confirmPanel.SetActive(ReferenceEquals(selected, confirmPanel));
             taskPanel.SetActive(ReferenceEquals(selected, taskPanel));
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         private Button Bind(string path, Action action, bool addIfMissing = false)

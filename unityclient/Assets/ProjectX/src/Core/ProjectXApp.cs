@@ -243,6 +243,7 @@ namespace ProjectX.Core
         private CocosUiView bagView;
         private CocosUiView oneLevelFrameView;
         private OneLevelFrameCoordinator oneLevelFrameCoordinator;
+        private PlayerHubTabCoordinator playerHubTabCoordinator;
         private CocosUiView bagInputView;
         private CocosUiView bagPopupFrameView;
         private CocosUiView bagGiftView;
@@ -317,6 +318,8 @@ namespace ProjectX.Core
         private bool heroRebirthG4ValidationRunning;
         private const string HeroRebirthControlMatrixSemantic = "hero-rebirth-control-matrix-24";
         private CocosUiView heroReplacementView;
+        private bool heroReplacementOpenedFromHeroHub;
+        private bool heroReplacementOpenedFromFormationPopup;
         private CocosUiView heroCultivationView;
         private CocosUiView heroLevelUpView;
         private CocosUiView heroAutoLevelUpView;
@@ -359,6 +362,10 @@ namespace ProjectX.Core
         private int pendingHeroEquipmentSlot;
         private bool heroEquipmentOpenPending;
         private bool heroEquipmentOpenedFromHeroDetails;
+        private bool heroEquipmentOpenedFromEnhanceMaster;
+        private readonly Dictionary<GameObject, bool> heroEnhanceMasterOneLevelChildVisibility =
+            new Dictionary<GameObject, bool>();
+        private bool heroEnhanceMasterOneLevelVisibilityCaptured;
         private CocosUiView heroEquipmentListView;
         private CocosUiView heroEquipmentDetailView;
         private CocosUiView heroEquipmentChangeView;
@@ -377,6 +384,7 @@ namespace ProjectX.Core
         private CocosUiView faBaoRefineView;
         private CocosUiView faBaoMaterialChooserView;
         private HeroEquipmentPresenter heroEquipmentPresenter;
+        private bool heroEquipmentPresenterCultivationOnly;
         private int selectedHeroEquipmentFragmentId;
         private int selectedHeroFragmentId;
         private bool heroFragmentBagActive;
@@ -744,9 +752,13 @@ namespace ProjectX.Core
         public string Status => status;
         public string CompletionStatus => completionStatus;
         public NetworkState NetworkState => services?.Network.State ?? NetworkState.Idle;
-        public bool IsBagOpen => bagView != null && services?.UiStack.Current == bagView;
+        public bool IsBagOpen => (bagView != null && services?.UiStack.Current == bagView)
+            || (oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView
+                && jingJieSurfaceMode == PlayerHubTab.Bag && bagView?.GameObject.activeInHierarchy == true);
         public int BagMissingIconCount => bagPresenter?.MissingIconCount ?? 0;
-        public bool IsSettingsOpen => settingsView != null && services?.UiStack.Current == settingsView;
+        public bool IsSettingsOpen => (settingsView != null && services?.UiStack.Current == settingsView)
+            || (oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView
+                && jingJieSurfaceMode == PlayerHubTab.Settings && settingsView?.GameObject.activeInHierarchy == true);
         public bool IsSettingsDataReady => services?.Player.IsLoaded == true
             && services.Currencies.Has(CurrencyIds.Stamina);
         public bool IsLoginVisible => loginView != null && loginView.GameObject.activeSelf;
@@ -878,7 +890,9 @@ namespace ProjectX.Core
         public bool IsLoadingVisible => loadingPresenter?.IsVisible ?? false;
         public bool IsToastVisible => toastPresenter?.IsVisible ?? false;
         public bool IsServerTimeSynchronized => services?.ServerTime.IsSynchronized ?? false;
-        public bool IsMailOpen => mailView != null && services?.UiStack.Current == mailView;
+        public bool IsMailOpen => (mailView != null && services?.UiStack.Current == mailView)
+            || (oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView
+                && jingJieSurfaceMode == PlayerHubTab.Mail && mailView?.GameObject.activeInHierarchy == true);
         public int MailCount => services?.Mails.Count ?? 0;
         public int MailMissingIconCount => mailPresenter?.MissingIconCount ?? 0;
         public bool IsMailRedDotVisible =>
@@ -977,14 +991,7 @@ namespace ProjectX.Core
 
         public void ShowSettings()
         {
-            EnsureSettingsPresenter();
-            HideOneLevelChildPagesForSettings();
-            SetOneLevelFrameVisible(true);
-            settingsView.SetVisible(true);
-            settingsView.GameObject.transform.SetAsLastSibling();
-            settingsPresenter.Refresh();
-            if (services.UiStack.Current != settingsView) services.UiStack.Push(settingsView);
-            SetStatus("System settings active.");
+            ShowMergedSettings();
         }
 
         private void HideOneLevelChildPagesForSettings()
@@ -1392,6 +1399,9 @@ namespace ProjectX.Core
             activeHeroCultivationId = 0;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
+            heroEquipmentOpenedFromEnhanceMaster = false;
+            heroReplacementOpenedFromHeroHub = false;
+            heroReplacementOpenedFromFormationPopup = false;
             pendingFunctionCultivationMode = -1;
             pendingHeroEquipment.Clear();
             pendingFaBao.Clear();
@@ -2156,8 +2166,7 @@ namespace ProjectX.Core
                 // this popup is open. Keep the modal above the hero frame instead
                 // of treating that data refresh as a fresh formation-page entry.
                 formationPopupPresenter?.Render();
-                formationPopupView.SetVisible(true);
-                formationPopupView.GameObject.transform.SetAsLastSibling();
+                formationPopupView.ShowPopup();
                 formationPopupPresenter?.RefreshCloseInteraction();
                 SetStatus($"Formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
                 return;
@@ -4581,6 +4590,8 @@ namespace ProjectX.Core
             heroG4ControlValidationRunning = false;
             pendingHeroEquipmentPosition = 0;
             heroEquipmentOpenedFromHeroDetails = false;
+            heroReplacementOpenedFromHeroHub = false;
+            heroReplacementOpenedFromFormationPopup = false;
             pendingFunctionCultivationMode = -1;
             formationPopupView?.SetVisible(false);
             heroReplacementView?.SetVisible(false);
@@ -4978,11 +4989,16 @@ namespace ProjectX.Core
 
         public void BindPlayerHudControls()
         {
-            if (mainView == null || chatMiniView == null) return;
+            if (mainView == null) return;
             BindJingJieEntry();
             GameObject shopEntry = FindMainHudNode(ShopPath);
             if (shopEntry != null)
                 mainView.BindClickNode(shopEntry, HandleShopClick, true, ShopPath);
+            GameObject heroBagEntry = FindMainHudNode(HeroBagPath);
+            if (heroBagEntry != null)
+                mainView.BindClickNode(heroBagEntry, HandleHeroBagClick, true, HeroBagPath);
+            else
+                Debug.LogError($"Main HUD hero entry was not found: {HeroBagPath}");
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
             mainView.BindClick("Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn",
                 () => HandleCommerceRoute(13), true);
@@ -5031,12 +5047,15 @@ namespace ProjectX.Core
                 GameObject node = mainView.Binding.Find(path);
                 if (node != null) node.SetActive(false);
             }
-            chatMiniView.BindClick("Layer/Panel_Chat/btn_Arrows", () => mainHudPresenter?.ToggleChatExpanded(), true);
-            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/Panel_Bg", "聊天发送业务属于 Social，当前仅保留入口边界。");
-            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Friend", "好友业务属于 Social，当前仅保留入口边界。");
-            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/Prompt", "私聊业务属于 Chat/Social，当前仅保留提示边界。");
-            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Voice_shi", "世界语音属于 Social，当前不可用。");
-            BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Voice_bang", "帮派语音属于 Social，当前不可用。");
+            if (chatMiniView != null)
+            {
+                chatMiniView.BindClick("Layer/Panel_Chat/btn_Arrows", () => mainHudPresenter?.ToggleChatExpanded(), true);
+                BindHudBoundary(chatMiniView, "Layer/Panel_Chat/Panel_Bg", "聊天发送业务属于 Social，当前仅保留入口边界。");
+                BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Friend", "好友业务属于 Social，当前仅保留边界。");
+                BindHudBoundary(chatMiniView, "Layer/Panel_Chat/Prompt", "私聊业务属于 Chat/Social，当前仅保留提示边界。");
+                BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Voice_shi", "世界语音属于 Social，当前不可用。");
+                BindHudBoundary(chatMiniView, "Layer/Panel_Chat/btn_Voice_bang", "帮派语音属于 Social，当前不可用。");
+            }
         }
 
         private static bool IsSteamExcludedModule(string module)
@@ -5610,8 +5629,7 @@ namespace ProjectX.Core
                 message => ShowToast(message, 2f),
                 () => formationPopupView.SetVisible(false));
             PrepareHeroFormationSurface(false);
-            formationPopupView.SetVisible(true);
-            formationPopupView.GameObject.transform.SetAsLastSibling();
+            formationPopupView.ShowPopup();
             // Activate the surface before loading/playing Imod. Otherwise the
             // subsequent OnEnable replaces Cocos PlayStand(1,true) with action 0.
             formationPopupPresenter.Render();
@@ -5631,6 +5649,9 @@ namespace ProjectX.Core
             heroReplacementView = heroReplacementView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxionghuanjiang");
             if (heroReplacementView == null)
                 throw new InvalidOperationException("Hero replacement CocosUiBinding was not found.");
+            heroReplacementOpenedFromHeroHub = heroHubOpen;
+            heroReplacementOpenedFromFormationPopup = !heroHubOpen
+                && formationPopupView?.GameObject.activeSelf == true;
             SetOneLevelFrameVisible(true);
             oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             ConfigureHeroFrame(false);
@@ -5688,7 +5709,7 @@ namespace ProjectX.Core
                 action.onClick.AddListener(() =>
                 {
                     InvokeLuaOrFail(onFormationMove, "Hero.FormationMove", (double)hero.Id, formationPosition);
-                    heroReplacementView.SetVisible(false);
+                    RestoreHeroAfterReplacement();
                 });
                 Text actionText = cell.Find("Button/Text")?.GetComponent<Text>();
                 // Cocos labels the action from the candidate's own display-lineup
@@ -5698,9 +5719,44 @@ namespace ProjectX.Core
             }
             Transform empty = heroReplacementView.Binding.Find("Layer/yingxionghuanjiangUI/Empty")?.transform;
             if (empty != null) empty.gameObject.SetActive(candidates.Length == 0);
-            heroReplacementView.SetVisible(true);
-            heroReplacementView.GameObject.transform.SetAsLastSibling();
+            heroReplacementView.ShowPopup();
             if (candidates.Length == 0) ShowToast("暂无可上阵神将", 2f);
+        }
+
+        private void RestoreHeroAfterReplacement()
+        {
+            heroReplacementView?.SetVisible(false);
+            bool openedFromHeroHub = heroReplacementOpenedFromHeroHub;
+            bool openedFromFormationPopup = heroReplacementOpenedFromFormationPopup;
+            heroReplacementOpenedFromHeroHub = false;
+            heroReplacementOpenedFromFormationPopup = false;
+
+            if (openedFromHeroHub || heroHubOpen)
+            {
+                heroHubOpen = true;
+                ShowHeroHubTab(heroHubTab);
+                return;
+            }
+
+            if (openedFromFormationPopup)
+            {
+                heroListView?.SetVisible(false);
+                heroDetailView?.SetVisible(false);
+                heroBagView?.SetVisible(false);
+                SetOneLevelFrameVisible(false);
+                RestoreHeroFormationPopupSurface();
+                formationPopupView?.ShowPopup();
+                formationPopupPresenter?.Render();
+                formationPopupPresenter?.RefreshCloseInteraction();
+                return;
+            }
+
+            heroListView?.SetVisible(true);
+            heroDetailView?.SetVisible(true);
+            heroBagView?.SetVisible(false);
+            SetOneLevelFrameVisible(true);
+            ConfigureHeroFrame(false);
+            oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
         }
 
         private void ShowHeroCultivation(int heroId)
@@ -5708,6 +5764,7 @@ namespace ProjectX.Core
             if (!services.Heroes.TryGet(heroId, out HeroRecord hero)) return;
             activeHeroCultivationId = heroId;
             EnsureHeroCultivationPresenter();
+            SetHeroHubTabStripVisible(false);
             SetHeroFramePageVisibility(false, false, false, true, false);
             heroCultivationPresenter.Show(heroId);
             // Cocos reads CountItemNumById from the live package cache.  The
@@ -5913,6 +5970,7 @@ namespace ProjectX.Core
                 RestoreHeroFormationView, message => ShowToast(message, 2f),
                 (parent, picture) => ShowRuntimeHeroModel(parent, picture),
                 id => InvokeLuaOrFail(onHeroSelected, "HeroCultivation.Select", id));
+            EnsureHeroHubContentHierarchyOrder();
         }
 
         private void RestoreHeroFormationView()
@@ -6139,13 +6197,6 @@ namespace ProjectX.Core
             services.UiRouter.SetExclusiveVisibleBySource("huishou/shenjiangchongsheng", heroRecycleView, false);
             services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongjueseLayer", heroCultivationView, cultivation);
             services.UiRouter.SetExclusiveVisibleBySource("shenjiangyangcheng/yingxiongshuxingLayer", heroLevelUpView, levelUp);
-            // yingxiongInfoLayer contains a full-screen transparent raycast area.
-            // Keep the narrow formation list above it so its real row Buttons receive clicks.
-            if (list && detail)
-            {
-                heroDetailView?.GameObject.transform.SetAsLastSibling();
-                heroListView?.GameObject.transform.SetAsLastSibling();
-            }
         }
 
         private void ShowHeroEnhanceMaster(int formationPosition)
@@ -6168,15 +6219,16 @@ namespace ProjectX.Core
             gameplayDetailView = gameplayDetailView ?? services.UiRouter.FindBySource("TaskPopupLayer");
             gameplayContentView?.SetVisible(false);
             gameplayDetailView?.SetVisible(false);
+            HideOneLevelChildrenForEnhanceMaster();
             heroEnhanceMasterPosition = Mathf.Clamp(formationPosition, 1, 5);
             heroEnhanceMasterType = Mathf.Clamp(heroEnhanceMasterType, 1, 6);
+            heroEquipmentOpenedFromEnhanceMaster = false;
+            SetHeroHubTabStripVisible(false);
             InvokeLuaOrFail(onEnhanceMasterOpened, "EnhanceMaster.Open", heroEnhanceMasterPosition);
             ConfigureHeroEnhanceMasterFrame(gameplayView);
-            gameplayView.SetVisible(true);
-            gameplayView.GameObject.transform.SetAsLastSibling();
+            gameplayView.ShowPopup();
             BindHeroEnhanceMaster(heroEnhanceMasterView, heroEnhanceMasterPosition);
-            heroEnhanceMasterView.SetVisible(true);
-            heroEnhanceMasterView.GameObject.transform.SetAsLastSibling();
+            heroEnhanceMasterView.ShowPopup();
         }
 
         private void BindHeroLevelUp(CocosUiView view, HeroRecord hero)
@@ -6247,6 +6299,8 @@ namespace ProjectX.Core
             if (list != null && template != null)
             {
                 string[] tabs = { "装备强化", "装备精炼", "装备觉醒", "装备神铸", "法宝强化", "法宝精炼" };
+                Transform[] orderedRows = new Transform[tabs.Length];
+                int firstRowIndex = template.GetSiblingIndex();
                 for (int index = 0; index < tabs.Length; index++)
                 {
                     Transform row = index == 0 ? template : list.Find($"MasterTab{index + 1}");
@@ -6259,6 +6313,7 @@ namespace ProjectX.Core
                     RectTransform baseRect = template as RectTransform;
                     if (rect != null && baseRect != null)
                         rect.anchoredPosition = baseRect.anchoredPosition + new Vector2(0f, -72f * index);
+                    orderedRows[index] = row;
                     bool selected = index + 1 == heroEnhanceMasterType;
                     Transform tab = row.Find("Button") ?? row;
                     SetTabText(tab, tabs[index], selected);
@@ -6277,6 +6332,7 @@ namespace ProjectX.Core
                         tabState = row.gameObject.AddComponent<CanvasGroup>();
                     tabState.alpha = selected ? 1f : 0.62f;
                 }
+                NormalizeRuntimeTabSiblingOrder(list, orderedRows, firstRowIndex);
             }
             view.BindClick("Layer/shopBg/Popup/Btn_close", () => HandleBack(), true);
         }
@@ -6408,13 +6464,45 @@ namespace ProjectX.Core
 
         private void OpenEnhanceMasterCultivation(uint uid, int formationPosition, HeroEquipmentKind kind, int mode)
         {
-            EnsureHeroEquipmentPresenter();
+            EnsureHeroEquipmentPresenter(cultivationOnly: true, includeFaBaoMaterial: kind == HeroEquipmentKind.FaBao);
+            HideOneLevelChildrenForEnhanceMaster();
+            heroEquipmentOpenedFromEnhanceMaster = true;
             heroEnhanceMasterView?.SetVisible(false);
             gameplayView?.SetVisible(false);
             SetOneLevelFrameVisible(true);
-            oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             if (!heroEquipmentPresenter.PrepareCultivation(uid, formationPosition, kind, mode))
+            {
+                heroEquipmentOpenedFromEnhanceMaster = false;
+                RestoreHeroEnhanceMasterView();
                 ShowToast("未找到对应养成对象", 2f);
+            }
+        }
+
+        private void RestoreHeroEnhanceMasterView()
+        {
+            heroEquipmentPresenter?.HideDetails();
+            heroEquipmentListView?.SetVisible(false);
+            heroEquipmentDetailView?.SetVisible(false);
+            heroEquipmentChangeView?.SetVisible(false);
+            heroEquipmentFragmentView?.SetVisible(false);
+            heroEquipmentCultivateView?.SetVisible(false);
+            heroEquipmentStrengthView?.SetVisible(false);
+            heroEquipmentRefineView?.SetVisible(false);
+            heroEquipmentAwakenView?.SetVisible(false);
+            heroEquipmentDivineView?.SetVisible(false);
+            heroEquipmentAutoRefineView?.SetVisible(false);
+            heroEquipmentExchangeView?.SetVisible(false);
+            heroEquipmentAutoStarView?.SetVisible(false);
+            heroEquipmentAutoDivineView?.SetVisible(false);
+            heroEquipmentDivineEffectView?.SetVisible(false);
+            heroEquipmentOpenedFromEnhanceMaster = false;
+            SetOneLevelFrameVisible(true);
+            ConfigureHeroEnhanceMasterFrame(gameplayView);
+            gameplayView?.SetVisible(true);
+            BindHeroEnhanceMaster(heroEnhanceMasterView, heroEnhanceMasterPosition);
+            heroEnhanceMasterView?.SetVisible(true);
+            if (gameplayView != null) gameplayView.GameObject.transform.SetAsLastSibling();
+            if (heroEnhanceMasterView != null) heroEnhanceMasterView.GameObject.transform.SetAsLastSibling();
         }
 
         private static string MasterAttributeName(int type)
@@ -6606,8 +6694,7 @@ namespace ProjectX.Core
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_3", false);
             heroItemSourceView.BindClick("Layer/Popup/Title/Btn_close", () => heroItemSourceView.SetVisible(false), true);
             heroItemSourceView.BindClick("Layer/Mask", () => heroItemSourceView.SetVisible(false), true);
-            heroItemSourceView.SetVisible(true);
-            heroItemSourceView.GameObject.transform.SetAsLastSibling();
+            heroItemSourceView.ShowPopup();
         }
 
         private static void SetBoundText(CocosUiView view, string path, string value)
@@ -6630,6 +6717,7 @@ namespace ProjectX.Core
             if (oneLevelFrameView == null || oneLevelFrameView.GameObject == null)
                 throw new InvalidOperationException("Shared OneLevelLayer was not found.");
             oneLevelFrameCoordinator = new OneLevelFrameCoordinator(oneLevelFrameView);
+            playerHubTabCoordinator = new PlayerHubTabCoordinator(oneLevelFrameView, HandlePlayerHubTabSelected);
             return oneLevelFrameCoordinator;
         }
 
@@ -7028,8 +7116,7 @@ namespace ProjectX.Core
             sourceRouteButton.interactable = true;
             heroItemSourceView.BindClick("Layer/Popup/Title/Btn_close", CloseHeroItemSource, true);
             heroItemSourceView.BindClick("Layer/Mask", CloseHeroItemSource, true);
-            heroItemSourceView.SetVisible(true);
-            heroItemSourceView.GameObject.transform.SetAsLastSibling();
+            heroItemSourceView.ShowPopup();
         }
 
         private void CloseHeroItemSource()
@@ -7129,8 +7216,7 @@ namespace ProjectX.Core
                 }
             }
             heroAttributesView.BindClick("Layer/Mask_close", () => heroAttributesView.SetVisible(false), true);
-            heroAttributesView.SetVisible(true);
-            heroAttributesView.GameObject.transform.SetAsLastSibling();
+            heroAttributesView.ShowPopup();
         }
 
         private void ConfigureHeroFrame(bool showBag)
@@ -7240,7 +7326,6 @@ namespace ProjectX.Core
             heroBagView?.SetVisible(true);
             ConfigureHeroFrame(true);
             heroPresenter?.Render();
-            heroBagView?.GameObject.transform.SetAsLastSibling();
         }
 
         private void ShowHeroFragmentTab()
@@ -7268,7 +7353,6 @@ namespace ProjectX.Core
             if (second != null) SetTabText(second, "碎片", true);
             heroBagView.SetVisible(false);
             heroEquipmentFragmentView.SetVisible(true);
-            heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();
             RenderHeroFragments();
         }
 
@@ -8076,8 +8160,7 @@ namespace ProjectX.Core
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/item_icon", false);
             heroItemSourceView.BindClick("Layer/Popup/Title/Btn_close", () => heroItemSourceView.SetVisible(false), true);
             heroItemSourceView.BindClick("Layer/Mask", () => heroItemSourceView.SetVisible(false), true);
-            heroItemSourceView.SetVisible(true);
-            heroItemSourceView.GameObject.transform.SetAsLastSibling();
+            heroItemSourceView.ShowPopup();
         }
 
         private bool IsHeroRebirthItemSourceVisible()
@@ -8148,6 +8231,7 @@ namespace ProjectX.Core
 
         private void ReleaseHeroAuxiliaryViews()
         {
+            RestoreOneLevelChildrenAfterEnhanceMaster();
             heroBookPresenter?.Dispose();
             heroBookPresenter = null;
             heroRebirthPresenter?.Dispose();
@@ -8252,27 +8336,45 @@ namespace ProjectX.Core
             Bag
         }
 
-        private void EnsureHeroEquipmentPresenter()
+        private void EnsureHeroEquipmentPresenter(bool cultivationOnly = false, bool includeFaBaoMaterial = true)
         {
+            if (!cultivationOnly && heroEquipmentPresenterCultivationOnly)
+            {
+                heroEquipmentPresenter?.Dispose();
+                heroEquipmentPresenter = null;
+                heroEquipmentPresenterCultivationOnly = false;
+            }
             EnsureHeroPresenter();
+            OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
             Transform dynamicRoot = GetDynamicUiRoot();
-            heroEquipmentListView = heroEquipmentListView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao")
-                ?? UiPrefabLoader.Load("HeroEquipmentList", dynamicRoot);
-            heroEquipmentDetailView = heroEquipmentDetailView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")
-                ?? UiPrefabLoader.Load("HeroEquipmentDetail", dynamicRoot);
-            heroEquipmentChangeView = heroEquipmentChangeView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan")
-                ?? UiPrefabLoader.Load("HeroEquipmentChange", dynamicRoot);
+            if (!cultivationOnly)
+            {
+                heroEquipmentListView = heroEquipmentListView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeibeibao")
+                    ?? UiPrefabLoader.Load("HeroEquipmentList", dynamicRoot);
+                heroEquipmentDetailView = heroEquipmentDetailView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")
+                    ?? UiPrefabLoader.Load("HeroEquipmentDetail", dynamicRoot);
+                heroEquipmentChangeView = heroEquipmentChangeView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeigenghuan")
+                    ?? UiPrefabLoader.Load("HeroEquipmentChange", dynamicRoot);
+            }
             heroEquipmentCultivateView = heroEquipmentCultivateView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiyangcheng")
-                ?? UiPrefabLoader.Load("HeroEquipmentCultivate", dynamicRoot);
+                ?? UiPrefabLoader.Load("HeroEquipmentCultivate", frame.View.GameObject.transform);
             Transform cultivationRoot = heroEquipmentCultivateView.GameObject.transform;
+            if (cultivationRoot.parent != frame.View.GameObject.transform)
+                cultivationRoot.SetParent(frame.View.GameObject.transform, false);
+            PlaceHeroEquipmentCultivationShell(frame.View.GameObject.transform, cultivationRoot);
             heroEquipmentStrengthView = heroEquipmentStrengthView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiqianghua")
                 ?? UiPrefabLoader.Load("HeroEquipmentStrength", cultivationRoot);
+            Transform strengthRoot = heroEquipmentStrengthView.GameObject.transform;
+            if (strengthRoot.parent != cultivationRoot)
+                strengthRoot.SetParent(cultivationRoot, false);
             heroEquipmentRefineView = heroEquipmentRefineView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeijinglian")
                 ?? UiPrefabLoader.Load("HeroEquipmentRefine", cultivationRoot);
             heroEquipmentAwakenView = heroEquipmentAwakenView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeijuexing")
                 ?? UiPrefabLoader.Load("HeroEquipmentAwaken", cultivationRoot);
             heroEquipmentDivineView = heroEquipmentDivineView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeishenzhu")
                 ?? UiPrefabLoader.Load("HeroEquipmentDivine", cultivationRoot);
+            if (!cultivationOnly)
+            {
             heroEquipmentFragmentView = heroEquipmentFragmentView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeisuipian")
                 ?? UiPrefabLoader.Load("HeroEquipmentFragment", dynamicRoot);
             heroEquipmentAutoRefineView = heroEquipmentAutoRefineView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianjinglian")
@@ -8285,18 +8387,23 @@ namespace ProjectX.Core
                 ?? UiPrefabLoader.Load("HeroEquipmentAutoDivine", dynamicRoot);
             heroEquipmentDivineEffectView = heroEquipmentDivineEffectView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/shenzhutexiao")
                 ?? UiPrefabLoader.Load("HeroEquipmentDivineEffect", dynamicRoot);
+            }
             faBaoStrengthView = faBaoStrengthView ?? UiPrefabLoader.Load("FaBaoStrength", cultivationRoot);
             faBaoRefineView = faBaoRefineView ?? UiPrefabLoader.Load("FaBaoRefine", cultivationRoot);
-            faBaoMaterialChooserView = faBaoMaterialChooserView ?? UiPrefabLoader.Load("FaBaoMaterialChooser", dynamicRoot);
-            if (heroEquipmentListView == null || heroEquipmentDetailView == null || heroEquipmentChangeView == null
+            if (includeFaBaoMaterial)
+                faBaoMaterialChooserView = faBaoMaterialChooserView ?? UiPrefabLoader.Load("FaBaoMaterialChooser", dynamicRoot);
+            AttachAndOrderHeroEquipmentCultivationViews(cultivationRoot,
+                heroEquipmentStrengthView, heroEquipmentRefineView, heroEquipmentAwakenView,
+                heroEquipmentDivineView, faBaoStrengthView, faBaoRefineView);
+            if ((!cultivationOnly && (heroEquipmentListView == null || heroEquipmentDetailView == null || heroEquipmentChangeView == null))
                 || heroEquipmentCultivateView == null || heroEquipmentStrengthView == null
                 || heroEquipmentRefineView == null || heroEquipmentAwakenView == null || heroEquipmentDivineView == null
-                || heroEquipmentFragmentView == null || heroEquipmentAutoRefineView == null
-                || heroEquipmentExchangeView == null || heroEquipmentAutoStarView == null
-                || heroEquipmentAutoDivineView == null || heroEquipmentDivineEffectView == null)
+                || (!cultivationOnly && (heroEquipmentFragmentView == null || heroEquipmentAutoRefineView == null
+                    || heroEquipmentExchangeView == null || heroEquipmentAutoStarView == null
+                    || heroEquipmentAutoDivineView == null || heroEquipmentDivineEffectView == null)))
                 throw new InvalidOperationException("Hero equipment list/detail/change/cultivate/strength/fragment CocosUiBindings were not found.");
-            Transform detailRoot = heroEquipmentDetailView.GameObject.transform;
-            if (detailRoot.parent == heroEquipmentListView.GameObject.transform)
+            Transform detailRoot = heroEquipmentDetailView?.GameObject?.transform;
+            if (!cultivationOnly && detailRoot != null && detailRoot.parent == heroEquipmentListView.GameObject.transform)
             {
                 detailRoot.SetParent(heroEquipmentListView.GameObject.transform.parent, false);
                 if (detailRoot is RectTransform detailRect)
@@ -8310,6 +8417,7 @@ namespace ProjectX.Core
                     detailRect.localScale = Vector3.one;
                 }
             }
+            bool presenterCreated = heroEquipmentPresenter == null;
             heroEquipmentPresenter = heroEquipmentPresenter ?? new HeroEquipmentPresenter(
                 heroEquipmentListView, heroEquipmentDetailView, heroEquipmentChangeView,
                 heroEquipmentCultivateView, heroEquipmentStrengthView, heroEquipmentRefineView,
@@ -8352,12 +8460,23 @@ namespace ProjectX.Core
                 {
                     SetStatus(message);
                     ShowToast(message, 2f);
-                });
-            if (!heroEquipmentFragmentBagSubscribed)
+                }, cultivationOnly);
+            if (presenterCreated) heroEquipmentPresenterCultivationOnly = cultivationOnly;
+            if (!cultivationOnly && !heroEquipmentFragmentBagSubscribed)
             {
                 services.Bag.Changed += HandleHeroEquipmentFragmentBagChanged;
                 heroEquipmentFragmentBagSubscribed = true;
             }
+        }
+
+        private void PlaceHeroEquipmentCultivationShell(Transform frameRoot, Transform cultivationRoot)
+        {
+            if (frameRoot == null || cultivationRoot == null || cultivationRoot.parent != frameRoot) return;
+            Transform heroBag = heroBagView?.GameObject?.transform;
+            if (heroBag == null || heroBag.parent != frameRoot)
+                heroBag = frameRoot.Find("DynamicUi_yingxiongbeibao");
+            if (heroBag == null || heroBag == cultivationRoot) return;
+            cultivationRoot.SetSiblingIndex(heroBag.GetSiblingIndex() + 1);
         }
 
         private void ConfigureHeroEquipmentFrame(HeroEquipmentKind kind)
@@ -8512,6 +8631,8 @@ namespace ProjectX.Core
                 ? new[] { "强化", "精炼" }
                 : new[] { "强化", "精炼", "觉醒", "神铸" };
             RectTransform firstRect = first as RectTransform;
+            Transform[] orderedTabs = new Transform[4];
+            int firstTabIndex = first.GetSiblingIndex();
             for (int index = 0; index < 4; index++)
             {
                 Transform tab = index == 0 ? first : panel.Find($"Button{index + 1}_StrengthRuntime");
@@ -8521,10 +8642,10 @@ namespace ProjectX.Core
                     tab.name = $"Button{index + 1}_StrengthRuntime";
                 }
                 RectTransform rect = tab as RectTransform;
-                if (firstRect != null && rect != null)
-                    rect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f * index);
+                NormalizeHeroCultivationTabLayout(rect, firstRect, index);
                 bool visible = index < labels.Length;
                 tab.gameObject.SetActive(visible);
+                orderedTabs[index] = tab;
                 if (!visible) continue;
                 SetTabText(tab, labels[index], index == selectedMode);
                 Button button = EnsureRuntimeButton(tab);
@@ -8533,8 +8654,55 @@ namespace ProjectX.Core
                 button.interactable = index != selectedMode;
                 button.onClick.AddListener(() => heroEquipmentPresenter?.ShowCultivationTab(mode));
             }
-            Transform fragmentTab = panel.Find("Button2_Runtime");
-            if (fragmentTab != null) fragmentTab.gameObject.SetActive(false);
+            NormalizeRuntimeTabSiblingOrder(panel, orderedTabs, firstTabIndex);
+            foreach (string staleTabName in new[] { "Button2_Runtime", "Button3_Runtime", "Button4_Runtime" })
+            {
+                Transform staleTab = panel.Find(staleTabName);
+                if (staleTab == null) continue;
+                staleTab.gameObject.SetActive(false);
+                Button staleButton = staleTab.GetComponent<Button>();
+                if (staleButton != null)
+                {
+                    staleButton.interactable = false;
+                    staleButton.onClick.RemoveAllListeners();
+                }
+            }
+        }
+
+        private static void NormalizeHeroCultivationTabLayout(
+            RectTransform tab, RectTransform template, int index)
+        {
+            if (tab == null || template == null) return;
+            tab.anchorMin = template.anchorMin;
+            tab.anchorMax = template.anchorMax;
+            tab.pivot = template.pivot;
+            tab.sizeDelta = template.sizeDelta;
+            tab.localRotation = Quaternion.identity;
+            tab.localScale = Vector3.one;
+            tab.anchoredPosition = template.anchoredPosition + new Vector2(0f, -100f * index);
+
+            Text label = tab.Find("BtnName")?.GetComponent<Text>();
+            if (label == null) return;
+            RectTransform labelRect = label.rectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            label.verticalOverflow = VerticalWrapMode.Overflow;
+        }
+
+        private static void NormalizeRuntimeTabSiblingOrder(
+            Transform parent, Transform[] orderedTabs, int firstTabIndex)
+        {
+            if (parent == null || orderedTabs == null) return;
+            int targetIndex = Mathf.Clamp(firstTabIndex, 0, parent.childCount - 1);
+            foreach (Transform tab in orderedTabs)
+            {
+                if (tab == null || tab.parent != parent) continue;
+                tab.SetSiblingIndex(targetIndex++);
+            }
         }
 
         private static Button EnsureRuntimeButton(Transform target)
@@ -9133,6 +9301,20 @@ namespace ProjectX.Core
                 });
         }
 
+        private static void AttachAndOrderHeroEquipmentCultivationViews(Transform parent,
+            params CocosUiView[] views)
+        {
+            if (parent == null || views == null) return;
+            for (int index = 0; index < views.Length; index++)
+            {
+                CocosUiView view = views[index];
+                if (view?.GameObject == null) continue;
+                Transform child = view.GameObject.transform;
+                if (child.parent != parent) child.SetParent(parent, false);
+                child.SetSiblingIndex(index);
+            }
+        }
+
         private void EnsureArenaPresenter(){arenaView=arenaView??services.UiRouter.FindBySource("common/JingjiLayer");if(arenaView==null)throw new InvalidOperationException("Current Arena imported CocosUiBinding was not found: common/JingjiLayer.");arenaPresenter=arenaPresenter??new ArenaPresenter(arenaView,services.Arena,()=>HandleBack());}
 
         private void EnsureKunLunPresenter(){kunLunView=kunLunView??services.UiRouter.FindBySource("kunlun/juezhankunlun");if(kunLunView==null)throw new InvalidOperationException("Current KunLun imported CocosUiBinding was not found: kunlun/juezhankunlun.");kunLunPresenter=kunLunPresenter??new KunLunPresenter(kunLunView,services.KunLun,()=>HandleBack());}
@@ -9193,10 +9375,9 @@ namespace ProjectX.Core
         {
             if (mainTaskTracker != null) return;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            CocosUiView backup = services.UiRouter.FindBySource("UImainLayer_backup");
-            if (mainView == null || backup == null)
-                throw new InvalidOperationException("Main or backup main task-tracker view was not found.");
-            mainTaskTracker = new MainTaskTrackerPresenter(mainView, backup, services.Tasks, HandleTaskClick);
+            if (mainView == null)
+                throw new InvalidOperationException("Main main task-tracker view was not found.");
+            mainTaskTracker = new MainTaskTrackerPresenter(mainView, services.Tasks, HandleTaskClick);
         }
 
         private void EnsureMainHudPresenter()
@@ -9204,8 +9385,11 @@ namespace ProjectX.Core
             if (mainHudPresenter != null) return;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
             if (mainView == null) throw new InvalidOperationException("Main HUD view was not found.");
-            chatMiniView = chatMiniView ?? services.UiRouter.FindBySource("/ChatLayer.csd");
-            if (chatMiniView == null) throw new InvalidOperationException("HUD ChatLayer view was not found.");
+            if (!singlePlayerTitleEnabled)
+            {
+                chatMiniView = chatMiniView ?? services.UiRouter.FindBySource("/ChatLayer.csd");
+                if (chatMiniView == null) throw new InvalidOperationException("HUD ChatLayer view was not found.");
+            }
             mainHudPresenter = new MainHudPresenter(mainView, chatMiniView, services.Player,
                 services.Currencies, services.Chat, services.Resources,
                 seedStableRedDots: !singlePlayerTitleEnabled);

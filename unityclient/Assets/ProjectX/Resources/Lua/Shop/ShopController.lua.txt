@@ -32,6 +32,7 @@ function M.onClick()
     M.validationStage = (Bridge:HasCommandLineFlag("-projectXShopValidation")
         or ((g3 or g4) and not M.validationStarted)) and "await_list" or nil
     if g3 or g4 then M.validationStarted = true end
+    Bridge:ShowShop()
     requestList()
 end
 

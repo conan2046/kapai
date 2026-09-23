@@ -1,4 +1,3 @@
-using ProjectX.Core;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -6,7 +5,7 @@ namespace ProjectX.UI
 {
     internal static class ItemQualityVisual
     {
-        public static void ApplyFrame(Image frame, int quality, ResourceService resources)
+        public static void ApplyFrame(Image frame, int quality, IUiResourceProvider resources)
         {
             if (frame == null || resources == null) return;
             frame.sprite = resources.LoadFirst(

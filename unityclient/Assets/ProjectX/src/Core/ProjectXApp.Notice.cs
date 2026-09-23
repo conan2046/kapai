@@ -30,7 +30,7 @@ namespace ProjectX.Core
             GameObject closeTemplate = roleCreateView?.Binding.Find("Layer/RoleCreateUI/Image/btn_Exit");
             noticePresenter = noticePresenter ?? new NoticePresenter(noticeView, closeTemplate, CloseGameNotice);
             noticePresenter.Show(pendingGameNotices);
-            noticeView.GameObject.transform.SetAsLastSibling();
+            noticeView.ShowPopup();
             services.UiStack.Push(noticeView, false);
         }
 

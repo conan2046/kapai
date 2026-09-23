@@ -74,8 +74,7 @@ namespace ProjectX.UI
             singleConfirm.gameObject.SetActive(true);
             cancelButton.gameObject.SetActive(false);
             confirmButton.gameObject.SetActive(false);
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         public void ShowHelp(string detail)
@@ -120,8 +119,7 @@ namespace ProjectX.UI
             confirmButton.gameObject.SetActive(true);
             SetButtonText(cancelButton, cancelLabel);
             SetButtonText(confirmButton, confirmLabel);
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         public void Confirm()

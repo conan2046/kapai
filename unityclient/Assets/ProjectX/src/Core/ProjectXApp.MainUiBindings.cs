@@ -58,33 +58,7 @@ namespace ProjectX.Core
 
         public void ShowMail()
         {
-            EnsureMailPresenter();
-            bagView?.SetVisible(false);
-            gameplayContentView?.SetVisible(false);
-            gameplayDetailView?.SetVisible(false);
-            heroListView?.SetVisible(false);
-            heroDetailView?.SetVisible(false);
-            heroBagView?.SetVisible(false);
-            heroBookView?.SetVisible(false);
-            heroRecycleView?.SetVisible(false);
-            heroReplacementView?.SetVisible(false);
-            heroCultivationView?.SetVisible(false);
-            heroLevelUpView?.SetVisible(false);
-            heroEnhanceMasterView?.SetVisible(false);
-            heroAttributesView?.SetVisible(false);
-            heroItemSourceView?.SetVisible(false);
-            heroEquipmentListView?.SetVisible(false);
-            heroEquipmentDetailView?.SetVisible(false);
-            heroEquipmentChangeView?.SetVisible(false);
-            heroEquipmentCultivateView?.SetVisible(false);
-            heroEquipmentStrengthView?.SetVisible(false);
-            heroEquipmentFragmentView?.SetVisible(false);
-            ConfigureMailFrame();
-            SetOneLevelFrameVisible(true);
-            if (services.UiStack.Current != mailView) services.UiStack.Push(mailView);
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-            mailView.GameObject.transform.SetAsLastSibling();
-            SetStatus($"Mail UI active: {services.Mails.Count} mails.");
+            ShowMergedMail();
         }
     }
 }

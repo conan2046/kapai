@@ -25,6 +25,16 @@ namespace ProjectX.Core
                 return PopUiStackWithHudRefresh();
             }
             if (TryHandleJingJieBack()) return true;
+            if (heroReplacementView?.GameObject.activeSelf == true)
+            {
+                // The replacement surface can coexist with the formation
+                // popup it was opened from. It is the topmost modal and must
+                // consume Back before the underlying popup gets a chance to
+                // close, otherwise the replacement remains active while the
+                // shared frame is hidden and the whole UI appears blank.
+                RestoreHeroAfterReplacement();
+                return true;
+            }
             if (heroHubOpen && formationPopupView?.GameObject.activeSelf == true)
             {
                 CloseHeroHub();
@@ -45,27 +55,12 @@ namespace ProjectX.Core
                 heroAttributesView.SetVisible(false);
                 return true;
             }
-            if (heroReplacementView?.GameObject.activeSelf == true)
-            {
-                heroReplacementView.SetVisible(false);
-                if (heroHubOpen)
-                {
-                    // Replacement is opened from the unified hero hub. The
-                    // legacy list/detail restore path leaves Panel_10 in the
-                    // replacement screen's stale state and loses the Hub
-                    // tabs, so restore through the active Hub tab instead.
-                    ShowHeroHubTab(heroHubTab);
-                    return true;
-                }
-                heroListView?.SetVisible(true);
-                heroDetailView?.SetVisible(true);
-                heroBagView?.SetVisible(false);
-                return true;
-            }
             if (heroEnhanceMasterView?.GameObject.activeSelf == true)
             {
                 heroEnhanceMasterView.SetVisible(false);
                 gameplayView?.SetVisible(false);
+                RestoreOneLevelChildrenAfterEnhanceMaster();
+                if (TryRestoreHeroHubAfterNestedSurface()) return true;
                 heroListView?.SetVisible(true);
                 heroDetailView?.SetVisible(true);
                 SetOneLevelFrameVisible(true);
@@ -84,6 +79,11 @@ namespace ProjectX.Core
             }
             if (IsHeroEquipmentOpen)
             {
+                if (heroEquipmentOpenedFromEnhanceMaster)
+                {
+                    RestoreHeroEnhanceMasterView();
+                    return true;
+                }
                 if (IsHeroEquipmentSubpageVisible)
                 {
                     RestoreHeroEquipmentBagView();
@@ -186,6 +186,37 @@ namespace ProjectX.Core
                 RestoreWorldAfterHeroFormation();
             }
             return stackPopped;
+        }
+
+        private void HideOneLevelChildrenForEnhanceMaster()
+        {
+            Transform frame = oneLevelFrameView?.GameObject?.transform;
+            if (frame == null) return;
+
+            if (!heroEnhanceMasterOneLevelVisibilityCaptured)
+            {
+                heroEnhanceMasterOneLevelChildVisibility.Clear();
+                foreach (Transform child in frame)
+                    heroEnhanceMasterOneLevelChildVisibility[child.gameObject] = child.gameObject.activeSelf;
+                heroEnhanceMasterOneLevelVisibilityCaptured = true;
+            }
+
+            foreach (Transform child in frame)
+                child.gameObject.SetActive(string.Equals(child.name, "Bg", System.StringComparison.Ordinal));
+        }
+
+        private void RestoreOneLevelChildrenAfterEnhanceMaster()
+        {
+            if (!heroEnhanceMasterOneLevelVisibilityCaptured) return;
+
+            foreach (var entry in heroEnhanceMasterOneLevelChildVisibility)
+            {
+                if (entry.Key != null)
+                    entry.Key.SetActive(entry.Value);
+            }
+
+            heroEnhanceMasterOneLevelChildVisibility.Clear();
+            heroEnhanceMasterOneLevelVisibilityCaptured = false;
         }
 
         private bool PopUiStackWithHudRefresh()

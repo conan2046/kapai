@@ -65,8 +65,7 @@ namespace ProjectX.UI
             }
             Text name = Node("Layer/Panel/Panel_1_0/nameLabel")?.GetComponent<Text>();
             if (name != null) name.color = new Color32(206, 40, 202, 255);
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         public void Hide() => view.SetVisible(false);

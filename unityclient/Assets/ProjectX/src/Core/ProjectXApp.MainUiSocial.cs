@@ -57,10 +57,6 @@ namespace ProjectX.Core
                 }
                 Button button = EnsureRuntimeTeamEntry();
                 MakeButtonVisualTransparent(button);
-                CocosUiView legacy = services.UiRouter.FindBySource("UImainLayer_backup");
-                if (legacy?.Binding.Find(TeamLegacyPath) == null)
-                    throw new InvalidOperationException($"Legacy team entry evidence is missing: {TeamLegacyPath}");
-                legacy.SetVisible(false);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));
             }
             catch (Exception exception) { Fail(exception.Message); }

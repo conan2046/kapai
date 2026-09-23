@@ -310,8 +310,7 @@ namespace ProjectX.UI
         {
             modalHeroId = heroId;
             RenderUpgradePopup(heroId);
-            upgradeView.SetVisible(true);
-            upgradeView.GameObject.transform.SetAsLastSibling();
+            upgradeView.ShowPopup();
         }
 
         private void RenderUpgradePopup(int heroId)
@@ -376,8 +375,7 @@ namespace ProjectX.UI
             RenderAttributeSection(attributesView, "Layer/Popup/Content_2/Atrribute_", store.ScoreAttributes, 8);
             Bind(attributesView, "Layer/Popup/Btn_close", () => attributesView.SetVisible(false));
             Bind(attributesView, "Layer/Mask", () => attributesView.SetVisible(false));
-            attributesView.SetVisible(true);
-            attributesView.GameObject.transform.SetAsLastSibling();
+            attributesView.ShowPopup();
         }
 
         private static void RenderAttributeSection(CocosUiView popup, string path,
@@ -429,8 +427,7 @@ namespace ProjectX.UI
             }
             Bind(achievementView, "Layer/Popup/Btn_close", () => achievementView.SetVisible(false));
             Bind(achievementView, "Layer/Mask", () => achievementView.SetVisible(false));
-            achievementView.SetVisible(true);
-            achievementView.GameObject.transform.SetAsLastSibling();
+            achievementView.ShowPopup();
         }
 
         private void HandleUpgradeCompleted(HeroBookUpgradeResult result)
@@ -439,8 +436,7 @@ namespace ProjectX.UI
             CocosUiView popup = result.Star <= 1 ? activateResultView : upgradeResultView;
             if (result.Star <= 1) RenderActivationResult(popup, result);
             else RenderUpgradeResult(popup, result);
-            popup.SetVisible(true);
-            popup.GameObject.transform.SetAsLastSibling();
+            popup.ShowPopup();
         }
 
         private void RenderActivationResult(CocosUiView popup, HeroBookUpgradeResult result)
@@ -514,8 +510,7 @@ namespace ProjectX.UI
                 }
             }
             Bind(levelResultView, "Layer/jihuochengjiuUI/Btn_Close", () => levelResultView.SetVisible(false));
-            levelResultView.SetVisible(true);
-            levelResultView.GameObject.transform.SetAsLastSibling();
+            levelResultView.ShowPopup();
         }
 
         private void HidePopups()

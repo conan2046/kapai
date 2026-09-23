@@ -12,7 +12,7 @@ namespace ProjectX.UI
         private readonly CocosUiView view;
         private readonly CocosUiView frameView;
         private readonly MailStore store;
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<uint> claim;
         private readonly Action<uint> read;
         private readonly Action<uint> delete;
@@ -41,7 +41,7 @@ namespace ProjectX.UI
         private readonly Dictionary<RectTransform, uint> rowMailIds = new Dictionary<RectTransform, uint>();
         private int missingIconCount;
 
-        public MailPresenter(CocosUiView view, CocosUiView frameView, MailStore store, Core.ResourceService resources,
+        public MailPresenter(CocosUiView view, CocosUiView frameView, MailStore store, IUiResourceProvider resources,
             Action<uint> claim, Action<uint> read, Action<uint> delete,
             Action claimAll, Action deleteAll, Action close, Action<RewardRecord> showAttachment)
         {
@@ -139,7 +139,19 @@ namespace ProjectX.UI
         public string BodyText => body?.text ?? string.Empty;
         public bool IsEmptyVisible => emptyPanel.activeSelf;
         public string SingleActionLabel => claimButton.GetComponentInChildren<Text>(true)?.text ?? string.Empty;
-        public string TabLabel => tabButton?.GetComponentInChildren<Text>(true)?.text ?? string.Empty;
+        public string TabLabel
+        {
+            get
+            {
+                // PlayerHubTabCoordinator owns the shared strip. Mail is the
+                // third tab, so do not read Button1 after entering the hub.
+                GameObject mailTab = frameView.Binding.Find(
+                    "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button3_Runtime");
+                return mailTab?.GetComponentInChildren<Text>(true)?.text
+                    ?? tabButton?.GetComponentInChildren<Text>(true)?.text
+                    ?? string.Empty;
+            }
+        }
         public bool HasCloseControl => closeButton != null && closeButton.gameObject.activeInHierarchy;
 
         public bool ScrollMailToBottom() => list.ScrollToBottom();

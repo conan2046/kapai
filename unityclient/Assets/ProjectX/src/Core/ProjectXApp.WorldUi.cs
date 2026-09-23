@@ -250,8 +250,7 @@ namespace ProjectX.Core
             Text closeText = close?.GetComponentInChildren<Text>(true);
             if (claimText != null) claimText.text = "领取";
             if (closeText != null) closeText.text = "关闭";
-            worldBoxAwardView.GameObject.SetActive(true);
-            worldBoxAwardView.GameObject.transform.SetAsLastSibling();
+            worldBoxAwardView.ShowPopup();
             SetWorldBoxRootProxiesVisible(false);
             // The imported dialog is normally inactive while its bindings are
             // prepared. Re-register its Graphics after activation so the
@@ -349,8 +348,7 @@ namespace ProjectX.Core
             EnsureWorldAchievementView();
             AttachWorldAchievementToWorldRoot();
             worldAchievementAuthoritativeResponse = false;
-            worldAchievementView.GameObject.SetActive(true);
-            worldAchievementView.GameObject.transform.SetAsLastSibling();
+            worldAchievementView.ShowPopup();
             RectTransform content = worldAchievementView.Binding.Find(
                 "Layer/zhuxianchengjiu_layer")?.transform as RectTransform;
             if (content != null) content.anchoredPosition = Vector2.zero;

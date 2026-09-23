@@ -64,7 +64,10 @@ namespace ProjectX.UI
             heroId = selectedHeroId;
             selectHero(heroId);
             frame.SetVisible(true); shell.SetVisible(true);
-            frame.GameObject.transform.SetAsLastSibling(); shell.GameObject.transform.SetAsLastSibling();
+            // OneLevelLayer owns a fixed sibling order for all hero pages.
+            // Only the shared frame itself is promoted; the cultivation shell
+            // and selected page stay in their reserved slots.
+            frame.GameObject.transform.SetAsLastSibling();
             ConfigureTabs();
             ShowPage(0);
         }
@@ -549,6 +552,18 @@ namespace ProjectX.UI
                 SetTab(tab, labels[index], index == page);
                 tabs.Add(tab);
             }
+            NormalizeTabSiblingOrder(panel, tabs);
+        }
+
+        private static void NormalizeTabSiblingOrder(Transform panel, List<Transform> orderedTabs)
+        {
+            if (panel == null || orderedTabs == null || orderedTabs.Count == 0) return;
+            int targetIndex = Mathf.Clamp(orderedTabs[0].GetSiblingIndex(), 0, panel.childCount - 1);
+            foreach (Transform tab in orderedTabs)
+            {
+                if (tab == null || tab.parent != panel) continue;
+                tab.SetSiblingIndex(targetIndex++);
+            }
         }
 
         private void ResetTabOverlay()
@@ -572,8 +587,6 @@ namespace ProjectX.UI
             for (int i = 0; i < tabs.Count; i++) SetTab(tabs[i], new[] { "升级", "升星", "突破", "修炼", "信息" }[i], i == page);
             Text title = frame.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = new[] { "升级", "升星", "突破", "修炼", "信息" }[page];
-            CocosUiView active = PageViews().ElementAt(page);
-            active.GameObject.transform.SetAsLastSibling();
             Render();
         }
 
@@ -780,7 +793,7 @@ namespace ProjectX.UI
         {
             cultivationCount = 1;
             SetText(autoLevel, "Layer/bg/Num", cultivationCount.ToString());
-            autoLevel.SetVisible(true); autoLevel.GameObject.transform.SetAsLastSibling();
+            autoLevel.ShowPopup();
         }
 
         private void BindDelta(CocosUiView view, string path, int delta) => view.BindClick(path, () =>
@@ -792,7 +805,7 @@ namespace ProjectX.UI
         private void OpenNumber()
         {
             cultivationCount = 1; SetText(number, "Layer/Panel/Bg/Num", "1");
-            number.SetVisible(true); number.GameObject.transform.SetAsLastSibling();
+            number.ShowPopup();
         }
         private void AppendDigit(int digit)
         {
@@ -831,7 +844,7 @@ namespace ProjectX.UI
                 titles = Enumerable.Range(1, 8).Select(value => value == 1 ? "默认开启" : $"升至{value - 1}星开启").ToArray();
             }
             PopulateTalentRows(titles, descriptions, breakTalent ? hero.BreakLevel : hero.Star + 1);
-            talent.SetVisible(true); talent.GameObject.transform.SetAsLastSibling();
+            talent.ShowPopup();
         }
 
         private static string ResolveSkillDescription(HeroRecord hero, HeroDefinition definition) =>
@@ -922,7 +935,7 @@ namespace ProjectX.UI
             portraitFrame?.SetSiblingIndex(0);
             portrait?.SetSiblingIndex(1);
             PopulateHeroAttributeRows(hero);
-            attributes.SetVisible(true); attributes.GameObject.transform.SetAsLastSibling();
+            attributes.ShowPopup();
         }
 
         private void PopulateHeroAttributeRows(HeroRecord hero)
@@ -961,7 +974,8 @@ namespace ProjectX.UI
                 helpPage * 10 + 1, helpPage * 10 + 10);
             helpFrame.SetVisible(true); helpFirst.SetVisible(true); helpSecond.SetVisible(false);
             ConfigureHelpFrame();
-            helpFrame.GameObject.transform.SetAsLastSibling(); helpFirst.GameObject.transform.SetAsLastSibling();
+            helpFrame.ShowPopup();
+            helpFirst.ShowPopup();
             ConfigureHelpTabs(); RenderCultivationDestinyPage();
         }
         private void CloseHelp() { helpFirst.SetVisible(false); helpSecond.SetVisible(false); helpFrame.SetVisible(false); }
@@ -1019,10 +1033,9 @@ namespace ProjectX.UI
         private void OpenCultivationAttributes()
         {
             RenderCultivationAttributeSummary();
-            helpSecond.SetVisible(true);
+            helpSecond.ShowPopup();
             ConfigureAttributeOverlay();
             ConfigureOverlayCanvas(helpSecond.GameObject, 204);
-            helpSecond.GameObject.transform.SetAsLastSibling();
         }
 
         private void ConfigureAttributeOverlay()

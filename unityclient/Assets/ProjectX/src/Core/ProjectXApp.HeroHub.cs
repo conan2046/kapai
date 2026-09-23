@@ -24,6 +24,20 @@ namespace ProjectX.Core
             heroHubOpen = true;
         }
 
+        private bool TryRestoreHeroHubAfterNestedSurface()
+        {
+            if (!heroHubOpen) return false;
+            ShowHeroHubTab(heroHubTab);
+            return true;
+        }
+
+        private void SetHeroHubTabStripVisible(bool visible)
+        {
+            GameObject tabs = oneLevelFrameView?.Binding.Find(
+                "Layer/Panel_12/Bg/Btn_ListView");
+            if (tabs != null) tabs.SetActive(visible);
+        }
+
         private void ShowHeroHubTab(HeroHubTab tab)
         {
             heroHubTab = tab;
@@ -41,15 +55,12 @@ namespace ProjectX.Core
                     AttachHeroHubContent(heroBagView);
                     heroBagView?.SetVisible(true);
                     heroPresenter?.Render();
-                    heroBagView?.GameObject.transform.SetAsLastSibling();
                     break;
                 case HeroHubTab.Fragments:
                     ShowHeroFragmentSurface();
                     break;
             }
 
-            RaiseHeroHubChrome();
-            ApplyHeroHubSiblingOrder(tab);
             if (services?.UiStack.Current != oneLevelFrameView)
                 services?.UiStack.Push(oneLevelFrameView);
             oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", CloseHeroHub, true);
@@ -69,41 +80,6 @@ namespace ProjectX.Core
             heroDetailView?.SetVisible(true);
             heroPresenter?.Render();
             ConfigureHeroHubTabs(HeroHubTab.Formation);
-            RaiseHeroHubChrome();
-            ApplyHeroHubSiblingOrder(HeroHubTab.Formation);
-        }
-
-        private void ApplyHeroHubSiblingOrder(HeroHubTab tab)
-        {
-            Transform root = oneLevelFrameView?.GameObject.transform;
-            if (root == null) return;
-
-            // Panel_12 stays before the functional surfaces so its visible
-            // background renders behind them while its chrome remains in the
-            // requested hierarchy position.
-            SetSiblingIndex(root.Find("Bg"), 0);
-            SetSiblingIndex(root.Find("Panel_12"), 1);
-            if (tab == HeroHubTab.Formation)
-            {
-                SetSiblingIndex(root.Find("DynamicUi_yingxiongInfoLayer"), 2);
-                SetSiblingIndex(root.Find("DynamicUi_yingxiongListLayer"), 3);
-            }
-            else if (tab == HeroHubTab.Heroes)
-            {
-                SetSiblingIndex(root.Find("DynamicUi_yingxiongbeibao"), 2);
-            }
-            else if (heroEquipmentFragmentView != null)
-            {
-                SetSiblingIndex(heroEquipmentFragmentView.GameObject.transform, 2);
-            }
-
-            SetSiblingIndex(root.Find("GoldCheck"), 4);
-        }
-
-        private static void SetSiblingIndex(Transform target, int index)
-        {
-            if (target == null) return;
-            target.SetSiblingIndex(Mathf.Clamp(index, 0, target.parent.childCount - 1));
         }
 
         private void ConfigureHeroHubFrame(HeroHubTab selected)
@@ -125,7 +101,6 @@ namespace ProjectX.Core
 
             RefreshStandardCurrencyHeader(oneLevelFrameView.Binding, "Layer/GoldCheck");
             SetOneLevelFrameVisible(true);
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
         }
 
         private void ConfigureHeroHubTabs(HeroHubTab selected)
@@ -156,6 +131,8 @@ namespace ProjectX.Core
             foreach (Transform child in panel)
                 if (child != first && child != second && child != third)
                     child.gameObject.SetActive(false);
+
+            EnsureHeroHubTabHierarchyOrder(panel, first, second, third);
 
             RectTransform firstRect = first as RectTransform;
             RectTransform secondRect = second as RectTransform;
@@ -224,8 +201,6 @@ namespace ProjectX.Core
             formationPopupView.SetVisible(true);
             formationPopupPresenter.Render();
             formationPopupPresenter.RefreshCloseInteraction();
-            formationPopupView.GameObject.transform.SetAsLastSibling();
-            RaiseHeroHubChrome();
         }
 
         private void ShowHeroFragmentSurface()
@@ -243,32 +218,105 @@ namespace ProjectX.Core
             heroFragmentBagActive = true;
             AttachHeroHubContent(heroEquipmentFragmentView);
             heroEquipmentFragmentView.SetVisible(true);
-            heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();
             RenderHeroFragments();
-            RaiseHeroHubChrome();
-            ApplyHeroHubSiblingOrder(HeroHubTab.Fragments);
+            // The unified hero hub can be entered before the ordinary Bag page
+            // has requested /8. Refresh the authoritative package here so the
+            // fragment list does not depend on a previous page visit.
+            InvokeLuaOrFail(onBagClicked, "Hero.FragmentBagSnapshot");
         }
 
-        private void RaiseHeroHubChrome()
+        private static void EnsureHeroHubTabHierarchyOrder(
+            Transform panel, Transform first, Transform second, Transform third)
         {
-            if (oneLevelFrameView == null) return;
-            Transform root = oneLevelFrameView.GameObject.transform;
-            Transform panel = oneLevelFrameView.Binding.Find("Layer/Panel_12")?.transform;
-            Transform gold = oneLevelFrameView.Binding.Find("Layer/GoldCheck")?.transform;
-            if (panel != null) panel.SetAsLastSibling();
-            if (gold != null) gold.SetAsLastSibling();
-            // The title and right-side tabs must remain above the embedded
-            // formation/fragment surfaces while retaining the shared canvas.
-            if (root.childCount > 0 && panel != null) panel.SetAsLastSibling();
-            if (gold != null) gold.SetAsLastSibling();
+            if (panel == null) return;
+            Transform[] tabs = { first, second, third };
+            bool alreadyOrdered = true;
+            for (int index = 0; index < tabs.Length; index++)
+            {
+                Transform tab = tabs[index];
+                if (tab == null || tab.parent != panel || tab.GetSiblingIndex() != index)
+                {
+                    alreadyOrdered = false;
+                    break;
+                }
+            }
+
+            // Legacy cultivation tabs may occupy the first slots. Normalize
+            // the three hero-hub tabs once; switching only changes visibility.
+            if (alreadyOrdered) return;
+            for (int index = 0; index < tabs.Length; index++)
+            {
+                Transform tab = tabs[index];
+                if (tab != null && tab.parent == panel)
+                    tab.SetSiblingIndex(index);
+            }
         }
 
         private void AttachHeroHubContent(CocosUiView content)
         {
             if (content == null || !content.IsAlive) return;
-            EnsureOneLevelFrame().AttachContent(content);
+            EnsureOneLevelFrame().AttachContent(content, keepSiblingOrder: true);
             NormalizeHeroHubRect(oneLevelFrameView?.GameObject.transform as RectTransform);
             NormalizeHeroHubRect(content.GameObject.transform as RectTransform);
+            EnsureHeroHubContentHierarchyOrder();
+        }
+
+        private void EnsureHeroHubContentHierarchyOrder()
+        {
+            Transform frameRoot = oneLevelFrameView?.GameObject?.transform;
+            Transform goldCheck = frameRoot?.Find("GoldCheck");
+            if (frameRoot == null || goldCheck == null) return;
+
+            // The formation surface historically owns the first two slots.
+            // The unified hub appends the bag and fragment pages after them.
+            // This is a one-time structural normalization; tab switching only
+            // toggles visibility and never promotes the selected page.
+            Transform[] fixedContentOrder =
+            {
+                heroDetailView?.GameObject?.transform,
+                heroListView?.GameObject?.transform,
+                heroBagView?.GameObject?.transform,
+                heroEquipmentFragmentView?.GameObject?.transform,
+                // Keep the cultivation shell and its five functional pages
+                // before all cultivation popups.  The selected page is
+                // switched with SetActive only; it must never be promoted.
+                heroCultivationView?.GameObject?.transform,
+                heroLevelUpView?.GameObject?.transform,
+                heroStarUpView?.GameObject?.transform,
+                heroBreakView?.GameObject?.transform,
+                heroCultivateView?.GameObject?.transform,
+                heroInfoView?.GameObject?.transform,
+                // Popups are deliberately kept after the functional pages.
+                heroAutoLevelUpView?.GameObject?.transform,
+                heroCultivationTalentView?.GameObject?.transform,
+                heroCultivationHelpFirstView?.GameObject?.transform,
+                heroCultivationHelpSecondView?.GameObject?.transform,
+                heroCultivationAttributeView?.GameObject?.transform,
+                heroCultivationNumberView?.GameObject?.transform,
+                heroCultivationHelpFrameView?.GameObject?.transform,
+                formationPopupView?.GameObject?.transform
+            };
+            int firstContentIndex = goldCheck.GetSiblingIndex() + 1;
+            int nextIndex = firstContentIndex;
+            bool alreadyOrdered = true;
+            foreach (Transform child in fixedContentOrder)
+            {
+                if (child == null || child.parent != frameRoot) continue;
+                if (child.GetSiblingIndex() != nextIndex)
+                {
+                    alreadyOrdered = false;
+                    break;
+                }
+                nextIndex++;
+            }
+
+            if (alreadyOrdered) return;
+            nextIndex = firstContentIndex;
+            foreach (Transform child in fixedContentOrder)
+            {
+                if (child == null || child.parent != frameRoot) continue;
+                child.SetSiblingIndex(nextIndex++);
+            }
         }
 
         private static void NormalizeHeroHubRect(RectTransform rect)
@@ -303,7 +351,7 @@ namespace ProjectX.Core
             if (formationPopupView == null) return;
             if (embedded)
             {
-                EnsureOneLevelFrame().AttachContent(formationPopupView);
+                AttachHeroHubContent(formationPopupView);
                 // The formation prefab's own Bg contains the board and hero
                 // slots. Keep it visible when embedded; only the shared hub
                 // paper background is disabled by ShowHeroFormationSurface.

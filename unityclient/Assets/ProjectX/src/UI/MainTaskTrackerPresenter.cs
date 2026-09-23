@@ -18,31 +18,33 @@ namespace ProjectX.UI
         private bool serverHotPoint;
         private bool serverHotPointReceived;
 
-        public MainTaskTrackerPresenter(CocosUiView main, CocosUiView backup, TaskStore store, Action openTasks)
+        public MainTaskTrackerPresenter(CocosUiView main, TaskStore store, Action openTasks)
         {
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.openTasks = openTasks ?? throw new ArgumentNullException(nameof(openTasks));
             // The old Bg/btn_renwu entry is removable after the task route was unified.
             prompt = main?.Binding.Find(PromptPath);
-            panel = backup?.Binding.Find(PanelPath)
-                ?? throw new InvalidOperationException("Backup main task tracker panel was not found.");
+            panel = main?.Binding.Find(PanelPath);
             GameObject mainRoot = main.Binding.Find("Layer/Main_UI")
                 ?? throw new InvalidOperationException("Main UI root node was not found.");
-            panel.transform.SetParent(mainRoot.transform, false);
-            panel.SetActive(false);
-            SetVisible(panel.transform, "CheckBox_Team", false);
-            SetVisible(panel.transform, "Item_Team", false);
-            SetVisible(panel.transform, "Panel", false);
-            SetVisible(panel.transform, "teamListView", false);
-            GameObject viewport = Require(panel.transform, "ListView_1");
-            GameObject template = Require(panel.transform, "Item_Quest");
-            float height = Math.Max(62f, template.GetComponent<RectTransform>()?.rect.height ?? 62f);
-            list = new VirtualList<TaskRecord>(viewport, template, height, BindRow);
+            if (panel != null)
+            {
+                panel.transform.SetParent(mainRoot.transform, false);
+                panel.SetActive(false);
+                SetVisible(panel.transform, "CheckBox_Team", false);
+                SetVisible(panel.transform, "Item_Team", false);
+                SetVisible(panel.transform, "Panel", false);
+                SetVisible(panel.transform, "teamListView", false);
+                GameObject viewport = Require(panel.transform, "ListView_1");
+                GameObject template = Require(panel.transform, "Item_Quest");
+                float height = Math.Max(62f, template.GetComponent<RectTransform>()?.rect.height ?? 62f);
+                list = new VirtualList<TaskRecord>(viewport, template, height, BindRow);
+            }
             store.Changed += Render;
             Render();
         }
 
-        public int ItemCount => list.Count;
+        public int ItemCount => list?.Count ?? 0;
         public bool IsHotPointVisible => prompt?.activeSelf == true;
         public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;
 
@@ -56,18 +58,18 @@ namespace ProjectX.UI
         public void Render()
         {
             TaskRecord[] tracked = store.Items.Where(item => item.State < 2).Take(3).ToArray();
-            list.SetItems(tracked);
+            list?.SetItems(tracked);
             // Fresh native HUD frames for both fixed accounts keep the quest/team
             // tracker suppressed in the current scene. PlayerHud owns the task
             // route and red dot only; it must not invent a task-business panel.
-            panel.SetActive(false);
+            panel?.SetActive(false);
             RenderHotPoint();
         }
 
         public void Dispose()
         {
             store.Changed -= Render;
-            list.Dispose();
+            list?.Dispose();
         }
 
         private void RenderHotPoint()

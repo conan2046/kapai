@@ -126,6 +126,7 @@ namespace ProjectX.UI
         public HeroEquipmentKind ActiveKind => activeKind;
         public int ActiveFormationPosition => formationPosition;
         private readonly List<FaBaoRecord> selectedFaBaoMaterials = new List<FaBaoRecord>();
+        private readonly bool cultivationOnly;
 
         public HeroEquipmentPresenter(CocosUiView listView, CocosUiView detailView, CocosUiView changeView,
             CocosUiView cultivateView, CocosUiView strengthView, CocosUiView refineView,
@@ -143,24 +144,26 @@ namespace ProjectX.UI
             Action<uint, int> wearFaBao, Action<uint> takeOffFaBao,
             Action<uint, uint[]> strengthFaBao, Action<uint, int> refineFaBao,
             Action<int, HeroEquipmentKind> showCultivationFrame,
-            Func<int> getPlayerLevel, Func<int, int> getHeroAtDisplayPosition, Action<string> showFeedback)
+            Func<int> getPlayerLevel, Func<int, int> getHeroAtDisplayPosition, Action<string> showFeedback,
+            bool cultivationOnly = false)
         {
-            this.listView = listView ?? throw new ArgumentNullException(nameof(listView));
-            this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
-            this.changeView = changeView ?? throw new ArgumentNullException(nameof(changeView));
+            this.cultivationOnly = cultivationOnly;
+            this.listView = listView;
+            this.detailView = detailView;
+            this.changeView = changeView;
             this.cultivateView = cultivateView ?? throw new ArgumentNullException(nameof(cultivateView));
             this.strengthView = strengthView ?? throw new ArgumentNullException(nameof(strengthView));
             this.refineView = refineView ?? throw new ArgumentNullException(nameof(refineView));
             this.awakenView = awakenView ?? throw new ArgumentNullException(nameof(awakenView));
             this.divineView = divineView ?? throw new ArgumentNullException(nameof(divineView));
-            this.autoRefineView = autoRefineView ?? throw new ArgumentNullException(nameof(autoRefineView));
-            this.exchangeView = exchangeView ?? throw new ArgumentNullException(nameof(exchangeView));
-            this.autoStarView = autoStarView ?? throw new ArgumentNullException(nameof(autoStarView));
-            this.autoDivineView = autoDivineView ?? throw new ArgumentNullException(nameof(autoDivineView));
-            this.divineEffectView = divineEffectView ?? throw new ArgumentNullException(nameof(divineEffectView));
+            this.autoRefineView = autoRefineView;
+            this.exchangeView = exchangeView;
+            this.autoStarView = autoStarView;
+            this.autoDivineView = autoDivineView;
+            this.divineEffectView = divineEffectView;
             this.faBaoStrengthView = faBaoStrengthView ?? throw new ArgumentNullException(nameof(faBaoStrengthView));
             this.faBaoRefineView = faBaoRefineView ?? throw new ArgumentNullException(nameof(faBaoRefineView));
-            this.faBaoMaterialChooserView = faBaoMaterialChooserView ?? throw new ArgumentNullException(nameof(faBaoMaterialChooserView));
+            this.faBaoMaterialChooserView = faBaoMaterialChooserView;
             this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
             this.faBao = faBao ?? throw new ArgumentNullException(nameof(faBao));
             this.bag = bag ?? throw new ArgumentNullException(nameof(bag));
@@ -187,45 +190,49 @@ namespace ProjectX.UI
             this.getPlayerLevel = getPlayerLevel ?? throw new ArgumentNullException(nameof(getPlayerLevel));
             this.showFeedback = showFeedback;
 
-            GameObject viewport = Require(listView, "Layer/zhuangbeibeibaoUI/TableView");
-            GameObject template = Require(listView, "Layer/zhuangbeibeibaoUI/ItemList");
-            float height = Mathf.Max(120f, template.GetComponent<RectTransform>().rect.height);
-            list = new VirtualList<DisplayPair>(viewport, template, height, BindRow);
-            GameObject changeViewport = Require(changeView, "Layer/Popup/TableView");
-            GameObject changeTemplate = Require(changeView, "Layer/ItemList");
-            float changeHeight = Mathf.Max(120f, changeTemplate.GetComponent<RectTransform>().rect.height);
-            changeList = new VirtualList<DisplayPair>(changeViewport, changeTemplate, changeHeight, BindChangeRow);
-            RequireButton(changeView, "Layer/Popup/Btn_close").onClick.AddListener(() => changeView.SetVisible(false));
-            number = RequireText(listView, "Layer/zhuangbeibeibaoUI/Number");
-            emptyState = Require(listView, "Layer/zhuangbeibeibaoUI/Point");
-            recycleButton = Require(listView, "Layer/zhuangbeibeibaoUI/recycle");
-            recycleButton.SetActive(false);
-            Require(listView, "Layer/zhuangbeibeibaoUI/cell").SetActive(false);
-            hideWornToggle = Require(listView, "Layer/zhuangbeibeibaoUI/CheckBox");
-            Toggle hideWorn = hideWornToggle.GetComponent<Toggle>();
-            if (hideWorn != null)
+            if (!cultivationOnly)
             {
-                hideWorn.isOn = false;
-                hideWorn.onValueChanged.RemoveAllListeners();
-                hideWorn.onValueChanged.AddListener(value =>
+                GameObject viewport = Require(listView, "Layer/zhuangbeibeibaoUI/TableView");
+                GameObject template = Require(listView, "Layer/zhuangbeibeibaoUI/ItemList");
+                float height = Mathf.Max(120f, template.GetComponent<RectTransform>().rect.height);
+                list = new VirtualList<DisplayPair>(viewport, template, height, BindRow);
+                GameObject changeViewport = Require(changeView, "Layer/Popup/TableView");
+                GameObject changeTemplate = Require(changeView, "Layer/ItemList");
+                float changeHeight = Mathf.Max(120f, changeTemplate.GetComponent<RectTransform>().rect.height);
+                changeList = new VirtualList<DisplayPair>(changeViewport, changeTemplate, changeHeight, BindChangeRow);
+                RequireButton(changeView, "Layer/Popup/Btn_close").onClick.AddListener(() => changeView.SetVisible(false));
+                number = RequireText(listView, "Layer/zhuangbeibeibaoUI/Number");
+                emptyState = Require(listView, "Layer/zhuangbeibeibaoUI/Point");
+                recycleButton = Require(listView, "Layer/zhuangbeibeibaoUI/recycle");
+                recycleButton.SetActive(false);
+                Require(listView, "Layer/zhuangbeibeibaoUI/cell").SetActive(false);
+                hideWornToggle = Require(listView, "Layer/zhuangbeibeibaoUI/CheckBox");
+                Toggle hideWorn = hideWornToggle.GetComponent<Toggle>();
+                if (hideWorn != null)
                 {
-                    this.hideWorn = value;
-                    Render();
-                });
+                    hideWorn.isOn = false;
+                    hideWorn.onValueChanged.RemoveAllListeners();
+                    hideWorn.onValueChanged.AddListener(value =>
+                    {
+                        this.hideWorn = value;
+                        Render();
+                    });
+                }
+                Toggle changeFilter = Require(changeView, "Layer/Popup/CheckBox").GetComponent<Toggle>();
+                if (changeFilter != null)
+                {
+                    changeFilter.isOn = false;
+                    changeFilter.onValueChanged.RemoveAllListeners();
+                    changeFilter.onValueChanged.AddListener(value =>
+                    {
+                        changeHideWorn = value;
+                        RenderChange();
+                    });
+                }
             }
-            Toggle changeFilter = Require(changeView, "Layer/Popup/CheckBox").GetComponent<Toggle>();
-            if (changeFilter != null)
+            if (!cultivationOnly)
             {
-                changeFilter.isOn = false;
-                changeFilter.onValueChanged.RemoveAllListeners();
-                changeFilter.onValueChanged.AddListener(value =>
-                {
-                    changeHideWorn = value;
-                    RenderChange();
-                });
-            }
-
-            detailName = RequireText(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name");
+                detailName = RequireText(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name");
             detailDescription = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content");
             detailBaseAttribute = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1/Value");
             detailStrength = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Level/Value");
@@ -234,8 +241,9 @@ namespace ProjectX.UI
             detailQualityFrame = EnsureDetailQualityFrame(detailIconHost);
             detailIcon = EnsureDetailIcon(detailIconHost);
             wearButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan");
-            takeOffButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia");
-            strengthButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua");
+                takeOffButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia");
+                strengthButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua");
+            }
             strengthOnceButton = RequireButton(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn");
             refineOnceButton = RequireButton(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn");
             awakenOnceButton = RequireButton(awakenView, "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn");
@@ -247,34 +255,37 @@ namespace ProjectX.UI
             refineView.SetVisible(false);
             awakenView.SetVisible(false);
             divineView.SetVisible(false);
-            autoRefineView.SetVisible(false);
-            exchangeView.SetVisible(false);
-            autoStarView.SetVisible(false);
-            autoDivineView.SetVisible(false);
-            divineEffectView.SetVisible(false);
-            changeView.SetVisible(false);
-            Button close = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Popup/Btn_close");
-            close.onClick.RemoveAllListeners();
-            close.onClick.AddListener(() =>
+            autoRefineView?.SetVisible(false);
+            exchangeView?.SetVisible(false);
+            autoStarView?.SetVisible(false);
+            autoDivineView?.SetVisible(false);
+            divineEffectView?.SetVisible(false);
+            changeView?.SetVisible(false);
+            Button close = cultivationOnly ? null : RequireButton(detailView, "Layer/zhuangbeiInfoUI/Popup/Btn_close");
+            if (close != null) close.onClick.RemoveAllListeners();
+            if (close != null) close.onClick.AddListener(() =>
             {
                 HideDetails();
-                listView.SetVisible(returnToListOnDetailClose);
+                listView?.SetVisible(returnToListOnDetailClose);
             });
             ConfigureCultivationButtons();
-            ConfigureDetailListLayout();
-            ConfigureBuildRecommendation();
-            ConfigureAffixActions();
-            ConfigureSecondaryControls();
+            if (!cultivationOnly)
+            {
+                ConfigureDetailListLayout();
+                ConfigureBuildRecommendation();
+                ConfigureAffixActions();
+                ConfigureSecondaryControls();
+            }
             ConfigureCultivationEffects();
 
             equipment.Changed += Render;
             faBao.Changed += Render;
-            Render();
+            if (!cultivationOnly) Render();
         }
 
         public int ItemCount => items.Count;
         public int MissingIconCount => missingIconCount;
-        public bool IsDetailVisible => detailView.GameObject.activeSelf;
+        public bool IsDetailVisible => detailView?.GameObject.activeSelf == true;
         public bool ReturnsToListOnDetailClose => returnToListOnDetailClose;
         public bool CultivationImodReady => cultivationEffects.Count == 9
             && cultivationEffects.All(value => value != null && value.IsLoaded);
@@ -378,17 +389,17 @@ namespace ProjectX.UI
         public void HideDetails()
         {
             activeCultivationMode = -1;
-            detailView.SetVisible(false);
-            changeView.SetVisible(false);
+            detailView?.SetVisible(false);
+            changeView?.SetVisible(false);
             strengthView.SetVisible(false);
             refineView.SetVisible(false);
             awakenView.SetVisible(false);
             divineView.SetVisible(false);
-            autoRefineView.SetVisible(false);
-            exchangeView.SetVisible(false);
-            autoStarView.SetVisible(false);
-            autoDivineView.SetVisible(false);
-            divineEffectView.SetVisible(false);
+            autoRefineView?.SetVisible(false);
+            exchangeView?.SetVisible(false);
+            autoStarView?.SetVisible(false);
+            autoDivineView?.SetVisible(false);
+            divineEffectView?.SetVisible(false);
             faBaoStrengthView.SetVisible(false);
             faBaoRefineView.SetVisible(false);
             faBaoMaterialChooserView.SetVisible(false);
@@ -430,6 +441,7 @@ namespace ProjectX.UI
 
         public void Render()
         {
+            if (cultivationOnly) return;
             uint selectedUid = selected.Uid;
             HeroEquipmentKind selectedKind = selected.Kind;
             bool detailWasVisible = detailView.GameObject.activeSelf;
@@ -478,10 +490,10 @@ namespace ProjectX.UI
 
         public void Dispose()
         {
-            equipment.Changed -= Render;
-            faBao.Changed -= Render;
-            list.Dispose();
-            changeList.Dispose();
+            if (equipment != null) equipment.Changed -= Render;
+            if (faBao != null) faBao.Changed -= Render;
+            list?.Dispose();
+            changeList?.Dispose();
         }
 
         private void BindRow(RectTransform row, DisplayPair pair, int index)
@@ -829,13 +841,11 @@ namespace ProjectX.UI
                 strengthFive.onClick.AddListener(() => strengthFiveEquipment?.Invoke(item.Uid));
             }
             BindStrengthTargets(item);
-            listView.SetVisible(false);
-            detailView.SetVisible(false);
-            changeView.SetVisible(false);
+            listView?.SetVisible(false);
+            detailView?.SetVisible(false);
+            changeView?.SetVisible(false);
             cultivateView.SetVisible(true);
             SetEquipmentCultivationSubview(0);
-            cultivateView.GameObject.transform.SetAsLastSibling();
-            strengthView.GameObject.transform.SetAsLastSibling();
         }
 
         public bool PrepareDetails(uint uid, int selectedFormationPosition)
@@ -924,8 +934,8 @@ namespace ProjectX.UI
             action.onClick.RemoveAllListeners();
             action.onClick.AddListener(() => strengthFaBao?.Invoke(item.Uid,
                 selectedFaBaoMaterials.Select(value => value.Uid).ToArray()));
-            listView.SetVisible(false);
-            detailView.SetVisible(false);
+            listView?.SetVisible(false);
+            detailView?.SetVisible(false);
             cultivateView.SetVisible(true);
             strengthView.SetVisible(false);
             refineView.SetVisible(false);
@@ -933,8 +943,6 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             faBaoRefineView.SetVisible(false);
             faBaoStrengthView.SetVisible(true);
-            cultivateView.GameObject.transform.SetAsLastSibling();
-            faBaoStrengthView.GameObject.transform.SetAsLastSibling();
         }
 
         private void ShowFaBaoRefine(DisplayRecord item)
@@ -970,8 +978,8 @@ namespace ProjectX.UI
             action.onClick.RemoveAllListeners();
             action.onClick.AddListener(() => refineFaBao?.Invoke(item.Uid, nextLevel));
             BindCultivationShell(item);
-            listView.SetVisible(false);
-            detailView.SetVisible(false);
+            listView?.SetVisible(false);
+            detailView?.SetVisible(false);
             cultivateView.SetVisible(true);
             strengthView.SetVisible(false);
             refineView.SetVisible(false);
@@ -979,8 +987,6 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             faBaoStrengthView.SetVisible(false);
             faBaoRefineView.SetVisible(true);
-            cultivateView.GameObject.transform.SetAsLastSibling();
-            faBaoRefineView.GameObject.transform.SetAsLastSibling();
         }
 
         private void BindCultivationShell(DisplayRecord item)
@@ -1153,8 +1159,7 @@ namespace ProjectX.UI
                 faBaoMaterialChooserView.SetVisible(false);
                 ShowFaBaoStrength(selected);
             });
-            faBaoMaterialChooserView.SetVisible(true);
-            faBaoMaterialChooserView.GameObject.transform.SetAsLastSibling();
+            faBaoMaterialChooserView.ShowPopup();
         }
 
         private void BindFaBaoMaterialCell(Transform cell, FaBaoRecord value)
@@ -1222,7 +1227,6 @@ namespace ProjectX.UI
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(1);
-            refineView.GameObject.transform.SetAsLastSibling();
         }
 
         private void ShowAwaken(DisplayRecord item)
@@ -1252,7 +1256,6 @@ namespace ProjectX.UI
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn", "觉醒");
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(2);
-            awakenView.GameObject.transform.SetAsLastSibling();
         }
 
         private void ShowDivine(DisplayRecord item)
@@ -1330,7 +1333,6 @@ namespace ProjectX.UI
                 ShowPopup(divineEffectView);
             });
             SetEquipmentCultivationSubview(3);
-            divineView.GameObject.transform.SetAsLastSibling();
         }
 
         private void SetEquipmentCultivationSubview(int mode)
@@ -1567,8 +1569,7 @@ namespace ProjectX.UI
         private static void ShowPopup(CocosUiView view)
         {
             if (view == null) return;
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
         }
 
         private void BindStrengthTargets(DisplayRecord current)
@@ -2011,6 +2012,7 @@ namespace ProjectX.UI
 
         private void ConfigureCultivationButtons()
         {
+            if (cultivationOnly || detailView == null) return;
             foreach (string path in new[]
             {
                 "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian",

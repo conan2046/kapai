@@ -62,7 +62,7 @@ namespace ProjectX.UI
             bool seedStableRedDots = true)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
-            this.chatView = chatView ?? throw new ArgumentNullException(nameof(chatView));
+            this.chatView = chatView;
             this.player = player ?? throw new ArgumentNullException(nameof(player));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             this.chat = chat ?? throw new ArgumentNullException(nameof(chat));
@@ -142,29 +142,42 @@ namespace ProjectX.UI
                 discountTimeTexts[index] = view.Binding.Find(root + "/Image/Text")?.GetComponent<Text>();
             }
             InitializeStableRedDots(seedStableRedDots);
-            chatPanel = chatView.Binding.Find("Layer/Panel_Chat")?.GetComponent<RectTransform>();
-            chatList = chatView.Binding.Find("Layer/Panel_Chat/ListView")?.GetComponent<RectTransform>();
-            chatBackground = chatView.Binding.Find("Layer/Panel_Chat/bg")?.GetComponent<RectTransform>();
-            chatArrow = chatView.Binding.Find("Layer/Panel_Chat/btn_Arrows")?.GetComponent<RectTransform>();
-            chatMovingControls = new[]
+            if (chatView != null)
             {
-                chatArrow,
-                chatView.Binding.Find("Layer/Panel_Chat/btn_Friend")?.GetComponent<RectTransform>(),
-                chatView.Binding.Find("Layer/Panel_Chat/btn_Voice_shi")?.GetComponent<RectTransform>(),
-                chatView.Binding.Find("Layer/Panel_Chat/btn_Voice_bang")?.GetComponent<RectTransform>(),
-                chatView.Binding.Find("Layer/Panel_Chat/btn_laba")?.GetComponent<RectTransform>()
-            };
-            chatMovingOrigins = chatMovingControls.Select(control => control != null ? control.anchoredPosition : Vector2.zero).ToArray();
-            chatTemplate = chatView.Binding.Find("Layer/Panel_Chat/Item");
-            if (chatTemplate != null) chatTemplate.SetActive(false);
-            SetChatControlVisible("Layer/Panel_Chat/Prompt", false);
-            SetChatControlVisible("Layer/Panel_Chat/btn_Friend", false);
-            SetChatControlVisible("Layer/Panel_Chat/btn_Voice_shi", false);
-            SetChatControlVisible("Layer/Panel_Chat/btn_Voice_bang", false);
-            SetChatControlVisible("Layer/Panel_Chat/btn_laba", false);
-            SetChatControlVisible("Layer/Panel_Chat/btn_Set", false);
-            if (chatList != null && chatList.GetComponent<RectMask2D>() == null)
-                chatList.gameObject.AddComponent<RectMask2D>();
+                chatPanel = chatView.Binding.Find("Layer/Panel_Chat")?.GetComponent<RectTransform>();
+                chatList = chatView.Binding.Find("Layer/Panel_Chat/ListView")?.GetComponent<RectTransform>();
+                chatBackground = chatView.Binding.Find("Layer/Panel_Chat/bg")?.GetComponent<RectTransform>();
+                chatArrow = chatView.Binding.Find("Layer/Panel_Chat/btn_Arrows")?.GetComponent<RectTransform>();
+                chatMovingControls = new[]
+                {
+                    chatArrow,
+                    chatView.Binding.Find("Layer/Panel_Chat/btn_Friend")?.GetComponent<RectTransform>(),
+                    chatView.Binding.Find("Layer/Panel_Chat/btn_Voice_shi")?.GetComponent<RectTransform>(),
+                    chatView.Binding.Find("Layer/Panel_Chat/btn_Voice_bang")?.GetComponent<RectTransform>(),
+                    chatView.Binding.Find("Layer/Panel_Chat/btn_laba")?.GetComponent<RectTransform>()
+                };
+                chatMovingOrigins = chatMovingControls.Select(control => control != null ? control.anchoredPosition : Vector2.zero).ToArray();
+                chatTemplate = chatView.Binding.Find("Layer/Panel_Chat/Item");
+                if (chatTemplate != null) chatTemplate.SetActive(false);
+                SetChatControlVisible("Layer/Panel_Chat/Prompt", false);
+                SetChatControlVisible("Layer/Panel_Chat/btn_Friend", false);
+                SetChatControlVisible("Layer/Panel_Chat/btn_Voice_shi", false);
+                SetChatControlVisible("Layer/Panel_Chat/btn_Voice_bang", false);
+                SetChatControlVisible("Layer/Panel_Chat/btn_laba", false);
+                SetChatControlVisible("Layer/Panel_Chat/btn_Set", false);
+                if (chatList != null && chatList.GetComponent<RectMask2D>() == null)
+                    chatList.gameObject.AddComponent<RectMask2D>();
+            }
+            else
+            {
+                chatPanel = null;
+                chatList = null;
+                chatBackground = null;
+                chatArrow = null;
+                chatTemplate = null;
+                chatMovingControls = Array.Empty<RectTransform>();
+                chatMovingOrigins = Array.Empty<Vector2>();
+            }
             if (portrait != null)
             {
                 portrait.preserveAspect = true;
@@ -460,6 +473,7 @@ namespace ProjectX.UI
 
         private void SetChatControlVisible(string path, bool visible)
         {
+            if (chatView == null) return;
             GameObject control = chatView.Binding.Find(path);
             if (control != null) control.SetActive(visible);
         }

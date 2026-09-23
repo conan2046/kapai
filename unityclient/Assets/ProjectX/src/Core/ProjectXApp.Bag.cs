@@ -68,11 +68,9 @@ namespace ProjectX.Core
                 bagPresenter.ResetSelection();
                 bagInitialSelectionApplied = true;
             }
-            ConfigureBagFrame();
             // Imported Prefabs can retain their serialized active state from the
             // last editor build. A real Bag entry must explicitly isolate itself
             // from every Hero surface before becoming the UiStack top.
-            SetOneLevelFrameVisible(false);
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
             heroBagView?.SetVisible(false);
@@ -91,10 +89,10 @@ namespace ProjectX.Core
             heroEquipmentFragmentView?.SetVisible(false);
             gameplayContentView?.SetVisible(false);
             gameplayDetailView?.SetVisible(false);
-            SetOneLevelFrameVisible(true);
-            if (services.UiStack.Current != bagView) services.UiStack.Push(bagView);
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-            bagView.GameObject.transform.SetAsLastSibling();
+            // Main HUD Bag and the player-hub Bag tab share the same frame and
+            // four-tab contract. The response already populated the Store, so
+            // enter the shared surface without issuing a second /8 request.
+            ShowJingJieBag(false);
             if (pendingBagSelectionItemId > 0)
             {
                 int itemId = pendingBagSelectionItemId;
@@ -662,12 +660,8 @@ namespace ProjectX.Core
         {
             if (services?.UiStack.Current != mainView) return false;
             EnsureBagPresenter();
-            ConfigureBagFrame();
             bagPresenter.Render();
-            SetOneLevelFrameVisible(true);
-            services.UiStack.Push(bagView);
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-            bagView.GameObject.transform.SetAsLastSibling();
+            ShowJingJieBag(false);
             return IsBagOpen;
         }
 

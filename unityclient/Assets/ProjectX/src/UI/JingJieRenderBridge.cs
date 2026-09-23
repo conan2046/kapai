@@ -121,8 +121,7 @@ namespace ProjectX.UI
 
         public void ShowPreview()
         {
-            preview.SetVisible(true);
-            preview.GameObject.transform.SetAsLastSibling();
+            preview.ShowPopup();
         }
 
         public void HidePreview() => preview.SetVisible(false);

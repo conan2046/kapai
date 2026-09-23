@@ -66,8 +66,7 @@ namespace ProjectX.UI
                 : value == SinglePlayerSaveMenuMode.SaveCurrent
                     ? "选择档位，保存当前游戏进度"
                     : "选择一段回忆，继续封神之路");
-            view.SetVisible(true);
-            view.GameObject.transform.SetAsLastSibling();
+            view.ShowPopup();
             RenderSlots();
             ShowSlots();
         }

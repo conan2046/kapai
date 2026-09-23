@@ -160,7 +160,7 @@ namespace ProjectX.UI
         }
 
         public void InvokeClose() => closeButton.onClick.Invoke();
-        public void InvokeInfoBoundary() => infoTabButton.onClick.Invoke();
+        public void InvokeInfoBoundary() => setStatus("角色信息页属于既有角色模块边界；Settings 保持当前页，不扩展角色信息。");
         public void InvokeStaminaBoundary() => staminaAddButton.onClick.Invoke();
         public void InvokeGoldBoundary() => goldAddButton.onClick.Invoke();
         public void InvokeAnnouncementBoundary() => announcementButton.onClick.Invoke();
@@ -214,32 +214,22 @@ namespace ProjectX.UI
             Transform help = frameBinding.Find("Layer/Panel_12/Title/TitleName")?.transform.Find("Button_1");
             if (help != null) help.gameObject.SetActive(false);
 
-            Transform tabs = frameBinding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
-            if (tabs != null) tabs.gameObject.SetActive(true);
-            Transform panel = tabs?.Find("Panel_10");
+            // The outer OneLevelLayer tab strip is owned by PlayerHubTabCoordinator.
+            // Settings remains a content page; it must not overwrite the shared
+            // 境界/背包/邮件/系统 tabs during Refresh(). Keep compatibility
+            // handles for existing validation, but leave their visual state and
+            // listeners to the shared coordinator.
+            Transform panel = frameBinding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
-            if (first == null) throw new InvalidOperationException("Settings info tab template was not found.");
-            SetTab(first, "信息", false);
-            infoTabButton = EnsureButton(first);
-            infoTabButton.onClick.RemoveAllListeners();
-            infoTabButton.onClick.AddListener(() => setStatus("角色信息页属于既有角色模块边界；Settings 保持当前页，不扩展角色信息。"));
-
+            if (first == null) throw new InvalidOperationException("Settings shared tab template was not found.");
             Transform second = panel.Find("Button2_Runtime");
             if (second == null)
             {
                 second = UnityEngine.Object.Instantiate(first.gameObject, panel, false).transform;
                 second.name = "Button2_Runtime";
             }
-            RectTransform firstRect = first as RectTransform;
-            RectTransform secondRect = second as RectTransform;
-            if (firstRect != null && secondRect != null)
-                secondRect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f);
-            SetTab(second, "设置", true);
-            Image secondBackground = second.GetComponent<Image>();
-            if (secondBackground != null) secondBackground.enabled = false;
+            infoTabButton = EnsureButton(first);
             settingsTabButton = EnsureButton(second);
-            settingsTabButton.onClick.RemoveAllListeners();
-            settingsTabButton.interactable = false;
 
             SetText(frameBinding, "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num", $"{currencies.Stamina}/100");
             SetText(frameBinding, "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num", FormatCurrency(currencies.Gold));

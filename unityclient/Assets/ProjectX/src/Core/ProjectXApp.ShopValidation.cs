@@ -50,9 +50,8 @@ namespace ProjectX.Core
             ConfigureGameplayShopsFrame();
             oneLevelFrameView.Binding.Find("Layer/Panel_12")?.SetActive(false);
             oneLevelFrameView.Binding.Find("Layer/GoldCheck")?.SetActive(false);
-            bagPopupFrameView.SetVisible(true);
-            bagPopupFrameView.GameObject.transform.SetAsLastSibling();
-            target.GameObject.transform.SetAsLastSibling();
+            bagPopupFrameView.ShowPopup();
+            target.ShowPopup();
             SetStatus($"Gameplay shop function_id={functionId} active; awaiting /221.");
         }
 

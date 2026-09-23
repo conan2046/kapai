@@ -236,8 +236,7 @@ namespace ProjectX.UI
             SetVisible(root.Find("Popup/Pass"), state == FengShenStageState.Passed);
             fightButton.gameObject.SetActive(state == FengShenStageState.Current);
             formationButton.gameObject.SetActive(state == FengShenStageState.Current);
-            levelView.SetVisible(true);
-            levelView.GameObject.transform.SetAsLastSibling();
+            levelView.ShowPopup();
             return true;
         }
 
@@ -282,8 +281,7 @@ namespace ProjectX.UI
             sourceRouteButtons[15] = BindView(itemSourceView, "Layer/Popup/itemlayer_1/Button_2", () => routeBoundary(15));
             SetViewVisible(itemSourceView, "Layer/Popup/itemlayer_1/Button_3", false);
             modalCloseButton = BindView(itemSourceView, "Layer/Popup/Title/Btn_close", () => CloseModal());
-            itemSourceView.SetVisible(true);
-            itemSourceView.GameObject.transform.SetAsLastSibling();
+            itemSourceView.ShowPopup();
         }
         public void ShowRewardPreview(bool opened) => ShowImportedReward(
             opened ? "宝箱已开启" : "宝箱奖励", opened ? "奖励已领取" : "通关本章后可领取", null);
@@ -739,8 +737,7 @@ namespace ProjectX.UI
         private void ShowImportedReward(string title, string body, Action acknowledge)
         {
             CloseImportedModals();
-            rewardView.SetVisible(true);
-            rewardView.GameObject.transform.SetAsLastSibling();
+            rewardView.ShowPopup();
             sharedRewardPresenter.SuspendSharedViewRendering();
             modalAcknowledge = acknowledge;
             GameObject rewardLayer = rewardView.Binding.Find("Layer")
