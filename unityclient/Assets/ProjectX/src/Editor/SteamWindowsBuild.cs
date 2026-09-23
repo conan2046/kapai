@@ -88,8 +88,8 @@ namespace ProjectX.Editor
             string buildRoot = Path.Combine(repositoryRoot, "build", "server-win", "Debug");
             string executable = Path.Combine(buildRoot, "kapai.exe");
             string config = Path.Combine(repositoryRoot, "unityserver", "config");
-            string scripts = Path.Combine(repositoryRoot, "server", "script");
-            string schema = Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql");
+            string scripts = Path.Combine(repositoryRoot, "unityserver", "script");
+            string schema = Path.Combine(repositoryRoot, "unityserver", "sql", "sqlite", "001_initial_schema.sql");
             foreach (string required in new[] { executable, schema })
                 if (!File.Exists(required)) throw new FileNotFoundException("Steam server runtime input is missing.", required);
             foreach (string required in new[] { config, scripts })

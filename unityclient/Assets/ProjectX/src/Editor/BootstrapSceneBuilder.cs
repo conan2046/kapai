@@ -451,7 +451,7 @@ namespace ProjectX.Editor
             CopyResourceIfChanged(
                 Path.Combine(cocosRoot, "res", "res", "UI", "ui_zhandou", "bg0.jpg"),
                 "Assets/ProjectX/Resources/WorldUI/battle_scene_bg.jpg");
-            string unityClientDataRoot = Path.Combine(repositoryRoot, "unitydata", "client", "source");
+            string unityClientDataRoot = Path.Combine(repositoryRoot, "unitydata", "export", "client", "source");
             CopyResourceIfChanged(
                 Path.Combine(unityClientDataRoot, "Battle", "hit_monster.dat.bytes"),
                 "Assets/ProjectX/Resources/ProjectXData/Battle/hit_monster.dat.bytes");

@@ -46,7 +46,7 @@ namespace ProjectX.Editor
                     ?? throw new InvalidOperationException("Repository root could not be resolved.");
                 string executable = Path.Combine(root, "build", "server-win", "Debug", "kapai.exe");
                 string config = Path.Combine(root, "server", "config");
-                string schema = Path.Combine(root, "server", "sql", "sqlite", "001_initial_schema.sql");
+                string schema = Path.Combine(root, "unityserver", "sql", "sqlite", "001_initial_schema.sql");
                 string evidencePath = ResolveEvidencePath(root);
                 string runId = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
                 Directory.CreateDirectory(Path.GetDirectoryName(evidencePath));

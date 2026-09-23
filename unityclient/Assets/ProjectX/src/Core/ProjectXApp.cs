@@ -5119,6 +5119,11 @@ namespace ProjectX.Core
         private static void SetHudFeatureVisual(Transform root, bool locked)
         {
             Color color = locked ? new Color32(128, 128, 128, 255) : Color.white;
+
+            // temp_bg 是锁定状态下仍需显示的灰色底图；bg 仅在解锁后显示。
+            Transform background = root.Find("bg");
+            if (background != null) background.gameObject.SetActive(!locked);
+
             foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
             {
                 if (child.name == "Prompt")
@@ -5127,7 +5132,7 @@ namespace ProjectX.Core
                     continue;
                 }
 
-                bool iconOrLabel = child == root || child.name == "temp_bg" || child.name == "temp_text"
+            bool iconOrLabel = child == root || child.name == "bg" || child.name == "temp_bg" || child.name == "temp_text"
                     || child.name == "Icon" || child.name == "Text" || child.name == "Label";
                 if (!iconOrLabel) continue;
                 foreach (Graphic graphic in child.GetComponents<Graphic>())
