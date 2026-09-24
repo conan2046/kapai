@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +13,7 @@ namespace ProjectX.UI
 
         private readonly CocosUiView view;
         private readonly FishStore store;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly ShopCatalog items;
         private readonly Action start;
         private readonly Action stop;
@@ -44,7 +43,7 @@ namespace ProjectX.UI
         private bool moduleVisible;
 
         public FishPresenter(CocosUiView view, OneLevelFrameCoordinator oneLevelFrame,
-            FishStore store, ResourceService resources,
+            FishStore store, IUiResourceProvider resources,
             ShopCatalog items, Action start, Action stop, Action<ushort> collect,
             Action close, Action help)
         {

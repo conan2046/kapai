@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,7 +14,7 @@ namespace ProjectX.UI
         private readonly PlayerStore player;
         private readonly HeroEquipmentStore equipment;
         private readonly FaBaoStore faBao;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly CocosUiView detailView;
         private readonly Action<int, int> openReplacement;
         private readonly Action<int> openCultivation;
@@ -45,7 +44,7 @@ namespace ProjectX.UI
 
         public HeroPresenter(CocosUiView listView, CocosUiView detailView, CocosUiView bagView,
             HeroStore heroes, FormationStore formation, PlayerStore player,
-            HeroEquipmentStore equipment, FaBaoStore faBao, ResourceService resources,
+            HeroEquipmentStore equipment, FaBaoStore faBao, IUiResourceProvider resources,
             Action<int, int> openReplacement, Action<int> openCultivation,
             Action<int> openEnhanceMaster, Action<int, int> openEquipmentSlot,
             Action<int> openAttributes, Action<int> selectHero, Action<string> feedback)
@@ -106,6 +105,11 @@ namespace ProjectX.UI
             equipment.Changed += Render;
             faBao.Changed += Render;
             Render();
+            listView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(template.transform);
+            listView.Binding?.RetireMetadataClonedFromSerializedTemplateAtRuntime(
+                template.transform, viewport.transform.Find("VirtualContent"));
+            listView.Binding?.RetireMetadataInSubtreeWithSerializedIdentityAtRuntime(template.transform);
+            detailView.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int ItemCount => heroes.Items.Count;

@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -19,10 +18,10 @@ namespace ProjectX.UI
         private readonly GameObject previewFrame;
         private readonly Transform previewTabTemplate;
         private readonly DrawStore store;
-        private readonly ServerTimeService serverTime;
+        private readonly IServerTimeProvider serverTime;
         private readonly Action<byte, byte> draw;
         private readonly Action close;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly ShopCatalog itemCatalog;
         private readonly CurrencyStore currencies;
         private readonly BagStore bag;
@@ -68,7 +67,7 @@ namespace ProjectX.UI
 
         public DrawPresenter(CocosUiView view, CocosUiView singleResultView, CocosUiView tenResultView,
             CocosUiView previewView, CocosUiView previewFrameView, CocosUiView heroPreviewTemplate,
-            DrawStore store, ServerTimeService serverTime, ResourceService resources, ShopCatalog itemCatalog,
+            DrawStore store, IServerTimeProvider serverTime, IUiResourceProvider resources, ShopCatalog itemCatalog,
             CurrencyStore currencies, BagStore bag, Action<byte, byte> draw, Action close)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
@@ -139,6 +138,7 @@ namespace ProjectX.UI
             currencies.Changed += RenderPools;
             bag.Changed += RenderPools;
             Render();
+            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int PoolCount => store.Count;

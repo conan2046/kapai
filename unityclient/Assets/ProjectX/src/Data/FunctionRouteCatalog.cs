@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace ProjectX.Core
+namespace ProjectX.Data
 {
-    internal enum FunctionRouteKind
+    public enum FunctionRouteKind
     {
         Unsupported,
         Gameplay,
@@ -17,7 +17,7 @@ namespace ProjectX.Core
         SteamExcluded,
     }
 
-    internal readonly struct FunctionRouteDefinition
+    public readonly struct FunctionRouteDefinition
     {
         public FunctionRouteDefinition(int functionId, FunctionRouteKind kind, int mode,
             string target, string prefabKey, string presentation, string closePath)
@@ -42,7 +42,7 @@ namespace ProjectX.Core
             && Kind != FunctionRouteKind.SteamExcluded;
     }
 
-    internal static class FunctionRouteCatalog
+    public static class FunctionRouteCatalog
     {
         private const string ResourcePath = "ProjectXData/Configs/function-routes";
         private static Dictionary<int, FunctionRouteDefinition> routes;

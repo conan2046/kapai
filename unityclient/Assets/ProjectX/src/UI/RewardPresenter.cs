@@ -19,7 +19,7 @@ namespace ProjectX.UI
         private readonly Image[] icons = new Image[4];
         private readonly Text[] names = new Text[4];
         private readonly Text[] amounts = new Text[4];
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly ShopCatalog catalog;
         private readonly Button confirmButton;
         private readonly Button closeButton;
@@ -30,7 +30,7 @@ namespace ProjectX.UI
         private bool showQualityFrames = true;
         private bool sharedViewRenderingSuspended;
 
-        public RewardPresenter(CocosUiView view, RewardStore store, Core.ResourceService resources,
+        public RewardPresenter(CocosUiView view, RewardStore store, IUiResourceProvider resources,
             ShopCatalog catalog)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace ProjectX.Core
+namespace ProjectX.Data
 {
     [Serializable]
     public sealed class SinglePlayerSaveMetadata

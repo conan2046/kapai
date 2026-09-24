@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Data;
-using ProjectX.Core;
 using ProjectX.UI.Migration;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,7 +17,7 @@ namespace ProjectX.UI
         private readonly Text remaining;
         private readonly Text recovery;
         private readonly Text name;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Image treasureIcon;
         private readonly Text runtimeDescription;
         private readonly CocosTimelinePlayer timeline;
@@ -37,7 +36,7 @@ namespace ProjectX.UI
         private int selected;
 
         public XunBaoPresenter(CocosUiView view, XunBaoStore store, BagStore bag,
-            ResourceService resources, EquipmentCatalog catalog, Action close,
+            IUiResourceProvider resources, EquipmentCatalog catalog, Action close,
             Action<ushort, ushort> search, Action<ushort> searchAll,
             Action<ushort> compose, Action composeAll, Action addTimes, Action help,
             Action staminaAdd, Action goldAdd, Action taskEntry, Action<string> notify)

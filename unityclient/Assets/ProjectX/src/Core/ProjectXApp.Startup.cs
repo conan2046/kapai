@@ -2,16 +2,29 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using ProjectX.Data;
 using ProjectX.Diagnostics;
+using ProjectX.Network;
 using ProjectX.UI;
-using ProjectX.Validation;
 using UnityEngine;
 using XLua;
 
 namespace ProjectX.Core
 {
+    public interface IRuntimeSnapshotContext
+    {
+        string AppStateName { get; }
+        uint LocalUserId { get; }
+        uint PlayerRoleId { get; }
+        string PlayerName { get; }
+        bool IsNetworkDisconnectedOrFaulted { get; }
+        event Action<ProtocolPacketTrace> PacketObserved;
+    }
+
     public sealed partial class ProjectXApp
     {
+        public static event Action<GameObject, IRuntimeSnapshotContext> RuntimeServicesReady;
+
         private void InitializeApplication(AppLaunchOptions launchOptions)
         {
             try
@@ -19,7 +32,7 @@ namespace ProjectX.Core
                 Canvas canvas = FindObjectOfType<Canvas>();
                 if (canvas == null) throw new InvalidOperationException("Startup Canvas was not found.");
                 services = new GameServices(this, launchOptions, canvas.transform);
-                RuntimeSnapshotCollector.TryInstall(gameObject, services);
+                RuntimeServicesReady?.Invoke(gameObject, services);
                 // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
                 services.Currencies.Changed += RefreshSharedCurrencyHeaders;
                 // These validations intentionally drive every reconnect step and

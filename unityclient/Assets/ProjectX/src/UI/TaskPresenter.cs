@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,7 +13,7 @@ namespace ProjectX.UI
         private const string BasePath = "Layer/Renwu";
         private readonly CocosUiView view;
         private readonly TaskStore store;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly VirtualList<TaskRecord> list;
         private readonly Text emptyText;
         private readonly Action<TaskRecord> go;
@@ -22,7 +21,7 @@ namespace ProjectX.UI
         private readonly Action<TaskRecord> previewBox;
         private readonly Func<TaskRecord, bool> isVisible;
 
-        public TaskPresenter(CocosUiView view, TaskStore store, ResourceService resources,
+        public TaskPresenter(CocosUiView view, TaskStore store, IUiResourceProvider resources,
             Action<TaskRecord> go, Action<TaskRecord> claim, Action<TaskRecord> previewBox,
             Func<TaskRecord, bool> isVisible)
         {

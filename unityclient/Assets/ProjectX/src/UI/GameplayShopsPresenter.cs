@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -35,8 +34,8 @@ namespace ProjectX.UI
         private readonly CurrencyStore currencies;
         private readonly ShopCatalog catalog;
         private readonly BagStore bag;
-        private readonly ResourceService resources;
-        private readonly ServerTimeService serverTime;
+        private readonly IUiResourceProvider resources;
+        private readonly IServerTimeProvider serverTime;
         private readonly Action<byte> requestPage;
         private readonly Action<byte, ushort, int> purchase;
         private readonly Action requestRefresh;
@@ -57,8 +56,8 @@ namespace ProjectX.UI
 
         public GameplayShopsPresenter(CocosUiView soulView, CocosUiView multiView,
             GameplayShopStore store, CurrencyStore currencies, ShopCatalog catalog, BagStore bag,
-            ResourceService resources,
-            ServerTimeService serverTime, Action<byte> requestPage,
+            IUiResourceProvider resources,
+            IServerTimeProvider serverTime, Action<byte> requestPage,
             Action<byte, ushort, int> purchase, Action requestRefresh,
             Action<ShopRecord> showDetail, Action showSoulDetail, Action<string> showMessage,
             Action close, Func<int> getPlayerLevel)

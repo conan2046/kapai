@@ -169,7 +169,7 @@ namespace ProjectX.UI.Migration
             foreach (CocosTimelineTrack track in definition.timelines)
             {
                 if (string.Equals(track.property, "FrameEvent", StringComparison.Ordinal)) continue;
-                GameObject target = binding != null ? binding.FindActionTag(track.actionTag) : null;
+                GameObject target = binding != null ? binding.FindSerializedActionTag(track.actionTag) : null;
                 if (target == null || track.frames == null || track.frames.Length == 0) continue;
                 Evaluate(track, target, frame);
             }

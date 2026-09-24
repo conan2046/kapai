@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,7 +12,7 @@ namespace ProjectX.UI
         private readonly CocosUiView view;
         private readonly ShopStore store;
         private readonly CurrencyStore currencies;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<ShopRecord, int> requestConfirmation;
         private readonly VirtualList<ShopRow> list;
         private readonly Dictionary<ushort, Button> cellButtons = new Dictionary<ushort, Button>();
@@ -37,7 +36,7 @@ namespace ProjectX.UI
         private int missingIconCount;
 
         public ShopPresenter(CocosUiView view, ShopStore store, CurrencyStore currencies,
-            ResourceService resources, ServerTimeService serverTime, CocosUiView quantityInputSource,
+            IUiResourceProvider resources, IServerTimeProvider serverTime, CocosUiView quantityInputSource,
             Action<ShopRecord, int> requestConfirmation, Action requestRefresh)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
@@ -124,6 +123,7 @@ namespace ProjectX.UI
             store.Changed += Render;
             currencies.Changed += RenderDetails;
             Render();
+            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int ItemCount => store.Count;

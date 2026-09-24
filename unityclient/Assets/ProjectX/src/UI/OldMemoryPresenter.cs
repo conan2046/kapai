@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using ProjectX.Core;
+using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +18,7 @@ namespace ProjectX.UI
     {
         private readonly CocosUiView view;
         private readonly SinglePlayerSaveService saves;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<int, bool> playSlot;
         private readonly Action<int> saveSlot;
         private readonly Action close;
@@ -30,7 +30,7 @@ namespace ProjectX.UI
         private SinglePlayerSaveMenuMode mode;
         private int selectedSlotId;
 
-        public OldMemoryPresenter(CocosUiView view, SinglePlayerSaveService saves, ResourceService resources,
+        public OldMemoryPresenter(CocosUiView view, SinglePlayerSaveService saves, IUiResourceProvider resources,
             Action<int, bool> playSlot, Action<int> saveSlot, Action close, Action<string, string, Action> confirm,
             Action<string> showError, Action<string> setStatus)
         {
@@ -69,6 +69,8 @@ namespace ProjectX.UI
             view.ShowPopup();
             RenderSlots();
             ShowSlots();
+            if (value == SinglePlayerSaveMenuMode.Continue)
+                view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void Hide() => view.SetVisible(false);

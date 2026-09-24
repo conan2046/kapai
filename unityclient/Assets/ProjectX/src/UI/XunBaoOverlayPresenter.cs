@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using ProjectX.Core;
 using ProjectX.Data;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -43,7 +42,7 @@ namespace ProjectX.UI
     public sealed class XunBaoResultPresenter : IDisposable
     {
         private readonly CocosUiView view;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Transform list;
         private readonly RectTransform listContent;
         private readonly GameObject rewardTemplate;
@@ -55,7 +54,7 @@ namespace ProjectX.UI
         private Action closeAction;
         private bool continueToToken;
 
-        public XunBaoResultPresenter(CocosUiView view, ResourceService resources, GameObject closeTemplate)
+        public XunBaoResultPresenter(CocosUiView view, IUiResourceProvider resources, GameObject closeTemplate)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
@@ -306,14 +305,14 @@ namespace ProjectX.UI
     public sealed class XunBaoComposeAllPresenter : IDisposable
     {
         private readonly CocosUiView view;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Transform tableView;
         private readonly RectTransform listContent;
         private readonly GameObject rowTemplate;
         private readonly Button closeButton;
         private readonly CocosTimelinePlayer timeline;
 
-        public XunBaoComposeAllPresenter(CocosUiView view, ResourceService resources)
+        public XunBaoComposeAllPresenter(CocosUiView view, IUiResourceProvider resources)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
@@ -457,7 +456,7 @@ namespace ProjectX.UI
     public sealed class XunBaoPopupPresenter : IDisposable
     {
         private readonly CocosUiView view;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly TaskStore tasks;
         private readonly Action<TaskRecord> claimTask;
         private readonly GameObject composePanel;
@@ -473,7 +472,7 @@ namespace ProjectX.UI
         private readonly CocosTimelinePlayer timeline;
         private Action<bool> confirmAction;
 
-        public XunBaoPopupPresenter(CocosUiView view, ResourceService resources, TaskStore tasks,
+        public XunBaoPopupPresenter(CocosUiView view, IUiResourceProvider resources, TaskStore tasks,
             Action<TaskRecord> claimTask)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));

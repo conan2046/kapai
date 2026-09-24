@@ -75,6 +75,7 @@ namespace ProjectX.UI
                 timeout?.Invoke();
             });
             Hide();
+            view.Binding.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         public void ShowQuestion(int index, int surplus, string title, string[] answers,

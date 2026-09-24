@@ -39,8 +39,9 @@ namespace ProjectX.Core
                 CloseBagForItemJump,
                 HandleBagSourceRoute,
                 CanOpenBagSource,
-                SetStatus);
-            bagPresenter = bagPresenter ?? new BagPresenter(bagView, oneLevelFrameView, services.Bag, services.Resources,
+                message => ShowToast(message, 2f));
+            bagPresenter = bagPresenter ?? new BagPresenter(bagView.GameObject, oneLevelFrameView.GameObject.transform,
+                services.Bag, services.Resources,
                 item =>
                 {
                     bagFlowPresenter.ShowUseFlow(item);

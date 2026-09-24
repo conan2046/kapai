@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -22,7 +21,7 @@ namespace ProjectX.UI
         private readonly HeroStore heroes;
         private readonly BagStore bag;
         private readonly EquipmentCatalog itemCatalog;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<int> requestUpgrade;
         private readonly Action<string> feedback;
         private readonly List<KeyValuePair<int, HeroDefinition>> definitions =
@@ -38,7 +37,7 @@ namespace ProjectX.UI
             CocosUiView activateResultView, CocosUiView upgradeResultView,
             CocosUiView attributesView, CocosUiView achievementView, CocosUiView levelResultView,
             HeroBookStore store, HeroBookCatalog catalog, HeroStore heroes, BagStore bag,
-            EquipmentCatalog itemCatalog, ResourceService resources, Action<int> requestUpgrade,
+            EquipmentCatalog itemCatalog, IUiResourceProvider resources, Action<int> requestUpgrade,
             Action<string> feedback)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));

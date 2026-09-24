@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,7 +25,7 @@ namespace ProjectX.UI
         private readonly HeroStore heroes;
         private readonly FormationStore formation;
         private readonly PlayerStore player;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly CurrencyStore currencies;
         private readonly ShopCatalog itemCatalog;
         private readonly EquipmentCatalog equipmentCatalog;
@@ -84,7 +83,7 @@ namespace ProjectX.UI
         private const float StageCameraVerticalAnchor = 0.5f;
 
         public WorldPresenter(CocosUiView worldView, CocosUiView stageView, CocosUiView mapView, CocosUiView detailView,
-            WorldStore store, HeroStore heroes, FormationStore formation, PlayerStore player, ResourceService resources, CurrencyStore currencies,
+            WorldStore store, HeroStore heroes, FormationStore formation, PlayerStore player, IUiResourceProvider resources, CurrencyStore currencies,
             ShopCatalog itemCatalog,
             EquipmentCatalog equipmentCatalog,
             Action<uint> requestChapter, Action<uint> requestStage, Action challenge, Action sweep,

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Data;
 using ProjectX.UI;
-using ProjectX.Validation;
 using UnityEngine;
 
 namespace ProjectX.Core

@@ -1,9 +1,10 @@
 using System;
 using System.Diagnostics;
+using ProjectX.UI;
 
 namespace ProjectX.Core
 {
-    public sealed class ServerTimeService
+    public sealed class ServerTimeService : IServerTimeProvider
     {
         private const uint SecondsPerDay = 24u * 60u * 60u;
         private readonly Stopwatch elapsed = new Stopwatch();

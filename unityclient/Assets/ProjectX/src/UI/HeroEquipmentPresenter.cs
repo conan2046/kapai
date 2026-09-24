@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -64,7 +63,7 @@ namespace ProjectX.UI
         private readonly BagStore bag;
         private readonly EquipmentCatalog catalog;
         private readonly CurrencyStore currencies;
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<uint, int> wearEquipment;
         private readonly Action<uint, int> takeOffEquipment;
         private readonly Action<uint> toggleAffixLock;
@@ -135,7 +134,7 @@ namespace ProjectX.UI
             CocosUiView autoDivineView, CocosUiView divineEffectView,
             CocosUiView faBaoStrengthView, CocosUiView faBaoRefineView, CocosUiView faBaoMaterialChooserView,
             HeroEquipmentStore equipment, FaBaoStore faBao, BagStore bag,
-            EquipmentCatalog catalog, CurrencyStore currencies, Core.ResourceService resources,
+            EquipmentCatalog catalog, CurrencyStore currencies, IUiResourceProvider resources,
             Action<uint, int> wearEquipment, Action<uint, int> takeOffEquipment,
             Action<uint> toggleAffixLock, Action<uint> rerollAffix,
             Action<uint> strengthEquipment, Action<uint> strengthFiveEquipment, Action<int> strengthAllEquipment,
@@ -276,6 +275,7 @@ namespace ProjectX.UI
                 ConfigureAffixActions();
                 ConfigureSecondaryControls();
             }
+            ConfigureAutoRefineControls();
             ConfigureCultivationEffects();
 
             equipment.Changed += Render;
@@ -402,7 +402,7 @@ namespace ProjectX.UI
             divineEffectView?.SetVisible(false);
             faBaoStrengthView.SetVisible(false);
             faBaoRefineView.SetVisible(false);
-            faBaoMaterialChooserView.SetVisible(false);
+            faBaoMaterialChooserView?.SetVisible(false);
             cultivateView.SetVisible(false);
         }
 
@@ -506,9 +506,11 @@ namespace ProjectX.UI
             if (first == null)
             {
                 string children = string.Join(",", row.Cast<Transform>().Select(value => value.name));
-                CocosNodeMetadata metadata = row.GetComponent<CocosNodeMetadata>();
+                string rowPath = row.name;
+                for (Transform parent = row.parent; parent != null; parent = parent.parent)
+                    rowPath = parent.name + "/" + rowPath;
                 throw new InvalidOperationException(
-                    $"Equipment list template Item1/Item_1 was not found; root={row.name}; children={children}; cocosPath={metadata?.CocosPath ?? "<none>"}.");
+                    $"Equipment list template Item1/Item_1 was not found; root={row.name}; children={children}; transformPath={rowPath}.");
             }
             BindCell(first, pair.First);
             if (second != null)
@@ -846,6 +848,7 @@ namespace ProjectX.UI
             changeView?.SetVisible(false);
             cultivateView.SetVisible(true);
             SetEquipmentCultivationSubview(0);
+            strengthView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         public bool PrepareDetails(uint uid, int selectedFormationPosition)
@@ -943,6 +946,7 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             faBaoRefineView.SetVisible(false);
             faBaoStrengthView.SetVisible(true);
+            faBaoStrengthView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void ShowFaBaoRefine(DisplayRecord item)
@@ -987,6 +991,7 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             faBaoStrengthView.SetVisible(false);
             faBaoRefineView.SetVisible(true);
+            faBaoRefineView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void BindCultivationShell(DisplayRecord item)
@@ -1160,6 +1165,7 @@ namespace ProjectX.UI
                 ShowFaBaoStrength(selected);
             });
             faBaoMaterialChooserView.ShowPopup();
+            faBaoMaterialChooserView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void BindFaBaoMaterialCell(Transform cell, FaBaoRecord value)
@@ -1227,6 +1233,7 @@ namespace ProjectX.UI
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(1);
+            refineView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void ShowAwaken(DisplayRecord item)
@@ -1256,6 +1263,7 @@ namespace ProjectX.UI
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn", "觉醒");
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(2);
+            awakenView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void ShowDivine(DisplayRecord item)
@@ -1333,6 +1341,7 @@ namespace ProjectX.UI
                 ShowPopup(divineEffectView);
             });
             SetEquipmentCultivationSubview(3);
+            divineView.Binding?.RetireMetadataWithCompleteRuntimeIdentityAtRuntime();
         }
 
         private void SetEquipmentCultivationSubview(int mode)
@@ -1347,8 +1356,6 @@ namespace ProjectX.UI
 
         private void ConfigureSecondaryControls()
         {
-            BindButton(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/yijianjinglianBtn",
-                OpenAutoRefine);
             BindButton(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/juexing/Btn_yijianduihuan",
                 () => { BindPopupDismiss(exchangeView, false); ShowPopup(exchangeView); });
             BindButton(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/juexing/Btn_yijianshengxing",
@@ -1372,7 +1379,13 @@ namespace ProjectX.UI
             BindPopupDismiss(autoStarView, false);
             BindPopupDismiss(autoDivineView, false);
             BindButton(divineEffectView, "Layer/Popup/Btn_close", () => divineEffectView.SetVisible(false));
+        }
 
+        private void ConfigureAutoRefineControls()
+        {
+            if (autoRefineView == null) return;
+            BindButton(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/yijianjinglianBtn",
+                OpenAutoRefine);
             BindButton(autoRefineView, "Layer/Popup/Panel_1/Btn_Plus", () => SetAutoRefineLevels(autoRefineLevels + 1));
             BindButton(autoRefineView, "Layer/Popup/Panel_1/Btn_Plus10", () => SetAutoRefineLevels(autoRefineLevels + 10));
             BindButton(autoRefineView, "Layer/Popup/Panel_1/Btn_Minus", () => SetAutoRefineLevels(autoRefineLevels - 1));
@@ -1500,6 +1513,7 @@ namespace ProjectX.UI
             autoRefineLevels = 1;
             SetAutoRefineLevels(1);
             ShowPopup(autoRefineView);
+            autoRefineView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void SetAutoRefineLevels(int value)

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,7 +15,7 @@ namespace ProjectX.UI
         private readonly CocosUiView backgroundView;
         private readonly CocosUiView dailyRechargeView;
         private readonly ActivityStore store;
-        private readonly ServerTimeService serverTime;
+        private readonly IServerTimeProvider serverTime;
         private readonly Action<uint> select;
         private readonly Action close;
         private readonly RectTransform tabRoot;
@@ -26,7 +25,7 @@ namespace ProjectX.UI
         private readonly List<GameObject> tabs = new List<GameObject>();
 
         public ActivityPresenter(CocosUiView rootView, CocosUiView backgroundView,
-            CocosUiView dailyRechargeView, ActivityStore store, ServerTimeService serverTime,
+            CocosUiView dailyRechargeView, ActivityStore store, IServerTimeProvider serverTime,
             Action<uint> select, Action close)
         {
             this.rootView = rootView ?? throw new ArgumentNullException(nameof(rootView));

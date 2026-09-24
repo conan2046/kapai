@@ -98,19 +98,63 @@ namespace ProjectX.Validation
             if (string.IsNullOrWhiteSpace(declaredPath)) return null;
             string normalized = declaredPath.Replace('\\', '/').Trim('/');
             RectTransform[] candidates = UnityEngine.Object.FindObjectsOfType<RectTransform>(true);
-            return candidates
+            RectTransform hierarchyTarget = candidates
                 .Where(value => value.gameObject.activeInHierarchy)
                 .Select(value => new
                 {
                     Rect = value,
                     Path = FullPath(value),
-                    CocosPath = value.GetComponent<CocosNodeMetadata>()?.CocosPath ?? string.Empty,
                     IsButton = value.GetComponent<Button>() != null
                 })
                 .Where(value => value.Path.EndsWith(normalized, StringComparison.OrdinalIgnoreCase)
-                    || value.CocosPath.EndsWith(normalized, StringComparison.OrdinalIgnoreCase))
+                )
                 .OrderByDescending(value => value.IsButton)
                 .ThenBy(value => value.Path.Length)
+                .Select(value => value.Rect)
+                .FirstOrDefault();
+            if (hierarchyTarget != null) return hierarchyTarget;
+
+            RectTransform serializedTarget = UnityEngine.Object.FindObjectsOfType<CocosUiBinding>(true)
+                .Where(binding => binding.gameObject.activeInHierarchy)
+                .SelectMany(binding => binding.Nodes
+                    .Where(node => node != null && node.target != null
+                        && string.Equals(node.path, normalized, StringComparison.OrdinalIgnoreCase))
+                    .Select(node => node.target.GetComponent<RectTransform>()))
+                .Where(value => value != null && value.gameObject.activeInHierarchy)
+                .OrderByDescending(value => value.GetComponent<Button>() != null)
+                .ThenBy(value => FullPath(value).Length)
+                .FirstOrDefault();
+            if (serializedTarget != null) return serializedTarget;
+
+            RectTransform bindingHierarchyTarget = UnityEngine.Object.FindObjectsOfType<CocosUiBinding>(true)
+                .Where(binding => binding.gameObject.activeInHierarchy)
+                .Select(binding =>
+                {
+                    Transform child = binding.transform.Find(normalized);
+                    if (child == null && normalized.StartsWith("Layer/", StringComparison.Ordinal))
+                        child = binding.transform.Find(normalized.Substring("Layer/".Length));
+                    return child != null ? child.GetComponent<RectTransform>() : null;
+                })
+                .Where(value => value != null && value.gameObject.activeInHierarchy)
+                .OrderByDescending(value => value.GetComponent<Button>() != null)
+                .ThenBy(value => FullPath(value).Length)
+                .FirstOrDefault();
+            if (bindingHierarchyTarget != null) return bindingHierarchyTarget;
+
+            // Keep a final compatibility path for imported nodes whose serialized
+            // CocosNodeReference is absent. Pages that retire Metadata must resolve
+            // through the actual hierarchy or serialized references above.
+            return candidates
+                .Where(value => value.gameObject.activeInHierarchy)
+                .Select(value => new
+                {
+                    Rect = value,
+                    CocosPath = value.GetComponent<CocosNodeMetadata>()?.CocosPath ?? string.Empty,
+                    IsButton = value.GetComponent<Button>() != null
+                })
+                .Where(value => value.CocosPath.EndsWith(normalized, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(value => value.IsButton)
+                .ThenBy(value => FullPath(value.Rect).Length)
                 .Select(value => value.Rect)
                 .FirstOrDefault();
         }

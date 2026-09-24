@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,7 +16,7 @@ namespace ProjectX.UI
         private readonly HappyWheelStore store;
         private readonly BagStore bag;
         private readonly CurrencyStore currencies;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly ShopCatalog catalog;
         private readonly Action<byte> spin;
         private readonly Action openShop;
@@ -45,7 +44,7 @@ namespace ProjectX.UI
         private string renderedHistorySignature;
 
         public HappyWheelPresenter(CocosUiView view, HappyWheelStore store, BagStore bag,
-            CurrencyStore currencies, ResourceService resources, ShopCatalog catalog,
+            CurrencyStore currencies, IUiResourceProvider resources, ShopCatalog catalog,
             Action<byte> spin, Action openShop, Action<IReadOnlyList<RewardRecord>> showRewards,
             Action<RewardRecord> showRewardTip)
         {

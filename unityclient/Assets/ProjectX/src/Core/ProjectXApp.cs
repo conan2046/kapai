@@ -12,7 +12,6 @@ using ProjectX.LuaRuntime;
 using ProjectX.Network;
 using ProjectX.UI;
 using ProjectX.UI.Migration;
-using ProjectX.Validation;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -6298,6 +6297,7 @@ namespace ProjectX.Core
             Transform template = list?.Find("Panel_1");
             if (list != null && template != null)
             {
+                list.gameObject.SetActive(true);
                 string[] tabs = { "装备强化", "装备精炼", "装备觉醒", "装备神铸", "法宝强化", "法宝精炼" };
                 Transform[] orderedRows = new Transform[tabs.Length];
                 int firstRowIndex = template.GetSiblingIndex();
@@ -6882,6 +6882,8 @@ namespace ProjectX.Core
             for (int index = 0; index < fragments.Length; index += 5)
                 rows.Add(fragments.Skip(index).Take(5).ToArray());
             heroEquipmentFragmentList.SetItems(rows);
+            binding.RetireMetadataClonedFromSerializedTemplateAtRuntime(
+                template, viewport.transform.Find("VirtualContent"));
         }
 
         private void BindHeroEquipmentFragmentRow(RectTransform row, BagItemRecord[] items, int rowIndex)
@@ -8377,8 +8379,6 @@ namespace ProjectX.Core
             {
             heroEquipmentFragmentView = heroEquipmentFragmentView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeisuipian")
                 ?? UiPrefabLoader.Load("HeroEquipmentFragment", dynamicRoot);
-            heroEquipmentAutoRefineView = heroEquipmentAutoRefineView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianjinglian")
-                ?? UiPrefabLoader.Load("HeroEquipmentAutoRefine", dynamicRoot);
             heroEquipmentExchangeView = heroEquipmentExchangeView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianduihuan")
                 ?? UiPrefabLoader.Load("HeroEquipmentExchange", dynamicRoot);
             heroEquipmentAutoStarView = heroEquipmentAutoStarView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianshengxing")
@@ -8388,6 +8388,8 @@ namespace ProjectX.Core
             heroEquipmentDivineEffectView = heroEquipmentDivineEffectView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/shenzhutexiao")
                 ?? UiPrefabLoader.Load("HeroEquipmentDivineEffect", dynamicRoot);
             }
+            heroEquipmentAutoRefineView = heroEquipmentAutoRefineView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/yijianjinglian")
+                ?? UiPrefabLoader.Load("HeroEquipmentAutoRefine", dynamicRoot);
             faBaoStrengthView = faBaoStrengthView ?? UiPrefabLoader.Load("FaBaoStrength", cultivationRoot);
             faBaoRefineView = faBaoRefineView ?? UiPrefabLoader.Load("FaBaoRefine", cultivationRoot);
             if (includeFaBaoMaterial)
@@ -8396,9 +8398,9 @@ namespace ProjectX.Core
                 heroEquipmentStrengthView, heroEquipmentRefineView, heroEquipmentAwakenView,
                 heroEquipmentDivineView, faBaoStrengthView, faBaoRefineView);
             if ((!cultivationOnly && (heroEquipmentListView == null || heroEquipmentDetailView == null || heroEquipmentChangeView == null))
-                || heroEquipmentCultivateView == null || heroEquipmentStrengthView == null
+                || heroEquipmentCultivateView == null || heroEquipmentStrengthView == null || heroEquipmentAutoRefineView == null
                 || heroEquipmentRefineView == null || heroEquipmentAwakenView == null || heroEquipmentDivineView == null
-                || (!cultivationOnly && (heroEquipmentFragmentView == null || heroEquipmentAutoRefineView == null
+                || (!cultivationOnly && (heroEquipmentFragmentView == null
                     || heroEquipmentExchangeView == null || heroEquipmentAutoStarView == null
                     || heroEquipmentAutoDivineView == null || heroEquipmentDivineEffectView == null)))
                 throw new InvalidOperationException("Hero equipment list/detail/change/cultivate/strength/fragment CocosUiBindings were not found.");
@@ -8882,7 +8884,8 @@ namespace ProjectX.Core
             }
             else
             {
-                HeroEquipmentRecord target = services.HeroEquipment.Items.FirstOrDefault();
+                HeroEquipmentRecord target = services.HeroEquipment.Items.FirstOrDefault(value =>
+                    mode != 2 || value.Definition.Quality >= 5);
                 uid = target.Uid;
                 formationPosition = target.FormationPosition;
             }

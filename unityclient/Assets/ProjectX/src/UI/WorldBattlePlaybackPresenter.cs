@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -55,7 +54,7 @@ namespace ProjectX.UI
         }
 
         private readonly WorldBattleReplayStore store;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly BattlePresentationCatalog presentationCatalog;
         private readonly GameObject root;
         private readonly Transform battleLayer;
@@ -151,7 +150,7 @@ namespace ProjectX.UI
                 + $"flipX={value.Model.IsFlippedX}/{ResolveUnitFlipX(value)},frame={value.Model.CurrentFrame},"
                 + $"frameInAction={value.Model.CurrentFrameBelongsToCurrentAction},source={value.Model.CurrentAnimationSource}"));
 
-        public WorldBattlePlaybackPresenter(Transform parent, WorldBattleReplayStore store, ResourceService resources,
+        public WorldBattlePlaybackPresenter(Transform parent, WorldBattleReplayStore store, IUiResourceProvider resources,
             CocosUiView importedView = null, Action<string> showControlMessage = null,
             Func<int> loadSpeedStep = null, Action<int> saveSpeedStep = null)
         {

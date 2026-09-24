@@ -1,5 +1,4 @@
 using System;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,11 +8,11 @@ namespace ProjectX.UI
     public sealed class GameplayShopItemInfoPresenter
     {
         private readonly CocosUiView view;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly ShopCatalog catalog;
         private readonly Action openDraw;
 
-        public GameplayShopItemInfoPresenter(CocosUiView view, ResourceService resources,
+        public GameplayShopItemInfoPresenter(CocosUiView view, IUiResourceProvider resources,
             ShopCatalog catalog, Action openDraw)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));

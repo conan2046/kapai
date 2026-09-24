@@ -55,6 +55,17 @@ namespace ProjectX.Editor
                 CanonicalBorder = new Vector4(15f, 11f, 15f, 11f),
                 VariantNames = new[] { "ui_common_icon_kuang_01__L5_B5_R5_T5" },
             },
+            new Rule
+            {
+                AssetPath = "Assets/ProjectX/res/res/UI/ui_common/ui_xunchong_xuankuang_01.png",
+                CanonicalName = "ui_xunchong_xuankuang_01",
+                CanonicalBorder = new Vector4(15f, 11f, 15f, 11f),
+                VariantNames = new[]
+                {
+                    "ui_xunchong_xuankuang_01__L19_B19_R19_T19",
+                    "ui_xunchong_xuankuang_01__L9_B9_R9_T9",
+                },
+            },
         };
 
         [MenuItem("Tools/ProjectX 界面/归并共享九宫格 Sprite/预览")]
@@ -65,7 +76,7 @@ namespace ProjectX.Editor
         {
             if (!EditorUtility.DisplayDialog(
                 "归并共享九宫格 Sprite",
-                "将批量修改所有 Prefab 引用，并重导入两张 UI 图片。\n\n建议先确认工作树可回退。继续？",
+                "将按已配置规则批量修改 Prefab 引用，并重导入对应 UI 图片。\n\n建议先确认工作树可回退。继续？",
                 "执行",
                 "取消"))
                 return;
@@ -82,7 +93,7 @@ namespace ProjectX.Editor
             var output = new List<string>
             {
                 "=== Shared UI Sprite normalization " + (execute ? "EXECUTE" : "DRY RUN") + " " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " ===",
-                "规则：ui_common_hecheng_bg -> L15_B15_R14_T14；ui_common_icon_kuang_01 -> L15_B11_R15_T11",
+                "规则：ui_common_hecheng_bg -> L15_B15_R14_T14；ui_common_icon_kuang_01 -> L15_B11_R15_T11；ui_xunchong_xuankuang_01 -> L15_B11_R15_T11",
             };
 
             var loaded = new List<Tuple<Rule, Sprite, Dictionary<string, Sprite>>>();
@@ -251,6 +262,17 @@ namespace ProjectX.Editor
             importer.spriteImportMode = SpriteImportMode.Multiple;
             importer.spritesheet = kept.ToArray();
             EditorUtility.SetDirty(importer);
+            // Unity 2022.3 can retain removed sub-sprite IDs in the serialized
+            // name/file-ID lookup table even after spritesheet is replaced.
+            // Clear that bookkeeping table as well so the .meta contains only
+            // the canonical Sprite entry.
+            SerializedObject serializedImporter = new SerializedObject(importer);
+            SerializedProperty nameFileIdTable = serializedImporter.FindProperty("m_SpriteSheet.m_NameFileIdTable");
+            if (nameFileIdTable != null)
+            {
+                nameFileIdTable.ClearArray();
+                serializedImporter.ApplyModifiedPropertiesWithoutUndo();
+            }
             importer.SaveAndReimport();
         }
     }

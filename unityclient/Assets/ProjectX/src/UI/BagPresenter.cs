@@ -9,12 +9,10 @@ namespace ProjectX.UI
 {
     public sealed class BagPresenter : IDisposable
     {
-        private const string BasePath = "Layer/beibao_layer";
-        private readonly CocosUiView view;
-        private readonly CocosUiView frameView;
+        private readonly BagPageBinding bindings;
         private readonly BagStore store;
         private readonly Action<BagItemRecord> useAction;
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly GameObject viewportObject;
         private readonly GameObject rowTemplate;
         private readonly Text detailName;
@@ -31,30 +29,30 @@ namespace ProjectX.UI
         private readonly Dictionary<int, Transform> itemSlots = new Dictionary<int, Transform>();
         private int selectedSlot;
 
-        public BagPresenter(CocosUiView view, CocosUiView frameView, BagStore store,
-            Core.ResourceService resources, Action<BagItemRecord> useAction, Action closeAction)
+        public BagPresenter(GameObject pageInstance, Transform sharedFrame, BagStore store,
+            IUiResourceProvider resources, Action<BagItemRecord> useAction, Action closeAction)
         {
-            this.view = view ?? throw new ArgumentNullException(nameof(view));
-            this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
+            if (pageInstance == null) throw new ArgumentNullException(nameof(pageInstance));
+            if (sharedFrame == null) throw new ArgumentNullException(nameof(sharedFrame));
             this.useAction = useAction;
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
-            viewportObject = Require("Bag/TableView");
-            rowTemplate = Require("Bag/ItemCell");
-            detailName = Require("item/Namebg/Name").GetComponent<Text>();
-            detailDescription = Require("item/miaoshu/Content").GetComponent<Text>();
-            detailIcon = Require("item/Node/Icon").GetComponent<Image>();
-            useButton = Require("item/Btn_use").GetComponent<Button>();
-            Require("item/Btn_use").SetActive(false);
+            bindings = BagPageBinding.Attach(pageInstance, sharedFrame,
+                closeAction, () => tabClickCount++);
+            viewportObject = bindings.ViewportObject;
+            rowTemplate = bindings.RowTemplate;
+            detailName = bindings.DetailName;
+            detailDescription = bindings.DetailDescription;
+            detailIcon = bindings.DetailIcon;
+            useButton = bindings.UseButton;
+            useButton.gameObject.SetActive(false);
             rowTemplate.SetActive(false);
-            Button close = this.frameView.BindClick("Layer/Panel_12/Title/CloseBtn", closeAction, true);
-            tabButton = this.frameView.BindClick("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1",
-                () => tabClickCount++, true);
+            tabButton = bindings.TabButton;
             tabButton.interactable = true;
-            SetFrameText("Layer/Panel_12/Title/TitleName", "道具背包");
-            SetFrameText("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1/BtnName", "全部");
-            SetFrameText("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1/ChooseBg/BtnName", "全部");
-            GameObject detailTouch = Require("item/Node/Icon");
+            bindings.HeaderTitle.text = "道具背包";
+            bindings.TabNormalLabel.text = "全部";
+            bindings.TabSelectedLabel.text = "全部";
+            GameObject detailTouch = bindings.DetailIcon.gameObject;
             detailButton = detailTouch.GetComponent<Button>() ?? detailTouch.AddComponent<Button>();
             detailButton.onClick.RemoveAllListeners();
             detailButton.onClick.AddListener(() => detailClickCount++);
@@ -130,7 +128,8 @@ namespace ProjectX.UI
             switch (controlId)
             {
                 case "BAG-02-CLOSE":
-                    return Invoke(frameView, "Layer/Panel_12/Title/CloseBtn");
+                    bindings.CloseButton.onClick.Invoke();
+                    return true;
                 case "BAG-03-TAB":
                     int tabBefore = tabClickCount;
                     tabButton.onClick.Invoke();
@@ -161,8 +160,7 @@ namespace ProjectX.UI
             ScrollRect scroll = Scroll;
             bool structure = scroll != null && scroll.viewport != null && scroll.content == content
                 && viewportObject.GetComponent<RectMask2D>() != null && !scroll.horizontal && scroll.vertical;
-            bool controls = frameView.Binding.Find("Layer/Panel_12/Title/CloseBtn") != null
-                && frameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1") != null
+            bool controls = bindings.CloseButton != null && bindings.TabButton != null
                 && useButton != null && detailIcon != null && detailButton != null
                 && tabButton != null && tabButton.interactable;
             detail = $"items={ItemCount}, buttons={itemButtons.Count}, scroll={structure}, controls={controls}, "
@@ -380,26 +378,5 @@ namespace ProjectX.UI
             }
         }
 
-        private GameObject Require(string relativePath)
-        {
-            GameObject result = view.Binding.Find($"{BasePath}/{relativePath}");
-            if (result == null) throw new InvalidOperationException($"Bag UI node was not found: {BasePath}/{relativePath}");
-            return result;
-        }
-
-        private void SetFrameText(string path, string value)
-        {
-            Text label = frameView.Binding.Find(path)?.GetComponent<Text>();
-            if (label != null) label.text = value;
-        }
-
-        private static bool Invoke(CocosUiView target, string path)
-        {
-            GameObject node = target.Binding.Find(path);
-            Button button = node == null ? null : node.GetComponent<Button>();
-            if (button == null) return false;
-            button.onClick.Invoke();
-            return true;
-        }
     }
 }

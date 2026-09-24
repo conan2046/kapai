@@ -20,7 +20,7 @@ namespace ProjectX.UI
         private readonly PlayerStore player;
         private readonly CurrencyStore currencies;
         private readonly BagStore bag;
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action requestUpgrade;
         private readonly Action<JingJieDefinition> showMaterial;
         private readonly Action<string> feedback;
@@ -36,7 +36,7 @@ namespace ProjectX.UI
 
         public JingJieRenderBridge(CocosUiView view, CocosUiView preview, JingJieViewState state,
             JingJieConfigData config, PlayerStore player, CurrencyStore currencies, BagStore bag,
-            Core.ResourceService resources, Action requestUpgrade,
+            IUiResourceProvider resources, Action requestUpgrade,
             Action<JingJieDefinition> showMaterial, Action<string> feedback)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
@@ -187,6 +187,17 @@ namespace ProjectX.UI
                 RenderBreakthrough(target);
             }
             if (IsVisible && state.ConsumeUpgradeEffect()) PlayUpgradeEffect();
+
+            if (atMaximum)
+            {
+                RetireGeneratedAttributeMetadata(view, Root + "/Panel_End/Panel_shuxing", true);
+            }
+            else
+            {
+                RetireGeneratedAttributeMetadata(view, Root + "/Panel_L/Panel_shuxing");
+                RetireGeneratedAttributeMetadata(view, Root + "/Panel_R/Panel_shuxing");
+            }
+            view.Binding.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void RenderStage(string panelPath, JingJieDefinition definition, bool endPanel)
@@ -365,6 +376,15 @@ namespace ProjectX.UI
             Require(target, path).GetComponent<Text>() ?? throw new InvalidOperationException("JingJie imported Text was not found: " + path);
         private static Button RequireButton(CocosUiView target, string path) =>
             Require(target, path).GetComponent<Button>() ?? throw new InvalidOperationException("JingJie imported Button was not found: " + path);
+        private static void RetireGeneratedAttributeMetadata(CocosUiView target, string panelPath,
+            bool templateInsideList = false)
+        {
+            Transform rows = Require(target, panelPath + "/Attr_List").transform;
+            Transform template = Require(target, templateInsideList
+                ? panelPath + "/Attr_List/Attribute1"
+                : panelPath + "/Attribute1").transform;
+            target.Binding.RetireMetadataClonedFromSerializedTemplateAtRuntime(template, rows);
+        }
         private static void SetActive(CocosUiView target, string path, bool active) => Require(target, path).SetActive(active);
         private static void SetText(Transform root, string path, string value, Color color)
         {

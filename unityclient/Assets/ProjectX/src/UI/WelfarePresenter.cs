@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,8 +13,8 @@ namespace ProjectX.UI
         private readonly CocosUiView signView;
         private readonly CocosUiView onlineView;
         private readonly WelfareStore store;
-        private readonly ServerTimeService serverTime;
-        private readonly ResourceService resources;
+        private readonly IServerTimeProvider serverTime;
+        private readonly IUiResourceProvider resources;
         private readonly Action claimSign;
         private readonly VirtualList<WelfareSignRecord> signList;
         private readonly VirtualList<WelfareOnlineRecord> onlineList;
@@ -25,7 +24,7 @@ namespace ProjectX.UI
         private int tab;
 
         public WelfarePresenter(CocosUiView welfareView, CocosUiView signView, CocosUiView onlineView,
-            WelfareStore store, ServerTimeService serverTime, ResourceService resources,
+            WelfareStore store, IServerTimeProvider serverTime, IUiResourceProvider resources,
             Action claimSign, Action close)
         {
             this.welfareView = welfareView ?? throw new ArgumentNullException(nameof(welfareView));

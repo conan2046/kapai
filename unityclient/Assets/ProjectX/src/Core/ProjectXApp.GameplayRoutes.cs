@@ -1,5 +1,6 @@
 using System;
 using ProjectX.Data;
+using ProjectX.Gameplay;
 using ProjectX.UI;
 using UnityEngine;
 
@@ -19,14 +20,18 @@ namespace ProjectX.Core
 
         public void EnterGameplay(int functionId)
         {
-            GameplayDefinition definition = services.GameplayCatalog.Find(functionId);
-            if (definition == null) { Fail($"Gameplay route config is missing id={functionId}."); return; }
-            if (services.Player.Level < definition.OpenLevel)
+            GameplayRouteDecision decision = GameplayRoutePlanner.Resolve(
+                services.GameplayCatalog, functionId, services.Player.Level,
+                HasCommandLineFlag("-projectXGameplayValidation"));
+            GameplayDefinition definition = decision.Definition;
+            if (decision.Status == GameplayRouteDecisionStatus.MissingDefinition)
+            { Fail($"Gameplay route config is missing id={functionId}."); return; }
+            if (decision.Status == GameplayRouteDecisionStatus.LockedByLevel)
             {
                 ShowToast($"{definition.OpenLevel}级开启", 2f);
                 return;
             }
-            if (HasCommandLineFlag("-projectXGameplayValidation"))
+            if (decision.Status == GameplayRouteDecisionStatus.ValidationBoundary)
             {
                 int pendingBefore = services.ProtocolRegistry.PendingCount;
                 lastGameplayBoundaryId = functionId;
@@ -34,12 +39,12 @@ namespace ProjectX.Core
                 // A server announcement may already occupy the shared toast queue. The route
                 // boundary is the state under test, so make that feedback immediately visible.
                 toastPresenter?.Clear();
-                ShowToast($"{definition.Name}属于{GameplayRouteOwner(functionId)}；本轮仅验证路由边界。", 3f);
+                ShowToast($"{definition.Name}属于{GameplayRouteOwner(decision.Route)}；本轮仅验证路由边界。", 3f);
                 SetStatus($"Gameplay route boundary: id={functionId}, name={definition.Name}, pending={pendingBefore}->{services.ProtocolRegistry.PendingCount}.");
                 return;
             }
             gameplayPresenter?.HideDetail();
-            FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
+            FunctionRouteDefinition route = decision.Route;
             switch (route.Target)
             {
                 case "Task": InvokeLuaOrFail(onTaskClicked, "Gameplay.DailyTask"); return;
@@ -60,9 +65,8 @@ namespace ProjectX.Core
             }
         }
 
-        private static string GameplayRouteOwner(int functionId)
+        private static string GameplayRouteOwner(FunctionRouteDefinition route)
         {
-            FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
             return string.IsNullOrWhiteSpace(route.Target) ? route.Kind.ToString() : route.Target;
         }
 

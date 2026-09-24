@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -34,7 +33,7 @@ namespace ProjectX.UI
         private readonly FormationStore formation;
         private readonly CurrencyStore currencies;
         private readonly EquipmentCatalog items;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<int> requestPreview;
         private readonly Action<int> confirmRebirth;
         private readonly Action<string> feedback;
@@ -56,7 +55,7 @@ namespace ProjectX.UI
 
         public HeroRebirthPresenter(CocosUiView view, CocosUiView chooseFrame, CocosUiView chooseView,
             CocosUiView confirmView, HeroStore heroes, FormationStore formation, CurrencyStore currencies,
-            EquipmentCatalog items, ResourceService resources, Action<int> requestPreview,
+            EquipmentCatalog items, IUiResourceProvider resources, Action<int> requestPreview,
             Action<int> confirmRebirth, Action<string> feedback, Action<HeroRebirthReward> showItemDetail)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));

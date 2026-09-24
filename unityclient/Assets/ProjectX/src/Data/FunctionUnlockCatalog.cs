@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using UnityEngine;
 
-namespace ProjectX.Core
+namespace ProjectX.Data
 {
-    internal readonly struct FunctionUnlockDefinition
+    public readonly struct FunctionUnlockDefinition
     {
         public FunctionUnlockDefinition(int functionId, string name, int openLevel)
         {
@@ -19,7 +19,7 @@ namespace ProjectX.Core
         public int OpenLevel { get; }
     }
 
-    internal static class FunctionUnlockCatalog
+    public static class FunctionUnlockCatalog
     {
         private const string ResourcePath = "ProjectXData/Configs/function-unlocks";
         private static Dictionary<int, FunctionUnlockDefinition> definitions;

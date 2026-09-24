@@ -20,7 +20,7 @@ namespace ProjectX.Validation
 {
     public sealed class RuntimeSnapshotCollector : MonoBehaviour
     {
-        private GameServices services;
+        private IRuntimeSnapshotContext services;
         private JObject scenario;
         private string outputPath;
         private string inputFingerprint;
@@ -28,7 +28,76 @@ namespace ProjectX.Validation
         private readonly object packetLock = new object();
         private Dictionary<string, string> controlByPath;
 
-        public static bool TryInstall(GameObject host, GameServices services)
+        private static Dictionary<GameObject, CocosNodeReference> BuildSerializedNodeIdentityIndex()
+        {
+            var result = new Dictionary<GameObject, CocosNodeReference>();
+            CocosUiBinding[] bindings = FindObjectsOfType<CocosUiBinding>(true);
+            foreach (CocosUiBinding binding in bindings)
+            {
+                foreach (CocosNodeReference reference in binding.Nodes)
+                {
+                    if (reference == null || reference.target == null || string.IsNullOrWhiteSpace(reference.path))
+                        continue;
+
+                    if (!result.TryGetValue(reference.target, out CocosNodeReference current)
+                        || string.CompareOrdinal(reference.path, current.path) < 0
+                        || (string.Equals(reference.path, current.path, StringComparison.Ordinal)
+                            && string.CompareOrdinal(reference.nodeType, current.nodeType) < 0))
+                        result[reference.target] = reference;
+                }
+            }
+
+            foreach (KeyValuePair<GameObject, CocosNodeReference> retired in CocosUiBinding.RetiredMetadataIdentities)
+            {
+                if (retired.Key != null && retired.Value != null && !result.ContainsKey(retired.Key))
+                    result.Add(retired.Key, retired.Value);
+            }
+            return result;
+        }
+
+        private static void ResolveNodeIdentity(RectTransform rect,
+            IReadOnlyDictionary<GameObject, CocosNodeReference> serializedIdentities,
+            out string semanticId, out string nodeType, out string source)
+        {
+            if (serializedIdentities.TryGetValue(rect.gameObject, out CocosNodeReference reference))
+            {
+                semanticId = string.IsNullOrWhiteSpace(reference.path)
+                    ? RuntimeInputDispatcher.FullPath(rect)
+                    : reference.path;
+                nodeType = string.IsNullOrWhiteSpace(reference.nodeType) ? rect.GetType().Name : reference.nodeType;
+                source = string.IsNullOrWhiteSpace(reference.path) ? null : reference.path;
+                return;
+            }
+
+            CocosNodeMetadata metadata = rect.GetComponent<CocosNodeMetadata>();
+            if (metadata != null)
+            {
+                semanticId = string.IsNullOrWhiteSpace(metadata.CocosPath)
+                    ? RuntimeInputDispatcher.FullPath(rect)
+                    : metadata.CocosPath;
+                nodeType = string.IsNullOrWhiteSpace(metadata.NodeType) ? rect.GetType().Name : metadata.NodeType;
+                source = string.IsNullOrWhiteSpace(metadata.CocosPath) ? null : metadata.CocosPath;
+                return;
+            }
+
+            semanticId = RuntimeInputDispatcher.FullPath(rect);
+            nodeType = rect.GetType().Name;
+            source = null;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void RegisterForServiceReady()
+        {
+            ProjectXApp.RuntimeServicesReady -= OnRuntimeServicesReady;
+            ProjectXApp.RuntimeServicesReady += OnRuntimeServicesReady;
+        }
+
+        private static void OnRuntimeServicesReady(GameObject host, IRuntimeSnapshotContext context)
+        {
+            TryInstall(host, context);
+        }
+
+        public static bool TryInstall(GameObject host, IRuntimeSnapshotContext services)
         {
             string module = GetArgument("-projectXRuntimeSnapshotModule=");
             string scenarioPath = GetArgument("-projectXRuntimeSnapshotScenario=");
@@ -44,7 +113,7 @@ namespace ProjectX.Validation
                 collector.inputFingerprint = GetArgument("-projectXRuntimeSnapshotInputFingerprint=");
                 if (string.IsNullOrWhiteSpace(collector.inputFingerprint)) collector.inputFingerprint = Sha256(File.ReadAllBytes(scenarioPath));
                 collector.BuildControlPathIndex();
-                services.Network.PacketObserved += collector.OnPacketObserved;
+                services.PacketObserved += collector.OnPacketObserved;
                 collector.StartCoroutine(collector.DelayedReplay());
                 return true;
             }
@@ -60,16 +129,18 @@ namespace ProjectX.Validation
             // The collector is installed during bootstrap, but Draw targets only exist after the
             // real login/select-role handshake has completed and the normal main UI is visible.
             float readyDeadline = Time.realtimeSinceStartup + 45f;
-            while ((services.State.Current != AppState.Main || services.Player.RoleId == 0)
+            while ((!string.Equals(services.AppStateName, "Main", StringComparison.Ordinal)
+                    || services.PlayerRoleId == 0)
                 && Time.realtimeSinceStartup < readyDeadline)
             {
                 yield return null;
             }
-            if (services.State.Current != AppState.Main || services.Player.RoleId == 0)
+            if (!string.Equals(services.AppStateName, "Main", StringComparison.Ordinal)
+                || services.PlayerRoleId == 0)
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? Application.persistentDataPath);
                 WriteBootstrapFailure(outputPath, new TimeoutException(
-                    $"Runtime snapshot readiness timed out: state={services.State.Current}, roleId={services.Player.RoleId}."));
+                    $"Runtime snapshot readiness timed out: state={services.AppStateName}, roleId={services.PlayerRoleId}."));
                 yield break;
             }
             // Allow the main view's layout/timeline startup to settle before the first real hit test.
@@ -180,7 +251,7 @@ namespace ProjectX.Validation
                 ["stableState"] = new JObject { ["outcome"] = timedOut ? "timeout" : "stable", ["stableFrames"] = stableFrames, ["reason"] = timedOut ? "configured stable state was not reached" : "protocol complete and normalized UI state stable", ["elapsedMs"] = timer.ElapsedMilliseconds },
                 ["animation"] = new JObject { ["started"] = animationStarted || AnyTimelineInTree(preTree), ["ended"] = animationEnded, ["durationMs"] = timer.ElapsedMilliseconds, ["cleanupPassed"] = cleanupPassed },
                 ["visualStateId"] = definition["visualStateId"]?.DeepClone() ?? JValue.CreateNull(),
-                ["identity"] = new JObject { ["account"] = Redact(services.Player.Name), ["userId"] = services.Options.LocalUserId, ["roleId"] = services.Player.RoleId },
+                ["identity"] = new JObject { ["account"] = Redact(services.PlayerName), ["userId"] = services.LocalUserId, ["roleId"] = services.PlayerRoleId },
                 ["resolution"] = new JObject { ["width"] = 1334, ["height"] = 750, ["dpiScale"] = Screen.dpi > 0 ? Screen.dpi / 96f : 1f },
                 ["inputFingerprint"] = inputFingerprint.ToUpperInvariant(),
                 ["automationPassed"] = replayPassed && protocolPassed && treePassed && cleanupPassed,
@@ -341,10 +412,11 @@ namespace ProjectX.Validation
         private JArray CaptureUiTree()
         {
             var rows = new List<JObject>();
+            Dictionary<GameObject, CocosNodeReference> serializedIdentities = BuildSerializedNodeIdentityIndex();
             foreach (RectTransform rect in FindObjectsOfType<RectTransform>(true).OrderBy(RuntimeInputDispatcher.FullPath, StringComparer.Ordinal))
             {
                 string path = RuntimeInputDispatcher.FullPath(rect);
-                CocosNodeMetadata metadata = rect.GetComponent<CocosNodeMetadata>();
+                ResolveNodeIdentity(rect, serializedIdentities, out string semanticId, out string nodeType, out string source);
                 Graphic graphic = rect.GetComponent<Graphic>();
                 Selectable selectable = rect.GetComponent<Selectable>();
                 CanvasGroup[] groups = rect.GetComponentsInParent<CanvasGroup>(true);
@@ -360,13 +432,13 @@ namespace ProjectX.Validation
                 Toggle toggle = rect.GetComponent<Toggle>();
                 InputField input = rect.GetComponent<InputField>();
                 CocosTimelinePlayer timeline = rect.GetComponent<CocosTimelinePlayer>();
-                string controlId = ResolveControlId(path, metadata?.CocosPath);
+                string controlId = ResolveControlId(path, source);
                 rows.Add(new JObject
                 {
-                    ["semanticId"] = !string.IsNullOrWhiteSpace(metadata?.CocosPath) ? metadata.CocosPath : path,
+                    ["semanticId"] = semanticId,
                     ["controlId"] = string.IsNullOrEmpty(controlId) ? JValue.CreateNull() : controlId,
                     ["nodePath"] = path,
-                    ["nodeType"] = metadata?.NodeType ?? rect.GetType().Name,
+                    ["nodeType"] = nodeType,
                     ["parentPath"] = rect.parent == null ? JValue.CreateNull() : RuntimeInputDispatcher.FullPath(rect.parent),
                     ["siblingIndex"] = rect.GetSiblingIndex(),
                     ["active"] = active,
@@ -391,7 +463,7 @@ namespace ProjectX.Validation
                     ["font"] = text?.font == null ? JValue.CreateNull() : text.font.name,
                     ["fontSize"] = text == null ? JValue.CreateNull() : text.fontSize,
                     ["resource"] = image?.sprite == null ? JValue.CreateNull() : image.sprite.name,
-                    ["source"] = string.IsNullOrWhiteSpace(metadata?.CocosPath) ? JValue.CreateNull() : metadata.CocosPath,
+                    ["source"] = string.IsNullOrWhiteSpace(source) ? JValue.CreateNull() : source,
                     ["animationResource"] = timeline == null ? JValue.CreateNull() : (timeline.Definition?.currentAnimationName ?? "CocosTimeline"),
                     ["animationAction"] = timeline == null ? JValue.CreateNull() : (timeline.CurrentClip ?? string.Empty),
                     ["scroll"] = scroll == null ? JValue.CreateNull() : new JObject { ["viewport"] = scroll.viewport == null ? null : RuntimeInputDispatcher.FullPath(scroll.viewport), ["content"] = scroll.content == null ? null : RuntimeInputDispatcher.FullPath(scroll.content), ["x"] = scroll.horizontalNormalizedPosition, ["y"] = scroll.verticalNormalizedPosition },
@@ -432,7 +504,7 @@ namespace ProjectX.Validation
             }
             var errors = new JArray();
             if (!string.IsNullOrWhiteSpace(dispatchError)) errors.Add(dispatchError);
-            return new JObject { ["sent"] = sent, ["received"] = received, ["errors"] = errors, ["timedOut"] = timedOut, ["disconnected"] = services.Network.State == NetworkState.Disconnected || services.Network.State == NetworkState.Faulted };
+            return new JObject { ["sent"] = sent, ["received"] = received, ["errors"] = errors, ["timedOut"] = timedOut, ["disconnected"] = services.IsNetworkDisconnectedOrFaulted };
         }
 
         private static JObject DecodePacket(ProtocolPacketTrace trace, int sequence)
@@ -523,10 +595,11 @@ namespace ProjectX.Validation
             // This keeps the collector from issuing hundreds of raycasts per frame and starving
             // the real network pump while a protocol response is in flight.
             var rows = new JArray();
+            Dictionary<GameObject, CocosNodeReference> serializedIdentities = BuildSerializedNodeIdentityIndex();
             foreach (RectTransform rect in FindObjectsOfType<RectTransform>(true)
                 .OrderBy(RuntimeInputDispatcher.FullPath, StringComparer.Ordinal))
             {
-                CocosNodeMetadata metadata = rect.GetComponent<CocosNodeMetadata>();
+                ResolveNodeIdentity(rect, serializedIdentities, out string semanticId, out _, out _);
                 Graphic graphic = rect.GetComponent<Graphic>();
                 Selectable selectable = rect.GetComponent<Selectable>();
                 CanvasGroup[] groups = rect.GetComponentsInParent<CanvasGroup>(true);
@@ -538,7 +611,7 @@ namespace ProjectX.Validation
                     value = "<volatile-number>";
                 rows.Add(new JObject
                 {
-                    ["semanticId"] = !string.IsNullOrWhiteSpace(metadata?.CocosPath) ? metadata.CocosPath : RuntimeInputDispatcher.FullPath(rect),
+                    ["semanticId"] = semanticId,
                     ["active"] = rect.gameObject.activeSelf,
                     ["effectiveVisible"] = rect.gameObject.activeInHierarchy && groupAlpha > 0.001f && RectOnScreen(rect),
                     ["enabled"] = graphic == null || graphic.enabled,
@@ -615,7 +688,7 @@ namespace ProjectX.Validation
             JObject action = (JObject)definition["action"];
             string zero = new string('0', 64);
             return new JObject {
-                ["schemaVersion"] = 1, ["recordType"] = "action", ["module"] = (string)scenario["module"], ["stateId"] = (string)definition["expectedState"], ["actionId"] = (string)definition["actionId"], ["controlId"] = (string)action["targetControlId"], ["sequence"] = sequence, ["timestampUtc"] = DateTime.UtcNow.ToString("O"), ["engine"] = "unity", ["operationType"] = (string)action["type"], ["inputMode"] = "engine-input-replay", ["inputCoordinates"] = new JObject { ["x"] = 0, ["y"] = 0, ["coordinateSpace"] = "1334x750-top-left" }, ["preUiTreeHash"] = zero, ["preUiTree"] = new JArray(), ["preUiTreeRef"] = JValue.CreateNull(), ["preUiTreeNodeCount"] = 0, ["targetNodePath"] = (string)action["unityPath"], ["targetSemanticId"] = (string)definition["expectedHit"], ["hitTest"] = new JObject { ["hits"] = new JArray(), ["firstHit"] = "" }, ["engineEventDispatched"] = false, ["protocol"] = new JObject { ["sent"] = new JArray(), ["received"] = new JArray(), ["errors"] = new JArray(exception.Message), ["timedOut"] = false, ["disconnected"] = false }, ["changedNodes"] = new JArray(), ["postUiTreeHash"] = zero, ["postUiTree"] = new JArray(), ["postUiTreeRef"] = JValue.CreateNull(), ["postUiTreeNodeCount"] = 0, ["stableState"] = new JObject { ["outcome"] = "business-error", ["stableFrames"] = 0, ["reason"] = exception.Message, ["elapsedMs"] = 0 }, ["animation"] = new JObject { ["started"] = false, ["ended"] = false, ["durationMs"] = 0, ["cleanupPassed"] = false }, ["visualStateId"] = definition["visualStateId"]?.DeepClone() ?? JValue.CreateNull(), ["identity"] = new JObject { ["account"] = Redact(services?.Player?.Name), ["userId"] = services?.Options?.LocalUserId ?? 0, ["roleId"] = services?.Player?.RoleId ?? 0 }, ["resolution"] = new JObject { ["width"] = 1334, ["height"] = 750, ["dpiScale"] = 1 }, ["inputFingerprint"] = string.IsNullOrEmpty(inputFingerprint) ? zero : inputFingerprint, ["automationPassed"] = false, ["engineInputReplayPassed"] = false, ["protocolSemanticPassed"] = false, ["runtimeTreePassed"] = false };
+                ["schemaVersion"] = 1, ["recordType"] = "action", ["module"] = (string)scenario["module"], ["stateId"] = (string)definition["expectedState"], ["actionId"] = (string)definition["actionId"], ["controlId"] = (string)action["targetControlId"], ["sequence"] = sequence, ["timestampUtc"] = DateTime.UtcNow.ToString("O"), ["engine"] = "unity", ["operationType"] = (string)action["type"], ["inputMode"] = "engine-input-replay", ["inputCoordinates"] = new JObject { ["x"] = 0, ["y"] = 0, ["coordinateSpace"] = "1334x750-top-left" }, ["preUiTreeHash"] = zero, ["preUiTree"] = new JArray(), ["preUiTreeRef"] = JValue.CreateNull(), ["preUiTreeNodeCount"] = 0, ["targetNodePath"] = (string)action["unityPath"], ["targetSemanticId"] = (string)definition["expectedHit"], ["hitTest"] = new JObject { ["hits"] = new JArray(), ["firstHit"] = "" }, ["engineEventDispatched"] = false, ["protocol"] = new JObject { ["sent"] = new JArray(), ["received"] = new JArray(), ["errors"] = new JArray(exception.Message), ["timedOut"] = false, ["disconnected"] = false }, ["changedNodes"] = new JArray(), ["postUiTreeHash"] = zero, ["postUiTree"] = new JArray(), ["postUiTreeRef"] = JValue.CreateNull(), ["postUiTreeNodeCount"] = 0, ["stableState"] = new JObject { ["outcome"] = "business-error", ["stableFrames"] = 0, ["reason"] = exception.Message, ["elapsedMs"] = 0 }, ["animation"] = new JObject { ["started"] = false, ["ended"] = false, ["durationMs"] = 0, ["cleanupPassed"] = false }, ["visualStateId"] = definition["visualStateId"]?.DeepClone() ?? JValue.CreateNull(), ["identity"] = new JObject { ["account"] = Redact(services?.PlayerName), ["userId"] = services?.LocalUserId ?? 0, ["roleId"] = services?.PlayerRoleId ?? 0 }, ["resolution"] = new JObject { ["width"] = 1334, ["height"] = 750, ["dpiScale"] = 1 }, ["inputFingerprint"] = string.IsNullOrEmpty(inputFingerprint) ? zero : inputFingerprint, ["automationPassed"] = false, ["engineInputReplayPassed"] = false, ["protocolSemanticPassed"] = false, ["runtimeTreePassed"] = false };
         }
 
         private static string Redact(string value) => string.IsNullOrEmpty(value) ? string.Empty : value.Replace("token", "[redacted]").Replace("password", "[redacted]");
@@ -626,7 +699,7 @@ namespace ProjectX.Validation
 
         private void OnDestroy()
         {
-            if (services?.Network != null) services.Network.PacketObserved -= OnPacketObserved;
+            if (services != null) services.PacketObserved -= OnPacketObserved;
         }
     }
 }

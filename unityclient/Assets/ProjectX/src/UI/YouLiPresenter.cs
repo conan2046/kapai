@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Data;
-using ProjectX.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -15,7 +14,7 @@ namespace ProjectX.UI
         private readonly YouLiStore store;
         private readonly HeroStore heroes;
         private readonly int playerLevel;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly List<GameObject> cards = new List<GameObject>();
         private readonly Transform template;
         private readonly RectTransform content;
@@ -28,7 +27,7 @@ namespace ProjectX.UI
         private GameObject closeControl;
 
         public YouLiPresenter(CocosUiView view, YouLiStore store, HeroStore heroes, int playerLevel,
-            ResourceService resources, Action<byte> start, Action startAll, Action<byte> claim,
+            IUiResourceProvider resources, Action<byte> start, Action startAll, Action<byte> claim,
             GameObject closeTemplate, Action close)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));

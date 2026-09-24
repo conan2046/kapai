@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,7 +24,7 @@ namespace ProjectX.UI
         private readonly HeroStore heroes;
         private readonly BagStore bag;
         private readonly CurrencyStore currencies;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<int,int> swap;
         private readonly Action<int> upgrade;
         private readonly Action<int> use;
@@ -40,7 +39,7 @@ namespace ProjectX.UI
         private int selectedCombatPosition;
 
         public FormationPopupPresenter(CocosUiView view, FormationStore formation, HeroStore heroes,
-            BagStore bag, CurrencyStore currencies, ResourceService resources,
+            BagStore bag, CurrencyStore currencies, IUiResourceProvider resources,
             Action<int,int> swap, Action<int> upgrade, Action<int> use,
             Action<string> feedback, Action close)
         {

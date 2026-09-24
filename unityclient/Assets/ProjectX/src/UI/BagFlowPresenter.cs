@@ -28,7 +28,7 @@ namespace ProjectX.UI
         private readonly CocosUiView giftView;
         private readonly CocosUiView sourceView;
         private readonly CocosUiView equipmentInfoView;
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly EquipmentCatalog equipmentCatalog;
         private readonly ShopCatalog itemCatalog;
         private readonly Func<int, int> ownedQuantity;
@@ -59,7 +59,7 @@ namespace ProjectX.UI
             CocosUiView giftView,
             CocosUiView sourceView,
             CocosUiView equipmentInfoView,
-            Core.ResourceService resources,
+            IUiResourceProvider resources,
             EquipmentCatalog equipmentCatalog,
             ShopCatalog itemCatalog,
             Func<int, int> ownedQuantity,
@@ -101,10 +101,10 @@ namespace ProjectX.UI
         public int SelectedChoiceId => selectedChoice?.Id ?? 0;
         public int SourceChoiceId => sourceChoice?.Id ?? 0;
         public Button GetInputDigitControl(int digit) => digit >= 0 && digit <= 9
-            ? inputView.Binding.Find($"Layer/Panel/Bg/BtnList/Btn{digit}")?.GetComponent<Button>()
+            ? FindInputNode($"Layer/Panel/Bg/BtnList/Btn{digit}")?.GetComponent<Button>()
             : null;
         public Button InputConfirmControl =>
-            inputView.Binding.Find("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>();
+            FindInputNode("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>();
 
         public void ShowGameplayShopSource(ShopRecord item)
         {
@@ -178,6 +178,11 @@ namespace ProjectX.UI
             }
             if (item.UseJump > 0)
             {
+                if (!canJump(item.UseJump))
+                {
+                    feedback("当前版本暂未开放");
+                    return;
+                }
                 beforeItemJump();
                 jumpAction(item.UseJump);
                 return;
@@ -241,16 +246,16 @@ namespace ProjectX.UI
             {
                 case "BAG-08-INPUT-DIGITS":
                     for (int digit = 0; digit <= 9; digit++)
-                        if (!Invoke(inputView, $"Layer/Panel/Bg/BtnList/Btn{digit}")) return false;
+                        if (!InvokeInput($"Layer/Panel/Bg/BtnList/Btn{digit}")) return false;
                     bool allDigitsInvoked = inputDigitMask == 0x3ff;
                     quantity = 0;
                     RenderQuantity();
-                    bool enteredTen = Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn1")
-                        && Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn0");
+                    bool enteredTen = InvokeInput("Layer/Panel/Bg/BtnList/Btn1")
+                        && InvokeInput("Layer/Panel/Bg/BtnList/Btn0");
                     return allDigitsInvoked && enteredTen && quantity == Mathf.Min(10, maxQuantity);
-                case "BAG-09-INPUT-DELETE": return Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn10");
-                case "BAG-10-INPUT-CONFIRM": return Invoke(inputView, "Layer/Panel/Bg/BtnList/Btn12");
-                case "BAG-11-INPUT-CLOSE": return Invoke(inputView, "Layer/Panel/Bg/Close");
+                case "BAG-09-INPUT-DELETE": return InvokeInput("Layer/Panel/Bg/BtnList/Btn10");
+                case "BAG-10-INPUT-CONFIRM": return InvokeInput("Layer/Panel/Bg/BtnList/Btn12");
+                case "BAG-11-INPUT-CLOSE": return InvokeInput("Layer/Panel/Bg/Close");
                 case "BAG-12-GIFT-OPTION":
                     if (giftChoiceButtons.Count == 0) return false;
                     giftChoiceButtons[giftChoiceButtons.Keys.Min()].onClick.Invoke();
@@ -296,18 +301,18 @@ namespace ProjectX.UI
         public bool InvokeInputDigit(int digit)
         {
             if (digit < 0 || digit > 9 || !IsInputOpen) return false;
-            return Invoke(inputView, $"Layer/Panel/Bg/BtnList/Btn{digit}");
+            return InvokeInput($"Layer/Panel/Bg/BtnList/Btn{digit}");
         }
 
         public bool Validate(out string detail)
         {
             var required = new[]
             {
-                RequireButton(inputView, "Layer/Panel/Bg/BtnList/Btn0"),
-                RequireButton(inputView, "Layer/Panel/Bg/BtnList/Btn9"),
-                RequireButton(inputView, "Layer/Panel/Bg/BtnList/Btn10"),
-                RequireButton(inputView, "Layer/Panel/Bg/BtnList/Btn12"),
-                RequireButton(inputView, "Layer/Panel/Bg/Close"),
+                RequireInputButton("Layer/Panel/Bg/BtnList/Btn0"),
+                RequireInputButton("Layer/Panel/Bg/BtnList/Btn9"),
+                RequireInputButton("Layer/Panel/Bg/BtnList/Btn10"),
+                RequireInputButton("Layer/Panel/Bg/BtnList/Btn12"),
+                RequireInputButton("Layer/Panel/Bg/Close"),
                 RequireButton(giftView, "Layer/OpenBox/Panel/TimesBg/Btn_L"),
                 RequireButton(giftView, "Layer/OpenBox/Panel/TimesBg/Btn_R"),
                 RequireButton(giftView, "Layer/OpenBox/Panel/TimesBg/Btn_L_0"),
@@ -332,7 +337,7 @@ namespace ProjectX.UI
 
         private void ConfigureInput()
         {
-            GameObject inputNode = Require(inputView, "Layer/Panel/Bg/Num/TextField");
+            GameObject inputNode = RequireInputNode("Layer/Panel/Bg/Num/TextField");
             InputField inputField = inputNode.GetComponent<InputField>();
             Text importedValue = inputField?.textComponent
                 ?? inputNode.transform.Find("Text")?.GetComponent<Text>()
@@ -364,7 +369,7 @@ namespace ProjectX.UI
             for (int digit = 0; digit <= 9; digit++)
             {
                 int value = digit;
-                Bind(inputView, $"Layer/Panel/Bg/BtnList/Btn{digit}", () =>
+                BindInput($"Layer/Panel/Bg/BtnList/Btn{digit}", () =>
                 {
                     inputDigitMask |= 1 << value;
                     int next = quantity * 10 + value;
@@ -372,12 +377,12 @@ namespace ProjectX.UI
                     RenderQuantity();
                 });
             }
-            Bind(inputView, "Layer/Panel/Bg/BtnList/Btn10", () =>
+            BindInput("Layer/Panel/Bg/BtnList/Btn10", () =>
             {
                 quantity /= 10;
                 RenderQuantity();
             });
-            Bind(inputView, "Layer/Panel/Bg/BtnList/Btn12", () =>
+            BindInput("Layer/Panel/Bg/BtnList/Btn12", () =>
             {
                 if (quantity > 0)
                 {
@@ -386,7 +391,51 @@ namespace ProjectX.UI
                 }
                 else inputView.SetVisible(false);
             });
-            Bind(inputView, "Layer/Panel/Bg/Close", () => inputView.SetVisible(false));
+            BindInput("Layer/Panel/Bg/Close", () => inputView.SetVisible(false));
+            inputView.Binding.RetireMetadataWithSerializedIdentityAtRuntime(null);
+        }
+
+        private GameObject FindInputNode(string path)
+        {
+            Transform root = inputView.GameObject == null ? null : inputView.GameObject.transform;
+            if (root == null || string.IsNullOrWhiteSpace(path)) return null;
+
+            string normalized = path.Replace('\\', '/').Trim('/');
+            Transform node = root.Find(normalized);
+            if (node == null && normalized.StartsWith("Layer/", StringComparison.Ordinal))
+                node = root.Find(normalized.Substring("Layer/".Length));
+            return node == null ? null : node.gameObject;
+        }
+
+        private GameObject RequireInputNode(string path)
+        {
+            GameObject node = FindInputNode(path);
+            if (node == null)
+                throw new InvalidOperationException($"Bag quantity input Unity path missing: {inputView.GameObject?.name} :: {path}");
+            return node;
+        }
+
+        private Button RequireInputButton(string path)
+        {
+            GameObject node = RequireInputNode(path);
+            Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
+            button.targetGraphic = node.GetComponent<Graphic>() ?? node.GetComponentInChildren<Graphic>();
+            return button;
+        }
+
+        private void BindInput(string path, Action action)
+        {
+            Button button = RequireInputButton(path);
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => action());
+        }
+
+        private bool InvokeInput(string path)
+        {
+            Button button = FindInputNode(path)?.GetComponent<Button>();
+            if (button == null) return false;
+            button.onClick.Invoke();
+            return true;
         }
 
         private void ShowInput(BagItemRecord item)

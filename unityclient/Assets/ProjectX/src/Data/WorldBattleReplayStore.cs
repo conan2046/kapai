@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using ProjectX.Network;
+using ProjectX.Foundation;
 
 namespace ProjectX.Data
 {
@@ -104,7 +104,7 @@ namespace ProjectX.Data
         public int StatisticsCount => units.Count(value => value.HasStatistics);
         public bool HasAuthoritativeReplay { get; private set; }
 
-        public void Load(LegacyTcpMessage message, byte expectedOperation = 5)
+        public void Load(IProtocolMessageReader message, byte expectedOperation = 5)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
             Clear(false);
@@ -114,7 +114,7 @@ namespace ProjectX.Data
             ushort packetCount = message.ReadUShort();
             for (int index = 0; index < packetCount; index++)
             {
-                LegacyNestedPacket packet = message.ReadNestedPacket();
+                IProtocolNestedPacket packet = message.ReadNestedPacket();
                 if (packet.Command == 21) ReadEnter(packet.OpenBody());
                 else if (packet.Command == 22) ReadAction(packet.OpenBody());
                 else if (packet.Command == 23) ReadResult(packet.OpenBody());
@@ -147,7 +147,7 @@ namespace ProjectX.Data
             if (notify) Changed?.Invoke();
         }
 
-        private void ReadEnter(LegacyTcpMessage message)
+        private void ReadEnter(IProtocolMessageReader message)
         {
             FightId = message.ReadUInt();
             FightType = message.ReadByte();
@@ -169,7 +169,7 @@ namespace ProjectX.Data
                 throw new InvalidDataException($"World /21 enter battle has {message.Remaining} unread bytes.");
         }
 
-        private static WorldBattleUnitRecord ReadUnit(LegacyTcpMessage message)
+        private static WorldBattleUnitRecord ReadUnit(IProtocolMessageReader message)
         {
             var unit = new WorldBattleUnitRecord
             {
@@ -215,7 +215,7 @@ namespace ProjectX.Data
             return unit;
         }
 
-        private void ReadAction(LegacyTcpMessage message)
+        private void ReadAction(IProtocolMessageReader message)
         {
             byte operation = message.ReadByte();
             if (operation != 1 || message.Remaining == 0) return;
@@ -241,7 +241,7 @@ namespace ProjectX.Data
                 throw new InvalidDataException($"World /22 battle action has {message.Remaining} unread bytes.");
         }
 
-        private WorldBattleActionRecord ReadActionRecord(LegacyTcpMessage message, byte actionCount)
+        private WorldBattleActionRecord ReadActionRecord(IProtocolMessageReader message, byte actionCount)
         {
             var action = new WorldBattleActionRecord
             {
@@ -466,7 +466,7 @@ namespace ProjectX.Data
             public uint CounterHealing { get; }
         }
 
-        private static AttackDamage ReadAttackDamage(LegacyTcpMessage message)
+        private static AttackDamage ReadAttackDamage(IProtocolMessageReader message)
         {
             byte protectorPosition = message.ReadByte();
             uint protectorDamage = 0;
@@ -513,7 +513,7 @@ namespace ProjectX.Data
                 countered, counterHit, counterCritical, counterDamage, counterHealing);
         }
 
-        private static void SkipAddedBuffs(LegacyTcpMessage message)
+        private static void SkipAddedBuffs(IProtocolMessageReader message)
         {
             int count = message.ReadByte();
             for (int index = 0; index < count; index++)
@@ -526,7 +526,7 @@ namespace ProjectX.Data
             }
         }
 
-        private void ReadResult(LegacyTcpMessage message)
+        private void ReadResult(IProtocolMessageReader message)
         {
             uint fightId = message.ReadUInt();
             if (FightId != 0 && fightId != FightId)
@@ -551,17 +551,17 @@ namespace ProjectX.Data
                 throw new InvalidDataException($"Battle /23 result has {message.Remaining} unread bytes.");
         }
 
-        private static void SkipState(LegacyTcpMessage message)
+        private static void SkipState(IProtocolMessageReader message)
         {
             ReadState(message);
         }
 
-        private static byte ReadState(LegacyTcpMessage message)
+        private static byte ReadState(IProtocolMessageReader message)
         {
             return ReadState(message, out _);
         }
 
-        private static byte ReadState(LegacyTcpMessage message, out byte[] buffIds)
+        private static byte ReadState(IProtocolMessageReader message, out byte[] buffIds)
         {
             byte state = message.ReadByte();
             int count = message.ReadByte();
@@ -569,7 +569,7 @@ namespace ProjectX.Data
             return state;
         }
 
-        private static void SkipByteList(LegacyTcpMessage message)
+        private static void SkipByteList(IProtocolMessageReader message)
         {
             int count = message.ReadByte();
             if (count > 0) message.ReadBytes(count);

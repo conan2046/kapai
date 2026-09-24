@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,7 +17,7 @@ namespace ProjectX.UI
         private readonly FormationStore formation;
         private readonly BagStore bag;
         private readonly PlayerStore player;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<int, int, int> levelAction;
         private readonly Action<int, int> autoLevelAction, cultivateAction;
         private readonly Action<int> breakAction, starAction, activateAction;
@@ -35,7 +34,7 @@ namespace ProjectX.UI
             CocosUiView autoLevel, CocosUiView star, CocosUiView breakUp, CocosUiView cultivate,
             CocosUiView info, CocosUiView talent, CocosUiView helpFirst, CocosUiView helpSecond,
             CocosUiView attributes, CocosUiView number, CocosUiView helpFrame, HeroStore heroes,
-            FormationStore formation, BagStore bag, PlayerStore player, ResourceService resources,
+            FormationStore formation, BagStore bag, PlayerStore player, IUiResourceProvider resources,
             Action<int, int, int> levelAction, Action<int, int> autoLevelAction,
             Action<int> breakAction, Action<int, int> cultivateAction, Action<int> starAction,
             Action<int> activateAction, Action close, Action<string> toast,
@@ -70,6 +69,9 @@ namespace ProjectX.UI
             frame.GameObject.transform.SetAsLastSibling();
             ConfigureTabs();
             ShowPage(0);
+            // The shell's path lookups and first render are complete; its full
+            // serialized node map now covers later selection and model updates.
+            shell?.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void Refresh(int selectedHeroId)
@@ -588,6 +590,8 @@ namespace ProjectX.UI
             Text title = frame.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = new[] { "升级", "升星", "突破", "修炼", "信息" }[page];
             Render();
+            CocosUiView activePage = PageViews().ElementAt(page);
+            activePage?.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         private void CloseTransientPopups()

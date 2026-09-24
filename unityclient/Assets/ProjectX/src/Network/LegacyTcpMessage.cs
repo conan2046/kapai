@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text;
+using ProjectX.Foundation;
 
 namespace ProjectX.Network
 {
@@ -8,7 +9,7 @@ namespace ProjectX.Network
     /// Binary stream compatible with the legacy Cocos LTCPMsg payload API.
     /// Integers are little-endian and strings are length-prefixed UTF-16LE.
     /// </summary>
-    public sealed class LegacyTcpMessage
+    public sealed class LegacyTcpMessage : IProtocolMessageReader
     {
         private readonly MemoryStream stream;
         private readonly BinaryReader reader;
@@ -20,7 +21,7 @@ namespace ProjectX.Network
             writer = new BinaryWriter(stream, Encoding.UTF8);
         }
 
-        internal LegacyTcpMessage(byte[] body)
+        public LegacyTcpMessage(byte[] body)
         {
             stream = new MemoryStream(body ?? Array.Empty<byte>(), false);
             reader = new BinaryReader(stream, Encoding.UTF8);
@@ -155,6 +156,8 @@ namespace ProjectX.Network
             return new LegacyNestedPacket(command, body);
         }
 
+        IProtocolNestedPacket IProtocolMessageReader.ReadNestedPacket() => ReadNestedPacket();
+
         internal byte[] ToPayload()
         {
             EnsureWriter();
@@ -190,7 +193,7 @@ namespace ProjectX.Network
         }
     }
 
-    public sealed class LegacyNestedPacket
+    public sealed class LegacyNestedPacket : IProtocolNestedPacket
     {
         public LegacyNestedPacket(ushort command, byte[] body)
         {
@@ -201,5 +204,6 @@ namespace ProjectX.Network
         public ushort Command { get; }
         public byte[] Body { get; }
         public LegacyTcpMessage OpenBody() => new LegacyTcpMessage(Body);
+        IProtocolMessageReader IProtocolNestedPacket.OpenBody() => OpenBody();
     }
 }

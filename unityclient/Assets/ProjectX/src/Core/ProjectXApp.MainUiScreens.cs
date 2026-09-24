@@ -94,6 +94,7 @@ namespace ProjectX.Core
             // constructed. Reassert the gameplay surface on every entry so a
             // previous close cannot leave the hub content hidden.
             gameplayContentView?.SetVisible(true);
+            EnsureGameplayContentAboveFrame();
             gameplayDetailView?.SetVisible(false);
             // Native PopFirstClassBg hides Main_UI controls, but the full-screen
             // Layer/Bg scene remains underneath the modal frame. Keeping the whole
@@ -103,6 +104,19 @@ namespace ProjectX.Core
             if (services.UiStack.Current != gameplayView) services.UiStack.Push(gameplayView, false);
             gameplayPresenter.ResetScrollToTop();
             SetStatus($"Gameplay current hub active: {services.Gameplay.Count} configured entries.");
+        }
+
+        private void EnsureGameplayContentAboveFrame()
+        {
+            Transform frame = gameplayView?.GameObject?.transform;
+            Transform content = gameplayContentView?.GameObject?.transform;
+            if (frame == null || content == null || frame.parent != content.parent) return;
+
+            // The frame owns a full-screen dim/raycast Mask. Keep the gameplay
+            // viewport and cards above that Mask while leaving the frame title
+            // and close control clear of the viewport's smaller content bounds.
+            if (content.GetSiblingIndex() < frame.GetSiblingIndex())
+                content.SetSiblingIndex(frame.GetSiblingIndex());
         }
     }
 }

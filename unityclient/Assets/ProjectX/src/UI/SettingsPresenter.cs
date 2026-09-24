@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using ProjectX.Core;
 using ProjectX.Data;
 using ProjectX.UI.Migration;
 using TMPro;
@@ -26,7 +25,7 @@ namespace ProjectX.UI
         private readonly CocosUiBinding frameBinding;
         private readonly PlayerStore player;
         private readonly CurrencyStore currencies;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<string> setStatus;
         private readonly bool singlePlayerMode;
         private readonly Toggle musicMuted;
@@ -53,7 +52,7 @@ namespace ProjectX.UI
 
         public SettingsPresenter(CocosUiView view, OneLevelFrameCoordinator oneLevelFrame,
             PlayerStore player,
-            CurrencyStore currencies, ResourceService resources, Action close, Action returnToLogin,
+            CurrencyStore currencies, IUiResourceProvider resources, Action close, Action returnToLogin,
             Action<string> setStatus, bool singlePlayerMode = false, Action saveGame = null,
             Action exitGame = null)
         {
@@ -141,6 +140,7 @@ namespace ProjectX.UI
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             LoadValues();
             RefreshDisplayControls();
+            binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void RefreshForTitle()
@@ -378,7 +378,8 @@ namespace ProjectX.UI
         private static void ApplyEditorGameViewResolution(int width, int height)
         {
 #if UNITY_EDITOR
-            Type runnerType = Type.GetType("ProjectX.Editor.BootstrapAppRunner, Assembly-CSharp-Editor");
+            Type runnerType = Type.GetType("ProjectX.Editor.BootstrapAppRunner, ProjectX.Editor")
+                ?? Type.GetType("ProjectX.Editor.BootstrapAppRunner, Assembly-CSharp-Editor");
             System.Reflection.MethodInfo method = runnerType?.GetMethod(
                 "ApplyPlayerSelectedGameViewResolution",
                 System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);

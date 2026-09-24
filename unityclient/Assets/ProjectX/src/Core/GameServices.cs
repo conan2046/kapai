@@ -7,8 +7,10 @@ using UnityEngine;
 
 namespace ProjectX.Core
 {
-    public sealed class GameServices : IDisposable
+    public sealed class GameServices : IDisposable, IRuntimeSnapshotContext
     {
+        private bool disposed;
+
         public GameServices(object luaBridge, AppLaunchOptions options = null, Transform uiRoot = null)
         {
             Options = options ?? AppLaunchOptions.Current();
@@ -138,9 +140,23 @@ namespace ProjectX.Core
         public IUiAssetProvider UiAssets { get; }
         public UiStack UiStack { get; }
         public LuaRuntimeService Lua { get; }
+        public bool IsDisposed => disposed;
+        public string AppStateName => State.Current.ToString();
+        public uint LocalUserId => Options.LocalUserId;
+        public uint PlayerRoleId => Player.RoleId;
+        public string PlayerName => Player.Name;
+        public bool IsNetworkDisconnectedOrFaulted =>
+            Network.State == NetworkState.Disconnected || Network.State == NetworkState.Faulted;
+
+        public event Action<ProtocolPacketTrace> PacketObserved
+        {
+            add => Network.PacketObserved += value;
+            remove => Network.PacketObserved -= value;
+        }
 
         public void Tick()
         {
+            if (disposed) return;
             Network.Tick();
             ProtocolRegistry.Tick();
             Lua.Tick();
@@ -148,6 +164,9 @@ namespace ProjectX.Core
 
         public void Dispose()
         {
+            if (disposed) return;
+            disposed = true;
+
             UiStack.Clear();
             UiAssets.Dispose();
             ProtocolRegistry.ClearPending();

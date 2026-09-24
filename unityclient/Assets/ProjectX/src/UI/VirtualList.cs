@@ -12,6 +12,19 @@ namespace ProjectX.UI
         private readonly RectTransform content;
         private readonly RectTransform template;
         private readonly ScrollRect scrollRect;
+        private readonly bool ownsScrollRect;
+        private readonly RectMask2D ownedMask;
+        private readonly Graphic ownedDragSurface;
+        private readonly Graphic existingDragSurface;
+        private readonly bool originalDragSurfaceRaycastTarget;
+        private readonly RectTransform originalScrollViewport;
+        private readonly RectTransform originalScrollContent;
+        private readonly bool originalHorizontal;
+        private readonly bool originalVertical;
+        private readonly ScrollRect.MovementType originalMovementType;
+        private readonly bool originalInertia;
+        private readonly float originalScrollSensitivity;
+        private readonly bool templateWasActive;
         private readonly Action<RectTransform, T, int> bind;
         private readonly float itemHeight;
         private readonly List<RectTransform> rows = new List<RectTransform>();
@@ -30,15 +43,30 @@ namespace ProjectX.UI
             template = templateObject.GetComponent<RectTransform>()
                 ?? throw new InvalidOperationException("VirtualList template requires RectTransform.");
 
-            scrollRect = viewportObject.GetComponent<ScrollRect>() ?? viewportObject.AddComponent<ScrollRect>();
-            RectMask2D mask = viewportObject.GetComponent<RectMask2D>() ?? viewportObject.AddComponent<RectMask2D>();
-            _ = mask;
+            scrollRect = viewportObject.GetComponent<ScrollRect>();
+            ownsScrollRect = scrollRect == null;
+            if (ownsScrollRect) scrollRect = viewportObject.AddComponent<ScrollRect>();
+            originalScrollViewport = scrollRect.viewport;
+            originalScrollContent = scrollRect.content;
+            originalHorizontal = scrollRect.horizontal;
+            originalVertical = scrollRect.vertical;
+            originalMovementType = scrollRect.movementType;
+            originalInertia = scrollRect.inertia;
+            originalScrollSensitivity = scrollRect.scrollSensitivity;
+            if (viewportObject.GetComponent<RectMask2D>() == null)
+                ownedMask = viewportObject.AddComponent<RectMask2D>();
             Graphic dragSurface = viewportObject.GetComponent<Graphic>();
             if (dragSurface == null)
             {
                 Image image = viewportObject.AddComponent<Image>();
                 image.color = new Color(1f, 1f, 1f, 0.001f);
                 dragSurface = image;
+                ownedDragSurface = image;
+            }
+            else
+            {
+                existingDragSurface = dragSurface;
+                originalDragSurfaceRaycastTarget = dragSurface.raycastTarget;
             }
             dragSurface.raycastTarget = true;
             var contentObject = new GameObject("VirtualContent", typeof(RectTransform));
@@ -57,6 +85,7 @@ namespace ProjectX.UI
             scrollRect.inertia = true;
             scrollRect.scrollSensitivity = 30f;
             scrollRect.onValueChanged.AddListener(HandleScroll);
+            templateWasActive = templateObject.activeSelf;
             templateObject.SetActive(false);
         }
 
@@ -122,6 +151,24 @@ namespace ProjectX.UI
         {
             if (scrollRect != null) scrollRect.onValueChanged.RemoveListener(HandleScroll);
             if (content != null) UnityEngine.Object.Destroy(content.gameObject);
+            if (template != null) template.gameObject.SetActive(templateWasActive);
+            if (existingDragSurface != null) existingDragSurface.raycastTarget = originalDragSurfaceRaycastTarget;
+            if (ownedDragSurface != null) UnityEngine.Object.Destroy(ownedDragSurface);
+            if (ownedMask != null) UnityEngine.Object.Destroy(ownedMask);
+            if (ownsScrollRect)
+            {
+                if (scrollRect != null) UnityEngine.Object.Destroy(scrollRect);
+            }
+            else if (scrollRect != null)
+            {
+                scrollRect.viewport = originalScrollViewport;
+                scrollRect.content = originalScrollContent;
+                scrollRect.horizontal = originalHorizontal;
+                scrollRect.vertical = originalVertical;
+                scrollRect.movementType = originalMovementType;
+                scrollRect.inertia = originalInertia;
+                scrollRect.scrollSensitivity = originalScrollSensitivity;
+            }
         }
 
         private void HandleScroll(Vector2 _) => RefreshVisible();
@@ -145,7 +192,7 @@ namespace ProjectX.UI
         }
     }
 
-    internal sealed class VirtualListScrollDragRelay : MonoBehaviour,
+    public sealed class VirtualListScrollDragRelay : MonoBehaviour,
         IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IScrollHandler
     {
         private ScrollRect target;

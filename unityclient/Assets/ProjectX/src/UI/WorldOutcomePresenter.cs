@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,7 +18,7 @@ namespace ProjectX.UI
         private readonly CocosUiView statisticsView;
         private readonly GameObject statisticsFrameTemplate;
         private readonly RewardStore rewards;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly PlayerStore player;
         private readonly HeroStore heroes;
         private WorldBattleReplayStore replay;
@@ -48,7 +47,7 @@ namespace ProjectX.UI
 
         public WorldOutcomePresenter(CocosUiView worldView, CocosUiView sweepView, CocosUiView battleView,
             CocosUiView statisticsView, GameObject statisticsFrameTemplate,
-            RewardStore rewards, ResourceService resources, PlayerStore player, HeroStore heroes,
+            RewardStore rewards, IUiResourceProvider resources, PlayerStore player, HeroStore heroes,
             WorldBattleReplayStore replay,
             Action requestSweepAgain, Action requestContinue,
             Action requestReplay, Action showStatisticsUnavailable, Action showReviveUnavailable,

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -19,7 +18,7 @@ namespace ProjectX.UI
         private readonly Func<CocosUiView> resolveLevelView;
         private readonly FengShenStoryStore store;
         private readonly CurrencyStore currencies;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly GameErrorPresenter errorPresenter;
         private readonly CocosUiView itemSourceView;
         private readonly CocosUiView rewardView;
@@ -60,7 +59,7 @@ namespace ProjectX.UI
 
         public FengShenStoryPresenter(CocosUiView view, CocosUiView levelView, Func<CocosUiView> resolveLevelView,
             FengShenStoryStore store,
-            CurrencyStore currencies, ResourceService resources, GameErrorPresenter errorPresenter,
+            CurrencyStore currencies, IUiResourceProvider resources, GameErrorPresenter errorPresenter,
             CocosUiView itemSourceView, CocosUiView rewardView, RewardPresenter sharedRewardPresenter,
             GameObject commonHeaderTemplate, GameObject commonCurrencyTemplate,
             Action close, Action challenge, Action formation, Action<int> routeBoundary,
@@ -114,6 +113,7 @@ namespace ProjectX.UI
             store.Changed += Render;
             currencies.Changed += Render;
             Render();
+            view.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public bool IsAuthoritativeVisible => store.HasAuthoritativeResponse && remaining != null;

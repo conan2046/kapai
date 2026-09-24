@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ProjectX.Core;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,7 +18,7 @@ namespace ProjectX.UI
         private readonly CocosUiView frameView;
         private readonly CocosUiView contentView;
         private readonly GameplayStore store;
-        private readonly ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Action<int> enter;
         private readonly Action<GameplayDefinition> locked;
         private readonly Action close;
@@ -32,7 +31,7 @@ namespace ProjectX.UI
         private Text frameTitle;
 
         public GameplayPresenter(CocosUiView frameView, CocosUiView contentView,
-            GameplayStore store, ResourceService resources, Action<int> enter,
+            GameplayStore store, IUiResourceProvider resources, Action<int> enter,
             Action<GameplayDefinition> locked, Action close)
         {
             this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
@@ -63,6 +62,7 @@ namespace ProjectX.UI
 
             store.Changed += Render;
             Render();
+            contentView.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int RenderedCount { get; private set; }

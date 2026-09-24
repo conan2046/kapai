@@ -15,7 +15,7 @@ namespace ProjectX.UI
         private readonly PlayerStore player;
         private readonly CurrencyStore currencies;
         private readonly ChatStore chat;
-        private readonly Core.ResourceService resources;
+        private readonly IUiResourceProvider resources;
         private readonly Image portrait;
         private readonly Text nameText;
         private readonly Text levelText;
@@ -58,7 +58,7 @@ namespace ProjectX.UI
         private bool discountEntriesEnabled = true;
 
         public MainHudPresenter(CocosUiView view, CocosUiView chatView, PlayerStore player,
-            CurrencyStore currencies, ChatStore chat, Core.ResourceService resources,
+            CurrencyStore currencies, ChatStore chat, IUiResourceProvider resources,
             bool seedStableRedDots = true)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
@@ -198,6 +198,7 @@ namespace ProjectX.UI
             chat.Changed += RenderChatSummary;
             Render();
             RenderChatSummary();
+            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public bool IsChatExpanded => chatExpanded;
