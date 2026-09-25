@@ -137,7 +137,7 @@ namespace ProjectX.UI
 
         private GameObject Require(string path)
         {
-            return view.Binding.Find(path) ?? throw new InvalidOperationException("NoticeLayer node was not found: " + path);
+            return view.FindNode(path) ?? throw new InvalidOperationException("NoticeLayer node was not found: " + path);
         }
 
         private static Transform FindNamed(Transform root, string name)

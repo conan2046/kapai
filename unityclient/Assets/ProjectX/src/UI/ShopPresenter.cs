@@ -423,7 +423,7 @@ namespace ProjectX.UI
         private GameObject Require(string relativePath)
         {
             string path = string.IsNullOrEmpty(relativePath) ? BasePath : $"{BasePath}/{relativePath}";
-            GameObject result = view.Binding.Find(path);
+            GameObject result = view.FindNode(path);
             return result ?? throw new InvalidOperationException($"Shop UI node was not found: {path}");
         }
 

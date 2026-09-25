@@ -14,8 +14,8 @@ namespace ProjectX.Core
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Welfare"))
                 {
-                    mainView.Binding.Find("Layer/Main_UI/ButtonGroup1/btn_fuli")?.SetActive(false);
-                    mainView.Binding.Find(WelfareLegacyPath)?.SetActive(false);
+                    mainView.FindNode("Layer/Main_UI/ButtonGroup1/btn_fuli")?.SetActive(false);
+                    mainView.FindNode(WelfareLegacyPath)?.SetActive(false);
                     mainView.GameObject.transform.Find("WelfareEntryRuntime")?.gameObject.SetActive(false);
                     mainHudPresenter?.SetWelfareVisible(false);
                     return;
@@ -34,7 +34,7 @@ namespace ProjectX.Core
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Activity"))
                 {
-                    mainView.Binding.Find(ActivityPath)?.SetActive(false);
+                    mainView.FindNode(ActivityPath)?.SetActive(false);
                     return;
                 }
                 Button button = mainView.BindClick(ActivityPath, HandleActivityClick, true);

@@ -33,7 +33,7 @@ namespace ProjectX.Core
 
         private void SetHeroHubTabStripVisible(bool visible)
         {
-            GameObject tabs = oneLevelFrameView?.Binding.Find(
+            GameObject tabs = oneLevelFrameView?.FindNode(
                 "Layer/Panel_12/Bg/Btn_ListView");
             if (tabs != null) tabs.SetActive(visible);
         }
@@ -86,7 +86,7 @@ namespace ProjectX.Core
         {
             EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
             ConfigureHeroHubTabs(selected);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null)
             {
                 title.text = selected == HeroHubTab.Formation ? "阵容"
@@ -105,7 +105,7 @@ namespace ProjectX.Core
 
         private void ConfigureHeroHubTabs(HeroHubTab selected)
         {
-            Transform panel = oneLevelFrameView?.Binding.Find(
+            Transform panel = oneLevelFrameView?.FindNode(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (panel == null || first == null) return;

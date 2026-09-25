@@ -93,7 +93,7 @@ namespace ProjectX.UI
             ApplyPortrait("Layer/caiquanUI/User/Icon", playerModel == 4
                 ? "Monopoly/guess_role_4" : "Monopoly/guess_role_5", "portrait_player");
             SetHandControls(true);
-            GameObject auto = hudView.Binding.Find("Layer/Panel/BtnPanel/CheckBox_1");
+            GameObject auto = hudView.FindNode("Layer/Panel/BtnPanel/CheckBox_1");
             autoToggle = auto != null ? auto.GetComponent<Toggle>() : null;
             if (autoToggle != null)
             {
@@ -264,8 +264,8 @@ namespace ProjectX.UI
             selectedHand = 0;
             SetHandControls(true);
             handView.GameObject.transform.SetAsLastSibling();
-            handView.Binding.Find("Layer/caiquanUI/caiquanbg")?.SetActive(true);
-            handView.Binding.Find("Layer/caiquanUI/choosebg")?.SetActive(false);
+            handView.FindNode("Layer/caiquanUI/caiquanbg")?.SetActive(true);
+            handView.FindNode("Layer/caiquanUI/choosebg")?.SetActive(false);
             handLeft.gameObject.SetActive(false); handRight.gameObject.SetActive(false); handResult.gameObject.SetActive(false);
             handView.SetVisible(true);
         }
@@ -334,7 +334,7 @@ namespace ProjectX.UI
             };
             foreach (string path in paths)
             {
-                Button button = handView.Binding.Find(path)?.GetComponent<Button>();
+                Button button = handView.FindNode(path)?.GetComponent<Button>();
                 if (button != null) button.interactable = interactable;
             }
         }
@@ -432,7 +432,7 @@ namespace ProjectX.UI
         private RectTransform runtimePlayer;
         private RectTransform Node(uint id)
         {
-            GameObject node = mapView.Binding.Find($"Layer/bg/Node_{Mathf.Clamp((int)id, 1, 82)}");
+            GameObject node = mapView.FindNode($"Layer/bg/Node_{Mathf.Clamp((int)id, 1, 82)}");
             return node != null ? node.GetComponent<RectTransform>() : null;
         }
 
@@ -530,7 +530,7 @@ namespace ProjectX.UI
             string[] values = { "Z", "B", "Y", "H", "K", "J" };
             return values[Mathf.Clamp((int)model - 1, 0, values.Length - 1)];
         }
-        private static GameObject Require(CocosUiView view, string path) => view.Binding.Find(path)
+        private static GameObject Require(CocosUiView view, string path) => view.FindNode(path)
             ?? throw new InvalidOperationException($"Monopoly imported node missing: {path}");
         private static Text RequireText(CocosUiView view, string path) => Require(view, path).GetComponent<Text>()
             ?? throw new InvalidOperationException($"Monopoly imported text missing: {path}");

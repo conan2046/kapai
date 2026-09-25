@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ProjectX.UI.Migration;
 using UnityEngine;
 using UnityEngine.UI;
@@ -85,13 +86,16 @@ namespace ProjectX.UI
 
         private void SetActive(string path, bool active)
         {
-            GameObject target = View.Binding.Find(path);
+            GameObject target = View.FindNode(path);
             if (target != null) target.SetActive(active);
         }
     }
 
     public sealed class CocosUiView
     {
+        private readonly Dictionary<string, GameObject> nodesByUnityPath =
+            new Dictionary<string, GameObject>(StringComparer.Ordinal);
+
         public CocosUiView(CocosUiBinding binding)
         {
             Binding = binding ?? throw new ArgumentNullException(nameof(binding));
@@ -103,6 +107,23 @@ namespace ProjectX.UI
         public CocosUiBinding Binding { get; }
         public bool IsAlive => Binding != null;
         public GameObject GameObject => IsAlive ? Binding.gameObject : null;
+
+        public GameObject FindNode(string unityPath)
+        {
+            if (!IsAlive || string.IsNullOrWhiteSpace(unityPath)) return null;
+            if (nodesByUnityPath.TryGetValue(unityPath, out GameObject cached) && cached != null)
+                return cached;
+
+            Transform root = Binding.transform;
+            Transform resolved = root.Find(unityPath);
+            if (resolved == null && unityPath.StartsWith("Layer/", StringComparison.Ordinal))
+                resolved = root.Find(unityPath.Substring("Layer/".Length));
+            if (resolved == null) return null;
+
+            GameObject target = resolved.gameObject;
+            nodesByUnityPath[unityPath] = target;
+            return target;
+        }
 
         public void SetVisible(bool visible)
         {

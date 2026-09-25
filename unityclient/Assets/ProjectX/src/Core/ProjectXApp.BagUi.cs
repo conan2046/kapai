@@ -105,7 +105,7 @@ namespace ProjectX.Core
             // a click on btn_zhaomu can also reach the Bag listener. Prefer the
             // confirmed Draw rectangle so a recruitment entry never emits /8 as
             // a competing navigation action.
-            GameObject drawEntry = mainView?.Binding.Find(DrawPath);
+            GameObject drawEntry = mainView?.FindNode(DrawPath);
             RectTransform drawRect = drawEntry?.GetComponent<RectTransform>();
             if (drawRect != null && RectTransformUtility.RectangleContainsScreenPoint(drawRect, Input.mousePosition, null))
                 return;

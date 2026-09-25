@@ -34,8 +34,8 @@ namespace ProjectX.UI
 
             Transform root = view.GameObject.transform;
             Normalize(root);
-            SetVisible(view.Binding.Find("Layer/Panel/Coin"), true);
-            SetVisible(view.Binding.Find("Layer/Panel/Gold"), false);
+            SetVisible(view.FindNode("Layer/Panel/Coin"), true);
+            SetVisible(view.FindNode("Layer/Panel/Gold"), false);
             rewardValue = RequireText(view, "Layer/Panel/Coin/TitleBg/CoinIcon/Num");
             costValue = RequireText(view, "Layer/Panel/Coin/DesBg/Bg2/Num");
             countValue = RequireText(view, "Layer/Panel/Coin/DesBg/Bg1/Num");
@@ -47,8 +47,8 @@ namespace ProjectX.UI
             Button addButton = RequireButton(view, "Layer/Panel/Coin/DesBg/Bg1/Button");
             addButton.onClick.RemoveAllListeners();
             addButton.onClick.AddListener(() => this.addCount());
-            RectTransform coinTree = view.Binding.Find("Layer/Panel/Coin/CoinTree")?.GetComponent<RectTransform>();
-            Sprite coinSprite = view.Binding.Find("Layer/Panel/Coin/TitleBg/CoinIcon")?.GetComponent<Image>()?.sprite;
+            RectTransform coinTree = view.FindNode("Layer/Panel/Coin/CoinTree")?.GetComponent<RectTransform>();
+            Sprite coinSprite = view.FindNode("Layer/Panel/Coin/TitleBg/CoinIcon")?.GetComponent<Image>()?.sprite;
             rewardEffect = view.GameObject.GetComponent<MoneyTreeRewardEffect>()
                 ?? view.GameObject.AddComponent<MoneyTreeRewardEffect>();
             rewardEffect.Initialize(coinTree, coinSprite);
@@ -92,11 +92,11 @@ namespace ProjectX.UI
         }
 
         private static Text RequireText(CocosUiView view, string path) =>
-            view.Binding.Find(path)?.GetComponent<Text>()
+            view.FindNode(path)?.GetComponent<Text>()
             ?? throw new InvalidOperationException($"MoneyTree imported text was not found: {path}");
 
         private static Button RequireButton(CocosUiView view, string path) =>
-            view.Binding.Find(path)?.GetComponent<Button>()
+            view.FindNode(path)?.GetComponent<Button>()
             ?? throw new InvalidOperationException($"MoneyTree imported button was not found: {path}");
 
         private static void SetVisible(GameObject target, bool visible)

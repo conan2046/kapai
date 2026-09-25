@@ -105,7 +105,7 @@ namespace ProjectX.Core
                     return;
                 }
                 loginPresenter.BindLoginControls(HandleLoginClick, HandleAccountSubmit, ShowLoginError);
-                Button button = loginView.Binding.Find(LoginButtonPath)?.GetComponent<Button>();
+                Button button = loginView.FindNode(LoginButtonPath)?.GetComponent<Button>();
                 loginView.BindClick(LoginServerButtonPath, () => loginPresenter.ShowServerList(
                     HandleLoginClick, () => SetStatus("Login UI ready.")));
                 if (autoInvoke || HasCommandLineFlag("-projectXS8StartupAcceptance")

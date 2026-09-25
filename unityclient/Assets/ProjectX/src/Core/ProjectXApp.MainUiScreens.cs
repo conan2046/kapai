@@ -86,6 +86,10 @@ namespace ProjectX.Core
         {
             services.Gameplay.Load(services.GameplayCatalog.Items, services.Player.Level);
             EnsureGameplayPresenter();
+            // The shared shop frame rebinds this same close button while a
+            // GameplayShop is visible. Restore the hub title and Back route
+            // whenever the Gameplay list is shown again.
+            gameplayPresenter?.RestoreHubFrame();
             // GameplayFramePrefab is now a Canvas-root sibling of ActivityLayer;
             // the shared Hero/Bag OneLevelLayer must stay hidden, including its
             // Panel_12, GoldCheck and any stale child page.

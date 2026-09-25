@@ -150,7 +150,7 @@ namespace ProjectX.UI
 
         private Button Bind(string path, Action callback)
         {
-            GameObject node = view.Binding.Find(path)
+            GameObject node = view.FindNode(path)
                 ?? throw new InvalidOperationException($"MessageBox button was not found: {path}");
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
@@ -167,7 +167,7 @@ namespace ProjectX.UI
 
         private Text RequireText(string path)
         {
-            GameObject node = view.Binding.Find(path);
+            GameObject node = view.FindNode(path);
             Text value = node == null ? null : node.GetComponent<Text>();
             return value ?? throw new InvalidOperationException($"MessageBox text was not found: {path}");
         }
@@ -194,7 +194,7 @@ namespace ProjectX.UI
 
         private void EnsureModalMask()
         {
-            Transform layer = view.Binding.Find("Layer")?.transform ?? view.GameObject.transform;
+            Transform layer = view.FindNode("Layer")?.transform ?? view.GameObject.transform;
             Transform existing = layer.Find("RuntimeModalMask");
             GameObject maskObject = existing == null
                 ? new GameObject("RuntimeModalMask", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image))
@@ -212,7 +212,7 @@ namespace ProjectX.UI
 
         private void SetOptionalVisible(string path, bool visible)
         {
-            view.Binding.Find(path)?.SetActive(visible);
+            view.FindNode(path)?.SetActive(visible);
         }
     }
 }

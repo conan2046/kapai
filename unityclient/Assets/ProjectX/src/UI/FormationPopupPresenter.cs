@@ -48,9 +48,9 @@ namespace ProjectX.UI
             this.resources = resources; this.swap = swap; this.upgrade = upgrade; this.use = use;
             this.feedback = feedback;
             selectedFormationId = formation.ActiveFormationId > 0 ? formation.ActiveFormationId : 1;
-            runtimeDim = CreateDim(view.Binding.Find("Layer")?.transform ?? view.Binding.transform);
-            runtimeTitle = CreateTitle(view.Binding.Find("Layer")?.transform ?? view.Binding.transform,
-                view.Binding.Find("Layer/Bg/Popup/Title/Title")?.GetComponent<Text>());
+            runtimeDim = CreateDim(view.FindNode("Layer")?.transform ?? view.Binding.transform);
+            runtimeTitle = CreateTitle(view.FindNode("Layer")?.transform ?? view.Binding.transform,
+                view.FindNode("Layer/Bg/Popup/Title/Title")?.GetComponent<Text>());
             GameObject viewport = Require("Layer/FormationUI/List_Formation/ListView");
             GameObject template = Require("Layer/FormationUI/List_Formation/Item");
             float height = template.GetComponent<RectTransform>().rect.height;
@@ -366,8 +366,8 @@ namespace ProjectX.UI
             text.color = new Color(.45f, .16f, .08f, 1f); text.raycastTarget = false;
             return text;
         }
-        private GameObject Require(string path) => view.Binding.Find(path) ?? throw new InvalidOperationException("Formation UI node missing: " + path);
-        private Transform Find(string path) => view.Binding.Find(path)?.transform;
+        private GameObject Require(string path) => view.FindNode(path) ?? throw new InvalidOperationException("Formation UI node missing: " + path);
+        private Transform Find(string path) => view.FindNode(path)?.transform;
         private void SetText(string path, string value) { Text text = Find(path)?.GetComponent<Text>(); if (text != null) text.text = value; }
         private void SetTransparent(string path) { Image image = Find(path)?.GetComponent<Image>(); if (image != null) image.color = new Color(1f,1f,1f,0f); }
         private static void SetRowText(Transform row, string path, string value) { Text text=row.Find(path)?.GetComponent<Text>(); if(text!=null)text.text=value; }

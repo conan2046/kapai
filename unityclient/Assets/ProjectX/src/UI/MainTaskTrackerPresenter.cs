@@ -23,9 +23,9 @@ namespace ProjectX.UI
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.openTasks = openTasks ?? throw new ArgumentNullException(nameof(openTasks));
             // The old Bg/btn_renwu entry is removable after the task route was unified.
-            prompt = main?.Binding.Find(PromptPath);
-            panel = main?.Binding.Find(PanelPath);
-            GameObject mainRoot = main.Binding.Find("Layer/Main_UI")
+            prompt = main?.FindNode(PromptPath);
+            panel = main?.FindNode(PanelPath);
+            GameObject mainRoot = main.FindNode("Layer/Main_UI")
                 ?? throw new InvalidOperationException("Main UI root node was not found.");
             if (panel != null)
             {

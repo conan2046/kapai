@@ -18,6 +18,14 @@
 - Windows 执行 `git diff --check` 时沿用仓库现有 EOL 配置；禁止临时设置 `core.autocrlf=false`，否则 CRLF 会被批量误报为尾随空格。
 - 只在用户明确要求后提交或推送。提交必须包含模块、根因、修复、配置/数据库影响、验证结果和已知限制。
 
+## 2B. W9 完成前固定工作路径
+
+- 当前功能 worktree 固定为 `C:\Users\Admin\.codex\worktrees\a6b4\Game`，Unity 项目固定为 `C:\Users\Admin\.codex\worktrees\a6b4\Game\unityclient`。
+- **W9 完成前禁止切换、迁移或改用其他工作路径**，包括 `E:\neiwang_kapai\Game`。源码读取/修改、Git 操作、构建、验证和 Unity 项目操作都必须明确指向上述 C 盘路径。
+- 每轮开始先记录命令当前目录（PowerShell `Get-Location`）、功能 worktree（`git -C <路径> rev-parse --show-toplevel`）和 Unity Editor 命令行中的 `-projectPath`；三者分栏核对，不能把命令默认目录当成功能 worktree。
+- 执行命令时显式设置 `workdir` 为 C 盘 worktree，或对 Git 命令使用 `git -C C:\Users\Admin\.codex\worktrees\a6b4\Game`。发现当前目录不符时立即纠正后再操作，不得仅在说明中声称已使用 C 盘。
+- 只有在 W9 完成且用户明确要求变更路径后，才可切换；同步、复制或恢复 E 盘目录也视为路径变更。
+
 ## 2A. 迁移完成后的定向 Bug 修复
 
 - 用户在已完成迁移的功能中指出具体运行 Bug，并明确进入“定向 Bug 修复阶段”后，本节优先于下方 Unity 迁移 G0-G6 流程。
@@ -58,6 +66,7 @@
 
 - Cocos只操作原生 `ProjectX.exe / Cocos Simulator`，使用 Computer Use。启动服务前记录transport预检；截图前校验唯一进程、固定身份、输入可用和 `1336×777 → (1,26,1334,750)` 无缩放裁切。首次未到目标页即停止坐标试错，转查回调、日志和协议。
 - Unity MCP只用于G3的Prefab、场景、编译和Console检查；G4-G6必须使用真实EventSystem/raycast可达输入。Presenter、`.onClick.Invoke()`、内部完成方法、旧Runner或Batch摘要不能作为验收。
+- Unity功能验收完成一次登录并进入Play后，必须优先在当前Play中连续完成本批所有未覆盖路线；不因单个检查点完成而重新登录或重启Editor/Play。只有发现真实Bug需要修复，或当前Play确实无法继续时才重启。必须中断时记录当前页面、账号/夹具状态、已完成与剩余路线，从最近检查点续验，跳过已有有效证据的路线。
 - 每个可见状态必须有当前Cocos与Unity同账号、同数据、同步骤、同分辨率、同稳定帧截图及差异报告。缺任一侧只能标逻辑通过。
 - 静态Image、CSB Timeline、Imod模型必须保持资源类型、动作号、循环、缩放和挂点语义，不能互相替代。
 

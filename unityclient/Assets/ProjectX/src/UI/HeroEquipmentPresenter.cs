@@ -247,7 +247,7 @@ namespace ProjectX.UI
             refineOnceButton = RequireButton(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn");
             awakenOnceButton = RequireButton(awakenView, "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn");
             divineOnceButton = RequireButton(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu");
-            GameObject strengthFive = strengthView.Binding.Find("Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn");
+            GameObject strengthFive = strengthView.FindNode("Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn");
             if (strengthFive != null) strengthFive.SetActive(true);
             cultivateView.SetVisible(false);
             strengthView.SetVisible(false);
@@ -303,7 +303,7 @@ namespace ProjectX.UI
             };
             return active.Count(value => value) == 1 && active[mode];
         }
-        public bool IsStrengthAllVisible => cultivateView.Binding.Find(
+        public bool IsStrengthAllVisible => cultivateView.FindNode(
             "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua")?.activeSelf == true;
 
         public bool AreCultivationAttributesBound(int mode)
@@ -314,7 +314,7 @@ namespace ProjectX.UI
                 : mode == 2
                     ? "Layer/zhuangbeijuexingUI/juexing/jichushuxing/ListView/Panel_1"
                     : "Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/ListView/Panel_1";
-            Transform template = view?.Binding.Find(templatePath)?.transform;
+            Transform template = view?.FindNode(templatePath)?.transform;
             if (template?.parent == null) return false;
             Transform[] rows = template.parent.Cast<Transform>()
                 .Where(value => value.gameObject.activeInHierarchy
@@ -620,7 +620,7 @@ namespace ProjectX.UI
                 AttributeName(attrType) + "：");
             detailBaseAttribute.text = $"+{attrValue}";
             detailStrength.text = item.Kind == HeroEquipmentKind.Equipment
-                ? $"{item.StrengthLevel}/240" : $"{item.StrengthLevel}/19";
+                ? $"{item.StrengthLevel}/240" : $"{item.StrengthLevel}/{catalog.MaxFaBaoStrengthLevel}";
             detailRefine.text = item.Kind == HeroEquipmentKind.Equipment
                 ? $"{item.RefineLevel}/50" : $"{item.RefineLevel}/24";
             SetDetailText("Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1",
@@ -641,6 +641,7 @@ namespace ProjectX.UI
             SetSectionVisible("juexingshuxing", item.Kind == HeroEquipmentKind.Equipment && item.Definition.Quality >= 5);
             SetSectionVisible("shenzhushuxing", item.Kind == HeroEquipmentKind.Equipment && item.Definition.Quality >= 6);
             SetSectionVisible("zhuangbeitaozhuang", false);
+            LayoutDetailDescription();
             if (item.Kind == HeroEquipmentKind.Equipment)
             {
                 wearButton.onClick.AddListener(() =>
@@ -688,11 +689,11 @@ namespace ProjectX.UI
             changeCurrent = current;
             changeHasCurrentEquipped = hasCurrentEquipped;
             changeHideWorn = false;
-            Transform changeViewport = changeView.Binding.Find("Layer/Popup/TableView")?.transform;
-            Transform changeBackground = changeView.Binding.Find("Layer/Popup/bg")?.transform;
+            Transform changeViewport = changeView.FindNode("Layer/Popup/TableView")?.transform;
+            Transform changeBackground = changeView.FindNode("Layer/Popup/bg")?.transform;
             if (changeViewport != null && changeBackground != null)
                 changeViewport.SetSiblingIndex(changeBackground.GetSiblingIndex() + 1);
-            Toggle filter = changeView.Binding.Find("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
+            Toggle filter = changeView.FindNode("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
             if (filter != null) filter.SetIsOnWithoutNotify(false);
             RenderChange();
             Text title = RequireText(changeView, "Layer/Popup/Title/Title");
@@ -794,7 +795,7 @@ namespace ProjectX.UI
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/Name/addnum", $"+{currentLevel}");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text", "等级：");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text/levelnum", $"{currentLevel}级");
-            GameObject cultivateIconObject = cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
+            GameObject cultivateIconObject = cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
             ApplyIcon(cultivateIconObject?.GetComponent<Image>(), item);
             if (cultivateIconObject != null)
             {
@@ -804,7 +805,7 @@ namespace ProjectX.UI
             }
             SetBoundText(strengthView,
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text", "强化");
-            Text strengthActionLabel = strengthView.Binding.Find(
+            Text strengthActionLabel = strengthView.FindNode(
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text")?.GetComponent<Text>();
             if (strengthActionLabel != null)
             {
@@ -822,8 +823,8 @@ namespace ProjectX.UI
                 "Layer/zhuangbeiyangchengUI/zhuangbei/juexing",
                 "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu"
             })
-                cultivateView.Binding.Find(hiddenPath)?.SetActive(false);
-            GameObject strengthAllObject = cultivateView.Binding.Find(
+                cultivateView.FindNode(hiddenPath)?.SetActive(false);
+            GameObject strengthAllObject = cultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua");
             if (strengthAllObject != null)
             {
@@ -834,7 +835,7 @@ namespace ProjectX.UI
             }
             strengthOnceButton.onClick.RemoveAllListeners();
             strengthOnceButton.onClick.AddListener(() => strengthEquipment?.Invoke(item.Uid));
-            Button strengthFive = strengthView.Binding.Find(
+            Button strengthFive = strengthView.FindNode(
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn")?.GetComponent<Button>();
             if (strengthFive != null)
             {
@@ -895,6 +896,9 @@ namespace ProjectX.UI
             showCultivationFrame?.Invoke(0, HeroEquipmentKind.FaBao);
             int currentLevel = item.StrengthLevel;
             int nextLevel = Mathf.Min(currentLevel + 1, catalog.MaxFaBaoStrengthLevel);
+            SetBoundText(faBaoStrengthView,
+                "Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Tips",
+                $"（法宝强化上限为{catalog.MaxFaBaoStrengthLevel}级）");
             SetBoundText(faBaoStrengthView, "Layer/fabaoqianghuaUI/qianghua/jichushuxing/Level_1", $"{currentLevel}级");
             SetBoundText(faBaoStrengthView, "Layer/fabaoqianghuaUI/qianghua/jichushuxing/Level_2", $"{nextLevel}级");
             int[] strengthAttribute = item.Definition.GetPrimaryStrengthAttribute();
@@ -974,7 +978,7 @@ namespace ProjectX.UI
                 essenceDefinition?.Name ?? "法宝精华");
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Value",
                 $"{bag.GetTotalQuantityByItemId(essenceItemId)}/{essence}");
-            ApplyMaterialIcon(faBaoRefineView.Binding.Find(
+            ApplyMaterialIcon(faBaoRefineView.FindNode(
                 "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Item")?.GetComponent<Image>(), essenceDefinition);
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/ConsumeBg/Value", gold.ToString());
             Button action = RequireButton(faBaoRefineView,
@@ -1000,7 +1004,7 @@ namespace ProjectX.UI
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/Name/addnum", $"+{item.RefineLevel}");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text", "等级：");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text/levelnum", $"{item.StrengthLevel}级");
-            GameObject mainIconObject = cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
+            GameObject mainIconObject = cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
             ApplyIcon(mainIconObject?.GetComponent<Image>(), item);
             if (mainIconObject != null)
             {
@@ -1010,8 +1014,8 @@ namespace ProjectX.UI
             }
             BindFaBaoCultivationList(item);
             SetStrengthAllVisible(false);
-            cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
-            cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
+            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
+            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
         }
 
         private IEnumerable<FaBaoRecord> GetEligibleFaBaoMaterials()
@@ -1023,7 +1027,7 @@ namespace ProjectX.UI
 
         private void BindFaBaoCultivationList(DisplayRecord current)
         {
-            Transform listRoot = cultivateView.Binding.Find(
+            Transform listRoot = cultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/List")?.transform;
             Transform template = listRoot?.Find("item_layer");
             if (template == null) return;
@@ -1098,11 +1102,11 @@ namespace ProjectX.UI
             for (int index = 0; index < 8; index++)
             {
                 string root = $"Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon{index + 1}";
-                GameObject slot = faBaoStrengthView.Binding.Find(root);
+                GameObject slot = faBaoStrengthView.FindNode(root);
                 if (slot == null) continue;
                 bool populated = index < selectedFaBaoMaterials.Count;
-                GameObject iconObject = faBaoStrengthView.Binding.Find(root + "/IconBase");
-                GameObject addObject = faBaoStrengthView.Binding.Find(root + "/AddIcon");
+                GameObject iconObject = faBaoStrengthView.FindNode(root + "/IconBase");
+                GameObject addObject = faBaoStrengthView.FindNode(root + "/AddIcon");
                 if (iconObject != null)
                 {
                     iconObject.SetActive(populated);
@@ -1242,8 +1246,8 @@ namespace ProjectX.UI
             ShowStrength(item);
             activeCultivationMode = 2;
             showCultivationFrame?.Invoke(2, item.Kind);
-            cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(true);
-            cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
+            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(true);
+            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
             int currentLevel = item.Equipment.GetLevel(3);
             EquipmentAwakenDefinition config = catalog.GetAwaken(currentLevel + 1);
             int nextLevel = config != null ? currentLevel + 1 : currentLevel;
@@ -1272,8 +1276,8 @@ namespace ProjectX.UI
             ShowStrength(item);
             activeCultivationMode = 3;
             showCultivationFrame?.Invoke(3, item.Kind);
-            cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
-            cultivateView.Binding.Find("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(true);
+            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
+            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(true);
             int currentLevel = item.Equipment.GetLevel(4);
             EquipmentDivineDefinition config = catalog.GetDivine(currentLevel + 1);
             int nextLevel = config != null ? currentLevel + 1 : currentLevel;
@@ -1292,15 +1296,15 @@ namespace ProjectX.UI
             string divineItemPath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Item";
             string divineNamePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name";
             string divineValuePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value";
-            Image divineItemIcon = divineView.Binding.Find(divineItemPath)?.GetComponent<Image>();
-            Image divineItemQualityFrame = divineView.Binding.Find(divineItemPath + "_bg")?.GetComponent<Image>();
+            Image divineItemIcon = divineView.FindNode(divineItemPath)?.GetComponent<Image>();
+            Image divineItemQualityFrame = divineView.FindNode(divineItemPath + "_bg")?.GetComponent<Image>();
             bool showDivineMaterial = divineItemId > 0 && divineItem != null && divineRequired > 0
                 && ApplyMaterialIcon(divineItemIcon, divineItem);
             if (showDivineMaterial) ApplyQualityFrame(divineItemQualityFrame, divineItem.Quality);
             else if (divineItemQualityFrame != null) divineItemQualityFrame.gameObject.SetActive(false);
-            divineView.Binding.Find(divineItemPath)?.SetActive(showDivineMaterial);
-            divineView.Binding.Find(divineNamePath)?.SetActive(showDivineMaterial);
-            divineView.Binding.Find(divineValuePath)?.SetActive(showDivineMaterial);
+            divineView.FindNode(divineItemPath)?.SetActive(showDivineMaterial);
+            divineView.FindNode(divineNamePath)?.SetActive(showDivineMaterial);
+            divineView.FindNode(divineValuePath)?.SetActive(showDivineMaterial);
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name",
                 divineItem?.Name ?? string.Empty);
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value",
@@ -1400,7 +1404,7 @@ namespace ProjectX.UI
             cultivationEffects.Clear();
             for (int index = 1; index <= 9; index++)
             {
-                GameObject host = cultivateView.Binding.Find(
+                GameObject host = cultivateView.FindNode(
                     $"Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_{index}");
                 if (host == null) continue;
                 ImodAnimationPlayer player = host.GetComponent<ImodAnimationPlayer>()
@@ -1472,7 +1476,7 @@ namespace ProjectX.UI
 
         private void SetStrengthAllVisible(bool visible)
         {
-            GameObject strengthAll = cultivateView.Binding.Find(
+            GameObject strengthAll = cultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua");
             if (strengthAll != null) strengthAll.SetActive(visible);
         }
@@ -1481,8 +1485,8 @@ namespace ProjectX.UI
         {
             if (selected.Uid == 0 || selected.Kind != HeroEquipmentKind.Equipment) return;
             SetBoundText(autoRefineView, "Layer/Popup/Panel_1/Name", selected.Definition.Name);
-            ApplyIcon(autoRefineView.Binding.Find("Layer/Popup/Panel_1/Item")?.GetComponent<Image>(), selected);
-            ApplyQualityFrame(autoRefineView.Binding.Find(
+            ApplyIcon(autoRefineView.FindNode("Layer/Popup/Panel_1/Item")?.GetComponent<Image>(), selected);
+            ApplyQualityFrame(autoRefineView.FindNode(
                 "Layer/Popup/Panel_1/Item_bg")?.GetComponent<Image>(), selected.Definition.Quality);
             SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Cancel", "取消");
             SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Confirm", "确定");
@@ -1494,12 +1498,12 @@ namespace ProjectX.UI
             for (int index = 0; index < 4; index++)
             {
                 string path = $"Layer/Popup/Panel_2/Item_{index + 1}";
-                GameObject slot = autoRefineView.Binding.Find(path);
+                GameObject slot = autoRefineView.FindNode(path);
                 if (slot == null) continue;
                 EquipmentMaterialDefinition material = index < materialIds.Count
                     ? catalog.GetItem(materialIds[index]) : null;
                 slot.SetActive(material != null);
-                Image materialQualityFrame = autoRefineView.Binding.Find(path + "_bg")?.GetComponent<Image>();
+                Image materialQualityFrame = autoRefineView.FindNode(path + "_bg")?.GetComponent<Image>();
                 if (material == null)
                 {
                     if (materialQualityFrame != null) materialQualityFrame.gameObject.SetActive(false);
@@ -1565,7 +1569,7 @@ namespace ProjectX.UI
 
         private static void BindButton(CocosUiView view, string path, UnityEngine.Events.UnityAction action)
         {
-            GameObject target = view?.Binding.Find(path);
+            GameObject target = view?.FindNode(path);
             if (target == null) return;
             Button button = EnsureClickable(target.transform);
             button.onClick.RemoveAllListeners();
@@ -1594,7 +1598,7 @@ namespace ProjectX.UI
                 .OrderBy(value => value.Slot)
                 .Take(4)
                 .ToArray();
-            GameObject template = cultivateView.Binding.Find(
+            GameObject template = cultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/List/item_layer");
             if (template == null) return;
             Transform parent = template.transform.parent;
@@ -1657,7 +1661,7 @@ namespace ProjectX.UI
             for (int index = 0; index < 4; index++)
             {
                 string path = $"Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_{index + 1}";
-                GameObject slot = refineView.Binding.Find(path);
+                GameObject slot = refineView.FindNode(path);
                 if (slot == null) continue;
                 EquipmentMaterialDefinition material = index < materialIds.Count
                     ? catalog.GetItem(materialIds[index]) : null;
@@ -1673,7 +1677,7 @@ namespace ProjectX.UI
         private static void BindCultivationAttributes(CocosUiView view, string templatePath,
             IReadOnlyList<int[]> attributes, int currentLevel, int nextLevel)
         {
-            GameObject templateObject = view.Binding.Find(templatePath);
+            GameObject templateObject = view.FindNode(templatePath);
             if (templateObject == null) return;
             Transform template = templateObject.transform;
             Transform parent = template.parent;
@@ -1749,7 +1753,7 @@ namespace ProjectX.UI
 
         private static void SetButtonLabel(CocosUiView view, string path, string value)
         {
-            GameObject target = view?.Binding.Find(path);
+            GameObject target = view?.FindNode(path);
             if (target == null) return;
             Text label = target.GetComponentsInChildren<Text>(true).FirstOrDefault();
             if (label == null)
@@ -1885,7 +1889,7 @@ namespace ProjectX.UI
             };
             foreach (string section in sections)
             {
-                GameObject node = detailView.Binding.Find($"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = detailView.FindNode($"Layer/zhuangbeiInfoUI/Info/{section}");
                 if (node != null)
                     node.transform.SetParent(content, false);
             }
@@ -1937,6 +1941,49 @@ namespace ProjectX.UI
             element.preferredWidth = 410f;
             element.preferredHeight = height;
             LayoutRebuilder.MarkLayoutForRebuild(buildRecommendationText.rectTransform.parent as RectTransform);
+        }
+
+        private void LayoutDetailDescription()
+        {
+            RectTransform section = detailDescription.transform.parent as RectTransform;
+            RectTransform title = section != null
+                ? section.Find("Title")?.GetComponent<RectTransform>() : null;
+            RectTransform body = detailDescription.rectTransform;
+            if (section == null || title == null || body == null) return;
+
+            float titleHeight = title.rect.height;
+            float bodyHeight = Mathf.Max(1f, detailDescription.preferredHeight);
+            const float gap = 6f;
+            const float bottomPadding = 6f;
+            section.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                titleHeight + gap + bodyHeight + bottomPadding);
+
+            title.anchorMin = new Vector2(title.anchorMin.x, 1f);
+            title.anchorMax = new Vector2(title.anchorMax.x, 1f);
+            title.pivot = new Vector2(title.pivot.x, 1f);
+            title.anchoredPosition = new Vector2(title.anchoredPosition.x, 0f);
+
+            body.anchorMin = new Vector2(0f, 1f);
+            body.anchorMax = new Vector2(0f, 1f);
+            body.pivot = new Vector2(0f, 1f);
+            body.anchoredPosition = new Vector2(body.anchoredPosition.x, -titleHeight - gap);
+            body.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyHeight);
+            switch (detailDescription.alignment)
+            {
+                case TextAnchor.MiddleLeft:
+                case TextAnchor.LowerLeft:
+                    detailDescription.alignment = TextAnchor.UpperLeft;
+                    break;
+                case TextAnchor.MiddleCenter:
+                case TextAnchor.LowerCenter:
+                    detailDescription.alignment = TextAnchor.UpperCenter;
+                    break;
+                case TextAnchor.MiddleRight:
+                case TextAnchor.LowerRight:
+                    detailDescription.alignment = TextAnchor.UpperRight;
+                    break;
+            }
+            LayoutRebuilder.MarkLayoutForRebuild(section.parent as RectTransform);
         }
 
         private void ConfigureAffixActions()
@@ -2034,14 +2081,14 @@ namespace ProjectX.UI
                 "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
             })
             {
-                GameObject button = detailView.Binding.Find(path);
+                GameObject button = detailView.FindNode(path);
                 if (button != null) button.SetActive(true);
             }
         }
 
         private void BindDetailCultivationButton(string path, bool visible, UnityEngine.Events.UnityAction action)
         {
-            Button button = detailView.Binding.Find(path)?.GetComponent<Button>();
+            Button button = detailView.FindNode(path)?.GetComponent<Button>();
             if (button == null) return;
             button.gameObject.SetActive(visible);
             button.onClick.RemoveAllListeners();
@@ -2056,11 +2103,11 @@ namespace ProjectX.UI
                 $"Layer/zhuangbeiInfoUI/Info/ListView/{section}",
             })
             {
-                GameObject value = detailView.Binding.Find(path);
+                GameObject value = detailView.FindNode(path);
                 if (value != null) value.SetActive(visible);
             }
 
-            GameObject info = detailView.Binding.Find("Layer/zhuangbeiInfoUI/Info");
+            GameObject info = detailView.FindNode("Layer/zhuangbeiInfoUI/Info");
             if (info == null) return;
             foreach (Transform value in info.GetComponentsInChildren<Transform>(true))
                 if (value.name == section) value.gameObject.SetActive(visible);
@@ -2068,7 +2115,7 @@ namespace ProjectX.UI
 
         private void SetDetailText(string path, string value)
         {
-            Text text = detailView.Binding.Find(path)?.GetComponent<Text>();
+            Text text = detailView.FindNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 
@@ -2112,12 +2159,12 @@ namespace ProjectX.UI
 
         private static void SetBoundText(CocosUiView view, string path, string value)
         {
-            Text text = view.Binding.Find(path)?.GetComponent<Text>();
+            Text text = view.FindNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 
         private static GameObject Require(CocosUiView view, string path)
-            => view.Binding.Find(path) ?? throw new InvalidOperationException($"Hero equipment UI node was not found: {path}");
+            => view.FindNode(path) ?? throw new InvalidOperationException($"Hero equipment UI node was not found: {path}");
         private static Text RequireText(CocosUiView view, string path)
             => Require(view, path).GetComponent<Text>() ?? throw new InvalidOperationException($"Hero equipment UI text was not found: {path}");
         private static Button RequireButton(CocosUiView view, string path)

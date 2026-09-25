@@ -552,7 +552,7 @@ namespace ProjectX.Core
             if (xunBaoResultView == null)
                 throw new InvalidOperationException("Current XunBao result CocosUiBinding was not found: wanfa/Xunbao_souxunLayer.");
             xunBaoPopupView = xunBaoPopupView ?? services.UiRouter.FindBySource("wanfa/Xunbao_popupLayer");
-            GameObject closeTemplate = xunBaoPopupView?.Binding.Find("Layer/Rewards/Popup/Btn_close");
+            GameObject closeTemplate = xunBaoPopupView?.FindNode("Layer/Rewards/Popup/Btn_close");
             xunBaoResultPresenter = xunBaoResultPresenter
                 ?? new XunBaoResultPresenter(xunBaoResultView, services.Resources, closeTemplate);
         }

@@ -71,6 +71,13 @@ namespace ProjectX.UI
             // Keep the serialized Prefab untouched, but retire its legacy lookup
             // metadata from this instantiated page while the game is running.
             if (!Application.isPlaying) return;
+            CocosUiBinding runtimeBinding = GetComponent<CocosUiBinding>();
+            if (runtimeBinding != null)
+            {
+                runtimeBinding.RetireLegacyNodeMetadataAtRuntime();
+                return;
+            }
+
             CocosNodeMetadata[] metadata = GetComponentsInChildren<CocosNodeMetadata>(true);
             for (int index = 0; index < metadata.Length; index++)
             {

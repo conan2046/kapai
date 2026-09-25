@@ -547,8 +547,7 @@ namespace ProjectX.Core
             InvokeBagControl("BAG-17-GIFT-ADD-TEN");
             yield return CaptureBagG5Evidence("BAG-12-GIFT-OPTION");
             InvokeBagControl("BAG-14-GIFT-SUB-ONE");
-            ScrollRect giftScroll = bagGiftView?.Binding.Find(
-                "Layer/OpenBox/Panel/Bg/ListView")?.GetComponent<ScrollRect>();
+            ScrollRect giftScroll = bagFlowPresenter?.GiftScroll;
             Canvas.ForceUpdateCanvases();
             if (giftScroll?.content == null || giftScroll.viewport == null
                 || giftScroll.content.rect.width <= giftScroll.viewport.rect.width + 1f)

@@ -23,8 +23,8 @@ namespace ProjectX.UI
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             Transform root = view.GameObject.transform;
-            Bind(view.Binding.Find("Layer/Panel_1/Title/CloseBtn")?.transform, close);
-            Transform template = view.Binding.Find("Layer/Panel_1/Btn_ListView/Panel_1")?.transform;
+            Bind(view.FindNode("Layer/Panel_1/Title/CloseBtn")?.transform, close);
+            Transform template = view.FindNode("Layer/Panel_1/Btn_ListView/Panel_1")?.transform;
             if (template == null) throw new InvalidOperationException("Welfare activity tab template was not found.");
             staminaTab = template.gameObject;
             recoveryTab = UnityEngine.Object.Instantiate(staminaTab, template.parent, false);
@@ -44,16 +44,16 @@ namespace ProjectX.UI
             ConfigureTab(recoveryTab.transform, "资源找回", recovery);
             ConfigureTab(growthTab.transform, "成长基金", growth);
             ConfigureTab(activeTab.transform, "活跃基金", active);
-            staminaAddButton = Bind(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform, staminaAdd);
-            goldAddButton = Bind(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform, goldAdd);
-            premiumAddButton = Disable(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.transform);
+            staminaAddButton = Bind(view.FindNode("Layer/Panel_1/GoldCheck/GoldIcon1/AddBtn")?.transform, staminaAdd);
+            goldAddButton = Bind(view.FindNode("Layer/Panel_1/GoldCheck/GoldIcon3/AddBtn")?.transform, goldAdd);
+            premiumAddButton = Disable(view.FindNode("Layer/Panel_1/GoldCheck/GoldIcon4/AddBtn")?.transform);
             currencies.Changed += RenderCurrencies;
             RenderCurrencies();
         }
 
         public void Select(int functionId)
         {
-            SetText(view.Binding.Find("Layer/Panel_1/Title/TitleName")?.transform, "福利");
+            SetText(view.FindNode("Layer/Panel_1/Title/TitleName")?.transform, "福利");
             SetSelected(staminaTab.transform, functionId == 18);
             SetSelected(recoveryTab.transform, functionId == 19);
             SetSelected(growthTab.transform, functionId == 25);
@@ -66,7 +66,7 @@ namespace ProjectX.UI
         public void InvokeResourceTab() => recoveryTab.transform.Find("Button")?.GetComponent<Button>()?.onClick.Invoke();
         public void InvokeStaminaAdd() => staminaAddButton?.onClick.Invoke();
         public void InvokeGoldAdd() => goldAddButton?.onClick.Invoke();
-        public void InvokeClose() => view.Binding.Find("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>()?.onClick.Invoke();
+        public void InvokeClose() => view.FindNode("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>()?.onClick.Invoke();
         public void SetStaminaRedDot(bool visible)
         {
             Transform prompt = staminaTab.transform.Find("Button/Prompt");
@@ -75,9 +75,9 @@ namespace ProjectX.UI
 
         private void RenderCurrencies()
         {
-            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform, $"{currencies.Stamina}/100");
-            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform, FormatHeaderCurrency(currencies.Gold));
-            SetText(view.Binding.Find("Layer/Panel_1/GoldCheck/GoldIcon4/GoldNumBg/Num")?.transform, currencies.Premium.ToString());
+            SetText(view.FindNode("Layer/Panel_1/GoldCheck/GoldIcon1/GoldNumBg/Num")?.transform, $"{currencies.Stamina}/100");
+            SetText(view.FindNode("Layer/Panel_1/GoldCheck/GoldIcon3/GoldNumBg/Num")?.transform, FormatHeaderCurrency(currencies.Gold));
+            SetText(view.FindNode("Layer/Panel_1/GoldCheck/GoldIcon4/GoldNumBg/Num")?.transform, currencies.Premium.ToString());
         }
 
         private static string FormatHeaderCurrency(long value) =>

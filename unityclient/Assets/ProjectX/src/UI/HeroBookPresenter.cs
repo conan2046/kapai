@@ -560,7 +560,7 @@ namespace ProjectX.UI
             return button;
         }
 
-        private static GameObject Find(CocosUiView target, string path) => target?.Binding.Find(path);
+        private static GameObject Find(CocosUiView target, string path) => target?.FindNode(path);
         private static void SetText(CocosUiView target, string path, string value) => SetText(Find(target, path), value);
         private static void SetText(GameObject root, string path, string value)
             => SetText(root?.transform.Find(path)?.gameObject, value);

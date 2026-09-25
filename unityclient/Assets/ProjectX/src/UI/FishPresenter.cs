@@ -70,12 +70,12 @@ namespace ProjectX.UI
 
             sceneRuntime = CreateSceneRuntime(fishRoot);
 
-            startButton = view.BindClick(FishRootPath + "/Panel_caozuo/btn_shouqi",
+            startButton = BindClick(view, FishRootPath + "/Panel_caozuo/btn_shouqi",
                 HandleStartStop, true);
             startLabel = RequireText(view, FishRootPath + "/Panel_caozuo/btn_shouqi/Text");
             startLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
             startLabel.verticalOverflow = VerticalWrapMode.Overflow;
-            view.BindClick(FishRootPath + "/Panel_caozuo/btn_yulan", ToggleBasket, true);
+            BindClick(view, FishRootPath + "/Panel_caozuo/btn_yulan", ToggleBasket, true);
             basketButtonLabel = RequireText(view, FishRootPath + "/Panel_caozuo/btn_yulan/Text");
             stateText = RequireText(view, FishRootPath + "/Panel_caozuo/Time/Reset");
             countdownText = RequireText(view, FishRootPath + "/Panel_caozuo/Time/Value");
@@ -95,8 +95,8 @@ namespace ProjectX.UI
             frameTitle = RequireText(oneLevelView, "Layer/Panel_12/Title/TitleName");
             ConfigureFrameTitle(frameTitle);
             frameHelpButton = Require(oneLevelView, "Layer/Panel_12/Title/TitleName/Button_1");
-            oneLevelView.BindClick("Layer/Panel_12/Title/TitleName/Button_1", help, true);
-            oneLevelView.BindClick("Layer/Panel_12/Title/CloseBtn", () =>
+            BindClick(oneLevelView, "Layer/Panel_12/Title/TitleName/Button_1", help, true);
+            BindClick(oneLevelView, "Layer/Panel_12/Title/CloseBtn", () =>
             {
                 if (IsBasketVisible) SetBasketVisible(false); else close();
             }, true);
@@ -105,8 +105,8 @@ namespace ProjectX.UI
             basketRowTemplate = Require(view, FishRootPath + "/yulan/Item");
             basketRowTemplate.SetActive(false);
             basketContent = ConfigureBasketScroll(basketViewportObject, out basketScroll);
-            view.BindClick(FishRootPath + "/yulan/btn_Close", () => SetBasketVisible(false), true);
-            collectButton = view.BindClick(FishRootPath + "/yulan/btn_shouhuo", CollectSelected, true);
+            BindClick(view, FishRootPath + "/yulan/btn_Close", () => SetBasketVisible(false), true);
+            collectButton = BindClick(view, FishRootPath + "/yulan/btn_shouhuo", CollectSelected, true);
             RequireText(view, FishRootPath + "/yulan/btn_shouhuo/Text").text = "收获";
             SetBasketVisible(false);
             SetModuleVisible(false);
@@ -120,7 +120,7 @@ namespace ProjectX.UI
 
         public int RenderedSlotCount => basketSlotButtons.Count;
         public bool IsBasketVisible => basketRoot.activeSelf;
-        public bool IsOuterFrameVisible => oneLevelView.Binding.Find("Layer/Panel_12")?.activeSelf == true;
+        public bool IsOuterFrameVisible => oneLevelView.FindNode("Layer/Panel_12")?.activeSelf == true;
         public ScrollRect BasketScroll => basketScroll;
         public bool HasSourceBasketHierarchy => basketContent != null
             && basketContent.name == "RuntimeFishBasketContent"
@@ -461,16 +461,20 @@ namespace ProjectX.UI
         }
 
         private static GameObject Require(CocosUiView view, string path) =>
-            view.Binding.Find(path) ?? throw new InvalidOperationException($"Fish UI node was not found: {path}");
+            view.FindNode(path) ?? throw new InvalidOperationException($"Fish UI node was not found: {path}");
+
+        private static Button BindClick(CocosUiView view, string path, Action callback,
+            bool addButtonIfMissing = false) =>
+            view.BindClickNode(Require(view, path), callback, addButtonIfMissing, path);
 
         private static Text RequireText(CocosUiView view, string path) =>
             Require(view, path).GetComponent<Text>()
             ?? throw new InvalidOperationException($"Fish UI text was not found: {path}");
 
-        private static void Hide(CocosUiView view, string path) => view.Binding.Find(path)?.SetActive(false);
+        private static void Hide(CocosUiView view, string path) => view.FindNode(path)?.SetActive(false);
 
         private static void SetVisible(CocosUiView view, string path, bool visible) =>
-            view.Binding.Find(path)?.SetActive(visible);
+            view.FindNode(path)?.SetActive(visible);
 
         private static void Normalize(Transform root)
         {

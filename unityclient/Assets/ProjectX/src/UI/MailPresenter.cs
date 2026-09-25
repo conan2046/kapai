@@ -105,10 +105,12 @@ namespace ProjectX.UI
             claimAllButton.onClick.AddListener(() => this.claimAll());
             deleteAllButton.onClick.RemoveAllListeners();
             deleteAllButton.onClick.AddListener(() => this.deleteAll());
-            closeButton = this.frameView.BindClick(
-                "Layer/Panel_12/Title/CloseBtn", () => this.close(), true);
-            tabButton = this.frameView.BindClick(
-                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1", () => { }, true);
+            const string closePath = "Layer/Panel_12/Title/CloseBtn";
+            closeButton = this.frameView.BindClickNode(
+                this.frameView.FindNode(closePath), () => this.close(), true, closePath);
+            const string tabPath = "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1";
+            tabButton = this.frameView.BindClickNode(
+                this.frameView.FindNode(tabPath), () => { }, true, tabPath);
             tabButton.interactable = false;
             store.Changed += Render;
             Render();
@@ -147,7 +149,7 @@ namespace ProjectX.UI
             {
                 // PlayerHubTabCoordinator owns the shared strip. Mail is the
                 // third tab, so do not read Button1 after entering the hub.
-                GameObject mailTab = frameView.Binding.Find(
+                GameObject mailTab = frameView?.FindNode(
                     "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button3_Runtime");
                 return mailTab?.GetComponentInChildren<Text>(true)?.text
                     ?? tabButton?.GetComponentInChildren<Text>(true)?.text
@@ -451,7 +453,7 @@ namespace ProjectX.UI
 
         private GameObject Require(string relativePath)
         {
-            GameObject result = view.Binding.Find($"{BasePath}/{relativePath}");
+            GameObject result = view?.FindNode($"{BasePath}/{relativePath}");
             return result ?? throw new InvalidOperationException($"Mail UI node was not found: {BasePath}/{relativePath}");
         }
     }

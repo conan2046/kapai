@@ -129,7 +129,9 @@ namespace ProjectX.Core
             gameplayContentView?.SetVisible(false);
             gameplayShopActivityLayer?.gameObject.SetActive(false);
             SetOneLevelFrameVisible(false);
-            services?.UiStack.Pop();
+            bool popped = PopUiStackWithHudRefresh();
+            if (popped && services?.UiStack.Current == gameplayView)
+                gameplayPresenter?.RestoreHubFrame();
             if (restoreBagFrameAfterGameplayShop && IsBagOpen)
             {
                 ConfigureBagFrame();

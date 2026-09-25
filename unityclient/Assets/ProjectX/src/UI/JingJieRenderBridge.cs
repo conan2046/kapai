@@ -371,7 +371,7 @@ namespace ProjectX.UI
         }
 
         private static GameObject Require(CocosUiView target, string path) =>
-            target.Binding.Find(path) ?? throw new InvalidOperationException("JingJie imported node was not found: " + path);
+            target.FindNode(path) ?? throw new InvalidOperationException("JingJie imported node was not found: " + path);
         private static Text RequireText(CocosUiView target, string path) =>
             Require(target, path).GetComponent<Text>() ?? throw new InvalidOperationException("JingJie imported Text was not found: " + path);
         private static Button RequireButton(CocosUiView target, string path) =>

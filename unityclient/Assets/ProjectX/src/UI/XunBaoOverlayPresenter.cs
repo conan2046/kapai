@@ -231,7 +231,7 @@ namespace ProjectX.UI
 
         private Text CreateText(Transform parent, string name, string value, TextAnchor alignment)
         {
-            Text source = view.Binding.Find("Layer/Souxun/Button_1/Text")?.GetComponent<Text>();
+            Text source = view.FindNode("Layer/Souxun/Button_1/Text")?.GetComponent<Text>();
             GameObject node = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
             node.transform.SetParent(parent, false);
             Text text = node.GetComponent<Text>();
@@ -280,7 +280,7 @@ namespace ProjectX.UI
             return control;
         }
 
-        private GameObject Require(string path) => view.Binding.Find(path)
+        private GameObject Require(string path) => view.FindNode(path)
             ?? throw new InvalidOperationException($"XunBao result node is missing: {path}");
 
         private void SetText(string path, string value)
@@ -440,7 +440,7 @@ namespace ProjectX.UI
             return content;
         }
 
-        private GameObject Require(string path) => view.Binding.Find(path)
+        private GameObject Require(string path) => view.FindNode(path)
             ?? throw new InvalidOperationException($"XunBao SaoDang source node is missing: {path}");
 
         private static void Normalize(Transform root)
@@ -731,7 +731,7 @@ namespace ProjectX.UI
             return button;
         }
 
-        private GameObject Require(string path) => view.Binding.Find(path)
+        private GameObject Require(string path) => view.FindNode(path)
             ?? throw new InvalidOperationException($"XunBao popup node is missing: {path}");
 
         private void SetText(string path, string value)

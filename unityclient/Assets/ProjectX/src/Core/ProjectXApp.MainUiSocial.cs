@@ -30,12 +30,12 @@ namespace ProjectX.Core
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Chat"))
                 {
-                    mainView.Binding.Find(ChatPath)?.SetActive(false);
+                    mainView.FindNode(ChatPath)?.SetActive(false);
                     mainView.GameObject.transform.Find("ChatEntryRuntime")?.gameObject.SetActive(false);
                     chatMiniView?.SetVisible(false);
                     return;
                 }
-                Button button = mainView.Binding.Find(ChatPath) != null
+                Button button = mainView.FindNode(ChatPath) != null
                     ? mainView.BindClick(ChatPath, HandleChatClick, true)
                     : EnsureRuntimeChatEntry();
                 MakeButtonVisualTransparent(button);
@@ -51,7 +51,7 @@ namespace ProjectX.Core
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Team"))
                 {
-                    mainView.Binding.Find(TeamLegacyPath)?.SetActive(false);
+                    mainView.FindNode(TeamLegacyPath)?.SetActive(false);
                     mainView.GameObject.transform.Find("TeamEntryRuntime")?.gameObject.SetActive(false);
                     return;
                 }

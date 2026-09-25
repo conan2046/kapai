@@ -134,7 +134,7 @@ namespace ProjectX.UI
             return button;
         }
 
-        private GameObject Require(string path) => view.Binding.Find(path)
+        private GameObject Require(string path) => view.FindNode(path)
             ?? throw new InvalidOperationException($"Shop quantity node was not found: {path}");
     }
 }

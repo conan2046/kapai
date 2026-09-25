@@ -167,9 +167,9 @@ namespace ProjectX.UI
             if (importedView?.GameObject != null)
             {
                 root = importedView.GameObject;
-                GameObject fightUi = importedView.Binding.Find("Layer/FightUI");
+                GameObject fightUi = importedView.FindNode("Layer/FightUI");
                 battleLayer = fightUi != null ? fightUi.transform : root.transform;
-                unitLayer = importedView.Binding.Find("Layer/FightUI/Position")?.transform ?? battleLayer;
+                unitLayer = importedView.FindNode("Layer/FightUI/Position")?.transform ?? battleLayer;
                 rect = battleLayer as RectTransform ?? root.GetComponent<RectTransform>();
                 ConfigureImportedFightLayer();
             }
@@ -278,7 +278,7 @@ namespace ProjectX.UI
             };
             foreach (string path in hidden)
             {
-                GameObject node = importedView.Binding.Find(path);
+                GameObject node = importedView.FindNode(path);
                 if (node != null) node.SetActive(false);
             }
             string[] visible =
@@ -291,12 +291,12 @@ namespace ProjectX.UI
             };
             foreach (string path in visible)
             {
-                GameObject node = importedView.Binding.Find(path);
+                GameObject node = importedView.FindNode(path);
                 if (node != null) node.SetActive(true);
             }
             for (int index = 1; index <= 18; index++)
             {
-                GameObject marker = importedView.Binding.Find($"Layer/FightUI/Position/Image_{index}");
+                GameObject marker = importedView.FindNode($"Layer/FightUI/Position/Image_{index}");
                 if (marker == null) continue;
                 marker.SetActive(false);
                 marker.transform.SetAsFirstSibling();
@@ -329,7 +329,7 @@ namespace ProjectX.UI
                 image.raycastTarget = false;
                 roundAtlasGlyphs[index] = image;
             }
-            GameObject legacyRoundWord = importedView.Binding.Find("Layer/FightUI/Round_Special/Num/Image_huihe");
+            GameObject legacyRoundWord = importedView.FindNode("Layer/FightUI/Round_Special/Num/Image_huihe");
             if (legacyRoundWord != null) legacyRoundWord.SetActive(false);
         }
 
@@ -359,7 +359,7 @@ namespace ProjectX.UI
 
         private void HideImportedButtonBackground(string path)
         {
-            GameObject node = importedView.Binding.Find(path);
+            GameObject node = importedView.FindNode(path);
             Image background = node != null ? node.GetComponent<Image>() : null;
             if (background != null)
             {
@@ -370,7 +370,7 @@ namespace ProjectX.UI
 
         private void SetFormationIcon(string path, ushort formationId)
         {
-            GameObject node = importedView.Binding.Find(path);
+            GameObject node = importedView.FindNode(path);
             Image image = node != null ? node.GetComponent<Image>() : null;
             Sprite sprite = Resources.Load<Sprite>($"HeroUI/formation_{formationId}");
             if (image == null || sprite == null)
@@ -387,7 +387,7 @@ namespace ProjectX.UI
             for (int original = 1; original <= 18; original++)
             {
                 int displayed = ResolveDisplayedPosition(original);
-                GameObject marker = importedView.Binding.Find($"Layer/FightUI/Position/Image_{displayed}");
+                GameObject marker = importedView.FindNode($"Layer/FightUI/Position/Image_{displayed}");
                 if (marker == null) continue;
                 bool hasUnit = occupied.Contains(original);
                 // This presenter uses the current Cocos flipped layout: source
@@ -411,7 +411,7 @@ namespace ProjectX.UI
 
         private T RequireImportedComponent<T>(string path) where T : Component
         {
-            GameObject node = importedView.Binding.Find(path);
+            GameObject node = importedView.FindNode(path);
             T value = node != null ? node.GetComponent<T>() : null;
             if (value == null) throw new InvalidOperationException($"Imported FightLayer component is missing: {path}/{typeof(T).Name}.");
             return value;
@@ -420,12 +420,12 @@ namespace ProjectX.UI
         private void RefreshImportedSpeedVisual()
         {
             if (importedView == null) return;
-            GameObject speedNode = importedView.Binding.Find("Layer/FightUI/Buttons/btn_Speed/X1");
+            GameObject speedNode = importedView.FindNode("Layer/FightUI/Buttons/btn_Speed/X1");
             Text value = speedNode != null ? speedNode.GetComponent<Text>() : null;
             if (value != null) value.text = $"X{SpeedDisplayMultiplier}";
             foreach (string legacy in new[] { "X2", "X3" })
             {
-                GameObject node = importedView.Binding.Find("Layer/FightUI/Buttons/btn_Speed/" + legacy);
+                GameObject node = importedView.FindNode("Layer/FightUI/Buttons/btn_Speed/" + legacy);
                 if (node != null) node.SetActive(false);
             }
         }
@@ -434,7 +434,7 @@ namespace ProjectX.UI
         public void SetVisible(bool visible) => root.SetActive(visible);
         public Button SpeedInteractionButton => speedButton;
         public Button SkipInteractionButton => skipButton;
-        public bool AutoControlVisible => importedView?.Binding.Find("Layer/FightUI/Buttons/btn_Auto")?.activeInHierarchy == true;
+        public bool AutoControlVisible => importedView?.FindNode("Layer/FightUI/Buttons/btn_Auto")?.activeInHierarchy == true;
         // Skip is a per-playback input. The presenter is reused by Monopoly
         // guard fights, so the owner must clear the previous battle's request
         // before loading a new replay.
@@ -446,7 +446,7 @@ namespace ProjectX.UI
                 if (importedView == null) return 0;
                 int count = 0;
                 for (int index = 1; index <= 18; index++)
-                    if (importedView.Binding.Find($"Layer/FightUI/Position/Image_{index}")?.activeInHierarchy == true)
+                    if (importedView.FindNode($"Layer/FightUI/Position/Image_{index}")?.activeInHierarchy == true)
                         count++;
                 return count;
             }
@@ -759,7 +759,7 @@ namespace ProjectX.UI
             GameObject value = new GameObject($"Unit_{unit.Position}", typeof(RectTransform));
             RectTransform rect = value.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
-            RectTransform importedMarker = importedView?.Binding.Find(
+            RectTransform importedMarker = importedView?.FindNode(
                 $"Layer/FightUI/Position/Image_{displayedPosition}")?.GetComponent<RectTransform>();
             if (importedMarker != null && importedMarker.parent == parent)
             {
@@ -903,12 +903,12 @@ namespace ProjectX.UI
             rootRect.anchorMin = rootRect.anchorMax = new Vector2(.5f, .5f);
             rootRect.anchoredPosition = (hitDefinition?.HpBarPosition ?? new Vector2(0f, 100f))
                 * unit.ScaleRatio;
-            GameObject node = healthView.Binding.Find("Node");
+            GameObject node = FindHealthNode(healthView, "Node");
             if (node == null) throw new InvalidOperationException("BattleHpNode is missing Node.");
             foreach (Transform child in node.transform)
                 child.gameObject.SetActive(child.name == "bg" || child.name == (enemy ? "HPSp" : "HPSp_0"));
-            GameObject qualityBackground = healthView.Binding.Find("Node/Quality_bg");
-            GameObject qualityObject = healthView.Binding.Find("Node/Quality_bg/Quality");
+            GameObject qualityBackground = FindHealthNode(healthView, "Node/Quality_bg");
+            GameObject qualityObject = FindHealthNode(healthView, "Node/Quality_bg/Quality");
             bool showQuality = unit.Type == 2 && unit.Quality > 0;
             if (qualityBackground != null) qualityBackground.SetActive(showQuality);
             if (qualityObject != null)
@@ -918,8 +918,8 @@ namespace ProjectX.UI
                 if (showQuality && qualityImage != null)
                     qualityImage.sprite = Resources.Load<Sprite>(ResolveQualityScoreResource(unit.Quality));
             }
-            GameObject background = healthView.Binding.Find("Node/bg");
-            GameObject fillObject = healthView.Binding.Find(enemy ? "Node/HPSp" : "Node/HPSp_0");
+            GameObject background = FindHealthNode(healthView, "Node/bg");
+            GameObject fillObject = FindHealthNode(healthView, enemy ? "Node/HPSp" : "Node/HPSp_0");
             if (background == null || fillObject == null)
                 throw new InvalidOperationException("BattleHpNode is missing the Cocos health sprites.");
             background.SetActive(true);
@@ -932,8 +932,8 @@ namespace ProjectX.UI
             fill.fillOrigin = (int)Image.OriginHorizontal.Left;
             fill.fillAmount = unit.MaxHp == 0 ? 0f : Mathf.Clamp01((float)((double)unit.CurrentHp / unit.MaxHp));
             fill.raycastTarget = false;
-            GameObject damageObject = healthView.Binding.Find("Node/Minus");
-            GameObject recoveryObject = healthView.Binding.Find("Node/Plus");
+            GameObject damageObject = FindHealthNode(healthView, "Node/Minus");
+            GameObject recoveryObject = FindHealthNode(healthView, "Node/Plus");
             if (damageObject == null || recoveryObject == null)
                 throw new InvalidOperationException("BattleHpNode is missing the Cocos Minus/Plus number templates.");
             damageObject.SetActive(false);
@@ -949,6 +949,16 @@ namespace ProjectX.UI
             numberObject.SetActive(false);
             healthView.GameObject.SetActive(true);
             return fill;
+        }
+
+        private static GameObject FindHealthNode(CocosUiView view, string cocosPath)
+        {
+            if (view?.GameObject == null || string.IsNullOrWhiteSpace(cocosPath)) return null;
+            if (string.Equals(cocosPath, "Node", StringComparison.Ordinal)) return view.GameObject;
+            const string virtualRoot = "Node/";
+            string unityPath = cocosPath.StartsWith(virtualRoot, StringComparison.Ordinal)
+                ? cocosPath.Substring(virtualRoot.Length) : cocosPath;
+            return view.FindNode(unityPath);
         }
 
         private static string ResolveQualityScoreResource(byte quality)
@@ -1387,7 +1397,7 @@ namespace ProjectX.UI
         private Vector3 ResolveFormationPoint(int originalPosition)
         {
             int displayed = ResolveDisplayedPosition(originalPosition);
-            RectTransform marker = importedView?.Binding.Find(
+                RectTransform marker = importedView?.FindNode(
                 $"Layer/FightUI/Position/Image_{displayed}")?.GetComponent<RectTransform>();
             if (marker != null && marker.parent == unitLayer) return marker.localPosition;
 

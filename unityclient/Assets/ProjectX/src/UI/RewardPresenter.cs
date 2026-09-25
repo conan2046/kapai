@@ -301,7 +301,7 @@ namespace ProjectX.UI
 
         private GameObject Require(string relativePath)
         {
-            GameObject result = view.Binding.Find($"{BasePath}/{relativePath}");
+            GameObject result = view.FindNode($"{BasePath}/{relativePath}");
             return result ?? throw new InvalidOperationException($"Reward UI node was not found: {BasePath}/{relativePath}");
         }
     }

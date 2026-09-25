@@ -10,10 +10,10 @@ namespace ProjectX.Core
     {
         private void SetMainHudSurfaceVisible(bool visible)
         {
-            mainView?.Binding.Find("Layer/Main_UI")?.SetActive(visible);
+            mainView?.FindNode("Layer/Main_UI")?.SetActive(visible);
             if (!visible)
             {
-                mainView?.Binding.Find("Layer/Bg")?.SetActive(true);
+                mainView?.FindNode("Layer/Bg")?.SetActive(true);
                 mainCloudView?.SetVisible(true);
             }
         }

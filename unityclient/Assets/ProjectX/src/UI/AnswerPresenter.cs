@@ -44,7 +44,7 @@ namespace ProjectX.UI
             rightCount = RequireText($"{Root}/RewardBg/RightBg/Text");
             time = RequireText($"{Root}/RewardBg/TimeBg/Text");
             remaining = RequireText($"{Root}/RewardBg/Bg1/Value");
-            GameObject remainingIcon = view.Binding.Find($"{Root}/RewardBg/Bg1/Icon");
+            GameObject remainingIcon = view.FindNode($"{Root}/RewardBg/Bg1/Icon");
             if (remainingIcon != null) remainingIcon.SetActive(false);
             currentReward = RequireText($"{Root}/RewardBg/Bg2/Value");
             totalReward = RequireText($"{Root}/RewardBg/Bg3/Value");
@@ -65,7 +65,7 @@ namespace ProjectX.UI
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => Select(answerIndex));
                 answerButtons[index] = button;
-                rightMarks[index] = view.Binding.Find($"{Root}/SubjectBg/Button_{answerIndex}/RightImage");
+                rightMarks[index] = view.FindNode($"{Root}/SubjectBg/Button_{answerIndex}/RightImage");
             }
             countdown = view.GameObject.GetComponent<AnswerCountdown>()
                 ?? view.GameObject.AddComponent<AnswerCountdown>();
@@ -146,7 +146,7 @@ namespace ProjectX.UI
                 if (button != null && button.gameObject.activeSelf) button.interactable = enabled;
         }
 
-        private GameObject Require(string path) => view.Binding.Find(path)
+        private GameObject Require(string path) => view.FindNode(path)
             ?? throw new InvalidOperationException($"Answer imported node was not found: {path}");
 
         private Text RequireText(string path)

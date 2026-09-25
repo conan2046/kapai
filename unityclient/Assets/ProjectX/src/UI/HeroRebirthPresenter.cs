@@ -122,18 +122,18 @@ namespace ProjectX.UI
         public bool IsCandidateOpen => chooseFrame.GameObject.activeSelf && chooseView.GameObject.activeSelf;
         public bool IsConfirmOpen => confirmView.GameObject.activeSelf;
         public bool IsModelLoaded => model != null && model.IsLoaded;
-        public Button AddButton => view.Binding.Find("Layer/shenjiangchongshengUI/bg/Btn_add")?.GetComponent<Button>();
-        public Button ChangeButton => view.Binding.Find("Layer/shenjiangchongshengUI/bg/Btn_Change")?.GetComponent<Button>();
-        public Button RebirthButton => view.Binding.Find("Layer/shenjiangchongshengUI/chongsheng/Btn_chongsheng")?.GetComponent<Button>();
-        public Button CandidateCloseButton => chooseFrame.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
-        public Button ConfirmCloseButton => confirmView.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>();
-        public Button ConfirmCancelButton => confirmView.Binding.Find("Layer/Popup/Btn_Cancel")?.GetComponent<Button>();
-        public Button ConfirmButton => confirmView.Binding.Find("Layer/Popup/Btn_Confirm")?.GetComponent<Button>();
+        public Button AddButton => view.FindNode("Layer/shenjiangchongshengUI/bg/Btn_add")?.GetComponent<Button>();
+        public Button ChangeButton => view.FindNode("Layer/shenjiangchongshengUI/bg/Btn_Change")?.GetComponent<Button>();
+        public Button RebirthButton => view.FindNode("Layer/shenjiangchongshengUI/chongsheng/Btn_chongsheng")?.GetComponent<Button>();
+        public Button CandidateCloseButton => chooseFrame.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
+        public Button ConfirmCloseButton => confirmView.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>();
+        public Button ConfirmCancelButton => confirmView.FindNode("Layer/Popup/Btn_Cancel")?.GetComponent<Button>();
+        public Button ConfirmButton => confirmView.FindNode("Layer/Popup/Btn_Confirm")?.GetComponent<Button>();
         public Button FirstRewardButton => rewardButtons.FirstOrDefault(button => button != null);
         public Button FirstConfirmRewardButton => confirmRewardButtons.FirstOrDefault(button => button != null);
-        public ScrollRect CandidateScroll => chooseView.Binding.Find("Layer/ChooseUI/Popup/TableView")?.GetComponent<ScrollRect>();
-        public ScrollRect RewardScroll => view.Binding.Find("Layer/shenjiangchongshengUI/chongsheng/fanhuan/TableView")?.GetComponent<ScrollRect>();
-        public ScrollRect ConfirmRewardScroll => confirmView.Binding.Find("Layer/Popup/fanhuan/TableView")?.GetComponent<ScrollRect>();
+        public ScrollRect CandidateScroll => chooseView.FindNode("Layer/ChooseUI/Popup/TableView")?.GetComponent<ScrollRect>();
+        public ScrollRect RewardScroll => view.FindNode("Layer/shenjiangchongshengUI/chongsheng/fanhuan/TableView")?.GetComponent<ScrollRect>();
+        public ScrollRect ConfirmRewardScroll => confirmView.FindNode("Layer/Popup/fanhuan/TableView")?.GetComponent<ScrollRect>();
         public Button GetCandidateButton(int heroId)
             => candidateButtons.TryGetValue(heroId, out Button button) ? button : null;
         public bool ScrollCandidatesToBottom() => candidateList.ScrollToBottom();
@@ -249,7 +249,7 @@ namespace ProjectX.UI
             candidateButtons.Clear();
             candidateList.SetItems(ToCandidateRows(candidates));
             SetText(chooseFrame, "Layer/shopBg/Popup/Title/Title", "选择神将");
-            GameObject tabs = chooseFrame.Binding.Find("Layer/shopBg/Btn_ListView");
+            GameObject tabs = chooseFrame.FindNode("Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
             chooseFrame.ShowPopup();
             chooseView.ShowPopup();
@@ -526,7 +526,7 @@ namespace ProjectX.UI
 
         private static void SetText(CocosUiView owner, string path, string value)
         {
-            Text text = owner.Binding.Find(path)?.GetComponent<Text>();
+            Text text = owner.FindNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 
@@ -538,7 +538,7 @@ namespace ProjectX.UI
 
         private static void SetVisible(CocosUiView owner, string path, bool visible)
         {
-            GameObject target = owner.Binding.Find(path);
+            GameObject target = owner.FindNode(path);
             if (target != null) target.SetActive(visible);
         }
 
@@ -581,7 +581,7 @@ namespace ProjectX.UI
         }
 
         private static GameObject Require(CocosUiView owner, string path)
-            => owner.Binding.Find(path) ?? throw new InvalidOperationException($"HeroRebirth UI node was not found: {path}");
+            => owner.FindNode(path) ?? throw new InvalidOperationException($"HeroRebirth UI node was not found: {path}");
 
         private readonly struct CandidateRow
         {

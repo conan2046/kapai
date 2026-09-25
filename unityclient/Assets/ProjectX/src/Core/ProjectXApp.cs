@@ -786,7 +786,7 @@ namespace ProjectX.Core
         public bool IsActivityEmptyVisible => activityPresenter?.EmptyStateVisible ?? false;
         public bool IsActivityDailyRechargeVisible => activityPresenter?.DailyRechargeVisible ?? false;
         public bool IsActivityHotPointVisible => mainView != null
-            && mainView.Binding.Find(ActivityPath)?.transform.Find("ActivityHotPointRuntime")?.gameObject.activeSelf == true;
+            && mainView.FindNode(ActivityPath)?.transform.Find("ActivityHotPointRuntime")?.gameObject.activeSelf == true;
         public bool IsDrawOpen => drawView != null && services?.UiStack.Current == drawView;
         public bool IsDrawActive() => IsDrawOpen;
         public int DrawPoolCount => services?.Draw.Count ?? 0;
@@ -1547,7 +1547,7 @@ namespace ProjectX.Core
             heroAttributesView?.SetVisible(false);
             formationPopupView?.SetVisible(false);
 
-            Text title = oneLevelFrameView?.Binding.Find(
+            Text title = oneLevelFrameView?.FindNode(
                 "Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             string cultivationTitle = heroEquipmentPresenter?.ActiveKind == HeroEquipmentKind.FaBao
                 ? "法宝"
@@ -4842,7 +4842,7 @@ namespace ProjectX.Core
 
         private void ToggleShopSubmenu()
         {
-            GameObject submenu = mainView?.Binding.Find("Layer/Main_UI/tankuang1");
+            GameObject submenu = mainView?.FindNode("Layer/Main_UI/tankuang1");
             RectTransform rect = submenu?.GetComponent<RectTransform>();
             if (rect == null) return;
             EnsureHudSubmenuOrigins();
@@ -5001,7 +5001,7 @@ namespace ProjectX.Core
             BindHudBoundary(mainView, "Layer/Main_UI/ButtonGroup6/Icon_tili/AddBtn", "体力补充业务不属于主界面 HUD。");
             mainView.BindClick("Layer/Main_UI/ButtonGroup6/Icon_jinbi/AddBtn",
                 () => HandleCommerceRoute(13), true);
-            Button premium = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
+            Button premium = mainView.FindNode("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
             if (premium != null) premium.interactable = false;
             GameObject wearEntry = FindMainHudNode(EquipmentMenuPath);
             if (wearEntry != null)
@@ -5297,7 +5297,7 @@ namespace ProjectX.Core
             if (submenu == null || mainView == null) return;
             if (hudSubmenuDismissOverlay == null)
             {
-                Transform mainUi = mainView.Binding.Find("Layer/Main_UI")?.transform;
+                Transform mainUi = mainView.FindNode("Layer/Main_UI")?.transform;
                 if (mainUi == null) return;
                 hudSubmenuDismissOverlay = new GameObject(
                     "HudSubmenuDismissOverlay", typeof(RectTransform), typeof(Image), typeof(Button));
@@ -5334,8 +5334,8 @@ namespace ProjectX.Core
         private void EnsureHudSubmenuOrigins()
         {
             if (hudSubmenuOriginsReady) return;
-            RectTransform shop = mainView?.Binding.Find("Layer/Main_UI/tankuang1")?.GetComponent<RectTransform>();
-            RectTransform wear = mainView?.Binding.Find("Layer/Main_UI/tankuang2")?.GetComponent<RectTransform>();
+            RectTransform shop = mainView?.FindNode("Layer/Main_UI/tankuang1")?.GetComponent<RectTransform>();
+            RectTransform wear = mainView?.FindNode("Layer/Main_UI/tankuang2")?.GetComponent<RectTransform>();
             if (shop == null || wear == null) return;
             hudShopSubmenuOrigin = shop.anchoredPosition;
             hudWearSubmenuOrigin = wear.anchoredPosition;
@@ -5654,7 +5654,7 @@ namespace ProjectX.Core
             SetOneLevelFrameVisible(true);
             oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             ConfigureHeroFrame(false);
-            Text replacementTitle = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text replacementTitle = oneLevelFrameView?.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (replacementTitle != null) replacementTitle.text = string.Empty;
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);
@@ -5667,7 +5667,7 @@ namespace ProjectX.Core
             if (HasCommandLineFlag("-projectXDrawClosureValidation"))
                 ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][DrawClosure] replacement display=[{string.Join(",", services.Formation.DisplayHeroes)}] "
                     + $"combat=[{string.Join(",", services.Formation.CombatHeroes)}] candidates=[{string.Join(",", candidates.Select(item => item.Id))}]");
-            Transform template = heroReplacementView.Binding.Find("Layer/yingxionghuanjiangUI/ItemCell")?.transform;
+            Transform template = heroReplacementView.FindNode("Layer/yingxionghuanjiangUI/ItemCell")?.transform;
             if (template == null) throw new InvalidOperationException("Hero replacement ItemCell was not found.");
             for (int index = 1; index <= 6; index++)
             {
@@ -5716,7 +5716,7 @@ namespace ProjectX.Core
                 if (actionText != null) actionText.text =
                     services.Formation.DisplayHeroes.Contains(hero.Id) ? "替换" : "上阵";
             }
-            Transform empty = heroReplacementView.Binding.Find("Layer/yingxionghuanjiangUI/Empty")?.transform;
+            Transform empty = heroReplacementView.FindNode("Layer/yingxionghuanjiangUI/Empty")?.transform;
             if (empty != null) empty.gameObject.SetActive(candidates.Length == 0);
             heroReplacementView.ShowPopup();
             if (candidates.Length == 0) ShowToast("暂无可上阵神将", 2f);
@@ -6165,7 +6165,7 @@ namespace ProjectX.Core
             heroCultivationPresenter?.Hide();
             heroCultivationView?.SetVisible(false);
             heroLevelUpView?.SetVisible(false);
-            Transform panel = oneLevelFrameView?.Binding.Find(
+            Transform panel = oneLevelFrameView?.FindNode(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             if (panel == null) return;
             foreach (Transform tab in panel.Cast<Transform>()
@@ -6261,7 +6261,7 @@ namespace ProjectX.Core
             uint cocosHeroExperienceCap = checked(hero.MaxExperience * 15u);
             SetBoundText(view, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value",
                 $"{hero.Experience}/{cocosHeroExperienceCap}");
-            Image experienceBar = view.Binding.Find(
+            Image experienceBar = view.FindNode(
                 "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
             if (experienceBar != null)
                 experienceBar.fillAmount = cocosHeroExperienceCap == 0
@@ -6277,7 +6277,7 @@ namespace ProjectX.Core
                 string root = $"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{slot}";
                 SetBoundText(view, root + "/Text", materialNames[slot - 1]);
                 SetBoundText(view, root + "/Value", "0");
-                Text materialLabel = view.Binding.Find(root + "/Text")?.GetComponent<Text>();
+                Text materialLabel = view.FindNode(root + "/Text")?.GetComponent<Text>();
                 if (materialLabel != null)
                 {
                     materialLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -6293,7 +6293,7 @@ namespace ProjectX.Core
         {
             SetBoundText(view, "Layer/shopBg/Popup/Title/Title", "强化大师");
             SetBoundVisible(view, "Layer/shopBg/Popup/Title/Title/Button_1", false);
-            Transform list = view.Binding.Find("Layer/shopBg/Btn_ListView")?.transform;
+            Transform list = view.FindNode("Layer/shopBg/Btn_ListView")?.transform;
             Transform template = list?.Find("Panel_1");
             if (list != null && template != null)
             {
@@ -6353,7 +6353,7 @@ namespace ProjectX.Core
                         services.Resources.LoadHeroPortrait(memberDefinition.Picture), memberDefinition.Quality,
                         $"MasterHero{position}");
                 }
-                GameObject heroNode = view.Binding.Find(root);
+                GameObject heroNode = view.FindNode(root);
                 if (heroNode != null && heroId > 0)
                 {
                     Button heroButton = EnsureRuntimeButton(heroNode.transform);
@@ -6410,7 +6410,7 @@ namespace ProjectX.Core
                 string actionLabel = new[] { "去强化", "去精炼", "去觉醒", "去神铸", "去强化", "去精炼" }
                     [heroEnhanceMasterType - 1];
                 SetBoundText(view, root + "/Btn_yangcheng/Text", actionLabel);
-                Image progress = view.Binding.Find(root + "/barlist/EXPBar")?.GetComponent<Image>();
+                Image progress = view.FindNode(root + "/barlist/EXPBar")?.GetComponent<Image>();
                 if (progress != null)
                     progress.fillAmount = !hasMasterSnapshot || nextCondition <= 0
                         ? 0f : Mathf.Clamp01(level / (float)nextCondition);
@@ -6418,7 +6418,7 @@ namespace ProjectX.Core
                     faBaoType ? services.Resources.LoadFaBaoIcon(definition.Picture, out _)
                         : services.Resources.LoadEquipmentIcon(definition.Picture), definition.Quality,
                     $"MasterEquipment{slot}");
-                GameObject actionObject = view.Binding.Find(root + "/Btn_yangcheng");
+                GameObject actionObject = view.FindNode(root + "/Btn_yangcheng");
                 if (actionObject != null)
                 {
                     Button action = EnsureRuntimeButton(actionObject.transform);
@@ -6519,7 +6519,7 @@ namespace ProjectX.Core
 
         private static void SetRuntimeBoundIcon(CocosUiView view, string path, Sprite sprite, string runtimeName)
         {
-            GameObject host = view?.Binding.Find(path);
+            GameObject host = view?.FindNode(path);
             if (host == null) return;
             Transform old = host.transform.Find(runtimeName);
             GameObject value = old != null ? old.gameObject
@@ -6541,7 +6541,7 @@ namespace ProjectX.Core
         private void SetRuntimeBoundQualityIcon(CocosUiView view, string path, Sprite sprite, int quality,
             string runtimeName)
         {
-            GameObject host = view?.Binding.Find(path);
+            GameObject host = view?.FindNode(path);
             if (host == null) return;
 
             string frameName = runtimeName + "QualityFrame";
@@ -6681,7 +6681,7 @@ namespace ProjectX.Core
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Name_2", string.Empty);
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_1/txt", "前往");
             SetBoundText(heroItemSourceView, "Layer/Popup/Title/Title", "获取途径");
-            Image icon = heroItemSourceView.Binding.Find("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
+            Image icon = heroItemSourceView.FindNode("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
             if (icon != null)
             {
                 icon.sprite = faBao
@@ -6747,9 +6747,9 @@ namespace ProjectX.Core
             EnsureHeroEquipmentPresenter();
             heroFragmentBagActive = false;
             ConfigureHeroEquipmentFrame(HeroEquipmentKind.Equipment);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "装备碎片";
-            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             SelectHeroEquipmentTab(tabs, 2);
             heroEquipmentPresenter.HideDetails();
             heroEquipmentListView.SetVisible(false);
@@ -7077,14 +7077,14 @@ namespace ProjectX.Core
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/times", string.Empty);
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_3/txt", "前往");
             SetBoundText(heroItemSourceView, "Layer/Popup/Title/Title", "获取途径");
-            Image routeIcon = heroItemSourceView.Binding.Find("Layer/Popup/itemlayer_1/item_icon")?.GetComponent<Image>();
+            Image routeIcon = heroItemSourceView.FindNode("Layer/Popup/itemlayer_1/item_icon")?.GetComponent<Image>();
             if (routeIcon != null)
             {
                 routeIcon.sprite = services.Resources.LoadFirst("GameplayIcons/ui_main_icon_xuezhan");
                 routeIcon.enabled = routeIcon.sprite != null;
                 routeIcon.preserveAspect = true;
             }
-            Image icon = heroItemSourceView.Binding.Find("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
+            Image icon = heroItemSourceView.FindNode("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
             if (icon != null)
             {
                 icon.sprite = services.Resources.LoadItemIcon(item.Picture);
@@ -7094,14 +7094,14 @@ namespace ProjectX.Core
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_1", false);
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_2", false);
             SetBoundVisible(heroItemSourceView, "Layer/Popup/itemlayer_1/Button_3", true);
-            GameObject maskObject = heroItemSourceView.Binding.Find("Layer/Mask");
+            GameObject maskObject = heroItemSourceView.FindNode("Layer/Mask");
             if (maskObject != null)
             {
                 maskObject.SetActive(true);
                 Image mask = maskObject.GetComponent<Image>();
                 if (mask != null) mask.color = new Color(0f, 0f, 0f, 0.62f);
             }
-            GameObject sourceRoute = heroItemSourceView.Binding.Find("Layer/Popup/itemlayer_1/Button_3");
+            GameObject sourceRoute = heroItemSourceView.FindNode("Layer/Popup/itemlayer_1/Button_3");
             if (sourceRoute != null)
             {
                 sourceRoute.SetActive(true);
@@ -7165,9 +7165,9 @@ namespace ProjectX.Core
             heroAttributesView = heroAttributesView ?? services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
             if (heroAttributesView == null)
                 throw new InvalidOperationException("Hero attributes CocosUiBinding was not found.");
-            Text name = heroAttributesView.Binding.Find("Layer/Node_1/Popup/Icon/name")?.GetComponent<Text>();
-            Text power = heroAttributesView.Binding.Find("Layer/Node_1/Popup/Icon/text_zhanli/num")?.GetComponent<Text>();
-            Text position = heroAttributesView.Binding.Find("Layer/Node_1/Popup/Icon/text_dingwei/num")?.GetComponent<Text>();
+            Text name = heroAttributesView.FindNode("Layer/Node_1/Popup/Icon/name")?.GetComponent<Text>();
+            Text power = heroAttributesView.FindNode("Layer/Node_1/Popup/Icon/text_zhanli/num")?.GetComponent<Text>();
+            Text position = heroAttributesView.FindNode("Layer/Node_1/Popup/Icon/text_dingwei/num")?.GetComponent<Text>();
             if (name != null) name.text = hero.Name;
             if (power != null) power.text = hero.Power.ToString();
             if (position != null)
@@ -7175,13 +7175,13 @@ namespace ProjectX.Core
                     ? (string.IsNullOrWhiteSpace(definition.Feature)
                         ? (definition.PhysicalAttack ? "物理" : "法术")
                         : definition.Feature) : "神将";
-            Image portrait = heroAttributesView.Binding.Find("Layer/Node_1/Popup/Icon")?.GetComponent<Image>();
+            Image portrait = heroAttributesView.FindNode("Layer/Node_1/Popup/Icon")?.GetComponent<Image>();
             if (portrait != null && HeroCatalog.TryGet(hero.Id, out HeroDefinition portraitDefinition))
             {
                 portrait.sprite = services.Resources.LoadHeroPortrait(portraitDefinition.Picture);
                 portrait.preserveAspect = true;
             }
-            Transform list = heroAttributesView.Binding.Find("Layer/Node_1/Popup/ListView")?.transform;
+            Transform list = heroAttributesView.FindNode("Layer/Node_1/Popup/ListView")?.transform;
             if (list != null)
             {
                 Transform template = list.Find("name");
@@ -7345,9 +7345,9 @@ namespace ProjectX.Core
             }
             heroFragmentBagActive = true;
             ConfigureHeroFrame(true);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "神将碎片";
-            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform panel = tabs?.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             Transform second = panel?.Find("Button2_Runtime");
@@ -7450,9 +7450,9 @@ namespace ProjectX.Core
             heroBagView?.SetVisible(false);
             heroBookView?.SetVisible(false);
             ConfigureHeroFrame(true);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "回收";
-            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform panel = tabs?.Find("Panel_10");
             Transform first = panel?.Find("Button1");
             if (first != null) SetTabText(first, "神将", true);
@@ -8149,7 +8149,7 @@ namespace ProjectX.Core
             SetBoundText(heroItemSourceView, "Layer/Popup/itemlayer_1/times", string.Empty);
             SetBoundText(heroItemSourceView, "Layer/Popup/Title/Title", "获取途径");
 
-            Image icon = heroItemSourceView.Binding.Find("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
+            Image icon = heroItemSourceView.FindNode("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
             if (icon != null)
             {
                 icon.sprite = definition == null ? null : services.Resources.LoadItemIcon(definition.Picture);
@@ -8167,7 +8167,7 @@ namespace ProjectX.Core
 
         private bool IsHeroRebirthItemSourceVisible()
         {
-            Text title = heroItemSourceView?.Binding.Find("Layer/Popup/Title/Title")?.GetComponent<Text>();
+            Text title = heroItemSourceView?.FindNode("Layer/Popup/Title/Title")?.GetComponent<Text>();
             return heroItemSourceView?.GameObject.activeSelf == true && title?.text == "获取途径";
         }
 
@@ -8181,9 +8181,9 @@ namespace ProjectX.Core
             heroBookView?.SetVisible(target == heroBookView);
             heroRecycleView?.SetVisible(target == heroRecycleView);
             ConfigureHeroFrame(true);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = titleValue;
-            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             if (tabs != null) tabs.gameObject.SetActive(false);
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", RestoreHeroBagFromAuxiliary, true);
             SetOneLevelFrameVisible(true);
@@ -8208,9 +8208,9 @@ namespace ProjectX.Core
             heroEquipmentFragmentView?.SetVisible(false);
             heroBookView.SetVisible(true);
             SetOneLevelFrameVisible(true);
-            Transform tabs = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             if (tabs != null) tabs.gameObject.SetActive(false);
-            Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView?.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "神将图鉴";
             oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             heroBookView.GameObject.transform.SetAsLastSibling();
@@ -8484,9 +8484,9 @@ namespace ProjectX.Core
         private void ConfigureHeroEquipmentFrame(HeroEquipmentKind kind)
         {
             ConfigureHeroFrame(false);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = kind == HeroEquipmentKind.Equipment ? "装备背包" : "法宝背包";
-            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             ConfigureHeroEquipmentTabs(tabs, kind);
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             ConfigureHeroEquipmentHelp(kind);
@@ -8495,7 +8495,7 @@ namespace ProjectX.Core
         private void ConfigureHeroEquipmentHelp(HeroEquipmentKind kind)
         {
             const string helpPath = "Layer/Panel_12/Title/TitleName/Button_1";
-            GameObject help = oneLevelFrameView.Binding.Find(helpPath);
+            GameObject help = oneLevelFrameView.FindNode(helpPath);
             if (help == null) return;
             help.SetActive(true);
             oneLevelFrameView.BindClick(helpPath, () => errorPresenter?.ShowHelp(
@@ -8572,7 +8572,7 @@ namespace ProjectX.Core
 
         private void BindHeroEquipmentCultivationPortrait()
         {
-            Image portrait = heroEquipmentCultivateView?.Binding.Find(
+            Image portrait = heroEquipmentCultivateView?.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon")?.GetComponent<Image>();
             if (portrait == null) return;
 
@@ -8587,7 +8587,7 @@ namespace ProjectX.Core
             portrait.enabled = portrait.sprite != null;
             portrait.preserveAspect = true;
 
-            Image heroFrame = heroEquipmentCultivateView.Binding.Find(
+            Image heroFrame = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon_bg")?.GetComponent<Image>();
             if (heroFrame == null) return;
             heroFrame.sprite = hasHeroDefinition
@@ -8619,11 +8619,11 @@ namespace ProjectX.Core
             services.UiRouter.SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeishenzhu",
                 heroEquipmentDivineView, equipment && selectedMode == 3);
             BindHeroEquipmentCultivationPortrait();
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = kind == HeroEquipmentKind.FaBao ? "法宝" : "装备";
-            GameObject tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
+            GameObject tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView");
             if (tabs != null) tabs.SetActive(true);
-            Transform panel = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform panel = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (first == null) return;
             foreach (Transform staleTab in panel.Cast<Transform>()
@@ -9261,7 +9261,7 @@ namespace ProjectX.Core
             if (youLiView == null)
                 throw new InvalidOperationException("Current YouLi imported CocosUiBinding was not found: youli/youlisanjie.");
             gameplayView = gameplayView ?? services.UiRouter.FindBySource("shop/shop_bg");
-            GameObject closeTemplate = gameplayView?.Binding.Find("Layer/shopBg/Popup/Btn_close");
+            GameObject closeTemplate = gameplayView?.FindNode("Layer/shopBg/Popup/Btn_close");
             youLiPresenter = youLiPresenter ?? new YouLiPresenter(youLiView, services.YouLi, services.Heroes,
                 services.Player.Level, services.Resources, StartYouLi, StartAllYouLi, ClaimYouLi,
                 closeTemplate, () => HandleBack());
@@ -9279,8 +9279,8 @@ namespace ProjectX.Core
                 || heroItemSourceView == null || errorPresenter == null)
                 throw new InvalidOperationException("Current FengShenStory imported main/level CocosUiBindings were not found.");
             CocosUiView firstClassFrame = EnsureOneLevelFrame().View;
-            GameObject commonHeaderTemplate = firstClassFrame?.Binding.Find("Layer/Panel_12/Title");
-            GameObject commonCurrencyTemplate = firstClassFrame?.Binding.Find("Layer/GoldCheck");
+            GameObject commonHeaderTemplate = firstClassFrame?.FindNode("Layer/Panel_12/Title");
+            GameObject commonCurrencyTemplate = firstClassFrame?.FindNode("Layer/GoldCheck");
             fengShenStoryPresenter = fengShenStoryPresenter ?? new FengShenStoryPresenter(
                 fengShenStoryView, fengShenStoryLevelView,
                 () => services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel"),
@@ -9353,7 +9353,7 @@ namespace ProjectX.Core
 
         private void RefreshDrawHotPoint()
         {
-            GameObject button = mainView?.Binding.Find(DrawPath);
+            GameObject button = mainView?.FindNode(DrawPath);
             Transform prompt = button?.transform.Find("Prompt");
             if (prompt != null) prompt.gameObject.SetActive(services?.Draw.HasFreeDraw == true);
         }

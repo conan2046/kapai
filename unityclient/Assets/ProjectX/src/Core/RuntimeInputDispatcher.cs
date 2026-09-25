@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ProjectX.Core;
 using ProjectX.UI.Migration;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -32,6 +33,10 @@ namespace ProjectX.Validation
             var result = new RuntimeInputDispatchResult();
             try
             {
+                if (execute && ProjectXApp.Instance == null)
+                    throw new InvalidOperationException(
+                        "ProjectXApp.Instance is missing; the visible UI may be stale after a domain reload. No input was dispatched.");
+
                 EventSystem eventSystem = EventSystem.current;
                 if (eventSystem == null) throw new InvalidOperationException("EventSystem.current is missing.");
                 RectTransform target = FindTarget(targetPath);

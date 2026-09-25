@@ -44,7 +44,7 @@ namespace ProjectX.UI
             this.showError = showError ?? (_ => { });
             this.setStatus = setStatus ?? (_ => { });
             view.BindClick("Btn_Back", Close, true);
-            slotScroll = view.Binding.Find("SlotContent")?.GetComponent<ScrollRect>();
+            slotScroll = view.FindNode("SlotContent")?.GetComponent<ScrollRect>();
             SetActive("Tabs", false);
             SetActive("BackupContent", false);
             view.SetVisible(false);
@@ -118,7 +118,7 @@ namespace ProjectX.UI
             manage.interactable = true;
             SetButtonLabel(manage, "删除存档");
 
-            GameObject saveObject = view.Binding.Find(filled + "/Btn_Create");
+            GameObject saveObject = view.FindNode(filled + "/Btn_Create");
             if (saveObject == null)
                 throw new InvalidOperationException("OldMemory filled save button was not found: " + filled + "/Btn_Create");
             saveObject.SetActive(saving);
@@ -133,7 +133,7 @@ namespace ProjectX.UI
         private void RenderEmptySlot(SinglePlayerSaveSlot slot, string root)
         {
             string empty = root + "/EmptyState";
-            GameObject createObject = view.Binding.Find(empty + "/Btn_Create");
+            GameObject createObject = view.FindNode(empty + "/Btn_Create");
             if (createObject == null)
                 throw new InvalidOperationException("OldMemory empty save button was not found: " + empty + "/Btn_Create");
             bool saving = mode == SinglePlayerSaveMenuMode.SaveCurrent;
@@ -263,18 +263,18 @@ namespace ProjectX.UI
             return values.Count > 0 ? values[0].SlotId : 1;
         }
 
-        private GameObject Require(string path) => view.Binding.Find(path)
+        private GameObject Require(string path) => view.FindNode(path)
             ?? throw new InvalidOperationException("OldMemory node was not found: " + path);
 
         private void SetActive(string path, bool active)
         {
-            GameObject node = view.Binding.Find(path);
+            GameObject node = view.FindNode(path);
             if (node != null) node.SetActive(active);
         }
 
         private void SetText(string path, string value)
         {
-            Text text = view.Binding.Find(path)?.GetComponent<Text>();
+            Text text = view.FindNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 

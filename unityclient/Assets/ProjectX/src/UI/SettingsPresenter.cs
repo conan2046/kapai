@@ -21,8 +21,6 @@ namespace ProjectX.UI
         private readonly CocosUiView view;
         private readonly OneLevelFrameCoordinator oneLevelFrame;
         private readonly CocosUiView frameView;
-        private readonly CocosUiBinding binding;
-        private readonly CocosUiBinding frameBinding;
         private readonly PlayerStore player;
         private readonly CurrencyStore currencies;
         private readonly IUiResourceProvider resources;
@@ -64,40 +62,39 @@ namespace ProjectX.UI
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.setStatus = setStatus ?? (_ => { });
             this.singlePlayerMode = singlePlayerMode;
-            binding = view.Binding;
-            frameBinding = frameView.Binding;
-
-            musicMuted = Require<Toggle>(binding, "Layer/Panel/SystemBg/CheckBox_1");
-            musicSlider = Require<Slider>(binding, "Layer/Panel/SystemBg/CheckBox_1/Slider");
-            effectsMuted = Require<Toggle>(binding, "Layer/Panel/SystemBg/CheckBox_2");
-            effectsSlider = Require<Slider>(binding, "Layer/Panel/SystemBg/CheckBox_2/Slider");
+            musicMuted = Require<Toggle>(view, "Layer/Panel/SystemBg/CheckBox_1");
+            musicSlider = Require<Slider>(view, "Layer/Panel/SystemBg/CheckBox_1/Slider");
+            effectsMuted = Require<Toggle>(view, "Layer/Panel/SystemBg/CheckBox_2");
+            effectsSlider = Require<Slider>(view, "Layer/Panel/SystemBg/CheckBox_2/Slider");
             ConfigureSlider(musicSlider);
             ConfigureSlider(effectsSlider);
             BindAudioControls();
 
-            resolutionDropdown = Require<Dropdown>(binding, "Layer/Panel/SystemBg/Resolution/Dropdown");
-            fullScreenToggle = Require<Toggle>(binding, "Layer/Panel/SystemBg/Resolution/FullScreen");
+            resolutionDropdown = Require<Dropdown>(view, "Layer/Panel/SystemBg/Resolution/Dropdown");
+            fullScreenToggle = Require<Toggle>(view, "Layer/Panel/SystemBg/Resolution/FullScreen");
             BindDisplayControls();
-            saveDisplayButton = view.BindClick("Layer/Panel/BtnList/Btn_6", SaveDisplaySelection, true);
+            const string saveDisplayPath = "Layer/Panel/BtnList/Btn_6";
+            saveDisplayButton = view.BindClickNode(view.FindNode(saveDisplayPath),
+                SaveDisplaySelection, true, saveDisplayPath);
 
             if (singlePlayerMode)
             {
-                announcementButton = view.BindClick("Layer/Panel/BtnList/Btn_1",
+            announcementButton = BindClick(view, "Layer/Panel/BtnList/Btn_1",
                     saveGame ?? throw new ArgumentNullException(nameof(saveGame)), true);
-                SetText(binding, "Layer/Panel/BtnList/Btn_1/BtnName", "保存游戏");
-                activationButton = view.BindClick("Layer/Panel/BtnList/Btn_5", () => { }, true);
+                SetText(view, "Layer/Panel/BtnList/Btn_1/BtnName", "保存游戏");
+            activationButton = BindClick(view, "Layer/Panel/BtnList/Btn_5", () => { }, true);
                 activationButton.gameObject.SetActive(false);
-                returnToLoginButton = view.BindClick("Layer/Panel/BtnList/Btn_4",
+            returnToLoginButton = BindClick(view, "Layer/Panel/BtnList/Btn_4",
                     exitGame ?? throw new ArgumentNullException(nameof(exitGame)), true);
-                SetText(binding, "Layer/Panel/BtnList/Btn_4/BtnName", "离开游戏");
+                SetText(view, "Layer/Panel/BtnList/Btn_4/BtnName", "离开游戏");
             }
             else
             {
-                announcementButton = view.BindClick("Layer/Panel/BtnList/Btn_1",
+            announcementButton = BindClick(view, "Layer/Panel/BtnList/Btn_1",
                     () => this.setStatus("游戏公告属于 NoticeUI /88 边界；Settings 不读取或伪造公告正文。"), true);
-                activationButton = view.BindClick("Layer/Panel/BtnList/Btn_5",
+            activationButton = BindClick(view, "Layer/Panel/BtnList/Btn_5",
                     () => this.setStatus("兑换码属于 Welfare.NewActiveCodeUI /199 op=18 边界；Settings 不处理兑换。"), true);
-                returnToLoginButton = view.BindClick("Layer/Panel/BtnList/Btn_4", returnToLogin, true);
+            returnToLoginButton = BindClick(view, "Layer/Panel/BtnList/Btn_4", returnToLogin, true);
             }
             ConfigureFrame(close);
         }
@@ -120,41 +117,41 @@ namespace ProjectX.UI
 
         public void Refresh()
         {
-            SetActive(frameBinding, "Layer/GoldCheck", true);
-            SetActive(frameBinding, "Layer/Panel_12/Bg/Btn_ListView", true);
-            SetActive(binding, "Layer/Panel/SystemBg/ImageBg", true);
-            SetActive(binding, "Layer/Panel/BtnList", true);
-            SetActive(binding, "Layer/Panel/BtnList/Btn_6", true);
+            SetActive(frameView, "Layer/GoldCheck", true);
+            SetActive(frameView, "Layer/Panel_12/Bg/Btn_ListView", true);
+            SetActive(view, "Layer/Panel/SystemBg/ImageBg", true);
+            SetActive(view, "Layer/Panel/BtnList", true);
+            SetActive(view, "Layer/Panel/BtnList/Btn_6", true);
             if (singlePlayerMode)
             {
-                SetActive(binding, "Layer/Panel/BtnList/Btn_1", true);
-                SetActive(binding, "Layer/Panel/BtnList/Btn_4", true);
-                SetActive(binding, "Layer/Panel/BtnList/Btn_5", false);
+                SetActive(view, "Layer/Panel/BtnList/Btn_1", true);
+                SetActive(view, "Layer/Panel/BtnList/Btn_4", true);
+                SetActive(view, "Layer/Panel/BtnList/Btn_5", false);
             }
             ConfigureFrame(null);
-            SetText(binding, "Layer/Panel/SystemBg/ImageBg/Name", $"角色：{player.Name}");
-            SetText(binding, "Layer/Panel/SystemBg/ImageBg/ServerName", "存档：本地");
-            SetText(binding, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", player.Level.ToString());
-            GameObject headObject = binding.Find("Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage");
+            SetText(view, "Layer/Panel/SystemBg/ImageBg/Name", $"角色：{player.Name}");
+            SetText(view, "Layer/Panel/SystemBg/ImageBg/ServerName", "存档：本地");
+            SetText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", player.Level.ToString());
+            GameObject headObject = view.FindNode("Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage");
             Image head = headObject != null ? headObject.GetComponent<Image>() : null;
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             LoadValues();
             RefreshDisplayControls();
-            binding.RetireLegacyNodeMetadataAtRuntime();
+            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void RefreshForTitle()
         {
             ConfigureFrame(null);
-            SetText(frameBinding, "Layer/Panel_12/Title/TitleName", "游戏设置");
-            SetActive(frameBinding, "Layer/GoldCheck", false);
-            SetActive(frameBinding, "Layer/Panel_12/Bg/Btn_ListView", false);
-            SetActive(binding, "Layer/Panel/SystemBg/ImageBg", false);
-            SetActive(binding, "Layer/Panel/BtnList", true);
-            SetActive(binding, "Layer/Panel/BtnList/Btn_1", false);
-            SetActive(binding, "Layer/Panel/BtnList/Btn_4", false);
-            SetActive(binding, "Layer/Panel/BtnList/Btn_5", false);
-            SetActive(binding, "Layer/Panel/BtnList/Btn_6", true);
+            SetText(frameView, "Layer/Panel_12/Title/TitleName", "游戏设置");
+            SetActive(frameView, "Layer/GoldCheck", false);
+            SetActive(frameView, "Layer/Panel_12/Bg/Btn_ListView", false);
+            SetActive(view, "Layer/Panel/SystemBg/ImageBg", false);
+            SetActive(view, "Layer/Panel/BtnList", true);
+            SetActive(view, "Layer/Panel/BtnList/Btn_1", false);
+            SetActive(view, "Layer/Panel/BtnList/Btn_4", false);
+            SetActive(view, "Layer/Panel/BtnList/Btn_5", false);
+            SetActive(view, "Layer/Panel/BtnList/Btn_6", true);
             LoadValues();
             RefreshDisplayControls();
         }
@@ -181,11 +178,11 @@ namespace ProjectX.UI
         public bool ValidateIdentityAndHeader(out string detail)
         {
             bool valid = player.IsLoaded && !string.IsNullOrWhiteSpace(player.Name)
-                && ReadText(binding, "Layer/Panel/SystemBg/ImageBg/Name") == $"角色：{player.Name}"
-                && ReadText(binding, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1") == player.Level.ToString()
-                && ReadText(frameBinding, "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num") == $"{currencies.Stamina}/100"
-                && ReadText(frameBinding, "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num") == FormatCurrency(currencies.Gold)
-                && ReadText(frameBinding, "Layer/GoldCheck/GoldIcon4/GoldNumBg/Num") == currencies.Premium.ToString();
+                && ReadText(view, "Layer/Panel/SystemBg/ImageBg/Name") == $"角色：{player.Name}"
+                && ReadText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1") == player.Level.ToString()
+                && ReadText(frameView, "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num") == $"{currencies.Stamina}/100"
+                && ReadText(frameView, "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num") == FormatCurrency(currencies.Gold)
+                && ReadText(frameView, "Layer/GoldCheck/GoldIcon4/GoldNumBg/Num") == currencies.Premium.ToString();
             detail = valid ? $"role={player.RoleId} name={player.Name} level={player.Level}"
                 : "Settings identity/header did not match authoritative PlayerStore/CurrencyStore.";
             return valid;
@@ -202,7 +199,7 @@ namespace ProjectX.UI
         private void ConfigureFrame(Action close)
         {
             oneLevelFrame.Apply(OneLevelFrameMode.Standard);
-            RectTransform root = frameBinding.transform as RectTransform;
+            RectTransform root = frameView.GameObject.transform as RectTransform;
             if (root != null)
             {
                 root.pivot = new Vector2(0f, 1f);
@@ -210,8 +207,8 @@ namespace ProjectX.UI
                 root.anchoredPosition = Vector2.zero;
                 root.localScale = Vector3.one;
             }
-            SetText(frameBinding, "Layer/Panel_12/Title/TitleName", "角色信息");
-            Transform help = frameBinding.Find("Layer/Panel_12/Title/TitleName")?.transform.Find("Button_1");
+            SetText(frameView, "Layer/Panel_12/Title/TitleName", "角色信息");
+            Transform help = frameView.FindNode("Layer/Panel_12/Title/TitleName")?.transform.Find("Button_1");
             if (help != null) help.gameObject.SetActive(false);
 
             // The outer OneLevelLayer tab strip is owned by PlayerHubTabCoordinator.
@@ -219,7 +216,7 @@ namespace ProjectX.UI
             // 境界/背包/邮件/系统 tabs during Refresh(). Keep compatibility
             // handles for existing validation, but leave their visual state and
             // listeners to the shared coordinator.
-            Transform panel = frameBinding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform panel = frameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (first == null) throw new InvalidOperationException("Settings shared tab template was not found.");
             Transform second = panel.Find("Button2_Runtime");
@@ -231,20 +228,20 @@ namespace ProjectX.UI
             infoTabButton = EnsureButton(first);
             settingsTabButton = EnsureButton(second);
 
-            SetText(frameBinding, "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num", $"{currencies.Stamina}/100");
-            SetText(frameBinding, "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num", FormatCurrency(currencies.Gold));
-            SetText(frameBinding, "Layer/GoldCheck/GoldIcon4/GoldNumBg/Num", currencies.Premium.ToString());
+            SetText(frameView, "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num", $"{currencies.Stamina}/100");
+            SetText(frameView, "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num", FormatCurrency(currencies.Gold));
+            SetText(frameView, "Layer/GoldCheck/GoldIcon4/GoldNumBg/Num", currencies.Premium.ToString());
             staminaAddButton = BindFrameButton("Layer/GoldCheck/GoldIcon1/AddBtn",
                 () => setStatus("体力使用/购买属于外部边界；Settings 未触发购买。"), true);
             goldAddButton = BindFrameButton("Layer/GoldCheck/GoldIcon3/AddBtn",
                 () => setStatus("金币商城属于 Shop 边界；Settings 未触发购买或支付。"), true);
             premiumAddButton = BindFrameButton("Layer/GoldCheck/GoldIcon4/AddBtn", null, false);
-            foreach (Transform child in frameBinding.transform.GetComponentsInChildren<Transform>(true))
+            foreach (Transform child in frameView.GameObject.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
 
             if (close != null)
             {
-                closeButton = frameView.BindClick("Layer/Panel_12/Title/CloseBtn", () =>
+                closeButton = BindClick(frameView, "Layer/Panel_12/Title/CloseBtn", () =>
                 {
                     oneLevelFrame.SetVisible(false);
                     close();
@@ -541,7 +538,7 @@ namespace ProjectX.UI
 
         private Button BindFrameButton(string path, Action action, bool interactable)
         {
-            GameObject node = frameBinding.Find(path);
+            GameObject node = frameView.FindNode(path);
             if (node == null) throw new InvalidOperationException("Settings frame node was not found: " + path);
             Button button = EnsureButton(node.transform);
             button.onClick.RemoveAllListeners();
@@ -598,12 +595,12 @@ namespace ProjectX.UI
         private static string FormatCurrency(long value) =>
             value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
 
-        private static void SetText(CocosUiBinding target, string path, string value) =>
-            SetText(target.Find(path)?.transform, value);
+        private static void SetText(CocosUiView target, string path, string value) =>
+            SetText(target.FindNode(path)?.transform, value);
 
-        private static void SetActive(CocosUiBinding target, string path, bool active)
+        private static void SetActive(CocosUiView target, string path, bool active)
         {
-            GameObject node = target?.Find(path);
+            GameObject node = target?.FindNode(path);
             if (node != null) node.SetActive(active);
         }
 
@@ -616,22 +613,27 @@ namespace ProjectX.UI
             if (tmp != null) tmp.text = value ?? string.Empty;
         }
 
-        private static string ReadText(CocosUiBinding target, string path)
+        private static string ReadText(CocosUiView target, string path)
         {
-            Transform node = target.Find(path)?.transform;
+            Transform node = target.FindNode(path)?.transform;
             if (node == null) return string.Empty;
             Text legacy = node.GetComponent<Text>();
             TMP_Text tmp = node.GetComponent<TMP_Text>();
             return legacy != null ? legacy.text : tmp != null ? tmp.text : string.Empty;
         }
 
-        private static T Require<T>(CocosUiBinding target, string path) where T : Component
+        private static T Require<T>(CocosUiView target, string path) where T : Component
         {
-            GameObject node = target.Find(path);
+            GameObject node = target.FindNode(path);
             T component = node != null ? node.GetComponent<T>() : null;
             if (component == null)
                 throw new InvalidOperationException($"Settings component {typeof(T).Name} was not found: {path}");
             return component;
         }
+
+        private static Button BindClick(CocosUiView target, string path, Action callback,
+            bool addButtonIfMissing = false) =>
+            target.BindClickNode(target.FindNode(path), callback, addButtonIfMissing, path);
+
     }
 }

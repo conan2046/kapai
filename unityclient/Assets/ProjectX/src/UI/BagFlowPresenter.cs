@@ -39,6 +39,8 @@ namespace ProjectX.UI
         private readonly Action<string> feedback;
         private readonly List<Choice> choices = new List<Choice>();
         private readonly Dictionary<int, Button> giftChoiceButtons = new Dictionary<int, Button>();
+        private readonly Dictionary<CocosUiView, Dictionary<string, GameObject>> resolvedNodes =
+            new Dictionary<CocosUiView, Dictionary<string, GameObject>>();
         private BagItemRecord activeItem;
         private Choice selectedChoice;
         private Choice sourceChoice;
@@ -50,6 +52,7 @@ namespace ProjectX.UI
         private Text giftQuantity;
         private RectTransform giftContent;
         private GameObject giftTemplate;
+        private ScrollRect giftScroll;
         private RectTransform sourceContent;
         private GameObject sourceTemplate;
 
@@ -100,6 +103,7 @@ namespace ProjectX.UI
         public bool HasSelection => selectedChoice != null;
         public int SelectedChoiceId => selectedChoice?.Id ?? 0;
         public int SourceChoiceId => sourceChoice?.Id ?? 0;
+        public ScrollRect GiftScroll => giftScroll;
         public Button GetInputDigitControl(int digit) => digit >= 0 && digit <= 9
             ? FindInputNode($"Layer/Panel/Bg/BtnList/Btn{digit}")?.GetComponent<Button>()
             : null;
@@ -146,7 +150,7 @@ namespace ProjectX.UI
 
         public void ResetGiftScroll()
         {
-            ScrollRect scroll = Require(giftView, "Layer/OpenBox/Panel/Bg/ListView").GetComponent<ScrollRect>();
+            ScrollRect scroll = giftScroll;
             if (scroll == null || scroll.content == null) return;
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
@@ -325,7 +329,7 @@ namespace ProjectX.UI
             };
             foreach (Button button in required)
                 if (button == null) { detail = "required modal button missing"; return false; }
-            ScrollRect giftScroll = Require(giftView, "Layer/OpenBox/Panel/Bg/ListView").GetComponent<ScrollRect>();
+            ScrollRect giftScroll = this.giftScroll;
             ScrollRect sourceScroll = Require(sourceView, "Layer/Popup/ListView").GetComponent<ScrollRect>();
             ScrollRect equipmentScroll = Require(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView").GetComponent<ScrollRect>();
             bool scrolls = giftScroll != null && giftScroll.content != null
@@ -397,14 +401,29 @@ namespace ProjectX.UI
 
         private GameObject FindInputNode(string path)
         {
-            Transform root = inputView.GameObject == null ? null : inputView.GameObject.transform;
-            if (root == null || string.IsNullOrWhiteSpace(path)) return null;
+            return FindNode(inputView, path);
+        }
+
+        private GameObject FindNode(CocosUiView view, string path)
+        {
+            GameObject rootObject = view?.GameObject;
+            if (rootObject == null || string.IsNullOrWhiteSpace(path)) return null;
 
             string normalized = path.Replace('\\', '/').Trim('/');
+            if (!resolvedNodes.TryGetValue(view, out Dictionary<string, GameObject> viewNodes))
+            {
+                viewNodes = new Dictionary<string, GameObject>(StringComparer.Ordinal);
+                resolvedNodes.Add(view, viewNodes);
+            }
+            if (viewNodes.TryGetValue(normalized, out GameObject cached)) return cached;
+
+            Transform root = rootObject.transform;
             Transform node = root.Find(normalized);
             if (node == null && normalized.StartsWith("Layer/", StringComparison.Ordinal))
                 node = root.Find(normalized.Substring("Layer/".Length));
-            return node == null ? null : node.gameObject;
+            GameObject resolved = node == null ? null : node.gameObject;
+            viewNodes.Add(normalized, resolved);
+            return resolved;
         }
 
         private GameObject RequireInputNode(string path)
@@ -459,14 +478,15 @@ namespace ProjectX.UI
                 RectTransform titleRect = popupTitle.GetComponent<RectTransform>();
                 titleRect.sizeDelta = new Vector2(Mathf.Max(360f, titleRect.sizeDelta.x), titleRect.sizeDelta.y);
             }
-            GameObject help = popupFrameView.Binding.Find("Layer/shopBg/Popup/Title/Title/Button_1");
+            GameObject help = FindNode(popupFrameView, "Layer/shopBg/Popup/Title/Title/Button_1");
             if (help != null) help.SetActive(false);
-            GameObject tabs = popupFrameView.Binding.Find("Layer/shopBg/Btn_ListView");
+            GameObject tabs = FindNode(popupFrameView, "Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
             GameObject list = Require(giftView, "Layer/OpenBox/Panel/Bg/ListView");
             giftTemplate = Require(giftView, "Layer/OpenBox/Panel/Item");
             giftTemplate.SetActive(false);
             giftContent = EnsureContent(list, "RuntimeGiftContent", false);
+            giftScroll = list.GetComponent<ScrollRect>();
             giftQuantity = FindText(giftView, "Layer/OpenBox/Panel/TimesBg/Value");
             ConfigureGiftLabel(giftQuantity, new Color32(116, 71, 49, 255), 30);
             Bind(giftView, "Layer/OpenBox/Panel/TimesBg/Btn_L", () => AdjustGift(-1));
@@ -555,7 +575,7 @@ namespace ProjectX.UI
             RenderGiftSelection();
             popupFrameView.SetVisible(true);
             giftView.SetVisible(true);
-            GameObject tabs = popupFrameView.Binding.Find("Layer/shopBg/Btn_ListView");
+            GameObject tabs = FindNode(popupFrameView, "Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
             popupFrameView.ShowPopup();
             giftView.ShowPopup();
@@ -673,7 +693,7 @@ namespace ProjectX.UI
 
         private void ConfigureEquipmentInfo()
         {
-            Image mask = equipmentInfoView.Binding.Find("Layer/zhuangbeiInfoUI/Mask")?.GetComponent<Image>();
+            Image mask = FindNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Mask")?.GetComponent<Image>();
             if (mask != null) mask.color = new Color(0f, 0f, 0f, 0.95f);
             Bind(equipmentInfoView, "Layer/zhuangbeiInfoUI/Popup/Btn_close", () =>
             {
@@ -690,7 +710,7 @@ namespace ProjectX.UI
                 "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
             })
             {
-                GameObject node = equipmentInfoView.Binding.Find(path);
+                GameObject node = FindNode(equipmentInfoView, path);
                 if (node != null) node.SetActive(false);
             }
             GameObject list = Require(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView");
@@ -701,7 +721,7 @@ namespace ProjectX.UI
                 "juexingshuxing", "shenzhushuxing", "zhuangbeitaozhuang", "zhuangbeimiaoshu"
             })
             {
-                GameObject node = equipmentInfoView.Binding.Find($"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = FindNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
                 if (node != null) node.transform.SetParent(content, false);
             }
         }
@@ -726,10 +746,10 @@ namespace ProjectX.UI
                 "qianghuashuxing", "jinglianshuxing", "juexingshuxing", "shenzhushuxing"
             })
             {
-                GameObject node = equipmentInfoView.Binding.Find($"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = FindNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
                 if (node != null) node.SetActive(false);
             }
-            GameObject host = equipmentInfoView.Binding.Find("Layer/zhuangbeiInfoUI/zhuangbei/Node");
+            GameObject host = FindNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Node");
             if (host != null)
             {
                 Transform existing = host.transform.Find("RuntimeEquipmentIcon");
@@ -752,7 +772,7 @@ namespace ProjectX.UI
 
         private void RenderEquipmentSuit(EquipmentDefinition definition)
         {
-            GameObject section = equipmentInfoView.Binding.Find(
+            GameObject section = FindNode(equipmentInfoView,
                 "Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang");
             if (section == null) return;
             section.SetActive(definition.Suit > 0);
@@ -1060,14 +1080,14 @@ namespace ProjectX.UI
                 UnityEngine.Object.Destroy(content.GetChild(index).gameObject);
         }
 
-        private static GameObject Require(CocosUiView view, string path)
+        private GameObject Require(CocosUiView view, string path)
         {
-            GameObject value = view.Binding.Find(path);
-            if (value == null) throw new InvalidOperationException($"Bag flow node missing: {view.Binding.Source} :: {path}");
+            GameObject value = FindNode(view, path);
+            if (value == null) throw new InvalidOperationException($"Bag flow Unity node missing: {view.GameObject?.name} :: {path}");
             return value;
         }
 
-        private static Button RequireButton(CocosUiView view, string path)
+        private Button RequireButton(CocosUiView view, string path)
         {
             GameObject node = Require(view, path);
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
@@ -1075,25 +1095,25 @@ namespace ProjectX.UI
             return button;
         }
 
-        private static void Bind(CocosUiView view, string path, Action action)
+        private void Bind(CocosUiView view, string path, Action action)
         {
             Button button = RequireButton(view, path);
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => action());
         }
 
-        private static bool Invoke(CocosUiView view, string path)
+        private bool Invoke(CocosUiView view, string path)
         {
-            GameObject node = view.Binding.Find(path);
+            GameObject node = FindNode(view, path);
             Button button = node == null ? null : node.GetComponent<Button>();
             if (button == null) return false;
             button.onClick.Invoke();
             return true;
         }
 
-        private static bool ScrollToEnd(CocosUiView view, string path)
+        private bool ScrollToEnd(CocosUiView view, string path)
         {
-            ScrollRect scroll = view.Binding.Find(path)?.GetComponent<ScrollRect>();
+            ScrollRect scroll = FindNode(view, path)?.GetComponent<ScrollRect>();
             if (scroll == null || scroll.content == null) return false;
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
@@ -1103,18 +1123,18 @@ namespace ProjectX.UI
             return true;
         }
 
-        private static Text FindText(CocosUiView view, string path) =>
-            view.Binding.Find(path)?.GetComponent<Text>();
+        private Text FindText(CocosUiView view, string path) =>
+            FindNode(view, path)?.GetComponent<Text>();
 
-        private static void SetText(CocosUiView view, string path, string value)
+        private void SetText(CocosUiView view, string path, string value)
         {
             Text text = FindText(view, path);
             if (text != null) text.text = value ?? string.Empty;
         }
 
-        private static void SetImage(CocosUiView view, string path, Sprite sprite)
+        private void SetImage(CocosUiView view, string path, Sprite sprite)
         {
-            GameObject node = view.Binding.Find(path);
+            GameObject node = FindNode(view, path);
             if (node == null) return;
             Image image = node.GetComponent<Image>() ?? node.GetComponentInChildren<Image>(true);
             if (image == null) image = node.AddComponent<Image>();

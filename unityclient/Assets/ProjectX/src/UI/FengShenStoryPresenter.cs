@@ -267,7 +267,7 @@ namespace ProjectX.UI
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_name", "首通奖励");
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_tips", "挑战列传关卡可获得");
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_num", string.Empty);
-            Image sourceIcon = itemSourceView.Binding.Find("Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
+            Image sourceIcon = FindViewNode(itemSourceView, "Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
             if (sourceIcon != null)
             {
                 sourceIcon.sprite = resources.LoadItemIcon(3005);
@@ -321,9 +321,9 @@ namespace ProjectX.UI
             int[] expectedPictures = { 3005, 710 };
             int[] expectedQualities = { 4, 3 };
             uint[] expectedAmounts = { 200, 100 };
-            Text title = rewardView.Binding.Find("Layer/Popup/Title/Title_1")?.GetComponent<Text>();
-            Text tips = rewardView.Binding.Find("Layer/Popup/tips")?.GetComponent<Text>();
-            Text confirm = rewardView.Binding.Find("Layer/Popup/btn_lingqu/Text1")?.GetComponent<Text>();
+            Text title = FindViewNode(rewardView, "Layer/Popup/Title/Title_1")?.GetComponent<Text>();
+            Text tips = FindViewNode(rewardView, "Layer/Popup/tips")?.GetComponent<Text>();
+            Text confirm = FindViewNode(rewardView, "Layer/Popup/btn_lingqu/Text1")?.GetComponent<Text>();
             Image confirmGraphic = modalCloseButton?.targetGraphic as Image;
             if (!rewardView.GameObject.activeSelf || title?.text != "宝箱奖励"
                 || !string.IsNullOrEmpty(tips?.text) || store.RewardPush.Count != 2
@@ -740,7 +740,7 @@ namespace ProjectX.UI
             rewardView.ShowPopup();
             sharedRewardPresenter.SuspendSharedViewRendering();
             modalAcknowledge = acknowledge;
-            GameObject rewardLayer = rewardView.Binding.Find("Layer")
+            GameObject rewardLayer = FindViewNode(rewardView, "Layer")
                 ?? throw new InvalidOperationException("FengShenStory reward modal is missing Layer.");
             Image rewardDimmer = rewardLayer.GetComponent<Image>();
             if (rewardDimmer == null) rewardDimmer = rewardLayer.AddComponent<Image>();
@@ -782,9 +782,9 @@ namespace ProjectX.UI
                 rewardRuntimeRow.SetActive(false);
                 UnityEngine.Object.Destroy(rewardRuntimeRow);
             }
-            GameObject template = rewardView.Binding.Find("Layer/Popup/ItemList")
+            GameObject template = FindViewNode(rewardView, "Layer/Popup/ItemList")
                 ?? throw new InvalidOperationException("FengShenStory reward row template is missing.");
-            Transform list = rewardView.Binding.Find("Layer/Popup/ListView")?.transform
+            Transform list = FindViewNode(rewardView, "Layer/Popup/ListView")?.transform
                 ?? throw new InvalidOperationException("FengShenStory reward list is missing.");
             template.SetActive(false);
             rewardRuntimeRow = UnityEngine.Object.Instantiate(template, list, false);
@@ -967,7 +967,7 @@ namespace ProjectX.UI
 
         private static Button BindView(CocosUiView targetView, string path, Action callback)
         {
-            GameObject node = targetView.Binding.Find(path)
+            GameObject node = FindViewNode(targetView, path)
                 ?? throw new InvalidOperationException("FengShenStory imported modal node not found: " + path);
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
@@ -978,14 +978,20 @@ namespace ProjectX.UI
 
         private static void SetViewText(CocosUiView targetView, string path, string value)
         {
-            Text text = targetView.Binding.Find(path)?.GetComponent<Text>();
+            Text text = FindViewNode(targetView, path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 
         private static void SetViewVisible(CocosUiView targetView, string path, bool visible)
         {
-            GameObject node = targetView.Binding.Find(path);
+            GameObject node = FindViewNode(targetView, path);
             if (node != null) node.SetActive(visible);
+        }
+
+        private static GameObject FindViewNode(CocosUiView targetView, string path)
+        {
+            if (string.Equals(path, "Layer", StringComparison.Ordinal)) return targetView?.GameObject;
+            return targetView?.FindNode(path);
         }
 
         private void BuildItemSourceControls()

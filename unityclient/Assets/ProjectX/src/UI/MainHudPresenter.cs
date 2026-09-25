@@ -74,9 +74,9 @@ namespace ProjectX.UI
             goldText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_jinbi/NumBg/Num");
             premiumText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_yuanbao/GoldNumBg/Num");
             staminaText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_tili/NumBg/Num");
-            portrait = view.Binding.Find("Layer/Main_UI/Head/Icon")?.GetComponent<Image>();
-            experienceBar = view.Binding.Find("Layer/Main_UI/Head/EXPBar")?.GetComponent<Image>();
-            powerWan = view.Binding.Find("Layer/Main_UI/Head/bg_CombatEffetiveness/Value/Wan");
+            portrait = view.FindNode("Layer/Main_UI/Head/Icon")?.GetComponent<Image>();
+            experienceBar = view.FindNode("Layer/Main_UI/Head/EXPBar")?.GetComponent<Image>();
+            powerWan = view.FindNode("Layer/Main_UI/Head/bg_CombatEffetiveness/Value/Wan");
             powerWanRect = powerWan?.GetComponent<RectTransform>();
             RectTransform powerRect = powerText.rectTransform;
             powerRect.localScale = Vector3.one;
@@ -99,10 +99,10 @@ namespace ProjectX.UI
                 powerWanRect.pivot = new Vector2(0f, .5f);
                 powerWanRect.localScale = new Vector3(.39f, .39f, 1f);
             }
-            onlineButton = view.Binding.Find("Layer/Main_UI/btn_online");
-            onlineTimeRoot = view.Binding.Find("Layer/Main_UI/btn_online/Time");
-            onlineTimeText = view.Binding.Find("Layer/Main_UI/btn_online/Time/temp_text")?.GetComponent<Text>();
-            Image premiumCurrencyIcon = view.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/Icon")?.GetComponent<Image>();
+            onlineButton = view.FindNode("Layer/Main_UI/btn_online");
+            onlineTimeRoot = view.FindNode("Layer/Main_UI/btn_online/Time");
+            onlineTimeText = view.FindNode("Layer/Main_UI/btn_online/Time/temp_text")?.GetComponent<Text>();
+            Image premiumCurrencyIcon = view.FindNode("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/Icon")?.GetComponent<Image>();
             if (onlineButton != null)
             {
                 Image importedPlaceholder = onlineButton.GetComponent<Image>();
@@ -138,26 +138,26 @@ namespace ProjectX.UI
             for (int index = 0; index < discountButtons.Length; index++)
             {
                 string root = $"Layer/Main_UI/ButtonGroup8/btn_Zhekou{index + 1}";
-                discountButtons[index] = view.Binding.Find(root);
-                discountTimeTexts[index] = view.Binding.Find(root + "/Image/Text")?.GetComponent<Text>();
+                discountButtons[index] = view.FindNode(root);
+                discountTimeTexts[index] = view.FindNode(root + "/Image/Text")?.GetComponent<Text>();
             }
             InitializeStableRedDots(seedStableRedDots);
             if (chatView != null)
             {
-                chatPanel = chatView.Binding.Find("Layer/Panel_Chat")?.GetComponent<RectTransform>();
-                chatList = chatView.Binding.Find("Layer/Panel_Chat/ListView")?.GetComponent<RectTransform>();
-                chatBackground = chatView.Binding.Find("Layer/Panel_Chat/bg")?.GetComponent<RectTransform>();
-                chatArrow = chatView.Binding.Find("Layer/Panel_Chat/btn_Arrows")?.GetComponent<RectTransform>();
+                chatPanel = chatView.FindNode("Layer/Panel_Chat")?.GetComponent<RectTransform>();
+                chatList = chatView.FindNode("Layer/Panel_Chat/ListView")?.GetComponent<RectTransform>();
+                chatBackground = chatView.FindNode("Layer/Panel_Chat/bg")?.GetComponent<RectTransform>();
+                chatArrow = chatView.FindNode("Layer/Panel_Chat/btn_Arrows")?.GetComponent<RectTransform>();
                 chatMovingControls = new[]
                 {
                     chatArrow,
-                    chatView.Binding.Find("Layer/Panel_Chat/btn_Friend")?.GetComponent<RectTransform>(),
-                    chatView.Binding.Find("Layer/Panel_Chat/btn_Voice_shi")?.GetComponent<RectTransform>(),
-                    chatView.Binding.Find("Layer/Panel_Chat/btn_Voice_bang")?.GetComponent<RectTransform>(),
-                    chatView.Binding.Find("Layer/Panel_Chat/btn_laba")?.GetComponent<RectTransform>()
+                    chatView.FindNode("Layer/Panel_Chat/btn_Friend")?.GetComponent<RectTransform>(),
+                    chatView.FindNode("Layer/Panel_Chat/btn_Voice_shi")?.GetComponent<RectTransform>(),
+                    chatView.FindNode("Layer/Panel_Chat/btn_Voice_bang")?.GetComponent<RectTransform>(),
+                    chatView.FindNode("Layer/Panel_Chat/btn_laba")?.GetComponent<RectTransform>()
                 };
                 chatMovingOrigins = chatMovingControls.Select(control => control != null ? control.anchoredPosition : Vector2.zero).ToArray();
-                chatTemplate = chatView.Binding.Find("Layer/Panel_Chat/Item");
+                chatTemplate = chatView.FindNode("Layer/Panel_Chat/Item");
                 if (chatTemplate != null) chatTemplate.SetActive(false);
                 SetChatControlVisible("Layer/Panel_Chat/Prompt", false);
                 SetChatControlVisible("Layer/Panel_Chat/btn_Friend", false);
@@ -205,9 +205,9 @@ namespace ProjectX.UI
         public bool HasVisibleSystemChatSummary => systemChatSummaryVisible
             && summaryRows.Any(row => row != null && row.activeInHierarchy);
         public int VisibleDiscountCount => discountButtons.Count(button => button != null && button.activeInHierarchy);
-        public int VisibleRedDotCount => StableVisiblePromptPaths.Count(path => view.Binding.Find(path)?.activeInHierarchy == true);
+        public int VisibleRedDotCount => StableVisiblePromptPaths.Count(path => view.FindNode(path)?.activeInHierarchy == true);
         public string VisibleRedDotSummary => string.Join(",", StableVisiblePromptPaths
-            .Where(path => view.Binding.Find(path)?.activeInHierarchy == true));
+            .Where(path => view.FindNode(path)?.activeInHierarchy == true));
 
         public void Render()
         {
@@ -324,7 +324,7 @@ namespace ProjectX.UI
                 _ => string.Empty
             };
             if (string.IsNullOrEmpty(target)) return;
-            GameObject root = view.Binding.Find(target);
+            GameObject root = view.FindNode(target);
             if (root == null) return;
             bool aggregate = serverRedDots.Any(entry => RedDotTarget(entry.Key) == target && entry.Value);
             foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
@@ -475,7 +475,7 @@ namespace ProjectX.UI
         private void SetChatControlVisible(string path, bool visible)
         {
             if (chatView == null) return;
-            GameObject control = chatView.Binding.Find(path);
+            GameObject control = chatView.FindNode(path);
             if (control != null) control.SetActive(visible);
         }
 
@@ -491,7 +491,7 @@ namespace ProjectX.UI
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
             if (!seedStableRedDots) return;
             foreach (string path in StableVisiblePromptPaths)
-                view.Binding.Find(path)?.SetActive(true);
+                view.FindNode(path)?.SetActive(true);
         }
 
         private static string RedDotTarget(int redType)
@@ -511,7 +511,7 @@ namespace ProjectX.UI
 
         private static Text RequireText(CocosUiView owner, string path)
         {
-            GameObject node = owner?.Binding.Find(path) ?? throw new InvalidOperationException($"Main HUD node was not found: {path}");
+            GameObject node = owner?.FindNode(path) ?? throw new InvalidOperationException($"Main HUD node was not found: {path}");
             return node.GetComponent<Text>() ?? throw new InvalidOperationException($"Main HUD node has no Text component: {path}");
         }
 

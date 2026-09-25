@@ -34,7 +34,7 @@ namespace ProjectX.UI
 
         public void Configure(PlayerHubTab selected)
         {
-            Transform panel = frameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform panel = frameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (first == null)
             {
@@ -166,7 +166,13 @@ namespace ProjectX.UI
                 normal.text = value;
                 normal.gameObject.SetActive(!selected);
             }
-            if (chosen != null) chosen.text = value;
+            if (chosen != null)
+            {
+                chosen.text = value;
+                // Runtime-cloned tabs inherit the template's hidden selected label.
+                // Toggle it with the selected background or the tab renders blank.
+                chosen.gameObject.SetActive(selected);
+            }
             Transform choose = tab.Find("ChooseBg");
             if (choose != null) choose.gameObject.SetActive(selected);
             Image background = tab.GetComponent<Image>();

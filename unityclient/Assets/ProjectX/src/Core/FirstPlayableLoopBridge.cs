@@ -151,7 +151,7 @@ namespace ProjectX.LuaRuntime
             try
             {
                 mainView = mainView ?? uiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-                if (mainView.Binding.Find(BagPath) == null)
+                if (mainView.FindNode(BagPath) == null)
                 {
                     SetStatus("Legacy main-HUD bag entry is removed from UImainLayer_new.");
                     return;

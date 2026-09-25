@@ -21,6 +21,7 @@ namespace ProjectX.UI.Migration
 
         [SerializeField] private string source;
         [SerializeField] private List<CocosNodeReference> nodes = new List<CocosNodeReference>();
+        private readonly List<CocosNodeReference> retiredMetadataAliases = new List<CocosNodeReference>();
 
         public string Source => source;
         public IReadOnlyList<CocosNodeReference> Nodes => nodes;
@@ -52,6 +53,7 @@ namespace ProjectX.UI.Migration
         {
             source = sourcePath;
             nodes = nodeReferences;
+            retiredMetadataAliases.Clear();
         }
 
         public int RetireLegacyNodeMetadataAtRuntime()
@@ -62,67 +64,49 @@ namespace ProjectX.UI.Migration
             foreach (CocosNodeMetadata item in metadata)
             {
                 if (item == null) continue;
-                PreserveExactAncestorIdentity(item);
+                PreserveLegacyMetadataPathAlias(item);
                 PreserveRetiredMetadataIdentity(item);
                 Destroy(item);
             }
             return metadata.Length;
         }
 
-        private void PreserveExactAncestorIdentity(CocosNodeMetadata metadata)
+        private void PreserveLegacyMetadataPathAlias(CocosNodeMetadata metadata)
         {
             if (metadata == null || string.IsNullOrWhiteSpace(metadata.CocosPath)) return;
             nodes = nodes ?? new List<CocosNodeReference>();
 
-            // Existing targets and paths keep their current canonical identity.
-            // Only synthesize a reference when both the target and Cocos path are
-            // absent, so Find(path) cannot change which object it resolves.
-            if (nodes.Exists(node => node != null && node.target == metadata.gameObject)
-                || nodes.Exists(node => node != null && node.path == metadata.CocosPath))
-                return;
-
-            CocosNodeReference ancestorReference = null;
-            Transform ancestor = metadata.transform.parent;
-            while (ancestor != null)
-            {
-                foreach (CocosNodeReference candidate in nodes)
-                {
-                    if (candidate == null || candidate.target != ancestor.gameObject
-                        || string.IsNullOrWhiteSpace(candidate.path))
-                        continue;
-
-                    if (ancestorReference == null
-                        || string.CompareOrdinal(candidate.path, ancestorReference.path) < 0
-                        || (string.Equals(candidate.path, ancestorReference.path, StringComparison.Ordinal)
-                            && string.CompareOrdinal(candidate.nodeType, ancestorReference.nodeType) < 0))
-                        ancestorReference = candidate;
-                }
-
-                if (ancestorReference != null || ancestor == transform) break;
-                ancestor = ancestor.parent;
-            }
-            if (ancestorReference == null) return;
-
-            var segments = new Stack<string>();
-            for (Transform current = metadata.transform;
-                 current != null && current != ancestorReference.target.transform;
-                 current = current.parent)
-                segments.Push(current.name);
-
-            string relativePath = string.Join("/", segments.ToArray());
-            string derivedPath = string.IsNullOrEmpty(relativePath)
-                ? ancestorReference.path
-                : ancestorReference.path + "/" + relativePath;
-            if (!string.Equals(derivedPath, metadata.CocosPath, StringComparison.Ordinal)) return;
-
-            nodes.Add(new CocosNodeReference
+            var alias = new CocosNodeReference
             {
                 path = metadata.CocosPath,
                 nodeType = metadata.NodeType,
                 tag = metadata.Tag,
                 actionTag = metadata.ActionTag,
                 target = metadata.gameObject
-            });
+            };
+
+            if (nodes.Exists(node => node != null
+                && node.path == alias.path && node.nodeType == alias.nodeType
+                && node.tag == alias.tag && node.actionTag == alias.actionTag
+                && node.target == alias.target))
+                return;
+
+            // Keep a target's serialized identity canonical for Snapshot. If the
+            // target already has another serialized path, retain the legacy
+            // identity in an owner-scoped lookup list instead of merging it into
+            // the serialized node list and changing Snapshot's canonical path.
+            if (nodes.Exists(node => node != null && node.target == metadata.gameObject))
+            {
+                if (!retiredMetadataAliases.Exists(node => node.path == alias.path
+                    && node.nodeType == alias.nodeType && node.tag == alias.tag
+                    && node.actionTag == alias.actionTag && node.target == alias.target))
+                    retiredMetadataAliases.Add(alias);
+                return;
+            }
+
+            // Append aliases after serialized nodes so existing first-match
+            // behavior wins when another target already owns the old path.
+            nodes.Add(alias);
         }
 
         public int RetireMetadataWithSerializedIdentityAtRuntime(Transform preserveSubtree)
@@ -289,7 +273,7 @@ namespace ProjectX.UI.Migration
             {
                 if (item == null) continue;
 
-                PreserveExactAncestorIdentity(item);
+                PreserveLegacyMetadataPathAlias(item);
                 CocosNodeReference pathReference = nodes.Find(node => node != null
                     && node.path == item.CocosPath);
                 CocosNodeReference typedReference = nodes.Find(node => node != null
@@ -322,6 +306,10 @@ namespace ProjectX.UI.Migration
             if (metadata != null)
                 return metadata.gameObject;
 
+            CocosNodeReference retiredAlias = retiredMetadataAliases.Find(item => item.path == cocosPath);
+            if (retiredAlias != null && retiredAlias.target != null)
+                return retiredAlias.target;
+
             // Unity-authored hierarchy moves can intentionally diverge from the
             // normalized Cocos metadata while retaining the same node names.
             Transform hierarchyTarget = transform.Find(cocosPath);
@@ -346,7 +334,12 @@ namespace ProjectX.UI.Migration
                 item => item.CocosPath == cocosPath
                     && item.NodeType == cocosNodeType
                     && item.ActionTag == cocosActionTag);
-            return metadata != null ? metadata.gameObject : null;
+            if (metadata != null) return metadata.gameObject;
+
+            CocosNodeReference retiredAlias = retiredMetadataAliases.Find(item =>
+                item.path == cocosPath && item.nodeType == cocosNodeType
+                && item.actionTag == cocosActionTag);
+            return retiredAlias != null ? retiredAlias.target : null;
         }
 
         public GameObject FindActionTag(int cocosActionTag)
@@ -356,7 +349,10 @@ namespace ProjectX.UI.Migration
             CocosNodeMetadata metadata = Array.Find(
                 GetComponentsInChildren<CocosNodeMetadata>(true),
                 item => item.ActionTag == cocosActionTag);
-            return metadata != null ? metadata.gameObject : null;
+            if (metadata != null) return metadata.gameObject;
+
+            CocosNodeReference retiredAlias = retiredMetadataAliases.Find(item => item.actionTag == cocosActionTag);
+            return retiredAlias != null ? retiredAlias.target : null;
         }
 
         public GameObject FindSerializedActionTag(int cocosActionTag)

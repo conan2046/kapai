@@ -138,7 +138,7 @@ namespace ProjectX.Core
 
         private void BindWorldBoxButton(string path, Action action)
         {
-            GameObject target = worldBoxAwardView.Binding.Find(path);
+            GameObject target = worldBoxAwardView.FindNode(path);
             if (target == null) throw new InvalidOperationException($"World box award control is missing: {path}");
             Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
             Graphic surface = target.GetComponent<Graphic>();
@@ -224,26 +224,26 @@ namespace ProjectX.Core
             selectedWorldBoxStageId = stage.Id;
             bool claimable = stage.RewardBoxState == 1;
             bool claimed = stage.RewardBoxState >= 2;
-            Text title = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Title/TitleBg")?.GetComponentInChildren<Text>(true);
+            Text title = worldBoxAwardView.FindNode("Layer/Cangbaotu/bg/Title/TitleBg")?.GetComponentInChildren<Text>(true);
             if (title != null) title.text = "关卡宝箱";
-            Text hint = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Image_bg/Text_2")?.GetComponent<Text>();
+            Text hint = worldBoxAwardView.FindNode("Layer/Cangbaotu/bg/Image_bg/Text_2")?.GetComponent<Text>();
             if (hint != null) hint.text = claimable ? $"{stage.Name} 宝箱可领取" : claimed ? "该宝箱已领取" : $"通关 {stage.Name} 后可领取";
             WorldVisualCatalog.TryGetBoxRewards(stage.RewardBoxId, out WorldConfiguredReward[] configuredRewards);
             configuredRewards = configuredRewards ?? Array.Empty<WorldConfiguredReward>();
             for (int index = 0; index < 4; index++)
             {
                 string root = $"Layer/Cangbaotu/bg/Image_bg/IconList/Icon_Bg{index + 1}";
-                GameObject slot = worldBoxAwardView.Binding.Find(root);
+                GameObject slot = worldBoxAwardView.FindNode(root);
                 bool active = slot != null && index < configuredRewards.Length;
                 if (slot != null) slot.SetActive(active);
                 if (!active) continue;
                 RewardRecord reward = DescribeWorldConfiguredReward(configuredRewards[index]);
-                Text name = worldBoxAwardView.Binding.Find(root + "/Name")?.GetComponent<Text>();
+                Text name = worldBoxAwardView.FindNode(root + "/Name")?.GetComponent<Text>();
                 if (name != null) name.text = reward.Name;
-                RenderWorldRewardIcon(worldBoxAwardView.Binding.Find(root + "/IconBg")?.transform, reward);
+                RenderWorldRewardIcon(worldBoxAwardView.FindNode(root + "/IconBg")?.transform, reward);
             }
-            GameObject claim = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/Button");
-            GameObject close = worldBoxAwardView.Binding.Find("Layer/Cangbaotu/bg/ButtonOwn");
+            GameObject claim = worldBoxAwardView.FindNode("Layer/Cangbaotu/bg/Button");
+            GameObject close = worldBoxAwardView.FindNode("Layer/Cangbaotu/bg/ButtonOwn");
             if (claim != null) claim.SetActive(claimable);
             if (close != null) close.SetActive(!claimable);
             Text claimText = claim?.GetComponentInChildren<Text>(true);
@@ -349,7 +349,7 @@ namespace ProjectX.Core
             AttachWorldAchievementToWorldRoot();
             worldAchievementAuthoritativeResponse = false;
             worldAchievementView.ShowPopup();
-            RectTransform content = worldAchievementView.Binding.Find(
+            RectTransform content = worldAchievementView.FindNode(
                 "Layer/zhuxianchengjiu_layer")?.transform as RectTransform;
             if (content != null) content.anchoredPosition = Vector2.zero;
             CocosTimelinePlayer timeline = worldAchievementView.GameObject.GetComponent<CocosTimelinePlayer>();
@@ -369,7 +369,7 @@ namespace ProjectX.Core
             if (worldAchievementView == null)
                 throw new InvalidOperationException("World achievement imported CocosUiBinding was not found.");
             AttachWorldAchievementToWorldRoot();
-            GameObject mask = worldAchievementView.Binding.Find("Layer/Mask");
+            GameObject mask = worldAchievementView.FindNode("Layer/Mask");
             if (mask != null)
             {
                 mask.SetActive(true);
@@ -423,7 +423,7 @@ namespace ProjectX.Core
         private void FitWorldAchievementToScreen()
         {
             RectTransform root = worldAchievementView?.GameObject.transform as RectTransform;
-            RectTransform content = worldAchievementView?.Binding.Find(
+            RectTransform content = worldAchievementView?.FindNode(
                 "Layer/zhuxianchengjiu_layer")?.transform as RectTransform;
             if (root == null || content == null) return;
             Canvas.ForceUpdateCanvases();
@@ -436,7 +436,7 @@ namespace ProjectX.Core
                 ? available.yMax - 55f - bounds.max.y
                 : Mathf.Clamp(0f, available.yMin - bounds.min.y, available.yMax - bounds.max.y);
             content.anchoredPosition += new Vector2(x, y);
-            RectTransform close = worldAchievementView.Binding.Find(
+            RectTransform close = worldAchievementView.FindNode(
                 "Layer/zhuxianchengjiu_layer/Btn_Close")?.transform as RectTransform;
             if (close != null)
             {
@@ -472,7 +472,7 @@ namespace ProjectX.Core
 
         private void BindWorldAchievementButton(string path, Action action)
         {
-            GameObject target = worldAchievementView.Binding.Find(path);
+            GameObject target = worldAchievementView.FindNode(path);
             if (target == null) throw new InvalidOperationException($"World achievement control is missing: {path}");
             Button button = target.GetComponent<Button>() ?? target.AddComponent<Button>();
             Graphic surface = target.GetComponent<Graphic>();
@@ -528,17 +528,17 @@ namespace ProjectX.Core
             int stars = services.World.Chapters.Sum(value => (int)value.OwnedStars);
             int previousGoal = WorldVisualCatalog.GetAchievements(worldAchievementType - 1).LastOrDefault()?.Condition ?? 0;
             int finalGoal = values.Count > 0 ? values[values.Count - 1].Condition : Math.Max(1, stars);
-            Text starText = worldAchievementView.Binding.Find(
+            Text starText = worldAchievementView.FindNode(
                 "Layer/zhuxianchengjiu_layer/jiangli_layer/xing/xing_num")?.GetComponent<Text>();
             if (starText != null) starText.text = $"{stars}/{finalGoal}";
-            Text goal = worldAchievementView.Binding.Find(
+            Text goal = worldAchievementView.FindNode(
                 "Layer/zhuxianchengjiu_layer/jiangli_layer/yilingqu_0")?.GetComponent<Text>();
             if (goal != null)
             {
                 goal.gameObject.SetActive(stars < finalGoal);
                 goal.text = stars < finalGoal ? $"再获得 {finalGoal - stars} 星可完成本阶段" : string.Empty;
             }
-            Image progress = worldAchievementView.Binding.Find(
+            Image progress = worldAchievementView.FindNode(
                 "Layer/zhuxianchengjiu_layer/jiangli_layer/bar_layer/EXPBar")?.GetComponent<Image>();
             if (progress != null)
             {
@@ -551,23 +551,23 @@ namespace ProjectX.Core
             for (int index = 1; index <= 6; index++)
             {
                 string root = $"Layer/zhuxianchengjiu_layer/jiangli_layer/Item_layer/Item{index}";
-                GameObject slot = worldAchievementView.Binding.Find(root);
+                GameObject slot = worldAchievementView.FindNode(root);
                 WorldAchievementDefinition achievement = index <= values.Count ? values[index - 1] : null;
                 if (slot != null) slot.SetActive(achievement != null);
                 if (achievement == null) continue;
                 bool claimed = (worldAchievementBitmap & (1 << index)) != 0;
                 bool claimable = !claimed && stars >= achievement.Condition;
-                Text condition = worldAchievementView.Binding.Find(root + "/xingshu_layer/Num")?.GetComponent<Text>();
+                Text condition = worldAchievementView.FindNode(root + "/xingshu_layer/Num")?.GetComponent<Text>();
                 if (condition != null) condition.text = achievement.Condition.ToString();
-                GameObject claimedObject = worldAchievementView.Binding.Find(root + "/yilingqu");
-                GameObject prompt = worldAchievementView.Binding.Find(root + "/Prompt");
-                GameObject particle = worldAchievementView.Binding.Find(root + "/Particle_1");
+                GameObject claimedObject = worldAchievementView.FindNode(root + "/yilingqu");
+                GameObject prompt = worldAchievementView.FindNode(root + "/Prompt");
+                GameObject particle = worldAchievementView.FindNode(root + "/Particle_1");
                 if (claimedObject != null) claimedObject.SetActive(claimed);
                 if (prompt != null) prompt.SetActive(claimable);
                 if (particle != null) particle.SetActive(claimable);
                 Button button = slot?.GetComponent<Button>();
                 if (button != null) button.interactable = claimable;
-                RenderWorldRewardIcon(worldAchievementView.Binding.Find(root + "/bg_icon")?.transform,
+                RenderWorldRewardIcon(worldAchievementView.FindNode(root + "/bg_icon")?.transform,
                     DescribeWorldConfiguredReward(achievement.Reward));
             }
         }
@@ -579,7 +579,7 @@ namespace ProjectX.Core
             worldBattleResultView = worldBattleResultView ?? services.UiRouter.FindBySource("common/zhandoujiesuanLayer");
             worldBattleStatisticsView = worldBattleStatisticsView ?? services.UiRouter.FindBySource("common/zhandoutongji");
             CocosUiView statisticsFrameView = services.UiRouter.FindBySource("shop/shop_bg");
-            GameObject statisticsFrameTemplate = statisticsFrameView?.Binding.Find("Layer/shopBg");
+            GameObject statisticsFrameTemplate = statisticsFrameView?.FindNode("Layer/shopBg");
             if (worldSweepView == null || worldBattleResultView == null || worldBattleStatisticsView == null
                 || statisticsFrameTemplate == null)
                 throw new InvalidOperationException("World result CocosUiBindings were not found.");

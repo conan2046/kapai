@@ -244,7 +244,7 @@ namespace ProjectX.UI
 
         public void InvokeRoleCreate()
         {
-            Button button = roleCreate?.Binding.Find("Layer/RoleCreateUI/btn_Start")?.GetComponent<Button>();
+            Button button = roleCreate?.FindNode("Layer/RoleCreateUI/btn_Start")?.GetComponent<Button>();
             if (button == null) throw new InvalidOperationException("RoleCreateLayer btn_Start was not bound.");
             button.onClick.Invoke();
         }
@@ -278,7 +278,7 @@ namespace ProjectX.UI
             if (serverRow != null) UnityEngine.Object.Destroy(serverRow);
         }
 
-        private GameObject FindLogin(string relativePath) => login.Binding.Find(Root + "/" + relativePath);
+        private GameObject FindLogin(string relativePath) => login.FindNode(Root + "/" + relativePath);
         private void SetActive(string relativePath, bool active)
         {
             GameObject node = FindLogin(relativePath);
@@ -287,13 +287,13 @@ namespace ProjectX.UI
 
         private static void SetText(CocosUiView view, string path, string value)
         {
-            Text text = view?.Binding.Find(path)?.GetComponent<Text>();
+            Text text = view?.FindNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 
         private static InputField ConfigureInputField(CocosUiView view, string path, bool password)
         {
-            GameObject node = view?.Binding.Find(path);
+            GameObject node = view?.FindNode(path);
             if (node == null) return null;
             InputField input = node.GetComponent<InputField>() ?? node.AddComponent<InputField>();
             Text text = node.GetComponent<Text>() ?? node.GetComponentInChildren<Text>(true);
@@ -326,7 +326,7 @@ namespace ProjectX.UI
 
         private static bool InvokeButton(CocosUiView view, string path)
         {
-            Button button = view?.Binding.Find(path)?.GetComponent<Button>();
+            Button button = view?.FindNode(path)?.GetComponent<Button>();
             if (button == null || !button.interactable) return false;
             button.onClick.Invoke();
             return true;
@@ -334,7 +334,7 @@ namespace ProjectX.UI
 
         private bool InvokeToggleOrButton(string path, bool selected)
         {
-            GameObject node = roleCreate?.Binding.Find(path);
+            GameObject node = roleCreate?.FindNode(path);
             Toggle toggle = node?.GetComponent<Toggle>();
             if (toggle != null && toggle.interactable)
             {
@@ -349,10 +349,10 @@ namespace ProjectX.UI
 
         private void EnsureServerRows()
         {
-            GameObject areaTemplate = serverList?.Binding.Find("Layer/SeverList/Item_1");
-            GameObject serverTemplate = serverList?.Binding.Find("Layer/SeverList/Item_2");
-            Transform areaContent = serverList?.Binding.Find("Layer/SeverList/Panel_1/ListView_1")?.transform;
-            Transform serverContent = serverList?.Binding.Find("Layer/SeverList/Panel_1/ListView_2")?.transform;
+            GameObject areaTemplate = serverList?.FindNode("Layer/SeverList/Item_1");
+            GameObject serverTemplate = serverList?.FindNode("Layer/SeverList/Item_2");
+            Transform areaContent = serverList?.FindNode("Layer/SeverList/Panel_1/ListView_1")?.transform;
+            Transform serverContent = serverList?.FindNode("Layer/SeverList/Panel_1/ListView_2")?.transform;
             if (areaTemplate == null || serverTemplate == null || areaContent == null || serverContent == null)
                 throw new InvalidOperationException("SeverListLayer templates or list views were not imported.");
             areaTemplate.SetActive(false);
@@ -438,7 +438,7 @@ namespace ProjectX.UI
         private static void StartLegacyAnimation(CocosUiView view, string path, ref ImodAnimationPlayer player)
         {
             if (player != null) return;
-            Transform host = view?.Binding.Find(path)?.transform;
+            Transform host = view?.FindNode(path)?.transform;
             if (host == null) return;
             var node = new GameObject("RuntimeImod_effect_chuangjue_1", typeof(RectTransform));
             RectTransform rect = node.GetComponent<RectTransform>();
@@ -458,7 +458,7 @@ namespace ProjectX.UI
 
         private void BindSex(string path, int sex)
         {
-            GameObject node = roleCreate?.Binding.Find(path);
+            GameObject node = roleCreate?.FindNode(path);
             if (node == null) return;
             Toggle toggle = node.GetComponent<Toggle>();
             if (toggle != null)
@@ -477,8 +477,8 @@ namespace ProjectX.UI
         private void ShowRole(int sex)
         {
             selectedSex = sex == 2 ? 2 : 1;
-            Toggle man = roleCreate?.Binding.Find("Layer/RoleCreateUI/man")?.GetComponent<Toggle>();
-            Toggle woman = roleCreate?.Binding.Find("Layer/RoleCreateUI/woman")?.GetComponent<Toggle>();
+            Toggle man = roleCreate?.FindNode("Layer/RoleCreateUI/man")?.GetComponent<Toggle>();
+            Toggle woman = roleCreate?.FindNode("Layer/RoleCreateUI/woman")?.GetComponent<Toggle>();
             if (man != null) man.SetIsOnWithoutNotify(selectedSex == 1);
             if (woman != null) woman.SetIsOnWithoutNotify(selectedSex == 2);
             if (roleAnimation != null)
@@ -486,7 +486,7 @@ namespace ProjectX.UI
                 UnityEngine.Object.Destroy(roleAnimation.gameObject);
                 roleAnimation = null;
             }
-            Transform host = roleCreate?.Binding.Find("Layer/RoleCreateUI/Role")?.transform;
+            Transform host = roleCreate?.FindNode("Layer/RoleCreateUI/Role")?.transform;
             if (host == null) return;
             var node = new GameObject(selectedSex == 1 ? "RuntimeImod_Create_5" : "RuntimeImod_Create_4", typeof(RectTransform));
             RectTransform rect = node.GetComponent<RectTransform>();

@@ -26,6 +26,9 @@ namespace ProjectX.UI
         private readonly Action<Transform, int> showModel;
         private readonly Action<int> selectHero;
         private readonly List<Transform> tabs = new List<Transform>();
+        private readonly Dictionary<RectTransform, float> descriptionBaseHeights = new Dictionary<RectTransform, float>();
+        private readonly Dictionary<RectTransform, float> descriptionContainerBaseHeights = new Dictionary<RectTransform, float>();
+        private readonly Dictionary<RectTransform, Vector2> talentTemplateBasePositions = new Dictionary<RectTransform, Vector2>();
         private readonly HeroCultivationConfig config = new HeroCultivationConfig();
         private int heroId, page, levelItemId = 834, cultivationCount = 1, helpPage, helpSelectedLevel = 1;
         private bool subscribed;
@@ -103,7 +106,7 @@ namespace ProjectX.UI
                 detail = $"EventSystem/tabs unavailable: eventSystem={EventSystem.current != null}, tabs={tabs.Count}";
                 return false;
             }
-            Transform tabPanel = frame.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform tabPanel = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             if (tabPanel == null || tabPanel.Find("Button2_Runtime") == null
                 || tabPanel.Find("HeroCultivationTab2") != null)
             {
@@ -135,7 +138,7 @@ namespace ProjectX.UI
                     return false;
                 }
                 CocosUiView active = PageViews().ElementAt(index);
-                Text title = frame.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+                Text title = frame.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
                 if (!active.GameObject.activeInHierarchy || title == null || title.text != labels[index])
                 {
                     detail = $"tab {labels[index]} did not activate its page/title";
@@ -204,8 +207,8 @@ namespace ProjectX.UI
             ShowPage(0);
 
             int original = heroId;
-            Button right = shell.Binding.Find("Layer/Node_3/Button_r")?.GetComponent<Button>();
-            Button left = shell.Binding.Find("Layer/Node_3/Button_l")?.GetComponent<Button>();
+            Button right = shell.FindNode("Layer/Node_3/Button_r")?.GetComponent<Button>();
+            Button left = shell.FindNode("Layer/Node_3/Button_l")?.GetComponent<Button>();
             if (!InvokePointer(right, out string rightTop) || heroId == original)
             {
                 detail = $"right deployed switch failed; top={rightTop}, hero={original}->{heroId}";
@@ -231,57 +234,57 @@ namespace ProjectX.UI
             Button button = null;
             switch (controlId)
             {
-                case "HC-01-CLOSE": button = frame.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>(); break;
-                case "HC-02-RETURN-FORMATION": button = shell.Binding.Find("Layer/Node_3/duiwu")?.GetComponent<Button>(); break;
-                case "HC-03-PREV-DEPLOYED": button = shell.Binding.Find("Layer/Node_3/Button_l")?.GetComponent<Button>(); break;
-                case "HC-04-NEXT-DEPLOYED": button = shell.Binding.Find("Layer/Node_3/Button_r")?.GetComponent<Button>(); break;
+                case "HC-01-CLOSE": button = frame.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>(); break;
+                case "HC-02-RETURN-FORMATION": button = shell.FindNode("Layer/Node_3/duiwu")?.GetComponent<Button>(); break;
+                case "HC-03-PREV-DEPLOYED": button = shell.FindNode("Layer/Node_3/Button_l")?.GetComponent<Button>(); break;
+                case "HC-04-NEXT-DEPLOYED": button = shell.FindNode("Layer/Node_3/Button_r")?.GetComponent<Button>(); break;
                 case "HC-05-TAB-LEVEL": button = tabs.Count > 0 ? tabs[0].GetComponent<Button>() : null; break;
                 case "HC-06-TAB-STAR": button = tabs.Count > 1 ? tabs[1].GetComponent<Button>() : null; break;
                 case "HC-07-TAB-BREAK": button = tabs.Count > 2 ? tabs[2].GetComponent<Button>() : null; break;
                 case "HC-08-TAB-CULTIVATE": button = tabs.Count > 3 ? tabs[3].GetComponent<Button>() : null; break;
                 case "HC-09-TAB-INFO": button = tabs.Count > 4 ? tabs[4].GetComponent<Button>() : null; break;
-                case "HC-10-LEVEL-MAT-1": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1")?.GetComponent<Button>(); break;
-                case "HC-11-LEVEL-MAT-2": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2")?.GetComponent<Button>(); break;
-                case "HC-12-LEVEL-MAT-3": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3")?.GetComponent<Button>(); break;
-                case "HC-13-LEVEL-MAT-4": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4")?.GetComponent<Button>(); break;
-                case "HC-14-LEVEL-UP": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.GetComponent<Button>(); break;
-                case "HC-15-LEVEL-ONEKEY-OPEN": EnsurePage(0); button = level.Binding.Find("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.GetComponent<Button>(); break;
-                case "HC-16-ONEKEY-CLOSE": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-17-ONEKEY-CANCEL": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button1")?.GetComponent<Button>(); break;
-                case "HC-18-ONEKEY-CONFIRM": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button")?.GetComponent<Button>(); break;
-                case "HC-19-ONEKEY-PLUS1": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_+")?.GetComponent<Button>(); break;
-                case "HC-20-ONEKEY-MINUS1": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_-")?.GetComponent<Button>(); break;
-                case "HC-21-ONEKEY-PLUS10": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_+10")?.GetComponent<Button>(); break;
-                case "HC-22-ONEKEY-MINUS10": EnsureAutoLevel(); button = autoLevel.Binding.Find("Layer/bg/Button_-10")?.GetComponent<Button>(); break;
+                case "HC-10-LEVEL-MAT-1": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1")?.GetComponent<Button>(); break;
+                case "HC-11-LEVEL-MAT-2": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2")?.GetComponent<Button>(); break;
+                case "HC-12-LEVEL-MAT-3": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3")?.GetComponent<Button>(); break;
+                case "HC-13-LEVEL-MAT-4": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4")?.GetComponent<Button>(); break;
+                case "HC-14-LEVEL-UP": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-15-LEVEL-ONEKEY-OPEN": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.GetComponent<Button>(); break;
+                case "HC-16-ONEKEY-CLOSE": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-17-ONEKEY-CANCEL": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button1")?.GetComponent<Button>(); break;
+                case "HC-18-ONEKEY-CONFIRM": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button")?.GetComponent<Button>(); break;
+                case "HC-19-ONEKEY-PLUS1": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_+")?.GetComponent<Button>(); break;
+                case "HC-20-ONEKEY-MINUS1": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_-")?.GetComponent<Button>(); break;
+                case "HC-21-ONEKEY-PLUS10": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_+10")?.GetComponent<Button>(); break;
+                case "HC-22-ONEKEY-MINUS10": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_-10")?.GetComponent<Button>(); break;
                 case "HC-23-STAR-SCROLL": EnsurePage(1); return InvokeScroll(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView", out detail);
-                case "HC-24-STAR-DETAIL": EnsurePage(1); button = star.Binding.Find("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
-                case "HC-25-STAR-DETAIL-CLOSE": EnsureTalent(false); button = talent.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-26-STAR-UP": EnsurePage(1); button = star.Binding.Find("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.GetComponent<Button>(); break;
-                case "HC-27-BREAK-DETAIL": EnsurePage(2); button = breakUp.Binding.Find("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
-                case "HC-28-BREAK-DETAIL-CLOSE": EnsureTalent(true); button = talent.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-29-BREAK-UP": EnsurePage(2); button = breakUp.Binding.Find("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.GetComponent<Button>(); break;
-                case "HC-30-CULTIVATE-HELP": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/jichu/Button")?.GetComponent<Button>(); break;
-                case "HC-31-CULTIVATE-HELP-CLOSE": EnsureHelp(); button = helpFrame.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-24-STAR-DETAIL": EnsurePage(1); button = star.FindNode("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-25-STAR-DETAIL-CLOSE": EnsureTalent(false); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-26-STAR-UP": EnsurePage(1); button = star.FindNode("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.GetComponent<Button>(); break;
+                case "HC-27-BREAK-DETAIL": EnsurePage(2); button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-28-BREAK-DETAIL-CLOSE": EnsureTalent(true); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-29-BREAK-UP": EnsurePage(2); button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-30-CULTIVATE-HELP": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-31-CULTIVATE-HELP-CLOSE": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>(); break;
                 case "HC-32-CULTIVATE-MATERIAL": EnsurePage(3); button = ResolveButton(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1"); break;
-                case "HC-33-CULTIVATE-ONEKEY": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl")?.GetComponent<Button>(); break;
-                case "HC-34-CULTIVATE-COUNT": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/cailiao/btn_xl")?.GetComponent<Button>(); break;
-                case "HC-35-CULTIVATE-ACTIVATE": EnsurePage(3); button = cultivate.Binding.Find("Layer/shenjiangxiulian/Info/cailiao/btn_dxl")?.GetComponent<Button>(); break;
+                case "HC-33-CULTIVATE-ONEKEY": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl")?.GetComponent<Button>(); break;
+                case "HC-34-CULTIVATE-COUNT": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_xl")?.GetComponent<Button>(); break;
+                case "HC-35-CULTIVATE-ACTIVATE": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_dxl")?.GetComponent<Button>(); break;
                 case "HC-36-INFO-SCROLL": EnsurePage(4); return InvokeScroll(info, "Layer/shenjiangInfoUI/Info/ScrollView_1", out detail);
-                case "HC-37-INFO-ATTR-DETAIL": EnsurePage(4); button = info.Binding.Find("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button")?.GetComponent<Button>(); break;
-                case "HC-38-INFO-ATTR-CLOSE": EnsureAttributes(); button = attributes.Binding.Find("Layer/Mask_close")?.GetComponent<Button>(); break;
-                case "HC-39-INFO-SKILL-DETAIL": EnsurePage(4); button = info.Binding.Find("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button")?.GetComponent<Button>(); break;
-                case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
-                case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.Binding.Find("Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
-                case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.Binding.Find("Layer/shopBg/Btn_ListView/Panel_1/HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
-                case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1/HeroDestinyButton")?.GetComponent<Button>(); break;
-                case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11/HeroDestinyButton")?.GetComponent<Button>(); break;
-                case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
-                case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
-                case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-49-NUM-INPUT-DIGITS": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/BtnList/Btn1")?.GetComponent<Button>(); break;
-                case "HC-50-NUM-INPUT-DELETE": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/BtnList/Btn10")?.GetComponent<Button>(); break;
-                case "HC-51-NUM-INPUT-CLOSE": EnsureNumber(); button = number.Binding.Find("Layer/Panel/Bg/Close")?.GetComponent<Button>(); break;
+                case "HC-37-INFO-ATTR-DETAIL": EnsurePage(4); button = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-38-INFO-ATTR-CLOSE": EnsureAttributes(); button = attributes.FindNode("Layer/Mask_close")?.GetComponent<Button>(); break;
+                case "HC-39-INFO-SKILL-DETAIL": EnsurePage(4); button = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button")?.GetComponent<Button>(); break;
+                case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
+                case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
+                case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
+                case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1/HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11/HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-49-NUM-INPUT-DIGITS": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn1")?.GetComponent<Button>(); break;
+                case "HC-50-NUM-INPUT-DELETE": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn10")?.GetComponent<Button>(); break;
+                case "HC-51-NUM-INPUT-CLOSE": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/Close")?.GetComponent<Button>(); break;
                 default: detail = "unknown control id"; return false;
             }
             EnsureButtonRaycast(button);
@@ -315,7 +318,7 @@ namespace ProjectX.UI
 
         private static Button ResolveButton(CocosUiView view, string path)
         {
-            GameObject node = view?.Binding.Find(path);
+            GameObject node = view?.FindNode(path);
             if (node == null) return null;
             Transform cursor = node.transform;
             while (cursor != null && cursor != view?.GameObject.transform)
@@ -339,7 +342,7 @@ namespace ProjectX.UI
         private bool InvokeScroll(CocosUiView view, string path, out string detail)
         {
             detail = string.Empty;
-            ScrollRect scroll = view?.Binding.Find(path)?.GetComponent<ScrollRect>();
+            ScrollRect scroll = view?.FindNode(path)?.GetComponent<ScrollRect>();
             if (scroll == null || EventSystem.current == null || !scroll.gameObject.activeInHierarchy)
             { detail = "ScrollRect unavailable"; return false; }
             RectTransform scrollRect = scroll.viewport != null ? scroll.viewport : scroll.transform as RectTransform;
@@ -415,14 +418,14 @@ namespace ProjectX.UI
 
         private static bool HasVisibleSprite(CocosUiView view, string path)
         {
-            GameObject host = view?.Binding.Find(path);
+            GameObject host = view?.FindNode(path);
             return host != null && host.GetComponentsInChildren<Image>(true)
                 .Any(image => image.enabled && image.sprite != null);
         }
 
         private static bool HasVisibleChildSprite(CocosUiView view, string path, string childName)
         {
-            Transform child = view?.Binding.Find(path)?.transform.Find(childName);
+            Transform child = view?.FindNode(path)?.transform.Find(childName);
             Image image = child?.GetComponent<Image>();
             return image != null && image.enabled && image.sprite != null;
         }
@@ -461,6 +464,9 @@ namespace ProjectX.UI
             BindDelta(autoLevel, "Layer/bg/Button_-", -1);
             BindDelta(autoLevel, "Layer/bg/Button_+10", 10);
             BindDelta(autoLevel, "Layer/bg/Button_-10", -10);
+            InputField autoLevelCount = autoLevel.FindNode(
+                "Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (autoLevelCount != null) autoLevelCount.onValueChanged.AddListener(UpdateAutoLevelCount);
             star.BindClick("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi", () => OpenTalent(false), true);
             star.BindClick("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing", () => starAction(heroId), true);
             breakUp.BindClick("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi", () => OpenTalent(true), true);
@@ -489,8 +495,8 @@ namespace ProjectX.UI
 
         private void ConfigureTabs()
         {
-            GameObject listObject = frame.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
-            Transform panel = frame.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            GameObject listObject = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView");
+            Transform panel = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (listObject == null || panel == null || first == null)
                 throw new InvalidOperationException("Hero cultivation tab template is missing.");
@@ -570,7 +576,7 @@ namespace ProjectX.UI
 
         private void ResetTabOverlay()
         {
-            GameObject listObject = frame?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView");
+            GameObject listObject = frame?.FindNode("Layer/Panel_12/Bg/Btn_ListView");
             Canvas tabCanvas = listObject?.GetComponent<Canvas>();
             if (tabCanvas == null) return;
             // sortingOrder=200 is owned only by the cultivation shell. Leaving it
@@ -587,7 +593,7 @@ namespace ProjectX.UI
             int cursor = 0;
             foreach (CocosUiView view in PageViews()) view.SetVisible(cursor++ == page);
             for (int i = 0; i < tabs.Count; i++) SetTab(tabs[i], new[] { "升级", "升星", "突破", "修炼", "信息" }[i], i == page);
-            Text title = frame.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = frame.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = new[] { "升级", "升星", "突破", "修炼", "信息" }[page];
             Render();
             CocosUiView activePage = PageViews().ElementAt(page);
@@ -625,7 +631,7 @@ namespace ProjectX.UI
             SetText(shell, "Layer/Node_3/Tips_2", $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}");
             SetText(shell, "Layer/Node_3/bg_zhanli/Value", hero.Power.ToString());
             if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
-                showModel(shell.Binding.Find("Layer/Node_3/Node")?.transform, definition.Picture);
+                showModel(shell.FindNode("Layer/Node_3/Node")?.transform, definition.Picture);
             RenderLevel(); RenderStar(); RenderBreak(); RenderCultivate(); RenderInfo();
         }
 
@@ -655,7 +661,7 @@ namespace ProjectX.UI
             uint maximum = config.GetExperienceCap(hero.Level, checked(hero.MaxExperience * 15u));
             SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", $"{hero.Experience}/{maximum}");
             FitText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", 14);
-            Image experience = level.Binding.Find(
+            Image experience = level.FindNode(
                 "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
             if (experience != null)
                 experience.fillAmount = maximum == 0 ? 0f : Mathf.Clamp01((float)hero.Experience / maximum);
@@ -683,15 +689,16 @@ namespace ProjectX.UI
                 SetText(star, $"Layer/yingxiongshengxingUI/Info/jichu/Attribute_{i + 1}/Value", $"+{ordered[i]}");
             for (int value = 1; value <= 8; value++)
             {
-                GameObject node = star.Binding.Find($"Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_{value}");
+                GameObject node = star.FindNode($"Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_{value}");
                 if (node != null) node.SetActive(value <= hero.Star);
             }
             if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
             {
                 SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/SkillName", definition.SkillName);
-                SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo",
-                    ResolveSkillDescription(hero, definition));
-                Image skill = star.Binding.Find(
+                const string starSkillInfoPath = "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo";
+                SetText(star, starSkillInfoPath, ResolveSkillDescription(hero, definition));
+                FitDescription(star, starSkillInfoPath, expandParent: true, rightInset: 25f);
+                Image skill = star.FindNode(
                     "Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")?.GetComponent<Image>();
                 if (skill != null)
                 {
@@ -775,9 +782,13 @@ namespace ProjectX.UI
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value", definition.Feature);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillName", definition.SkillName);
                 string skillDescription = ResolveSkillDescription(hero, definition);
-                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo", skillDescription);
+                const string skillInfoPath = "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo";
+                SetText(info, skillInfoPath, skillDescription);
+                FitDescription(info, skillInfoPath, expandParent: false);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/Title", $"升至{hero.Star}星开启");
-                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo", skillDescription);
+                const string starTalentInfoPath = "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo";
+                SetText(info, starTalentInfoPath, skillDescription);
+                FitDescription(info, starTalentInfoPath, expandParent: false);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/miaoshu/Item/Content", definition.Feature);
             }
             SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu/Item/TalentInfo",
@@ -796,15 +807,35 @@ namespace ProjectX.UI
         private void OpenAutoLevel()
         {
             cultivationCount = 1;
-            SetText(autoLevel, "Layer/bg/Num", cultivationCount.ToString());
+            SetAutoLevelCount();
             autoLevel.ShowPopup();
         }
 
         private void BindDelta(CocosUiView view, string path, int delta) => view.BindClick(path, () =>
         {
             cultivationCount = Mathf.Clamp(cultivationCount + delta, 1, Math.Max(1, player.Level - CurrentHero().Level));
-            SetText(autoLevel, "Layer/bg/Num", cultivationCount.ToString());
+            SetAutoLevelCount();
         }, true);
+
+        private void SetAutoLevelCount()
+        {
+            InputField count = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (count != null) count.text = cultivationCount.ToString();
+        }
+
+        private void UpdateAutoLevelCount(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                cultivationCount = 1;
+                return;
+            }
+            if (!int.TryParse(value, out int entered)) return;
+            cultivationCount = Mathf.Clamp(entered, 1, Math.Max(1, player.Level - CurrentHero().Level));
+            string normalized = cultivationCount.ToString();
+            InputField count = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (count != null && count.text != normalized) count.text = normalized;
+        }
 
         private void OpenNumber()
         {
@@ -833,7 +864,7 @@ namespace ProjectX.UI
             HeroRecord hero = CurrentHero();
             HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
             SetText(talent, "Layer/bg/Title", breakTalent ? "突破天赋" : "技能详情");
-            talent.Binding.Find("Layer/bg/Title")?.transform.SetAsLastSibling();
+            talent.FindNode("Layer/bg/Title")?.transform.SetAsLastSibling();
             string[] titles;
             string[] descriptions;
             if (breakTalent)
@@ -856,21 +887,78 @@ namespace ProjectX.UI
 
         private void PopulateTalentRows(IReadOnlyList<string> titles, IReadOnlyList<string> descriptions, int activeLevel)
         {
-            GameObject listObject = talent.Binding.Find("Layer/bg/ListView");
-            GameObject templateObject = talent.Binding.Find("Layer/bg/ListView/Panel_2");
-            if (listObject == null || templateObject == null) return;
+            GameObject listObject = talent.FindNode("Layer/bg/ListView");
+            if (listObject == null) return;
+
+            RectTransform viewport = listObject.transform as RectTransform;
+            ScrollRect scrollRect = listObject.GetComponent<ScrollRect>();
+            if (viewport == null || scrollRect == null) return;
+            // The imported CSD defines this viewport at 540 x 270. Runtime rows
+            // used to inflate the viewport to their combined height, so its
+            // current RectTransform is not a reliable source for the base size.
+            const float viewportHeight = 270f;
+            viewport.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, viewportHeight);
+
+            Transform contentTransform = listObject.transform.Find("RuntimeTalentContent");
+            GameObject templateObject = contentTransform != null
+                ? contentTransform.Find("Panel_2")?.gameObject
+                : listObject.transform.Find("Panel_2")?.gameObject;
+            if (templateObject == null) return;
             RectTransform template = templateObject.transform as RectTransform;
-            foreach (Transform child in listObject.transform.Cast<Transform>().ToArray())
-                if (child.name.StartsWith("HeroCultivationTalentRow_", StringComparison.Ordinal))
+            if (template == null) return;
+            if (!talentTemplateBasePositions.TryGetValue(template, out Vector2 origin))
+            {
+                origin = template.anchoredPosition;
+                talentTemplateBasePositions.Add(template, origin);
+            }
+            float step = Math.Max(78f, template.rect.height);
+            float contentHeight = Math.Max(viewportHeight, step * Math.Max(1, Math.Min(titles.Count, descriptions.Count)));
+
+            if (contentTransform == null)
+            {
+                GameObject contentObject = new GameObject("RuntimeTalentContent", typeof(RectTransform));
+                contentTransform = contentObject.transform;
+                contentTransform.SetParent(listObject.transform, false);
+            }
+            RectTransform content = contentTransform as RectTransform;
+            content.anchorMin = content.anchorMax = new Vector2(0f, 1f);
+            content.pivot = new Vector2(0f, 1f);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(viewport.rect.width, contentHeight);
+
+            template.SetParent(content, false);
+            template.anchorMin = template.anchorMax = Vector2.zero;
+            template.pivot = Vector2.zero;
+            foreach (Transform child in content.Cast<Transform>().ToArray())
+                if (child != template && child.name.StartsWith("HeroCultivationTalentRow_", StringComparison.Ordinal))
                     UnityEngine.Object.Destroy(child.gameObject);
-            Vector2 origin = template != null ? template.anchoredPosition : Vector2.zero;
-            float step = Math.Max(78f, template != null ? template.rect.height : 78f);
+
+            scrollRect.viewport = viewport;
+            scrollRect.content = content;
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+
+            Image hitSurface = listObject.GetComponent<Image>();
+            if (hitSurface == null)
+            {
+                hitSurface = listObject.AddComponent<Image>();
+                hitSurface.color = new Color(1f, 1f, 1f, 0f);
+            }
+            hitSurface.raycastTarget = true;
+
+            float contentOffset = contentHeight - viewportHeight;
             for (int index = 0; index < Math.Min(titles.Count, descriptions.Count); index++)
             {
-                GameObject row = index == 0 ? templateObject : UnityEngine.Object.Instantiate(templateObject, listObject.transform, false);
+                GameObject row = index == 0 ? templateObject : UnityEngine.Object.Instantiate(templateObject, content, false);
                 if (index > 0) row.name = $"HeroCultivationTalentRow_{index + 1}";
                 RectTransform rect = row.transform as RectTransform;
-                if (rect != null) rect.anchoredPosition = origin + new Vector2(0f, -step * index);
+                if (rect != null)
+                {
+                    rect.anchorMin = rect.anchorMax = Vector2.zero;
+                    rect.pivot = Vector2.zero;
+                    rect.anchoredPosition = origin + new Vector2(0f, contentOffset - step * index);
+                }
                 Text openText = row.transform.Find("Text")?.GetComponent<Text>();
                 Transform detailHost = row.transform.Find("Text_skill");
                 Text detailText = detailHost?.Find("Text")?.GetComponent<Text>();
@@ -920,8 +1008,10 @@ namespace ProjectX.UI
                 if (detailText != null) detailText.color = color;
                 row.SetActive(true);
             }
-            if (listObject.transform is RectTransform listRect)
-                listRect.sizeDelta = new Vector2(listRect.sizeDelta.x, Math.Max(listRect.sizeDelta.y, step * titles.Count));
+            LayoutRebuilder.MarkLayoutForRebuild(content);
+            Canvas.ForceUpdateCanvases();
+            scrollRect.StopMovement();
+            scrollRect.verticalNormalizedPosition = 1f;
         }
         private void OpenAttributes()
         {
@@ -932,9 +1022,9 @@ namespace ProjectX.UI
             SetText(attributes, "Layer/Node_1/Popup/Icon/text_dingwei/num", definition.Feature);
             SetMaterialIcon(attributes, "Layer/Node_1/Popup/Icon",
                 resources.LoadHeroPortrait(definition.Picture), "HeroAttributePortrait", definition.Quality);
-            Transform portraitFrame = attributes.Binding.Find("Layer/Node_1/Popup/Icon")?.transform
+            Transform portraitFrame = attributes.FindNode("Layer/Node_1/Popup/Icon")?.transform
                 .Find("HeroAttributePortraitFrame");
-            Transform portrait = attributes.Binding.Find("Layer/Node_1/Popup/Icon")?.transform
+            Transform portrait = attributes.FindNode("Layer/Node_1/Popup/Icon")?.transform
                 .Find("HeroAttributePortrait");
             portraitFrame?.SetSiblingIndex(0);
             portrait?.SetSiblingIndex(1);
@@ -944,8 +1034,8 @@ namespace ProjectX.UI
 
         private void PopulateHeroAttributeRows(HeroRecord hero)
         {
-            GameObject list = attributes.Binding.Find("Layer/Node_1/Popup/ListView");
-            GameObject template = attributes.Binding.Find("Layer/Node_1/Popup/ListView/name");
+            GameObject list = attributes.FindNode("Layer/Node_1/Popup/ListView");
+            GameObject template = attributes.FindNode("Layer/Node_1/Popup/ListView/name");
             if (list == null || template == null) return;
             foreach (Transform child in list.transform.Cast<Transform>().ToArray())
                 if (child.name.StartsWith("HeroAttributeRow_", StringComparison.Ordinal))
@@ -986,17 +1076,17 @@ namespace ProjectX.UI
         private void ConfigureHelpFrame()
         {
             SetText(helpFrame, "Layer/shopBg/Popup/Title/Title", "天命激活");
-            GameObject helpButton = helpFrame.Binding.Find("Layer/shopBg/Popup/Title/Title/Button_1");
+            GameObject helpButton = helpFrame.FindNode("Layer/shopBg/Popup/Title/Title/Button_1");
             if (helpButton != null) helpButton.SetActive(false);
             // Cocos ChangeBg replaces Popup/bg/Image1 while retaining Popup/bg itself as
             // the decorative frame. Hiding the whole node drops the frame as well.
-            GameObject sharedBody = helpFrame.Binding.Find("Layer/shopBg/Popup/bg");
+            GameObject sharedBody = helpFrame.FindNode("Layer/shopBg/Popup/bg");
             if (sharedBody != null) sharedBody.SetActive(true);
             ConfigureDestinyBackground(sharedBody);
             ConfigureOverlayCanvas(helpFirst.GameObject, 202);
-            ConfigureOverlayCanvas(helpFrame.Binding.Find("Layer/shopBg/Popup/Title"), 203);
-            ConfigureOverlayCanvas(helpFrame.Binding.Find("Layer/shopBg/Popup/Btn_close"), 203);
-            ConfigureOverlayCanvas(helpFrame.Binding.Find("Layer/shopBg/Btn_ListView/Panel_1"), 203);
+            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Popup/Title"), 203);
+            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Popup/Btn_close"), 203);
+            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1"), 203);
             foreach (Transform child in helpFrame.GameObject.GetComponentsInChildren<Transform>(true))
                 if (child.name.StartsWith("RuntimeGameplayContent", StringComparison.Ordinal)
                     || child.name.StartsWith("ActivityBg", StringComparison.Ordinal)
@@ -1017,7 +1107,7 @@ namespace ProjectX.UI
         }
         private void ConfigureHelpTabs()
         {
-            Transform panel = helpFrame.Binding.Find("Layer/shopBg/Btn_ListView/Panel_1")?.transform;
+            Transform panel = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1")?.transform;
             Transform first = panel?.Find("Button");
             if (first == null) return;
             Transform second = panel.Find("HeroCultivationHelpTab2");
@@ -1060,7 +1150,7 @@ namespace ProjectX.UI
             image.color = new Color(0f, 0f, 0f, 0.72f);
             image.raycastTarget = true;
 
-            GameObject list = helpSecond.Binding.Find("Layer/Popup/ListView_1");
+            GameObject list = helpSecond.FindNode("Layer/Popup/ListView_1");
             if (list != null)
             {
                 // The Cocos ScrollView stores three stacked content panels with a baked
@@ -1091,13 +1181,13 @@ namespace ProjectX.UI
         private void RenderCultivationDestinyPage()
         {
             HeroRecord hero = CurrentHero();
-            GameObject panel = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing");
-            GameObject template = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Button");
+            GameObject panel = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing");
+            GameObject template = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Button");
             if (panel == null || template == null) return;
             template.SetActive(false);
             for (int levelValue = 1; levelValue <= 20; levelValue++)
             {
-                GameObject node = helpFirst.Binding.Find(
+                GameObject node = helpFirst.FindNode(
                     $"Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_{levelValue}");
                 if (node == null) continue;
                 Transform old = node.transform.Find("HeroDestinyButton");
@@ -1128,7 +1218,7 @@ namespace ProjectX.UI
             string[] names = { "攻击加成", "物防加成", "法防加成", "生命加成" };
             for (int index = 0; index < names.Length; index++)
             {
-                GameObject bonusObject = helpFirst.Binding.Find(
+                GameObject bonusObject = helpFirst.FindNode(
                     $"Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_{index + 1}");
                 Text bonusText = bonusObject?.GetComponent<Text>();
                 if (bonusText != null)
@@ -1138,10 +1228,10 @@ namespace ProjectX.UI
                 }
             }
             string extra = config.GetTrainingExtraDescription(helpSelectedLevel);
-            GameObject extraRoot = helpFirst.Binding.Find("Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5");
+            GameObject extraRoot = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5");
             if (extraRoot != null) extraRoot.SetActive(!string.IsNullOrEmpty(extra));
             SetText(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5/txt_5_0", extra);
-            Text destinyName = helpFirst.Binding.Find(
+            Text destinyName = helpFirst.FindNode(
                 "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_0")?.GetComponent<Text>();
             if (destinyName != null)
             {
@@ -1176,12 +1266,12 @@ namespace ProjectX.UI
                     $"{names[index]}+{baseTotals[index]}");
                 SetText(helpSecond, $"Layer/Popup/ListView_1/Content_2/Atrribute_{index + 1}",
                     $"{names[index]}加成+{percentage:0.##}%");
-                Text percentText = helpSecond.Binding.Find(
+                Text percentText = helpSecond.FindNode(
                     $"Layer/Popup/ListView_1/Content_2/Atrribute_{index + 1}")?.GetComponent<Text>();
                 if (percentText != null)
                     percentText.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
-            GameObject extraTextObject = helpSecond.Binding.Find(
+            GameObject extraTextObject = helpSecond.FindNode(
                 "Layer/Popup/ListView_1/Content_3/Atrribute_1");
             if (extraTextObject != null)
             {
@@ -1239,15 +1329,74 @@ namespace ProjectX.UI
         }
         private static void SetText(CocosUiView view, string path, string value)
         {
-            Text text = view.Binding.Find(path)?.GetComponent<Text>();
+            Text text = view.FindNode(path)?.GetComponent<Text>();
             if (text == null) return;
             text.supportRichText = true;
             text.text = value ?? string.Empty;
         }
 
+        private void FitDescription(CocosUiView view, string path, bool expandParent, float rightInset = 0f)
+        {
+            Text text = view.FindNode(path)?.GetComponent<Text>();
+            RectTransform rect = text?.rectTransform;
+            if (text == null || rect == null) return;
+
+            text.supportRichText = true;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            RectTransform parent = rect.parent as RectTransform;
+            if (!descriptionBaseHeights.TryGetValue(rect, out float baseTextHeight))
+            {
+                baseTextHeight = rect.rect.height;
+                descriptionBaseHeights.Add(rect, baseTextHeight);
+            }
+            if (parent != null && !descriptionContainerBaseHeights.ContainsKey(parent))
+                descriptionContainerBaseHeights.Add(parent, parent.rect.height);
+            if (rightInset > 0f)
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                    Mathf.Max(120f, (parent == null ? rect.rect.width : parent.rect.width) - rightInset));
+            float desiredHeight = Mathf.Ceil(text.preferredHeight) + 2f;
+            float targetTextHeight = Mathf.Max(baseTextHeight, desiredHeight);
+
+            if (expandParent && parent != null)
+            {
+                float baseParentHeight = descriptionContainerBaseHeights[parent];
+                parent.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                    Mathf.Max(baseParentHeight, desiredHeight));
+                targetTextHeight = Mathf.Min(targetTextHeight, parent.rect.height);
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, targetTextHeight);
+            }
+            else if (Mathf.Abs(targetTextHeight - rect.rect.height) > 0.5f)
+            {
+                Vector3 center = rect.TransformPoint(rect.rect.center);
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, targetTextHeight);
+                rect.position += center - rect.TransformPoint(rect.rect.center);
+                if (parent != null && targetTextHeight <= parent.rect.height)
+                {
+                    Vector3[] textCorners = new Vector3[4];
+                    Vector3[] parentCorners = new Vector3[4];
+                    rect.GetWorldCorners(textCorners);
+                    parent.GetWorldCorners(parentCorners);
+                    float shiftY = 0f;
+                    if (textCorners[1].y > parentCorners[1].y)
+                        shiftY = parentCorners[1].y - textCorners[1].y;
+                    else if (textCorners[0].y < parentCorners[0].y)
+                        shiftY = parentCorners[0].y - textCorners[0].y;
+                    rect.position += Vector3.up * shiftY;
+                }
+            }
+
+            text.alignment = (TextAnchor)((int)text.alignment >= (int)TextAnchor.LowerLeft
+                ? (int)text.alignment - 6
+                : (int)text.alignment >= (int)TextAnchor.MiddleLeft
+                    ? (int)text.alignment - 3
+                    : (int)text.alignment);
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            LayoutRebuilder.MarkLayoutForRebuild(parent != null ? parent : rect);
+        }
+
         private static void FitText(CocosUiView view, string path, int minimumSize)
         {
-            Text text = view.Binding.Find(path)?.GetComponent<Text>();
+            Text text = view.FindNode(path)?.GetComponent<Text>();
             if (text == null) return;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = Math.Max(8, minimumSize);
@@ -1257,7 +1406,7 @@ namespace ProjectX.UI
 
         private void SetMaterialIcon(CocosUiView view, string path, Sprite sprite, string runtimeName, int quality = 0)
         {
-            GameObject host = view.Binding.Find(path);
+            GameObject host = view.FindNode(path);
             if (host == null) return;
             Image hostImage = host.GetComponent<Image>();
             if (hostImage != null) hostImage.color = new Color(1f, 1f, 1f, 0f);

@@ -27,7 +27,7 @@ namespace ProjectX.Core
         public void ShowGameNotice()
         {
             if (noticeView == null) { Fail("NoticeLayer CocosUiBinding was not found."); return; }
-            GameObject closeTemplate = roleCreateView?.Binding.Find("Layer/RoleCreateUI/Image/btn_Exit");
+            GameObject closeTemplate = roleCreateView?.FindNode("Layer/RoleCreateUI/Image/btn_Exit");
             noticePresenter = noticePresenter ?? new NoticePresenter(noticeView, closeTemplate, CloseGameNotice);
             noticePresenter.Show(pendingGameNotices);
             noticeView.ShowPopup();

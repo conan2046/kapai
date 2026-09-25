@@ -71,7 +71,7 @@ namespace ProjectX.UI
 
         private void BindClose()
         {
-            GameObject node = view.Binding.Find("Layer/Panel/Panel_1_0/closeBtn")
+            GameObject node = view.FindNode("Layer/Panel/Panel_1_0/closeBtn")
                 ?? throw new InvalidOperationException("Gameplay shop SourceLayer close button is missing.");
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
@@ -154,7 +154,7 @@ namespace ProjectX.UI
             });
         }
 
-        private GameObject Node(string path) => view.Binding.Find(path);
+        private GameObject Node(string path) => view.FindNode(path);
 
         private void SetText(string path, string value)
         {

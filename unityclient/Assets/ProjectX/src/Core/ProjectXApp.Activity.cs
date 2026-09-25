@@ -106,7 +106,7 @@ namespace ProjectX.Core
 
         private void RefreshActivityHotPoint()
         {
-            GameObject button = mainView?.Binding.Find(ActivityPath);
+            GameObject button = mainView?.FindNode(ActivityPath);
             Transform hotPoint = button?.transform.Find("ActivityHotPointRuntime");
             if (hotPoint != null) hotPoint.gameObject.SetActive(services?.Activity.HasHotPoint == true);
         }

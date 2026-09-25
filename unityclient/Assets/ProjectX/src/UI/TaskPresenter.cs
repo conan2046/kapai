@@ -48,7 +48,7 @@ namespace ProjectX.UI
 
         public bool ScrollToBottom()
         {
-            ScrollRect scroll = view.Binding.Find(BasePath + "/Content/ListView")?.GetComponent<ScrollRect>();
+            ScrollRect scroll = view.FindNode(BasePath + "/Content/ListView")?.GetComponent<ScrollRect>();
             if (scroll == null) return false;
             scroll.verticalNormalizedPosition = 0f;
             Canvas.ForceUpdateCanvases();
@@ -214,7 +214,7 @@ namespace ProjectX.UI
         }
 
         private GameObject Require(string path) =>
-            view.Binding.Find(path) ?? throw new InvalidOperationException($"Task UI node was not found: {path}");
+            view.FindNode(path) ?? throw new InvalidOperationException($"Task UI node was not found: {path}");
 
         private Transform RequireTransform(string path) => Require(path).transform;
 

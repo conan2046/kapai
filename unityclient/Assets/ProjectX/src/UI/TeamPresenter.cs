@@ -209,7 +209,7 @@ namespace ProjectX.UI
             text.text = value;
         }
 
-        private GameObject Find(string path) => view.Binding.Find(path);
+        private GameObject Find(string path) => view.FindNode(path);
         private GameObject Require(string path) => Find(path) ?? throw new InvalidOperationException($"Team UI node was not found: {path}");
         private void SetText(string path, string value) { Text text = Find(path)?.GetComponent<Text>(); if (text != null) text.text = value ?? string.Empty; }
         private void SetVisible(string path, bool visible) { GameObject target = Find(path); if (target != null) target.SetActive(visible); }

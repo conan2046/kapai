@@ -487,6 +487,10 @@ namespace ProjectX.Core
             string[] arguments = Environment.GetCommandLineArgs();
             if (arguments.Any(argument => string.Equals(argument,
                 SinglePlayerFlowValidationFlag, StringComparison.OrdinalIgnoreCase))) return true;
+            // Normal Editor feature validation uses the canonical LocalServer database.
+            // Slot-based saves remain available only through the explicit flow-validation flag;
+            // packaged non-Editor launches keep their one-click single-player default.
+            if (Application.isEditor) return false;
             return !arguments.Any(argument =>
                 argument != null && argument.StartsWith("-projectX", StringComparison.OrdinalIgnoreCase));
         }

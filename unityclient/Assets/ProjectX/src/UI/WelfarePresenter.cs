@@ -226,7 +226,7 @@ namespace ProjectX.UI
         }
         private static GameObject Require(CocosUiView view, string path) => Find(view, path)
             ?? throw new InvalidOperationException("Welfare UI node was not found: " + path);
-        private static GameObject Find(CocosUiView view, string path) => view.Binding.Find(path);
+        private static GameObject Find(CocosUiView view, string path) => view.FindNode(path);
         private static Transform FindNamed(Transform root, string name)
         {
             foreach (Transform value in root.GetComponentsInChildren<Transform>(true)) if (value.name == name) return value;

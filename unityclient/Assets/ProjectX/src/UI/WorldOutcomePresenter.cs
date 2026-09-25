@@ -1314,6 +1314,10 @@ namespace ProjectX.UI
         private static GameObject Require(CocosUiView view, string path) => Find(view, path)
             ?? throw new InvalidOperationException($"World result UI node was not found: {path}");
 
-        private static GameObject Find(CocosUiView view, string path) => view.Binding.Find(path);
+        private static GameObject Find(CocosUiView view, string path)
+        {
+            if (string.Equals(path, "Layer", StringComparison.Ordinal)) return view?.GameObject;
+            return view?.FindNode(path);
+        }
     }
 }

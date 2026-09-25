@@ -280,8 +280,8 @@ namespace ProjectX.UI
 
         private void ShowDetails()
         {
-            GameObject addPanel = detailView.Binding.Find("Layer/EquipUI/Bg/Panel_new");
-            GameObject background = detailView.Binding.Find("Layer/EquipUI/Bg");
+            GameObject addPanel = detailView.FindNode("Layer/EquipUI/Bg/Panel_new");
+            GameObject background = detailView.FindNode("Layer/EquipUI/Bg");
             if (!heroes.TryGet(selectedId, out HeroRecord hero))
             {
                 if (background != null) background.SetActive(true);
@@ -360,7 +360,7 @@ namespace ProjectX.UI
         {
             foreach (string child in new[] { "bg", "Equip", "Btn_Skill" })
             {
-                GameObject target = detailView.Binding.Find($"Layer/EquipUI/Bg/{child}");
+                GameObject target = detailView.FindNode($"Layer/EquipUI/Bg/{child}");
                 if (target != null) target.SetActive(visible);
             }
         }
@@ -382,9 +382,9 @@ namespace ProjectX.UI
             if (authorityPosition > 0) selectedPosition = authorityPosition;
             for (int slot = 1; slot <= 6; slot++)
             {
-                GameObject iconHost = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase");
+                GameObject iconHost = detailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase");
                 Image icon = EnsureRuntimeIcon(iconHost, $"EquippedItemIcon{slot}");
-                Text name = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/name")?.GetComponent<Text>();
+                Text name = detailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/name")?.GetComponent<Text>();
                 Sprite sprite = null;
                 string label = string.Empty;
                 int quality = 0;
@@ -476,7 +476,7 @@ namespace ProjectX.UI
             int count = 0;
             for (int slot = first; slot <= last; slot++)
             {
-                Image image = detailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase")
+                Image image = detailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase")
                     ?.transform.Find($"EquippedItemIcon{slot}")?.GetComponent<Image>();
                 if (image != null && image.gameObject.activeInHierarchy && image.enabled && image.sprite != null)
                     count++;
@@ -629,7 +629,7 @@ namespace ProjectX.UI
         }
 
         private static GameObject Require(CocosUiView view, string path)
-            => view.Binding.Find(path) ?? throw new InvalidOperationException($"Hero UI node was not found: {path}");
+            => view.FindNode(path) ?? throw new InvalidOperationException($"Hero UI node was not found: {path}");
         private static Text RequireText(CocosUiView view, string path)
             => Require(view, path).GetComponent<Text>() ?? throw new InvalidOperationException($"Hero UI text was not found: {path}");
     }

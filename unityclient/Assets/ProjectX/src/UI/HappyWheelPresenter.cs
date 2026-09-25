@@ -325,7 +325,7 @@ namespace ProjectX.UI
         private GameObject Require(string path) => Find(path)
             ?? throw new InvalidOperationException("HappyWheel imported node was not found: " + path);
 
-        private GameObject Find(string path) => view.Binding.Find(path);
+        private GameObject Find(string path) => view.FindNode(path);
 
         private Text FindText(string path)
         {

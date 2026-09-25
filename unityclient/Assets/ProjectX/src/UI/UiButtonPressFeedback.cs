@@ -18,7 +18,7 @@ namespace ProjectX.UI
         [SerializeField, Min(0f)] private float duration = 0.08f;
 
         private Vector3 baseScale;
-        private Coroutine animation;
+        private Coroutine pressAnimation;
         private Button button;
 
         public static UiButtonPressFeedback Ensure(Button target)
@@ -52,8 +52,8 @@ namespace ProjectX.UI
 
         private void OnDisable()
         {
-            if (animation != null) StopCoroutine(animation);
-            animation = null;
+            if (pressAnimation != null) StopCoroutine(pressAnimation);
+            pressAnimation = null;
             SetScale(baseScale);
         }
 
@@ -61,8 +61,8 @@ namespace ProjectX.UI
 
         private void Animate(Vector3 target)
         {
-            if (animation != null) StopCoroutine(animation);
-            animation = duration <= 0f
+            if (pressAnimation != null) StopCoroutine(pressAnimation);
+            pressAnimation = duration <= 0f
                 ? null
                 : StartCoroutine(AnimateScale(target));
             if (duration <= 0f) SetScale(target);
@@ -81,7 +81,7 @@ namespace ProjectX.UI
                 yield return null;
             }
             SetScale(target);
-            animation = null;
+            pressAnimation = null;
         }
 
         private void SetScale(Vector3 value)

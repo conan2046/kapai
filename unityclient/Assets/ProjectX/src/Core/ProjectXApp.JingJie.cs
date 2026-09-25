@@ -68,7 +68,7 @@ namespace ProjectX.Core
                     yield break;
                 }
 
-                Button entry = mainView?.Binding.Find(JingJiePath)?.GetComponent<Button>();
+                Button entry = mainView?.FindNode(JingJiePath)?.GetComponent<Button>();
                 if (!InvokeEventSystemRaycastClick(entry))
                 {
                     Fail("JingJie HUD entry did not accept a real EventSystem/raycast click.");
@@ -85,7 +85,7 @@ namespace ProjectX.Core
                 RecordValidationSemantic("jingjie-authoritative-goldcheck", true, currencyDetail);
                 yield return CaptureJingJieFrame("jingjie-main.png");
 
-                Button frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                Button frameClose = oneLevelFrameView.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemRaycastClick(frameClose) || IsJingJieOpen)
                 {
                     Fail("JingJie frame close did not return to HUD through EventSystem.");
@@ -98,7 +98,7 @@ namespace ProjectX.Core
                 yield return null;
                 Canvas.ForceUpdateCanvases();
 
-                Button headEntry = mainView?.Binding.Find(JingJieHeadPath)?.GetComponent<Button>();
+                Button headEntry = mainView?.FindNode(JingJieHeadPath)?.GetComponent<Button>();
                 if (!InvokeEventSystemRaycastClick(headEntry))
                 {
                     Fail("JingJie HUD Head entry did not accept a real EventSystem/raycast click.");
@@ -184,7 +184,7 @@ namespace ProjectX.Core
                     Fail($"JingJie reconnect mismatch: state={CurrentAppState}, role={GetPlayerRoleId()}/{roleId}, authority={services.JingJie.HasAuthoritativeState}, current={services.JingJie.CurrentId}.");
                     yield break;
                 }
-                entry = mainView?.Binding.Find(JingJiePath)?.GetComponent<Button>();
+                entry = mainView?.FindNode(JingJiePath)?.GetComponent<Button>();
                 if (!InvokeEventSystemRaycastClick(entry))
                 {
                     Fail("JingJie reconnect entry did not accept a real EventSystem/raycast click.");
@@ -479,8 +479,9 @@ namespace ProjectX.Core
         private void ConfigureJingJieFrame()
         {
             EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
-            CocosUiBinding binding = oneLevelFrameView.Binding;
-            RectTransform root = binding.transform as RectTransform;
+            if (oneLevelFrameView?.GameObject == null) return;
+            Transform frameRoot = oneLevelFrameView.GameObject.transform;
+            RectTransform root = frameRoot as RectTransform;
             if (root != null)
             {
                 root.pivot = new Vector2(0f, 1f);
@@ -488,24 +489,24 @@ namespace ProjectX.Core
                 root.anchoredPosition = Vector2.zero;
                 root.localScale = Vector3.one;
             }
-            Text title = binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "主角";
             Transform help = title?.transform.Find("Button_1");
             if (help != null) help.gameObject.SetActive(false);
-            Transform first = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
-            Transform second = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
+            Transform first = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            Transform second = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
             if (second != null) second.gameObject.SetActive(true);
             SetJingJieTabs(first, second, true);
             // Panel_10 is shared with other first-class pages. Only the four
             // player-hub tabs may remain visible here.
-            Transform tabPanel = binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform tabPanel = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             if (tabPanel != null)
                 foreach (Transform child in tabPanel)
                     if (child != first && child.name != "Button2_Runtime"
                         && child.name != "Button3_Runtime" && child.name != "Button4_Runtime")
                         child.gameObject.SetActive(false);
-            RefreshStandardCurrencyHeader(binding, "Layer/GoldCheck");
-            foreach (Transform child in binding.transform.GetComponentsInChildren<Transform>(true))
+            RefreshStandardCurrencyHeader(oneLevelFrameView.Binding, "Layer/GoldCheck");
+            foreach (Transform child in frameRoot.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
 
@@ -632,15 +633,13 @@ namespace ProjectX.Core
         // parchment, while the tab row remains a stable child of Panel_12.
         private void NormalizePlayerHubSurfaceOrder()
         {
-            if (oneLevelFrameView == null) return;
-            CocosUiBinding frameBinding = oneLevelFrameView.Binding;
-            if (frameBinding == null) return;
-            Transform frameRoot = frameBinding.transform;
+            if (oneLevelFrameView?.GameObject == null) return;
+            Transform frameRoot = oneLevelFrameView.GameObject.transform;
             Transform[] fixedOrder =
             {
-                frameBinding.Find("Layer/Bg")?.transform,
-                frameBinding.Find("Layer/Panel_12")?.transform,
-                frameBinding.Find("Layer/GoldCheck")?.transform,
+                oneLevelFrameView.FindNode("Layer/Bg")?.transform,
+                oneLevelFrameView.FindNode("Layer/Panel_12")?.transform,
+                oneLevelFrameView.FindNode("Layer/GoldCheck")?.transform,
                 jingJiePreviewView?.GameObject?.transform,
                 jingJieView?.GameObject?.transform,
                 bagView?.GameObject?.transform,
@@ -693,10 +692,10 @@ namespace ProjectX.Core
             jingJieView?.SetVisible(true);
             jingJiePreviewView?.SetVisible(false);
             jingJieRenderBridge?.Show();
-            Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView?.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "主角";
-            Transform first = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
-            Transform second = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
+            Transform first = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            Transform second = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
             SetJingJieTabs(first, second, true);
         }
 
@@ -782,10 +781,10 @@ namespace ProjectX.Core
                 bagRect.anchoredPosition = Vector2.zero;
                 bagRect.localScale = Vector3.one;
             }
-            Text title = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView?.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "背包";
-            Transform first = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
-            Transform second = oneLevelFrameView?.Binding.Find("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
+            Transform first = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.transform;
+            Transform second = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.transform;
             SetJingJieTabs(first, second, false);
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
         }
@@ -807,7 +806,7 @@ namespace ProjectX.Core
             mailView.SetVisible(true);
             SetOneLevelFrameVisible(true);
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "主角";
             ConfigureMergedTabs(2);
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
@@ -832,7 +831,7 @@ namespace ProjectX.Core
             settingsView.SetVisible(true);
             SetOneLevelFrameVisible(true);
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
-            Text title = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = "主角";
             ConfigureMergedTabs(3);
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
