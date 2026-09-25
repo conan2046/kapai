@@ -25,9 +25,9 @@ namespace ProjectX.UI
             GameObject clone = UnityEngine.Object.Instantiate(source.GameObject,
                 source.GameObject.transform.parent, false);
             clone.name = "RuntimeShopQuantityInput";
-            CocosUiBinding binding = clone.GetComponent<CocosUiBinding>()
-                ?? throw new InvalidOperationException("EnterNumLayer clone has no CocosUiBinding.");
-            view = new CocosUiView(binding);
+            UiPrefabIdentity identity = clone.GetComponent<UiPrefabIdentity>()
+                ?? throw new InvalidOperationException("EnterNumLayer clone has no UiPrefabIdentity.");
+            view = new CocosUiView(identity);
             GameObject inputNode = Require("Layer/Panel/Bg/Num/TextField");
             quantityInput = inputNode.GetComponent<InputField>();
             valueText = quantityInput?.textComponent

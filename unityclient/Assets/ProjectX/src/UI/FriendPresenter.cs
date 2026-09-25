@@ -250,7 +250,7 @@ namespace ProjectX.UI
             if (text != null) text.text = value;
         }
 
-        private GameObject Find(string path) => view.Binding.Find(path);
+        private GameObject Find(string path) => view.FindNode(path);
         private GameObject Require(string path) => Find(path) ?? throw new InvalidOperationException($"Friend UI node was not found: {path}");
         private static void SetText(Transform root, string path, string value) { Text text = root.Find(path)?.GetComponent<Text>(); if (text != null) text.text = value ?? string.Empty; }
         private static void SetVisible(Transform root, string path, bool visible) { Transform target = root.Find(path); if (target != null) target.gameObject.SetActive(visible); }

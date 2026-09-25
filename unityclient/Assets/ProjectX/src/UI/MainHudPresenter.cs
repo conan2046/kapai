@@ -198,7 +198,6 @@ namespace ProjectX.UI
             chat.Changed += RenderChatSummary;
             Render();
             RenderChatSummary();
-            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public bool IsChatExpanded => chatExpanded;

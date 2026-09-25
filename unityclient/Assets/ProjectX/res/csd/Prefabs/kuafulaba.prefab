@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6387807550049463263}
-  - component: {fileID: 8624934636206343185}
   - component: {fileID: 4191977941767597683}
   - component: {fileID: 2737989285370210397}
   m_Layer: 0
@@ -38,22 +37,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 337, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &8624934636206343185
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1068047912130183189}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/kuafulaba/Bg/Panel/Text
-  nodeType: TextObjectData
-  tag: 2256
-  actionTag: 1222037030
 --- !u!222 &4191977941767597683
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -105,8 +88,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2464849805587962545}
-  - component: {fileID: 607050603248782639}
-  - component: {fileID: 3052250068370626028}
+  - component: {fileID: 890086542108905699}
   m_Layer: 0
   m_Name: kuafulaba
   m_TagString: Untagged
@@ -134,7 +116,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &607050603248782639
+--- !u!114 &890086542108905699
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -143,23 +125,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 7069103714629922514}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 2253
-  actionTag: 0
---- !u!114 &3052250068370626028
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7069103714629922514}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/kuafulaba.csd
@@ -189,6 +155,7 @@ MonoBehaviour:
     tag: 2256
     actionTag: 1222037030
     target: {fileID: 1068047912130183189}
+  retiredMetadataAliases: []
 --- !u!1 &7999861178212445191
 GameObject:
   m_ObjectHideFlags: 0
@@ -198,7 +165,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4853339685144655852}
-  - component: {fileID: 370209083012792772}
   - component: {fileID: 207722601765931068}
   m_Layer: 0
   m_Name: Panel
@@ -227,22 +193,6 @@ RectTransform:
   m_AnchoredPosition: {x: 63, y: 28}
   m_SizeDelta: {x: 568, y: 30}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &370209083012792772
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7999861178212445191}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/kuafulaba/Bg/Panel
-  nodeType: PanelObjectData
-  tag: 3060
-  actionTag: -1212322977
 --- !u!114 &207722601765931068
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,7 +216,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1205859958157061936}
-  - component: {fileID: 2538343124727705403}
   m_Layer: 0
   m_Name: kuafulaba
   m_TagString: Untagged
@@ -294,22 +243,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &2538343124727705403
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8038729773800327944}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/kuafulaba
-  nodeType: SingleNodeObjectData
-  tag: 2254
-  actionTag: 1745633810
 --- !u!1 &8910082179031462115
 GameObject:
   m_ObjectHideFlags: 0
@@ -319,7 +252,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3706646743688436785}
-  - component: {fileID: 7874124124096812303}
   - component: {fileID: 3523405218275388825}
   - component: {fileID: 720930216969390548}
   m_Layer: 0
@@ -349,22 +281,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 680, y: 56}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7874124124096812303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8910082179031462115}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/kuafulaba/Bg
-  nodeType: ImageViewObjectData
-  tag: 2255
-  actionTag: -2042326632
 --- !u!222 &3523405218275388825
 CanvasRenderer:
   m_ObjectHideFlags: 0

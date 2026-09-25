@@ -99,7 +99,7 @@ namespace ProjectX.Core
                 if (help != null) help.gameObject.SetActive(false);
             }
 
-            RefreshStandardCurrencyHeader(oneLevelFrameView.Binding, "Layer/GoldCheck");
+            RefreshStandardCurrencyHeader(oneLevelFrameView.Identity, "Layer/GoldCheck");
             SetOneLevelFrameVisible(true);
         }
 

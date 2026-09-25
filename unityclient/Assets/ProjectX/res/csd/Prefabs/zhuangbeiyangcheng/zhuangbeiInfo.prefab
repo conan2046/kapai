@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3882429022986383863}
-  - component: {fileID: 2985105138840839389}
   - component: {fileID: 7337968444591733928}
   - component: {fileID: 5804454590553697714}
   m_Layer: 0
@@ -39,22 +38,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15.0962, y: 12.1647}
   m_SizeDelta: {x: 70, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &2985105138840839389
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 31145315848677478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1
-  nodeType: TextObjectData
-  tag: 754
-  actionTag: -1655526439
 --- !u!222 &7337968444591733928
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -106,7 +89,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 883783065442297634}
-  - component: {fileID: 4620360465240876750}
   - component: {fileID: 1873998957269382346}
   - component: {fileID: 6619398656654413602}
   m_Layer: 0
@@ -130,27 +112,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 3931639802312883361}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 76, y: 30}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4620360465240876750
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 51602578721128857}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia/Text
-  nodeType: TextObjectData
-  tag: 2161
-  actionTag: 856240273
 --- !u!222 &1873998957269382346
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -202,7 +168,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8230487039133165632}
-  - component: {fileID: 701620195398006838}
   - component: {fileID: 575568026327139205}
   - component: {fileID: 7287861151795382784}
   m_Layer: 0
@@ -231,22 +196,6 @@ RectTransform:
   m_AnchoredPosition: {x: 157, y: 50}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &701620195398006838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 130019838627281586}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian/Prompt
-  nodeType: ImageViewObjectData
-  tag: 2207
-  actionTag: -1733634731
 --- !u!222 &575568026327139205
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -294,7 +243,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 660569634394625722}
-  - component: {fileID: 8032030832010327124}
   - component: {fileID: 2955536076557818491}
   - component: {fileID: 6862226773299793411}
   m_Layer: 0
@@ -323,22 +271,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8032030832010327124
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 133204573933722549}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Title/Title
-  nodeType: TextObjectData
-  tag: 2170
-  actionTag: -849981490
 --- !u!222 &2955536076557818491
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -390,7 +322,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8750853869023104704}
-  - component: {fileID: 7024058756936313457}
   - component: {fileID: 257544969815423733}
   - component: {fileID: 2702286828471533550}
   m_Layer: 0
@@ -420,22 +351,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 74.5}
   m_SizeDelta: {x: 90, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &7024058756936313457
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 236262651559494907}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Level
-  nodeType: TextObjectData
-  tag: 2173
-  actionTag: -28005686
 --- !u!222 &257544969815423733
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -487,7 +402,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4792254493549656246}
-  - component: {fileID: 4173983541511234933}
   m_Layer: 0
   m_Name: Info
   m_TagString: Untagged
@@ -523,22 +437,6 @@ RectTransform:
   m_AnchoredPosition: {x: 191, y: -4.9987}
   m_SizeDelta: {x: 510, y: 543}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4173983541511234933
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 278784629758773306}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info
-  nodeType: PanelObjectData
-  tag: 2057
-  actionTag: -889306226
 --- !u!1 &323604157851796445
 GameObject:
   m_ObjectHideFlags: 0
@@ -548,7 +446,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3659731487353117760}
-  - component: {fileID: 2668407070429478656}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -578,22 +475,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 69}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &2668407070429478656
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 323604157851796445}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing/Title
-  nodeType: PanelObjectData
-  tag: 748
-  actionTag: 767769843
 --- !u!1 &339191801054394773
 GameObject:
   m_ObjectHideFlags: 0
@@ -603,7 +484,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3909431859831346890}
-  - component: {fileID: 1344157433286030592}
   - component: {fileID: 7202826602035953619}
   - component: {fileID: 5212964988568489719}
   m_Layer: 0
@@ -632,22 +512,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 63, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &1344157433286030592
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339191801054394773}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Atrribute_1/Value
-  nodeType: TextObjectData
-  tag: 2202
-  actionTag: 179857803
 --- !u!222 &7202826602035953619
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -699,7 +563,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 235569782531810564}
-  - component: {fileID: 8432213896807240863}
   - component: {fileID: 2442624898350879898}
   - component: {fileID: 1553077379437721511}
   m_Layer: 0
@@ -728,22 +591,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 90, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &8432213896807240863
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 390936341440773294}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Level/Value
-  nodeType: TextObjectData
-  tag: 2187
-  actionTag: -2082359636
 --- !u!222 &2442624898350879898
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -795,7 +642,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 772086760149623056}
-  - component: {fileID: 6593563204181521290}
   - component: {fileID: 9173924220857185570}
   - component: {fileID: 9191790857401286221}
   m_Layer: 0
@@ -824,22 +670,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 145.7467}
   m_SizeDelta: {x: 407.8693, y: 111}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &6593563204181521290
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 396740240648185488}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/List
-  nodeType: ListViewObjectData
-  tag: 2226
-  actionTag: 427454462
 --- !u!114 &9173924220857185570
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -893,7 +723,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2049208649969566189}
-  - component: {fileID: 4063816261897403809}
   - component: {fileID: 7797086181846918032}
   - component: {fileID: 5547340187630539785}
   - component: {fileID: 4147088090330256679}
@@ -925,22 +754,6 @@ RectTransform:
   m_AnchoredPosition: {x: 373, y: 46.5}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4063816261897403809
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 529591906968737705}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing
-  nodeType: ButtonObjectData
-  tag: 2192
-  actionTag: -454793528
 --- !u!222 &7797086181846918032
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1032,7 +845,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3018809214685021452}
-  - component: {fileID: 7102661746226241404}
   m_Layer: 0
   m_Name: jinglianshuxing
   m_TagString: Untagged
@@ -1063,22 +875,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 373.9993}
   m_SizeDelta: {x: 470.016, y: 132}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &7102661746226241404
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 598389591606828104}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing
-  nodeType: PanelObjectData
-  tag: 2168
-  actionTag: 1613345682
 --- !u!1 &620321492325457448
 GameObject:
   m_ObjectHideFlags: 0
@@ -1088,7 +884,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8224508799245532872}
-  - component: {fileID: 2436306679159710219}
   - component: {fileID: 6299239530677759009}
   - component: {fileID: 2897799322113313686}
   m_Layer: 0
@@ -1117,22 +912,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 56, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &2436306679159710219
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 620321492325457448}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Level/Value
-  nodeType: TextObjectData
-  tag: 2174
-  actionTag: 1314205660
 --- !u!222 &6299239530677759009
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1184,7 +963,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3710920938427074050}
-  - component: {fileID: 6336059505093921545}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -1214,22 +992,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 132}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &6336059505093921545
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 706883053611969588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Title
-  nodeType: PanelObjectData
-  tag: 2169
-  actionTag: 324962428
 --- !u!1 &847336961310321260
 GameObject:
   m_ObjectHideFlags: 0
@@ -1239,7 +1001,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5449786794256478296}
-  - component: {fileID: 926961978969359999}
   - component: {fileID: 8315000473792506276}
   - component: {fileID: 3385386397763847584}
   m_Layer: 0
@@ -1268,22 +1029,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 68.191}
   m_SizeDelta: {x: 440, y: 150}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &926961978969359999
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 847336961310321260}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content
-  nodeType: TextObjectData
-  tag: 2806
-  actionTag: -1957215758
 --- !u!222 &8315000473792506276
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1335,7 +1080,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2682693818818859234}
-  - component: {fileID: 6213818922861975481}
   - component: {fileID: 2899772007880054818}
   - component: {fileID: 154893542039691577}
   m_Layer: 0
@@ -1364,22 +1108,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6213818922861975481
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1070429159323695428}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 2171
-  actionTag: -1557009590
 --- !u!222 &2899772007880054818
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1427,7 +1155,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7045828566232238510}
-  - component: {fileID: 4347415970479620191}
   - component: {fileID: 8947001241394154475}
   - component: {fileID: 6519231656060455694}
   m_Layer: 0
@@ -1456,22 +1183,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4347415970479620191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1072569165206836929}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 2184
-  actionTag: 131112879
 --- !u!222 &8947001241394154475
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1519,7 +1230,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3931639802312883361}
-  - component: {fileID: 5594870340299687855}
   - component: {fileID: 3766309969245682859}
   - component: {fileID: 4354801695334950604}
   - component: {fileID: 2708613507140947551}
@@ -1550,22 +1260,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 47}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5594870340299687855
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1153626169126016105}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia
-  nodeType: ButtonObjectData
-  tag: 2160
-  actionTag: -1875709107
 --- !u!222 &3766309969245682859
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1657,7 +1351,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3892272469142768044}
-  - component: {fileID: 6223903841557438022}
   - component: {fileID: 8008242158944263537}
   - component: {fileID: 5487219647777749150}
   m_Layer: 0
@@ -1686,22 +1379,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6223903841557438022
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1175521479926502078}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Title/Title
-  nodeType: TextObjectData
-  tag: 2183
-  actionTag: 1070265889
 --- !u!222 &8008242158944263537
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1753,7 +1430,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2158763601173718535}
-  - component: {fileID: 5512392422053162176}
   - component: {fileID: 363533347386571167}
   - component: {fileID: 8191405710596465729}
   m_Layer: 0
@@ -1782,22 +1458,6 @@ RectTransform:
   m_AnchoredPosition: {x: 34.7807, y: 69.0824}
   m_SizeDelta: {x: 8, y: 33}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5512392422053162176
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1230604510208577058}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup/Btn_close/Image_shengzi
-  nodeType: ImageViewObjectData
-  tag: 2828
-  actionTag: -62815720
 --- !u!222 &363533347386571167
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1845,7 +1505,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6965517129279972314}
-  - component: {fileID: 7977653178019912350}
   - component: {fileID: 8852601642260828600}
   - component: {fileID: 4332199898557619629}
   m_Layer: 0
@@ -1876,22 +1535,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 70.03}
   m_SizeDelta: {x: 102, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &7977653178019912350
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1341349675536403319}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Atrribute_1
-  nodeType: TextObjectData
-  tag: 2218
-  actionTag: 1679144495
 --- !u!222 &8852601642260828600
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1943,7 +1586,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4155998263982743380}
-  - component: {fileID: 5852942275849206548}
   - component: {fileID: 807459400719526982}
   - component: {fileID: 7013914750540216936}
   m_Layer: 0
@@ -1972,22 +1614,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5852942275849206548
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1378710248582521669}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 2804
-  actionTag: 39892423
 --- !u!222 &807459400719526982
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2035,7 +1661,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7733769094182232633}
-  - component: {fileID: 1271873812350854251}
   - component: {fileID: 1521431178349788328}
   - component: {fileID: 2517005641541579585}
   m_Layer: 0
@@ -2064,22 +1689,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1271873812350854251
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1450867781877524545}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Title/Title
-  nodeType: TextObjectData
-  tag: 2062
-  actionTag: -349894650
 --- !u!222 &1521431178349788328
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2131,8 +1740,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 509768920952031053}
-  - component: {fileID: 5173844290662806893}
-  - component: {fileID: 4876893517458557127}
+  - component: {fileID: 6298371257687419993}
   m_Layer: 0
   m_Name: zhuangbeiInfo
   m_TagString: Untagged
@@ -2160,7 +1768,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &5173844290662806893
+--- !u!114 &6298371257687419993
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2169,23 +1777,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1577700847516200859}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 2055
-  actionTag: 0
---- !u!114 &4876893517458557127
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1577700847516200859}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/zhuangbeiyangcheng/zhuangbeiInfo.csd
@@ -2685,6 +2277,7 @@ MonoBehaviour:
     tag: 2806
     actionTag: -1957215758
     target: {fileID: 847336961310321260}
+  retiredMetadataAliases: []
 --- !u!1 &1685593773348208753
 GameObject:
   m_ObjectHideFlags: 0
@@ -2694,7 +2287,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5871738046677820362}
-  - component: {fileID: 8269766888373772106}
   m_Layer: 0
   m_Name: zhuangbeimiaoshu
   m_TagString: Untagged
@@ -2723,22 +2315,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -64.0004}
   m_SizeDelta: {x: 510, y: 115.191}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &8269766888373772106
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1685593773348208753}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu
-  nodeType: PanelObjectData
-  tag: 2801
-  actionTag: 2128185630
 --- !u!1 &1748567271565381476
 GameObject:
   m_ObjectHideFlags: 0
@@ -2748,7 +2324,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 316469104676757420}
-  - component: {fileID: 8006455260137990731}
   - component: {fileID: 4341558529130865121}
   - component: {fileID: 5069431898811306113}
   m_Layer: 0
@@ -2778,22 +2353,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 496}
   m_SizeDelta: {x: 360, y: 32}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8006455260137990731
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1748567271565381476}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Namebg
-  nodeType: ImageViewObjectData
-  tag: 2146
-  actionTag: 847162819
 --- !u!222 &4341558529130865121
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2841,7 +2400,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2426808630599198373}
-  - component: {fileID: 8740392133164360737}
   - component: {fileID: 7570471893200582937}
   - component: {fileID: 3565635850519053448}
   m_Layer: 0
@@ -2870,22 +2428,6 @@ RectTransform:
   m_AnchoredPosition: {x: 157, y: 50}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8740392133164360737
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1775469034600942923}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua/Prompt
-  nodeType: ImageViewObjectData
-  tag: 2208
-  actionTag: -526772656
 --- !u!222 &7570471893200582937
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2933,7 +2475,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 691389499902567687}
-  - component: {fileID: 5126239540107259692}
   - component: {fileID: 7965922646901013562}
   - component: {fileID: 5474397505519021850}
   m_Layer: 0
@@ -2963,22 +2504,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 18.5}
   m_SizeDelta: {x: 70, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &5126239540107259692
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1779791525718022578}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1
-  nodeType: TextObjectData
-  tag: 2164
-  actionTag: -755515858
 --- !u!222 &7965922646901013562
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3030,7 +2555,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5596967806350850780}
-  - component: {fileID: 8217630315917465477}
   - component: {fileID: 7916179765263924467}
   - component: {fileID: 2523937898951753279}
   m_Layer: 0
@@ -3059,22 +2583,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8217630315917465477
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1888864825357120595}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 2214
-  actionTag: 1149976892
 --- !u!222 &7916179765263924467
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3122,7 +2630,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1460617114106476389}
-  - component: {fileID: 318706404760768472}
   - component: {fileID: 7362305828307971739}
   - component: {fileID: 3364743475873342684}
   m_Layer: 0
@@ -3151,22 +2658,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -12.5}
   m_SizeDelta: {x: 60, y: 21}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &318706404760768472
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1894370751273838941}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Item/Name
-  nodeType: TextObjectData
-  tag: 2216
-  actionTag: -344370809
 --- !u!222 &7362305828307971739
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3218,7 +2709,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6842500186979920139}
-  - component: {fileID: 5756560380627519488}
   - component: {fileID: 5974382690269220096}
   - component: {fileID: 7008683647878363268}
   m_Layer: 0
@@ -3242,27 +2732,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 7153874981700748465}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 77, y: 30}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5756560380627519488
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2021532196125380561}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan/Text
-  nodeType: TextObjectData
-  tag: 2163
-  actionTag: 1630964980
 --- !u!222 &5974382690269220096
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3314,7 +2788,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2434678937102252023}
-  - component: {fileID: 542094544178019770}
   - component: {fileID: 5256100818184538238}
   - component: {fileID: 3704877080572878953}
   m_Layer: 0
@@ -3343,22 +2816,6 @@ RectTransform:
   m_AnchoredPosition: {x: 287, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &542094544178019770
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2090747654921436044}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Atrribute_1/Value_2
-  nodeType: TextObjectData
-  tag: 384
-  actionTag: 1250810978
 --- !u!222 &5256100818184538238
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3410,7 +2867,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7956279778635701431}
-  - component: {fileID: 2477338179880251856}
   m_Layer: 0
   m_Name: zhuangbeiInfoUI
   m_TagString: Untagged
@@ -3441,22 +2897,6 @@ RectTransform:
   m_AnchoredPosition: {x: 667, y: 375}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &2477338179880251856
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2132880623303447971}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI
-  nodeType: SingleNodeObjectData
-  tag: 2056
-  actionTag: -1959380585
 --- !u!1 &2401256065164024803
 GameObject:
   m_ObjectHideFlags: 0
@@ -3466,7 +2906,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4708020025813697451}
-  - component: {fileID: 4946117736449162516}
   m_Layer: 0
   m_Name: zhuangbeitaozhuang
   m_TagString: Untagged
@@ -3497,22 +2936,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -47.5305}
   m_SizeDelta: {x: 470.016, y: 245.53}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4946117736449162516
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2401256065164024803}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang
-  nodeType: PanelObjectData
-  tag: 2211
-  actionTag: -1352454928
 --- !u!1 &2447656060067451409
 GameObject:
   m_ObjectHideFlags: 0
@@ -3522,7 +2945,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2919484640963884980}
-  - component: {fileID: 623037245305312653}
   - component: {fileID: 5832271205077737407}
   - component: {fileID: 516594303901568029}
   m_Layer: 0
@@ -3551,22 +2973,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &623037245305312653
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2447656060067451409}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Title/Title
-  nodeType: TextObjectData
-  tag: 2213
-  actionTag: -1408060556
 --- !u!222 &5832271205077737407
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3618,7 +3024,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4916841533501291310}
-  - component: {fileID: 5547874009714482915}
   - component: {fileID: 3653769449060857031}
   - component: {fileID: 3035613269967354318}
   m_Layer: 0
@@ -3647,22 +3052,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5547874009714482915
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2603831409982287791}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Title/Title
-  nodeType: TextObjectData
-  tag: 2803
-  actionTag: -704357580
 --- !u!222 &3653769449060857031
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3714,7 +3103,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4691241959431484380}
-  - component: {fileID: 7424351947615266476}
   - component: {fileID: 4108821875183550358}
   - component: {fileID: 8666652646032742411}
   m_Layer: 0
@@ -3743,22 +3131,6 @@ RectTransform:
   m_AnchoredPosition: {x: 157, y: 50}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7424351947615266476
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2654312396589461161}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing/Prompt
-  nodeType: ImageViewObjectData
-  tag: 2209
-  actionTag: -621672463
 --- !u!222 &4108821875183550358
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3806,7 +3178,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6316315350212707106}
-  - component: {fileID: 3125401288282220633}
   - component: {fileID: 3988256178104728455}
   - component: {fileID: 6270968529635885310}
   m_Layer: 0
@@ -3835,22 +3206,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 114, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &3125401288282220633
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2904887833080371849}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1/Value
-  nodeType: TextObjectData
-  tag: 755
-  actionTag: -61144758
 --- !u!222 &3988256178104728455
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3902,7 +3257,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1144242479401384839}
-  - component: {fileID: 411741892711334976}
   - component: {fileID: 6953698648383906304}
   - component: {fileID: 2838670561275690429}
   - component: {fileID: 240521945396869735}
@@ -3934,22 +3288,6 @@ RectTransform:
   m_AnchoredPosition: {x: 373, y: 46.5}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &411741892711334976
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2952815583066132623}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian
-  nodeType: ButtonObjectData
-  tag: 2177
-  actionTag: 1096837531
 --- !u!222 &6953698648383906304
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4041,7 +3379,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3753314999945988265}
-  - component: {fileID: 1012600925104601888}
   - component: {fileID: 3433542357065369992}
   - component: {fileID: 7463114337902655323}
   m_Layer: 0
@@ -4071,22 +3408,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 691.9983}
   m_SizeDelta: {x: 999.9664, y: 50}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &1012600925104601888
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3417274346909185521}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup/Title
-  nodeType: ImageViewObjectData
-  tag: 2819
-  actionTag: -855640740
 --- !u!222 &3433542357065369992
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4134,7 +3455,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8363867327033143263}
-  - component: {fileID: 2319979354873946012}
   m_Layer: 0
   m_Name: Node
   m_TagString: Untagged
@@ -4161,22 +3481,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &2319979354873946012
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3513956721913496816}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Item/Node
-  nodeType: SingleNodeObjectData
-  tag: 156
-  actionTag: -1487470894
 --- !u!1 &3555785069157626785
 GameObject:
   m_ObjectHideFlags: 0
@@ -4186,7 +3490,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4610615240402233295}
-  - component: {fileID: 7276866725676049086}
   - component: {fileID: 6626128787930917544}
   - component: {fileID: 2350307564835908856}
   m_Layer: 0
@@ -4210,27 +3513,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 3799507021802320919}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5149}
-  m_AnchorMax: {x: 0.5, y: 0.5149}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 77, y: 30}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7276866725676049086
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3555785069157626785}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu/Text
-  nodeType: TextObjectData
-  tag: 2206
-  actionTag: 1744820536
 --- !u!222 &6626128787930917544
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4282,7 +3569,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3390676291693410292}
-  - component: {fileID: 2786948381935299551}
   m_Layer: 0
   m_Name: juexingshuxing
   m_TagString: Untagged
@@ -4313,22 +3599,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 242.9991}
   m_SizeDelta: {x: 470.016, y: 132}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &2786948381935299551
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3791759248215323791}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing
-  nodeType: PanelObjectData
-  tag: 2181
-  actionTag: -463174084
 --- !u!1 &3875799767701954688
 GameObject:
   m_ObjectHideFlags: 0
@@ -4338,7 +3608,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 263632645373519154}
-  - component: {fileID: 8918584622852930606}
   - component: {fileID: 9179704045749379098}
   - component: {fileID: 6081974073289706524}
   m_Layer: 0
@@ -4367,22 +3636,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8918584622852930606
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3875799767701954688}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 2064
-  actionTag: 1690066580
 --- !u!222 &9179704045749379098
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4430,7 +3683,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6728263111810439288}
-  - component: {fileID: 5100109770100193123}
   - component: {fileID: 6598192540898688698}
   - component: {fileID: 4650901392000130161}
   m_Layer: 0
@@ -4459,22 +3711,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5100109770100193123
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3954663650799621319}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 2185
-  actionTag: -719114052
 --- !u!222 &6598192540898688698
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4522,7 +3758,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1883198793350628896}
-  - component: {fileID: 5334676844336425291}
   m_Layer: 0
   m_Name: Popup
   m_TagString: Untagged
@@ -4552,22 +3787,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5334676844336425291
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4052018870217001049}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup
-  nodeType: PanelObjectData
-  tag: 2815
-  actionTag: 1840776544
 --- !u!1 &4273284744717016895
 GameObject:
   m_ObjectHideFlags: 0
@@ -4577,7 +3796,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1391367156236287345}
-  - component: {fileID: 6777291535185618855}
   - component: {fileID: 3759725277728029113}
   - component: {fileID: 5764954075613565832}
   m_Layer: 0
@@ -4607,22 +3825,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 74.5}
   m_SizeDelta: {x: 90, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &6777291535185618855
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4273284744717016895}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Level
-  nodeType: TextObjectData
-  tag: 2199
-  actionTag: 1595503700
 --- !u!222 &3759725277728029113
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4674,7 +3876,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2953037113924211581}
-  - component: {fileID: 3655381548682291541}
   - component: {fileID: 3885627544653094097}
   - component: {fileID: 6838828535798403032}
   m_Layer: 0
@@ -4703,22 +3904,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3655381548682291541
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4332238471327975419}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 2215
-  actionTag: -1764921951
 --- !u!222 &3885627544653094097
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4766,7 +3951,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2664206749005892682}
-  - component: {fileID: 7743599538427059941}
   - component: {fileID: 6271603443189048109}
   - component: {fileID: 3934884159688950155}
   m_Layer: 0
@@ -4796,22 +3980,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 46.5}
   m_SizeDelta: {x: 70, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &7743599538427059941
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4462097746879599655}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Atrribute_1
-  nodeType: TextObjectData
-  tag: 2201
-  actionTag: 326066588
 --- !u!222 &6271603443189048109
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4863,7 +4031,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 467600445913421340}
-  - component: {fileID: 474145284226203664}
   - component: {fileID: 6497263487624154328}
   - component: {fileID: 7910288801121733161}
   m_Layer: 0
@@ -4892,22 +4059,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &474145284226203664
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4471623088008480259}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 751
-  actionTag: -690905806
 --- !u!222 &6497263487624154328
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4955,7 +4106,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2128145938247365434}
-  - component: {fileID: 6797154814801367239}
   - component: {fileID: 6001420133972496352}
   - component: {fileID: 6747594608310035088}
   m_Layer: 0
@@ -4984,22 +4134,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6797154814801367239
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4643527969528461511}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing/Title/Title
-  nodeType: TextObjectData
-  tag: 749
-  actionTag: -98526817
 --- !u!222 &6001420133972496352
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5051,7 +4185,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7153874981700748465}
-  - component: {fileID: 6696904633024768503}
   - component: {fileID: 7843432562191687485}
   - component: {fileID: 3782222417251017750}
   - component: {fileID: 9149208694466313984}
@@ -5083,22 +4216,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 47}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6696904633024768503
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4665980587092607081}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan
-  nodeType: ButtonObjectData
-  tag: 2162
-  actionTag: -1525809291
 --- !u!222 &7843432562191687485
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5190,7 +4307,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8591027115477759182}
-  - component: {fileID: 8679037760864665711}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -5220,22 +4336,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 104}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &8679037760864665711
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4884540636214265208}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Title
-  nodeType: PanelObjectData
-  tag: 2061
-  actionTag: 198897513
 --- !u!1 &4972849885264163180
 GameObject:
   m_ObjectHideFlags: 0
@@ -5245,7 +4345,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4388116664691365478}
-  - component: {fileID: 3088514835799463815}
   - component: {fileID: 3957415954794509770}
   - component: {fileID: 4301213653010277913}
   m_Layer: 0
@@ -5274,22 +4373,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 2000, y: 1500}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3088514835799463815
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4972849885264163180}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Mask
-  nodeType: ImageViewObjectData
-  tag: 2849
-  actionTag: -1137515135
 --- !u!222 &3957415954794509770
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5337,7 +4420,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1929089462565543606}
-  - component: {fileID: 2493726799472861885}
   - component: {fileID: 7423568937876434022}
   - component: {fileID: 8802226483374193130}
   m_Layer: 0
@@ -5366,22 +4448,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2493726799472861885
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5038235733497272931}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 2197
-  actionTag: -1212692533
 --- !u!222 &7423568937876434022
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5429,7 +4495,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3843121917857290698}
-  - component: {fileID: 1367573423921022942}
   - component: {fileID: 1208988157486240521}
   - component: {fileID: 2802904774274442559}
   m_Layer: 0
@@ -5458,22 +4523,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 56, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &1367573423921022942
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5152796782346702838}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Level/Value
-  nodeType: TextObjectData
-  tag: 2066
-  actionTag: -1646180350
 --- !u!222 &1208988157486240521
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5525,7 +4574,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2992792161923619552}
-  - component: {fileID: 9160497967624485325}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -5555,22 +4603,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 132}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &9160497967624485325
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5159792779189853665}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Title
-  nodeType: PanelObjectData
-  tag: 2182
-  actionTag: -717186667
 --- !u!1 &5192987894910808732
 GameObject:
   m_ObjectHideFlags: 0
@@ -5580,7 +4612,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8290978402092568288}
-  - component: {fileID: 2373035117464857422}
   - component: {fileID: 6360747007894909589}
   - component: {fileID: 2466119784951933618}
   - component: {fileID: 3233593345600448464}
@@ -5611,22 +4642,6 @@ RectTransform:
   m_AnchoredPosition: {x: 1140.2688, y: 623.6647}
   m_SizeDelta: {x: 70, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2373035117464857422
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5192987894910808732}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup/Btn_close
-  nodeType: ButtonObjectData
-  tag: 2821
-  actionTag: 1509009730
 --- !u!222 &6360747007894909589
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5718,7 +4733,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2004706213096721797}
-  - component: {fileID: 6967671920578356344}
   - component: {fileID: 251312803789944934}
   - component: {fileID: 3174475669671644048}
   m_Layer: 0
@@ -5747,22 +4761,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6967671920578356344
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5235652602060082882}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 2805
-  actionTag: 895230112
 --- !u!222 &251312803789944934
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5810,7 +4808,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6381810600702025402}
-  - component: {fileID: 954168877801538759}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -5840,22 +4837,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 115.191}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &954168877801538759
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5283359862937339870}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Title
-  nodeType: PanelObjectData
-  tag: 2802
-  actionTag: -1180762897
 --- !u!1 &5452307025646274189
 GameObject:
   m_ObjectHideFlags: 0
@@ -5865,7 +4846,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3795692712957408018}
-  - component: {fileID: 6957385155188006237}
   - component: {fileID: 643016319754195971}
   - component: {fileID: 1692488675603578556}
   m_Layer: 0
@@ -5894,22 +4874,6 @@ RectTransform:
   m_AnchoredPosition: {x: 20, y: 28.5768}
   m_SizeDelta: {x: 470, y: 488}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &6957385155188006237
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5452307025646274189}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/ScrollView
-  nodeType: ScrollViewObjectData
-  tag: 2059
-  actionTag: -2070662356
 --- !u!114 &643016319754195971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5963,7 +4927,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6742458654600572871}
-  - component: {fileID: 671498362218886414}
   - component: {fileID: 3367828778644024297}
   - component: {fileID: 4259947899401853475}
   m_Layer: 0
@@ -5992,22 +4955,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 110, y: 23}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &671498362218886414
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5463937060969909244}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name
-  nodeType: TextObjectData
-  tag: 2147
-  actionTag: 238615671
 --- !u!222 &3367828778644024297
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6059,7 +5006,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3504249679408789402}
-  - component: {fileID: 2299515195702359344}
   - component: {fileID: 2858214985281538858}
   - component: {fileID: 7708700733107223587}
   m_Layer: 0
@@ -6083,27 +5029,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 4989016710884235059}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5149}
-  m_AnchorMax: {x: 0.5, y: 0.5149}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 76, y: 30}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2299515195702359344
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5622216179431685250}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua/Text
-  nodeType: TextObjectData
-  tag: 2167
-  actionTag: -792657877
 --- !u!222 &2858214985281538858
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6155,7 +5085,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 747873230550748193}
-  - component: {fileID: 3552036463357762126}
   - component: {fileID: 474070467675883811}
   - component: {fileID: 5404648236559410987}
   m_Layer: 0
@@ -6184,22 +5113,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3552036463357762126
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5754281604438560688}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 2172
-  actionTag: -553774117
 --- !u!222 &474070467675883811
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6247,7 +5160,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3212392481419827788}
-  - component: {fileID: 4294080520000587405}
   m_Layer: 0
   m_Name: Bg
   m_TagString: Untagged
@@ -6277,22 +5189,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4294080520000587405
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5804755984065515034}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Bg
-  nodeType: PanelObjectData
-  tag: 2143
-  actionTag: 470207022
 --- !u!1 &5963351561855773622
 GameObject:
   m_ObjectHideFlags: 0
@@ -6302,7 +5198,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2499013287413739478}
-  - component: {fileID: 8602907714480459069}
   - component: {fileID: 2726736335874110323}
   - component: {fileID: 5598899269339094806}
   m_Layer: 0
@@ -6331,22 +5226,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 91, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &8602907714480459069
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5963351561855773622}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Level/Value
-  nodeType: TextObjectData
-  tag: 2200
-  actionTag: -1733169613
 --- !u!222 &2726736335874110323
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6398,7 +5277,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3189253529610687234}
-  - component: {fileID: 3366093921059505608}
   - component: {fileID: 372048702210132214}
   - component: {fileID: 6227273051331234840}
   m_Layer: 0
@@ -6428,22 +5306,6 @@ RectTransform:
   m_AnchoredPosition: {x: 668.0001, y: 375}
   m_SizeDelta: {x: 910, y: 575}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3366093921059505608
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5998185239793771315}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup/bg
-  nodeType: ImageViewObjectData
-  tag: 2816
-  actionTag: 1785962080
 --- !u!222 &372048702210132214
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6491,7 +5353,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2455500082627155465}
-  - component: {fileID: 7873680601629946474}
   - component: {fileID: 6388320799446193576}
   - component: {fileID: 5819295700184529099}
   m_Layer: 0
@@ -6522,22 +5383,6 @@ RectTransform:
   m_AnchoredPosition: {x: 842.0906, y: 0}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7873680601629946474
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6061980944556176974}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Item
-  nodeType: ImageViewObjectData
-  tag: 2225
-  actionTag: 1203078920
 --- !u!222 &6388320799446193576
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6585,7 +5430,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1907846633687913093}
-  - component: {fileID: 1273178167500566678}
   - component: {fileID: 8346435603934919344}
   - component: {fileID: 2968917818635075958}
   m_Layer: 0
@@ -6615,22 +5459,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 46.5}
   m_SizeDelta: {x: 70, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &1273178167500566678
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6065918537937207813}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Atrribute_1
-  nodeType: TextObjectData
-  tag: 2175
-  actionTag: -922431436
 --- !u!222 &8346435603934919344
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6682,7 +5510,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2162070115999265075}
-  - component: {fileID: 559446064366933977}
   - component: {fileID: 6248976533900818113}
   - component: {fileID: 817715260484239135}
   m_Layer: 0
@@ -6711,22 +5538,6 @@ RectTransform:
   m_AnchoredPosition: {x: -92.2357, y: 377.3729}
   m_SizeDelta: {x: 403.4596, y: 547}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &559446064366933977
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6250235077549867857}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Bg/Image
-  nodeType: ImageViewObjectData
-  tag: 2857
-  actionTag: -1194280662
 --- !u!222 &6248976533900818113
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6774,7 +5585,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5325573631404330264}
-  - component: {fileID: 7397898509489080513}
   - component: {fileID: 3347618403449592808}
   - component: {fileID: 2837106514608145021}
   m_Layer: 0
@@ -6803,22 +5613,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 63, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &7397898509489080513
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6348516576569894629}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1/Value
-  nodeType: TextObjectData
-  tag: 2165
-  actionTag: -899467631
 --- !u!222 &3347618403449592808
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -6870,7 +5664,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2722368134189639125}
-  - component: {fileID: 3476228805317665510}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -6900,22 +5693,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 245.5345}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &3476228805317665510
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6490543609452518324}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Title
-  nodeType: PanelObjectData
-  tag: 2212
-  actionTag: -1547526075
 --- !u!1 &6641147416852760974
 GameObject:
   m_ObjectHideFlags: 0
@@ -6925,7 +5702,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2119427722361027136}
-  - component: {fileID: 5337974943787906136}
   - component: {fileID: 2923602405620364301}
   - component: {fileID: 853925452495273659}
   m_Layer: 0
@@ -6949,27 +5725,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1144242479401384839}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5149}
-  m_AnchorMax: {x: 0.5, y: 0.5149}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 77, y: 30}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5337974943787906136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6641147416852760974}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian/Text
-  nodeType: TextObjectData
-  tag: 2178
-  actionTag: -1338441120
 --- !u!222 &2923602405620364301
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7021,7 +5781,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7283707648911454852}
-  - component: {fileID: 5608245316358177237}
   m_Layer: 0
   m_Name: jichushuxing
   m_TagString: Untagged
@@ -7050,22 +5809,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 796.9767}
   m_SizeDelta: {x: 470.016, y: 65}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &5608245316358177237
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6674493731572538740}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing
-  nodeType: PanelObjectData
-  tag: 747
-  actionTag: 653109873
 --- !u!1 &6684806631829399888
 GameObject:
   m_ObjectHideFlags: 0
@@ -7075,7 +5818,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1499703444731476660}
-  - component: {fileID: 2753898887403387533}
   - component: {fileID: 1685450236705769421}
   - component: {fileID: 7917043722580259765}
   m_Layer: 0
@@ -7104,22 +5846,6 @@ RectTransform:
   m_AnchoredPosition: {x: 19.992, y: 28.5618}
   m_SizeDelta: {x: 470, y: 488}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &2753898887403387533
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6684806631829399888}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/ListView
-  nodeType: ListViewObjectData
-  tag: 402
-  actionTag: 1988710122
 --- !u!114 &1685450236705769421
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7173,7 +5899,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8500068497916055247}
-  - component: {fileID: 2068798058701546815}
   - component: {fileID: 6856639407649009707}
   - component: {fileID: 2854280986955496766}
   m_Layer: 0
@@ -7202,22 +5927,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2068798058701546815
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6730416363795504005}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jichushuxing/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 750
-  actionTag: -1175687683
 --- !u!222 &6856639407649009707
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7265,7 +5974,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7041410948200102633}
-  - component: {fileID: 4953345939977305753}
   m_Layer: 0
   m_Name: zhuangbei
   m_TagString: Untagged
@@ -7297,22 +6005,6 @@ RectTransform:
   m_AnchoredPosition: {x: -249.52, y: -5}
   m_SizeDelta: {x: 380, y: 543}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4953345939977305753
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6835036791184623418}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei
-  nodeType: PanelObjectData
-  tag: 2142
-  actionTag: -138256940
 --- !u!1 &7046562038884542917
 GameObject:
   m_ObjectHideFlags: 0
@@ -7322,7 +6014,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2062963921739536431}
-  - component: {fileID: 690459620020992171}
   - component: {fileID: 3123649449130336763}
   - component: {fileID: 7745151251239533731}
   m_Layer: 0
@@ -7351,22 +6042,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 354, y: 325}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &690459620020992171
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7046562038884542917}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Bg/Image_1
-  nodeType: ImageViewObjectData
-  tag: 2145
-  actionTag: 1452665177
 --- !u!222 &3123649449130336763
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7414,7 +6089,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7929442949994805644}
-  - component: {fileID: 330401951260622788}
   - component: {fileID: 5734132772671020295}
   - component: {fileID: 7733266226017211417}
   m_Layer: 0
@@ -7443,22 +6117,6 @@ RectTransform:
   m_AnchoredPosition: {x: 157, y: 50}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &330401951260622788
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7248471226314363389}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu/Prompt
-  nodeType: ImageViewObjectData
-  tag: 2210
-  actionTag: -386568329
 --- !u!222 &5734132772671020295
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7506,7 +6164,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4682074735053325839}
-  - component: {fileID: 6240842005904512792}
   - component: {fileID: 4448848178672487774}
   - component: {fileID: 8943349834509471558}
   m_Layer: 0
@@ -7535,22 +6192,6 @@ RectTransform:
   m_AnchoredPosition: {x: -20, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6240842005904512792
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7309381896077385569}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Title/Image_L
-  nodeType: ImageViewObjectData
-  tag: 2063
-  actionTag: 1836105019
 --- !u!222 &4448848178672487774
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7598,7 +6239,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4004705101243570343}
-  - component: {fileID: 4183339176997695430}
   m_Layer: 0
   m_Name: Node
   m_TagString: Untagged
@@ -7625,22 +6265,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4183339176997695430
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7313923944968814497}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Node
-  nodeType: SingleNodeObjectData
-  tag: 2148
-  actionTag: 2017038023
 --- !u!1 &7463051692481182655
 GameObject:
   m_ObjectHideFlags: 0
@@ -7650,7 +6274,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 117680951241147344}
-  - component: {fileID: 7549704256656147617}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -7680,22 +6303,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 132}
   m_SizeDelta: {x: 200, y: 40}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &7549704256656147617
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7463051692481182655}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Title
-  nodeType: PanelObjectData
-  tag: 2195
-  actionTag: -700822580
 --- !u!1 &7516973541349137616
 GameObject:
   m_ObjectHideFlags: 0
@@ -7705,7 +6312,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 229746495972074282}
-  - component: {fileID: 7910116272526206755}
   - component: {fileID: 1841168076752671668}
   - component: {fileID: 4377437192521916516}
   - component: {fileID: 7386835669702876400}
@@ -7735,22 +6341,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 107, y: 29}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7910116272526206755
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7516973541349137616}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup/Title/Title
-  nodeType: TextObjectData
-  tag: 2820
-  actionTag: -185170685
 --- !u!222 &1841168076752671668
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7817,7 +6407,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 728893588311323478}
-  - component: {fileID: 4098553496533755105}
   m_Layer: 0
   m_Name: qianghuashuxing
   m_TagString: Untagged
@@ -7848,22 +6437,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 353.9994}
   m_SizeDelta: {x: 470.016, y: 104}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4098553496533755105
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7543630779668954859}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing
-  nodeType: PanelObjectData
-  tag: 2060
-  actionTag: 377838293
 --- !u!1 &7546931518489893247
 GameObject:
   m_ObjectHideFlags: 0
@@ -7873,7 +6446,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5208559596114676607}
-  - component: {fileID: 5610289077816731924}
   - component: {fileID: 2191867918073688323}
   - component: {fileID: 4040544778606392718}
   m_Layer: 0
@@ -7902,22 +6474,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 99, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5610289077816731924
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7546931518489893247}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Title/Title
-  nodeType: TextObjectData
-  tag: 2196
-  actionTag: 449371608
 --- !u!222 &2191867918073688323
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7969,7 +6525,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 938865867715470016}
-  - component: {fileID: 5095733380240183687}
   - component: {fileID: 9100620501132600907}
   - component: {fileID: 1629466076125851838}
   m_Layer: 0
@@ -7999,22 +6554,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 46.5}
   m_SizeDelta: {x: 70, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &5095733380240183687
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7560655132559376395}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Atrribute_1
-  nodeType: TextObjectData
-  tag: 2188
-  actionTag: -128792567
 --- !u!222 &9100620501132600907
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8066,7 +6605,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3799507021802320919}
-  - component: {fileID: 421038130378692281}
   - component: {fileID: 485134753780438576}
   - component: {fileID: 4626466657820486728}
   - component: {fileID: 1310193780961266734}
@@ -8098,22 +6636,6 @@ RectTransform:
   m_AnchoredPosition: {x: 373, y: 46.5}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &421038130378692281
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7904827312914027597}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu
-  nodeType: ButtonObjectData
-  tag: 2205
-  actionTag: -704138103
 --- !u!222 &485134753780438576
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8205,7 +6727,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4989016710884235059}
-  - component: {fileID: 2043373349471751019}
   - component: {fileID: 1097827607626767679}
   - component: {fileID: 4685953909803289048}
   - component: {fileID: 2224756971690264172}
@@ -8237,22 +6758,6 @@ RectTransform:
   m_AnchoredPosition: {x: 373, y: 35.5027}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2043373349471751019
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7949305044444475371}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua
-  nodeType: ButtonObjectData
-  tag: 2166
-  actionTag: -902046815
 --- !u!222 &1097827607626767679
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8344,7 +6849,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7873773073429297158}
-  - component: {fileID: 6991004135385737853}
   - component: {fileID: 7449251637564851143}
   - component: {fileID: 5334890097809504953}
   m_Layer: 0
@@ -8368,27 +6872,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2049208649969566189}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5149}
-  m_AnchorMax: {x: 0.5, y: 0.5149}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 77, y: 30}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6991004135385737853
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8131049176077164522}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing/Text
-  nodeType: TextObjectData
-  tag: 2193
-  actionTag: -312459802
 --- !u!222 &7449251637564851143
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8440,7 +6928,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5249053369736427935}
-  - component: {fileID: 3875811094993163849}
   - component: {fileID: 7374556926697166119}
   - component: {fileID: 2283941735578372809}
   m_Layer: 0
@@ -8469,22 +6956,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 63, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &3875811094993163849
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8132487556182692150}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Atrribute_1/Value
-  nodeType: TextObjectData
-  tag: 2189
-  actionTag: 1865828724
 --- !u!222 &7374556926697166119
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8536,7 +7007,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4691437070987411579}
-  - component: {fileID: 9140145301955073847}
   - component: {fileID: 2690170451142063372}
   - component: {fileID: 1295608009550419193}
   m_Layer: 0
@@ -8566,22 +7036,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 46.5}
   m_SizeDelta: {x: 90, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &9140145301955073847
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8236336098487123240}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Level
-  nodeType: TextObjectData
-  tag: 2065
-  actionTag: -243883735
 --- !u!222 &2690170451142063372
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8633,7 +7087,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4403590532259466922}
-  - component: {fileID: 9163156218477559521}
   m_Layer: 0
   m_Name: shenzhushuxing
   m_TagString: Untagged
@@ -8664,22 +7117,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 146.9989}
   m_SizeDelta: {x: 470.016, y: 132}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &9163156218477559521
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8381484517374203153}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing
-  nodeType: PanelObjectData
-  tag: 2194
-  actionTag: 871650975
 --- !u!1 &8418961548301887608
 GameObject:
   m_ObjectHideFlags: 0
@@ -8689,7 +7126,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4317347654199873912}
-  - component: {fileID: 8189741302842629942}
   - component: {fileID: 1126687067577185206}
   - component: {fileID: 7812756637890437200}
   m_Layer: 0
@@ -8718,22 +7154,6 @@ RectTransform:
   m_AnchoredPosition: {x: 455, y: 287.5}
   m_SizeDelta: {x: 888, y: 555}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8189741302842629942
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8418961548301887608}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Popup/bg/Image1
-  nodeType: ImageViewObjectData
-  tag: 2817
-  actionTag: 271425665
 --- !u!222 &1126687067577185206
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8781,7 +7201,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8152034980456605918}
-  - component: {fileID: 7176661354817951801}
   - component: {fileID: 8694284155547148531}
   - component: {fileID: 3239721663819246407}
   m_Layer: 0
@@ -8811,22 +7230,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15, y: 74.5}
   m_SizeDelta: {x: 90, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &7176661354817951801
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8872597133260357093}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/juexingshuxing/Level
-  nodeType: TextObjectData
-  tag: 2186
-  actionTag: -1394168913
 --- !u!222 &8694284155547148531
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8878,7 +7281,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2011277977790813520}
-  - component: {fileID: 6077431946137566483}
   - component: {fileID: 1760861910307353563}
   - component: {fileID: 1863262541388910117}
   m_Layer: 0
@@ -8907,22 +7309,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 63, y: 21}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &6077431946137566483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8926593194814502849}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Atrribute_1/Value
-  nodeType: TextObjectData
-  tag: 2176
-  actionTag: 1644463917
 --- !u!222 &1760861910307353563
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -8974,7 +7360,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7559877761461625344}
-  - component: {fileID: 8988967886280567394}
   - component: {fileID: 563457375889142823}
   - component: {fileID: 8799254227273246850}
   m_Layer: 0
@@ -9003,22 +7388,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 300, y: 300}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8988967886280567394
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8981480795875905177}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Bg/Image
-  nodeType: ImageViewObjectData
-  tag: 2144
-  actionTag: 1502187939
 --- !u!222 &563457375889142823
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -9066,7 +7435,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2400757439495121497}
-  - component: {fileID: 3439852321808984928}
   - component: {fileID: 99837857928210711}
   - component: {fileID: 8213657526024372852}
   m_Layer: 0
@@ -9095,22 +7463,6 @@ RectTransform:
   m_AnchoredPosition: {x: 111, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &3439852321808984928
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9036152992491659648}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang/Atrribute_1/Value_1
-  nodeType: TextObjectData
-  tag: 2219
-  actionTag: -2024150049
 --- !u!222 &99837857928210711
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -9162,7 +7514,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6830173596523712823}
-  - component: {fileID: 1423399025166628339}
   - component: {fileID: 2836838826759295444}
   - component: {fileID: 7943423261723560775}
   m_Layer: 0
@@ -9191,22 +7542,6 @@ RectTransform:
   m_AnchoredPosition: {x: 159.9999, y: 53}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1423399025166628339
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9095682737010957512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan/Prompt
-  nodeType: ImageViewObjectData
-  tag: 551
-  actionTag: 33571822
 --- !u!222 &2836838826759295444
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -9254,7 +7589,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4996294018067141913}
-  - component: {fileID: 5271817286061890296}
   - component: {fileID: 462749130691521512}
   - component: {fileID: 8167359345505907332}
   m_Layer: 0
@@ -9283,22 +7617,6 @@ RectTransform:
   m_AnchoredPosition: {x: 217, y: 0}
   m_SizeDelta: {x: 126, y: 18}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5271817286061890296
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9206851415117861271}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Title/Image_R
-  nodeType: ImageViewObjectData
-  tag: 2198
-  actionTag: -927995604
 --- !u!222 &462749130691521512
 CanvasRenderer:
   m_ObjectHideFlags: 0

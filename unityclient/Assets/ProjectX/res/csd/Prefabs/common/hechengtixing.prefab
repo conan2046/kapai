@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6959329677050676745}
-  - component: {fileID: 4923847386570207839}
   - component: {fileID: 43739663999236650}
   - component: {fileID: 8310655594256561988}
   m_Layer: 0
@@ -42,22 +41,6 @@ RectTransform:
   m_AnchoredPosition: {x: 490, y: 200}
   m_SizeDelta: {x: 980, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4923847386570207839
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 894652827576967795}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Bg
-  nodeType: ImageViewObjectData
-  tag: 594
-  actionTag: -907840443
 --- !u!222 &43739663999236650
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -105,7 +88,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 711401718480023058}
-  - component: {fileID: 2973495932290938718}
   - component: {fileID: 2569333027076692639}
   - component: {fileID: 4807279671885546411}
   m_Layer: 0
@@ -134,22 +116,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 147, y: 42}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2973495932290938718
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1245041526733438491}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Title
-  nodeType: TextObjectData
-  tag: 601
-  actionTag: -1739386267
 --- !u!222 &2569333027076692639
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -276,7 +242,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 631220138535169092}
-  - component: {fileID: 577142085371889446}
   - component: {fileID: 3099016381266458578}
   - component: {fileID: 2685425871860728611}
   - component: {fileID: 2203782765018755800}
@@ -307,22 +272,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 70}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &577142085371889446
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1623349728057361864}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Btn_Cancel
-  nodeType: ButtonObjectData
-  tag: 837
-  actionTag: 1585410385
 --- !u!222 &3099016381266458578
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -414,8 +363,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 942544232556454461}
-  - component: {fileID: 5458635262493699406}
-  - component: {fileID: 743494915245205714}
+  - component: {fileID: 2665515226413371711}
   m_Layer: 0
   m_Name: hechengtixing
   m_TagString: Untagged
@@ -444,7 +392,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &5458635262493699406
+--- !u!114 &2665515226413371711
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -453,23 +401,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2116696683591325903}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 591
-  actionTag: 0
---- !u!114 &743494915245205714
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2116696683591325903}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/common/hechengtixing.csd
@@ -559,6 +491,7 @@ MonoBehaviour:
     tag: 913
     actionTag: 1612620525
     target: {fileID: 3083736498750960584}
+  retiredMetadataAliases: []
 --- !u!1 &2741051441301146543
 GameObject:
   m_ObjectHideFlags: 0
@@ -568,7 +501,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4669895557955086575}
-  - component: {fileID: 8769949787047341303}
   m_Layer: 0
   m_Name: hechengtixing
   m_TagString: Untagged
@@ -602,22 +534,6 @@ RectTransform:
   m_AnchoredPosition: {x: 667, y: 375}
   m_SizeDelta: {x: 980, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8769949787047341303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2741051441301146543}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing
-  nodeType: PanelObjectData
-  tag: 592
-  actionTag: -1156644272
 --- !u!1 &2752643838396836610
 GameObject:
   m_ObjectHideFlags: 0
@@ -627,7 +543,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1273110993900702635}
-  - component: {fileID: 1999828095876398799}
   - component: {fileID: 333247085459105950}
   - component: {fileID: 8821581723857943762}
   m_Layer: 0
@@ -651,27 +566,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 631220138535169092}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 74, y: 33}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1999828095876398799
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2752643838396836610}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Btn_Cancel/Text
-  nodeType: TextObjectData
-  tag: 838
-  actionTag: -411582413
 --- !u!222 &333247085459105950
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -723,7 +622,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3925359818013131929}
-  - component: {fileID: 8642325470709392252}
   - component: {fileID: 8763073392688878708}
   - component: {fileID: 7902123925839830877}
   m_Layer: 0
@@ -752,22 +650,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 159, y: 30}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &8642325470709392252
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3083736498750960584}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/CheckBox_1/Text
-  nodeType: TextObjectData
-  tag: 913
-  actionTag: 1612620525
 --- !u!222 &8763073392688878708
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -819,7 +701,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 502996207551425411}
-  - component: {fileID: 4626492861827126713}
   - component: {fileID: 4553387615055999295}
   - component: {fileID: 6671799075391442975}
   - component: {fileID: 3889711430919914233}
@@ -850,22 +731,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 70}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4626492861827126713
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3762422228233698453}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Btn_Confirm
-  nodeType: ButtonObjectData
-  tag: 839
-  actionTag: 1554166593
 --- !u!222 &4553387615055999295
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -957,7 +822,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7452160568290103341}
-  - component: {fileID: 5110503431298727829}
   - component: {fileID: 8181621788354926607}
   - component: {fileID: 4217750882425332679}
   - component: {fileID: 2021270160358437038}
@@ -989,22 +853,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 40, y: 40}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5110503431298727829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4078170332667504141}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/CheckBox_1
-  nodeType: CheckBoxObjectData
-  tag: 912
-  actionTag: -1089383020
 --- !u!222 &8181621788354926607
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1100,7 +948,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7495539691758544958}
-  - component: {fileID: 83599453556214378}
   - component: {fileID: 5795571752467450342}
   - component: {fileID: 3564164483113244968}
   m_Layer: 0
@@ -1129,22 +976,6 @@ RectTransform:
   m_AnchoredPosition: {x: 490, y: 13.5}
   m_SizeDelta: {x: 850, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &83599453556214378
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4348598913531532696}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Bg/Image3
-  nodeType: ImageViewObjectData
-  tag: 598
-  actionTag: 736067884
 --- !u!222 &5795571752467450342
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1192,7 +1023,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7506739940660194625}
-  - component: {fileID: 4971780163034231268}
   - component: {fileID: 8409240726973257617}
   - component: {fileID: 2864678513756870371}
   m_Layer: 0
@@ -1221,22 +1051,6 @@ RectTransform:
   m_AnchoredPosition: {x: 490, y: 200}
   m_SizeDelta: {x: 1000, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4971780163034231268
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5166874291945608842}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Bg/Image1
-  nodeType: ImageViewObjectData
-  tag: 616
-  actionTag: -1096204238
 --- !u!222 &8409240726973257617
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1284,7 +1098,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3741510744609143525}
-  - component: {fileID: 3835519363513474692}
   - component: {fileID: 8088609284443464886}
   - component: {fileID: 1689434978190480957}
   m_Layer: 0
@@ -1313,22 +1126,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 226.4132}
   m_SizeDelta: {x: 482, y: 586}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3835519363513474692
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5459245564537774739}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/meinv
-  nodeType: ImageViewObjectData
-  tag: 602
-  actionTag: 2144051003
 --- !u!222 &8088609284443464886
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1376,7 +1173,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 962298374124028163}
-  - component: {fileID: 4851447691369971705}
   - component: {fileID: 8743024126703935854}
   - component: {fileID: 4267877805253869033}
   m_Layer: 0
@@ -1405,22 +1201,6 @@ RectTransform:
   m_AnchoredPosition: {x: 490, y: 386.5}
   m_SizeDelta: {x: 850, y: 2}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4851447691369971705
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5803128372304813725}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Bg/Image2
-  nodeType: ImageViewObjectData
-  tag: 597
-  actionTag: 2009299260
 --- !u!222 &8743024126703935854
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1468,7 +1248,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8534187534668251045}
-  - component: {fileID: 9180046755099135783}
   - component: {fileID: 5295754172917565505}
   - component: {fileID: 8736319659300920326}
   m_Layer: 0
@@ -1497,22 +1276,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 512.868, y: 175.043}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &9180046755099135783
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6425669171102083209}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Text
-  nodeType: TextObjectData
-  tag: 619
-  actionTag: 59248005
 --- !u!222 &5295754172917565505
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1564,7 +1327,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1781032615778336006}
-  - component: {fileID: 5116088774259359768}
   - component: {fileID: 7997879120322170491}
   - component: {fileID: 5362359288843924233}
   m_Layer: 0
@@ -1593,22 +1355,6 @@ RectTransform:
   m_AnchoredPosition: {x: 667, y: 375}
   m_SizeDelta: {x: 1350, y: 800}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5116088774259359768
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7443812860708408353}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Mask
-  nodeType: ImageViewObjectData
-  tag: 615
-  actionTag: 297994144
 --- !u!222 &7997879120322170491
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1656,7 +1402,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 686944566329556563}
-  - component: {fileID: 7745114193511880724}
   - component: {fileID: 1475531729067050800}
   - component: {fileID: 4596103073954873520}
   m_Layer: 0
@@ -1685,22 +1430,6 @@ RectTransform:
   m_AnchoredPosition: {x: 490, y: 200}
   m_SizeDelta: {x: 1000, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7745114193511880724
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7611463141214153682}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Bg/Image
-  nodeType: ImageViewObjectData
-  tag: 596
-  actionTag: 1036602287
 --- !u!222 &1475531729067050800
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1748,7 +1477,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8785403980319495761}
-  - component: {fileID: 321742319016554886}
   - component: {fileID: 2591283244233916880}
   - component: {fileID: 1747506429067975769}
   m_Layer: 0
@@ -1772,27 +1500,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 502996207551425411}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 115, y: 33}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &321742319016554886
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9029942090460907424}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/hechengtixing/Btn_Confirm/Text
-  nodeType: TextObjectData
-  tag: 840
-  actionTag: -763088009
 --- !u!222 &2591283244233916880
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -4,16 +4,6 @@ using UnityEngine;
 
 namespace ProjectX.UI.Migration
 {
-    [Serializable]
-    public sealed class CocosNodeReference
-    {
-        public string path;
-        public string nodeType;
-        public int tag;
-        public int actionTag;
-        public GameObject target;
-    }
-
     public sealed class CocosUiBinding : MonoBehaviour
     {
         private static readonly Dictionary<GameObject, CocosNodeReference> retiredMetadataIdentities =
@@ -21,16 +11,32 @@ namespace ProjectX.UI.Migration
 
         [SerializeField] private string source;
         [SerializeField] private List<CocosNodeReference> nodes = new List<CocosNodeReference>();
-        private readonly List<CocosNodeReference> retiredMetadataAliases = new List<CocosNodeReference>();
+        [SerializeField] private List<CocosNodeReference> retiredMetadataAliases = new List<CocosNodeReference>();
 
         public string Source => source;
         public IReadOnlyList<CocosNodeReference> Nodes => nodes;
+        public IReadOnlyList<CocosNodeReference> RetiredMetadataAliases =>
+            retiredMetadataAliases ?? (retiredMetadataAliases = new List<CocosNodeReference>());
         public static IReadOnlyDictionary<GameObject, CocosNodeReference> RetiredMetadataIdentities => retiredMetadataIdentities;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetRetiredMetadataIdentities()
         {
             retiredMetadataIdentities.Clear();
+        }
+
+        private void OnEnable()
+        {
+            // Retire imported lookup metadata as the UI root becomes available.
+            // Binding aliases and Snapshot identities are preserved by the same
+            // operation, so pages with a co-located Timeline can keep using their
+            // serialized ActionTag references without a separate migration pass.
+            if (!Application.isPlaying) return;
+
+            // A shared frame can contain separately owned dynamic page bindings.
+            // Do not consume a nested page's metadata into this owner's aliases;
+            // the nested binding retires its own nodes when it is enabled.
+            RetireLegacyNodeMetadataAtRuntime(transform);
         }
 
         public static void PreserveRetiredMetadataIdentity(CocosNodeMetadata metadata)
@@ -53,28 +59,39 @@ namespace ProjectX.UI.Migration
         {
             source = sourcePath;
             nodes = nodeReferences;
-            retiredMetadataAliases.Clear();
+            if (retiredMetadataAliases == null) retiredMetadataAliases = new List<CocosNodeReference>();
+            else retiredMetadataAliases.Clear();
         }
 
         public int RetireLegacyNodeMetadataAtRuntime()
         {
-            if (!Application.isPlaying) return 0;
+            return RetireLegacyNodeMetadataAtRuntime(transform);
+        }
 
-            CocosNodeMetadata[] metadata = GetComponentsInChildren<CocosNodeMetadata>(true);
+        public int RetireLegacyNodeMetadataAtRuntime(Transform subtree)
+        {
+            if (!Application.isPlaying || subtree == null
+                || (subtree != transform && !subtree.IsChildOf(transform)))
+                return 0;
+
+            CocosNodeMetadata[] metadata = subtree.GetComponentsInChildren<CocosNodeMetadata>(true);
+            int retiredCount = 0;
             foreach (CocosNodeMetadata item in metadata)
             {
-                if (item == null) continue;
+                if (item == null || item.GetComponentInParent<CocosUiBinding>() != this) continue;
                 PreserveLegacyMetadataPathAlias(item);
                 PreserveRetiredMetadataIdentity(item);
                 Destroy(item);
+                retiredCount++;
             }
-            return metadata.Length;
+            return retiredCount;
         }
 
-        private void PreserveLegacyMetadataPathAlias(CocosNodeMetadata metadata)
+        public void PreserveLegacyMetadataPathAlias(CocosNodeMetadata metadata)
         {
             if (metadata == null || string.IsNullOrWhiteSpace(metadata.CocosPath)) return;
             nodes = nodes ?? new List<CocosNodeReference>();
+            retiredMetadataAliases = retiredMetadataAliases ?? new List<CocosNodeReference>();
 
             var alias = new CocosNodeReference
             {
@@ -294,17 +311,12 @@ namespace ProjectX.UI.Migration
 
         public GameObject Find(string cocosPath)
         {
+            retiredMetadataAliases = retiredMetadataAliases ?? new List<CocosNodeReference>();
             CocosNodeReference node = nodes.Find(item => item.path == cocosPath);
             if (node != null && node.target != null)
             {
                 return node.target;
             }
-
-            CocosNodeMetadata metadata = Array.Find(
-                GetComponentsInChildren<CocosNodeMetadata>(true),
-                item => item.CocosPath == cocosPath);
-            if (metadata != null)
-                return metadata.gameObject;
 
             CocosNodeReference retiredAlias = retiredMetadataAliases.Find(item => item.path == cocosPath);
             if (retiredAlias != null && retiredAlias.target != null)
@@ -320,6 +332,7 @@ namespace ProjectX.UI.Migration
 
         public GameObject Find(string cocosPath, string cocosNodeType, int cocosActionTag)
         {
+            retiredMetadataAliases = retiredMetadataAliases ?? new List<CocosNodeReference>();
             CocosNodeReference node = nodes.Find(item =>
                 item.path == cocosPath
                 && item.nodeType == cocosNodeType
@@ -329,28 +342,20 @@ namespace ProjectX.UI.Migration
                 return node.target;
             }
 
-            CocosNodeMetadata metadata = Array.Find(
-                GetComponentsInChildren<CocosNodeMetadata>(true),
-                item => item.CocosPath == cocosPath
-                    && item.NodeType == cocosNodeType
-                    && item.ActionTag == cocosActionTag);
-            if (metadata != null) return metadata.gameObject;
-
             CocosNodeReference retiredAlias = retiredMetadataAliases.Find(item =>
                 item.path == cocosPath && item.nodeType == cocosNodeType
                 && item.actionTag == cocosActionTag);
-            return retiredAlias != null ? retiredAlias.target : null;
+            if (retiredAlias != null && retiredAlias.target != null)
+                return retiredAlias.target;
+
+            return null;
         }
 
         public GameObject FindActionTag(int cocosActionTag)
         {
+            retiredMetadataAliases = retiredMetadataAliases ?? new List<CocosNodeReference>();
             GameObject serializedTarget = FindSerializedActionTag(cocosActionTag);
             if (serializedTarget != null) return serializedTarget;
-            CocosNodeMetadata metadata = Array.Find(
-                GetComponentsInChildren<CocosNodeMetadata>(true),
-                item => item.ActionTag == cocosActionTag);
-            if (metadata != null) return metadata.gameObject;
-
             CocosNodeReference retiredAlias = retiredMetadataAliases.Find(item => item.actionTag == cocosActionTag);
             return retiredAlias != null ? retiredAlias.target : null;
         }

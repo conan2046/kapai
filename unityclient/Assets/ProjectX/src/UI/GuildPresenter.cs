@@ -248,7 +248,7 @@ namespace ProjectX.UI
                 if (child.name == name) child.gameObject.SetActive(active);
         }
 
-        private static GameObject Find(CocosUiView view, string path) => view.Binding.Find(path);
+        private static GameObject Find(CocosUiView view, string path) => view.FindNode(path);
         private static GameObject Require(CocosUiView view, string path) => Find(view, path)
             ?? throw new InvalidOperationException($"Guild UI node was not found: {path}");
     }

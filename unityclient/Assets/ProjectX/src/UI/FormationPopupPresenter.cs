@@ -48,8 +48,8 @@ namespace ProjectX.UI
             this.resources = resources; this.swap = swap; this.upgrade = upgrade; this.use = use;
             this.feedback = feedback;
             selectedFormationId = formation.ActiveFormationId > 0 ? formation.ActiveFormationId : 1;
-            runtimeDim = CreateDim(view.FindNode("Layer")?.transform ?? view.Binding.transform);
-            runtimeTitle = CreateTitle(view.FindNode("Layer")?.transform ?? view.Binding.transform,
+            runtimeDim = CreateDim(view.FindNode("Layer")?.transform ?? view.GameObject.transform);
+            runtimeTitle = CreateTitle(view.FindNode("Layer")?.transform ?? view.GameObject.transform,
                 view.FindNode("Layer/Bg/Popup/Title/Title")?.GetComponent<Text>());
             GameObject viewport = Require("Layer/FormationUI/List_Formation/ListView");
             GameObject template = Require("Layer/FormationUI/List_Formation/Item");
@@ -191,7 +191,7 @@ namespace ProjectX.UI
             if (materialButton != null) materialButton.gameObject.SetActive(!maxLevel);
             Transform materialName = Find("Layer/FormationUI/Show/Info/bg_Name");
             if (materialName != null) materialName.gameObject.SetActive(!maxLevel);
-            foreach (Transform child in view.Binding.transform.GetComponentsInChildren<Transform>(true))
+            foreach (Transform child in view.GameObject.transform.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
             RenderedModelCount = 0;
             for (int combatPosition = 1; combatPosition <= models.Length; combatPosition++)

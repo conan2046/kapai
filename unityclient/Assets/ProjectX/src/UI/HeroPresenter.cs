@@ -94,22 +94,17 @@ namespace ProjectX.UI
             GameObject modelHost = Require(detailView, "Layer/EquipUI/Bg/bg/Image/BaseImage/Node");
             detailModel = CreateModel(modelHost.transform);
             detailFallbackPortrait = CreatePortrait(portraitHost.transform);
-            ClearPrefabPlaceholders(detailView.Binding);
+            ClearPrefabPlaceholders(detailView.Identity);
             BindDetailControls();
-            HidePrompts(listView.Binding.transform);
-            HidePrompts(detailView.Binding.transform);
-            HidePrompts(bagView.Binding.transform);
+            HidePrompts(listView.GameObject.transform);
+            HidePrompts(detailView.GameObject.transform);
+            HidePrompts(bagView.GameObject.transform);
             heroes.Changed += Render;
             formation.Changed += Render;
             player.Changed += Render;
             equipment.Changed += Render;
             faBao.Changed += Render;
             Render();
-            listView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(template.transform);
-            listView.Binding?.RetireMetadataClonedFromSerializedTemplateAtRuntime(
-                template.transform, viewport.transform.Find("VirtualContent"));
-            listView.Binding?.RetireMetadataInSubtreeWithSerializedIdentityAtRuntime(template.transform);
-            detailView.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int ItemCount => heroes.Items.Count;
@@ -601,7 +596,7 @@ namespace ProjectX.UI
                 ?? instance.AddComponent<ImodAnimationPlayer>();
         }
 
-        private static void ClearPrefabPlaceholders(ProjectX.UI.Migration.CocosUiBinding binding)
+        private static void ClearPrefabPlaceholders(ProjectX.UI.Migration.UiPrefabIdentity binding)
         {
             for (int slot = 1; slot <= 6; slot++)
             {

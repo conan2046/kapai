@@ -24,35 +24,35 @@ namespace ProjectX.UI
 
         public CocosUiView FindBySource(string sourceToken, bool excludeBackup = false)
         {
-            CocosUiBinding binding = Resources.FindObjectsOfTypeAll<CocosUiBinding>()
-                .Where(item => IsRuntimeSceneBinding(item)
+            UiPrefabIdentity identity = Resources.FindObjectsOfTypeAll<UiPrefabIdentity>()
+                .Where(item => IsRuntimeSceneObject(item.gameObject)
                     && !string.IsNullOrEmpty(item.Source)
                     && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0
                     && (!excludeBackup || item.Source.IndexOf("backup", StringComparison.OrdinalIgnoreCase) < 0))
                 .OrderByDescending(item => item.gameObject.activeInHierarchy)
                 .ThenBy(item => item.GetInstanceID())
                 .FirstOrDefault();
-            return binding == null
-                ? assets?.FindOrLoadBySource(sourceToken, excludeBackup)
-                : new CocosUiView(binding);
+            return identity != null
+                ? new CocosUiView(identity)
+                : assets?.FindOrLoadBySource(sourceToken, excludeBackup);
         }
 
         public void SetExclusiveVisibleBySource(string sourceToken, CocosUiView selected, bool visible)
         {
-            foreach (CocosUiBinding binding in Resources.FindObjectsOfTypeAll<CocosUiBinding>()
-                .Where(item => IsRuntimeSceneBinding(item)
+            var identityRoots = Resources.FindObjectsOfTypeAll<UiPrefabIdentity>()
+                .Where(item => IsRuntimeSceneObject(item.gameObject)
                     && !string.IsNullOrEmpty(item.Source)
-                    && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0))
-            {
-                binding.gameObject.SetActive(visible && selected != null && binding == selected.Binding);
-            }
+                    && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0)
+                .Select(item => item.gameObject);
+            foreach (GameObject root in identityRoots.Distinct())
+                root.SetActive(visible && selected?.GameObject == root);
         }
 
-        private static bool IsRuntimeSceneBinding(CocosUiBinding binding)
+        private static bool IsRuntimeSceneObject(GameObject gameObject)
         {
-            if (binding == null || !binding.gameObject.scene.IsValid()) return false;
+            if (gameObject == null || !gameObject.scene.IsValid()) return false;
 #if UNITY_EDITOR
-            if (EditorSceneManager.IsPreviewScene(binding.gameObject.scene)) return false;
+            if (EditorSceneManager.IsPreviewScene(gameObject.scene)) return false;
 #endif
             return true;
         }

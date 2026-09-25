@@ -15,13 +15,14 @@ namespace ProjectX.UI.Migration.Editor
     /// 安全模型：
     ///  - SAFE    : 路径段或文件名含 backup/deprecated/discard/_old/temp 等弃用标记 -> 默认可移除
     ///  - PROTECTED: 命中 ProtectedPatterns -> 永不触碰（留空则靠运行时依赖启发式）
-    ///  - ACTIVE  : 其余（运行时经 CocosUiBinding.Find 定位节点）-> 默认保留，需显式勾选 allowActiveRemoval
+    ///  - ACTIVE  : 其余运行时资源 -> Metadata 与 Binding 分别控制；移除 Metadata 前先保存缺失别名
     /// DRY RUN 模式只报不改；EXECUTE 模式默认仅剥离 SAFE 类，ACTIVE 需二次确认。
     /// </summary>
     public class CocosBindingCleaner : EditorWindow
     {
         bool dryRun = true;
-        bool allowActiveRemoval = false;
+        bool allowActiveMetadataRemoval = false;
+        bool allowActiveBindingRemoval = false;
         Vector2 scroll;
         readonly List<string> logLines = new List<string>();
 
@@ -44,10 +45,12 @@ namespace ProjectX.UI.Migration.Editor
             EditorGUILayout.LabelField("CocosUiBinding / CocosNodeMetadata 组件清理", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
                 "统计 prefab 上这两个迁移桥接组件的挂载并可选移除（不删 .cs）。\n" +
-                "DRY RUN = 只报告不修改；EXECUTE = 真正移除（默认仅 SAFE 弃用类，ACTIVE 需勾选并二次确认）。\n" +
+                "移除 Metadata 前会将 Binding 缺失的身份别名序列化保存；Binding 单独控制。\n" +
+                "DRY RUN = 只报告不修改；ACTIVE 组件移除需分别勾选并二次确认。\n" +
                 "建议执行前先 git 提交，以便回滚。", MessageType.Info);
             dryRun = EditorGUILayout.ToggleLeft("Dry Run（只报告，不修改文件）", dryRun);
-            allowActiveRemoval = EditorGUILayout.ToggleLeft("允许移除 ACTIVE（运行时依赖）组件 —— 高风险", allowActiveRemoval);
+            allowActiveMetadataRemoval = EditorGUILayout.ToggleLeft("允许 ACTIVE Metadata 迁移身份后移除", allowActiveMetadataRemoval);
+            allowActiveBindingRemoval = EditorGUILayout.ToggleLeft("允许移除 ACTIVE Binding（通常应保留）", allowActiveBindingRemoval);
 
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("运行扫描", GUILayout.Width(120)))
@@ -90,26 +93,68 @@ namespace ProjectX.UI.Migration.Editor
                 bTotal += b.Length; mTotal += m.Length;
 
                 string cat = Classify(path);
-                bool remove;
-                if (cat == "PROTECTED") { prot++; remove = false; }
-                else if (cat == "SAFE") { safe++; remove = true; }
-                else { active++; remove = allowActiveRemoval; }
+                bool removeMetadata;
+                bool removeBinding;
+                if (cat == "PROTECTED")
+                {
+                    prot++;
+                    removeMetadata = false;
+                    removeBinding = false;
+                }
+                else if (cat == "SAFE")
+                {
+                    safe++;
+                    removeMetadata = true;
+                    removeBinding = allowActiveBindingRemoval;
+                }
+                else
+                {
+                    active++;
+                    removeMetadata = allowActiveMetadataRemoval;
+                    removeBinding = allowActiveBindingRemoval;
+                }
 
-                if (remove)
+                bool removeAny = (removeMetadata && m.Length > 0) || (removeBinding && b.Length > 0);
+                int metadataAliasesToPreserve = removeMetadata ? CountMetadataAliases(m) : 0;
+                if (removeMetadata && m.Length > 0)
+                {
+                    bool hasOwnerForAllMetadata = true;
+                    foreach (CocosNodeMetadata item in m)
+                    {
+                        CocosUiBinding owner = item != null ? item.GetComponentInParent<CocosUiBinding>() : null;
+                        if (owner == null) { hasOwnerForAllMetadata = false; break; }
+                    }
+                    if (!hasOwnerForAllMetadata)
+                    {
+                        Emit(sb, $"[BLOCKED][{cat}] {path} Metadata without owning Binding; no components changed");
+                        removeAny = false;
+                    }
+                }
+
+                if (removeAny)
                 {
                     var deps = FindDependentSources(Path.GetFileNameWithoutExtension(path));
                     if (dryRun)
                     {
-                        Emit(sb, $"[DRYRUN][{cat}] {path} binding={b.Length} meta={m.Length} deps=[{string.Join(",", deps)}]");
+                        Emit(sb, $"[DRYRUN][{cat}] {path} binding={(removeBinding ? b.Length : 0)} meta={(removeMetadata ? m.Length : 0)} migrateAliases={metadataAliasesToPreserve} deps=[{string.Join(",", deps)}]");
                     }
                     else
                     {
-                        foreach (var c in b) Object.DestroyImmediate(c);
-                        foreach (var c in m) Object.DestroyImmediate(c);
+                        if (removeMetadata)
+                        {
+                            foreach (CocosNodeMetadata item in m)
+                            {
+                                CocosUiBinding owner = item.GetComponentInParent<CocosUiBinding>();
+                                owner.PreserveLegacyMetadataPathAlias(item);
+                                Object.DestroyImmediate(item);
+                            }
+                        }
+                        if (removeBinding)
+                            foreach (var c in b) Object.DestroyImmediate(c);
                         PrefabUtility.SaveAsPrefabAsset(go, path);
-                        bRem += b.Length; mRem += m.Length;
+                        bRem += removeBinding ? b.Length : 0; mRem += removeMetadata ? m.Length : 0;
                         removed.Add(path);
-                        Emit(sb, $"[REMOVED][{cat}] {path} binding={b.Length} meta={m.Length} deps=[{string.Join(",", deps)}]");
+                        Emit(sb, $"[REMOVED][{cat}] {path} binding={(removeBinding ? b.Length : 0)} meta={(removeMetadata ? m.Length : 0)} migrateAliases={metadataAliasesToPreserve} deps=[{string.Join(",", deps)}]");
                     }
                 }
                 else
@@ -127,7 +172,8 @@ namespace ProjectX.UI.Migration.Editor
             Emit(sb, "--- 汇总 ---");
             Emit(sb, $"prefab={total} SAFE={safe} ACTIVE={active} PROTECTED={prot} | binding 移除{bRem}/{bTotal} | metadata 移除{mRem}/{mTotal}");
 
-            string outDir = Path.Combine(Application.dataPath, "..", "..", "outputs");
+            string outDir = Path.GetFullPath(Path.Combine(
+                Application.dataPath, "..", "..", ".local", "unity-validation"));
             Directory.CreateDirectory(outDir);
             string outPath = Path.Combine(outDir,
                 $"cocos_binding_cleanup_{(dryRun ? "dryrun" : "execute")}_{System.DateTime.Now:yyyyMMdd_HHmmss}.txt");
@@ -138,6 +184,30 @@ namespace ProjectX.UI.Migration.Editor
         }
 
         void Emit(StringBuilder sb, string line) { sb.AppendLine(line); logLines.Add(line); }
+
+        static int CountMetadataAliases(CocosNodeMetadata[] metadata)
+        {
+            int count = 0;
+            foreach (CocosNodeMetadata item in metadata)
+            {
+                if (item == null) continue;
+                CocosUiBinding owner = item.GetComponentInParent<CocosUiBinding>();
+                if (owner == null) continue;
+                bool exact = false;
+                foreach (CocosNodeReference reference in owner.Nodes)
+                {
+                    if (reference != null && reference.target == item.gameObject
+                        && reference.path == item.CocosPath && reference.nodeType == item.NodeType
+                        && reference.tag == item.Tag && reference.actionTag == item.ActionTag)
+                    {
+                        exact = true;
+                        break;
+                    }
+                }
+                if (!exact) count++;
+            }
+            return count;
+        }
 
         string Classify(string path)
         {

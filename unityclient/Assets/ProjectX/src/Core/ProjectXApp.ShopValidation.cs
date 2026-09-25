@@ -48,8 +48,8 @@ namespace ProjectX.Core
             if (services.UiStack.Current == previous && previous != target) services.UiStack.Pop();
             if (services.UiStack.Current != target) services.UiStack.Push(target);
             ConfigureGameplayShopsFrame();
-            oneLevelFrameView.Binding.Find("Layer/Panel_12")?.SetActive(false);
-            oneLevelFrameView.Binding.Find("Layer/GoldCheck")?.SetActive(false);
+            oneLevelFrameView.FindNode("Layer/Panel_12")?.SetActive(false);
+            oneLevelFrameView.FindNode("Layer/GoldCheck")?.SetActive(false);
             bagPopupFrameView.ShowPopup();
             target.ShowPopup();
             SetStatus($"Gameplay shop function_id={functionId} active; awaiting /221.");
@@ -305,10 +305,10 @@ namespace ProjectX.Core
             Canvas.ForceUpdateCanvases();
             shopPresenter.Render();
             yield return null;
-            Text tab = shopView.Binding.Find("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
-            GameObject sharedPanel = oneLevelFrameView.Binding.Find("Layer/Panel_12");
-            GameObject goldCheck = oneLevelFrameView.Binding.Find("Layer/GoldCheck");
-            Button shopClose = bagPopupFrameView?.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
+            Text tab = shopView.FindNode("Layer/ShopUI/ListView_left/Panel_button/Button_1/Text")?.GetComponent<Text>();
+            GameObject sharedPanel = oneLevelFrameView.FindNode("Layer/Panel_12");
+            GameObject goldCheck = oneLevelFrameView.FindNode("Layer/GoldCheck");
+            Button shopClose = bagPopupFrameView?.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
             RecordValidationSemantic("shop-frame-panel-hidden", sharedPanel != null && !sharedPanel.activeSelf,
                 $"panel={sharedPanel?.activeSelf}");
             RecordValidationSemantic("shop-gold-check-hidden", goldCheck != null && !goldCheck.activeSelf,
@@ -562,14 +562,14 @@ namespace ProjectX.Core
 
             MarkValidationControl("SHOP-04-HEADER-HIDDEN");
 
-            Button close = bagPopupFrameView?.Binding.Find("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
+            Button close = bagPopupFrameView?.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
             if (close == null || !close.interactable) { Fail("Shop G4 close was not bound."); yield break; }
             if (!InvokeEventSystemRaycastClick(close))
             { Fail("Shop G4 close did not receive a real EventSystem/raycast click."); yield break; }
             if (IsShopOpen) { Fail("Shop G4 close did not return to main."); yield break; }
             MarkValidationControl("SHOP-05-CLOSE");
 
-            Button shortcut = mainView.Binding.Find(ShopCoinShortcutPath)?.GetComponent<Button>();
+            Button shortcut = mainView.FindNode(ShopCoinShortcutPath)?.GetComponent<Button>();
             if (shortcut == null || !shortcut.interactable)
             { Fail("Shop G4 main coin shortcut was not bound."); yield break; }
             if (!InvokeEventSystemRaycastClick(shortcut))

@@ -315,7 +315,7 @@ namespace ProjectX.Editor
             {
                 new CocosNodeReference { path = "Root/Target", actionTag = 7, target = target }
             };
-            root.AddComponent<CocosUiBinding>().Initialize("validation.csb", references);
+            root.AddComponent<UiPrefabIdentity>().Initialize("validation.csb", references);
             var definition = new CocosTimelineDefinition
             {
                 duration = 30,

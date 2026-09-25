@@ -123,7 +123,6 @@ namespace ProjectX.UI
             store.Changed += Render;
             currencies.Changed += RenderDetails;
             Render();
-            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int ItemCount => store.Count;

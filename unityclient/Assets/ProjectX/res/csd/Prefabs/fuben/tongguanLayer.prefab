@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6770615027306096122}
-  - component: {fileID: 3594674969065391599}
   - component: {fileID: 3155306636430076317}
   - component: {fileID: 3662462898297854929}
   m_Layer: 0
@@ -38,22 +37,6 @@ RectTransform:
   m_AnchoredPosition: {x: 667, y: 375}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3594674969065391599
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 612645515934774891}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/Image_bg
-  nodeType: ImageViewObjectData
-  tag: 298
-  actionTag: -202526229
 --- !u!222 &3155306636430076317
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -72,8 +55,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -101,7 +84,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1517226573887102962}
-  - component: {fileID: 605602260552086309}
   - component: {fileID: 8657096280521818762}
   - component: {fileID: 2182003045513345154}
   m_Layer: 0
@@ -130,22 +112,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &605602260552086309
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1534362166378597214}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/Panel/Particle_1
-  nodeType: ParticleObjectData
-  tag: 539
-  actionTag: -765992101
 --- !u!198 &8657096280521818762
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -4952,7 +4918,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7007962678510116551}
-  - component: {fileID: 5158685694991456815}
   m_Layer: 0
   m_Name: Panel
   m_TagString: Untagged
@@ -4983,22 +4948,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 700, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5158685694991456815
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2021842208646861019}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/Panel
-  nodeType: PanelObjectData
-  tag: 299
-  actionTag: 2091305466
 --- !u!1 &3366410321143704366
 GameObject:
   m_ObjectHideFlags: 0
@@ -5008,7 +4957,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2466469263580464496}
-  - component: {fileID: 2352772506950026944}
   - component: {fileID: 6739571163664438022}
   - component: {fileID: 7623900380482530111}
   m_Layer: 0
@@ -5037,22 +4985,6 @@ RectTransform:
   m_AnchoredPosition: {x: 341.7793, y: 105.1722}
   m_SizeDelta: {x: 608, y: 172}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2352772506950026944
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3366410321143704366}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/Panel/Image_bg1
-  nodeType: ImageViewObjectData
-  tag: 300
-  actionTag: 681396297
 --- !u!222 &6739571163664438022
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5071,8 +5003,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -5100,7 +5032,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4799195949357241377}
-  - component: {fileID: 9071311294427345849}
   - component: {fileID: 7207763235696857412}
   - component: {fileID: 1979521619464494529}
   m_Layer: 0
@@ -5129,22 +5060,6 @@ RectTransform:
   m_AnchoredPosition: {x: 388.556, y: 88.926}
   m_SizeDelta: {x: 159, y: 39}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &9071311294427345849
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5403172109232878670}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/Panel/Image_tongguan
-  nodeType: ImageViewObjectData
-  tag: 301
-  actionTag: -1681045728
 --- !u!222 &7207763235696857412
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5163,8 +5078,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -5192,9 +5107,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7310421612917163858}
-  - component: {fileID: 6175344843114128201}
-  - component: {fileID: 6989150692231644764}
   - component: {fileID: 2427992984404851810}
+  - component: {fileID: 9019906601888455730}
   m_Layer: 0
   m_Name: tongguanLayer
   m_TagString: Untagged
@@ -5223,7 +5137,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &6175344843114128201
+--- !u!114 &2427992984404851810
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5232,14 +5146,216 @@ MonoBehaviour:
   m_GameObject: {fileID: 5761188844825721889}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 767
-  actionTag: 0
---- !u!114 &6989150692231644764
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition:
+    duration: 30
+    speed: 1
+    frameRate: 60
+    currentAnimationName: animation0
+    clips:
+    - name: animation0
+      startFrame: 0
+      endFrame: 30
+    timelines:
+    - actionTag: -765992101
+      property: Position
+      frames:
+      - frame: 30
+        x: 327.32
+        y: -297.54
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: -765992101
+      property: Scale
+      frames:
+      - frame: 25
+        x: 0.01
+        y: 0.01
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 30
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: -765992101
+      property: RotationSkew
+      frames:
+      - frame: 30
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: 2091305466
+      property: Position
+      frames:
+      - frame: 0
+        x: -636.8937
+        y: 436.8822
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 15
+        x: 654.0602
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 18
+        x: 683.0604
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 21
+        x: 654.0602
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 26
+        x: 683.0604
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 30
+        x: 654.0602
+        y: 437.025
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: 2091305466
+      property: Scale
+      frames:
+      - frame: 0
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 15
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 18
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 21
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 26
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 30
+        x: 1
+        y: 1
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: 2091305466
+      property: RotationSkew
+      frames:
+      - frame: 0
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 15
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 18
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 21
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 26
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 30
+        x: 0
+        y: 0
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+  playOnEnable: 0
+  loop: 0
+--- !u!114 &9019906601888455730
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5248,9 +5364,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 5761188844825721889}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   source: cocosstudio/csd/fuben/tongguanLayer.csd
   nodes:
   - path: Layer
@@ -5288,224 +5404,7 @@ MonoBehaviour:
     tag: 539
     actionTag: -765992101
     target: {fileID: 1534362166378597214}
---- !u!114 &2427992984404851810
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5761188844825721889}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  definition:
-    duration: 30
-    speed: 1
-    frameRate: 60
-    currentAnimationName: animation0
-    clips:
-    - name: animation0
-      startFrame: 0
-      endFrame: 30
-    timelines:
-    - actionTag: -765992101
-      property: Position
-      frames:
-      - frame: 30
-        x: 327.32
-        y: -297.54
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: -765992101
-      property: Scale
-      frames:
-      - frame: 25
-        x: 0.01
-        y: 0.01
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 30
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: -765992101
-      property: RotationSkew
-      frames:
-      - frame: 30
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: 2091305466
-      property: Position
-      frames:
-      - frame: 0
-        x: -636.8937
-        y: 436.8822
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 15
-        x: 654.0602
-        y: 437.025
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 18
-        x: 683.0604
-        y: 437.025
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 21
-        x: 654.0602
-        y: 437.025
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 26
-        x: 683.0604
-        y: 437.025
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 30
-        x: 654.0602
-        y: 437.025
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: 2091305466
-      property: Scale
-      frames:
-      - frame: 0
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 15
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 18
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 21
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 26
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 30
-        x: 1
-        y: 1
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: 2091305466
-      property: RotationSkew
-      frames:
-      - frame: 0
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 15
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 18
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 21
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 26
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 30
-        x: 0
-        y: 0
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-  playOnEnable: 0
-  loop: 0
+  retiredMetadataAliases: []
 --- !u!1 &6838158671295765165
 GameObject:
   m_ObjectHideFlags: 0
@@ -5515,7 +5414,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6725929432274447400}
-  - component: {fileID: 986389456004119250}
   - component: {fileID: 615273699236051070}
   - component: {fileID: 7348213595090778450}
   m_Layer: 0
@@ -5544,22 +5442,6 @@ RectTransform:
   m_AnchoredPosition: {x: 389.0089, y: 140.1416}
   m_SizeDelta: {x: 339, y: 37}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &986389456004119250
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6838158671295765165}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/Panel/Text
-  nodeType: TextObjectData
-  tag: 1464
-  actionTag: -1075555322
 --- !u!222 &615273699236051070
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5578,8 +5460,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 0.48235294, g: 0.33333334, b: 0.25882354, a: 0.7411765}
   m_RaycastTarget: 0

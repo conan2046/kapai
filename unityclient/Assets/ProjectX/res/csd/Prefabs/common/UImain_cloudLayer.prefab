@@ -9,9 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2677626583344822979}
-  - component: {fileID: 416016641602031660}
-  - component: {fileID: 875347187533240260}
   - component: {fileID: 67869062100907775}
+  - component: {fileID: 4495989380335113020}
   m_Layer: 0
   m_Name: UImain_cloudLayer
   m_TagString: Untagged
@@ -39,7 +38,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &416016641602031660
+--- !u!114 &67869062100907775
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -48,14 +47,95 @@ MonoBehaviour:
   m_GameObject: {fileID: 1439288934698808574}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 737
-  actionTag: 0
---- !u!114 &875347187533240260
+  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  definition:
+    duration: 2495
+    speed: 0.5
+    frameRate: 60
+    currentAnimationName: 
+    clips: []
+    timelines:
+    - actionTag: -1347962969
+      property: Position
+      frames:
+      - frame: 0
+        x: -200
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 1500
+        x: 2000
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: 1155184216
+      property: Position
+      frames:
+      - frame: 400
+        x: -200
+        y: 600
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 2000
+        x: 2000
+        y: 600
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: 2017568117
+      property: Position
+      frames:
+      - frame: 500
+        x: -200
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 2495
+        x: 2000
+        y: 700
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+    - actionTag: 843100245
+      property: Position
+      frames:
+      - frame: 700
+        x: -200
+        y: 257.5071
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+      - frame: 1500
+        x: 2000
+        y: 257.5071
+        value: 0
+        visible: 1
+        tween: 1
+        easingType: 0
+        eventName: 
+  playOnEnable: 0
+  loop: 0
+--- !u!114 &4495989380335113020
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -64,9 +144,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 1439288934698808574}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   source: cocosstudio/csd/common/UImain_cloudLayer.csd
   nodes:
   - path: Layer
@@ -99,103 +179,7 @@ MonoBehaviour:
     tag: 741
     actionTag: 843100245
     target: {fileID: 3622187186243226527}
---- !u!114 &67869062100907775
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1439288934698808574}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1adb1cbe63b222847b80234c3bd855ae, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  definition:
-    duration: 2495
-    speed: 0.5
-    frameRate: 60
-    currentAnimationName:
-    clips: []
-    timelines:
-    - actionTag: -1347962969
-      property: Position
-      frames:
-      - frame: 0
-        x: -200
-        y: 700
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 1500
-        x: 2000
-        y: 700
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: 1155184216
-      property: Position
-      frames:
-      - frame: 400
-        x: -200
-        y: 600
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 2000
-        x: 2000
-        y: 600
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: 2017568117
-      property: Position
-      frames:
-      - frame: 500
-        x: -200
-        y: 700
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 2495
-        x: 2000
-        y: 700
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-    - actionTag: 843100245
-      property: Position
-      frames:
-      - frame: 700
-        x: -200
-        y: 257.5071
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-      - frame: 1500
-        x: 2000
-        y: 257.5071
-        value: 0
-        visible: 1
-        tween: 1
-        easingType: 0
-        eventName:
-  playOnEnable: 0
-  loop: 0
+  retiredMetadataAliases: []
 --- !u!1 &3622187186243226527
 GameObject:
   m_ObjectHideFlags: 0
@@ -205,7 +189,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6498323394894037628}
-  - component: {fileID: 2474578542676667636}
   - component: {fileID: 8250474504928966664}
   - component: {fileID: 8627571031606129771}
   m_Layer: 0
@@ -234,22 +217,6 @@ RectTransform:
   m_AnchoredPosition: {x: -200, y: 257.5071}
   m_SizeDelta: {x: 510, y: 240}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &2474578542676667636
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3622187186243226527}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/CloudPanel/Image_4
-  nodeType: ImageViewObjectData
-  tag: 741
-  actionTag: 843100245
 --- !u!222 &8250474504928966664
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -268,8 +235,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.8}
   m_RaycastTarget: 0
@@ -297,7 +264,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5178415447187894817}
-  - component: {fileID: 2941192386532668231}
   m_Layer: 0
   m_Name: CloudPanel
   m_TagString: Untagged
@@ -328,22 +294,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &2941192386532668231
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3640872945645472427}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/CloudPanel
-  nodeType: PanelObjectData
-  tag: 740
-  actionTag: 1337119200
 --- !u!1 &6481641247167658762
 GameObject:
   m_ObjectHideFlags: 0
@@ -353,7 +303,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2079415620056654554}
-  - component: {fileID: 9152183793191147690}
   - component: {fileID: 2931558212734086548}
   - component: {fileID: 8337579070196837033}
   m_Layer: 0
@@ -382,22 +331,6 @@ RectTransform:
   m_AnchoredPosition: {x: -200, y: 700}
   m_SizeDelta: {x: 166.9487, y: 85.0735}
   m_Pivot: {x: 1, y: 1}
---- !u!114 &9152183793191147690
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6481641247167658762}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/CloudPanel/Image_3
-  nodeType: ImageViewObjectData
-  tag: 742
-  actionTag: 2017568117
 --- !u!222 &2931558212734086548
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -416,8 +349,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0
@@ -445,7 +378,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7640111069839564869}
-  - component: {fileID: 1335564135710665602}
   - component: {fileID: 619609000857112900}
   - component: {fileID: 3377834250654433599}
   m_Layer: 0
@@ -474,22 +406,6 @@ RectTransform:
   m_AnchoredPosition: {x: -200, y: 700}
   m_SizeDelta: {x: 522, y: 266}
   m_Pivot: {x: 1, y: 1}
---- !u!114 &1335564135710665602
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6613095014610258179}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/CloudPanel/Image_1
-  nodeType: ImageViewObjectData
-  tag: 738
-  actionTag: -1347962969
 --- !u!222 &619609000857112900
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -508,8 +424,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 0.8980392}
   m_RaycastTarget: 0
@@ -537,7 +453,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6952151308276554702}
-  - component: {fileID: 4091624381435443449}
   - component: {fileID: 7569485820396914939}
   - component: {fileID: 5465872019026221718}
   m_Layer: 0
@@ -566,22 +481,6 @@ RectTransform:
   m_AnchoredPosition: {x: -200, y: 600}
   m_SizeDelta: {x: 317.792, y: 149.5491}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &4091624381435443449
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9107558496280543627}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  cocosPath: Layer/CloudPanel/Image_2
-  nodeType: ImageViewObjectData
-  tag: 739
-  actionTag: 1155184216
 --- !u!222 &7569485820396914939
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -600,8 +499,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 0

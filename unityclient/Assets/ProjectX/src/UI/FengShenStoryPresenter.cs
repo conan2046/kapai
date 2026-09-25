@@ -113,7 +113,6 @@ namespace ProjectX.UI
             store.Changed += Render;
             currencies.Changed += Render;
             Render();
-            view.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public bool IsAuthoritativeVisible => store.HasAuthoritativeResponse && remaining != null;

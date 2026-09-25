@@ -38,7 +38,7 @@ namespace ProjectX.Core
         private void ConfigureMailFrame()
         {
             EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
-            CocosUiBinding binding = oneLevelFrameView.Binding;
+            UiPrefabIdentity binding = oneLevelFrameView.Identity;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -70,7 +70,7 @@ namespace ProjectX.Core
         private void UpdateMailRedDot()
         {
             if (mainView == null) return;
-            GameObject prompt = mainView.Binding.Find($"{MailPath}/Prompt");
+            GameObject prompt = mainView.FindNode($"{MailPath}/Prompt");
             if (prompt != null) prompt.SetActive(services.Mails.HasUnread);
         }
 

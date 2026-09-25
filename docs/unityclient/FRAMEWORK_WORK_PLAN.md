@@ -1,9 +1,25 @@
 # Unity 客户端内部框架治理工作计划
 
+> **当前阶段（2026-09-25）**：固定 `C:\Users\Admin\.codex\worktrees\a6b4\Game`。W6.3 已完成：Prefab Metadata 19,690→0，359 个 Binding 保留，90 条例外身份在先前 Play 90/90 回读且迁移后完整序列化；26 个 Timeline/461 轨道、186/186 ActionTag 正常。全局 Binding、输入、Snapshot 对 Metadata 的直接回退已退场。Main、招募、寻宝任务弹窗、龙崖世界本轮真实输入与截图复核，复用已验抽卡结果/寻宝合成/世界结算，不重复消耗；不可达/Steam 排除项不造入口。Unity 已编译并恢复有效 Play，Main `ProjectXApp.Instance=true`、Console 0/0。下一步处理 W6 其余未验收路线与独立的导入器旧版 OpenBox 字号基线差异，详见 `.local/unity-validation/w6-metadata-prefab-migration-20260925.md`、`.local/unity-validation/w6-importer-baseline-sprite-font-20260925.md`。
+
+> **最新续接状态（2026-09-25，W6.3 FengShen 动态章节身份回读）**：固定执行目录 `C:\Users\Admin\.codex\worktrees\a6b4\Game`。Unity PID 16324、LocalServer `kapai.exe` PID 36352（127.0.0.1:8711 listening），C 盘 Play 有效。因 C# 编译域重载使 `ProjectXApp.Instance` 丢失，已受控停启一次并按既有旧存档最短入口回到 Main；随后真实打开 Main `btn_wanfa`→`Function_3`封神列传，无挑战/领取/战斗。章节根 Binding refs=129、Metadata=0；动态章节 22 个 RectTransform 虽未进入 Binding index，但 `RuntimeSnapshotCollector.ResolveNodeIdentity` 的层级路径回退 22/22 唯一解析，EventSystem Inspect 首击命中。Canvas-wide 124/124 active RectTransforms 全部解析，Metadata fallback=0（90索引+34层级）；5组重复 semanticId 是跨对象 owner CocosPath 别名，完整 `nodePath` 分开保存/比较。截图已检查；页面子树无 Timeline，同画面主云层 Binding+Timeline 4/4 解析且播放。Console 0/0。记录 `.local/unity-validation/w6-fengshen-dynamic-clone-metadata-identity-20260925.md`。W6.3其余全局消费者/序列化 Metadata/同节点路线仍未收敛；不推进 W6.5。
+
+> **最新续接增量（2026-09-25，XunBao 同节点联合验收）**：继续固定 C 盘 worktree。Unity PID 16324、LocalServer PID 30136，均指向 C 盘项目/构建，当前仍在同一个 Play；XunBao 已通过 Main→Gameplay Function_9 一次开页完成 Binding/Metadata/Snapshot/Timeline/显示联合检查，关闭后留在 Gameplay 列表。245/245 retired identities 进入 Snapshot identity index，2 个 RectTransform 使用层级回退，Metadata fallback=0；Timeline 115/115 ActionTag 可解析，静止符合本次未执行搜索/合成的只读验收。目视截图发现并修复 XunBao 三个货币字段显示 `12345678`：`ProjectXApp.XunBao.cs` 现在在开页时刷新 `Panel/GoldCheck`，运行值与 Store 精确一致，Console 0/0。证据 `.local/unity-validation/w6-xunbao-layer-binding-metadata-timeline-joint-20260925.md` 与 `.local/unity-validation/w6-xunbao-live-20260925.png`。同节点清单仅 `wanfa/XunbaoLayer.prefab` 改为通过；弹窗 `Xunbao_popupLayer` 因未触发搜索仍待验。W6.3 全局消费者/序列化 Metadata 未收口，W6.5 继续门控。
+
+> **上一轮大入口收口记录（2026-09-25，招募入口已收口）**：按主界面大入口逐页处理，本轮完整收完招募预览/详情/商城交叉回退：三种奖池真实切换、卡片名称不遮头像、详情属性/技能/天赋可见并能滚到末尾，招募→将魂商店→招募→Main 的共享层恢复正常。抽卡结果复用 DRAW 模块既有 G6 服务端权威 `/224` 证据；本轮 DrawPresenter 差异仅涉及预览/详情路径。详细运行记录及截图见 `.local/unity-validation/w6-recruitment-preview-detail-close-runtime-20260925.md`。此记录之后的历史检查点为 Unity PID 45088，当前运行实例以本段 PID 16324 为准。
+
+> **用户指定的入口去重规则（2026-09-25）**：所有大入口按实际功能/行为而不是入口按钮去重。同一页面、子功能和状态若已有真实验收证据，其他入口复用该证据并跳过；只有入口导致不同页面状态、业务数据条件或返回栈时才单独验差异。神将商店已验收，后续所有重复入口均跳过。
+
+> **W6 执行顺序与组件联合验收（2026-09-25）**：先收敛 W6.3，再转入 W6.5 的剩余独立路径迁移。页面真实打开时按 Prefab/运行时同一节点一次性检查 `CocosUiBinding`、`CocosNodeMetadata`、`CocosTimelinePlayer` 的共存行为与可见结果；它们即使归属不同治理条目，也不得对同一页面拆成重复打开/重复点击的验收轮次。当前 Prefab 静态盘点为 359 个含 Binding 的 Prefab：331 个同时含 Metadata，26 个根节点三组件共存；同节点组合计数为 Metadata-only 19,333、Binding+Metadata 331、三组件同节点 26、Binding-only 2。Timeline 26 个实例全部与 Binding/Metadata 在同一根 GameObject，因此开页时必须一起检查 Timeline 目标解析、播放/显示和 Metadata 退场后的 Snapshot/Input 身份。盘点文件 `.local/unity-validation/w6-component-colocation-inventory-20260925.json`；此静态盘点不等同于运行时通过，也不授权批量修改 Prefab。
+
+> **当前 W6.3 运行增量（2026-09-25）**：90 条 path/target 异常既有 90/90 Snapshot 回读；117 条 Metadata/Transform 差异中的剩余 38 条本轮在 C 盘同一 Play 实例完成真实 Collector 退场前后回读，38/38 元组不变，Binding 查找目标不变，隐藏副本已清理。Unity PID 16324、LocalServer PID 2864，场景 Bootstrap、Play 有效；尚未登录或操作账号。固定 SQLite 原始文件 SHA 因服务启动 WAL 改变，但龙崖夹具基线角色 `7200057/1000003` 的10项稳定字段哈希全匹配、完整性 `ok`。保留当前 Editor/Play 作为后续 W6 验收会话。完整证据 `.local/unity-validation/w6-metadata-transform-mismatch-38-runtime-readback-20260925.md`。
+
 > **当前续接状态（2026-09-25，优先级高于下方历史摘要）**：目标为完成全部 W6，执行目录仅 `C:\Users\Admin\.codex\worktrees\a6b4\Game`。W6.3 的90个Prefab路径/目标例外已在 C 盘 Play 中逐项真实退场并回读 Snapshot 身份，90/90 tuple 不变、Metadata 退场、别名保留；临时实例和784条临时 retired identity 已清理。W6.5 Presenter `.Binding.Find(` 范围计数为0；其余共享 Snapshot/Binding 消费者与未验收 Presenter 路线仍在推进。不可达的 KunLun/OnlineLayer/LilianLayer不伪造入口、不改Prefab。当前 Unity PID 45088、LocalServer PID 53772、角色1000001、Play有效；Info 页验证完成后当前仍在 HeroCultivation 信息页，`ProjectXApp.Instance`有效，Console 0/0。本轮修复法宝强化页上限100/120不一致，并修复HeroCultivation升星与Info技能文本裁切/压住详情按钮；两项均在C盘编译后经真实EventSystem和截图复核。W6尚未完成；沿用当前Play，按清单处理未覆盖路线，不重测已验路线。路线及截图索引：`.local/unity-validation/w6-fabao-strength-cap-fixed-runtime-20260925.png`、`.local/unity-validation/w6-hero-cultivation-pages-runtime-20260925.md`。
 
 > **当前续接状态增量（2026-09-25）**：HeroCultivation Info 技能详情列表已修正为 CSD 源定义的 540×270 视口 + 540×800 独立 ScrollRect 内容；8 行首屏与底部通过真实 Raycast/滚轮验证，关闭后重新打开仍为8行且回到顶部。截图及几何证据见 `.local/unity-validation/w6-hero-cultivation-pages-runtime-20260925.md`。Play 已回到 HeroCultivation Info 页面，Console Error/Warning=0；继续当前 C 盘 Play 处理其余未验路线。
 
+> **W6.5 World 龙崖路线（2026-09-25）**：在当前龙崖章节链模式完成 World G3 真实挑战、连续战斗至终局、结算、EventSystem 重播、第二次结算与继续返回；控件 `WORLD-01/06/14/21/22/23/28/29/30/31` 与语义断言全通过。编译预检通过，固定账号夹具完整恢复，SQLite SHA-256 回到基线。结果 `.local/unity-validation/world-fixed-account-runner-latest.json`，过程 `.local/unity-validation/world-fixed-account-timings-latest.json`，画面 `build/ui-migration/world-battle-settlement.png`、`world-battle-replay.png`、`world-battle-return.png`。Runner 的末尾源码契约曾指向已拆分的旧 `ProjectXApp.cs`；已修正为 `ProjectXApp.World.cs`，定点契约校验通过，未为此重播已通过的龙崖战斗。此项关闭 W6.5 的 World 战斗/结算/返回路线，不关闭 W6.3 全局 Metadata/Snapshot 消费者，也不关闭其他 Presenter 路线。Fixed-account runner 已退出；当前未检测到 Unity Editor、Play 或 8711 服务进程。
+>
 > 范围：仅针对 `unityclient/`。
 > 原则：保留已验收功能，先静态梳理，再做最小改动；不引入大而全第三方 Unity 框架。
 > **历史实施摘要（2026-09-25期间快照，仅保留改动背景；当前门禁以上方续接状态为准）**：W6.1/W6.2完成；W6.3的90个Prefab path-target例外已分类并按上方续接状态完成运行时Snapshot身份回读。全局Snapshot/Binding消费者仍需逐项收敛。W6.4的KunLun/OnlineLayer/LilianLayer不可达，不补入口、不改Prefab/`.meta`，遇到自然入口再验。W6.5 Presenter精确盘点为范围内 `.Binding.Find(` 0；Friend/Guild属于steam-excluded。其它源码迁移数量、分类和背景见 `.local/unity-validation/w6-presenter-binding-find-inventory-20260925.md` 与 `.local/unity-validation/w6-binding-find-callsite-classification-20260925.md`；这些静态计数不替代剩余运行路线。Mail、Bag ItemType=6、商城、招募、背包类型与共享页签的既有证据保留，不重测。不可达页面不构造测试入口。
@@ -123,6 +139,8 @@
 
 ### W6：Cocos 迁移层逐页退场
 
+> **本轮阶段门：W6.3 与 W6.4 已闭合，当前处理 W6.5 与 W6 最终收口。** 固定 C 盘 worktree；已验入口复用证据，只有共享依赖变更才做定向回归。
+
 #### W6 执行节奏与前轮耗时复盘（2026-09-24）
 
 - 前轮约 21 小时仍未收口，主要原因是从商城/共享层级验收扩展到全量 W6 后没有重新锁定范围与检查点；已通过的商城、招募、页签和物品类型被反复检查；启动 UI 前未核对正式运行实际使用的 SQLite 路径，导致 1114 夹具写入 `LocalServer/projectx.db`、单机入口却读取 `Saves/Slot01/projectx.db`；固定等待和 Bootstrap Runner 自动退场造成无效操作；MCP 合成截图递归报错仍消耗排障时间；已完成内容过晚才形成提交检查点。
@@ -168,15 +186,22 @@ HeroCultivation 的早期路径映射预审（历史统计，已由 2026-09-25 �
 
 - [x] W6.1 识别仍依赖 Cocos 路径和 ActionTag 的代码（完成首轮源码消费者、ActionTag 调用链及 Prefab GUID 覆盖统计；页面级替换范围归入 W6.2 准备，不据此删除兼容组件）
 - [x] W6.2 将 Bag 试点页面改为 Unity 页面绑定组件（首轮迁移范围限 Bag 自有内容；共享 OneLevelFrame 继续由既有协调器管理；不改 Prefab）
-- [~] W6.3 清理无引用的 `CocosNodeMetadata`（装备 Presenter 诊断性读取已退场；Bag、Main HUD、Shop、Recruitment、Continue 存档列表和神将培养均在限定运行实例完成绑定后退场 Metadata 并通过真实 EventSystem 定向回归，未改 Prefab。培养页 `ShowPage()` 在 `Render()` 后清除当前页 Metadata；`Show()` 首屏渲染后再清除 24/24 精确序列化引用闭合的培养壳 Metadata。干净 Play 中壳 24→0、24 条 Binding 引用全部可解析；Level/Star/Breakthrough/Cultivate/Info 均 Metadata=0，页签每次切换后 sibling 固定 0–4；见 `.local/unity-validation/w6-herocultivation-shell-metadata-retirement-20260924.md` 和 `.local/unity-validation/w6-herocultivation-metadata-retirement-20260924.md`。运行时 Timeline 改用序列化 ActionTag 引用；初始 27 个 Timeline Prefab 的 461 条轨道记录、186 个按 Timeline 组件去重的 ActionTag（全局 183 个不同值）均解析到非空序列化目标。现有 26 个仍挂载组件的 Prefab 保留 461 条轨道与上述 ActionTag；干净 Play 实测活动云层 Metadata 6→0 后 Timeline 继续播放、坐标变化。2026-09-24 在干净 Play 用 Slot01 完成 OneLevel Bag→神将→强化大师→装备强化→返回强化大师→关闭恢复主界面；页签 sibling 顺序固定、显隐切换实测不改顺序，Console 0 Error。Editor.log 留有修复前 `HideDetails` NullReference 历史记录；根因是可选法宝材料选择器未绑定时被无条件隐藏，当前已有 null-safe 防护，修复后真实路线 Console 0 Error，详见 `.local/unity-validation/w6-metadata-consumer-recheck-20260924.md`。Dispatcher 已增加序列化引用与 binding-relative Transform 路径解析，并以 Metadata=0 的主界面真实 Raycast/点击打开招募后正常关闭；Draw 首个场景 unityPath 同步改为当前实际可达入口。全工程 357 个 Prefab 仍序列化 Metadata；90 个路径/目标例外与 RuntimeSnapshot 身份消费者仍待闭合）
+- [x] W6.3 清理无引用的 `CocosNodeMetadata`：357 个源 Prefab 的 19,690 个组件已安全迁移，359 个 `CocosUiBinding` 全保留；90 条 Metadata/Snapshot 例外身份按先前真实 Play 90/90 回读与迁移后 85 条 canonical、5 条 alias 闭合。输入、Binding 查找、Snapshot 和 Bag 已去除直接 Metadata 回退；26 个 Timeline、461 条轨道、186/186 ActionTag 保持。已通过当前 Play 的 Main/招募/寻宝任务弹窗/龙崖世界可见与真实首击检查，既有招募结果、寻宝 SaoDang 与世界结算证据复用；隐藏或无实际入口的 Prefab 只做资产校验，不伪造运行验收。编译、Console 0/0，证据 `.local/unity-validation/w6-metadata-prefab-migration-20260925.md` 与 `.local/unity-validation/w6-same-node-triple-component-inventory-20260925.md`。完整导入器基线目前仍有迁移前已存在的 OpenBox 字号差异，作为独立 W6 G3 故障记录，不回退用户画面。
 - 神将列表进一步收敛：已先退役5行克隆75项；本轮在克隆处理后退役 Item 模板15项，列表 Metadata 15→0，28/28 Binding 引用有效。模板保留为 `VirtualList` 克隆源但不再带 Cocos Metadata；15条身份由序列化引用和 Snapshot 精确承接。真实重进、角色行点击与共享关闭回归通过，见 `.local/unity-validation/w6-hero-template-metadata-retirement-20260924.md`。
-- [~] W6.4 清理无 Timeline 依赖的 `CocosTimelinePlayer`（剩余 26 个挂载 Prefab：22 个含轨道、4 个无轨道。封神列传 Prefab 的 0 轨道/1 空 clip 组件已通过 PrefabUtility 移除；移除后真实 Slot01→玩法→封神列传路线确认章节/进度文本正常、页面关闭与共享框架返回正常，Console Error/Warning=0，证据 `.local/unity-validation/w6-fengshen-zero-track-timeline-retirement-20260924.md`。招募已实际打开并确认零轨道/未播放，Popup1/2/3 同时显示且 Close 返回正常，用户修改 Prefab 未写入；KunLun function_id=7、OnlineLayer、LilianLayer 当前 Unity 存档/客户端没有可达真实入口，组件保留）
+- W6.3 消费者盘点（只读）：`CocosUiView.FindNode` 仅按 Transform 查找；`CocosUiBinding.Find*`、`RuntimeInputDispatcher.FindTarget`、`RuntimeSnapshotCollector.ResolveNodeIdentity` 仍保留 Metadata 兼容回退，`BagPageBinding` 仅在根 Binding 缺失时有旧遍历分支；Importer/Cleaner 属编辑器资产工具。逐项影响与全量移除前置条件见 `.local/unity-validation/w6-metadata-consumer-audit-20260925.md`。W6.3 完成前不推进 W6.5。
+- 运行时开页联动已落到 `CocosUiBinding.OnEnable`：只处理最近所属 Binding 下的 Metadata，避免父共享层抢占子页面别名；退役前保留 Binding path alias 与 Snapshot object identity。新编译版已在真实 Login→Main 路线验证。全局兼容回退和 Prefab 序列化引用仍在，所以 W6.3 仍未收口。
+- [x] W6.4 清理无 Timeline 依赖的 `CocosTimelinePlayer`：4 个剩余零轨道、零片段、零时长组件已通过 PrefabUtility 定向移除（招募根、Online、KunLun、Lilian），对应 Prefab 的 GameObject/Binding 节点数未变。其余 22 个 Timeline 保留全部 461 条轨道与 186/186 可解析 ActionTag；Importer 已改为仅在文档含轨道时创建/要求 Timeline，避免再导入空组件。招募根本轮已有真实显示和关闭验收；另外三份无当前可达入口，只记录资产验证，不伪造页面证据。编译与 Console 0/0；详见 `.local/unity-validation/w6-empty-timeline-removal-20260925.md`。
 - [~] W6.5 在页面不再依赖路径查找后移除 `CocosUiBinding`（Bag 主页面 `BagPresenter` 已改由 `BagPageBinding` 缓存页面控件，不再调用 `CocosUiBinding.Find`；真实 EventSystem 点选运行时“转盘钥匙”行后，详情名与描述正确更新。BagFlowPresenter 已移除全部 `CocosUiBinding.Find` 调用，固定弹层目标改为按 View 解析并缓存 Unity Transform 节点；干净 Play 真实选择体力丹→Use→输入 `2`→真实关闭，输入文本正确、库存仍3、共享 Close 返回 Main；14个模态按钮与3/3滚动区结构验证通过。Bag 礼盒列表校验也改为读取已绑定的 `GiftScroll` 属性，编译后重新进入真实 Bag 并验证 `GiftScroll/content/viewport` 均有效，Close 返回 Main。仍保留 `CocosUiView` 生命周期封装及 Input Metadata Snapshot 身份登记，礼盒选项/奖励、来源与装备详情未通过有效库存逐条验收；OneLevel 共享框架、运行时路由与 Snapshot 仍有其他迁移层消费者。依据 `.local/unity-validation/w6-bag-binding-play-20260923.md`、`.local/unity-validation/w6-metadata-consumer-recheck-20260924.md`、`.local/unity-validation/w6-bag-post-cleanup-runtime-20260924.md` 与 `.local/unity-validation/w6-bagflow-unity-node-cache-20260924.md`。不移除任何共享组件或 Prefab 序列化引用）
+- W6.5 最新进度（2026-09-26）：359/359 Prefab 的旧 `CocosUiBinding` 组件及序列化引用已移除，独立 `UiPrefabIdentity` 保留 19,714 节点、5 别名和 22 Timeline/461 轨道；359/359 文件对照仅减少旧组件块/根引用。生产 `.Binding.Find` 与 UiRouter、Timeline、Snapshot、输入消费者已迁出；编译、Main→玩法→寻宝→关闭真实输入、页面截图与 Console 0/0 通过。严格导入器基线仍有 24 条历史空目标与 6 处字号差异，其他未验真实路线待收口，故 W6.5/W6 暂不标完成。详见 `.local/unity-validation/w6.5-independent-identity-canary-20260926.md`。
+- W6.5 验收边界：组件移除已完成，但 Presenter 仍通过 `CocosUiView.FindNode` 传入 Cocos 路径，由 `UiPrefabIdentity` 的节点映射查找。不能把“旧组件 GUID 为 0”误报成“页面不再依赖路径查找”；按 W6.5 原文，直接组件绑定/路径退场与真实页面显示仍需继续。导入器完整基线的一次聚合扫描发现 14 份差异文档（包含 9 份节点数差异），详见 `.local/unity-validation/w6-importer-baseline-sprite-font-20260925.md`。
+- W6.5 最新源码盘点：UI 层约 333 处（含 View 壳，Presenter 约 332 处） `FindNode` 调用，按调用形态为固定字面路径 187、变量/表达式 124、跨行参数 22；Core 另约 276 处流程/验证调用。不能仅用 `.Binding.Find` 为 0 宣称路径依赖退场。`UiPrefabIdentity.Nodes[*].target` 已序列化为 GameObject 直引用，先对固定字面路径建立页面专属直接引用，再单独处理动态列表/页签；Snapshot 的路径/类型/ActionTag 与 5 条旧身份别名、Timeline 的 461 条目标仍需保留。按大入口合批，避免逐控件重复进页；商城与装备信息保持用户指定的功能验收跳过边界。
+- 神将重生先行批次：11 个固定节点已改用 ActionTag 取序列化目标，四个 owner Prefab 内各 Tag 唯一且非零；源码编译、候选→预览→确认→取消的真实输入与两张当前画面通过，Console 0/0，未消耗资源。动态 helper 与 BindClick 路径尚存；Play 留在重生预览页。证据 `.local/unity-validation/w6-herorebirth-candidate-picker-metadata-joint-20260925.md`。
+- 神将培养固定节点合批（2026-09-26）：14 个 view owner 的 84 处字面 `FindNode` 已逐一对照序列化 `UiPrefabIdentity`；80 处具有唯一、非零 ActionTag 和非空目标，改为按 Tag 取直接目标并以 Source/Path 断言。3 个运行时生成节点、1 个重复路径暂保留动态查找。Unity 编译后同一 Editor 受控 Stop/Play，真实输入一次打开阵容→培养，五页签逐个首击与截图检查，关闭返回阵容，Console 0/0；没有重复升级、修炼或抽取。证据 `.local/unity-validation/w6-hero-cultivation-direct-refs-runtime-20260926.md`。此项只关闭培养固定节点及五页显示，不关闭 W6.5 全局路径退场。
 - [x] W6.6 Bag 首轮页面迁移后通过真实 Play，再进入下一页面；后续每页继续执行相同门禁
 
 W6 收口前待办（2026-09-24，按可验证范围排序）：
 
-1. **W6.3 Snapshot 身份闭环**：90 条 Metadata/序列化引用 path-target 例外（85 个 Metadata 对象无任何序列化引用，5 个通过另一条路径引用）；另有 117 条 Metadata path 与实际 Transform 路径不一致。逐类证明消费者不再需要旧语义身份后，才可退场对应组件；不得全局剥离。依据 `.local/unity-validation/w6-metadata-consumer-recheck-20260924.md` 与 `.local/unity-validation/w6-snapshot-identities-and-editor-log-20260924.md`。
+1. **W6.3 Snapshot 身份闭环**：90 条 Metadata/序列化引用 path-target 例外（85 个 Metadata 对象无任何序列化引用，5 个通过另一条路径引用）已在 2026-09-25 的隐藏运行时 Prefab 副本中完成 90/90 Snapshot tuple 回读、Metadata 退场与旧身份别名保留；证据 `.local/unity-validation/w6-identity-snapshot-runtime-readback-20260925.md`。117 条 Metadata path 与实际 Transform 路径不一致已完成分类：79 条与上述90条异常相交；其余38条均有同路径/目标/类型/ActionTag的序列化Binding身份，并已在同一 C 盘 Play 实例一次性完成退场前后真实 Snapshot Collector 回读，38/38元组一致、Binding查找目标不变、7个隐藏副本内89个Metadata退场后清理完毕。证据 `.local/unity-validation/w6-metadata-transform-mismatch-20260925.md` 与 `.local/unity-validation/w6-metadata-transform-mismatch-38-runtime-readback-20260925.md`。90条与117条身份差异已闭合；但真实 Prefab 仍序列化Metadata，全局 `RuntimeInputDispatcher` Metadata后缀回退及其他消费者尚未收敛，故W6.3仍进行中，不得全局剥离。页面开屏时Binding/Metadata/Timeline按同一路线合并验；38条探针所涉7个Prefab没有Timeline，不将其记作Timeline验收。
 2. **W6.4 零轨道候选**：FengShenStory 的冗余组件已从干净 Prefab 移除，且移除后真实路线回归通过，见 `.local/unity-validation/w6-fengshen-zero-track-timeline-retirement-20260924.md`；Recruitment 的零轨道/关闭与 Raycast 已验证，但 Prefab 有用户未提交修改，保持只读；KunLun（Function ID 7）、OnlineLayer、LilianLayer 当前客户端没有真实可达入口，保留序列化组件，等待合法 Unity 路由证据。按用户确认，被屏蔽功能的 Prefab Metadata 延期，不列为本轮阻塞。依据 `.local/unity-validation/w6-timeline-consumer-recheck-20260924.md`。
 3. **W6.5 页面路径绑定**：Bag 页面本体已局部解耦；本轮继续将 `AnswerPresenter` 固定节点、`MainTaskTrackerPresenter` 的 Main_UI 根、`ShopQuantityPresenter` 数量输入框、`ShopPresenter` 商城固定控件、`RewardPresenter` 奖励弹层、`NoticePresenter` 固定节点，以及 `MainHudPresenter` 的主界面/ChatLayer 查找迁至 `CocosUiView.FindNode`。MainTaskTracker 的旧 Prompt/Panel 路径在 Prefab 中均无序列化目标且无 Transform，保持原 null 行为；Main_UI 根路径与序列化目标相同。Shop Quantity 使用节点与 `EnterNumLayer.prefab` 目标一致；用户脏改 Prefab 未写入。Shop Presenter 21 个固定字面路径、Reward Presenter 9 个固定路径、Notice Presenter 5 个固定路径均与对应 Prefab 的 Transform/序列化目标相同。Main HUD 43 条当前路径逐项核对；3 条 Unity 已弃用的在线奖励旧路径在 Prefab 中无目标且保持 null，聊天栏另以 `ChatLayer.prefab` 核对的10条路径均与序列化目标同对象。合并 batch compile 退出码0；仅现有 `UiButtonPressFeedback.animation` CS0108 warning。Shop Presenter/ShopQuantity 当前代码已用真实 EventSystem 完成 Main→Shop→数量弹层→关闭弹层→关闭商城→Main 定向回归；商品 6 行可见、数量维持1、最终 OneLevel/shop_bg 隐藏，Console Error/Warning=0，证据 `.local/unity-validation/w6-shop-path-migration-runtime-20260924.md`。Answer、Reward、Notice、主界面/聊天栏及 MainTaskTracker 尚需按影响范围定向回归。剩余消费者集中在 BagFlow 详情/选项/奖励、OneLevel 共享框架、运行时路由与 Snapshot。须逐页替换并经真实输入回归后再评估移除共享 `CocosUiBinding`，禁止因局部页面完成而删除共享组件。
 
@@ -248,6 +273,7 @@ W6 收口前待办（2026-09-24，按可验证范围排序）：
 | P-0020 | W6.5 | 2026-09-25 | Unity 功能测试的数据库路径说明与交互式 SinglePlayer 源码分流不一致 | 对照 Editor 命令行、`AppLaunchOptions`、`SinglePlayerSaveService`、LocalServer 进程参数 | 无 `-projectX` 参数的 Editor 选择 Saves/SlotNN；`LocalServer/projectx.db` 属于 `CreateDefault()` 非 SinglePlayer 路径，不能将二者当作同一存档 | 普通 Editor 默认改走 LocalServer；显式 `-projectXSinglePlayerFlowValidation` 仍保留 Slot 流程。编译及 `ShouldUseSinglePlayerTitle=false` 实时反射通过；待一次新 Play 核验实际服务路径 | `.local/unity-validation/w6-singleplayer-database-path-contract-20260925.md` | diagnosed | 每次写夹具或启动有状态验收前，以实际启动参数与 LocalServer 命令行交叉核验路径；不只根据 Editor 展示画面推断档案归属 |
 | P-0021 | W6.5 PlayerHub 显示验收 | 2026-09-25 | 选中 Bag 页签时金色选中背景显示但标签缺失 | C 盘当前编译版同一 Play；真实 EventSystem 点击 `Button2_Runtime` 后读取 `ChooseBg`、`ChooseBg/BtnName` 显隐 | `SetTabText` 只更新 chosen Text 内容，未启用其 GameObject；运行时克隆沿用模板隐藏态 | `SetTabText` 同步设置 selected label 的 active 状态；一次编译后为 domain reload 造成的 `ProjectXApp.Instance=null` 执行受控 Play 恢复；重新真实点击并复核 Bag/Mail/Settings 的节点状态、业务页状态与屏幕截图通过，Console error/warning=0 | `UI/PlayerHubTabCoordinator.cs`；`.local/unity-validation/w6-runtime-presenter-route-batch-20260925.md`；Bag/System captures | verified | 共享页签验收同时断言选中背景、选中/普通文字的 activeInHierarchy 与实际画面；运行态脚本刷新后先检查 ProjectXApp singleton/services，失效时仅恢复一次再复测受影响路径 |
 | P-0022 | W6.3 90条 Snapshot identity runtime readback | 2026-09-25 | 首轮 MCP 探针未能匹配克隆节点的 Prefab source local fileID，不能执行身份回读 | C 盘当前 Play；对10个源 Prefab 的 Metadata 与运行时实例做对应 | `GetCorrespondingObjectFromSource` 的克隆映射不适用于该层级；首版探针还用了 CodeDom 不支持的 `JToken.Value<T>` 扩展调用；两者均在调用退场方法前失败 | 改为在源 Prefab 上按 asset local fileID 精确找 Metadata，再以 sibling-index 路径映射隐藏的运行时实例；使用兼容的 `Convert` 解析 JSON。最终真实退场784个临时 Metadata，90/90目标的 Snapshot semanticId/nodeType/source 退场前后完全相同，90/90别名保留；清除临时实例及784条静态 identity 后原字典计数恢复202，Console error/warning=0 | `.local/unity-validation/w6-identity-snapshot-runtime-readback-20260925.md`；`.local/unity-validation/w6-snapshot-exception-inventory-20260925.json` | verified | Unity MCP CodeDom 探针应先用一个源 asset row 验证 asset fileID 与 clone sibling-index 映射；失败若发生在任何项目运行时变更前，记录为 probe 构造问题，不重启 Play |
+| P-0023 | W6.3 XunBao page currency header | 2026-09-25 | XunBao 开页后顶部体力/金币/元宝均显示模板字面量 `12345678`，与当前 Store 不符 | C 盘同一 Play；Main→Gameplay `Function_9/EnterBtn`，开页同时联合回读 Binding/Metadata/Timeline/Snapshot 和画面 | Prefab 的 `Panel/GoldCheck/GoldIcon{1,3,4}/GoldNumBg/Num` 为硬编码默认值；XunBao Presenter 建立时未调用公共货币头刷新 | `EnsureXunBaoPresenter()` 在 Presenter 初始化后调用 `RefreshStandardCurrencyHeader(xunBaoView.Binding, "Panel/GoldCheck")`；一次受控编译/Play 恢复后复入现有角色，页面显示 `100/100`、`1825992`、`1016188`，与 Currencies Store 一致；EventSystem 关键首击通过、Screenshot目视无重叠/裁切，Console 0/0 | `Core/ProjectXApp.XunBao.cs`；`.local/unity-validation/w6-xunbao-layer-binding-metadata-timeline-joint-20260925.md`；`.local/unity-validation/w6-xunbao-live-20260925.png` | verified | 页面复用 `GoldCheck` 模板时，开页必须从当前权威 Currencies Store 刷新，不得保留导入 Prefab 演示数字 |
 
 问题状态：`open`、`diagnosed`、`fixed`、`verified`、`deferred`、`blocked`。
 
@@ -838,8 +864,113 @@ W0 → W1 → W2 → W3 → W4 → W5 → W6 → W7 → W8 → W9
 - 运行最终复核：`Application.isPlaying=true`、`ProjectXApp.Instance=true`、NetworkState=Connected、Main HUD active、OneLevel inactive、临时 probe root=0、Console Error/Warning=0。无 Prefab/`.meta`/SQLite/夹具/账号数据修改。逐项清单和完整方法见 `.local/unity-validation/w6-identity-snapshot-runtime-readback-20260925.md`。
 - 本结果关闭W6.3这90条对象身份/Snapshot回读子项；不关闭其它全局 `CocosUiBinding`/Snapshot 消费者、W6.5待验路线或W6.4不可达入口，W6仍进行中。
 
+### W6.3 登录页在当前 Play 同轮退役与联合回读 — 2026-09-25
+
+- 沿用 C 盘 Unity PID 16324、Bootstrap Play 与现有登录页；没有重新启动 Unity、重登或点击登录按钮。对当前活动的 `LoginBgLayer.csd` / `loginLayer.csd` 两个运行时根共退役59个 `CocosNodeMetadata`。
+- 延后一帧复核：59/59 条原 Metadata 身份均可由 owning `CocosUiBinding.Find(path,type,actionTag)` 命中同一目标，且 `RuntimeSnapshotCollector.BuildSerializedNodeIdentityIndex` / `ResolveNodeIdentity` 得到的 `semanticId/nodeType/source` 与退役前完全一致；残余 Metadata=0。登录按钮 EventSystem 首命中仍为 `login.play`，可见 Text 数量6保持不变，Console Error/Warning=0。
+- 本页没有 `CocosTimelinePlayer`（活动两根及其子节点均为0），故此路线记录 Binding+Metadata 联合回读，不虚报 Timeline 验收。下次遇到三组件共存页面，必须在同一次真实开页/关闭周期内连同 Timeline 目标与播放结果一起验证。
+- 运行前记录 `.local/unity-validation/w6-login-active-metadata-retirement-stage-20260925.json`，帧后结果见 `.local/unity-validation/w6-login-active-metadata-retirement-20260925.md` / `.json`。这是当前运行时专项证据，不表示 LoginPresenter 已自动退役，也不关闭 W6.3 全局消费者和 Prefab 引用清理；先继续 W6.3，不切 W6.5。
+
+### W6.3/W6.4 Main 云层三组件同页联合验收 — 2026-09-25
+
+- 复用当前 C 盘 Unity Play，从已打开的 Login 页一次真实点击进入 Main；`UImain_cloudLayer` 同根含 Binding、6 Metadata 与 1 Timeline Player。Metadata 6→0 后 typed Binding Find、Snapshot Collector identity tuple 均6/6一致；Timeline 按真实运行时的 serialized ActionTag 查找4/4目标，仍持续播放，四个云图节点采样位置均随帧变化。活动文字14，画面目视正常，Console Error/Warning=0。
+- 逐步与入口截图及帧样本见 `.local/unity-validation/w6-main-cloud-binding-metadata-timeline-joint-20260925.md`、同名 JSON/PNG。此证据关闭该根的本次联合回读，不等于全工程 W6.3/W6.4 完成。
+
+### W6.3/W6.4 Binding 启用时自动联合退役 — 2026-09-25
+
+- `CocosUiBinding.OnEnable` 已改为自动退役最近所属 Binding 内的 Metadata，保留 owner path alias 和 Snapshot identity；如果是嵌套 UI Binding，父级跳过子级 Metadata，子 Binding 在自己启用时处理。Prefab 仍保留序列化 Metadata 输入，避免在全局消费者闭合前破坏旧身份。
+- 最终 owner-scoped 程序集在 Edit mode 编译后，按既有 Bootstrap 快捷流程进入 Play。Login 自动退役59个身份对象，Metadata=0，typed Find/Snapshot均59/59；一次真实 login.play 进入 Main 后云层自动退役6个 Metadata，typed Find/Snapshot均6/6。
+- 同一云层 Timeline 仍运行；4/4 serialized ActionTag 指向正确目标，两个稳定帧采样之间四个云图目标均移动。14条活动 UI 文字、EventSystem与Console Error/Warning=0，截图目视正常。
+- 编译时曾在 Play 中刷新脚本导致 `ProjectXApp.Instance` 未随域重载恢复；已在编辑态完成最终编译，再正常启停 Play 一次恢复，无需重启 Editor。运行证据 `.local/unity-validation/w6-ui-auto-metadata-retirement-onenable-20260925.md` 及同名 JSON；Main画面 `.local/unity-validation/w6-main-cloud-auto-open-timeline-20260925.png`。
+- 这是自动启用机制的 Login/Main 实机回归，不代表357个 Prefab 静态引用、全局 Metadata fallback 或其余 Presenter 路线已全部闭合；W6.3继续中，W6.5不提前推进。
+
 ### W6.5 HeroEquipment 强化/精炼/觉醒/神铸页签当前运行版验收 — 2026-09-25
 
 - 同一 C 盘 Play 中，在已打开的装备强化面板逐个对精炼、觉醒、神铸页签执行 `RuntimeInputDispatcher.Inspect`→`Dispatch`。首命中分别为 `HeroEquipmentRefineTab`、`HeroEquipmentAwakenTab`、`HeroEquipmentDivineTab`；各次操作后读取实际活动 Canvas 下的可见 UI 文本。精炼显示属性对比、命中/攻击、经验道具与消耗区；觉醒显示星品属性、附加属性与消耗区；神铸显示属性、特效文案、碎片/货币消耗区。强化页属性、等级、货币和强化控件也可见。没有点击强化、精炼、觉醒或神铸消耗按钮。
 - 神铸页运行时截图经实际图像检查：当前选中页签底图和“神铸”文字均可见；页签标题、属性、特效与消耗布局可读。证据 `.local/unity-validation/w6-hero-equipment-tabs-runtime-20260925.md`、`.local/unity-validation/w6-equipment-divine-runtime-20260925.png`。
-- Play 与 `ProjectXApp.Instance`保持有效，Console error/warning=0；未重登、重启、改动账号/SQLite/装备或 Prefab。该项仅关闭这四个装备培养页签的运行时输入和内容显示检查；装备详情/更换/FaBao/自动精炼等其他路线及全部 W6 其余范围仍待验，W6 保持进行中。
+- Play 与 `ProjectXApp.Instance`保持有效，Console error/warning=0；未重登、重启、改动账号/SQLite/装备或 Prefab。装备详情 ScrollRect 的遮挡根因为 viewport 缺少 Raycast Graphic；补充透明 Image 后已在同一 Play 编译并验证可滚至底部，但用户指出“装备信息”含新的修改内容并要求暂跳过，因此此页不计路线验收，保持待验；不要重开。当前 Play 已另行通过 FaBao 背包→强化→精炼页的 Inspect/Dispatch 与画面检查，无强化/精炼操作；见 `.local/unity-validation/w6-hero-equipment-tabs-runtime-20260925.md` 和三张 FaBao 路线截图。装备自动精炼弹窗已有2026-09-24真实Raycast/取消及Metadata退役验收（`.local/unity-validation/w6-equipment-auto-refine-metadata-retirement-20260924.md`），整页锁定跳过；本轮误入仅留作诊断截图，不新增验收。装备更换仍待验，但需先确认不打开用户暂缓的装备信息页；其余 W6 范围继续逐页处理，W6 保持进行中。未验收记录保存在 `.local/unity-validation/hero-equipment-operation-ledger.json`。
+
+### W6.5 AutoLevel 弹窗视觉与升级预览修复 — 2026-09-25
+
+- 在 C 盘 `a6b4` worktree 当前 Unity Play 中，复用已记录的 EventSystem 点击路线进入神将一键升级；仅因本次编译触发 domain reload，才从已存在的角色 `1000001` 做一次登录回入。每步 Inspect→Dispatch 首击均命中记录的 semantic ID；没有重新启动 Unity/LocalServer，也没有改账号、SQLite 或库存。
+- 路径复核补充：工作路径与 Unity `-projectPath` 显示为 `C:\Users\Admin\.codex\worktrees\a6b4\Game`，但 `C:\Users\Admin\.codex` 实际为指向 `D:\Relo\.codex` 的 Junction，Git 顶层因此解析为 D:；Git common dir 在 E: 源仓的 `.git`。本轮未进入 E: 源工作树，后续报告须同时注明 C: 配置路径和 Junction/Git 解析路径，不能声称目录物理存储于 C:。
+- `HeroCultivationPresenter` 给弹窗补齐神将立绘、品质框、四种配置材料图标/品质框、双字名称布局、计数输入文字区，以及按 `item.json` 经验值和 `exp_dat.txt` 等级经验上限计算的材料预览。修复后当前等级3时，计数1显示目标4与材料需要 `11/46,0/20,0/10,0/5`，真实点击加号后计数2、目标5、需要 `27/46,0/20,0/10,0/5`。没有确认升级或消耗。
+- 最终截图 `.local/unity-validation/w6-autolevel-assets-xp-fixed-runtime-20260925.png`、`.local/unity-validation/w6-autolevel-count-plus-xp-fixed-runtime-20260925.png` 已目视检查；Console errors/warnings `0/0`。逐点击路径、目标变化和下次快速进入规则记于 `.local/unity-validation/w6-hero-cultivation-pages-runtime-20260925.md` 的 `Reusable quick-entry log for AutoLevel`。本子路线关闭；其他 W6.5 路线与全局 W6 门禁仍未完成，W6 不收口。
+
+### W6.7 Prefab 按钮文字全拉伸锚点批处理 — 2026-09-25
+
+- 新增 `unityclient/Assets/ProjectX/src/Editor/NormalizeButtonTextAnchors.cs`：菜单提供“预览”和二次确认后的“执行”。扫描项目 Prefab（跳过 Packages），只处理 `UnityEngine.UI.Button` 后代上带 `UnityEngine.UI.Text` 或 `TMPro.TMP_Text` 的节点；锚点设为 Min `(0,0)`、Max `(1,1)`，四边 offset 全为0，保留 Pivot、字体和其他组件属性。
+- 预览只输出候选清单和汇总，不保存 Prefab；执行仅保存包含目标文字 RectTransform 变化的 Prefab。两种模式都写入 `.local/unity-validation/w6.7-button-text-anchors-*.txt`。2026-09-25 已扫描359个Prefab、2060个按钮后代文字节点；执行1923处、268个Prefab、0失败；随后复预览为0待改。该结果只证明批处理幂等，不能证明全部文字显示正确。2026-09-26 布阵页发现资料文字压住头像及装备图标，W6.7 视觉验收重开，须按误选类型清理后再收口。
+
+> W6.7 2026-09-26 定向纠错：布阵页 `yingxiongInfoLayer` 的 16 个、`yingxiongListLayer` 的 4 个定位文字节点误被全拉伸。已按 HEAD 原 RectTransform 精确还原，批处理增加对应资料文字排除规则；同一 Unity Editor 受控 Stop/Play 后沿记录的 Login → Main `Bg/btn_zhenrong` 真实进入，截图 `.local/unity-validation/w6-formation-prefab-restored-20260926.png` 与批处理前的 `w6-hero-lineup-tabs-runtime-20260925.png` 布局一致，Console Error/Warning=0/0。W6.7 其余 Prefab 的误选审计仍待收敛，不能以此前 0 待改预览宣称全量视觉通过。详细证据 `.local/unity-validation/w6.7-formation-positioned-text-regression-20260926.md`。
+
+> W6.7 2026-09-26 全局纠错：进一步按复合按钮/资料字段恢复 1123 个 RectTransform、139 份 Prefab；逐份比对非几何字段无差异。工具收紧为唯一直接标题，最新 359 Prefab 预览为 745 匹配、0 待改、0 失败。招募首页另有 6 个旁置招募券的直接标题按执行前备份还原，下一次合法 Play 中重新实例化后画面正常；登录切换账号 InputField 30 px 字体被 27 px 高文本框截成 0 顶点，已修复并经真实点击显示。境界、阵容、招募、世界章节、装备/法宝列表在同一 Play 做了受影响画面的单次视觉复核；商城与装备信息按用户要求跳过。旧存档槽只完成静态还原，不宣称运行视觉通过。剩余 745 个标题的非居中几何候选还需定点筛选。证据 `.local/unity-validation/w6.7-container-text-repair-20260926.md`。
+
+> W6.7 2026-09-26 剩余标题定点收敛：对照 745 个候选的原始 RectTransform，确认 14 个图标旁标签或数值字段误选（6 Prefab）；13 个仍处全拉伸状态的节点按原值恢复，1 个此前已恢复。批处理按完整层级路径排除 14 项；Unity 编译后复预览为 359 Prefab、731 候选、0 待改、0 失败，Console 0/0。编译使 Play 中 app 实例失效后仅受控 Stop/Play 一次，用真实登录按钮恢复 Main，同一 Editor PID 16324；没有重复抽取或战斗。14 项当前只有静态几何回读，未将六页画面误报为已验。证据 `.local/unity-validation/w6.7-remaining-single-caption-audit-20260926.md`。
+
+### W6.5 天命帮助页二期与属性汇总路线验收 — 2026-09-25
+
+- 复用已记录路线及同一 C-worktree Play：条件性登录回入一次后，通过真实 EventSystem 点击打开培养页、修炼页签、天命帮助页；第二天命页展示 11–20 十个节点。真实点击 Node_12 后选中态和数据名由“太微”切为“破军”，未执行培养或消耗操作。
+- 目视检查确认 `Panel_di/txt_0` 文字虽为 `【破军】` 却为0网格顶点：26 px 字体被25 px高矩形和垂直截断裁空。`HeroCultivationPresenter` 将最小高度改为32 px并启用垂直溢出；当前 Play 编译后生成16顶点，截图中名称与统计行完整可见。
+- 属性汇总弹层打开后，三组标题和八项数值均实际渲染；真实关闭属性弹层及帮助弹层。Console error/warning为0。路线与截图见 `.local/unity-validation/w6-hero-cultivation-pages-runtime-20260925.md` 和 `w6-cultivation-help-*-20260925.png`。
+- 仅关闭天命帮助二期、选择显示及属性汇总子路线；HeroCultivation其他弹层、Presenter未验路线和W6其余门禁仍待验。W6不收口。
+### W6.3/W6.4 同节点三组件联合验收范围 — 2026-09-25
+
+- 对当前 ProjectX Prefab YAML 按脚本 GUID 与 `m_GameObject` fileID 分组：26 个 Prefab 在同一 GameObject 上共存 `CocosUiBinding`、`CocosNodeMetadata`、`CocosTimelinePlayer`。完整清单和 route-level 联验规则见 `.local/unity-validation/w6-same-node-triple-component-inventory-20260925.md`。
+- 执行单元固定为“一次真实页面开页路线”。同一根/子树上的 Binding、Metadata、Timeline、Snapshot 身份、实际显示与适用的首击输入必须同批读取并记录；同节点共存的组件不得拆开重开页面验收。该根没有某组件则记 `N/A`，不借同画面其他根的组件拼成该页联合结果。既有 90/38 身份探针只作补充，不替代页面联合回读。
+- 另按 Transform/RectTransform `m_Father` 链审计 Metadata owner：357/357 个含 Metadata 的 Prefab 都有 Binding，19,690/19,690 个 Metadata 节点落在最近 Binding 子树内；动态 Bag 克隆仍单独审计。证据 `.local/unity-validation/w6-metadata-binding-owner-coverage-20260925.md`。
+- C 盘现有 Play 中对完整已加载场景读取 Snapshot identity index：397 个 RectTransform、Metadata=0、701 个 retired identity 全被 Snapshot index 接收；Console 0 Error/Warning。证据 `.local/unity-validation/w6-current-scene-snapshot-metadata-consumer-20260925.md`。这是当前已加载对象的运行态边界证据，不外推到未实例化 Prefab。
+- `common/UImain_cloudLayer.prefab` 已在一次真实 Main 开页周期完成 Metadata 退役、Binding/Snapshot 身份回读及 Timeline 轨道目标/帧间播放联合验收。其余 Prefab 只复用已完成的 Presenter 功能证据，不重走已验功能；组件同节点行为需在相应真实页面路线中同批检查。此前 90 条与38条 Snapshot 探针仅为补充身份数据。
+- 当前继续 W6.3 全局消费者与序列化 Metadata 收敛；此门关闭前不执行 W6.5。
+
+### W6.3 HeroHub 动态页签 Metadata 退役与身份联合回读 — 2026-09-25
+
+- 真实路线：`Canvas/DynamicUi_loginLayer/Login/Btn_Play` → `Canvas/DynamicUi_UImainLayer_new/Main_UI/btn_fuben` → `Canvas/DynamicUi_WorldMapNewLayer/DynamicUi_DadituuiLayer/Panel_1/btn_zhenrong` → HeroHub 动态页签。后续定点复测从 Login 一次回入；没有新建账号、改数据或重启 Editor/服务。
+- 找到动态克隆遗漏：OneLevel 根 `CocosUiBinding.OnEnable` 完成后才由 `ConfigureHeroHubTabs` 克隆 Button2/3。实际调用链是 `BindHeroHubTab` → `EnsureTabClick`（`ProjectXApp.JingJie.cs`），原先只改 `ProjectXApp.EnsureRuntimeButton` 未覆盖此路，第一次复测仍读到10个 Metadata。记录该失败，不计通过。
+- 修复：`CocosUiBinding.RetireLegacyNodeMetadataAtRuntime(Transform subtree)` 限定 owner/subtree，沿用路径别名和 `RetiredMetadataIdentities`；`OnEnable` 与无参入口共用该实现。`EnsureTabClick` 和共用 `EnsureRuntimeButton` 在动态按钮准备时立即退役克隆子树 Metadata。未修改 Prefab 或 `.meta`。
+- 修复后真实回读：OneLevel 根 Metadata=0；Button2/3 各 Metadata=0、各自保留5个 retired identity；`RuntimeSnapshotCollector.BuildSerializedNodeIdentityIndex` 对两树各收录5个身份，`CocosUiBinding.Nodes` 对每树5个身份引用均指向同一目标对象。合计 Snapshot/Binding 10/10。
+- 同页可见检查：真实 Raycast 点击 `Button2_Runtime` 后，「神将」为选中态、按钮不可再点、选中标签有效文字网格8顶点；「碎片」保持未选、普通标签有效8顶点、选中标签隐藏且0顶点。截图 `.local/unity-validation/w6-cloned-tabs-joint-20260925.png` 已目视检查。
+- 该 OneLevel 子树没有 `CocosTimelinePlayer`，故对此页不虚构 Timeline 结果。相同 Play 状态下 `DynamicUi_UImain_cloudLayer` 为活动 UI，其同节点 Binding+Timeline 正在播放4条已解析轨道，Metadata 已退役；World `DynamicUi_DadituuiLayer` 此时已隐藏，其4轨停止。Main 云层原开页联合截图及逐帧证据见 `.local/unity-validation/w6-main-cloud-binding-metadata-timeline-joint-20260925.md`。
+- Console Error/Warning=0；Play 保持在已选「神将」的 HeroHub 页。仅关闭此动态页签退役缺陷；W6.3 全局消费者/序列化 Metadata 余项未收口，因此继续停留 W6.3，不推进 W6.5。
+
+### W6.3 HeroRecycle 开页 Metadata/Binding/Snapshot 联合回读 — 2026-09-25
+
+- 复用当前 Play，不重登、不重启、不触发业务写入。真实路线从已运行 World 页面点击 `Panel_1/btn_zhenrong`，选「神将」页签，再点击 HeroBag `recycle` 进入 `DynamicUi_HeroRecycle`。未选择候选、未请求预览或确认重生。
+- HeroRecycle 子树 `CocosUiBinding.Source=cocosstudio/csd/huishou/shenjiangchongsheng.csd`，同一子树 CocosNodeMetadata=0、Binding refs=47、retired identity=47、Snapshot identity=47；47条 Binding targets 均在 Snapshot identity index。Presenter 的只读状态 `EligibleCount=1`、`SelectedHeroId=0`、候选/确认弹窗均关闭。
+- 真实 EventSystem Inspect 对 `Layer/shenjiangchongshengUI/bg/Btn_add` 命中自身。完整层级前缀含 Unity 中不存在的 Cocos 虚拟 `Layer`，故 Inspect 使用 owning Binding 的相对 CocosPath；第一次传入 Unity 全路径未命中且没有执行输入，修正相对路径后命中。当前截图 `.local/unity-validation/w6-herorecycle-metadata-joint-20260925.png` 已目视确认默认未选择界面文字与模型占位显示。
+- HeroRecycle 根无 `CocosTimelinePlayer`；当前同一 Canvas 快照中的 `DynamicUi_UImain_cloudLayer` 同节点 Binding+Timeline 存在、Metadata=0、4/4轨道目标解析并播放。HeroRecycle 当前无 Timeline，不把别处组件误记为同根。
+- Console Error/Warning=0；没有改 Prefab、`.meta`、SQLite或库存。仅关闭 HeroRecycle 页面退役与身份回读项；W6.3 全局回退消费者、357个序列化 Metadata 与剩余同节点路线仍未收敛，因此不推进 W6.5。
+
+### W6.3 HeroRecycle 候选弹层开页三组件/Snapshot 联合回读 — 2026-09-25
+
+- 从 HeroRecycle 的 `Layer/shenjiangchongshengUI/bg/Btn_add` 经真实 EventSystem 打开候选列表；没有选择候选、请求返还预览或打开确认框。只读状态仍是 `EligibleCount=1`、`SelectedHeroId=0`、候选框开、确认框关。
+- 运行时实际路径为 `Canvas/DynamicUi_shop_bg/DynamicUi_HeroRebirthChoose`，Binding source=`cocosstudio/csd/common/Choose.csd`；该子树 Binding refs=78、live Metadata=0、retired identity=78、Snapshot identity target=78/78。此根及子树没有 TimelinePlayer。父级 `DynamicUi_shop_bg` 另有 Binding refs=100，同根 Metadata=0、没有 TimelinePlayer。
+- 同一运行画面的 `DynamicUi_UImain_cloudLayer` 同一 GameObject 存在 Binding+Timeline、Metadata=0；4/4 ActionTag目标解析且 Timeline 正在播放（查询帧1132.151）。这项沿用 Main 云层同页联合证据，不把共享云层算作候选弹层组件。
+- 截图 `.local/unity-validation/w6-herorebirth-candidate-picker-metadata-joint-20260925.png` 已目视检查：唯一候选「苏全忠」的头像、姓名、等级8、突破+0和选择按钮完整显示，无遮挡或裁切。Console Error/Warning=0；没有修改 SQLite、Prefab 或 `.meta`。
+- 本条仅关闭候选弹层的 Metadata/Binding/Snapshot 与显示回读；不代表重生业务通过，也不关闭 W6.3 全局消费者、序列化 Metadata 和其他同节点路线。
+
+### W6.3 FengShen 动态章节克隆 Metadata/Snapshot 身份联合回读 — 2026-09-25
+
+- 脚本域重载后场景 `ProjectXApp` 组件仍存在但静态实例为空，`RuntimeInputDispatcher` 明确拒绝派发。经同一 Editor PID `16324` 受控停启一次，按既有旧存档 Login/Btn_Play 回到 Main；LocalServer 使用相同 C 盘 SQLite 路径。随后从 Main 的 `btn_wanfa` 经真实 `Function_3/EnterBtn` 打开封神列传，不重测已通过的挑战/战斗功能。
+- `DynamicUi_OneLevelLayer/DynamicUi_fengshenliezhuanlLayer` Binding refs=129、Metadata=0。章节模板 Metadata=0，说明 owner Binding 已在模板克隆前退役 Metadata；新增的 clone-retirement 调用在此状态返回0，不把结果归因给该调用。
+- 动态章节内容包含3个章节卡、22个 RectTransform；它们均不在 Binding Snapshot identity index 中，但实际 `RuntimeSnapshotCollector.ResolveNodeIdentity` 22/22 返回唯一、非空的完整层级路径。只读 EventSystem Inspect 对 `chapter_1` 首击命中自身；没有派发选章操作。
+- 同时对整张活动 Canvas 读取 Snapshot resolver：124/124 活动 RectTransform 均可解析，90 由身份索引命中、34 使用层级路径回退、0 使用 live Metadata；整场景 live Metadata=0，identity index=811。5组重复 semanticId 对应不同 owner 中的相同旧 CocosPath，完整 Transform `nodePath` 不同；Snapshot 以数组记录并按 `nodePath` 分组，不会把这些对象折叠为同一行。
+- 页面子树无 `CocosTimelinePlayer`。同画面主云层的 Binding+Timeline 4/4 ActionTag目标解析并播放。截图 `.local/unity-validation/w6-fengshen-dynamic-clone-metadata-identity-20260925.png` 已目视检查，章节卡、名称、当前标记、关卡图标和标签完整可见。Console Error/Warning=0/0；没有挑战、奖励、Prefab、`.meta`、SQLite或库存变更。
+- 本项关闭当前 FengShenStory 动态克隆的 Metadata/Snapshot 层级回退实读；不关闭全局消费者、序列化 Metadata、26个同节点候选或其他未验 Presenter 路线，W6.5 仍受 W6.3 门控。
+
+### W6.3 XunBao 页面三组件/身份/显示联合回读 — 2026-09-25
+
+- 沿用当前 C 盘 Play，从 Gameplay `Function_9/EnterBtn` 真实打开 XunBao，一次联合读取同根 `CocosUiBinding`、`CocosNodeMetadata`、`CocosTimelinePlayer`、Snapshot identity 和可见文字；没有分别为组件重开页面。Prefab Binding source 为 `cocosstudio/csd/wanfa/XunbaoLayer.csd`，refs=245；运行实例 Metadata=0、退役身份=245。247个 RectTransform 中245个由 Snapshot identity index 解析、2个层级回退，Metadata fallback=0。Timeline 115条轨道 ActionTag=115/115解析；它仅由搜索/合成/选择操作触发播放，本次只读页面验收未触发业务动作，故静止为预期。
+- 目视截图发现并修复货币头显示缺陷：Prefab里三个货币 Text 硬编码 `12345678`，Live Store 实值分别为体力100、金币1825992、元宝1016188。`EnsureXunBaoPresenter` 增加现有 `RefreshStandardCurrencyHeader(xunBaoView.Binding, "Panel/GoldCheck")`，编译后沿用旧角色和 C 盘 LocalServer 同库复开，屏幕与 UI 节点值均改为 `100/100`、`1825992`、`1016188`。关闭、Btn_1搜索入口、Btn_2合成入口 Raycast 首击均命中本身；Btn_3处于隐藏态，未操作。截图 `.local/unity-validation/w6-xunbao-live-20260925.png` 目视检查，无遮挡/裁切；Console Error/Warning=0/0。
+- 证据 `.local/unity-validation/w6-xunbao-layer-binding-metadata-timeline-joint-20260925.md`。只关闭 `wanfa/XunbaoLayer.prefab` 同根三组件及开页货币显示检查；`Xunbao_popupLayer` 需触发搜索/合成才可见，仍保持待验。W6.3全局 Metadata/Snapshot 消费者与序列化 Metadata余项未收口；W6.5仍门控。
+
+### W6.3 YouLi 开页 Binding/Metadata/Snapshot 联合回读 — 2026-09-25
+
+- 沿用 C 盘现有 Play，从 Gameplay `Function_1/EnterBtn` 真实打开游历页；同一次开页同时检查 Binding、Metadata、Snapshot 身份、Timeline 组件存在性、画面与关闭输入，没有为不同组件重复开页。Binding source=`cocosstudio/csd/youli/youlisanjie.csd`，refs=193；页面 Metadata=0、retired identity=63。198个 RectTransform 中63个命中 Snapshot 身份索引、135个走层级回退，Metadata fallback=0。
+- 页面根没有 `CocosTimelinePlayer`，此页记 N/A；不借其他根的 Timeline 拼联合结果。目视图中“游历界”、协助次数10/10、四张完整路线卡可见，第五张卡被视口右缘部分裁切。Prefab ScrollRect 的 Horizontal 已启用，但本次未拖动验证后续位置，因此第五张卡显示范围仍待确认，不能记视觉通过。真实关闭控件 `RuntimeYouLiClose` EventSystem dispatch 成功，关闭后 ActivityLayer 仍活动。未点一键游历/一键领取；Console Error/Warning=0/0。
+- 截图及完整指标见 `.local/unity-validation/w6-youli-binding-metadata-snapshot-joint-20260925.md` 和 `.local/unity-validation/w6-youli-live-20260925.png`。仅关闭此页 Binding/Metadata/Snapshot 身份回读；视觉滚动范围与游历/领取业务路线仍待验；W6.3全局消费者与序列化 Metadata 尚未收敛，不进入 W6.5。
+
+### W6.3 Timeline ActionTag 改为导入期 serialized-only 校验 — 2026-09-25
+
+- `CocosUiImporter.ValidateTimeline` 改用 `FindSerializedActionTag`，与运行时 `CocosTimelinePlayer` 一致；源码扫描确认 `FindActionTag` 原先只有该 Editor importer 调用。当前 Unity AssetDatabase 对358个 Prefab 作只读扫描：26个 TimelinePlayer、461条轨道、186个组件级 ActionTag，绑定 owner 缺失0、serialized target缺失0。详见 `.local/unity-validation/w6-timeline-serialized-actiontag-validation-20260925.md`。
+- 同次全量 importer baseline 校验在更早的 Sprite 检查处失败：文档要求九宫格子图后缀名，但 Unity TextureImporter 暴露基础 Sprite 名；该项已保留失败原文和 W6 台账记录 `d148b652162b412698067b568bea329c`，未盲目重试，也未做名称裁剪或修改资源。它不影响上述独立 Timeline 目标扫描；全局 W6.3和阶段门仍未关闭。

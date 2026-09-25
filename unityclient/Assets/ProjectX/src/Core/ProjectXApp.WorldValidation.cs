@@ -7,6 +7,7 @@ using ProjectX.Data;
 using ProjectX.Network;
 using ProjectX.UI;
 using ProjectX.UI.Migration;
+using ProjectX.Validation;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,7 +19,97 @@ namespace ProjectX.Core
         {
             yield return new WaitForSecondsRealtime(1.5f);
             EnsureWorldPresenter();
+            // The real World entry opens the chapter list first. The retained
+            // chapter-reward preview can populate stages without leaving that
+            // page, so enter the current chapter through its visible button
+            // before asserting or capturing the stage map.
+            if (services.Options.WorldBattleValidation && worldPresenter.ChapterListVisible)
+            {
+                uint chapterId = services.World.CurrentChapterId;
+                int chapterIndex = services.World.Chapters.ToList().FindIndex(value => value.Id == chapterId);
+                if (chapterIndex < 0 && services.World.Chapters.Count > 0)
+                {
+                    chapterId = services.World.Chapters[0].Id;
+                    chapterIndex = 0;
+                }
+                if (chapterIndex < 0)
+                {
+                    Fail("World chapter list had no current chapter to enter through its visible node.");
+                    yield break;
+                }
+                float chapterDeadline = Time.realtimeSinceStartup + 10f;
+                while (chapterIndex < worldPresenter.ChapterPageStart
+                    || chapterIndex >= worldPresenter.ChapterPageStart + 5)
+                {
+                    string pagePath = chapterIndex < worldPresenter.ChapterPageStart
+                        ? "Layer/Button_1" : "Layer/Button_2";
+                    Button pageButton = worldView.FindNode(pagePath)?.GetComponent<Button>();
+                    if (pageButton == null || !pageButton.interactable
+                        || !InvokeEventSystemRaycastClick(pageButton))
+                    {
+                        Fail($"World chapter paging did not expose current chapter {chapterId} for entry.");
+                        yield break;
+                    }
+                    yield return null;
+                    if (Time.realtimeSinceStartup >= chapterDeadline)
+                    {
+                        Fail($"World current chapter {chapterId} was outside the visible chapter pages.");
+                        yield break;
+                    }
+                }
+                int chapterSlot = chapterIndex - worldPresenter.ChapterPageStart;
+                Button chapterNode = worldView.FindNode(
+                    $"Layer/chapterPage/btn_{chapterSlot + 1}")?.GetComponent<Button>();
+                if (chapterNode == null || !chapterNode.interactable
+                    || !InvokeEventSystemRaycastClick(chapterNode))
+                {
+                    Fail($"World current chapter {chapterId} node did not receive a real EventSystem raycast click.");
+                    yield break;
+                }
+                while (services.ProtocolRegistry.PendingCount != 0
+                    && Time.realtimeSinceStartup < chapterDeadline)
+                    yield return null;
+                if (services.ProtocolRegistry.PendingCount != 0
+                    || services.World.SelectedChapterId != chapterId || services.World.StageCount == 0)
+                {
+                    Fail($"World current chapter node did not return authoritative stages: chapter={services.World.SelectedChapterId}/{chapterId}, stages={services.World.StageCount}, pending={services.ProtocolRegistry.PendingCount}.");
+                    yield break;
+                }
+            }
+            if (services.Options.WorldBattleValidation && worldChainMode)
+            {
+                // Dragon Cliff intentionally keeps the chapter selector visible
+                // after loading stages. Capture that actual surface, then follow
+                // its visible chain Challenge control into the authoritative fight.
+                if (!IsWorldOpen || !worldPresenter.ChapterListVisible
+                    || services.World.SelectedChapterId == 0 || services.World.StageCount == 0
+                    || worldPresenter.RenderedCount != services.World.ChapterCount)
+                {
+                    Fail($"World chain chapter surface mismatch: open={IsWorldOpen}, chapterList={worldPresenter.ChapterListVisible}, selected={services.World.SelectedChapterId}, chapters={services.World.ChapterCount}, stages={services.World.StageCount}, rendered={worldPresenter.RenderedCount}.");
+                    yield break;
+                }
+                yield return new WaitForEndOfFrame();
+                ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-map.png"));
+                RuntimeInputDispatchResult challengeInput = RuntimeInputDispatcher.Dispatch(
+                    "bg/Button_1", "WORLD-14-CHALLENGE", "click");
+                if (!challengeInput.Dispatched)
+                {
+                    Fail($"World chain Challenge button did not receive a real EventSystem raycast click: target={challengeInput.TargetPath}, firstHit={challengeInput.FirstHit}, error={challengeInput.Error}.");
+                    yield break;
+                }
+                float battleStartDeadline = Time.realtimeSinceStartup + 8f;
+                while (!worldBattleInFlight && worldBattlePlaybackCoroutine == null
+                    && Time.realtimeSinceStartup < battleStartDeadline)
+                    yield return null;
+                if (!worldBattleInFlight && worldBattlePlaybackCoroutine == null)
+                {
+                    Fail("World chain Challenge click did not start the authoritative battle route.");
+                    yield break;
+                }
+                yield break;
+            }
             if (!IsWorldOpen || services.World.ChapterCount == 0 || services.World.StageCount == 0
+                || worldPresenter.ChapterListVisible
                 || worldPresenter.RenderedCount != services.World.StageCount)
             {
                 Fail($"World map state mismatch: open={IsWorldOpen}, chapters={services.World.ChapterCount}, stages={services.World.StageCount}, rendered={worldPresenter.RenderedCount}.");
@@ -113,8 +204,8 @@ namespace ProjectX.Core
         private IEnumerator ValidateWorldChapterAndStageControls()
         {
             uint currentChapterId = services.World.SelectedChapterId;
-            Button next = worldView.Binding.Find("Layer/Button_2")?.GetComponent<Button>();
-            Button previous = worldView.Binding.Find("Layer/Button_1")?.GetComponent<Button>();
+            Button next = worldView.FindNode("Layer/Button_2")?.GetComponent<Button>();
+            Button previous = worldView.FindNode("Layer/Button_1")?.GetComponent<Button>();
             if (next == null || previous == null)
             {
                 Fail("World chapter paging controls are unavailable.");
@@ -195,7 +286,7 @@ namespace ProjectX.Core
                 ? currentChapterIndex - worldPresenter.ChapterPageStart
                 : -1;
             Button chapterNode = chapterNodeIndex >= 0 && chapterNodeIndex < 5
-                ? worldView.Binding.Find($"Layer/chapterPage/btn_{chapterNodeIndex + 1}")?.GetComponent<Button>()
+                ? worldView.FindNode($"Layer/chapterPage/btn_{chapterNodeIndex + 1}")?.GetComponent<Button>()
                 : null;
             if (chapterNode == null || !chapterNode.interactable)
             {
@@ -215,7 +306,7 @@ namespace ProjectX.Core
                 Fail("World chapter node did not open the authoritative current chapter.");
                 yield break;
             }
-            Button dropdown = worldMapView.Binding.Find("Layer/Panel_zuoshang/Button_xiala")?.GetComponent<Button>();
+            Button dropdown = worldMapView.FindNode("Layer/Panel_zuoshang/Button_xiala")?.GetComponent<Button>();
             if (dropdown == null || !dropdown.interactable)
             {
                 Fail("World chapter dropdown control is unavailable.");
@@ -227,7 +318,7 @@ namespace ProjectX.Core
                 yield break;
             }
             yield return null;
-            Transform virtualContent = worldMapView.Binding.Find("Layer/Popup/ListView")?.transform.Find("VirtualContent");
+            Transform virtualContent = worldMapView.FindNode("Layer/Popup/ListView")?.transform.Find("VirtualContent");
             int selectedChapterIndex = services.World.Chapters.ToList()
                 .FindIndex(value => value.Id == services.World.CurrentChapterId);
             int probeChapterIndex = selectedChapterIndex > 0 ? selectedChapterIndex - 1 : selectedChapterIndex + 1;
@@ -300,7 +391,7 @@ namespace ProjectX.Core
             }
             if (services.Options.WorldBattleValidation && !worldG4FormationValidated)
             {
-                Button formationButton = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Buzhen")?.GetComponent<Button>();
+                Button formationButton = worldDetailView.FindNode("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Buzhen")?.GetComponent<Button>();
                 if (formationButton == null || !formationButton.interactable)
                 {
                     Fail("World pre-challenge formation control is unavailable.");
@@ -343,7 +434,7 @@ namespace ProjectX.Core
             // visibility-only assertion.
             if (services.Options.WorldBattleValidation && !worldG4DetailCloseValidated)
             {
-                Button close = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Close")?.GetComponent<Button>();
+                Button close = worldDetailView.FindNode("Layer/Panel_1/Pane/Descbg/Close")?.GetComponent<Button>();
                 if (close == null || !close.interactable)
                 {
                     Fail("World detail close control is unavailable.");
@@ -411,7 +502,7 @@ namespace ProjectX.Core
             // before the player's next challenge click.
             yield return new WaitForEndOfFrame();
             Canvas.ForceUpdateCanvases();
-            Button challenge = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_2")?.GetComponent<Button>();
+            Button challenge = worldDetailView.FindNode("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_2")?.GetComponent<Button>();
             if (challenge == null || !challenge.interactable)
             {
                 Fail($"World challenge Prefab control is unavailable for the authoritative stage: stage={stage.Id}, stars={stage.Stars}, attempts={stage.RemainingAttempts}, unlocked={stage.IsUnlocked}, button={(challenge == null ? "missing" : "disabled")}, detail={worldPresenter.DetailVisible}.");
@@ -432,7 +523,7 @@ namespace ProjectX.Core
                 yield break;
             }
             EnsureWorldOutcomePresenter();
-            Button sweep = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_3")?.GetComponent<Button>();
+            Button sweep = worldDetailView.FindNode("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_3")?.GetComponent<Button>();
             if (sweep == null || !sweep.interactable)
             {
                 Fail("World sweep control is unavailable for the authoritative stage.");
@@ -456,13 +547,13 @@ namespace ProjectX.Core
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-sweep.png"));
             yield return new WaitForSecondsRealtime(0.75f);
-            Button close = worldSweepView.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>();
+            Button close = worldSweepView.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>();
             if (close == null || !close.interactable)
             {
                 Fail("World sweep result close control is unavailable.");
                 yield break;
             }
-            Button again = worldSweepView.Binding.Find("Layer/bg/Image/Button1")?.GetComponent<Button>();
+            Button again = worldSweepView.FindNode("Layer/bg/Image/Button1")?.GetComponent<Button>();
             if (again == null || !again.interactable)
             {
                 Fail("World sweep-again control was not available after an authoritative sweep result.");
@@ -489,7 +580,7 @@ namespace ProjectX.Core
             }
             yield return new WaitForEndOfFrame();
             Canvas.ForceUpdateCanvases();
-            close = worldSweepView.Binding.Find("Layer/bg/Btn_close")?.GetComponent<Button>();
+            close = worldSweepView.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>();
             if (close == null || !close.interactable || !InvokeEventSystemRaycastClick(close))
             {
                 Fail("World sweep result close did not receive a real EventSystem raycast click.");
@@ -510,7 +601,7 @@ namespace ProjectX.Core
                 Fail($"World reset fixture is not eligible: stage={stage?.Id ?? 0}, attempts={stage?.RemainingAttempts ?? 0}, resets={stage?.RemainingResets ?? 0}.");
                 yield break;
             }
-            Button reset = worldDetailView.Binding.Find("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/TimesBg/AddBtn")?.GetComponent<Button>();
+            Button reset = worldDetailView.FindNode("Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/TimesBg/AddBtn")?.GetComponent<Button>();
             if (reset == null || !reset.interactable)
             {
                 Fail("World reset-attempts control is unavailable after the authoritative sweep.");
@@ -564,8 +655,18 @@ namespace ProjectX.Core
             int replayActionCount = services.WorldBattleReplay?.Actions.Count ?? 0;
             float playbackAllowance = Mathf.Min(180f, replayActionCount * 4.5f);
             float settlementDeadline = Time.realtimeSinceStartup + 30f + playbackAllowance;
+            float chainHardDeadline = Time.realtimeSinceStartup + 720f;
             while (!worldOutcomePresenter.IsBattleVisible && Time.realtimeSinceStartup < settlementDeadline)
+            {
+                // Dragon Cliff continues through every remaining stage after a
+                // normal win. Its one terminal settlement can take longer than
+                // a single replay, so extend only while the server has supplied
+                // another chain node, with a bounded cap for a stuck route.
+                if (worldChainMode && worldChainNextStageId > 0)
+                    settlementDeadline = Mathf.Min(chainHardDeadline, Mathf.Max(settlementDeadline,
+                        Time.realtimeSinceStartup + 30f + playbackAllowance));
                 yield return null;
+            }
             int visibleRewardCount = services.Rewards.Count;
             if (!worldOutcomePresenter.IsBattleVisible || visibleRewardCount <= 0
                 || worldOutcomePresenter.RenderedRewardCount != visibleRewardCount)
@@ -586,7 +687,7 @@ namespace ProjectX.Core
             }
             if (services.Options.WorldBattleValidation && !worldG4BattleStatisticsValidated)
             {
-                Button statistics = worldBattleResultView.Binding.Find("Layer/Panel/victorypanel/Button_tongji")?.GetComponent<Button>();
+                Button statistics = worldBattleResultView.FindNode("Layer/Panel/victorypanel/Button_tongji")?.GetComponent<Button>();
                 if (statistics == null || !statistics.interactable)
                 {
                     Fail("World battle-statistics control was unavailable.");
@@ -651,10 +752,13 @@ namespace ProjectX.Core
                 }
                 worldG4BattleReplayValidated = true;
                 yield return new WaitForEndOfFrame();
+                bool expectedTransientWorldSurface = worldChainMode
+                    ? worldPresenter.ChapterListVisible && worldStageView?.GameObject.activeSelf != true
+                    : worldStageView?.GameObject.activeSelf == true;
                 if (worldOutcomePresenter.IsBattleVisible || !IsWorldOpen
-                    || worldStageView?.GameObject.activeSelf != true)
+                    || !expectedTransientWorldSurface)
                 {
-                    Fail($"World replay current-Cocos transient-map mismatch: battle={worldOutcomePresenter.IsBattleVisible}, open={IsWorldOpen}, stages={worldStageView?.GameObject.activeSelf == true}.");
+                    Fail($"World replay current-Cocos transient-map mismatch: battle={worldOutcomePresenter.IsBattleVisible}, open={IsWorldOpen}, chain={worldChainMode}, chapterList={worldPresenter.ChapterListVisible}, stages={worldStageView?.GameObject.activeSelf == true}.");
                     yield break;
                 }
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-replay-transient.png"));
@@ -679,7 +783,7 @@ namespace ProjectX.Core
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-replay.png"));
             }
-            Button continueButton = worldBattleResultView.Binding.Find("Layer/Panel")?.GetComponent<Button>();
+            Button continueButton = worldBattleResultView.FindNode("Layer/Panel")?.GetComponent<Button>();
             if (continueButton == null || !continueButton.interactable)
             {
                 Fail("World settlement continue control was not available.");
@@ -693,10 +797,13 @@ namespace ProjectX.Core
             if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
             {
                 yield return new WaitForEndOfFrame();
+                bool expectedReturnWorldSurface = worldChainMode
+                    ? worldPresenter.ChapterListVisible && worldStageView?.GameObject.activeSelf != true
+                    : worldStageView?.GameObject.activeSelf == true;
                 if (worldOutcomePresenter.IsBattleVisible || !IsWorldOpen
-                    || worldStageView?.GameObject.activeSelf != true)
+                    || !expectedReturnWorldSurface)
                 {
-                    Fail($"World replay settlement continue mismatch: battle={worldOutcomePresenter.IsBattleVisible}, open={IsWorldOpen}, stages={worldStageView?.GameObject.activeSelf == true}.");
+                    Fail($"World replay settlement continue mismatch: battle={worldOutcomePresenter.IsBattleVisible}, open={IsWorldOpen}, chain={worldChainMode}, chapterList={worldPresenter.ChapterListVisible}, stages={worldStageView?.GameObject.activeSelf == true}.");
                     yield break;
                 }
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-return.png"));
@@ -745,10 +852,10 @@ namespace ProjectX.Core
             }
             MarkValidationControl("WORLD-09-STAGE-MAP-SCROLL");
 
-            bool boundaryPresentation = worldMapView.Binding.Find("Layer/Panel_youxia/Button_zhuxianchengjiu")?.gameObject.activeSelf == true
-                && worldView.Binding.Find("Layer/Panel_youxia/Button_fengshenshilian")?.gameObject.activeSelf == false
-                && worldMapView.Binding.Find("Layer/Panel_youxia/Button_youlisanjie")?.gameObject.activeSelf == true
-                && worldMapView.Binding.Find("Layer/Panel_1/Button_paihangbang")?.gameObject.activeSelf == false;
+            bool boundaryPresentation = worldMapView.FindNode("Layer/Panel_youxia/Button_zhuxianchengjiu")?.gameObject.activeSelf == true
+                && worldView.FindNode("Layer/Panel_youxia/Button_fengshenshilian")?.gameObject.activeSelf == false
+                && worldMapView.FindNode("Layer/Panel_youxia/Button_youlisanjie")?.gameObject.activeSelf == true
+                && worldMapView.FindNode("Layer/Panel_1/Button_paihangbang")?.gameObject.activeSelf == false;
             if (!boundaryPresentation)
             {
                 Fail("World current product boundary mismatch: achievement/YouLi must be visible while rank/FengShen remain hidden.");
@@ -869,7 +976,7 @@ namespace ProjectX.Core
             MarkValidationControl("WORLD-25-ACHIEVEMENT-ENTRY");
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-main-achievement.png"));
-            Button achievementClose = worldAchievementView.Binding.Find(
+            Button achievementClose = worldAchievementView.FindNode(
                 "Layer/zhuxianchengjiu_layer/Btn_Close")?.GetComponent<Button>();
             if (achievementClose == null)
             {
@@ -935,7 +1042,7 @@ namespace ProjectX.Core
                 yield break;
             }
             uint rewardId = services.World.StarBoxes[slot].RewardId;
-            Button box = worldMapView.Binding.Find($"Layer/Panel_1/Box{slot + 1}/Button1")?.GetComponent<Button>();
+            Button box = worldMapView.FindNode($"Layer/Panel_1/Box{slot + 1}/Button1")?.GetComponent<Button>();
             if (box == null || !box.gameObject.activeInHierarchy || !box.interactable)
             {
                 Fail($"World star-box Prefab control is unavailable: slot={slot + 1}, reward={rewardId}, button={(box == null ? "missing" : "disabled")}.");

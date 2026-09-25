@@ -24,6 +24,21 @@ namespace ProjectX.UI
 
     public sealed class HeroRebirthPresenter : IDisposable
     {
+        private enum NodeId
+        {
+            AddButton,
+            ChangeButton,
+            RebirthButton,
+            CandidateCloseButton,
+            ConfirmCloseButton,
+            ConfirmCancelButton,
+            ConfirmButton,
+            CandidateScroll,
+            RewardScroll,
+            ConfirmRewardScroll,
+            CandidateTabs
+        }
+
         private const int RebirthCost = 50;
         private readonly CocosUiView view;
         private readonly CocosUiView chooseFrame;
@@ -122,18 +137,18 @@ namespace ProjectX.UI
         public bool IsCandidateOpen => chooseFrame.GameObject.activeSelf && chooseView.GameObject.activeSelf;
         public bool IsConfirmOpen => confirmView.GameObject.activeSelf;
         public bool IsModelLoaded => model != null && model.IsLoaded;
-        public Button AddButton => view.FindNode("Layer/shenjiangchongshengUI/bg/Btn_add")?.GetComponent<Button>();
-        public Button ChangeButton => view.FindNode("Layer/shenjiangchongshengUI/bg/Btn_Change")?.GetComponent<Button>();
-        public Button RebirthButton => view.FindNode("Layer/shenjiangchongshengUI/chongsheng/Btn_chongsheng")?.GetComponent<Button>();
-        public Button CandidateCloseButton => chooseFrame.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
-        public Button ConfirmCloseButton => confirmView.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>();
-        public Button ConfirmCancelButton => confirmView.FindNode("Layer/Popup/Btn_Cancel")?.GetComponent<Button>();
-        public Button ConfirmButton => confirmView.FindNode("Layer/Popup/Btn_Confirm")?.GetComponent<Button>();
+        public Button AddButton => GetNode(view, NodeId.AddButton).GetComponent<Button>();
+        public Button ChangeButton => GetNode(view, NodeId.ChangeButton).GetComponent<Button>();
+        public Button RebirthButton => GetNode(view, NodeId.RebirthButton).GetComponent<Button>();
+        public Button CandidateCloseButton => GetNode(chooseFrame, NodeId.CandidateCloseButton).GetComponent<Button>();
+        public Button ConfirmCloseButton => GetNode(confirmView, NodeId.ConfirmCloseButton).GetComponent<Button>();
+        public Button ConfirmCancelButton => GetNode(confirmView, NodeId.ConfirmCancelButton).GetComponent<Button>();
+        public Button ConfirmButton => GetNode(confirmView, NodeId.ConfirmButton).GetComponent<Button>();
         public Button FirstRewardButton => rewardButtons.FirstOrDefault(button => button != null);
         public Button FirstConfirmRewardButton => confirmRewardButtons.FirstOrDefault(button => button != null);
-        public ScrollRect CandidateScroll => chooseView.FindNode("Layer/ChooseUI/Popup/TableView")?.GetComponent<ScrollRect>();
-        public ScrollRect RewardScroll => view.FindNode("Layer/shenjiangchongshengUI/chongsheng/fanhuan/TableView")?.GetComponent<ScrollRect>();
-        public ScrollRect ConfirmRewardScroll => confirmView.FindNode("Layer/Popup/fanhuan/TableView")?.GetComponent<ScrollRect>();
+        public ScrollRect CandidateScroll => GetNode(chooseView, NodeId.CandidateScroll).GetComponent<ScrollRect>();
+        public ScrollRect RewardScroll => GetNode(view, NodeId.RewardScroll).GetComponent<ScrollRect>();
+        public ScrollRect ConfirmRewardScroll => GetNode(confirmView, NodeId.ConfirmRewardScroll).GetComponent<ScrollRect>();
         public Button GetCandidateButton(int heroId)
             => candidateButtons.TryGetValue(heroId, out Button button) ? button : null;
         public bool ScrollCandidatesToBottom() => candidateList.ScrollToBottom();
@@ -249,7 +264,7 @@ namespace ProjectX.UI
             candidateButtons.Clear();
             candidateList.SetItems(ToCandidateRows(candidates));
             SetText(chooseFrame, "Layer/shopBg/Popup/Title/Title", "选择神将");
-            GameObject tabs = chooseFrame.FindNode("Layer/shopBg/Btn_ListView");
+            GameObject tabs = GetNode(chooseFrame, NodeId.CandidateTabs);
             if (tabs != null) tabs.SetActive(false);
             chooseFrame.ShowPopup();
             chooseView.ShowPopup();
@@ -507,6 +522,59 @@ namespace ProjectX.UI
 
         public string DescribeReward(HeroRebirthReward reward)
             => $"{RewardName(reward)} ×{reward.Quantity}";
+
+        private static GameObject GetNode(CocosUiView owner, NodeId node)
+        {
+            switch (node)
+            {
+                case NodeId.AddButton:
+                    return owner.GetSerializedNodeByActionTag(1312825655,
+                        "cocosstudio/csd/huishou/shenjiangchongsheng.csd",
+                        "Layer/shenjiangchongshengUI/bg/Btn_add");
+                case NodeId.ChangeButton:
+                    return owner.GetSerializedNodeByActionTag(-706898110,
+                        "cocosstudio/csd/huishou/shenjiangchongsheng.csd",
+                        "Layer/shenjiangchongshengUI/bg/Btn_Change");
+                case NodeId.RebirthButton:
+                    return owner.GetSerializedNodeByActionTag(1062998004,
+                        "cocosstudio/csd/huishou/shenjiangchongsheng.csd",
+                        "Layer/shenjiangchongshengUI/chongsheng/Btn_chongsheng");
+                case NodeId.CandidateCloseButton:
+                    return owner.GetSerializedNodeByActionTag(-1077648424,
+                        "cocosstudio/csd/shop/shop_bg.csd",
+                        "Layer/shopBg/Popup/Btn_close");
+                case NodeId.ConfirmCloseButton:
+                    return owner.GetSerializedNodeByActionTag(1268068906,
+                        "cocosstudio/csd/huishou/Popup_Confirm.csd",
+                        "Layer/Popup/Btn_close");
+                case NodeId.ConfirmCancelButton:
+                    return owner.GetSerializedNodeByActionTag(2114176346,
+                        "cocosstudio/csd/huishou/Popup_Confirm.csd",
+                        "Layer/Popup/Btn_Cancel");
+                case NodeId.ConfirmButton:
+                    return owner.GetSerializedNodeByActionTag(925924693,
+                        "cocosstudio/csd/huishou/Popup_Confirm.csd",
+                        "Layer/Popup/Btn_Confirm");
+                case NodeId.CandidateScroll:
+                    return owner.GetSerializedNodeByActionTag(-1793792062,
+                        "cocosstudio/csd/common/Choose.csd",
+                        "Layer/ChooseUI/Popup/TableView");
+                case NodeId.RewardScroll:
+                    return owner.GetSerializedNodeByActionTag(1896239951,
+                        "cocosstudio/csd/huishou/shenjiangchongsheng.csd",
+                        "Layer/shenjiangchongshengUI/chongsheng/fanhuan/TableView");
+                case NodeId.ConfirmRewardScroll:
+                    return owner.GetSerializedNodeByActionTag(1261608770,
+                        "cocosstudio/csd/huishou/Popup_Confirm.csd",
+                        "Layer/Popup/fanhuan/TableView");
+                case NodeId.CandidateTabs:
+                    return owner.GetSerializedNodeByActionTag(577164065,
+                        "cocosstudio/csd/shop/shop_bg.csd",
+                        "Layer/shopBg/Btn_ListView");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(node), node, "Unknown HeroRebirth node id.");
+            }
+        }
 
         private static CandidateRow[] ToCandidateRows(IReadOnlyList<HeroRecord> source)
         {

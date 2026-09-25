@@ -128,8 +128,8 @@ namespace ProjectX.Core
                 if (!drawPresenter.IsPreviewHeroDetailVisible) { Fail("Draw preview hero detail did not open."); yield break; }
                 drawPresenter.HidePreviewHeroDetail(); MarkValidationControl("DRAW-20-PREVIEW-HERO-DETAIL");
                 Button previewClose = drawPreviewView.GameObject.transform.Find("RuntimePreviewClose")?.GetComponent<Button>()
-                    ?? drawPreviewView.Binding.Find("Layer/CloseBtn")?.GetComponent<Button>()
-                    ?? drawPreviewView.Binding.Find("Layer/Btn_Close")?.GetComponent<Button>();
+                    ?? drawPreviewView.FindNode("Layer/CloseBtn")?.GetComponent<Button>()
+                    ?? drawPreviewView.FindNode("Layer/Btn_Close")?.GetComponent<Button>();
                 previewClose?.onClick.Invoke();
                 if (drawPreviewView.GameObject.activeSelf) { Fail("Draw reward preview did not close."); yield break; }
 
@@ -178,7 +178,7 @@ namespace ProjectX.Core
 
         private static void ClickDrawButton(CocosUiView view, string path, string control)
         {
-            GameObject node = view?.Binding.Find(path);
+            GameObject node = view?.FindNode(path);
             Button button = node?.GetComponent<Button>();
             if (button == null || !button.interactable)
                 throw new InvalidOperationException($"Draw G4 control is missing or disabled: {control} ({path}).");
@@ -201,7 +201,7 @@ namespace ProjectX.Core
             if (evidenceId == "DRAW-HERO-LIST")
             {
                 Button target = FindHeroBagButton("郑伦");
-                Transform viewport = heroBagView?.Binding.Find("Layer/yingxiongbeibaoUI/TableView")?.transform;
+                Transform viewport = heroBagView?.FindNode("Layer/yingxiongbeibaoUI/TableView")?.transform;
                 int activeRows = viewport == null ? -1 : viewport.GetComponentsInChildren<Transform>(false)
                     .Count(value => value.name.StartsWith("VirtualRow_", StringComparison.Ordinal));
                 ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][DrawG5] hero-list bag={heroBagView?.GameObject.activeSelf}/"
@@ -451,9 +451,9 @@ namespace ProjectX.Core
             }
             drawExchangeDimmer.SetActive(true);
             SetBoundText(drawExchangeView, "Layer/Popup/Title/Title", "道具兑换");
-            SetExchangeRuntimeText(drawExchangeView.Binding.Find("Layer/Popup/Title")?.transform,
+            SetExchangeRuntimeText(drawExchangeView.FindNode("Layer/Popup/Title")?.transform,
                 "RuntimeExchangeTitle", "道具兑换", TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, 27);
-            Text exchangeTitle = drawExchangeView.Binding.Find("Layer/Popup/Title")?.transform
+            Text exchangeTitle = drawExchangeView.FindNode("Layer/Popup/Title")?.transform
                 .Find("RuntimeExchangeTitle")?.GetComponent<Text>();
             if (exchangeTitle != null) exchangeTitle.color = new Color(.96f, .80f, .60f, 1f);
             RenderDrawExchangeRows();
@@ -468,8 +468,8 @@ namespace ProjectX.Core
 
         private void RenderDrawExchangeRows()
         {
-            Transform list = drawExchangeView.Binding.Find("Layer/Popup/ListView")?.transform;
-            Transform template = drawExchangeView.Binding.Find("Layer/Popup/kuang")?.transform;
+            Transform list = drawExchangeView.FindNode("Layer/Popup/ListView")?.transform;
+            Transform template = drawExchangeView.FindNode("Layer/Popup/kuang")?.transform;
             if (list == null || template == null)
                 throw new InvalidOperationException("Draw exchange imported ListView template was not found.");
             template.SetParent(list, false);

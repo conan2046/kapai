@@ -38,7 +38,7 @@ namespace ProjectX.Core
             monopolyFunctionId = functionId;
             EnsureMonopolyPresenter(route);
             toastPresenter?.Clear();
-            RefreshStandardCurrencyHeader(monopolyHudView.Binding, "Layer/Panel/GoldCheck");
+            RefreshStandardCurrencyHeader(monopolyHudView.Identity, "Layer/Panel/GoldCheck");
             gameplayPresenter?.HideDetail(); gameplayContentView?.SetVisible(false);
             if (services.UiStack.Current != monopolyView) services.UiStack.Push(monopolyView, true);
             monopolyHudView.SetVisible(true);

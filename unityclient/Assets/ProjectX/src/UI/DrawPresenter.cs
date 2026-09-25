@@ -90,18 +90,17 @@ namespace ProjectX.UI
             Reparent(tenResultView, view.GameObject.transform);
             previewFrame = UnityEngine.Object.Instantiate(previewFrameView.GameObject, view.GameObject.transform);
             previewFrame.name = "DrawRewardPreviewFrame";
-            CocosUiBinding previewFrameBinding = previewFrame.GetComponent<CocosUiBinding>();
             previewTabTemplate = previewFrame.transform.Find(
                 "Panel_12/Bg/Btn_ListView/Panel_10/Button1");
-            UnityEngine.Object.Destroy(previewFrameBinding);
+            UnityEngine.Object.Destroy(previewFrame.GetComponent<UiPrefabIdentity>());
             Reparent(previewView, previewFrame.transform);
             heroPreviewFrame = UnityEngine.Object.Instantiate(previewFrameView.GameObject, view.GameObject.transform);
             heroPreviewFrame.name = "DrawHeroPreviewFrame";
-            UnityEngine.Object.Destroy(heroPreviewFrame.GetComponent<CocosUiBinding>());
+            UnityEngine.Object.Destroy(heroPreviewFrame.GetComponent<UiPrefabIdentity>());
             GameObject heroPreviewObject = UnityEngine.Object.Instantiate(heroPreviewTemplate.GameObject,
                 heroPreviewFrame.transform);
             heroPreviewObject.name = "DrawHeroPreview";
-            heroPreviewView = new CocosUiView(heroPreviewObject.GetComponent<CocosUiBinding>());
+            heroPreviewView = new CocosUiView(heroPreviewObject.GetComponent<UiPrefabIdentity>());
             Normalize(singleResultView.GameObject);
             Normalize(tenResultView.GameObject);
             Normalize(previewFrame);
@@ -138,7 +137,6 @@ namespace ProjectX.UI
             currencies.Changed += RenderPools;
             bag.Changed += RenderPools;
             Render();
-            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int PoolCount => store.Count;
@@ -859,15 +857,15 @@ namespace ProjectX.UI
             previewFrame.transform.SetAsLastSibling();
             previewView.GameObject.transform.SetAsLastSibling();
             SetNamedText(previewFrame.transform, "TitleName", "神将预览");
-            RenderPreviewHeader();
+            RenderPreviewHeader(previewFrame.transform);
             ConfigurePreviewTabs();
             SetNamedText(previewView.GameObject.transform, "Text", "奖励预览");
             SelectPreviewPool(previewPoolKind == 0 ? (byte)1 : previewPoolKind);
         }
 
-        private void RenderPreviewHeader()
+        private void RenderPreviewHeader(Transform frame)
         {
-            Transform header = FindNamed(previewFrame.transform, "GoldCheck");
+            Transform header = FindNamed(frame, "GoldCheck");
             if (header == null) return;
             SetNamedText(FindNamed(header, "GoldIcon1"), "Num", $"{currencies.Stamina}/100");
             SetNamedText(FindNamed(header, "GoldIcon3"), "Num", FormatCompact(currencies.Gold));
@@ -1171,12 +1169,14 @@ namespace ProjectX.UI
             heroPreviewFrame.transform.SetAsLastSibling();
             heroPreviewView.GameObject.transform.SetAsLastSibling();
             SetNamedText(heroPreviewFrame.transform, "TitleName", "信息");
+            RenderPreviewHeader(heroPreviewFrame.transform);
             SetHeroPreviewText("Layer/Panel/Panel_left/Name", definition.Name);
             Text heroName = heroPreviewView.FindNode("Layer/Panel/Panel_left/Name")?.GetComponent<Text>();
             if (heroName != null) heroName.color = QualityColor(definition.Quality);
             GameObject powerPanel = heroPreviewView.FindNode("Layer/Panel/Panel_left/RolePowerBase");
             if (powerPanel != null) powerPanel.SetActive(false);
-            SetHeroPreviewText("Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value", definition.Feature);
+            const string runtimeInfoPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/RuntimeContent";
+            SetHeroPreviewText(runtimeInfoPath + "/Info/dingwei/Value", definition.Feature);
             string[] attributeNames = { "攻击:", "生命:", "物防:", "法防:",
                 "攻击成长:", "生命成长:", "物防成长:", "法防成长:" };
             int[] attributes = { definition.Attack, definition.Health, definition.PhysicalDefense,
@@ -1184,12 +1184,12 @@ namespace ProjectX.UI
                 definition.MagicDefenseGrowth, definition.HealthGrowth };
             for (int index = 0; index < attributes.Length; index++)
             {
-                SetHeroPreviewText($"Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_{index + 1}",
+                SetHeroPreviewText($"{runtimeInfoPath}/jichu/Attribute_{index + 1}",
                     attributeNames[index]);
-                SetHeroPreviewText($"Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_{index + 1}/Value",
+                SetHeroPreviewText($"{runtimeInfoPath}/jichu/Attribute_{index + 1}/Value",
                     attributes[index].ToString());
             }
-            const string skillItemPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/Skill/Item";
+            string skillItemPath = runtimeInfoPath + "/Skill/Item";
             SetHeroPreviewText(skillItemPath + "/SkillName", definition.SkillName);
             Transform skillItem = heroPreviewView.FindNode(skillItemPath)?.transform;
             Text skillTemplate = heroPreviewView.FindNode(skillItemPath + "/SkillInfo")?.GetComponent<Text>();
@@ -1198,7 +1198,7 @@ namespace ProjectX.UI
             if (heroPreviewSkillDescription != null)
                 heroPreviewSkillDescription.text = HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1);
 
-            const string talentPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu";
+            string talentPath = runtimeInfoPath + "/jinjietianfu";
             Transform talentPanel = heroPreviewView.FindNode(talentPath)?.transform;
             Text talentTemplate = heroPreviewView.FindNode(talentPath + "/TalentInfo")?.GetComponent<Text>();
             Transform staleRuntimeText = talentPanel?.Find("RuntimeTalentDescription");
@@ -1231,7 +1231,7 @@ namespace ProjectX.UI
                 quality.enabled = quality.sprite != null;
             }
             GameObject skillIconObject = heroPreviewView.FindNode(
-                "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Btn_Skill/Icon");
+                runtimeInfoPath + "/Skill/Item/Btn_Skill/Icon");
             Image skillIcon = skillIconObject?.GetComponent<Image>();
             if (skillIcon != null)
             {

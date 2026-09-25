@@ -9,8 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 799453567453486948}
-  - component: {fileID: 5866248135523638851}
-  - component: {fileID: 8082744947014093866}
+  - component: {fileID: 7005618353944288373}
   m_Layer: 0
   m_Name: SignLayer
   m_TagString: Untagged
@@ -38,7 +37,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &5866248135523638851
+--- !u!114 &7005618353944288373
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -47,23 +46,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1521475655691901143}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 4687
-  actionTag: 0
---- !u!114 &8082744947014093866
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1521475655691901143}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/SignLayer.csd
@@ -153,6 +136,7 @@ MonoBehaviour:
     tag: 1807
     actionTag: -1590980652
     target: {fileID: 2122864268527894651}
+  retiredMetadataAliases: []
 --- !u!1 &1567903311309728107
 GameObject:
   m_ObjectHideFlags: 0
@@ -162,7 +146,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 534461357412046355}
-  - component: {fileID: 6704794159726367032}
   m_Layer: 0
   m_Name: Item
   m_TagString: Untagged
@@ -195,22 +178,6 @@ RectTransform:
   m_AnchoredPosition: {x: -369.1465, y: -1604.627}
   m_SizeDelta: {x: 139, y: 156}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &6704794159726367032
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1567903311309728107}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item
-  nodeType: PanelObjectData
-  tag: 5945
-  actionTag: -945979145
 --- !u!1 &1724681638334175087
 GameObject:
   m_ObjectHideFlags: 0
@@ -220,7 +187,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5731567144354436715}
-  - component: {fileID: 3526142728696704572}
   - component: {fileID: 4050225504820591424}
   - component: {fileID: 8082688545663979679}
   m_Layer: 0
@@ -249,22 +215,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 136, y: 154}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3526142728696704572
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1724681638334175087}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/bg
-  nodeType: ImageViewObjectData
-  tag: 4760
-  actionTag: 639488130
 --- !u!222 &4050225504820591424
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -312,7 +262,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9174491431365758788}
-  - component: {fileID: 8988729528026874938}
   - component: {fileID: 5304720840707326183}
   - component: {fileID: 3550542608289937206}
   m_Layer: 0
@@ -341,22 +290,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 46, y: 19}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8988729528026874938
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1772644892661620619}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/Title
-  nodeType: TextObjectData
-  tag: 4762
-  actionTag: 363826558
 --- !u!222 &5304720840707326183
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -408,7 +341,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6432647741434502631}
-  - component: {fileID: 8411042994346871713}
   - component: {fileID: 6916359365072086287}
   - component: {fileID: 1348729751178133284}
   m_Layer: 0
@@ -437,22 +369,6 @@ RectTransform:
   m_AnchoredPosition: {x: -108.6918, y: -1601.5791}
   m_SizeDelta: {x: 726, y: 156}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &8411042994346871713
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1777990497803660697}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/ItemList
-  nodeType: ListViewObjectData
-  tag: 4715
-  actionTag: -1167027885
 --- !u!114 &6916359365072086287
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -506,7 +422,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8508197817401415842}
-  - component: {fileID: 898285218381123803}
   m_Layer: 0
   m_Name: LoginGiftUI
   m_TagString: Untagged
@@ -538,22 +453,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &898285218381123803
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1830617014884392976}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI
-  nodeType: SingleNodeObjectData
-  tag: 3831
-  actionTag: -263105246
 --- !u!1 &2122864268527894651
 GameObject:
   m_ObjectHideFlags: 0
@@ -563,7 +462,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 35028315564105738}
-  - component: {fileID: 8101674539611537983}
   - component: {fileID: 6363660761653198735}
   - component: {fileID: 2771758679512888222}
   m_Layer: 0
@@ -592,22 +490,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 46, y: 46}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8101674539611537983
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2122864268527894651}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/choose/Image
-  nodeType: ImageViewObjectData
-  tag: 1807
-  actionTag: -1590980652
 --- !u!222 &6363660761653198735
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -655,7 +537,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4080845273739709039}
-  - component: {fileID: 5438789526167032352}
   - component: {fileID: 4277856993300312179}
   - component: {fileID: 3262111247128236927}
   m_Layer: 0
@@ -685,22 +566,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 138, y: 156}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5438789526167032352
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3016224342267357855}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/choose
-  nodeType: ImageViewObjectData
-  tag: 4761
-  actionTag: 93863207
 --- !u!222 &4277856993300312179
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -748,7 +613,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 820491744326283417}
-  - component: {fileID: 258518317355918740}
   - component: {fileID: 2690654029322424862}
   - component: {fileID: 5697795501497953377}
   m_Layer: 0
@@ -777,22 +641,6 @@ RectTransform:
   m_AnchoredPosition: {x: -240.2485, y: -258.0397}
   m_SizeDelta: {x: 725, y: 468.4}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &258518317355918740
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4820565650364929578}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/ListView
-  nodeType: ListViewObjectData
-  tag: 4703
-  actionTag: 1311681016
 --- !u!114 &2690654029322424862
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -846,7 +694,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1157102557742731054}
-  - component: {fileID: 4000186741656691802}
   - component: {fileID: 3247540051496530955}
   - component: {fileID: 5782887365527736653}
   m_Layer: 0
@@ -877,22 +724,6 @@ RectTransform:
   m_AnchoredPosition: {x: 119, y: 238.617}
   m_SizeDelta: {x: 712, y: 46}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4000186741656691802
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5149689542260307306}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/bg_Tips
-  nodeType: ImageViewObjectData
-  tag: 4710
-  actionTag: -1219274469
 --- !u!222 &3247540051496530955
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -940,7 +771,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7503581631153251305}
-  - component: {fileID: 5458868092926395529}
   - component: {fileID: 5355024685923547740}
   - component: {fileID: 2464375170594128682}
   m_Layer: 0
@@ -970,22 +800,6 @@ RectTransform:
   m_AnchoredPosition: {x: 42.13, y: 120.7128}
   m_SizeDelta: {x: 80, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5458868092926395529
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5475413291362939267}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/bg_Tag
-  nodeType: ImageViewObjectData
-  tag: 4766
-  actionTag: 965384323
 --- !u!222 &5355024685923547740
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1033,7 +847,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 527492363463663158}
-  - component: {fileID: 3575652757833543399}
   - component: {fileID: 119650677960880517}
   - component: {fileID: 1694234761455846091}
   m_Layer: 0
@@ -1062,22 +875,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 73, y: 19}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3575652757833543399
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6551971283142518188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/Name
-  nodeType: TextObjectData
-  tag: 4765
-  actionTag: -1833466318
 --- !u!222 &119650677960880517
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1129,7 +926,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2024044054035192289}
-  - component: {fileID: 2482859486045759524}
   - component: {fileID: 1585780046419512572}
   - component: {fileID: 7156566312504838434}
   m_Layer: 0
@@ -1158,22 +954,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 231, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2482859486045759524
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6914143276115866356}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/bg_Tips/Tips
-  nodeType: TextObjectData
-  tag: 4702
-  actionTag: -1578445031
 --- !u!222 &1585780046419512572
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1225,7 +1005,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7002105999299830354}
-  - component: {fileID: 7725192798479035645}
   - component: {fileID: 2072583191698656726}
   - component: {fileID: 5548148406981328562}
   m_Layer: 0
@@ -1254,22 +1033,6 @@ RectTransform:
   m_AnchoredPosition: {x: 30, y: 42.9}
   m_SizeDelta: {x: 60, y: 17}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7725192798479035645
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6946411348488483675}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/bg_Tag/Text
-  nodeType: TextObjectData
-  tag: 8722
-  actionTag: 349565550
 --- !u!222 &2072583191698656726
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1321,7 +1084,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1054519916184720803}
-  - component: {fileID: 6770765294643963152}
   - component: {fileID: 663805506176089567}
   - component: {fileID: 3077195890702476920}
   m_Layer: 0
@@ -1350,22 +1112,6 @@ RectTransform:
   m_AnchoredPosition: {x: 25.5, y: 34.78}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &6770765294643963152
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8619841817482415514}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/Item/bg_Icon
-  nodeType: ImageViewObjectData
-  tag: 4763
-  actionTag: 863515331
 --- !u!222 &663805506176089567
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1413,7 +1159,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6756442284683441822}
-  - component: {fileID: 7113666858685937132}
   - component: {fileID: 3661927649414701001}
   - component: {fileID: 325732327552721018}
   m_Layer: 0
@@ -1442,22 +1187,6 @@ RectTransform:
   m_AnchoredPosition: {x: -250.2576, y: 269.0619}
   m_SizeDelta: {x: 746.8, y: 549.4}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &7113666858685937132
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8929889430749012680}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/bg
-  nodeType: ImageViewObjectData
-  tag: 4700
-  actionTag: 1262825532
 --- !u!222 &3661927649414701001
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1505,7 +1234,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1609076327223092309}
-  - component: {fileID: 7454989158350155749}
   - component: {fileID: 1840911547811912164}
   - component: {fileID: 6489377373254323381}
   m_Layer: 0
@@ -1534,22 +1262,6 @@ RectTransform:
   m_AnchoredPosition: {x: 417.62, y: 23.92}
   m_SizeDelta: {x: 96, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7454989158350155749
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9002117934704106205}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/LoginGiftUI/bg_Tips/Count
-  nodeType: TextAtlasObjectData
-  tag: 4711
-  actionTag: -1818522233
 --- !u!222 &1840911547811912164
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -302,7 +302,7 @@ namespace ProjectX.Core
 
         private bool ValidateJingJieCurrencyHeader(out string detail)
         {
-            CocosUiBinding binding = oneLevelFrameView?.Binding;
+            UiPrefabIdentity binding = oneLevelFrameView?.Identity;
             if (binding == null || services == null)
             {
                 detail = "shared OneLevelLayer or services are unavailable";
@@ -505,7 +505,7 @@ namespace ProjectX.Core
                     if (child != first && child.name != "Button2_Runtime"
                         && child.name != "Button3_Runtime" && child.name != "Button4_Runtime")
                         child.gameObject.SetActive(false);
-            RefreshStandardCurrencyHeader(oneLevelFrameView.Binding, "Layer/GoldCheck");
+            RefreshStandardCurrencyHeader(oneLevelFrameView.Identity, "Layer/GoldCheck");
             foreach (Transform child in frameRoot.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
         }
@@ -748,7 +748,7 @@ namespace ProjectX.Core
             if (requestSnapshot) EnsureJingJieBagDataRequested();
             bagPresenter?.Render();
             SetOneLevelFrameVisible(true);
-            CocosUiBinding frameBinding = oneLevelFrameView.Binding;
+            UiPrefabIdentity frameBinding = oneLevelFrameView.Identity;
             Transform frameRoot = frameBinding.transform;
             // LAYERING: the frame root and player-hub children use a stable order;
             // the bag remains after Panel_12 so its sheet paints over the opaque

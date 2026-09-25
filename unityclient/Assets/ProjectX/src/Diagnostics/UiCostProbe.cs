@@ -72,12 +72,12 @@ namespace ProjectX.Diagnostics
         // ---------- 实时记录（被动监听 DynamicUi_* 出现/消失） ----------
         private void SampleLive()
         {
-            var bindings = Resources.FindObjectsOfTypeAll<CocosUiBinding>();
+            var bindings = Resources.FindObjectsOfTypeAll<UiPrefabIdentity>();
             var thisFrame = new HashSet<int>();
             foreach (var b in bindings)
             {
                 if (b == null || b.gameObject == null) continue;
-                if (!IsRuntimeSceneBinding(b)) continue;
+                if (!IsRuntimeSceneIdentity(b)) continue;
                 var name = b.gameObject.name;
                 if (!name.StartsWith(Prefix)) continue;
                 var key = name.Substring(Prefix.Length);
@@ -116,7 +116,7 @@ namespace ProjectX.Diagnostics
                     kv.Value.state = "Destroyed";
         }
 
-        private static bool IsRuntimeSceneBinding(CocosUiBinding binding)
+        private static bool IsRuntimeSceneIdentity(UiPrefabIdentity binding)
         {
             if (binding == null || !binding.gameObject.scene.IsValid()) return false;
 #if UNITY_EDITOR

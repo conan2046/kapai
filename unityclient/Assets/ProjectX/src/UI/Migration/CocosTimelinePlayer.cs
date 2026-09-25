@@ -51,7 +51,7 @@ namespace ProjectX.UI.Migration
         [SerializeField] private bool playOnEnable;
         [SerializeField] private bool loop;
 
-        private CocosUiBinding binding;
+        private UiPrefabIdentity identity;
         private float currentFrame;
         private float timeSpeed = 1f;
         private int startFrame;
@@ -71,10 +71,13 @@ namespace ProjectX.UI.Migration
         public void Initialize(CocosTimelineDefinition value)
         {
             definition = value;
-            binding = GetComponent<CocosUiBinding>();
+            identity = GetComponent<UiPrefabIdentity>();
         }
 
-        private void Awake() => binding = GetComponent<CocosUiBinding>();
+        private void Awake()
+        {
+            identity = GetComponent<UiPrefabIdentity>();
+        }
 
         private void OnEnable()
         {
@@ -165,11 +168,16 @@ namespace ProjectX.UI.Migration
         public void Apply(float frame)
         {
             if (definition?.timelines == null) return;
-            binding = binding != null ? binding : GetComponent<CocosUiBinding>();
+            identity = identity != null ? identity : GetComponent<UiPrefabIdentity>();
+            if (identity == null)
+            {
+                playing = false;
+                throw new MissingReferenceException($"Timeline identity is missing: {name}");
+            }
             foreach (CocosTimelineTrack track in definition.timelines)
             {
                 if (string.Equals(track.property, "FrameEvent", StringComparison.Ordinal)) continue;
-                GameObject target = binding != null ? binding.FindSerializedActionTag(track.actionTag) : null;
+                GameObject target = identity.FindSerializedActionTag(track.actionTag);
                 if (target == null || track.frames == null || track.frames.Length == 0) continue;
                 Evaluate(track, target, frame);
             }

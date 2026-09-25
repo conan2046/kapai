@@ -422,7 +422,7 @@ namespace ProjectX.Core
                 if (!InvokeBagControl("BAG-02-CLOSE") || IsBagOpen)
                 { Fail("Bag G5 initial reenter setup could not close Bag."); yield break; }
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-                Button initialReenter = mainView?.Binding.Find(BagPath)?.GetComponent<Button>();
+                Button initialReenter = mainView?.FindNode(BagPath)?.GetComponent<Button>();
                 if (initialReenter == null)
                 { Fail("Bag G5 initial reenter setup could not find the real main entry."); yield break; }
                 bagInitialG5ReenterRequested = true;
@@ -761,7 +761,7 @@ namespace ProjectX.Core
             { Fail("Bag G4 close button did not return to main."); yield break; }
             yield return CaptureBagG5Evidence("BAG-02-CLOSE");
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            Button entry = mainView?.Binding.Find(BagPath)?.GetComponent<Button>();
+            Button entry = mainView?.FindNode(BagPath)?.GetComponent<Button>();
             if (entry == null) { Fail("Bag G4 real main entry was unavailable after close."); yield break; }
             entry.onClick.Invoke();
         }

@@ -95,18 +95,25 @@ namespace ProjectX.UI
     {
         private readonly Dictionary<string, GameObject> nodesByUnityPath =
             new Dictionary<string, GameObject>(StringComparer.Ordinal);
+        private readonly GameObject root;
 
-        public CocosUiView(CocosUiBinding binding)
+        public CocosUiView(UiPrefabIdentity identity)
         {
-            Binding = binding ?? throw new ArgumentNullException(nameof(binding));
-            if (Binding.GetComponent<UiButtonFeedbackScope>() == null)
-                Binding.gameObject.AddComponent<UiButtonFeedbackScope>();
-            ApplyLegacyTextPixelRoundingPadding(Binding.gameObject);
+            Identity = identity ?? throw new ArgumentNullException(nameof(identity));
+            root = identity.gameObject;
+            InitializeRoot();
         }
 
-        public CocosUiBinding Binding { get; }
-        public bool IsAlive => Binding != null;
-        public GameObject GameObject => IsAlive ? Binding.gameObject : null;
+        public UiPrefabIdentity Identity { get; }
+        public bool IsAlive => root != null;
+        public GameObject GameObject => IsAlive ? root : null;
+
+        private void InitializeRoot()
+        {
+            if (root.GetComponent<UiButtonFeedbackScope>() == null)
+                root.AddComponent<UiButtonFeedbackScope>();
+            ApplyLegacyTextPixelRoundingPadding(root);
+        }
 
         public GameObject FindNode(string unityPath)
         {
@@ -114,15 +121,53 @@ namespace ProjectX.UI
             if (nodesByUnityPath.TryGetValue(unityPath, out GameObject cached) && cached != null)
                 return cached;
 
-            Transform root = Binding.transform;
-            Transform resolved = root.Find(unityPath);
+            GameObject identified = Identity?.Find(unityPath);
+            if (identified != null)
+            {
+                nodesByUnityPath[unityPath] = identified;
+                return identified;
+            }
+
+            Transform rootTransform = root.transform;
+            Transform resolved = rootTransform.Find(unityPath);
             if (resolved == null && unityPath.StartsWith("Layer/", StringComparison.Ordinal))
-                resolved = root.Find(unityPath.Substring("Layer/".Length));
+                resolved = rootTransform.Find(unityPath.Substring("Layer/".Length));
             if (resolved == null) return null;
 
             GameObject target = resolved.gameObject;
             nodesByUnityPath[unityPath] = target;
             return target;
+        }
+
+        public GameObject GetSerializedNodeByActionTag(int actionTag, string expectedSource, string expectedPath)
+        {
+            if (!IsAlive) throw new InvalidOperationException("The UI view has already been destroyed.");
+            if (string.IsNullOrWhiteSpace(expectedSource) || string.IsNullOrWhiteSpace(expectedPath))
+                throw new ArgumentException("A serialized node requires its expected source and path.");
+            if (!string.Equals(Identity.Source, expectedSource, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"UI node source mismatch for ActionTag {actionTag}: expected {expectedSource}, got {Identity.Source}.");
+
+            CocosNodeReference match = null;
+            IReadOnlyList<CocosNodeReference> nodes = Identity.Nodes;
+            for (int index = 0; nodes != null && index < nodes.Count; index++)
+            {
+                CocosNodeReference candidate = nodes[index];
+                if (candidate == null || candidate.actionTag != actionTag) continue;
+                if (match != null)
+                    throw new InvalidOperationException(
+                        $"UI node ActionTag is not unique in {expectedSource}: {actionTag}.");
+                match = candidate;
+            }
+
+            if (match == null || match.target == null)
+                throw new InvalidOperationException(
+                    $"Serialized UI node was not found in {expectedSource}: ActionTag {actionTag}.");
+            if (!string.Equals(match.path, expectedPath, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"UI node path mismatch for ActionTag {actionTag}: expected {expectedPath}, got {match.path}.");
+
+            return match.target;
         }
 
         public void SetVisible(bool visible)
@@ -148,7 +193,7 @@ namespace ProjectX.UI
         public Button BindClick(string nodePath, Action callback, bool addButtonIfMissing = false)
         {
             if (!IsAlive) throw new InvalidOperationException("The UI view has already been destroyed.");
-            GameObject node = Binding.Find(nodePath);
+            GameObject node = FindNode(nodePath);
             if (node == null)
                 throw new InvalidOperationException($"UI node was not found: {nodePath}");
 

@@ -337,11 +337,11 @@ namespace ProjectX.Editor
             {
                 string key = GetDynamicKey(spec.Path);
                 GameObject prefab = EnsureDynamicUiReference(key, spec.Path);
-                CocosUiBinding binding = prefab.GetComponent<CocosUiBinding>()
-                    ?? prefab.GetComponentInChildren<CocosUiBinding>(true);
-                if (binding == null || string.IsNullOrWhiteSpace(binding.Source))
-                    throw new InvalidDataException($"Registered UI prefab has no source binding: {spec.Path}");
-                entries.Add(new UiPrefabCatalogEntry(key, binding.Source,
+                UiPrefabIdentity identity = prefab.GetComponent<UiPrefabIdentity>()
+                    ?? prefab.GetComponentInChildren<UiPrefabIdentity>(true);
+                if (identity == null || string.IsNullOrWhiteSpace(identity.Source))
+                    throw new InvalidDataException($"Registered UI prefab has no source identity: {spec.Path}");
+                entries.Add(new UiPrefabCatalogEntry(key, identity.Source,
                     string.IsNullOrWhiteSpace(spec.ParentPath) ? null : GetDynamicKey(spec.ParentPath),
                     spec.Active));
             }
@@ -724,14 +724,14 @@ namespace ProjectX.Editor
             GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(GameplayFloatNoticePrefab);
             if (existing != null)
             {
-                CocosUiBinding existingBinding = existing.GetComponent<CocosUiBinding>();
-                if (existingBinding != null && !string.IsNullOrWhiteSpace(existingBinding.Source)) return;
+                UiPrefabIdentity existingIdentity = existing.GetComponent<UiPrefabIdentity>();
+                if (existingIdentity != null && !string.IsNullOrWhiteSpace(existingIdentity.Source)) return;
                 GameObject editable = PrefabUtility.LoadPrefabContents(GameplayFloatNoticePrefab);
                 try
                 {
-                    CocosUiBinding binding = editable.GetComponent<CocosUiBinding>()
-                        ?? editable.AddComponent<CocosUiBinding>();
-                    binding.Initialize("Generated/FloatNoticeLayer", new List<CocosNodeReference>());
+                    UiPrefabIdentity identity = editable.GetComponent<UiPrefabIdentity>()
+                        ?? editable.AddComponent<UiPrefabIdentity>();
+                    identity.Initialize("Generated/FloatNoticeLayer", new List<CocosNodeReference>());
                     PrefabUtility.SaveAsPrefabAsset(editable, GameplayFloatNoticePrefab);
                 }
                 finally
@@ -747,7 +747,7 @@ namespace ProjectX.Editor
             if (font == null) throw new FileNotFoundException($"FloatNotice font is missing: {FloatNoticeFont}");
 
             GameObject root = new GameObject("FloatNoticeLayer", typeof(RectTransform));
-            root.AddComponent<CocosUiBinding>().Initialize("Generated/FloatNoticeLayer", new List<CocosNodeReference>());
+            root.AddComponent<UiPrefabIdentity>().Initialize("Generated/FloatNoticeLayer", new List<CocosNodeReference>());
             RectTransform rootRect = root.GetComponent<RectTransform>();
             rootRect.anchorMin = Vector2.zero;
             rootRect.anchorMax = Vector2.one;

@@ -68,6 +68,26 @@ namespace ProjectX.Editor
             },
         };
 
+        public static bool TryResolveNormalizedAlias(string assetPath, string spriteName,
+            out string canonicalName, out Vector4 canonicalBorder)
+        {
+            foreach (Rule rule in Rules)
+            {
+                if (!string.Equals(assetPath, rule.AssetPath, StringComparison.OrdinalIgnoreCase)
+                    || (!string.Equals(spriteName, rule.CanonicalName, StringComparison.Ordinal)
+                        && Array.IndexOf(rule.VariantNames, spriteName) < 0))
+                    continue;
+
+                canonicalName = rule.CanonicalName;
+                canonicalBorder = rule.CanonicalBorder;
+                return true;
+            }
+
+            canonicalName = null;
+            canonicalBorder = Vector4.zero;
+            return false;
+        }
+
         [MenuItem("Tools/ProjectX 界面/归并共享九宫格 Sprite/预览")]
         public static void PreviewMenu() => Run(false);
 

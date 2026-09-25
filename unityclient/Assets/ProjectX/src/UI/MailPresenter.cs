@@ -114,8 +114,6 @@ namespace ProjectX.UI
             tabButton.interactable = false;
             store.Changed += Render;
             Render();
-            view.Binding.RetireMetadataWithSerializedIdentityAtRuntimePreserving(
-                template.transform, attachmentTemplate.transform);
         }
 
         public int ItemCount => store.Count;

@@ -544,7 +544,40 @@ namespace ProjectX.Core
         }
 
 
-        private void EnsureXunBaoPresenter(){xunBaoView=xunBaoView??services.UiRouter.FindBySource("wanfa/XunbaoLayer");if(xunBaoView==null)throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");xunBaoPresenter=xunBaoPresenter??new XunBaoPresenter(xunBaoView,services.XunBao,services.Bag,services.Resources,services.EquipmentCatalog,()=>HandleBack(),(faBao,sui)=>InvokeLuaOrFail(onXunBaoSearch,"XunBao.Search",(double)faBao,(double)sui),ShowXunBaoSearchConfirmation,faBao=>InvokeLuaOrFail(onXunBaoCompose,"XunBao.Compose",(double)faBao),()=>InvokeLuaOrFail(onXunBaoComposeAll,"XunBao.ComposeAll"),OpenXunBaoSearchTokenBag,()=>{EnsureErrorPresenter();errorPresenter.ShowHelp("1、法宝搜索消耗搜索次数获得碎片；\n2、收集齐所需碎片后可合成法宝；\n3、次数不足时可使用搜宝令补充。");},()=>{SetStatus("XunBao stamina boundary -> UseItemUI(500,1)");ShowToast("体力补充入口属于道具使用功能",2f);},()=>{lastGameplayBoundaryId=13;HandleCommerceRoute(13);},ShowXunBaoTaskBoundary,message=>ShowToast(message,3f));}
+        private void EnsureXunBaoPresenter()
+        {
+            xunBaoView = xunBaoView ?? services.UiRouter.FindBySource("wanfa/XunbaoLayer");
+            if (xunBaoView == null)
+                throw new InvalidOperationException("Current XunBao imported CocosUiBinding was not found: wanfa/XunbaoLayer.");
+
+            xunBaoPresenter = xunBaoPresenter ?? new XunBaoPresenter(xunBaoView,
+                services.XunBao, services.Bag, services.Resources, services.EquipmentCatalog,
+                () => HandleBack(),
+                (faBao, sui) => InvokeLuaOrFail(onXunBaoSearch, "XunBao.Search", (double)faBao, (double)sui),
+                ShowXunBaoSearchConfirmation,
+                faBao => InvokeLuaOrFail(onXunBaoCompose, "XunBao.Compose", (double)faBao),
+                () => InvokeLuaOrFail(onXunBaoComposeAll, "XunBao.ComposeAll"),
+                OpenXunBaoSearchTokenBag,
+                () =>
+                {
+                    EnsureErrorPresenter();
+                    errorPresenter.ShowHelp("1、法宝搜索消耗搜索次数获得碎片；\n2、收集齐所需碎片后可合成法宝；\n3、次数不足时可使用搜宝令补充。");
+                },
+                () =>
+                {
+                    SetStatus("XunBao stamina boundary -> UseItemUI(500,1)");
+                    ShowToast("体力补充入口属于道具使用功能", 2f);
+                },
+                () =>
+                {
+                    lastGameplayBoundaryId = 13;
+                    HandleCommerceRoute(13);
+                },
+                ShowXunBaoTaskBoundary,
+                message => ShowToast(message, 3f));
+
+            RefreshStandardCurrencyHeader(xunBaoView.Identity, "Panel/GoldCheck");
+        }
 
         private void EnsureXunBaoResultPresenter()
         {

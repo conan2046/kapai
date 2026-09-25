@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6064641505404163035}
-  - component: {fileID: 7547810875939147820}
   - component: {fileID: 8603821011153159907}
   - component: {fileID: 8740821463415173754}
   m_Layer: 0
@@ -39,22 +38,6 @@ RectTransform:
   m_AnchoredPosition: {x: 1203, y: 204}
   m_SizeDelta: {x: 240, y: 272.4839}
   m_Pivot: {x: 0.5, y: 0}
---- !u!114 &7547810875939147820
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 92959684786869829}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/bg
-  nodeType: ImageViewObjectData
-  tag: 355
-  actionTag: -776901369
 --- !u!222 &8603821011153159907
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -102,7 +85,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7421385714555336448}
-  - component: {fileID: 1235615394987284685}
   - component: {fileID: 3433969396019218619}
   - component: {fileID: 8943666743463467066}
   m_Layer: 0
@@ -131,22 +113,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 41.6}
   m_SizeDelta: {x: 107, y: 25}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &1235615394987284685
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 127559148622620328}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel/Reward
-  nodeType: TextObjectData
-  tag: 11141
-  actionTag: -729662474
 --- !u!222 &3433969396019218619
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -198,7 +164,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1909982346799360687}
-  - component: {fileID: 6017170732207932557}
   m_Layer: 0
   m_Name: Panel
   m_TagString: Untagged
@@ -230,22 +195,6 @@ RectTransform:
   m_AnchoredPosition: {x: 483, y: 179}
   m_SizeDelta: {x: 812, y: 160}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &6017170732207932557
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 306086348226603824}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel
-  nodeType: PanelObjectData
-  tag: 11137
-  actionTag: -1758099735
 --- !u!1 &498366868310386082
 GameObject:
   m_ObjectHideFlags: 0
@@ -255,7 +204,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5694050542778337975}
-  - component: {fileID: 983040234410330625}
   - component: {fileID: 7401469758500211220}
   - component: {fileID: 8473241178693341828}
   m_Layer: 0
@@ -284,22 +232,6 @@ RectTransform:
   m_AnchoredPosition: {x: -119.9268, y: -124.2655}
   m_SizeDelta: {x: 94, y: 94}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &983040234410330625
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 498366868310386082}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel/Item
-  nodeType: ImageViewObjectData
-  tag: 1968
-  actionTag: 1920734603
 --- !u!222 &7401469758500211220
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -347,7 +279,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6571363334095402155}
-  - component: {fileID: 1739021993603243921}
   m_Layer: 0
   m_Name: QuestDialogUI
   m_TagString: Untagged
@@ -382,22 +313,6 @@ RectTransform:
   m_AnchoredPosition: {x: 667, y: 375}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1739021993603243921
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 822535144382609439}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI
-  nodeType: PanelObjectData
-  tag: 344
-  actionTag: 1499882805
 --- !u!1 &1034501362718364436
 GameObject:
   m_ObjectHideFlags: 0
@@ -407,7 +322,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8860941265912589704}
-  - component: {fileID: 473626836751920684}
   - component: {fileID: 8748299913093753699}
   - component: {fileID: 3981468538241359232}
   m_Layer: 0
@@ -436,22 +350,6 @@ RectTransform:
   m_AnchoredPosition: {x: 212.3003, y: 7.074188}
   m_SizeDelta: {x: 420, y: 576}
   m_Pivot: {x: 0.5, y: 0}
---- !u!114 &473626836751920684
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1034501362718364436}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/NPC
-  nodeType: ImageViewObjectData
-  tag: 349
-  actionTag: -1983500934
 --- !u!222 &8748299913093753699
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -499,7 +397,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1310747808722546907}
-  - component: {fileID: 329269005509960785}
   - component: {fileID: 7737716523856478257}
   - component: {fileID: 2583583921540060901}
   m_Layer: 0
@@ -528,22 +425,6 @@ RectTransform:
   m_AnchoredPosition: {x: 126, y: 3}
   m_SizeDelta: {x: 200, y: 94}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &329269005509960785
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1291830340245823055}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel/ListView
-  nodeType: ListViewObjectData
-  tag: 11142
-  actionTag: -1451529092
 --- !u!114 &7737716523856478257
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -597,7 +478,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6209600055281312237}
-  - component: {fileID: 7531532472365185847}
   - component: {fileID: 921554558280780289}
   - component: {fileID: 3798291946273543940}
   - component: {fileID: 9110089661858148425}
@@ -628,22 +508,6 @@ RectTransform:
   m_AnchoredPosition: {x: 2220.572, y: -599.8368}
   m_SizeDelta: {x: 210, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7531532472365185847
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1776836088231906213}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Item
-  nodeType: ButtonObjectData
-  tag: 357
-  actionTag: -2092884297
 --- !u!222 &921554558280780289
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -735,7 +599,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2047299763210982053}
-  - component: {fileID: 78076187324441261}
   - component: {fileID: 2674970538829328948}
   - component: {fileID: 7331508643988615380}
   m_Layer: 0
@@ -764,22 +627,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 152.766}
   m_SizeDelta: {x: 276, y: 25}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &78076187324441261
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1783676814417649273}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel/Text
-  nodeType: TextObjectData
-  tag: 11138
-  actionTag: 930195086
 --- !u!222 &2674970538829328948
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -831,7 +678,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5214361123288037899}
-  - component: {fileID: 5310915949350402813}
   - component: {fileID: 4723806052993158731}
   - component: {fileID: 4101889582717646949}
   m_Layer: 0
@@ -860,22 +706,6 @@ RectTransform:
   m_AnchoredPosition: {x: 1111.6917, y: 77.2614}
   m_SizeDelta: {x: 294.0135, y: 126}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5310915949350402813
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1790357047892491210}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Image_1_0/Image_1_0_0_0
-  nodeType: ImageViewObjectData
-  tag: 348
-  actionTag: -407311609
 --- !u!222 &4723806052993158731
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -923,8 +753,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 385837576585352673}
-  - component: {fileID: 4161509082924662881}
-  - component: {fileID: 750171970383235295}
+  - component: {fileID: 6165309833421616800}
   m_Layer: 0
   m_Name: QuestDialogLayer
   m_TagString: Untagged
@@ -952,7 +781,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4161509082924662881
+--- !u!114 &6165309833421616800
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -961,23 +790,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1868343950258741431}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 341
-  actionTag: 0
---- !u!114 &750171970383235295
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1868343950258741431}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/QuestDialogLayer.csd
@@ -1107,6 +920,7 @@ MonoBehaviour:
     tag: 1968
     actionTag: 1920734603
     target: {fileID: 498366868310386082}
+  retiredMetadataAliases: []
 --- !u!1 &2122135208365024077
 GameObject:
   m_ObjectHideFlags: 0
@@ -1116,7 +930,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6426823342259090885}
-  - component: {fileID: 7695517376460818007}
   - component: {fileID: 6803225280152685517}
   - component: {fileID: 6037610706976287587}
   m_Layer: 0
@@ -1145,22 +958,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1279.9728, y: 170}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7695517376460818007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2122135208365024077}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Image_1_0/Image_1_0_0_1
-  nodeType: ImageViewObjectData
-  tag: 369
-  actionTag: -714725435
 --- !u!222 &6803225280152685517
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1208,7 +1005,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4849656008231907584}
-  - component: {fileID: 5947301164228215272}
   - component: {fileID: 4247234351720254220}
   - component: {fileID: 5114840506962661665}
   m_Layer: 0
@@ -1238,22 +1034,6 @@ RectTransform:
   m_AnchoredPosition: {x: 81.5444, y: 259.8041}
   m_SizeDelta: {x: 75, y: 25}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &5947301164228215272
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2563257971433995140}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/bg/Text
-  nodeType: TextObjectData
-  tag: 365
-  actionTag: -1978696868
 --- !u!222 &4247234351720254220
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1305,7 +1085,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4321330610798393837}
-  - component: {fileID: 5347142106264635619}
   - component: {fileID: 4029112451726813420}
   - component: {fileID: 1293929077116031086}
   m_Layer: 0
@@ -1335,22 +1114,6 @@ RectTransform:
   m_AnchoredPosition: {x: 225.3623, y: 43.3994}
   m_SizeDelta: {x: 193.9636, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5347142106264635619
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3435418433056873922}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/bg_Name
-  nodeType: ImageViewObjectData
-  tag: 353
-  actionTag: 2060846474
 --- !u!222 &4029112451726813420
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1477,7 +1240,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5615767185715101939}
-  - component: {fileID: 5527618753290080829}
   - component: {fileID: 525788655971839613}
   - component: {fileID: 5635280812943793291}
   m_Layer: 0
@@ -1506,22 +1268,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 118, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5527618753290080829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4269485987240906158}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/bg_Name/Name
-  nodeType: TextObjectData
-  tag: 354
-  actionTag: -802385846
 --- !u!222 &525788655971839613
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1573,7 +1319,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8677220521219965538}
-  - component: {fileID: 1217476769197326219}
   - component: {fileID: 7743353810015632541}
   - component: {fileID: 1926423753791249225}
   m_Layer: 0
@@ -1605,22 +1350,6 @@ RectTransform:
   m_AnchoredPosition: {x: 1097.9998, y: 215}
   m_SizeDelta: {x: 210, y: 204.7741}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1217476769197326219
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4338984712905919865}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/ListView
-  nodeType: ListViewObjectData
-  tag: 356
-  actionTag: -1320414675
 --- !u!114 &7743353810015632541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1753,7 +1482,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1467885300422103025}
-  - component: {fileID: 3549568949632989139}
   - component: {fileID: 6904898258886536877}
   - component: {fileID: 6778762192305781682}
   m_Layer: 0
@@ -1782,22 +1510,6 @@ RectTransform:
   m_AnchoredPosition: {x: 444, y: 147}
   m_SizeDelta: {x: 763.1759, y: 160}
   m_Pivot: {x: 0, y: 0.8}
---- !u!114 &3549568949632989139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5383689208596847945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Content
-  nodeType: TextObjectData
-  tag: 350
-  actionTag: -568011751
 --- !u!222 &6904898258886536877
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1849,7 +1561,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1600216750520473089}
-  - component: {fileID: 4743851332927542206}
   - component: {fileID: 37814984703185288}
   - component: {fileID: 6309171241941168573}
   m_Layer: 0
@@ -1878,22 +1589,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 100}
   m_SizeDelta: {x: 1299.9828, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4743851332927542206
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5589490532600711713}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Image_1_0/Image_1_0_0
-  nodeType: ImageViewObjectData
-  tag: 347
-  actionTag: 719522557
 --- !u!222 &37814984703185288
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1941,7 +1636,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2640718259204042957}
-  - component: {fileID: 4520044159340978669}
   - component: {fileID: 9155694701540368422}
   - component: {fileID: 1768623187612055006}
   - component: {fileID: 2616837638588643083}
@@ -1972,22 +1666,6 @@ RectTransform:
   m_AnchoredPosition: {x: 105, y: 172}
   m_SizeDelta: {x: 210, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4520044159340978669
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5760621288165136701}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/ListView/Item_0
-  nodeType: ButtonObjectData
-  tag: 366
-  actionTag: -944727926
 --- !u!222 &9155694701540368422
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2079,7 +1757,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6590056232202122578}
-  - component: {fileID: 6525068130162654750}
   - component: {fileID: 6787965135372117986}
   - component: {fileID: 2754793011739317937}
   m_Layer: 0
@@ -2111,22 +1788,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0.9730835, y: 0}
   m_SizeDelta: {x: 1333.9998, y: 200}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &6525068130162654750
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6037483929351825499}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Image_1_0
-  nodeType: ImageViewObjectData
-  tag: 346
-  actionTag: 57669641
 --- !u!222 &6787965135372117986
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2174,7 +1835,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9210692098764099479}
-  - component: {fileID: 5311145218594875625}
   - component: {fileID: 2340541261270687247}
   - component: {fileID: 3613840076713266474}
   m_Layer: 0
@@ -2204,22 +1864,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 114}
   m_SizeDelta: {x: 107, y: 25}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &5311145218594875625
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6257933582367306386}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel/tuijian
-  nodeType: TextObjectData
-  tag: 11139
-  actionTag: -1186222174
 --- !u!222 &2340541261270687247
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2271,7 +1915,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8813661380677260095}
-  - component: {fileID: 3484981336855168937}
   - component: {fileID: 3559416231710157324}
   - component: {fileID: 2014167885176040669}
   - component: {fileID: 4369348030363144432}
@@ -2302,22 +1945,6 @@ RectTransform:
   m_AnchoredPosition: {x: 105, y: 103}
   m_SizeDelta: {x: 210, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3484981336855168937
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6632431684548318947}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/ListView/Item_0_0
-  nodeType: ButtonObjectData
-  tag: 367
-  actionTag: -614796684
 --- !u!222 &3559416231710157324
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2488,7 +2115,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7178896353693701566}
-  - component: {fileID: 821902164257455302}
   - component: {fileID: 825988743793740759}
   - component: {fileID: 7692738620687244822}
   m_Layer: 0
@@ -2517,22 +2143,6 @@ RectTransform:
   m_AnchoredPosition: {x: 38.4881, y: -6.4415}
   m_SizeDelta: {x: 220, y: 1}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &821902164257455302
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6891256914450308725}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/bg/Text/Image_1
-  nodeType: ImageViewObjectData
-  tag: 147
-  actionTag: 1917072537
 --- !u!222 &825988743793740759
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2580,7 +2190,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4928432384858616671}
-  - component: {fileID: 5680106436570083710}
   - component: {fileID: 5249252061465282879}
   - component: {fileID: 8968611258528683549}
   m_Layer: 0
@@ -2609,22 +2218,6 @@ RectTransform:
   m_AnchoredPosition: {x: 120, y: 0}
   m_SizeDelta: {x: 72, y: 25}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &5680106436570083710
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7295443808857438899}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/Panel/tuijian/Value
-  nodeType: TextObjectData
-  tag: 11140
-  actionTag: -1848762678
 --- !u!222 &5249252061465282879
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2676,7 +2269,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2518064084294877784}
-  - component: {fileID: 8745371749450271}
   - component: {fileID: 2701368686957769847}
   - component: {fileID: 6454292029818286000}
   - component: {fileID: 7908851101760338799}
@@ -2707,22 +2299,6 @@ RectTransform:
   m_AnchoredPosition: {x: 105, y: 34}
   m_SizeDelta: {x: 210, y: 68}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8745371749450271
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7997722280447400536}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/QuestDialogUI/ListView/Item_0_1
-  nodeType: ButtonObjectData
-  tag: 368
-  actionTag: 270054800
 --- !u!222 &2701368686957769847
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -137,7 +137,6 @@ namespace ProjectX.UI
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             LoadValues();
             RefreshDisplayControls();
-            view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void RefreshForTitle()

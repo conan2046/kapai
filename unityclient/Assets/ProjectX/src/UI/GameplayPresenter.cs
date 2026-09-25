@@ -62,7 +62,6 @@ namespace ProjectX.UI
 
             store.Changed += Render;
             Render();
-            contentView.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public int RenderedCount { get; private set; }

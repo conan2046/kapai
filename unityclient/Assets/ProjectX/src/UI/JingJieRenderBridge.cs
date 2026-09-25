@@ -197,7 +197,6 @@ namespace ProjectX.UI
                 RetireGeneratedAttributeMetadata(view, Root + "/Panel_L/Panel_shuxing");
                 RetireGeneratedAttributeMetadata(view, Root + "/Panel_R/Panel_shuxing");
             }
-            view.Binding.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void RenderStage(string panelPath, JingJieDefinition definition, bool endPanel)
@@ -383,7 +382,6 @@ namespace ProjectX.UI
             Transform template = Require(target, templateInsideList
                 ? panelPath + "/Attr_List/Attribute1"
                 : panelPath + "/Attribute1").transform;
-            target.Binding.RetireMetadataClonedFromSerializedTemplateAtRuntime(template, rows);
         }
         private static void SetActive(CocosUiView target, string path, bool active) => Require(target, path).SetActive(active);
         private static void SetText(Transform root, string path, string value, Color color)

@@ -396,7 +396,6 @@ namespace ProjectX.UI
                 else inputView.SetVisible(false);
             });
             BindInput("Layer/Panel/Bg/Close", () => inputView.SetVisible(false));
-            inputView.Binding.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private GameObject FindInputNode(string path)

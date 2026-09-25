@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1545616584677360069}
-  - component: {fileID: 4366305695947366150}
   - component: {fileID: 2259272689352805645}
   - component: {fileID: 1020020822780257381}
   m_Layer: 0
@@ -38,22 +37,6 @@ RectTransform:
   m_AnchoredPosition: {x: 317.9478, y: 15}
   m_SizeDelta: {x: 60, y: 28}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4366305695947366150
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 153064971382303185}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TipsText/AtlasLabel_1
-  nodeType: TextAtlasObjectData
-  tag: 149
-  actionTag: -1748386366
 --- !u!222 &2259272689352805645
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -105,7 +88,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1638902799535931278}
-  - component: {fileID: 2872152361988853255}
   - component: {fileID: 9192441740076604028}
   - component: {fileID: 8062796728098926634}
   m_Layer: 0
@@ -137,22 +119,6 @@ RectTransform:
   m_AnchoredPosition: {x: -144.053, y: 62.74}
   m_SizeDelta: {x: 282.0158, y: 78.8754}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &2872152361988853255
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 244024307050090886}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/StarsList
-  nodeType: ListViewObjectData
-  tag: 11597
-  actionTag: 1071747682
 --- !u!114 &9192441740076604028
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -206,7 +172,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5635862712434567145}
-  - component: {fileID: 5328146289939568643}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -235,22 +200,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 372}
   m_SizeDelta: {x: 535, y: 45}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &5328146289939568643
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 325818831687986148}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title
-  nodeType: PanelObjectData
-  tag: 2717
-  actionTag: -1308740777
 --- !u!1 &348336220234056998
 GameObject:
   m_ObjectHideFlags: 0
@@ -260,7 +209,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1866988038182892743}
-  - component: {fileID: 3997477749002967593}
   - component: {fileID: 1554737787674733310}
   - component: {fileID: 2962703625951079576}
   - component: {fileID: 2794207714353227360}
@@ -285,27 +233,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 6317693987187018647}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 73, y: 31}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3997477749002967593
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 348336220234056998}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/BtnList/Btn_1/Text
-  nodeType: TextObjectData
-  tag: 6707
-  actionTag: -270299422
 --- !u!222 &1554737787674733310
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -372,7 +304,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4310149665147013775}
-  - component: {fileID: 7421472992231996675}
   - component: {fileID: 1880342134776332235}
   - component: {fileID: 1410283989773528581}
   m_Layer: 0
@@ -402,22 +333,6 @@ RectTransform:
   m_AnchoredPosition: {x: 15.242, y: 22.9828}
   m_SizeDelta: {x: 107, y: 25}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &7421472992231996675
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 649925864974669798}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TextBg/Text_2
-  nodeType: TextObjectData
-  tag: 11604
-  actionTag: 1059086361
 --- !u!222 &1880342134776332235
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -469,7 +384,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6317693987187018647}
-  - component: {fileID: 8843148456673383026}
   - component: {fileID: 2898850429641852024}
   - component: {fileID: 5775058235914302634}
   - component: {fileID: 5355291487507539277}
@@ -500,22 +414,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8843148456673383026
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 662131108204195195}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/BtnList/Btn_1
-  nodeType: ButtonObjectData
-  tag: 6706
-  actionTag: -2107865192
 --- !u!222 &2898850429641852024
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -607,7 +505,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5284395927578108912}
-  - component: {fileID: 1807406940317977101}
   - component: {fileID: 2637276948957910505}
   - component: {fileID: 3804331147022253427}
   m_Layer: 0
@@ -636,22 +533,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0.0001, y: 116.0139}
   m_SizeDelta: {x: 195, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1807406940317977101
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 983732126849666792}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/Text
-  nodeType: TextObjectData
-  tag: 6708
-  actionTag: 365548041
 --- !u!222 &2637276948957910505
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -703,7 +584,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 649271632807099441}
-  - component: {fileID: 4134102917426390726}
   - component: {fileID: 3345338708025353180}
   - component: {fileID: 7092885296888994308}
   m_Layer: 0
@@ -736,22 +616,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 533.9835, y: 46.971}
   m_Pivot: {x: 0.5, y: 1}
---- !u!114 &4134102917426390726
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1243160396571408104}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title/TitleBg
-  nodeType: ImageViewObjectData
-  tag: 120
-  actionTag: -1463006013
 --- !u!222 &3345338708025353180
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -799,7 +663,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4526643343371140721}
-  - component: {fileID: 8743731921836572043}
   - component: {fileID: 8997931367777701243}
   - component: {fileID: 3450787239610788708}
   m_Layer: 0
@@ -828,22 +691,6 @@ RectTransform:
   m_AnchoredPosition: {x: 250, y: 39.4377}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8743731921836572043
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1574792484525950556}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/StarsList/Star3
-  nodeType: ImageViewObjectData
-  tag: 11600
-  actionTag: 522519341
 --- !u!222 &8997931367777701243
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -891,7 +738,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2555079328477794461}
-  - component: {fileID: 4923657132793288364}
   m_Layer: 0
   m_Name: TextBg
   m_TagString: Untagged
@@ -920,22 +766,6 @@ RectTransform:
   m_AnchoredPosition: {x: -179.0593, y: -80.0228}
   m_SizeDelta: {x: 350.5387, y: 108.0922}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4923657132793288364
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1747337449595587470}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TextBg
-  nodeType: PanelObjectData
-  tag: 11601
-  actionTag: 1709633025
 --- !u!1 &1978411209970221543
 GameObject:
   m_ObjectHideFlags: 0
@@ -945,7 +775,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9115221655239312427}
-  - component: {fileID: 4026999979389557255}
   - component: {fileID: 3662798856634382282}
   - component: {fileID: 8979061293614100506}
   - component: {fileID: 8328265320626602224}
@@ -970,27 +799,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 4112587722517004340}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 77, y: 31}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4026999979389557255
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1978411209970221543}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/Btn_Confirm/Text
-  nodeType: TextObjectData
-  tag: 136
-  actionTag: -631618951
 --- !u!222 &3662798856634382282
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1057,7 +870,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5955114037541704054}
-  - component: {fileID: 7456959710456178861}
   - component: {fileID: 7094941018044788826}
   - component: {fileID: 7933692072982599945}
   - component: {fileID: 4001935316570765052}
@@ -1087,22 +899,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 189, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7456959710456178861
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1986965061989018416}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title/TitleBg/Text
-  nodeType: TextObjectData
-  tag: 123
-  actionTag: 771334224
 --- !u!222 &7094941018044788826
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1169,7 +965,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8045941295750279174}
-  - component: {fileID: 5109361526717134418}
   - component: {fileID: 4999655518008920030}
   - component: {fileID: 5195349519074463403}
   m_Layer: 0
@@ -1198,22 +993,6 @@ RectTransform:
   m_AnchoredPosition: {x: 44, y: -12}
   m_SizeDelta: {x: 54, y: 19}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5109361526717134418
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2232948234929336658}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconBtn1/Name
-  nodeType: TextObjectData
-  tag: 1213
-  actionTag: 88427365
 --- !u!222 &4999655518008920030
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1265,7 +1044,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1344337250721755812}
-  - component: {fileID: 4401324901370286018}
   - component: {fileID: 7307088621485862200}
   - component: {fileID: 7014152352191064657}
   m_Layer: 0
@@ -1296,22 +1074,6 @@ RectTransform:
   m_AnchoredPosition: {x: -180, y: 100}
   m_SizeDelta: {x: 288, y: 25}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4401324901370286018
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2411803807677434495}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TipsText
-  nodeType: TextObjectData
-  tag: 125
-  actionTag: -115736722
 --- !u!222 &7307088621485862200
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1363,7 +1125,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6770781178450074843}
-  - component: {fileID: 2634191126848346315}
   - component: {fileID: 8861585863926168292}
   - component: {fileID: 3249896869769590995}
   m_Layer: 0
@@ -1392,22 +1153,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 88}
   m_SizeDelta: {x: 73, y: 34}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &2634191126848346315
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2421407697114206831}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor/Quality
-  nodeType: ImageViewObjectData
-  tag: 3219
-  actionTag: -931830804
 --- !u!222 &8861585863926168292
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1455,7 +1200,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5350203916590916658}
-  - component: {fileID: 728494074500108752}
   - component: {fileID: 8392107069355595234}
   - component: {fileID: 8829085504104757293}
   m_Layer: 0
@@ -1484,22 +1228,6 @@ RectTransform:
   m_AnchoredPosition: {x: 120, y: 0}
   m_SizeDelta: {x: 16, y: 25}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &728494074500108752
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2636676577320661545}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TextBg/Text_1/Value
-  nodeType: TextObjectData
-  tag: 11603
-  actionTag: 611557515
 --- !u!222 &8392107069355595234
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1551,7 +1279,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5055873269056658568}
-  - component: {fileID: 4056499588376212152}
   - component: {fileID: 3647240975376676624}
   - component: {fileID: 4547232667987434029}
   m_Layer: 0
@@ -1580,22 +1307,6 @@ RectTransform:
   m_AnchoredPosition: {x: 44, y: -12}
   m_SizeDelta: {x: 54, y: 19}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4056499588376212152
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2831947623361773707}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconBtn2/Name
-  nodeType: TextObjectData
-  tag: 1214
-  actionTag: 1311931249
 --- !u!222 &3647240975376676624
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1647,7 +1358,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1645865546644649312}
-  - component: {fileID: 5686613118786656761}
   - component: {fileID: 319453989075385773}
   - component: {fileID: 9069167008581921803}
   m_Layer: 0
@@ -1676,22 +1386,6 @@ RectTransform:
   m_AnchoredPosition: {x: 7.5, y: 7.5}
   m_SizeDelta: {x: 15, y: 15}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5686613118786656761
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2895298250697616986}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor/StarsList/Star
-  nodeType: ImageViewObjectData
-  tag: 3222
-  actionTag: 1111074841
 --- !u!222 &319453989075385773
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1739,7 +1433,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1682060775185932713}
-  - component: {fileID: 4762224381326907872}
   - component: {fileID: 5027310259970127667}
   - component: {fileID: 6439816699800944441}
   - component: {fileID: 6604173414512034642}
@@ -1770,22 +1463,6 @@ RectTransform:
   m_AnchoredPosition: {x: 330, y: 0}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4762224381326907872
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3485832939345535101}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconBtn3
-  nodeType: ButtonObjectData
-  tag: 371
-  actionTag: 2071842320
 --- !u!222 &5027310259970127667
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1877,7 +1554,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 751871313090062333}
-  - component: {fileID: 3731353390354656912}
   - component: {fileID: 6981145664281601232}
   - component: {fileID: 291226673518163554}
   m_Layer: 0
@@ -1907,22 +1583,6 @@ RectTransform:
   m_AnchoredPosition: {x: 2, y: 0}
   m_SizeDelta: {x: 84.0673, y: 15}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &3731353390354656912
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3681892300769464237}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor/StarsList
-  nodeType: ListViewObjectData
-  tag: 3221
-  actionTag: -1964787820
 --- !u!114 &6981145664281601232
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1976,7 +1636,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 132885283084631940}
-  - component: {fileID: 5056246489462938131}
   - component: {fileID: 6668617722923629238}
   - component: {fileID: 2927877557450043301}
   m_Layer: 0
@@ -2005,22 +1664,6 @@ RectTransform:
   m_AnchoredPosition: {x: 30, y: 39.4377}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5056246489462938131
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3824035542790727284}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/StarsList/Star1
-  nodeType: ImageViewObjectData
-  tag: 11598
-  actionTag: -1616115187
 --- !u!222 &6668617722923629238
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2068,7 +1711,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4112587722517004340}
-  - component: {fileID: 1286006910262354345}
   - component: {fileID: 511804121654753300}
   - component: {fileID: 5063085318070185933}
   - component: {fileID: 3316814123486339667}
@@ -2099,22 +1741,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -120}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1286006910262354345
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4302581738837843994}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/Btn_Confirm
-  nodeType: ButtonObjectData
-  tag: 135
-  actionTag: 1896524379
 --- !u!222 &511804121654753300
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2206,7 +1832,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5465918935223295574}
-  - component: {fileID: 28341085848985981}
   - component: {fileID: 6887782565188195850}
   - component: {fileID: 2695978487276081151}
   m_Layer: 0
@@ -2235,22 +1860,6 @@ RectTransform:
   m_AnchoredPosition: {x: 140, y: 39.4377}
   m_SizeDelta: {x: 60, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &28341085848985981
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4372063116131161108}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/StarsList/Star2
-  nodeType: ImageViewObjectData
-  tag: 11599
-  actionTag: -94638035
 --- !u!222 &6887782565188195850
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2298,8 +1907,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1815798013902661779}
-  - component: {fileID: 7707287082618205083}
-  - component: {fileID: 4921730671717975122}
+  - component: {fileID: 1886428142038842068}
   m_Layer: 0
   m_Name: FirstRewardLayer
   m_TagString: Untagged
@@ -2327,7 +1935,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &7707287082618205083
+--- !u!114 &1886428142038842068
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2336,23 +1944,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4940335160286674503}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 87
-  actionTag: 0
---- !u!114 &4921730671717975122
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4940335160286674503}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/FirstRewardLayer.csd
@@ -2587,6 +2179,7 @@ MonoBehaviour:
     tag: 6705
     actionTag: 156347158
     target: {fileID: 6323252286136670778}
+  retiredMetadataAliases: []
 --- !u!1 &5045418491821171444
 GameObject:
   m_ObjectHideFlags: 0
@@ -2596,7 +2189,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9023514498880000072}
-  - component: {fileID: 3088022100913978256}
   m_Layer: 0
   m_Name: List
   m_TagString: Untagged
@@ -2627,22 +2219,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 25}
   m_SizeDelta: {x: 450, y: 88}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &3088022100913978256
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5045418491821171444}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List
-  nodeType: PanelObjectData
-  tag: 3527
-  actionTag: -1714185118
 --- !u!1 &5222437310362212241
 GameObject:
   m_ObjectHideFlags: 0
@@ -2652,7 +2228,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 526909594017988051}
-  - component: {fileID: 7658461416850546322}
   - component: {fileID: 7887374602729892977}
   - component: {fileID: 6257471693465671900}
   m_Layer: 0
@@ -2681,22 +2256,6 @@ RectTransform:
   m_AnchoredPosition: {x: 44, y: -12}
   m_SizeDelta: {x: 54, y: 19}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7658461416850546322
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5222437310362212241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconBtn3/Name
-  nodeType: TextObjectData
-  tag: 1215
-  actionTag: -272449037
 --- !u!222 &7887374602729892977
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2748,7 +2307,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7042150923649075623}
-  - component: {fileID: 6379511316874219234}
   - component: {fileID: 3361407514686352849}
   - component: {fileID: 2755108179526610481}
   m_Layer: 0
@@ -2782,22 +2340,6 @@ RectTransform:
   m_AnchoredPosition: {x: 83.4708, y: -1239.8557}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6379511316874219234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5227089591651644302}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor
-  nodeType: ImageViewObjectData
-  tag: 3217
-  actionTag: -958987263
 --- !u!222 &3361407514686352849
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2845,7 +2387,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9074036028636503994}
-  - component: {fileID: 5726340115935526806}
   - component: {fileID: 8034821891801492981}
   - component: {fileID: 4140188200182817996}
   m_Layer: 0
@@ -2874,22 +2415,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 456, y: 224}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5726340115935526806
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5310444583263132739}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title/TitleBg/Image
-  nodeType: ImageViewObjectData
-  tag: 7164
-  actionTag: -1937636190
 --- !u!222 &8034821891801492981
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2937,7 +2462,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1985925697684362900}
-  - component: {fileID: 576811271132288521}
   - component: {fileID: 7368085228643006288}
   - component: {fileID: 5289249059890630788}
   m_Layer: 0
@@ -2966,22 +2490,6 @@ RectTransform:
   m_AnchoredPosition: {x: 120, y: 0}
   m_SizeDelta: {x: 100, y: 25}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &576811271132288521
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5338529804745612988}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TextBg/Text_2/Value
-  nodeType: TextObjectData
-  tag: 11605
-  actionTag: 967550294
 --- !u!222 &7368085228643006288
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3033,7 +2541,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2012393864994028426}
-  - component: {fileID: 5990926650079528790}
   - component: {fileID: 8491540877210570474}
   - component: {fileID: 9110614034322021469}
   m_Layer: 0
@@ -3063,22 +2570,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 538, y: 353.3567}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5990926650079528790
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5442864593863731956}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg
-  nodeType: ImageViewObjectData
-  tag: 119
-  actionTag: -2053521187
 --- !u!222 &8491540877210570474
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3126,7 +2617,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1369064385313021767}
-  - component: {fileID: 1729207637590006939}
   - component: {fileID: 2901894238629980551}
   - component: {fileID: 671047443781946029}
   m_Layer: 0
@@ -3156,22 +2646,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 450, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1729207637590006939
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5596406886288401192}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg
-  nodeType: ImageViewObjectData
-  tag: 126
-  actionTag: 1474597103
 --- !u!222 &2901894238629980551
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3219,7 +2693,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4799555135941176154}
-  - component: {fileID: 3156181740382679773}
   - component: {fileID: 223117992953930147}
   - component: {fileID: 3070953032157772695}
   m_Layer: 0
@@ -3248,22 +2721,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 5}
   m_SizeDelta: {x: 160, y: 46}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &3156181740382679773
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5745800661577813162}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title/TitleBg/Image_L
-  nodeType: ImageViewObjectData
-  tag: 7165
-  actionTag: 884973041
 --- !u!222 &223117992953930147
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3311,7 +2768,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5065903506311385052}
-  - component: {fileID: 1816080563209520438}
   - component: {fileID: 6835656535858688783}
   - component: {fileID: 3746758318962080363}
   m_Layer: 0
@@ -3340,22 +2796,6 @@ RectTransform:
   m_AnchoredPosition: {x: 85, y: 85}
   m_SizeDelta: {x: 30, y: 30}
   m_Pivot: {x: 1, y: 1}
---- !u!114 &1816080563209520438
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5835323515924454707}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor/Career
-  nodeType: ImageViewObjectData
-  tag: 3220
-  actionTag: -715736150
 --- !u!222 &6835656535858688783
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3403,7 +2843,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3719218122437263005}
-  - component: {fileID: 8923844274434192334}
   m_Layer: 0
   m_Name: Node
   m_TagString: Untagged
@@ -3430,22 +2869,6 @@ RectTransform:
   m_AnchoredPosition: {x: 262.7093, y: 22.4264}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &8923844274434192334
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5890596763469367354}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title/Node
-  nodeType: SingleNodeObjectData
-  tag: 2716
-  actionTag: 1212969765
 --- !u!1 &6031172407357570442
 GameObject:
   m_ObjectHideFlags: 0
@@ -3455,7 +2878,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8204779708617277453}
-  - component: {fileID: 6031751006685651268}
   - component: {fileID: 2846905330503743109}
   - component: {fileID: 9130417223910395076}
   m_Layer: 0
@@ -3485,22 +2907,6 @@ RectTransform:
   m_AnchoredPosition: {x: 14.9675, y: 69.231}
   m_SizeDelta: {x: 107, y: 25}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &6031751006685651268
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6031172407357570442}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TextBg/Text_1
-  nodeType: TextObjectData
-  tag: 11602
-  actionTag: -103134723
 --- !u!222 &2846905330503743109
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3552,7 +2958,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 745106231187971406}
-  - component: {fileID: 3986493457501768183}
   - component: {fileID: 1340601112564740971}
   - component: {fileID: 5362730581714261958}
   - component: {fileID: 5891129317828226782}
@@ -3577,27 +2982,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 5539376496509023054}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 77, y: 31}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3986493457501768183
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6323252286136670778}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/BtnList/Btn_2/Text
-  nodeType: TextObjectData
-  tag: 6705
-  actionTag: 156347158
 --- !u!222 &1340601112564740971
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3664,7 +3053,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1147320738110793867}
-  - component: {fileID: 5169602425512768419}
   - component: {fileID: 5007327433840164305}
   - component: {fileID: 6873901402817597964}
   m_Layer: 0
@@ -3693,22 +3081,6 @@ RectTransform:
   m_AnchoredPosition: {x: 44, y: 44}
   m_SizeDelta: {x: 77, y: 77}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &5169602425512768419
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6358559487941706009}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor/Icon
-  nodeType: ImageViewObjectData
-  tag: 3218
-  actionTag: -621936605
 --- !u!222 &5007327433840164305
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3756,7 +3128,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5525219417105334088}
-  - component: {fileID: 6115246878854365396}
   - component: {fileID: 5137782737773357235}
   - component: {fileID: 8339753893340759993}
   m_Layer: 0
@@ -3785,22 +3156,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 5}
   m_SizeDelta: {x: 160, y: 46}
   m_Pivot: {x: 1, y: 0}
---- !u!114 &6115246878854365396
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6708078552645143199}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/bg/Title/TitleBg/Image_R
-  nodeType: ImageViewObjectData
-  tag: 7166
-  actionTag: -1461860112
 --- !u!222 &5137782737773357235
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3848,7 +3203,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7425658697636801570}
-  - component: {fileID: 1322583438513916274}
   - component: {fileID: 5189809561496060434}
   - component: {fileID: 6948372413343195843}
   - component: {fileID: 4598498515351721331}
@@ -3879,22 +3233,6 @@ RectTransform:
   m_AnchoredPosition: {x: 180, y: 0}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1322583438513916274
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6888893803737311472}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconBtn2
-  nodeType: ButtonObjectData
-  tag: 368
-  actionTag: 1535943617
 --- !u!222 &5189809561496060434
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3986,7 +3324,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5539376496509023054}
-  - component: {fileID: 1531238496348606962}
   - component: {fileID: 225774817557415209}
   - component: {fileID: 144749602718293452}
   - component: {fileID: 4052905126532547038}
@@ -4017,22 +3354,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 164, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1531238496348606962
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7416750008603431231}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/BtnList/Btn_2
-  nodeType: ButtonObjectData
-  tag: 6704
-  actionTag: 1240045647
 --- !u!222 &225774817557415209
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4124,7 +3445,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7553289978473830702}
-  - component: {fileID: 7456042082643105897}
   m_Layer: 0
   m_Name: Panel_1
   m_TagString: Untagged
@@ -4151,22 +3471,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 4000, y: 2000}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7456042082643105897
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7628335359830586575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/Panel_1
-  nodeType: PanelObjectData
-  tag: 7103
-  actionTag: 1217321619
 --- !u!1 &7751357427335846528
 GameObject:
   m_ObjectHideFlags: 0
@@ -4176,7 +3480,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5831396437055570418}
-  - component: {fileID: 3319742125423983815}
   m_Layer: 0
   m_Name: Reward
   m_TagString: Untagged
@@ -4212,22 +3515,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &3319742125423983815
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7751357427335846528}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward
-  nodeType: SingleNodeObjectData
-  tag: 1909
-  actionTag: 1612661959
 --- !u!1 &7847839523987239309
 GameObject:
   m_ObjectHideFlags: 0
@@ -4237,7 +3524,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6444487882075868556}
-  - component: {fileID: 4593227611217439118}
   m_Layer: 0
   m_Name: BtnList
   m_TagString: Untagged
@@ -4266,22 +3552,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -120}
   m_SizeDelta: {x: 445, y: 72}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4593227611217439118
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7847839523987239309}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/BtnList
-  nodeType: PanelObjectData
-  tag: 6620
-  actionTag: 338389877
 --- !u!1 &7869488630292136393
 GameObject:
   m_ObjectHideFlags: 0
@@ -4291,7 +3561,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8679269735197197747}
-  - component: {fileID: 4143466350952416705}
   - component: {fileID: 2089127322478173130}
   - component: {fileID: 1659364411703022472}
   - component: {fileID: 7275696547515195816}
@@ -4322,22 +3591,6 @@ RectTransform:
   m_AnchoredPosition: {x: 30, y: 0}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4143466350952416705
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7869488630292136393}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconBtn1
-  nodeType: ButtonObjectData
-  tag: 128
-  actionTag: -902665402
 --- !u!222 &2089127322478173130
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4429,7 +3682,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6018198257487660770}
-  - component: {fileID: 2463832730950862372}
   - component: {fileID: 7982047080423685355}
   - component: {fileID: 4708333995401055610}
   - component: {fileID: 7975563575362040394}
@@ -4459,22 +3711,6 @@ RectTransform:
   m_AnchoredPosition: {x: 89.069, y: 0.857399}
   m_SizeDelta: {x: 25, y: 23}
   m_Pivot: {x: 1, y: 0}
---- !u!114 &2463832730950862372
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8090693219114743597}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/IconBg/List/IconColor/Text
-  nodeType: TextObjectData
-  tag: 3223
-  actionTag: 60525658
 --- !u!222 &7982047080423685355
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -4541,7 +3777,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5901227904757377878}
-  - component: {fileID: 3878477113152752666}
   - component: {fileID: 6742317455088055295}
   - component: {fileID: 7277048152989288228}
   m_Layer: 0
@@ -4570,22 +3805,6 @@ RectTransform:
   m_AnchoredPosition: {x: 347.0546, y: 0}
   m_SizeDelta: {x: 24, y: 25}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &3878477113152752666
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9125507366808080293}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Reward/TipsText/Text
-  nodeType: TextObjectData
-  tag: 150
-  actionTag: -1020372022
 --- !u!222 &6742317455088055295
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4560274120216809847}
-  - component: {fileID: 6679127208702648302}
   - component: {fileID: 8731344063096890577}
   - component: {fileID: 8667416023279147387}
   - component: {fileID: 2459313344048867661}
@@ -39,22 +38,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 159, y: 22}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &6679127208702648302
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4262945283599754}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/times
-  nodeType: TextObjectData
-  tag: 3243
-  actionTag: 1967344168
 --- !u!222 &8731344063096890577
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -121,7 +104,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4977171147507063470}
-  - component: {fileID: 8914019469893104268}
   - component: {fileID: 7031946988119389745}
   - component: {fileID: 4537587907675305448}
   m_Layer: 0
@@ -150,22 +132,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 81, y: 21}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8914019469893104268
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 298584623938286612}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/buyBtn/Text
-  nodeType: TextObjectData
-  tag: 4168
-  actionTag: 1727205169
 --- !u!222 &7031946988119389745
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -217,8 +183,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6852297600452098034}
-  - component: {fileID: 1798266821286527183}
-  - component: {fileID: 7719227997090436230}
+  - component: {fileID: 5603636374110994176}
   m_Layer: 0
   m_Name: ziyuanzhaohui
   m_TagString: Untagged
@@ -246,7 +211,7 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1798266821286527183
+--- !u!114 &5603636374110994176
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -255,23 +220,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 552170674796233840}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer
-  nodeType: GameLayerObjectData
-  tag: 0
-  actionTag: 0
---- !u!114 &7719227997090436230
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 552170674796233840}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 189fbaee4a0c0834e92bbb30e33f9cf8, type: 3}
+  m_Script: {fileID: 11500000, guid: 1acd4692cebe3e74e956ef3d8bca1229, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   source: cocosstudio/csd/huodong/ziyuanzhaohui.csd
@@ -376,6 +325,7 @@ MonoBehaviour:
     tag: 4057
     actionTag: 51211539
     target: {fileID: 8982452453146361648}
+  retiredMetadataAliases: []
 --- !u!1 &749936334643219086
 GameObject:
   m_ObjectHideFlags: 0
@@ -385,7 +335,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8921238942905438220}
-  - component: {fileID: 872078940224340251}
   m_Layer: 0
   m_Name: Panel_zhaohui1
   m_TagString: Untagged
@@ -417,22 +366,6 @@ RectTransform:
   m_AnchoredPosition: {x: 189.4102, y: -318.5875}
   m_SizeDelta: {x: 900, y: 155}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &872078940224340251
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 749936334643219086}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1
-  nodeType: PanelObjectData
-  tag: 4077
-  actionTag: -1629021893
 --- !u!1 &952602632537262456
 GameObject:
   m_ObjectHideFlags: 0
@@ -442,7 +375,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7185895686350077697}
-  - component: {fileID: 3352912346904677154}
   - component: {fileID: 8081603023955424851}
   - component: {fileID: 4864736326743121891}
   m_Layer: 0
@@ -471,22 +403,6 @@ RectTransform:
   m_AnchoredPosition: {x: 80.7715, y: 14.5119}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3352912346904677154
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 952602632537262456}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/title/Image_bg
-  nodeType: ImageViewObjectData
-  tag: 3198
-  actionTag: 1205649513
 --- !u!222 &8081603023955424851
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -534,7 +450,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3535526158093336095}
-  - component: {fileID: 315194841725287766}
   - component: {fileID: 6054049377771008140}
   - component: {fileID: 3202765049156067714}
   m_Layer: 0
@@ -563,22 +478,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 351.9232, y: 122.4391}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &315194841725287766
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2811656413773641868}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/RolePic/TextBg/Text
-  nodeType: TextObjectData
-  tag: 10701
-  actionTag: -574208185
 --- !u!222 &6054049377771008140
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -630,7 +529,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8970975588588865336}
-  - component: {fileID: 7950290375869942517}
   - component: {fileID: 8385741001301362993}
   - component: {fileID: 2178407436531731413}
   m_Layer: 0
@@ -660,22 +558,6 @@ RectTransform:
   m_AnchoredPosition: {x: 87.8372, y: -225.1999}
   m_SizeDelta: {x: 88, y: 88}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7950290375869942517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3163625963090805677}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Icon_1
-  nodeType: ImageViewObjectData
-  tag: 4121
-  actionTag: -1453151525
 --- !u!222 &8385741001301362993
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -723,7 +605,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1138630507856279665}
-  - component: {fileID: 8611657939904305029}
   m_Layer: 0
   m_Name: Panel_ziyuanzhaohui
   m_TagString: Untagged
@@ -754,22 +635,6 @@ RectTransform:
   m_AnchoredPosition: {x: 667, y: 375}
   m_SizeDelta: {x: 1334, y: 750}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8611657939904305029
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3408065396557753781}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui
-  nodeType: PanelObjectData
-  tag: 97
-  actionTag: -1668913504
 --- !u!1 &4463864371845626580
 GameObject:
   m_ObjectHideFlags: 0
@@ -779,7 +644,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4619607791932320504}
-  - component: {fileID: 3800695975767683907}
   - component: {fileID: 9221364384020114529}
   - component: {fileID: 2832711517444838940}
   m_Layer: 0
@@ -808,22 +672,6 @@ RectTransform:
   m_AnchoredPosition: {x: 82.449, y: 0}
   m_SizeDelta: {x: 62, y: 21}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &3800695975767683907
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4463864371845626580}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/buyBtn/GoldIcon/Num
-  nodeType: TextObjectData
-  tag: 1369
-  actionTag: -1653538817
 --- !u!222 &9221364384020114529
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -875,7 +723,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6875978226974977685}
-  - component: {fileID: 4056053786025027253}
   m_Layer: 0
   m_Name: title
   m_TagString: Untagged
@@ -904,22 +751,6 @@ RectTransform:
   m_AnchoredPosition: {x: 13.0007, y: 88}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &4056053786025027253
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6099937853379571817}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/title
-  nodeType: PanelObjectData
-  tag: 3197
-  actionTag: 57972513
 --- !u!1 &6756732186874742237
 GameObject:
   m_ObjectHideFlags: 0
@@ -929,7 +760,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5190663396156103216}
-  - component: {fileID: 8997157673229980055}
   - component: {fileID: 1300472413533121774}
   - component: {fileID: 472272660252684564}
   m_Layer: 0
@@ -958,22 +788,6 @@ RectTransform:
   m_AnchoredPosition: {x: 29.1813, y: 14.7054}
   m_SizeDelta: {x: 50, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8997157673229980055
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6756732186874742237}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/buyBtn/GoldIcon/Icon
-  nodeType: ImageViewObjectData
-  tag: 1370
-  actionTag: 1251394727
 --- !u!222 &1300472413533121774
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1021,7 +835,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3916959244107026801}
-  - component: {fileID: 9071695254716804691}
   - component: {fileID: 5180160726983672872}
   - component: {fileID: 2264594342467509830}
   - component: {fileID: 368788700901575697}
@@ -1053,22 +866,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 120, y: 57}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &9071695254716804691
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7105829481222471987}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/buyBtn
-  nodeType: ButtonObjectData
-  tag: 4167
-  actionTag: 296077984
 --- !u!222 &5180160726983672872
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1160,7 +957,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 576215530237875825}
-  - component: {fileID: 1738990349339963170}
   - component: {fileID: 2755002568546918741}
   - component: {fileID: 4915727738767789903}
   m_Layer: 0
@@ -1189,22 +985,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 120, y: 35}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1738990349339963170
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7135481048335411685}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Icon_1/Name
-  nodeType: TextObjectData
-  tag: 4122
-  actionTag: 1014233004
 --- !u!222 &2755002568546918741
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1256,7 +1036,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4898115756801870991}
-  - component: {fileID: 2148765828734156772}
   - component: {fileID: 8653227347402282197}
   - component: {fileID: 7512391511706238964}
   - component: {fileID: 5131424157223826010}
@@ -1286,22 +1065,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 151, y: 25}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2148765828734156772
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7342014711937783546}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/title/name
-  nodeType: TextObjectData
-  tag: 1463
-  actionTag: 23941784
 --- !u!222 &8653227347402282197
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1368,7 +1131,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8007099727561232013}
-  - component: {fileID: 8957408124764047848}
   - component: {fileID: 3473105314027576332}
   - component: {fileID: 4193095550830599575}
   m_Layer: 0
@@ -1398,22 +1160,6 @@ RectTransform:
   m_AnchoredPosition: {x: 824.8169, y: 392.4354}
   m_SizeDelta: {x: 407.8043, y: 203.9022}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &8957408124764047848
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7406321191226139726}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/RolePic/TextBg
-  nodeType: ImageViewObjectData
-  tag: 10700
-  actionTag: 1803234335
 --- !u!222 &3473105314027576332
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1461,7 +1207,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7981426234435225355}
-  - component: {fileID: 6802851561721835074}
   - component: {fileID: 4598863899181362231}
   - component: {fileID: 2579284315337656686}
   m_Layer: 0
@@ -1490,22 +1235,6 @@ RectTransform:
   m_AnchoredPosition: {x: 186.91, y: 0}
   m_SizeDelta: {x: 547, y: 130}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &6802851561721835074
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7627123130794442386}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/item_layer
-  nodeType: ListViewObjectData
-  tag: 744
-  actionTag: 2078019015
 --- !u!114 &4598863899181362231
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1559,7 +1288,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5853662263851378402}
-  - component: {fileID: 5471123856677281057}
   m_Layer: 0
   m_Name: GoldIcon
   m_TagString: Untagged
@@ -1588,22 +1316,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0.25310135, y: 12.883}
   m_SizeDelta: {x: 120, y: 31}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &5471123856677281057
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7950914746856514036}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/buyBtn/GoldIcon
-  nodeType: PanelObjectData
-  tag: 1367
-  actionTag: -910318224
 --- !u!1 &8490237338896842395
 GameObject:
   m_ObjectHideFlags: 0
@@ -1613,7 +1325,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 206412699939236768}
-  - component: {fileID: 2860717055721733514}
   - component: {fileID: 945453791392848862}
   - component: {fileID: 8535111740122570753}
   m_Layer: 0
@@ -1643,22 +1354,6 @@ RectTransform:
   m_AnchoredPosition: {x: 1527.9359, y: 0}
   m_SizeDelta: {x: 594, y: 723}
   m_Pivot: {x: 0, y: 0.5}
---- !u!114 &2860717055721733514
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8490237338896842395}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/RolePic
-  nodeType: ImageViewObjectData
-  tag: 3068
-  actionTag: -236195947
 --- !u!222 &945453791392848862
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1706,7 +1401,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8834580318034824876}
-  - component: {fileID: 1915269472762759323}
   - component: {fileID: 3658784991544610698}
   - component: {fileID: 3105888681455220964}
   m_Layer: 0
@@ -1735,22 +1429,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 880.02, y: 145.0025}
   m_Pivot: {x: 0.5, y: 0}
---- !u!114 &1915269472762759323
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8590123023617758074}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/Panel_zhaohui1/bg
-  nodeType: ImageViewObjectData
-  tag: 3922
-  actionTag: 1014889655
 --- !u!222 &3658784991544610698
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1798,7 +1476,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4115875143400964892}
-  - component: {fileID: 7707086656069502571}
   - component: {fileID: 1858757233147469660}
   - component: {fileID: 4599833603113198469}
   m_Layer: 0
@@ -1827,22 +1504,6 @@ RectTransform:
   m_AnchoredPosition: {x: 184.2469, y: 28.5212}
   m_SizeDelta: {x: 910, y: 630}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &7707086656069502571
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8982452453146361648}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e57901f8897238248968b7f692d072de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cocosPath: Layer/Panel_ziyuanzhaohui/ListView
-  nodeType: ListViewObjectData
-  tag: 4057
-  actionTag: 51211539
 --- !u!114 &1858757233147469660
 MonoBehaviour:
   m_ObjectHideFlags: 0

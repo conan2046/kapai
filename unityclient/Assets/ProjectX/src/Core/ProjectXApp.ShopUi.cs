@@ -19,7 +19,7 @@ namespace ProjectX.Core
         private void ConfigureShopFrame()
         {
             EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
-            CocosUiBinding binding = oneLevelFrameView.Binding;
+            UiPrefabIdentity binding = oneLevelFrameView.Identity;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -159,7 +159,7 @@ namespace ProjectX.Core
         private void ConfigureShopHubTabs(ShopHubTab selected)
         {
             if (bagPopupFrameView == null) return;
-            CocosUiBinding binding = bagPopupFrameView.Binding;
+            UiPrefabIdentity binding = bagPopupFrameView.Identity;
             Transform tabs = binding.Find("Layer/shopBg/Btn_ListView")?.transform;
             Transform template = tabs?.Find("Panel_1");
             Transform popup = binding.Find("Layer/shopBg/Popup")?.transform;
@@ -224,7 +224,7 @@ namespace ProjectX.Core
 
         private void ConfigureGameplayShopsFrame()
         {
-            CocosUiBinding binding = bagPopupFrameView.Binding;
+            UiPrefabIdentity binding = bagPopupFrameView.Identity;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {

@@ -69,8 +69,6 @@ namespace ProjectX.UI
             view.ShowPopup();
             RenderSlots();
             ShowSlots();
-            if (value == SinglePlayerSaveMenuMode.Continue)
-                view.Binding.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void Hide() => view.SetVisible(false);

@@ -91,8 +91,8 @@ namespace ProjectX.Core
                     Fail($"Gameplay primary list mismatch: open={IsGameplayOpen}, items={services.Gameplay.Count}, openItems={services.Gameplay.OpenCount}, rendered={GameplayRenderedCount}, enter={GameplayEnterButtonCount}, missing={GameplayMissingIconCount}.");
                     yield break;
                 }
-                bool backgroundPreserved = mainView?.Binding.Find("Layer/Bg")?.activeInHierarchy == true;
-                bool hudControlsHidden = mainView?.Binding.Find("Layer/Main_UI")?.activeInHierarchy == false;
+                bool backgroundPreserved = mainView?.FindNode("Layer/Bg")?.activeInHierarchy == true;
+                bool hudControlsHidden = mainView?.FindNode("Layer/Main_UI")?.activeInHierarchy == false;
                 RecordValidationSemantic("gameplay-main-background-preserved", backgroundPreserved && hudControlsHidden,
                     $"Layer/Bg active={backgroundPreserved}; Layer/Main_UI hidden={hudControlsHidden}");
                 if (!backgroundPreserved || !hudControlsHidden)

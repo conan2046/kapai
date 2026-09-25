@@ -24,7 +24,6 @@ namespace ProjectX.Core
                 SetOneLevelFrameVisible(false);
                 return PopUiStackWithHudRefresh();
             }
-            if (TryHandleJingJieBack()) return true;
             if (heroReplacementView?.GameObject.activeSelf == true)
             {
                 // The replacement surface can coexist with the formation
@@ -35,6 +34,7 @@ namespace ProjectX.Core
                 RestoreHeroAfterReplacement();
                 return true;
             }
+            if (TryHandleJingJieBack()) return true;
             if (heroHubOpen && formationPopupView?.GameObject.activeSelf == true)
             {
                 CloseHeroHub();

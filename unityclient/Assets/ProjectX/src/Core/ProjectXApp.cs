@@ -895,7 +895,7 @@ namespace ProjectX.Core
         public int MailCount => services?.Mails.Count ?? 0;
         public int MailMissingIconCount => mailPresenter?.MissingIconCount ?? 0;
         public bool IsMailRedDotVisible =>
-            mainView?.Binding.Find($"{MailPath}/Prompt")?.activeSelf == true;
+            mainView?.FindNode($"{MailPath}/Prompt")?.activeSelf == true;
         public bool IsShopOpen => shopView != null && services?.UiStack.Current == shopView;
         public int ShopCount => services?.Shop.Count ?? 0;
         public int ShopMissingIconCount => shopPresenter?.MissingIconCount ?? 0;
@@ -913,17 +913,17 @@ namespace ProjectX.Core
 
         public void InvokeLoginForValidation()
         {
-            Button button = loginView?.Binding.Find(LoginButtonPath)?.GetComponent<Button>();
+            Button button = loginView?.FindNode(LoginButtonPath)?.GetComponent<Button>();
             if (button == null) throw new InvalidOperationException("Local Btn_Play is not bound.");
             button.onClick.Invoke();
         }
 
         public bool ValidateLoginUi(out string detail)
         {
-            GameObject play = loginView?.Binding.Find(LoginButtonPath);
-            GameObject accountLogin = loginView?.Binding.Find("Layer/Login/Btn_Login");
-            GameObject server = loginView?.Binding.Find(LoginServerButtonPath);
-            Text serverName = loginView?.Binding.Find(LoginServerButtonPath + "/SeverName")?.GetComponent<Text>();
+            GameObject play = loginView?.FindNode(LoginButtonPath);
+            GameObject accountLogin = loginView?.FindNode("Layer/Login/Btn_Login");
+            GameObject server = loginView?.FindNode(LoginServerButtonPath);
+            Text serverName = loginView?.FindNode(LoginServerButtonPath + "/SeverName")?.GetComponent<Text>();
             if (!IsLoginVisible) { detail = "loginLayer is hidden"; return false; }
             if (play == null || !play.activeInHierarchy) { detail = "Btn_Play is not the active local entry"; return false; }
             if (accountLogin != null && accountLogin.activeInHierarchy) { detail = "account Btn_Login must be hidden for local openType=1"; return false; }
@@ -1595,7 +1595,7 @@ namespace ProjectX.Core
                     $"/1004 and /18 preserve premium={services.Currencies.Premium} separately from boundPremium={services.Currencies.BoundPremium}");
 
                 for (int index = 1; index <= 11; index++) MarkValidationControl($"HUD-{index:00}-" + HudControlSuffix(index));
-                Button headEntry = mainView.Binding.Find(JingJieHeadPath)?.GetComponent<Button>();
+                Button headEntry = mainView.FindNode(JingJieHeadPath)?.GetComponent<Button>();
                 if (headEntry == null || !headEntry.interactable)
                 { Fail("HUD Head/JingJie completed route is missing or disabled."); yield break; }
                 MarkValidationControl("HUD-12-HEAD-BOUNDARY");
@@ -1610,7 +1610,7 @@ namespace ProjectX.Core
                     { Fail($"HUD identity/currency boundary failed: {boundaryDetail}"); yield break; }
                     MarkValidationControl($"HUD-{index + 13:00}-" + HudControlSuffix(index + 13));
                 }
-                Button premiumAdd = mainView.Binding.Find("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
+                Button premiumAdd = mainView.FindNode("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/AddBtn")?.GetComponent<Button>();
                 if (premiumAdd == null || premiumAdd.interactable)
                 { Fail("HUD premium add control must exist and remain non-interactable in PlayerHud scope."); yield break; }
                 MarkValidationControl("HUD-14-PREMIUM-ADD-DISABLED");
@@ -1628,12 +1628,12 @@ namespace ProjectX.Core
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-first-entry.png");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-client-restart.png");
 
-                Button wearEntry = mainView.Binding.Find(EquipmentMenuPath)?.GetComponent<Button>();
+                Button wearEntry = mainView.FindNode(EquipmentMenuPath)?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(wearEntry))
                 { Fail("HUD direct wear entry EventSystem input was unavailable."); yield break; }
                 float wearDeadline = Time.realtimeSinceStartup + 12f;
                 while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < wearDeadline) yield return null;
-                if (!IsHeroEquipmentOpen || mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf == true)
+                if (!IsHeroEquipmentOpen || mainView.FindNode("Layer/Main_UI/tankuang2")?.activeSelf == true)
                 { Fail("HUD wear entry did not open the equipment bag directly."); yield break; }
                 MarkValidationControl("HUD-15-WEAR-EQUIPMENT-BAG");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-wear-equipment-bag.png");
@@ -1642,7 +1642,7 @@ namespace ProjectX.Core
 
                 ToggleShopSubmenu();
                 yield return new WaitForSecondsRealtime(.25f);
-                if (mainView.Binding.Find("Layer/Main_UI/tankuang1")?.activeSelf != true)
+                if (mainView.FindNode("Layer/Main_UI/tankuang1")?.activeSelf != true)
                 { Fail("HUD shop submenu did not expand through btn_shangcheng."); yield break; }
                 MarkValidationControl("HUD-18-SHOP-TOGGLE");
                 if (!AuditHudBoundary(mainView, ShopSubmenuPath, out string shopBoundary))
@@ -1657,7 +1657,7 @@ namespace ProjectX.Core
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-shop-expanded.png");
                 Button shopDismiss = hudSubmenuDismissOverlay?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(shopDismiss)
-                    || mainView.Binding.Find("Layer/Main_UI/tankuang1")?.activeSelf == true)
+                    || mainView.FindNode("Layer/Main_UI/tankuang1")?.activeSelf == true)
                 { Fail("HUD shop submenu did not collapse through the blank-area overlay."); yield break; }
                 RecordValidationSemantic("hud-menu-state", true,
                     "real imported buttons opened mutually scoped submenus; blank-area overlay collapsed both without a second toggle click");
@@ -1709,7 +1709,7 @@ namespace ProjectX.Core
                 if (!cloudReady) { Fail("HUD cloud timeline was not active and looping."); yield break; }
 
                 MarkValidationControl("HUD-47-CHAT-SUMMARY-LIST");
-                chatMiniView.Binding.Find("Layer/Panel_Chat/btn_Arrows")?.GetComponent<Button>()?.onClick.Invoke();
+                chatMiniView.FindNode("Layer/Panel_Chat/btn_Arrows")?.GetComponent<Button>()?.onClick.Invoke();
                 if (!mainHudPresenter.IsChatExpanded) { Fail("HUD chat arrow did not expand the clipped summary panel."); yield break; }
                 MarkValidationControl("HUD-48-CHAT-EXPAND");
                 if (!AuditHudBoundary(chatMiniView, "Layer/Panel_Chat/Panel_Bg", out string chatOpenBoundary))
@@ -1722,7 +1722,7 @@ namespace ProjectX.Core
                     "Layer/Panel_Chat/btn_Voice_shi",
                     "Layer/Panel_Chat/btn_Voice_bang"
                 };
-                if (hiddenChatBoundaryPaths.Any(path => chatMiniView.Binding.Find(path)?.activeInHierarchy == true))
+                if (hiddenChatBoundaryPaths.Any(path => chatMiniView.FindNode(path)?.activeInHierarchy == true))
                 { Fail("HUD exposed a private/friend/voice control without authoritative availability."); yield break; }
                 MarkValidationControl("HUD-50-CHAT-PRIVATE-BOUNDARY");
                 MarkValidationControl("HUD-51-CHAT-FRIEND-BOUNDARY");
@@ -1735,8 +1735,8 @@ namespace ProjectX.Core
                 settingsButton.onClick.Invoke();
                 if (!IsSettingsOpen || !HandleBack() || IsSettingsOpen)
                 { Fail("HUD return/re-enter through completed Settings route failed."); yield break; }
-                if (mainView.Binding.Find("Layer/Main_UI/tankuang1")?.activeSelf == true
-                    || mainView.Binding.Find("Layer/Main_UI/tankuang2")?.activeSelf == true)
+                if (mainView.FindNode("Layer/Main_UI/tankuang1")?.activeSelf == true
+                    || mainView.FindNode("Layer/Main_UI/tankuang2")?.activeSelf == true)
                 { Fail("HUD return/re-enter retained a transient submenu."); yield break; }
                 MarkValidationControl("HUD-53-REFRESH-REENTER");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-return-reenter.png");
@@ -2393,7 +2393,7 @@ namespace ProjectX.Core
         {
             if (IsHeroOpen && !InvokeHeroCloseForValidation()) return false;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            Button formationButton = mainView?.Binding.Find(FormationPath)?.GetComponent<Button>();
+            Button formationButton = mainView?.FindNode(FormationPath)?.GetComponent<Button>();
             if (!InvokeEventSystemRaycastClick(formationButton)) return false;
             return true;
         }
@@ -2693,7 +2693,7 @@ namespace ProjectX.Core
 
         private static Button RequireBoundButton(CocosUiView view, string path, string label)
         {
-            GameObject target = view?.Binding.Find(path);
+            GameObject target = view?.FindNode(path);
             Button button = target?.GetComponent<Button>();
             if (button == null || button.onClick.GetPersistentEventCount() == 0 && !button.interactable)
                 throw new InvalidOperationException($"Hero G4 {label} button is missing or disabled: {path}");
@@ -3069,7 +3069,7 @@ namespace ProjectX.Core
             if (services.UiStack.Current == oneLevelFrameView
                 || services.UiStack.Current?.GameObject?.name == "OneLevelLayer")
             {
-                Button initialClose = oneLevelFrameView?.Binding.Find(
+                Button initialClose = oneLevelFrameView?.FindNode(
                     "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(initialClose))
                 { Fail("HeroEquip G5 visual runner could not close the bootstrap equipment frame."); yield break; }
@@ -3080,13 +3080,13 @@ namespace ProjectX.Core
             float deadline = Time.realtimeSinceStartup + 30f;
             while (mainView?.GameObject.activeInHierarchy != true && Time.realtimeSinceStartup < deadline)
                 yield return null;
-            Button wearToggle = mainView?.Binding.Find("Layer/Bg/btn_chuandai")?.GetComponent<Button>();
+            Button wearToggle = mainView?.FindNode("Layer/Bg/btn_chuandai")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(wearToggle))
             { Fail("HeroEquip G5 visual wear toggle was unavailable."); yield break; }
             yield return null;
             yield return CaptureHeroEquipmentG5State("g1-wear-popup-open.png");
 
-            Button equipmentEntry = mainView.Binding.Find(EquipmentBagPath)?.GetComponent<Button>();
+            Button equipmentEntry = mainView.FindNode(EquipmentBagPath)?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentEntry))
             { Fail("HeroEquip G5 visual equipment entry was unavailable."); yield break; }
             deadline = Time.realtimeSinceStartup + 12f;
@@ -3094,7 +3094,7 @@ namespace ProjectX.Core
             if (!IsHeroEquipmentOpen) { Fail("HeroEquip G5 visual equipment bag did not open."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-equipment-bag.png");
 
-            Toggle hideWorn = heroEquipmentListView.Binding.Find(
+            Toggle hideWorn = heroEquipmentListView.FindNode(
                 "Layer/zhuangbeibeibaoUI/CheckBox")?.GetComponent<Toggle>();
             bool hideBefore = hideWorn?.isOn ?? false;
             if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn == hideBefore)
@@ -3107,7 +3107,7 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(listItem) || !heroEquipmentPresenter.IsDetailVisible)
             { Fail("HeroEquip G5 visual source equipment detail did not open."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-equipment-detail.png");
-            Button detailClose = heroEquipmentDetailView.Binding.Find(
+            Button detailClose = heroEquipmentDetailView.FindNode(
                 "Layer/zhuangbeiInfoUI/Popup/Btn_close")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(detailClose))
             { Fail("HeroEquip G5 visual equipment detail did not close."); yield break; }
@@ -3118,7 +3118,7 @@ namespace ProjectX.Core
             yield return CaptureHeroEquipmentG5State("g1-strength-before.png");
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
                     "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
             { Fail("HeroEquip G5 visual refine page did not open."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-refine-before.png");
@@ -3154,7 +3154,7 @@ namespace ProjectX.Core
             yield return null;
             yield return CaptureHeroEquipmentG5State("g1-equipment-pieces-empty.png");
 
-            Button frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button frameClose = oneLevelFrameView.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(frameClose))
             { Fail("HeroEquip G5 visual equipment frame did not close."); yield break; }
             yield return null;
@@ -3162,17 +3162,17 @@ namespace ProjectX.Core
             // subpage to the equipment list. A second real close leaves the module.
             if (IsHeroEquipmentOpen)
             {
-                frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                frameClose = oneLevelFrameView.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(frameClose))
                 { Fail("HeroEquip G5 visual equipment list did not close after returning from fragments."); yield break; }
             }
             deadline = Time.realtimeSinceStartup + 12f;
-            Button formationEntry = mainView.Binding.Find(FormationPath)?.GetComponent<Button>();
+            Button formationEntry = mainView.FindNode(FormationPath)?.GetComponent<Button>();
             while ((mainView?.GameObject.activeInHierarchy != true || formationEntry == null
                     || !formationEntry.gameObject.activeInHierarchy || !formationEntry.interactable)
                 && Time.realtimeSinceStartup < deadline)
             {
-                formationEntry = mainView?.Binding.Find(FormationPath)?.GetComponent<Button>();
+                formationEntry = mainView?.FindNode(FormationPath)?.GetComponent<Button>();
                 yield return null;
             }
             if (!InvokeEventSystemClick(formationEntry))
@@ -3218,7 +3218,7 @@ namespace ProjectX.Core
             if (services.UiStack.Current == oneLevelFrameView
                 || services.UiStack.Current?.GameObject?.name == "OneLevelLayer")
             {
-                Button bootstrapFrameClose = oneLevelFrameView?.Binding.Find(
+                Button bootstrapFrameClose = oneLevelFrameView?.FindNode(
                     "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(bootstrapFrameClose))
                 { Fail("HeroEquip G4 could not close the bootstrap-opened OneLevelLayer through EventSystem."); yield break; }
@@ -3232,7 +3232,7 @@ namespace ProjectX.Core
                 if (IsGameNoticeOpen) InvokeGameNoticeClose();
                 yield return null;
             }
-            Button wearToggle = mainView.Binding.Find("Layer/Bg/btn_chuandai")?.GetComponent<Button>();
+            Button wearToggle = mainView.FindNode("Layer/Bg/btn_chuandai")?.GetComponent<Button>();
             float inputReadyDeadline = Time.realtimeSinceStartup + 8f;
             while ((wearToggle == null || EventSystem.current == null || !wearToggle.gameObject.activeInHierarchy
                     || !wearToggle.interactable) && Time.realtimeSinceStartup < inputReadyDeadline)
@@ -3250,25 +3250,25 @@ namespace ProjectX.Core
             MarkValidationControl("HE-00-WEAR-TOGGLE");
             yield return null;
             yield return CaptureHeroEquipmentG5State("g1-wear-popup-open.png");
-            Button equipmentEntry = mainView.Binding.Find(EquipmentBagPath)?.GetComponent<Button>();
+            Button equipmentEntry = mainView.FindNode(EquipmentBagPath)?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentEntry)) { Fail("HeroEquip G4 equipment entry EventSystem input was unavailable."); yield break; }
             MarkValidationControl("HE-01-MAIN-EQUIPMENT");
             float deadline = Time.realtimeSinceStartup + 12f;
             while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsHeroEquipmentOpen) { Fail("HeroEquip G4 equipment bag did not open."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-equipment-bag.png");
-            Button equipmentTab = oneLevelFrameView.Binding.Find(
+            Button equipmentTab = oneLevelFrameView.FindNode(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.GetComponent<Button>();
             if (equipmentTab == null || equipmentTab.interactable)
             { Fail("HeroEquip G4 selected equipment tab state was not source-equivalent."); yield break; }
             MarkValidationControl("HE-04-EQUIPMENT-BAG-TAB");
-            Button equipmentHelp = oneLevelFrameView.Binding.Find(
+            Button equipmentHelp = oneLevelFrameView.FindNode(
                 "Layer/Panel_12/Title/TitleName/Button_1")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentHelp) || !IsErrorVisible)
             { Fail("HeroEquip G4 equipment help EventSystem input did not open the real help dialog."); yield break; }
             MarkValidationControl("HE-06-EQUIPMENT-HELP");
             errorPresenter.Hide();
-            Toggle hideWorn = heroEquipmentListView.Binding.Find(
+            Toggle hideWorn = heroEquipmentListView.FindNode(
                 "Layer/zhuangbeibeibaoUI/CheckBox")?.GetComponent<Toggle>();
             bool hideWornBefore = hideWorn?.isOn ?? false;
             if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn == hideWornBefore)
@@ -3278,7 +3278,7 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(hideWorn) || hideWorn.isOn != hideWornBefore)
             { Fail("HeroEquip G4 hide-worn Toggle did not round-trip through EventSystem."); yield break; }
             MarkValidationControl("HE-07-EQUIPMENT-HIDE-WORN");
-            ScrollRect bagScroll = heroEquipmentListView.Binding.Find(
+            ScrollRect bagScroll = heroEquipmentListView.FindNode(
                 "Layer/zhuangbeibeibaoUI/TableView")?.GetComponent<ScrollRect>();
             Canvas.ForceUpdateCanvases();
             if (bagScroll?.content == null || bagScroll.viewport == null
@@ -3291,7 +3291,7 @@ namespace ProjectX.Core
             if (Mathf.Abs(bagScroll.content.anchoredPosition.y - bagScrollStartY) <= 1f)
             { Fail("HeroEquip G4 bag ScrollRect accepted drag callbacks but its content did not move."); yield break; }
             MarkValidationControl("HE-80-BAG-LIST-SCROLL");
-            GameObject recycleEntry = heroEquipmentListView.Binding.Find("Layer/zhuangbeibeibaoUI/recycle");
+            GameObject recycleEntry = heroEquipmentListView.FindNode("Layer/zhuangbeibeibaoUI/recycle");
             if (recycleEntry == null || recycleEntry.activeInHierarchy)
             { Fail("HeroEquip G4 excluded recycle entry was not hidden."); yield break; }
             MarkValidationControl("HE-10-EQUIPMENT-RECYCLE-ENTRY");
@@ -3300,12 +3300,12 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 equipment list item did not open detail through EventSystem."); yield break; }
             MarkValidationControl("HE-08-EQUIPMENT-LIST-ITEM");
             yield return CaptureHeroEquipmentG5State("g1-equipment-detail.png");
-            ScrollRect detailScroll = heroEquipmentDetailView.Binding.Find(
+            ScrollRect detailScroll = heroEquipmentDetailView.FindNode(
                 "Layer/zhuangbeiInfoUI/Info/ListView")?.GetComponent<ScrollRect>();
             if (!InvokeEventSystemDrag(detailScroll, -0.2f))
             { Fail("HeroEquip G4 detail ScrollRect did not accept EventSystem drag input."); yield break; }
             MarkValidationControl("HE-77-DETAIL-SCROLL");
-            Button detailClose = heroEquipmentDetailView.Binding.Find(
+            Button detailClose = heroEquipmentDetailView.FindNode(
                 "Layer/zhuangbeiInfoUI/Popup/Btn_close")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(detailClose) || heroEquipmentPresenter.IsDetailVisible)
             { Fail("HeroEquip G4 detail close did not return to the equipment list."); yield break; }
@@ -3333,7 +3333,7 @@ namespace ProjectX.Core
             heroEquipmentPresenter.Show(1, HeroEquipmentKind.Equipment);
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)) { Fail("HeroEquip G4 target equipment detail was unavailable."); yield break; }
-            Button wear = heroEquipmentDetailView.Binding.Find("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>();
+            Button wear = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(wear)) { Fail("HeroEquip G4 wear EventSystem input was unavailable."); yield break; }
             MarkValidationControl("HE-23-DETAIL-CHANGE");
             deadline = Time.realtimeSinceStartup + 12f;
@@ -3342,32 +3342,32 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 initial replacement did not move source equipment to the bag."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.Binding.Find("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
+                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 source wear@2 EventSystem input was unavailable."); yield break; }
             deadline = Time.realtimeSinceStartup + 12f;
             while (GetHeroEquipmentFormation(sourceUid) != 2 && Time.realtimeSinceStartup < deadline) yield return null;
             if (GetHeroEquipmentFormation(sourceUid) != 2) { Fail("HeroEquip G4 source equipment did not wear at position 2."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.Binding.Find("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
+                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 cross-position change popup did not open."); yield break; }
             yield return null;
-            Toggle changeFilter = heroEquipmentChangeView.Binding.Find("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
+            Toggle changeFilter = heroEquipmentChangeView.FindNode("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
             bool changeFilterBefore = changeFilter?.isOn ?? false;
             if (!InvokeEventSystemClick(changeFilter) || changeFilter.isOn == changeFilterBefore
                 || !InvokeEventSystemClick(changeFilter) || changeFilter.isOn != changeFilterBefore)
             { Fail("HeroEquip G4 change hide-worn Toggle did not round-trip through EventSystem."); yield break; }
             MarkValidationControl("HE-28-CHANGE-HIDE-WORN");
-            ScrollRect changeScroll = heroEquipmentChangeView.Binding.Find("Layer/Popup/TableView")?.GetComponent<ScrollRect>();
+            ScrollRect changeScroll = heroEquipmentChangeView.FindNode("Layer/Popup/TableView")?.GetComponent<ScrollRect>();
             if (!InvokeEventSystemDrag(changeScroll, -0.2f))
             { Fail("HeroEquip G4 change ScrollRect did not accept EventSystem drag input."); yield break; }
             MarkValidationControl("HE-82-CHANGE-LIST-SCROLL");
-            Button changeClose = heroEquipmentChangeView.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>();
+            Button changeClose = heroEquipmentChangeView.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(changeClose) || heroEquipmentChangeView.GameObject.activeSelf)
             { Fail("HeroEquip G4 change close did not hide the popup."); yield break; }
             MarkValidationControl("HE-27-CHANGE-CLOSE");
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.Binding.Find("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
+                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 cross-position change popup could not reopen."); yield break; }
             yield return null;
             Button targetCandidate = heroEquipmentPresenter.GetChangeCandidateAction(targetUid);
@@ -3380,7 +3380,7 @@ namespace ProjectX.Core
             if (!crossSwap) { Fail("HeroEquip G4 cross-position server swap did not converge in the Lua mirror."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 2)) { Fail("HeroEquip G4 target takeoff detail unavailable."); yield break; }
-            Button takeOff = heroEquipmentDetailView.Binding.Find("Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia")?.GetComponent<Button>();
+            Button takeOff = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(takeOff)) { Fail("HeroEquip G4 takeoff EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-24-DETAIL-TAKEOFF");
             deadline = Time.realtimeSinceStartup + 12f;
@@ -3389,14 +3389,14 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 takeoff did not restore source/target slot ownership."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)) { Fail("HeroEquip G4 strength detail unavailable."); yield break; }
-            if (!InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
                 "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 strength entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all was visible for an unequipped item."); yield break; }
             MarkValidationControl("HE-25-EQUIPMENT-STRENGTH-ENTRY");
             yield return CaptureHeroEquipmentG5State("g1-strength-before.png");
-            if (!InvokeEventSystemClick(heroEquipmentStrengthView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentStrengthView.FindNode(
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 strength action EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-32-STRENGTH-ONCE");
@@ -3405,7 +3405,7 @@ namespace ProjectX.Core
             if (GetHeroEquipmentStrengthLevel(targetUid) <= targetStrengthBefore)
             { Fail("HeroEquip G4 strength transaction did not update op=16 state."); yield break; }
             int targetStrengthBeforeFive = GetHeroEquipmentStrengthLevel(targetUid);
-            if (!InvokeEventSystemClick(heroEquipmentStrengthView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentStrengthView.FindNode(
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 five-strength EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-33-STRENGTH-FIVE");
@@ -3416,13 +3416,13 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 five-strength transaction did not update op=16 state."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
                     "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 strengthen-all entry unavailable."); yield break; }
             if (!heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all was hidden for the equipped item on the strength tab."); yield break; }
             int sourceStrengthBefore = GetHeroEquipmentStrengthLevel(sourceUid);
-            if (!InvokeEventSystemClick(heroEquipmentCultivateView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 strengthen-all EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-47-STRENGTH-ALL");
@@ -3432,7 +3432,7 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 strengthen-all transaction did not update source equipment."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
                     "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 refine entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
@@ -3441,7 +3441,7 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 refine attributes were missing, empty, or still placeholder values."); yield break; }
             MarkValidationControl("HE-38-DETAIL-REFINE");
             yield return CaptureHeroEquipmentG5State("g1-refine-before.png");
-            if (!InvokeEventSystemClick(heroEquipmentRefineView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentRefineView.FindNode(
                 "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 refine action EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-48-REFINE-ONCE");
@@ -3487,7 +3487,7 @@ namespace ProjectX.Core
             if (heroEquipmentPresenter.HasActiveCultivationEffect)
             { Fail("HeroEquip G4 refine success Imod retained its final frame after completion."); yield break; }
             int refineBeforeAuto = refined.GetLevel(2);
-            Button autoRefineOpen = heroEquipmentRefineView.Binding.Find(
+            Button autoRefineOpen = heroEquipmentRefineView.FindNode(
                 "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/yijianjinglianBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(autoRefineOpen) || !heroEquipmentAutoRefineView.GameObject.activeSelf)
             { Fail("HeroEquip G4 auto-refine popup did not open through EventSystem."); yield break; }
@@ -3500,21 +3500,21 @@ namespace ProjectX.Core
                 ("Layer/Popup/Panel_1/Btn_Minus10", "HE-53-AUTO-REFINE-MINUS10")
             })
             {
-                if (!InvokeEventSystemClick(heroEquipmentAutoRefineView.Binding.Find(autoRefineControl.Item1)?.GetComponent<Button>()))
+                if (!InvokeEventSystemClick(heroEquipmentAutoRefineView.FindNode(autoRefineControl.Item1)?.GetComponent<Button>()))
                 { Fail($"HeroEquip G4 auto-refine control unavailable: {autoRefineControl.Item2}"); yield break; }
                 MarkValidationControl(autoRefineControl.Item2);
             }
-            if (!InvokeEventSystemClick(heroEquipmentAutoRefineView.Binding.Find("Layer/Popup/Btn_Cancel")?.GetComponent<Button>())
+            if (!InvokeEventSystemClick(heroEquipmentAutoRefineView.FindNode("Layer/Popup/Btn_Cancel")?.GetComponent<Button>())
                 || heroEquipmentAutoRefineView.GameObject.activeSelf)
             { Fail("HeroEquip G4 auto-refine cancel did not close the popup."); yield break; }
             MarkValidationControl("HE-55-AUTO-REFINE-CANCEL");
             if (!InvokeEventSystemClick(autoRefineOpen)
-                || !InvokeEventSystemClick(heroEquipmentAutoRefineView.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>())
+                || !InvokeEventSystemClick(heroEquipmentAutoRefineView.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>())
                 || heroEquipmentAutoRefineView.GameObject.activeSelf)
             { Fail("HeroEquip G4 auto-refine close did not close the popup."); yield break; }
             MarkValidationControl("HE-56-AUTO-REFINE-CLOSE");
             if (!InvokeEventSystemClick(autoRefineOpen)
-                || !InvokeEventSystemClick(heroEquipmentAutoRefineView.Binding.Find("Layer/Popup/Btn_Confirm")?.GetComponent<Button>()))
+                || !InvokeEventSystemClick(heroEquipmentAutoRefineView.FindNode("Layer/Popup/Btn_Confirm")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 auto-refine confirm EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-54-AUTO-REFINE-CONFIRM");
             deadline = Time.realtimeSinceStartup + 12f;
@@ -3526,7 +3526,7 @@ namespace ProjectX.Core
 
             ShowHeroEquipmentFragments();
             MarkValidationControl("HE-05-EQUIPMENT-PIECES");
-            ScrollRect fragmentScroll = heroEquipmentFragmentView.Binding.Find(
+            ScrollRect fragmentScroll = heroEquipmentFragmentView.FindNode(
                 "Layer/suipianUI/Bag/TableView")?.GetComponent<ScrollRect>();
             Canvas.ForceUpdateCanvases();
             Transform firstFragmentRow = fragmentScroll?.content?.Find("RuntimeFragmentRow_1");
@@ -3565,16 +3565,16 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(composableFragment?.GetComponent<Button>()))
             { Fail("HeroEquip G4 composable fragment 4621 EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-34-PIECES-LIST-ITEM");
-            Button fragmentSource = heroEquipmentFragmentView.Binding.Find(
+            Button fragmentSource = heroEquipmentFragmentView.FindNode(
                 "Layer/suipianUI/suipian/Btn_huoqu")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(fragmentSource) || heroItemSourceView.GameObject.activeSelf != true)
             { Fail("HeroEquip G4 fragment source did not open ItemSource through EventSystem."); yield break; }
             MarkValidationControl("HE-35-PIECES-SOURCE");
-            Button sourceClose = heroItemSourceView.Binding.Find("Layer/Popup/Title/Btn_close")?.GetComponent<Button>();
+            Button sourceClose = heroItemSourceView.FindNode("Layer/Popup/Title/Btn_close")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(sourceClose) || heroItemSourceView.GameObject.activeSelf)
             { Fail("HeroEquip G4 item-source close did not hide the popup."); yield break; }
             MarkValidationControl("HE-79-SOURCE-CLOSE");
-            GameObject fragmentRecycle = heroEquipmentFragmentView.Binding.Find("Layer/suipianUI/recycle");
+            GameObject fragmentRecycle = heroEquipmentFragmentView.FindNode("Layer/suipianUI/recycle");
             if (fragmentRecycle == null || fragmentRecycle.activeInHierarchy)
             { Fail("HeroEquip G4 excluded fragment recycle entry was not hidden."); yield break; }
             MarkValidationControl("HE-37-PIECES-RECYCLE-ENTRY");
@@ -3583,7 +3583,7 @@ namespace ProjectX.Core
             if (fragmentPrompt == null || !fragmentPrompt.gameObject.activeSelf)
             { Fail("HeroEquip G4 composable fragment red-dot was not visible."); yield break; }
             MarkValidationControl("HE-84-PIECES-RED-DOT");
-            Button compose = heroEquipmentFragmentView.Binding.Find("Layer/suipianUI/suipian/Btn_hecheng")?.GetComponent<Button>();
+            Button compose = heroEquipmentFragmentView.FindNode("Layer/suipianUI/suipian/Btn_hecheng")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(compose)) { Fail("HeroEquip G4 compose EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-36-PIECES-COMPOSE");
             deadline = Time.realtimeSinceStartup + 12f;
@@ -3594,7 +3594,7 @@ namespace ProjectX.Core
             int fragmentQuantityAfter = services.Bag.GetTotalQuantityByItemId(composeFragmentId);
             if (fragmentQuantityAfter >= fragmentQuantityBefore)
             { Fail("HeroEquip G4 compose did not refresh the consumed fragment quantity."); yield break; }
-            Text fragmentProgress = heroEquipmentFragmentView.Binding.Find(
+            Text fragmentProgress = heroEquipmentFragmentView.FindNode(
                 "Layer/suipianUI/suipian/Slider_Bg/Value")?.GetComponent<Text>();
             Transform refreshedFragment = heroEquipmentFragmentView.GameObject
                 .GetComponentsInChildren<Transform>(true)
@@ -3616,7 +3616,7 @@ namespace ProjectX.Core
             yield return CaptureHeroEquipmentG5State("g1-equipment-pieces-empty.png");
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
                     "Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 awaken entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
@@ -3625,7 +3625,7 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 awaken attributes were missing, empty, or still placeholder values."); yield break; }
             MarkValidationControl("HE-39-DETAIL-AWAKEN");
             yield return CaptureHeroEquipmentG5State("g1-awaken-before.png");
-            if (!InvokeEventSystemClick(heroEquipmentAwakenView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentAwakenView.FindNode(
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 awaken action EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-57-AWAKEN-ONCE");
@@ -3652,15 +3652,15 @@ namespace ProjectX.Core
                 || formationPopupView?.GameObject.activeSelf == true)
             { Fail("HeroEquip G4 awaken success reopened the formation UI over cultivation."); yield break; }
             string awakenSuccessStatus = status;
-            InvokeEventSystemClick(heroEquipmentAwakenView.Binding.Find(
+            InvokeEventSystemClick(heroEquipmentAwakenView.FindNode(
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn")?.GetComponent<Button>());
             deadline = Time.realtimeSinceStartup + 8f;
             while (status == awakenSuccessStatus && Time.realtimeSinceStartup < deadline) yield return null;
             bool awakenRejected = status != awakenSuccessStatus;
             yield return CaptureHeroEquipmentG5State("g1-awaken-locked.png");
-            Button awakenExchange = heroEquipmentCultivateView.Binding.Find(
+            Button awakenExchange = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/juexing/Btn_yijianduihuan")?.GetComponent<Button>();
-            Button autoStarOpen = heroEquipmentCultivateView.Binding.Find(
+            Button autoStarOpen = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/juexing/Btn_yijianshengxing")?.GetComponent<Button>();
             if (awakenExchange == null || awakenExchange.gameObject.activeInHierarchy
                 || autoStarOpen == null || autoStarOpen.gameObject.activeInHierarchy
@@ -3674,7 +3674,7 @@ namespace ProjectX.Core
             }) MarkValidationControl(hiddenId);
 
             if (!heroEquipmentPresenter.PrepareDetails(divineUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.Binding.Find(
+                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
                     "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 shenzhu entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
@@ -3682,7 +3682,7 @@ namespace ProjectX.Core
             if (!heroEquipmentPresenter.AreCultivationAttributesBound(3))
             { Fail("HeroEquip G4 shenzhu attributes were missing, empty, or still placeholder values."); yield break; }
             MarkValidationControl("HE-40-DETAIL-SHENZHU");
-            if (!InvokeEventSystemClick(heroEquipmentDivineView.Binding.Find(
+            if (!InvokeEventSystemClick(heroEquipmentDivineView.FindNode(
                 "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 shenzhu action EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-66-SHENZHU-ONCE");
@@ -3705,13 +3705,13 @@ namespace ProjectX.Core
             if (heroEquipmentPresenter.HasActiveCultivationEffect)
             { Fail("HeroEquip G4 shenzhu success Imod retained its final frame after completion."); yield break; }
             string divineSuccessStatus = status;
-            InvokeEventSystemClick(heroEquipmentDivineView.Binding.Find(
+            InvokeEventSystemClick(heroEquipmentDivineView.FindNode(
                 "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu")?.GetComponent<Button>());
             deadline = Time.realtimeSinceStartup + 8f;
             while (status == divineSuccessStatus && Time.realtimeSinceStartup < deadline) yield return null;
             bool divineRejected = status != divineSuccessStatus;
             yield return CaptureHeroEquipmentG5State("g1-shenzhu-locked.png");
-            Button divineEffectOpen = heroEquipmentDivineView.Binding.Find(
+            Button divineEffectOpen = heroEquipmentDivineView.FindNode(
                 "Layer/zhuangbeijuexingUI/shenzhu/fujiashuxing/Btn_xiangxi")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(divineEffectOpen) || !heroEquipmentDivineEffectView.GameObject.activeSelf)
             {
@@ -3724,13 +3724,13 @@ namespace ProjectX.Core
                 yield break;
             }
             MarkValidationControl("HE-67-SHENZHU-EFFECT-OPEN");
-            if (!InvokeEventSystemClick(heroEquipmentDivineEffectView.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>())
+            if (!InvokeEventSystemClick(heroEquipmentDivineEffectView.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>())
                 || heroEquipmentDivineEffectView.GameObject.activeSelf)
             { Fail("HeroEquip G4 divine-effect popup did not close."); yield break; }
             MarkValidationControl("HE-68-SHENZHU-EFFECT-CLOSE");
-            Button autoDivineTier = heroEquipmentCultivateView.Binding.Find(
+            Button autoDivineTier = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu/Btn_yijianshengjie")?.GetComponent<Button>();
-            Button autoDivineLevel = heroEquipmentCultivateView.Binding.Find(
+            Button autoDivineLevel = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu/Btn_yijianshengceng")?.GetComponent<Button>();
             if (autoDivineTier == null || autoDivineTier.gameObject.activeInHierarchy
                 || autoDivineLevel == null || autoDivineLevel.gameObject.activeInHierarchy
@@ -3754,7 +3754,7 @@ namespace ProjectX.Core
             for (int tab = 0; tab < cultivateTabIds.Length; tab++)
             {
                 string tabName = tab == 0 ? "Button1" : $"Button{tab + 1}_StrengthRuntime";
-                Button tabButton = oneLevelFrameView.Binding.Find(
+                Button tabButton = oneLevelFrameView.FindNode(
                     $"Layer/Panel_12/Bg/Btn_ListView/Panel_10/{tabName}")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(tabButton))
                 { Fail($"HeroEquip G4 cultivate tab EventSystem input unavailable: {cultivateTabIds[tab]}"); yield break; }
@@ -3763,9 +3763,9 @@ namespace ProjectX.Core
                 MarkValidationControl(cultivateTabIds[tab]);
                 yield return null;
             }
-            Button previousHero = heroEquipmentCultivateView.Binding.Find(
+            Button previousHero = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_L")?.GetComponent<Button>();
-            Button nextHero = heroEquipmentCultivateView.Binding.Find(
+            Button nextHero = heroEquipmentCultivateView.FindNode(
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_R")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(previousHero) || !InvokeEventSystemClick(nextHero))
             { Fail("HeroEquip G4 cultivate previous/next hero EventSystem input unavailable."); yield break; }
@@ -3778,11 +3778,11 @@ namespace ProjectX.Core
                 .FirstOrDefault(value => value.gameObject.activeInHierarchy
                     && value.name.StartsWith("EquipmentFragment_", StringComparison.Ordinal));
             if (!InvokeEventSystemClick(sourceFragment?.GetComponent<Button>())
-                || !InvokeEventSystemClick(heroEquipmentFragmentView.Binding.Find(
+                || !InvokeEventSystemClick(heroEquipmentFragmentView.FindNode(
                     "Layer/suipianUI/suipian/Btn_huoqu")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 source destination setup was unavailable."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-source-actionable.png");
-            Button sourceDestination = heroItemSourceView.Binding.Find(
+            Button sourceDestination = heroItemSourceView.FindNode(
                 "Layer/Popup/itemlayer_1/Button_3")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(sourceDestination))
             {
@@ -3800,7 +3800,7 @@ namespace ProjectX.Core
                 yield break;
             }
             MarkValidationControl("HE-78-SOURCE-DYNAMIC-TARGET");
-            Button equipmentFrameClose = oneLevelFrameView.Binding.Find(
+            Button equipmentFrameClose = oneLevelFrameView.FindNode(
                 "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(equipmentFrameClose))
             { Fail("HeroEquip G4 source return could not close the restored equipment frame."); yield break; }
@@ -3813,7 +3813,7 @@ namespace ProjectX.Core
             }
 
             mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true) ?? mainView;
-            GameObject wearMenu = mainView.Binding.Find("Layer/Main_UI/tankuang2");
+            GameObject wearMenu = mainView.FindNode("Layer/Main_UI/tankuang2");
             if (wearMenu?.activeInHierarchy != true && !InvokeEventSystemClick(wearToggle))
             {
                 Fail($"HeroEquip G4 could not reopen the wear submenu for FaBao isolation: "
@@ -3823,7 +3823,7 @@ namespace ProjectX.Core
                 yield break;
             }
             yield return null;
-            Button faBaoEntry = mainView.Binding.Find(FaBaoBagPath)?.GetComponent<Button>();
+            Button faBaoEntry = mainView.FindNode(FaBaoBagPath)?.GetComponent<Button>();
             if (!InvokeEventSystemClick(faBaoEntry))
             { Fail("HeroEquip G4 FaBao sibling entry EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-02-MAIN-FABAO");
@@ -3831,18 +3831,18 @@ namespace ProjectX.Core
             while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < deadline) yield return null;
             if (!IsHeroEquipmentOpen)
             { Fail("HeroEquip G4 FaBao sibling bag did not open."); yield break; }
-            Button faBaoTab = oneLevelFrameView.Binding.Find(
+            Button faBaoTab = oneLevelFrameView.FindNode(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.GetComponent<Button>();
             if (faBaoTab == null || faBaoTab.interactable)
             { Fail("HeroEquip G4 selected FaBao tab state was not source-equivalent."); yield break; }
             MarkValidationControl("HE-11-FABAO-BAG-TAB");
-            GameObject faBaoFragmentTab = oneLevelFrameView.Binding.Find(
+            GameObject faBaoFragmentTab = oneLevelFrameView.FindNode(
                 "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime");
             if (faBaoFragmentTab == null || faBaoFragmentTab.activeInHierarchy)
             { Fail("HeroEquip G4 excluded FaBao fragment tab was not hidden."); yield break; }
             MarkValidationControl("HE-12-FABAO-FRAGMENT-TAB");
             MarkValidationControl("HE-15-FABAO-FRAGMENT-ACTIONS-DEFERRED");
-            Button faBaoHelp = oneLevelFrameView.Binding.Find(
+            Button faBaoHelp = oneLevelFrameView.FindNode(
                 "Layer/Panel_12/Title/TitleName/Button_1")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(faBaoHelp) || !IsErrorVisible)
             { Fail("HeroEquip G4 FaBao help EventSystem input did not open the real help dialog."); yield break; }
@@ -3854,14 +3854,14 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(faBaoListItem) || !heroEquipmentPresenter.IsDetailVisible)
             { Fail("HeroEquip G4 FaBao list item did not open detail through EventSystem."); yield break; }
             MarkValidationControl("HE-14-FABAO-LIST-ITEM");
-            Button frameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button frameClose = oneLevelFrameView.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(frameClose))
             { Fail("HeroEquip G4 equipment frame close EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-03-BAG-CLOSE");
             MarkValidationControl("HE-30-STRENGTH-CLOSE");
             yield return null;
 
-            Button formationEntry = mainView.Binding.Find(FormationPath)?.GetComponent<Button>();
+            Button formationEntry = mainView.FindNode(FormationPath)?.GetComponent<Button>();
             if (!InvokeEventSystemClick(formationEntry))
             {
                 Fail("HeroEquip G4 formation entry for six-slot boundary was unavailable: "
@@ -3878,7 +3878,7 @@ namespace ProjectX.Core
             yield return CaptureHeroEquipmentG5State("g1-hero-detail-equipped.png");
             for (int slot = 1; slot <= 6; slot++)
             {
-                Button slotButton = heroDetailView.Binding.Find($"Layer/EquipUI/Bg/bg/EquipIcon{slot}")?.GetComponent<Button>();
+                Button slotButton = heroDetailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(slotButton))
                 {
                     Fail($"HeroEquip G4 hero slot {slot} EventSystem input unavailable: "
@@ -3904,20 +3904,20 @@ namespace ProjectX.Core
                     : IsHeroEquipmentOpen ? "equipment" : "toast";
                 if (heroEquipmentChangeView?.GameObject.activeSelf == true)
                 {
-                    Button changePopupClose = heroEquipmentChangeView.Binding.Find("Layer/Popup/Btn_close")?.GetComponent<Button>();
+                    Button changePopupClose = heroEquipmentChangeView.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>();
                     if (!InvokeEventSystemClick(changePopupClose))
                     { Fail($"HeroEquip G4 hero slot {slot} change popup could not return through its visible close."); yield break; }
                     yield return null;
                 }
                 else if (heroItemSourceView?.GameObject.activeSelf == true)
                 {
-                    if (!InvokeEventSystemClick(heroItemSourceView.Binding.Find("Layer/Popup/Title/Btn_close")?.GetComponent<Button>()))
+                    if (!InvokeEventSystemClick(heroItemSourceView.FindNode("Layer/Popup/Title/Btn_close")?.GetComponent<Button>()))
                     { Fail($"HeroEquip G4 hero slot {slot} source popup could not return through its visible close."); yield break; }
                     yield return null;
                 }
                 else if (IsHeroEquipmentOpen)
                 {
-                    Button slotFrameClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+                    Button slotFrameClose = oneLevelFrameView.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
                     if (!InvokeEventSystemClick(slotFrameClose))
                     { Fail($"HeroEquip G4 hero slot {slot} could not return through frame close."); yield break; }
                     yield return null;
@@ -3934,7 +3934,7 @@ namespace ProjectX.Core
                 }
             }
 
-            Button finalHeroClose = oneLevelFrameView.Binding.Find("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
+            Button finalHeroClose = oneLevelFrameView.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(finalHeroClose))
             { Fail("HeroEquip G4 final hero-detail close EventSystem input unavailable."); yield break; }
             deadline = Time.realtimeSinceStartup + 8f;
@@ -4248,7 +4248,7 @@ namespace ProjectX.Core
             }
 
             MarkValidationControl("TASK-01-MAIN-ENTRY");
-            CocosUiBinding initialTaskBinding = taskBackgroundView.Binding;
+            UiPrefabIdentity initialTaskBinding = taskBackgroundView.Identity;
             Text initialTaskTitle = initialTaskBinding.Find("Layer/Panel_1/Title/TitleName")?.GetComponent<Text>();
             Text initialTaskTab = initialTaskBinding.Find(
                 "Layer/Panel_1/Btn_ListView/Panel_1/Button/ChooseBg/BtnName")?.GetComponent<Text>();
@@ -4341,7 +4341,7 @@ namespace ProjectX.Core
             if (!services.Tasks.TryGet(2, dailyId, out TaskRecord repeated) || repeated.State != 2)
             { Fail("Task G4 repeat/invalid claim changed authoritative state."); yield break; }
 
-            Button close = taskBackgroundView.Binding.Find("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>();
+            Button close = taskBackgroundView.FindNode("Layer/Panel_1/Title/CloseBtn")?.GetComponent<Button>();
             close?.onClick.Invoke();
             if (IsTaskOpen) { Fail("Task G4 close button did not return to main."); yield break; }
             MarkValidationControl("TASK-02-CLOSE");
@@ -4377,7 +4377,7 @@ namespace ProjectX.Core
             { Fail("Task G4 reconnect did not restore claimed task/box states."); yield break; }
             yield return CaptureTaskG5Evidence("TASK-01-RECONNECT");
 
-            CocosUiBinding taskBinding = taskBackgroundView.Binding;
+            UiPrefabIdentity taskBinding = taskBackgroundView.Identity;
             Text taskTitle = taskBinding.Find("Layer/Panel_1/Title/TitleName")?.GetComponent<Text>();
             Text taskTabName = taskBinding.Find("Layer/Panel_1/Btn_ListView/Panel_1/Button/ChooseBg/BtnName")?.GetComponent<Text>();
             Button taskTabButton = taskBinding.Find("Layer/Panel_1/Btn_ListView/Panel_1/Button")?.GetComponent<Button>();
@@ -4956,7 +4956,7 @@ namespace ProjectX.Core
 
         private GameObject FindMainHudNode(string path)
         {
-            GameObject node = mainView?.Binding.Find(path);
+            GameObject node = mainView?.FindNode(path);
             if (node != null) return node;
 
             Transform root = mainView?.GameObject?.transform;
@@ -5043,7 +5043,7 @@ namespace ProjectX.Core
             };
             foreach (string path in conditionallyHidden)
             {
-                GameObject node = mainView.Binding.Find(path);
+                GameObject node = mainView.FindNode(path);
                 if (node != null) node.SetActive(false);
             }
             if (chatMiniView != null)
@@ -5084,7 +5084,7 @@ namespace ProjectX.Core
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
             };
             foreach (string path in hiddenPaths)
-                mainView.Binding.Find(path)?.SetActive(false);
+                mainView.FindNode(path)?.SetActive(false);
             foreach (string runtimeName in new[] { "ChatEntryRuntime", "TeamEntryRuntime", "WelfareEntryRuntime" })
                 mainView.GameObject.transform.Find(runtimeName)?.gameObject.SetActive(false);
             chatMiniView?.SetVisible(false);
@@ -5171,7 +5171,7 @@ namespace ProjectX.Core
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou2",
                 "Layer/Main_UI/ButtonGroup8/btn_Zhekou3"
             };
-            string[] visible = paths.Where(path => mainView.Binding.Find(path)?.activeInHierarchy == true).ToArray();
+            string[] visible = paths.Where(path => mainView.FindNode(path)?.activeInHierarchy == true).ToArray();
             if (visible.Length != 0)
             {
                 Fail($"Steam HUD exclusion acceptance failed: visible={string.Join(",", visible)}");
@@ -5184,14 +5184,14 @@ namespace ProjectX.Core
 
         private void BindHudBoundary(CocosUiView owner, string path, string message)
         {
-            GameObject node = owner.Binding.Find(path);
+            GameObject node = owner.FindNode(path);
             if (node == null) return;
             owner.BindClick(path, () => ShowToast(message, 2f), true);
         }
 
         private bool AuditHudBoundary(CocosUiView owner, string path, out string detail)
         {
-            Button button = owner?.Binding.Find(path)?.GetComponent<Button>();
+            Button button = owner?.FindNode(path)?.GetComponent<Button>();
             if (button == null || !button.interactable)
             {
                 detail = $"button missing or disabled: {path}";
@@ -5654,6 +5654,7 @@ namespace ProjectX.Core
             SetOneLevelFrameVisible(true);
             oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             ConfigureHeroFrame(false);
+            oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             Text replacementTitle = oneLevelFrameView?.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (replacementTitle != null) replacementTitle.text = string.Empty;
             heroListView?.SetVisible(false);
@@ -5941,11 +5942,12 @@ namespace ProjectX.Core
                 CocosUiView sharedCultivationFrame = services.UiRouter.FindBySource("shop/shop_bg");
                 if (sharedCultivationFrame != null)
                 {
-                    CocosUiBinding dedicatedBinding = Instantiate(sharedCultivationFrame.Binding,
-                        sharedCultivationFrame.Binding.transform.parent);
-                    dedicatedBinding.gameObject.name = "HeroCultivationHelpFrameRuntime";
-                    dedicatedBinding.gameObject.SetActive(false);
-                    heroCultivationHelpFrameView = new CocosUiView(dedicatedBinding);
+                    GameObject dedicatedFrame = Instantiate(sharedCultivationFrame.GameObject,
+                        sharedCultivationFrame.GameObject.transform.parent);
+                    dedicatedFrame.name = "HeroCultivationHelpFrameRuntime";
+                    dedicatedFrame.SetActive(false);
+                    heroCultivationHelpFrameView = new CocosUiView(
+                        dedicatedFrame.GetComponent<UiPrefabIdentity>());
                 }
             }
             CocosUiView[] required = { oneLevelFrameView, heroCultivationView, heroLevelUpView,
@@ -6098,7 +6100,7 @@ namespace ProjectX.Core
                 yield break;
             }
             yield return CaptureEnhanceMasterFrame(g5Visual ? "EM-FABAO-STRENGTH.png" : "EM-G3-FABAO-STRENGTH.png");
-            Button materialSlot = faBaoStrengthView.Binding.Find(
+            Button materialSlot = faBaoStrengthView.FindNode(
                 "Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon1")?.GetComponent<Button>();
             materialSlot?.onClick.Invoke();
             yield return CaptureEnhanceMasterFrame(g5Visual ? "EM-FABAO-MATERIAL-CHOOSER.png" : "EM-G3-FABAO-MATERIAL-CHOOSER.png");
@@ -6699,13 +6701,13 @@ namespace ProjectX.Core
 
         private static void SetBoundText(CocosUiView view, string path, string value)
         {
-            Text text = view.Binding.Find(path)?.GetComponent<Text>();
+            Text text = view.FindNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 
         private static void SetBoundVisible(CocosUiView view, string path, bool visible)
         {
-            GameObject target = view.Binding.Find(path);
+            GameObject target = view.FindNode(path);
             if (target != null) target.SetActive(visible);
         }
 
@@ -6798,7 +6800,7 @@ namespace ProjectX.Core
                 .ThenByDescending(item => item.Quantity)
                 .ThenByDescending(item => item.ItemId)
                 .ToArray();
-            CocosUiBinding binding = heroEquipmentFragmentView.Binding;
+            UiPrefabIdentity binding = heroEquipmentFragmentView.Identity;
             GameObject empty = binding.Find("Layer/suipianUI/Point");
             if (empty != null) empty.SetActive(fragments.Length == 0);
             Text emptyText = empty?.GetComponentInChildren<Text>(true);
@@ -6834,7 +6836,7 @@ namespace ProjectX.Core
                 .ThenByDescending(item => item.Quantity)
                 .ThenByDescending(item => item.ItemId)
                 .ToArray();
-            CocosUiBinding binding = heroEquipmentFragmentView.Binding;
+            UiPrefabIdentity binding = heroEquipmentFragmentView.Identity;
             GameObject empty = binding.Find("Layer/suipianUI/Point");
             if (empty != null) empty.SetActive(fragments.Length == 0);
 
@@ -6869,7 +6871,7 @@ namespace ProjectX.Core
             }
         }
 
-        private void RenderHeroEquipmentFragmentRows(CocosUiBinding binding, BagItemRecord[] fragments)
+        private void RenderHeroEquipmentFragmentRows(UiPrefabIdentity binding, BagItemRecord[] fragments)
         {
             RectTransform template = binding.Find("Layer/suipianUI/Bag/ItemCell")?.GetComponent<RectTransform>();
             RectTransform viewport = binding.Find("Layer/suipianUI/Bag/TableView")?.GetComponent<RectTransform>();
@@ -6882,8 +6884,6 @@ namespace ProjectX.Core
             for (int index = 0; index < fragments.Length; index += 5)
                 rows.Add(fragments.Skip(index).Take(5).ToArray());
             heroEquipmentFragmentList.SetItems(rows);
-            binding.RetireMetadataClonedFromSerializedTemplateAtRuntime(
-                template, viewport.transform.Find("VirtualContent"));
         }
 
         private void BindHeroEquipmentFragmentRow(RectTransform row, BagItemRecord[] items, int rowIndex)
@@ -6987,7 +6987,7 @@ namespace ProjectX.Core
 
         private void BindHeroFragmentDetail(BagItemRecord item)
         {
-            CocosUiBinding binding = heroEquipmentFragmentView.Binding;
+            UiPrefabIdentity binding = heroEquipmentFragmentView.Identity;
             SetBoundText(heroEquipmentFragmentView, "Layer/suipianUI/suipian/Namebg/Name", item.Name);
             SetBoundText(heroEquipmentFragmentView, "Layer/suipianUI/suipian/miaoshu/Content", item.Description);
             int required = GetHeroFragmentComposeCost(item);
@@ -7025,7 +7025,7 @@ namespace ProjectX.Core
 
         private void BindHeroEquipmentFragmentDetail(BagItemRecord item)
         {
-            CocosUiBinding binding = heroEquipmentFragmentView.Binding;
+            UiPrefabIdentity binding = heroEquipmentFragmentView.Identity;
             EquipmentDefinition definition = services.EquipmentCatalog.GetEquipmentByFragment(item.ItemId);
             SetBoundText(heroEquipmentFragmentView, "Layer/suipianUI/suipian/Namebg/Name", definition.Name);
             SetBoundText(heroEquipmentFragmentView, "Layer/suipianUI/suipian/miaoshu/Content", item.Description);
@@ -7224,7 +7224,7 @@ namespace ProjectX.Core
         private void ConfigureHeroFrame(bool showBag)
         {
             EnsureOneLevelFrame().Apply(OneLevelFrameMode.Standard);
-            CocosUiBinding binding = oneLevelFrameView.Binding;
+            UiPrefabIdentity binding = oneLevelFrameView.Identity;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {
@@ -7272,12 +7272,12 @@ namespace ProjectX.Core
 
         private void RefreshSharedCurrencyHeaders()
         {
-            RefreshStandardCurrencyHeader(oneLevelFrameView?.Binding, "Layer/GoldCheck");
-            RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");
-            RefreshStandardCurrencyHeader(monopolyHudView?.Binding, "Layer/Panel/GoldCheck");
+            RefreshStandardCurrencyHeader(oneLevelFrameView?.Identity, "Layer/GoldCheck");
+            RefreshStandardCurrencyHeader(taskBackgroundView?.Identity, "Layer/Panel_1/GoldCheck");
+            RefreshStandardCurrencyHeader(monopolyHudView?.Identity, "Layer/Panel/GoldCheck");
         }
 
-        private void RefreshStandardCurrencyHeader(CocosUiBinding binding, string rootPath)
+        private void RefreshStandardCurrencyHeader(UiPrefabIdentity binding, string rootPath)
         {
             if (binding == null || services == null) return;
             Text stamina = binding.Find(rootPath + "/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
@@ -7512,8 +7512,8 @@ namespace ProjectX.Core
             }
             yield return null;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            Button hudEntry = mainView?.Binding.Find(HeroRecyclePath)?.GetComponent<Button>();
-            Button heroBagEntry = mainView?.Binding.Find(HeroBagPath)?.GetComponent<Button>();
+            Button hudEntry = mainView?.FindNode(HeroRecyclePath)?.GetComponent<Button>();
+            Button heroBagEntry = mainView?.FindNode(HeroBagPath)?.GetComponent<Button>();
             if (hudEntry == null || heroBagEntry == null)
             {
                 Fail("HeroRebirth G4 main entry controls are missing.");
@@ -7537,7 +7537,7 @@ namespace ProjectX.Core
             MarkValidationControl("HR-20-EMPTY-STATE");
             yield return CaptureHeroRebirthEvidence("HR-20-empty-state.png");
 
-            Transform tabs = oneLevelFrameView.Binding.Find("Layer/Panel_12/Bg/Btn_ListView")?.transform;
+            Transform tabs = oneLevelFrameView.FindNode("Layer/Panel_12/Bg/Btn_ListView")?.transform;
             Transform tabPanel = tabs?.Find("Panel_10");
             Transform heroTab = tabPanel?.Find("Button1");
             Transform excludedTab = tabPanel?.Find("Button2_Runtime");
@@ -7566,7 +7566,7 @@ namespace ProjectX.Core
             yield return null;
             yield return new WaitForEndOfFrame();
             mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            heroBagEntry = mainView?.Binding.Find(HeroBagPath)?.GetComponent<Button>();
+            heroBagEntry = mainView?.FindNode(HeroBagPath)?.GetComponent<Button>();
             if (!InvokeEventSystemRaycastClick(heroBagEntry))
             {
                 Fail("HeroRebirth G4 hero-bag entry rejected real EventSystem/raycast input.");
@@ -7582,7 +7582,7 @@ namespace ProjectX.Core
             }
             MarkValidationControl("HR-02-HERO-BAG-ENTRY");
             yield return CaptureHeroRebirthEvidence("HR-02-hero-bag-entry.png");
-            Button recycleFromBag = heroBagView.Binding.Find("Layer/yingxiongbeibaoUI/recycle")?.GetComponent<Button>();
+            Button recycleFromBag = heroBagView.FindNode("Layer/yingxiongbeibaoUI/recycle")?.GetComponent<Button>();
             if (!InvokeEventSystemRaycastClick(recycleFromBag))
             {
                 Fail("HeroRebirth G4 hero-bag recycle control rejected real EventSystem/raycast input.");
@@ -7951,7 +7951,7 @@ namespace ProjectX.Core
             yield return null;
             yield return new WaitForEndOfFrame();
             mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            hudEntry = mainView?.Binding.Find(HeroRecyclePath)?.GetComponent<Button>();
+            hudEntry = mainView?.FindNode(HeroRecyclePath)?.GetComponent<Button>();
             if (!InvokeEventSystemRaycastClick(hudEntry))
             {
                 Fail("HeroRebirth G4 reconnect entry did not accept a real HUD click.");
@@ -8033,7 +8033,7 @@ namespace ProjectX.Core
             yield return null;
             yield return new WaitForEndOfFrame();
             mainView = services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
-            hudEntry = mainView?.Binding.Find(HeroRecyclePath)?.GetComponent<Button>();
+            hudEntry = mainView?.FindNode(HeroRecyclePath)?.GetComponent<Button>();
             if (!InvokeEventSystemRaycastClick(hudEntry))
             {
                 Fail("HeroRebirth G4 terminal reentry did not accept a real HUD click.");
@@ -8783,7 +8783,7 @@ namespace ProjectX.Core
 
         private void ConfigureTaskFrame()
         {
-            CocosUiBinding binding = taskBackgroundView.Binding;
+            UiPrefabIdentity binding = taskBackgroundView.Identity;
             SetTaskText(binding.Find("Layer/Panel_1/Title/TitleName")?.transform, "任务");
             Transform tabPanel = binding.Find("Layer/Panel_1/Btn_ListView/Panel_1")?.transform;
             Transform tab = binding.Find("Layer/Panel_1/Btn_ListView/Panel_1/Button")?.transform;
@@ -8991,13 +8991,13 @@ namespace ProjectX.Core
             }
 
             Transform shopRoot = soulShopView.GameObject.transform;
-            Text title = bagPopupFrameView.Binding.Find(
+            Text title = bagPopupFrameView.FindNode(
                 "Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
             gameplayContentView = gameplayContentView
                 ?? services.UiRouter.FindBySource("common/ActivityLayer");
             Transform activityLayer = gameplayContentView?.GameObject.transform;
             bool activityContract = activityLayer == null || !activityLayer.gameObject.activeSelf;
-            Button close = bagPopupFrameView.Binding.Find(
+            Button close = bagPopupFrameView.FindNode(
                 "Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>();
             Button help = title?.transform.Find("Button_1")?.GetComponent<Button>();
             Button soulInfo = shopRoot.Find("ShopUI/Mine/jianghun/add")?.GetComponent<Button>();
@@ -9053,7 +9053,7 @@ namespace ProjectX.Core
                     Fail("Gameplay shops G5 draw-route validation did not open the real Draw page.");
                     yield break;
                 }
-                Button drawShop = drawView.Binding.Find("Layer/Shop")?.GetComponent<Button>();
+                Button drawShop = drawView.FindNode("Layer/Shop")?.GetComponent<Button>();
                 if (!InvokeEventSystemClick(drawShop))
                 {
                     Fail("Gameplay shops G5 Draw Shop control was not EventSystem-clickable.");

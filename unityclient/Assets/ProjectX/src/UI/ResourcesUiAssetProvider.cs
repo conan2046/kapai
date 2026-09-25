@@ -130,17 +130,17 @@ namespace ProjectX.UI
                 throw new InvalidOperationException($"UI prefab reference was not found: {key}");
             GameObject instance = UnityEngine.Object.Instantiate(reference.Prefab, parent, false);
             instance.name = $"DynamicUi_{key}";
-            CocosUiBinding binding = instance.GetComponent<CocosUiBinding>()
-                ?? instance.GetComponentInChildren<CocosUiBinding>(true);
-            if (binding == null)
+            UiPrefabIdentity identity = instance.GetComponent<UiPrefabIdentity>()
+                ?? instance.GetComponentInChildren<UiPrefabIdentity>(true);
+            if (identity == null)
             {
                 DestroyOwned(instance);
-                throw new InvalidOperationException($"UI prefab has no CocosUiBinding: {key}");
+                throw new InvalidOperationException($"UI prefab has no identity component: {key}");
             }
             instance.SetActive(active);
             NormalizeFixedRootOrder(key, instance.transform);
             Resources.UnloadAsset(reference);
-            return new CocosUiView(binding);
+            return new CocosUiView(identity);
         }
 
         private void NormalizeFixedRootOrder(string key, Transform instance)

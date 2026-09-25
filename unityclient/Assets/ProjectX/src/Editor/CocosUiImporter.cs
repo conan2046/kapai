@@ -356,13 +356,92 @@ namespace ProjectX.Editor
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
                 File.ReadAllText(ToAbsolutePath(ManifestPath)));
-            ValidationSummary summary = ValidateBaselines(manifest);
+            ValidationSummary summary = ValidateBaselines(manifest, collectAllFailures: true);
             Debug.Log(
                 $"ProjectX UI validation completed: {summary.prefabs} prefabs, "
                 + $"{summary.nodes} nodes, {summary.sprites} sprites, "
                 + $"{summary.slicedSprites} sliced variants, {summary.texts} texts, "
                 + $"{summary.outlinedTexts} outlines, {summary.shadowedTexts} shadows, "
                 + $"{summary.spriteBindings} sprite bindings, 0 errors.");
+        }
+
+        // Diagnosis only: collect every affected node in one manifest pass while
+        // keeping ValidateBaselinesBatch's strict fail-fast result unchanged.
+        public static string DiagnoseBaselineDifferencesBatch()
+        {
+            ImportManifest manifest = JsonConvert.DeserializeObject<ImportManifest>(
+                File.ReadAllText(ToAbsolutePath(ManifestPath)));
+            var findings = new List<string>();
+            var summary = new ValidationSummary();
+            foreach (ImportDocument item in manifest.documents)
+            {
+                try
+                {
+                    UiDocument document = ReadDocument(item.documentAssetPath);
+                    GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(item.prefabAssetPath);
+                    if (prefab == null)
+                    {
+                        findings.Add(item.prefabAssetPath + " | missing prefab");
+                        continue;
+                    }
+                    UiPrefabIdentity identity = prefab.GetComponent<UiPrefabIdentity>();
+                    if (identity == null)
+                    {
+                        findings.Add(item.prefabAssetPath + " | missing UiPrefabIdentity");
+                        continue;
+                    }
+                    int expectedNodes = CountNodes(document.root);
+                    if (identity.Nodes.Count != expectedNodes)
+                        findings.Add(item.prefabAssetPath + " | identity nodes "
+                            + identity.Nodes.Count + "/" + expectedNodes);
+                    if (prefab.GetComponent<CocosUiBinding>() != null)
+                        findings.Add(item.prefabAssetPath + " | legacy CocosUiBinding remains");
+                    int metadataCount = prefab.GetComponentsInChildren<CocosNodeMetadata>(true).Length;
+                    if (metadataCount != 0)
+                        findings.Add(item.prefabAssetPath + " | legacy Metadata count " + metadataCount);
+                    foreach (CocosNodeReference reference in identity.Nodes)
+                        if (reference.target == null)
+                            findings.Add(item.prefabAssetPath + " | null target " + reference.path);
+                    foreach (Transform transform in prefab.GetComponentsInChildren<Transform>(true))
+                        if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) != 0)
+                            findings.Add(item.prefabAssetPath + " | missing script " + transform.name);
+                    try { ValidateTimeline(document, prefab, identity, item.prefabAssetPath, summary); }
+                    catch (Exception exception)
+                    {
+                        findings.Add(item.prefabAssetPath + " | timeline " + exception.Message);
+                    }
+                    CollectNodeValidationFailures(document.root, identity, item.prefabAssetPath, summary, findings);
+                }
+                catch (Exception exception)
+                {
+                    findings.Add(item.prefabAssetPath + " | document " + exception.Message);
+                }
+            }
+            string output = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..",
+                ".local", "unity-validation", "w6-importer-all-differences-20260926.txt"));
+            Directory.CreateDirectory(Path.GetDirectoryName(output));
+            File.WriteAllLines(output, findings, new System.Text.UTF8Encoding(false));
+            Debug.Log($"UI baseline diagnostic: {manifest.documents.Length} documents, "
+                + $"{findings.Count} observations. Report: {output}");
+            return output;
+        }
+
+        private static void CollectNodeValidationFailures(UiNode node, UiPrefabIdentity identity,
+            string prefabPath, ValidationSummary summary, List<string> findings)
+        {
+            try { ValidateTextStyles(node, identity, summary, false); }
+            catch (Exception exception)
+            {
+                findings.Add(prefabPath + " | text " + exception.Message);
+            }
+            try { ValidateSpriteBindings(node, identity, summary, false, false); }
+            catch (Exception exception)
+            {
+                findings.Add(prefabPath + " | sprite " + exception.Message);
+            }
+            if (node.children != null)
+                foreach (UiNode child in node.children)
+                    CollectNodeValidationFailures(child, identity, prefabPath, summary, findings);
         }
 
         private static void ImportBaselines(bool createPreview)
@@ -384,14 +463,14 @@ namespace ProjectX.Editor
                 GameObject root = PrefabUtility.LoadPrefabContents(item.prefabAssetPath);
                 try
                 {
-                    CocosUiBinding binding = root.GetComponent<CocosUiBinding>();
-                    if (binding == null)
-                        throw new MissingReferenceException($"Cocos binding is missing: {item.prefabAssetPath}");
+                    UiPrefabIdentity identity = root.GetComponent<UiPrefabIdentity>();
+                    if (identity == null)
+                        throw new MissingReferenceException($"UI identity is missing: {item.prefabAssetPath}");
                     CocosTimelinePlayer existing = root.GetComponent<CocosTimelinePlayer>();
                     if (existing != null) UnityEngine.Object.DestroyImmediate(existing);
-                    if (document.animation != null)
+                    if (HasTimelineTracks(document.animation))
                         root.AddComponent<CocosTimelinePlayer>().Initialize(document.animation);
-                    ReconcileEmptyGraphics(document.root, binding);
+                    ReconcileEmptyGraphics(document.root, identity);
                     PrefabUtility.SaveAsPrefabAsset(root, item.prefabAssetPath);
                 }
                 finally
@@ -405,9 +484,9 @@ namespace ProjectX.Editor
             Debug.Log($"ProjectX Timeline patch completed: {manifest.documents.Length} prefabs.");
         }
 
-        private static void ReconcileEmptyGraphics(UiNode node, CocosUiBinding binding)
+        private static void ReconcileEmptyGraphics(UiNode node, UiPrefabIdentity identity)
         {
-            GameObject target = binding.Find(node.nodePath, node.nodeType, node.actionTag);
+            GameObject target = identity.Find(node.nodePath, node.nodeType, node.actionTag);
             if (target != null && node.nodeType == "PanelObjectData"
                                && !HasRenderableResource(FindResource(node, "FileData")))
             {
@@ -423,7 +502,7 @@ namespace ProjectX.Editor
             }
             if (node.children != null)
                 foreach (UiNode child in node.children)
-                    ReconcileEmptyGraphics(child, binding);
+                    ReconcileEmptyGraphics(child, identity);
         }
 
         private static void RunManifestImport(string manifestPath, bool createPreview)
@@ -495,28 +574,34 @@ namespace ProjectX.Editor
             public int timelineTracks;
         }
 
-        private static ValidationSummary ValidateBaselines(ImportManifest manifest)
+        private static ValidationSummary ValidateBaselines(
+            ImportManifest manifest, bool collectAllFailures = false)
         {
             var summary = new ValidationSummary();
             var spritePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var failures = new List<string>();
             foreach (ImportDocument item in manifest.documents)
             {
+                try
+                {
                 UiDocument document = ReadDocument(item.documentAssetPath);
                 int expectedNodes = CountNodes(document.root);
                 GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(item.prefabAssetPath);
                 if (prefab == null)
                     throw new InvalidDataException($"Generated prefab is missing: {item.prefabAssetPath}");
-                CocosUiBinding binding = prefab.GetComponent<CocosUiBinding>();
-                if (binding == null || binding.Nodes.Count != expectedNodes)
+                UiPrefabIdentity identity = prefab.GetComponent<UiPrefabIdentity>();
+                if (identity == null || identity.Nodes.Count != expectedNodes)
                     throw new InvalidDataException(
-                        $"Binding count mismatch in {item.prefabAssetPath}: "
-                        + $"expected {expectedNodes}, actual {binding?.Nodes.Count ?? 0}");
+                        $"Identity count mismatch in {item.prefabAssetPath}: "
+                        + $"expected {expectedNodes}, actual {identity?.Nodes.Count ?? 0}");
+                if (prefab.GetComponent<CocosUiBinding>() != null)
+                    throw new InvalidDataException($"Legacy Binding remains in {item.prefabAssetPath}");
                 int metadataCount = prefab.GetComponentsInChildren<CocosNodeMetadata>(true).Length;
-                if (metadataCount != expectedNodes)
+                if (metadataCount != 0)
                     throw new InvalidDataException(
-                        $"Node count mismatch in {item.prefabAssetPath}: "
-                        + $"expected {expectedNodes}, actual {metadataCount}");
-                foreach (CocosNodeReference reference in binding.Nodes)
+                        $"Generated prefab must not contain legacy node Metadata in {item.prefabAssetPath}: "
+                        + $"found {metadataCount}");
+                foreach (CocosNodeReference reference in identity.Nodes)
                     if (reference.target == null)
                         throw new MissingReferenceException(
                             $"Null binding target in {item.prefabAssetPath}: {reference.path}");
@@ -524,13 +609,24 @@ namespace ProjectX.Editor
                     if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) != 0)
                         throw new MissingReferenceException(
                             $"Missing script in {item.prefabAssetPath}: {transform.name}");
-                ValidateTimeline(document, prefab, binding, item.prefabAssetPath, summary);
+                ValidateTimeline(document, prefab, identity, item.prefabAssetPath, summary);
                 CollectTexturePaths(document.root, spritePaths);
-                ValidateTextStyles(document.root, binding, summary);
-                ValidateSpriteBindings(document.root, binding, summary);
+                ValidateTextStyles(document.root, identity, summary);
+                ValidateSpriteBindings(document.root, identity, summary);
                 summary.prefabs++;
                 summary.nodes += expectedNodes;
+                }
+                catch (Exception exception)
+                {
+                    if (!collectAllFailures) throw;
+                    failures.Add($"{item.prefabAssetPath}: {exception.GetType().Name}: {exception.Message}");
+                }
             }
+
+            if (failures.Count != 0)
+                throw new InvalidDataException(
+                    $"UI baseline failed in {failures.Count} documents:\n"
+                    + string.Join("\n", failures));
 
             foreach (string assetPath in spritePaths)
                 if (LoadSpriteAtPath(assetPath, null) == null)
@@ -544,7 +640,7 @@ namespace ProjectX.Editor
                     if (sprite == null)
                         throw new MissingReferenceException(
                             $"Sliced sprite import failed: {definition.assetPath}#{definition.spriteName}");
-                    Vector4 expected = definition.border?.Value ?? Vector4.zero;
+                    Vector4 expected = ExpectedSpriteBorder(definition);
                     if (expected == Vector4.zero || sprite.border != expected)
                         throw new InvalidDataException(
                             $"Sprite border mismatch in {definition.assetPath}#{definition.spriteName}: "
@@ -560,12 +656,12 @@ namespace ProjectX.Editor
         private static void ValidateTimeline(
             UiDocument document,
             GameObject prefab,
-            CocosUiBinding binding,
+            UiPrefabIdentity identity,
             string prefabPath,
             ValidationSummary summary)
         {
             CocosTimelinePlayer player = prefab.GetComponent<CocosTimelinePlayer>();
-            if (document.animation == null)
+            if (!HasTimelineTracks(document.animation))
             {
                 if (player != null)
                     throw new InvalidDataException($"Unexpected timeline component: {prefabPath}");
@@ -578,7 +674,8 @@ namespace ProjectX.Editor
             foreach (CocosTimelineTrack track in tracks)
             {
                 if (string.Equals(track.property, "FrameEvent", StringComparison.Ordinal)) continue;
-                if (binding.FindActionTag(track.actionTag) == null)
+                // Runtime Timeline targets come from the independent serialized identity.
+                if (identity.FindSerializedActionTag(track.actionTag) == null)
                     throw new MissingReferenceException(
                         $"Timeline ActionTag {track.actionTag} is missing in {prefabPath}");
             }
@@ -586,12 +683,18 @@ namespace ProjectX.Editor
             summary.timelineTracks += tracks.Length;
         }
 
+        private static bool HasTimelineTracks(CocosTimelineDefinition definition)
+        {
+            return definition?.timelines != null && definition.timelines.Length > 0;
+        }
+
         private static void ValidateTextStyles(
             UiNode node,
-            CocosUiBinding binding,
-            ValidationSummary summary)
+            UiPrefabIdentity identity,
+            ValidationSummary summary,
+            bool recurseChildren = true)
         {
-            GameObject target = binding.Find(node.nodePath, node.nodeType, node.actionTag);
+            GameObject target = identity.Find(node.nodePath, node.nodeType, node.actionTag);
             Text text = null;
             Color expectedColor = node.color?.Value ?? Color.white;
             switch (node.nodeType)
@@ -659,9 +762,9 @@ namespace ProjectX.Editor
                 summary.texts++;
             }
 
-            if (node.children != null)
+            if (recurseChildren && node.children != null)
                 foreach (UiNode child in node.children)
-                    ValidateTextStyles(child, binding, summary);
+                    ValidateTextStyles(child, identity, summary);
         }
 
         private static bool Approximately(Color first, Color second)
@@ -674,11 +777,12 @@ namespace ProjectX.Editor
 
         private static void ValidateSpriteBindings(
             UiNode node,
-            CocosUiBinding binding,
+            UiPrefabIdentity identity,
             ValidationSummary summary,
-            bool namedSpritesOnly = false)
+            bool namedSpritesOnly = false,
+            bool recurseChildren = true)
         {
-            GameObject target = binding.Find(node.nodePath, node.nodeType, node.actionTag);
+            GameObject target = identity.Find(node.nodePath, node.nodeType, node.actionTag);
             switch (node.nodeType)
             {
                 case "ImageViewObjectData":
@@ -751,9 +855,9 @@ namespace ProjectX.Editor
                     break;
             }
 
-            if (node.children != null)
+            if (recurseChildren && node.children != null)
                 foreach (UiNode child in node.children)
-                    ValidateSpriteBindings(child, binding, summary, namedSpritesOnly);
+                    ValidateSpriteBindings(child, identity, summary, namedSpritesOnly);
         }
 
         private static void ValidateResourceSprite(
@@ -820,7 +924,7 @@ namespace ProjectX.Editor
                 if (sprite == null)
                     throw new MissingReferenceException(
                         $"Sliced sprite import failed: {definition.assetPath}#{definition.spriteName}");
-                Vector4 expected = definition.border?.Value ?? Vector4.zero;
+                Vector4 expected = ExpectedSpriteBorder(definition);
                 if (expected == Vector4.zero || sprite.border != expected)
                     throw new InvalidDataException(
                         $"Sprite border mismatch in {definition.assetPath}#{definition.spriteName}: "
@@ -988,8 +1092,8 @@ namespace ProjectX.Editor
             GameObject root = BuildNode(document.root, null, bindings);
             root.name = document.name;
             ApplyMainHudHorizontalLayout(document, bindings);
-            root.AddComponent<CocosUiBinding>().Initialize(document.source, bindings);
-            if (document.animation != null)
+            root.AddComponent<UiPrefabIdentity>().Initialize(document.source, bindings);
+            if (HasTimelineTracks(document.animation))
                 root.AddComponent<CocosTimelinePlayer>().Initialize(document.animation);
             return root;
         }
@@ -1035,10 +1139,10 @@ namespace ProjectX.Editor
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(MainHudPrefabPath);
             if (prefab == null)
                 return;
-            CocosUiBinding binding = prefab.GetComponent<CocosUiBinding>();
-            bool alreadyMerged = binding != null
-                                 && binding.Find(MainHudMergedGroupPath) == null
-                                 && binding.Find(MainHudPrimaryGroupPath)
+            UiPrefabIdentity identity = prefab.GetComponent<UiPrefabIdentity>();
+            bool alreadyMerged = identity != null
+                                 && identity.Find(MainHudMergedGroupPath) == null
+                                 && identity.Find(MainHudPrimaryGroupPath)
                                      ?.GetComponent<HorizontalLayoutGroup>() != null;
             if (!alreadyMerged)
                 RebuildMainHudPrefab(false);
@@ -1075,8 +1179,6 @@ namespace ProjectX.Editor
                 rect.SetParent(parent, false);
             ApplyRect(rect, node.rect);
             gameObject.SetActive(node.visible);
-            gameObject.AddComponent<CocosNodeMetadata>()
-                .Initialize(node.nodePath, node.nodeType, node.tag, node.actionTag);
             bindings.Add(new CocosNodeReference
             {
                 path = node.nodePath,
@@ -1347,7 +1449,26 @@ namespace ProjectX.Editor
                 if (asset is Sprite sprite
                     && string.Equals(sprite.name, spriteName, StringComparison.Ordinal))
                     return sprite;
+
+            if (NormalizeSharedUiSprites.TryResolveNormalizedAlias(
+                    assetPath, spriteName, out string canonicalName, out Vector4 canonicalBorder))
+            {
+                foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath(assetPath))
+                    if (asset is Sprite sprite
+                        && string.Equals(sprite.name, canonicalName, StringComparison.Ordinal)
+                        && sprite.border == canonicalBorder)
+                        return sprite;
+            }
             return null;
+        }
+
+        private static Vector4 ExpectedSpriteBorder(SpriteBorderDefinition definition)
+        {
+            return NormalizeSharedUiSprites.TryResolveNormalizedAlias(
+                definition.assetPath, definition.spriteName,
+                out _, out Vector4 canonicalBorder)
+                ? canonicalBorder
+                : definition.border?.Value ?? Vector4.zero;
         }
 
         private static void CreatePreviewScene(ImportManifest manifest)

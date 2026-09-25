@@ -29,9 +29,9 @@ namespace ProjectX.Core
             if (mailValidationSawRedDot) MarkValidationControl("MAIL-02-MAIN-RED-DOT");
             if (mailPresenter.TabLabel == "邮件") MarkValidationControl("MAIL-04-MAIL-TAB");
 
-            Text emptyText = mailView.Binding.Find("Layer/None")?.GetComponentInChildren<Text>(true);
-            Text oneKeyClaim = mailView.Binding.Find("Layer/Panel/MailList/MailBg/ReceiveBtn/BtnName")?.GetComponent<Text>();
-            Text oneKeyDelete = mailView.Binding.Find("Layer/Panel/MailList/MailBg/DeleteBtn/BtnName")?.GetComponent<Text>();
+            Text emptyText = mailView.FindNode("Layer/None")?.GetComponentInChildren<Text>(true);
+            Text oneKeyClaim = mailView.FindNode("Layer/Panel/MailList/MailBg/ReceiveBtn/BtnName")?.GetComponent<Text>();
+            Text oneKeyDelete = mailView.FindNode("Layer/Panel/MailList/MailBg/DeleteBtn/BtnName")?.GetComponent<Text>();
             RecordValidationSemantic("mail-title", !string.IsNullOrWhiteSpace(mailPresenter.TitleText),
                 $"actual={mailPresenter.TitleText}");
             RecordValidationSemantic("mail-tab", mailPresenter.TabLabel == "邮件",

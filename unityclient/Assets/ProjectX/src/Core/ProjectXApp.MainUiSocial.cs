@@ -14,7 +14,7 @@ namespace ProjectX.Core
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Friend"))
                 {
-                    mainView.Binding.Find(FriendPath)?.SetActive(false);
+                    mainView.FindNode(FriendPath)?.SetActive(false);
                     return;
                 }
                 Button button = mainView.BindClick(FriendPath, HandleFriendClick, true);
@@ -69,10 +69,10 @@ namespace ProjectX.Core
                 mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
                 if (IsSteamExcludedModule("Guild"))
                 {
-                    mainView.Binding.Find(GuildPath)?.SetActive(false);
+                    mainView.FindNode(GuildPath)?.SetActive(false);
                     return;
                 }
-                if (mainView.Binding.Find(GuildPath) == null)
+                if (mainView.FindNode(GuildPath) == null)
                     return; // Legacy guild group removed from UImainLayer_new.
                 Button button = mainView.BindClick(GuildPath, HandleGuildClick, true);
                 if (autoInvoke) StartCoroutine(InvokeButtonNextFrame(button));

@@ -377,10 +377,18 @@ namespace ProjectX.Core
         {
             BattlePlaybackContext context = battlePlaybackContext;
             GetBattlePlaybackRuntime(context).PendingResult = false;
-                GetBattlePlaybackPresenter(context)?.Hide();
-                EnsureWorldPresenter();
-            worldPresenter.ShowStages();
-            SetStatus("World replay control entered the current Cocos transient chapter-map state.");
+            GetBattlePlaybackPresenter(context)?.Hide();
+            EnsureWorldPresenter();
+            if (worldChainMode)
+            {
+                worldPresenter.ShowChapterPage();
+                SetStatus("World chain replay control returned to the current Cocos chapter-selection page.");
+            }
+            else
+            {
+                worldPresenter.ShowStages();
+                SetStatus("World replay control entered the current Cocos transient chapter-map state.");
+            }
             StartCoroutine(ReplayWorldBattleAfterCocosDelay(context));
         }
 

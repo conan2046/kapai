@@ -95,7 +95,11 @@ namespace ProjectX.Core
             if (services.World.Chapters.All(value => value.Id != chapterId)) yield break;
             // 已有该章节的关卡数据就不重复请求（例如从别处返回章节列表）。
             if (services.World.SelectedChapterId == chapterId && services.World.StageCount > 0) yield break;
-            pendingRewardPreviewChapter = chapterId;
+            // Validation must enter the actual stage-map state before starting
+            // its capture coroutine. The normal UI keeps this request as a
+            // chapter-list reward preview; the validation route requests the
+            // same authoritative chapter without the preview-only behavior.
+            pendingRewardPreviewChapter = services.Options.WorldBattleValidation ? 0 : chapterId;
             InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)chapterId);
         }
 

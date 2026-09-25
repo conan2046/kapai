@@ -679,9 +679,26 @@ namespace ProjectX.UI
                     continue;
                 }
 
+                EnsureScrollViewportHitSurface(scroll);
                 scroll.StopMovement();
                 scroll.verticalNormalizedPosition = 1f;
             }
+        }
+
+        private static void EnsureScrollViewportHitSurface(ScrollRect scroll)
+        {
+            RectTransform viewport = scroll != null ? scroll.viewport : null;
+            if (viewport == null) return;
+
+            Graphic hitSurface = viewport.GetComponent<Graphic>();
+            if (hitSurface == null)
+            {
+                Image image = viewport.gameObject.AddComponent<Image>();
+                image.color = Color.clear;
+                image.canvasRenderer.cullTransparentMesh = false;
+                hitSurface = image;
+            }
+            hitSurface.raycastTarget = true;
         }
 
         private void ShowChange(DisplayRecord current, bool hasCurrentEquipped = true)
@@ -849,7 +866,6 @@ namespace ProjectX.UI
             changeView?.SetVisible(false);
             cultivateView.SetVisible(true);
             SetEquipmentCultivationSubview(0);
-            strengthView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         public bool PrepareDetails(uint uid, int selectedFormationPosition)
@@ -950,7 +966,6 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             faBaoRefineView.SetVisible(false);
             faBaoStrengthView.SetVisible(true);
-            faBaoStrengthView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void ShowFaBaoRefine(DisplayRecord item)
@@ -995,7 +1010,6 @@ namespace ProjectX.UI
             divineView.SetVisible(false);
             faBaoStrengthView.SetVisible(false);
             faBaoRefineView.SetVisible(true);
-            faBaoRefineView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void BindCultivationShell(DisplayRecord item)
@@ -1169,7 +1183,6 @@ namespace ProjectX.UI
                 ShowFaBaoStrength(selected);
             });
             faBaoMaterialChooserView.ShowPopup();
-            faBaoMaterialChooserView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void BindFaBaoMaterialCell(Transform cell, FaBaoRecord value)
@@ -1237,7 +1250,6 @@ namespace ProjectX.UI
             refineOnceButton.onClick.AddListener(() => refineEquipment?.Invoke(item.Uid, materialId, count));
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(1);
-            refineView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void ShowAwaken(DisplayRecord item)
@@ -1267,7 +1279,6 @@ namespace ProjectX.UI
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn", "觉醒");
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(2);
-            awakenView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void ShowDivine(DisplayRecord item)
@@ -1345,7 +1356,6 @@ namespace ProjectX.UI
                 ShowPopup(divineEffectView);
             });
             SetEquipmentCultivationSubview(3);
-            divineView.Binding?.RetireMetadataWithCompleteRuntimeIdentityAtRuntime();
         }
 
         private void SetEquipmentCultivationSubview(int mode)
@@ -1517,7 +1527,6 @@ namespace ProjectX.UI
             autoRefineLevels = 1;
             SetAutoRefineLevels(1);
             ShowPopup(autoRefineView);
-            autoRefineView.Binding?.RetireMetadataWithSerializedIdentityAtRuntime(null);
         }
 
         private void SetAutoRefineLevels(int value)

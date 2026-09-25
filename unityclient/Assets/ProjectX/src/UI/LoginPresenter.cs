@@ -312,6 +312,9 @@ namespace ProjectX.UI
                 text.alignment = TextAnchor.MiddleLeft;
             }
             input.textComponent = text;
+            // Imported 30 px account text can sit in a 27 px field. Truncate
+            // generates no glyphs there, leaving a populated input visually blank.
+            text.verticalOverflow = VerticalWrapMode.Overflow;
             input.contentType = password ? InputField.ContentType.Password : InputField.ContentType.Standard;
             input.lineType = InputField.LineType.SingleLine;
             return input;

@@ -69,7 +69,7 @@ namespace ProjectX.Core
             // over the title, tabs and currency nodes even though they are active.
             frame.AttachContent(bagView, keepSiblingOrder: true);
             NormalizePlayerHubSurfaceOrder();
-            CocosUiBinding binding = oneLevelFrameView.Binding;
+            UiPrefabIdentity binding = oneLevelFrameView.Identity;
             RectTransform root = binding.transform as RectTransform;
             if (root != null)
             {

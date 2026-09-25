@@ -1,5 +1,4 @@
 using System;
-using ProjectX.UI.Migration;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -62,29 +61,7 @@ namespace ProjectX.UI
             TabButton.onClick.RemoveAllListeners();
             if (tabAction != null) TabButton.onClick.AddListener(() => tabAction());
 
-            RetireLegacyNodeMetadata();
-        }
-
-        private void RetireLegacyNodeMetadata()
-        {
-            // Bag now owns its runtime references through Unity Transform paths.
-            // Keep the serialized Prefab untouched, but retire its legacy lookup
-            // metadata from this instantiated page while the game is running.
-            if (!Application.isPlaying) return;
-            CocosUiBinding runtimeBinding = GetComponent<CocosUiBinding>();
-            if (runtimeBinding != null)
-            {
-                runtimeBinding.RetireLegacyNodeMetadataAtRuntime();
-                return;
-            }
-
-            CocosNodeMetadata[] metadata = GetComponentsInChildren<CocosNodeMetadata>(true);
-            for (int index = 0; index < metadata.Length; index++)
-            {
-                if (metadata[index] == null) continue;
-                CocosUiBinding.PreserveRetiredMetadataIdentity(metadata[index]);
-                Destroy(metadata[index]);
-            }
+            // Imported paths are owned by UiPrefabIdentity and Unity Transforms.
         }
 
         private static Transform Require(Transform root, string relativePath)

@@ -72,9 +72,6 @@ namespace ProjectX.UI
             frame.GameObject.transform.SetAsLastSibling();
             ConfigureTabs();
             ShowPage(0);
-            // The shell's path lookups and first render are complete; its full
-            // serialized node map now covers later selection and model updates.
-            shell?.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         public void Refresh(int selectedHeroId)
@@ -106,7 +103,7 @@ namespace ProjectX.UI
                 detail = $"EventSystem/tabs unavailable: eventSystem={EventSystem.current != null}, tabs={tabs.Count}";
                 return false;
             }
-            Transform tabPanel = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform tabPanel = frame.GetSerializedNodeByActionTag(-1210914123, "cocosstudio/csd/OneLevelLayer.csd", "Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             if (tabPanel == null || tabPanel.Find("Button2_Runtime") == null
                 || tabPanel.Find("HeroCultivationTab2") != null)
             {
@@ -138,7 +135,7 @@ namespace ProjectX.UI
                     return false;
                 }
                 CocosUiView active = PageViews().ElementAt(index);
-                Text title = frame.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+                Text title = frame.GetSerializedNodeByActionTag(553439985, "cocosstudio/csd/OneLevelLayer.csd", "Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
                 if (!active.GameObject.activeInHierarchy || title == null || title.text != labels[index])
                 {
                     detail = $"tab {labels[index]} did not activate its page/title";
@@ -207,8 +204,8 @@ namespace ProjectX.UI
             ShowPage(0);
 
             int original = heroId;
-            Button right = shell.FindNode("Layer/Node_3/Button_r")?.GetComponent<Button>();
-            Button left = shell.FindNode("Layer/Node_3/Button_l")?.GetComponent<Button>();
+            Button right = shell.GetSerializedNodeByActionTag(-2019954491, "cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd", "Layer/Node_3/Button_r")?.GetComponent<Button>();
+            Button left = shell.GetSerializedNodeByActionTag(-772112847, "cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd", "Layer/Node_3/Button_l")?.GetComponent<Button>();
             if (!InvokePointer(right, out string rightTop) || heroId == original)
             {
                 detail = $"right deployed switch failed; top={rightTop}, hero={original}->{heroId}";
@@ -234,57 +231,57 @@ namespace ProjectX.UI
             Button button = null;
             switch (controlId)
             {
-                case "HC-01-CLOSE": button = frame.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>(); break;
-                case "HC-02-RETURN-FORMATION": button = shell.FindNode("Layer/Node_3/duiwu")?.GetComponent<Button>(); break;
-                case "HC-03-PREV-DEPLOYED": button = shell.FindNode("Layer/Node_3/Button_l")?.GetComponent<Button>(); break;
-                case "HC-04-NEXT-DEPLOYED": button = shell.FindNode("Layer/Node_3/Button_r")?.GetComponent<Button>(); break;
+                case "HC-01-CLOSE": button = frame.GetSerializedNodeByActionTag(-849663080, "cocosstudio/csd/OneLevelLayer.csd", "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>(); break;
+                case "HC-02-RETURN-FORMATION": button = shell.GetSerializedNodeByActionTag(1495574384, "cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd", "Layer/Node_3/duiwu")?.GetComponent<Button>(); break;
+                case "HC-03-PREV-DEPLOYED": button = shell.GetSerializedNodeByActionTag(-772112847, "cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd", "Layer/Node_3/Button_l")?.GetComponent<Button>(); break;
+                case "HC-04-NEXT-DEPLOYED": button = shell.GetSerializedNodeByActionTag(-2019954491, "cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd", "Layer/Node_3/Button_r")?.GetComponent<Button>(); break;
                 case "HC-05-TAB-LEVEL": button = tabs.Count > 0 ? tabs[0].GetComponent<Button>() : null; break;
                 case "HC-06-TAB-STAR": button = tabs.Count > 1 ? tabs[1].GetComponent<Button>() : null; break;
                 case "HC-07-TAB-BREAK": button = tabs.Count > 2 ? tabs[2].GetComponent<Button>() : null; break;
                 case "HC-08-TAB-CULTIVATE": button = tabs.Count > 3 ? tabs[3].GetComponent<Button>() : null; break;
                 case "HC-09-TAB-INFO": button = tabs.Count > 4 ? tabs[4].GetComponent<Button>() : null; break;
-                case "HC-10-LEVEL-MAT-1": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1")?.GetComponent<Button>(); break;
-                case "HC-11-LEVEL-MAT-2": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2")?.GetComponent<Button>(); break;
-                case "HC-12-LEVEL-MAT-3": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3")?.GetComponent<Button>(); break;
-                case "HC-13-LEVEL-MAT-4": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4")?.GetComponent<Button>(); break;
-                case "HC-14-LEVEL-UP": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.GetComponent<Button>(); break;
-                case "HC-15-LEVEL-ONEKEY-OPEN": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.GetComponent<Button>(); break;
-                case "HC-16-ONEKEY-CLOSE": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-17-ONEKEY-CANCEL": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button1")?.GetComponent<Button>(); break;
-                case "HC-18-ONEKEY-CONFIRM": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button")?.GetComponent<Button>(); break;
-                case "HC-19-ONEKEY-PLUS1": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_+")?.GetComponent<Button>(); break;
-                case "HC-20-ONEKEY-MINUS1": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_-")?.GetComponent<Button>(); break;
-                case "HC-21-ONEKEY-PLUS10": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_+10")?.GetComponent<Button>(); break;
-                case "HC-22-ONEKEY-MINUS10": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_-10")?.GetComponent<Button>(); break;
+                case "HC-10-LEVEL-MAT-1": EnsurePage(0); button = level.GetSerializedNodeByActionTag(1192101304, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1")?.GetComponent<Button>(); break;
+                case "HC-11-LEVEL-MAT-2": EnsurePage(0); button = level.GetSerializedNodeByActionTag(543267572, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2")?.GetComponent<Button>(); break;
+                case "HC-12-LEVEL-MAT-3": EnsurePage(0); button = level.GetSerializedNodeByActionTag(1252508496, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3")?.GetComponent<Button>(); break;
+                case "HC-13-LEVEL-MAT-4": EnsurePage(0); button = level.GetSerializedNodeByActionTag(-1691912248, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4")?.GetComponent<Button>(); break;
+                case "HC-14-LEVEL-UP": EnsurePage(0); button = level.GetSerializedNodeByActionTag(-718287280, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-15-LEVEL-ONEKEY-OPEN": EnsurePage(0); button = level.GetSerializedNodeByActionTag(-260831183, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.GetComponent<Button>(); break;
+                case "HC-16-ONEKEY-CLOSE": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(-1366478043, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-17-ONEKEY-CANCEL": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(945880571, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Button1")?.GetComponent<Button>(); break;
+                case "HC-18-ONEKEY-CONFIRM": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(-1317664743, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Button")?.GetComponent<Button>(); break;
+                case "HC-19-ONEKEY-PLUS1": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(525757709, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Button_+")?.GetComponent<Button>(); break;
+                case "HC-20-ONEKEY-MINUS1": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(-1808937308, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Button_-")?.GetComponent<Button>(); break;
+                case "HC-21-ONEKEY-PLUS10": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(-1307804865, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Button_+10")?.GetComponent<Button>(); break;
+                case "HC-22-ONEKEY-MINUS10": EnsureAutoLevel(); button = autoLevel.GetSerializedNodeByActionTag(-54859097, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Button_-10")?.GetComponent<Button>(); break;
                 case "HC-23-STAR-SCROLL": EnsurePage(1); return InvokeScroll(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView", out detail);
-                case "HC-24-STAR-DETAIL": EnsurePage(1); button = star.FindNode("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
-                case "HC-25-STAR-DETAIL-CLOSE": EnsureTalent(false); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-26-STAR-UP": EnsurePage(1); button = star.FindNode("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.GetComponent<Button>(); break;
-                case "HC-27-BREAK-DETAIL": EnsurePage(2); button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
-                case "HC-28-BREAK-DETAIL-CLOSE": EnsureTalent(true); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-29-BREAK-UP": EnsurePage(2); button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.GetComponent<Button>(); break;
-                case "HC-30-CULTIVATE-HELP": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/jichu/Button")?.GetComponent<Button>(); break;
-                case "HC-31-CULTIVATE-HELP-CLOSE": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-24-STAR-DETAIL": EnsurePage(1); button = star.GetSerializedNodeByActionTag(-1026353529, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengxingLayer.csd", "Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-25-STAR-DETAIL-CLOSE": EnsureTalent(false); button = talent.GetSerializedNodeByActionTag(-448538979, "cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd", "Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-26-STAR-UP": EnsurePage(1); button = star.GetSerializedNodeByActionTag(-1963460044, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengxingLayer.csd", "Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.GetComponent<Button>(); break;
+                case "HC-27-BREAK-DETAIL": EnsurePage(2); button = breakUp.GetSerializedNodeByActionTag(1048958930, "cocosstudio/csd/shenjiangyangcheng/yingxiongtupoLayer.csd", "Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-28-BREAK-DETAIL-CLOSE": EnsureTalent(true); button = talent.GetSerializedNodeByActionTag(-448538979, "cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd", "Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-29-BREAK-UP": EnsurePage(2); button = breakUp.GetSerializedNodeByActionTag(-2029276078, "cocosstudio/csd/shenjiangyangcheng/yingxiongtupoLayer.csd", "Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-30-CULTIVATE-HELP": EnsurePage(3); button = cultivate.GetSerializedNodeByActionTag(-1115277871, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-31-CULTIVATE-HELP-CLOSE": EnsureHelp(); button = helpFrame.GetSerializedNodeByActionTag(-1077648424, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>(); break;
                 case "HC-32-CULTIVATE-MATERIAL": EnsurePage(3); button = ResolveButton(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1"); break;
-                case "HC-33-CULTIVATE-ONEKEY": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl")?.GetComponent<Button>(); break;
-                case "HC-34-CULTIVATE-COUNT": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_xl")?.GetComponent<Button>(); break;
-                case "HC-35-CULTIVATE-ACTIVATE": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_dxl")?.GetComponent<Button>(); break;
+                case "HC-33-CULTIVATE-ONEKEY": EnsurePage(3); button = cultivate.GetSerializedNodeByActionTag(-260831183, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao/btn_yjxl")?.GetComponent<Button>(); break;
+                case "HC-34-CULTIVATE-COUNT": EnsurePage(3); button = cultivate.GetSerializedNodeByActionTag(-718287280, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao/btn_xl")?.GetComponent<Button>(); break;
+                case "HC-35-CULTIVATE-ACTIVATE": EnsurePage(3); button = cultivate.GetSerializedNodeByActionTag(1658917854, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao/btn_dxl")?.GetComponent<Button>(); break;
                 case "HC-36-INFO-SCROLL": EnsurePage(4); return InvokeScroll(info, "Layer/shenjiangInfoUI/Info/ScrollView_1", out detail);
-                case "HC-37-INFO-ATTR-DETAIL": EnsurePage(4); button = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button")?.GetComponent<Button>(); break;
-                case "HC-38-INFO-ATTR-CLOSE": EnsureAttributes(); button = attributes.FindNode("Layer/Mask_close")?.GetComponent<Button>(); break;
-                case "HC-39-INFO-SKILL-DETAIL": EnsurePage(4); button = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button")?.GetComponent<Button>(); break;
-                case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
-                case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
+                case "HC-37-INFO-ATTR-DETAIL": EnsurePage(4); button = info.GetSerializedNodeByActionTag(-923374390, "cocosstudio/csd/shenjiangyangcheng/yingxiongxinxiLayer.csd", "Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-38-INFO-ATTR-CLOSE": EnsureAttributes(); button = attributes.GetSerializedNodeByActionTag(1519287035, "cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd", "Layer/Mask_close")?.GetComponent<Button>(); break;
+                case "HC-39-INFO-SKILL-DETAIL": EnsurePage(4); button = info.GetSerializedNodeByActionTag(1335325542, "cocosstudio/csd/shenjiangyangcheng/yingxiongxinxiLayer.csd", "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button")?.GetComponent<Button>(); break;
+                case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.GetSerializedNodeByActionTag(-448538979, "cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd", "Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.GetSerializedNodeByActionTag(391021299, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
+                case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.GetSerializedNodeByActionTag(682847881, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
                 case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
                 case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1/HeroDestinyButton")?.GetComponent<Button>(); break;
                 case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11/HeroDestinyButton")?.GetComponent<Button>(); break;
-                case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
-                case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
-                case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
-                case "HC-49-NUM-INPUT-DIGITS": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn1")?.GetComponent<Button>(); break;
-                case "HC-50-NUM-INPUT-DELETE": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn10")?.GetComponent<Button>(); break;
-                case "HC-51-NUM-INPUT-CLOSE": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/Close")?.GetComponent<Button>(); break;
+                case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.GetSerializedNodeByActionTag(101891004, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.GetSerializedNodeByActionTag(101891004, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.GetSerializedNodeByActionTag(-865952348, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian3.csd", "Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-49-NUM-INPUT-DIGITS": EnsureNumber(); button = number.GetSerializedNodeByActionTag(847161196, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/BtnList/Btn1")?.GetComponent<Button>(); break;
+                case "HC-50-NUM-INPUT-DELETE": EnsureNumber(); button = number.GetSerializedNodeByActionTag(1340601654, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/BtnList/Btn10")?.GetComponent<Button>(); break;
+                case "HC-51-NUM-INPUT-CLOSE": EnsureNumber(); button = number.GetSerializedNodeByActionTag(1375030819, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/Close")?.GetComponent<Button>(); break;
                 default: detail = "unknown control id"; return false;
             }
             EnsureButtonRaycast(button);
@@ -464,8 +461,7 @@ namespace ProjectX.UI
             BindDelta(autoLevel, "Layer/bg/Button_-", -1);
             BindDelta(autoLevel, "Layer/bg/Button_+10", 10);
             BindDelta(autoLevel, "Layer/bg/Button_-10", -10);
-            InputField autoLevelCount = autoLevel.FindNode(
-                "Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            InputField autoLevelCount = autoLevel.GetSerializedNodeByActionTag(948860067, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
             if (autoLevelCount != null) autoLevelCount.onValueChanged.AddListener(UpdateAutoLevelCount);
             star.BindClick("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi", () => OpenTalent(false), true);
             star.BindClick("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing", () => starAction(heroId), true);
@@ -491,12 +487,24 @@ namespace ProjectX.UI
             number.BindClick("Layer/Panel/Bg/BtnList/Btn10", DeleteDigit, true);
             number.BindClick("Layer/Panel/Bg/BtnList/Btn12", ConfirmNumber, true);
             number.BindClick("Layer/Panel/Bg/Close", () => number.SetVisible(false), true);
+            InputField numberField = number.GetSerializedNodeByActionTag(-625820646, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/Num/TextField")?.GetComponent<InputField>();
+            if (numberField != null)
+            {
+                numberField.contentType = InputField.ContentType.IntegerNumber;
+                numberField.onValueChanged.AddListener(value =>
+                {
+                    cultivationCount = int.TryParse(value, out int entered)
+                        ? Mathf.Clamp(entered, 0, RemainingCultivation()) : 0;
+                    if (entered > RemainingCultivation())
+                        numberField.SetTextWithoutNotify(cultivationCount.ToString());
+                });
+            }
         }
 
         private void ConfigureTabs()
         {
-            GameObject listObject = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView");
-            Transform panel = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            GameObject listObject = frame.GetSerializedNodeByActionTag(-1106341412, "cocosstudio/csd/OneLevelLayer.csd", "Layer/Panel_12/Bg/Btn_ListView");
+            Transform panel = frame.GetSerializedNodeByActionTag(-1210914123, "cocosstudio/csd/OneLevelLayer.csd", "Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (listObject == null || panel == null || first == null)
                 throw new InvalidOperationException("Hero cultivation tab template is missing.");
@@ -593,11 +601,9 @@ namespace ProjectX.UI
             int cursor = 0;
             foreach (CocosUiView view in PageViews()) view.SetVisible(cursor++ == page);
             for (int i = 0; i < tabs.Count; i++) SetTab(tabs[i], new[] { "升级", "升星", "突破", "修炼", "信息" }[i], i == page);
-            Text title = frame.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            Text title = frame.GetSerializedNodeByActionTag(553439985, "cocosstudio/csd/OneLevelLayer.csd", "Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
             if (title != null) title.text = new[] { "升级", "升星", "突破", "修炼", "信息" }[page];
             Render();
-            CocosUiView activePage = PageViews().ElementAt(page);
-            activePage?.Binding?.RetireLegacyNodeMetadataAtRuntime();
         }
 
         private void CloseTransientPopups()
@@ -631,7 +637,7 @@ namespace ProjectX.UI
             SetText(shell, "Layer/Node_3/Tips_2", $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}");
             SetText(shell, "Layer/Node_3/bg_zhanli/Value", hero.Power.ToString());
             if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
-                showModel(shell.FindNode("Layer/Node_3/Node")?.transform, definition.Picture);
+                showModel(shell.GetSerializedNodeByActionTag(734350610, "cocosstudio/csd/shenjiangyangcheng/yingxiongjueseLayer.csd", "Layer/Node_3/Node")?.transform, definition.Picture);
             RenderLevel(); RenderStar(); RenderBreak(); RenderCultivate(); RenderInfo();
         }
 
@@ -661,19 +667,17 @@ namespace ProjectX.UI
             uint maximum = config.GetExperienceCap(hero.Level, checked(hero.MaxExperience * 15u));
             SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", $"{hero.Experience}/{maximum}");
             FitText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", 14);
-            Image experience = level.FindNode(
-                "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
+            Image experience = level.GetSerializedNodeByActionTag(-1784358058, "cocosstudio/csd/shenjiangyangcheng/yingxiongshuxingLayer.csd", "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
             if (experience != null)
                 experience.fillAmount = maximum == 0 ? 0f : Mathf.Clamp01((float)hero.Experience / maximum);
             SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/Tips/value", player.Level.ToString());
             int[] ids = { 834, 835, 836, 837 };
             int[] pictures = { 3105, 3107, 3101, 3106 };
-            int[] experienceValues = { 2000, 5000, 20000, 100000 };
             for (int i = 0; i < ids.Length; i++)
             {
                 string root = $"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{i + 1}";
                 SetText(level, $"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{i + 1}/Value", ItemQuantity(ids[i]).ToString());
-                SetText(level, root + "/Text", $"经验+{experienceValues[i]}");
+                SetText(level, root + "/Text", $"经验+{config.GetItemExperience(ids[i])}");
                 FitText(level, root + "/Text", 12);
                 SetMaterialIcon(level, root, resources.LoadItemIcon(pictures[i]),
                     $"HeroLevelMaterial{i + 1}", config.GetItemQuality(ids[i]));
@@ -698,8 +702,7 @@ namespace ProjectX.UI
                 const string starSkillInfoPath = "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo";
                 SetText(star, starSkillInfoPath, ResolveSkillDescription(hero, definition));
                 FitDescription(star, starSkillInfoPath, expandParent: true, rightInset: 25f);
-                Image skill = star.FindNode(
-                    "Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")?.GetComponent<Image>();
+                Image skill = star.GetSerializedNodeByActionTag(-1394446369, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengxingLayer.csd", "Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")?.GetComponent<Image>();
                 if (skill != null)
                 {
                     skill.sprite = definition.SkillId > 0
@@ -750,6 +753,22 @@ namespace ProjectX.UI
         {
             HeroRecord hero = CurrentHero();
             TrainingConfig next = config.GetTraining(hero.CultivationLevel + 1);
+            bool maximumLevel = next.RequiredLevel <= 0;
+            GameObject materials = cultivate.GetSerializedNodeByActionTag(1856781774, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao");
+            GameObject maximum = cultivate.GetSerializedNodeByActionTag(-1519922978, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/manji");
+            if (materials != null) materials.SetActive(!maximumLevel);
+            if (maximum != null) maximum.SetActive(maximumLevel);
+            if (maximumLevel) return;
+            bool readyToActivate = hero.CultivationAttack >= next.RequiredCount
+                && hero.CultivationPhysicalDefense >= next.RequiredCount
+                && hero.CultivationMagicDefense >= next.RequiredCount
+                && hero.CultivationHealth >= next.RequiredCount;
+            GameObject oneKey = cultivate.GetSerializedNodeByActionTag(-260831183, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao/btn_yjxl");
+            GameObject quantity = cultivate.GetSerializedNodeByActionTag(-718287280, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao/btn_xl");
+            GameObject activate = cultivate.GetSerializedNodeByActionTag(1658917854, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian.csd", "Layer/shenjiangxiulian/Info/cailiao/btn_dxl");
+            if (oneKey != null) oneKey.SetActive(!readyToActivate);
+            if (quantity != null) quantity.SetActive(!readyToActivate);
+            if (activate != null) activate.SetActive(readyToActivate);
             SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/Image_bg/txt_2", next.Name);
             SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_3", "攻击、物防、法防、生命属性提升");
             SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_4", "完成本阶修炼后激活天命加成");
@@ -808,6 +827,7 @@ namespace ProjectX.UI
         {
             cultivationCount = 1;
             SetAutoLevelCount();
+            RenderAutoLevel();
             autoLevel.ShowPopup();
         }
 
@@ -819,8 +839,14 @@ namespace ProjectX.UI
 
         private void SetAutoLevelCount()
         {
-            InputField count = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
-            if (count != null) count.text = cultivationCount.ToString();
+            InputField count = autoLevel.GetSerializedNodeByActionTag(948860067, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (count != null)
+            {
+                ConfigureAutoLevelCountVisual(count);
+                string value = cultivationCount.ToString();
+                if (count.text != value) count.SetTextWithoutNotify(value);
+            }
+            RenderAutoLevelPreview();
         }
 
         private void UpdateAutoLevelCount(string value)
@@ -833,24 +859,145 @@ namespace ProjectX.UI
             if (!int.TryParse(value, out int entered)) return;
             cultivationCount = Mathf.Clamp(entered, 1, Math.Max(1, player.Level - CurrentHero().Level));
             string normalized = cultivationCount.ToString();
-            InputField count = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
-            if (count != null && count.text != normalized) count.text = normalized;
+            InputField count = autoLevel.GetSerializedNodeByActionTag(948860067, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (count != null && count.text != normalized) count.SetTextWithoutNotify(normalized);
+            RenderAutoLevelPreview();
+        }
+
+        private void ConfigureAutoLevelCountVisual(InputField field)
+        {
+            field.lineType = InputField.LineType.SingleLine;
+            field.contentType = InputField.ContentType.IntegerNumber;
+            Text[] labels = field.GetComponentsInChildren<Text>(true);
+            foreach (Text label in labels)
+            {
+                RectTransform rect = label.rectTransform;
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(4f, 0f);
+                rect.offsetMax = new Vector2(-4f, 0f);
+                label.alignment = TextAnchor.MiddleCenter;
+                label.verticalOverflow = VerticalWrapMode.Overflow;
+                label.horizontalOverflow = HorizontalWrapMode.Overflow;
+                label.SetAllDirty();
+            }
+        }
+
+        private void RenderAutoLevel()
+        {
+            HeroRecord hero = CurrentHero();
+            HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
+            SetText(autoLevel, "Layer/bg/Text_3", hero.Name);
+            Text heroName = autoLevel.FindNode("Layer/bg/Text_3")?.GetComponent<Text>();
+            if (heroName != null)
+            {
+                RectTransform nameRect = heroName.rectTransform;
+                nameRect.sizeDelta = new Vector2(Mathf.Max(96f, nameRect.sizeDelta.x),
+                    Mathf.Max(30f, nameRect.sizeDelta.y));
+                heroName.alignment = TextAnchor.MiddleCenter;
+                heroName.horizontalOverflow = HorizontalWrapMode.Overflow;
+                heroName.verticalOverflow = VerticalWrapMode.Overflow;
+                heroName.SetAllDirty();
+            }
+            SetText(autoLevel, "Layer/bg/Text_3_0_0", hero.Level.ToString());
+            SetText(autoLevel, "Layer/bg/cailiao_0/value", player.Level.ToString());
+
+            Transform portraitHost = autoLevel.GetSerializedNodeByActionTag(-1223131879, "cocosstudio/csd/shenjiangyangcheng/yingxiongshengjiScene1.csd", "Layer/IconColor")?.transform;
+            Image portraitBackground = portraitHost?.GetComponent<Image>();
+            if (portraitBackground != null) portraitBackground.color = new Color(1f, 1f, 1f, 0f);
+            Transform portraitTransform = portraitHost?.Find("Icon");
+            Image portrait = portraitTransform != null ? portraitTransform.GetComponent<Image>() : null;
+            if (portrait != null)
+            {
+                portrait.sprite = resources.LoadHeroPortrait(definition.Picture);
+                portrait.enabled = portrait.sprite != null;
+                portrait.preserveAspect = true;
+                portrait.raycastTarget = false;
+            }
+            if (portraitHost != null && definition.Quality > 0)
+            {
+                const string frameName = "HeroAutoLevelPortraitFrame";
+                Transform existing = portraitHost.Find(frameName);
+                GameObject frame = existing != null ? existing.gameObject
+                    : new GameObject(frameName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                RectTransform rect = frame.GetComponent<RectTransform>();
+                rect.SetParent(portraitHost, false);
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                Image image = frame.GetComponent<Image>();
+                image.sprite = resources.LoadFirst($"HeroUI/common_quality_{Mathf.Clamp(definition.Quality, 1, 7):00}");
+                image.enabled = image.sprite != null;
+                image.raycastTarget = false;
+                frame.transform.SetAsFirstSibling();
+            }
+
+            int[] itemIds = { 834, 835, 836, 837 };
+            for (int i = 0; i < itemIds.Length; i++)
+            {
+                int itemId = itemIds[i];
+                string itemPath = $"Layer/btn_Item_{i + 1}";
+                SetText(autoLevel, itemPath + "/Text_23", $"0/{ItemQuantity(itemId)}");
+                SetMaterialIcon(autoLevel, itemPath + "/Item",
+                    resources.LoadItemIcon(config.GetItemPicture(itemId)),
+                    $"HeroAutoLevelMaterial{i + 1}", config.GetItemQuality(itemId));
+            }
+            RenderAutoLevelPreview();
+        }
+
+        private void RenderAutoLevelPreview()
+        {
+            HeroRecord hero = CurrentHero();
+            int requestedLevel = Math.Min(player.Level, hero.Level + Math.Max(0, cultivationCount));
+            int[] itemIds = { 834, 835, 836, 837 };
+            ulong availableExperience = 0;
+            for (int i = 0; i < itemIds.Length; i++)
+                availableExperience += (ulong)ItemQuantity(itemIds[i]) * (uint)config.GetItemExperience(itemIds[i]);
+            int attainableLevel = config.GetAttainableLevel(hero.Level, hero.Experience,
+                availableExperience, player.Level, checked(hero.MaxExperience * 15u));
+            int targetLevel = Math.Min(requestedLevel, attainableLevel);
+            ulong requiredExperience = config.GetRequiredLevelExperience(hero.Level, hero.Experience,
+                targetLevel, checked(hero.MaxExperience * 15u));
+
+            for (int i = 0; i < itemIds.Length; i++)
+            {
+                int available = ItemQuantity(itemIds[i]);
+                ulong perItem = (uint)config.GetItemExperience(itemIds[i]);
+                if (perItem == 0)
+                {
+                    SetText(autoLevel, $"Layer/btn_Item_{i + 1}/Text_23", $"0/{available}");
+                    continue;
+                }
+                ulong needed = requiredExperience == 0 ? 0 : (requiredExperience + perItem - 1) / perItem;
+                int required = (int)Math.Min((ulong)available, needed);
+                SetText(autoLevel, $"Layer/btn_Item_{i + 1}/Text_23", $"{required}/{available}");
+                ulong covered = (ulong)required * perItem;
+                requiredExperience = covered >= requiredExperience ? 0 : requiredExperience - covered;
+            }
+            SetText(autoLevel, "Layer/bg/Text_3_", targetLevel.ToString());
         }
 
         private void OpenNumber()
         {
-            cultivationCount = 1; SetText(number, "Layer/Panel/Bg/Num", "1");
+            cultivationCount = 0;
+            InputField field = number.GetSerializedNodeByActionTag(-625820646, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/Num/TextField")?.GetComponent<InputField>();
+            if (field != null) field.SetTextWithoutNotify(string.Empty);
             number.ShowPopup();
         }
         private void AppendDigit(int digit)
         {
-            cultivationCount = Mathf.Clamp(cultivationCount * 10 + digit, 1, RemainingCultivation());
-            SetText(number, "Layer/Panel/Bg/Num", cultivationCount.ToString());
+            cultivationCount = Mathf.Clamp(cultivationCount * 10 + digit, 0, RemainingCultivation());
+            SetNumberInput();
         }
         private void DeleteDigit()
         {
             cultivationCount = Math.Max(0, cultivationCount / 10);
-            SetText(number, "Layer/Panel/Bg/Num", cultivationCount.ToString());
+            SetNumberInput();
+        }
+        private void SetNumberInput()
+        {
+            InputField field = number.GetSerializedNodeByActionTag(-625820646, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/Num/TextField")?.GetComponent<InputField>();
+            if (field != null) field.SetTextWithoutNotify(cultivationCount.ToString());
         }
         private void ConfirmNumber()
         {
@@ -864,7 +1011,7 @@ namespace ProjectX.UI
             HeroRecord hero = CurrentHero();
             HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
             SetText(talent, "Layer/bg/Title", breakTalent ? "突破天赋" : "技能详情");
-            talent.FindNode("Layer/bg/Title")?.transform.SetAsLastSibling();
+            talent.GetSerializedNodeByActionTag(494755391, "cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd", "Layer/bg/Title")?.transform.SetAsLastSibling();
             string[] titles;
             string[] descriptions;
             if (breakTalent)
@@ -887,7 +1034,7 @@ namespace ProjectX.UI
 
         private void PopulateTalentRows(IReadOnlyList<string> titles, IReadOnlyList<string> descriptions, int activeLevel)
         {
-            GameObject listObject = talent.FindNode("Layer/bg/ListView");
+            GameObject listObject = talent.GetSerializedNodeByActionTag(994888810, "cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd", "Layer/bg/ListView");
             if (listObject == null) return;
 
             RectTransform viewport = listObject.transform as RectTransform;
@@ -1022,9 +1169,9 @@ namespace ProjectX.UI
             SetText(attributes, "Layer/Node_1/Popup/Icon/text_dingwei/num", definition.Feature);
             SetMaterialIcon(attributes, "Layer/Node_1/Popup/Icon",
                 resources.LoadHeroPortrait(definition.Picture), "HeroAttributePortrait", definition.Quality);
-            Transform portraitFrame = attributes.FindNode("Layer/Node_1/Popup/Icon")?.transform
+            Transform portraitFrame = attributes.GetSerializedNodeByActionTag(-1126031639, "cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd", "Layer/Node_1/Popup/Icon")?.transform
                 .Find("HeroAttributePortraitFrame");
-            Transform portrait = attributes.FindNode("Layer/Node_1/Popup/Icon")?.transform
+            Transform portrait = attributes.GetSerializedNodeByActionTag(-1126031639, "cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd", "Layer/Node_1/Popup/Icon")?.transform
                 .Find("HeroAttributePortrait");
             portraitFrame?.SetSiblingIndex(0);
             portrait?.SetSiblingIndex(1);
@@ -1034,8 +1181,8 @@ namespace ProjectX.UI
 
         private void PopulateHeroAttributeRows(HeroRecord hero)
         {
-            GameObject list = attributes.FindNode("Layer/Node_1/Popup/ListView");
-            GameObject template = attributes.FindNode("Layer/Node_1/Popup/ListView/name");
+            GameObject list = attributes.GetSerializedNodeByActionTag(1403891931, "cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd", "Layer/Node_1/Popup/ListView");
+            GameObject template = attributes.GetSerializedNodeByActionTag(-2010870968, "cocosstudio/csd/shenjiangyangcheng/shenjiangxiangxishuxing.csd", "Layer/Node_1/Popup/ListView/name");
             if (list == null || template == null) return;
             foreach (Transform child in list.transform.Cast<Transform>().ToArray())
                 if (child.name.StartsWith("HeroAttributeRow_", StringComparison.Ordinal))
@@ -1076,17 +1223,17 @@ namespace ProjectX.UI
         private void ConfigureHelpFrame()
         {
             SetText(helpFrame, "Layer/shopBg/Popup/Title/Title", "天命激活");
-            GameObject helpButton = helpFrame.FindNode("Layer/shopBg/Popup/Title/Title/Button_1");
+            GameObject helpButton = helpFrame.GetSerializedNodeByActionTag(1783402520, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Popup/Title/Title/Button_1");
             if (helpButton != null) helpButton.SetActive(false);
             // Cocos ChangeBg replaces Popup/bg/Image1 while retaining Popup/bg itself as
             // the decorative frame. Hiding the whole node drops the frame as well.
-            GameObject sharedBody = helpFrame.FindNode("Layer/shopBg/Popup/bg");
+            GameObject sharedBody = helpFrame.GetSerializedNodeByActionTag(1641545144, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Popup/bg");
             if (sharedBody != null) sharedBody.SetActive(true);
             ConfigureDestinyBackground(sharedBody);
             ConfigureOverlayCanvas(helpFirst.GameObject, 202);
-            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Popup/Title"), 203);
-            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Popup/Btn_close"), 203);
-            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1"), 203);
+            ConfigureOverlayCanvas(helpFrame.GetSerializedNodeByActionTag(-411194492, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Popup/Title"), 203);
+            ConfigureOverlayCanvas(helpFrame.GetSerializedNodeByActionTag(-1077648424, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Popup/Btn_close"), 203);
+            ConfigureOverlayCanvas(helpFrame.GetSerializedNodeByActionTag(-808304135, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Btn_ListView/Panel_1"), 203);
             foreach (Transform child in helpFrame.GameObject.GetComponentsInChildren<Transform>(true))
                 if (child.name.StartsWith("RuntimeGameplayContent", StringComparison.Ordinal)
                     || child.name.StartsWith("ActivityBg", StringComparison.Ordinal)
@@ -1107,7 +1254,7 @@ namespace ProjectX.UI
         }
         private void ConfigureHelpTabs()
         {
-            Transform panel = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1")?.transform;
+            Transform panel = helpFrame.GetSerializedNodeByActionTag(-808304135, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Btn_ListView/Panel_1")?.transform;
             Transform first = panel?.Find("Button");
             if (first == null) return;
             Transform second = panel.Find("HeroCultivationHelpTab2");
@@ -1150,7 +1297,7 @@ namespace ProjectX.UI
             image.color = new Color(0f, 0f, 0f, 0.72f);
             image.raycastTarget = true;
 
-            GameObject list = helpSecond.FindNode("Layer/Popup/ListView_1");
+            GameObject list = helpSecond.GetSerializedNodeByActionTag(-856730429, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian3.csd", "Layer/Popup/ListView_1");
             if (list != null)
             {
                 // The Cocos ScrollView stores three stacked content panels with a baked
@@ -1181,8 +1328,8 @@ namespace ProjectX.UI
         private void RenderCultivationDestinyPage()
         {
             HeroRecord hero = CurrentHero();
-            GameObject panel = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing");
-            GameObject template = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Button");
+            GameObject panel = helpFirst.GetSerializedNodeByActionTag(1883904596, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing");
+            GameObject template = helpFirst.GetSerializedNodeByActionTag(1138872422, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Button");
             if (panel == null || template == null) return;
             template.SetActive(false);
             for (int levelValue = 1; levelValue <= 20; levelValue++)
@@ -1228,17 +1375,17 @@ namespace ProjectX.UI
                 }
             }
             string extra = config.GetTrainingExtraDescription(helpSelectedLevel);
-            GameObject extraRoot = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5");
+            GameObject extraRoot = helpFirst.GetSerializedNodeByActionTag(-52609582, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5");
             if (extraRoot != null) extraRoot.SetActive(!string.IsNullOrEmpty(extra));
             SetText(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5/txt_5_0", extra);
-            Text destinyName = helpFirst.FindNode(
-                "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_0")?.GetComponent<Text>();
+            Text destinyName = helpFirst.GetSerializedNodeByActionTag(512814417, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_0")?.GetComponent<Text>();
             if (destinyName != null)
             {
                 destinyName.horizontalOverflow = HorizontalWrapMode.Overflow;
+                destinyName.verticalOverflow = VerticalWrapMode.Overflow;
                 destinyName.text = $"【{current.Name}】";
                 RectTransform nameRect = destinyName.rectTransform;
-                nameRect.sizeDelta = new Vector2(Mathf.Max(140f, nameRect.sizeDelta.x), nameRect.sizeDelta.y);
+                nameRect.sizeDelta = new Vector2(Mathf.Max(140f, nameRect.sizeDelta.x), Mathf.Max(32f, nameRect.sizeDelta.y));
                 destinyName.transform.SetAsLastSibling();
             }
         }
@@ -1271,8 +1418,7 @@ namespace ProjectX.UI
                 if (percentText != null)
                     percentText.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
-            GameObject extraTextObject = helpSecond.FindNode(
-                "Layer/Popup/ListView_1/Content_3/Atrribute_1");
+            GameObject extraTextObject = helpSecond.GetSerializedNodeByActionTag(833038679, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian3.csd", "Layer/Popup/ListView_1/Content_3/Atrribute_1");
             if (extraTextObject != null)
             {
                 extraTextObject.SetActive(extras.Count > 0);
@@ -1490,6 +1636,7 @@ namespace ProjectX.UI
             private readonly Dictionary<int, TrainingConfig> trainings = new Dictionary<int, TrainingConfig>();
             private readonly Dictionary<int, int> itemPictures = new Dictionary<int, int>();
             private readonly Dictionary<int, int> itemQualities = new Dictionary<int, int>();
+            private readonly Dictionary<int, int> itemExperiences = new Dictionary<int, int>();
             private readonly Dictionary<int, List<BreakTalent>> breakTalents = new Dictionary<int, List<BreakTalent>>();
 
             public HeroCultivationConfig()
@@ -1518,11 +1665,45 @@ namespace ProjectX.UI
             public uint GetExperienceCap(int level, uint fallback) =>
                 experienceCaps.TryGetValue(level, out uint value) ? value : fallback;
 
+            public ulong GetRequiredLevelExperience(int currentLevel, uint currentExperience,
+                int targetLevel, uint currentLevelFallback)
+            {
+                ulong required = 0;
+                for (int level = currentLevel; level < targetLevel; level++)
+                {
+                    uint cap = GetExperienceCap(level, level == currentLevel ? currentLevelFallback : 0u);
+                    if (cap == 0) return 0;
+                    required += level == currentLevel && currentExperience < cap
+                        ? cap - currentExperience : level == currentLevel ? 0u : cap;
+                }
+                return required;
+            }
+
+            public int GetAttainableLevel(int currentLevel, uint currentExperience,
+                ulong availableExperience, int levelLimit, uint currentLevelFallback)
+            {
+                int level = currentLevel;
+                while (level < levelLimit)
+                {
+                    uint cap = GetExperienceCap(level, level == currentLevel ? currentLevelFallback : 0u);
+                    if (cap == 0) break;
+                    ulong needed = level == currentLevel && currentExperience < cap
+                        ? cap - currentExperience : level == currentLevel ? 0u : cap;
+                    if (availableExperience < needed) break;
+                    availableExperience -= needed;
+                    level++;
+                }
+                return level;
+            }
+
             public int GetFragmentItem(int heroId) => fragments.TryGetValue(heroId, out int value) ? value : 0;
 
             public int GetItemPicture(int itemId) => itemPictures.TryGetValue(itemId, out int value) ? value : 0;
 
             public int GetItemQuality(int itemId) => itemQualities.TryGetValue(itemId, out int value) ? value : 0;
+
+            public int GetItemExperience(int itemId) =>
+                itemExperiences.TryGetValue(itemId, out int value) ? value : 0;
 
             public IReadOnlyList<string> GetBreakTalentDescriptions(int heroId, HeroDefinition definition)
             {
@@ -1688,10 +1869,14 @@ namespace ProjectX.UI
                     Match id = Regex.Match(entry.Value, "\\\"id\\\"\\s*:\\s*(\\d+)");
                     Match picture = Regex.Match(entry.Value, "\\\"pic\\\"\\s*:\\s*(\\d+)");
                     Match quality = Regex.Match(entry.Value, "\\\"quality\\\"\\s*:\\s*(\\d+)");
+                    Match experience = Regex.Match(entry.Value,
+                        "\\\"sub_value\\\"\\s*:\\s*\\[\\s*\\[\\s*\\d+\\s*,\\s*(\\d+)");
                     if (id.Success && picture.Success)
                         itemPictures[int.Parse(id.Groups[1].Value)] = int.Parse(picture.Groups[1].Value);
                     if (id.Success && quality.Success)
                         itemQualities[int.Parse(id.Groups[1].Value)] = int.Parse(quality.Groups[1].Value);
+                    if (id.Success && experience.Success)
+                        itemExperiences[int.Parse(id.Groups[1].Value)] = int.Parse(experience.Groups[1].Value);
                 }
             }
 

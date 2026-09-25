@@ -31,27 +31,29 @@ namespace ProjectX.Validation
         private static Dictionary<GameObject, CocosNodeReference> BuildSerializedNodeIdentityIndex()
         {
             var result = new Dictionary<GameObject, CocosNodeReference>();
-            CocosUiBinding[] bindings = FindObjectsOfType<CocosUiBinding>(true);
-            foreach (CocosUiBinding binding in bindings)
+            UiPrefabIdentity[] identities = FindObjectsOfType<UiPrefabIdentity>(true);
+            IEnumerable<CocosNodeReference> canonicalReferences = identities
+                .SelectMany(identity => identity.Nodes);
+            foreach (CocosNodeReference reference in canonicalReferences)
             {
-                foreach (CocosNodeReference reference in binding.Nodes)
-                {
-                    if (reference == null || reference.target == null || string.IsNullOrWhiteSpace(reference.path))
-                        continue;
+                if (reference == null || reference.target == null || string.IsNullOrWhiteSpace(reference.path))
+                    continue;
 
-                    if (!result.TryGetValue(reference.target, out CocosNodeReference current)
-                        || string.CompareOrdinal(reference.path, current.path) < 0
-                        || (string.Equals(reference.path, current.path, StringComparison.Ordinal)
-                            && string.CompareOrdinal(reference.nodeType, current.nodeType) < 0))
-                        result[reference.target] = reference;
-                }
+                if (!result.TryGetValue(reference.target, out CocosNodeReference current)
+                    || string.CompareOrdinal(reference.path, current.path) < 0
+                    || (string.Equals(reference.path, current.path, StringComparison.Ordinal)
+                        && string.CompareOrdinal(reference.nodeType, current.nodeType) < 0))
+                    result[reference.target] = reference;
             }
 
-            foreach (KeyValuePair<GameObject, CocosNodeReference> retired in CocosUiBinding.RetiredMetadataIdentities)
-            {
-                if (retired.Key != null && retired.Value != null && !result.ContainsKey(retired.Key))
-                    result.Add(retired.Key, retired.Value);
-            }
+            // Retired Metadata aliases are lower priority than every canonical
+            // serialized identity, even when an alias path sorts first.
+            IEnumerable<CocosNodeReference> aliases = identities
+                .SelectMany(identity => identity.RetiredMetadataAliases);
+            foreach (CocosNodeReference alias in aliases)
+                if (alias != null && alias.target != null && !result.ContainsKey(alias.target))
+                    result.Add(alias.target, alias);
+
             return result;
         }
 
@@ -66,17 +68,6 @@ namespace ProjectX.Validation
                     : reference.path;
                 nodeType = string.IsNullOrWhiteSpace(reference.nodeType) ? rect.GetType().Name : reference.nodeType;
                 source = string.IsNullOrWhiteSpace(reference.path) ? null : reference.path;
-                return;
-            }
-
-            CocosNodeMetadata metadata = rect.GetComponent<CocosNodeMetadata>();
-            if (metadata != null)
-            {
-                semanticId = string.IsNullOrWhiteSpace(metadata.CocosPath)
-                    ? RuntimeInputDispatcher.FullPath(rect)
-                    : metadata.CocosPath;
-                nodeType = string.IsNullOrWhiteSpace(metadata.NodeType) ? rect.GetType().Name : metadata.NodeType;
-                source = string.IsNullOrWhiteSpace(metadata.CocosPath) ? null : metadata.CocosPath;
                 return;
             }
 
