@@ -9,6 +9,198 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class WorldNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["fuben/WorldMapNewLayer|Layer/Button_1"] = 2106960768,
+            ["fuben/WorldMapNewLayer|Layer/Button_2"] = 1346206124,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage"] = 411150860,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/Image"] = 1837012271,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1"] = -930565265,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Finish"] = 132584775,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/HeadBg"] = -1316938930,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/HeadBg/Icon"] = -1586059452,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label"] = -1670407296,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label/Text"] = -1065416459,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label/Text/xuhao"] = -106180424,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Text_xing"] = 2004959446,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/boxBg"] = 72941550,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/perfect"] = 2138837287,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/suo"] = -850196143,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/suo/lock"] = 1324395548,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2"] = -1830941504,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Finish"] = 707814837,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/HeadBg"] = -1095851173,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/HeadBg/Icon"] = -1366901774,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label"] = 633396305,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label/Text"] = 833807430,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label/Text/xuhao"] = 2103143803,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Text_xing"] = 180757990,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/boxBg"] = 1204452512,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/perfect"] = 984900064,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/suo"] = 1346621254,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/suo/lock"] = -2099344792,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3"] = 1061533421,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Finish"] = -1992507388,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/HeadBg"] = -1364763219,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/HeadBg/Icon"] = -1064400310,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label"] = 397275053,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label/Text"] = -1986540584,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label/Text/xuhao"] = -1095695747,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Text_xing"] = 1054120911,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/boxBg"] = -698932479,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/perfect"] = 319992497,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/suo"] = -1965789401,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/suo/lock"] = 1402782699,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4"] = -2008879673,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Finish"] = -467605153,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/HeadBg"] = -1162653199,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/HeadBg/Icon"] = 880615303,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label"] = -1661505323,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label/Text"] = 299131043,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label/Text/xuhao"] = -1649483615,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Text_xing"] = -1525359025,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/boxBg"] = -1690783205,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/perfect"] = 306518146,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/suo"] = 2009998711,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/suo/lock"] = 289756508,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5"] = 1106364551,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Finish"] = 295074617,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/HeadBg"] = -333865344,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/HeadBg/Icon"] = 356199246,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label"] = -51013817,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label/Text"] = -2145148885,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label/Text/xuhao"] = 2020984049,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Text_xing"] = -696434811,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/boxBg"] = -64089246,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/perfect"] = 542625462,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/suo"] = 382859922,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/suo/lock"] = -451794276,
+            ["fuben/kapaiguaiwuLayer|Layer/Box"] = 2113996166,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel"] = 1356026164,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/MapPanel"] = -1859335617,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_1"] = -906634417,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_1/touchLayer"] = -158667403,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_10"] = -1767222439,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_10/touchLayer"] = 391146392,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_2"] = 265173634,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_2/touchLayer"] = -1311316899,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_3"] = 1214881801,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_3/touchLayer"] = 1960199495,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_4"] = -2111097417,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_4/touchLayer"] = 817170634,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_5"] = -862180324,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_5/touchLayer"] = -1297528491,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_6"] = 1815348865,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_6/touchLayer"] = -1886485858,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_7"] = -806163459,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_7/touchLayer"] = -58434626,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_8"] = 978750217,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_8/touchLayer"] = -30280193,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_9"] = -2047862607,
+            ["fuben/kapaiguaiwuLayer|Layer/ScrollPanel/Node_9/touchLayer"] = 1476535361,
+            ["fuben/DadituuiLayer|Layer/GoldCheck/GoldIcon1/GoldNumBg/Num"] = 679775487,
+            ["fuben/DadituuiLayer|Layer/GoldCheck/GoldIcon3/GoldNumBg/Num"] = -797493968,
+            ["fuben/DadituuiLayer|Layer/GoldCheck/GoldIcon4/GoldNumBg/Num"] = -798369061,
+            ["fuben/DadituuiLayer|Layer/Panel_1"] = 1094530281,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box1"] = 1987012157,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box1/Button"] = -1232801992,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box1/Button1"] = 661910960,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box1/Button1/Image_1"] = -1859953625,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box1/effect_tuitu_1"] = 611156776,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box2"] = 780690924,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box2/Button"] = -368943738,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box2/Button1"] = -2116092853,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box2/Button1/Image_1"] = 1979119394,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box2/effect_tuitu_1"] = 2136509644,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box3"] = 1045936358,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box3/Button"] = -311649116,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box3/Button1"] = 275934951,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box3/Button1/Image_1"] = -482779574,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Box3/effect_tuitu_1"] = 1982322515,
+            ["fuben/DadituuiLayer|Layer/Panel_1/Button_paihangbang"] = 1484662543,
+            ["fuben/DadituuiLayer|Layer/Panel_1/btn_zhenrong"] = -2046694749,
+            ["fuben/DadituuiLayer|Layer/Panel_1/duiwu"] = -300106902,
+            ["fuben/DadituuiLayer|Layer/Panel_1/jindutiao"] = 511126325,
+            ["fuben/DadituuiLayer|Layer/Panel_1/slider_bg"] = -362681914,
+            ["fuben/DadituuiLayer|Layer/Panel_1/xing"] = -1859533521,
+            ["fuben/DadituuiLayer|Layer/Panel_1/xing_0"] = -2117557305,
+            ["fuben/DadituuiLayer|Layer/Panel_1/xingshu"] = 296853954,
+            ["fuben/DadituuiLayer|Layer/Panel_youxia"] = 1923026199,
+            ["fuben/DadituuiLayer|Layer/Panel_youxia/Button_fengshenshilian"] = 730966399,
+            ["fuben/DadituuiLayer|Layer/Panel_youxia/Button_youlisanjie"] = -2054518334,
+            ["fuben/DadituuiLayer|Layer/Panel_youxia/Button_zhuxianchengjiu"] = -1776716485,
+            ["fuben/DadituuiLayer|Layer/Panel_zuoshang"] = -715380812,
+            ["fuben/DadituuiLayer|Layer/Panel_zuoshang/Button_xiala"] = -369573921,
+            ["fuben/DadituuiLayer|Layer/Panel_zuoshang/Image_bg2/guanqia"] = -87398976,
+            ["fuben/DadituuiLayer|Layer/Popup"] = -807196924,
+            ["fuben/DadituuiLayer|Layer/Popup/ListView"] = 1748670200,
+            ["fuben/DadituuiLayer|Layer/Popup/ListView/Button_1"] = 1136875318,
+            ["fuben/DadituuiLayer|Layer/Title/CloseBtn"] = -840168145,
+            ["fuben/DadituuiLayer|Layer/Title/bg"] = -1583137771,
+            ["fuben/guanqiaxiangxiLayer|Layer/IconBg1"] = 1323050166,
+            ["fuben/guanqiaxiangxiLayer|Layer/IconColor"] = -1401303029,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Black"] = -1963807421,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Close"] = -941193717,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Buzhen"] = -2015587317,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Buzhen/Image"] = 286618281,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Buzhen/Text"] = 1358373585,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Desc/Desc_0"] = -439237067,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Duizhan"] = 73483288,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Tili"] = 505132930,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_1/Tili/Value"] = -348108507,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon1"] = -1706300645,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon1/Icon"] = -1580978736,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon1/Num"] = 1837001615,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon2"] = -1717727755,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon2/Icon"] = 366461427,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon2/Num"] = 1291730613,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon3"] = -874418645,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon3/Icon"] = -1337649427,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon3/Num"] = -1631317968,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon4"] = 491302393,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon4/Icon"] = -2014737596,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_2/GoldIcon4/Num"] = -1876785253,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_3/ListView_1"] = 338906199,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_1"] = -574115388,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_2"] = -1043455033,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_2/Text"] = 456854197,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_3"] = 134732384,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/Button_3/Text"] = -796447904,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/TimesBg/AddBtn"] = 1042017020,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Descbg/Image_bg/Panel_4/TimesBg/Icon/Num"] = 474589004,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Panel_left/StarList/Star1/Star"] = 1212185048,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Panel_left/StarList/Star2/Star"] = 1787654964,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Panel_left/StarList/Star3/Star"] = -194981692,
+            ["fuben/guanqiaxiangxiLayer|Layer/Panel_1/Pane/Panel_left/TextPanel/Text_num"] = 1664729666,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null) return null;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"World source is unexpected: {source}");
+            // The two bg bars are Unity-owned nodes outside the imported identities.
+            if ((path == "bg" &&
+                 (source == "cocosstudio/csd/fuben/WorldMapNewLayer.csd" ||
+                  source == "cocosstudio/csd/fuben/DadituuiLayer.csd")) ||
+                (source == "cocosstudio/csd/fuben/DadituuiLayer.csd" &&
+                 path.StartsWith("bg/", StringComparison.Ordinal)))
+                return view.GameObject.transform.Find(path)?.gameObject;
+            if (source == "cocosstudio/csd/fuben/WorldMapNewLayer.csd" && path == "chapterPage")
+                path = "Layer/chapterPage";
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"World fixed node has no identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class WorldPresenter : IDisposable
     {
         private const string ListViewportPath = "Layer/Popup/ListView";
@@ -583,8 +775,6 @@ namespace ProjectX.UI
             SetActive(worldView, "Layer/Button_2",
                 pageTurnAvailable && chapterPageIndex < ChapterPageCount - 1);
 
-            SetActive(worldView, "Layer/Image_qipao_L", false);
-            SetActive(worldView, "Layer/Image_qipao_R", false);
             if (pageVisual != null)
             {
                 Image background = Find(worldView, "Layer/chapterPage/Image")?.GetComponent<Image>();
@@ -1029,7 +1219,7 @@ namespace ProjectX.UI
         public Button FindStageButton(uint stageId)
         {
             int index = store.Stages.ToList().FindIndex(value => value.Id == stageId);
-            if (index < 0) return null;
+            if (index < 0 || index >= 10) return null;
             return Find(stageView, $"Layer/ScrollPanel/Node_{index + 1}/touchLayer")?.GetComponent<Button>();
         }
 
@@ -1606,7 +1796,7 @@ namespace ProjectX.UI
         private static GameObject Require(CocosUiView view, string path) => Find(view, path)
             ?? throw new InvalidOperationException($"World UI node was not found: {path}");
 
-        private static GameObject Find(CocosUiView view, string path) => view.FindNode(path);
+        private static GameObject Find(CocosUiView view, string path) => WorldNodeIds.Get(view, path);
 
         private static void SetNamedText(Transform root, string name, string value)
         {
