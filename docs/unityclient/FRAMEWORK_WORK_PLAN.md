@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 神将重生共用查找增量（2026-09-26）**：`HeroRebirthPresenter` 的 3 处共用 `FindNode` 调用覆盖 34 个固定目标；按当前 4 份 Prefab 的唯一 ActionTag 建立身份表，原有候选行内 `Transform.Find` 继续只查动态克隆。C 盘 Unity 编译与 Console 0；真实 Login→世界→神将背包→回收→候选→苏全忠预览→确认→取消，四份身份分别 47/47、22/22、41/41、24/24，Metadata=0、Timeline N/A，画面和 EventSystem 首命中已检查。未执行最终重生或货币消耗。Presenter 当前剩 **14 个文件、161 处调用**，仍须逐项区分固定、动态和共用方法；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6.5 将魂商店来源弹窗增量（2026-09-26）**：`GameplayShopItemInfoPresenter` 的 14 个固定 `SourceLayer` 目标改由唯一序列化 ActionTag 直取，运行时 `FindNode` 两处退场；克隆来源按钮内的相对查找保留。真实 Login→商城→将魂商店→魂魄来源→关闭→Main，身份 26/26、Metadata/Binding=0、Timeline N/A，1334×750 画面已目视，Console 0；未购买、刷新或抽卡。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 Presenter Steam 范围复核（2026-09-26）**：此前“16 个 Presenter、171 处调用”只是初步文件筛选，不是待修任务量。基线 `FindNode(` 文本命中 200 处/22 文件；整类排除 MainHud 剩余聊天/折扣/在线 15 处、WelfareActivityFrame 10 处、Friend/Guild/Team/Welfare 各 1 处，共 29 处。`LoginPresenter` 的非 Steam 服务器列表四处排除；`BagFlowPresenter.FindNode` 方法声明一处不是调用。基线实际为 **16 个 Presenter、166 处调用**；本次来源弹窗两处完成后，当前为 **15 个 Presenter、164 处调用**。仍须区分固定控件、动态节点和共用 helper；164 不等于必须修改的控件数。详见 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。

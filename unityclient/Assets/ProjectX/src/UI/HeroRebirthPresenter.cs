@@ -40,6 +40,44 @@ namespace ProjectX.UI
         }
 
         private const int RebirthCost = 50;
+        private static readonly IReadOnlyDictionary<string, int> SerializedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/shopBg/Popup/Title/Title"] = 1343485170,
+                ["Layer/ChooseUI/Popup/ItemList"] = 1703301153,
+                ["Layer/ChooseUI/Popup/TableView"] = -1793792062,
+                ["Layer/Popup/Btn_Cancel/Text"] = 659946770,
+                ["Layer/Popup/Btn_Confirm/Text"] = -1116581462,
+                ["Layer/Popup/fanhuan/Item"] = -1438240245,
+                ["Layer/Popup/fanhuan/ItemList"] = -1120062761,
+                ["Layer/Popup/fanhuan/TableView"] = 1261608770,
+                ["Layer/Popup/fanhuan/Title/Title"] = 146164692,
+                ["Layer/Popup/Title/Title"] = 2077361889,
+                ["Layer/shenjiangchongshengUI/bg/Btn_add"] = 1312825655,
+                ["Layer/shenjiangchongshengUI/bg/Btn_Change"] = -706898110,
+                ["Layer/shenjiangchongshengUI/bg/Btn_Change/Text"] = 1337092530,
+                ["Layer/shenjiangchongshengUI/bg/Image/ModelNode"] = -2122194548,
+                ["Layer/shenjiangchongshengUI/bg/Image1"] = 1224248032,
+                ["Layer/shenjiangchongshengUI/bg/Name"] = -1704782467,
+                ["Layer/shenjiangchongshengUI/bg/StarList"] = -744272594,
+                ["Layer/shenjiangchongshengUI/chongsheng"] = -782596963,
+                ["Layer/shenjiangchongshengUI/chongsheng/Btn_chongsheng/Text"] = 446390964,
+                ["Layer/shenjiangchongshengUI/chongsheng/ConsumeBg/Value"] = 786377731,
+                ["Layer/shenjiangchongshengUI/chongsheng/fanhuan/Item"] = -201971998,
+                ["Layer/shenjiangchongshengUI/chongsheng/fanhuan/ItemList"] = -1150489923,
+                ["Layer/shenjiangchongshengUI/chongsheng/fanhuan/TableView"] = 1896239951,
+                ["Layer/shenjiangchongshengUI/chongsheng/fanhuan/Tips"] = -1397834412,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_1/Value_1"] = 507477004,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_1/Value_2"] = 650954072,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_2/Value_1"] = 939548101,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_2/Value_2"] = 88251195,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_3/StarList"] = -846276726,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_3/Value_1"] = 1718765543,
+                ["Layer/shenjiangchongshengUI/chongsheng/shuxing/Atrribute_3/Value_2"] = -1357810774,
+                ["Layer/shenjiangchongshengUI/chongsheng/Title_1/Title"] = -76988689,
+                ["Layer/shenjiangchongshengUI/chongsheng/Title_2/Title"] = 374316240,
+                ["Layer/shenjiangchongshengUI/Text"] = 910590658
+            };
         private readonly CocosUiView view;
         private readonly CocosUiView chooseFrame;
         private readonly CocosUiView chooseView;
@@ -592,9 +630,9 @@ namespace ProjectX.UI
             return rows.ToArray();
         }
 
-        private static void SetText(CocosUiView owner, string path, string value)
+        private void SetText(CocosUiView owner, string path, string value)
         {
-            Text text = owner.FindNode(path)?.GetComponent<Text>();
+            Text text = ResolveNode(owner, path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 
@@ -604,9 +642,9 @@ namespace ProjectX.UI
             if (text != null) text.text = value ?? string.Empty;
         }
 
-        private static void SetVisible(CocosUiView owner, string path, bool visible)
+        private void SetVisible(CocosUiView owner, string path, bool visible)
         {
-            GameObject target = owner.FindNode(path);
+            GameObject target = ResolveNode(owner, path);
             if (target != null) target.SetActive(visible);
         }
 
@@ -648,8 +686,20 @@ namespace ProjectX.UI
             return image;
         }
 
-        private static GameObject Require(CocosUiView owner, string path)
-            => owner.FindNode(path) ?? throw new InvalidOperationException($"HeroRebirth UI node was not found: {path}");
+        private GameObject Require(CocosUiView owner, string path)
+            => ResolveNode(owner, path) ?? throw new InvalidOperationException($"HeroRebirth UI node was not found: {path}");
+
+        private GameObject ResolveNode(CocosUiView owner, string path)
+        {
+            if (!SerializedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"HeroRebirth UI path has no prefab identity: {path}");
+            string source = owner == view ? "cocosstudio/csd/huishou/shenjiangchongsheng.csd"
+                : owner == chooseFrame ? "cocosstudio/csd/shop/shop_bg.csd"
+                : owner == chooseView ? "cocosstudio/csd/common/Choose.csd"
+                : owner == confirmView ? "cocosstudio/csd/huishou/Popup_Confirm.csd"
+                : throw new InvalidOperationException("HeroRebirth UI view is not registered.");
+            return owner.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
 
         private readonly struct CandidateRow
         {
