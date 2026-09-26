@@ -301,8 +301,22 @@ namespace ProjectX.UI
 
         private GameObject Require(string relativePath)
         {
-            GameObject result = view.FindNode($"{BasePath}/{relativePath}");
-            return result ?? throw new InvalidOperationException($"Reward UI node was not found: {BasePath}/{relativePath}");
+            int actionTag;
+            switch (relativePath)
+            {
+                case "Title/Title_1": actionTag = -770280618; break;
+                case "tips": actionTag = -1212051393; break;
+                case "ItemList/itemlayer_1": actionTag = -1115305457; break;
+                case "ItemList/itemlayer_2": actionTag = -46256521; break;
+                case "ItemList/itemlayer_3": actionTag = -291821016; break;
+                case "ItemList/itemlayer_4": actionTag = -1843730647; break;
+                case "Btn_close": actionTag = -730647306; break;
+                case "btn_lingqu": actionTag = -711348496; break;
+                case "btn_lingqu/Text1": actionTag = 197641052; break;
+                default: throw new InvalidOperationException("Unknown fixed reward UI node: " + relativePath);
+            }
+            return view.GetSerializedNodeByActionTag(actionTag,
+                "cocosstudio/csd/common/tanchuangjiangli.csd", $"{BasePath}/{relativePath}");
         }
     }
 }

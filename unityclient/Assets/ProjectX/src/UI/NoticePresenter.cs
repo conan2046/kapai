@@ -137,7 +137,18 @@ namespace ProjectX.UI
 
         private GameObject Require(string path)
         {
-            return view.FindNode(path) ?? throw new InvalidOperationException("NoticeLayer node was not found: " + path);
+            int actionTag;
+            switch (path)
+            {
+                case "Layer/Panel/BtnList/ListBg/List": actionTag = -890125434; break;
+                case "Layer/Panel/BtnList/ListBg/Btn": actionTag = 331179000; break;
+                case "Layer/Panel/NoticeBg_2": actionTag = -592273144; break;
+                case "Layer/Panel/Btn": actionTag = 333702448; break;
+                case "Layer/Panel/NoticeBg_1/Text": actionTag = 411036062; break;
+                default: throw new InvalidOperationException("Unknown fixed NoticeLayer node: " + path);
+            }
+            return view.GetSerializedNodeByActionTag(actionTag,
+                "cocosstudio/csd/NoticeLayer.csd", path);
         }
 
         private static Transform FindNamed(Transform root, string name)
