@@ -8,6 +8,93 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class WorldBattleNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["common/FightLayer|Layer/FightUI"] = -518917889,
+            ["common/FightLayer|Layer/FightUI/Buttons"] = 463975799,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Auto"] = -755396939,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Cancel"] = 978342580,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Flee"] = -2121632316,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Skill_1"] = -171271847,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Skill_2"] = 1892536275,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Skill_3"] = -561069336,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Skill_4"] = -792139541,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Skill_5"] = -1748646103,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Speed"] = -2107382037,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Speed/X1"] = -1211436621,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Speed/X2"] = -1392806552,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_Speed/X3"] = -1998988314,
+            ["common/FightLayer|Layer/FightUI/Buttons/btn_jump"] = -991938978,
+            ["common/FightLayer|Layer/FightUI/CountDown"] = -927016143,
+            ["common/FightLayer|Layer/FightUI/Head"] = -367549799,
+            ["common/FightLayer|Layer/FightUI/Image_huihe_bg"] = 2127482752,
+            ["common/FightLayer|Layer/FightUI/Image_huihe_bg_0"] = -737319931,
+            ["common/FightLayer|Layer/FightUI/Item"] = 1783624868,
+            ["common/FightLayer|Layer/FightUI/ListBg"] = -754023602,
+            ["common/FightLayer|Layer/FightUI/Panel_Shortcut"] = -1929164370,
+            ["common/FightLayer|Layer/FightUI/Position"] = -491535363,
+            ["common/FightLayer|Layer/FightUI/Position/Image_1"] = 641492750,
+            ["common/FightLayer|Layer/FightUI/Position/Image_10"] = -1242657649,
+            ["common/FightLayer|Layer/FightUI/Position/Image_11"] = -672637382,
+            ["common/FightLayer|Layer/FightUI/Position/Image_12"] = -471074049,
+            ["common/FightLayer|Layer/FightUI/Position/Image_13"] = 1136957374,
+            ["common/FightLayer|Layer/FightUI/Position/Image_14"] = 1520424511,
+            ["common/FightLayer|Layer/FightUI/Position/Image_15"] = 258354654,
+            ["common/FightLayer|Layer/FightUI/Position/Image_16"] = 939487999,
+            ["common/FightLayer|Layer/FightUI/Position/Image_17"] = -1367107897,
+            ["common/FightLayer|Layer/FightUI/Position/Image_18"] = -919525667,
+            ["common/FightLayer|Layer/FightUI/Position/Image_2"] = 341936654,
+            ["common/FightLayer|Layer/FightUI/Position/Image_3"] = 1950064653,
+            ["common/FightLayer|Layer/FightUI/Position/Image_4"] = -108741582,
+            ["common/FightLayer|Layer/FightUI/Position/Image_5"] = 1845140984,
+            ["common/FightLayer|Layer/FightUI/Position/Image_6"] = -1336333878,
+            ["common/FightLayer|Layer/FightUI/Position/Image_7"] = -1638829711,
+            ["common/FightLayer|Layer/FightUI/Position/Image_8"] = -1881531794,
+            ["common/FightLayer|Layer/FightUI/Position/Image_9"] = -218922445,
+            ["common/FightLayer|Layer/FightUI/Pupop_Skill"] = -879460304,
+            ["common/FightLayer|Layer/FightUI/Pupop_zhenfa"] = -301986975,
+            ["common/FightLayer|Layer/FightUI/Round"] = -562783361,
+            ["common/FightLayer|Layer/FightUI/Round_Special"] = 1282099048,
+            ["common/FightLayer|Layer/FightUI/Round_Special/Num"] = -1970026242,
+            ["common/FightLayer|Layer/FightUI/Round_Special/Num/Image_huihe"] = 780005321,
+            ["common/FightLayer|Layer/FightUI/Scene"] = -442282782,
+            ["common/FightLayer|Layer/FightUI/bg"] = 1319773800,
+            ["common/FightLayer|Layer/FightUI/btn_Formation_Enemy"] = -1911796106,
+            ["common/FightLayer|Layer/FightUI/btn_Formation_Enemy/Image"] = 175458810,
+            ["common/FightLayer|Layer/FightUI/btn_Formation_Enemy/Text_name"] = 912272314,
+            ["common/FightLayer|Layer/FightUI/btn_Formation_Oneself"] = 356874746,
+            ["common/FightLayer|Layer/FightUI/btn_Formation_Oneself/Image"] = 22420749,
+            ["common/FightLayer|Layer/FightUI/btn_Formation_Oneself/Text_name"] = -2066974463,
+            ["common/FightLayer|Layer/FightUI/btn_Locker"] = 29232174,
+            ["HPNode|Node/HPSp"] = 1660076592,
+            ["HPNode|Node/HPSp_0"] = -954540217,
+            ["HPNode|Node/Minus"] = -427235979,
+            ["HPNode|Node/Plus"] = 522402111,
+            ["HPNode|Node/Quality_bg"] = 644818053,
+            ["HPNode|Node/Quality_bg/Quality"] = -892800237,
+            ["HPNode|Node/bg"] = -1031809334,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null) return null;
+            if (path == "Node" && view.Identity.Source == "cocosstudio/csd/HPNode.csd")
+                return view.GameObject;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"World battle source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"World battle fixed node has no identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class WorldBattlePlaybackPresenter : IDisposable
     {
         private sealed class UnitView
@@ -167,9 +254,9 @@ namespace ProjectX.UI
             if (importedView?.GameObject != null)
             {
                 root = importedView.GameObject;
-                GameObject fightUi = importedView.FindNode("Layer/FightUI");
+                GameObject fightUi = WorldBattleNodeIds.Get(importedView, "Layer/FightUI");
                 battleLayer = fightUi != null ? fightUi.transform : root.transform;
-                unitLayer = importedView.FindNode("Layer/FightUI/Position")?.transform ?? battleLayer;
+                unitLayer = WorldBattleNodeIds.Get(importedView, "Layer/FightUI/Position")?.transform ?? battleLayer;
                 rect = battleLayer as RectTransform ?? root.GetComponent<RectTransform>();
                 ConfigureImportedFightLayer();
             }
@@ -278,7 +365,7 @@ namespace ProjectX.UI
             };
             foreach (string path in hidden)
             {
-                GameObject node = importedView.FindNode(path);
+                GameObject node = WorldBattleNodeIds.Get(importedView, path);
                 if (node != null) node.SetActive(false);
             }
             string[] visible =
@@ -291,12 +378,12 @@ namespace ProjectX.UI
             };
             foreach (string path in visible)
             {
-                GameObject node = importedView.FindNode(path);
+                GameObject node = WorldBattleNodeIds.Get(importedView, path);
                 if (node != null) node.SetActive(true);
             }
             for (int index = 1; index <= 18; index++)
             {
-                GameObject marker = importedView.FindNode($"Layer/FightUI/Position/Image_{index}");
+                GameObject marker = WorldBattleNodeIds.Get(importedView, $"Layer/FightUI/Position/Image_{index}");
                 if (marker == null) continue;
                 marker.SetActive(false);
                 marker.transform.SetAsFirstSibling();
@@ -329,7 +416,7 @@ namespace ProjectX.UI
                 image.raycastTarget = false;
                 roundAtlasGlyphs[index] = image;
             }
-            GameObject legacyRoundWord = importedView.FindNode("Layer/FightUI/Round_Special/Num/Image_huihe");
+            GameObject legacyRoundWord = WorldBattleNodeIds.Get(importedView, "Layer/FightUI/Round_Special/Num/Image_huihe");
             if (legacyRoundWord != null) legacyRoundWord.SetActive(false);
         }
 
@@ -359,7 +446,7 @@ namespace ProjectX.UI
 
         private void HideImportedButtonBackground(string path)
         {
-            GameObject node = importedView.FindNode(path);
+            GameObject node = WorldBattleNodeIds.Get(importedView, path);
             Image background = node != null ? node.GetComponent<Image>() : null;
             if (background != null)
             {
@@ -370,7 +457,7 @@ namespace ProjectX.UI
 
         private void SetFormationIcon(string path, ushort formationId)
         {
-            GameObject node = importedView.FindNode(path);
+            GameObject node = WorldBattleNodeIds.Get(importedView, path);
             Image image = node != null ? node.GetComponent<Image>() : null;
             Sprite sprite = Resources.Load<Sprite>($"HeroUI/formation_{formationId}");
             if (image == null || sprite == null)
@@ -387,7 +474,7 @@ namespace ProjectX.UI
             for (int original = 1; original <= 18; original++)
             {
                 int displayed = ResolveDisplayedPosition(original);
-                GameObject marker = importedView.FindNode($"Layer/FightUI/Position/Image_{displayed}");
+                GameObject marker = WorldBattleNodeIds.Get(importedView, $"Layer/FightUI/Position/Image_{displayed}");
                 if (marker == null) continue;
                 bool hasUnit = occupied.Contains(original);
                 // This presenter uses the current Cocos flipped layout: source
@@ -411,7 +498,7 @@ namespace ProjectX.UI
 
         private T RequireImportedComponent<T>(string path) where T : Component
         {
-            GameObject node = importedView.FindNode(path);
+            GameObject node = WorldBattleNodeIds.Get(importedView, path);
             T value = node != null ? node.GetComponent<T>() : null;
             if (value == null) throw new InvalidOperationException($"Imported FightLayer component is missing: {path}/{typeof(T).Name}.");
             return value;
@@ -420,12 +507,12 @@ namespace ProjectX.UI
         private void RefreshImportedSpeedVisual()
         {
             if (importedView == null) return;
-            GameObject speedNode = importedView.FindNode("Layer/FightUI/Buttons/btn_Speed/X1");
+            GameObject speedNode = WorldBattleNodeIds.Get(importedView, "Layer/FightUI/Buttons/btn_Speed/X1");
             Text value = speedNode != null ? speedNode.GetComponent<Text>() : null;
             if (value != null) value.text = $"X{SpeedDisplayMultiplier}";
             foreach (string legacy in new[] { "X2", "X3" })
             {
-                GameObject node = importedView.FindNode("Layer/FightUI/Buttons/btn_Speed/" + legacy);
+                GameObject node = WorldBattleNodeIds.Get(importedView, "Layer/FightUI/Buttons/btn_Speed/" + legacy);
                 if (node != null) node.SetActive(false);
             }
         }
@@ -434,7 +521,7 @@ namespace ProjectX.UI
         public void SetVisible(bool visible) => root.SetActive(visible);
         public Button SpeedInteractionButton => speedButton;
         public Button SkipInteractionButton => skipButton;
-        public bool AutoControlVisible => importedView?.FindNode("Layer/FightUI/Buttons/btn_Auto")?.activeInHierarchy == true;
+        public bool AutoControlVisible => WorldBattleNodeIds.Get(importedView, "Layer/FightUI/Buttons/btn_Auto")?.activeInHierarchy == true;
         // Skip is a per-playback input. The presenter is reused by Monopoly
         // guard fights, so the owner must clear the previous battle's request
         // before loading a new replay.
@@ -446,7 +533,7 @@ namespace ProjectX.UI
                 if (importedView == null) return 0;
                 int count = 0;
                 for (int index = 1; index <= 18; index++)
-                    if (importedView.FindNode($"Layer/FightUI/Position/Image_{index}")?.activeInHierarchy == true)
+                    if (WorldBattleNodeIds.Get(importedView, $"Layer/FightUI/Position/Image_{index}")?.activeInHierarchy == true)
                         count++;
                 return count;
             }
@@ -759,7 +846,7 @@ namespace ProjectX.UI
             GameObject value = new GameObject($"Unit_{unit.Position}", typeof(RectTransform));
             RectTransform rect = value.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
-            RectTransform importedMarker = importedView?.FindNode(
+            RectTransform importedMarker = WorldBattleNodeIds.Get(importedView,
                 $"Layer/FightUI/Position/Image_{displayedPosition}")?.GetComponent<RectTransform>();
             if (importedMarker != null && importedMarker.parent == parent)
             {
@@ -954,11 +1041,7 @@ namespace ProjectX.UI
         private static GameObject FindHealthNode(CocosUiView view, string cocosPath)
         {
             if (view?.GameObject == null || string.IsNullOrWhiteSpace(cocosPath)) return null;
-            if (string.Equals(cocosPath, "Node", StringComparison.Ordinal)) return view.GameObject;
-            const string virtualRoot = "Node/";
-            string unityPath = cocosPath.StartsWith(virtualRoot, StringComparison.Ordinal)
-                ? cocosPath.Substring(virtualRoot.Length) : cocosPath;
-            return view.FindNode(unityPath);
+            return WorldBattleNodeIds.Get(view, cocosPath);
         }
 
         private static string ResolveQualityScoreResource(byte quality)
@@ -1397,7 +1480,7 @@ namespace ProjectX.UI
         private Vector3 ResolveFormationPoint(int originalPosition)
         {
             int displayed = ResolveDisplayedPosition(originalPosition);
-                RectTransform marker = importedView?.FindNode(
+                RectTransform marker = WorldBattleNodeIds.Get(importedView,
                 $"Layer/FightUI/Position/Image_{displayed}")?.GetComponent<RectTransform>();
             if (marker != null && marker.parent == unitLayer) return marker.localPosition;
 
