@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 Steam 标题与旧存档联合验收（2026-09-26）**：C 盘同一 Unity 工程以 `-projectXSinglePlayerFlowValidation`、C 盘隔离存档根启动。真实标题 `旧的回忆`→空存档列表→滚动→返回，以及 `新的开始`→创角→返回均由 EventSystem 首命中通过，三张 1334×750 画面已目视；Login 身份 43/43、创角 24/24，均 Metadata 0、Timeline N/A，旧存档为 Unity 生成页、身份节点 0、Metadata 0、Timeline N/A，Console 0，Play 停止后 8711 释放。未进入游戏或修改常规账号 SQLite；隔离 Slot01 文件仅留在 C 盘 `.local`。`LoginPresenter` 最后 1 处定位手工 Steam 按钮，`OldMemoryPresenter` 6 处定位 Unity 生成页节点，均不属于导入 Prefab ActionTag 改造。现在**待处理 7 个 Presenter、99 处调用**；全局源码语法仍是 9 文件/106 处，其中这 7 处是已验收的合理保留。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6.5 招募 Presenter 固定目标收口（2026-09-26）**：`DrawPresenter` 的 27 处 `FindNode` 调用已清零：20 个导入固定节点经三份 Prefab 的路径、唯一 ActionTag 核对后直取；原缺失的 `shenjiang/Image` 旧空查找删除；神将详情的 `RuntimeContent` 子节点只在其运行时容器内定位。C 盘 Unity 编译与 Console 0；真实 Login→招募→奖励预览→神将详情→滚动→逐层关闭，以及免费基础单抽→结果→关闭均通过 EventSystem 首命中。结果页身份 40/40、Metadata 0、Timeline 存在，预览/详情/结果截图均已目视。免费单抽前以 SQLite 在线备份，Play 停止后恢复并再次备份校验 SHA-256 完全一致、integrity=ok，8711 已释放。Steam 范围内 `FindNode` 语法调用剩 **9 个 Presenter、106 处**；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 寻宝弹窗 Presenter 增量（2026-09-26）**：`XunBaoOverlayPresenter` 的 4 处固定节点 `FindNode` 共用调用已改为三份导入 Prefab 的 27 个唯一序列化 ActionTag。C 盘 Unity 编译与 Console 0；真实 Login→玩法→寻宝→奖励任务弹窗→关闭→寻宝关闭，经 EventSystem 首命中，任务弹窗身份 59/59，1334×750 截图已目视。结果与扫荡弹窗未触发业务操作，只完成静态映射核对，不能记为其可见验收。Steam 范围内 `FindNode` 语法调用剩 **10 个 Presenter、133 处**；其中 Login 手工 Steam 按钮 1 处、OldMemory 生成页 6 处并非导入节点身份迁移项。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
