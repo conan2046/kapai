@@ -18,22 +18,23 @@ namespace ProjectX.UI
         public GameErrorPresenter(CocosUiView view)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
-            title = RequireText("Layer/MessageBoxUI/bg/Title");
-            message = RequireText("Layer/MessageBoxUI/TipsText");
+            title = RequireText(-1672122010, "title");
+            message = RequireText(2115435706, "message");
             ConfigureMessageText();
             RectTransform titleRect = title.GetComponent<RectTransform>();
             if (titleRect != null) titleRect.sizeDelta = new Vector2(220f, Math.Max(32f, titleRect.sizeDelta.y));
-            BindDismiss("Layer/MessageBoxUI/bg/Btn_close");
-            singleConfirm = Bind("Layer/MessageBoxUI/Btn_Confirm", Hide);
-            cancelButton = Bind("Layer/MessageBoxUI/Btn_Confirm1", Cancel);
-            confirmButton = Bind("Layer/MessageBoxUI/Btn_Confirm2", Confirm);
-            SetOptionalVisible("Layer/MessageBoxUI/IconBg1", false);
-            SetOptionalVisible("Layer/MessageBoxUI/Spend", false);
-            SetOptionalVisible("Layer/MessageBoxUI/GoldNum", false);
-            SetOptionalVisible("Layer/MessageBoxUI/DesBg1", false);
-            SetOptionalVisible("Layer/MessageBoxUI/CheckBox", false);
-            SetOptionalVisible("Layer/MessageBoxUI/Btn_Confirm3", false);
-            SetOptionalVisible("Layer/MessageBoxUI/Btn_Confirm2/Time", false);
+            Bind(349721155, Hide);
+            singleConfirm = Bind(721860561, Hide);
+            cancelButton = Bind(-181194337, Cancel);
+            confirmButton = Bind(-1524456559, Confirm);
+            SetOptionalVisible(321242196, false);
+            SetOptionalVisible(-1538001884, false);
+            SetOptionalVisible(-1250625782, false);
+            SetOptionalVisible(149624163, false);
+            SetOptionalVisible(-1822849710, false);
+            SetOptionalVisible(-1018098735, false);
+            SetOptionalVisible(963490538, false);
+            SetOptionalVisible(375334442, false);
             EnsureModalMask();
             Hide();
         }
@@ -143,15 +144,9 @@ namespace ProjectX.UI
             view.SetVisible(false);
         }
 
-        private void BindDismiss(string path)
+        private Button Bind(int actionTag, Action callback)
         {
-            Bind(path, Hide);
-        }
-
-        private Button Bind(string path, Action callback)
-        {
-            GameObject node = view.FindNode(path)
-                ?? throw new InvalidOperationException($"MessageBox button was not found: {path}");
+            GameObject node = view.GetSerializedNodeByActionTag(actionTag);
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
             button.onClick.RemoveAllListeners();
@@ -165,11 +160,11 @@ namespace ProjectX.UI
             if (label != null) label.text = value;
         }
 
-        private Text RequireText(string path)
+        private Text RequireText(int actionTag, string label)
         {
-            GameObject node = view.FindNode(path);
-            Text value = node == null ? null : node.GetComponent<Text>();
-            return value ?? throw new InvalidOperationException($"MessageBox text was not found: {path}");
+            GameObject node = view.GetSerializedNodeByActionTag(actionTag);
+            Text value = node.GetComponent<Text>();
+            return value ?? throw new InvalidOperationException($"MessageBox text was not found: {label}");
         }
 
         private void ConfigureMessageText()
@@ -194,7 +189,7 @@ namespace ProjectX.UI
 
         private void EnsureModalMask()
         {
-            Transform layer = view.FindNode("Layer")?.transform ?? view.GameObject.transform;
+            Transform layer = view.GameObject.transform;
             Transform existing = layer.Find("RuntimeModalMask");
             GameObject maskObject = existing == null
                 ? new GameObject("RuntimeModalMask", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image))
@@ -210,9 +205,9 @@ namespace ProjectX.UI
             maskObject.transform.SetAsFirstSibling();
         }
 
-        private void SetOptionalVisible(string path, bool visible)
+        private void SetOptionalVisible(int actionTag, bool visible)
         {
-            view.FindNode(path)?.SetActive(visible);
+            view.GetSerializedNodeByActionTag(actionTag).SetActive(visible);
         }
     }
 }
