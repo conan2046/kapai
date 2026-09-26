@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Animation;
 using ProjectX.Data;
@@ -9,6 +10,54 @@ namespace ProjectX.UI
 {
     public sealed class HeroPresenter : IDisposable
     {
+        private static readonly IReadOnlyDictionary<string, int> FixedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/yingxiongbeibaoUI/ItemCell"] = 2074627359,
+                ["Layer/yingxiongbeibaoUI/TableView"] = -1596940977,
+                ["Layer/EquipUI/Bg"] = -757413116,
+                ["Layer/EquipUI/Bg/bg"] = -612073534,
+                ["Layer/EquipUI/Bg/bg/Btn_xiangxi"] = -566169127,
+                ["Layer/EquipUI/Bg/bg/EquipIcon1"] = -668012330,
+                ["Layer/EquipUI/Bg/bg/EquipIcon1/IconBase"] = 1521298144,
+                ["Layer/EquipUI/Bg/bg/EquipIcon1/name"] = 1763623449,
+                ["Layer/EquipUI/Bg/bg/EquipIcon2"] = 738838849,
+                ["Layer/EquipUI/Bg/bg/EquipIcon2/IconBase"] = -832436036,
+                ["Layer/EquipUI/Bg/bg/EquipIcon2/name"] = -443021102,
+                ["Layer/EquipUI/Bg/bg/EquipIcon3"] = -73125643,
+                ["Layer/EquipUI/Bg/bg/EquipIcon3/IconBase"] = 1127629387,
+                ["Layer/EquipUI/Bg/bg/EquipIcon3/name"] = -1301153233,
+                ["Layer/EquipUI/Bg/bg/EquipIcon4"] = 71187524,
+                ["Layer/EquipUI/Bg/bg/EquipIcon4/IconBase"] = 2040223266,
+                ["Layer/EquipUI/Bg/bg/EquipIcon4/name"] = -1036685200,
+                ["Layer/EquipUI/Bg/bg/EquipIcon5"] = -1939318529,
+                ["Layer/EquipUI/Bg/bg/EquipIcon5/IconBase"] = -545910299,
+                ["Layer/EquipUI/Bg/bg/EquipIcon5/name"] = 33355082,
+                ["Layer/EquipUI/Bg/bg/EquipIcon6"] = 132357049,
+                ["Layer/EquipUI/Bg/bg/EquipIcon6/IconBase"] = 262530773,
+                ["Layer/EquipUI/Bg/bg/EquipIcon6/name"] = -1334484755,
+                ["Layer/EquipUI/Bg/bg/Image_bg/bg_zhanli/Value"] = 1933775443,
+                ["Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0"] = 1277220581,
+                ["Layer/EquipUI/Bg/bg/Image_bg/Button1"] = -1266564269,
+                ["Layer/EquipUI/Bg/bg/Image_bg/Button2"] = -568380318,
+                ["Layer/EquipUI/Bg/bg/Image_bg/Tips_2"] = 1181232674,
+                ["Layer/EquipUI/Bg/bg/Image/BaseImage"] = 473213181,
+                ["Layer/EquipUI/Bg/bg/Image/BaseImage/Node"] = -197131205,
+                ["Layer/EquipUI/Bg/Btn_Skill"] = 301899026,
+                ["Layer/EquipUI/Bg/Btn_Skill/Icon"] = 409412020,
+                ["Layer/EquipUI/Bg/Btn_Skill/Panel_skill/ListView/Text_miaoshu"] = -454349742,
+                ["Layer/EquipUI/Bg/Btn_Skill/Panel_skill/Text"] = -2034902482,
+                ["Layer/EquipUI/Bg/Equip"] = 751149050,
+                ["Layer/EquipUI/Bg/Equip/Text_0"] = -950605347,
+                ["Layer/EquipUI/Bg/Equip/Text_1"] = 880687974,
+                ["Layer/EquipUI/Bg/Equip/Text_2"] = 1805632060,
+                ["Layer/EquipUI/Bg/Equip/Text_3"] = -1014268391,
+                ["Layer/EquipUI/Bg/Equip/Text_4"] = 1629278107,
+                ["Layer/EquipUI/Bg/Panel_new"] = -1840585105,
+                ["Layer/EquipUI/Bg/Panel_new/addnew"] = -1399517334,
+                ["Layer/shenjiangListUI/List/Item"] = 613691925,
+                ["Layer/shenjiangListUI/List/Panel"] = 1443548355
+            };
         private readonly HeroStore heroes;
         private readonly FormationStore formation;
         private readonly PlayerStore player;
@@ -275,8 +324,8 @@ namespace ProjectX.UI
 
         private void ShowDetails()
         {
-            GameObject addPanel = detailView.FindNode("Layer/EquipUI/Bg/Panel_new");
-            GameObject background = detailView.FindNode("Layer/EquipUI/Bg");
+            GameObject addPanel = ResolveNode(detailView, "Layer/EquipUI/Bg/Panel_new");
+            GameObject background = ResolveNode(detailView, "Layer/EquipUI/Bg");
             if (!heroes.TryGet(selectedId, out HeroRecord hero))
             {
                 if (background != null) background.SetActive(true);
@@ -355,7 +404,7 @@ namespace ProjectX.UI
         {
             foreach (string child in new[] { "bg", "Equip", "Btn_Skill" })
             {
-                GameObject target = detailView.FindNode($"Layer/EquipUI/Bg/{child}");
+                GameObject target = ResolveNode(detailView, $"Layer/EquipUI/Bg/{child}");
                 if (target != null) target.SetActive(visible);
             }
         }
@@ -377,9 +426,9 @@ namespace ProjectX.UI
             if (authorityPosition > 0) selectedPosition = authorityPosition;
             for (int slot = 1; slot <= 6; slot++)
             {
-                GameObject iconHost = detailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase");
+                GameObject iconHost = ResolveNode(detailView, $"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase");
                 Image icon = EnsureRuntimeIcon(iconHost, $"EquippedItemIcon{slot}");
-                Text name = detailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/name")?.GetComponent<Text>();
+                Text name = ResolveNode(detailView, $"Layer/EquipUI/Bg/bg/EquipIcon{slot}/name")?.GetComponent<Text>();
                 Sprite sprite = null;
                 string label = string.Empty;
                 int quality = 0;
@@ -471,7 +520,7 @@ namespace ProjectX.UI
             int count = 0;
             for (int slot = first; slot <= last; slot++)
             {
-                Image image = detailView.FindNode($"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase")
+                Image image = ResolveNode(detailView, $"Layer/EquipUI/Bg/bg/EquipIcon{slot}/IconBase")
                     ?.transform.Find($"EquippedItemIcon{slot}")?.GetComponent<Image>();
                 if (image != null && image.gameObject.activeInHierarchy && image.enabled && image.sprite != null)
                     count++;
@@ -624,7 +673,19 @@ namespace ProjectX.UI
         }
 
         private static GameObject Require(CocosUiView view, string path)
-            => view.FindNode(path) ?? throw new InvalidOperationException($"Hero UI node was not found: {path}");
+            => ResolveNode(view, path) ?? throw new InvalidOperationException($"Hero UI node was not found: {path}");
+
+        private static GameObject ResolveNode(CocosUiView view, string path)
+        {
+            if (!FixedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"Hero UI path has no prefab identity: {path}");
+            string source = path.StartsWith("Layer/shenjiangListUI/", StringComparison.Ordinal)
+                ? "cocosstudio/csd/shenjiangyangcheng/yingxiongListLayer.csd"
+                : path.StartsWith("Layer/yingxiongbeibaoUI/", StringComparison.Ordinal)
+                    ? "cocosstudio/csd/shenjiangyangcheng/yingxiongbeibao.csd"
+                    : "cocosstudio/csd/shenjiangyangcheng/yingxiongInfoLayer.csd";
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
         private static Text RequireText(CocosUiView view, string path)
             => Require(view, path).GetComponent<Text>() ?? throw new InvalidOperationException($"Hero UI text was not found: {path}");
     }
