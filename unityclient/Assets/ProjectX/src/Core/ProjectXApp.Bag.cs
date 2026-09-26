@@ -264,7 +264,7 @@ namespace ProjectX.Core
             heroEquipmentFragmentView?.SetVisible(false);
             heroEquipmentListView?.SetVisible(true);
             SetOneLevelFrameVisible(true);
-            ConfigureHeroEquipmentFrame(HeroEquipmentKind.Equipment);
+            ConfigureHeroEquipmentFrame(heroEquipmentPresenter.ActiveKind);
             oneLevelFrameView?.GameObject.transform.SetAsLastSibling();
             heroEquipmentListView?.GameObject.transform.SetAsLastSibling();
         }
