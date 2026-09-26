@@ -10,11 +10,15 @@ namespace ProjectX.UI
 {
     public sealed class TaskPresenter : IDisposable
     {
-        private const string BasePath = "Layer/Renwu";
+        private static readonly int[] ActivityPanelTags =
+            { -577927676, 1824877445, 1482522384, 1636729482 };
+        private static readonly int[] ActivityPointTextTags =
+            { 964763113, -1214893233, 268940762, 1091352408 };
         private readonly CocosUiView view;
         private readonly TaskStore store;
         private readonly IUiResourceProvider resources;
         private readonly VirtualList<TaskRecord> list;
+        private readonly ScrollRect listScroll;
         private readonly Text emptyText;
         private readonly Action<TaskRecord> go;
         private readonly Action<TaskRecord> claim;
@@ -32,8 +36,9 @@ namespace ProjectX.UI
             this.claim = claim ?? throw new ArgumentNullException(nameof(claim));
             this.previewBox = previewBox ?? throw new ArgumentNullException(nameof(previewBox));
             this.isVisible = isVisible ?? throw new ArgumentNullException(nameof(isVisible));
-            GameObject viewport = Require(BasePath + "/Content/ListView");
-            GameObject template = Require(BasePath + "/Item");
+            GameObject viewport = view.GetSerializedNodeByActionTag(1948788019);
+            GameObject template = view.GetSerializedNodeByActionTag(-1638861357);
+            listScroll = viewport.GetComponent<ScrollRect>();
             float itemHeight = Math.Max(130f, template.GetComponent<RectTransform>()?.rect.height ?? 130f);
             list = new VirtualList<TaskRecord>(viewport, template, itemHeight, BindRow);
             emptyText = CreateEmptyText(viewport.transform);
@@ -48,9 +53,8 @@ namespace ProjectX.UI
 
         public bool ScrollToBottom()
         {
-            ScrollRect scroll = view.FindNode(BasePath + "/Content/ListView")?.GetComponent<ScrollRect>();
-            if (scroll == null) return false;
-            scroll.verticalNormalizedPosition = 0f;
+            if (listScroll == null) return false;
+            listScroll.verticalNormalizedPosition = 0f;
             Canvas.ForceUpdateCanvases();
             return true;
         }
@@ -113,8 +117,8 @@ namespace ProjectX.UI
             IReadOnlyList<TaskRecord> boxes = store.ActivityBoxes;
             ActivityBoxCount = boxes.Count;
             uint activity = store.ActivityValue;
-            SetText(RequireTransform(BasePath + "/Content/TitleBg/LoadingBg/Icon/Value"), activity.ToString());
-            Image bar = RequireTransform(BasePath + "/Content/TitleBg/LoadingBg/LoadingBar").GetComponent<Image>();
+            SetText(view.GetSerializedNodeByActionTag(-1932144098).transform, activity.ToString());
+            Image bar = view.GetSerializedNodeByActionTag(835417269).GetComponent<Image>();
             if (bar != null)
             {
                 bar.type = Image.Type.Filled;
@@ -123,7 +127,7 @@ namespace ProjectX.UI
             }
             for (int index = 0; index < 4; index++)
             {
-                Transform panel = RequireTransform($"{BasePath}/Content/TitleBg/LoadingBg/Panel_{index + 1}");
+                Transform panel = view.GetSerializedNodeByActionTag(ActivityPanelTags[index]).transform;
                 bool occupied = index < boxes.Count;
                 panel.gameObject.SetActive(occupied);
                 if (!occupied) continue;
@@ -131,7 +135,7 @@ namespace ProjectX.UI
                 SetVisible(panel, "Close", box.State < 2);
                 SetVisible(panel, "Open", box.State >= 2);
                 SetActivityBoxClaimableEffect(panel, box.State == 1);
-                SetText(RequireTransform($"{BasePath}/Content/TitleBg/LoadingBg/Point_{index + 1}/Text"),
+                SetText(view.GetSerializedNodeByActionTag(ActivityPointTextTags[index]).transform,
                     box.Target.ToString());
                 Graphic hitGraphic = panel.GetComponent<Graphic>();
                 if (hitGraphic == null)
@@ -212,11 +216,6 @@ namespace ProjectX.UI
                 amount.text = $"×{reward.amount}";
             }
         }
-
-        private GameObject Require(string path) =>
-            view.FindNode(path) ?? throw new InvalidOperationException($"Task UI node was not found: {path}");
-
-        private Transform RequireTransform(string path) => Require(path).transform;
 
         private static void Bind(Transform target, Action action)
         {
