@@ -10,6 +10,7 @@ namespace ProjectX.UI
     public sealed class MoneyTreePresenter : IDisposable
     {
         private const byte CoinTreeType = 1;
+        private const string PrefabSource = "cocosstudio/csd/huodong/GoldTreeLayer.csd";
         private readonly CocosUiView view;
         private readonly MoneyTreeStore store;
         private readonly Action<byte> shake;
@@ -34,21 +35,21 @@ namespace ProjectX.UI
 
             Transform root = view.GameObject.transform;
             Normalize(root);
-            SetVisible(view.FindNode("Layer/Panel/Coin"), true);
-            SetVisible(view.FindNode("Layer/Panel/Gold"), false);
-            rewardValue = RequireText(view, "Layer/Panel/Coin/TitleBg/CoinIcon/Num");
-            costValue = RequireText(view, "Layer/Panel/Coin/DesBg/Bg2/Num");
-            countValue = RequireText(view, "Layer/Panel/Coin/DesBg/Bg1/Num");
-            buttonText = RequireText(view, "Layer/Panel/Coin/BuyBtn/Text");
-            freeCount = RequireText(view, "Layer/Panel/Coin/BuyBtn/Text/Value");
-            shakeButton = RequireButton(view, "Layer/Panel/Coin/BuyBtn");
+            SetVisible(Node(-548663934, "Layer/Panel/Coin"), true);
+            SetVisible(Node(-1805594343, "Layer/Panel/Gold"), false);
+            rewardValue = RequireText(435024715, "Layer/Panel/Coin/TitleBg/CoinIcon/Num");
+            costValue = RequireText(-1097388810, "Layer/Panel/Coin/DesBg/Bg2/Num");
+            countValue = RequireText(-621379636, "Layer/Panel/Coin/DesBg/Bg1/Num");
+            buttonText = RequireText(1209090500, "Layer/Panel/Coin/BuyBtn/Text");
+            freeCount = RequireText(-1701666080, "Layer/Panel/Coin/BuyBtn/Text/Value");
+            shakeButton = RequireButton(1868493308, "Layer/Panel/Coin/BuyBtn");
             shakeButton.onClick.RemoveAllListeners();
             shakeButton.onClick.AddListener(() => this.shake(CoinTreeType));
-            Button addButton = RequireButton(view, "Layer/Panel/Coin/DesBg/Bg1/Button");
+            Button addButton = RequireButton(57564621, "Layer/Panel/Coin/DesBg/Bg1/Button");
             addButton.onClick.RemoveAllListeners();
             addButton.onClick.AddListener(() => this.addCount());
-            RectTransform coinTree = view.FindNode("Layer/Panel/Coin/CoinTree")?.GetComponent<RectTransform>();
-            Sprite coinSprite = view.FindNode("Layer/Panel/Coin/TitleBg/CoinIcon")?.GetComponent<Image>()?.sprite;
+            RectTransform coinTree = Node(-433428515, "Layer/Panel/Coin/CoinTree").GetComponent<RectTransform>();
+            Sprite coinSprite = Node(-2037832097, "Layer/Panel/Coin/TitleBg/CoinIcon").GetComponent<Image>()?.sprite;
             rewardEffect = view.GameObject.GetComponent<MoneyTreeRewardEffect>()
                 ?? view.GameObject.AddComponent<MoneyTreeRewardEffect>();
             rewardEffect.Initialize(coinTree, coinSprite);
@@ -91,12 +92,15 @@ namespace ProjectX.UI
             shakeButton.interactable = record.RemainingCount > 0 && store.PendingShakeType == 0;
         }
 
-        private static Text RequireText(CocosUiView view, string path) =>
-            view.FindNode(path)?.GetComponent<Text>()
+        private GameObject Node(int actionTag, string path) =>
+            view.GetSerializedNodeByActionTag(actionTag, PrefabSource, path);
+
+        private Text RequireText(int actionTag, string path) =>
+            Node(actionTag, path).GetComponent<Text>()
             ?? throw new InvalidOperationException($"MoneyTree imported text was not found: {path}");
 
-        private static Button RequireButton(CocosUiView view, string path) =>
-            view.FindNode(path)?.GetComponent<Button>()
+        private Button RequireButton(int actionTag, string path) =>
+            Node(actionTag, path).GetComponent<Button>()
             ?? throw new InvalidOperationException($"MoneyTree imported button was not found: {path}");
 
         private static void SetVisible(GameObject target, bool visible)
