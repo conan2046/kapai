@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,6 +8,26 @@ namespace ProjectX.UI
 {
     public sealed class GameplayShopItemInfoPresenter
     {
+        private const string PrefabSource = "cocosstudio/csd/common/SourceLayer.csd";
+        private static readonly IReadOnlyDictionary<string, int> SerializedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/Panel/Panel_1_0/Type_2"] = -1342849862,
+                ["Layer/Panel/Panel_1_0/Type_3"] = -197192001,
+                ["Layer/Panel/Panel_1_0/Image_2"] = 1322711952,
+                ["Layer/Panel/Panel_1_0/Image_3"] = -1567760464,
+                ["Layer/Panel/Panel_1_0/Image_4"] = -2011426807,
+                ["Layer/Panel/Panel_1_0/Btn_ListView"] = 2086919534,
+                ["Layer/Panel/Panel_1_0/Btn_ListView/Text"] = -661820383,
+                ["Layer/Panel/Panel_1_0/Btn_ListView/List"] = 516638048,
+                ["Layer/Panel/Panel_1_0/SystemBtn"] = -198601378,
+                ["Layer/Panel/Panel_1_0/powerLabel"] = 394632504,
+                ["Layer/Panel/Panel_1_0/nameLabel"] = 2050194783,
+                ["Layer/Panel/Panel_1_0/typeLabel"] = 1339522279,
+                ["Layer/Panel/Panel_1_0/infoListView"] = -1353584636,
+                ["Layer/Panel/Panel_1_0/closeBtn"] = 283134963
+            };
+
         private readonly CocosUiView view;
         private readonly IUiResourceProvider resources;
         private readonly ShopCatalog catalog;
@@ -71,8 +92,7 @@ namespace ProjectX.UI
 
         private void BindClose()
         {
-            GameObject node = view.FindNode("Layer/Panel/Panel_1_0/closeBtn")
-                ?? throw new InvalidOperationException("Gameplay shop SourceLayer close button is missing.");
+            GameObject node = Node("Layer/Panel/Panel_1_0/closeBtn");
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>();
             button.onClick.RemoveAllListeners();
@@ -154,7 +174,12 @@ namespace ProjectX.UI
             });
         }
 
-        private GameObject Node(string path) => view.FindNode(path);
+        private GameObject Node(string path)
+        {
+            if (!SerializedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"Unknown fixed gameplay shop item node: {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, PrefabSource, path);
+        }
 
         private void SetText(string path, string value)
         {
