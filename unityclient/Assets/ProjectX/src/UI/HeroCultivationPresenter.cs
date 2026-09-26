@@ -9,6 +9,184 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class HeroCultivationNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["shenjiangyangcheng/shenjiangxiangxishuxing|Layer/Node_1/Popup/Icon"] = -1126031639,
+            ["shenjiangyangcheng/shenjiangxiangxishuxing|Layer/Node_1/Popup/Icon/name"] = 946310609,
+            ["shenjiangyangcheng/shenjiangxiangxishuxing|Layer/Node_1/Popup/Icon/text_dingwei/num"] = -899183633,
+            ["shenjiangyangcheng/shenjiangxiangxishuxing|Layer/Node_1/Popup/Icon/text_zhanli/num"] = -1937122114,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/bg/Text_3"] = 1993807863,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/bg/Text_3_"] = 1691654818,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/bg/Text_3_0_0"] = 2019286905,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/bg/cailiao_0/value"] = -1339652173,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_1/Item"] = -230258483,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_1/Text_23"] = 450140069,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_2/Item"] = 1180138891,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_2/Text_23"] = 1863846588,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_3/Item"] = -1324800215,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_3/Text_23"] = 834291838,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_4/Item"] = -451902850,
+            ["shenjiangyangcheng/yingxiongshengjiScene1|Layer/btn_Item_4/Text_23"] = -1247496393,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1"] = -658483812,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1/Value_1"] = 733285435,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1/Value_2"] = 1708061069,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1/Value_3"] = -328735326,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2"] = 752124347,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2/Value_1"] = 90038374,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2/Value_2"] = 291701939,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2/Value_3"] = -962607444,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3"] = 977450285,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3/Value_1"] = 1299628677,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3/Value_2"] = 1018338003,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3/Value_3"] = -428777218,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4"] = -1485177522,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4/Value_1"] = -138536905,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4/Value_2"] = 1075092396,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4/Value_3"] = 1938178632,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Level_1"] = 1794882386,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/Level_2"] = -823001625,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/jichu/text_tianfu"] = 452093960,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/tupo/Item"] = 2084547830,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/tupo/Name"] = -142064795,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/tupo/Value"] = -1131448068,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/tupo/cailiao/Value"] = -1311237564,
+            ["shenjiangyangcheng/yingxiongtupoLayer|Layer/shenjiangInfoUI/Info/tupo/xiaohao/Num"] = 128077702,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/cailiao/btn_Item_1"] = 1192101304,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/cailiao/btn_Item_1/Value_1"] = 1866612765,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/Image_bg/txt_2"] = -375576257,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_1/Value_1"] = 1069836836,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_1/bg_Bar/Value"] = 138573068,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_2/Value_1"] = 260483219,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_2/bg_Bar/Value"] = -1251489699,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_3/Value_1"] = -1364141570,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_3/bg_Bar/Value"] = 2104472964,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_4/Value_1"] = -239039738,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/att_4/bg_Bar/Value"] = -993841478,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/txt_3"] = 939295423,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/txt_4"] = 1258740768,
+            ["shenjiangyangcheng/yingxiongxiulian|Layer/shenjiangxiulian/Info/jichu/txt_5"] = 1066536951,
+            ["OneLevelLayer|Layer/Panel_12/Bg/Btn_ListView"] = -1106341412,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_1"] = -1485525093,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_2"] = -1728188880,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_3"] = 960982984,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_4"] = 568064780,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5/txt_5_0"] = 961555810,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1"] = -1919929396,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_10"] = 363006993,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11"] = 1648236522,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_12"] = 2141471201,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_13"] = 833440020,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_14"] = 1126074156,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_15"] = 1658843378,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_16"] = -441794172,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_17"] = 1713194522,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_18"] = 1566858778,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_19"] = -1532969119,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_2"] = -728393212,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_20"] = 1068421223,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_3"] = 1190928805,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_4"] = 1141713401,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_5"] = -2139438614,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_6"] = 1473162735,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_7"] = 1192269313,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_8"] = -1128966705,
+            ["shenjiangyangcheng/yingxiongxiulian2|Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_9"] = -1151088712,
+            ["shop/shop_bg|Layer/shopBg/Popup/Title/Title"] = 1343485170,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_1/Atrribute_1"] = 914694180,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_1/Atrribute_2"] = 34999440,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_1/Atrribute_3"] = -114442707,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_1/Atrribute_4"] = -1564623898,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_2/Atrribute_1"] = 1910574936,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_2/Atrribute_2"] = 2008204338,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_2/Atrribute_3"] = -1904243908,
+            ["shenjiangyangcheng/yingxiongxiulian3|Layer/Popup/ListView_1/Content_2/Atrribute_4"] = 962698263,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1"] = -386070234,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value"] = 1996744009,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo"] = 1234703972,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillName"] = 1008681511,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_1/Value"] = 1720668513,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_2/Value"] = -754205474,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_3/Value"] = -1099039254,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_4/Value"] = -575577887,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu/Item/TalentInfo"] = 1453375894,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/miaoshu/Item/Content"] = -123502887,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo"] = 1557667045,
+            ["shenjiangyangcheng/yingxiongxinxiLayer|Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/Title"] = -699831016,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/Level/Value"] = -1751650804,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/Tips/value"] = -1562670628,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value"] = 138573068,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1"] = 1192101304,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1/Text"] = 1451178968,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1/Value"] = -80633565,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2"] = 543267572,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2/Text"] = 1753691432,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2/Value"] = 1985395525,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3"] = 1252508496,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3/Text"] = 1378517595,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3/Value"] = -2076002386,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4"] = -1691912248,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4/Text"] = -348799383,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4/Value"] = -752013658,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1"] = -1530760912,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1/Value_1"] = 1801718031,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1/Value_2"] = 1967111983,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_1/Value_3"] = 1069836836,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2"] = 388430361,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2/Value_1"] = -242713929,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2/Value_2"] = 605670885,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_2/Value_3"] = 149350614,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3"] = -1955439695,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3/Value_1"] = -1771482052,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3/Value_2"] = -1583966696,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_3/Value_3"] = -936084633,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4"] = -203774183,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4/Value_1"] = -1399777692,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4/Value_2"] = 1885269254,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Attribute_4/Value_3"] = -664536549,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Level_1"] = -269713443,
+            ["shenjiangyangcheng/yingxiongshuxingLayer|Layer/shenjiangInfoUI/Info/jichu/Level_2"] = -990173387,
+            ["shenjiangyangcheng/yingxiongjueseLayer|Layer/Node_3/Tips_2"] = -170942827,
+            ["shenjiangyangcheng/yingxiongjueseLayer|Layer/Node_3/bg_zhanli/Value"] = -881746874,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/cailiao/Icon"] = 141077985,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/cailiao/Name"] = 1162361624,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/cailiao/Slider_Bg/Value"] = -118865820,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/Attribute_1/Value"] = 1411744357,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/Attribute_2/Value"] = 1488930422,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/Attribute_3/Value"] = 130004354,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/Attribute_4/Value"] = 2137175747,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon"] = -1394446369,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/ScrollView"] = -615250644,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo"] = 381488750,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/SkillName"] = -2001827470,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_1"] = -1782773368,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_2"] = 62764836,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_3"] = 1750937354,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_4"] = 901109442,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_5"] = 237641993,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_6"] = -372125394,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_7"] = 1724518594,
+            ["shenjiangyangcheng/yingxiongshengxingLayer|Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_8"] = 575930457,
+            ["shenjiangyangcheng/yingxiongtianfuLayer|Layer/bg/Title"] = 494755391,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null) return null;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Hero cultivation source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"Hero cultivation fixed node has no identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class HeroCultivationPresenter : IDisposable
     {
         private readonly CocosUiView frame, shell, level, autoLevel, star, breakUp, cultivate, info;
@@ -273,9 +451,9 @@ namespace ProjectX.UI
                 case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.GetSerializedNodeByActionTag(-448538979, "cocosstudio/csd/shenjiangyangcheng/yingxiongtianfuLayer.csd", "Layer/bg/Btn_close")?.GetComponent<Button>(); break;
                 case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.GetSerializedNodeByActionTag(391021299, "cocosstudio/csd/EnterNumLayer.csd", "Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
                 case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.GetSerializedNodeByActionTag(682847881, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
-                case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
-                case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1/HeroDestinyButton")?.GetComponent<Button>(); break;
-                case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11/HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.GetSerializedNodeByActionTag(682847881, "cocosstudio/csd/shop/shop_bg.csd", "Layer/shopBg/Btn_ListView/Panel_1/Button")?.transform.parent?.Find("HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
+                case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = HeroCultivationNodeIds.Get(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1")?.transform.Find("HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = HeroCultivationNodeIds.Get(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11")?.transform.Find("HeroDestinyButton")?.GetComponent<Button>(); break;
                 case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.GetSerializedNodeByActionTag(101891004, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
                 case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.GetSerializedNodeByActionTag(101891004, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian2.csd", "Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
                 case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.GetSerializedNodeByActionTag(-865952348, "cocosstudio/csd/shenjiangyangcheng/yingxiongxiulian3.csd", "Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
@@ -315,7 +493,7 @@ namespace ProjectX.UI
 
         private static Button ResolveButton(CocosUiView view, string path)
         {
-            GameObject node = view?.FindNode(path);
+            GameObject node = HeroCultivationNodeIds.Get(view, path);
             if (node == null) return null;
             Transform cursor = node.transform;
             while (cursor != null && cursor != view?.GameObject.transform)
@@ -339,7 +517,7 @@ namespace ProjectX.UI
         private bool InvokeScroll(CocosUiView view, string path, out string detail)
         {
             detail = string.Empty;
-            ScrollRect scroll = view?.FindNode(path)?.GetComponent<ScrollRect>();
+            ScrollRect scroll = HeroCultivationNodeIds.Get(view, path)?.GetComponent<ScrollRect>();
             if (scroll == null || EventSystem.current == null || !scroll.gameObject.activeInHierarchy)
             { detail = "ScrollRect unavailable"; return false; }
             RectTransform scrollRect = scroll.viewport != null ? scroll.viewport : scroll.transform as RectTransform;
@@ -415,14 +593,14 @@ namespace ProjectX.UI
 
         private static bool HasVisibleSprite(CocosUiView view, string path)
         {
-            GameObject host = view?.FindNode(path);
+            GameObject host = HeroCultivationNodeIds.Get(view, path);
             return host != null && host.GetComponentsInChildren<Image>(true)
                 .Any(image => image.enabled && image.sprite != null);
         }
 
         private static bool HasVisibleChildSprite(CocosUiView view, string path, string childName)
         {
-            Transform child = view?.FindNode(path)?.transform.Find(childName);
+            Transform child = HeroCultivationNodeIds.Get(view, path)?.transform.Find(childName);
             Image image = child?.GetComponent<Image>();
             return image != null && image.enabled && image.sprite != null;
         }
@@ -584,7 +762,7 @@ namespace ProjectX.UI
 
         private void ResetTabOverlay()
         {
-            GameObject listObject = frame?.FindNode("Layer/Panel_12/Bg/Btn_ListView");
+            GameObject listObject = HeroCultivationNodeIds.Get(frame, "Layer/Panel_12/Bg/Btn_ListView");
             Canvas tabCanvas = listObject?.GetComponent<Canvas>();
             if (tabCanvas == null) return;
             // sortingOrder=200 is owned only by the cultivation shell. Leaving it
@@ -693,7 +871,7 @@ namespace ProjectX.UI
                 SetText(star, $"Layer/yingxiongshengxingUI/Info/jichu/Attribute_{i + 1}/Value", $"+{ordered[i]}");
             for (int value = 1; value <= 8; value++)
             {
-                GameObject node = star.FindNode($"Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_{value}");
+                GameObject node = HeroCultivationNodeIds.Get(star, $"Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_{value}");
                 if (node != null) node.SetActive(value <= hero.Star);
             }
             if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
@@ -888,7 +1066,7 @@ namespace ProjectX.UI
             HeroRecord hero = CurrentHero();
             HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
             SetText(autoLevel, "Layer/bg/Text_3", hero.Name);
-            Text heroName = autoLevel.FindNode("Layer/bg/Text_3")?.GetComponent<Text>();
+            Text heroName = HeroCultivationNodeIds.Get(autoLevel, "Layer/bg/Text_3")?.GetComponent<Text>();
             if (heroName != null)
             {
                 RectTransform nameRect = heroName.rectTransform;
@@ -1334,7 +1512,7 @@ namespace ProjectX.UI
             template.SetActive(false);
             for (int levelValue = 1; levelValue <= 20; levelValue++)
             {
-                GameObject node = helpFirst.FindNode(
+                GameObject node = HeroCultivationNodeIds.Get(helpFirst,
                     $"Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_{levelValue}");
                 if (node == null) continue;
                 Transform old = node.transform.Find("HeroDestinyButton");
@@ -1365,7 +1543,7 @@ namespace ProjectX.UI
             string[] names = { "攻击加成", "物防加成", "法防加成", "生命加成" };
             for (int index = 0; index < names.Length; index++)
             {
-                GameObject bonusObject = helpFirst.FindNode(
+                GameObject bonusObject = HeroCultivationNodeIds.Get(helpFirst,
                     $"Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_{index + 1}");
                 Text bonusText = bonusObject?.GetComponent<Text>();
                 if (bonusText != null)
@@ -1413,7 +1591,7 @@ namespace ProjectX.UI
                     $"{names[index]}+{baseTotals[index]}");
                 SetText(helpSecond, $"Layer/Popup/ListView_1/Content_2/Atrribute_{index + 1}",
                     $"{names[index]}加成+{percentage:0.##}%");
-                Text percentText = helpSecond.FindNode(
+                Text percentText = HeroCultivationNodeIds.Get(helpSecond,
                     $"Layer/Popup/ListView_1/Content_2/Atrribute_{index + 1}")?.GetComponent<Text>();
                 if (percentText != null)
                     percentText.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -1475,7 +1653,7 @@ namespace ProjectX.UI
         }
         private static void SetText(CocosUiView view, string path, string value)
         {
-            Text text = view.FindNode(path)?.GetComponent<Text>();
+            Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
             if (text == null) return;
             text.supportRichText = true;
             text.text = value ?? string.Empty;
@@ -1483,7 +1661,7 @@ namespace ProjectX.UI
 
         private void FitDescription(CocosUiView view, string path, bool expandParent, float rightInset = 0f)
         {
-            Text text = view.FindNode(path)?.GetComponent<Text>();
+            Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
             RectTransform rect = text?.rectTransform;
             if (text == null || rect == null) return;
 
@@ -1542,7 +1720,7 @@ namespace ProjectX.UI
 
         private static void FitText(CocosUiView view, string path, int minimumSize)
         {
-            Text text = view.FindNode(path)?.GetComponent<Text>();
+            Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
             if (text == null) return;
             text.resizeTextForBestFit = true;
             text.resizeTextMinSize = Math.Max(8, minimumSize);
@@ -1552,7 +1730,7 @@ namespace ProjectX.UI
 
         private void SetMaterialIcon(CocosUiView view, string path, Sprite sprite, string runtimeName, int quality = 0)
         {
-            GameObject host = view.FindNode(path);
+            GameObject host = HeroCultivationNodeIds.Get(view, path);
             if (host == null) return;
             Image hostImage = host.GetComponent<Image>();
             if (hostImage != null) hostImage.color = new Color(1f, 1f, 1f, 0f);
