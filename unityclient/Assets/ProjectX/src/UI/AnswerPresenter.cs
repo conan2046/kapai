@@ -7,6 +7,9 @@ namespace ProjectX.UI
     public sealed class AnswerPresenter : IDisposable
     {
         private const string Root = "Layer/Panel/AnswerBg";
+        private const string PrefabSource = "cocosstudio/csd/dati/AnswerLayer.csd";
+        private static readonly int[] ButtonTags = { -1528769379, -651176080, -1360378196, -1325149015 };
+        private static readonly int[] RightMarkTags = { 1356593858, 895523842, 1814654104, 359666647 };
         private readonly CocosUiView view;
         private readonly Action<int> submit;
         private readonly Text rightCount;
@@ -41,31 +44,29 @@ namespace ProjectX.UI
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.submit = submit ?? throw new ArgumentNullException(nameof(submit));
             Normalize(view.GameObject.transform);
-            rightCount = RequireText($"{Root}/RewardBg/RightBg/Text");
-            time = RequireText($"{Root}/RewardBg/TimeBg/Text");
-            remaining = RequireText($"{Root}/RewardBg/Bg1/Value");
-            GameObject remainingIcon = view.FindNode($"{Root}/RewardBg/Bg1/Icon");
-            if (remainingIcon != null) remainingIcon.SetActive(false);
-            currentReward = RequireText($"{Root}/RewardBg/Bg2/Value");
-            totalReward = RequireText($"{Root}/RewardBg/Bg3/Value");
-            defaultRewardQuality = RequireImage($"{Root}/RewardBg/Reward");
-            defaultRewardIcon = RequireImage($"{Root}/RewardBg/Reward/Icon");
-            defaultRewardValue = RequireText($"{Root}/RewardBg/Reward/Value");
+            rightCount = RequireText(-241973371, $"{Root}/RewardBg/RightBg/Text");
+            time = RequireText(-891143510, $"{Root}/RewardBg/TimeBg/Text");
+            remaining = RequireText(-167296638, $"{Root}/RewardBg/Bg1/Value");
+            currentReward = RequireText(-471663716, $"{Root}/RewardBg/Bg2/Value");
+            totalReward = RequireText(793740211, $"{Root}/RewardBg/Bg3/Value");
+            defaultRewardQuality = RequireImage(-1713462975, $"{Root}/RewardBg/Reward");
+            defaultRewardIcon = RequireImage(-871703757, $"{Root}/RewardBg/Reward/Icon");
+            defaultRewardValue = RequireText(865365927, $"{Root}/RewardBg/Reward/Value");
             defaultRewardQuality.preserveAspect = true;
             defaultRewardIcon.preserveAspect = true;
-            questionIndex = RequireText($"{Root}/SubjectBg/TitleBg/Text");
-            question = RequireText($"{Root}/SubjectBg/Bg/Text");
-            rightText = RequireText($"{Root}/RightText");
-            wrongText = RequireText($"{Root}/WrongText");
+            questionIndex = RequireText(1788118713, $"{Root}/SubjectBg/TitleBg/Text");
+            question = RequireText(458455454, $"{Root}/SubjectBg/Bg/Text");
+            rightText = RequireText(380693005, $"{Root}/RightText");
+            wrongText = RequireText(-1340309947, $"{Root}/WrongText");
             for (int index = 0; index < answerButtons.Length; index++)
             {
                 int answerIndex = index + 1;
-                GameObject node = Require($"{Root}/SubjectBg/Button_{answerIndex}");
+                GameObject node = Node(ButtonTags[index], $"{Root}/SubjectBg/Button_{answerIndex}");
                 Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => Select(answerIndex));
                 answerButtons[index] = button;
-                rightMarks[index] = view.FindNode($"{Root}/SubjectBg/Button_{answerIndex}/RightImage");
+                rightMarks[index] = Node(RightMarkTags[index], $"{Root}/SubjectBg/Button_{answerIndex}/RightImage");
             }
             countdown = view.GameObject.GetComponent<AnswerCountdown>()
                 ?? view.GameObject.AddComponent<AnswerCountdown>();
@@ -145,19 +146,19 @@ namespace ProjectX.UI
                 if (button != null && button.gameObject.activeSelf) button.interactable = enabled;
         }
 
-        private GameObject Require(string path) => view.FindNode(path)
-            ?? throw new InvalidOperationException($"Answer imported node was not found: {path}");
+        private GameObject Node(int actionTag, string path) =>
+            view.GetSerializedNodeByActionTag(actionTag, PrefabSource, path);
 
-        private Text RequireText(string path)
+        private Text RequireText(int actionTag, string path)
         {
-            GameObject node = Require(path);
+            GameObject node = Node(actionTag, path);
             return node.GetComponent<Text>() ?? node.GetComponentInChildren<Text>(true)
                 ?? throw new InvalidOperationException($"Answer imported text was not found: {path}");
         }
 
-        private Image RequireImage(string path)
+        private Image RequireImage(int actionTag, string path)
         {
-            GameObject node = Require(path);
+            GameObject node = Node(actionTag, path);
             Image image = node.GetComponent<Image>();
             if (image == null || image.sprite == null)
                 throw new InvalidOperationException($"Answer prefab default reward image was not found: {path}");
