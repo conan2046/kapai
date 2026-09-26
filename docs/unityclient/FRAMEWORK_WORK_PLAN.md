@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 钓鱼页增量（2026-09-26）**：`FishPresenter` 的固定控件已改为 FishLayer 与共享 OneLevelLayer 的序列化 ActionTag 目标，生产 `FindNode` 路径调用清零。真实 Login→玩法大厅滚动→钓鱼→鱼篓→关闭→Main 全部经 EventSystem 首命中；开页身份 38/38、Metadata/Binding=0、Timeline N/A，两张 1334×750 实际画面截图已目视，Console 0。空鱼篓只完成开关与显示验收，不覆盖捕获/收获业务。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 其他范围内 Presenter 和五个 W6.7 页面仍待验。
+
 > **W6 Steam 范围纠偏（2026-09-26，用户确认）**：HUD 聊天栏与三个折扣入口是已屏蔽功能，按 `STEAM_SCOPE.md` 的 Chat/Activity 排除规则不做 Presenter 改造或验收；福利在线奖励同样保持排除。针对这些入口的一次未提交改动已撤回，重新真实登录到 Main 且 Console 0。后续 Presenter 路径清单先按 Steam 范围过滤，不将屏蔽入口计为 W6 待办。此前静态检查过的 W6.7 `JingjiLayer` 属于已排除 Arena，只保留历史记录；六页清单的玩家可见待验范围相应为五页。
 
 > **W6.5 商城数量键盘增量（2026-09-26）**：`ShopQuantityPresenter` 14 个固定控件改用 `EnterNumLayer` 的唯一序列化 ActionTag；Prefab 22/22 引用完整、Metadata/Binding/Timeline=0。真实 Login→商城→数量键盘，数字 2 首命中且显示 1→12，真实关闭键返回商城、商城关闭返回 Main，Console 0；未确认购买。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。其余范围内 Presenter 与 W6.7 五个可见页仍待验。

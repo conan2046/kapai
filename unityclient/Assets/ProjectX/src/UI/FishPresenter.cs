@@ -10,6 +10,36 @@ namespace ProjectX.UI
     public sealed class FishPresenter : IDisposable
     {
         private const string FishRootPath = "Layer/FishUI";
+        private const string FishSource = "cocosstudio/csd/FishLayer.csd";
+        private const string FrameSource = "cocosstudio/csd/OneLevelLayer.csd";
+        private static readonly IReadOnlyDictionary<string, int> FishNodeTags =
+            new Dictionary<string, int>
+            {
+                [FishRootPath] = 618898498,
+                [FishRootPath + "/Panel"] = -1757711919,
+                [FishRootPath + "/btn_Locker"] = -1436068062,
+                [FishRootPath + "/yulan"] = 1844348532,
+                [FishRootPath + "/Panel_caozuo/btn_shouqi"] = 1740929968,
+                [FishRootPath + "/Panel_caozuo/btn_shouqi/Text"] = -1400854069,
+                [FishRootPath + "/Panel_caozuo/btn_yulan"] = -282728907,
+                [FishRootPath + "/Panel_caozuo/btn_yulan/Text"] = 1538993365,
+                [FishRootPath + "/Panel_caozuo/Time/Reset"] = -624357987,
+                [FishRootPath + "/Panel_caozuo/Time/Value"] = 1311122478,
+                [FishRootPath + "/Panel_caozuo/Time/LoadingBar"] = -946430226,
+                [FishRootPath + "/yulan/ListView"] = -236178949,
+                [FishRootPath + "/yulan/Item"] = 779351517,
+                [FishRootPath + "/yulan/btn_Close"] = 819231366,
+                [FishRootPath + "/yulan/btn_shouhuo"] = 54635111,
+                [FishRootPath + "/yulan/btn_shouhuo/Text"] = -1662207696
+            };
+        private static readonly IReadOnlyDictionary<string, int> FrameNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/Panel_12"] = -1069417,
+                ["Layer/Panel_12/Title/TitleName"] = 553439985,
+                ["Layer/Panel_12/Title/TitleName/Button_1"] = -82293989,
+                ["Layer/Panel_12/Title/CloseBtn"] = -849663080
+            };
 
         private readonly CocosUiView view;
         private readonly FishStore store;
@@ -120,7 +150,7 @@ namespace ProjectX.UI
 
         public int RenderedSlotCount => basketSlotButtons.Count;
         public bool IsBasketVisible => basketRoot.activeSelf;
-        public bool IsOuterFrameVisible => oneLevelView.FindNode("Layer/Panel_12")?.activeSelf == true;
+        public bool IsOuterFrameVisible => Require(oneLevelView, "Layer/Panel_12").activeSelf;
         public ScrollRect BasketScroll => basketScroll;
         public bool HasSourceBasketHierarchy => basketContent != null
             && basketContent.name == "RuntimeFishBasketContent"
@@ -460,8 +490,14 @@ namespace ProjectX.UI
             return rect;
         }
 
-        private static GameObject Require(CocosUiView view, string path) =>
-            view.FindNode(path) ?? throw new InvalidOperationException($"Fish UI node was not found: {path}");
+        private static GameObject Require(CocosUiView view, string path)
+        {
+            bool frame = view?.Identity?.Source == FrameSource;
+            IReadOnlyDictionary<string, int> tags = frame ? FrameNodeTags : FishNodeTags;
+            if (!tags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"Unknown fixed Fish UI node: {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, frame ? FrameSource : FishSource, path);
+        }
 
         private static Button BindClick(CocosUiView view, string path, Action callback,
             bool addButtonIfMissing = false) =>
@@ -471,10 +507,10 @@ namespace ProjectX.UI
             Require(view, path).GetComponent<Text>()
             ?? throw new InvalidOperationException($"Fish UI text was not found: {path}");
 
-        private static void Hide(CocosUiView view, string path) => view.FindNode(path)?.SetActive(false);
+        private static void Hide(CocosUiView view, string path) => Require(view, path).SetActive(false);
 
         private static void SetVisible(CocosUiView view, string path, bool visible) =>
-            view.FindNode(path)?.SetActive(visible);
+            Require(view, path).SetActive(visible);
 
         private static void Normalize(Transform root)
         {
