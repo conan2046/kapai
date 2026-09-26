@@ -1,22 +1,26 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 Presenter Steam 范围复核（2026-09-26）**：此前“16 个 Presenter、171 处调用”只是初步文件筛选，不是待修任务量。当前 `FindNode` 源码命中 200 处/22 文件；整类排除 MainHud 剩余聊天/折扣/在线 15 处、WelfareActivityFrame 10 处、Friend/Guild/Team/Welfare 各 1 处，共 29 处。`LoginPresenter` 的服务器列表四处仅在非 Steam 标题分支使用，再剔除 4 处。余下 **16 个 Presenter、167 处源码调用位置**仍需逐项区分固定控件、动态节点和共用 helper；不得把 167 当作必须修改的控件数。详见 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
+> **W6.7 实际入口纠偏（2026-09-26，用户确认）**：不能把导入 Prefab 当成 Steam 功能页。`MountjinjieLayer` 没有坐骑功能入口；`DrawCardsLayer`、`duihualayer` 在当前 Unity 工程中也只有导入资产和 Editor 文字规则引用，均不列为必须开页验收。`JingjiLayer` 属于已排除 Arena。此前六份 Prefab 的静态检查保留为资产记录；当前仅 `FightLayer` 与 `guanqiaxiangxiLayer` 查到运行时代码接入，须先确认实际玩家可见路线，再按同页联合验收 6.3/6.4/6.5。其余资产不得因存在 Prefab 而阻塞 W6。
+
 > **W6.5 商城页增量（2026-09-26）**：`ShopPresenter` 的 20 个固定控件已改用序列化 ActionTag，生产 `FindNode` 路径调用清零；动态商品行继续使用各自模板内查找。真实登录→商城，商品、数量、货币和购买控件可见，数量按钮 1→2→1 后关闭返回 Main，Console 0，未购买。身份 97/98 的唯一旧空引用不在 Presenter 查询范围。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`；其他 W6 范围内路线仍待验。
 
-> **W6.5 钓鱼页增量（2026-09-26）**：`FishPresenter` 的固定控件已改为 FishLayer 与共享 OneLevelLayer 的序列化 ActionTag 目标，生产 `FindNode` 路径调用清零。真实 Login→玩法大厅滚动→钓鱼→鱼篓→关闭→Main 全部经 EventSystem 首命中；开页身份 38/38、Metadata/Binding=0、Timeline N/A，两张 1334×750 实际画面截图已目视，Console 0。空鱼篓只完成开关与显示验收，不覆盖捕获/收获业务。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 其他范围内 Presenter 和五个 W6.7 页面仍待验。
+> **W6.5 钓鱼页增量（2026-09-26）**：`FishPresenter` 的固定控件已改为 FishLayer 与共享 OneLevelLayer 的序列化 ActionTag 目标，生产 `FindNode` 路径调用清零。真实 Login→玩法大厅滚动→钓鱼→鱼篓→关闭→Main 全部经 EventSystem 首命中；开页身份 38/38、Metadata/Binding=0、Timeline N/A，两张 1334×750 实际画面截图已目视，Console 0。空鱼篓只完成开关与显示验收，不覆盖捕获/收获业务。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 其他范围内 Presenter 和实际可达页面仍待验。
 
-> **W6 Steam 范围纠偏（2026-09-26，用户确认）**：HUD 聊天栏与三个折扣入口是已屏蔽功能，按 `STEAM_SCOPE.md` 的 Chat/Activity 排除规则不做 Presenter 改造或验收；福利在线奖励同样保持排除。针对这些入口的一次未提交改动已撤回，重新真实登录到 Main 且 Console 0。后续 Presenter 路径清单先按 Steam 范围过滤，不将屏蔽入口计为 W6 待办。此前静态检查过的 W6.7 `JingjiLayer` 属于已排除 Arena，只保留历史记录；六页清单的玩家可见待验范围相应为五页。
+> **W6 Steam 范围纠偏（2026-09-26，用户确认）**：HUD 聊天栏与三个折扣入口是已屏蔽功能，按 `STEAM_SCOPE.md` 的 Chat/Activity 排除规则不做 Presenter 改造或验收；福利在线奖励同样保持排除。针对这些入口的一次未提交改动已撤回，重新真实登录到 Main 且 Console 0。后续 Presenter 路径清单先按 Steam 范围过滤，不将屏蔽入口计为 W6 待办。此前静态检查过的 W6.7 `JingjiLayer` 属于已排除 Arena，只保留历史记录。
 
-> **W6.5 商城数量键盘增量（2026-09-26）**：`ShopQuantityPresenter` 14 个固定控件改用 `EnterNumLayer` 的唯一序列化 ActionTag；Prefab 22/22 引用完整、Metadata/Binding/Timeline=0。真实 Login→商城→数量键盘，数字 2 首命中且显示 1→12，真实关闭键返回商城、商城关闭返回 Main，Console 0；未确认购买。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。其余范围内 Presenter 与 W6.7 五个可见页仍待验。
+> **W6.5 商城数量键盘增量（2026-09-26）**：`ShopQuantityPresenter` 14 个固定控件改用 `EnterNumLayer` 的唯一序列化 ActionTag；Prefab 22/22 引用完整、Metadata/Binding/Timeline=0。真实 Login→商城→数量键盘，数字 2 首命中且显示 1→12，真实关闭键返回商城、商城关闭返回 Main，Console 0；未确认购买。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。其余范围内 Presenter 与实际可达页面仍待验。
 
 > **W6 验收口径更新（2026-09-26，用户确认）**：本阶段仅以当前 C 盘 Unity 工程为验收对象。旧 Cocos 文档、截图与 Unity Prefab 的差异不作为 W6 阻塞或修复目标；此前导入器 14 份文档/49 项差异诊断保留作历史记录，不再为此修改 Unity 画面或同步 Cocos。W6 继续处理当前 Presenter 的路径依赖，并以 Unity 编译、序列化引用、真实 EventSystem 输入、玩家可见结果及 Console 验证。Unity 自身发现的缺陷按实际页面单独修复。
 
-> **W6 续验增量（2026-09-26）**：同一次 Unity Editor 打开 W6.7 六个 Prefab，联合检查 6.3/6.4/6.5：六份身份引用目标完整，Metadata/Binding=0，六页均无 Timeline（N/A）；14 处定位文字中 13 处维持修复，另一处全拉伸与修复前保存副本相同。当前真实 Login→Main→玩法→Main→世界章节路线未打开关卡详情，故六页可见验收仍未完成。`RewardPresenter` 九处、`NoticePresenter` 五处固定路径已改为唯一序列化 ActionTag 目标，Editor 编译与构造校验通过、Console 0；两种弹窗的真实开页尚待验。记录 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`，W6 仍未收口。
+> **W6 续验增量（2026-09-26）**：同一次 Unity Editor 打开 W6.7 六个 Prefab 做资产静态检查：六份身份引用目标完整，Metadata/Binding=0，均无 Timeline（N/A）；14 处定位文字中 13 处维持修复，另一处全拉伸与修复前保存副本相同。该静态结果不产生六页玩家可见验收任务；当前真实 Login→Main→玩法→Main→世界章节路线尚未打开关卡详情。`RewardPresenter` 九处、`NoticePresenter` 五处固定路径已改为唯一序列化 ActionTag 目标，Editor 编译与构造校验通过、Console 0；两种弹窗的真实开页尚待验。记录 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`，W6 仍未收口。
 
-> **W6.5 阵法弹窗增量（2026-09-26）**：`FormationPopupPresenter` 的 35 个非根固定路径改为预制体的唯一 ActionTag 目标，按钮也直接绑定该目标；克隆行内相对查找保留。首次真实 Play 暴露 `Node_6`～`Node_9` 是原有可选探查，已恢复缺失时返回空的语义并在 W6 台账关联失败/解决记录。复走 Login→世界→队伍→关闭，页面可见、身份 116/116、Metadata/Binding=0、Console 0，截图已目视；未升级或改阵容。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 其他 Presenter 与六页可见验收仍待收口。
+> **W6.5 阵法弹窗增量（2026-09-26）**：`FormationPopupPresenter` 的 35 个非根固定路径改为预制体的唯一 ActionTag 目标，按钮也直接绑定该目标；克隆行内相对查找保留。首次真实 Play 暴露 `Node_6`～`Node_9` 是原有可选探查，已恢复缺失时返回空的语义并在 W6 台账关联失败/解决记录。复走 Login→世界→队伍→关闭，页面可见、身份 116/116、Metadata/Binding=0、Console 0，截图已目视；未升级或改阵容。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 其他范围内 Presenter 与实际可达页面仍待收口。
 
 > **W6.5 设置页增量（2026-09-26）**：`SettingsPresenter` 的 24 个唯一身份节点改由序列化 ActionTag 直取，另五个原生/歧义控件由 `SystemLayer` 根上的 `SettingsPageReferences` 明确引用；该 Prefab 仅增加组件和五个引用，不动布局。真实 Login→头像→系统页的显示、五个关键控件 Raycast 首命中、关闭返回 Main 通过；当前根身份 28/28、Metadata/Binding=0、Console 0，未更改设置或保存。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 仍有其他 Presenter 与 W6.7 可见页待验。
 
-> **W6.5 Main HUD 增量（2026-09-26）**：11 个固定 HUD 显示节点已改用 Unity 序列化 ActionTag，七个原生红点对象已由 Prefab 组件直接引用；当前布局实际可见六个，旧邮件按钮所在父级隐藏，固定账号 HUD 断言据此修正。真实 EventSystem 登录后 Main 画面、红点聚合、Metadata/Binding 清零和 Console 0 已验证，记录 `.local/unity-validation/w6-mainhud-unity-prompt-binding-20260926.md`。此增量不关闭其他 Presenter 的路径依赖或 W6.7 六页视觉验收。
+> **W6.5 Main HUD 增量（2026-09-26）**：11 个固定 HUD 显示节点已改用 Unity 序列化 ActionTag，七个原生红点对象已由 Prefab 组件直接引用；当前布局实际可见六个，旧邮件按钮所在父级隐藏，固定账号 HUD 断言据此修正。真实 EventSystem 登录后 Main 画面、红点聚合、Metadata/Binding 清零和 Console 0 已验证，记录 `.local/unity-validation/w6-mainhud-unity-prompt-binding-20260926.md`。此增量不关闭其他范围内 Presenter 的路径依赖或实际可达页面的视觉验收。
 
 > **W6.5 Mail 增量（2026-09-26）**：邮件页15个固定内容节点及共享框架关闭/首页签改用 Unity 序列化 ActionTag；动态邮件页签按 PlayerHub 运行时固定顺序读取。真实 Login→Head→Mail 打开、空态显示、关闭返回 Main 和最终页签文案复测通过；Metadata/Binding=0、Console=0，截图已目视。当前存档无邮件，不以空态代替附件或领取验收。记录 `.local/unity-validation/w6-mail-unity-directrefs-20260926.md`。
 
@@ -24,7 +28,7 @@
 
 > **W6.5 每日任务增量（2026-09-26）**：`TaskPresenter` 固定列表、活跃度条及四组宝箱/点数节点改用 Unity 序列化 ActionTag，动态任务行保留模板内相对查找。真实 Login→玩法→每日任务打开与关闭通过，10行任务/4宝箱可见，Metadata/Binding=0、Console=0；未领取或跳转。记录 `.local/unity-validation/w6-task-unity-directrefs-20260926.md`。
 
-> **当前续接（2026-09-26）**：工作目录固定为 `C:\Users\Admin\.codex\worktrees\a6b4\Game`，Unity 工程仅为其 `unityclient`。W6.3/W6.4 的资产迁移结果维持 359 份 Prefab、Metadata=0、Binding=0、22 个有效 Timeline/461 条轨道；W6.5 仍因生产 `FindNode` 路径调用与未验页面未完成，不能以组件清零代替路径退场。当前同一次 Play 已对 Main、World、XunBao、FengShenStory、Recruitment、Jingjie 开页后联合检查 6.3/6.4/6.5 和可见画面，Console 0；详细记录 `.local/unity-validation/w6-unified-open-prefab-20260926.md`。Play 已停止，C 盘 Editor 保持打开。W6.7 六页定位文字修复尚缺完整可见验收，Steam 排除项不进入。W6 尚未收口。
+> **当前续接（2026-09-26）**：工作目录固定为 `C:\Users\Admin\.codex\worktrees\a6b4\Game`，Unity 工程仅为其 `unityclient`。W6.3/W6.4 的资产迁移结果维持 359 份 Prefab、Metadata=0、Binding=0、22 个有效 Timeline/461 条轨道；W6.5 仍因生产 `FindNode` 路径调用与未验页面未完成，不能以组件清零代替路径退场。当前同一次 Play 已对 Main、World、XunBao、FengShenStory、Recruitment、Jingjie 开页后联合检查 6.3/6.4/6.5 和可见画面，Console 0；详细记录 `.local/unity-validation/w6-unified-open-prefab-20260926.md`。Play 已停止，C 盘 Editor 保持打开。W6.7 的六份 Prefab 只保留资产静态记录，玩家可见验收以实际运行入口为准。W6 尚未收口。
 
 > **当前阶段（2026-09-25）**：固定 `C:\Users\Admin\.codex\worktrees\a6b4\Game`。W6.3 已完成：Prefab Metadata 19,690→0，359 个 Binding 保留，90 条例外身份在先前 Play 90/90 回读且迁移后完整序列化；26 个 Timeline/461 轨道、186/186 ActionTag 正常。全局 Binding、输入、Snapshot 对 Metadata 的直接回退已退场。Main、招募、寻宝任务弹窗、龙崖世界本轮真实输入与截图复核，复用已验抽卡结果/寻宝合成/世界结算，不重复消耗；不可达/Steam 排除项不造入口。Unity 已编译并恢复有效 Play，Main `ProjectXApp.Instance=true`、Console 0/0。下一步处理 W6 其余未验收路线与独立的导入器旧版 OpenBox 字号基线差异，详见 `.local/unity-validation/w6-metadata-prefab-migration-20260925.md`、`.local/unity-validation/w6-importer-baseline-sprite-font-20260925.md`。
 
