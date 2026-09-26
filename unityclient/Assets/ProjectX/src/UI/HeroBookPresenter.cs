@@ -7,6 +7,136 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class HeroBookNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/TableView"] = -129636322,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Item"] = -1537231116,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Button_l"] = 1397204955,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Button_r"] = 2143099326,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Text_jindu/Value"] = -1348929959,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/LoadingBar"] = -892448290,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/Value"] = 1191052843,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/tujianzhi/Value"] = -922487877,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/Btn_tujian"] = -436546475,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/Btn_tujian/Image/Attribute_1"] = -1082227312,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/Btn_tujian/Image/Attribute_2"] = -1297029925,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Slider_Bg/Btn_tujian/Image/Attribute_3"] = 1424336734,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Text_chaju/Value"] = 442047425,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Btn_tujian"] = -1486744887,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Btn_shuxing"] = -268732033,
+            ["shenjiangyangcheng/yingxiongtujianLayer|Layer/tujianUI/Panel/Btn_Rank"] = -1948498696,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Mask"] = -1504830639,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/IconColor"] = -662886359,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/IconColor/Icon"] = 1383364689,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/IconColor/Name"] = 900942720,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/Btn_close"] = 508082453,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Level_1"] = -1938234591,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/tujianzhi_1"] = 604770273,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_1"] = -437914138,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_2"] = 1792455619,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_3"] = -1302128022,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_4"] = 42679886,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Level_2"] = 1766247703,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/tujianzhi_2"] = 1235448944,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_5"] = 120805795,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_6"] = -1374222399,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_7"] = -883210937,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/shuxing/Attribute_8"] = -1587956768,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/tiaojian/Value"] = -1397530194,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/xiaohao/Icon"] = 56487637,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/xiaohao/Value"] = -2004020217,
+            ["shenjiangyangcheng/yingxiongtujianupLayer|Layer/Popup/Btn_shengji"] = -1454661707,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Mask"] = -782095147,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Btn_close"] = -865952348,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_1/Atrribute_1"] = 914694180,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_1/Atrribute_2"] = 34999440,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_1/Atrribute_3"] = -114442707,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_1/Atrribute_4"] = -1564623898,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_1"] = 1910574936,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_2"] = 2008204338,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_3"] = -1904243908,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_4"] = 962698263,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_5"] = -1683654078,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_6"] = -2018455832,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_7"] = 796585450,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Content_2/Atrribute_8"] = 287546616,
+            ["shenjiangyangcheng/yingxiongtujianshuxingLayer|Layer/Popup/Tips"] = -565327067,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/Mask"] = 321012810,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Text"] = -664787801,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/IconColor"] = -157310675,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/IconColor/Icon"] = 1203512441,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/tujianzhi/Value"] = 423035028,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_1"] = -1622847110,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_1/Value"] = 1778798270,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_2"] = -1107872122,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_2/Value"] = -1179748764,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_3"] = 1905745578,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_3/Value"] = 1666786873,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_4"] = -1501355534,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Atrribute_4/Value"] = -1765420900,
+            ["shenjiangyangcheng/yingxiongtujianendLayer|Layer/jihuochenggongUI/Btn_Close"] = 1992986095,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/Mask"] = 98895407,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/IconColor_1"] = -505809883,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/IconColor_1/Icon"] = 719847420,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/IconColor_1/Name"] = -1425739865,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/IconColor_2"] = 337726908,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/IconColor_2/Icon"] = 1655269526,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/IconColor_2/Name"] = -1684975544,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/tujianzhi/Value_1"] = 389860604,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/tujianzhi/Value_2"] = -168648207,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/tujianzhi/Value_3"] = 36570496,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_1"] = -380815296,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_1/Value_1"] = 1470605538,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_1/Value_2"] = -451658420,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_1/Value_3"] = -971005256,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_2"] = 764470300,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_2/Value_1"] = 494187591,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_2/Value_2"] = 1791019957,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_2/Value_3"] = 1180706052,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_3"] = -1635282665,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_3/Value_1"] = -1040641334,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_3/Value_2"] = 1549785670,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_3/Value_3"] = -1938048786,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_4"] = -1564442042,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_4/Value_1"] = -100075285,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_4/Value_2"] = 1144760853,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Atrribute_4/Value_3"] = -600927450,
+            ["shenjiangyangcheng/yingxiongtujianupendLayer|Layer/shengjichenggongUI/Btn_Close"] = -918460223,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/Mask"] = -229338212,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/tujianzhi"] = 504083686,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Atrribute_1"] = 136757042,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Atrribute_1/Value"] = -261808472,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Atrribute_2"] = -179160940,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Atrribute_2/Value"] = 750928586,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Atrribute_3"] = 747922475,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Atrribute_3/Value"] = 2107731747,
+            ["shenjiangyangcheng/yingxiongjihuoendLayer|Layer/jihuochengjiuUI/Btn_Close"] = 497577298,
+            ["shenjiangyangcheng/yingxiongtujianchengjiuLayer|Layer/Mask"] = -1705844032,
+            ["shenjiangyangcheng/yingxiongtujianchengjiuLayer|Layer/Popup/Btn_close"] = -395506273,
+            ["shenjiangyangcheng/yingxiongtujianchengjiuLayer|Layer/Popup/ListView"] = 130063735,
+            ["shenjiangyangcheng/yingxiongtujianchengjiuLayer|Layer/Popup/Item"] = 1234284401,
+            ["shenjiangyangcheng/yingxiongtujianchengjiuLayer|Layer/Popup/tujianzhi/Value"] = 1271898664,
+            ["shenjiangyangcheng/yingxiongtujianchengjiuLayer|Layer/Popup/Tips"] = 1232661803,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null) return null;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"HeroBook source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"HeroBook fixed node has no identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class HeroBookPresenter : IDisposable
     {
         private readonly CocosUiView view;
@@ -91,6 +221,16 @@ namespace ProjectX.UI
         private void BindMainControls()
         {
             Bind(view, "Layer/tujianUI/Button_l", () => Move(-1));
+            // The imported left arrow faces backward through a 180-degree Y rotation.
+            // Mirror its 2D graphic with scale instead so GraphicRaycaster can hit it.
+            Transform leftArrow = Find(view, "Layer/tujianUI/Button_l")?.transform;
+            if (leftArrow != null)
+            {
+                leftArrow.localRotation = Quaternion.identity;
+                Vector3 scale = leftArrow.localScale;
+                scale.x = -Mathf.Abs(scale.x);
+                leftArrow.localScale = scale;
+            }
             Bind(view, "Layer/tujianUI/Button_r", () => Move(1));
             Bind(view, "Layer/tujianUI/Panel/Slider_Bg/Btn_tujian", ShowAchievements);
             Bind(view, "Layer/tujianUI/Panel/Btn_tujian", ShowAchievements);
@@ -560,7 +700,7 @@ namespace ProjectX.UI
             return button;
         }
 
-        private static GameObject Find(CocosUiView target, string path) => target?.FindNode(path);
+        private static GameObject Find(CocosUiView target, string path) => HeroBookNodeIds.Get(target, path);
         private static void SetText(CocosUiView target, string path, string value) => SetText(Find(target, path), value);
         private static void SetText(GameObject root, string path, string value)
             => SetText(root?.transform.Find(path)?.gameObject, value);
