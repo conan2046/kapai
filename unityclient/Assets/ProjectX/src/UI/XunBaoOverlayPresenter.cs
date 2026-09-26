@@ -9,6 +9,48 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class XunBaoOverlayNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags =
+            new Dictionary<string, int>
+            {
+                ["Layer/Souxun/Popup/ListView"] = -1076765575,
+                ["Layer/Souxun/Reward"] = 2000662961,
+                ["Layer/Souxun/Item"] = 918562129,
+                ["Layer/Souxun/Button_1"] = -931837193,
+                ["Layer/Souxun/Button_1/Text"] = 1341996194,
+                ["Layer/Souxun/Popup"] = -1809033496,
+                ["Layer/saodangchenggong"] = 906909545,
+                ["Layer/saodangchenggong/TableView"] = -962044754,
+                ["Layer/saodangchenggong/ItemList"] = 1971473654,
+                ["Layer/Hecheng"] = 1124223537,
+                ["Layer/Popup"] = -480328741,
+                ["Layer/Rewards"] = -297206956,
+                ["Layer/Rewards/Popup/bg/Image2/ListView"] = 1072778374,
+                ["Layer/Rewards/Popup/Reward"] = 1500781103,
+                ["Layer/Rewards/Popup/IconBg"] = 92566368,
+                ["Layer/Popup/CheckBox_0"] = -1492399874,
+                ["Layer/Popup/bg/Panel_1/CheckBox"] = -376189017,
+                ["Layer/Popup/Btn_1"] = -1591150531,
+                ["Layer/Popup/bg/Btn_close"] = -676248836,
+                ["Layer/Popup/Btn_2"] = 1013349477,
+                ["Layer/Hecheng/Black"] = 1036468741,
+                ["Layer/Rewards/Popup/Btn_close"] = 1316136597,
+                ["Layer/Hecheng/TextBg/Text_3"] = -1115070596,
+                ["Layer/Popup/bg/Panel_1/text/Name"] = -1543170209,
+                ["Layer/Hecheng/NameBg/Name"] = -1337380614,
+                ["Layer/Hecheng/Bg/Icon"] = -724713031,
+                ["Layer/Rewards/Popup/bg/Times/Text"] = -1612385627
+            };
+
+        public static GameObject Get(CocosUiView view, string source, string path)
+        {
+            if (!Tags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"XunBao overlay path has no prefab identity: {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     internal sealed class XunBaoResultSequence : MonoBehaviour
     {
         private Coroutine routine;
@@ -231,7 +273,7 @@ namespace ProjectX.UI
 
         private Text CreateText(Transform parent, string name, string value, TextAnchor alignment)
         {
-            Text source = view.FindNode("Layer/Souxun/Button_1/Text")?.GetComponent<Text>();
+            Text source = Require("Layer/Souxun/Button_1/Text").GetComponent<Text>();
             GameObject node = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
             node.transform.SetParent(parent, false);
             Text text = node.GetComponent<Text>();
@@ -280,8 +322,8 @@ namespace ProjectX.UI
             return control;
         }
 
-        private GameObject Require(string path) => view.FindNode(path)
-            ?? throw new InvalidOperationException($"XunBao result node is missing: {path}");
+        private GameObject Require(string path) => XunBaoOverlayNodeIds.Get(view,
+            "cocosstudio/csd/wanfa/Xunbao_souxunLayer.csd", path);
 
         private void SetText(string path, string value)
             => SetText(Require(path).transform.parent, Require(path).name, value);
@@ -440,8 +482,8 @@ namespace ProjectX.UI
             return content;
         }
 
-        private GameObject Require(string path) => view.FindNode(path)
-            ?? throw new InvalidOperationException($"XunBao SaoDang source node is missing: {path}");
+        private GameObject Require(string path) => XunBaoOverlayNodeIds.Get(view,
+            "cocosstudio/csd/common/saodang.csd", path);
 
         private static void Normalize(Transform root)
         {
@@ -731,8 +773,8 @@ namespace ProjectX.UI
             return button;
         }
 
-        private GameObject Require(string path) => view.FindNode(path)
-            ?? throw new InvalidOperationException($"XunBao popup node is missing: {path}");
+        private GameObject Require(string path) => XunBaoOverlayNodeIds.Get(view,
+            "cocosstudio/csd/wanfa/Xunbao_popupLayer.csd", path);
 
         private void SetText(string path, string value)
         {
