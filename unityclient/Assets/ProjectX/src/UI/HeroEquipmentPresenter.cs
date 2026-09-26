@@ -9,6 +9,257 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class HeroEquipmentNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["huishou/Choose_fenjie|Layer/ChooseUI/Popup/Btn_Choose"] = 1021709404,
+            ["huishou/Choose_fenjie|Layer/ChooseUI/Popup/Btn_Choose/Text"] = 1308994762,
+            ["huishou/Choose_fenjie|Layer/ChooseUI/Popup/ItemList"] = 335763335,
+            ["huishou/Choose_fenjie|Layer/ChooseUI/Popup/Number/Value"] = 1614990611,
+            ["huishou/Choose_fenjie|Layer/ChooseUI/Popup/TableView"] = 987529319,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Btn_shenzhu"] = 847961187,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Btn_shenzhu/Text"] = -1042806406,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/jinglianxiaohao/ConsumeBg/Value"] = 39033420,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Item"] = -1547261232,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Name"] = 965897105,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Value"] = -531607154,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/juexingshuxing/Level_1"] = -1455473019,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/juexingshuxing/Level_2"] = -156256185,
+            ["zhuangbeiyangcheng/fabaojinglian|Layer/fabaojuexing_layer/juexing/juexingshuxing/ListView/Panel_1"] = -259818961,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/jichushuxing/Level_1"] = -172349890,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/jichushuxing/Level_2"] = -1259394330,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/jichushuxing/ListView/Panel_1"] = -267986657,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/ConsumeBg/Value"] = 813629895,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Level"] = 1882501014,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Level/Levelup"] = 1193744573,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Slider_Bg/Value"] = -519621658,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Slider_Bg/Value/Value_up"] = 708341266,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Tips"] = 2082984698,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn"] = 383381476,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text"] = 1484642553,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon1"] = -1966611549,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon1/AddIcon"] = -1350999017,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon1/IconBase"] = 1613483487,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon2"] = 762107042,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon2/AddIcon"] = -810125233,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon2/IconBase"] = 1290954482,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon3"] = -1665213825,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon3/AddIcon"] = -143555075,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon3/IconBase"] = 1515390435,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon4"] = -845035135,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon4/AddIcon"] = -959030957,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon4/IconBase"] = -346378977,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon5"] = 1399861292,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon5/AddIcon"] = 152265604,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon5/IconBase"] = 387662973,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon6"] = 1158271404,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon6/AddIcon"] = 1416447763,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon6/IconBase"] = 1624060718,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon7"] = -636194749,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon7/AddIcon"] = 1103125609,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon7/IconBase"] = 1178453729,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon8"] = 905051778,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon8/AddIcon"] = 1329672950,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon8/IconBase"] = -1424414436,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/yijiantianjiaBtn"] = -2101111099,
+            ["zhuangbeiyangcheng/fabaoqianghua|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/yijiantianjiaBtn/Text"] = -1736308929,
+            ["zhuangbeiyangcheng/shenzhutexiao|Layer/Popup/Btn_close"] = 392729236,
+            ["zhuangbeiyangcheng/shenzhutexiao|Layer/Popup/Title/Title"] = 776668141,
+            ["zhuangbeiyangcheng/shenzhutexiao|Layer/Popup/bg"] = -33406912,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/Btn_Cancel"] = 1703265022,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/Btn_Cancel/Text"] = -236076675,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/Btn_Confirm"] = -1346955998,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/Btn_Confirm/Text"] = -1573144017,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/Btn_close"] = -393680744,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/Title/Title"] = -770280618,
+            ["zhuangbeiyangcheng/yijianduihuan|Layer/Popup/bg"] = 2015568566,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Btn_Cancel"] = 1413730181,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Btn_Cancel/Text"] = 1389487546,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Btn_Confirm"] = 1988904790,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Btn_Confirm/Text"] = -1178631039,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Btn_close"] = 1516853855,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1"] = -33540547,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Minus"] = -1974821805,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Minus/Text"] = -949657214,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Minus10"] = 1166839587,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Minus10/Text"] = 1361428581,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Plus"] = -1345324547,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Plus/Text"] = 1715192846,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Plus10"] = -654771299,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Btn_Plus10/Text"] = -1063255386,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Count/Value"] = -463423006,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Item"] = 1705512434,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_1/Name"] = 1962884166,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_1"] = 947196956,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_1/Value"] = 318551003,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_2"] = -1103305489,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_2/Value"] = -1673949349,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_3"] = 130476539,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_3/Value"] = -2130480789,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_4"] = -1117769490,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Panel_2/Item_4/Value"] = 50294584,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/Title/Title"] = -878273441,
+            ["zhuangbeiyangcheng/yijianjinglian|Layer/Popup/bg"] = -1861022430,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/Btn_Cancel"] = -1430454833,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/Btn_Cancel/Text"] = -180292637,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/Btn_Confirm"] = -1690124584,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/Btn_Confirm/Text"] = 2057423902,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/Btn_close"] = -1571210759,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/Title/Title"] = -111277271,
+            ["zhuangbeiyangcheng/yijianshengceng|Layer/Popup/bg"] = -929243626,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/Btn_Cancel"] = -902787796,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/Btn_Cancel/Text"] = -1385398667,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/Btn_Confirm"] = -2055432966,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/Btn_Confirm/Text"] = -1071634134,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/Btn_close"] = -1184948519,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/Title/Title"] = -1248022062,
+            ["zhuangbeiyangcheng/yijianshengxing|Layer/Popup/bg"] = 66285690,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/ListView"] = 1988710122,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jichushuxing"] = 653109873,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1"] = -1655526439,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1/Value"] = -61144758,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jinglianshuxing"] = 1613345682,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian"] = 1096837531,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian/Text"] = -1338441120,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Level/Value"] = 1314205660,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/juexingshuxing"] = -463174084,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing"] = -454793528,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing/Text"] = -312459802,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing"] = 377838293,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1"] = -755515858,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1/Value"] = -899467631,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua"] = -902046815,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua/Text"] = -792657877,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Level/Value"] = -1646180350,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/shenzhushuxing"] = 871650975,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu"] = -704138103,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu/Text"] = 1744820536,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu"] = 2128185630,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content"] = -1957215758,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang"] = -1352454928,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Popup/Btn_close"] = 1509009730,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan"] = -1525809291,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan/Text"] = 1630964980,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia"] = -1875709107,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia/Text"] = 856240273,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name"] = 238615671,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Node"] = 2017038023,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/CheckBox"] = 1511889037,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/CheckBox/Text"] = -904405373,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/ItemList"] = 292528049,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/Number"] = 1485121598,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/Point"] = -1500354686,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/TableView"] = 1227514434,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/cell"] = 1981096713,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/cell/Text"] = 1134226161,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/recycle"] = 324997160,
+            ["zhuangbeiyangcheng/zhuangbeibeibao|Layer/zhuangbeibeibaoUI/recycle/Text"] = 1183940800,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/ItemList"] = 100796622,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/Popup/Btn_close"] = -1184948519,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/Popup/CheckBox"] = 510771686,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/Popup/CheckBox/Text"] = -334342177,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/Popup/TableView"] = 371638036,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/Popup/Title/Title"] = -1248022062,
+            ["zhuangbeiyangcheng/zhuangbeigenghuan|Layer/Popup/bg"] = 66285690,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jichushuxing/Level_1"] = -1742703828,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jichushuxing/Level_2"] = -152094263,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jichushuxing/ListView/Panel_1"] = 5363469,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_1"] = 1829399111,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_1/Text"] = -565697994,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_1/Value"] = 1667817853,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_2"] = 1095193118,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_2/Text"] = -952475346,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_2/Value"] = -1833662287,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_3"] = -643593897,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_3/Text"] = -1387044359,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_3/Value"] = 667915811,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_4"] = -1991619304,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_4/Text"] = 389806585,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_4/Value"] = -1047872240,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Slider_Bg/Value"] = -1047264915,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn"] = 126156054,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn/Text"] = 1036960740,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/yijianjinglianBtn"] = -218310586,
+            ["zhuangbeiyangcheng/zhuangbeijinglian|Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/yijianjinglianBtn/Text"] = -820165621,
+            ["zhuangbeiyangcheng/zhuangbeijuexing|Layer/zhuangbeijuexingUI/juexing/jichushuxing/Level_1"] = -136218321,
+            ["zhuangbeiyangcheng/zhuangbeijuexing|Layer/zhuangbeijuexingUI/juexing/jichushuxing/Level_2"] = 493799871,
+            ["zhuangbeiyangcheng/zhuangbeijuexing|Layer/zhuangbeijuexingUI/juexing/jichushuxing/ListView/Panel_1"] = 1832795743,
+            ["zhuangbeiyangcheng/zhuangbeijuexing|Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/ConsumeBg/Value"] = -1660801794,
+            ["zhuangbeiyangcheng/zhuangbeijuexing|Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn"] = 1639644560,
+            ["zhuangbeiyangcheng/zhuangbeijuexing|Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn/Text"] = -698669079,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/Level_1"] = -172349890,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/Level_2"] = -1259394330,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/jichushuxing/ListView/Panel_1"] = -716938467,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/ConsumeBg/Value"] = 813629895,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn"] = -2101111099,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn/Text"] = -1736308929,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn"] = 383381476,
+            ["zhuangbeiyangcheng/zhuangbeiqianghua|Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text"] = 1484642553,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/fujiashuxing/Btn_xiangxi"] = -903611378,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/Level_1"] = -1455473019,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/Level_2"] = -156256185,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/ListView/Panel_1"] = -1948534560,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu"] = 847961187,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu/Text"] = -1042806406,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/ConsumeBg/Value"] = 39033420,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Item"] = -1547261232,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Item_bg"] = -1547261232,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name"] = 965897105,
+            ["zhuangbeiyangcheng/zhuangbeishenzhu|Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value"] = -531607154,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon1"] = -1966611549,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua"] = -1773452418,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/List"] = 1288159851,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/List/item_layer"] = 1962744501,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/Name"] = 1846998825,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/Name/addnum"] = 1317102457,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_L"] = 1821793114,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_R"] = -553928081,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_1"] = 1937661263,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_2"] = -2031548826,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_3"] = -614808375,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_4"] = -1012629933,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_5"] = -549011378,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_6"] = 311345994,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_7"] = 375414586,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_8"] = 1788078111,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_9"] = 1854468904,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/equip"] = 2075859097,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/juexing"] = -41467880,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/juexing/Btn_yijianduihuan"] = 1824705611,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/juexing/Btn_yijianshengxing"] = 1056630570,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/level_text"] = -568172815,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/level_text/levelnum"] = 541654518,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu"] = -442082084,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu/Btn_yijianshengceng"] = -25677394,
+            ["zhuangbeiyangcheng/zhuangbeiyangcheng|Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu/Btn_yijianshengjie"] = -44175524,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null || string.IsNullOrWhiteSpace(path)) return null;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Hero equipment source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"Hero equipment fixed node has no identity: {source} {path}");
+            if (source == "cocosstudio/csd/zhuangbeiyangcheng/zhuangbeishenzhu.csd" &&
+                actionTag == -1547261232)
+            {
+                var matches = view.Identity.Nodes.Where(node => node != null &&
+                    node.path == path && node.actionTag == actionTag && node.target != null).ToArray();
+                if (matches.Length != 1)
+                    throw new InvalidOperationException($"Hero equipment duplicate-tag target is ambiguous: {source} {path}");
+                return matches[0].target;
+            }
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class HeroEquipmentPresenter : IDisposable
     {
         private readonly struct DisplayRecord
@@ -247,7 +498,7 @@ namespace ProjectX.UI
             refineOnceButton = RequireButton(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn");
             awakenOnceButton = RequireButton(awakenView, "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn");
             divineOnceButton = RequireButton(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Btn_shenzhu");
-            GameObject strengthFive = strengthView.FindNode("Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn");
+            GameObject strengthFive = HeroEquipmentNodeIds.Get(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn");
             if (strengthFive != null) strengthFive.SetActive(true);
             cultivateView.SetVisible(false);
             strengthView.SetVisible(false);
@@ -303,7 +554,7 @@ namespace ProjectX.UI
             };
             return active.Count(value => value) == 1 && active[mode];
         }
-        public bool IsStrengthAllVisible => cultivateView.FindNode(
+        public bool IsStrengthAllVisible => HeroEquipmentNodeIds.Get(cultivateView,
             "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua")?.activeSelf == true;
 
         public bool AreCultivationAttributesBound(int mode)
@@ -314,7 +565,7 @@ namespace ProjectX.UI
                 : mode == 2
                     ? "Layer/zhuangbeijuexingUI/juexing/jichushuxing/ListView/Panel_1"
                     : "Layer/zhuangbeijuexingUI/shenzhu/jichushuxing/ListView/Panel_1";
-            Transform template = view?.FindNode(templatePath)?.transform;
+            Transform template = HeroEquipmentNodeIds.Get(view, templatePath)?.transform;
             if (template?.parent == null) return false;
             Transform[] rows = template.parent.Cast<Transform>()
                 .Where(value => value.gameObject.activeInHierarchy
@@ -706,11 +957,11 @@ namespace ProjectX.UI
             changeCurrent = current;
             changeHasCurrentEquipped = hasCurrentEquipped;
             changeHideWorn = false;
-            Transform changeViewport = changeView.FindNode("Layer/Popup/TableView")?.transform;
-            Transform changeBackground = changeView.FindNode("Layer/Popup/bg")?.transform;
+            Transform changeViewport = HeroEquipmentNodeIds.Get(changeView, "Layer/Popup/TableView")?.transform;
+            Transform changeBackground = HeroEquipmentNodeIds.Get(changeView, "Layer/Popup/bg")?.transform;
             if (changeViewport != null && changeBackground != null)
                 changeViewport.SetSiblingIndex(changeBackground.GetSiblingIndex() + 1);
-            Toggle filter = changeView.FindNode("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
+            Toggle filter = HeroEquipmentNodeIds.Get(changeView, "Layer/Popup/CheckBox")?.GetComponent<Toggle>();
             if (filter != null) filter.SetIsOnWithoutNotify(false);
             RenderChange();
             Text title = RequireText(changeView, "Layer/Popup/Title/Title");
@@ -812,7 +1063,7 @@ namespace ProjectX.UI
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/Name/addnum", $"+{currentLevel}");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text", "等级：");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text/levelnum", $"{currentLevel}级");
-            GameObject cultivateIconObject = cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
+            GameObject cultivateIconObject = HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/equip");
             ApplyIcon(cultivateIconObject?.GetComponent<Image>(), item);
             if (cultivateIconObject != null)
             {
@@ -822,7 +1073,7 @@ namespace ProjectX.UI
             }
             SetBoundText(strengthView,
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text", "强化");
-            Text strengthActionLabel = strengthView.FindNode(
+            Text strengthActionLabel = HeroEquipmentNodeIds.Get(strengthView,
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn/Text")?.GetComponent<Text>();
             if (strengthActionLabel != null)
             {
@@ -840,8 +1091,8 @@ namespace ProjectX.UI
                 "Layer/zhuangbeiyangchengUI/zhuangbei/juexing",
                 "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu"
             })
-                cultivateView.FindNode(hiddenPath)?.SetActive(false);
-            GameObject strengthAllObject = cultivateView.FindNode(
+                HeroEquipmentNodeIds.Get(cultivateView, hiddenPath)?.SetActive(false);
+            GameObject strengthAllObject = HeroEquipmentNodeIds.Get(cultivateView,
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua");
             if (strengthAllObject != null)
             {
@@ -852,7 +1103,7 @@ namespace ProjectX.UI
             }
             strengthOnceButton.onClick.RemoveAllListeners();
             strengthOnceButton.onClick.AddListener(() => strengthEquipment?.Invoke(item.Uid));
-            Button strengthFive = strengthView.FindNode(
+            Button strengthFive = HeroEquipmentNodeIds.Get(strengthView,
                 "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghua5Btn")?.GetComponent<Button>();
             if (strengthFive != null)
             {
@@ -993,7 +1244,7 @@ namespace ProjectX.UI
                 essenceDefinition?.Name ?? "法宝精华");
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Value",
                 $"{bag.GetTotalQuantityByItemId(essenceItemId)}/{essence}");
-            ApplyMaterialIcon(faBaoRefineView.FindNode(
+            ApplyMaterialIcon(HeroEquipmentNodeIds.Get(faBaoRefineView,
                 "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Item")?.GetComponent<Image>(), essenceDefinition);
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/ConsumeBg/Value", gold.ToString());
             Button action = RequireButton(faBaoRefineView,
@@ -1018,7 +1269,7 @@ namespace ProjectX.UI
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/Name/addnum", $"+{item.RefineLevel}");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text", "等级：");
             SetBoundText(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/level_text/levelnum", $"{item.StrengthLevel}级");
-            GameObject mainIconObject = cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/equip");
+            GameObject mainIconObject = HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/equip");
             ApplyIcon(mainIconObject?.GetComponent<Image>(), item);
             if (mainIconObject != null)
             {
@@ -1028,8 +1279,8 @@ namespace ProjectX.UI
             }
             BindFaBaoCultivationList(item);
             SetStrengthAllVisible(false);
-            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
-            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
+            HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
+            HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
         }
 
         private IEnumerable<FaBaoRecord> GetEligibleFaBaoMaterials()
@@ -1041,7 +1292,7 @@ namespace ProjectX.UI
 
         private void BindFaBaoCultivationList(DisplayRecord current)
         {
-            Transform listRoot = cultivateView.FindNode(
+            Transform listRoot = HeroEquipmentNodeIds.Get(cultivateView,
                 "Layer/zhuangbeiyangchengUI/zhuangbei/List")?.transform;
             Transform template = listRoot?.Find("item_layer");
             if (template == null) return;
@@ -1116,11 +1367,11 @@ namespace ProjectX.UI
             for (int index = 0; index < 8; index++)
             {
                 string root = $"Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/suipian_layer/suipianicon{index + 1}";
-                GameObject slot = faBaoStrengthView.FindNode(root);
+                GameObject slot = HeroEquipmentNodeIds.Get(faBaoStrengthView, root);
                 if (slot == null) continue;
                 bool populated = index < selectedFaBaoMaterials.Count;
-                GameObject iconObject = faBaoStrengthView.FindNode(root + "/IconBase");
-                GameObject addObject = faBaoStrengthView.FindNode(root + "/AddIcon");
+                GameObject iconObject = HeroEquipmentNodeIds.Get(faBaoStrengthView, root + "/IconBase");
+                GameObject addObject = HeroEquipmentNodeIds.Get(faBaoStrengthView, root + "/AddIcon");
                 if (iconObject != null)
                 {
                     iconObject.SetActive(populated);
@@ -1258,8 +1509,8 @@ namespace ProjectX.UI
             ShowStrength(item);
             activeCultivationMode = 2;
             showCultivationFrame?.Invoke(2, item.Kind);
-            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(true);
-            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
+            HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(true);
+            HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(false);
             int currentLevel = item.Equipment.GetLevel(3);
             EquipmentAwakenDefinition config = catalog.GetAwaken(currentLevel + 1);
             int nextLevel = config != null ? currentLevel + 1 : currentLevel;
@@ -1287,8 +1538,8 @@ namespace ProjectX.UI
             ShowStrength(item);
             activeCultivationMode = 3;
             showCultivationFrame?.Invoke(3, item.Kind);
-            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
-            cultivateView.FindNode("Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(true);
+            HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/juexing")?.SetActive(false);
+            HeroEquipmentNodeIds.Get(cultivateView, "Layer/zhuangbeiyangchengUI/zhuangbei/shenzhu")?.SetActive(true);
             int currentLevel = item.Equipment.GetLevel(4);
             EquipmentDivineDefinition config = catalog.GetDivine(currentLevel + 1);
             int nextLevel = config != null ? currentLevel + 1 : currentLevel;
@@ -1307,15 +1558,15 @@ namespace ProjectX.UI
             string divineItemPath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Item";
             string divineNamePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name";
             string divineValuePath = "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value";
-            Image divineItemIcon = divineView.FindNode(divineItemPath)?.GetComponent<Image>();
-            Image divineItemQualityFrame = divineView.FindNode(divineItemPath + "_bg")?.GetComponent<Image>();
+            Image divineItemIcon = HeroEquipmentNodeIds.Get(divineView, divineItemPath)?.GetComponent<Image>();
+            Image divineItemQualityFrame = HeroEquipmentNodeIds.Get(divineView, divineItemPath + "_bg")?.GetComponent<Image>();
             bool showDivineMaterial = divineItemId > 0 && divineItem != null && divineRequired > 0
                 && ApplyMaterialIcon(divineItemIcon, divineItem);
             if (showDivineMaterial) ApplyQualityFrame(divineItemQualityFrame, divineItem.Quality);
             else if (divineItemQualityFrame != null) divineItemQualityFrame.gameObject.SetActive(false);
-            divineView.FindNode(divineItemPath)?.SetActive(showDivineMaterial);
-            divineView.FindNode(divineNamePath)?.SetActive(showDivineMaterial);
-            divineView.FindNode(divineValuePath)?.SetActive(showDivineMaterial);
+            HeroEquipmentNodeIds.Get(divineView, divineItemPath)?.SetActive(showDivineMaterial);
+            HeroEquipmentNodeIds.Get(divineView, divineNamePath)?.SetActive(showDivineMaterial);
+            HeroEquipmentNodeIds.Get(divineView, divineValuePath)?.SetActive(showDivineMaterial);
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Name",
                 divineItem?.Name ?? string.Empty);
             SetBoundText(divineView, "Layer/zhuangbeijuexingUI/shenzhu/juexingxiaohao/Value",
@@ -1414,7 +1665,7 @@ namespace ProjectX.UI
             cultivationEffects.Clear();
             for (int index = 1; index <= 9; index++)
             {
-                GameObject host = cultivateView.FindNode(
+                GameObject host = HeroEquipmentNodeIds.Get(cultivateView,
                     $"Layer/zhuangbeiyangchengUI/zhuangbei/effect_zhuangbeiyangcheng_{index}");
                 if (host == null) continue;
                 ImodAnimationPlayer player = host.GetComponent<ImodAnimationPlayer>()
@@ -1486,7 +1737,7 @@ namespace ProjectX.UI
 
         private void SetStrengthAllVisible(bool visible)
         {
-            GameObject strengthAll = cultivateView.FindNode(
+            GameObject strengthAll = HeroEquipmentNodeIds.Get(cultivateView,
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Btn_yijianqianghua");
             if (strengthAll != null) strengthAll.SetActive(visible);
         }
@@ -1495,9 +1746,10 @@ namespace ProjectX.UI
         {
             if (selected.Uid == 0 || selected.Kind != HeroEquipmentKind.Equipment) return;
             SetBoundText(autoRefineView, "Layer/Popup/Panel_1/Name", selected.Definition.Name);
-            ApplyIcon(autoRefineView.FindNode("Layer/Popup/Panel_1/Item")?.GetComponent<Image>(), selected);
-            ApplyQualityFrame(autoRefineView.FindNode(
-                "Layer/Popup/Panel_1/Item_bg")?.GetComponent<Image>(), selected.Definition.Quality);
+            ApplyIcon(HeroEquipmentNodeIds.Get(autoRefineView, "Layer/Popup/Panel_1/Item")?.GetComponent<Image>(), selected);
+            GameObject autoRefinePanel = HeroEquipmentNodeIds.Get(autoRefineView, "Layer/Popup/Panel_1");
+            ApplyQualityFrame(autoRefinePanel?.transform.Find("Item_bg")?.GetComponent<Image>(),
+                selected.Definition.Quality);
             SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Cancel", "取消");
             SetButtonLabel(autoRefineView, "Layer/Popup/Btn_Confirm", "确定");
             SetButtonLabel(autoRefineView, "Layer/Popup/Panel_1/Btn_Minus", "-1");
@@ -1508,12 +1760,13 @@ namespace ProjectX.UI
             for (int index = 0; index < 4; index++)
             {
                 string path = $"Layer/Popup/Panel_2/Item_{index + 1}";
-                GameObject slot = autoRefineView.FindNode(path);
+                GameObject slot = HeroEquipmentNodeIds.Get(autoRefineView, path);
                 if (slot == null) continue;
                 EquipmentMaterialDefinition material = index < materialIds.Count
                     ? catalog.GetItem(materialIds[index]) : null;
                 slot.SetActive(material != null);
-                Image materialQualityFrame = autoRefineView.FindNode(path + "_bg")?.GetComponent<Image>();
+                Image materialQualityFrame = slot.transform.parent
+                    ?.Find(slot.name + "_bg")?.GetComponent<Image>();
                 if (material == null)
                 {
                     if (materialQualityFrame != null) materialQualityFrame.gameObject.SetActive(false);
@@ -1578,7 +1831,7 @@ namespace ProjectX.UI
 
         private static void BindButton(CocosUiView view, string path, UnityEngine.Events.UnityAction action)
         {
-            GameObject target = view?.FindNode(path);
+            GameObject target = HeroEquipmentNodeIds.Get(view, path);
             if (target == null) return;
             Button button = EnsureClickable(target.transform);
             button.onClick.RemoveAllListeners();
@@ -1607,7 +1860,7 @@ namespace ProjectX.UI
                 .OrderBy(value => value.Slot)
                 .Take(4)
                 .ToArray();
-            GameObject template = cultivateView.FindNode(
+            GameObject template = HeroEquipmentNodeIds.Get(cultivateView,
                 "Layer/zhuangbeiyangchengUI/zhuangbei/List/item_layer");
             if (template == null) return;
             Transform parent = template.transform.parent;
@@ -1670,7 +1923,7 @@ namespace ProjectX.UI
             for (int index = 0; index < 4; index++)
             {
                 string path = $"Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Item_{index + 1}";
-                GameObject slot = refineView.FindNode(path);
+                GameObject slot = HeroEquipmentNodeIds.Get(refineView, path);
                 if (slot == null) continue;
                 EquipmentMaterialDefinition material = index < materialIds.Count
                     ? catalog.GetItem(materialIds[index]) : null;
@@ -1686,7 +1939,7 @@ namespace ProjectX.UI
         private static void BindCultivationAttributes(CocosUiView view, string templatePath,
             IReadOnlyList<int[]> attributes, int currentLevel, int nextLevel)
         {
-            GameObject templateObject = view.FindNode(templatePath);
+            GameObject templateObject = HeroEquipmentNodeIds.Get(view, templatePath);
             if (templateObject == null) return;
             Transform template = templateObject.transform;
             Transform parent = template.parent;
@@ -1762,7 +2015,7 @@ namespace ProjectX.UI
 
         private static void SetButtonLabel(CocosUiView view, string path, string value)
         {
-            GameObject target = view?.FindNode(path);
+            GameObject target = HeroEquipmentNodeIds.Get(view, path);
             if (target == null) return;
             Text label = target.GetComponentsInChildren<Text>(true).FirstOrDefault();
             if (label == null)
@@ -1898,7 +2151,7 @@ namespace ProjectX.UI
             };
             foreach (string section in sections)
             {
-                GameObject node = detailView.FindNode($"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = HeroEquipmentNodeIds.Get(detailView, $"Layer/zhuangbeiInfoUI/Info/{section}");
                 if (node != null)
                     node.transform.SetParent(content, false);
             }
@@ -2090,14 +2343,14 @@ namespace ProjectX.UI
                 "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
             })
             {
-                GameObject button = detailView.FindNode(path);
+                GameObject button = HeroEquipmentNodeIds.Get(detailView, path);
                 if (button != null) button.SetActive(true);
             }
         }
 
         private void BindDetailCultivationButton(string path, bool visible, UnityEngine.Events.UnityAction action)
         {
-            Button button = detailView.FindNode(path)?.GetComponent<Button>();
+            Button button = HeroEquipmentNodeIds.Get(detailView, path)?.GetComponent<Button>();
             if (button == null) return;
             button.gameObject.SetActive(visible);
             button.onClick.RemoveAllListeners();
@@ -2106,25 +2359,12 @@ namespace ProjectX.UI
 
         private void SetSectionVisible(string section, bool visible)
         {
-            foreach (string path in new[]
-            {
-                $"Layer/zhuangbeiInfoUI/Info/{section}",
-                $"Layer/zhuangbeiInfoUI/Info/ListView/{section}",
-            })
-            {
-                GameObject value = detailView.FindNode(path);
-                if (value != null) value.SetActive(visible);
-            }
-
-            GameObject info = detailView.FindNode("Layer/zhuangbeiInfoUI/Info");
-            if (info == null) return;
-            foreach (Transform value in info.GetComponentsInChildren<Transform>(true))
-                if (value.name == section) value.gameObject.SetActive(visible);
+            HeroEquipmentNodeIds.Get(detailView, $"Layer/zhuangbeiInfoUI/Info/{section}")?.SetActive(visible);
         }
 
         private void SetDetailText(string path, string value)
         {
-            Text text = detailView.FindNode(path)?.GetComponent<Text>();
+            Text text = HeroEquipmentNodeIds.Get(detailView, path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 
@@ -2168,12 +2408,12 @@ namespace ProjectX.UI
 
         private static void SetBoundText(CocosUiView view, string path, string value)
         {
-            Text text = view.FindNode(path)?.GetComponent<Text>();
+            Text text = HeroEquipmentNodeIds.Get(view, path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 
         private static GameObject Require(CocosUiView view, string path)
-            => view.FindNode(path) ?? throw new InvalidOperationException($"Hero equipment UI node was not found: {path}");
+            => HeroEquipmentNodeIds.Get(view, path) ?? throw new InvalidOperationException($"Hero equipment UI node was not found: {path}");
         private static Text RequireText(CocosUiView view, string path)
             => Require(view, path).GetComponent<Text>() ?? throw new InvalidOperationException($"Hero equipment UI text was not found: {path}");
         private static Button RequireButton(CocosUiView view, string path)
