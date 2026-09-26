@@ -201,6 +201,7 @@ HeroCultivation 的早期路径映射预审（历史统计，已由 2026-09-25 �
 - 神将培养固定节点合批（2026-09-26）：14 个 view owner 的 84 处字面 `FindNode` 已逐一对照序列化 `UiPrefabIdentity`；80 处具有唯一、非零 ActionTag 和非空目标，改为按 Tag 取直接目标并以 Source/Path 断言。3 个运行时生成节点、1 个重复路径暂保留动态查找。Unity 编译后同一 Editor 受控 Stop/Play，真实输入一次打开阵容→培养，五页签逐个首击与截图检查，关闭返回阵容，Console 0/0；没有重复升级、修炼或抽取。证据 `.local/unity-validation/w6-hero-cultivation-direct-refs-runtime-20260926.md`。此项只关闭培养固定节点及五页显示，不关闭 W6.5 全局路径退场。
 - 摇钱树固定节点合批（2026-09-26）：`MoneyTreePresenter` 的 11 个固定查找改为唯一 ActionTag 的序列化直引用；同一 C 盘 Editor 编译后真实 Login→Main→玩法 `Function_23` 开页、显示、关闭通过，当前页 Metadata/Binding=0、身份 41/41、Timeline 不适用，Console 0；没有摇奖。见 `.local/unity-validation/w6-unified-open-prefab-20260926.md`。W6.5 其他路径继续待处理。
 - 每日答题固定节点（2026-09-26）：`AnswerPresenter` 的 12 个固定字段与四组答案按钮/标记改为唯一 ActionTag 的序列化直引用。隔离打开 `AnswerLayer.prefab` 构造 Presenter 成功，四个按钮和默认奖励图像有效，Metadata/Binding=0，编译及 Console 0；该入口会启动有 20 秒时限的权威答题，未在本轮消耗每日次数，真实开页与结算仍待验。证据同上。
+- 欢乐转盘固定节点（2026-09-26）：`HappyWheelPresenter` 的 37 个固定目标改为序列化 ActionTag 直引用；编译后真实 Login→Main→玩法 `Function_29` 开页和关闭通过，当前页身份 90/90、Metadata/Binding=0、Timeline 不适用，截图目视及 Console 0；未旋转或兑换。证据同上。运行时生成的个人记录行与奖励图标继续附着在已解析宿主上。
 - [x] W6.6 Bag 首轮页面迁移后通过真实 Play，再进入下一页面；后续每页继续执行相同门禁
 
 W6 收口前待办（2026-09-24，按可验证范围排序）：

@@ -12,6 +12,13 @@ namespace ProjectX.UI
     public sealed class HappyWheelPresenter : IDisposable
     {
         private const string Base = "Layer/Panel/Bg";
+        private const string PrefabSource = "cocosstudio/csd/huodong/ZhuanpanLayer.csd";
+        private static readonly int[] IconHostTags =
+            { 1956339026, 411740716, -451003694, 514210924, -812370300,
+              1236698567, 1123380672, -686470730, -1407177206, 1579238474 };
+        private static readonly int[] AmountTags =
+            { -1279046915, 2123008869, -2126963876, 1710536175, 985570196,
+              -1343447413, 1550615214, 479763923, 1992811106, -986618302 };
         private readonly CocosUiView view;
         private readonly HappyWheelStore store;
         private readonly BagStore bag;
@@ -60,37 +67,37 @@ namespace ProjectX.UI
             this.showRewardTip = showRewardTip ?? throw new ArgumentNullException(nameof(showRewardTip));
 
             Normalize(view.GameObject.transform);
-            content = Require(Base);
-            activityTime = FindText(Base + "/TitleBg/Text/Time");
-            resetTime = FindText(Base + "/Draw/Button3/Bg2/Num");
-            score = FindText(Base + "/Draw/Button3/Bg1/Num");
-            keyCount = FindText(Base + "/HaveBg_1/Value");
-            premiumCount = FindText(Base + "/HaveBg/Value");
-            singleCost = FindText(Base + "/Draw/Button1/Bg/Num");
-            multiCost = FindText(Base + "/Draw/Button2/Bg/Num");
-            personalRecordTemplate = FindText(Base + "/RecordBg/TitleBg1/bg/Text");
-            personalRecordContent = Require(Base + "/RecordBg/TitleBg1/bg/List")
+            content = Node(-1236041657, Base);
+            activityTime = FindText(-1438819398, Base + "/TitleBg/Text/Time");
+            resetTime = FindText(2083558303, Base + "/Draw/Button3/Bg2/Num");
+            score = FindText(-723641997, Base + "/Draw/Button3/Bg1/Num");
+            keyCount = FindText(-579775541, Base + "/HaveBg_1/Value");
+            premiumCount = FindText(662150212, Base + "/HaveBg/Value");
+            singleCost = FindText(-1293489476, Base + "/Draw/Button1/Bg/Num");
+            multiCost = FindText(-49516096, Base + "/Draw/Button2/Bg/Num");
+            personalRecordTemplate = FindText(-1501974914, Base + "/RecordBg/TitleBg1/bg/Text");
+            personalRecordContent = Node(2116577027, Base + "/RecordBg/TitleBg1/bg/List")
                 .GetComponent<RectTransform>();
             if (personalRecordContent == null)
                 throw new InvalidOperationException("HappyWheel personal record List requires RectTransform.");
             personalRecordScroll = ConfigureHistoryScroll(
-                Require(Base + "/RecordBg/TitleBg1/bg"), personalRecordContent);
+                Node(966573082, Base + "/RecordBg/TitleBg1/bg"), personalRecordContent);
             if (personalRecordTemplate != null) personalRecordTemplate.gameObject.SetActive(false);
-            singleButton = BindButton(Base + "/Draw/Button1", 0);
-            multiButton = BindButton(Base + "/Draw/Button2", 1);
-            shopButton = BindShopButton(Base + "/Draw/Button3");
-            SetVisible(Find(Base + "/RecordBg/TitleBg2"), false);
+            singleButton = BindButton(1825890577, Base + "/Draw/Button1", 0);
+            multiButton = BindButton(1101508221, Base + "/Draw/Button2", 1);
+            shopButton = BindShopButton(-1263212707, Base + "/Draw/Button3");
+            SetVisible(Node(-2086126345, Base + "/RecordBg/TitleBg2"), false);
 
             for (int index = 0; index < icons.Length; index++)
             {
-                GameObject host = Require(Base + $"/Panel_17/RewardBg/IconBg_{index + 1}");
+                GameObject host = Node(IconHostTags[index], Base + $"/Panel_17/RewardBg/IconBg_{index + 1}");
                 icons[index] = CreateRuntimeIcon(host.transform, index + 1);
                 rewardButtons[index] = BindRewardButton(host, icons[index], index);
-                amounts[index] = FindText(Base + $"/Panel_17/RewardBg/RewardBg{index + 1}");
+                amounts[index] = FindText(AmountTags[index], Base + $"/Panel_17/RewardBg/RewardBg{index + 1}");
             }
 
-            RectTransform pointer = Find(Base + "/Panel_17/ZhenImage")?.GetComponent<RectTransform>();
-            RectTransform selection = Find(Base + "/Panel_17/RewardBg/Choose")?.GetComponent<RectTransform>();
+            RectTransform pointer = Node(-1642080601, Base + "/Panel_17/ZhenImage").GetComponent<RectTransform>();
+            RectTransform selection = Node(-99373565, Base + "/Panel_17/RewardBg/Choose").GetComponent<RectTransform>();
             effect = view.GameObject.GetComponent<HappyWheelSpinEffect>()
                 ?? view.GameObject.AddComponent<HappyWheelSpinEffect>();
             effect.Initialize(pointer, selection);
@@ -176,9 +183,9 @@ namespace ProjectX.UI
             });
         }
 
-        private Button BindButton(string path, byte drawType)
+        private Button BindButton(int actionTag, string path, byte drawType)
         {
-            GameObject node = Require(path);
+            GameObject node = Node(actionTag, path);
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>() ?? node.GetComponentInChildren<Graphic>(true);
             button.onClick.RemoveAllListeners();
@@ -186,9 +193,9 @@ namespace ProjectX.UI
             return button;
         }
 
-        private Button BindShopButton(string path)
+        private Button BindShopButton(int actionTag, string path)
         {
-            GameObject node = Require(path);
+            GameObject node = Node(actionTag, path);
             Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
             button.targetGraphic = node.GetComponent<Graphic>() ?? node.GetComponentInChildren<Graphic>(true);
             button.onClick.RemoveAllListeners();
@@ -322,15 +329,13 @@ namespace ProjectX.UI
             return image;
         }
 
-        private GameObject Require(string path) => Find(path)
-            ?? throw new InvalidOperationException("HappyWheel imported node was not found: " + path);
+        private GameObject Node(int actionTag, string path) =>
+            view.GetSerializedNodeByActionTag(actionTag, PrefabSource, path);
 
-        private GameObject Find(string path) => view.FindNode(path);
-
-        private Text FindText(string path)
+        private Text FindText(int actionTag, string path)
         {
-            GameObject node = Find(path);
-            return node == null ? null : node.GetComponent<Text>() ?? node.GetComponentInChildren<Text>(true);
+            GameObject node = Node(actionTag, path);
+            return node.GetComponent<Text>() ?? node.GetComponentInChildren<Text>(true);
         }
 
         private static void SetVisible(GameObject node, bool visible)
