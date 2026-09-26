@@ -12,6 +12,35 @@ namespace ProjectX.UI
     public sealed class FengShenStoryPresenter : IDisposable
     {
         public const int PageChapterCount = FengShenStoryStore.PageChapterCount;
+        private static readonly IReadOnlyDictionary<string, int> ModalNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/Popup/itemlayer_1/Button_1"] = 98977123,
+                ["Layer/Popup/itemlayer_1/Button_1/txt"] = 276167204,
+                ["Layer/Popup/itemlayer_1/Button_2"] = 1922364921,
+                ["Layer/Popup/itemlayer_1/Button_2/txt"] = 110443757,
+                ["Layer/Popup/itemlayer_1/Button_3"] = -168204218,
+                ["Layer/Popup/itemlayer_1/Name_1"] = 324798121,
+                ["Layer/Popup/itemlayer_1/Name_2"] = -408529746,
+                ["Layer/Popup/itemlayer_1/item_icon"] = -279354833,
+                ["Layer/Popup/itemlayer_1/times"] = 324006631,
+                ["Layer/Popup/Panel_name/Panel_icon/Icon"] = 1985573283,
+                ["Layer/Popup/Panel_name/txt_name"] = -2075921713,
+                ["Layer/Popup/Panel_name/txt_num"] = 1466624372,
+                ["Layer/Popup/Panel_name/txt_tips"] = 1000829837,
+                ["Layer/Popup/Title/Btn_close"] = -730647306,
+                ["Layer/Popup/Title/Title"] = -770280618,
+                ["Layer/Popup/Btn_close"] = -730647306,
+                ["Layer/Popup/btn_lingqu"] = -711348496,
+                ["Layer/Popup/btn_lingqu/Text1"] = 197641052,
+                ["Layer/Popup/ItemList"] = 1504376891,
+                ["Layer/Popup/ListView"] = 1165524436,
+                ["Layer/Popup/tips"] = -1212051393,
+                ["Layer/Popup/tips_3"] = 1160271269,
+                ["Layer/Popup/Title/Title_1"] = -770280618,
+                ["Layer/Popup/Title/Title_2"] = 352949437,
+                ["Layer/Popup/Title/Title_3"] = 1637217548
+            };
 
         private readonly CocosUiView view;
         private CocosUiView levelView;
@@ -56,6 +85,7 @@ namespace ProjectX.UI
         private int renderedLevelRewardCount;
         private int renderedCurrentStageMarkerCount;
         private int popupStageId;
+        private bool resumeLevelAfterModal;
 
         public FengShenStoryPresenter(CocosUiView view, CocosUiView levelView, Func<CocosUiView> resolveLevelView,
             FengShenStoryStore store,
@@ -242,6 +272,7 @@ namespace ProjectX.UI
         public bool CloseLevelPopup()
         {
             levelView?.SetVisible(false);
+            resumeLevelAfterModal = false;
             popupStageId = 0;
             return true;
         }
@@ -262,6 +293,8 @@ namespace ProjectX.UI
         public void ShowItemSource()
         {
             CloseImportedModals();
+            resumeLevelAfterModal = levelView?.GameObject?.activeSelf == true;
+            if (resumeLevelAfterModal) levelView.SetVisible(false);
             SetViewText(itemSourceView, "Layer/Popup/Title/Title", "获取途径");
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_name", "首通奖励");
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_tips", "挑战列传关卡可获得");
@@ -273,8 +306,18 @@ namespace ProjectX.UI
                 sourceIcon.preserveAspect = true;
                 sourceIcon.color = Color.white;
             }
-            SetViewText(itemSourceView, "Layer/Popup/itemlayer_1/Name_1", "商城");
-            SetViewText(itemSourceView, "Layer/Popup/itemlayer_1/Name_2", "将魂商店");
+            SetViewText(itemSourceView, "Layer/Popup/itemlayer_1/Name_1", "商城 / 将魂商店");
+            SetViewText(itemSourceView, "Layer/Popup/itemlayer_1/Name_2", string.Empty);
+            SetViewText(itemSourceView, "Layer/Popup/itemlayer_1/Button_1/txt", "商城");
+            SetViewText(itemSourceView, "Layer/Popup/itemlayer_1/Button_2/txt", "将魂商店");
+            SetViewVisible(itemSourceView, "Layer/Popup/itemlayer_1/times", false);
+            Image routeIcon = FindViewNode(itemSourceView, "Layer/Popup/itemlayer_1/item_icon")?.GetComponent<Image>();
+            if (routeIcon != null)
+            {
+                routeIcon.sprite = sourceIcon?.sprite;
+                routeIcon.enabled = routeIcon.sprite != null;
+                routeIcon.preserveAspect = true;
+            }
             sourceIconButton = BindView(itemSourceView, "Layer/Popup/Panel_name/Panel_icon/Icon", () => { });
             sourceRouteButtons[13] = BindView(itemSourceView, "Layer/Popup/itemlayer_1/Button_1", () => routeBoundary(13));
             sourceRouteButtons[15] = BindView(itemSourceView, "Layer/Popup/itemlayer_1/Button_2", () => routeBoundary(15));
@@ -304,6 +347,11 @@ namespace ProjectX.UI
             sourceRouteButtons.Clear();
             sourceIconButton = null;
             modalCloseButton = null;
+            if (resumeLevelAfterModal)
+            {
+                resumeLevelAfterModal = false;
+                if (view.GameObject.activeInHierarchy) levelView?.ShowPopup();
+            }
             return wasVisible;
         }
 
@@ -964,7 +1012,7 @@ namespace ProjectX.UI
             sourceRouteButtons.Clear();
         }
 
-        private static Button BindView(CocosUiView targetView, string path, Action callback)
+        private Button BindView(CocosUiView targetView, string path, Action callback)
         {
             GameObject node = FindViewNode(targetView, path)
                 ?? throw new InvalidOperationException("FengShenStory imported modal node not found: " + path);
@@ -975,22 +1023,27 @@ namespace ProjectX.UI
             return button;
         }
 
-        private static void SetViewText(CocosUiView targetView, string path, string value)
+        private void SetViewText(CocosUiView targetView, string path, string value)
         {
             Text text = FindViewNode(targetView, path)?.GetComponent<Text>();
             if (text != null) text.text = value;
         }
 
-        private static void SetViewVisible(CocosUiView targetView, string path, bool visible)
+        private void SetViewVisible(CocosUiView targetView, string path, bool visible)
         {
             GameObject node = FindViewNode(targetView, path);
             if (node != null) node.SetActive(visible);
         }
 
-        private static GameObject FindViewNode(CocosUiView targetView, string path)
+        private GameObject FindViewNode(CocosUiView targetView, string path)
         {
             if (string.Equals(path, "Layer", StringComparison.Ordinal)) return targetView?.GameObject;
-            return targetView?.FindNode(path);
+            if (!ModalNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"FengShen modal path has no prefab identity: {path}");
+            string source = targetView == itemSourceView ? "cocosstudio/csd/common/huoqutujing.csd"
+                : targetView == rewardView ? "cocosstudio/csd/common/tanchuangjiangli.csd"
+                : throw new InvalidOperationException("FengShen modal view is not registered.");
+            return targetView.GetSerializedNodeByActionTag(actionTag, source, path);
         }
 
         private void BuildItemSourceControls()

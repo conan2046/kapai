@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 封神列传弹窗增量（2026-09-26）**：`FengShenStoryPresenter` 的一处共用 `FindNode` 覆盖来源与宝箱弹窗的固定节点，现以两份 Prefab 的 25 个唯一 ActionTag 直取；章节克隆与运行时关卡命中仍用各自局部节点。真实 Login→玩法→封神列传→宝箱预览→关闭→关卡→奖励来源→关闭，两个弹窗身份 42/42、31/31，Metadata=0、Timeline N/A，首命中和画面已检查、Console 0。同步修复来源弹窗的空图标、“999/999”“扫荡5次”模板残留和关卡详情关闭钮重叠；关闭来源后关卡详情恢复。未挑战或领取。Steam 范围内 Presenter 当前剩 **13 个文件、160 处调用**，仍须区分固定、动态和共用方法；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6.5 神将重生共用查找增量（2026-09-26）**：`HeroRebirthPresenter` 的 3 处共用 `FindNode` 调用覆盖 34 个固定目标；按当前 4 份 Prefab 的唯一 ActionTag 建立身份表，原有候选行内 `Transform.Find` 继续只查动态克隆。C 盘 Unity 编译与 Console 0；真实 Login→世界→神将背包→回收→候选→苏全忠预览→确认→取消，四份身份分别 47/47、22/22、41/41、24/24，Metadata=0、Timeline N/A，画面和 EventSystem 首命中已检查。未执行最终重生或货币消耗。Presenter 当前剩 **14 个文件、161 处调用**，仍须逐项区分固定、动态和共用方法；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 将魂商店来源弹窗增量（2026-09-26）**：`GameplayShopItemInfoPresenter` 的 14 个固定 `SourceLayer` 目标改由唯一序列化 ActionTag 直取，运行时 `FindNode` 两处退场；克隆来源按钮内的相对查找保留。真实 Login→商城→将魂商店→魂魄来源→关闭→Main，身份 26/26、Metadata/Binding=0、Timeline N/A，1334×750 画面已目视，Console 0；未购买、刷新或抽卡。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
