@@ -202,6 +202,7 @@ HeroCultivation 的早期路径映射预审（历史统计，已由 2026-09-25 �
 - 摇钱树固定节点合批（2026-09-26）：`MoneyTreePresenter` 的 11 个固定查找改为唯一 ActionTag 的序列化直引用；同一 C 盘 Editor 编译后真实 Login→Main→玩法 `Function_23` 开页、显示、关闭通过，当前页 Metadata/Binding=0、身份 41/41、Timeline 不适用，Console 0；没有摇奖。见 `.local/unity-validation/w6-unified-open-prefab-20260926.md`。W6.5 其他路径继续待处理。
 - 每日答题固定节点（2026-09-26）：`AnswerPresenter` 的 12 个固定字段与四组答案按钮/标记改为唯一 ActionTag 的序列化直引用。隔离打开 `AnswerLayer.prefab` 构造 Presenter 成功，四个按钮和默认奖励图像有效，Metadata/Binding=0，编译及 Console 0；该入口会启动有 20 秒时限的权威答题，未在本轮消耗每日次数，真实开页与结算仍待验。证据同上。
 - 欢乐转盘固定节点（2026-09-26）：`HappyWheelPresenter` 的 37 个固定目标改为序列化 ActionTag 直引用；编译后真实 Login→Main→玩法 `Function_29` 开页和关闭通过，当前页身份 90/90、Metadata/Binding=0、Timeline 不适用，截图目视及 Console 0；未旋转或兑换。证据同上。运行时生成的个人记录行与奖励图标继续附着在已解析宿主上。
+- 主界面任务追踪器旧路径（2026-09-26）：当前 Main Prefab 与 Play 均无旧 `btn_renwu/Prompt`、`Panel_QuestAndTeam`，原追踪器始终不显示列表和红点；删除其失效 UI 路径分支，仅保留首次权威任务/红点响应就绪接口。编译后真实 Login→Main、画面及 Console 0 通过，详见同一记录。
 - [x] W6.6 Bag 首轮页面迁移后通过真实 Play，再进入下一页面；后续每页继续执行相同门禁
 
 W6 收口前待办（2026-09-24，按可验证范围排序）：

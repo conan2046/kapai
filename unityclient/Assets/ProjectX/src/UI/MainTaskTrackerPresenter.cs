@@ -1,110 +1,31 @@
 using System;
-using System.Linq;
 using ProjectX.Data;
-using UnityEngine;
-using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    // The current Main Prefab has no quest/team tracker or legacy task prompt.
+    // PlayerHud owns the visible task entry; this adapter only gates the first
+    // authoritative task/hot-point response used by Main startup validation.
     public sealed class MainTaskTrackerPresenter : IDisposable
     {
-        private const string PanelPath = "Layer/Main_UI/Panel_QuestAndTeam";
-        private const string PromptPath = "Layer/Bg/btn_renwu/Prompt";
         private readonly TaskStore store;
-        private readonly VirtualList<TaskRecord> list;
-        private readonly GameObject panel;
-        private readonly GameObject prompt;
-        private readonly Action openTasks;
-        private bool serverHotPoint;
         private bool serverHotPointReceived;
 
         public MainTaskTrackerPresenter(CocosUiView main, TaskStore store, Action openTasks)
         {
+            if (main == null) throw new ArgumentNullException(nameof(main));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
-            this.openTasks = openTasks ?? throw new ArgumentNullException(nameof(openTasks));
-            // The old Bg/btn_renwu entry is removable after the task route was unified.
-            prompt = main?.FindNode(PromptPath);
-            panel = main?.FindNode(PanelPath);
-            GameObject mainRoot = main.FindNode("Layer/Main_UI")
-                ?? throw new InvalidOperationException("Main UI root node was not found.");
-            if (panel != null)
-            {
-                panel.transform.SetParent(mainRoot.transform, false);
-                panel.SetActive(false);
-                SetVisible(panel.transform, "CheckBox_Team", false);
-                SetVisible(panel.transform, "Item_Team", false);
-                SetVisible(panel.transform, "Panel", false);
-                SetVisible(panel.transform, "teamListView", false);
-                GameObject viewport = Require(panel.transform, "ListView_1");
-                GameObject template = Require(panel.transform, "Item_Quest");
-                float height = Math.Max(62f, template.GetComponent<RectTransform>()?.rect.height ?? 62f);
-                list = new VirtualList<TaskRecord>(viewport, template, height, BindRow);
-            }
-            store.Changed += Render;
-            Render();
+            if (openTasks == null) throw new ArgumentNullException(nameof(openTasks));
         }
 
-        public int ItemCount => list?.Count ?? 0;
-        public bool IsHotPointVisible => prompt?.activeSelf == true;
+        public int ItemCount => 0;
+        public bool IsHotPointVisible => false;
         public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;
 
-        public void SetServerHotPoint(bool visible)
-        {
-            serverHotPoint = visible;
-            serverHotPointReceived = true;
-            RenderHotPoint();
-        }
+        public void SetServerHotPoint(bool visible) => serverHotPointReceived = true;
 
-        public void Render()
-        {
-            TaskRecord[] tracked = store.Items.Where(item => item.State < 2).Take(3).ToArray();
-            list?.SetItems(tracked);
-            // Fresh native HUD frames for both fixed accounts keep the quest/team
-            // tracker suppressed in the current scene. PlayerHud owns the task
-            // route and red dot only; it must not invent a task-business panel.
-            panel?.SetActive(false);
-            RenderHotPoint();
-        }
+        public void Render() { }
 
-        public void Dispose()
-        {
-            store.Changed -= Render;
-            list?.Dispose();
-        }
-
-        private void RenderHotPoint()
-        {
-            if (prompt == null) return;
-            // Once the daily list is loaded it is the authoritative state. This
-            // also prevents a delayed /65 visible push from surviving a claim.
-            if (store.Count > 0) prompt.SetActive(store.HasClaimable);
-            else if (serverHotPointReceived) prompt.SetActive(serverHotPoint);
-        }
-
-        private void BindRow(RectTransform row, TaskRecord item, int index)
-        {
-            SetText(row, "Title", item.Title);
-            SetText(row, "Condition", $"{item.Description}  {Math.Min(item.Progress, (uint)item.Target)}/{item.Target}");
-            SetText(row, "State", item.State == 1 ? "可领取" : "进行中");
-            Button button = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => openTasks());
-            row.gameObject.name = $"TrackedTask_{item.Id}_{index}";
-        }
-
-        private static GameObject Require(Transform root, string path) => root.Find(path)?.gameObject
-            ?? throw new InvalidOperationException($"Task tracker node was not found: {path}");
-
-        private static void SetText(Transform root, string path, string value)
-        {
-            Text text = root.Find(path)?.GetComponent<Text>();
-            if (text != null) text.text = value ?? string.Empty;
-        }
-
-        private static void SetVisible(Transform root, string path, bool visible)
-        {
-            Transform target = root.Find(path);
-            if (target != null) target.gameObject.SetActive(visible);
-        }
+        public void Dispose() { }
     }
 }
