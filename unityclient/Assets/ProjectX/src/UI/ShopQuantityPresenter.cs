@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -8,6 +9,26 @@ namespace ProjectX.UI
 {
     public sealed class ShopQuantityPresenter : IDisposable
     {
+        private const string PrefabSource = "cocosstudio/csd/EnterNumLayer.csd";
+        private static readonly IReadOnlyDictionary<string, int> SerializedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/Panel/Bg/Num/TextField"] = -625820646,
+                ["Layer/Panel/Bg/BtnList/Btn0"] = -884373952,
+                ["Layer/Panel/Bg/BtnList/Btn1"] = 847161196,
+                ["Layer/Panel/Bg/BtnList/Btn2"] = 1189143803,
+                ["Layer/Panel/Bg/BtnList/Btn3"] = -1443897372,
+                ["Layer/Panel/Bg/BtnList/Btn4"] = 1743698205,
+                ["Layer/Panel/Bg/BtnList/Btn5"] = -318829463,
+                ["Layer/Panel/Bg/BtnList/Btn6"] = -1971050812,
+                ["Layer/Panel/Bg/BtnList/Btn7"] = 263081706,
+                ["Layer/Panel/Bg/BtnList/Btn8"] = -2053631981,
+                ["Layer/Panel/Bg/BtnList/Btn9"] = 494579641,
+                ["Layer/Panel/Bg/BtnList/Btn10"] = 1340601654,
+                ["Layer/Panel/Bg/BtnList/Btn12"] = 391021299,
+                ["Layer/Panel/Bg/Close"] = 1375030819
+            };
+
         private readonly CocosUiView view;
         private readonly InputField quantityInput;
         private readonly Text valueText;
@@ -134,7 +155,11 @@ namespace ProjectX.UI
             return button;
         }
 
-        private GameObject Require(string path) => view.FindNode(path)
-            ?? throw new InvalidOperationException($"Shop quantity node was not found: {path}");
+        private GameObject Require(string path)
+        {
+            if (!SerializedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"Unknown fixed shop quantity node: {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, PrefabSource, path);
+        }
     }
 }

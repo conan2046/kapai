@@ -1,5 +1,9 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6 Steam 范围纠偏（2026-09-26，用户确认）**：HUD 聊天栏与三个折扣入口是已屏蔽功能，按 `STEAM_SCOPE.md` 的 Chat/Activity 排除规则不做 Presenter 改造或验收；福利在线奖励同样保持排除。针对这些入口的一次未提交改动已撤回，重新真实登录到 Main 且 Console 0。后续 Presenter 路径清单先按 Steam 范围过滤，不将屏蔽入口计为 W6 待办。
+
+> **W6.5 商城数量键盘增量（2026-09-26）**：`ShopQuantityPresenter` 14 个固定控件改用 `EnterNumLayer` 的唯一序列化 ActionTag；Prefab 22/22 引用完整、Metadata/Binding/Timeline=0。真实 Login→商城→数量键盘，数字 2 首命中且显示 1→12，真实关闭键返回商城、商城关闭返回 Main，Console 0；未确认购买。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。其余范围内 Presenter 与 W6.7 可见页仍待验。
+
 > **W6 验收口径更新（2026-09-26，用户确认）**：本阶段仅以当前 C 盘 Unity 工程为验收对象。旧 Cocos 文档、截图与 Unity Prefab 的差异不作为 W6 阻塞或修复目标；此前导入器 14 份文档/49 项差异诊断保留作历史记录，不再为此修改 Unity 画面或同步 Cocos。W6 继续处理当前 Presenter 的路径依赖，并以 Unity 编译、序列化引用、真实 EventSystem 输入、玩家可见结果及 Console 验证。Unity 自身发现的缺陷按实际页面单独修复。
 
 > **W6 续验增量（2026-09-26）**：同一次 Unity Editor 打开 W6.7 六个 Prefab，联合检查 6.3/6.4/6.5：六份身份引用目标完整，Metadata/Binding=0，六页均无 Timeline（N/A）；14 处定位文字中 13 处维持修复，另一处全拉伸与修复前保存副本相同。当前真实 Login→Main→玩法→Main→世界章节路线未打开关卡详情，故六页可见验收仍未完成。`RewardPresenter` 九处、`NoticePresenter` 五处固定路径已改为唯一序列化 ActionTag 目标，Editor 编译与构造校验通过、Console 0；两种弹窗的真实开页尚待验。记录 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`，W6 仍未收口。
