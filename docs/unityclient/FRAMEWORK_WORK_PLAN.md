@@ -4,6 +4,8 @@
 
 > **W6.5 Main HUD 增量（2026-09-26）**：11 个固定 HUD 显示节点已改用 Unity 序列化 ActionTag，七个原生红点对象已由 Prefab 组件直接引用；当前布局实际可见六个，旧邮件按钮所在父级隐藏，固定账号 HUD 断言据此修正。真实 EventSystem 登录后 Main 画面、红点聚合、Metadata/Binding 清零和 Console 0 已验证，记录 `.local/unity-validation/w6-mainhud-unity-prompt-binding-20260926.md`。此增量不关闭其他 Presenter 的路径依赖或 W6.7 六页视觉验收。
 
+> **W6.5 Mail 增量（2026-09-26）**：邮件页15个固定内容节点及共享框架关闭/首页签改用 Unity 序列化 ActionTag；动态邮件页签按 PlayerHub 运行时固定顺序读取。真实 Login→Head→Mail 打开、空态显示、关闭返回 Main 和最终页签文案复测通过；Metadata/Binding=0、Console=0，截图已目视。当前存档无邮件，不以空态代替附件或领取验收。记录 `.local/unity-validation/w6-mail-unity-directrefs-20260926.md`。
+
 > **当前续接（2026-09-26）**：工作目录固定为 `C:\Users\Admin\.codex\worktrees\a6b4\Game`，Unity 工程仅为其 `unityclient`。W6.3/W6.4 的资产迁移结果维持 359 份 Prefab、Metadata=0、Binding=0、22 个有效 Timeline/461 条轨道；W6.5 仍因生产 `FindNode` 路径调用与未验页面未完成，不能以组件清零代替路径退场。当前同一次 Play 已对 Main、World、XunBao、FengShenStory、Recruitment、Jingjie 开页后联合检查 6.3/6.4/6.5 和可见画面，Console 0；详细记录 `.local/unity-validation/w6-unified-open-prefab-20260926.md`。Play 已停止，C 盘 Editor 保持打开。W6.7 六页定位文字修复尚缺完整可见验收，Steam 排除项不进入。W6 尚未收口。
 
 > **当前阶段（2026-09-25）**：固定 `C:\Users\Admin\.codex\worktrees\a6b4\Game`。W6.3 已完成：Prefab Metadata 19,690→0，359 个 Binding 保留，90 条例外身份在先前 Play 90/90 回读且迁移后完整序列化；26 个 Timeline/461 轨道、186/186 ActionTag 正常。全局 Binding、输入、Snapshot 对 Metadata 的直接回退已退场。Main、招募、寻宝任务弹窗、龙崖世界本轮真实输入与截图复核，复用已验抽卡结果/寻宝合成/世界结算，不重复消耗；不可达/Steam 排除项不造入口。Unity 已编译并恢复有效 Play，Main `ProjectXApp.Instance=true`、Console 0/0。下一步处理 W6 其余未验收路线与独立的导入器旧版 OpenBox 字号基线差异，详见 `.local/unity-validation/w6-metadata-prefab-migration-20260925.md`、`.local/unity-validation/w6-importer-baseline-sprite-font-20260925.md`。

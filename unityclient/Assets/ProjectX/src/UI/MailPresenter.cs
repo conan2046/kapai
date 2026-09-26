@@ -8,7 +8,6 @@ namespace ProjectX.UI
 {
     public sealed class MailPresenter : IDisposable
     {
-        private const string BasePath = "Layer";
         private readonly CocosUiView view;
         private readonly CocosUiView frameView;
         private readonly MailStore store;
@@ -56,8 +55,8 @@ namespace ProjectX.UI
             this.deleteAll = deleteAll ?? throw new ArgumentNullException(nameof(deleteAll));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.showAttachment = showAttachment ?? throw new ArgumentNullException(nameof(showAttachment));
-            emptyPanel = Require("None");
-            contentPanel = Require("Panel");
+            emptyPanel = Require(-805533567, "empty panel");
+            contentPanel = Require(62706265, "content panel");
             Text emptyText = emptyPanel.GetComponentInChildren<Text>(true);
             if (emptyText != null)
             {
@@ -75,42 +74,42 @@ namespace ProjectX.UI
                 emptyRect.offsetMax = Vector2.zero;
                 emptyRect.localScale = Vector3.one;
             }
-            GameObject viewport = Require("Panel/MailList/MailBg/MailListView");
-            GameObject template = Require("Panel/MailList/MailBg/MailListView/MailBtn");
+            GameObject viewport = Require(-836723175, "mail list");
+            GameObject template = Require(-470240663, "mail row template");
             EnsureDetailBackground();
             float itemHeight = Math.Max(100f, template.GetComponent<RectTransform>()?.rect.height ?? 100f);
             list = new VirtualList<MailRecord>(viewport, template, itemHeight, BindRow);
-            title = Require("Panel/MailScreem/MailBg/TitleBg/TitleName").GetComponent<Text>();
+            title = Require(-533567928, "mail title").GetComponent<Text>();
             if (emptyText != null && title != null)
             {
                 emptyText.font = title.font;
                 emptyText.material = title.material;
             }
-            body = ConfigureBody(Require("Panel/MailScreem/MailBg/ScrollView_1/MailContent").GetComponent<Text>());
-            deleteTime = Require("Panel/MailScreem/MailBg/DeleteTime").GetComponent<Text>();
+            body = ConfigureBody(Require(497451181, "mail body").GetComponent<Text>());
+            deleteTime = Require(-1414085506, "mail delete time").GetComponent<Text>();
             if (deleteTime != null)
             {
                 deleteTime.rectTransform.sizeDelta = new Vector2(420f, deleteTime.rectTransform.sizeDelta.y);
                 deleteTime.alignment = TextAnchor.MiddleCenter;
                 deleteTime.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
-            claimButton = Require("Panel/MailBtn/ReceiveBtn").GetComponent<Button>();
-            attachmentViewport = Require("Panel/MailScreem/BtnBg/ListView");
-            attachmentTemplate = Require("Panel/MailScreem/BtnBg/IconBg");
-            Require("Panel/MailScreem/BtnBg/IconColor").SetActive(false);
+            claimButton = Require(-1521075430, "mail receive").GetComponent<Button>();
+            attachmentViewport = Require(-1192348292, "attachment list");
+            attachmentTemplate = Require(-111661208, "attachment template");
+            Require(1310622023, "attachment color").SetActive(false);
             ConfigureAttachments();
-            claimAllButton = Require("Panel/MailList/MailBg/ReceiveBtn").GetComponent<Button>();
-            deleteAllButton = Require("Panel/MailList/MailBg/DeleteBtn").GetComponent<Button>();
+            claimAllButton = Require(-1468409975, "receive all").GetComponent<Button>();
+            deleteAllButton = Require(2140192303, "delete all").GetComponent<Button>();
             claimAllButton.onClick.RemoveAllListeners();
             claimAllButton.onClick.AddListener(() => this.claimAll());
             deleteAllButton.onClick.RemoveAllListeners();
             deleteAllButton.onClick.AddListener(() => this.deleteAll());
             const string closePath = "Layer/Panel_12/Title/CloseBtn";
             closeButton = this.frameView.BindClickNode(
-                this.frameView.FindNode(closePath), () => this.close(), true, closePath);
+                this.frameView.GetSerializedNodeByActionTag(-849663080), () => this.close(), true, closePath);
             const string tabPath = "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1";
             tabButton = this.frameView.BindClickNode(
-                this.frameView.FindNode(tabPath), () => { }, true, tabPath);
+                this.frameView.GetSerializedNodeByActionTag(-1572765989), () => { }, true, tabPath);
             tabButton.interactable = false;
             store.Changed += Render;
             Render();
@@ -147,8 +146,10 @@ namespace ProjectX.UI
             {
                 // PlayerHubTabCoordinator owns the shared strip. Mail is the
                 // third tab, so do not read Button1 after entering the hub.
-                GameObject mailTab = frameView?.FindNode(
-                    "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button3_Runtime");
+                Transform strip = tabButton?.transform.parent;
+                Transform mailTab = strip != null && strip.childCount > (int)PlayerHubTab.Mail
+                    ? strip.GetChild((int)PlayerHubTab.Mail) : null;
+                if (mailTab != null && mailTab.name != "Button3_Runtime") mailTab = null;
                 return mailTab?.GetComponentInChildren<Text>(true)?.text
                     ?? tabButton?.GetComponentInChildren<Text>(true)?.text
                     ?? string.Empty;
@@ -322,7 +323,7 @@ namespace ProjectX.UI
         private Text ConfigureBody(Text source)
         {
             if (source == null) return null;
-            GameObject viewportObject = Require("Panel/MailScreem/MailBg/ScrollView_1");
+            GameObject viewportObject = Require(1300399696, "mail body scroll view");
             RectTransform viewport = viewportObject.GetComponent<RectTransform>();
             if (viewportObject.GetComponent<RectMask2D>() == null) viewportObject.AddComponent<RectMask2D>();
             RectTransform rect = source.GetComponent<RectTransform>();
@@ -349,7 +350,7 @@ namespace ProjectX.UI
 
         private void EnsureDetailBackground()
         {
-            GameObject target = Require("Panel/MailScreem/MailBg");
+            GameObject target = Require(179180755, "mail detail background");
             if (target.GetComponent<Graphic>() != null) return;
             Image background = target.AddComponent<Image>();
             background.color = new Color32(239, 222, 199, 255);
@@ -449,10 +450,10 @@ namespace ProjectX.UI
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
         }
 
-        private GameObject Require(string relativePath)
+        private GameObject Require(int actionTag, string label)
         {
-            GameObject result = view?.FindNode($"{BasePath}/{relativePath}");
-            return result ?? throw new InvalidOperationException($"Mail UI node was not found: {BasePath}/{relativePath}");
+            GameObject result = view.GetSerializedNodeByActionTag(actionTag);
+            return result ?? throw new InvalidOperationException($"Mail UI node was not found: {label}.");
         }
     }
 }
