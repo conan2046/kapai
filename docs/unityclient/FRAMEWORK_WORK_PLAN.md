@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 大富翁固定地图增量（2026-09-26）**：Steam 单机玩法 `Function_21`（当前标题“昆仑寻宝”）的 `MonopolyPresenter` 六处 `FindNode` 已退场：18 个固定 HUD/猜拳/地图目标与 `Node_1`～`Node_82` 逐格改用导入 Prefab 的唯一序列化 ActionTag；运行时事件图标仍挂到对应地图格。真实 Login→玩法列表滚动→Function_21→关闭，地图 166/166、HUD 55/55 身份有效，猜拳弹窗未激活但身份 25/25，三者 Metadata=0、Timeline N/A；1334×750 画面已目视，关闭后地图 inactive，Console 0。未掷骰或触发猜拳。Steam 范围内语法调用当前剩 **12 个 Presenter、154 处**，其中 `OldMemoryPresenter` 六处属于无 ActionTag 的生成存档 Prefab，不能按导入 Prefab 路径迁移处理。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6.5 封神列传弹窗增量（2026-09-26）**：`FengShenStoryPresenter` 的一处共用 `FindNode` 覆盖来源与宝箱弹窗的固定节点，现以两份 Prefab 的 25 个唯一 ActionTag 直取；章节克隆与运行时关卡命中仍用各自局部节点。真实 Login→玩法→封神列传→宝箱预览→关闭→关卡→奖励来源→关闭，两个弹窗身份 42/42、31/31，Metadata=0、Timeline N/A，首命中和画面已检查、Console 0。同步修复来源弹窗的空图标、“999/999”“扫荡5次”模板残留和关卡详情关闭钮重叠；关闭来源后关卡详情恢复。未挑战或领取。Steam 范围内 Presenter 当前剩 **13 个文件、160 处调用**，仍须区分固定、动态和共用方法；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 神将重生共用查找增量（2026-09-26）**：`HeroRebirthPresenter` 的 3 处共用 `FindNode` 调用覆盖 34 个固定目标；按当前 4 份 Prefab 的唯一 ActionTag 建立身份表，原有候选行内 `Transform.Find` 继续只查动态克隆。C 盘 Unity 编译与 Console 0；真实 Login→世界→神将背包→回收→候选→苏全忠预览→确认→取消，四份身份分别 47/47、22/22、41/41、24/24，Metadata=0、Timeline N/A，画面和 EventSystem 首命中已检查。未执行最终重生或货币消耗。Presenter 当前剩 **14 个文件、161 处调用**，仍须逐项区分固定、动态和共用方法；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。

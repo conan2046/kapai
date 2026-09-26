@@ -16,6 +16,46 @@ namespace ProjectX.UI
 
     public sealed class MonopolyPresenter : IDisposable
     {
+        private const string MapSource = "cocosstudio/csd/kunlunxunbao/GameSceneLayer.csd";
+        private const string HudSource = "cocosstudio/csd/kunlunxunbao/GameLayer.csd";
+        private const string HandSource = "cocosstudio/csd/caiquanLayer.csd";
+        private static readonly IReadOnlyDictionary<string, int> FixedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/bg"] = 1401702818,
+                ["Layer/Panel/GoldCheck"] = -552666531,
+                ["Layer/Panel/BtnPanel/Times/Value"] = 1339252396,
+                ["Layer/Panel/KillBg/Image/Value"] = 1311982791,
+                ["Layer/Panel/Reward/ListView/Coin/Value"] = -546520062,
+                ["Layer/Panel/Reward/ListView/Gold/Value"] = -1861224518,
+                ["Layer/Panel/Reward/ListView/kunlunbi/Value"] = 652619000,
+                ["Layer/Panel/BtnPanel/CheckBox_1"] = -1632239510,
+                ["Layer/caiquanUI/caiquanbg"] = -756751784,
+                ["Layer/caiquanUI/choosebg"] = -496701713,
+                ["Layer/caiquanUI/Image_1"] = 977621007,
+                ["Layer/caiquanUI/Image_2"] = 319404541,
+                ["Layer/caiquanUI/Result"] = 1369317928,
+                ["Layer/caiquanUI/Npc/Icon"] = -1430767833,
+                ["Layer/caiquanUI/User/Icon"] = 1284595378,
+                ["Layer/caiquanUI/caiquanbg/btn_Stone"] = -692837414,
+                ["Layer/caiquanUI/caiquanbg/btn_Scissor"] = 1489472456,
+                ["Layer/caiquanUI/caiquanbg/btn_Cloth"] = 1889744814
+            };
+        // Index zero is unused: map cell IDs are 1..82 in the imported Prefab.
+        private static readonly int[] MapNodeTags =
+        {
+            0,
+            -305966033, 698326638, -1212111774, 1274719898, -1258427097, 1214702181, -983821233, -1243058924, -575780488, 968762789,
+            -200478653, -1673719105, -1356036365, -596841286, -20014003, -1526828605, -841875958, 2141558571, -310140435, -1324498376,
+            361756553, -512787176, -1027933270, 281520188, 1335762221, -10958942, 2060037326, -1666536133, -1029437845, -1976498521,
+            -1451412225, -1225525144, 953775888, 1997383821, -756925140, 877903811, -581735097, 852395248, -1878231073, -56235568,
+            2079182988, 1079202234, 1682146009, 1496112395, -1823135296, -13806270, 1421695427, -1753102962, -185568959, -1632015376,
+            -475287265, -1209106972, 1898496256, -1083376277, 513182420, -2066968996, -1754055217, 566079574, 695537454, 1973375706,
+            -154338625, -223206350, 230225912, 2008676503, -743557028, -1719415685, 2105743762, -1155973061, 79854981, 1356569692,
+            1819838679, -1077020797, -1241483982, 2044044353, -1398488036, -399065910, 1965237985, -1067863294, -199006855, -1142619462,
+            1203838829, 851598076
+        };
+
         private readonly CocosUiView mapView, hudView, handView;
         private readonly Action roll, queryBuy, reset, close, moveEnd, showGuardConfirmation, fightImmediately;
         private readonly Action<byte> playHand;
@@ -93,7 +133,7 @@ namespace ProjectX.UI
             ApplyPortrait("Layer/caiquanUI/User/Icon", playerModel == 4
                 ? "Monopoly/guess_role_4" : "Monopoly/guess_role_5", "portrait_player");
             SetHandControls(true);
-            GameObject auto = hudView.FindNode("Layer/Panel/BtnPanel/CheckBox_1");
+            GameObject auto = ResolveNode(hudView, "Layer/Panel/BtnPanel/CheckBox_1");
             autoToggle = auto != null ? auto.GetComponent<Toggle>() : null;
             if (autoToggle != null)
             {
@@ -264,8 +304,8 @@ namespace ProjectX.UI
             selectedHand = 0;
             SetHandControls(true);
             handView.GameObject.transform.SetAsLastSibling();
-            handView.FindNode("Layer/caiquanUI/caiquanbg")?.SetActive(true);
-            handView.FindNode("Layer/caiquanUI/choosebg")?.SetActive(false);
+            ResolveNode(handView, "Layer/caiquanUI/caiquanbg")?.SetActive(true);
+            ResolveNode(handView, "Layer/caiquanUI/choosebg")?.SetActive(false);
             handLeft.gameObject.SetActive(false); handRight.gameObject.SetActive(false); handResult.gameObject.SetActive(false);
             handView.SetVisible(true);
         }
@@ -334,7 +374,7 @@ namespace ProjectX.UI
             };
             foreach (string path in paths)
             {
-                Button button = handView.FindNode(path)?.GetComponent<Button>();
+                Button button = ResolveNode(handView, path)?.GetComponent<Button>();
                 if (button != null) button.interactable = interactable;
             }
         }
@@ -432,7 +472,9 @@ namespace ProjectX.UI
         private RectTransform runtimePlayer;
         private RectTransform Node(uint id)
         {
-            GameObject node = mapView.FindNode($"Layer/bg/Node_{Mathf.Clamp((int)id, 1, 82)}");
+            int cell = Mathf.Clamp((int)id, 1, 82);
+            GameObject node = mapView.GetSerializedNodeByActionTag(MapNodeTags[cell], MapSource,
+                $"Layer/bg/Node_{cell}");
             return node != null ? node.GetComponent<RectTransform>() : null;
         }
 
@@ -530,10 +572,20 @@ namespace ProjectX.UI
             string[] values = { "Z", "B", "Y", "H", "K", "J" };
             return values[Mathf.Clamp((int)model - 1, 0, values.Length - 1)];
         }
-        private static GameObject Require(CocosUiView view, string path) => view.FindNode(path)
+        private GameObject Require(CocosUiView view, string path) => ResolveNode(view, path)
             ?? throw new InvalidOperationException($"Monopoly imported node missing: {path}");
-        private static Text RequireText(CocosUiView view, string path) => Require(view, path).GetComponent<Text>()
+        private Text RequireText(CocosUiView view, string path) => Require(view, path).GetComponent<Text>()
             ?? throw new InvalidOperationException($"Monopoly imported text missing: {path}");
+        private GameObject ResolveNode(CocosUiView view, string path)
+        {
+            if (!FixedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"Monopoly node has no prefab identity: {path}");
+            string source = view == mapView ? MapSource
+                : view == hudView ? HudSource
+                : view == handView ? HandSource
+                : throw new InvalidOperationException("Monopoly view is not registered.");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
         private static void NormalizeRoot(Transform value)
         {
             if (!(value is RectTransform rect)) return;
