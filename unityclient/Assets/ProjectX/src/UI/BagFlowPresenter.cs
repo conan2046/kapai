@@ -693,6 +693,9 @@ namespace ProjectX.UI
                 }
             });
             Bind(sourceView, "Layer/Popup/Panel_name/Panel_icon", ShowEquipmentInfo);
+            Image sourceIcon = GetNode(sourceView,
+                "Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();
+            if (sourceIcon != null) sourceIcon.raycastTarget = true;
         }
 
         private void ShowSource(Choice choice)

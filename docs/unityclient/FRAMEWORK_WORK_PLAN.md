@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 背包礼盒/来源/装备信息联合验收（2026-09-26）**：当前 C 盘 Unity 真实登录→Head→背包，实际滚动到“橙装碎片任选”→使用打开多选礼盒；礼盒 22/22 身份目标、来源 31/31、装备信息 99/99 均有效，三页运行时 Metadata/Binding/Timeline 均为 0，三张 1334×750 画面已目视。第一选项勾选、数量加减、逐层关闭均由 EventSystem 首命中，未确认使用或消耗。来源页装备图标原有按钮但图像禁用 raycast，点击穿透到礼盒；仅在运行时为该图标启用射线，复测来源→装备信息→来源→礼盒→背包全程通过，Console 0。Play 已停止、8711 释放，SQLite 恢复原始基线，字节哈希一致且普通 `integrity_check=ok`，无实时 WAL/SHM。**待改 Presenter 0 个、0 处调用**；W6 其他实际可见路线仍待验。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6 装备/法宝返回页签纠错（2026-09-26）**：真实法宝列表→首件法宝培养→共享关闭后，旧 `RestoreHeroEquipmentBagView()` 将标题和页签强制改为“装备”，但列表仍是法宝，造成显示状态错位。现按 `HeroEquipmentPresenter.ActiveKind` 恢复共享页框。干净 Play 真实 EventSystem 首命中重走登录→装备→法宝→法宝培养→返回，标题“法宝背包”与 7 行法宝一致；随后切装备，标题“装备背包”与 7 行装备一致，两张 1334×750 截图已目视、Console 0。未执行装备变更或消耗；Play 停止、8711 释放，SQLite 原始基线字节哈希及普通 `integrity_check=ok`，无实时 WAL/SHM。**待改 Presenter 仍为 0 个、0 处调用**；W6 其他可见路线继续。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 神将装备 Presenter 收口（2026-09-26）**：`HeroEquipmentPresenter` 最后 47 处 `FindNode` 调用退役；当前装备、法宝、培养与自动精炼视图实际使用的 220 个来源/路径/ActionTag 映射逐项核对。神铸两个同 ActionTag 子节点按完整路径取唯一序列化目标；自动精炼中未登记身份的背景节点只在已核对父节点内局部查找。C 盘 Unity 编译、Console 0；真实登录→装备列表→培养→强化/精炼/觉醒/神铸，法宝列表→培养→精炼→法宝更换，以及装备精炼→自动精炼→取消，均经 EventSystem 首命中，三张截图已目视。未执行穿戴、强化、精炼或消耗。Play 已停止、8711 释放；先将残留 WAL/SHM 移入 C 盘 `.local` 留证，再恢复原始 SQLite 基线，实时库 SHA-256 与基线一致、`integrity_check=ok`、无实时侧车文件。**待改 0 个 Presenter、0 处调用**；Steam 范围仍有 Login/OldMemory 2 文件/7 处原生或生成页局部查找，已判定保留。W6 其他可见验收继续。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
