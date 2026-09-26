@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 登录 Presenter 增量（2026-09-26）**：`LoginPresenter` 将背景、导入登录面板、创角页的 23 个唯一固定目标改为序列化 ActionTag；手工添加且无导入 ActionTag 的 Steam `steam/Btn_*`、非 Steam 服务器列表及非 Steam SDK 重复节点仍保留原有查找。首次 Play 发现 `Btn_Login_sdk` 的同路径/同 ActionTag 在 Prefab 重复 5 次导致身份 API 拒绝，已定向回退该非 Steam 节点；再次 Play 的本地测试 `Btn_Play`→Main、Console 0，错误已消失。当前 Editor 不带单机流程校验启动参数，故 Steam 标题和创角真实可见验收仍待专用启动；本轮不误报通过。Steam 范围内语法调用剩 **11 个 Presenter、137 处**，其中 Login 的 1 处为 Steam 手工按钮与非 Steam 服务器列表共用的局部查找。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6.5 神将主页面增量（2026-09-26）**：`HeroPresenter` 的 7 处 `FindNode` 固定路径改用三份导入 Prefab 的 44 个序列化 ActionTag；列表克隆行继续行内相对查找。真实 Login→主界面阵容→神将背包→布阵详情→关闭，背包 134/134、详情 103/103、列表 28/28 身份有效，Metadata=0、Timeline N/A；背包与详情两张 1334×750 截图已目视，装备六槽和返回状态正常，Console 0。未更换神将或装备。当前 Steam 范围内语法调用剩 **11 个 Presenter、147 处**；其中 `OldMemoryPresenter` 六处为生成存档 Prefab 的局部路径。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 大富翁固定地图增量（2026-09-26）**：Steam 单机玩法 `Function_21`（当前标题“昆仑寻宝”）的 `MonopolyPresenter` 六处 `FindNode` 已退场：18 个固定 HUD/猜拳/地图目标与 `Node_1`～`Node_82` 逐格改用导入 Prefab 的唯一序列化 ActionTag；运行时事件图标仍挂到对应地图格。真实 Login→玩法列表滚动→Function_21→关闭，地图 166/166、HUD 55/55 身份有效，猜拳弹窗未激活但身份 25/25，三者 Metadata=0、Timeline N/A；1334×750 画面已目视，关闭后地图 inactive，Console 0。未掷骰或触发猜拳。Steam 范围内语法调用当前剩 **12 个 Presenter、154 处**，其中 `OldMemoryPresenter` 六处属于无 ActionTag 的生成存档 Prefab，不能按导入 Prefab 路径迁移处理。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。

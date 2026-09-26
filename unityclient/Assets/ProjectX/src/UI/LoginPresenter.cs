@@ -9,6 +9,33 @@ namespace ProjectX.UI
     public sealed class LoginPresenter : IDisposable
     {
         private const string Root = "Layer/Login";
+        private static readonly IReadOnlyDictionary<string, int> FixedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["Layer/UI_Login/Versions"] = -1777522649,
+                ["Layer/UI_Login/effect_chuangjue_1"] = 1732107145,
+                ["Layer/Login/Btn_Login"] = 526224449,
+                ["Layer/Login/InputField_user"] = -89280388,
+                ["Layer/Login/InputField_ps"] = -1004257786,
+                ["Layer/Login/Btn_Register"] = 31134405,
+                ["Layer/Login/Btn_Login_qq"] = 1180833471,
+                ["Layer/Login/Btn_Login_wx"] = -1440586465,
+                ["Layer/Login/bg"] = 723931985,
+                ["Layer/Login/Btn_Sever"] = -917774467,
+                ["Layer/Login/Btn_Play"] = 1207225826,
+                ["Layer/Login/Btn_handover"] = 426621263,
+                ["Layer/Login/Btn_Sever/SeverName"] = -59337912,
+                ["Layer/Login/InputField_user/TextField"] = 662200053,
+                ["Layer/Login/InputField_ps/TextField_Copy"] = 1667100274,
+                ["Layer/RoleCreateUI/Role_Layout/TextField"] = 2005371187,
+                ["Layer/RoleCreateUI/Image/btn_Exit"] = -1359339716,
+                ["Layer/RoleCreateUI/Role_Layout/btn_Random"] = 2087442918,
+                ["Layer/RoleCreateUI/btn_Start"] = -773149244,
+                ["Layer/RoleCreateUI/man"] = 1636003588,
+                ["Layer/RoleCreateUI/woman"] = 1386411700,
+                ["Layer/RoleCreateUI/Role"] = -935987980,
+                ["Layer/RoleCreateUI/effect_chuangjue_1"] = 661152929
+            };
         private readonly CocosUiView background;
         private readonly CocosUiView login;
         private readonly CocosUiView serverList;
@@ -244,7 +271,7 @@ namespace ProjectX.UI
 
         public void InvokeRoleCreate()
         {
-            Button button = roleCreate?.FindNode("Layer/RoleCreateUI/btn_Start")?.GetComponent<Button>();
+            Button button = ResolveNode(roleCreate, "Layer/RoleCreateUI/btn_Start")?.GetComponent<Button>();
             if (button == null) throw new InvalidOperationException("RoleCreateLayer btn_Start was not bound.");
             button.onClick.Invoke();
         }
@@ -278,22 +305,22 @@ namespace ProjectX.UI
             if (serverRow != null) UnityEngine.Object.Destroy(serverRow);
         }
 
-        private GameObject FindLogin(string relativePath) => login.FindNode(Root + "/" + relativePath);
+        private GameObject FindLogin(string relativePath) => ResolveNode(login, Root + "/" + relativePath);
         private void SetActive(string relativePath, bool active)
         {
             GameObject node = FindLogin(relativePath);
             if (node != null) node.SetActive(active);
         }
 
-        private static void SetText(CocosUiView view, string path, string value)
+        private void SetText(CocosUiView view, string path, string value)
         {
-            Text text = view?.FindNode(path)?.GetComponent<Text>();
+            Text text = ResolveNode(view, path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
         }
 
-        private static InputField ConfigureInputField(CocosUiView view, string path, bool password)
+        private InputField ConfigureInputField(CocosUiView view, string path, bool password)
         {
-            GameObject node = view?.FindNode(path);
+            GameObject node = ResolveNode(view, path);
             if (node == null) return null;
             InputField input = node.GetComponent<InputField>() ?? node.AddComponent<InputField>();
             Text text = node.GetComponent<Text>() ?? node.GetComponentInChildren<Text>(true);
@@ -327,9 +354,9 @@ namespace ProjectX.UI
             if (chosen != null) chosen.SetActive(selected);
         }
 
-        private static bool InvokeButton(CocosUiView view, string path)
+        private bool InvokeButton(CocosUiView view, string path)
         {
-            Button button = view?.FindNode(path)?.GetComponent<Button>();
+            Button button = ResolveNode(view, path)?.GetComponent<Button>();
             if (button == null || !button.interactable) return false;
             button.onClick.Invoke();
             return true;
@@ -337,7 +364,7 @@ namespace ProjectX.UI
 
         private bool InvokeToggleOrButton(string path, bool selected)
         {
-            GameObject node = roleCreate?.FindNode(path);
+            GameObject node = ResolveNode(roleCreate, path);
             Toggle toggle = node?.GetComponent<Toggle>();
             if (toggle != null && toggle.interactable)
             {
@@ -438,10 +465,10 @@ namespace ProjectX.UI
             if (text != null) text.text = value ?? string.Empty;
         }
 
-        private static void StartLegacyAnimation(CocosUiView view, string path, ref ImodAnimationPlayer player)
+        private void StartLegacyAnimation(CocosUiView view, string path, ref ImodAnimationPlayer player)
         {
             if (player != null) return;
-            Transform host = view?.FindNode(path)?.transform;
+            Transform host = ResolveNode(view, path)?.transform;
             if (host == null) return;
             var node = new GameObject("RuntimeImod_effect_chuangjue_1", typeof(RectTransform));
             RectTransform rect = node.GetComponent<RectTransform>();
@@ -461,7 +488,7 @@ namespace ProjectX.UI
 
         private void BindSex(string path, int sex)
         {
-            GameObject node = roleCreate?.FindNode(path);
+            GameObject node = ResolveNode(roleCreate, path);
             if (node == null) return;
             Toggle toggle = node.GetComponent<Toggle>();
             if (toggle != null)
@@ -480,8 +507,8 @@ namespace ProjectX.UI
         private void ShowRole(int sex)
         {
             selectedSex = sex == 2 ? 2 : 1;
-            Toggle man = roleCreate?.FindNode("Layer/RoleCreateUI/man")?.GetComponent<Toggle>();
-            Toggle woman = roleCreate?.FindNode("Layer/RoleCreateUI/woman")?.GetComponent<Toggle>();
+            Toggle man = ResolveNode(roleCreate, "Layer/RoleCreateUI/man")?.GetComponent<Toggle>();
+            Toggle woman = ResolveNode(roleCreate, "Layer/RoleCreateUI/woman")?.GetComponent<Toggle>();
             if (man != null) man.SetIsOnWithoutNotify(selectedSex == 1);
             if (woman != null) woman.SetIsOnWithoutNotify(selectedSex == 2);
             if (roleAnimation != null)
@@ -489,7 +516,7 @@ namespace ProjectX.UI
                 UnityEngine.Object.Destroy(roleAnimation.gameObject);
                 roleAnimation = null;
             }
-            Transform host = roleCreate?.FindNode("Layer/RoleCreateUI/Role")?.transform;
+            Transform host = ResolveNode(roleCreate, "Layer/RoleCreateUI/Role")?.transform;
             if (host == null) return;
             var node = new GameObject(selectedSex == 1 ? "RuntimeImod_Create_5" : "RuntimeImod_Create_4", typeof(RectTransform));
             RectTransform rect = node.GetComponent<RectTransform>();
@@ -506,6 +533,24 @@ namespace ProjectX.UI
                 return;
             }
             roleAnimation.PlayNewAction(0, true);
+        }
+
+        private GameObject ResolveNode(CocosUiView view, string path)
+        {
+            if (view == null) return null;
+            // Steam title controls were added by hand and have no imported ActionTags.
+            // The server selector and duplicated SDK button are outside the Steam route.
+            // Five serialized SDK references share both path and ActionTag, so retain the old first match.
+            if (view == serverList || (view == login && (path.StartsWith(Root + "/steam", StringComparison.Ordinal)
+                || path == Root + "/Btn_Login_sdk")))
+                return view.FindNode(path);
+            if (!FixedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException($"Login UI path has no prefab identity: {path}");
+            string source = view == background ? "cocosstudio/csd/Login/LoginBgLayer.csd"
+                : view == login ? "cocosstudio/csd/Login/loginLayer.csd"
+                : view == roleCreate ? "cocosstudio/csd/Login/RoleCreateLayer.csd"
+                : throw new InvalidOperationException("Login UI view is not registered.");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
         }
     }
 }
