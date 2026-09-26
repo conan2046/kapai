@@ -8,6 +8,83 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class BagFlowNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn0"] = -884373952,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn1"] = 847161196,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn10"] = 1340601654,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn12"] = 391021299,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn2"] = 1189143803,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn3"] = -1443897372,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn4"] = 1743698205,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn5"] = -318829463,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn6"] = -1971050812,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn7"] = 263081706,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn8"] = -2053631981,
+            ["EnterNumLayer|Layer/Panel/Bg/BtnList/Btn9"] = 494579641,
+            ["EnterNumLayer|Layer/Panel/Bg/Close"] = 1375030819,
+            ["EnterNumLayer|Layer/Panel/Bg/Num/TextField"] = -625820646,
+            ["shop/shop_bg|Layer/shopBg/Btn_ListView"] = 577164065,
+            ["shop/shop_bg|Layer/shopBg/Popup/Btn_close"] = -1077648424,
+            ["shop/shop_bg|Layer/shopBg/Popup/Title/Title"] = 1343485170,
+            ["shop/shop_bg|Layer/shopBg/Popup/Title/Title/Button_1"] = 1783402520,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/Bg/ListView"] = 1078627466,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/Button"] = 1410494817,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/Item"] = -708721617,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/TimesBg/Btn_L"] = -862811015,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/TimesBg/Btn_L_0"] = 25088919,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/TimesBg/Btn_R"] = -1684386435,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/TimesBg/Btn_R_0"] = 2015805433,
+            ["common/OpenBox_1Layer|Layer/OpenBox/Panel/TimesBg/Value"] = 1804126137,
+            ["common/huoqutujing|Layer/Popup/ListView"] = 1165524436,
+            ["common/huoqutujing|Layer/Popup/Panel_name/Panel_icon"] = -1798691810,
+            ["common/huoqutujing|Layer/Popup/Panel_name/Panel_icon/Icon"] = 1985573283,
+            ["common/huoqutujing|Layer/Popup/Panel_name/txt_name"] = -2075921713,
+            ["common/huoqutujing|Layer/Popup/Panel_name/txt_num"] = 1466624372,
+            ["common/huoqutujing|Layer/Popup/Panel_name/txt_tips"] = 1000829837,
+            ["common/huoqutujing|Layer/Popup/Title/Btn_close"] = -730647306,
+            ["common/huoqutujing|Layer/Popup/itemlayer_1"] = -1115305457,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/ListView"] = 1988710122,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jichushuxing"] = 653109873,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1"] = -1655526439,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1/Value"] = -61144758,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jinglianshuxing"] = 1613345682,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian"] = 1096837531,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/juexingshuxing"] = -463174084,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing"] = -454793528,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing"] = 377838293,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua"] = -902046815,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/shenzhushuxing"] = 871650975,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu"] = -704138103,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu"] = 2128185630,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content"] = -1957215758,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang"] = -1352454928,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Mask"] = -1137515135,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/Popup/Btn_close"] = 1509009730,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan"] = -1525809291,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia"] = -1875709107,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name"] = 238615671,
+            ["zhuangbeiyangcheng/zhuangbeiInfo|Layer/zhuangbeiInfoUI/zhuangbei/Node"] = 2017038023,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null || string.IsNullOrWhiteSpace(path)) return null;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Bag flow source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"Bag flow fixed node has no identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class BagFlowPresenter : IDisposable
     {
         private sealed class Choice
@@ -39,8 +116,6 @@ namespace ProjectX.UI
         private readonly Action<string> feedback;
         private readonly List<Choice> choices = new List<Choice>();
         private readonly Dictionary<int, Button> giftChoiceButtons = new Dictionary<int, Button>();
-        private readonly Dictionary<CocosUiView, Dictionary<string, GameObject>> resolvedNodes =
-            new Dictionary<CocosUiView, Dictionary<string, GameObject>>();
         private BagItemRecord activeItem;
         private Choice selectedChoice;
         private Choice sourceChoice;
@@ -400,29 +475,12 @@ namespace ProjectX.UI
 
         private GameObject FindInputNode(string path)
         {
-            return FindNode(inputView, path);
+            return GetNode(inputView, path);
         }
 
-        private GameObject FindNode(CocosUiView view, string path)
+        private GameObject GetNode(CocosUiView view, string path)
         {
-            GameObject rootObject = view?.GameObject;
-            if (rootObject == null || string.IsNullOrWhiteSpace(path)) return null;
-
-            string normalized = path.Replace('\\', '/').Trim('/');
-            if (!resolvedNodes.TryGetValue(view, out Dictionary<string, GameObject> viewNodes))
-            {
-                viewNodes = new Dictionary<string, GameObject>(StringComparer.Ordinal);
-                resolvedNodes.Add(view, viewNodes);
-            }
-            if (viewNodes.TryGetValue(normalized, out GameObject cached)) return cached;
-
-            Transform root = rootObject.transform;
-            Transform node = root.Find(normalized);
-            if (node == null && normalized.StartsWith("Layer/", StringComparison.Ordinal))
-                node = root.Find(normalized.Substring("Layer/".Length));
-            GameObject resolved = node == null ? null : node.gameObject;
-            viewNodes.Add(normalized, resolved);
-            return resolved;
+            return BagFlowNodeIds.Get(view, path);
         }
 
         private GameObject RequireInputNode(string path)
@@ -477,9 +535,9 @@ namespace ProjectX.UI
                 RectTransform titleRect = popupTitle.GetComponent<RectTransform>();
                 titleRect.sizeDelta = new Vector2(Mathf.Max(360f, titleRect.sizeDelta.x), titleRect.sizeDelta.y);
             }
-            GameObject help = FindNode(popupFrameView, "Layer/shopBg/Popup/Title/Title/Button_1");
+            GameObject help = GetNode(popupFrameView, "Layer/shopBg/Popup/Title/Title/Button_1");
             if (help != null) help.SetActive(false);
-            GameObject tabs = FindNode(popupFrameView, "Layer/shopBg/Btn_ListView");
+            GameObject tabs = GetNode(popupFrameView, "Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
             GameObject list = Require(giftView, "Layer/OpenBox/Panel/Bg/ListView");
             giftTemplate = Require(giftView, "Layer/OpenBox/Panel/Item");
@@ -574,7 +632,7 @@ namespace ProjectX.UI
             RenderGiftSelection();
             popupFrameView.SetVisible(true);
             giftView.SetVisible(true);
-            GameObject tabs = FindNode(popupFrameView, "Layer/shopBg/Btn_ListView");
+            GameObject tabs = GetNode(popupFrameView, "Layer/shopBg/Btn_ListView");
             if (tabs != null) tabs.SetActive(false);
             popupFrameView.ShowPopup();
             giftView.ShowPopup();
@@ -692,7 +750,7 @@ namespace ProjectX.UI
 
         private void ConfigureEquipmentInfo()
         {
-            Image mask = FindNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Mask")?.GetComponent<Image>();
+            Image mask = GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Mask")?.GetComponent<Image>();
             if (mask != null) mask.color = new Color(0f, 0f, 0f, 0.95f);
             Bind(equipmentInfoView, "Layer/zhuangbeiInfoUI/Popup/Btn_close", () =>
             {
@@ -709,7 +767,7 @@ namespace ProjectX.UI
                 "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
             })
             {
-                GameObject node = FindNode(equipmentInfoView, path);
+                GameObject node = GetNode(equipmentInfoView, path);
                 if (node != null) node.SetActive(false);
             }
             GameObject list = Require(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView");
@@ -720,7 +778,7 @@ namespace ProjectX.UI
                 "juexingshuxing", "shenzhushuxing", "zhuangbeitaozhuang", "zhuangbeimiaoshu"
             })
             {
-                GameObject node = FindNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = GetNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
                 if (node != null) node.transform.SetParent(content, false);
             }
         }
@@ -745,10 +803,10 @@ namespace ProjectX.UI
                 "qianghuashuxing", "jinglianshuxing", "juexingshuxing", "shenzhushuxing"
             })
             {
-                GameObject node = FindNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = GetNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
                 if (node != null) node.SetActive(false);
             }
-            GameObject host = FindNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Node");
+            GameObject host = GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Node");
             if (host != null)
             {
                 Transform existing = host.transform.Find("RuntimeEquipmentIcon");
@@ -771,7 +829,7 @@ namespace ProjectX.UI
 
         private void RenderEquipmentSuit(EquipmentDefinition definition)
         {
-            GameObject section = FindNode(equipmentInfoView,
+            GameObject section = GetNode(equipmentInfoView,
                 "Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang");
             if (section == null) return;
             section.SetActive(definition.Suit > 0);
@@ -1081,7 +1139,7 @@ namespace ProjectX.UI
 
         private GameObject Require(CocosUiView view, string path)
         {
-            GameObject value = FindNode(view, path);
+            GameObject value = GetNode(view, path);
             if (value == null) throw new InvalidOperationException($"Bag flow Unity node missing: {view.GameObject?.name} :: {path}");
             return value;
         }
@@ -1103,7 +1161,7 @@ namespace ProjectX.UI
 
         private bool Invoke(CocosUiView view, string path)
         {
-            GameObject node = FindNode(view, path);
+            GameObject node = GetNode(view, path);
             Button button = node == null ? null : node.GetComponent<Button>();
             if (button == null) return false;
             button.onClick.Invoke();
@@ -1112,7 +1170,7 @@ namespace ProjectX.UI
 
         private bool ScrollToEnd(CocosUiView view, string path)
         {
-            ScrollRect scroll = FindNode(view, path)?.GetComponent<ScrollRect>();
+            ScrollRect scroll = GetNode(view, path)?.GetComponent<ScrollRect>();
             if (scroll == null || scroll.content == null) return false;
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
@@ -1123,7 +1181,7 @@ namespace ProjectX.UI
         }
 
         private Text FindText(CocosUiView view, string path) =>
-            FindNode(view, path)?.GetComponent<Text>();
+            GetNode(view, path)?.GetComponent<Text>();
 
         private void SetText(CocosUiView view, string path, string value)
         {
@@ -1133,7 +1191,7 @@ namespace ProjectX.UI
 
         private void SetImage(CocosUiView view, string path, Sprite sprite)
         {
-            GameObject node = FindNode(view, path);
+            GameObject node = GetNode(view, path);
             if (node == null) return;
             Image image = node.GetComponent<Image>() ?? node.GetComponentInChildren<Image>(true);
             if (image == null) image = node.AddComponent<Image>();
