@@ -10,6 +10,36 @@ namespace ProjectX.UI
 {
     public sealed class SettingsPresenter
     {
+        private static readonly Dictionary<string, int> FrameNodeTags = new Dictionary<string, int>
+        {
+            { "Layer/GoldCheck", -1869326047 },
+            { "Layer/GoldCheck/GoldIcon1/AddBtn", -1710267933 },
+            { "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num", -617440015 },
+            { "Layer/GoldCheck/GoldIcon3/AddBtn", -1182503694 },
+            { "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num", 1596280410 },
+            { "Layer/GoldCheck/GoldIcon4/AddBtn", 1473417556 },
+            { "Layer/GoldCheck/GoldIcon4/GoldNumBg/Num", 138431242 },
+            { "Layer/Panel_12/Bg/Btn_ListView", -1106341412 },
+            { "Layer/Panel_12/Bg/Btn_ListView/Panel_10", -1210914123 },
+            { "Layer/Panel_12/Title/CloseBtn", -849663080 },
+            { "Layer/Panel_12/Title/TitleName", 553439985 },
+        };
+        private static readonly Dictionary<string, int> PageNodeTags = new Dictionary<string, int>
+        {
+            { "Layer/Panel/BtnList", 767378305 },
+            { "Layer/Panel/BtnList/Btn_1", -2118503255 },
+            { "Layer/Panel/BtnList/Btn_1/BtnName", 339651439 },
+            { "Layer/Panel/BtnList/Btn_4", -581263950 },
+            { "Layer/Panel/BtnList/Btn_4/BtnName", -1316203689 },
+            { "Layer/Panel/SystemBg/CheckBox_1/Slider", 2137747181 },
+            { "Layer/Panel/SystemBg/CheckBox_2", -565617180 },
+            { "Layer/Panel/SystemBg/CheckBox_2/Slider", 1776150008 },
+            { "Layer/Panel/SystemBg/ImageBg", 681230342 },
+            { "Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage", -1326203766 },
+            { "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", -1628665602 },
+            { "Layer/Panel/SystemBg/ImageBg/Name", 188869822 },
+            { "Layer/Panel/SystemBg/ImageBg/ServerName", 465462781 },
+        };
         public const string MusicClosedKey = "ProjectX.Settings.IsMusicClosed";
         public const string EffectsClosedKey = "ProjectX.Settings.IsEffectClosed";
         public const string MusicVolumeKey = "ProjectX.Settings.MusicVolume";
@@ -74,7 +104,7 @@ namespace ProjectX.UI
             fullScreenToggle = Require<Toggle>(view, "Layer/Panel/SystemBg/Resolution/FullScreen");
             BindDisplayControls();
             const string saveDisplayPath = "Layer/Panel/BtnList/Btn_6";
-            saveDisplayButton = view.BindClickNode(view.FindNode(saveDisplayPath),
+            saveDisplayButton = view.BindClickNode(ResolveNode(view, saveDisplayPath),
                 SaveDisplaySelection, true, saveDisplayPath);
 
             if (singlePlayerMode)
@@ -132,7 +162,7 @@ namespace ProjectX.UI
             SetText(view, "Layer/Panel/SystemBg/ImageBg/Name", $"角色：{player.Name}");
             SetText(view, "Layer/Panel/SystemBg/ImageBg/ServerName", "存档：本地");
             SetText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", player.Level.ToString());
-            GameObject headObject = view.FindNode("Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage");
+            GameObject headObject = ResolveNode(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage");
             Image head = headObject != null ? headObject.GetComponent<Image>() : null;
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             LoadValues();
@@ -207,7 +237,7 @@ namespace ProjectX.UI
                 root.localScale = Vector3.one;
             }
             SetText(frameView, "Layer/Panel_12/Title/TitleName", "角色信息");
-            Transform help = frameView.FindNode("Layer/Panel_12/Title/TitleName")?.transform.Find("Button_1");
+            Transform help = ResolveNode(frameView, "Layer/Panel_12/Title/TitleName")?.transform.Find("Button_1");
             if (help != null) help.gameObject.SetActive(false);
 
             // The outer OneLevelLayer tab strip is owned by PlayerHubTabCoordinator.
@@ -215,7 +245,7 @@ namespace ProjectX.UI
             // 境界/背包/邮件/系统 tabs during Refresh(). Keep compatibility
             // handles for existing validation, but leave their visual state and
             // listeners to the shared coordinator.
-            Transform panel = frameView.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform panel = ResolveNode(frameView, "Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             Transform first = panel?.Find("Button1");
             if (first == null) throw new InvalidOperationException("Settings shared tab template was not found.");
             Transform second = panel.Find("Button2_Runtime");
@@ -537,7 +567,7 @@ namespace ProjectX.UI
 
         private Button BindFrameButton(string path, Action action, bool interactable)
         {
-            GameObject node = frameView.FindNode(path);
+            GameObject node = ResolveNode(frameView, path);
             if (node == null) throw new InvalidOperationException("Settings frame node was not found: " + path);
             Button button = EnsureButton(node.transform);
             button.onClick.RemoveAllListeners();
@@ -595,11 +625,11 @@ namespace ProjectX.UI
             value >= 10000 && value % 10000 == 0 ? $"{value / 10000}万" : value.ToString();
 
         private static void SetText(CocosUiView target, string path, string value) =>
-            SetText(target.FindNode(path)?.transform, value);
+            SetText(ResolveNode(target, path)?.transform, value);
 
         private static void SetActive(CocosUiView target, string path, bool active)
         {
-            GameObject node = target?.FindNode(path);
+            GameObject node = ResolveNode(target, path);
             if (node != null) node.SetActive(active);
         }
 
@@ -614,7 +644,7 @@ namespace ProjectX.UI
 
         private static string ReadText(CocosUiView target, string path)
         {
-            Transform node = target.FindNode(path)?.transform;
+            Transform node = ResolveNode(target, path)?.transform;
             if (node == null) return string.Empty;
             Text legacy = node.GetComponent<Text>();
             TMP_Text tmp = node.GetComponent<TMP_Text>();
@@ -623,7 +653,7 @@ namespace ProjectX.UI
 
         private static T Require<T>(CocosUiView target, string path) where T : Component
         {
-            GameObject node = target.FindNode(path);
+            GameObject node = ResolveNode(target, path);
             T component = node != null ? node.GetComponent<T>() : null;
             if (component == null)
                 throw new InvalidOperationException($"Settings component {typeof(T).Name} was not found: {path}");
@@ -632,7 +662,34 @@ namespace ProjectX.UI
 
         private static Button BindClick(CocosUiView target, string path, Action callback,
             bool addButtonIfMissing = false) =>
-            target.BindClickNode(target.FindNode(path), callback, addButtonIfMissing, path);
+            target.BindClickNode(ResolveNode(target, path), callback, addButtonIfMissing, path);
+
+        private static GameObject ResolveNode(CocosUiView target, string path)
+        {
+            if (target == null) return null;
+            if (path == "Layer/Panel/BtnList/Btn_5"
+                || path == "Layer/Panel/BtnList/Btn_6"
+                || path == "Layer/Panel/SystemBg/CheckBox_1"
+                || path == "Layer/Panel/SystemBg/Resolution/Dropdown"
+                || path == "Layer/Panel/SystemBg/Resolution/FullScreen")
+            {
+                SettingsPageReferences refs = target.GameObject.GetComponent<SettingsPageReferences>();
+                if (refs == null) throw new InvalidOperationException("SystemLayer native references are missing.");
+                GameObject native = path == "Layer/Panel/BtnList/Btn_5" ? refs.ActivationButton
+                    : path == "Layer/Panel/BtnList/Btn_6" ? refs.SaveDisplayButton
+                    : path == "Layer/Panel/SystemBg/CheckBox_1" ? refs.MusicToggle
+                    : path == "Layer/Panel/SystemBg/Resolution/Dropdown" ? refs.ResolutionDropdown
+                    : refs.FullScreenToggle;
+                return native ?? throw new InvalidOperationException("SystemLayer native reference is missing: " + path);
+            }
+
+            bool frame = FrameNodeTags.TryGetValue(path, out int actionTag);
+            if (!frame && !PageNodeTags.TryGetValue(path, out actionTag))
+                throw new InvalidOperationException("Unknown fixed Settings node: " + path);
+            return target.GetSerializedNodeByActionTag(actionTag,
+                frame ? "cocosstudio/csd/OneLevelLayer.csd"
+                    : "cocosstudio/csd/zhujue/SystemLayer.csd", path);
+        }
 
     }
 }

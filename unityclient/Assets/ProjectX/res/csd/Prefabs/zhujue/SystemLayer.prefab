@@ -4091,6 +4091,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3578471865141982475}
   - component: {fileID: 355875844196091272}
+  - component: {fileID: 3772095978365828545}
   m_Layer: 0
   m_Name: SystemLayer
   m_TagString: Untagged
@@ -4273,6 +4274,23 @@ MonoBehaviour:
     actionTag: -1858471233
     target: {fileID: 7090409281376441916}
   retiredMetadataAliases: []
+--- !u!114 &3772095978365828545
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9131334748219890032}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8c2132e9a6e0eb4881299f88efad793, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  activationButton: {fileID: 938712968261048877}
+  saveDisplayButton: {fileID: 8637736931810451302}
+  musicToggle: {fileID: 4824610349185052274}
+  resolutionDropdown: {fileID: 5953014662648825610}
+  fullScreenToggle: {fileID: 4071338075074183784}
 --- !u!1 &9222387543393444359
 GameObject:
   m_ObjectHideFlags: 0
