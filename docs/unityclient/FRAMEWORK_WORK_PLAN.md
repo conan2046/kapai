@@ -1,5 +1,7 @@
 # Unity 客户端内部框架治理工作计划
 
+> **W6.5 招募 Presenter 固定目标收口（2026-09-26）**：`DrawPresenter` 的 27 处 `FindNode` 调用已清零：20 个导入固定节点经三份 Prefab 的路径、唯一 ActionTag 核对后直取；原缺失的 `shenjiang/Image` 旧空查找删除；神将详情的 `RuntimeContent` 子节点只在其运行时容器内定位。C 盘 Unity 编译与 Console 0；真实 Login→招募→奖励预览→神将详情→滚动→逐层关闭，以及免费基础单抽→结果→关闭均通过 EventSystem 首命中。结果页身份 40/40、Metadata 0、Timeline 存在，预览/详情/结果截图均已目视。免费单抽前以 SQLite 在线备份，Play 停止后恢复并再次备份校验 SHA-256 完全一致、integrity=ok，8711 已释放。Steam 范围内 `FindNode` 语法调用剩 **9 个 Presenter、106 处**；证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
+
 > **W6.5 寻宝弹窗 Presenter 增量（2026-09-26）**：`XunBaoOverlayPresenter` 的 4 处固定节点 `FindNode` 共用调用已改为三份导入 Prefab 的 27 个唯一序列化 ActionTag。C 盘 Unity 编译与 Console 0；真实 Login→玩法→寻宝→奖励任务弹窗→关闭→寻宝关闭，经 EventSystem 首命中，任务弹窗身份 59/59，1334×750 截图已目视。结果与扫荡弹窗未触发业务操作，只完成静态映射核对，不能记为其可见验收。Steam 范围内 `FindNode` 语法调用剩 **10 个 Presenter、133 处**；其中 Login 手工 Steam 按钮 1 处、OldMemory 生成页 6 处并非导入节点身份迁移项。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。
 
 > **W6.5 登录 Presenter 增量（2026-09-26）**：`LoginPresenter` 将背景、导入登录面板、创角页的 23 个唯一固定目标改为序列化 ActionTag；手工添加且无导入 ActionTag 的 Steam `steam/Btn_*`、非 Steam 服务器列表及非 Steam SDK 重复节点仍保留原有查找。首次 Play 发现 `Btn_Login_sdk` 的同路径/同 ActionTag 在 Prefab 重复 5 次导致身份 API 拒绝，已定向回退该非 Steam 节点；再次 Play 的本地测试 `Btn_Play`→Main、Console 0，错误已消失。当前 Editor 不带单机流程校验启动参数，故 Steam 标题和创角真实可见验收仍待专用启动；本轮不误报通过。Steam 范围内语法调用剩 **11 个 Presenter、137 处**，其中 Login 的 1 处为 Steam 手工按钮与非 Steam 服务器列表共用的局部查找。证据 `.local/unity-validation/w6-steam-presenter-scope-20260926.md`。

@@ -9,6 +9,47 @@ using System.Collections.Generic;
 
 namespace ProjectX.UI
 {
+    internal static class DrawNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["chouka/dancichouka|Layer/dancichoukaUI/shenjiang/Name"] = -145739469,
+            ["chouka/dancichouka|Layer/dancichoukaUI/Bg"] = -325359684,
+            ["chouka/dancichouka|Layer/dancichoukaUI/Congratulations/Image"] = -35091803,
+            ["chouka/dancichouka|Layer/dancichoukaUI/Panel_1/Taizi"] = 827543673,
+            ["chouka/dancichouka|Layer/dancichoukaUI/Skill_1/Icon"] = -1394261788,
+            ["chouka/dancichouka|Layer/dancichoukaUI/btn_Close"] = 393920853,
+            ["chouka/dancichouka|Layer/dancichoukaUI/shenjiang/bg_Level/Level"] = 46881433,
+            ["chouka/dancichouka|Layer/dancichoukaUI/Skill_1"] = -2061958676,
+            ["chouka/dancichouka|Layer/dancichoukaUI/btn_Continue"] = 2071443510,
+            ["chouka/dancichouka|Layer/dancichoukaUI/Congratulations/Teaser"] = 417088384,
+            ["chouka/dancichouka|Layer/dancichoukaUI/shenjiang/Node"] = 1954430329,
+            ["chouka/jiangliyulan|Layer/Panel/IllustrationsBg/IllustrationsList"] = 1108828183,
+            ["chouka/jiangliyulan|Layer/Panel/IllustrationsBg/Image1"] = 495184522,
+            ["chouka/shenjiangyulan|Layer/Panel/Panel_left/Name"] = 1148920253,
+            ["chouka/shenjiangyulan|Layer/Panel/Panel_left/RolePowerBase"] = -2139420956,
+            ["chouka/shenjiangyulan|Layer/Panel/Panel_left/suipian/Slider_Bg/LoadingBar"] = -2038323606,
+            ["chouka/shenjiangyulan|Layer/Panel/Panel_left/suipian/Slider_Bg/Value"] = 1816957406,
+            ["chouka/shenjiangyulan|Layer/Panel/Panel_left/bg_Quality/Value"] = -1651460773,
+            ["chouka/shenjiangyulan|Layer/Panel/Panel_left/Node_1/Node"] = 10804086,
+            ["chouka/shenjiangyulan|Layer/Panel/shenjiangInfoUI/Info/ScrollView_1"] = -112279617
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"Draw view source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"Draw fixed node has no serialized identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     public sealed class DrawPresenter : IDisposable
     {
         private readonly CocosUiView view;
@@ -27,7 +68,6 @@ namespace ProjectX.UI
         private readonly BagStore bag;
         private readonly Text statusText;
         private readonly Text resultText;
-        private readonly Image resultIcon;
         private ImodAnimationPlayer resultModel;
         private Image duplicateResultIcon;
         private GameObject duplicateOverlay;
@@ -123,8 +163,7 @@ namespace ProjectX.UI
             // The imported Cocos screen already owns the lower decorative band. Do not
             // overlay a diagnostic status label there: it covered original Draw art.
             statusText = null;
-            resultIcon = singleResultView.FindNode("Layer/dancichoukaUI/shenjiang/Image")?.GetComponent<Image>();
-            resultText = singleResultView.FindNode("Layer/dancichoukaUI/shenjiang/Name")?.GetComponent<Text>();
+            resultText = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/shenjiang/Name").GetComponent<Text>();
             BindResultControls(singleResultView.GameObject.transform);
             BindResultControls(tenResultView.GameObject.transform);
             furnaceEffect = CreateFurnaceEffect(view.GameObject.transform);
@@ -384,7 +423,7 @@ namespace ProjectX.UI
             root.anchorMin = Vector2.zero; root.anchorMax = Vector2.one;
             root.offsetMin = root.offsetMax = Vector2.zero;
             duplicateOverlayBackdrop = CreateImage(root, "Backdrop", Vector2.zero, Vector2.one);
-            Image sourceBackdrop = singleResultView.FindNode("Layer/dancichoukaUI/Bg")?.GetComponent<Image>();
+            Image sourceBackdrop = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Bg").GetComponent<Image>();
             if (sourceBackdrop != null)
             {
                 duplicateOverlayBackdrop.sprite = sourceBackdrop.sprite;
@@ -393,14 +432,14 @@ namespace ProjectX.UI
             }
             duplicateOverlayBackdrop.color = Color.white;
             duplicateOverlayTitle = CreateImage(root, "Title", new Vector2(.34f, .80f), new Vector2(.66f, .96f));
-            Image sourceTitle = singleResultView.FindNode("Layer/dancichoukaUI/Congratulations/Image")?.GetComponent<Image>();
+            Image sourceTitle = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Congratulations/Image").GetComponent<Image>();
             if (sourceTitle != null)
             {
                 duplicateOverlayTitle.sprite = sourceTitle.sprite;
                 duplicateOverlayTitle.preserveAspect = true;
             }
             duplicateOverlayPlatform = CreateImage(root, "Platform", new Vector2(.27f, .06f), new Vector2(.73f, .43f));
-            Image sourcePlatform = singleResultView.FindNode("Layer/dancichoukaUI/Panel_1/Taizi")?.GetComponent<Image>();
+            Image sourcePlatform = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Panel_1/Taizi").GetComponent<Image>();
             if (sourcePlatform != null)
             {
                 duplicateOverlayPlatform.sprite = sourcePlatform.sprite;
@@ -415,7 +454,7 @@ namespace ProjectX.UI
             duplicateOverlaySoulName = CreateText(root, "SoulName", new Vector2(.16f, .30f), new Vector2(.25f, .73f), 38, TextAnchor.MiddleCenter);
             duplicateOverlaySoulName.color = new Color(1f, .92f, .2f, 1f);
             duplicateOverlaySkillIcon = CreateImage(root, "SkillIcon", new Vector2(.66f, .56f), new Vector2(.74f, .70f));
-            Image sourceSkill = singleResultView.FindNode("Layer/dancichoukaUI/Skill_1/Icon")?.GetComponent<Image>();
+            Image sourceSkill = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Skill_1/Icon").GetComponent<Image>();
             if (sourceSkill != null)
             {
                 duplicateOverlaySkillIcon.sprite = sourceSkill.sprite;
@@ -426,7 +465,7 @@ namespace ProjectX.UI
             duplicateOverlayConversion = CreateText(root, "Conversion", new Vector2(.33f, .055f), new Vector2(.67f, .105f), 24, TextAnchor.MiddleCenter);
             duplicateOverlayConversion.color = new Color(1f, .9f, .2f, 1f);
             Image closeImage = CreateImage(root, "Close", new Vector2(.44f, .105f), new Vector2(.56f, .18f));
-            Image sourceClose = singleResultView.FindNode("Layer/dancichoukaUI/btn_Close")?.GetComponent<Image>();
+            Image sourceClose = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/btn_Close").GetComponent<Image>();
             if (sourceClose != null)
             {
                 closeImage.sprite = sourceClose.sprite;
@@ -521,13 +560,12 @@ namespace ProjectX.UI
             {
                 transformedResultVisual.SetActive(false);
             }
-            if (resultIcon != null) resultIcon.enabled = false;
             RenderResultHeroModel(transformed ? null : reward);
         }
 
         private void StabilizeSingleResultLayout()
         {
-            GameObject platformObject = singleResultView.FindNode("Layer/dancichoukaUI/Panel_1/Taizi");
+            GameObject platformObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Panel_1/Taizi");
             RectTransform platform = platformObject?.GetComponent<RectTransform>();
             if (platform != null)
             {
@@ -552,7 +590,7 @@ namespace ProjectX.UI
 
         private void RenderResultHeroMetadata(DrawRewardRecord reward)
         {
-            GameObject qualityObject = singleResultView.FindNode("Layer/dancichoukaUI/shenjiang/bg_Level/Level");
+            GameObject qualityObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/shenjiang/bg_Level/Level");
             Image qualityImage = qualityObject?.GetComponent<Image>();
             if (qualityImage != null) qualityImage.enabled = false;
             if (reward == null || reward.Type != 60002
@@ -582,7 +620,7 @@ namespace ProjectX.UI
                 resultQualityImage.sprite = resources.LoadFirst("HeroUI/quality_score_" + score);
                 resultQualityImage.enabled = resultQualityImage.sprite != null;
             }
-            GameObject skillObject = singleResultView.FindNode("Layer/dancichoukaUI/Skill_1");
+            GameObject skillObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Skill_1");
             if (skillObject != null)
             {
                 SetNamedText(skillObject.transform, "Name",
@@ -601,7 +639,7 @@ namespace ProjectX.UI
         {
             DrawResultRecord result = store.LastResult;
             if (result == null) return;
-            Transform button = singleResultView.FindNode("Layer/dancichoukaUI/btn_Continue")?.transform;
+            Transform button = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/btn_Continue").transform;
             if (button != null)
             {
                 SetNamedVisible(button, "Text_2", false);
@@ -628,7 +666,7 @@ namespace ProjectX.UI
                 label.text = "继续召唤";
                 label.color = new Color(.48f, .16f, .08f, 1f);
             }
-            GameObject teaserObject = singleResultView.FindNode("Layer/dancichoukaUI/Congratulations/Teaser");
+            GameObject teaserObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Congratulations/Teaser");
             Text teaser = teaserObject?.GetComponent<Text>();
             if (teaser != null)
             {
@@ -830,7 +868,7 @@ namespace ProjectX.UI
                 && HeroCatalog.TryGet((int)reward.Id, out definition);
             if (loaded)
             {
-                Transform host = singleResultView.FindNode("Layer/dancichoukaUI/shenjiang/Node")?.transform;
+                Transform host = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/shenjiang/Node").transform;
                 if (host != null)
                 {
                     GameObject modelObject = resultModel != null ? resultModel.gameObject
@@ -984,9 +1022,9 @@ namespace ProjectX.UI
             tabs.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
             close.gameObject.AddComponent<CanvasGroup>().blocksRaycasts = false;
             viewportGo.AddComponent<CanvasGroup>().blocksRaycasts = false;
-            GameObject nativeList = previewView.FindNode("Layer/Panel/IllustrationsBg/IllustrationsList");
+            GameObject nativeList = DrawNodeIds.Get(previewView, "Layer/Panel/IllustrationsBg/IllustrationsList");
             previewNativeList = nativeList != null ? nativeList.transform : null;
-            GameObject nativeTemplate = previewView.FindNode("Layer/Panel/IllustrationsBg/Image1");
+            GameObject nativeTemplate = DrawNodeIds.Get(previewView, "Layer/Panel/IllustrationsBg/Image1");
             Transform template = nativeTemplate != null ? nativeTemplate.transform : null;
             if (previewNativeList != null && template != null)
             {
@@ -1171,9 +1209,9 @@ namespace ProjectX.UI
             SetNamedText(heroPreviewFrame.transform, "TitleName", "信息");
             RenderPreviewHeader(heroPreviewFrame.transform);
             SetHeroPreviewText("Layer/Panel/Panel_left/Name", definition.Name);
-            Text heroName = heroPreviewView.FindNode("Layer/Panel/Panel_left/Name")?.GetComponent<Text>();
+            Text heroName = DrawNodeIds.Get(heroPreviewView, "Layer/Panel/Panel_left/Name").GetComponent<Text>();
             if (heroName != null) heroName.color = QualityColor(definition.Quality);
-            GameObject powerPanel = heroPreviewView.FindNode("Layer/Panel/Panel_left/RolePowerBase");
+            GameObject powerPanel = DrawNodeIds.Get(heroPreviewView, "Layer/Panel/Panel_left/RolePowerBase");
             if (powerPanel != null) powerPanel.SetActive(false);
             const string runtimeInfoPath = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/RuntimeContent";
             SetHeroPreviewText(runtimeInfoPath + "/Info/dingwei/Value", definition.Feature);
@@ -1191,16 +1229,16 @@ namespace ProjectX.UI
             }
             string skillItemPath = runtimeInfoPath + "/Skill/Item";
             SetHeroPreviewText(skillItemPath + "/SkillName", definition.SkillName);
-            Transform skillItem = heroPreviewView.FindNode(skillItemPath)?.transform;
-            Text skillTemplate = heroPreviewView.FindNode(skillItemPath + "/SkillInfo")?.GetComponent<Text>();
+            Transform skillItem = FindHeroPreviewNode(skillItemPath)?.transform;
+            Text skillTemplate = FindHeroPreviewNode(skillItemPath + "/SkillInfo")?.GetComponent<Text>();
             heroPreviewSkillDescription = EnsurePreviewRuntimeText(heroPreviewSkillDescription, skillItem,
                 "RuntimeSkillDescription", new Vector2(.24f, .03f), new Vector2(.97f, .62f), skillTemplate, 19);
             if (heroPreviewSkillDescription != null)
                 heroPreviewSkillDescription.text = HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1);
 
             string talentPath = runtimeInfoPath + "/jinjietianfu";
-            Transform talentPanel = heroPreviewView.FindNode(talentPath)?.transform;
-            Text talentTemplate = heroPreviewView.FindNode(talentPath + "/TalentInfo")?.GetComponent<Text>();
+            Transform talentPanel = FindHeroPreviewNode(talentPath)?.transform;
+            Text talentTemplate = FindHeroPreviewNode(talentPath + "/TalentInfo")?.GetComponent<Text>();
             Transform staleRuntimeText = talentPanel?.Find("RuntimeTalentDescription");
             if (staleRuntimeText != null) UnityEngine.Object.Destroy(staleRuntimeText.gameObject);
             heroPreviewTalentDescription = talentTemplate;
@@ -1215,13 +1253,13 @@ namespace ProjectX.UI
             int fragmentNeed = itemCatalog.GetSynthesisCost(definition.ItemId);
             int fragmentOwned = definition.ItemId > 0 ? bag.GetTotalQuantityByItemId(definition.ItemId) : 0;
             SetHeroPreviewText("Layer/Panel/Panel_left/suipian/Slider_Bg/Value", $"{fragmentOwned}/{fragmentNeed}");
-            GameObject loadingObject = heroPreviewView.FindNode("Layer/Panel/Panel_left/suipian/Slider_Bg/LoadingBar");
+            GameObject loadingObject = DrawNodeIds.Get(heroPreviewView, "Layer/Panel/Panel_left/suipian/Slider_Bg/LoadingBar");
             Slider loading = loadingObject?.GetComponent<Slider>();
             float fragmentProgress = fragmentNeed > 0 ? Mathf.Clamp01(fragmentOwned / (float)fragmentNeed) : 0f;
             if (loading != null) loading.value = fragmentProgress;
             Image loadingImage = loadingObject?.GetComponent<Image>();
             if (loadingImage != null) loadingImage.fillAmount = fragmentProgress;
-            GameObject qualityObject = heroPreviewView.FindNode("Layer/Panel/Panel_left/bg_Quality/Value");
+            GameObject qualityObject = DrawNodeIds.Get(heroPreviewView, "Layer/Panel/Panel_left/bg_Quality/Value");
             Image quality = qualityObject?.GetComponent<Image>();
             if (quality != null)
             {
@@ -1230,7 +1268,7 @@ namespace ProjectX.UI
                 quality.sprite = resources.LoadFirst("HeroUI/quality_score_" + score);
                 quality.enabled = quality.sprite != null;
             }
-            GameObject skillIconObject = heroPreviewView.FindNode(
+            GameObject skillIconObject = FindHeroPreviewNode(
                 runtimeInfoPath + "/Skill/Item/Btn_Skill/Icon");
             Image skillIcon = skillIconObject?.GetComponent<Image>();
             if (skillIcon != null)
@@ -1245,7 +1283,7 @@ namespace ProjectX.UI
         private void ConfigureHeroPreviewInfoScroll()
         {
             const string path = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1";
-            GameObject scrollObject = heroPreviewView.FindNode(path);
+            GameObject scrollObject = DrawNodeIds.Get(heroPreviewView, path);
             RectTransform viewport = scrollObject?.transform as RectTransform;
             if (viewport == null) return;
 
@@ -1333,7 +1371,7 @@ namespace ProjectX.UI
 
         private void RenderHeroPreviewModel(HeroDefinition definition)
         {
-            GameObject hostObject = heroPreviewView.FindNode("Layer/Panel/Panel_left/Node_1/Node");
+            GameObject hostObject = DrawNodeIds.Get(heroPreviewView, "Layer/Panel/Panel_left/Node_1/Node");
             Transform host = hostObject?.transform;
             if (host == null) return;
             if (heroPreviewModel == null)
@@ -1362,8 +1400,16 @@ namespace ProjectX.UI
 
         private void SetHeroPreviewText(string path, string value)
         {
-            Text text = heroPreviewView.FindNode(path)?.GetComponent<Text>();
+            Text text = FindHeroPreviewNode(path)?.GetComponent<Text>();
             if (text != null) text.text = value ?? string.Empty;
+        }
+
+        private GameObject FindHeroPreviewNode(string path)
+        {
+            const string runtimePrefix = "Layer/Panel/shenjiangInfoUI/Info/ScrollView_1/RuntimeContent/";
+            if (path.StartsWith(runtimePrefix, StringComparison.Ordinal))
+                return heroPreviewInfoContent?.Find(path.Substring(runtimePrefix.Length))?.gameObject;
+            return DrawNodeIds.Get(heroPreviewView, path);
         }
 
         private static Text EnsurePreviewRuntimeText(Text current, Transform parent, string name,
