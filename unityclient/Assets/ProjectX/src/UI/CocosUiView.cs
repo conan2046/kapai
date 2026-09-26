@@ -170,6 +170,24 @@ namespace ProjectX.UI
             return match.target;
         }
 
+        public GameObject GetSerializedNodeByActionTag(int actionTag)
+        {
+            if (!IsAlive) throw new InvalidOperationException("The UI view has already been destroyed.");
+            CocosNodeReference match = null;
+            IReadOnlyList<CocosNodeReference> nodes = Identity.Nodes;
+            for (int index = 0; nodes != null && index < nodes.Count; index++)
+            {
+                CocosNodeReference candidate = nodes[index];
+                if (candidate == null || candidate.actionTag != actionTag) continue;
+                if (match != null)
+                    throw new InvalidOperationException($"UI node ActionTag is not unique: {actionTag}.");
+                match = candidate;
+            }
+            if (match == null || match.target == null)
+                throw new InvalidOperationException($"Serialized UI node was not found: ActionTag {actionTag}.");
+            return match.target;
+        }
+
         public void SetVisible(bool visible)
         {
             GameObject gameObject = GameObject;

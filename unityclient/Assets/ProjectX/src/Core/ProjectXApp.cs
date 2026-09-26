@@ -1577,7 +1577,7 @@ namespace ProjectX.Core
                 // opening or implicitly validating any target business page.
                 BindPlayerHudControls();
                 float hudStableDeadline = Time.realtimeSinceStartup + 2.5f;
-                while ((mainHudPresenter.VisibleDiscountCount != 0 || mainHudPresenter.VisibleRedDotCount < 7
+                while ((mainHudPresenter.VisibleDiscountCount != 0 || mainHudPresenter.VisibleRedDotCount < 6
                     || !mainTaskTracker.IsAuthorityReady) && Time.realtimeSinceStartup < hudStableDeadline)
                     yield return null;
                 if (primaryUserId != 7200057 || primaryRoleId != 1000003)
@@ -1621,10 +1621,10 @@ namespace ProjectX.Core
                 { Fail($"Steam HUD expected zero commercial discount entries, visible={mainHudPresenter.VisibleDiscountCount}."); yield break; }
                 RecordValidationSemantic("hud-commercial-entries-excluded", true,
                     "7日活动、首充、充值、折扣礼包×3 are hidden; Steam HUD does not initiate /222 op4 or op89-91");
-                if (mainHudPresenter.VisibleRedDotCount != 7)
-                { Fail($"Steam HUD stable frame expected 7 retained-entry prompts, actual={mainHudPresenter.VisibleRedDotCount}; visible={mainHudPresenter.VisibleRedDotSummary}."); yield break; }
+                if (mainHudPresenter.VisibleRedDotCount != 6)
+                { Fail($"Steam HUD stable frame expected 6 visible entry prompts, actual={mainHudPresenter.VisibleRedDotCount}; visible={mainHudPresenter.VisibleRedDotSummary}."); yield break; }
                 RecordValidationSemantic("hud-authoritative-red-dots", true,
-                    "retained Steam entries preserve 7 source/runtime-visible prompts; registered /65 aggregates may update owned entry prompts without opening target modules");
+                    "six visible Unity HUD entry prompts remain; the Mail button is hidden with its old parent and Mail is reached through PlayerHub; registered /65 aggregates may update owned entry prompts without opening target modules");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-first-entry.png");
                 yield return CapturePlayerHudFrame("bootstrap-playerhud-client-restart.png");
 

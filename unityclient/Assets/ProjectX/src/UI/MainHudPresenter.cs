@@ -35,14 +35,8 @@ namespace ProjectX.UI
         private readonly GameObject[] discountButtons = new GameObject[3];
         private readonly Text[] discountTimeTexts = new Text[3];
         private readonly Dictionary<int, bool> serverRedDots = new Dictionary<int, bool>();
-        private static readonly string[] StableVisiblePromptPaths =
-        {
-            "Layer/Bg/btn_wanfa/Prompt",
-            "Layer/Bg/btn_chuandai/Prompt",
-            "Layer/Bg/btn_zhenrong/Prompt",
-            "Layer/Bg/btn_zhaomu/Prompt",
-            "Layer/Bg/btn_shangcheng/Prompt"
-        };
+        private readonly MainHudPromptBindings promptBindings;
+        private readonly GameObject[] stablePrompts;
         private readonly List<GameObject> summaryRows = new List<GameObject>();
         private readonly RectTransform chatPanel;
         private readonly RectTransform chatList;
@@ -67,16 +61,19 @@ namespace ProjectX.UI
             this.currencies = currencies ?? throw new ArgumentNullException(nameof(currencies));
             this.chat = chat ?? throw new ArgumentNullException(nameof(chat));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
-            nameText = RequireText(view, "Layer/Main_UI/Head/name_bg/name");
-            levelText = RequireText(view, "Layer/Main_UI/Head/bg_Level/Value");
-            vipText = RequireText(view, "Layer/Main_UI/Head/bg_VIP/Value");
-            powerText = RequireText(view, "Layer/Main_UI/Head/bg_CombatEffetiveness/Value");
-            goldText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_jinbi/NumBg/Num");
-            premiumText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_yuanbao/GoldNumBg/Num");
-            staminaText = RequireText(view, "Layer/Main_UI/ButtonGroup6/Icon_tili/NumBg/Num");
-            portrait = view.FindNode("Layer/Main_UI/Head/Icon")?.GetComponent<Image>();
-            experienceBar = view.FindNode("Layer/Main_UI/Head/EXPBar")?.GetComponent<Image>();
-            powerWan = view.FindNode("Layer/Main_UI/Head/bg_CombatEffetiveness/Value/Wan");
+            promptBindings = view.GameObject.GetComponent<MainHudPromptBindings>()
+                ?? throw new InvalidOperationException("Main HUD prompt bindings are missing from the Unity Prefab.");
+            stablePrompts = promptBindings.StablePrompts;
+            nameText = RequireText(view, -1406344486, "name");
+            levelText = RequireText(view, 319582867, "level");
+            vipText = RequireText(view, 408409284, "VIP");
+            powerText = RequireText(view, 872117229, "power");
+            goldText = RequireText(view, 1214269486, "gold");
+            premiumText = RequireText(view, 73536166, "premium currency");
+            staminaText = RequireText(view, -269738986, "stamina");
+            portrait = view.GetSerializedNodeByActionTag(-805455114).GetComponent<Image>();
+            experienceBar = view.GetSerializedNodeByActionTag(-1705415864).GetComponent<Image>();
+            powerWan = view.GetSerializedNodeByActionTag(-48786778);
             powerWanRect = powerWan?.GetComponent<RectTransform>();
             RectTransform powerRect = powerText.rectTransform;
             powerRect.localScale = Vector3.one;
@@ -102,7 +99,7 @@ namespace ProjectX.UI
             onlineButton = view.FindNode("Layer/Main_UI/btn_online");
             onlineTimeRoot = view.FindNode("Layer/Main_UI/btn_online/Time");
             onlineTimeText = view.FindNode("Layer/Main_UI/btn_online/Time/temp_text")?.GetComponent<Text>();
-            Image premiumCurrencyIcon = view.FindNode("Layer/Main_UI/ButtonGroup6/Icon_yuanbao/Icon")?.GetComponent<Image>();
+            Image premiumCurrencyIcon = view.GetSerializedNodeByActionTag(-408110691).GetComponent<Image>();
             if (onlineButton != null)
             {
                 Image importedPlaceholder = onlineButton.GetComponent<Image>();
@@ -204,9 +201,9 @@ namespace ProjectX.UI
         public bool HasVisibleSystemChatSummary => systemChatSummaryVisible
             && summaryRows.Any(row => row != null && row.activeInHierarchy);
         public int VisibleDiscountCount => discountButtons.Count(button => button != null && button.activeInHierarchy);
-        public int VisibleRedDotCount => StableVisiblePromptPaths.Count(path => view.FindNode(path)?.activeInHierarchy == true);
-        public string VisibleRedDotSummary => string.Join(",", StableVisiblePromptPaths
-            .Where(path => view.FindNode(path)?.activeInHierarchy == true));
+        public int VisibleRedDotCount => stablePrompts.Count(prompt => prompt.activeInHierarchy);
+        public string VisibleRedDotSummary => string.Join(",", stablePrompts
+            .Where(prompt => prompt.activeInHierarchy).Select(prompt => prompt.transform.parent.name));
 
         public void Render()
         {
@@ -311,23 +308,11 @@ namespace ProjectX.UI
         public void SetRedDot(int redType, bool visible)
         {
             serverRedDots[redType] = visible;
-            string target = redType switch
-            {
-                21 or 22 => "Layer/Main_UI/ButtonGroup7/btn_friend",
-                31 => "Layer/Main_UI/ButtonGroup7/btn_mail",
-                41 or 51 or 101 or 103 => "Layer/Bg/btn_wanfa",
-                61 or 63 or 64 => "Layer/Main_UI/btn_fuben",
-                71 or 72 => "Layer/Bg/btn_shangcheng",
-                111 or 121 => "Layer/Main_UI/ButtonGroup1/btn_fuli",
-                201 => "Layer/Main_UI/ButtonGroup4/btn_Qiri",
-                _ => string.Empty
-            };
-            if (string.IsNullOrEmpty(target)) return;
-            GameObject root = view.FindNode(target);
-            if (root == null) return;
-            bool aggregate = serverRedDots.Any(entry => RedDotTarget(entry.Key) == target && entry.Value);
-            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
-                if (child.name == "Prompt") child.gameObject.SetActive(aggregate);
+            GameObject prompt = promptBindings.ResolveRedDot(redType);
+            if (prompt == null) return;
+            bool aggregate = serverRedDots.Any(entry => entry.Value
+                && promptBindings.ResolveRedDot(entry.Key) == prompt);
+            prompt.SetActive(aggregate);
         }
 
         public void ToggleChatExpanded() => SetChatExpanded(!chatExpanded);
@@ -489,29 +474,14 @@ namespace ProjectX.UI
             foreach (Transform child in view.GameObject.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
             if (!seedStableRedDots) return;
-            foreach (string path in StableVisiblePromptPaths)
-                view.FindNode(path)?.SetActive(true);
+            foreach (GameObject prompt in stablePrompts)
+                prompt.SetActive(true);
         }
 
-        private static string RedDotTarget(int redType)
+        private static Text RequireText(CocosUiView owner, int actionTag, string label)
         {
-            return redType switch
-            {
-                21 or 22 => "Layer/Main_UI/ButtonGroup7/btn_friend",
-                31 => "Layer/Main_UI/ButtonGroup7/btn_mail",
-                41 or 51 or 101 or 103 => "Layer/Bg/btn_wanfa",
-                61 or 63 or 64 => "Layer/Main_UI/btn_fuben",
-                71 or 72 => "Layer/Bg/btn_shangcheng",
-                111 or 121 => "Layer/Main_UI/ButtonGroup1/btn_fuli",
-                201 => "Layer/Main_UI/ButtonGroup4/btn_Qiri",
-                _ => string.Empty
-            };
-        }
-
-        private static Text RequireText(CocosUiView owner, string path)
-        {
-            GameObject node = owner?.FindNode(path) ?? throw new InvalidOperationException($"Main HUD node was not found: {path}");
-            return node.GetComponent<Text>() ?? throw new InvalidOperationException($"Main HUD node has no Text component: {path}");
+            GameObject node = owner.GetSerializedNodeByActionTag(actionTag);
+            return node.GetComponent<Text>() ?? throw new InvalidOperationException($"Main HUD {label} node has no Text component.");
         }
 
         private static string FormatGold(long raw)

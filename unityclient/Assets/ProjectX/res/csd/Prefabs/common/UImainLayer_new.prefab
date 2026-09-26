@@ -10656,6 +10656,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8451712096356971243}
   - component: {fileID: 6064611646842311094}
+  - component: {fileID: 4600729265963622059}
   m_Layer: 0
   m_Name: UImainLayer_new
   m_TagString: Untagged
@@ -11809,6 +11810,25 @@ MonoBehaviour:
     tag: 710
     actionTag: -1668340566
     target: {fileID: 6634269384185195307}
+--- !u!114 &4600729265963622059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5126759545126871337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9859306cbda7dc4d9c7a1148c4a3e39, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  gameplay: {fileID: 5153262599957991595}
+  equipment: {fileID: 8061676809392631202}
+  formation: {fileID: 1311022742214925487}
+  recruitment: {fileID: 2685534767919503615}
+  shop: {fileID: 295493144264114152}
+  mail: {fileID: 8541466237774279577}
+  dungeon: {fileID: 7261578550707587697}
 --- !u!1 &5153262599957991595
 GameObject:
   m_ObjectHideFlags: 0
