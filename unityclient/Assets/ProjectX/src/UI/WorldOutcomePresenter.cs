@@ -9,6 +9,56 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
+    internal static class WorldOutcomeNodeIds
+    {
+        private static readonly IReadOnlyDictionary<string, int> Tags = new Dictionary<string, int>
+        {
+            ["fuben/saodangLayer|Layer/bg/Btn_close"] = 14687248,
+            ["fuben/saodangLayer|Layer/bg/Image/Button"] = -550930467,
+            ["fuben/saodangLayer|Layer/bg/Image/Button1"] = -635242056,
+            ["fuben/saodangLayer|Layer/bg/Image/Button1/Text"] = -297867742,
+            ["fuben/saodangLayer|Layer/bg/ListView_2"] = 1250638258,
+            ["fuben/saodangLayer|Layer/bg/Title/Title"] = 1779943368,
+            ["common/zhandoujiesuanLayer|Layer/Panel"] = -1538260587,
+            ["common/zhandoujiesuanLayer|Layer/Panel/firPanel"] = -1612866005,
+            ["common/zhandoujiesuanLayer|Layer/Panel/firPanel/tontguanxinxilayer/Button_reborn"] = 1403066153,
+            ["common/zhandoujiesuanLayer|Layer/Panel/firPanel/zhujueayer/Icon_touxiangkuang"] = 1583285310,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel"] = -314416065,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/Button_Replay"] = -997710592,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/Button_tongji"] = 2051664071,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg"] = -1660790003,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg/starlayer/Star1"] = -1269529781,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg/starlayer/Star2"] = 1515038252,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg/starlayer/Star3"] = -978035647,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg/win1"] = 391301831,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg/win2"] = 508463707,
+            ["common/zhandoujiesuanLayer|Layer/Panel/victorypanel/win_bg/win3"] = -1671407524,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji"] = -2079094852,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji/Panel_title_2/Panel_1/Panel_lose"] = -147378445,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji/Panel_title_2/Panel_1/Panel_win"] = 1341902989,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji/Panel_title_2/Panel_1/name"] = 1898634313,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji/Panel_title_2/Panel_2/Panel_lose"] = -1601602382,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji/Panel_title_2/Panel_2/Panel_win"] = -1351957770,
+            ["common/zhandoutongji|Layer/Panel/Panel_zhandoutongji/Panel_title_2/Panel_2/name"] = 1187155746,
+        };
+
+        public static GameObject Get(CocosUiView view, string path)
+        {
+            if (view == null) return null;
+            if (string.Equals(path, "Layer", StringComparison.Ordinal)) return view.GameObject;
+            string source = view.Identity.Source;
+            const string prefix = "cocosstudio/csd/";
+            const string suffix = ".csd";
+            if (!source.StartsWith(prefix, StringComparison.Ordinal) ||
+                !source.EndsWith(suffix, StringComparison.Ordinal))
+                throw new InvalidOperationException($"World outcome source is unexpected: {source}");
+            string key = source.Substring(prefix.Length, source.Length - prefix.Length - suffix.Length) + "|" + path;
+            if (!Tags.TryGetValue(key, out int actionTag))
+                throw new InvalidOperationException($"World outcome fixed node has no identity: {source} {path}");
+            return view.GetSerializedNodeByActionTag(actionTag, source, path);
+        }
+    }
+
     // Owns only the imported Cocos result Prefabs.  Data remains in RewardStore,
     // which is populated exclusively after a successful /320 response.
     public sealed class WorldOutcomePresenter : IDisposable
@@ -141,7 +191,6 @@ namespace ProjectX.UI
             SetActive(battleView, "Layer/Panel/victorypanel", true);
             SetActive(battleView, "Layer/Panel/firPanel", false);
             SetActive(battleView, "Layer/Panel/victorypanel/win_bg", false);
-            SetText(battleView, "Layer/Panel/victorypanel/win_bg/Name", "战斗胜利");
             for (int index = 1; index <= 3; index++)
                 SetActive(battleView, $"Layer/Panel/victorypanel/win_bg/starlayer/Star{index}", index <= stars);
             battleView.GameObject.SetActive(true);
@@ -445,7 +494,6 @@ namespace ProjectX.UI
         private void Render()
         {
             renderedRewardCount = AggregateRewards(rewards.Items).Count;
-            SetText(battleView, "Layer/Panel/victorypanel/win_bg/Panel_jiangli/Text", $"本次获得 {renderedRewardCount} 项奖励");
             RenderSweepRewards();
             RenderBattleRewards();
         }
@@ -1316,8 +1364,7 @@ namespace ProjectX.UI
 
         private static GameObject Find(CocosUiView view, string path)
         {
-            if (string.Equals(path, "Layer", StringComparison.Ordinal)) return view?.GameObject;
-            return view?.FindNode(path);
+            return WorldOutcomeNodeIds.Get(view, path);
         }
     }
 }
