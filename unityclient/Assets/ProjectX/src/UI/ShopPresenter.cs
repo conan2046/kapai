@@ -9,6 +9,31 @@ namespace ProjectX.UI
     public sealed class ShopPresenter : IDisposable
     {
         private const string BasePath = "Layer/ShopUI";
+        private const string PrefabSource = "cocosstudio/csd/shop/shangcheng.csd";
+        private static readonly IReadOnlyDictionary<string, int> SerializedNodeTags =
+            new Dictionary<string, int>
+            {
+                ["List"] = 1583597815,
+                ["Item"] = 1747278248,
+                ["bg/name"] = -7057195,
+                ["bg/desc"] = -881692612,
+                ["bg/bg_Num/Text"] = 156634035,
+                ["bg/Image_bg/limitNum/text"] = -1044234514,
+                ["bg/Image_bg/limitNum"] = 946126858,
+                ["bg_Own/Value"] = -565282487,
+                ["bg_Expenditure/Value"] = -375879740,
+                ["bg_Own/Icon"] = 1088501671,
+                ["bg_Expenditure/Icon"] = 814859938,
+                ["btn_Buy"] = -437739803,
+                ["btn_Buy/Text"] = 1894563250,
+                ["ListView_left"] = -576829247,
+                ["ListView_left/Panel_button"] = 618268938,
+                ["ListView_left/Panel_button/Button_1"] = 1567025634,
+                ["bg/bg_Num/TextField"] = -453766477,
+                ["bg/bg_Num/TextButton"] = -1049375744,
+                ["bg/btn_Minus"] = 307011989,
+                ["bg/btn_Plus"] = 290157276
+            };
         private readonly CocosUiView view;
         private readonly ShopStore store;
         private readonly CurrencyStore currencies;
@@ -421,9 +446,10 @@ namespace ProjectX.UI
 
         private GameObject Require(string relativePath)
         {
-            string path = string.IsNullOrEmpty(relativePath) ? BasePath : $"{BasePath}/{relativePath}";
-            GameObject result = view.FindNode(path);
-            return result ?? throw new InvalidOperationException($"Shop UI node was not found: {path}");
+            if (!SerializedNodeTags.TryGetValue(relativePath, out int actionTag))
+                throw new InvalidOperationException($"Unknown fixed Shop UI node: {relativePath}");
+            return view.GetSerializedNodeByActionTag(actionTag, PrefabSource,
+                $"{BasePath}/{relativePath}");
         }
 
         private sealed class ShopRow
