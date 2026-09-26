@@ -4,6 +4,8 @@
 
 > **W6 续验增量（2026-09-26）**：同一次 Unity Editor 打开 W6.7 六个 Prefab，联合检查 6.3/6.4/6.5：六份身份引用目标完整，Metadata/Binding=0，六页均无 Timeline（N/A）；14 处定位文字中 13 处维持修复，另一处全拉伸与修复前保存副本相同。当前真实 Login→Main→玩法→Main→世界章节路线未打开关卡详情，故六页可见验收仍未完成。`RewardPresenter` 九处、`NoticePresenter` 五处固定路径已改为唯一序列化 ActionTag 目标，Editor 编译与构造校验通过、Console 0；两种弹窗的真实开页尚待验。记录 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`，W6 仍未收口。
 
+> **W6.5 阵法弹窗增量（2026-09-26）**：`FormationPopupPresenter` 的 35 个非根固定路径改为预制体的唯一 ActionTag 目标，按钮也直接绑定该目标；克隆行内相对查找保留。首次真实 Play 暴露 `Node_6`～`Node_9` 是原有可选探查，已恢复缺失时返回空的语义并在 W6 台账关联失败/解决记录。复走 Login→世界→队伍→关闭，页面可见、身份 116/116、Metadata/Binding=0、Console 0，截图已目视；未升级或改阵容。证据 `.local/unity-validation/w6-uncontrolled-continuation-20260926.md`。W6 其他 Presenter 与六页可见验收仍待收口。
+
 > **W6.5 Main HUD 增量（2026-09-26）**：11 个固定 HUD 显示节点已改用 Unity 序列化 ActionTag，七个原生红点对象已由 Prefab 组件直接引用；当前布局实际可见六个，旧邮件按钮所在父级隐藏，固定账号 HUD 断言据此修正。真实 EventSystem 登录后 Main 画面、红点聚合、Metadata/Binding 清零和 Console 0 已验证，记录 `.local/unity-validation/w6-mainhud-unity-prompt-binding-20260926.md`。此增量不关闭其他 Presenter 的路径依赖或 W6.7 六页视觉验收。
 
 > **W6.5 Mail 增量（2026-09-26）**：邮件页15个固定内容节点及共享框架关闭/首页签改用 Unity 序列化 ActionTag；动态邮件页签按 PlayerHub 运行时固定顺序读取。真实 Login→Head→Mail 打开、空态显示、关闭返回 Main 和最终页签文案复测通过；Metadata/Binding=0、Console=0，截图已目视。当前存档无邮件，不以空态代替附件或领取验收。记录 `.local/unity-validation/w6-mail-unity-directrefs-20260926.md`。

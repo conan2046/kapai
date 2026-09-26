@@ -18,6 +18,44 @@ namespace ProjectX.UI
             new FormationDefinition(5, "密林阵", new[]{1,3,4,6,8}, new[]{2,4}),
             new FormationDefinition(6, "山岳阵", new[]{1,3,5,7,9}, new[]{1,3})
         };
+        private static readonly Dictionary<string, int> SerializedNodeTags = new Dictionary<string, int>
+        {
+            { "Layer/Bg", 1968388594 },
+            { "Layer/Bg/Popup/Btn_close", -372314761 },
+            { "Layer/Bg/Popup/Title/Title", -329094761 },
+            { "Layer/FormationUI/List_Formation/btn_Use", -1342684051 },
+            { "Layer/FormationUI/List_Formation/Item", -1398536429 },
+            { "Layer/FormationUI/List_Formation/ListView", 1899097917 },
+            { "Layer/FormationUI/Show/Info/bg_Name", 1259787175 },
+            { "Layer/FormationUI/Show/Info/bg_Name/Name", -1571546935 },
+            { "Layer/FormationUI/Show/Info/btn_Material", 1482265675 },
+            { "Layer/FormationUI/Show/Info/btn_Material/Icon", -1567437604 },
+            { "Layer/FormationUI/Show/Info/btn_Material/Value", -1665942834 },
+            { "Layer/FormationUI/Show/Info/btn_Upgrade", 842420352 },
+            { "Layer/FormationUI/Show/Info/btn_Upgrade/Text", -1593574451 },
+            { "Layer/FormationUI/Show/Info/CoinBg", 388119733 },
+            { "Layer/FormationUI/Show/Info/CoinBg/Num", 1086644042 },
+            { "Layer/FormationUI/Show/Info/Restriction/Content", -1291914909 },
+            { "Layer/FormationUI/Show/Formation/Node_1", -1556889614 },
+            { "Layer/FormationUI/Show/Formation/Node_2", 686238657 },
+            { "Layer/FormationUI/Show/Formation/Node_3", -1394490015 },
+            { "Layer/FormationUI/Show/Formation/Node_4", -1378702766 },
+            { "Layer/FormationUI/Show/Formation/Node_5", -994086283 },
+            { "Layer/FormationUI/Show/Formation/Position1", -449651214 },
+            { "Layer/FormationUI/Show/Formation/Position2", 1131550495 },
+            { "Layer/FormationUI/Show/Formation/Position3", 1126968746 },
+            { "Layer/FormationUI/Show/Formation/Position4", -416846761 },
+            { "Layer/FormationUI/Show/Formation/Position5", -1540492526 },
+            { "Layer/FormationUI/Show/Formation/Position6", 246958363 },
+            { "Layer/FormationUI/Show/Formation/Position7", -2126321513 },
+            { "Layer/FormationUI/Show/Formation/Position8", -930755266 },
+            { "Layer/FormationUI/Show/Formation/Position9", -175267161 },
+            { "Layer/FormationUI/Show/Info/Attribute1/Content", -29726830 },
+            { "Layer/FormationUI/Show/Info/Attribute2/Content", 1888908259 },
+            { "Layer/FormationUI/Show/Info/Attribute3/Content", 1844637721 },
+            { "Layer/FormationUI/Show/Info/Attribute4/Content", 738247532 },
+            { "Layer/FormationUI/Show/Info/Attribute5/Content", -312815971 },
+        };
 
         private readonly CocosUiView view;
         private readonly FormationStore formation;
@@ -48,23 +86,23 @@ namespace ProjectX.UI
             this.resources = resources; this.swap = swap; this.upgrade = upgrade; this.use = use;
             this.feedback = feedback;
             selectedFormationId = formation.ActiveFormationId > 0 ? formation.ActiveFormationId : 1;
-            runtimeDim = CreateDim(view.FindNode("Layer")?.transform ?? view.GameObject.transform);
-            runtimeTitle = CreateTitle(view.FindNode("Layer")?.transform ?? view.GameObject.transform,
-                view.FindNode("Layer/Bg/Popup/Title/Title")?.GetComponent<Text>());
+            runtimeDim = CreateDim(view.GameObject.transform);
+            runtimeTitle = CreateTitle(view.GameObject.transform,
+                Require("Layer/Bg/Popup/Title/Title").GetComponent<Text>());
             GameObject viewport = Require("Layer/FormationUI/List_Formation/ListView");
             GameObject template = Require("Layer/FormationUI/List_Formation/Item");
             float height = template.GetComponent<RectTransform>().rect.height;
             list = new VirtualList<FormationDefinition>(viewport, template, height, BindFormation);
-            view.BindClick("Layer/Bg/Popup/Btn_close", close, true);
+            BindClick("Layer/Bg/Popup/Btn_close", close);
             closeInteractionButton = CreateCloseInteraction(close);
             for (int combat = 1; combat <= models.Length; combat++)
                 models[combat - 1] = CreateModel(Require($"Layer/FormationUI/Show/Formation/Node_{combat}").transform, combat);
-            view.BindClick("Layer/FormationUI/Show/Info/btn_Upgrade", UpgradeSelectedFormation, true);
-            view.BindClick("Layer/FormationUI/List_Formation/btn_Use", () => use?.Invoke(selectedFormationId), true);
+            BindClick("Layer/FormationUI/Show/Info/btn_Upgrade", UpgradeSelectedFormation);
+            BindClick("Layer/FormationUI/List_Formation/btn_Use", () => use?.Invoke(selectedFormationId));
             for (int grid = 1; grid <= 9; grid++)
             {
                 int captured = grid;
-                view.BindClick($"Layer/FormationUI/Show/Formation/Position{grid}", () => SelectGrid(captured), true);
+                BindClick($"Layer/FormationUI/Show/Formation/Position{grid}", () => SelectGrid(captured));
             }
             formation.Changed += Render;
         }
@@ -366,8 +404,23 @@ namespace ProjectX.UI
             text.color = new Color(.45f, .16f, .08f, 1f); text.raycastTarget = false;
             return text;
         }
-        private GameObject Require(string path) => view.FindNode(path) ?? throw new InvalidOperationException("Formation UI node missing: " + path);
-        private Transform Find(string path) => view.FindNode(path)?.transform;
+        private GameObject Require(string path)
+        {
+            if (!SerializedNodeTags.TryGetValue(path, out int actionTag))
+                throw new InvalidOperationException("Unknown fixed Formation UI node: " + path);
+            return view.GetSerializedNodeByActionTag(actionTag,
+                "cocosstudio/csd/shenjiangyangcheng/shenjiangzhenxingLayer.csd", path);
+        }
+
+        private Transform Find(string path)
+        {
+            // Render probes optional slots 6-9; this Prefab only owns five model nodes.
+            if (!SerializedNodeTags.TryGetValue(path, out int actionTag)) return null;
+            return view.GetSerializedNodeByActionTag(actionTag,
+                "cocosstudio/csd/shenjiangyangcheng/shenjiangzhenxingLayer.csd", path).transform;
+        }
+        private void BindClick(string path, Action callback) =>
+            view.BindClickNode(Require(path), callback, true, path);
         private void SetText(string path, string value) { Text text = Find(path)?.GetComponent<Text>(); if (text != null) text.text = value; }
         private void SetTransparent(string path) { Image image = Find(path)?.GetComponent<Image>(); if (image != null) image.color = new Color(1f,1f,1f,0f); }
         private static void SetRowText(Transform row, string path, string value) { Text text=row.Find(path)?.GetComponent<Text>(); if(text!=null)text.text=value; }
