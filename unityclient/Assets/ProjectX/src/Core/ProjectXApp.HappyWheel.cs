@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ProjectX.Data;
 using ProjectX.UI;
+using UnityEngine;
 using XLua;
 
 namespace ProjectX.Core
@@ -32,6 +33,7 @@ namespace ProjectX.Core
             gameplayPresenter?.HideDetail();
             gameplayContentView?.SetVisible(false);
             if (services.UiStack.Current != happyWheelView) services.UiStack.Push(happyWheelView, false);
+            SetHappyWheelShopBackgroundVisible(false);
             SetStatus($"HappyWheel UI active: id={functionId}; awaiting /222 op=33 query.");
         }
 
@@ -105,8 +107,23 @@ namespace ProjectX.Core
         {
             if (happyWheelView == null || services?.UiStack.Current != happyWheelView) return false;
             bool popped = PopUiStackWithHudRefresh();
-            if (popped) gameplayContentView?.SetVisible(true);
+            if (popped)
+            {
+                SetHappyWheelShopBackgroundVisible(true);
+                gameplayContentView?.SetVisible(true);
+            }
             return popped;
+        }
+
+        private void SetHappyWheelShopBackgroundVisible(bool visible)
+        {
+            GameObject shopBackground = gameplayView?.FindNode("Layer/shopBg");
+            if (shopBackground == null)
+                throw new InvalidOperationException("HappyWheel shared shopBg node was not found.");
+            if (happyWheelView?.GameObject != null
+                && happyWheelView.GameObject.transform.IsChildOf(shopBackground.transform))
+                throw new InvalidOperationException("HappyWheel content must be outside shopBg.");
+            shopBackground.SetActive(visible);
         }
 
         private void EnsureHappyWheelPresenter(FunctionRouteDefinition route)

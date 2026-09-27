@@ -26,6 +26,7 @@ namespace ProjectX.UI
         {
             UiPrefabIdentity identity = Resources.FindObjectsOfTypeAll<UiPrefabIdentity>()
                 .Where(item => IsRuntimeSceneObject(item.gameObject)
+                    && !item.ExcludeFromSourceLookup
                     && !string.IsNullOrEmpty(item.Source)
                     && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0
                     && (!excludeBackup || item.Source.IndexOf("backup", StringComparison.OrdinalIgnoreCase) < 0))
@@ -41,6 +42,7 @@ namespace ProjectX.UI
         {
             var identityRoots = Resources.FindObjectsOfTypeAll<UiPrefabIdentity>()
                 .Where(item => IsRuntimeSceneObject(item.gameObject)
+                    && !item.ExcludeFromSourceLookup
                     && !string.IsNullOrEmpty(item.Source)
                     && item.Source.IndexOf(sourceToken, StringComparison.OrdinalIgnoreCase) >= 0)
                 .Select(item => item.gameObject);

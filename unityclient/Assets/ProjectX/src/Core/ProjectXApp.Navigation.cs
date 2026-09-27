@@ -179,6 +179,12 @@ namespace ProjectX.Core
                 SetOneLevelFrameVisible(false);
             }
             if (IsSettingsOpen) SetOneLevelFrameVisible(false);
+            if (heroHubOpen && oneLevelFrameView?.GameObject.activeInHierarchy == true
+                && services?.UiStack.Current == oneLevelFrameView)
+            {
+                CloseHeroHub();
+                return true;
+            }
             bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;
             bool stackPopped = PopUiStackWithHudRefresh();
             if (stackPopped && restoreWorldFormation)

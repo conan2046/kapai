@@ -121,8 +121,12 @@ namespace ProjectX.UI
 
         private static Button EnsureTabClick(Transform tab)
         {
-            Graphic own = tab.GetComponent<Graphic>();
-            if (own != null) own.raycastTarget = true;
+            Image own = tab.GetComponent<Image>();
+            if (own != null)
+            {
+                own.enabled = false;
+                own.raycastTarget = false;
+            }
             Button button = tab.GetComponent<Button>();
             if (button == null) button = tab.gameObject.AddComponent<Button>();
 
@@ -178,8 +182,8 @@ namespace ProjectX.UI
             Image background = tab.GetComponent<Image>();
             if (background != null)
             {
-                background.color = selected ? Color.white : new Color(1f, 1f, 1f, 0f);
-                background.raycastTarget = true;
+                background.enabled = false;
+                background.raycastTarget = false;
             }
         }
     }

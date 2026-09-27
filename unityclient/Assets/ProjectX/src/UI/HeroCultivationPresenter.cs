@@ -190,7 +190,12 @@ namespace ProjectX.UI
     public sealed class HeroCultivationPresenter : IDisposable
     {
         private readonly CocosUiView frame, shell, level, autoLevel, star, breakUp, cultivate, info;
-        private readonly CocosUiView talent, helpFirst, helpSecond, attributes, number, helpFrame;
+        private readonly CocosUiView talent, helpFirst, helpSecond, attributes, number;
+        private readonly Func<CocosUiView> createHelpFrame;
+        private CocosUiView helpFrame;
+        private Transform helpFirstParent, helpSecondParent;
+        private int helpFirstSiblingIndex, helpSecondSiblingIndex;
+        private bool frameWasVisibleBeforeHelp;
         private readonly HeroStore heroes;
         private readonly FormationStore formation;
         private readonly BagStore bag;
@@ -214,7 +219,7 @@ namespace ProjectX.UI
         public HeroCultivationPresenter(CocosUiView frame, CocosUiView shell, CocosUiView level,
             CocosUiView autoLevel, CocosUiView star, CocosUiView breakUp, CocosUiView cultivate,
             CocosUiView info, CocosUiView talent, CocosUiView helpFirst, CocosUiView helpSecond,
-            CocosUiView attributes, CocosUiView number, CocosUiView helpFrame, HeroStore heroes,
+            CocosUiView attributes, CocosUiView number, Func<CocosUiView> createHelpFrame, HeroStore heroes,
             FormationStore formation, BagStore bag, PlayerStore player, IUiResourceProvider resources,
             Action<int, int, int> levelAction, Action<int, int> autoLevelAction,
             Action<int> breakAction, Action<int, int> cultivateAction, Action<int> starAction,
@@ -224,7 +229,8 @@ namespace ProjectX.UI
             this.frame = frame; this.shell = shell; this.level = level; this.autoLevel = autoLevel;
             this.star = star; this.breakUp = breakUp; this.cultivate = cultivate; this.info = info;
             this.talent = talent; this.helpFirst = helpFirst; this.helpSecond = helpSecond;
-            this.attributes = attributes; this.number = number; this.helpFrame = helpFrame;
+            this.attributes = attributes; this.number = number;
+            this.createHelpFrame = createHelpFrame ?? throw new ArgumentNullException(nameof(createHelpFrame));
             this.heroes = heroes; this.formation = formation; this.bag = bag; this.player = player;
             this.resources = resources; this.levelAction = levelAction; this.autoLevelAction = autoLevelAction;
             this.breakAction = breakAction; this.cultivateAction = cultivateAction;
@@ -241,6 +247,7 @@ namespace ProjectX.UI
 
         public void Show(int selectedHeroId)
         {
+            CloseHelp();
             heroId = selectedHeroId;
             selectHero(heroId);
             frame.SetVisible(true); shell.SetVisible(true);
@@ -262,7 +269,8 @@ namespace ProjectX.UI
         {
             foreach (CocosUiView view in PageViews()) view?.SetVisible(false);
             autoLevel.SetVisible(false); talent.SetVisible(false); attributes.SetVisible(false);
-            number.SetVisible(false); helpFrame.SetVisible(false); helpFirst.SetVisible(false); helpSecond.SetVisible(false);
+            number.SetVisible(false);
+            CloseHelp();
             shell.SetVisible(false);
             ResetTabOverlay();
         }
@@ -374,7 +382,7 @@ namespace ProjectX.UI
             }
             if (!InvokePointer(tabs[4].GetComponent<Button>(), out string popupCloseTop)
                 || talent.GameObject.activeSelf || attributes.GameObject.activeSelf
-                || helpFrame.GameObject.activeSelf || number.GameObject.activeSelf || autoLevel.GameObject.activeSelf)
+                || helpFrame?.GameObject?.activeSelf == true || number.GameObject.activeSelf || autoLevel.GameObject.activeSelf)
             {
                 detail = $"page switch did not close transient popup; top={popupCloseTop}";
                 return false;
@@ -468,6 +476,23 @@ namespace ProjectX.UI
                 detail = $"{controlId} EventSystem/raycast click failed; top={top}";
                 return false;
             }
+            if (controlId == "HC-30-CULTIVATE-HELP"
+                && (frame.GameObject.activeSelf || helpFrame?.GameObject?.activeInHierarchy != true
+                    || helpFirst.GameObject.activeInHierarchy != true
+                    || helpFirst.GameObject.transform.IsChildOf(frame.GameObject.transform)
+                    || helpFrame.Identity.ExcludeFromSourceLookup != true))
+            {
+                detail = "cultivation help did not replace the OneLevelLayer frame";
+                return false;
+            }
+            if (controlId == "HC-31-CULTIVATE-HELP-CLOSE"
+                && (!frame.GameObject.activeInHierarchy || helpFrame != null
+                    || helpFirst.GameObject.transform.parent != frame.GameObject.transform
+                    || helpSecond.GameObject.transform.parent != frame.GameObject.transform))
+            {
+                detail = "cultivation help did not destroy its frame and restore OneLevelLayer";
+                return false;
+            }
             return true;
         }
 
@@ -510,7 +535,7 @@ namespace ProjectX.UI
         private void EnsureTalent(bool breakTalent) { EnsurePage(breakTalent ? 2 : 1); if (!talent.GameObject.activeSelf) OpenTalent(breakTalent); }
         private void EnsureAttributes() { EnsurePage(4); if (!attributes.GameObject.activeSelf) OpenAttributes(); }
         private void EnsureNumber() { EnsurePage(3); if (!number.GameObject.activeSelf) OpenNumber(); }
-        private void EnsureHelp() { EnsurePage(3); if (!helpFrame.GameObject.activeSelf) OpenHelp(); }
+        private void EnsureHelp() { if (page != 3) EnsurePage(3); if (helpFrame?.GameObject?.activeSelf != true) OpenHelp(); }
         private void EnsureHelpPage(int selected) { EnsureHelp(); if (helpPage != selected) SelectHelp(selected); }
         private void EnsureHelpAttributes() { EnsureHelp(); if (!helpSecond.GameObject.activeSelf) OpenCultivationAttributes(); }
 
@@ -654,7 +679,6 @@ namespace ProjectX.UI
             info.BindClick("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button", () => OpenTalent(false), true);
             talent.BindClick("Layer/bg/Btn_close", () => talent.SetVisible(false), true);
             attributes.BindClick("Layer/Mask_close", () => attributes.SetVisible(false), true);
-            helpFrame.BindClick("Layer/shopBg/Popup/Btn_close", CloseHelp, true);
             helpFirst.BindClick("Layer/shenjaingxiiuliantanchuang/Popup/Button", OpenCultivationAttributes, true);
             helpSecond.BindClick("Layer/Popup/Btn_close", () => helpSecond.SetVisible(false), true);
             for (int digit = 0; digit <= 9; digit++)
@@ -731,15 +755,32 @@ namespace ProjectX.UI
                 if (rect != null && firstRect != null) rect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f * index);
                 int captured = index;
                 Button button = tab.GetComponent<Button>() ?? tab.gameObject.AddComponent<Button>();
-                Image hitArea = tab.GetComponent<Image>() ?? tab.gameObject.AddComponent<Image>();
-                if (hitArea.sprite == null)
+                // The imported Button Image is intentionally disabled. Use a
+                // separate invisible child for input instead of revealing it.
+                Image background = tab.GetComponent<Image>();
+                if (background != null)
                 {
-                    Color transparent = hitArea.color;
-                    transparent.a = 0.001f;
-                    hitArea.color = transparent;
+                    background.enabled = false;
+                    background.raycastTarget = false;
                 }
+                Transform carrier = tab.Find("RuntimeClickArea");
+                if (carrier == null)
+                {
+                    GameObject hitObject = new GameObject("RuntimeClickArea", typeof(RectTransform), typeof(Image));
+                    carrier = hitObject.transform;
+                    carrier.SetParent(tab, false);
+                }
+                Image hitArea = carrier.GetComponent<Image>() ?? carrier.gameObject.AddComponent<Image>();
+                RectTransform hitRect = carrier as RectTransform;
+                hitRect.anchorMin = Vector2.zero;
+                hitRect.anchorMax = Vector2.one;
+                hitRect.offsetMin = Vector2.zero;
+                hitRect.offsetMax = Vector2.zero;
                 hitArea.enabled = true;
+                hitArea.color = Color.clear;
                 hitArea.raycastTarget = true;
+                carrier.SetAsLastSibling();
+                button.transition = Selectable.Transition.None;
                 button.targetGraphic = hitArea;
                 tab.gameObject.SetActive(true);
                 button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => ShowPage(captured));
@@ -763,6 +804,15 @@ namespace ProjectX.UI
         private void ResetTabOverlay()
         {
             GameObject listObject = HeroCultivationNodeIds.Get(frame, "Layer/Panel_12/Bg/Btn_ListView");
+            Transform panel = listObject?.transform.Find("Panel_10");
+            if (panel != null)
+                foreach (Transform tab in panel)
+                {
+                    Image background = tab.GetComponent<Image>();
+                    if (background == null) continue;
+                    background.enabled = false;
+                    background.raycastTarget = false;
+                }
             Canvas tabCanvas = listObject?.GetComponent<Canvas>();
             if (tabCanvas == null) return;
             // sortingOrder=200 is owned only by the cultivation shell. Leaving it
@@ -1387,17 +1437,70 @@ namespace ProjectX.UI
 
         private void OpenHelp()
         {
+            if (helpFrame?.GameObject?.activeSelf == true) return;
+            CloseHelp();
             HeroRecord hero = CurrentHero();
             helpPage = hero.CultivationLevel >= 10 ? 1 : 0;
             helpSelectedLevel = Mathf.Clamp(hero.CultivationLevel > 0 ? hero.CultivationLevel : helpPage * 10 + 1,
                 helpPage * 10 + 1, helpPage * 10 + 10);
-            helpFrame.SetVisible(true); helpFirst.SetVisible(true); helpSecond.SetVisible(false);
-            ConfigureHelpFrame();
-            helpFrame.ShowPopup();
-            helpFirst.ShowPopup();
-            ConfigureHelpTabs(); RenderCultivationDestinyPage();
+            helpFrame = createHelpFrame();
+            if (helpFrame?.GameObject == null)
+                throw new InvalidOperationException("Hero cultivation help frame could not be created.");
+            try
+            {
+                helpFrame.BindClick("Layer/shopBg/Popup/Btn_close", CloseHelp, true);
+                Transform popupParent = helpFrame.GameObject.transform.parent;
+                if (popupParent == null)
+                    throw new InvalidOperationException("Hero cultivation help frame has no popup parent.");
+                Transform firstTransform = helpFirst.GameObject.transform;
+                Transform secondTransform = helpSecond.GameObject.transform;
+                helpFirstParent = firstTransform.parent;
+                helpSecondParent = secondTransform.parent;
+                helpFirstSiblingIndex = firstTransform.GetSiblingIndex();
+                helpSecondSiblingIndex = secondTransform.GetSiblingIndex();
+                frameWasVisibleBeforeHelp = frame.GameObject.activeSelf;
+                firstTransform.SetParent(popupParent, true);
+                secondTransform.SetParent(popupParent, true);
+                helpFrame.SetVisible(true); helpFirst.SetVisible(true); helpSecond.SetVisible(false);
+                ConfigureHelpFrame();
+                helpFrame.ShowPopup();
+                helpFirst.ShowPopup();
+                ConfigureHelpTabs(); RenderCultivationDestinyPage();
+                frame.SetVisible(false);
+            }
+            catch
+            {
+                CloseHelp();
+                throw;
+            }
         }
-        private void CloseHelp() { helpFirst.SetVisible(false); helpSecond.SetVisible(false); helpFrame.SetVisible(false); }
+        private void CloseHelp()
+        {
+            helpFirst.SetVisible(false);
+            helpSecond.SetVisible(false);
+            if (helpFrame?.GameObject != null)
+            {
+                GameObject popup = helpFrame.GameObject;
+                popup.SetActive(false);
+                UnityEngine.Object.Destroy(popup);
+                helpFrame = null;
+            }
+            if (helpFirstParent == null && helpSecondParent == null) return;
+            RestoreHelpParent(helpFirst, helpFirstParent, helpFirstSiblingIndex);
+            RestoreHelpParent(helpSecond, helpSecondParent, helpSecondSiblingIndex);
+            helpFirstParent = null;
+            helpSecondParent = null;
+            frame.SetVisible(frameWasVisibleBeforeHelp);
+            if (frameWasVisibleBeforeHelp) frame.GameObject.transform.SetAsLastSibling();
+        }
+
+        private static void RestoreHelpParent(CocosUiView view, Transform parent, int siblingIndex)
+        {
+            if (view?.GameObject == null || parent == null) return;
+            Transform root = view.GameObject.transform;
+            root.SetParent(parent, true);
+            root.SetSiblingIndex(Mathf.Clamp(siblingIndex, 0, parent.childCount - 1));
+        }
         private void ConfigureHelpFrame()
         {
             SetText(helpFrame, "Layer/shopBg/Popup/Title/Title", "天命激活");
@@ -2117,6 +2220,7 @@ namespace ProjectX.UI
         public void Dispose()
         {
             if (!subscribed) return;
+            CloseHelp();
             heroes.Changed -= HandleChanged; formation.Changed -= HandleChanged; bag.Changed -= HandleChanged;
             subscribed = false;
         }

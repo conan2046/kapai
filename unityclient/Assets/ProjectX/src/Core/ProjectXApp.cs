@@ -327,7 +327,6 @@ namespace ProjectX.Core
         private CocosUiView heroCultivationHelpSecondView;
         private CocosUiView heroCultivationAttributeView;
         private CocosUiView heroCultivationNumberView;
-        private CocosUiView heroCultivationHelpFrameView;
         private HeroCultivationPresenter heroCultivationPresenter;
         private CocosUiView heroEnhanceMasterView;
         private int heroEnhanceMasterType = 1;
@@ -5197,30 +5196,17 @@ namespace ProjectX.Core
             heroCultivationHelpSecondView = heroCultivationHelpSecondView ?? services.UiRouter.FindBySource("shenjiangyangcheng/yingxiongxiulian3");
             heroCultivationAttributeView = heroCultivationAttributeView ?? services.UiRouter.FindBySource("shenjiangyangcheng/shenjiangxiangxishuxing");
             heroCultivationNumberView = heroCultivationNumberView ?? services.UiRouter.FindBySource("EnterNumLayer");
-            if (heroCultivationHelpFrameView == null)
-            {
-                CocosUiView sharedCultivationFrame = services.UiRouter.FindBySource("shop/shop_bg");
-                if (sharedCultivationFrame != null)
-                {
-                    GameObject dedicatedFrame = Instantiate(sharedCultivationFrame.GameObject,
-                        sharedCultivationFrame.GameObject.transform.parent);
-                    dedicatedFrame.name = "HeroCultivationHelpFrameRuntime";
-                    dedicatedFrame.SetActive(false);
-                    heroCultivationHelpFrameView = new CocosUiView(
-                        dedicatedFrame.GetComponent<UiPrefabIdentity>());
-                }
-            }
             CocosUiView[] required = { oneLevelFrameView, heroCultivationView, heroLevelUpView,
                 heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView, heroInfoView,
                 heroCultivationTalentView, heroCultivationHelpFirstView, heroCultivationHelpSecondView,
-                heroCultivationAttributeView, heroCultivationNumberView, heroCultivationHelpFrameView };
+                heroCultivationAttributeView, heroCultivationNumberView };
             if (required.Any(view => view == null))
                 throw new InvalidOperationException("Hero cultivation G3 CocosUiBindings were not found.");
             heroCultivationPresenter = new HeroCultivationPresenter(oneLevelFrameView, heroCultivationView,
                 heroLevelUpView, heroAutoLevelUpView, heroStarUpView, heroBreakView, heroCultivateView,
                 heroInfoView, heroCultivationTalentView, heroCultivationHelpFirstView,
                 heroCultivationHelpSecondView, heroCultivationAttributeView, heroCultivationNumberView,
-                heroCultivationHelpFrameView, services.Heroes, services.Formation, services.Bag,
+                CreateHeroCultivationHelpFrame, services.Heroes, services.Formation, services.Bag,
                 services.Player, services.Resources,
                 (id, item, count) => InvokeLuaOrFail(onHeroLevelUp, "Hero.LevelUp", id, item, count),
                 (id, level) => InvokeLuaOrFail(onHeroAutoLevelUp, "Hero.AutoLevelUp", id, level),
@@ -5232,6 +5218,25 @@ namespace ProjectX.Core
                 (parent, picture) => ShowRuntimeHeroModel(parent, picture),
                 id => InvokeLuaOrFail(onHeroSelected, "HeroCultivation.Select", id));
             EnsureHeroHubContentHierarchyOrder();
+        }
+
+        private CocosUiView CreateHeroCultivationHelpFrame()
+        {
+            CocosUiView sharedFrame = services.UiRouter.FindBySource("shop/shop_bg");
+            if (sharedFrame?.GameObject == null)
+                throw new InvalidOperationException("Hero cultivation help frame source shop/shop_bg was not found.");
+            GameObject dedicatedFrame = Instantiate(sharedFrame.GameObject,
+                sharedFrame.GameObject.transform.parent);
+            dedicatedFrame.name = "HeroCultivationHelpFrameRuntime";
+            dedicatedFrame.SetActive(false);
+            UiPrefabIdentity identity = dedicatedFrame.GetComponent<UiPrefabIdentity>();
+            if (identity == null)
+            {
+                Destroy(dedicatedFrame);
+                throw new InvalidOperationException("Hero cultivation help frame has no UiPrefabIdentity.");
+            }
+            identity.ExcludeFromSourceLookup = true;
+            return new CocosUiView(identity);
         }
 
         private void RestoreHeroFormationView()

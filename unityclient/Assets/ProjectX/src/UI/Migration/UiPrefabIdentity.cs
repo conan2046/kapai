@@ -15,6 +15,7 @@ namespace ProjectX.UI.Migration
             new List<CocosNodeReference>();
 
         public string Source => source;
+        public bool ExcludeFromSourceLookup { get; set; }
         public IReadOnlyList<CocosNodeReference> Nodes => nodes;
         public IReadOnlyList<CocosNodeReference> RetiredMetadataAliases => retiredMetadataAliases;
 

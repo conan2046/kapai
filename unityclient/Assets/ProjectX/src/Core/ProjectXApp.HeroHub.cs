@@ -276,9 +276,14 @@ namespace ProjectX.Core
 
         private void ShowHeroHubTab(HeroHubTab tab)
         {
+            // The cultivation help popup is a Canvas sibling of OneLevelLayer.
+            // Hiding the shared frame alone leaves that popup over the next hub page.
+            HideHeroCultivationForNavigation();
             heroHubTab = tab;
             heroHubOpen = true;
             EnsureHeroPresenter();
+            // Clear cached player-hub and hero pages before reusing the frame.
+            HideOneLevelDynamicChildren();
             ConfigureHeroHubFrame(tab);
             HideHeroHubContent();
 
@@ -529,7 +534,6 @@ namespace ProjectX.Core
                 heroCultivationHelpSecondView?.GameObject?.transform,
                 heroCultivationAttributeView?.GameObject?.transform,
                 heroCultivationNumberView?.GameObject?.transform,
-                heroCultivationHelpFrameView?.GameObject?.transform,
                 formationPopupView?.GameObject?.transform
             };
             int firstContentIndex = goldCheck.GetSiblingIndex() + 1;
@@ -567,6 +571,7 @@ namespace ProjectX.Core
 
         private void CloseHeroHub()
         {
+            HideHeroCultivationForNavigation();
             heroHubOpen = false;
             heroFragmentBagActive = false;
             heroEquipmentFragmentView?.SetVisible(false);

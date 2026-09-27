@@ -25,9 +25,11 @@ namespace ProjectX.Core
         {
             if (IsGameplayShopOpen && shopHubOpen)
                 CloseGameplayShops();
+            heroCultivationPresenter?.Hide();
             shopHubOpen = true;
             EnsureShopPresenter();
             EnsureGameplayShopsPresenter();
+            HideOneLevelDynamicChildren();
             bagView?.SetVisible(false);
             heroListView?.SetVisible(false);
             heroDetailView?.SetVisible(false);

@@ -17,6 +17,7 @@ namespace ProjectX.Core
     {
         public void ShowGameplayShop(int functionId)
         {
+            heroCultivationPresenter?.Hide();
             EnsureGameplayShopsPresenter();
             if (!IsGameplayShopOpen)
             {

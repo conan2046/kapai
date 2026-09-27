@@ -337,6 +337,9 @@ namespace ProjectX.Core
             }
             HideOtherOneLevelChildren();
             ConfigureJingJieFrame();
+            // The Hero hub reuses this CloseBtn and replaces its callback. Rebind on
+            // every entry, including when the cached JingJie bridge already exists.
+            oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
             SetOneLevelFrameVisible(true);
             jingJieRenderBridge.Show();
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
@@ -403,7 +406,9 @@ namespace ProjectX.Core
             bool frameVisible = oneLevelFrameView != null && oneLevelFrameView.GameObject.activeInHierarchy;
             if (!IsJingJieOpen || services?.UiStack.Current != oneLevelFrameView)
             {
-                if (!frameVisible || bagView == null) return false;
+                // Other modules also own this frame. A cached Bag view alone
+                // must not consume their CloseBtn or leave their owner open.
+                if (!frameVisible || bagView?.GameObject.activeInHierarchy != true) return false;
                 bagFlowPresenter?.CloseAll();
                 SetOneLevelFrameVisible(false);
                 HandleBack();
@@ -469,12 +474,17 @@ namespace ProjectX.Core
 
         private void HideOtherOneLevelChildren()
         {
+            HideOneLevelDynamicChildren(jingJieView, jingJiePreviewView);
+        }
+
+        private void HideOneLevelDynamicChildren(CocosUiView preserved = null, CocosUiView preservedPreview = null)
+        {
             Transform frame = oneLevelFrameView?.GameObject.transform;
             if (frame == null) return;
             foreach (Transform child in frame)
                 if (child.name.StartsWith("DynamicUi_", StringComparison.Ordinal)
-                    && child.gameObject != jingJieView?.GameObject
-                    && child.gameObject != jingJiePreviewView?.GameObject)
+                    && child.gameObject != preserved?.GameObject
+                    && child.gameObject != preservedPreview?.GameObject)
                     child.gameObject.SetActive(false);
         }
 
@@ -584,8 +594,12 @@ namespace ProjectX.Core
         // the tab so it shares the tab's lifetime and disappears with the page.
         private static Button EnsureTabClick(Transform tab)
         {
-            Graphic own = tab.GetComponent<Graphic>();
-            if (own != null) own.raycastTarget = true;
+            Image own = tab.GetComponent<Image>();
+            if (own != null)
+            {
+                own.enabled = false;
+                own.raycastTarget = false;
+            }
             Button button = tab.GetComponent<Button>();
             if (button == null) button = tab.gameObject.AddComponent<Button>();
             Transform carrier = tab.Find("RuntimeClickArea");
@@ -733,6 +747,7 @@ namespace ProjectX.Core
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
             OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
             frame.Apply(OneLevelFrameMode.Standard);
+            HideOneLevelDynamicChildren();
             jingJieView?.SetVisible(false);
             jingJiePreviewView?.SetVisible(false);
             // Reparent the bag INSIDE the shared frame (ConfigureBagFrame does the
