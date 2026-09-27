@@ -3258,7 +3258,10 @@ void CEquipManeger::FaBaoSouSuo(CUser* pUser, CNetMessage& msg)
 	uint16 sid;
 	msg >> fid >> sid;
 	if (pUser->GetItemNum(sid))
+	{
+		msg << PRO_ERROR;
 		return;
+	}
 	if (!pUser->HaveBitSet(629))
 	{
 		fid = 1001;
@@ -3269,7 +3272,10 @@ void CEquipManeger::FaBaoSouSuo(CUser* pUser, CNetMessage& msg)
 	ComposeIds* ids = mgr.GetFaBaoComposeIds(fid);
 	uint16 ratio = mgr.GetFaBaoSouSuo(sid);
 	if (fcfg == NULL || ids == NULL || ratio == 0)
+	{
+		msg << PRO_ERROR;
 		return;
+	}
 	if (fcfg->quality > 3)
 	{
 		bool has = false;
@@ -3279,7 +3285,11 @@ void CEquipManeger::FaBaoSouSuo(CUser* pUser, CNetMessage& msg)
 			if (has)
 				break;
 		}
-		if (!has) return;
+		if (!has)
+		{
+			msg << PRO_ERROR;
+			return;
+		}
 	}
 	uint16 cnt = 0;
 	msg << PRO_SUCCESS;
@@ -3349,7 +3359,10 @@ void CEquipManeger::FaBaoAutoSouSuo(CUser* pUser, CNetMessage& msg)
 	FaBaoCfg* fcfg = mgr.GetFaBaoCfg(fid);
 	ComposeIds* ids = mgr.GetFaBaoComposeIds(fid);
 	if (fcfg == NULL || ids == NULL)
+	{
+		msg << PRO_ERROR;
 		return;
+	}
 
 	if (fcfg->quality > 3)
 	{
@@ -3360,7 +3373,11 @@ void CEquipManeger::FaBaoAutoSouSuo(CUser* pUser, CNetMessage& msg)
 			if (has)
 				break;
 		}
-		if (!has) return;
+		if (!has)
+		{
+			msg << PRO_ERROR;
+			return;
+		}
 	}
 	uint16 cnt = 0;
 	msg << PRO_SUCCESS;
