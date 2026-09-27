@@ -15,6 +15,7 @@ local M = {
     happyWheelKeyRequested = false,
     drawClosureRequested = false,
     drawHeaderRequested = false,
+    xunBaoHeaderRequested = false,
     equipmentSnapshotCallback = nil
 }
 
@@ -109,6 +110,11 @@ function M.requestDrawHeaderRefresh()
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
+function M.requestXunBaoHeaderRefresh()
+    M.xunBaoHeaderRequested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
 -- Equipment refinement uses the same authoritative package counts as the
 -- legacy Cocos CountItemNumById path. Refresh /8 before opening equipment so
 -- one-level refinement never falls back to an invented material quantity.
@@ -121,6 +127,7 @@ function M.onDisconnected()
     M.requested = false
     M.awaitingSort = false
     M.xunBaoTokenRequested = false
+    M.xunBaoHeaderRequested = false
     M.happyWheelKeyRequested = false
     if M.g4Stage ~= "await_reconnect" then M.g4Stage = nil end
     M.equipmentSnapshotCallback = nil
@@ -181,12 +188,13 @@ end
 
 function M.onPacket(command, message)
     if command == Protocol.ROLE_PACKAGE and (M.requested or M.xunBaoTokenRequested or M.happyWheelKeyRequested
-        or M.drawClosureRequested or M.drawHeaderRequested
+        or M.drawClosureRequested or M.drawHeaderRequested or M.xunBaoHeaderRequested
         or M.equipmentSnapshotCallback ~= nil) then
         -- Draw and equipment use /8 only as authoritative counts for their own
         -- surfaces. Those background snapshots must update the store without
         -- opening the ordinary item bag or reconfiguring the shared OneLevelLayer.
-        local headerOnly = M.happyWheelKeyRequested or M.drawHeaderRequested or M.equipmentSnapshotCallback ~= nil
+        local headerOnly = M.happyWheelKeyRequested or M.drawHeaderRequested or M.xunBaoHeaderRequested
+            or M.equipmentSnapshotCallback ~= nil
             or Bridge:IsDrawActive()
         local serverCount = readFullPackage(message, true, headerOnly)
         local renderedCount = Bridge:GetBagCount()
@@ -200,6 +208,10 @@ function M.onPacket(command, message)
         end
         if M.drawHeaderRequested then
             M.drawHeaderRequested = false
+            return true
+        end
+        if M.xunBaoHeaderRequested then
+            M.xunBaoHeaderRequested = false
             return true
         end
         if M.drawClosureRequested then
