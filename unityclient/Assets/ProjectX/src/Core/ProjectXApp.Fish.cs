@@ -30,12 +30,13 @@ namespace ProjectX.Core
         {
             GameplayDefinition definition = services.GameplayCatalog.Find(functionId);
             FunctionRouteDefinition route = FunctionRouteCatalog.Resolve(functionId);
-            if (definition == null || route.Target != "Fish" || string.IsNullOrWhiteSpace(route.PrefabKey))
+            if (definition == null || string.IsNullOrWhiteSpace(definition.Name)
+                || route.Target != "Fish" || string.IsNullOrWhiteSpace(route.PrefabKey))
             {
                 Fail($"Fish route config is incomplete: id={functionId}.");
                 return;
             }
-            EnsureFishPresenter(route);
+            EnsureFishPresenter(route, definition.Name);
             fishExitSent = false;
             gameplayPresenter?.HideDetail();
             gameplayView?.SetVisible(false);
@@ -122,7 +123,11 @@ namespace ProjectX.Core
         private void ShowFishHelp()
         {
             int openLevel = FunctionUnlockCatalog.Resolve(32).OpenLevel;
-            ShowToast($"{openLevel}级开启；每轮消耗100金币；10~20秒随机完成；可提前收网，成功率=已用时/本轮时长；同鱼单格最多999条；鱼篓最多9999格，满后新增鱼直接舍弃。", 6f);
+            EnsureErrorPresenter();
+            errorPresenter.ShowHelp(
+                $"{openLevel}级开启；每轮消耗100金币；10~20秒随机完成；\n" +
+                "可提前收网，成功率=已用时/本轮时长；\n" +
+                "同鱼单格最多999条；鱼篓最多9999格，满后新增鱼直接舍弃。");
         }
 
         private void CloseFish()
@@ -152,7 +157,7 @@ namespace ProjectX.Core
             gameplayContentView?.SetVisible(true);
         }
 
-        private void EnsureFishPresenter(FunctionRouteDefinition route)
+        private void EnsureFishPresenter(FunctionRouteDefinition route, string title)
         {
             if (fishView == null)
             {
@@ -165,7 +170,7 @@ namespace ProjectX.Core
             }
             if (fishPresenter != null) return;
             OneLevelFrameCoordinator frame = EnsureOneLevelFrame();
-            fishPresenter = new FishPresenter(fishView, frame,
+            fishPresenter = new FishPresenter(fishView, frame, title,
                 services.Fish, services.Resources,
                 services.ShopCatalog, RequestFishStart, RequestFishStop, RequestFishCollect,
                 CloseFish, ShowFishHelp);
@@ -264,12 +269,22 @@ namespace ProjectX.Core
 
             RuntimeInputDispatchResult help = RuntimeValidationInput.Dispatch(
                 "DynamicUi_OneLevelLayer/Panel_12/Title/TitleName/Button_1", "FISH-03-HELP", "click");
-            if (!help.Dispatched || fish.IsFishing || fish.Gold != 1000)
+            if (!help.Dispatched || errorPresenter?.IsVisible != true || fish.IsFishing || fish.Gold != 1000)
             {
-                Fail("Fish help click changed business state or missed the EventSystem target: " + help.Error);
+                Fail("Fish help did not open MessageBoxLayer or changed business state: " + help.Error);
                 yield break;
             }
             MarkValidationControl("FISH-03-HELP");
+            Canvas.ForceUpdateCanvases();
+            yield return new WaitForEndOfFrame();
+            RuntimeInputDispatchResult dismissHelp = RuntimeValidationInput.Dispatch(
+                "DynamicUi_MessageBoxLayer/Layer/MessageBoxUI/Btn_Confirm",
+                "FISH-03-HELP-DISMISS", "click");
+            if (!dismissHelp.Dispatched || errorPresenter.IsVisible)
+            {
+                Fail("Fish help MessageBoxLayer did not close from a real click: " + dismissHelp.Error);
+                yield break;
+            }
             RuntimeInputDispatchResult emptyBasket = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/Panel_caozuo/btn_yulan", "FISH-06-BASKET-OPEN", "click");
             if (!emptyBasket.Dispatched || fishPresenter == null || !fishPresenter.IsBasketVisible)

@@ -79,8 +79,8 @@ namespace ProjectX.Core
         {
             options = options ?? AppLaunchOptions.Current();
             if (options.HasFlag("-projectXExternalServer")) return false;
-            // Interactive Editor Play should match the shipped player's one-click
-            // startup. Batch validations continue to own their server lifecycle.
+            // Editor routes that bypass the Steam title use the canonical LocalServer database;
+            // batch validations continue to own their server lifecycle.
             return !Application.isEditor || !Application.isBatchMode;
         }
 

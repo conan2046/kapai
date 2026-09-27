@@ -270,11 +270,7 @@ namespace ProjectX.UI
 
             SetNamedText(card, "TaskName", value.Definition.Name);
             Text taskName = FindDirect(card, "TaskName")?.GetComponent<Text>();
-            if (taskName != null)
-            {
-                taskName.alignment = TextAnchor.MiddleLeft;
-                taskName.color = isLocked ? LockedColor : Color.white;
-            }
+            if (isLocked && taskName != null) taskName.color = LockedColor;
             Transform openLevel = FindDirect(card, "OpenLevel");
             SetText(openLevel, $"{value.Definition.OpenLevel}级开启");
             SetVisible(openLevel, isLocked);

@@ -42,6 +42,7 @@ namespace ProjectX.UI
             };
 
         private readonly CocosUiView view;
+        private readonly string title;
         private readonly FishStore store;
         private readonly IUiResourceProvider resources;
         private readonly ShopCatalog items;
@@ -72,7 +73,7 @@ namespace ProjectX.UI
         private ushort selectedSlot = ushort.MaxValue;
         private bool moduleVisible;
 
-        public FishPresenter(CocosUiView view, OneLevelFrameCoordinator oneLevelFrame,
+        public FishPresenter(CocosUiView view, OneLevelFrameCoordinator oneLevelFrame, string title,
             FishStore store, IUiResourceProvider resources,
             ShopCatalog items, Action start, Action stop, Action<ushort> collect,
             Action close, Action help)
@@ -81,6 +82,9 @@ namespace ProjectX.UI
             if (oneLevelFrame == null || oneLevelFrame.View?.GameObject == null)
                 throw new ArgumentNullException(nameof(oneLevelFrame));
             this.view = view;
+            this.title = string.IsNullOrWhiteSpace(title)
+                ? throw new ArgumentException("Fish gameplay title is missing.", nameof(title))
+                : title;
             this.oneLevelFrame = oneLevelFrame;
             oneLevelView = oneLevelFrame.View;
             this.store = store ?? throw new ArgumentNullException(nameof(store));
@@ -310,11 +314,7 @@ namespace ProjectX.UI
         private void RenderHeader()
         {
             if (frameTitle == null) return;
-            frameTitle.text = !store.HasAuthoritativeState
-                ? "钓鱼 · 同步中"
-                : IsBasketVisible
-                    ? $"鱼篓 · {store.OccupiedSlots}/{store.BasketCapacity}格"
-                    : $"钓鱼 · {store.GoldCost:N0}金币/次";
+            frameTitle.text = title;
             if (frameHelpButton != null) frameHelpButton.SetActive(!IsBasketVisible);
         }
 

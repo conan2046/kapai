@@ -471,6 +471,7 @@ namespace ProjectX.Core
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            ResourceLoader.Configure(new UnityResourceLoader());
             AppLaunchOptions launchOptions = AppLaunchOptions.Current();
             singlePlayerTitleEnabled = ShouldUseSinglePlayerTitle(launchOptions);
             if (singlePlayerTitleEnabled)
@@ -499,10 +500,8 @@ namespace ProjectX.Core
             if (arguments.Any(argument => string.Equals(argument,
                 SinglePlayerFlowValidationFlag, StringComparison.OrdinalIgnoreCase))) return true;
 #endif
-            // Normal Editor feature validation uses the canonical LocalServer database.
-            // Slot-based saves remain available only through the explicit flow-validation flag;
-            // packaged non-Editor launches keep their one-click single-player default.
-            if (Application.isEditor) return false;
+            // Interactive Editor Play and packaged launches use the Steam title and Slot saves.
+            // Dedicated validation and external-server flags keep their existing startup paths.
             return !arguments.Any(argument =>
                 argument != null && argument.StartsWith("-projectX", StringComparison.OrdinalIgnoreCase));
         }

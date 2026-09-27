@@ -3,7 +3,7 @@
 ## 1. 项目与数据边界
 
 - 本项目是 Cocos2d-x 2.17 + Lua 客户端、C++ 服务端及 Unity 迁移客户端。
-- Unity Editor/Player 用户功能测试只使用 `Application.persistentDataPath/LocalServer/projectx.db`；账号、角色、神将、装备、道具、货币和阵容夹具必须修改该 SQLite。workspace-local MySQL 只用于 Cocos、本地服务端和离线兼容回归，禁止替代 Unity 用户数据。
+- 普通交互式 Unity Editor/Player 使用 Steam 单机菜单与 `Application.persistentDataPath/Saves/SlotNN/projectx.db`。固定账号验证或外部服务模式须先按启动参数确认实际数据库；走 LocalServer 时使用 `Application.persistentDataPath/LocalServer/projectx.db`，显式单机流程验证则使用指定的隔离 Slot。账号、角色、神将、装备、道具、货币和阵容夹具必须修改当前路径对应的 SQLite。workspace-local MySQL 只用于 Cocos、本地服务端和离线兼容回归，禁止替代 Unity 用户数据。
 - 本地服务端为 workspace-local MySQL + `kapai.exe`；客户端为 Cocos `ProjectX.exe` 或 Unity。每轮只启动当前需要的一套客户端，不继承上一任务运行状态。
 - 文档、源码阅读和静态修改不启动 Unity、MCP、Cocos、`kapai.exe` 或 MySQL；编译、Prefab/场景、Console、Play 或协议联调时才按需启动。
 - 一个重任务同时只运行一个。验收后关闭本轮启动的进程并检查端口、SQLite锁和残留；长跑或用户明确要求保持运行时除外。
