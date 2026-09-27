@@ -69,11 +69,14 @@ namespace ProjectX.Core
             services.Activity.SetDailyRecharge(pendingDailyRecharge);
             EnsureActivityPresenter();
             SetStatus($"Activity /222 op=18 subOp=1: rewards={services.Activity.DailyRecharge.Rewards.Count}, recharged={services.Activity.DailyRecharge.Recharged}, claimed={services.Activity.DailyRecharge.Claimed}.");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (validation) StartCoroutine(CaptureActivityValidationStates());
+#endif
         }
 
         public void SetActivityError(string message) { ShowToast(message, 3f); SetStatus(message); }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteActivityValidation()
         {
             EnsureActivityPresenter();
@@ -88,7 +91,7 @@ namespace ProjectX.Core
             }
             Complete($"COMPLETE: Activity /222 op=0xFF list -> real tabs/hot-point/countdown -> op=18 subOp=1 daily recharge state/rewards -> unsupported real tab empty boundary; isolated user={GetLocalUserId()}");
         }
-
+#endif
 
         private void EnsureActivityHotPoint(Transform button)
         {
@@ -111,6 +114,7 @@ namespace ProjectX.Core
             if (hotPoint != null) hotPoint.gameObject.SetActive(services?.Activity.HasHotPoint == true);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator CaptureActivityValidationStates()
         {
             EnsureActivityPresenter();
@@ -141,6 +145,7 @@ namespace ProjectX.Core
             yield return new WaitForEndOfFrame();
             CompleteActivityValidation();
         }
+#endif
 
 
         private void EnsureActivityPresenter()

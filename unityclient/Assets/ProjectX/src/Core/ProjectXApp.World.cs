@@ -13,6 +13,64 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+        private CocosUiView worldView;
+        private CocosUiView worldStageView;
+        private CocosUiView worldMapView;
+        private CocosUiView worldDetailView;
+        private CocosUiView worldSweepView;
+        private CocosUiView worldBattleResultView;
+        private CocosUiView worldBattleStatisticsView;
+        private CocosUiView worldBoxAwardView;
+        private CocosUiView worldAchievementView;
+        private WorldPresenter worldPresenter;
+        private WorldOutcomePresenter worldOutcomePresenter;
+
+        private Coroutine worldChainAutoSettlementCoroutine;
+        private int worldChainAutoSettlementToken;
+        private bool worldBattleBackgrounded;
+        private bool worldBattleInFlight;
+        // 龙崖连战：本场战斗出发时主角所在关卡（走位起点）。/320 op=8 会先把
+        // WorldStore.CurrentStageId 推到新关，必须在它被改写之前抓下来。
+        private uint worldChainWalkFromStageId;
+        // 走位时长 —— 对齐 Cocos FuBenDetailUI:ModelMove 的 cc.MoveTo:create(2, ...)
+        private const float WorldChainWalkSeconds = 2f;
+        private const float WorldChainAutoSettlementSeconds = 2f;
+        // 等 /38 回放播完的超时兜底（一场回放约 14 秒；异常路径不至于无限等待）
+        private const float MaxWorldBattlePlaybackWait = 60f;
+        private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
+        private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
+        private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
+        private WorldStageRecord pendingWorldStage;
+        private byte pendingWorldMapType;
+        private uint pendingWorldChapterId;
+        private string pendingWorldChapterName;
+        private bool worldFormationReturnPending;
+        private bool worldFormationReturnToDetail;
+        // 打开阵容前 World 是否停在章节选择页（showChapters）。关闭阵容后按原状态还原，
+        // 避免无条件 ShowStages() 把 chapterPage 的 btn_1..5 / Button_1 / Button_2 藏掉。
+        private bool worldFormationReturnToChapters;
+        private bool worldYouLiReturnPending;
+        private bool worldFormationPopupRequestPending;
+        private uint selectedWorldBoxStageId;
+        private Button worldBoxClaimInteractionButton;
+        private Button worldBoxCloseInteractionButton;
+        private Button worldBoxTitleCloseInteractionButton;
+        private byte worldAchievementType = 1;
+        private byte worldAchievementBitmap;
+        private Coroutine worldAchievementLayoutCoroutine;
+
+        private void HandleWorldClick()
+        {
+            try
+            {
+                CallLua(onWorldClicked, "World.OnClicked");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (services.Options.WorldBattleValidation) MarkValidationControl("WORLD-01-MAIN-ENTRY");
+#endif
+            }
+            catch (Exception exception) { Fail($"World open failed: {exception.Message}"); }
+        }
+
         public void BeginWorldChapterList(int mapType, int expectedCount)
         {
             pendingWorldMapType = checked((byte)mapType);
@@ -99,7 +157,11 @@ namespace ProjectX.Core
             // its capture coroutine. The normal UI keeps this request as a
             // chapter-list reward preview; the validation route requests the
             // same authoritative chapter without the preview-only behavior.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             pendingRewardPreviewChapter = services.Options.WorldBattleValidation ? 0 : chapterId;
+#else
+            pendingRewardPreviewChapter = chapterId;
+#endif
             InvokeLuaOrFail(onWorldRequestChapter, "World.RequestChapter", (double)chapterId);
         }
 
@@ -521,12 +583,15 @@ namespace ProjectX.Core
                 $"您是否要花费{stage.ResetCost}元宝重置关卡\n<color=#ff2a20>今日还可重置{stage.RemainingResets}次</color>",
                 () =>
                 {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                     if (services.Options.WorldBattleValidation) MarkValidationControl("WORLD-17-RESET-CONFIRM");
+#endif
                     InvokeLuaOrFail(onWorldReset, "World.Reset", (double)stage.Id);
                 }, "确认", "取消", true);
         }
 
         public void SetWorldError(string message) { ShowToast(message, 3f); SetStatus(message); }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CaptureWorldMapAndContinue() => StartCoroutine(CaptureWorldMap());
         public void CaptureWorldDetailAndChallenge() => StartCoroutine(CaptureWorldDetail());
         public void CaptureWorldBattleAndRefresh(int rewardCount) => StartCoroutine(CaptureWorldBattleResult(rewardCount));
@@ -661,5 +726,6 @@ namespace ProjectX.Core
                 $"alternate user={GetLocalUserId()} stage={stageId} has stars={stars}");
             Complete($"COMPLETE: /320 world -> chapter/stage state -> detail/formation/reward preview -> PvE stage {worldG4StageId} -> op=8 settlement -> reconnect persistence -> alternate account {GetLocalUserId()} isolation.");
         }
+#endif
     }
 }

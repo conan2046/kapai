@@ -3282,8 +3282,23 @@ Assert-ToolchainTest (
 ) "Hero formation-list regression: full-row raycast surface or real EventSystem selection coverage was removed."
 $worldControllerSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
+$worldValidationSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.WorldValidation.cs") -Raw -Encoding UTF8
 $worldStoreSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldStore.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $worldValidationSource.Contains('services.Options.WorldBattleValidation && worldChainMode') -and
+    $worldValidationSource.Contains('worldPresenter.RenderedCount != services.World.ChapterCount') -and
+    $worldValidationSource.Contains('RuntimeInputDispatcher.Dispatch(') -and
+    $worldValidationSource.Contains('"bg/Button_1", "WORLD-14-CHALLENGE", "click"') -and
+    $worldValidationSource.Contains('worldChainNextStageId > 0') -and
+    $worldValidationSource.Contains('float chainHardDeadline = Time.realtimeSinceStartup + 720f;')
+) "World chain validation must preserve the visible chapter selector and enter battle through its real Challenge button."
+Assert-ToolchainTest (
+    $worldReplaySource.Contains('if (worldChainMode)') -and
+    $worldReplaySource.Contains('worldPresenter.ShowChapterPage();') -and
+    $worldValidationSource.Contains('worldChainMode && worldPresenter.ChapterListVisible')
+) "World chain replay return must restore the chapter-selection surface instead of the hidden stage map."
 $worldFixtureSource = Get-Content -LiteralPath (
     Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
 $worldSqliteFixtureSource = Get-Content -LiteralPath (
@@ -3442,6 +3457,8 @@ Assert-ToolchainTest (
     $playerControllerSource.Contains('elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)') -and
     $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
     $projectXAppSource.Contains('services.Options.WorldBattleValidation && !services.Options.WorldG3Validation') -and
+    $projectXAppSource.Contains('services.Options.WorldBattleValidation && worldPresenter.ChapterListVisible') -and
+    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(chapterNode)') -and
     $projectXAppSource.Contains('&& !worldG4StarBoxValidated') -and
     $projectXAppSource.Contains('&& !worldG4NormalBoxValidated')
 ) "World settlement return or current DadituuiLayer achievement/YouLi/rank boundary regressed."
@@ -3464,17 +3481,17 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots).Count -eq 145 -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'client/ProjectX/simulator/win32/res/ConfigData/hit_monster.dat' -and
+        'client/ProjectX/res/ConfigData/hit_monster.dat' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
         'client/ProjectX/src/ConfigData/zhenfa_config_dat.lua' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'client/ProjectX/simulator/win32/res/res/UI/ImageNum/num_lan.png' -and
+        'client/ProjectX/res/res/UI/ImageNum/num_lan.png' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'client/ProjectX/simulator/win32/res/res/UI/ImageNum/ui_pk_num.png' -and
+        'client/ProjectX/res/res/UI/ImageNum/ui_pk_num.png' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_1.png' -and
+        'client/ProjectX/res/res2/Icon/ui_zhenfa_icon/zhenfa_1.png' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'client/ProjectX/simulator/win32/res/res2/Icon/ui_zhenfa_icon/zhenfa_6.png' -and
+        'client/ProjectX/res/res2/Icon/ui_zhenfa_icon/zhenfa_6.png' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
         'client/ProjectX/res/fuben/map_1/map_1.jpg' -and
     @($worldEvidenceContract.fixedAccount.requiredHydratedRoots) -contains

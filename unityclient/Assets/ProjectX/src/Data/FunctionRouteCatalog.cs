@@ -61,7 +61,7 @@ namespace ProjectX.Data
         private static void EnsureLoaded()
         {
             if (routes != null) return;
-            TextAsset asset = Resources.Load<TextAsset>(ResourcePath);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(ResourcePath);
             if (asset == null)
                 throw new InvalidOperationException($"Function route config is missing: Resources/{ResourcePath}.json");
             RouteRow[] rows = JsonConvert.DeserializeObject<RouteRow[]>(asset.text) ?? Array.Empty<RouteRow>();

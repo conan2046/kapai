@@ -39,6 +39,7 @@ namespace ProjectX.Core
         public uint FengShenStoryIsolationUserId { get; }
         public uint StaminaClaimIsolationUserId { get; }
         public uint StaminaClaimOverCapUserId { get; }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool Automation => HasFlag("-projectXAutomation");
         public bool ManualReconnectValidation => HasFlag("-projectXManualReconnectValidation");
         public bool ScenarioManagedReconnect => HasFlag("-projectXScenarioManagedReconnect");
@@ -63,6 +64,7 @@ namespace ProjectX.Core
             || HasFlag("-projectXHeroRebirthG4Validation");
         public bool EnhanceMasterG3Validation => HasFlag("-projectXEnhanceMasterG3Validation");
         public bool EnhanceMasterG5VisualValidation => HasFlag("-projectXEnhanceMasterG5VisualValidation");
+#endif
 
         public bool HasFlag(string flag) => !string.IsNullOrEmpty(flag) && flags.Contains(flag);
 

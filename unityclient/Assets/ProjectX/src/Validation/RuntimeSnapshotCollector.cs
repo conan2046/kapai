@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using ProjectX.Core;
+using ProjectX.Foundation;
 using ProjectX.Network;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -21,6 +22,7 @@ namespace ProjectX.Validation
     public sealed class RuntimeSnapshotCollector : MonoBehaviour
     {
         private IRuntimeSnapshotContext services;
+        private IRuntimePacketTraceSource packetTraceSource;
         private JObject scenario;
         private string outputPath;
         private string inputFingerprint;
@@ -79,40 +81,62 @@ namespace ProjectX.Validation
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void RegisterForServiceReady()
         {
-            ProjectXApp.RuntimeServicesReady -= OnRuntimeServicesReady;
-            ProjectXApp.RuntimeServicesReady += OnRuntimeServicesReady;
+            if (!string.Equals(GetArgument("-projectXRuntimeSnapshotModule="), "Draw", StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrWhiteSpace(GetArgument("-projectXRuntimeSnapshotScenario="))
+                || string.IsNullOrWhiteSpace(GetArgument("-projectXRuntimeSnapshotOutput="))) return;
+
+            var host = new GameObject(nameof(RuntimeSnapshotCollector));
+            DontDestroyOnLoad(host);
+            host.AddComponent<RuntimeSnapshotCollector>();
         }
 
-        private static void OnRuntimeServicesReady(GameObject host, IRuntimeSnapshotContext context)
+        private void Start()
         {
-            TryInstall(host, context);
-        }
-
-        public static bool TryInstall(GameObject host, IRuntimeSnapshotContext services)
-        {
-            string module = GetArgument("-projectXRuntimeSnapshotModule=");
             string scenarioPath = GetArgument("-projectXRuntimeSnapshotScenario=");
             string outputPath = GetArgument("-projectXRuntimeSnapshotOutput=");
-            if (!string.Equals(module, "Draw", StringComparison.OrdinalIgnoreCase)
-                || string.IsNullOrWhiteSpace(scenarioPath) || string.IsNullOrWhiteSpace(outputPath)) return false;
+            if (string.IsNullOrWhiteSpace(scenarioPath) || string.IsNullOrWhiteSpace(outputPath))
+            {
+                Destroy(gameObject);
+                return;
+            }
+
             try
             {
-                var collector = host.AddComponent<RuntimeSnapshotCollector>();
-                collector.services = services ?? throw new ArgumentNullException(nameof(services));
-                collector.scenario = JObject.Parse(File.ReadAllText(scenarioPath, Encoding.UTF8));
-                collector.outputPath = Path.GetFullPath(outputPath);
-                collector.inputFingerprint = GetArgument("-projectXRuntimeSnapshotInputFingerprint=");
-                if (string.IsNullOrWhiteSpace(collector.inputFingerprint)) collector.inputFingerprint = Sha256(File.ReadAllBytes(scenarioPath));
-                collector.BuildControlPathIndex();
-                services.PacketObserved += collector.OnPacketObserved;
-                collector.StartCoroutine(collector.DelayedReplay());
-                return true;
+                scenario = JObject.Parse(File.ReadAllText(scenarioPath, Encoding.UTF8));
+                this.outputPath = Path.GetFullPath(outputPath);
+                inputFingerprint = GetArgument("-projectXRuntimeSnapshotInputFingerprint=");
+                if (string.IsNullOrWhiteSpace(inputFingerprint)) inputFingerprint = Sha256(File.ReadAllBytes(scenarioPath));
+                BuildControlPathIndex();
+                StartCoroutine(WaitForSnapshotContext());
             }
             catch (Exception exception)
             {
                 WriteBootstrapFailure(outputPath, exception);
-                return false;
             }
+        }
+
+        private IEnumerator WaitForSnapshotContext()
+        {
+            float deadline = Time.realtimeSinceStartup + 45f;
+            while (Time.realtimeSinceStartup < deadline)
+            {
+                foreach (MonoBehaviour candidate in FindObjectsOfType<MonoBehaviour>(true))
+                {
+                    if (!(candidate is IRuntimeSnapshotContext context)
+                        || !context.IsSnapshotContextReady
+                        || !(candidate is IRuntimePacketTraceSource packetSource)) continue;
+
+                    services = context;
+                    packetTraceSource = packetSource;
+                    packetTraceSource.PacketObserved += OnPacketObserved;
+                    StartCoroutine(DelayedReplay());
+                    yield break;
+                }
+                yield return null;
+            }
+
+            WriteBootstrapFailure(outputPath,
+                new TimeoutException("A ready IRuntimeSnapshotContext provider was not found within 45 seconds."));
         }
 
         private IEnumerator DelayedReplay()
@@ -224,7 +248,7 @@ namespace ProjectX.Validation
                 ["engine"] = "unity",
                 ["operationType"] = operationType,
                 ["inputMode"] = "engine-input-replay",
-                ["inputCoordinates"] = CanonicalCoordinates(dispatch.ScreenPosition),
+                ["inputCoordinates"] = CanonicalCoordinates(new Vector2((float)dispatch.ScreenX, (float)dispatch.ScreenY)),
                 ["preUiTreeHash"] = preHash,
                 ["preUiTree"] = new JArray(),
                 ["preUiTreeRef"] = preTreeRef,
@@ -690,7 +714,8 @@ namespace ProjectX.Validation
 
         private void OnDestroy()
         {
-            if (services != null) services.PacketObserved -= OnPacketObserved;
+            if (packetTraceSource != null) packetTraceSource.PacketObserved -= OnPacketObserved;
         }
     }
 }
+#endif

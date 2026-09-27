@@ -47,8 +47,8 @@ namespace ProjectX.UI
         private static void EnsureBackground(Transform root)
         {
             if(root.Find("BloodFightBackgroundRuntime")!=null)return;
-            Sprite sprite=Resources.Load<Sprite>("Backgrounds/bg_xuezhan");
-            if(sprite==null){Texture2D texture=Resources.Load<Texture2D>("Backgrounds/bg_xuezhan");if(texture==null)return;sprite=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f),100f);}
+            Sprite sprite=ProjectX.Foundation.ResourceLoader.Load<Sprite>("Backgrounds/bg_xuezhan");
+            if(sprite==null){Texture2D texture=ProjectX.Foundation.ResourceLoader.Load<Texture2D>("Backgrounds/bg_xuezhan");if(texture==null)return;sprite=Sprite.Create(texture,new Rect(0,0,texture.width,texture.height),new Vector2(.5f,.5f),100f);}
             GameObject go=new GameObject("BloodFightBackgroundRuntime",typeof(RectTransform),typeof(CanvasRenderer),typeof(Image));
             RectTransform rect=(RectTransform)go.transform;rect.SetParent(root,false);rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;rect.SetAsFirstSibling();
             Image image=go.GetComponent<Image>();image.sprite=sprite;image.raycastTarget=false;

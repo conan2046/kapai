@@ -2,8 +2,11 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using ProjectX.Data;
 using ProjectX.Diagnostics;
+using ProjectX.Foundation;
+using ProjectX.Network;
 using ProjectX.UI;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,6 +15,275 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+        private void HandleLoginClick() => InvokeLuaOrFail(onLoginClicked, "Login.OnLoginClicked");
+        private void HandleRoleCreateClick() => InvokeLuaOrFail(onRoleCreateClicked, "Login.OnRoleCreateClicked");
+        private void HandleRoleRandomClick() => InvokeLuaOrFail(onRoleRandomClicked, "Login.OnRoleRandomClicked");
+
+        private void HandleAccountSubmit(uint userId, string signature)
+        {
+            services.Config.LocalUserId = userId;
+            loginSignature = string.IsNullOrWhiteSpace(signature) ? "local" : signature;
+            HandleLoginClick();
+        }
+
+        private void ReturnFromRoleCreate()
+        {
+            if (singlePlayerTitleEnabled)
+            {
+                services.Network.Disconnect();
+                StopSinglePlayerServer();
+                ShowLoginUi();
+                BindLoginClick(false);
+                return;
+            }
+            loginPresenter?.ShowLocalServer("本地测试服");
+            services.UiStack.SetRoot(loginView);
+            services.State.Change(AppState.Login, "Returned from role creation");
+            SetStatus("Login UI ready.");
+        }
+
+        private void ShowLoginConnectionFailure(bool timedOut)
+        {
+            if (singlePlayerTitleEnabled)
+            {
+                ClientLog.Warning("SinglePlayer", timedOut
+                    ? "Local save connection timed out"
+                    : "Local save connection failed", disconnectReason ?? string.Empty);
+                ReturnFromConnectionFailure();
+                return;
+            }
+
+            EnsureErrorPresenter();
+            string detail = timedOut
+                ? "无法连接服务器,是否重新连接？\n连接已超时"
+                : "无法连接服务器,是否重新连接？";
+            errorPresenter?.ShowConfirmation("提示", detail,
+                ReconnectFromConnectionFailure, "确认", "取消", false,
+                ReturnFromConnectionFailure);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            SetStatus(services.Options.PlayerHudValidation
+                ? (timedOut ? "Player HUD reconnect timeout confirmation." : "Player HUD reconnect confirmation.")
+                : services.Options.LoginClosureValidation
+                    ? (timedOut ? "Login connection timeout dialog." : "Login connection dialog.")
+                    : services.Options.GameplayValidation
+                        ? (timedOut ? "Gameplay reconnect timeout confirmation." : "Gameplay reconnect confirmation.")
+                        : services.Options.FengShenStoryValidation
+                            ? (timedOut ? "FengShenStory reconnect timeout confirmation." : "FengShenStory reconnect confirmation.")
+                            : services.Options.StaminaClaimValidation
+                                ? (timedOut ? "StaminaClaim reconnect timeout confirmation." : "StaminaClaim reconnect confirmation.")
+                                : (timedOut ? "Login connection timeout." : "Login connection failed."));
+#else
+            SetStatus(timedOut ? "Login connection timeout." : "Login connection failed.");
+#endif
+        }
+
+        private void ReturnFromConnectionFailure()
+        {
+            if (singlePlayerTitleEnabled) StopSinglePlayerServer();
+            ShowLoginUi();
+            BindLoginClick(false);
+        }
+
+        private void ReconnectFromConnectionFailure()
+        {
+            mainHudPresenter?.BeginReconnectChatSummary();
+            if (services.Network.State == NetworkState.Disconnected || services.Network.State == NetworkState.Faulted)
+                Reconnect();
+            else
+                Connect(services.Config.GameHost, services.Config.GamePort);
+        }
+
+        private void HandleNetworkState(NetworkState state)
+        {
+            SetStatus($"Network: {state}");
+        }
+
+        private void HandleDisconnected(string reason)
+        {
+            if (CurrentAppState == AppState.Disconnected) return;
+            bool preserveBagForScenario = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            preserveBagForScenario = HasCommandLineFlag("-projectXBagG4Validation") && IsBagOpen;
+#endif
+            HideLoading("connect");
+            HideLoading("reconnect");
+            HideLoading("auto-reconnect");
+            services.ProtocolRegistry.ClearPending();
+            ResetBattlePlaybackStateAfterDisconnect();
+            disconnectReason = reason;
+            services.State.Change(AppState.Disconnected, reason);
+            SetStatus($"Disconnected: {reason}");
+            try { CallLua(onDisconnected, "Network.OnDisconnected", reason); }
+            catch (Exception exception) { Fail(exception.Message); }
+            services.Heroes.Clear();
+            services.Formation.Clear();
+            if (!preserveBagForScenario)
+            {
+                services.Bag.Clear();
+                bagFlowPresenter?.CloseAll();
+            }
+            services.Shop.Clear();
+            shopPresenter?.ResetTransientState();
+            services.GameplayShops.Clear();
+            gameplayShopsPresenter?.ResetTransientState();
+            services.World.Clear();
+            services.FengShenStory.SetDisconnected();
+            pendingFengShenRewards.Clear();
+            deferredFengShenRewardPush = false;
+            fengShenStoryPresenter?.CloseLevelPopup();
+            fengShenStoryPresenter?.CloseModal();
+            if (IsWorldOpen) services.UiStack.Pop();
+            worldView?.SetVisible(false);
+            worldStageView?.SetVisible(false);
+            worldMapView?.SetVisible(false);
+            worldDetailView?.SetVisible(false);
+            worldSweepView?.SetVisible(false);
+            worldBattleResultView?.SetVisible(false);
+            worldBattleStatisticsView?.SetVisible(false);
+            errorPresenter?.Hide();
+            rewardPresenter?.Hide();
+            if (IsShopOpen) services.UiStack.Pop();
+            shopView?.SetVisible(false);
+            soulShopView?.SetVisible(false);
+            multiShopView?.SetVisible(false);
+            if (!preserveBagForScenario)
+            {
+                SetOneLevelFrameVisible(false);
+                bagView?.SetVisible(false);
+            }
+            services.HeroEquipment.Clear();
+            services.FaBao.Clear();
+            services.EnhanceMasters.Clear();
+            activeHeroCultivationId = 0;
+            heroG4ControlValidationRunning = false;
+            pendingHeroEquipmentPosition = 0;
+            heroEquipmentOpenedFromHeroDetails = false;
+            heroReplacementOpenedFromHeroHub = false;
+            heroReplacementOpenedFromFormationPopup = false;
+            pendingFunctionCultivationMode = -1;
+            formationPopupView?.SetVisible(false);
+            heroReplacementView?.SetVisible(false);
+            heroCultivationView?.SetVisible(false);
+            heroAttributesView?.SetVisible(false);
+            if (services.Config.AutoReconnect)
+            {
+                if (!autoReconnectRunning) _ = RunAutoReconnectAsync();
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            else if (services.Options.ScenarioManagedReconnect || services.Options.ManualReconnectValidation
+                || services.Options.GameplayValidation)
+            {
+                ShowLoginConnectionFailure(false);
+            }
+#endif
+        }
+
+        private async Task RunAutoReconnectAsync()
+        {
+            if (!services.Config.AutoReconnect) return;
+            autoReconnectRunning = true;
+            try
+            {
+                while (this && services.Network.State != NetworkState.Connected
+                    && reconnectAttempts < services.Config.MaxReconnectAttempts)
+                {
+                    reconnectAttempts++;
+                    int backoffMultiplier = 1 << ((reconnectAttempts - 1) * 2);
+                    int delayMilliseconds = Math.Min(
+                        services.Config.ReconnectDelayMilliseconds * backoffMultiplier,
+                        20000);
+                    SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts} in {delayMilliseconds} ms...");
+                    await Task.Delay(delayMilliseconds);
+                    if (!this || services.Network.State == NetworkState.Connected) return;
+                    try
+                    {
+                        ShowLoading("auto-reconnect", "正在重新连接…", 25f);
+                        SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts}...");
+                        await services.Network.ReconnectAsync(services.Config.ConnectTimeoutSeconds);
+                        reconnectAttempts = 0;
+                        disconnectReason = null;
+                        services.State.Change(AppState.LoadingRole, "Auto reconnect succeeded");
+                        CallLua(onConnected, "Login.OnConnected.AfterAutoReconnect");
+                        return;
+                    }
+                    catch (Exception exception)
+                    {
+                        HideLoading("auto-reconnect");
+                        disconnectReason = exception.Message;
+                        SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts} failed: {exception.Message}");
+                    }
+                }
+            }
+            finally
+            {
+                autoReconnectRunning = false;
+            }
+        }
+
+        public void ReturnToLogin()
+        {
+            ResetBattlePlaybackStateAfterDisconnect();
+            services.Network.Disconnect();
+            if (singlePlayerTitleEnabled) StopSinglePlayerServer();
+            mainHudPresenter?.Dispose();
+            mainHudPresenter = null;
+            mainTaskTracker?.Dispose();
+            mainTaskTracker = null;
+            services.Tasks.Clear();
+            services.Player.Clear();
+            services.Currencies.Clear();
+            services.Bag.Clear();
+            bagFlowPresenter?.CloseAll();
+            services.Rewards.Clear();
+            services.Mails.Clear();
+            services.Shop.Clear();
+            shopPresenter?.ResetTransientState();
+            RestoreShopFramePanel();
+            errorPresenter?.Hide();
+            services.Friends.Clear();
+            services.Heroes.Clear();
+            services.Formation.Clear();
+            services.HeroEquipment.Clear();
+            services.FaBao.Clear();
+            services.EnhanceMasters.Clear();
+            activeHeroCultivationId = 0;
+            pendingHeroEquipmentPosition = 0;
+            heroEquipmentOpenedFromHeroDetails = false;
+            heroEquipmentOpenedFromEnhanceMaster = false;
+            heroReplacementOpenedFromHeroHub = false;
+            heroReplacementOpenedFromFormationPopup = false;
+            pendingFunctionCultivationMode = -1;
+            pendingHeroEquipment.Clear();
+            pendingFaBao.Clear();
+            pendingCultivation.Clear();
+            services.World.Clear();
+            pendingFengShenRewards.Clear();
+            deferredFengShenRewardPush = false;
+            fengShenStoryPresenter?.CloseModal();
+            services.Welfare.Clear();
+            services.Activity.Clear();
+            services.Draw.Clear();
+            services.ServerTime.Reset();
+            loadingPresenter?.Clear();
+            toastPresenter?.Clear();
+            rewardPresenter?.Hide();
+            ShowLoginUi();
+            if (singlePlayerTitleEnabled) BindLoginClick(false);
+        }
+
+        public void InitializePlayer(uint roleId, string name, int sex, int model, int head, int level,
+            double experience, double power, int money, int premium, int boundPremium,
+            uint potential, uint soul, int packageCapacity, uint guildContribution)
+        {
+            services.Player.Initialize(roleId, name, unchecked((byte)sex), unchecked((byte)model),
+                unchecked((byte)head), unchecked((ushort)level), checked((ulong)experience),
+                checked((ulong)power), potential, soul, unchecked((ushort)packageCapacity));
+            services.Currencies.Initialize(money, premium, boundPremium, soul, guildContribution);
+            services.Mails.ConfigureAccount(roleId);
+            if (singlePlayerTitleEnabled && activeSaveSlotId > 0)
+                singlePlayerSaves?.UpdatePlayer(activeSaveSlotId, roleId, name, model, level, checked((ulong)power));
+        }
+
         public void ShowLoginUi()
         {
             loginView = services.UiRouter.FindBySource("Login/loginLayer");
@@ -108,8 +380,12 @@ namespace ProjectX.Core
                 Button button = loginView.FindNode(LoginButtonPath)?.GetComponent<Button>();
                 loginView.BindClick(LoginServerButtonPath, () => loginPresenter.ShowServerList(
                     HandleLoginClick, () => SetStatus("Login UI ready.")));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (autoInvoke || HasCommandLineFlag("-projectXS8StartupAcceptance")
                     || HasCommandLineFlag("-projectXSteamHudExclusionAcceptance"))
+#else
+                if (autoInvoke)
+#endif
                     StartCoroutine(InvokeButtonNextFrame(button));
             }
             catch (Exception exception) { Fail(exception.Message); }
@@ -372,11 +648,13 @@ namespace ProjectX.Core
             return loginPresenter.ValidateRoleAnimations(out detail);
         }
 
-        public void InvokeRoleCreateForValidation()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void InvokeRoleCreateForValidation()
         {
             try { loginPresenter?.InvokeRoleCreate(); }
             catch (Exception exception) { Fail(exception.Message); }
         }
+#endif
 
         public void ApplyRoleNameCandidates(string first, string second, string third)
         {
@@ -390,6 +668,7 @@ namespace ProjectX.Core
             SetStatus("Login error: " + (detail ?? string.Empty));
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteLoginValidation(bool createdRole)
         {
             if (!HasCommandLineFlag("-projectXLoginValidation")) return;
@@ -413,8 +692,10 @@ namespace ProjectX.Core
                 + (createdRole ? "RoleCreateLayer + Create_5/Create_4 -> /1003 -> " : string.Empty)
                 + $"/1004 -> current UImainLayer -> /88 NoticeLayer count={GameNoticeCount}; user={GetLocalUserId()} role={GetPlayerRoleId()}");
         }
+#endif
 
-        public void BeginLoginClosureValidation()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void BeginLoginClosureValidation()
         {
             if (!services.Options.LoginClosureValidation || loginClosureValidationRunning) return;
             StartCoroutine(ValidateLoginClosure());
@@ -646,5 +927,6 @@ namespace ProjectX.Core
                 loginClosureValidationRunning = false;
             }
         }
+#endif
     }
 }

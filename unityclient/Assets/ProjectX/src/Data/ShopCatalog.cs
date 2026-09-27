@@ -128,8 +128,8 @@ namespace ProjectX.Data
         {
             if (cocosItemsLoaded) return;
             cocosItemsLoaded = true;
-            TextAsset asset = Resources.Load<TextAsset>("Lua/Data/ItemCatalog.lua")
-                ?? Resources.Load<TextAsset>("Lua/Data/ItemCatalog");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("Lua/Data/ItemCatalog.lua")
+                ?? ProjectX.Foundation.ResourceLoader.Load<TextAsset>("Lua/Data/ItemCatalog");
             if (asset == null) return;
             foreach (string entry in SplitLuaEntries(asset.text))
             {
@@ -265,7 +265,7 @@ namespace ProjectX.Data
         private static void Load<T, TKey>(string resourcePath, IDictionary<TKey, T> target, Func<T, TKey> key)
             where T : class
         {
-            TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath);
             if (asset == null) throw new InvalidOperationException($"Shop config is missing: Resources/{resourcePath}.json");
             T[] values = JsonConvert.DeserializeObject<T[]>(asset.text) ?? Array.Empty<T>();
             foreach (T value in values)

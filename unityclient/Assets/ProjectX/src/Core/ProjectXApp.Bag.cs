@@ -34,12 +34,14 @@ namespace ProjectX.Core
         public void EndBagUpdate()
         {
             services.Bag.Replace(pendingBagItems);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.HeroCultivationG3Validation
                 && heroCultivationView?.GameObject.activeSelf == true)
             {
                 CompleteHeroCultivationG3Validation();
                 return;
             }
+#endif
             // /8 is also an authoritative background source for Draw tickets and
             // Hero cultivation materials. A delayed response must update the
             // store without navigating either active business screen to the
@@ -104,10 +106,13 @@ namespace ProjectX.Core
                 }
                 else ShowToast("已定位搜宝令，请点击使用补充搜索次数", 3f);
             }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             WriteBagGraphicCensusOnce();
+#endif
             SetStatus($"Bag UI active: {bagPresenter.ItemCount} item stacks, {bagPresenter.MissingIconCount} missing icons.");
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void WriteBagGraphicCensusOnce()
         {
             if (bagGraphicCensusWritten
@@ -188,6 +193,7 @@ namespace ProjectX.Core
             }, Formatting.Indented));
             ProjectX.Diagnostics.ClientLog.Verbose($"[BagG5] Runtime graphic census written: {path}; graphics={entries.Length}.");
         }
+#endif
 
         private static string GetTransformPath(Transform target, Transform stop)
         {
@@ -320,6 +326,7 @@ namespace ProjectX.Core
         public string BagModalDisplayText => bagFlowPresenter?.InputDisplayText ?? string.Empty;
         public int BagChoiceCount => bagFlowPresenter?.ChoiceCount ?? 0;
         public bool BagHasChoice => bagFlowPresenter?.HasSelection == true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool SelectBagItem(int itemId)
         {
             bool invoked = bagPresenter?.SelectItem(itemId) == true;
@@ -939,11 +946,6 @@ namespace ProjectX.Core
                 + "-> invalid/repeat rejection -> close/reload -> disconnect/reconnect persistence -> account-switch cleanup");
         }
 
-        private int GetBagQuantityByItemId(int itemId)
-        {
-            return services.Bag.GetTotalQuantityByItemId(itemId);
-        }
-
         private IEnumerator CaptureBagG5Evidence(string controlId)
         {
             string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
@@ -1001,6 +1003,12 @@ namespace ProjectX.Core
             Fail($"Bag G5 transient overlay did not settle naturally before {captureId}; "
                 + $"toastVisible={IsToastVisible}, "
                 + $"systemChatSummary={mainHudPresenter?.HasVisibleSystemChatSummary == true}.");
+        }
+#endif
+
+        private int GetBagQuantityByItemId(int itemId)
+        {
+            return services.Bag.GetTotalQuantityByItemId(itemId);
         }
     }
 }

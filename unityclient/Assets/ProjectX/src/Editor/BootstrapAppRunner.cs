@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using ProjectX.Core;
+using ProjectX.Validation;
+using ProjectX.Validation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -301,7 +303,7 @@ namespace ProjectX.Editor
                 && SessionState.GetInt(HeroEntryPhaseKey, 0) == 0)
             {
                 SessionState.SetInt(HeroEntryPhaseKey, 1);
-                if (!app.InvokeHeroEntryForReconnectValidation())
+                if (!RuntimeValidationEntrypoints.InvokeHeroEntryForReconnectValidation(app))
                 {
                     WriteResult(false, status + " (real Hero entry did not receive an EventSystem/raycast click)");
                     Finish(false);
@@ -313,7 +315,7 @@ namespace ProjectX.Editor
 
             if (loginValidation && loginClosureValidation && status == "Login UI ready.")
             {
-                app.BeginLoginClosureValidation();
+                RuntimeValidationEntrypoints.BeginLoginClosureValidation(app);
                 return;
             }
             if (loginValidation && status == "Login UI ready.")
@@ -339,7 +341,7 @@ namespace ProjectX.Editor
                     && new FileInfo(GetLoginScreenshotPath()).Length > 0)
                 {
                     SessionState.SetInt(LoginPhaseKey, 2);
-                    app.InvokeLoginForValidation();
+                    RuntimeValidationEntrypoints.InvokeLoginForValidation(app);
                     return;
                 }
             }
@@ -347,17 +349,17 @@ namespace ProjectX.Editor
                 && SessionState.GetInt(SettingsPhaseKey, 0) == 0)
             {
                 SessionState.SetInt(SettingsPhaseKey, 1);
-                app.RunSettingsValidation();
+                RuntimeValidationEntrypoints.RunSettingsValidation(app);
                 return;
             }
             if (jingJieValidation && status == "Main UI active.")
             {
-                app.BeginJingJieValidation();
+                RuntimeValidationEntrypoints.BeginJingJieValidation(app);
                 return;
             }
             if (fishValidation && status == "Main UI active.")
             {
-                app.BeginFishValidation();
+                RuntimeValidationEntrypoints.BeginFishValidation(app);
                 return;
             }
             if (loginValidation && status == "No role found. RoleCreateLayer is active."
@@ -371,7 +373,7 @@ namespace ProjectX.Editor
                 }
                 SessionState.SetInt(LoginPhaseKey, 3);
                 Debug.Log("[BootstrapAppRunner] RoleCreateLayer and Create_5/Create_4 animations validated.");
-                app.InvokeRoleCreateForValidation();
+                RuntimeValidationEntrypoints.InvokeRoleCreateForValidation(app);
                 return;
             }
             if (status.IndexOf("请求超时", StringComparison.Ordinal) >= 0
@@ -750,7 +752,9 @@ namespace ProjectX.Editor
                 bool realHeroClose = checkingHero && (Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroG4Validation") >= 0
                     || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroRebirthG4Validation") >= 0
                     || Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXHeroLockedValidation") >= 0);
-                bool backHandled = realHeroClose ? app.InvokeHeroCloseForValidation() : app.HandleBack();
+                bool backHandled = realHeroClose
+                    ? RuntimeValidationEntrypoints.InvokeHeroCloseForValidation(app)
+                    : app.HandleBack();
                 if (checkingHero && Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXFormationPopupValidation") >= 0)
                     backHandled = app.HandleBack() && backHandled;
                 if (!backHandled || (checkingTask ? app.IsTaskOpen : checkingSettings ? app.IsSettingsOpen
@@ -822,7 +826,7 @@ namespace ProjectX.Editor
                 if (settingsValidation && settingsPhase == 1)
                 {
                     SessionState.SetInt(SettingsPhaseKey, 2);
-                    app.RunSettingsAccountValidation();
+                    RuntimeValidationEntrypoints.RunSettingsAccountValidation(app);
                     return;
                 }
 
@@ -860,7 +864,7 @@ namespace ProjectX.Editor
                 && status.StartsWith("Hero formation UI active:", StringComparison.Ordinal))
             {
                 SessionState.SetInt(ReconnectPhaseKey, 3);
-                if (!app.InvokeHeroEntryForReconnectValidation())
+                if (!RuntimeValidationEntrypoints.InvokeHeroEntryForReconnectValidation(app))
                 {
                     WriteResult(false, status + " (real Hero entry could not be clicked after reconnect)");
                     Finish(false);
@@ -875,7 +879,7 @@ namespace ProjectX.Editor
                 && status.StartsWith("Hero formation UI active:", StringComparison.Ordinal))
             {
                 SessionState.SetInt(ReconnectPhaseKey, 4);
-                if (!app.RunHeroG4FromCurrentSnapshotForReconnectValidation())
+                if (!RuntimeValidationEntrypoints.RunHeroG4FromCurrentSnapshotForReconnectValidation(app))
                 {
                     WriteResult(false, status + " (authoritative Hero snapshot could not start the reconnect control rerun)");
                     Finish(false);
@@ -962,10 +966,10 @@ namespace ProjectX.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             ProjectXApp app = ProjectXApp.Instance;
             uint userId = app?.GetLocalUserId() ?? 0;
-            uint roleId = app?.GetValidationRoleId() ?? 0;
+            uint roleId = RuntimeValidationEntrypoints.GetValidationRoleId(app);
             string[] validatedControls = app?.GetValidatedControlIds() ?? Array.Empty<string>();
-            string[] passedSemantics = app?.GetPassedValidationSemanticKeys() ?? Array.Empty<string>();
-            string[] failedSemantics = app?.GetFailedValidationSemanticAssertions() ?? Array.Empty<string>();
+            string[] passedSemantics = RuntimeValidationEntrypoints.GetPassedValidationSemanticKeys(app);
+            string[] failedSemantics = RuntimeValidationEntrypoints.GetFailedValidationSemanticAssertions(app);
             string scenario = GetLaunchArgumentValue("-projectXValidationScenario=");
             string json = "{\n"
                 + $"  \"success\": {(success ? "true" : "false")},\n"

@@ -85,6 +85,7 @@ namespace ProjectX.Core
             return count;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteMailClaimValidation(double claimedId, int rewardCount)
         {
             uint id = checked((uint)claimedId);
@@ -106,7 +107,9 @@ namespace ProjectX.Core
             MarkValidationControl("MAIL-11-SINGLE-DELETE");
             InvokeLuaOrFail(onMailValidationRepeat, "Mail.ValidationRepeat", (double)id);
         }
+#endif
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void BeginMailG4Validation(double mailId)
         {
             BeginValidationEvidence();
@@ -147,6 +150,7 @@ namespace ProjectX.Core
             MarkValidationControl("MAIL-13-DELETE-ALL");
             StartCoroutine(FinalizeMailG4Validation());
         }
+#endif
 
 
     }

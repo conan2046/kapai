@@ -33,8 +33,10 @@ namespace ProjectX.Core
             BindPlayerHudControls();
             ApplySteamFeatureExclusions();
             ApplySteamHudFunctionUnlocks();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (HasCommandLineFlag("-projectXSteamHudExclusionAcceptance"))
                 StartCoroutine(CaptureSteamHudExclusionAcceptance());
+#endif
             EnsureMainTaskTracker();
             services.State.Change(AppState.Main, "Main UI shown");
             if (!IsSteamExcludedModule("KunLun"))

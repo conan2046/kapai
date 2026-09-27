@@ -350,7 +350,9 @@ try {
                 Start-Sleep -Seconds 2
                 Wait-FixedRuntimeRelease
             }
-            Invoke-FixedAdapter "AssertSetup"
+            $postLoginAssertAction = [string](Get-UnityMigrationPropertyValue `
+                -Object $fixed -Name "postLoginDataPreflightAssertAction" -Default "AssertSetup")
+            Invoke-FixedAdapter $postLoginAssertAction
             Invoke-FixedAdapter "Restore"
             Invoke-FixedAdapter "AssertRestored"
             Invoke-FixedAdapter "Cleanup"
@@ -841,6 +843,21 @@ finally {
         }
         catch {
             Write-Warning "Data preflight emergency restore failed: $($_.Exception.Message)"
+        }
+    }
+    elseif ($fixtureCreated) {
+        Get-Process Unity,kapai,ProjectX -ErrorAction SilentlyContinue |
+            Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        try {
+            Invoke-FixedAdapter "Restore"
+            Invoke-FixedAdapter "AssertRestored"
+            Invoke-FixedAdapter "Cleanup"
+            Invoke-FixedAdapter "AssertCleanup"
+            $fixtureCreated = $false
+        }
+        catch {
+            Write-Warning "Fixed-account emergency restore failed: $($_.Exception.Message)"
         }
     }
     foreach ($mysqlId in @($startedMySqlIds)) {

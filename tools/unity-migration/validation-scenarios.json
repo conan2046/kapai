@@ -269,7 +269,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Login.cs",
           "contains": [
             "MarkValidationControl",
             "RecordValidationSemantic",
@@ -711,7 +711,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs",
+          "path": "unityclient/Assets/ProjectX/src/Foundation/AppLaunchOptions.cs",
           "contains": [
             "-projectXTaskG4Validation"
           ]
@@ -886,14 +886,19 @@
           "contains": [
             "RunPlayerHudValidation",
             "HUD-56-EMPTY-FAILURE",
-            "hud-control-matrix-56",
+            "hud-control-matrix-56"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Login.cs",
+          "contains": [
             "services.Options.PlayerHudValidation",
             "services.Options.ScenarioManagedReconnect",
             "Player HUD reconnect confirmation."
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs",
+          "path": "unityclient/Assets/ProjectX/src/Foundation/AppLaunchOptions.cs",
           "contains": [
             "PlayerHudValidation",
             "-projectXPlayerHudValidation",
@@ -1165,7 +1170,7 @@
           "path": "unityclient/Assets/ProjectX/src/UI/UiRouter.cs",
           "contains": [
             "SetExclusiveVisibleBySource",
-            "binding == selected.Binding"
+            "selected?.GameObject == root"
           ]
         },
         {
@@ -1585,7 +1590,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.ShopValidation.cs",
           "contains": [
             "BeginShopG4Validation",
             "MarkValidationControl",
@@ -1643,8 +1648,13 @@
         {
           "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
           "contains": [
-            "BeginGameplayShopsG4Validation",
             "CaptureGameplayShopsValidation"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.ShopValidation.cs",
+          "contains": [
+            "BeginGameplayShopsG4Validation"
           ]
         },
         {
@@ -1843,7 +1853,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.World.cs",
           "contains": [
             "BeginWorldChapterList",
             "world-account-isolation"
@@ -2001,7 +2011,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Draw.cs",
           "contains": [
             "BeginDrawResult",
             "EndDrawResult"
@@ -2147,11 +2157,16 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.GameplayValidation.cs",
           "contains": [
             "ShowGameplay",
-            "EnterGameplay",
             "UpdateGameplayHotPoint"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.GameplayRoutes.cs",
+          "contains": [
+            "EnterGameplay"
           ]
         },
         {
@@ -3154,7 +3169,7 @@
         {
           "path": "unityclient/Assets/ProjectX/src/UI/ResourcesUiAssetProvider.cs",
           "contains": [
-            "Resources.Load<UiPrefabReference>",
+            "ResourceLoader.Load<UiPrefabReference>",
             "ReleaseSingletonTree",
             "DestroyOwned"
           ]
@@ -3632,7 +3647,7 @@
           "contains": [
             "InvokeEventSystemRaycastClick(entry)",
             "JINGJIE-07-HEAD-ENTRY",
-            "Layer/Main_UI/ButtonGroup1/btn_jingjie",
+            "Layer/Bg/btn_jingjie",
             "JINGJIE-06-UPGRADE",
             "services.Network.Disconnect(\"JingJie deliberate reconnect validation\")",
             "jingjie-reconnect-authority"
@@ -3708,8 +3723,8 @@
         {
           "path": "unityclient/Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab",
           "contains": [
-            "cocosPath: Layer/Panel/AnswerBg/RewardBg/Reward",
-            "cocosPath: Layer/Panel/AnswerBg/RewardBg/Reward/Icon",
+            "- path: Layer/Panel/AnswerBg/RewardBg",
+            "- path: Layer/Panel/AnswerBg/RewardBg/RightBg",
             "guid: 7167f524563491a4f82fa89bf68e91ac",
             "m_Text: 1000"
           ]

@@ -118,10 +118,10 @@ namespace ProjectX.Data
         private static void LoadAuthoritativeDefinitions()
         {
             if (authoritativeLoaded) return;
-            TextAsset petAsset = Resources.Load<TextAsset>("ProjectXData/Configs/pet_basic_config");
-            TextAsset skillAsset = Resources.Load<TextAsset>("ProjectXData/Configs/skill_basic");
-            TextAsset activeEffectAsset = Resources.Load<TextAsset>("ProjectXData/Configs/skill_active_effect");
-            TextAsset additiveEffectAsset = Resources.Load<TextAsset>("ProjectXData/Configs/skill_additive_effect");
+            TextAsset petAsset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/pet_basic_config");
+            TextAsset skillAsset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/skill_basic");
+            TextAsset activeEffectAsset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/skill_active_effect");
+            TextAsset additiveEffectAsset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/skill_additive_effect");
             if (petAsset == null || skillAsset == null || activeEffectAsset == null || additiveEffectAsset == null)
             {
                 if (!missingResourcesLogged)

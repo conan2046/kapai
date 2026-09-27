@@ -2,7 +2,9 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool IsAutomation() => services?.Options.Automation ?? false;
+#endif
         public bool HasCommandLineFlag(string flag) => services?.Options.HasFlag(flag) ?? false;
         public uint GetLocalUserId() => services?.Config.LocalUserId ?? 1;
         public string GetLoginSignature() => string.IsNullOrWhiteSpace(loginSignature) ? "local" : loginSignature;
@@ -11,7 +13,11 @@ namespace ProjectX.Core
         public string GetRoleName() => loginPresenter?.RoleName ?? string.Empty;
         public int GetRoleSex() => loginPresenter?.SelectedSex ?? 1;
         public uint GetPlayerRoleId() => services?.Player.RoleId ?? 0;
-        public uint GetValidationRoleId() => GetPlayerRoleId() != 0 ? GetPlayerRoleId() : validationRoleIdSnapshot;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private uint GetValidationRoleId() => GetPlayerRoleId() != 0 ? GetPlayerRoleId() : validationRoleIdSnapshot;
+#endif
+#endif
         public bool IsFormationPopupOpen => formationPopupView?.GameObject.activeSelf == true;
     }
 }

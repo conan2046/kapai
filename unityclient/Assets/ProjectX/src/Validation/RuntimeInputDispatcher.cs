@@ -1,7 +1,8 @@
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ProjectX.Core;
+using ProjectX.Foundation;
 using ProjectX.UI.Migration;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -9,18 +10,31 @@ using UnityEngine.UI;
 
 namespace ProjectX.Validation
 {
-    public sealed class RuntimeInputDispatchResult
-    {
-        public bool Dispatched;
-        public Vector2 ScreenPosition;
-        public string TargetPath;
-        public string FirstHit;
-        public readonly List<string> Hits = new List<string>();
-        public string Error;
-    }
-
     public static class RuntimeInputDispatcher
     {
+        private sealed class Provider : IRuntimeInputDispatcher
+        {
+            public RuntimeInputDispatchResult Dispatch(string targetPath, string targetSemanticId, string operationType)
+                => RuntimeInputDispatcher.Dispatch(targetPath, targetSemanticId, operationType);
+
+            public RuntimeInputDispatchResult Inspect(string targetPath, string targetSemanticId)
+                => RuntimeInputDispatcher.Inspect(targetPath, targetSemanticId);
+        }
+
+        private static readonly IRuntimeInputDispatcher provider = new Provider();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetProvider()
+        {
+            RuntimeValidationInput.Unregister(provider);
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void RegisterProvider()
+        {
+            RuntimeValidationInput.Register(provider);
+        }
+
         public static RuntimeInputDispatchResult Dispatch(string targetPath, string targetSemanticId, string operationType)
             => DispatchInternal(targetPath, targetSemanticId, operationType, true);
 
@@ -33,9 +47,10 @@ namespace ProjectX.Validation
             var result = new RuntimeInputDispatchResult();
             try
             {
-                if (execute && ProjectXApp.Instance == null)
+                if (execute && !UnityEngine.Object.FindObjectsOfType<MonoBehaviour>(true)
+                    .Any(component => component is IRuntimeSnapshotContext context && context.IsSnapshotContextReady))
                     throw new InvalidOperationException(
-                        "ProjectXApp.Instance is missing; the visible UI may be stale after a domain reload. No input was dispatched.");
+                        "A ready runtime snapshot context is missing; no input was dispatched.");
 
                 EventSystem eventSystem = EventSystem.current;
                 if (eventSystem == null) throw new InvalidOperationException("EventSystem.current is missing.");
@@ -43,10 +58,12 @@ namespace ProjectX.Validation
                 if (target == null) throw new InvalidOperationException("Active runtime target was not found: " + targetPath);
                 result.TargetPath = FullPath(target);
                 Camera camera = ResolveCamera(target);
-                result.ScreenPosition = RectTransformUtility.WorldToScreenPoint(camera, target.TransformPoint(target.rect.center));
+                Vector2 screenPosition = RectTransformUtility.WorldToScreenPoint(camera, target.TransformPoint(target.rect.center));
+                result.ScreenX = screenPosition.x;
+                result.ScreenY = screenPosition.y;
                 var pointer = new PointerEventData(eventSystem)
                 {
-                    position = result.ScreenPosition,
+                    position = screenPosition,
                     button = PointerEventData.InputButton.Left,
                     clickCount = 1,
                     scrollDelta = operationType == "scroll" ? new Vector2(0f, -4f) : Vector2.zero
@@ -174,3 +191,4 @@ namespace ProjectX.Validation
         }
     }
 }
+#endif

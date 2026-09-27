@@ -358,6 +358,7 @@ namespace ProjectX.UI
             confirmRebirth(heroId);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool BeginValidationRequest(int operation, int heroId)
         {
             if (pendingOperation != 0 || (operation != 8 && operation != 9) || heroId <= 0) return false;
@@ -366,6 +367,7 @@ namespace ProjectX.UI
             pendingRewards.Clear();
             return true;
         }
+#endif
 
         private void HandleHeroSnapshot()
         {

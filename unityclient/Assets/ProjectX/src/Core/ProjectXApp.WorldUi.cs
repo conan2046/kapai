@@ -49,7 +49,12 @@ namespace ProjectX.Core
                 ShowWorldAchievement,
                 HandleWorldYouLiClick,
                 () => HandleBack(),
-                controlId => { if (services.Options.WorldBattleValidation) MarkValidationControl(controlId); },
+                controlId =>
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    if (services.Options.WorldBattleValidation) MarkValidationControl(controlId);
+#endif
+                },
                 // 龙崖副本模式：`bg/CheckBox_1`「自动挑战」/ `bg/CheckBox_2`「自动挑战下一章」→ 通知 Lua
                 setChainAuto: enabled => SetWorldChainAuto(enabled),
                 setChainAutoNext: enabled => SetWorldChainAutoNext(enabled),
@@ -593,7 +598,9 @@ namespace ProjectX.Core
                 ShowWorldBattleStatisticsUnavailable, ShowWorldBattleReviveUnavailable,
                 controlId =>
                 {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                     if (services.Options.WorldBattleValidation) MarkValidationControl(controlId);
+#endif
                 });
             // 同步模式（结算层 C5/C12 依赖）
             worldOutcomePresenter.SetChainMode(worldChainMode);
@@ -604,8 +611,12 @@ namespace ProjectX.Core
         {
             EnsureWorldPresenter();
             Transform overlayParent = worldView.GameObject.transform.parent ?? worldView.GameObject.transform;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             bool automatedBattleValidation = services.Options.BattleFengShenStoryValidation
                 || services.Options.WorldBattleValidation;
+#else
+            const bool automatedBattleValidation = false;
+#endif
             if (battlePlaybackContext == BattlePlaybackContext.FengShenStory)
             {
                 fengShenBattlePlaybackView = fengShenBattlePlaybackView

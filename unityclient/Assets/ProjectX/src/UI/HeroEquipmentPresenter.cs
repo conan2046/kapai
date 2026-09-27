@@ -1147,12 +1147,14 @@ namespace ProjectX.UI
             return true;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool OpenAutoRefineForValidation()
         {
             if (selected.Uid == 0 || selected.Kind != HeroEquipmentKind.Equipment) return false;
             OpenAutoRefine();
             return autoRefineView.GameObject.activeSelf;
         }
+#endif
 
         private void ShowFaBaoStrength(DisplayRecord item)
         {

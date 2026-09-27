@@ -50,6 +50,7 @@ namespace ProjectX.Core
             ShowToast(message, 3f);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteChatValidation(string worldText, string privateText, string error)
         {
             EnsureChatPresenter();
@@ -65,6 +66,7 @@ namespace ProjectX.Core
             toastPresenter?.Clear();
             Complete($"COMPLETE: /26 world local echo -> self-private server packet -> ChatStore/UI -> invalid-target error ({services.Chat.Count} messages)");
         }
+#endif
 
         public void AddSystemChatMessage(string content)
         {
@@ -74,7 +76,11 @@ namespace ProjectX.Core
                 Sender = new PlayerSummary(),
                 Content = content ?? string.Empty
             });
-            if (!string.IsNullOrWhiteSpace(content) && !HasCommandLineFlag("-projectXGameplayValidation")
+            bool suppressToastForValidation = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            suppressToastForValidation = HasCommandLineFlag("-projectXGameplayValidation");
+#endif
+            if (!string.IsNullOrWhiteSpace(content) && !suppressToastForValidation
                 && !IsBattlePresentationActive)
                 ShowToast(content, 3f);
         }

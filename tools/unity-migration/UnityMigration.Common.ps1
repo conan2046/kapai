@@ -801,8 +801,8 @@ function Add-UnityMigrationOperationRecord {
     }
     if ($Outcome -eq "Resolved") {
         $related = @($ledger.records | Where-Object { [string]$_.recordId -eq $RelatedRecordId })
-        if ($related.Count -ne 1 -or [string]$related[0].outcome -notin @("Failed", "Blocked")) {
-            throw "Resolved record references no unique Failed/Blocked record: $RelatedRecordId"
+        if ($related.Count -ne 1 -or [string]$related[0].outcome -notin @("Failed", "Blocked", "Unresolved")) {
+            throw "Resolved record references no unique Failed/Blocked/Unresolved record: $RelatedRecordId"
         }
         if (@($ledger.records | Where-Object {
             [string]$_.outcome -eq "Resolved" -and [string]$_.relatedRecordId -eq $RelatedRecordId
@@ -2746,12 +2746,28 @@ function Assert-UnityMigrationSourceContracts {
             throw "Scenario '$($Scenario.key)' source contract is missing: $relativePath"
         }
         $content = Get-Content -Raw -Encoding UTF8 -LiteralPath $path
+        $contractPaths = New-Object System.Collections.Generic.List[string]
+        $contractPaths.Add($path)
+        $contractContent = New-Object System.Collections.Generic.List[string]
+        $contractContent.Add($content)
+        if ($relativePath -match '(?i)(^|/)ProjectXApp\.cs$') {
+            foreach ($partialPath in Get-ChildItem -LiteralPath (Split-Path -Parent $path) `
+                -Filter 'ProjectXApp.*.cs' -File | ForEach-Object { $_.FullName }) {
+                $partialContent = Get-Content -Raw -Encoding UTF8 -LiteralPath $partialPath
+                $contractPaths.Add($partialPath)
+                $contractContent.Add($partialContent)
+            }
+        }
+        $combinedContent = $contractContent -join "`n"
         foreach ($token in @($contract.contains)) {
-            if (-not $content.Contains([string]$token)) {
+            if (-not $combinedContent.Contains([string]$token)) {
                 throw "Scenario '$($Scenario.key)' source contract drifted: '$relativePath' no longer contains '$token'."
             }
         }
-        $hashLines.Add("$relativePath=$((Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash)")
+        foreach ($contractPath in $contractPaths) {
+            $contractRelativePath = [IO.Path]::GetRelativePath($Root, $contractPath).Replace('\', '/')
+            $hashLines.Add("$contractRelativePath=$((Get-FileHash -Algorithm SHA256 -LiteralPath $contractPath).Hash)")
+        }
     }
     if ($hashLines.Count -eq 0) { return "" }
     $bytes = [Text.Encoding]::UTF8.GetBytes(($hashLines -join "`n"))

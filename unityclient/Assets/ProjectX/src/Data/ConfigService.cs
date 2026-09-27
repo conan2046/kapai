@@ -13,7 +13,7 @@ namespace ProjectX.Data
         {
             if (string.IsNullOrWhiteSpace(resourcePath)) throw new ArgumentException("Config resource path is required.", nameof(resourcePath));
             if (cache.TryGetValue(resourcePath, out object cached)) return (T)cached;
-            TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath);
             if (asset == null) throw new InvalidOperationException($"Config resource is missing: Resources/{resourcePath}.json");
             T value = JsonUtility.FromJson<T>(asset.text);
             if (value == null) throw new InvalidOperationException($"Config resource could not be parsed: {resourcePath}");

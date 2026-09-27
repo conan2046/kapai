@@ -35,7 +35,7 @@ namespace ProjectX.Data
         private static void EnsureLoaded()
         {
             if (definitions != null) return;
-            TextAsset asset = Resources.Load<TextAsset>(ResourcePath);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(ResourcePath);
             if (asset == null)
                 throw new InvalidOperationException($"Unity function unlock config is missing: Resources/{ResourcePath}.json");
 

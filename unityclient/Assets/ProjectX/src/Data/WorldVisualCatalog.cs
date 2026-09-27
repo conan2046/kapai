@@ -403,7 +403,7 @@ namespace ProjectX.Data
         }
 
         private static string Load(string name) =>
-            Resources.Load<TextAsset>("ProjectXData/World/" + name)?.text ?? string.Empty;
+            ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/" + name)?.text ?? string.Empty;
 
         private static int ParseInt(string value) =>
             int.Parse(value, NumberStyles.Integer, CultureInfo.InvariantCulture);

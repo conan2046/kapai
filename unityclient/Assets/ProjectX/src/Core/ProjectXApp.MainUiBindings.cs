@@ -35,15 +35,23 @@ namespace ProjectX.Core
                 Button formationButton = mainView.BindClick(FormationPath, HandleFormationClick, true);
                 if (autoInvoke)
                 {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                     if (!HasCommandLineFlag("-projectXHeroRebirthG4Validation") || !heroRebirthG4ValidationRunning)
                         StartCoroutine(InvokeButtonNextFrame(formationButton));
+#else
+                    StartCoroutine(InvokeButtonNextFrame(formationButton));
+#endif
                 }
             }
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void RequestHeroRebirthValidationSnapshot()
             => InvokeLuaOrFail(onHeroClicked, "HeroRebirth.ReloginSnapshot");
+#endif
+#endif
 
         public void BindMailClick(bool autoInvoke)
         {

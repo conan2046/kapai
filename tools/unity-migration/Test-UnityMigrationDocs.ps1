@@ -621,7 +621,7 @@ if (-not $TargetModule -or $TargetModule -ieq "Draw") {
     Test-RequiredFile "tools/unity-migration/Compare-UnityRuntimeSnapshots.ps1" | Out-Null
     Test-RequiredFile "tools/unity-migration/Invoke-DrawSqliteFixture.ps1" | Out-Null
     Test-RequiredFile "client/ProjectX/src/Validation/RuntimeSnapshotReplay.lua" | Out-Null
-    Test-RequiredFile "unityclient/Assets/ProjectX/src/Validation/RuntimeInputDispatcher.cs" | Out-Null
+    Test-RequiredFile "unityclient/Assets/ProjectX/src/Core/RuntimeInputDispatcher.cs" | Out-Null
     if ($drawMatrixPath -and $drawScenarioPath) {
         $drawMatrix = Get-Content -Raw -Encoding UTF8 -LiteralPath $drawMatrixPath | ConvertFrom-Json
         $drawRuntimeScenario = Get-Content -Raw -Encoding UTF8 -LiteralPath $drawScenarioPath | ConvertFrom-Json

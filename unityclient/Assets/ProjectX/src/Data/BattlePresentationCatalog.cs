@@ -220,7 +220,7 @@ namespace ProjectX.Data
 
         private static byte[] LoadBytes(string name)
         {
-            TextAsset asset = Resources.Load<TextAsset>(ResourceRoot + name);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(ResourceRoot + name);
             if (asset == null || asset.bytes == null || asset.bytes.Length == 0)
                 throw new InvalidDataException($"Battle presentation resource is missing: {ResourceRoot}{name}.bytes");
             return asset.bytes;
@@ -228,7 +228,7 @@ namespace ProjectX.Data
 
         private static string LoadText(string name)
         {
-            TextAsset asset = Resources.Load<TextAsset>(ResourceRoot + name);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(ResourceRoot + name);
             if (asset == null || string.IsNullOrWhiteSpace(asset.text))
                 throw new InvalidDataException($"Battle presentation resource is missing: {ResourceRoot}{name}.txt");
             return asset.text;

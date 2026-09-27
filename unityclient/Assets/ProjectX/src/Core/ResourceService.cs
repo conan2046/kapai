@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ProjectX.Diagnostics;
+using ProjectX.Foundation;
 using ProjectX.UI;
 using UnityEngine;
 
@@ -160,10 +161,10 @@ namespace ProjectX.Core
             if (string.IsNullOrWhiteSpace(resourcePath)) return null;
             if (sprites.TryGetValue(resourcePath, out Sprite cached)) return cached;
 
-            Sprite sprite = UnityEngine.Resources.Load<Sprite>(resourcePath);
+            Sprite sprite = ResourceLoader.Load<Sprite>(resourcePath);
             if (sprite == null)
             {
-                Texture2D texture = UnityEngine.Resources.Load<Texture2D>(resourcePath);
+                Texture2D texture = ResourceLoader.Load<Texture2D>(resourcePath);
                 if (texture != null)
                 {
                     sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),

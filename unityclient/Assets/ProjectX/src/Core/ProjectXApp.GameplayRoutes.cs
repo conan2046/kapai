@@ -20,9 +20,14 @@ namespace ProjectX.Core
 
         public void EnterGameplay(int functionId)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            bool allowValidationBoundary = HasCommandLineFlag("-projectXGameplayValidation");
+#else
+            const bool allowValidationBoundary = false;
+#endif
             GameplayRouteDecision decision = GameplayRoutePlanner.Resolve(
                 services.GameplayCatalog, functionId, services.Player.Level,
-                HasCommandLineFlag("-projectXGameplayValidation"));
+                allowValidationBoundary);
             GameplayDefinition definition = decision.Definition;
             if (decision.Status == GameplayRouteDecisionStatus.MissingDefinition)
             { Fail($"Gameplay route config is missing id={functionId}."); return; }

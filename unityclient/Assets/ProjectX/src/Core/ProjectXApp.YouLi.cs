@@ -73,11 +73,14 @@ namespace ProjectX.Core
         }
         private void ClaimYouLi(byte locationId) => InvokeLuaOrFail(onYouLiClaim, "YouLi.Claim", (double)locationId);
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteYouLiValidation()
         {
             StartCoroutine(CompleteYouLiValidationAfterLayout());
         }
+#endif
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator CompleteYouLiValidationAfterLayout()
         {
             toastPresenter?.Clear();
@@ -109,5 +112,6 @@ namespace ProjectX.Core
                 $"validated={validationControlIds.Count}/8");
             Complete($"COMPLETE: YouLi 8/8 controls; function_id=1 -> /335 op=1 records={services.YouLi.ServerRecordCount}; op2/op3 bound with authoritative refresh; user={GetLocalUserId()} role={GetPlayerRoleId()}");
         }
+#endif
     }
 }

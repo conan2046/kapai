@@ -162,7 +162,8 @@ namespace ProjectX.UI
             row.SetActive(true);
             SetText(row.transform, "TitleBg/Times", $"第{index + 1}次");
             SetText(row.transform, "TitleBg/Times/Text", rewards.Count == 0
-                ? "本次未发现法宝碎片" : "寻宝成功，获得" + string.Join("、", rewards.Select(value => $"{value.Name}×{value.Amount}")));
+                ? "未发现碎片" : $"获得{rewards.Count}种奖励");
+            SetText(row.transform, "Text", rewards.Count == 0 ? "无奖励" : "获得奖励");
             Transform itemList = row.transform.Find("ListView");
             if (itemList != null)
             {
@@ -229,6 +230,9 @@ namespace ProjectX.UI
         {
             RectTransform viewport = target.GetComponent<RectTransform>()
                 ?? throw new InvalidOperationException("XunBao result ListView RectTransform is missing.");
+            Image inputSurface = target.GetComponent<Image>() ?? target.AddComponent<Image>();
+            inputSurface.color = Color.clear;
+            inputSurface.raycastTarget = true;
             ScrollRect scroll = target.GetComponent<ScrollRect>() ?? target.AddComponent<ScrollRect>();
             scroll.viewport = viewport;
             scroll.horizontal = false;
@@ -425,9 +429,21 @@ namespace ProjectX.UI
         private void RenderCell(Transform cell, RewardRecord reward)
         {
             Text name = cell.Find("Name")?.GetComponent<Text>();
-            if (name != null) name.text = $"{reward.Name}×{reward.Amount}";
+            if (name != null)
+            {
+                name.text = $"{reward.Name}\n×{reward.Amount}";
+                name.horizontalOverflow = HorizontalWrapMode.Wrap;
+                name.verticalOverflow = VerticalWrapMode.Overflow;
+                name.resizeTextForBestFit = true;
+                name.resizeTextMinSize = 14;
+                name.resizeTextMaxSize = 18;
+                if (name.rectTransform != null)
+                    name.rectTransform.sizeDelta = new Vector2(name.rectTransform.sizeDelta.x, 46f);
+            }
             Image icon = cell.Find("item")?.GetComponent<Image>();
-            Sprite sprite = resources.LoadItemIcon(reward.Picture);
+            Sprite sprite = reward.Type == 60028 && reward.Picture > 0
+                ? resources.LoadFaBaoIcon(reward.Picture.ToString(), out _)
+                : resources.LoadItemIcon(reward.Picture);
             if (icon != null && sprite != null)
             {
                 icon.sprite = sprite;

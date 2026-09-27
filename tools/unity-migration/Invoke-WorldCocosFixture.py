@@ -38,6 +38,11 @@ COCOS_BATTLE_INPUT_HASHES = {
     "zhenfa": "36458EA415215A038A4DF0D7249C41871AB0A5971DF53774C4E64820032C8B8E",
     "petEquip": "EE59CD635C68D2975617F6B34F9D6D4E832E572993F164C3281F9A134290C1D3",
 }
+# The authoritative login path invokes CUser::Init/ResetPower and rewrites
+# derived power and pet-equipment bytes. Assert those server-normalized values
+# after login while keeping the injected pre-login fixture exact.
+COCOS_RUNTIME_ZHANDOU_LI = 41640
+COCOS_RUNTIME_PET_EQUIP_HASH = "A2E73E786D2B0BAF349B5614D56414EFE4461A645B4950E0B8A2CA2FCA7CC069"
 
 
 def utc_now():
@@ -301,11 +306,17 @@ def battle_input_state(connection, role_id):
     }
 
 
-def assert_battle_input(connection, role_id):
+def assert_battle_input(connection, role_id, runtime_normalized=False, allow_progress=False):
     state = battle_input_state(connection, role_id)
-    if (state["level"] != COCOS_ROLE_LEVEL or state["exp"] != COCOS_EXP
-            or state["zhanDouLi"] != COCOS_ZHANDOU_LI
-            or state["petHashes"] != COCOS_BATTLE_INPUT_HASHES
+    expected_power = COCOS_RUNTIME_ZHANDOU_LI if runtime_normalized else COCOS_ZHANDOU_LI
+    expected_pet_equip = (COCOS_RUNTIME_PET_EQUIP_HASH if runtime_normalized
+                          else COCOS_BATTLE_INPUT_HASHES["petEquip"])
+    expected_exp = state["exp"] >= COCOS_EXP if allow_progress else state["exp"] == COCOS_EXP
+    if (state["level"] != COCOS_ROLE_LEVEL or not expected_exp
+            or state["zhanDouLi"] != expected_power
+            or state["petHashes"]["pet"] != COCOS_BATTLE_INPUT_HASHES["pet"]
+            or state["petHashes"]["zhenfa"] != COCOS_BATTLE_INPUT_HASHES["zhenfa"]
+            or state["petHashes"]["petEquip"] != expected_pet_equip
             or state["pets"] != [{"id": 57, "level": 1}, {"id": 64, "level": 1}]
             or state["deployedPetIds"] != [57]):
         raise RuntimeError(f"World Cocos battle input mismatch: {state}")
@@ -477,14 +488,14 @@ def setup_visual(args):
     setup(args, visual=True)
 
 
-def assert_setup(args):
+def assert_setup(args, runtime_normalized=False):
     connection = sqlite3.connect(args.database)
     try:
         row = connection.execute("SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)).fetchone()
         if row is None:
             raise RuntimeError("World primary role disappeared")
         assert_world(row[0], allow_claimed=True)
-        assert_battle_input(connection, args.role_id)
+        battle_input = assert_battle_input(connection, args.role_id, runtime_normalized=runtime_normalized)
         isolation = connection.execute(
             "SELECT u.role0,r.id FROM user_info1 u JOIN role_info r ON r.id=CAST(u.role0 AS INTEGER) WHERE u.id=?",
             (ISOLATION_USER_ID,),
@@ -493,6 +504,15 @@ def assert_setup(args):
             raise RuntimeError("World isolation identity mismatch")
     finally:
         connection.close()
+    if runtime_normalized:
+        snapshot = read_json(args.evidence)
+        snapshot.update({"postLoginBattleInput": battle_input,
+                         "postLoginBattleInputAssertedUtc": utc_now()})
+        write_json(args.evidence, snapshot)
+
+
+def assert_runtime_setup(args):
+    assert_setup(args, runtime_normalized=True)
 
 
 def assert_post_validation(args):
@@ -503,13 +523,7 @@ def assert_post_validation(args):
         if row is None:
             raise RuntimeError("World primary role disappeared after validation")
         assert_world(row[0], allow_claimed=True)
-        state = battle_input_state(connection, args.role_id)
-        if (state["level"] != COCOS_ROLE_LEVEL or state["exp"] < COCOS_EXP
-                or state["zhanDouLi"] != COCOS_ZHANDOU_LI
-                or state["petHashes"] != COCOS_BATTLE_INPUT_HASHES
-                or state["pets"] != [{"id": 57, "level": 1}, {"id": 64, "level": 1}]
-                or state["deployedPetIds"] != [57]):
-            raise RuntimeError(f"World post-validation battle input mismatch: {state}")
+        state = assert_battle_input(connection, args.role_id, runtime_normalized=True, allow_progress=True)
         if snapshot.get("visualMode"):
             spirit = connection.execute(
                 "SELECT user_spirit FROM role_info WHERE id=?", (args.role_id,)
@@ -540,12 +554,9 @@ def assert_restored(args):
     actual = file_hash(args.database)
     if actual != snapshot["snapshotHash"]:
         raise RuntimeError(f"World SQLite restore hash mismatch: {actual}")
-    connection = sqlite3.connect(args.database)
-    try:
-        if connection.execute("SELECT COUNT(*) FROM user_info1 WHERE id=?", (ISOLATION_USER_ID,)).fetchone()[0] != 0:
-            raise RuntimeError("World isolation user remained after restore")
-    finally:
-        connection.close()
+    # Exact database hash proves every original row is restored. This baseline
+    # already contains user 705213 linked to role 1000004, so absence is not a
+    # valid oracle for cleanup of the temporary role 1000006.
     snapshot.update({"action": "AssertRestored", "restoredHash": actual, "restored": True, "assertedUtc": utc_now()})
     write_json(args.evidence, snapshot)
 
@@ -616,7 +627,8 @@ def main():
     args = parser.parse_args()
     actions = {
         "Setup": setup, "SetupVisual": setup_visual,
-        "AssertSetup": assert_setup, "AssertPostValidation": assert_post_validation,
+        "AssertSetup": assert_setup, "AssertRuntimeSetup": assert_runtime_setup,
+        "AssertPostValidation": assert_post_validation,
         "Restore": restore,
         "AssertRestored": assert_restored, "AssertReloginHash": assert_relogin,
         "Cleanup": cleanup, "AssertCleanup": assert_cleanup,

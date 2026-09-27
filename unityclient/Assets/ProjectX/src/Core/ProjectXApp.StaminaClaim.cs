@@ -54,13 +54,16 @@ namespace ProjectX.Core
                 () => RequestStaminaClaim(index, true), "确定", "取消", false,
                 () => staminaClaimPaidCancelObserved = true);
         }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteStaminaClaimValidation()
         {
             if (staminaClaimValidationRunning || staminaClaimValidationCompleted) return;
             staminaClaimValidationRunning = true;
             StartCoroutine(RunStaminaClaimValidation());
         }
+#endif
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator RunStaminaClaimValidation()
         {
             uint primaryUserId = GetLocalUserId();
@@ -283,5 +286,6 @@ namespace ProjectX.Core
             string token = (controlId ?? string.Empty).ToLowerInvariant();
             yield return CaptureStaminaClaimFrame($"stamina-control-{token}.png");
         }
+#endif
     }
 }

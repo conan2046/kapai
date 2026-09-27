@@ -39,10 +39,12 @@ namespace ProjectX.Core
             // after the user has already closed it or navigated elsewhere.
             RefreshDrawHotPoint();
             SetStatus($"Draw /224 op=1: pools={services.Draw.Count}, free={services.Draw.HasFreeDraw}.");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (validation)
                 StartCoroutine(HasCommandLineFlag("-projectXDrawClosureValidation")
                     ? BeginDrawG4SequenceNextFrame()
                     : RequestValidationDrawNextFrame());
+#endif
         }
 
         public void BeginDrawResult(int kind, int drawType, double rawTotalDraws, int freeTimes,
@@ -82,6 +84,7 @@ namespace ProjectX.Core
             EnsureDrawPresenter();
             RefreshDrawHotPoint();
             SetStatus($"Draw /224 op=2: kind={result.Kind}, type={result.DrawType}, rewards={result.Rewards.Count}, total={result.TotalDraws}.");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!validation) return;
             if (HasCommandLineFlag("-projectXDrawClosureValidation"))
             {
@@ -104,12 +107,16 @@ namespace ProjectX.Core
                 return;
             }
             Complete($"COMPLETE: current btn_zhaomu -> HappyDrawUI -> /224 op=1 three pools/free countdown/red-point -> op=2 kind=1 single free draw -> authoritative reward/result timeline; isolated user={GetLocalUserId()}");
+#else
+            return;
+#endif
         }
 
         public bool IsExpectedDrawFailure() => drawG4ExpectFailure;
 
         public void SetDrawError(string message)
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             drawG4LastError = message ?? string.Empty;
             if (drawG4ExpectFailure && !drawG4ExpectedFailureCompleted)
             {
@@ -123,6 +130,7 @@ namespace ProjectX.Core
                 StartCoroutine(CaptureDrawInsufficientThenRequestHero());
                 return;
             }
+#endif
             ShowToast(message, 3f);
             SetStatus(message);
         }

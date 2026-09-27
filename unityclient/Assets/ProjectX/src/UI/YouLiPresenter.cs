@@ -241,10 +241,10 @@ namespace ProjectX.UI
         private static void InstallBackground(Transform root)
         {
             if (root.Find("RuntimeYouLiBackground") != null) return;
-            Sprite sprite = Resources.Load<Sprite>("Backgrounds/bg_xuezhan");
+            Sprite sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>("Backgrounds/bg_xuezhan");
             if (sprite == null)
             {
-                Texture2D texture = Resources.Load<Texture2D>("Backgrounds/bg_xuezhan");
+                Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("Backgrounds/bg_xuezhan");
                 if (texture != null) sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(.5f, .5f), 100f);
             }
             if (sprite == null) return;

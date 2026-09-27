@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using ProjectX.Data;
 using ProjectX.Diagnostics;
+using ProjectX.Foundation;
 using ProjectX.Network;
 using ProjectX.UI;
 using UnityEngine;
@@ -11,19 +12,22 @@ using XLua;
 
 namespace ProjectX.Core
 {
-    public interface IRuntimeSnapshotContext
-    {
-        string AppStateName { get; }
-        uint LocalUserId { get; }
-        uint PlayerRoleId { get; }
-        string PlayerName { get; }
-        bool IsNetworkDisconnectedOrFaulted { get; }
-        event Action<ProtocolPacketTrace> PacketObserved;
-    }
-
     public sealed partial class ProjectXApp
     {
-        public static event Action<GameObject, IRuntimeSnapshotContext> RuntimeServicesReady;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        public bool IsSnapshotContextReady => services != null && !services.IsDisposed;
+        public string AppStateName => services?.AppStateName ?? string.Empty;
+        public uint LocalUserId => services != null ? services.LocalUserId : 0;
+        public uint PlayerRoleId => services != null ? services.PlayerRoleId : 0;
+        public string PlayerName => services?.PlayerName ?? string.Empty;
+        public bool IsNetworkDisconnectedOrFaulted => services != null && services.IsNetworkDisconnectedOrFaulted;
+
+        public event Action<ProtocolPacketTrace> PacketObserved
+        {
+            add { if (services != null) services.PacketObserved += value; }
+            remove { if (services != null) services.PacketObserved -= value; }
+        }
+#endif
 
         private void InitializeApplication(AppLaunchOptions launchOptions)
         {
@@ -32,16 +36,17 @@ namespace ProjectX.Core
                 Canvas canvas = FindObjectOfType<Canvas>();
                 if (canvas == null) throw new InvalidOperationException("Startup Canvas was not found.");
                 services = new GameServices(this, launchOptions, canvas.transform);
-                RuntimeServicesReady?.Invoke(gameObject, services);
                 // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
                 services.Currencies.Changed += RefreshSharedCurrencyHeaders;
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (services.Options.ManualReconnectValidation || services.Options.ScenarioManagedReconnect
                     || services.Options.GameplayValidation || services.Options.FishValidation
                     || services.Options.DrawClosureValidation || services.Options.WorldBattleValidation)
                     services.Config.AutoReconnect = false;
+#endif
                 services.Network.StateChanged += HandleNetworkState;
                 services.Network.Disconnected += HandleDisconnected;
                 services.Protocols.UnhandledPacket += DispatchToLua;
@@ -181,6 +186,7 @@ namespace ProjectX.Core
                 onXunBaoCompose = services.Lua.GetFunction("OnXunBaoCompose");
                 onXunBaoComposeAll = services.Lua.GetFunction("OnXunBaoComposeAll");
                 onXunBaoSearchTokenBagRequested = services.Lua.GetFunction("OnXunBaoSearchTokenBagRequested");
+                onXunBaoHeaderRefresh = services.Lua.GetFunction("OnXunBaoHeaderRefresh");
                 onSevenDayClicked = services.Lua.GetFunction("OnSevenDayClicked");
                 onSevenDayClaim = services.Lua.GetFunction("OnSevenDayClaim");
                 onMoneyTreeClicked = services.Lua.GetFunction("OnMoneyTreeClicked");
@@ -366,6 +372,7 @@ namespace ProjectX.Core
             onXunBaoCompose?.Dispose();
             onXunBaoComposeAll?.Dispose();
             onXunBaoSearchTokenBagRequested?.Dispose();
+            onXunBaoHeaderRefresh?.Dispose();
             onSevenDayClicked?.Dispose();
             onSevenDayClaim?.Dispose();
             onMoneyTreeClicked?.Dispose();
@@ -482,11 +489,16 @@ namespace ProjectX.Core
 
         private static bool ShouldUseSinglePlayerTitle(AppLaunchOptions options)
         {
-            if (Application.isBatchMode || options == null || options.Automation
+            if (Application.isBatchMode || options == null
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                || options.Automation
+#endif
                 || options.HasFlag("-projectXExternalServer")) return false;
             string[] arguments = Environment.GetCommandLineArgs();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (arguments.Any(argument => string.Equals(argument,
                 SinglePlayerFlowValidationFlag, StringComparison.OrdinalIgnoreCase))) return true;
+#endif
             // Normal Editor feature validation uses the canonical LocalServer database.
             // Slot-based saves remain available only through the explicit flow-validation flag;
             // packaged non-Editor launches keep their one-click single-player default.
@@ -497,6 +509,7 @@ namespace ProjectX.Core
 
         private static string ResolveSinglePlayerSaveRoot()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             string[] arguments = Environment.GetCommandLineArgs();
             bool validation = arguments.Any(argument => string.Equals(argument,
                 SinglePlayerFlowValidationFlag, StringComparison.OrdinalIgnoreCase));
@@ -513,6 +526,9 @@ namespace ProjectX.Core
                     "Single-player flow validation requires an absolute isolated save root.");
             }
             return Path.GetFullPath(candidate);
+#else
+            return Application.persistentDataPath;
+#endif
         }
 
         private IEnumerator PrepareLocalServerThenInitialize(AppLaunchOptions launchOptions)
@@ -590,12 +606,14 @@ namespace ProjectX.Core
 
         private void OnGUI()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!HasCommandLineFlag("-projectXDebugOverlay")) return;
             GUI.depth = -1000;
             GUI.Box(new Rect(12f, 12f, 700f, 54f), $"ProjectX App\n{status}");
             if (!string.IsNullOrEmpty(disconnectReason)
                 && GUI.Button(new Rect(12f, 72f, 180f, 36f), "Reconnect"))
                 Reconnect();
+#endif
         }
     }
 }

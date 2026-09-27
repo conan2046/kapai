@@ -24,7 +24,7 @@ namespace ProjectX.UI
         public ResourcesUiAssetProvider(Transform root)
         {
             this.root = root != null ? root : throw new ArgumentNullException(nameof(root));
-            catalog = Resources.Load<UiPrefabCatalog>(CatalogPath);
+            catalog = ProjectX.Foundation.ResourceLoader.Load<UiPrefabCatalog>(CatalogPath);
             if (catalog == null)
                 throw new InvalidOperationException($"UI prefab catalog was not found: Resources/{CatalogPath}");
             entriesByKey = catalog.Entries
@@ -120,12 +120,12 @@ namespace ProjectX.UI
                 if (view?.GameObject != null) DestroyOwned(view.GameObject);
             transients.Clear();
             singletons.Clear();
-            if (catalog != null) Resources.UnloadAsset(catalog);
+            if (catalog != null) ProjectX.Foundation.ResourceLoader.Unload(catalog);
         }
 
         private CocosUiView Create(string key, Transform parent, bool active)
         {
-            UiPrefabReference reference = Resources.Load<UiPrefabReference>(ResourceRoot + key);
+            UiPrefabReference reference = ProjectX.Foundation.ResourceLoader.Load<UiPrefabReference>(ResourceRoot + key);
             if (reference == null || reference.Prefab == null)
                 throw new InvalidOperationException($"UI prefab reference was not found: {key}");
             GameObject instance = UnityEngine.Object.Instantiate(reference.Prefab, parent, false);
@@ -139,7 +139,7 @@ namespace ProjectX.UI
             }
             instance.SetActive(active);
             NormalizeFixedRootOrder(key, instance.transform);
-            Resources.UnloadAsset(reference);
+            ProjectX.Foundation.ResourceLoader.Unload(reference);
             return new CocosUiView(identity);
         }
 

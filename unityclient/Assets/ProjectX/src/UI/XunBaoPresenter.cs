@@ -317,9 +317,7 @@ namespace ProjectX.UI
                     int required = current.FragmentCosts != null && fragmentOffset < current.FragmentCosts.Length
                         ? current.FragmentCosts[fragmentOffset] : 1;
                     int fragmentId = current.FragmentIds[fragmentOffset];
-                    // Formal Cocos SeekCallBack returns when value.sign == 0: a completed
-                    // fragment must not emit op28, because the server intentionally has no
-                    // response payload for that invalid repeat request.
+                    // A completed fragment is not a valid search target.
                     if (bag.GetTotalQuantityByItemId(fragmentId) >= required) return;
                     search(checked((ushort)current.FaBaoId), checked((ushort)fragmentId));
                 });

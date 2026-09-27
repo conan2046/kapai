@@ -1781,10 +1781,10 @@ namespace ProjectX.UI
         {
             if (string.IsNullOrEmpty(resourcePath)) return null;
             if (RuntimeSprites.TryGetValue(resourcePath, out Sprite cached)) return cached;
-            Sprite sprite = Resources.Load<Sprite>(resourcePath);
+            Sprite sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>(resourcePath);
             if (sprite == null)
             {
-                Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+                Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>(resourcePath);
                 if (texture != null)
                     sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
                         new Vector2(0.5f, 0.5f), 100f);

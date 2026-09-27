@@ -1,17 +1,17 @@
 # UnityClient 当前状态
 
-> 最后更新：2026-09-26。这里只维护实时状态、当前焦点、顺序和风险。
+> 最后更新：2026-09-27。这里只维护实时状态、当前焦点、顺序和风险。
 > 稳定流程见 `docs/unityclient/MIGRATION_GUIDE.md`；模块事实见 `docs/unityclient/modules/`；历史流水见 `docs/unityclient/history/`。
 
 ## 1. 当前焦点
 
 | 项 | 当前值 |
 |---|---|
-| 唯一活动范围 | `C:\Users\Admin\.codex\worktrees\a6b4\Game` 的 Unity Framework W6 收口 |
-| 当前门禁 | W6.3 Metadata 与 W6.4 零轨道 Timeline 已完成；W6.5 Binding 解耦及剩余定向路线进行中；W6.7 误选几何已定点修复，受影响页面的可见验收仍需按入口补齐；W6 全阶段尚未完成 |
-| 当前阻塞 | 无工具硬阻塞；导入器 14 份差异文档经一次全节点扫描拆成 49 项观察（其中缺图/缺字与旧空目标重叠），仍待差异归属收敛；W6.5 本轮培养 80 处改为直接引用后，UI 层还存在 260 处、Core 层 276 处 `FindNode` 字面调用（含动态及验证路径，须分类），全局直接组件绑定条件尚未闭合；W6.7 新预览 731 个候选、0 待改，但六份新增定点还原 Prefab 未全部运行时开页 |
-| 下一步 | C 盘 Unity Editor PID 16324 当前 Play/神将阵容；培养 80 处固定节点已改序列化直引用，五页签在一次开页中真实首击并目视复核，Console 0/0。W6.7 复合按钮 1123 项及末批 13 项误选几何已还原，批处理当前 359 Prefab/731 候选/0 待改。继续 W6.5 其余固定路径与导入器 14 份差异归属，只对变更影响画面补验；商城与装备信息跳过，抽卡/龙崖战斗不重跑 |
-| 禁止事项 | W9 完成前固定 C 盘功能 worktree；已验页面不重复跑；装备信息与商城按用户要求跳过；保留用户维护的 Prefab |
+| 唯一活动范围 | `C:\Users\Admin\.codex\worktrees\a6b4\Game` 的 Unity Framework W8 |
+| 当前门禁 | W7.1–W7.5、W9.1–W9.6 已完成。W8.1 登录逻辑已归入 Login partial 并通过 Editor 编译；真实 Play 回归未完成 |
+| 当前阻塞 | W8.1 登录/角色创建/断线重连的真实 EventSystem 输入回归未完成；Unity MCP 不替代真实输入验收。W7/W9 构建各有 1 条既有 XLua Generator.CheckGenerate 构建后回调错误，Player 与 Managed 输出均生成 |
+| 下一步 | 完成 W8.1 真实 Play 回归，再按序处理 W8.2–W8.6；W9 已完成 |
+| 禁止事项 | 固定 C 盘功能 worktree；已验页面不重复跑；装备信息与商城按用户要求跳过；保留用户维护的 Prefab |
 
 ## 2. 总进度
 
@@ -73,19 +73,6 @@ GameplayShops、HeroCultivation 为用户明确授权的 G6 例外，不增加�
 | Draw 碎片定向条件 | 必须分别覆盖直接碎片道具（`reward.Type<60000`）和重复神将转换（`type=60002 + transformItemId>0`）；`DuplicateFragment` 只保证后一条高级首次抽取前置 | `tools/unity-migration/Invoke-DrawSqliteFixture.ps1` |
 | 最近严格完成模块 | XunBao 21/21、7/7双端状态、6/6语义、用户最终Play通过 | `docs/unityclient/modules/XUNBAO.md` |
 | Steam本机发布 | Unity可独立双击运行；外部干净机/Depot不在当前阻塞口径 | 对应 S0-S8 本地证据与历史文档 |
-
-### World 公共战斗状态隔离：下一步验收内容
-
-| 场景 | 必须验证 | 通过条件 |
-|---|---|---|
-| FightType=16 → FightType=21 | 普通副本自动挑战后台继续时进入闯关并触发守卫战 | 通过：replay store、Presenter、回放协程互不覆盖；`/38` 按权威 FightType=21 路由，副本自动链路继续 |
-| FightType=21 结算返回 | 闯关回放结束、结算回调、返回地图 | 通过：闯关 pending、地图位置、奖励、守卫格和刷新结果未串入公共 World 状态 |
-| FightType=16 连战 | 普通副本手动/自动/连战连续两场 | 通过：chainIndex、chainNextNodeId、自动续战未被闯关回放清空；后续请求仍为 FightType=16 |
-| FightType=19 自然结算 | 封神列传回放完成后等待 `/10` 结算 | 通过：stars、rewardPush、结算等待归 FengShenStory，普通副本/闯关状态不改变 |
-| FightType=19 跳过 | 封神列传点击跳过并返回地图 | 通过：仅封神跳过抑制生效，无错误结算；下一场 SkipRequested 重新初始化 |
-| 退出/重进恢复 | 在任一战斗回放期间离开页面再返回 | 通过：无旧战场覆盖、旧奖励弹窗覆盖或公共协程残留；Unity Console 0 error |
-
-验收证据要求：真实 EventSystem/raycast 输入、玩家可见回放/结算、协议或 Unity SQLite 权威结果、当前源码与 MCP Console/状态记录必须同时具备；未启动本地服务端时只记脚本/编辑器测试通过，不记真实战斗链路通过。
 
 ## 5. 总迁移顺序
 

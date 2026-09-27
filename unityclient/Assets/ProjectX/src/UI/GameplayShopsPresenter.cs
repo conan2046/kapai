@@ -142,6 +142,7 @@ namespace ProjectX.UI
             return true;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool SelectTypeForValidation(byte type)
         {
             if (Array.IndexOf(AllTypes, type) < 0) return false;
@@ -152,6 +153,7 @@ namespace ProjectX.UI
             Render();
             return true;
         }
+#endif
 
         public bool InvokeCategory(int index)
         {

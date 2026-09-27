@@ -44,7 +44,8 @@ namespace ProjectX.Core
             IsJingJieOpen && jingJieSurfaceMode == PlayerHubTab.Bag;
         public int JingJieCurrentId => services?.JingJie.CurrentId ?? 0;
 
-        public void BeginJingJieValidation()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void BeginJingJieValidation()
         {
             if (jingJieValidationRunning) return;
             jingJieValidationRunning = true;
@@ -263,6 +264,7 @@ namespace ProjectX.Core
             File.WriteAllText(mapPath, content, new System.Text.UTF8Encoding(false));
         }
 
+#endif
         private void HandleJingJieClick()
         {
             FunctionUnlockDefinition unlock = FunctionUnlockCatalog.Resolve(22);

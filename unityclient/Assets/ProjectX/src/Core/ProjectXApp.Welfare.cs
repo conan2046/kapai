@@ -68,6 +68,7 @@ namespace ProjectX.Core
         public void SetWelfareError(string message) { ShowToast(message, 3f); SetStatus(message); }
         public void CaptureWelfareAndClaim() => StartCoroutine(CaptureWelfareTabsAndClaim());
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteWelfareValidation(int signedDays)
         {
             EnsureWelfarePresenter();
@@ -83,6 +84,7 @@ namespace ProjectX.Core
             welfarePresenter.SelectTab(0);
             Complete($"COMPLETE: /199 sign list -> single daily claim -> authoritative re-pull days={signedDays}; /222 online status={services.Welfare.OnlineClaimedCount}/{services.Welfare.Online.Count}; /223 unavailable empty state; isolated user={GetLocalUserId()}");
         }
+#endif
 
         private IEnumerator CaptureWelfareTabsAndClaim()
         {

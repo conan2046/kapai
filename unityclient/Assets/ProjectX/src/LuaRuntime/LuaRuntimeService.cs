@@ -24,7 +24,7 @@ namespace ProjectX.LuaRuntime
 
         public void ExecuteResource(string resourcePath, string chunkName)
         {
-            TextAsset script = Resources.Load<TextAsset>(resourcePath);
+            TextAsset script = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath);
             if (script == null)
                 throw new InvalidOperationException($"Lua resource is missing: Resources/{resourcePath}.txt");
             LuaErrorBoundary.Execute(chunkName, () => environment.DoString(script.text, chunkName));
@@ -49,9 +49,9 @@ namespace ProjectX.LuaRuntime
         private static byte[] LoadResourceModule(ref string moduleName)
         {
             string resourcePath = "Lua/" + moduleName.Replace('.', '/');
-            TextAsset script = Resources.Load<TextAsset>(resourcePath);
+            TextAsset script = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath);
             if (script == null)
-                script = Resources.Load<TextAsset>(resourcePath + ".lua");
+                script = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath + ".lua");
             if (script == null)
                 return null;
             moduleName = resourcePath + ".txt";

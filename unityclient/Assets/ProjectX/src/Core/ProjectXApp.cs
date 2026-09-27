@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using ProjectX.Animation;
 using ProjectX.Data;
 using ProjectX.Diagnostics;
+using ProjectX.Foundation;
 using ProjectX.LuaRuntime;
 using ProjectX.Network;
 using ProjectX.UI;
@@ -21,6 +22,9 @@ namespace ProjectX.Core
 {
     [LuaCallCSharp]
     public sealed partial class ProjectXApp : MonoBehaviour
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        , IRuntimeSnapshotContext, IRuntimePacketTraceSource
+#endif
     {
         private enum ShopHubTab
         {
@@ -28,7 +32,9 @@ namespace ProjectX.Core
             Soul
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private const string SinglePlayerFlowValidationFlag = "-projectXSinglePlayerFlowValidation";
+#endif
         private const string SinglePlayerSaveRootPrefix = "-projectXSinglePlayerSaveRoot=";
 
         public const string LoginButtonPath = "Layer/Login/Btn_Play";
@@ -211,6 +217,7 @@ namespace ProjectX.Core
         private LuaFunction onXunBaoCompose;
         private LuaFunction onXunBaoComposeAll;
         private LuaFunction onXunBaoSearchTokenBagRequested;
+        private LuaFunction onXunBaoHeaderRefresh;
         private LuaFunction onSevenDayClicked;
         private LuaFunction onSevenDayClaim;
         private LuaFunction onStaminaClaimClicked;
@@ -296,15 +303,6 @@ namespace ProjectX.Core
         private CocosUiView heroBookAchievementView;
         private CocosUiView heroBookLevelResultView;
         private HeroBookPresenter heroBookPresenter;
-        private readonly List<HeroBookEntry> pendingHeroBookEntries = new List<HeroBookEntry>();
-        private readonly List<HeroBookAttribute> pendingHeroBookAttributes = new List<HeroBookAttribute>();
-        private readonly List<HeroBookAttribute> pendingHeroBookScoreAttributes = new List<HeroBookAttribute>();
-        private readonly List<HeroBookAttribute> pendingHeroBookUpgradeAttributes = new List<HeroBookAttribute>();
-        private readonly List<HeroBookAttribute> pendingHeroBookUpgradeLevelAttributes = new List<HeroBookAttribute>();
-        private int pendingHeroBookLevel;
-        private long pendingHeroBookScore;
-        private long pendingHeroBookNextStart;
-        private long pendingHeroBookNextEnd;
         private CocosUiView heroRecycleView;
         private CocosUiView heroRebirthChooseFrameView;
         private CocosUiView heroRebirthChooseView;
@@ -312,8 +310,6 @@ namespace ProjectX.Core
         private HeroRebirthPresenter heroRebirthPresenter;
         private bool heroRecycleEntryPending;
         private bool heroRecycleOpenedFromBag;
-        private int heroRebirthResponseOperation;
-        private int heroRebirthResponseHeroId;
         private bool heroRebirthG4ValidationRunning;
         private const string HeroRebirthControlMatrixSemantic = "hero-rebirth-control-matrix-24";
         private CocosUiView heroReplacementView;
@@ -350,11 +346,6 @@ namespace ProjectX.Core
         private LuaFunction onFormationUse;
         private HeroEntry pendingHeroEntry = HeroEntry.Formation;
         private bool heroEntryRequestPending;
-        private readonly List<HeroRecord> pendingHeroes = new List<HeroRecord>();
-        private readonly List<FormationRecord> pendingFormations = new List<FormationRecord>();
-        private readonly List<int> pendingFormationDisplay = new List<int>();
-        private readonly List<int> pendingFormationCombat = new List<int>();
-        private int pendingActiveFormationId;
         private readonly Dictionary<int, bool> heroEquipmentStageOpen = new Dictionary<int, bool>();
         private readonly HashSet<int> heroEquipmentStageResponses = new HashSet<int>();
         private int pendingHeroEquipmentPosition;
@@ -405,7 +396,9 @@ namespace ProjectX.Core
         private CocosUiView settingsView;
         private SettingsPresenter settingsPresenter;
         private Button settingsButton;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private SettingsPreferenceSnapshot? settingsVisualPreferenceSnapshot;
+#endif
         private CocosUiView taskBackgroundView;
         private CocosUiView taskView;
         private TaskPresenter taskPresenter;
@@ -484,113 +477,6 @@ namespace ProjectX.Core
         private GuildPresenter guildPresenter;
         private readonly List<GuildRecord> pendingGuildRecords = new List<GuildRecord>();
         private readonly List<GuildMemberRecord> pendingGuildMembers = new List<GuildMemberRecord>();
-        private CocosUiView worldView;
-        private CocosUiView worldStageView;
-        private CocosUiView worldMapView;
-        private CocosUiView worldDetailView;
-        private CocosUiView worldSweepView;
-        private CocosUiView worldBattleResultView;
-        private CocosUiView worldBattleStatisticsView;
-        private CocosUiView worldBoxAwardView;
-        private CocosUiView worldAchievementView;
-        private CocosUiView worldBattlePlaybackView;
-        private CocosUiView fengShenBattlePlaybackView;
-        private CocosUiView monopolyBattlePlaybackView;
-        private WorldPresenter worldPresenter;
-        private WorldOutcomePresenter worldOutcomePresenter;
-        private WorldBattlePlaybackPresenter worldBattlePlaybackPresenter;
-        private WorldBattlePlaybackPresenter worldBattleWorldPresenter;
-        private WorldBattlePlaybackPresenter fengShenBattlePlaybackPresenter;
-        private WorldBattlePlaybackPresenter monopolyBattlePlaybackPresenter;
-        private enum BattlePlaybackContext { None, World, FengShenStory, Monopoly }
-        private BattlePlaybackContext battlePlaybackContext;
-
-        private WorldBattleReplayStore ActiveBattleReplayStore => battlePlaybackContext switch
-        {
-            BattlePlaybackContext.FengShenStory => services.FengShenBattleReplay,
-            BattlePlaybackContext.Monopoly => services.MonopolyBattleReplay,
-            _ => services.WorldBattleReplay
-        };
-
-        private WorldBattleReplayStore GetBattleReplayStore(BattlePlaybackContext context)
-        {
-            return context switch
-            {
-                BattlePlaybackContext.FengShenStory => services.FengShenBattleReplay,
-                BattlePlaybackContext.Monopoly => services.MonopolyBattleReplay,
-                _ => services.WorldBattleReplay
-            };
-        }
-
-        private WorldBattlePlaybackPresenter GetBattlePlaybackPresenter(BattlePlaybackContext context)
-        {
-            return context switch
-            {
-                BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackPresenter,
-                BattlePlaybackContext.Monopoly => monopolyBattlePlaybackPresenter,
-                _ => worldBattleWorldPresenter
-            };
-        }
-
-        private WorldBattlePlaybackPresenter ActiveBattlePlaybackPresenter
-            => GetBattlePlaybackPresenter(battlePlaybackContext);
-        private Coroutine worldBattlePlaybackCoroutine;
-        private Coroutine fengShenBattlePlaybackCoroutine;
-        private Coroutine monopolyBattlePlaybackCoroutine;
-
-        private sealed class BattlePlaybackRuntimeState
-        {
-            public bool PendingResult;
-            public int PendingStars;
-            public bool SuppressSettlementForSkippedPlayback;
-        }
-
-        private readonly BattlePlaybackRuntimeState worldBattleRuntime = new BattlePlaybackRuntimeState();
-        private readonly BattlePlaybackRuntimeState fengShenBattleRuntime = new BattlePlaybackRuntimeState();
-        private readonly BattlePlaybackRuntimeState monopolyBattleRuntime = new BattlePlaybackRuntimeState();
-
-        private BattlePlaybackRuntimeState GetBattlePlaybackRuntime(BattlePlaybackContext context)
-        {
-            return context switch
-            {
-                BattlePlaybackContext.FengShenStory => fengShenBattleRuntime,
-                BattlePlaybackContext.Monopoly => monopolyBattleRuntime,
-                _ => worldBattleRuntime
-            };
-        }
-
-        private Coroutine ActiveBattlePlaybackCoroutine => battlePlaybackContext switch
-        {
-            BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackCoroutine,
-            BattlePlaybackContext.Monopoly => monopolyBattlePlaybackCoroutine,
-            _ => worldBattlePlaybackCoroutine
-        };
-
-        private void ClearBattlePlaybackCoroutine(BattlePlaybackContext context)
-        {
-            if (context == BattlePlaybackContext.FengShenStory) fengShenBattlePlaybackCoroutine = null;
-            else if (context == BattlePlaybackContext.Monopoly) monopolyBattlePlaybackCoroutine = null;
-            else worldBattlePlaybackCoroutine = null;
-        }
-        private Coroutine worldChainAutoSettlementCoroutine;
-        private int worldChainAutoSettlementToken;
-        private bool worldBattleBackgrounded;
-        private bool worldBattleInFlight;
-        // 龙崖连战：本场战斗出发时主角所在关卡（走位起点）。/320 op=8 会先把
-        // WorldStore.CurrentStageId 推到新关，必须在它被改写之前抓下来。
-        private uint worldChainWalkFromStageId;
-        // 走位时长 —— 对齐 Cocos FuBenDetailUI:ModelMove 的 cc.MoveTo:create(2, ...)
-        private const float WorldChainWalkSeconds = 2f;
-        private const float WorldChainAutoSettlementSeconds = 2f;
-        // 等 /38 回放播完的超时兜底（一场回放约 14 秒；异常路径不至于无限等待）
-        private const float MaxWorldBattlePlaybackWait = 60f;
-        private readonly List<WorldChapterRecord> pendingWorldChapters = new List<WorldChapterRecord>();
-        private readonly List<WorldStageRecord> pendingWorldStages = new List<WorldStageRecord>();
-        private readonly List<WorldStarBoxRecord> pendingWorldStarBoxes = new List<WorldStarBoxRecord>();
-        private WorldStageRecord pendingWorldStage;
-        private byte pendingWorldMapType;
-        private uint pendingWorldChapterId;
-        private string pendingWorldChapterName;
         private uint worldG4StageId;
         private uint worldG4ChapterId;
         private int worldG4RewardCount;
@@ -605,21 +491,7 @@ namespace ProjectX.Core
         private bool worldG4ResetValidated;
         private bool worldG4BattleStatisticsValidated;
         private bool worldG4BattleReplayValidated;
-        private bool worldFormationReturnPending;
-        private bool worldFormationReturnToDetail;
-        // 打开阵容前 World 是否停在章节选择页（showChapters）。关闭阵容后按原状态还原，
-        // 避免无条件 ShowStages() 把 chapterPage 的 btn_1..5 / Button_1 / Button_2 藏掉。
-        private bool worldFormationReturnToChapters;
-        private bool worldYouLiReturnPending;
-        private bool worldFormationPopupRequestPending;
-        private uint selectedWorldBoxStageId;
-        private Button worldBoxClaimInteractionButton;
-        private Button worldBoxCloseInteractionButton;
-        private Button worldBoxTitleCloseInteractionButton;
-        private byte worldAchievementType = 1;
-        private byte worldAchievementBitmap;
         private bool worldAchievementAuthoritativeResponse;
-        private Coroutine worldAchievementLayoutCoroutine;
         private CocosUiView welfareView;
         private CocosUiView welfareSignView;
         private CocosUiView welfareOnlineView;
@@ -827,19 +699,21 @@ namespace ProjectX.Core
         public int TaskCount => services?.Tasks.Count ?? 0;
         public bool IsTaskHotPointVisible => mainTaskTracker?.IsHotPointVisible ?? false;
 
-        public void BeginValidationEvidence()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void BeginValidationEvidence()
         {
             validationControlIds.Clear();
             passedValidationSemantics.Clear();
             failedValidationSemantics.Clear();
         }
 
-        public void MarkValidationControl(string controlId)
+        private void MarkValidationControl(string controlId)
         {
             if (!string.IsNullOrWhiteSpace(controlId)) validationControlIds.Add(controlId.Trim());
         }
 
-        public void RecordValidationSemantic(string key, bool passed, string detail = "")
+        private void RecordValidationSemantic(string key, bool passed, string detail = "")
         {
             if (string.IsNullOrWhiteSpace(key)) return;
             key = key.Trim();
@@ -856,12 +730,14 @@ namespace ProjectX.Core
         public string[] GetValidatedControlIds() =>
             validationControlIds.OrderBy(value => value, StringComparer.Ordinal).ToArray();
 
-        public string[] GetPassedValidationSemanticKeys() =>
+        private string[] GetPassedValidationSemanticKeys() =>
             passedValidationSemantics.OrderBy(value => value, StringComparer.Ordinal).ToArray();
 
-        public string[] GetFailedValidationSemanticAssertions() =>
+        private string[] GetFailedValidationSemanticAssertions() =>
             failedValidationSemantics.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => $"{pair.Key}: {pair.Value}").ToArray();
+#endif
+#endif
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
         public int RewardCount => services?.Rewards.Count ?? 0;
         public bool IsHeroOpen => oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView;
@@ -911,12 +787,14 @@ namespace ProjectX.Core
         public int TeamRenderedPlayerCount => teamPresenter?.RenderedPlayerCount ?? 0;
         public AppState CurrentAppState => services?.State.Current ?? ProjectX.Core.AppState.Booting;
 
-        public void InvokeLoginForValidation()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void InvokeLoginForValidation()
         {
             Button button = loginView?.FindNode(LoginButtonPath)?.GetComponent<Button>();
             if (button == null) throw new InvalidOperationException("Local Btn_Play is not bound.");
             button.onClick.Invoke();
         }
+#endif
 
         public bool ValidateLoginUi(out string detail)
         {
@@ -1008,7 +886,9 @@ namespace ProjectX.Core
             }
         }
 
-        public void RunSettingsValidation()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void RunSettingsValidation()
         {
             BeginValidationEvidence();
             if (settingsButton == null) { Fail("Settings button was not bound."); return; }
@@ -1147,7 +1027,7 @@ namespace ProjectX.Core
             Complete("COMPLETE: settings real entry/frame/identity/audio/defaults/boundaries/persistence/failure branches; no-server-fixture");
         }
 
-        public void RunSettingsAccountValidation()
+        private void RunSettingsAccountValidation()
         {
             settingsButton.onClick.Invoke();
             if (!IsSettingsOpen) { Fail("Settings UI did not reopen for account-switch validation."); return; }
@@ -1293,7 +1173,10 @@ namespace ProjectX.Core
                 PlayerPrefs.Save();
             }
         }
+#endif
+#endif
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public bool ValidateFoundation(out string detail)
         {
             detail = string.Empty;
@@ -1368,70 +1251,7 @@ namespace ProjectX.Core
             detail = $"foundation ok; tasks={services.Tasks.Count}; serverTime={services.ServerTime.UnixSeconds}; sprites={services.Resources.CachedSpriteCount}; missing={services.Resources.MissingSpriteCount}";
             return true;
         }
-
-        public void ReturnToLogin()
-        {
-            ResetBattlePlaybackStateAfterDisconnect();
-            services.Network.Disconnect();
-            if (singlePlayerTitleEnabled) StopSinglePlayerServer();
-            mainHudPresenter?.Dispose();
-            mainHudPresenter = null;
-            mainTaskTracker?.Dispose();
-            mainTaskTracker = null;
-            services.Tasks.Clear();
-            services.Player.Clear();
-            services.Currencies.Clear();
-            services.Bag.Clear();
-            bagFlowPresenter?.CloseAll();
-            services.Rewards.Clear();
-            services.Mails.Clear();
-            services.Shop.Clear();
-            shopPresenter?.ResetTransientState();
-            RestoreShopFramePanel();
-            errorPresenter?.Hide();
-            services.Friends.Clear();
-            services.Heroes.Clear();
-            services.Formation.Clear();
-            services.HeroEquipment.Clear();
-            services.FaBao.Clear();
-            services.EnhanceMasters.Clear();
-            activeHeroCultivationId = 0;
-            pendingHeroEquipmentPosition = 0;
-            heroEquipmentOpenedFromHeroDetails = false;
-            heroEquipmentOpenedFromEnhanceMaster = false;
-            heroReplacementOpenedFromHeroHub = false;
-            heroReplacementOpenedFromFormationPopup = false;
-            pendingFunctionCultivationMode = -1;
-            pendingHeroEquipment.Clear();
-            pendingFaBao.Clear();
-            pendingCultivation.Clear();
-            services.World.Clear();
-            pendingFengShenRewards.Clear();
-            deferredFengShenRewardPush = false;
-            fengShenStoryPresenter?.CloseModal();
-            services.Welfare.Clear();
-            services.Activity.Clear();
-            services.Draw.Clear();
-            services.ServerTime.Reset();
-            loadingPresenter?.Clear();
-            toastPresenter?.Clear();
-            rewardPresenter?.Hide();
-            ShowLoginUi();
-            if (singlePlayerTitleEnabled) BindLoginClick(false);
-        }
-
-        public void InitializePlayer(uint roleId, string name, int sex, int model, int head, int level,
-            double experience, double power, int money, int premium, int boundPremium,
-            uint potential, uint soul, int packageCapacity, uint guildContribution)
-        {
-            services.Player.Initialize(roleId, name, unchecked((byte)sex), unchecked((byte)model),
-                unchecked((byte)head), unchecked((ushort)level), checked((ulong)experience),
-                checked((ulong)power), potential, soul, unchecked((ushort)packageCapacity));
-            services.Currencies.Initialize(money, premium, boundPremium, soul, guildContribution);
-            services.Mails.ConfigureAccount(roleId);
-            if (singlePlayerTitleEnabled && activeSaveSlotId > 0)
-                singlePlayerSaves?.UpdatePlayer(activeSaveSlotId, roleId, name, model, level, checked((ulong)power));
-        }
+#endif
 
         public void AddPlayerExperience(uint amount) => services.Player.AddExperience(amount);
         public void SetPlayerPower(double value) => services.Player.SetPower(checked((ulong)value));
@@ -1555,6 +1375,7 @@ namespace ProjectX.Core
             if (title != null && title.text != cultivationTitle) title.text = cultivationTitle;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void BeginPlayerHudValidation()
         {
             if (playerHudValidationRunning) return;
@@ -1837,6 +1658,7 @@ namespace ProjectX.Core
         }
 
 
+#endif
         public void BeginRewardUpdate(int expectedCount)
         {
             pendingRewards.Clear();
@@ -1868,331 +1690,7 @@ namespace ProjectX.Core
 
 
 
-        private bool IsBattlePresentationActive => worldBattlePlaybackCoroutine != null
-            || fengShenBattlePlaybackCoroutine != null
-            || monopolyBattlePlaybackCoroutine != null
-            || worldBattlePlaybackPresenter?.IsVisible == true
-            || fengShenBattlePlaybackPresenter?.IsVisible == true
-            || monopolyBattlePlaybackPresenter?.IsVisible == true
-            || worldBattleRuntime.PendingResult
-            || fengShenBattleRuntime.PendingResult
-            || monopolyBattleRuntime.PendingResult
-            || worldOutcomePresenter?.IsBattleVisible == true
-            || worldOutcomePresenter?.IsStatisticsVisible == true;
-
-
-        public void ShowFengShenStoryBattleResult(int stars)
-        {
-            battlePlaybackContext = BattlePlaybackContext.FengShenStory;
-            services.Rewards.Replace("封神列传结算", pendingRewards);
-            if (fengShenBattleRuntime.SuppressSettlementForSkippedPlayback
-                || fengShenBattlePlaybackPresenter?.SkipRequested == true)
-            {
-                fengShenBattleRuntime.PendingResult = false;
-                fengShenBattleRuntime.PendingStars = 0;
-                SetStatus($"FengShenStory skipped playback consumed op10 without presenting settlement: stars={stars}, rewards={services.Rewards.Count}.");
-                return;
-            }
-            if (fengShenBattlePlaybackCoroutine != null || fengShenBattlePlaybackPresenter?.IsVisible == true)
-            {
-                fengShenBattleRuntime.PendingResult = true;
-                fengShenBattleRuntime.PendingStars = stars;
-                SetStatus($"FengShenStory authoritative result queued until natural playback completes: stars={stars}, rewards={services.Rewards.Count}.");
-                return;
-            }
-            ShowWorldBattleResultNow(stars, BattlePlaybackContext.FengShenStory);
-        }
-
-        private void ShowWorldBattleResultNow(int stars, BattlePlaybackContext context)
-        {
-            EnsureWorldOutcomePresenter();
-            WorldBattlePlaybackPresenter playbackPresenter = GetBattlePlaybackPresenter(context);
-            if (worldChainAutoSettlementCoroutine != null)
-            {
-                worldChainAutoSettlementToken++;
-                StopCoroutine(worldChainAutoSettlementCoroutine);
-                worldChainAutoSettlementCoroutine = null;
-            }
-            bool fengShenStory = context == BattlePlaybackContext.FengShenStory;
-            if (!fengShenStory && !CanShowWorldBattleUi())
-            {
-                // 玩家已经离开当前章节：结算仍以协议为准，但战斗层不能重新
-                // 抢回前台。自动模式继续走既有后续逻辑；手动模式保持后台结束。
-                playbackPresenter?.Hide();
-                worldBattleResultView?.SetVisible(false);
-                worldBattleStatisticsView?.SetVisible(false);
-                GetBattlePlaybackRuntime(context).PendingResult = false;
-                worldBattleInFlight = false;
-                if (worldChainMode && worldChainNextStageId == 0
-                    && (worldChainAuto || worldChainAutoNext))
-                    ContinueBattleOutcomeControl();
-                SetStatus("World battle completed in background because the current chapter view is not active.");
-                return;
-            }
-            worldOutcomePresenter.SetReplayStore(GetBattleReplayStore(context));
-            if (!fengShenStory)
-            {
-                // 本章已结束（Lua 侧 chainNextNodeId == 0 才走这条）：收起连战布点层
-                // kapaiguaiwuLayer，回大底图 DadituuiLayer。胜败都走这里 —— 失败时
-                // 服务端下发的是本章第一关（≠0），会继续连战，不会到这一步。
-                worldPresenter?.ReleaseStageWalkHold();
-                worldPresenter?.EndChainStage();
-            }
-            worldOutcomePresenter.ShowBattle(stars, !fengShenStory);
-            SetStatus($"{(fengShenStory ? "FengShenStory" : "World")} battle result active: stars={stars}, rewards={services.Rewards.Count}.");
-            // 龙崖 Boss 胜利：任一自动流程开启时，结算面板展示 2 秒后自动执行“继续”。
-            // 普通关和失败不走这里；两个自动开关都关闭时必须等待玩家点击。
-            if (!fengShenStory && worldChainMode && worldChainNextStageId == 0
-                && (worldChainAuto || worldChainAutoNext))
-            {
-                int autoSettlementToken = ++worldChainAutoSettlementToken;
-                worldChainAutoSettlementCoroutine = StartCoroutine(
-                    AutoContinueWorldChainSettlement(BattlePlaybackContext.World, autoSettlementToken));
-            }
-            if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
-                StartCoroutine(CaptureWorldBattleResult(services.Rewards.Count));
-            GetBattlePlaybackRuntime(context).PendingResult = false;
-            if (context == BattlePlaybackContext.World)
-                worldBattleInFlight = false;
-        }
-
-
-
-        public void BeginHeroUpdate(int followHeroId, int expectedCount)
-        {
-            pendingHeroes.Clear();
-            if (expectedCount > pendingHeroes.Capacity) pendingHeroes.Capacity = expectedCount;
-            pendingFollowHeroId = followHeroId;
-        }
-
-        private int pendingFollowHeroId;
-
-        public void AddHeroRecord(int id, int fightPosition, string name, int star, int breakLevel, int level,
-            double experience, double maxExperience, double power, double attack, double physicalDefense,
-            double magicDefense, double health, double speed, double currentHealth, int cultivationLevel,
-            int cultivationAttack, int cultivationPhysicalDefense, int cultivationMagicDefense,
-            int cultivationHealth, int primarySkillLevel = 1)
-        {
-            pendingHeroes.Add(new HeroRecord(id, fightPosition, name, star, breakLevel, level,
-                checked((uint)experience), checked((uint)maxExperience), checked((ulong)power),
-                checked((uint)attack), checked((uint)physicalDefense), checked((uint)magicDefense),
-                checked((ulong)health), checked((uint)speed), checked((ulong)currentHealth), cultivationLevel,
-                cultivationAttack, cultivationPhysicalDefense, cultivationMagicDefense, cultivationHealth,
-                primarySkillLevel));
-        }
-
-        public double GetHeroPower(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Power : 0d;
-        public double GetHeroAttack(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Attack : 0d;
-        public double GetHeroHealth(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Health : 0d;
-        public double GetPlayerPower() => services.Player.Power;
-
-        public void EndHeroUpdate() => services.Heroes.Replace(pendingFollowHeroId, pendingHeroes);
-
-        public void BeginHeroRebirthResponse(int operation, int heroId, int expectedCount)
-        {
-            heroRebirthResponseOperation = operation;
-            heroRebirthResponseHeroId = heroId;
-            heroRebirthPresenter?.BeginResponse(operation, heroId, expectedCount);
-        }
-
-        public void AddHeroRebirthReward(int type, double id, double quantity)
-            => heroRebirthPresenter?.AddResponseReward(type, checked((uint)id), checked((uint)quantity));
-
-        public void EndHeroRebirthResponse(int operation, int heroId, bool success, string error)
-        {
-            if (heroRebirthPresenter == null)
-            {
-                if (!success) ShowToast(string.IsNullOrWhiteSpace(error) ? "神将重生失败" : error, 3f);
-                return;
-            }
-            heroRebirthPresenter.EndResponse(operation, heroId, success, error);
-            heroRebirthResponseOperation = 0;
-            heroRebirthResponseHeroId = 0;
-        }
-
-        public void BeginHeroBookSnapshot(int level, double score, double nextStart, double nextEnd,
-            int expectedHeroCount)
-        {
-            pendingHeroBookLevel = level;
-            pendingHeroBookScore = checked((long)score);
-            pendingHeroBookNextStart = checked((long)nextStart);
-            pendingHeroBookNextEnd = checked((long)nextEnd);
-            pendingHeroBookEntries.Clear();
-            pendingHeroBookAttributes.Clear();
-            pendingHeroBookScoreAttributes.Clear();
-            if (expectedHeroCount > pendingHeroBookEntries.Capacity)
-                pendingHeroBookEntries.Capacity = expectedHeroCount;
-        }
-
-        public void AddHeroBookEntry(int heroId, int star, int score)
-            => pendingHeroBookEntries.Add(new HeroBookEntry(heroId, star, score));
-
-        public void AddHeroBookAttribute(int group, int type, double value)
-        {
-            var attribute = new HeroBookAttribute(type, checked((long)value));
-            if (group == 1) pendingHeroBookAttributes.Add(attribute);
-            else pendingHeroBookScoreAttributes.Add(attribute);
-        }
-
-        public void EndHeroBookSnapshot()
-        {
-            services.HeroBook.Replace(pendingHeroBookLevel, pendingHeroBookScore,
-                pendingHeroBookNextStart, pendingHeroBookNextEnd, pendingHeroBookEntries,
-                pendingHeroBookAttributes, pendingHeroBookScoreAttributes);
-            SetStatus($"HeroBook synchronized: level={services.HeroBook.Level}, score={services.HeroBook.Score}, heroes={services.HeroBook.Entries.Count}.");
-        }
-
-        public void BeginHeroBookUpgrade(int heroId, int star, int addedScore, int bookLevel)
-        {
-            pendingHeroBookUpgradeAttributes.Clear();
-            pendingHeroBookUpgradeLevelAttributes.Clear();
-        }
-
-        public void AddHeroBookUpgradeAttribute(int group, int type, double value)
-        {
-            var attribute = new HeroBookAttribute(type, checked((long)value));
-            if (group == 1) pendingHeroBookUpgradeAttributes.Add(attribute);
-            else pendingHeroBookUpgradeLevelAttributes.Add(attribute);
-        }
-
-        public void EndHeroBookUpgrade(int heroId, int star, int addedScore, int bookLevel,
-            bool success, string error)
-        {
-            if (!success)
-            {
-                pendingHeroBookUpgradeAttributes.Clear();
-                pendingHeroBookUpgradeLevelAttributes.Clear();
-                ShowToast(string.IsNullOrWhiteSpace(error) ? "图鉴升级失败" : error, 3f);
-                return;
-            }
-            // The Cocos activation flow stays on HeroBook and only overlays the result.
-            // Repair stale sibling visibility without running the full auxiliary-page
-            // navigation, which would briefly reopen Bag and rebind its close control.
-            EnsureHeroBookSurfaceForResult();
-            services.HeroBook.ApplyUpgrade(heroId, star, addedScore, bookLevel,
-                pendingHeroBookUpgradeAttributes, pendingHeroBookUpgradeLevelAttributes);
-            SetStatus($"HeroBook/322 upgrade applied: hero={heroId}, star={star}, score=+{addedScore}, level={bookLevel}.");
-        }
-
-        public void BeginFormationUpdate(int activeId, int expectedCount)
-        {
-            pendingActiveFormationId = activeId;
-            pendingFormations.Clear();
-            pendingFormationDisplay.Clear();
-            pendingFormationCombat.Clear();
-            if (expectedCount > pendingFormations.Capacity) pendingFormations.Capacity = expectedCount;
-        }
-
-        public void AddFormationRecord(int id, int level) => pendingFormations.Add(new FormationRecord(id, level));
-
-        public void AddFormationDisplayHero(int index, int heroId)
-        {
-            while (pendingFormationDisplay.Count < index) pendingFormationDisplay.Add(0);
-            pendingFormationDisplay[index - 1] = heroId;
-        }
-
-        public void AddFormationCombatHero(int index, int heroId)
-        {
-            while (pendingFormationCombat.Count < index) pendingFormationCombat.Add(0);
-            pendingFormationCombat[index - 1] = heroId;
-        }
-
-        public void EndFormationUpdate()
-        {
-            services.Formation.Replace(pendingActiveFormationId, pendingFormations,
-                pendingFormationDisplay, pendingFormationCombat);
-            var positions = new Dictionary<int, int>();
-            for (int index = 0; index < pendingFormationCombat.Count; index++)
-                if (pendingFormationCombat[index] > 0) positions[pendingFormationCombat[index]] = index + 1;
-            services.Heroes.SetFightPositions(positions);
-            if (heroRecycleEntryPending)
-            {
-                ShowHeroRecycle(false);
-                SetStatus($"HeroRebirth synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            if (worldFormationPopupRequestPending)
-            {
-                SetStatus($"World formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            bool showBag = pendingHeroEntry == HeroEntry.Bag;
-            if (heroHubOpen)
-            {
-                heroEntryRequestPending = false;
-                ShowHeroHubTab(heroHubTab);
-                SetStatus($"Hero hub tab active: {heroHubTab}; heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            bool explicitEntry = heroEntryRequestPending;
-            heroEntryRequestPending = false;
-            bool heroPageVisible = IsHeroOpen;
-            bool hasVisibleHeroSubview = formationPopupView?.GameObject.activeSelf == true
-                || heroCultivationView?.GameObject.activeSelf == true
-                || heroLevelUpView?.GameObject.activeSelf == true;
-            if (!explicitEntry && !heroPageVisible && !hasVisibleHeroSubview)
-            {
-                SetStatus($"Hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            bool preserveHeroBook = !explicitEntry
-                && heroBookView?.GameObject.activeSelf == true;
-            bool preserveHeroEquipmentSubpage = !explicitEntry
-                && IsHeroEquipmentSubpageVisible;
-            if (preserveHeroEquipmentSubpage)
-            {
-                // Equipment cultivation writes can push /70 and /48 after the
-                // operation result. Those packets refresh data only; moving
-                // OneLevelLayer to the top hides the still-active subpage.
-                BindHeroEquipmentCultivationPortrait();
-                SetStatus($"Hero equipment state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            if (preserveHeroBook)
-            {
-                // Activating a handbook entry causes the server to push /18, /70 and /48
-                // before the /322 result. Those packets refresh data only; they must not
-                // apply the remembered Bag entry and replace the visible handbook page.
-                SetStatus($"HeroBook hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            EnsureHeroPresenter();
-            bool preserveFormationPopup = !explicitEntry
-                && formationPopupView?.GameObject.activeSelf == true;
-            if (preserveFormationPopup)
-            {
-                // /48 mutations refresh the authoritative formation mirror while
-                // this popup is open. Keep the modal above the hero frame instead
-                // of treating that data refresh as a fresh formation-page entry.
-                formationPopupPresenter?.Render();
-                formationPopupView.ShowPopup();
-                formationPopupPresenter?.RefreshCloseInteraction();
-                SetStatus($"Formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
-                return;
-            }
-            bool preserveCultivation = !explicitEntry
-                && (heroCultivationView?.GameObject.activeSelf == true
-                    || heroLevelUpView?.GameObject.activeSelf == true);
-            if (preserveCultivation)
-            {
-                // A successful cultivation operation refreshes /24 and /48.  That
-                // snapshot updates data only; it must not navigate back to the
-                // formation list/detail pages underneath the cultivation shell.
-                SetHeroFramePageVisibility(false, false, false, true, true);
-                RefreshHeroCultivationData(activeHeroCultivationId);
-            }
-            else
-            {
-                SetHeroFramePageVisibility(!showBag, !showBag, showBag, false, false);
-                ConfigureHeroFrame(showBag);
-            }
-            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
-            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
-            SetStatus(showBag
-                ? $"Hero bag UI active: {services.Heroes.Count} heroes."
-                : $"Hero formation UI active: {services.Heroes.Count} heroes, formation={services.Formation.ActiveFormationId}.");
-        }
-
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteHeroReadValidation()
         {
             EnsureHeroPresenter();
@@ -2267,6 +1765,7 @@ namespace ProjectX.Core
                 : $"COMPLETE: main formation button -> legacy Lua model -> /24 heroes={luaHeroCount} -> /48 active={luaActiveFormationId} -> C# render mirror -> formation UI");
         }
 
+#endif
         public void SyncHeroSelection(int heroId)
         {
             EnsureHeroPresenter();
@@ -2278,6 +1777,7 @@ namespace ProjectX.Core
             => position > 0 && position <= services.Formation.CombatHeroes.Count
                 ? services.Formation.CombatHeroes[position - 1] : 0;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteFormationMutationValidation(int heroId, int originalPosition, int targetPosition)
         {
             if (services.Formation.GetCombatPosition(heroId) != originalPosition || !IsHeroOpen)
@@ -2369,7 +1869,7 @@ namespace ProjectX.Core
             Complete($"COMPLETE: Hero G4 real controls -> occupied/empty rows -> add/cultivate/enhance/replace -> 6 equipment/fabao slots -> attributes -> btn_buzhen -> position {restoredPosition}->{movedFromPosition}->{restoredPosition}; authoritative snapshots restored");
         }
 
-        public bool InvokeHeroCloseForValidation()
+        private bool InvokeHeroCloseForValidation()
         {
             if (!IsHeroOpen) return true;
             Button close = RequireBoundButton(oneLevelFrameView, "Layer/Panel_12/Title/CloseBtn", "hero close");
@@ -2389,7 +1889,7 @@ namespace ProjectX.Core
             return !IsHeroOpen;
         }
 
-        public bool InvokeHeroEntryForReconnectValidation()
+        private bool InvokeHeroEntryForReconnectValidation()
         {
             if (IsHeroOpen && !InvokeHeroCloseForValidation()) return false;
             mainView = mainView ?? services.UiRouter.FindBySource(UiRouter.MainHudSourceToken, true);
@@ -2398,7 +1898,7 @@ namespace ProjectX.Core
             return true;
         }
 
-        public bool RunHeroG4FromCurrentSnapshotForReconnectValidation()
+        private bool RunHeroG4FromCurrentSnapshotForReconnectValidation()
         {
             if (heroG4ControlValidationRunning) return true;
             int heroId = 0;
@@ -2684,6 +2184,8 @@ namespace ProjectX.Core
             MarkValidationControl(controlId);
         }
 
+#endif
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private Button FindRuntimeHeroRowButton(string name, bool exact = false)
         {
             if (heroListView == null) return null;
@@ -2708,6 +2210,7 @@ namespace ProjectX.Core
             return false;
         }
 
+#endif
         private static int GetFormationGrid(int formationId, int combatPosition)
         {
             int[][] grids =
@@ -2747,6 +2250,7 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail(exception.Message); }
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteFormationInvalidValidation(int heroId, int position, string reason)
         {
             int persistedHero = services.Formation.CombatHeroes.Count > 0 ? services.Formation.CombatHeroes[0] : 0;
@@ -2758,6 +2262,7 @@ namespace ProjectX.Core
             Complete($"COMPLETE: /48 op=4 invalid hero {heroId} rejected; authoritative formation unchanged at position 1 hero {persistedHero}; reason={reason}");
         }
 
+#endif
         public void BeginHeroEquipmentUpdate(int expectedCount)
         {
             pendingHeroEquipment.Clear();
@@ -2956,6 +2461,7 @@ namespace ProjectX.Core
             SetStatus($"Hero equipment UI active: equipment={services.HeroEquipment.Count}, fabao={services.FaBao.Count}.");
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteHeroEquipmentReadValidation()
         {
             ShowHeroEquipment();
@@ -4014,6 +3520,7 @@ namespace ProjectX.Core
                 throw new IOException($"HeroEquip G5 screenshot was not written: {path}");
         }
 
+#endif
         private static bool InvokeEventSystemClick(Selectable control)
         {
             if (control == null || EventSystem.current == null || !control.gameObject.activeInHierarchy || !control.interactable)
@@ -4201,6 +3708,7 @@ namespace ProjectX.Core
             mainTaskTracker.SetServerHotPoint(state != 0);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteTaskMutationValidation(int taskId, int rewardCount)
         {
             if (!services.Tasks.TryGet(2, taskId, out TaskRecord record) || record.State != 2)
@@ -4445,6 +3953,7 @@ namespace ProjectX.Core
                 File.Copy(path, BuildUiMigrationPath("bootstrap-task.png"), true);
         }
 
+#endif
         public void SetStatus(string value)
         {
             // A still-running UI/playback coroutine must never replace the first
@@ -4527,255 +4036,6 @@ namespace ProjectX.Core
             catch (Exception exception) { Fail($"Lua packet handler failed for command {command}: {exception.Message}"); }
         }
 
-        private void HandleNetworkState(NetworkState state)
-        {
-            SetStatus($"Network: {state}");
-        }
-
-        private void HandleDisconnected(string reason)
-        {
-            if (CurrentAppState == AppState.Disconnected) return;
-            bool preserveBagForScenario = HasCommandLineFlag("-projectXBagG4Validation") && IsBagOpen;
-            HideLoading("connect");
-            HideLoading("reconnect");
-            HideLoading("auto-reconnect");
-            services.ProtocolRegistry.ClearPending();
-            ResetBattlePlaybackStateAfterDisconnect();
-            disconnectReason = reason;
-            services.State.Change(AppState.Disconnected, reason);
-            SetStatus($"Disconnected: {reason}");
-            try { CallLua(onDisconnected, "Network.OnDisconnected", reason); }
-            catch (Exception exception) { Fail(exception.Message); }
-            services.Heroes.Clear();
-            services.Formation.Clear();
-            if (!preserveBagForScenario)
-            {
-                services.Bag.Clear();
-                bagFlowPresenter?.CloseAll();
-            }
-            services.Shop.Clear();
-            shopPresenter?.ResetTransientState();
-            services.GameplayShops.Clear();
-            gameplayShopsPresenter?.ResetTransientState();
-            services.World.Clear();
-            services.FengShenStory.SetDisconnected();
-            pendingFengShenRewards.Clear();
-            deferredFengShenRewardPush = false;
-            fengShenStoryPresenter?.CloseLevelPopup();
-            fengShenStoryPresenter?.CloseModal();
-            if (IsWorldOpen) services.UiStack.Pop();
-            worldView?.SetVisible(false);
-            worldStageView?.SetVisible(false);
-            worldMapView?.SetVisible(false);
-            worldDetailView?.SetVisible(false);
-            worldSweepView?.SetVisible(false);
-            worldBattleResultView?.SetVisible(false);
-            worldBattleStatisticsView?.SetVisible(false);
-            errorPresenter?.Hide();
-            rewardPresenter?.Hide();
-            if (IsShopOpen) services.UiStack.Pop();
-            shopView?.SetVisible(false);
-            soulShopView?.SetVisible(false);
-            multiShopView?.SetVisible(false);
-            if (!preserveBagForScenario)
-            {
-                SetOneLevelFrameVisible(false);
-                bagView?.SetVisible(false);
-            }
-            services.HeroEquipment.Clear();
-            services.FaBao.Clear();
-            services.EnhanceMasters.Clear();
-            activeHeroCultivationId = 0;
-            heroG4ControlValidationRunning = false;
-            pendingHeroEquipmentPosition = 0;
-            heroEquipmentOpenedFromHeroDetails = false;
-            heroReplacementOpenedFromHeroHub = false;
-            heroReplacementOpenedFromFormationPopup = false;
-            pendingFunctionCultivationMode = -1;
-            formationPopupView?.SetVisible(false);
-            heroReplacementView?.SetVisible(false);
-            heroCultivationView?.SetVisible(false);
-            heroAttributesView?.SetVisible(false);
-            if (services.Config.AutoReconnect)
-            {
-                if (!autoReconnectRunning) _ = RunAutoReconnectAsync();
-            }
-            else if (services.Options.ScenarioManagedReconnect || services.Options.ManualReconnectValidation
-                || services.Options.GameplayValidation)
-            {
-                ShowLoginConnectionFailure(false);
-            }
-        }
-
-        private async Task RunAutoReconnectAsync()
-        {
-            if (!services.Config.AutoReconnect) return;
-            autoReconnectRunning = true;
-            try
-            {
-                while (this && services.Network.State != NetworkState.Connected
-                    && reconnectAttempts < services.Config.MaxReconnectAttempts)
-                {
-                    reconnectAttempts++;
-                    int backoffMultiplier = 1 << ((reconnectAttempts - 1) * 2);
-                    int delayMilliseconds = Math.Min(
-                        services.Config.ReconnectDelayMilliseconds * backoffMultiplier,
-                        20000);
-                    SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts} in {delayMilliseconds} ms...");
-                    await Task.Delay(delayMilliseconds);
-                    if (!this || services.Network.State == NetworkState.Connected) return;
-                    try
-                    {
-                        ShowLoading("auto-reconnect", "正在重新连接…", 25f);
-                        SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts}...");
-                        await services.Network.ReconnectAsync(services.Config.ConnectTimeoutSeconds);
-                        reconnectAttempts = 0;
-                        disconnectReason = null;
-                        services.State.Change(AppState.LoadingRole, "Auto reconnect succeeded");
-                        CallLua(onConnected, "Login.OnConnected.AfterAutoReconnect");
-                        return;
-                    }
-                    catch (Exception exception)
-                    {
-                        HideLoading("auto-reconnect");
-                        disconnectReason = exception.Message;
-                        SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts} failed: {exception.Message}");
-                    }
-                }
-            }
-            finally
-            {
-                autoReconnectRunning = false;
-            }
-        }
-
-        private void ResetBattlePlaybackStateAfterDisconnect()
-        {
-            if (worldBattlePlaybackCoroutine != null) StopCoroutine(worldBattlePlaybackCoroutine);
-            if (fengShenBattlePlaybackCoroutine != null) StopCoroutine(fengShenBattlePlaybackCoroutine);
-            if (monopolyBattlePlaybackCoroutine != null) StopCoroutine(monopolyBattlePlaybackCoroutine);
-            if (worldChainContinueCoroutine != null)
-            {
-                worldChainContinueToken++;
-                StopCoroutine(worldChainContinueCoroutine);
-            }
-            if (worldChainAutoSettlementCoroutine != null)
-            {
-                worldChainAutoSettlementToken++;
-                StopCoroutine(worldChainAutoSettlementCoroutine);
-            }
-            worldBattlePlaybackCoroutine = null;
-            fengShenBattlePlaybackCoroutine = null;
-            monopolyBattlePlaybackCoroutine = null;
-            worldChainContinueCoroutine = null;
-            worldChainAutoSettlementCoroutine = null;
-
-            worldBattleWorldPresenter?.Hide();
-            fengShenBattlePlaybackPresenter?.Hide();
-            monopolyBattlePlaybackPresenter?.Hide();
-            worldSweepView?.SetVisible(false);
-            worldBattleResultView?.SetVisible(false);
-            worldBattleStatisticsView?.SetVisible(false);
-            monopolyView?.SetVisible(false);
-            monopolyHudView?.SetVisible(false);
-            monopolyHandView?.SetVisible(false);
-
-            worldBattleRuntime.PendingResult = false;
-            worldBattleRuntime.PendingStars = 0;
-            worldBattleRuntime.SuppressSettlementForSkippedPlayback = false;
-            fengShenBattleRuntime.PendingResult = false;
-            fengShenBattleRuntime.PendingStars = 0;
-            fengShenBattleRuntime.SuppressSettlementForSkippedPlayback = false;
-            monopolyBattleRuntime.PendingResult = false;
-            monopolyBattleRuntime.PendingStars = 0;
-            monopolyBattleRuntime.SuppressSettlementForSkippedPlayback = false;
-            services.WorldBattleReplay.Clear();
-            services.FengShenBattleReplay.Clear();
-            services.MonopolyBattleReplay.Clear();
-            hasPendingMonopolyBattleResult = false;
-            monopolyBattlePlaybackActive = false;
-            monopolyBattlePlaybackReturned = false;
-            worldBattleInFlight = false;
-            worldBattleBackgrounded = false;
-            worldBattleForegroundRequested = false;
-            battlePlaybackContext = BattlePlaybackContext.None;
-            pendingRewards.Clear();
-            services.Rewards.Clear();
-        }
-
-        private void HandleLoginClick() => InvokeLuaOrFail(onLoginClicked, "Login.OnLoginClicked");
-        private void HandleRoleCreateClick() => InvokeLuaOrFail(onRoleCreateClicked, "Login.OnRoleCreateClicked");
-        private void HandleRoleRandomClick() => InvokeLuaOrFail(onRoleRandomClicked, "Login.OnRoleRandomClicked");
-
-        private void HandleAccountSubmit(uint userId, string signature)
-        {
-            services.Config.LocalUserId = userId;
-            loginSignature = string.IsNullOrWhiteSpace(signature) ? "local" : signature;
-            HandleLoginClick();
-        }
-
-        private void ReturnFromRoleCreate()
-        {
-            if (singlePlayerTitleEnabled)
-            {
-                services.Network.Disconnect();
-                StopSinglePlayerServer();
-                ShowLoginUi();
-                BindLoginClick(false);
-                return;
-            }
-            loginPresenter?.ShowLocalServer("本地测试服");
-            services.UiStack.SetRoot(loginView);
-            services.State.Change(AppState.Login, "Returned from role creation");
-            SetStatus("Login UI ready.");
-        }
-
-        private void ShowLoginConnectionFailure(bool timedOut)
-        {
-            if (singlePlayerTitleEnabled)
-            {
-                ClientLog.Warning("SinglePlayer", timedOut
-                    ? "Local save connection timed out"
-                    : "Local save connection failed", disconnectReason ?? string.Empty);
-                ReturnFromConnectionFailure();
-                return;
-            }
-
-            EnsureErrorPresenter();
-            string detail = timedOut
-                ? "无法连接服务器,是否重新连接？\n连接已超时"
-                : "无法连接服务器,是否重新连接？";
-            errorPresenter?.ShowConfirmation("提示", detail,
-                ReconnectFromConnectionFailure, "确认", "取消", false,
-                ReturnFromConnectionFailure);
-            SetStatus(services.Options.PlayerHudValidation
-                ? (timedOut ? "Player HUD reconnect timeout confirmation." : "Player HUD reconnect confirmation.")
-                : services.Options.LoginClosureValidation
-                    ? (timedOut ? "Login connection timeout dialog." : "Login connection dialog.")
-                    : services.Options.GameplayValidation
-                        ? (timedOut ? "Gameplay reconnect timeout confirmation." : "Gameplay reconnect confirmation.")
-                        : services.Options.FengShenStoryValidation
-                            ? (timedOut ? "FengShenStory reconnect timeout confirmation." : "FengShenStory reconnect confirmation.")
-                            : services.Options.StaminaClaimValidation
-                                ? (timedOut ? "StaminaClaim reconnect timeout confirmation." : "StaminaClaim reconnect confirmation.")
-                                : (timedOut ? "Login connection timeout." : "Login connection failed."));
-        }
-
-        private void ReturnFromConnectionFailure()
-        {
-            if (singlePlayerTitleEnabled) StopSinglePlayerServer();
-            ShowLoginUi();
-            BindLoginClick(false);
-        }
-
-        private void ReconnectFromConnectionFailure()
-        {
-            mainHudPresenter?.BeginReconnectChatSummary();
-            if (services.Network.State == NetworkState.Disconnected || services.Network.State == NetworkState.Faulted)
-                Reconnect();
-            else
-                Connect(services.Config.GameHost, services.Config.GamePort);
-        }
         private void HandleSettingsClick()
         {
             try { CallLua(onSettingsClicked, "Settings.OnClicked"); }
@@ -4918,16 +4178,6 @@ namespace ProjectX.Core
         {
             try { CallLua(onGuildClicked, "Guild.OnClicked"); }
             catch (Exception exception) { Fail($"Guild open failed: {exception.Message}"); }
-        }
-
-        private void HandleWorldClick()
-        {
-            try
-            {
-                CallLua(onWorldClicked, "World.OnClicked");
-                if (services.Options.WorldBattleValidation) MarkValidationControl("WORLD-01-MAIN-ENTRY");
-            }
-            catch (Exception exception) { Fail($"World open failed: {exception.Message}"); }
         }
 
         private void HandleWelfareClick()
@@ -5483,16 +4733,21 @@ namespace ProjectX.Core
             string limitText = item.Limit < 0 ? "不限购" : $"剩余限购 {item.RemainingLimit} 次";
             long totalCost = item.TotalCost(quantity);
             uint totalReward = checked(item.RewardAmount * checked((uint)Math.Max(1, quantity)));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            bool shopG4Validation = HasCommandLineFlag("-projectXShopG4Validation");
+#else
+            const bool shopG4Validation = false;
+#endif
             errorPresenter.ShowConfirmation("购买确认",
                 $"花费 {totalCost} {item.CostName}购买 {totalReward}×{item.Name}？\n{limitText}",
                 () => InvokeLuaOrFail(
-                    HasCommandLineFlag("-projectXShopG4Validation")
-                        ? onShopValidationSuccess : onShopBuyConfirmed,
-                    HasCommandLineFlag("-projectXShopG4Validation")
+                    shopG4Validation ? onShopValidationSuccess : onShopBuyConfirmed,
+                    shopG4Validation
                         ? "Shop.ValidationSuccess" : "Shop.OnBuyConfirmed",
                     (double)item.Id, quantity));
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator CaptureShopConfirmationAndConfirm(ushort itemId)
         {
             yield return new WaitForEndOfFrame();
@@ -5532,6 +4787,7 @@ namespace ProjectX.Core
                 Fail($"Shop G4 screenshot was not written: {fileName}.");
         }
 
+#endif
         private void CloseBagForItemJump()
         {
             bagFlowPresenter?.CloseAll();
@@ -5665,9 +4921,11 @@ namespace ProjectX.Core
                     && services.Formation.GetCombatPosition(item.Id) == 0
                     && !services.Formation.DisplayHeroes.Contains(item.Id))
                 .Take(6).ToArray();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (HasCommandLineFlag("-projectXDrawClosureValidation"))
                 ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][DrawClosure] replacement display=[{string.Join(",", services.Formation.DisplayHeroes)}] "
                     + $"combat=[{string.Join(",", services.Formation.CombatHeroes)}] candidates=[{string.Join(",", candidates.Select(item => item.Id))}]");
+#endif
             Transform template = heroReplacementView.FindNode("Layer/yingxionghuanjiangUI/ItemCell")?.transform;
             if (template == null) throw new InvalidOperationException("Hero replacement ItemCell was not found.");
             for (int index = 1; index <= 6; index++)
@@ -5774,6 +5032,7 @@ namespace ProjectX.Core
             InvokeLuaOrFail(onBagClicked, "HeroCultivation.PackageSnapshot");
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void RunHeroCultivationG3Validation()
         {
             EnsureHeroPresenter();
@@ -5920,6 +5179,7 @@ namespace ProjectX.Core
             catch { }
         }
 
+#endif
         private void EnsureHeroCultivationPresenter()
         {
             if (heroCultivationPresenter != null) return;
@@ -5992,6 +5252,7 @@ namespace ProjectX.Core
             oneLevelFrameView?.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void RunEnhanceMasterG3Validation()
         {
             StartCoroutine(RunEnhanceMasterG3ValidationRoutine());
@@ -6158,6 +5419,7 @@ namespace ProjectX.Core
                 Fail("EnhanceMaster screenshot was not written: " + fileName);
         }
 
+#endif
         private void HideHeroCultivationForNavigation()
         {
             activeHeroCultivationId = 0;
@@ -7466,6 +6728,7 @@ namespace ProjectX.Core
             if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void RunHeroRebirthG3Validation()
         {
             StartCoroutine(RunHeroRebirthG3ValidationRoutine());
@@ -8119,6 +7382,7 @@ namespace ProjectX.Core
                 throw new IOException("HeroRebirth screenshot was not written: " + path);
         }
 
+#endif
         private void CloseHeroRecycle()
         {
             heroRebirthPresenter?.Hide();
@@ -8933,6 +8197,7 @@ namespace ProjectX.Core
             SetStatus($"Task activity box preview: id={item.Id}, state={item.State}, rewards={rewards.Count}.");
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator CaptureGameplayShopsValidation(bool requireG4Evidence)
         {
             byte[] currentTypes = { 2 };
@@ -9161,6 +8426,7 @@ namespace ProjectX.Core
                 : "COMPLETE: GameplayShops G5 type=2 five-state visual capture; list/help/item-detail/currency-detail/draw-route");
         }
 
+#endif
         private void EnsureShopPresenter()
         {
             shopView = shopView ?? services.UiRouter.FindBySource("shop/shangcheng");

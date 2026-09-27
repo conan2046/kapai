@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -11,6 +13,9 @@ namespace ProjectX.Editor
 {
     public static class SteamWindowsBuild
     {
+        private static readonly HashSet<string> ServerBuildExtensions = new HashSet<string>(
+            new[] { ".c", ".cc", ".cpp", ".h", ".hpp" }, StringComparer.OrdinalIgnoreCase);
+
         [Serializable]
         private sealed class PackageEntry
         {
@@ -24,6 +29,8 @@ namespace ProjectX.Editor
         {
             public int schemaVersion = 1;
             public string generatedAt;
+            public string productVersion;
+            public string unityVersion;
             public string target = "Windows x64";
             public string compression;
             public string clientEntry = "ProjectX.exe";
@@ -45,6 +52,8 @@ namespace ProjectX.Editor
                 string repositoryRoot = Directory.GetParent(Application.dataPath)?.Parent?.FullName
                     ?? throw new InvalidOperationException("Repository root could not be resolved.");
                 string outputExe = ResolveOutputPath(repositoryRoot);
+                EnsurePackagedServerBuilt(repositoryRoot);
+                ValidatePreflight(repositoryRoot, outputExe);
                 Directory.CreateDirectory(Path.GetDirectoryName(outputExe));
                 BootstrapSceneBuilder.Build();
                 PlayerSettings.companyName = "Xuancai";
@@ -85,7 +94,7 @@ namespace ProjectX.Editor
 
         private static void PackageServer(string repositoryRoot, string serverRoot)
         {
-            string buildRoot = Path.Combine(repositoryRoot, "build", "server-win", "Debug");
+            string buildRoot = Path.Combine(repositoryRoot, ".local", "steam-server-build", "server-win", "Debug");
             string executable = Path.Combine(buildRoot, "kapai.exe");
             string config = Path.Combine(repositoryRoot, "unityserver", "config");
             string scripts = Path.Combine(repositoryRoot, "unityserver", "script");
@@ -116,6 +125,8 @@ namespace ProjectX.Editor
             var manifest = new PackageManifest
             {
                 generatedAt = DateTime.UtcNow.ToString("o"),
+                productVersion = PlayerSettings.bundleVersion,
+                unityVersion = Application.unityVersion,
                 compression = "LZ4HC"
             };
             string manifestPath = Path.Combine(outputDirectory, "steam-package-manifest.json");
@@ -159,6 +170,147 @@ namespace ProjectX.Editor
             if (forbiddenFiles.Length != 0)
                 throw new InvalidOperationException("Steam package contains development-only files: "
                     + string.Join(", ", forbiddenFiles));
+        }
+
+        private static void ValidatePreflight(string repositoryRoot, string outputExe)
+        {
+            string projectVersionPath = Path.Combine(repositoryRoot, "unityclient", "ProjectSettings", "ProjectVersion.txt");
+            if (!File.Exists(projectVersionPath))
+                throw new FileNotFoundException("Unity project version file is missing.", projectVersionPath);
+            string editorVersion = File.ReadLines(projectVersionPath)
+                .FirstOrDefault(line => line.StartsWith("m_EditorVersion:", StringComparison.Ordinal))?
+                .Substring("m_EditorVersion:".Length).Trim();
+            if (string.IsNullOrWhiteSpace(editorVersion)
+                || !string.Equals(editorVersion, Application.unityVersion, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"Unity Editor version mismatch: project={editorVersion ?? "<missing>"}, editor={Application.unityVersion}.");
+
+            if (string.IsNullOrWhiteSpace(PlayerSettings.bundleVersion))
+                throw new InvalidOperationException("PlayerSettings.bundleVersion must be set before a Steam Release build.");
+            if (!outputExe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Steam Windows build output must be an .exe path.");
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64))
+                throw new InvalidOperationException("Windows x64 Build Support is not installed in this Unity Editor.");
+
+            EditorBuildSettingsScene[] scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).ToArray();
+            if (scenes.Length == 0 || !scenes.Any(scene => string.Equals(
+                    Path.GetFileName(scene.path), "Bootstrap.unity", StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("Steam Release scenes must include the Bootstrap scene.");
+            foreach (EditorBuildSettingsScene scene in scenes)
+            {
+                string scenePath = Path.Combine(repositoryRoot, "unityclient", scene.path);
+                if (!File.Exists(scenePath))
+                    throw new FileNotFoundException("An enabled Steam build scene is missing.", scenePath);
+            }
+
+            string serverBuildRoot = Path.Combine(repositoryRoot, ".local", "steam-server-build", "server-win", "Debug");
+            string[] requiredFiles =
+            {
+                Path.Combine(serverBuildRoot, "kapai.exe"),
+                Path.Combine(repositoryRoot, "unityserver", "sql", "sqlite", "001_initial_schema.sql")
+            };
+            foreach (string required in requiredFiles)
+                if (!File.Exists(required)) throw new FileNotFoundException("Steam Release input is missing.", required);
+            foreach (string requiredDirectory in new[]
+                     {
+                         Path.Combine(repositoryRoot, "unityserver", "config"),
+                         Path.Combine(repositoryRoot, "unityserver", "script")
+                     })
+                if (!Directory.Exists(requiredDirectory))
+                    throw new DirectoryNotFoundException("Steam Release input directory is missing: " + requiredDirectory);
+        }
+
+        private static void EnsurePackagedServerBuilt(string repositoryRoot)
+        {
+            string buildDirectory = Path.Combine(repositoryRoot, ".local", "steam-server-build", "server-win");
+            string executable = Path.Combine(buildDirectory, "Debug", "kapai.exe");
+            if (!NeedsServerBuild(repositoryRoot, executable)) return;
+
+            string buildScript = Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1");
+            if (!File.Exists(buildScript))
+                throw new FileNotFoundException("Steam server build script is missing.", buildScript);
+            string vcpkgRoot = Path.Combine(repositoryRoot, "tools", "local", "vcpkg");
+            string vcpkgToolchain = Path.Combine(vcpkgRoot, "scripts", "buildsystems", "vcpkg.cmake");
+            if (!File.Exists(vcpkgToolchain))
+                throw new FileNotFoundException("C-worktree vcpkg toolchain is missing; refusing shared external toolchains.",
+                    vcpkgToolchain);
+
+            string cachePath = Path.Combine(buildDirectory, "CMakeCache.txt");
+            if (File.Exists(cachePath)
+                && File.ReadAllText(cachePath).IndexOf("E:\\neiwang_kapai\\Game", StringComparison.OrdinalIgnoreCase) >= 0)
+                throw new InvalidOperationException(
+                    "Steam server build cache contains an external E-drive path; use a clean C-worktree build directory.");
+
+            string knownPwsh = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "PowerShell", "7", "pwsh.exe");
+            string pwsh = File.Exists(knownPwsh) ? knownPwsh : "pwsh.exe";
+            var output = new StringBuilder();
+            var errors = new StringBuilder();
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = pwsh,
+                Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(buildScript)
+                    + " -BuildDir " + Quote(Path.Combine(".local", "steam-server-build", "server-win"))
+                    + " -VcpkgRoot " + Quote(vcpkgRoot),
+                WorkingDirectory = repositoryRoot,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using (var process = new Process { StartInfo = startInfo })
+            {
+                process.OutputDataReceived += (_, args) => AppendLine(output, args.Data);
+                process.ErrorDataReceived += (_, args) => AppendLine(errors, args.Data);
+                if (!process.Start()) throw new InvalidOperationException("Could not start PowerShell 7 server build.");
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
+                if (process.ExitCode != 0 || !File.Exists(executable))
+                    throw new InvalidOperationException(
+                        $"Steam server build failed (exit={process.ExitCode}).\n"
+                        + Tail(errors.Length > 0 ? errors.ToString() : output.ToString(), 80));
+            }
+        }
+
+        private static bool NeedsServerBuild(string repositoryRoot, string executable)
+        {
+            if (!File.Exists(executable)) return true;
+            DateTime builtAt = File.GetLastWriteTimeUtc(executable);
+            foreach (string input in ServerBuildInputs(repositoryRoot))
+                if (File.GetLastWriteTimeUtc(input) > builtAt) return true;
+            return false;
+        }
+
+        private static IEnumerable<string> ServerBuildInputs(string repositoryRoot)
+        {
+            string serverRoot = Path.Combine(repositoryRoot, "server");
+            string sourceRoot = Path.Combine(serverRoot, "src");
+            foreach (string input in new[]
+                     {
+                         Path.Combine(serverRoot, "CMakeLists.txt"),
+                         Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1")
+                     })
+                if (File.Exists(input)) yield return input;
+            if (!Directory.Exists(sourceRoot)) yield break;
+            foreach (string file in Directory.GetFiles(sourceRoot, "*", SearchOption.AllDirectories))
+                if (ServerBuildExtensions.Contains(Path.GetExtension(file))) yield return file;
+        }
+
+        private static void AppendLine(StringBuilder builder, string line)
+        {
+            if (line == null) return;
+            lock (builder) builder.AppendLine(line);
+        }
+
+        private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
+
+        private static string Tail(string value, int maximumLines)
+        {
+            string[] lines = (value ?? string.Empty).Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            return string.Join(Environment.NewLine, lines.Skip(Math.Max(0, lines.Length - maximumLines)));
         }
 
         private static void CopyDirectory(string source, string destination)

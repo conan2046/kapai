@@ -20,10 +20,12 @@ namespace ProjectX.Core
         private int answerRemaining;
         private int answerCorrectCount;
         private uint answerTotalGold;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private bool answerValidationStarted;
         private bool answerValidationCompleted;
         private int answerValidationQuestions;
         private int answerValidationResults;
+#endif
 
         public void ShowAnswerQuestion(int questionIndex, int remaining, string question,
             string answer1, string answer2, string answer3, string answer4)
@@ -41,10 +43,12 @@ namespace ProjectX.Core
                 new[] { answer1, answer2, answer3, answer4 }, answerCorrectCount, 0,
                 answerTotalGold, AnswerSecondsPerQuestion);
             SetStatus($"Answer/198 question received: index={questionIndex}, remaining={remaining}.");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.AnswerValidation)
             {
                 BeginOrContinueAnswerValidation(questionIndex, remaining);
             }
+#endif
         }
 
         public void RejectAnswerEntry(string tip)
@@ -53,6 +57,7 @@ namespace ProjectX.Core
             toastPresenter?.Clear();
             ShowToast(message, 2f);
             SetStatus($"Answer entry rejected: {message}");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.AnswerValidation)
             {
                 if (!answerValidationStarted)
@@ -63,6 +68,7 @@ namespace ProjectX.Core
                 else if (!answerValidationCompleted && message == "今日答题次数已用完")
                     StartCoroutine(CompleteAnswerValidationAfterCapture());
             }
+#endif
         }
 
         public void CompleteAnswerChoice(bool correct, int correctIndex,
@@ -71,6 +77,7 @@ namespace ProjectX.Core
             uint current = checked((uint)currentReward);
             uint final = checked((uint)finalGold);
             if (correct) answerCorrectCount++;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.AnswerValidation)
             {
                 answerValidationResults++;
@@ -79,6 +86,7 @@ namespace ProjectX.Core
                 if (answerValidationResults == 1)
                     StartCoroutine(CaptureAnswerFrame("bootstrap-answer-result.png"));
             }
+#endif
             answerTotalGold = checked(answerTotalGold + current + final);
             answerPresenter?.ShowResult(correct, correctIndex, answerCorrectCount,
                 checked(current + final), answerTotalGold);
@@ -94,10 +102,12 @@ namespace ProjectX.Core
             answerRemaining = 0;
             answerCorrectCount = 0;
             answerTotalGold = 0;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             answerValidationStarted = false;
             answerValidationCompleted = false;
             answerValidationQuestions = 0;
             answerValidationResults = 0;
+#endif
             if (gameplayView != null && services?.UiStack.Current == gameplayView)
             {
                 gameplayContentView?.SetVisible(true);
@@ -113,11 +123,13 @@ namespace ProjectX.Core
             {
                 ShowToast($"本次答题共获得{answerTotalGold}金币", 3f);
                 CloseAnswer();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (services.Options.AnswerValidation)
                 {
                     MarkValidationControl("ANSWER-10-FINAL-REWARD-CLOSE");
                     InvokeLuaOrFail(onAnswerClicked, "Answer.Validation.DailyLimit", 27d);
                 }
+#endif
                 yield break;
             }
             InvokeLuaOrFail(onAnswerNextRequested, "Answer.NextQuestion");
@@ -129,6 +141,7 @@ namespace ProjectX.Core
         private void SubmitAnswerTimeout() =>
             InvokeLuaOrFail(onAnswerSelected, "Answer.Timeout", 5d);
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private void BeginOrContinueAnswerValidation(int questionIndex, int remaining)
         {
             if (!answerValidationStarted)
@@ -276,6 +289,7 @@ namespace ProjectX.Core
             });
             File.WriteAllText(mapPath, content, new System.Text.UTF8Encoding(false));
         }
+#endif
 
         private void CloseAnswer()
         {

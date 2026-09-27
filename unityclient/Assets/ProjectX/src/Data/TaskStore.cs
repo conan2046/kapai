@@ -185,7 +185,7 @@ namespace ProjectX.Data
 
         private void LoadFormalXunBaoDefinitions(EquipmentCatalog equipmentCatalog)
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/daily");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/daily");
             if (asset == null)
                 throw new InvalidOperationException("Formal task config is missing: Resources/ProjectXData/Configs/daily.json");
             FormalTaskDefinition[] values = JsonConvert.DeserializeObject<FormalTaskDefinition[]>(asset.text)

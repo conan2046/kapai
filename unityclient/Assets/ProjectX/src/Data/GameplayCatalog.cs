@@ -27,7 +27,7 @@ namespace ProjectX.Data
 
         public GameplayCatalog()
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/gameplay");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/gameplay");
             if (asset == null) throw new InvalidOperationException("Gameplay config is missing: Resources/ProjectXData/Configs/gameplay.json");
             routes = (JsonConvert.DeserializeObject<GameplayDefinition[]>(asset.text) ?? Array.Empty<GameplayDefinition>())
                 .Where(value => value != null && value.Id < 999

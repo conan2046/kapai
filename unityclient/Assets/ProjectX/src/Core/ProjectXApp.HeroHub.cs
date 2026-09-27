@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using ProjectX.Data;
 using ProjectX.UI;
 using ProjectX.UI.Migration;
 using UnityEngine;
@@ -8,6 +10,240 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+        private readonly List<HeroRecord> pendingHeroes = new List<HeroRecord>();
+        private int pendingFollowHeroId;
+        private readonly List<HeroBookEntry> pendingHeroBookEntries = new List<HeroBookEntry>();
+        private readonly List<HeroBookAttribute> pendingHeroBookAttributes = new List<HeroBookAttribute>();
+        private readonly List<HeroBookAttribute> pendingHeroBookScoreAttributes = new List<HeroBookAttribute>();
+        private readonly List<HeroBookAttribute> pendingHeroBookUpgradeAttributes = new List<HeroBookAttribute>();
+        private readonly List<HeroBookAttribute> pendingHeroBookUpgradeLevelAttributes = new List<HeroBookAttribute>();
+        private int pendingHeroBookLevel;
+        private long pendingHeroBookScore;
+        private long pendingHeroBookNextStart;
+        private long pendingHeroBookNextEnd;
+        private int heroRebirthResponseOperation;
+        private int heroRebirthResponseHeroId;
+        private readonly List<FormationRecord> pendingFormations = new List<FormationRecord>();
+        private readonly List<int> pendingFormationDisplay = new List<int>();
+        private readonly List<int> pendingFormationCombat = new List<int>();
+        private int pendingActiveFormationId;
+
+        public void BeginHeroUpdate(int followHeroId, int expectedCount)
+        {
+            pendingHeroes.Clear();
+            if (expectedCount > pendingHeroes.Capacity) pendingHeroes.Capacity = expectedCount;
+            pendingFollowHeroId = followHeroId;
+        }
+
+        public void AddHeroRecord(int id, int fightPosition, string name, int star, int breakLevel, int level,
+            double experience, double maxExperience, double power, double attack, double physicalDefense,
+            double magicDefense, double health, double speed, double currentHealth, int cultivationLevel,
+            int cultivationAttack, int cultivationPhysicalDefense, int cultivationMagicDefense,
+            int cultivationHealth, int primarySkillLevel = 1)
+        {
+            pendingHeroes.Add(new HeroRecord(id, fightPosition, name, star, breakLevel, level,
+                checked((uint)experience), checked((uint)maxExperience), checked((ulong)power),
+                checked((uint)attack), checked((uint)physicalDefense), checked((uint)magicDefense),
+                checked((ulong)health), checked((uint)speed), checked((ulong)currentHealth), cultivationLevel,
+                cultivationAttack, cultivationPhysicalDefense, cultivationMagicDefense, cultivationHealth,
+                primarySkillLevel));
+        }
+
+        public double GetHeroPower(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Power : 0d;
+        public double GetHeroAttack(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Attack : 0d;
+        public double GetHeroHealth(int id) => services.Heroes.TryGet(id, out HeroRecord value) ? value.Health : 0d;
+        public double GetPlayerPower() => services.Player.Power;
+        public void EndHeroUpdate() => services.Heroes.Replace(pendingFollowHeroId, pendingHeroes);
+
+        public void BeginHeroRebirthResponse(int operation, int heroId, int expectedCount)
+        {
+            heroRebirthResponseOperation = operation;
+            heroRebirthResponseHeroId = heroId;
+            heroRebirthPresenter?.BeginResponse(operation, heroId, expectedCount);
+        }
+
+        public void AddHeroRebirthReward(int type, double id, double quantity)
+            => heroRebirthPresenter?.AddResponseReward(type, checked((uint)id), checked((uint)quantity));
+
+        public void EndHeroRebirthResponse(int operation, int heroId, bool success, string error)
+        {
+            if (heroRebirthPresenter == null)
+            {
+                if (!success) ShowToast(string.IsNullOrWhiteSpace(error) ? "神将重生失败" : error, 3f);
+                return;
+            }
+            heroRebirthPresenter.EndResponse(operation, heroId, success, error);
+            heroRebirthResponseOperation = 0;
+            heroRebirthResponseHeroId = 0;
+        }
+
+        public void BeginHeroBookSnapshot(int level, double score, double nextStart, double nextEnd,
+            int expectedHeroCount)
+        {
+            pendingHeroBookLevel = level;
+            pendingHeroBookScore = checked((long)score);
+            pendingHeroBookNextStart = checked((long)nextStart);
+            pendingHeroBookNextEnd = checked((long)nextEnd);
+            pendingHeroBookEntries.Clear();
+            pendingHeroBookAttributes.Clear();
+            pendingHeroBookScoreAttributes.Clear();
+            if (expectedHeroCount > pendingHeroBookEntries.Capacity)
+                pendingHeroBookEntries.Capacity = expectedHeroCount;
+        }
+
+        public void AddHeroBookEntry(int heroId, int star, int score)
+            => pendingHeroBookEntries.Add(new HeroBookEntry(heroId, star, score));
+
+        public void AddHeroBookAttribute(int group, int type, double value)
+        {
+            var attribute = new HeroBookAttribute(type, checked((long)value));
+            if (group == 1) pendingHeroBookAttributes.Add(attribute);
+            else pendingHeroBookScoreAttributes.Add(attribute);
+        }
+
+        public void EndHeroBookSnapshot()
+        {
+            services.HeroBook.Replace(pendingHeroBookLevel, pendingHeroBookScore,
+                pendingHeroBookNextStart, pendingHeroBookNextEnd, pendingHeroBookEntries,
+                pendingHeroBookAttributes, pendingHeroBookScoreAttributes);
+            SetStatus($"HeroBook synchronized: level={services.HeroBook.Level}, score={services.HeroBook.Score}, heroes={services.HeroBook.Entries.Count}.");
+        }
+
+        public void BeginHeroBookUpgrade(int heroId, int star, int addedScore, int bookLevel)
+        {
+            pendingHeroBookUpgradeAttributes.Clear();
+            pendingHeroBookUpgradeLevelAttributes.Clear();
+        }
+
+        public void AddHeroBookUpgradeAttribute(int group, int type, double value)
+        {
+            var attribute = new HeroBookAttribute(type, checked((long)value));
+            if (group == 1) pendingHeroBookUpgradeAttributes.Add(attribute);
+            else pendingHeroBookUpgradeLevelAttributes.Add(attribute);
+        }
+
+        public void EndHeroBookUpgrade(int heroId, int star, int addedScore, int bookLevel,
+            bool success, string error)
+        {
+            if (!success)
+            {
+                pendingHeroBookUpgradeAttributes.Clear();
+                pendingHeroBookUpgradeLevelAttributes.Clear();
+                ShowToast(string.IsNullOrWhiteSpace(error) ? "图鉴升级失败" : error, 3f);
+                return;
+            }
+            // The Cocos activation flow stays on HeroBook and only overlays the result.
+            // Repair stale sibling visibility without running the full auxiliary-page
+            // navigation, which would briefly reopen Bag and rebind its close control.
+            EnsureHeroBookSurfaceForResult();
+            services.HeroBook.ApplyUpgrade(heroId, star, addedScore, bookLevel,
+                pendingHeroBookUpgradeAttributes, pendingHeroBookUpgradeLevelAttributes);
+            SetStatus($"HeroBook/322 upgrade applied: hero={heroId}, star={star}, score=+{addedScore}, level={bookLevel}.");
+        }
+
+        public void BeginFormationUpdate(int activeId, int expectedCount)
+        {
+            pendingActiveFormationId = activeId;
+            pendingFormations.Clear();
+            pendingFormationDisplay.Clear();
+            pendingFormationCombat.Clear();
+            if (expectedCount > pendingFormations.Capacity) pendingFormations.Capacity = expectedCount;
+        }
+
+        public void AddFormationRecord(int id, int level) => pendingFormations.Add(new FormationRecord(id, level));
+
+        public void AddFormationDisplayHero(int index, int heroId)
+        {
+            while (pendingFormationDisplay.Count < index) pendingFormationDisplay.Add(0);
+            pendingFormationDisplay[index - 1] = heroId;
+        }
+
+        public void AddFormationCombatHero(int index, int heroId)
+        {
+            while (pendingFormationCombat.Count < index) pendingFormationCombat.Add(0);
+            pendingFormationCombat[index - 1] = heroId;
+        }
+
+        public void EndFormationUpdate()
+        {
+            services.Formation.Replace(pendingActiveFormationId, pendingFormations,
+                pendingFormationDisplay, pendingFormationCombat);
+            var positions = new Dictionary<int, int>();
+            for (int index = 0; index < pendingFormationCombat.Count; index++)
+                if (pendingFormationCombat[index] > 0) positions[pendingFormationCombat[index]] = index + 1;
+            services.Heroes.SetFightPositions(positions);
+            if (heroRecycleEntryPending)
+            {
+                ShowHeroRecycle(false);
+                SetStatus($"HeroRebirth synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            if (worldFormationPopupRequestPending)
+            {
+                SetStatus($"World formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            bool showBag = pendingHeroEntry == HeroEntry.Bag;
+            if (heroHubOpen)
+            {
+                heroEntryRequestPending = false;
+                ShowHeroHubTab(heroHubTab);
+                SetStatus($"Hero hub tab active: {heroHubTab}; heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            bool explicitEntry = heroEntryRequestPending;
+            heroEntryRequestPending = false;
+            bool heroPageVisible = IsHeroOpen;
+            bool hasVisibleHeroSubview = formationPopupView?.GameObject.activeSelf == true
+                || heroCultivationView?.GameObject.activeSelf == true
+                || heroLevelUpView?.GameObject.activeSelf == true;
+            if (!explicitEntry && !heroPageVisible && !hasVisibleHeroSubview)
+            {
+                SetStatus($"Hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            bool preserveHeroBook = !explicitEntry && heroBookView?.GameObject.activeSelf == true;
+            bool preserveHeroEquipmentSubpage = !explicitEntry && IsHeroEquipmentSubpageVisible;
+            if (preserveHeroEquipmentSubpage)
+            {
+                BindHeroEquipmentCultivationPortrait();
+                SetStatus($"Hero equipment state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            if (preserveHeroBook)
+            {
+                SetStatus($"HeroBook hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            EnsureHeroPresenter();
+            bool preserveFormationPopup = !explicitEntry && formationPopupView?.GameObject.activeSelf == true;
+            if (preserveFormationPopup)
+            {
+                formationPopupPresenter?.Render();
+                formationPopupView.ShowPopup();
+                formationPopupPresenter?.RefreshCloseInteraction();
+                SetStatus($"Formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
+                return;
+            }
+            bool preserveCultivation = !explicitEntry
+                && (heroCultivationView?.GameObject.activeSelf == true || heroLevelUpView?.GameObject.activeSelf == true);
+            if (preserveCultivation)
+            {
+                SetHeroFramePageVisibility(false, false, false, true, true);
+                RefreshHeroCultivationData(activeHeroCultivationId);
+            }
+            else
+            {
+                SetHeroFramePageVisibility(!showBag, !showBag, showBag, false, false);
+                ConfigureHeroFrame(showBag);
+            }
+            oneLevelFrameView.GameObject.transform.SetAsLastSibling();
+            if (services.UiStack.Current != oneLevelFrameView) services.UiStack.Push(oneLevelFrameView);
+            SetStatus(showBag
+                ? $"Hero bag UI active: {services.Heroes.Count} heroes."
+                : $"Hero formation UI active: {services.Heroes.Count} heroes, formation={services.Formation.ActiveFormationId}.");
+        }
+
         private enum HeroHubTab
         {
             Formation,

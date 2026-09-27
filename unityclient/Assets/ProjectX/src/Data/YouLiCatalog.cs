@@ -23,7 +23,7 @@ namespace ProjectX.Data
 
         public YouLiCatalog()
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/sanjie");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/sanjie");
             if (asset == null) throw new InvalidOperationException("YouLi config is missing: Resources/ProjectXData/Configs/sanjie.json");
             items = (JsonConvert.DeserializeObject<YouLiDefinition[]>(asset.text) ?? Array.Empty<YouLiDefinition>())
                 .Where(value => value != null && value.Id > 0).OrderBy(value => value.Id).ToList();

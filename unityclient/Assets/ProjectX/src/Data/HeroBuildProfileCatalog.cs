@@ -14,7 +14,7 @@ namespace ProjectX.Data
             get
             {
                 if (profiles != null) return profiles;
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/hero_build_profile");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/hero_build_profile");
                 if (asset == null)
                 {
                     ClientLog.Warning("Config", "Missing ProjectXData/Configs/hero_build_profile; build guidance unavailable.");

@@ -28,9 +28,9 @@ namespace ProjectX.UI
         public StartupPresenter(Canvas canvas)
         {
             if (canvas == null) throw new ArgumentNullException(nameof(canvas));
-            logoTexture = Resources.Load<Texture2D>("ProjectXStartup/bg3");
-            preloadTexture = Resources.Load<Texture2D>("ProjectXStartup/bg_jzzs");
-            tipTexture = Resources.Load<Texture2D>("ProjectXStartup/tipbg");
+            logoTexture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("ProjectXStartup/bg3");
+            preloadTexture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("ProjectXStartup/bg_jzzs");
+            tipTexture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("ProjectXStartup/tipbg");
 
             root = new GameObject("CurrentCocosStartup", typeof(RectTransform));
             RectTransform rootRect = root.GetComponent<RectTransform>();

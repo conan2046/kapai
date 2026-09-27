@@ -99,8 +99,10 @@ namespace ProjectX.Core
         }
         private void HandleBagClick()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (HasCommandLineFlag("-projectXBagG4Validation"))
                 MarkValidationControl("BAG-01-MAIN-ENTRY");
+#endif
             // The imported legacy main layer has an overlapping raycast region:
             // a click on btn_zhaomu can also reach the Bag listener. Prefer the
             // confirmed Draw rectangle so a recruitment entry never emits /8 as

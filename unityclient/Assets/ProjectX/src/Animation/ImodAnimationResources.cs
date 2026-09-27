@@ -135,8 +135,8 @@ namespace ProjectX.Animation
             string textureKey = textureOverride ?? entry.textureResourceKey;
             string cacheKey = entry.animationResourceKey + "|" + textureKey;
             if (loadedAssets.TryGetValue(cacheKey, out assets) && assets.IsValid) return true;
-            TextAsset animation = Resources.Load<TextAsset>(entry.animationResourceKey);
-            Texture2D texture = Resources.Load<Texture2D>(textureKey);
+            TextAsset animation = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(entry.animationResourceKey);
+            Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>(textureKey);
             assets = new ImodAnimationAssets(animation, texture, entry.legacyPath);
             if (assets.IsValid) loadedAssets[cacheKey] = assets;
             return assets.IsValid;
@@ -171,7 +171,7 @@ namespace ProjectX.Animation
         private static void EnsureCatalog()
         {
             if (entries != null) return;
-            TextAsset json = Resources.Load<TextAsset>(CatalogResource);
+            TextAsset json = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(CatalogResource);
             if (json == null)
                 throw new InvalidOperationException($"Imod animation catalog is missing: {CatalogResource}");
             ImodAnimationCatalog catalog = JsonConvert.DeserializeObject<ImodAnimationCatalog>(json.text);

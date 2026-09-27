@@ -338,7 +338,7 @@ namespace ProjectX.UI
 
         private void CreateBattleNumberAtlas()
         {
-            Texture2D texture = Resources.Load<Texture2D>("ProjectXBattle/Hud/ui_pk_num");
+            Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("ProjectXBattle/Hud/ui_pk_num");
             if (texture == null || texture.width != 348 || texture.height != 30)
                 throw new InvalidOperationException("Cocos battle-number atlas must be the current 348x30 ui_pk_num.png.");
             battleNumberAtlasSprites = new Sprite[12];
@@ -392,7 +392,7 @@ namespace ProjectX.UI
 
         private void CreateRoundAtlas(Transform parent)
         {
-            Texture2D texture = Resources.Load<Texture2D>("ProjectXBattle/Hud/num_lan");
+            Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("ProjectXBattle/Hud/num_lan");
             if (texture == null || texture.width != 720 || texture.height != 75)
                 throw new InvalidOperationException("Cocos round atlas must be the current 720x75 num_lan.png.");
             roundAtlasSprites = new Sprite[12];
@@ -459,7 +459,7 @@ namespace ProjectX.UI
         {
             GameObject node = WorldBattleNodeIds.Get(importedView, path);
             Image image = node != null ? node.GetComponent<Image>() : null;
-            Sprite sprite = Resources.Load<Sprite>($"HeroUI/formation_{formationId}");
+            Sprite sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>($"HeroUI/formation_{formationId}");
             if (image == null || sprite == null)
                 throw new InvalidOperationException($"Cocos formation icon is missing: formation={formationId}, path={path}.");
             image.sprite = sprite;
@@ -934,7 +934,7 @@ namespace ProjectX.UI
             Image statusBubbleImage = statusBubble.GetComponent<Image>();
             // Sprite.border is read-only, so build a sliced sprite with the
             // Cocos Scale9 insets (5,27,130,50) via Sprite.Create instead.
-            Texture2D bubbleTexture = Resources.Load<Texture2D>("ProjectXBattle/BattleSpeakBkg");
+            Texture2D bubbleTexture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("ProjectXBattle/BattleSpeakBkg");
             Sprite bubbleSprite = bubbleTexture == null
                 ? null
                 : Sprite.Create(bubbleTexture,
@@ -1003,7 +1003,7 @@ namespace ProjectX.UI
                 qualityObject.SetActive(showQuality);
                 Image qualityImage = qualityObject.GetComponent<Image>();
                 if (showQuality && qualityImage != null)
-                    qualityImage.sprite = Resources.Load<Sprite>(ResolveQualityScoreResource(unit.Quality));
+                    qualityImage.sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>(ResolveQualityScoreResource(unit.Quality));
             }
             GameObject background = FindHealthNode(healthView, "Node/bg");
             GameObject fillObject = FindHealthNode(healthView, enemy ? "Node/HPSp" : "Node/HPSp_0");
@@ -1209,7 +1209,7 @@ namespace ProjectX.UI
             if (string.IsNullOrWhiteSpace(soundFile)) return;
             if (!battleAudioClips.TryGetValue(soundFile, out AudioClip clip))
             {
-                clip = Resources.Load<AudioClip>("ProjectXAudio/battle/" + soundFile);
+                clip = ProjectX.Foundation.ResourceLoader.Load<AudioClip>("ProjectXAudio/battle/" + soundFile);
                 battleAudioClips[soundFile] = clip;
             }
             if (clip == null)
@@ -1892,7 +1892,7 @@ namespace ProjectX.UI
                 if (buff.ShowType == 1)
                 {
                     Image image = visual.AddComponent<Image>();
-                    image.sprite = Resources.Load<Sprite>("ProjectXBattle/BuffTips/" + buff.ResourceName);
+                    image.sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>("ProjectXBattle/BuffTips/" + buff.ResourceName);
                     image.preserveAspect = true;
                     image.raycastTarget = false;
                     if (image.sprite == null) UnityEngine.Object.Destroy(visual);
@@ -1929,7 +1929,7 @@ namespace ProjectX.UI
 
         private static Font GetSpeakFont()
         {
-            if (s_speakFont == null) s_speakFont = Resources.Load<Font>("ProjectXBattle/xiaokaiSJ2");
+            if (s_speakFont == null) s_speakFont = ProjectX.Foundation.ResourceLoader.Load<Font>("ProjectXBattle/xiaokaiSJ2");
             return s_speakFont;
         }
 
@@ -2054,7 +2054,7 @@ namespace ProjectX.UI
         private static void ShowCombatMarker(UnitView unit, string resourceName)
         {
             if (unit?.CombatMarker == null || string.IsNullOrWhiteSpace(resourceName)) return;
-            unit.CombatMarker.sprite = Resources.Load<Sprite>("ProjectXBattle/SkillName/" + resourceName);
+            unit.CombatMarker.sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>("ProjectXBattle/SkillName/" + resourceName);
             RectTransform rect = unit.CombatMarker.rectTransform;
             if (resourceName == "skill_0")
             {

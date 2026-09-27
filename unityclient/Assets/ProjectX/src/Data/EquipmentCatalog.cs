@@ -309,7 +309,7 @@ namespace ProjectX.Data
 
         private void LoadMasters()
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/master");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/master");
             if (asset == null) throw new InvalidOperationException("Equipment master config is missing: Resources/ProjectXData/Configs/master.json");
             EquipmentMasterDefinition[] values = JsonConvert.DeserializeObject<EquipmentMasterDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentMasterDefinition>();
@@ -331,13 +331,13 @@ namespace ProjectX.Data
             LoadByLevel("ProjectXData/Configs/equip_jinglian", refine);
             LoadByLevel("ProjectXData/Configs/equip_juexing", awaken);
             LoadByLevel("ProjectXData/Configs/equip_shenzhu", divine);
-            TextAsset qualityAsset = Resources.Load<TextAsset>("ProjectXData/Configs/quality");
+            TextAsset qualityAsset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/quality");
             if (qualityAsset == null) throw new InvalidOperationException("Equipment quality config is missing: Resources/ProjectXData/Configs/quality.json");
             EquipmentQualityDefinition[] qualityValues = JsonConvert.DeserializeObject<EquipmentQualityDefinition[]>(qualityAsset.text)
                 ?? Array.Empty<EquipmentQualityDefinition>();
             foreach (EquipmentQualityDefinition value in qualityValues)
                 if (value != null && value.Quality > 0 && value.RefineRatio > 0) qualities[value.Quality] = value;
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/item");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/item");
             if (asset == null) throw new InvalidOperationException("Equipment material config is missing: Resources/ProjectXData/Configs/item.json");
             EquipmentMaterialDefinition[] values = JsonConvert.DeserializeObject<EquipmentMaterialDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentMaterialDefinition>();
@@ -354,7 +354,7 @@ namespace ProjectX.Data
 
         private static void LoadByLevel<T>(string resourcePath, IDictionary<int, T> target) where T : class
         {
-            TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath);
             if (asset == null) throw new InvalidOperationException($"Equipment cultivation config is missing: Resources/{resourcePath}.json");
             JArray values = JArray.Parse(asset.text);
             foreach (JToken token in values)
@@ -367,7 +367,7 @@ namespace ProjectX.Data
 
         private void LoadComposition()
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/hecheng");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/hecheng");
             if (asset == null) throw new InvalidOperationException("Equipment composition config is missing: Resources/ProjectXData/Configs/hecheng.json");
             EquipmentComposeDefinition[] values = JsonConvert.DeserializeObject<EquipmentComposeDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentComposeDefinition>();
@@ -408,7 +408,7 @@ namespace ProjectX.Data
 
         private void LoadSuits()
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/suit");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/suit");
             if (asset == null) throw new InvalidOperationException("Equipment suit config is missing: Resources/ProjectXData/Configs/suit.json");
             EquipmentSuitDefinition[] values = JsonConvert.DeserializeObject<EquipmentSuitDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentSuitDefinition>();
@@ -419,7 +419,7 @@ namespace ProjectX.Data
 
         private void LoadStrength()
         {
-            TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/equip_qianghua");
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/equip_qianghua");
             if (asset == null) throw new InvalidOperationException("Equipment strength config is missing: Resources/ProjectXData/Configs/equip_qianghua.json");
             EquipmentStrengthDefinition[] values = JsonConvert.DeserializeObject<EquipmentStrengthDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentStrengthDefinition>();
@@ -430,7 +430,7 @@ namespace ProjectX.Data
 
         private static void Load(string resourcePath, IDictionary<int, EquipmentDefinition> target)
         {
-            TextAsset asset = Resources.Load<TextAsset>(resourcePath);
+            TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourcePath);
             if (asset == null) throw new InvalidOperationException($"Equipment config is missing: Resources/{resourcePath}.json");
             EquipmentDefinition[] values = JsonConvert.DeserializeObject<EquipmentDefinition[]>(asset.text)
                 ?? Array.Empty<EquipmentDefinition>();

@@ -7,7 +7,7 @@ using ProjectX.Data;
 using ProjectX.Network;
 using ProjectX.UI;
 using ProjectX.UI.Migration;
-using ProjectX.Validation;
+using ProjectX.Foundation;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,6 +15,7 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator CaptureWorldMap()
         {
             yield return new WaitForSecondsRealtime(1.5f);
@@ -90,7 +91,7 @@ namespace ProjectX.Core
                 }
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("bootstrap-world-map.png"));
-                RuntimeInputDispatchResult challengeInput = RuntimeInputDispatcher.Dispatch(
+                RuntimeInputDispatchResult challengeInput = RuntimeValidationInput.Dispatch(
                     "bg/Button_1", "WORLD-14-CHALLENGE", "click");
                 if (!challengeInput.Dispatched)
                 {
@@ -820,6 +821,7 @@ namespace ProjectX.Core
             }
         }
 
+#endif
         private static string BuildUiMigrationPath(string fileName)
         {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -829,6 +831,7 @@ namespace ProjectX.Core
             return path;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private ScrollRect GetWorldStageMapScroll() =>
             (worldStageView ?? worldMapView)?.GameObject.GetComponentsInChildren<ScrollRect>(true)
                 .FirstOrDefault(value => value.gameObject.name == "RuntimeStageMapViewport");
@@ -1127,6 +1130,7 @@ namespace ProjectX.Core
             rewardPresenter?.Hide();
             worldG4NormalBoxValidated = true;
         }
+#endif
 
     }
 }

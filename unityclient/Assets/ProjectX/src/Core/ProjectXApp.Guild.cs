@@ -97,8 +97,11 @@ namespace ProjectX.Core
             guildPresenter?.ShowInfo();
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public string MakeGuildValidationName() => $"验{GetLocalUserId() % 100000:D5}";
+#endif
         public void SetGuildError(string message) { ShowToast(message, 3f); SetStatus(message); }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CaptureGuildAndLeaveValidation() => StartCoroutine(CaptureGuildAndLeave());
 
         public void CompleteGuildValidation(string expectedName)
@@ -112,6 +115,7 @@ namespace ProjectX.Core
             }
             Complete($"COMPLETE: /54 empty/list -> create {expectedName} -> guild info -> PlayerSummary member list -> leave/dismiss -> persisted empty state");
         }
+#endif
 
         private IEnumerator CaptureGuildAndLeave()
         {

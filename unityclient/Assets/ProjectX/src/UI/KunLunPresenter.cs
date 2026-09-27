@@ -98,10 +98,10 @@ namespace ProjectX.UI
         {
             Transform existing = root.Find("KunLunBackgroundRuntime");
             if (existing != null) return;
-            Sprite sprite = Resources.Load<Sprite>("Backgrounds/bg_juezhankunlun");
+            Sprite sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>("Backgrounds/bg_juezhankunlun");
             if (sprite == null)
             {
-                Texture2D texture = Resources.Load<Texture2D>("Backgrounds/bg_juezhankunlun");
+                Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("Backgrounds/bg_juezhankunlun");
                 if (texture == null) return;
                 sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
             }

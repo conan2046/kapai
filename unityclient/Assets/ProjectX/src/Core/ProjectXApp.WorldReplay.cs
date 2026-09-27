@@ -14,6 +14,173 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+        private enum BattlePlaybackContext { None, World, FengShenStory, Monopoly }
+        private CocosUiView worldBattlePlaybackView;
+        private CocosUiView fengShenBattlePlaybackView;
+        private CocosUiView monopolyBattlePlaybackView;
+        private WorldBattlePlaybackPresenter worldBattlePlaybackPresenter;
+        private WorldBattlePlaybackPresenter worldBattleWorldPresenter;
+        private WorldBattlePlaybackPresenter fengShenBattlePlaybackPresenter;
+        private WorldBattlePlaybackPresenter monopolyBattlePlaybackPresenter;
+        private BattlePlaybackContext battlePlaybackContext;
+        private Coroutine worldBattlePlaybackCoroutine;
+        private Coroutine fengShenBattlePlaybackCoroutine;
+        private Coroutine monopolyBattlePlaybackCoroutine;
+
+        private sealed class BattlePlaybackRuntimeState
+        {
+            public bool PendingResult;
+            public int PendingStars;
+            public bool SuppressSettlementForSkippedPlayback;
+        }
+
+        private readonly BattlePlaybackRuntimeState worldBattleRuntime = new BattlePlaybackRuntimeState();
+        private readonly BattlePlaybackRuntimeState fengShenBattleRuntime = new BattlePlaybackRuntimeState();
+        private readonly BattlePlaybackRuntimeState monopolyBattleRuntime = new BattlePlaybackRuntimeState();
+
+        private WorldBattleReplayStore ActiveBattleReplayStore => battlePlaybackContext switch
+        {
+            BattlePlaybackContext.FengShenStory => services.FengShenBattleReplay,
+            BattlePlaybackContext.Monopoly => services.MonopolyBattleReplay,
+            _ => services.WorldBattleReplay
+        };
+
+        private WorldBattleReplayStore GetBattleReplayStore(BattlePlaybackContext context)
+        {
+            return context switch
+            {
+                BattlePlaybackContext.FengShenStory => services.FengShenBattleReplay,
+                BattlePlaybackContext.Monopoly => services.MonopolyBattleReplay,
+                _ => services.WorldBattleReplay
+            };
+        }
+
+        private WorldBattlePlaybackPresenter GetBattlePlaybackPresenter(BattlePlaybackContext context)
+        {
+            return context switch
+            {
+                BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackPresenter,
+                BattlePlaybackContext.Monopoly => monopolyBattlePlaybackPresenter,
+                _ => worldBattleWorldPresenter
+            };
+        }
+
+        private WorldBattlePlaybackPresenter ActiveBattlePlaybackPresenter
+            => GetBattlePlaybackPresenter(battlePlaybackContext);
+
+        private BattlePlaybackRuntimeState GetBattlePlaybackRuntime(BattlePlaybackContext context)
+        {
+            return context switch
+            {
+                BattlePlaybackContext.FengShenStory => fengShenBattleRuntime,
+                BattlePlaybackContext.Monopoly => monopolyBattleRuntime,
+                _ => worldBattleRuntime
+            };
+        }
+
+        private Coroutine ActiveBattlePlaybackCoroutine => battlePlaybackContext switch
+        {
+            BattlePlaybackContext.FengShenStory => fengShenBattlePlaybackCoroutine,
+            BattlePlaybackContext.Monopoly => monopolyBattlePlaybackCoroutine,
+            _ => worldBattlePlaybackCoroutine
+        };
+
+        private void ClearBattlePlaybackCoroutine(BattlePlaybackContext context)
+        {
+            if (context == BattlePlaybackContext.FengShenStory) fengShenBattlePlaybackCoroutine = null;
+            else if (context == BattlePlaybackContext.Monopoly) monopolyBattlePlaybackCoroutine = null;
+            else worldBattlePlaybackCoroutine = null;
+        }
+
+        private bool IsBattlePresentationActive => worldBattlePlaybackCoroutine != null
+            || fengShenBattlePlaybackCoroutine != null
+            || monopolyBattlePlaybackCoroutine != null
+            || worldBattlePlaybackPresenter?.IsVisible == true
+            || fengShenBattlePlaybackPresenter?.IsVisible == true
+            || monopolyBattlePlaybackPresenter?.IsVisible == true
+            || worldBattleRuntime.PendingResult
+            || fengShenBattleRuntime.PendingResult
+            || monopolyBattleRuntime.PendingResult
+            || worldOutcomePresenter?.IsBattleVisible == true
+            || worldOutcomePresenter?.IsStatisticsVisible == true;
+
+        public void ShowFengShenStoryBattleResult(int stars)
+        {
+            battlePlaybackContext = BattlePlaybackContext.FengShenStory;
+            services.Rewards.Replace("封神列传结算", pendingRewards);
+            if (fengShenBattleRuntime.SuppressSettlementForSkippedPlayback
+                || fengShenBattlePlaybackPresenter?.SkipRequested == true)
+            {
+                fengShenBattleRuntime.PendingResult = false;
+                fengShenBattleRuntime.PendingStars = 0;
+                SetStatus($"FengShenStory skipped playback consumed op10 without presenting settlement: stars={stars}, rewards={services.Rewards.Count}.");
+                return;
+            }
+            if (fengShenBattlePlaybackCoroutine != null || fengShenBattlePlaybackPresenter?.IsVisible == true)
+            {
+                fengShenBattleRuntime.PendingResult = true;
+                fengShenBattleRuntime.PendingStars = stars;
+                SetStatus($"FengShenStory authoritative result queued until natural playback completes: stars={stars}, rewards={services.Rewards.Count}.");
+                return;
+            }
+            ShowWorldBattleResultNow(stars, BattlePlaybackContext.FengShenStory);
+        }
+
+        private void ShowWorldBattleResultNow(int stars, BattlePlaybackContext context)
+        {
+            EnsureWorldOutcomePresenter();
+            WorldBattlePlaybackPresenter playbackPresenter = GetBattlePlaybackPresenter(context);
+            if (worldChainAutoSettlementCoroutine != null)
+            {
+                worldChainAutoSettlementToken++;
+                StopCoroutine(worldChainAutoSettlementCoroutine);
+                worldChainAutoSettlementCoroutine = null;
+            }
+            bool fengShenStory = context == BattlePlaybackContext.FengShenStory;
+            if (!fengShenStory && !CanShowWorldBattleUi())
+            {
+                // 玩家已经离开当前章节：结算仍以协议为准，但战斗层不能重新
+                // 抢回前台。自动模式继续走既有后续逻辑；手动模式保持后台结束。
+                playbackPresenter?.Hide();
+                worldBattleResultView?.SetVisible(false);
+                worldBattleStatisticsView?.SetVisible(false);
+                GetBattlePlaybackRuntime(context).PendingResult = false;
+                worldBattleInFlight = false;
+                if (worldChainMode && worldChainNextStageId == 0
+                    && (worldChainAuto || worldChainAutoNext))
+                    ContinueBattleOutcomeControl();
+                SetStatus("World battle completed in background because the current chapter view is not active.");
+                return;
+            }
+            worldOutcomePresenter.SetReplayStore(GetBattleReplayStore(context));
+            if (!fengShenStory)
+            {
+                // 本章已结束（Lua 侧 chainNextNodeId == 0 才走这条）：收起连战布点层
+                // kapaiguaiwuLayer，回大底图 DadituuiLayer。胜败都走这里 —— 失败时
+                // 服务端下发的是本章第一关（≠0），会继续连战，不会到这一步。
+                worldPresenter?.ReleaseStageWalkHold();
+                worldPresenter?.EndChainStage();
+            }
+            worldOutcomePresenter.ShowBattle(stars, !fengShenStory);
+            SetStatus($"{(fengShenStory ? "FengShenStory" : "World")} battle result active: stars={stars}, rewards={services.Rewards.Count}.");
+            // 龙崖 Boss 胜利：任一自动流程开启时，结算面板展示 2 秒后自动执行“继续”。
+            // 普通关和失败不走这里；两个自动开关都关闭时必须等待玩家点击。
+            if (!fengShenStory && worldChainMode && worldChainNextStageId == 0
+                && (worldChainAuto || worldChainAutoNext))
+            {
+                int autoSettlementToken = ++worldChainAutoSettlementToken;
+                worldChainAutoSettlementCoroutine = StartCoroutine(
+                    AutoContinueWorldChainSettlement(BattlePlaybackContext.World, autoSettlementToken));
+            }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (services.Options.WorldBattleValidation && worldG4BattleReplayValidated)
+                StartCoroutine(CaptureWorldBattleResult(services.Rewards.Count));
+#endif
+            GetBattlePlaybackRuntime(context).PendingResult = false;
+            if (context == BattlePlaybackContext.World)
+                worldBattleInFlight = false;
+        }
+
         private void BeginWorldBattlePlayback()
         {
             EnsureWorldBattlePlaybackPresenter();
@@ -40,6 +207,60 @@ namespace ProjectX.Core
             else worldBattlePlaybackCoroutine = playbackCoroutine;
         }
 
+        private void ResetBattlePlaybackStateAfterDisconnect()
+        {
+            if (worldBattlePlaybackCoroutine != null) StopCoroutine(worldBattlePlaybackCoroutine);
+            if (fengShenBattlePlaybackCoroutine != null) StopCoroutine(fengShenBattlePlaybackCoroutine);
+            if (monopolyBattlePlaybackCoroutine != null) StopCoroutine(monopolyBattlePlaybackCoroutine);
+            if (worldChainContinueCoroutine != null)
+            {
+                worldChainContinueToken++;
+                StopCoroutine(worldChainContinueCoroutine);
+            }
+            if (worldChainAutoSettlementCoroutine != null)
+            {
+                worldChainAutoSettlementToken++;
+                StopCoroutine(worldChainAutoSettlementCoroutine);
+            }
+            worldBattlePlaybackCoroutine = null;
+            fengShenBattlePlaybackCoroutine = null;
+            monopolyBattlePlaybackCoroutine = null;
+            worldChainContinueCoroutine = null;
+            worldChainAutoSettlementCoroutine = null;
+
+            worldBattleWorldPresenter?.Hide();
+            fengShenBattlePlaybackPresenter?.Hide();
+            monopolyBattlePlaybackPresenter?.Hide();
+            worldSweepView?.SetVisible(false);
+            worldBattleResultView?.SetVisible(false);
+            worldBattleStatisticsView?.SetVisible(false);
+            monopolyView?.SetVisible(false);
+            monopolyHudView?.SetVisible(false);
+            monopolyHandView?.SetVisible(false);
+
+            worldBattleRuntime.PendingResult = false;
+            worldBattleRuntime.PendingStars = 0;
+            worldBattleRuntime.SuppressSettlementForSkippedPlayback = false;
+            fengShenBattleRuntime.PendingResult = false;
+            fengShenBattleRuntime.PendingStars = 0;
+            fengShenBattleRuntime.SuppressSettlementForSkippedPlayback = false;
+            monopolyBattleRuntime.PendingResult = false;
+            monopolyBattleRuntime.PendingStars = 0;
+            monopolyBattleRuntime.SuppressSettlementForSkippedPlayback = false;
+            services.WorldBattleReplay.Clear();
+            services.FengShenBattleReplay.Clear();
+            services.MonopolyBattleReplay.Clear();
+            hasPendingMonopolyBattleResult = false;
+            monopolyBattlePlaybackActive = false;
+            monopolyBattlePlaybackReturned = false;
+            worldBattleInFlight = false;
+            worldBattleBackgrounded = false;
+            worldBattleForegroundRequested = false;
+            battlePlaybackContext = BattlePlaybackContext.None;
+            pendingRewards.Clear();
+            services.Rewards.Clear();
+        }
+
         private IEnumerator PlayWorldBattleReplay()
         {
             BattlePlaybackContext battlePlaybackContext = this.battlePlaybackContext;
@@ -56,8 +277,12 @@ namespace ProjectX.Core
                 BattlePlaybackContext.Monopoly => services.MonopolyBattleReplay,
                 _ => services.WorldBattleReplay
             };
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             bool captureFengShenStory = services.Options.BattleFengShenStoryValidation
                 && battlePlaybackContext == BattlePlaybackContext.FengShenStory;
+#else
+            const bool captureFengShenStory = false;
+#endif
             bool backgroundAtStart = battlePlaybackContext == BattlePlaybackContext.World
                 && !CanShowWorldBattleUi();
             worldBattlePlaybackPresenter.Show(!backgroundAtStart);
@@ -67,17 +292,21 @@ namespace ProjectX.Core
             foreach (WorldBattleUnitRecord unit in replay.Units)
                 ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_UNIT_DATA position={unit.Position} type={unit.Type} picture={unit.Picture} "
                     + $"quality={unit.Quality} scale={unit.ScaleRatio:0.##} state={unit.State} buffs={string.Join(",", unit.BuffIds)}");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.WorldBattleValidation)
             {
                 MarkValidationControl("WORLD-28-BATTLE-PLAYBACK-ENTER");
                 if (replay.Units.Count > 0)
                     MarkValidationControl("WORLD-29-BATTLE-UNIT-IDENTITY");
             }
+#endif
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (captureFengShenStory)
             {
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-START.png"));
             }
+#endif
             string playbackOwner = battlePlaybackContext == BattlePlaybackContext.FengShenStory ? "FengShenStory"
                 : battlePlaybackContext == BattlePlaybackContext.Monopoly ? "Monopoly" : "World";
             SetStatus($"{playbackOwner} authoritative /38 replay active: fight={replay.FightId}, units={replay.Units.Count}, actionGroups={replay.Actions.Count}.");
@@ -92,11 +321,13 @@ namespace ProjectX.Core
             // not its transient zhandoukaishi overlay. Capture only after the
             // authoritative 1.1-second start effect has fully cleared and before
             // the first /22 action begins.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.WorldBattleValidation)
             {
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-entry.png"));
             }
+#endif
             if (captureFengShenStory)
             {
                 yield return new WaitForEndOfFrame();
@@ -145,13 +376,16 @@ namespace ProjectX.Core
                 ProjectX.Diagnostics.ClientLog.Verbose($"WORLD_BATTLE_ACTION_DATA sequence={action.Sequence} round={action.Round} "
                     + $"type={action.FirstActionType} source={action.FirstSourcePosition} skill={action.SkillId} "
                     + $"sourceState={action.SourceState} sourceBuffs=[{string.Join("/", action.SourceBuffIds)}] targets={actionTargets}");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (services.Options.WorldBattleValidation)
                     MarkValidationControl("WORLD-30-BATTLE-ACTION-SEQUENCE");
+#endif
                 // The current native Cocos death reference is a stable sw pose:
                 // the following round is already visible, two defeated units
                 // remain on the field, and impact damage/skill markers are gone.
                 // Capture before advancing the first action of that next round;
                 // an impact-time capture would compare a different lifecycle.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (services.Options.WorldBattleValidation && !deathFrameCaptured
                     && stableDeathCaptureRound > 0 && action.Round >= stableDeathCaptureRound)
                 {
@@ -172,6 +406,7 @@ namespace ProjectX.Core
                     yield return new WaitForEndOfFrame();
                     ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-round-rhythm.png"));
                 }
+#endif
                 if (passiveAction)
                 {
                     // LBattleLogic:ActionStart collapses consecutive BAT_PASSIVE
@@ -212,6 +447,7 @@ namespace ProjectX.Core
                         yield return new WaitForEndOfFrame();
                         ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("BFS-BATTLE-SKILL.png"));
                     }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                     if (services.Options.WorldBattleValidation && !shakeFrameCaptured
                         && worldBattlePlaybackPresenter.IsCameraShaking)
                     {
@@ -271,6 +507,7 @@ namespace ProjectX.Core
                         yield return new WaitForEndOfFrame();
                         ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-hurt-damage.png"));
                     }
+#endif
                     yield return null;
                 }
                 worldBattlePlaybackPresenter.EndAction();
@@ -346,11 +583,13 @@ namespace ProjectX.Core
             }
             worldBattlePlaybackPresenter.ShowOutcome();
             Debug.LogWarning($"[ProjectX][WorldBattle] ReplayOutcome context={battlePlaybackContext} skip={worldBattlePlaybackPresenter.SkipRequested}");
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.WorldBattleValidation)
             {
                 yield return new WaitForEndOfFrame();
                 ScreenCapture.CaptureScreenshot(BuildUiMigrationPath("world-battle-outcome.png"));
             }
+#endif
             yield return new WaitForSecondsRealtime(.72f);
             // Current Cocos keeps the completed battle scene, units and HUD
             // beneath zhandoujiesuanLayer. Hide only when no settlement is
@@ -367,8 +606,10 @@ namespace ProjectX.Core
             {
                 int stars = runtime.PendingStars;
                 runtime.PendingResult = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (services.Options.WorldBattleValidation)
                     MarkValidationControl("WORLD-31-BATTLE-TO-SETTLEMENT");
+#endif
                 ShowWorldBattleResultNow(stars, battlePlaybackContext);
             }
         }

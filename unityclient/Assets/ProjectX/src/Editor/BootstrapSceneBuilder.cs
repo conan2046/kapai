@@ -431,12 +431,11 @@ namespace ProjectX.Editor
         private static void EnsureDrawDynamicResources()
         {
             string repositoryRoot = Directory.GetParent(Application.dataPath).Parent.FullName;
-            string cocosRoot = Path.Combine(repositoryRoot, "client", "ProjectX");
             CopyResourceIfChanged(
                 "Assets/ProjectX/res/res/UI/Icon/ui_main_icon/ui_icon_choukarukou.png",
                 "Assets/ProjectX/Resources/GameplayIcons/ui_icon_choukarukou.png");
-            // World still draws from the original Cocos bitmaps.  Keep these
-            // runtime copies small and explicit instead of substituting screenshots.
+            // Unity Resources is the Steam runtime source of truth. Existing
+            // project assets must not be refreshed from the separate Cocos client.
             CopyResourceIfChanged(
                 "Assets/ProjectX/res/res/UI/Icon/ui_map_icon/ditu_shijie_worldmap.png",
                 "Assets/ProjectX/Resources/WorldUI/worldmap.png");
@@ -446,9 +445,7 @@ namespace ProjectX.Editor
             CopyResourceIfChanged(
                 "Assets/ProjectX/res/res/UI/ui_zhandou/ui_jiesuan_shengli.png",
                 "Assets/ProjectX/Resources/WorldUI/battle_victory.png");
-            CopyResourceIfChanged(
-                Path.Combine(cocosRoot, "res", "res", "UI", "ui_zhandou", "bg0.jpg"),
-                "Assets/ProjectX/Resources/WorldUI/battle_scene_bg.jpg");
+            RequireUnityResource("Assets/ProjectX/Resources/WorldUI/battle_scene_bg.jpg");
             string unityClientDataRoot = Path.Combine(repositoryRoot, "unitydata", "export", "client", "source");
             CopyResourceIfChanged(
                 Path.Combine(unityClientDataRoot, "Battle", "hit_monster.dat.bytes"),
@@ -456,17 +453,11 @@ namespace ProjectX.Editor
             CopyResourceIfChanged(
                 Path.Combine(unityClientDataRoot, "Battle", "zhenfa_config_dat.txt"),
                 "Assets/ProjectX/Resources/ProjectXData/Battle/zhenfa_config_dat.txt");
-            CopyResourceIfChanged(
-                Path.Combine(cocosRoot, "simulator", "win32", "res", "res", "UI", "ImageNum", "num_lan.png"),
-                "Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png");
-            CopyResourceIfChanged(
-                Path.Combine(cocosRoot, "simulator", "win32", "res", "res", "UI", "ImageNum", "ui_pk_num.png"),
-                "Assets/ProjectX/Resources/ProjectXBattle/Hud/ui_pk_num.png");
+            RequireUnityResource("Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png");
+            RequireUnityResource("Assets/ProjectX/Resources/ProjectXBattle/Hud/ui_pk_num.png");
             for (int formation = 1; formation <= 6; formation++)
             {
-                CopyResourceIfChanged(
-                    Path.Combine(cocosRoot, "simulator", "win32", "res", "res2", "Icon", "ui_zhenfa_icon", $"zhenfa_{formation}.png"),
-                    $"Assets/ProjectX/Resources/HeroUI/formation_{formation}.png");
+                RequireUnityResource($"Assets/ProjectX/Resources/HeroUI/formation_{formation}.png");
             }
             foreach (string configName in new[]
                      {
@@ -484,16 +475,12 @@ namespace ProjectX.Editor
             {
                 for (int tile = 1; tile <= 12; tile++)
                 {
-                    CopyResourceIfChanged(
-                        Path.Combine(cocosRoot, "res", "fuben", $"map_{map}", $"map_{tile}.jpg"),
-                        $"Assets/ProjectX/Resources/WorldUI/Maps/map_{map}/map_{tile}.jpg");
+                    RequireUnityResource($"Assets/ProjectX/Resources/WorldUI/Maps/map_{map}/map_{tile}.jpg");
                 }
             }
             for (int world = 1; world <= 3; world++)
             {
-                CopyResourceIfChanged(
-                    Path.Combine(cocosRoot, "res", "res", "UI", "Icon", "ui_map_icon", $"fuben_map{world}.png"),
-                    $"Assets/ProjectX/Resources/WorldUI/Chapters/fuben_map{world}.png");
+                RequireUnityResource($"Assets/ProjectX/Resources/WorldUI/Chapters/fuben_map{world}.png");
             }
             string petBasicConfig = Path.Combine(unityClientDataRoot, "Configs", "pet_basic_config.xml");
             string skillBasicConfig = Path.Combine(unityClientDataRoot, "Configs", "skill_basic.xml");
@@ -511,9 +498,7 @@ namespace ProjectX.Editor
                 ?? Enumerable.Empty<int>();
             foreach (int skillId in heroSkillIds)
             {
-                CopyResourceIfChanged(
-                    Path.Combine(repositoryRoot, "client", "ProjectX", "res", "Skill", "UI", $"skill_{skillId}.png"),
-                    $"Assets/ProjectX/Resources/HeroUI/skill_{skillId}.png");
+                RequireUnityResource($"Assets/ProjectX/Resources/HeroUI/skill_{skillId}.png");
             }
             foreach (string configName in new[] { "fabao_qianghua", "fabao_jinglian", "master", "daily" })
             {
@@ -555,6 +540,16 @@ namespace ProjectX.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(absoluteDestination));
             File.WriteAllBytes(absoluteDestination, source);
             AssetDatabase.ImportAsset(destinationAssetPath, ImportAssetOptions.ForceSynchronousImport);
+        }
+
+        private static void RequireUnityResource(string assetPath)
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string absolutePath = Path.GetFullPath(Path.Combine(projectRoot, assetPath));
+            if (!File.Exists(absolutePath))
+                throw new FileNotFoundException($"Unity runtime resource is missing: {absolutePath}");
+            if (IsGitLfsPointer(File.ReadAllBytes(absolutePath)))
+                throw new InvalidDataException($"Unity runtime resource is an unresolved Git LFS pointer: {absolutePath}");
         }
 
         private static bool IsGitLfsPointer(byte[] content)

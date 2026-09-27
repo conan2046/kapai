@@ -37,6 +37,7 @@ namespace ProjectX.Core
         public bool RemoveFriend(double id) => services.Friends.RemoveFriend(checked((uint)id));
         public bool RemoveFriendApplication(double id) => services.Friends.RemoveApplication(checked((uint)id));
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CaptureFriendAndDeleteValidation(double id)
         {
             EnsureFriendPresenter();
@@ -58,6 +59,7 @@ namespace ProjectX.Core
             toastPresenter?.Clear();
             Complete($"COMPLETE: /27 seeded applications -> reject {checked((uint)rejectedId)} -> add/duplicate-error -> accept {checked((uint)acceptedId)} -> FriendStore/UI -> delete -> persisted empty state");
         }
+#endif
 
         private IEnumerator CaptureFriendAndDelete(uint roleId)
         {

@@ -20,7 +20,10 @@ namespace ProjectX.Core
         private void SelectSevenDayDay(int day){lastSevenDayBoundary=$"day:{day}:discount";RequestGameplayShopType(checked((byte)(9+day)));}
         private void SelectSevenDayCategory(int category){lastSevenDayBoundary=$"category:{category}";}
         private void RequestSevenDayDiscountBuy(byte type,ushort id){lastSevenDayBoundary=$"discount:{type}:{id}";RequestGameplayShopPurchase(type,id,1);}
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteSevenDayValidation(){if(sevenDayValidationRunning)return;sevenDayValidationRunning=true;StartCoroutine(RunSevenDayValidation());}
+#endif
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator RunSevenDayValidation()
         {
             string[] controls={"SEVENDAY-01-GAMEPLAY-ENTRY","SEVENDAY-02-CLOSE","SEVENDAY-03-DAY-SELECTORS","SEVENDAY-04-CATEGORY-SELECTORS","SEVENDAY-05-CUMULATIVE-REWARDS","SEVENDAY-06-TASK-LIST-SCROLL","SEVENDAY-07-TASK-GO","SEVENDAY-08-TASK-CLAIM","SEVENDAY-09-ITEM-DETAIL","SEVENDAY-10-DISCOUNT-BUY","SEVENDAY-11-STAMINA-ADD","SEVENDAY-12-GOLD-ADD","SEVENDAY-13-PREMIUM-ADD-DISABLED","SEVENDAY-14-RESOURCE-DISPLAYS"};
@@ -50,5 +53,6 @@ namespace ProjectX.Core
             if(validationControlIds.Count!=14){Fail($"SevenDay control coverage mismatch: {validationControlIds.Count}/14.");yield break;}
             Complete($"COMPLETE: SevenDay 14/14 controls; real /37 op4/op6 and shared /221 type10; user={GetLocalUserId()} role={GetPlayerRoleId()}");
         }
+#endif
     }
 }

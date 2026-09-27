@@ -1320,9 +1320,9 @@ namespace ProjectX.UI
 
         private static Sprite LoadWorldSprite(string path)
         {
-            Sprite sprite = Resources.Load<Sprite>(path);
+            Sprite sprite = ProjectX.Foundation.ResourceLoader.Load<Sprite>(path);
             if (sprite != null) return sprite;
-            Texture2D texture = Resources.Load<Texture2D>(path);
+            Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>(path);
             return texture == null ? null : Sprite.Create(texture,
                 new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
         }

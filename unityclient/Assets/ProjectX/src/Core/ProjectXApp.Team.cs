@@ -73,6 +73,7 @@ namespace ProjectX.Core
         public void RemoveTeamInvitation(double id) => services.Team.RemoveInvitation(checked((uint)id));
         public void SetTeamError(string message) { ShowToast(message, 3f); SetStatus(message); }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CaptureTeamAndLeaveValidation(double peerRoleId) =>
             StartCoroutine(CaptureTeamAndLeave(checked((uint)peerRoleId)));
 
@@ -87,6 +88,7 @@ namespace ProjectX.Core
             }
             Complete($"COMPLETE: /29 empty -> create -> invite/peer accept {checked((uint)peerRoleId)} -> 2-player TeamStore/UI -> leave -> persisted empty state; /30 refresh active");
         }
+#endif
 
         private IEnumerator CaptureTeamAndLeave(uint peerRoleId)
         {

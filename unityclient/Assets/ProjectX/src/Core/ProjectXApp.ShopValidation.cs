@@ -174,6 +174,7 @@ namespace ProjectX.Core
             InvokeLuaOrFail(onGameplayShopTab, "Gameplay.Shops.Tab", (double)type);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteGameplayShopsValidation()
         {
             StartCoroutine(CaptureGameplayShopsValidation(true));
@@ -474,6 +475,7 @@ namespace ProjectX.Core
             StartCoroutine(CaptureShopConfirmationAndConfirm(id));
             return true;
         }
+#endif
 
         public bool ApplyShopPurchase(double rawId, int buyCount, int rewardType, double rewardAmount)
         {
@@ -523,13 +525,18 @@ namespace ProjectX.Core
             rewardPresenter.Show();
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteShopPurchaseValidation(double rawId)
         {
             ushort id = checked((ushort)rawId);
             bool found = services.Shop.TryGet(id, out ShopRecord item);
             long currency = services.Currencies.Get(validationShopCurrencyType);
-            bool rewardValid = ValidateRewardPresentation(1,
-                !HasCommandLineFlag("-projectXShopG4Validation"));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            bool shopG4Validation = HasCommandLineFlag("-projectXShopG4Validation");
+#else
+            const bool shopG4Validation = false;
+#endif
+            bool rewardValid = ValidateRewardPresentation(1, !shopG4Validation);
             if (!found || id != validationShopId
                 || item.BuyCount != validationShopBuyCount + validationShopQuantity
                 || currency != validationShopExpectedCurrency || item.RewardType != validationShopRewardType
@@ -540,15 +547,19 @@ namespace ProjectX.Core
                 Fail($"Shop validation mismatch: found={found}, id={id}/{validationShopId}, count={(found ? item.BuyCount : 0)}/{validationShopBuyCount + validationShopQuantity}, currency={currency}/{validationShopExpectedCurrency}, reward={rewardValid}, pending={services.ProtocolRegistry.PendingCount}, open={IsShopOpen}, time={services.ServerTime.IsSynchronized}, missing={shopPresenter?.MissingIconCount ?? -1}.");
                 return;
             }
-            if (HasCommandLineFlag("-projectXShopG4Validation"))
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (shopG4Validation)
             {
                 StartCoroutine(FinalizeShopG4Validation());
                 return;
             }
+#endif
             toastPresenter?.Clear();
             Complete($"COMPLETE: /221 list -> ShopStore/limits/server time/currency -> confirmed single purchase id={id} -> persisted count={item.BuyCount}");
         }
+#endif
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator FinalizeShopG4Validation()
         {
             yield return CaptureShopValidationScreenshot("bootstrap-shop-reward.png");
@@ -624,5 +635,6 @@ namespace ProjectX.Core
             Complete($"COMPLETE: Shop G4 21/21 real controls; /221 op1/2/3/4, quantity=2, "
                 + $"insufficient/reload/empty/reconnect/account-switch; user={GetLocalUserId()} role={validationRoleIdSnapshot}");
         }
+#endif
     }
 }

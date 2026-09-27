@@ -91,8 +91,8 @@ namespace ProjectX.Animation
         public bool LoadResource(string resourceKey)
         {
             if (string.IsNullOrWhiteSpace(resourceKey)) return false;
-            TextAsset json = Resources.Load<TextAsset>(resourceKey);
-            Texture2D image = Resources.Load<Texture2D>(resourceKey);
+            TextAsset json = ProjectX.Foundation.ResourceLoader.Load<TextAsset>(resourceKey);
+            Texture2D image = ProjectX.Foundation.ResourceLoader.Load<Texture2D>(resourceKey);
             if (json == null || image == null) return false;
             Load(json, image);
             return true;

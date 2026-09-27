@@ -17,6 +17,7 @@ namespace ProjectX.Core
             services.Gameplay.SetHotPoint(checked((ushort)rawType), rawState == 1);
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteGameplayValidation() => RunGameplayValidation();
 
         public void RunGameplayValidation()
@@ -280,5 +281,6 @@ namespace ProjectX.Core
                 gameplayValidationRunning = false;
             }
         }
+#endif
     }
 }

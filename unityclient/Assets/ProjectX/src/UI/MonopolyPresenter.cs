@@ -127,7 +127,7 @@ namespace ProjectX.UI
             handResultImage = handResult.GetComponent<Image>();
             handLeftBase = handLeft.anchoredPosition; handRightBase = handRight.anchoredPosition;
             handResultBase = handResult.anchoredPosition;
-            handAtlas = Resources.Load<Texture2D>("Monopoly/huodong_chuangguan03");
+            handAtlas = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("Monopoly/huodong_chuangguan03");
             if (handAtlas == null) throw new InvalidOperationException("Monopoly formal hand atlas failed to load.");
             ApplyPortrait("Layer/caiquanUI/Npc/Icon", "Monopoly/guess_npc_505", "portrait_npc");
             ApplyPortrait("Layer/caiquanUI/User/Icon", playerModel == 4
@@ -353,7 +353,7 @@ namespace ProjectX.UI
 
         private void ApplyPortrait(string path, string resourcePath, string cacheKey)
         {
-            Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+            Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>(resourcePath);
             if (texture == null) throw new InvalidOperationException($"Monopoly portrait failed to load: {resourcePath}.");
             Image image = Require(handView, path).GetComponent<Image>();
             Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height),
@@ -426,7 +426,7 @@ namespace ProjectX.UI
             float width = 0f, height = 0f, lastWidth = 0f, lastHeight = 0f;
             for (int index = 0; index < 40; index++)
             {
-                Texture2D texture = Resources.Load<Texture2D>($"MonopolyMaps/UI_Scene_{index}");
+                Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>($"MonopolyMaps/UI_Scene_{index}");
                 if (texture == null) throw new InvalidOperationException($"Monopoly map tile missing: {index}");
                 int cocosIndex = index + 1;
                 if (lastWidth > 0f)
@@ -481,7 +481,7 @@ namespace ProjectX.UI
         private void RebuildEvents()
         {
             ClearDynamic();
-            atlas = Resources.Load<Texture2D>("Monopoly/ui_chuangguanPlist");
+            atlas = ProjectX.Foundation.ResourceLoader.Load<Texture2D>("Monopoly/ui_chuangguanPlist");
             foreach (MonopolyCell cell in cells.Values)
             {
                 if (cell.EventId == 0 || cell.EventId == 1) continue;
@@ -654,7 +654,7 @@ namespace ProjectX.UI
         }
         public void ShowDice(uint value, Action finished)
         {
-            Texture2D texture = Resources.Load<Texture2D>($"Monopoly/shaizi_{Mathf.Clamp((int)value, 1, 6)}");
+            Texture2D texture = ProjectX.Foundation.ResourceLoader.Load<Texture2D>($"Monopoly/shaizi_{Mathf.Clamp((int)value, 1, 6)}");
             if (texture == null) return;
             if (dice == null)
             {

@@ -14,6 +14,7 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator RequestValidationDrawNextFrame()
         {
             yield return null;
@@ -730,6 +731,7 @@ namespace ProjectX.Core
                 $"alternate user={GetLocalUserId()} has no hero {DrawClosureTargetHeroId} or formation position");
             Complete($"COMPLETE: /224 high free deterministic target {DrawClosureTargetHeroId} -> /24 authoritative cultivation -> /48 position {DrawClosureFormationPosition} -> reconnect persistence -> alternate account {GetLocalUserId()} isolation");
         }
+#endif
 
 
     }

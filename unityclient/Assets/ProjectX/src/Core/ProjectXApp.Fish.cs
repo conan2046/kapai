@@ -3,8 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using ProjectX.Data;
+using ProjectX.Foundation;
 using ProjectX.UI;
-using ProjectX.Validation;
 using UnityEngine;
 using UnityEngine.UI;
 using XLua;
@@ -22,7 +22,9 @@ namespace ProjectX.Core
         private FishPresenter fishPresenter;
         private readonly List<FishBasketSlot> pendingFishSlots = new List<FishBasketSlot>();
         private bool fishExitSent;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private bool fishValidationRunning;
+#endif
 
         public void ShowFish(int functionId)
         {
@@ -171,7 +173,8 @@ namespace ProjectX.Core
 
         public bool IsFishOpen => fishView != null && services?.UiStack.Current == fishView;
 
-        public void BeginFishValidation()
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private void BeginFishValidation()
         {
             if (fishValidationRunning) return;
             fishValidationRunning = true;
@@ -189,7 +192,7 @@ namespace ProjectX.Core
             RecordValidationSemantic("fish-authoritative-identity", true,
                 "Unity persistentDataPath SQLite user=7200057 role=1000003");
 
-            RuntimeInputDispatchResult entry = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult entry = RuntimeValidationInput.Dispatch(
                 GameplayPath, "FISH-01-HUD-ENTRY", "click");
             if (!entry.Dispatched)
             {
@@ -210,7 +213,7 @@ namespace ProjectX.Core
             ScrollRect gameplayScroll = gameplayPresenter.ScrollControl;
             Graphic gameplayDragSurface = gameplayScroll?.viewport?.GetComponent<Graphic>();
             float scrollBefore = gameplayPresenter.VerticalNormalizedPosition;
-            RuntimeInputDispatchResult gameplayDrag = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult gameplayDrag = RuntimeValidationInput.Dispatch(
                 "Layer/Panel/ActivityBg", "FISH-01-GAMEPLAY-SCROLL", "drag");
             yield return new WaitForEndOfFrame();
             float scrollAfter = gameplayPresenter.VerticalNormalizedPosition;
@@ -226,7 +229,7 @@ namespace ProjectX.Core
                 Fail("Fish gameplay list did not accept real EventSystem drag input: " + gameplayDrag.Error);
                 yield break;
             }
-            RuntimeInputDispatchResult fishEntry = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult fishEntry = RuntimeValidationInput.Dispatch(
                 "Function_32/EnterBtn", "FISH-01-ENTER", "click");
             if (!fishEntry.Dispatched)
             {
@@ -259,7 +262,7 @@ namespace ProjectX.Core
             MarkValidationControl("FISH-04-FIXED-POSITION");
             yield return CaptureFishFrame("bootstrap-fish-ready.png");
 
-            RuntimeInputDispatchResult help = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult help = RuntimeValidationInput.Dispatch(
                 "DynamicUi_OneLevelLayer/Panel_12/Title/TitleName/Button_1", "FISH-03-HELP", "click");
             if (!help.Dispatched || fish.IsFishing || fish.Gold != 1000)
             {
@@ -267,7 +270,7 @@ namespace ProjectX.Core
                 yield break;
             }
             MarkValidationControl("FISH-03-HELP");
-            RuntimeInputDispatchResult emptyBasket = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult emptyBasket = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/Panel_caozuo/btn_yulan", "FISH-06-BASKET-OPEN", "click");
             if (!emptyBasket.Dispatched || fishPresenter == null || !fishPresenter.IsBasketVisible)
             {
@@ -291,7 +294,7 @@ namespace ProjectX.Core
                 Fail("Fish basket did not reuse FishUI/yulan/ListView as a clipped vertical ScrollRect with a raycast surface.");
                 yield break;
             }
-            RuntimeInputDispatchResult basketClose = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult basketClose = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/yulan/btn_Close", "FISH-09-BASKET-CLOSE", "click");
             if (!basketClose.Dispatched || fishPresenter.IsBasketVisible)
             {
@@ -300,7 +303,7 @@ namespace ProjectX.Core
             }
             MarkValidationControl("FISH-09-BASKET-CLOSE");
 
-            RuntimeInputDispatchResult start = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult start = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/Panel_caozuo/btn_shouqi", "FISH-05-ROD-TOGGLE", "click");
             if (!start.Dispatched)
             {
@@ -345,7 +348,7 @@ namespace ProjectX.Core
             }
             ushort firstSlot = 0xffff;
             foreach (FishBasketSlot slot in fish.Slots) { firstSlot = slot.SlotIndex; break; }
-            RuntimeInputDispatchResult select = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult select = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/yulan/ListView/RuntimeFishBasketContent/Row_1/RuntimeHitArea",
                 "FISH-07-BASKET-SLOT", "click");
             if (!select.Dispatched)
@@ -353,7 +356,7 @@ namespace ProjectX.Core
                 Fail("Fish basket slot did not receive an EventSystem/raycast click: " + select.Error);
                 yield break;
             }
-            RuntimeInputDispatchResult collect = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult collect = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/yulan/btn_shouhuo", "FISH-08-BASKET-COLLECT", "click");
             if (!collect.Dispatched)
             {
@@ -373,7 +376,7 @@ namespace ProjectX.Core
 
             Canvas.ForceUpdateCanvases();
             yield return new WaitForEndOfFrame();
-            basketClose = RuntimeInputDispatcher.Dispatch(
+            basketClose = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/yulan/btn_Close", "FISH-09-BASKET-CLOSE", "click");
             if (!basketClose.Dispatched || fishPresenter.IsBasketVisible)
             {
@@ -392,7 +395,7 @@ namespace ProjectX.Core
                 yield break;
             }
 
-            RuntimeInputDispatchResult stop = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult stop = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/Panel_caozuo/btn_shouqi", "FISH-05-ROD-TOGGLE", "click");
             if (!stop.Dispatched)
             {
@@ -411,7 +414,7 @@ namespace ProjectX.Core
             }
             yield return CaptureFishFrame("bootstrap-fish-basket.png");
 
-            RuntimeInputDispatchResult finalBasketClose = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult finalBasketClose = RuntimeValidationInput.Dispatch(
                 "Layer/FishUI/yulan/btn_Close", "FISH-09-BASKET-CLOSE", "click");
             if (!finalBasketClose.Dispatched || fishPresenter.IsBasketVisible)
             {
@@ -420,7 +423,7 @@ namespace ProjectX.Core
             }
             yield return new WaitForEndOfFrame();
 
-            RuntimeInputDispatchResult close = RuntimeInputDispatcher.Dispatch(
+            RuntimeInputDispatchResult close = RuntimeValidationInput.Dispatch(
                 "DynamicUi_OneLevelLayer/Panel_12/Title/CloseBtn", "FISH-02-EXIT", "click");
             if (!close.Dispatched)
             {
@@ -459,5 +462,6 @@ namespace ProjectX.Core
             if (!File.Exists(path) || new FileInfo(path).Length == 0)
                 Fail("Fish screenshot was not written: " + fileName);
         }
+#endif
     }
 }

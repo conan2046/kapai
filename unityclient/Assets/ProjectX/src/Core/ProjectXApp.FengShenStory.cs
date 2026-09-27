@@ -118,6 +118,7 @@ namespace ProjectX.Core
             EnsureFengShenStoryPresenter();
             fengShenStoryPresenter.ShowRewardPush();
         }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void BeginFengShenStoryValidation()
         {
             if (fengShenStoryValidationRunning || fengShenStoryValidationCompleted) return;
@@ -941,5 +942,6 @@ namespace ProjectX.Core
             string token = (controlId ?? string.Empty).ToLowerInvariant();
             yield return CaptureFengShenStoryFrame($"fengshen-control-{token}.png");
         }
+#endif
     }
 }

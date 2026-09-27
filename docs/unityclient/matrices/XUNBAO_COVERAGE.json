@@ -20,7 +20,7 @@
   "sources": [
     {
       "id": "xunbao-compose-type8",
-      "sourceFiles": ["server/config/json/hecheng.json","unityclient/Assets/ProjectX/Resources/Configs/hecheng.json","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua","server/src/pet_equip_manage.cpp"],
+      "sourceFiles": ["server/config/json/hecheng.json","unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hecheng.json","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua","server/src/pet_equip_manage.cpp"],
       "recordTotal": 45,
       "businessIdRanges": [{"start":197,"end":241}],
       "branchType": "45条法宝/经验书合成配方及动态列表、碎片槽、搜索与合成分支",
@@ -34,7 +34,7 @@
     },
     {
       "id": "xunbao-fabao-template",
-      "sourceFiles": ["server/config/json/fabao.json","client/ProjectX/src/ConfigData/fabao_dat.lua","unityclient/Assets/ProjectX/Resources/Configs/fabao.json"],
+      "sourceFiles": ["server/config/json/fabao.json","client/ProjectX/src/ConfigData/fabao_dat.lua","unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/fabao.json"],
       "recordTotal": 45,
       "businessIds": ["615","616","617","1001","1002","1003","1004","1005","1006","1007","1008","1009","1010","1011","1012","1013","1014","1101","1102","1103","1104","1105","1106","1107","1108","1109","1110","1111","1112","1113","1114","1201","1202","1203","1204","1205","1206","1207","1208","1209","1210","1211","1212","1213","1214"],
       "branchType": "45个搜索/合成目标模板的名称、品质、图标、属性和经验书语义",
@@ -45,7 +45,7 @@
     },
     {
       "id": "xunbao-fragment-item",
-      "sourceFiles": ["server/config/json/item.json","client/ProjectX/src/ConfigData/item_dat.lua","unityclient/Assets/ProjectX/Resources/Configs/item.json","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua"],
+      "sourceFiles": ["server/config/json/item.json","client/ProjectX/src/ConfigData/item_dat.lua","unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json","client/ProjectX/src/View/WanFa/XunBaoMainUI.lua"],
       "recordTotal": 180,
       "businessIdRanges": [{"start":4701,"end":4742},{"start":4801,"end":4856},{"start":4901,"end":4970},{"start":5101,"end":5112}],
       "branchType": "180个法宝/经验书碎片的图标、品质、数量、来源和搜索目标",
@@ -96,7 +96,7 @@
     },
     {
       "id": "xunbao-task-reward-type3",
-      "sourceFiles": ["server/config/json/daily.json","server/src/mission_manager.cpp","server/src/pack_deal.cpp","client/ProjectX/src/View/WanFa/XunBaoPopUI.lua","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua","unityclient/Assets/ProjectX/Resources/Config/daily_tasks.json"],
+      "sourceFiles": ["server/config/json/daily.json","server/src/mission_manager.cpp","server/src/pack_deal.cpp","client/ProjectX/src/View/WanFa/XunBaoPopUI.lua","client/ProjectX/src/NetWork/LuaNetSendMsg.lua","client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua","unityclient/Assets/ProjectX/Resources/ProjectXData/Tasks/daily_tasks.json"],
       "recordTotal": 119,
       "businessIdRanges": [{"start":25,"end":143}],
       "branchType": "119条寻宝任务、120条配置奖励及 /37 op=1/3 type=3 查询/领取",

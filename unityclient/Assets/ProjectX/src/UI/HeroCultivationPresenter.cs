@@ -1926,7 +1926,7 @@ namespace ProjectX.UI
 
             private void LoadHeroGrowth()
             {
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/World/hero_dat");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/hero_dat");
                 if (asset == null) return;
                 foreach (string entry in SplitLuaEntries(asset.text))
                 {
@@ -1958,7 +1958,7 @@ namespace ProjectX.UI
 
             private void LoadStarRatios()
             {
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/World/star_dat");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/star_dat");
                 if (asset == null) return;
                 foreach (string entry in SplitLuaEntries(asset.text))
                 {
@@ -1983,7 +1983,7 @@ namespace ProjectX.UI
 
             private void LoadBreaks()
             {
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/World/break_dat");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/break_dat");
                 if (asset == null) return;
                 foreach (string entry in SplitLuaEntries(asset.text))
                 {
@@ -2002,7 +2002,7 @@ namespace ProjectX.UI
 
             private void LoadTrainings()
             {
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/World/xiulian_dat");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/xiulian_dat");
                 if (asset == null) return;
                 foreach (string entry in SplitLuaEntries(asset.text))
                 {
@@ -2027,7 +2027,7 @@ namespace ProjectX.UI
 
             private void LoadExperienceCaps()
             {
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/World/exp_dat");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/exp_dat");
                 if (asset == null) return;
                 foreach (string entry in SplitLuaEntries(asset.text))
                 {
@@ -2040,7 +2040,7 @@ namespace ProjectX.UI
 
             private void LoadItemPictures()
             {
-                TextAsset asset = Resources.Load<TextAsset>("ProjectXData/Configs/item");
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/item");
                 if (asset == null) return;
                 foreach (Match entry in Regex.Matches(asset.text, @"\{[^{}]*\}"))
                 {

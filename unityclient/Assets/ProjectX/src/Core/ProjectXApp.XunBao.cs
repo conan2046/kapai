@@ -12,7 +12,13 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
-        public void ShowXunBao(){EnsureXunBaoPresenter();if(services.UiStack.Current!=xunBaoView)services.UiStack.Push(xunBaoView);SetStatus("XunBao current UI active; awaiting /319 op=31.");}
+        public void ShowXunBao()
+        {
+            EnsureXunBaoPresenter();
+            if (services.UiStack.Current != xunBaoView) services.UiStack.Push(xunBaoView);
+            InvokeLuaOrFail(onXunBaoHeaderRefresh, "XunBao.PackageSnapshot");
+            SetStatus("XunBao current UI active; awaiting /8 package and /319 op=31.");
+        }
         public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds));}
         public void SetXunBaoOperationResult(bool succeeded,string message,double remaining,double recoverySeconds)
         {
@@ -45,7 +51,18 @@ namespace ProjectX.Core
             uint rewardAmount = checked((uint)amount);
             if (rewardAmount == 0) return;
             (int Type, uint Id) key = (type, rewardId);
-            RewardRecord described = services.ShopCatalog.DescribeReward(type, checked((int)rewardId), rewardAmount);
+            RewardRecord described;
+            if (type == 60028)
+            {
+                EquipmentDefinition definition = services.EquipmentCatalog.GetFaBao(checked((int)rewardId));
+                int picture = int.TryParse(definition.Picture, out int pictureId) ? pictureId : 0;
+                described = new RewardRecord(type, rewardId, rewardAmount, definition.Name,
+                    picture, definition.Quality);
+            }
+            else
+            {
+                described = services.ShopCatalog.DescribeReward(type, checked((int)rewardId), rewardAmount);
+            }
             if (pendingXunBaoRewards.TryGetValue(key, out RewardRecord current))
                 described = new RewardRecord(described.Type, described.Id, checked(current.Amount + rewardAmount),
                     described.Name, described.Picture, described.Quality);
@@ -73,17 +90,18 @@ namespace ProjectX.Core
             else
             {
                 EnsureXunBaoResultPresenter();
-                bool continueToToken = ShouldOpenTokenAfterXunBaoResult(resultMode == 1,
-                    checked((int)faBaoId), checked((int)suiId));
-                xunBaoResultPresenter.Show(pendingXunBaoRewardBatches.ToArray(), continueToToken,
-                    OpenXunBaoSearchTokenBag);
+                xunBaoResultPresenter.Show(pendingXunBaoRewardBatches.ToArray(), false, null);
             }
             int rewardCount = pendingXunBaoRewardBatches.Sum(value => value.Count);
             pendingXunBaoRewards.Clear();
             pendingXunBaoRewardBatches.Clear();
             SetStatus($"XunBao source result active: searches={searchCount}, rewards={rewardCount}.");
         }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteXunBaoValidation(){if(xunBaoValidationRunning)return;xunBaoValidationRunning=true;StartCoroutine(CompleteXunBaoValidationAfterLayout());}
+#endif
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private IEnumerator CaptureXunBaoFrame(string fileName)
         {
             loadingPresenter?.Clear();
@@ -544,6 +562,8 @@ namespace ProjectX.Core
         }
 
 
+#endif
+#endif
         private void EnsureXunBaoPresenter()
         {
             xunBaoView = xunBaoView ?? services.UiRouter.FindBySource("wanfa/XunbaoLayer");
@@ -635,18 +655,6 @@ namespace ProjectX.Core
             xunBaoPopupPresenter.ShowTaskBoundary();
             InvokeLuaOrFail(onXunBaoTaskClicked, "XunBao.TaskList");
             SetStatus("XunBao task entry opened; /37 op=1 type=3 requested.");
-        }
-
-        private bool ShouldOpenTokenAfterXunBaoResult(bool oneKey, int faBaoId, int suiId)
-        {
-            if (!oneKey) return suiId > 0 && services.Bag.GetTotalQuantityByItemId(suiId) < 1;
-            FaBaoSearchDefinition search = services.EquipmentCatalog.GetFaBaoSearches()
-                .FirstOrDefault(value => value.FaBaoId == faBaoId);
-            if (search?.FragmentIds == null || search.FragmentCosts == null) return false;
-            for (int index = 0; index < Math.Min(search.FragmentIds.Length, search.FragmentCosts.Length); index++)
-                if (services.Bag.GetTotalQuantityByItemId(search.FragmentIds[index]) < search.FragmentCosts[index])
-                    return true;
-            return false;
         }
 
         public void OpenXunBaoSearchTokenBag()
